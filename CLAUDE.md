@@ -68,6 +68,31 @@ Trabajamos en branch `redesign-v2`. Producción intacta en `main` hasta merge fi
 
 Fases F0-F10. Estado actual: ver TodoWrite del agente.
 
+## Imágenes
+
+Convención y proceso documentados en `public/img/README.md`.
+
+Resumen:
+- Lowercase kebab-case, sin emojis ni espacios.
+- WebP para fotos pesadas, PNG para gráficos planos.
+- Script `scripts/clean-images.mjs` strip metadata EXIF + convierte a WebP las > 800KB.
+- Correr el script cada vez que se agreguen fotos crudas a `public/img/*`.
+
+## Catálogo — categorías y tipos de piercing
+
+Top categories (en CategoryStrip + dropdown Nav): Piercing, Hangers, Ear Weights, Amulets, Ritual Pieces.
+
+Tipos de piercing pendientes de cargar al inventario WooCommerce (mayo 2026):
+- Flat
+- Eyebrow (ceja)
+- Nipple
+- Lip (labio)
+- Tongue (lengua)
+
+Cuando estos tipos se carguen como categorías o atributos en WooCommerce, aparecen automáticamente como tabs filtro en `/shop` — el shop lee dinámicamente las categorías de WC vía `getCategories()` en `src/lib/woo.ts`. No requiere cambios en el frontend.
+
+Si más adelante hace falta un mega-menu en el Nav con sub-tipos de piercing, expandir `shopSubmenu` en `src/components/Nav.astro`.
+
 ## Reglas
 
 - No tocar `src/lib/woo.ts` salvo necesidad explícita — fuente de productos estable.
