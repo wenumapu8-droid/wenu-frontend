@@ -3,31 +3,177 @@ import Logo from './Logo.astro';
 import en from '../i18n/en.json';
 
 const path = Astro.url.pathname;
-const items = [
-  { href: '/shop',    label: en.nav.shop,    match: '/shop' },
-  { href: '/world',   label: en.nav.world,   match: '/world' },
-  { href: '/local',   label: en.nav.local,   match: '/local' },
-  { href: '/contact', label: en.nav.contact, match: '/contact' },
+
+const shopSubmenu = [
+  { href: '/shop',                  label: en.nav.shop_all },
+  { href: '/shop?cat=piercing',     label: en.nav.piercing },
+  { href: '/shop?cat=hangers',      label: en.nav.hangers },
+  { href: '/shop?cat=ear-weights',  label: en.nav.ear_weights },
+  { href: '/shop?cat=amulets',      label: en.nav.amulets },
+  { href: '/shop?cat=ritual',       label: en.nav.ritual_pieces },
 ];
+
+const mainItems = [
+  { href: '/shop?cat=piercing', label: en.nav.piercing,        match: 'piercing' },
+  { href: '/shop?cat=hangers',  label: en.nav.hangers,         match: 'hangers' },
+  { href: '/shop?cat=ritual',   label: en.nav.ritual_objects,  match: 'ritual' },
+  { href: '/about',             label: en.nav.about,           match: '/about' },
+  { href: '/journal',           label: en.nav.journal,         match: '/journal' },
+];
+
+const isActive = (m: string) => {
+  if (m.startsWith('/')) return path.startsWith(m);
+  return Astro.url.search.includes(`cat=${m}`);
+};
 ---
-<nav class="nav">
+<nav class="nav" aria-label="Primary">
   <div class="nav__inner">
     <a href="/" class="nav__logo" aria-label="Wenu Mapu home">
       <Logo height={32} />
     </a>
-    <ul class="nav__links">
-      {items.map(item => (
-        <li>
-          <a href={item.href} class={path.startsWith(item.match) ? 'active' : ''}>
+
+    <ul class="nav__links" role="menubar">
+      <li role="none" class="nav__shop-wrap">
+        <button
+          type="button"
+          class={path === '/shop' ? 'nav__shop active' : 'nav__shop'}
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="nav-shop-menu"
+          data-shop-trigger
+        >
+          {en.nav.shop} <span class="nav__chev" aria-hidden="true">▾</span>
+        </button>
+        <ul id="nav-shop-menu" class="nav__submenu" role="menu" data-shop-menu hidden>
+          {shopSubmenu.map(item => (
+            <li role="none">
+              <a href={item.href} role="menuitem">{item.label}</a>
+            </li>
+          ))}
+        </ul>
+      </li>
+      {mainItems.map(item => (
+        <li role="none">
+          <a
+            href={item.href}
+            role="menuitem"
+            class={isActive(item.match) ? 'active' : ''}
+          >
             {item.label}
           </a>
         </li>
       ))}
+    </ul>
+
+    <div class="nav__icons">
+      <a
+        href="https://www.wenumapuonline.com/cart"
+        target="_blank"
+        rel="noopener"
+        aria-label={en.nav.cart}
+        class="nav__icon"
+      >
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <path d="M3 5h2.5l2.4 11.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.5L21 8H6" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="9.5" cy="20.5" r="1.2"/>
+          <circle cx="17.5" cy="20.5" r="1.2"/>
+        </svg>
+      </a>
+      <button
+        type="button"
+        class="nav__burger"
+        aria-label={en.nav.menu}
+        aria-controls="nav-drawer"
+        aria-expanded="false"
+        data-burger
+      >
+        <span class="nav__burger-bar"></span>
+        <span class="nav__burger-bar"></span>
+      </button>
+    </div>
+  </div>
+
+  <div id="nav-drawer" class="nav__drawer" data-drawer hidden aria-label="Mobile menu">
+    <div class="nav__drawer-head">
+      <span class="nav__drawer-title">{en.nav.menu}</span>
+      <button type="button" class="nav__drawer-close" aria-label={en.nav.close} data-drawer-close>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/>
+          <line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <ul class="nav__drawer-list">
+      <li><span class="nav__drawer-section">{en.nav.shop}</span></li>
+      {shopSubmenu.map(item => (
+        <li><a href={item.href}>{item.label}</a></li>
+      ))}
+      <li class="nav__drawer-rule" aria-hidden="true"></li>
+      {mainItems.map(item => (
+        <li><a href={item.href}>{item.label}</a></li>
+      ))}
+      <li><a href="/contact">{en.nav.contact}</a></li>
+      <li><a href="/local">{en.nav.local}</a></li>
+      <li class="nav__drawer-rule" aria-hidden="true"></li>
       <li>
-        <a href="https://www.wenumapuonline.com/cart" target="_blank" rel="noopener" class="text-accent">
-          {en.nav.store}
-        </a>
+        <a href="https://www.wenumapuonline.com/cart" target="_blank" rel="noopener">{en.nav.cart}</a>
       </li>
     </ul>
   </div>
 </nav>
+
+<script>
+  const trigger = document.querySelector<HTMLButtonElement>('[data-shop-trigger]');
+  const menu = document.querySelector<HTMLUListElement>('[data-shop-menu]');
+  const wrap = trigger?.closest('.nav__shop-wrap');
+
+  const openMenu = () => {
+    if (!menu || !trigger) return;
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+  };
+  const closeMenu = () => {
+    if (!menu || !trigger) return;
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+  };
+
+  trigger?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (trigger.getAttribute('aria-expanded') === 'true') closeMenu();
+    else openMenu();
+  });
+  wrap?.addEventListener('mouseenter', openMenu);
+  wrap?.addEventListener('mouseleave', closeMenu);
+  document.addEventListener('click', (e) => {
+    if (!wrap?.contains(e.target as Node)) closeMenu();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMenu();
+  });
+
+  const burger = document.querySelector<HTMLButtonElement>('[data-burger]');
+  const drawer = document.querySelector<HTMLDivElement>('[data-drawer]');
+  const drawerClose = document.querySelector<HTMLButtonElement>('[data-drawer-close]');
+
+  const openDrawer = () => {
+    if (!drawer || !burger) return;
+    drawer.hidden = false;
+    requestAnimationFrame(() => drawer.classList.add('is-open'));
+    burger.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+  };
+  const closeDrawer = () => {
+    if (!drawer || !burger) return;
+    drawer.classList.remove('is-open');
+    burger.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    setTimeout(() => { if (drawer) drawer.hidden = true; }, 300);
+  };
+
+  burger?.addEventListener('click', openDrawer);
+  drawerClose?.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
+  });
+</script>
