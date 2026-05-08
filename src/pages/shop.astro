@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import ProductCard from '../components/ProductCard.astro';
-import { getProducts, getCategories } from '../lib/woo';
+import { getProducts, getCategories, localizeCategory } from '../lib/woo';
 import en from '../i18n/en.json';
 
 const [products, categories] = await Promise.all([
@@ -18,6 +18,21 @@ const ritualCatPrefix: Record<string, string> = {
   'steel': 'PAÑILWE',
   'labret': 'WÜN',
 };
+
+// Localize and de-duplicate categories: many Spanish slugs map to the same
+// English label (e.g. "anillos" + "rings" → "Rings"), keep only one tab.
+const localizedCategories = (() => {
+  const seen = new Set<string>();
+  const out: Array<{ slug: string; name: string }> = [];
+  for (const c of categories) {
+    const en = localizeCategory(c);
+    const key = en.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ slug: c.slug, name: en });
+  }
+  return out;
+})();
 ---
 
 <Base
@@ -33,10 +48,10 @@ const ritualCatPrefix: Record<string, string> = {
         {en.shop.intro}
       </p>
 
-      {categories.length > 0 && (
+      {localizedCategories.length > 0 && (
         <div class="filter-bar" id="filter-bar">
           <button class="filter-tab active" data-cat="all">{en.shop.all}</button>
-          {categories.map(cat => {
+          {localizedCategories.map(cat => {
             const slug = cat.slug.toLowerCase();
             const ritual = Object.keys(ritualCatPrefix).find(k => slug.includes(k));
             return (

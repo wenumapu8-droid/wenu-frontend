@@ -98,3 +98,80 @@ export function formatPrice(price: string): string {
   if (isNaN(n)) return '';
   return `$${n.toFixed(0)} USD`;
 }
+
+// ─── CATEGORY LOCALIZATION (Spanish DB → English UI) ────────────────────────
+// The Postgres / Woo backend stores category names in Spanish (Amuletos,
+// Anillos, Aros, etc). The site is in English. This map normalizes the
+// display label without touching the database.
+//
+// Keys are matched against (a) slug lowercased and (b) name lowercased —
+// in that order — so it works whether WooCommerce returns "Amuletos" or
+// "amuletos".
+
+const CATEGORY_EN: Record<string, string> = {
+  // Postgres categories (Wenu platform)
+  'amuletos':       'Amulets',
+  'piezas-autor':   'Limited Pieces',
+  'piezas-de-autor': 'Limited Pieces',
+  'clasicos':       'Classics',
+  'collares':       'Necklaces',
+  'aros':           'Earrings',
+  'hangers':        'Hangers',
+  'labrets':        'Labrets',
+  'metal':          'Metal',
+  'organicos':      'Organic',
+  'plugs':          'Plugs',
+  'anillos':        'Rings',
+  'rings':          'Rings',
+  'septums':        'Septums',
+  'tunnels':        'Tunnels',
+  'sin-categorizar': 'Uncategorized',
+  // Common WooCommerce variants in Spanish
+  'amuleto':        'Amulet',
+  'anillo':         'Ring',
+  'collar':         'Necklace',
+  'piercing':       'Piercing',
+  'piercings':      'Piercing',
+  'expansion':      'Plug',
+  'expansiones':    'Plugs',
+  'tapon':          'Plug',
+  'tapones':        'Plugs',
+  'tunel':          'Tunnel',
+  'tuneles':        'Tunnels',
+  'pendiente':      'Hanger',
+  'pendientes':     'Hangers',
+  'aro':            'Earring',
+  'septum':         'Septum',
+  'labret':         'Labret',
+  'pieza-de-autor': 'Limited Piece',
+  'organico':       'Organic',
+  'ritual':         'Ritual Pieces',
+  'rituales':       'Ritual Pieces',
+  // Piercing zone subtypes (English already, kept for completeness)
+  'flat':           'Flat',
+  'eyebrow':        'Eyebrow',
+  'nipple':         'Nipple',
+  'lip':            'Lip',
+  'tongue':         'Tongue',
+  'helix':          'Helix',
+  'tragus':         'Tragus',
+  'conch':          'Conch',
+  'daith':          'Daith',
+  'industrial':     'Industrial',
+  'nostril':        'Nostril',
+};
+
+function normalizeKey(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim();
+}
+
+/** Translate a WooCommerce category to its English display name. */
+export function localizeCategory(cat: { name: string; slug: string }): string {
+  const slug = normalizeKey(cat.slug || '');
+  const name = normalizeKey(cat.name || '');
+  return CATEGORY_EN[slug] || CATEGORY_EN[name] || cat.name;
+}
