@@ -1,0 +1,129 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getProducts, formatPrice, cleanDescription } from '../../lib/woo';
+import type { WooProduct } from '../../lib/woo';
+import en from '../../i18n/en.json';
+
+export async function getStaticPaths() {
+  const products = await getProducts(100);
+  return products.map((p: WooProduct) => ({
+    params: { slug: p.slug },
+    props: { product: p },
+  }));
+}
+
+const { product } = Astro.props as { product: WooProduct };
+
+const desc = cleanDescription(product.description || product.short_description || '');
+const mainImg = product.images[0];
+const gallery = product.images.slice(1);
+const attrs = product.attributes || [];
+const gauge = attrs.find(a => a.name.toLowerCase().includes('gauge') || a.name.toLowerCase().includes('size'));
+const material = attrs.find(a => a.name.toLowerCase().includes('material'));
+---
+
+<Base
+  title={`${product.name} — Wenu Mapu`}
+  description={desc.slice(0, 160) || `${product.name}. Handcrafted body jewelry. ${formatPrice(product.price)}.`}
+  ogImage={mainImg?.src}
+>
+  <article class="section">
+    <div class="container">
+      <nav style="font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--fg-soft); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; margin-bottom: var(--space-5);">
+        <a href="/">Home</a>
+        <span style="margin: 0 var(--space-2);">·</span>
+        <a href="/shop">Shop</a>
+        <span style="margin: 0 var(--space-2);">·</span>
+        <span style="color: var(--fg);">{product.name}</span>
+      </nav>
+
+      <div class="grid-asym-2" style="align-items: start;">
+        <div>
+          {mainImg
+            ? (
+              <div style="aspect-ratio: 4/5; overflow: hidden; background: var(--bg-alt); margin-bottom: var(--space-1); border: var(--border-thin);">
+                <img src={mainImg.src} alt={mainImg.alt || product.name} style="width: 100%; height: 100%; object-fit: cover;" />
+              </div>
+            )
+            : (
+              <div style="aspect-ratio: 4/5; background: var(--bg-alt); display: flex; align-items: center; justify-content: center; color: var(--fg-mute); font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; border: var(--border-thin);">
+                NO IMAGE
+              </div>
+            )
+          }
+          {gallery.length > 0 && (
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border-top: var(--border-thin); border-left: var(--border-thin); margin-top: 1px;">
+              {gallery.map(img => (
+                <div style="aspect-ratio: 1; overflow: hidden; background: var(--bg-alt); border-right: var(--border-thin); border-bottom: var(--border-thin);">
+                  <img src={img.src} alt={img.alt || product.name} style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p class="eyebrow">{product.categories[0]?.name || en.product.category_default}</p>
+          <h1 style="font-size: clamp(1.8rem, 3.5vw, 3rem); margin: var(--space-3) 0 var(--space-2); line-height: 0.95;">
+            {product.name}
+          </h1>
+          {product.sku && (
+            <p style="font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--fg-soft); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; margin-bottom: var(--space-4);">
+              SKU · {product.sku}
+            </p>
+          )}
+          <div class="divider-h"></div>
+          <p class="display" style="font-size: clamp(1.6rem, 2.5vw, 2.2rem); color: var(--accent); margin: var(--space-3) 0 var(--space-4);">
+            {formatPrice(product.price)}
+          </p>
+          <p class="eyebrow" style={`color: ${product.stock_status === 'instock' ? 'var(--moss)' : 'var(--clay)'};`}>
+            ● {product.stock_status === 'instock' ? en.product.in_stock : en.product.out_of_stock}
+          </p>
+
+          {(gauge || material) && (
+            <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
+              {gauge && (
+                <p style="font-size: var(--fs-small); margin-bottom: var(--space-1);">
+                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
+                  {gauge.options.join(', ')}
+                </p>
+              )}
+              {material && (
+                <p style="font-size: var(--fs-small);">
+                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
+                  {material.options.join(', ')}
+                </p>
+              )}
+            </div>
+          )}
+
+          <a href={`https://www.wenumapuonline.com/?add-to-cart=${product.id}`} target="_blank" rel="noopener" class="btn btn--solid" style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);">
+            {en.product.buy_in_store}
+          </a>
+          <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
+            {en.product.pickup_truckee}
+          </a>
+
+          {desc && (
+            <div style="margin-top: var(--space-5); padding-top: var(--space-4); border-top: var(--border-thin);">
+              <p class="eyebrow" style="margin-bottom: var(--space-3);">{en.product.about_piece}</p>
+              <p style="color: var(--fg-soft); font-size: var(--fs-body); line-height: 1.7;">{desc}</p>
+            </div>
+          )}
+
+          <div style="margin-top: var(--space-5); padding-top: var(--space-4); border-top: var(--border-thin);">
+            <p class="eyebrow" style="margin-bottom: var(--space-3);">{en.product.shipping_pickup}</p>
+            <p style="font-size: var(--fs-small); color: var(--fg-soft); line-height: 1.7;">{en.product.shipping_body}</p>
+            <p style="font-size: var(--fs-small); color: var(--fg-soft); line-height: 1.7; margin-top: var(--space-3);">
+              {en.product.pickup_body} <a href="/local" class="text-accent">/local</a>.
+            </p>
+          </div>
+
+          <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: var(--border-thin); font-size: var(--fs-tiny); color: var(--fg-soft);">
+            {en.product.returns_note}
+          </div>
+        </div>
+      </div>
+    </div>
+  </article>
+</Base>

@@ -1,0 +1,93 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { getProducts, getCategories } from '../lib/woo';
+import en from '../i18n/en.json';
+
+const [products, categories] = await Promise.all([
+  getProducts(50),
+  getCategories(),
+]);
+
+const ritualCatPrefix: Record<string, string> = {
+  'plug': 'KÜRÜF',
+  'tunnel': 'KÜRÜF',
+  'septum': 'KUYÉN',
+  'hanger': 'ANTÜ',
+  'stone': 'TROMÜ',
+  'steel': 'PAÑILWE',
+  'labret': 'WÜN',
+};
+---
+
+<Base
+  title="Shop — Wenu Mapu"
+  description="Complete catalogue of handcrafted body jewelry. Plugs, tunnels, septums, hangers and pendants in noble materials. Ships across the US."
+>
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">{en.shop.eyebrow}</p>
+      <h1 style="margin: var(--space-3) 0 var(--space-4); max-width: 16ch;">{en.shop.title}</h1>
+      <div class="divider-h"></div>
+      <p class="italic text-soft" style="max-width: 60ch; margin-bottom: var(--space-6);">
+        {en.shop.intro}
+      </p>
+
+      {categories.length > 0 && (
+        <div class="filter-bar" id="filter-bar">
+          <button class="filter-tab active" data-cat="all">{en.shop.all}</button>
+          {categories.map(cat => {
+            const slug = cat.slug.toLowerCase();
+            const ritual = Object.keys(ritualCatPrefix).find(k => slug.includes(k));
+            return (
+              <button class="filter-tab" data-cat={cat.slug}>
+                {ritual ? `${ritualCatPrefix[ritual]} · ` : ''}{cat.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      <div class="product-grid" id="product-grid">
+        {products.length === 0
+          ? (
+            <div style="grid-column: 1/-1; text-align: center; padding: var(--space-7) 0;">
+              <p class="text-soft">{en.shop.no_products}</p>
+              <a href="https://www.wenumapuonline.com" target="_blank" class="btn" style="margin-top: var(--space-4);">
+                {en.shop.to_store}
+              </a>
+            </div>
+          )
+          : products.map(p => <ProductCard product={p} />)
+        }
+      </div>
+
+      <div style="margin-top: var(--space-6); padding-top: var(--space-4); border-top: var(--border-thin); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
+        <p class="text-soft italic" style="margin: 0;">{en.shop.not_found}</p>
+        <a href="/contact" class="btn">{en.shop.contact_us}</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const bar = document.getElementById('filter-bar');
+  const grid = document.getElementById('product-grid');
+  if (bar && grid) {
+    bar.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-tab');
+      if (!btn) return;
+      bar.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = btn.dataset.cat || 'all';
+      grid.querySelectorAll<HTMLElement>('.product-card').forEach(card => {
+        if (cat === 'all') {
+          card.style.display = '';
+        } else {
+          const cats = card.dataset.cats || '';
+          card.style.display = cats.includes(cat) ? '' : 'none';
+        }
+      });
+    });
+  }
+</script>
