@@ -73,21 +73,51 @@ const ritualCatPrefix: Record<string, string> = {
 <script>
   const bar = document.getElementById('filter-bar');
   const grid = document.getElementById('product-grid');
+
+  function applyFilter(cat: string) {
+    if (!bar || !grid) return;
+    bar.querySelectorAll<HTMLButtonElement>('.filter-tab').forEach(b => {
+      b.classList.toggle('active', (b.dataset.cat || 'all') === cat);
+    });
+    grid.querySelectorAll<HTMLElement>('.product-card, .archive-card').forEach(card => {
+      if (cat === 'all') {
+        card.style.display = '';
+        return;
+      }
+      const cats = (card.dataset.cats || '').toLowerCase();
+      card.style.display = cats.includes(cat.toLowerCase()) ? '' : 'none';
+    });
+  }
+
+  function findMatchingTab(query: string): string {
+    if (!bar) return 'all';
+    const q = query.toLowerCase();
+    const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>('.filter-tab'));
+    const exact = tabs.find(t => (t.dataset.cat || '') === q);
+    if (exact) return exact.dataset.cat || 'all';
+    const fuzzy = tabs.find(t => {
+      const c = (t.dataset.cat || '').toLowerCase();
+      return c.includes(q) || q.includes(c);
+    });
+    return fuzzy?.dataset.cat || 'all';
+  }
+
   if (bar && grid) {
     bar.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-tab');
       if (!btn) return;
-      bar.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
       const cat = btn.dataset.cat || 'all';
-      grid.querySelectorAll<HTMLElement>('.product-card').forEach(card => {
-        if (cat === 'all') {
-          card.style.display = '';
-        } else {
-          const cats = card.dataset.cats || '';
-          card.style.display = cats.includes(cat) ? '' : 'none';
-        }
-      });
+      applyFilter(cat);
+      const url = new URL(window.location.href);
+      if (cat === 'all') url.searchParams.delete('cat');
+      else url.searchParams.set('cat', cat);
+      history.replaceState(null, '', url.toString());
     });
+
+    const params = new URLSearchParams(window.location.search);
+    const initial = params.get('cat');
+    if (initial) {
+      applyFilter(findMatchingTab(initial));
+    }
   }
 </script>
