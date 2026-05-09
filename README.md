@@ -1,43 +1,37 @@
-# Astro Starter Kit: Minimal
+# Wenu Mapu — frontend
 
-```sh
-npm create astro@latest -- --template minimal
+Astro 6 SSG. Reads products from WooCommerce REST at build time. Static output deploys to Cloudflare Pages.
+
+For internal architecture / build-safety / Cloudflare preview settings, see [`CLAUDE.md`](./CLAUDE.md).
+
+## Local development
+
+Requires Node 24.14.1 (pinned in `.nvmrc`).
+
+```bash
+nvm use                    # → Node 24.14.1
+npm install
+cp .env.example .env       # then fill WC_CONSUMER_KEY / WC_CONSUMER_SECRET
+npm run dev                # http://localhost:4321
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Build
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
+```bash
+npm run build              # SSG → dist/ (with postbuild catalog assertion)
+npm run preview            # local preview of the built site
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+The build will **fail loud** if WooCommerce is unreachable or auth fails. For an intentional offline build:
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+```bash
+ALLOW_EMPTY_PRODUCTS=true npm run build
+```
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Deployment
 
-## 🧞 Commands
+This repo targets **Cloudflare Pages preview** on the `redesign-v2` branch. The production domain `wenumapuonline.com` is **not** connected to this build — it continues to serve the legacy WordPress / WooCommerce site. See `CLAUDE.md` for the Cloudflare Pages settings and required environment variables.
 
-All commands are run from the root of the project, from a terminal:
+## Aftercare
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+The `/aftercare` page and any `aftercare.*` deploy are handled in a separate workstream. Do not modify `public/aftercare/` from this branch.

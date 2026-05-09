@@ -5,12 +5,54 @@ Astro 6.2.1 SSG. Sitio público en `wenumapuonline.com`. Lee productos de WooCom
 ## Comandos
 
 ```bash
+nvm use          # reads .nvmrc → Node 24.14.1
+npm install
 npm run dev      # dev server localhost:4321
-npm run build    # build SSG → ./dist
+npm run build    # build SSG → ./dist (runs postbuild assertion)
 npm run preview  # serve build local
 ```
 
-Node ≥ 22.12.0 (declarado en package.json).
+Node version: pinned to **24.14.1** via `.nvmrc`. `package.json` `engines.node = ^22.12.0 || >=24.0.0` for headroom.
+
+## Build safety
+
+- `getProducts/getProduct/getCategories` in `src/lib/woo.ts` **throw** on WC fetch errors. No silent zero-products builds.
+- `npm run postbuild` runs `scripts/verify-build.mjs` which fails the build if `dist/p/` has fewer than 20 product directories.
+- Intentional offline/dev build: `ALLOW_EMPTY_PRODUCTS=true npm run build` — logs warnings, skips the assertion.
+
+## Cloudflare Pages preview
+
+This repo is built for Cloudflare Pages preview deploys. Production cutover is **not** wired here yet — `wenumapuonline.com` continues to serve the legacy WordPress / WooCommerce site.
+
+| Field | Value |
+|---|---|
+| Project name | `wenu-mapu-redesign` |
+| Production branch (in this Pages project) | `redesign-v2` |
+| Framework preset | Astro |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Root directory | `/` |
+| Custom domain | none — use auto `*.pages.dev` URL only |
+
+### Required environment variables
+
+| Var | Where | Example | Encrypted |
+|---|---|---|---|
+| `NODE_VERSION` | Production + Preview | `24.14.1` | no |
+| `WC_URL` | Production + Preview | `https://www.wenumapuonline.com/wp-json/wc/v3` | no |
+| `WC_CONSUMER_KEY` | Production + Preview | from local `.env` | yes |
+| `WC_CONSUMER_SECRET` | Production + Preview | from local `.env` | yes |
+| `ALLOW_EMPTY_PRODUCTS` | dev only — never set in CI | unset | — |
+
+### Do NOT do (production safety)
+
+- Do not attach the apex `wenumapuonline.com` domain to this Pages project yet.
+- Do not attach `aftercare.wenumapuonline.com` here — aftercare is a separate deploy track.
+- Do not deploy `main` — only `redesign-v2`.
+
+## Route redirects (preview milestone)
+
+`public/_redirects` is reserved for future Cloudflare-edge redirects. Standalone routes for `/piercing`, `/hangers` and `/shipping` are real Astro pages now (see `src/pages/`).
 
 ## Datos
 
