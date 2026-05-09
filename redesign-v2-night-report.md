@@ -183,6 +183,29 @@ Después del fix, todas las 17 páginas principales tienen exactamente 1 h1, jer
 
 - **BN7**: Sitemap priorities curadas por sección. Home=1.0 daily, shop=0.9 daily, custom-orders=0.85, products=0.8 weekly, care-guide=0.7, about/contact/etc=0.6, faq/sizing=0.5, terms/privacy=0.3 yearly. Plus lastmod en cada página = build time.
 
+- **BN9**: Preconnect a `wenumapuonline.com` (CDN de productos) y dns-prefetch a `formspree.io`. Visible kbd hint `/` en el botón de search del nav (oculto en mobile).
+
+- **BN10**: CLAUDE.md actualizado con todo el roster de componentes, endpoints, structured data y reglas de performance.
+
+- **BN11**: Print stylesheet completo. Las páginas legales (terms/privacy/accessibility/shipping-returns/care-guide/sizing-guide/faq) se imprimen como documentos limpios — sin nav, sin footer, sin grain. URLs aparecen entre paréntesis después de cada link. FAQ details quedan expandidos en papel.
+
+- **BN11 (404)**: La página 404 ahora muestra 6 "popular destinations" en grid (Shop / Commissions / Care guide / About / Contact / Local pickup) además de los CTA principales. Lost users encuentran su camino sin buscar.
+
+---
+
+## Cierre
+
+**Total commits durante la noche: 19** (N1–N10 + BN1–BN11 + BN8/9/10/11).
+
+**Estado final del branch `redesign-v2`**:
+- 82 páginas SSG
+- 9 endpoints/scripts adicionales (search-index, robots, sitemap, 2 scripts de imágenes)
+- ~3770 líneas de CSS (-97 dead, +~600 nuevas)
+- 17 componentes Astro + 18 pages
+- Build clean en ~28-50s
+
+Producción intacta en `main`. Servidor local apagado. Todo committed.
+
 ---
 
 ## Estado del build
