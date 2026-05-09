@@ -100,3 +100,35 @@ Si más adelante hace falta un mega-menu en el Nav con sub-tipos de piercing, ex
 - Reusar clases de `global.css` antes de crear nuevas.
 - Mobile-first o paridad mobile/desktop obligatoria.
 - Cada fase debe pasar `npm run build` limpio antes de commit.
+- Toda foto cruda nueva debe pasar por `node scripts/clean-images.mjs` (strip EXIF + WebP) y `node scripts/gen-avif.mjs` (AVIF companions).
+
+## Componentes clave
+
+- `Base.astro` (layout) — props soportados: `title`, `description`, `ogImage`, `ogType`, `noNav`, `noFooter`, `jsonLd`, `preloadImage`. Acepta jsonLd como object o array. preloadImage agrega `<link rel="preload">` para LCP.
+- `PatternBand.astro` — divider textil mapuche (placeholder geométrico hasta que llegue el SVG real). Variantes: `hairline` (entre secciones) o `band` (footer/sacred).
+- `SearchModal.astro` — vive en Base. Lazy-loads `/search-index.json`. Triggers: click, `/`, `Cmd+K`. Cierra con Esc.
+- `ProductCard.astro` — props: `product`, `archive`, `fragmentIndex`, `badge`. Cards sin imagen muestran cardinal-cross placeholder en bronze.
+- `HealingTimes.astro` — prop `titleAs: 'h1' | 'h2'` (default 'h2'; care-guide passes 'h1').
+- `CardinalGrid.astro` — 4 SVGs cardinales con lang="arn" en labels mapudungun.
+
+## Endpoints
+
+- `/search-index.json` — Astro endpoint que emite todos los productos (id, slug, name, price, image, cat, cats). Consumido por SearchModal.
+- `/sitemap-index.xml` — generado por @astrojs/sitemap con priorities curadas (config en `astro.config.mjs`).
+- `/robots.txt` — manual en `public/robots.txt`.
+
+## SEO / Structured data
+
+- Home: `Organization` + `WebSite` (con `SearchAction`).
+- `/p/[slug]`: `Product` + `BreadcrumbList`.
+- `/faq`: `FAQPage` (cada Q/A es Question/acceptedAnswer).
+- `/care-guide`: `HowTo` con los 3 principios + `HowToSupply`.
+- Per-page OG images: home/heroe, custom-orders/ring, care-guide/meteorite, local/truckee, about/meteorite-final, shop/meteorite-banner.
+
+## Performance
+
+- Hero responsive: 600/900/1200/1800w en avif+webp via `<picture>` con `srcset+sizes`. Mobile baja ~15KB en vez de ~131KB.
+- Hero preloaded via `<link rel="preload" as="image" type="image/avif">` con fetchpriority=high.
+- AVIF companion para todas las imágenes >800KB (script `scripts/gen-avif.mjs`).
+- Preconnect a `wenumapuonline.com` (CDN de productos), dns-prefetch a `formspree.io`.
+- Fade-in stagger en cards de Featured / Categories / USPs / Cardinals via IntersectionObserver. Honra `prefers-reduced-motion`.
