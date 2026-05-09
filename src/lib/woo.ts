@@ -1,15 +1,31 @@
 // Cliente WooCommerce REST API — solo lectura, sin exponer claves en el cliente
 // Las claves quedan en el servidor (SSR/SSG en build time)
+//
+// Build safety:
+//   - Fetch errors throw by default. A silent zero-products build is unsafe
+//     for an ecommerce site.
+//   - To intentionally bypass (offline dev, migration), set ALLOW_EMPTY_PRODUCTS=true.
+//   - The postbuild script (scripts/verify-build.mjs) asserts a non-trivial
+//     catalog ships in dist/p/ unless the same flag is set.
 
 const WC_URL = import.meta.env.WC_URL || 'https://www.wenumapuonline.com/wp-json/wc/v3';
 const WC_KEY = import.meta.env.WC_CONSUMER_KEY;
 const WC_SECRET = import.meta.env.WC_CONSUMER_SECRET;
+const ALLOW_EMPTY = import.meta.env.ALLOW_EMPTY_PRODUCTS === 'true';
 
 if (!WC_KEY || !WC_SECRET) {
-  throw new Error(
-    '[woo.ts] Missing WC_CONSUMER_KEY / WC_CONSUMER_SECRET in environment. ' +
-    'Set them in .env (already in .gitignore) — never commit.'
-  );
+  if (ALLOW_EMPTY) {
+    console.warn(
+      '[woo] WARNING: WC_CONSUMER_KEY / WC_CONSUMER_SECRET missing — ' +
+      'continuing because ALLOW_EMPTY_PRODUCTS=true. Catalog will be empty.'
+    );
+  } else {
+    throw new Error(
+      '[woo] Missing WC_CONSUMER_KEY / WC_CONSUMER_SECRET in environment. ' +
+      'Set them in .env (already in .gitignore) — never commit. ' +
+      'For an intentional empty build, set ALLOW_EMPTY_PRODUCTS=true.'
+    );
+  }
 }
 
 export interface WooImage {
@@ -52,11 +68,19 @@ export async function getProducts(perPage = 50): Promise<WooProduct[]> {
     const res = await fetch(
       `${WC_URL}/products?per_page=${perPage}&status=publish&${authParams()}`
     );
-    if (!res.ok) throw new Error(`WC products error: ${res.status}`);
-    return await res.json();
+    if (!res.ok) {
+      throw new Error(`WC products fetch failed: HTTP ${res.status} from ${WC_URL}/products`);
+    }
+    const data: WooProduct[] = await res.json();
+    console.log(`[woo] fetched ${data.length} products`);
+    return data;
   } catch (e) {
-    console.error('WooCommerce fetch error:', e);
-    return [];
+    if (ALLOW_EMPTY) {
+      console.warn('[woo] WARNING: getProducts failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);
+      return [];
+    }
+    console.error('[woo] FATAL: getProducts failed and ALLOW_EMPTY_PRODUCTS is not true. Aborting build.', e);
+    throw e instanceof Error ? e : new Error(String(e));
   }
 }
 
@@ -65,12 +89,18 @@ export async function getProduct(slug: string): Promise<WooProduct | null> {
     const res = await fetch(
       `${WC_URL}/products?slug=${slug}&${authParams()}`
     );
-    if (!res.ok) throw new Error(`WC product error: ${res.status}`);
+    if (!res.ok) {
+      throw new Error(`WC product fetch failed: HTTP ${res.status} for slug=${slug}`);
+    }
     const data: WooProduct[] = await res.json();
     return data[0] || null;
   } catch (e) {
-    console.error('WooCommerce fetch error:', e);
-    return null;
+    if (ALLOW_EMPTY) {
+      console.warn(`[woo] WARNING: getProduct(${slug}) failed but ALLOW_EMPTY_PRODUCTS=true — returning null.`, e);
+      return null;
+    }
+    console.error(`[woo] FATAL: getProduct(${slug}) failed and ALLOW_EMPTY_PRODUCTS is not true.`, e);
+    throw e instanceof Error ? e : new Error(String(e));
   }
 }
 
@@ -79,10 +109,17 @@ export async function getCategories(): Promise<WooCategory[]> {
     const res = await fetch(
       `${WC_URL}/products/categories?per_page=50&hide_empty=true&${authParams()}`
     );
-    if (!res.ok) return [];
+    if (!res.ok) {
+      throw new Error(`WC categories fetch failed: HTTP ${res.status}`);
+    }
     return await res.json();
-  } catch {
-    return [];
+  } catch (e) {
+    if (ALLOW_EMPTY) {
+      console.warn('[woo] WARNING: getCategories failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);
+      return [];
+    }
+    console.error('[woo] FATAL: getCategories failed and ALLOW_EMPTY_PRODUCTS is not true.', e);
+    throw e instanceof Error ? e : new Error(String(e));
   }
 }
 
