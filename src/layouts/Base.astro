@@ -7,13 +7,31 @@ interface Props {
   title?: string;
   description?: string;
   ogImage?: string;
+  ogType?: 'website' | 'article' | 'product';
+  noNav?: boolean;
+  noFooter?: boolean;
+  /** Optional JSON-LD object to inject as structured data */
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
 }
 
+const SITE = 'https://wenumapuonline.com';
 const {
-  title = 'Wenu Mapu — Body jewelry forged in Truckee',
-  description = 'Body jewelry forged by hand in Truckee, California. No middlemen, no borrowed shelves. Plugs, tunnels, septums, hangers and pendants. Ships across the US · Local pickup.',
-  ogImage = '/logos/wenu-mapu-square.png',
+  title = 'Wenu Mapu — Adornment for the sacred body',
+  description = 'Ancestral-cosmic body jewelry forged by hand in Truckee, California. Implant-grade titanium, sterling silver, 14k gold. Ships across the US · Local pickup.',
+  ogImage = '/img/hero/hero-portrait.webp',
+  ogType = 'website',
+  noNav = false,
+  noFooter = false,
+  jsonLd,
 } = Astro.props;
+
+const path = Astro.url.pathname;
+const canonical = new URL(path, SITE).toString();
+const ogImageUrl = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE).toString();
+
+const ldArray = jsonLd
+  ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd])
+  : null;
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -22,22 +40,37 @@ const {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content={ogImage} />
-    <meta property="og:type" content="website" />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content={ogType} />
     <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Wenu Mapu" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
     <link rel="icon" type="image/png" href="/logos/wenu-mapu-square.png" />
     <link rel="apple-touch-icon" href="/logos/wenu-mapu-square.png" />
     <link rel="sitemap" href="/sitemap-index.xml" />
-    <meta name="theme-color" content="#F3EBDD" />
+    <meta name="theme-color" content="#080706" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content="index, follow" />
+
+    {ldArray && ldArray.map(obj => (
+      <script type="application/ld+json" set:html={JSON.stringify(obj)} />
+    ))}
   </head>
   <body>
-    <Nav />
-    <main>
+    <a href="#main" class="skip-link">Skip to main content</a>
+    {!noNav && <Nav />}
+    <main id="main">
       <slot />
     </main>
-    <Footer />
+    {!noFooter && <Footer />}
   </body>
 </html>
