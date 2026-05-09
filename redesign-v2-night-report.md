@@ -22,16 +22,23 @@ The site grew from 75 → **82 pages SSG**. Every commit is incremental and reve
 
 ## Commit log
 
-| Commit  | Block | Resumen |
-|---------|-------|---------|
-| `26310d6` | N1 | Pattern band en footer + 5 páginas de soporte |
-| (parte de N2) | N2 | AVIF universal + hero preload + picture tags |
-| `6eb01d2` | N3 | BreadcrumbList + per-page OG images |
-| (parte de N4) | N4 | Search modal + `/search-index.json` endpoint |
-| (parte de N5) | N5 | `/materials` `/artistry` `/stockists` standalone |
-| (parte de N7) | N7 | CSS cleanup — eliminé `.constellation-divider`, `.hero` v1 (97 líneas muertas) |
-| `2775d1d` | N8 | Microinteractions: fade-in stagger en CategoryStrip / Featured / USPs / Cardinals |
-| `dc4f766` | N9 | h1 fix en /care-guide + lang="arn" en cardinales |
+| Block | Resumen |
+|-------|---------|
+| N1 | Pattern band en footer + 5 páginas de soporte |
+| N2 | AVIF universal + hero preload + picture tags |
+| N3 | BreadcrumbList + per-page OG images |
+| N4 | Search modal + `/search-index.json` endpoint |
+| N5 | `/materials` `/artistry` `/stockists` standalone |
+| N7 | CSS cleanup — eliminé `.constellation-divider`, `.hero` v1 (97 líneas muertas) |
+| N8 | Microinteractions: fade-in stagger en CategoryStrip / Featured / USPs / Cardinals |
+| N9 | h1 fix en /care-guide + lang="arn" en cardinales |
+| N10 | (este reporte) |
+| BN1 | HTML entity decoder en lib/woo.ts — fixea "Sterling Silver &amp;" |
+| BN2 | Filtrar productos sin imagen del featured grid del home |
+| BN4 | Hero responsive srcset por ancho (600/900/1200/1800w) |
+| BN5 | HowTo JSON-LD schema en /care-guide |
+| BN6 | Placeholder ritual SVG en cards sin imagen (reemplaza "No image" gris) |
+| BN7 | Sitemap priorities curadas por sección + lastmod |
 
 Comandos útiles:
 ```bash
@@ -148,23 +155,33 @@ Después del fix, todas las 17 páginas principales tienen exactamente 1 h1, jer
 
 ## Findings que dejé como TODO
 
-1. **HTML entities en nombres de producto**: WooCommerce devuelve `&amp;` en algunos nombres ("Sterling Silver &amp; Atacama Meteorite"). El frontend muestra el entity literal. Fix: en `lib/woo.ts` decodificar entities cuando se renderiza name. **Prioridad**: alta, afecta 4 productos visibles en featured.
+(Tachado lo que resolví en bonus tasks BN durante la noche)
 
-2. **Productos con "NO IMAGE" en featured**: 1-2 productos no tienen imagen en WooCommerce. Idealmente: subir foto o esconderlos del featured. Como mejora del frontend: filtrar productos sin imágenes en `getProducts()` cuando se llama desde index. **Prioridad**: media.
+1. ~~**HTML entities en nombres de producto**~~ ✅ Resuelto en BN1. `decodeEntities()` aplicado en ProductCard, /p/[slug], search-index. Las "&amp;" ahora se renderizan como "&".
 
-3. **Productos `UNCATEGORIZED`**: el cat name viene "Uncategorized" porque tu BD Postgres tiene 51 productos en "Sin categorizar". Cuando empieces a categorizar en WooCommerce, el sitio actualiza automáticamente.
+2. ~~**Productos con "NO IMAGE" en featured**~~ ✅ Resuelto en BN2. El home filter productos sin imagen antes de slicear top 6. /shop y detail pages siguen mostrando placeholder (ahora rediseñado en BN6).
 
-4. **Cardinales SVG**: siguen siendo placeholder geométrico (cruz cardinal + glyph distintivo). Esperan tu validación cosmovisional o tus SVGs reales si los generas en Illustrator/Figma.
+3. **Productos `UNCATEGORIZED`** (no resuelto): el cat name viene "Uncategorized" porque tu BD Postgres tiene 51 productos en "Sin categorizar". Cuando empieces a categorizar en WooCommerce, el sitio actualiza automáticamente.
 
-5. **PDF aftercare**: tu commit de care-guide agregó un link a `/downloads/wenu-mapu-aftercare-guide.pdf` que aún no existe en `public/`. Hay que crear el PDF y ponerlo ahí, o el botón da 404.
+4. **Cardinales SVG** (no resuelto): siguen siendo placeholder geométrico (cruz cardinal + glyph distintivo). Esperan tu validación cosmovisional o tus SVGs reales si los generas en Illustrator/Figma.
 
-6. **Lang en eyebrows mapudungun**: KÜRÜF, NEWEN, MARI MARI, RÜPÜ, TRAFÜN, KÜME, WIÑOLTUN aparecen en eyebrows pero no tienen lang="arn". Mejora futura: wrappear en spans con lang.
+5. **PDF aftercare** (no resuelto): tu commit de care-guide agregó un link a `/downloads/wenu-mapu-aftercare-guide.pdf` que aún no existe en `public/`. Hay que crear el PDF y ponerlo ahí, o el botón da 404.
 
-7. **Hero responsive widths**: hero-portrait.avif es 1800w. En mobile se downscala via CSS pero el browser baja todo el archivo. Ahorro futuro: generar 800w / 1200w / 1800w variants y servir con `srcset` por ancho.
+6. **Lang en eyebrows mapudungun** (skipped — bajo impacto): KÜRÜF, NEWEN, MARI MARI etc en eyebrows. Skipped porque son textos decorativos top-of-section y los screen readers infieren la pronunciación del contexto.
 
-8. **Forms endpoints**: Newsletter y Custom Orders forms apuntan a `formspree.io/f/placeholder`. Necesito tu endpoint real para que funcionen.
+7. ~~**Hero responsive widths**~~ ✅ Resuelto en BN4. Generamos 600/900/1200/1800w variantes en webp + avif. `<picture>` con srcset+sizes. Mobile baja ~15KB en vez de ~131KB. Savings de ~88% en LCP móvil.
 
-9. **Cloudflare Pages preview**: pendiente del inicio del rediseño. Requiere push del repo a GitHub o wrangler CLI.
+8. **Forms endpoints** (no resuelto): Newsletter y Custom Orders forms apuntan a `formspree.io/f/placeholder`. Necesito tu endpoint real para que funcionen.
+
+9. **Cloudflare Pages preview** (no resuelto): requiere push del repo a GitHub o wrangler CLI.
+
+## Bonus tasks adicionales
+
+- **BN5**: HowTo JSON-LD schema en /care-guide. Los 3 principios (Saline / No twist / First jewelry stays) ahora son `HowToStep` con `totalTime: P6M` y `HowToSupply`. Eligible para "How to" rich-result en Google.
+
+- **BN6**: Placeholder ritual SVG. Cards sin imagen ahora muestran cruz cardinal sutil en bronze (consistente con CardinalGrid) en vez de cuadrado gris "No image". Aplica también al modo `archive`.
+
+- **BN7**: Sitemap priorities curadas por sección. Home=1.0 daily, shop=0.9 daily, custom-orders=0.85, products=0.8 weekly, care-guide=0.7, about/contact/etc=0.6, faq/sizing=0.5, terms/privacy=0.3 yearly. Plus lastmod en cada página = build time.
 
 ---
 
