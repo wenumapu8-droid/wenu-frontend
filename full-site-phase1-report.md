@@ -245,3 +245,94 @@ done
 ```
 
 Phase 1 closes the four launch-blocker categories: WC silent-fail, fake forms, missing routes, broken Buy CTA. Production-cutover blockers (real form endpoints, visual asset replacement, full route parity, slug hygiene) tracked for subsequent phases.
+
+---
+
+## Access audit (2026-05-09)
+
+| Resource | Status |
+|---|---|
+| Browser automation (Chrome MCP, computer-use) | ✅ available |
+| Wrangler CLI | ❌ not installed (`which wrangler` empty) |
+| Cloudflare API token / Account ID env | ❌ not in shell |
+| `~/.wrangler/config/default.toml` | ❌ absent |
+| **GitHub remote `origin`** | ❌ **not configured** (`git remote -v` empty) |
+| WooCommerce `.env` (`WC_CONSUMER_KEY`, `WC_CONSUMER_SECRET`) | ✅ present locally (not exposed) |
+| Node 24.14.1 (via nvm) | ✅ available, `.nvmrc` pins it |
+| `redesign-v2` branch with Phase 1 commits | ✅ ready |
+
+## Phase 1 final verification (Node 24)
+
+```
+[verify-build] OK: 64 product pages built.
+dist/p/ → 64 directories
+search-index.json → 64 entries
+/piercing /hangers /shipping /shipping-returns → all built
+formspree.io/f/placeholder → 0 matches
+Buy CTA → /cart/?add-to-cart=${product.id}, same-tab
+bad-creds build → exit 1 (HTTP 401 in log)
+```
+
+## Remaining manual steps that need your approval
+
+These cannot be automated from inside the repo. Each is a discrete action you decide on.
+
+### A — Create the GitHub remote
+
+The repo has no `origin`. Cloudflare Pages connects to GitHub. Two paths:
+
+1. **You create the repo on GitHub** (private recommended), then locally:
+   ```
+   git remote add origin git@github.com:<your-handle>/wenu-frontend.git
+   git push origin redesign-v2     # I will not run this without approval
+   ```
+2. Or if you prefer the GitHub CLI:
+   ```
+   gh repo create wenu-frontend --private --source=. --remote=origin
+   ```
+
+I will not push or create the repo without your explicit approval.
+
+### B — Cloudflare access for the preview project
+
+Two paths to choose from. Pick one:
+
+1. **Dashboard route (no terminal credentials needed)** — open https://dash.cloudflare.com/pages, create project `wenu-mapu-redesign` connected to the GitHub repo from step A, branch `redesign-v2`. I can drive your browser via Chrome MCP and walk through the form fields if you log in first; I will pause and ask before submitting.
+2. **Wrangler route** — install + auth + use `wrangler pages` from the terminal:
+   ```
+   npm install -g wrangler          # I will not run this without approval
+   wrangler login                   # opens browser, you authenticate
+   wrangler pages project create wenu-mapu-redesign --production-branch=redesign-v2
+   ```
+   This adds a Cloudflare API token to `~/.wrangler/config/default.toml`. I will not run any of these commands without approval.
+
+### C — Cloudflare Pages settings to apply (whichever route you choose)
+
+| Field | Value |
+|---|---|
+| Project name | `wenu-mapu-redesign` |
+| Production branch (in this Pages project) | `redesign-v2` |
+| Framework preset | Astro |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Root directory | `/` |
+| Custom domain | **none yet** — use auto `*.pages.dev` URL |
+
+**Environment variables (Production + Preview):**
+
+| Var | Value | Encrypt |
+|---|---|---|
+| `NODE_VERSION` | `24.14.1` | no |
+| `WC_URL` | `https://www.wenumapuonline.com/wp-json/wc/v3` | no |
+| `WC_CONSUMER_KEY` | from local `.env` (you copy it into the dashboard) | yes |
+| `WC_CONSUMER_SECRET` | from local `.env` (you copy it into the dashboard) | yes |
+
+I will not type secrets into chat or terminal output. You paste them directly into the encrypted Cloudflare UI. If you choose the Chrome MCP browser-driven path, I will pause the form before the secret fields and let you fill them.
+
+### D — What stays untouched
+
+- `wenumapuonline.com` apex DNS — not modified.
+- `aftercare.wenumapuonline.com` — separate track, not touched.
+- Cloudflare Tunnel — not modified.
+- `main` branch — not modified.
+- Any production deploy — not performed.
