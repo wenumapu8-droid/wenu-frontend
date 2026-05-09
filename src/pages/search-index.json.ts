@@ -1,7 +1,7 @@
 // Build-time search index. Emitted as static /search-index.json.
 // Fetched once by SearchModal on first open.
 
-import { getProducts, formatPrice, localizeCategory } from '../lib/woo';
+import { getProducts, formatPrice, localizeCategory, decodeEntities } from '../lib/woo';
 import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async () => {
@@ -10,7 +10,7 @@ export const GET: APIRoute = async () => {
   const index = products.map(p => ({
     id: p.id,
     slug: p.slug,
-    name: p.name,
+    name: decodeEntities(p.name),
     price: formatPrice(p.price),
     image: p.images[0]?.src || null,
     cat: p.categories[0] ? localizeCategory(p.categories[0]) : 'Jewelry',
