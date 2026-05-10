@@ -1,0 +1,230 @@
+---
+// SNIPPET — DRAFT, NOT WIRED
+// Move to src/components/forms/CustomOrderForm.astro when Codex executes Task 4b.
+//
+// /custom-orders inquiry form with qualification logic.
+// Provider-agnostic. Falls back to mailto when MAILERLITE_API_KEY absent.
+// Spec: custom-orders-system-wenu-mapu.md §3, §10.
+---
+
+<form id="custom-order-form" class="custom-order-form" novalidate>
+  <div class="custom-order-form__head">
+    <p class="eyebrow">COMMISSIONS · INQUIRY</p>
+    <h2 class="custom-order-form__title">Start a commission.</h2>
+    <p class="custom-order-form__intro">
+      Tell us what you have in mind. We respond to every inquiry within 5 business days.
+    </p>
+  </div>
+
+  <div class="custom-order-form__grid">
+    <div class="custom-order-form__field">
+      <label for="co-name">Your name *</label>
+      <input id="co-name" name="name" type="text" required autocomplete="name" />
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-email">Email *</label>
+      <input id="co-email" name="email" type="email" required autocomplete="email" />
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-type">Type of piece *</label>
+      <select id="co-type" name="type" required>
+        <option value="">Choose…</option>
+        <option value="ring">Ring</option>
+        <option value="amulet">Amulet / pendant</option>
+        <option value="hanger">Hanger</option>
+        <option value="ear-weight">Ear weight</option>
+        <option value="piercing-top">Piercing top</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-placement">Body placement (if applicable)</label>
+      <input id="co-placement" name="placement" type="text" placeholder="e.g., left helix, septum, right ring finger" />
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-material">Preferred material *</label>
+      <select id="co-material" name="material" required>
+        <option value="">Choose…</option>
+        <option value="silver">Sterling Silver 950</option>
+        <option value="gold-14k">14k Gold</option>
+        <option value="open">Open / let's discuss</option>
+      </select>
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-stone">Stone or inclusion (optional)</label>
+      <input id="co-stone" name="stone" type="text" placeholder="Atacama meteorite, obsidian, labradorite…" />
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-budget">Indicative budget (USD) *</label>
+      <select id="co-budget" name="budget" required>
+        <option value="">Choose…</option>
+        <option value="under-400">Under $400</option>
+        <option value="400-800">$400 – $800</option>
+        <option value="800-1500">$800 – $1,500</option>
+        <option value="1500-2500">$1,500 – $2,500</option>
+        <option value="2500-plus">$2,500+</option>
+        <option value="open">Open / let's discuss</option>
+      </select>
+    </div>
+
+    <div class="custom-order-form__field">
+      <label for="co-timing">Timing *</label>
+      <select id="co-timing" name="timing" required>
+        <option value="">Choose…</option>
+        <option value="standard">Within 6 months — standard</option>
+        <option value="specific">Specific date (please describe)</option>
+        <option value="no-rush">No rush</option>
+      </select>
+    </div>
+
+    <div class="custom-order-form__field custom-order-form__field--specific-date" hidden>
+      <label for="co-specific-date">Specific date (if any)</label>
+      <input id="co-specific-date" name="specificDate" type="date" />
+    </div>
+
+    <div class="custom-order-form__field custom-order-form__field--full">
+      <label for="co-story">Your idea, story, or reference *</label>
+      <textarea
+        id="co-story"
+        name="story"
+        rows="5"
+        required
+        minlength="50"
+        maxlength="1000"
+        placeholder="What is this piece for? Who is it for? Any symbols, references, or images you want to share?"
+      ></textarea>
+    </div>
+
+    <div class="custom-order-form__field custom-order-form__field--full">
+      <label for="co-inspiration">Optional: link to inspiration</label>
+      <input id="co-inspiration" name="inspiration" type="url" placeholder="Pinterest, Instagram, photo URL…" />
+    </div>
+  </div>
+
+  <div class="custom-order-form__consent">
+    <label>
+      <input type="checkbox" name="consent" required />
+      <span>I understand the 6-month lead time and the 50% non-refundable deposit on commission confirmation.</span>
+    </label>
+  </div>
+
+  <button type="submit" class="btn btn--solid custom-order-form__submit">Send inquiry</button>
+
+  <div class="custom-order-form__status" role="status" aria-live="polite" hidden></div>
+
+  <p class="custom-order-form__fallback-link">
+    Or write to us directly:
+    <a href="mailto:marimari@wenumapuonline.com?subject=Commission%20inquiry">marimari@wenumapuonline.com</a>
+  </p>
+</form>
+
+<script>
+  const form = document.getElementById('custom-order-form');
+  if (form) {
+    const status = form.querySelector('.custom-order-form__status');
+    const specificDateField = form.querySelector('.custom-order-form__field--specific-date');
+    const timingSelect = form.querySelector('select[name=timing]');
+    const budgetSelect = form.querySelector('select[name=budget]');
+
+    timingSelect?.addEventListener('change', () => {
+      specificDateField.hidden = timingSelect.value !== 'specific';
+    });
+
+    const setStatus = (msg, ok, html) => {
+      status.hidden = false;
+      if (html) status.innerHTML = msg;
+      else status.textContent = msg;
+      status.classList.toggle('custom-order-form__status--ok', !!ok);
+      status.classList.toggle('custom-order-form__status--err', !ok);
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Soft qualification.
+      if (budgetSelect.value === 'under-400') {
+        setStatus(
+          'For pieces under $400, our catalogue has hand-forged options that may fit. ' +
+          'Would you like a curation instead? <a href="/jewelry-styling">Request a curation →</a>',
+          true,
+          true
+        );
+        return;
+      }
+
+      const fd = new FormData(form);
+      const payload = {
+        email: String(fd.get('email') || '').trim(),
+        name: String(fd.get('name') || '').trim(),
+        fields: {
+          type: String(fd.get('type') || ''),
+          placement: String(fd.get('placement') || ''),
+          material: String(fd.get('material') || ''),
+          stone: String(fd.get('stone') || ''),
+          budget: String(fd.get('budget') || ''),
+          timing: String(fd.get('timing') || ''),
+          specific_date: String(fd.get('specificDate') || ''),
+          story: String(fd.get('story') || '').slice(0, 2000),
+          inspiration: String(fd.get('inspiration') || ''),
+        },
+        tags: [
+          'source:custom-orders-form',
+          'tier:commission-queue',
+          'consent:marketing',
+          'interest:material:' + (String(fd.get('material') || 'open')),
+        ],
+      };
+
+      if (!payload.email || !fd.get('consent')) {
+        setStatus('Please complete all required fields and confirm consent.', false);
+        return;
+      }
+
+      setStatus('Sending…', true);
+      try {
+        const resp = await fetch('/api/custom-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          setStatus(
+            'Inquiry received. We respond to all commission inquiries within 5 business days.',
+            true
+          );
+          form.reset();
+        } else if (data.reason === 'no-provider') {
+          // Build copyable summary for the user.
+          const summary = [
+            `Type: ${payload.fields.type}`,
+            `Placement: ${payload.fields.placement || '(none)'}`,
+            `Material: ${payload.fields.material}`,
+            `Stone: ${payload.fields.stone || '(none)'}`,
+            `Budget: ${payload.fields.budget}`,
+            `Timing: ${payload.fields.timing}${payload.fields.specific_date ? ' — ' + payload.fields.specific_date : ''}`,
+            `Story: ${payload.fields.story}`,
+            `Inspiration: ${payload.fields.inspiration || '(none)'}`,
+          ].join('\n');
+          const mailtoBody = encodeURIComponent(summary);
+          setStatus(
+            'Direct submissions are being configured. Please send this to ' +
+            '<a href="mailto:marimari@wenumapuonline.com?subject=Commission%20inquiry&body=' + mailtoBody + '">marimari@wenumapuonline.com</a>',
+            false,
+            true
+          );
+        } else {
+          setStatus('Could not submit. Please write to marimari@wenumapuonline.com.', false);
+        }
+      } catch (err) {
+        setStatus('Could not submit. Please write to marimari@wenumapuonline.com.', false);
+      }
+    });
+  }
+</script>

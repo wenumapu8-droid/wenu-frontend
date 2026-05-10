@@ -1,0 +1,110 @@
+---
+// SNIPPET — DRAFT, NOT WIRED
+// Move to src/components/forms/JoinTheCircleForm.astro when Codex executes Task 3.
+//
+// Footer + home + journal "Join the circle" newsletter capture.
+// Provider-agnostic via /api/subscribe. Falls back to mailto when MAILERLITE_API_KEY absent.
+
+interface Props {
+  source: 'home-footer' | 'home-newsletter' | 'journal-hub' | 'journal-entry' | string;
+  variant?: 'compact' | 'full';
+  formId?: string;
+}
+
+const { source, variant = 'full', formId } = Astro.props;
+const id = formId ?? `join-circle-${source}`;
+const tagSet = ['source:' + source, 'tier:circle', 'consent:marketing'];
+---
+
+<form
+  id={id}
+  class={`join-circle join-circle--${variant}`}
+  data-tags={JSON.stringify(tagSet)}
+  novalidate
+>
+  {variant === 'full' && (
+    <div class="join-circle__head">
+      <p class="eyebrow">JOIN THE CIRCLE</p>
+      <h2 class="join-circle__title">Join the circle.</h2>
+      <p class="join-circle__body">
+        First access to limited drops and new Journal entries. Written by the maker. Sent rarely.
+      </p>
+    </div>
+  )}
+
+  <div class="join-circle__field">
+    <label for={`${id}-email`} class="visually-hidden">Email</label>
+    <input
+      id={`${id}-email`}
+      name="email"
+      type="email"
+      required
+      autocomplete="email"
+      placeholder="Your email"
+    />
+  </div>
+
+  <div class="join-circle__consent">
+    <label>
+      <input type="checkbox" name="consent" required />
+      <span>I want to receive emails from Wenu Mapu about new pieces, drops, and Journal entries.</span>
+    </label>
+  </div>
+
+  <button type="submit" class="btn btn--solid join-circle__submit">Subscribe</button>
+
+  <div class="join-circle__status" role="status" aria-live="polite" hidden></div>
+
+  <noscript>
+    <p class="join-circle__fallback">
+      Direct subscriptions need JavaScript. Until then, write to us:
+      <a href="mailto:marimari@wenumapuonline.com?subject=Join%20the%20circle">Join via email →</a>
+    </p>
+  </noscript>
+</form>
+
+<script define:vars={{ id }}>
+  const form = document.getElementById(id);
+  if (form) {
+    const status = form.querySelector('.join-circle__status');
+    const setStatus = (msg, ok) => {
+      status.hidden = false;
+      status.textContent = msg;
+      status.classList.toggle('join-circle__status--ok', !!ok);
+      status.classList.toggle('join-circle__status--err', !ok);
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = form.querySelector('input[type=email]').value.trim();
+      const consent = form.querySelector('input[name=consent]').checked;
+      const tags = JSON.parse(form.dataset.tags);
+
+      if (!email || !consent) {
+        setStatus('Please enter your email and confirm consent.', false);
+        return;
+      }
+
+      setStatus('Sending…', true);
+      try {
+        const resp = await fetch('/api/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, tags }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          setStatus('Welcome to the circle.', true);
+          form.querySelector('input[type=email]').value = '';
+          form.querySelector('input[name=consent]').checked = false;
+        } else if (data.reason === 'no-provider') {
+          setStatus('Subscriptions are being configured. Write to marimari@wenumapuonline.com and we will add you.', false);
+        } else {
+          setStatus('Could not subscribe. Please write to marimari@wenumapuonline.com.', false);
+        }
+      } catch (err) {
+        setStatus('Could not subscribe. Please write to marimari@wenumapuonline.com.', false);
+      }
+    });
+  }
+</script>

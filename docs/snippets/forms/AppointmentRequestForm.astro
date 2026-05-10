@@ -1,0 +1,180 @@
+---
+// SNIPPET — DRAFT, NOT WIRED
+// Move to src/components/forms/AppointmentRequestForm.astro when Codex executes Task 4c.
+//
+// /stockists appointment + free local delivery request form.
+// Provider-agnostic. Falls back to mailto when MAILERLITE_API_KEY absent.
+// Spec: local-appointments-delivery-system.md §3.
+---
+
+<form id="appointment-request-form" class="appointment-form" novalidate>
+  <div class="appointment-form__head">
+    <p class="eyebrow">REQUEST AN APPOINTMENT</p>
+    <h2 class="appointment-form__title">Visit Wenu Mapu — by appointment.</h2>
+    <p class="appointment-form__intro">
+      Private appointments and free local delivery in the Truckee / North Lake Tahoe area.
+      We respond within 48 business hours.
+    </p>
+  </div>
+
+  <div class="appointment-form__grid">
+    <div class="appointment-form__field">
+      <label for="ap-name">Your name *</label>
+      <input id="ap-name" name="name" type="text" required autocomplete="name" />
+    </div>
+
+    <div class="appointment-form__field">
+      <label for="ap-email">Email *</label>
+      <input id="ap-email" name="email" type="email" required autocomplete="email" />
+    </div>
+
+    <div class="appointment-form__field">
+      <label for="ap-phone">Phone (optional)</label>
+      <input id="ap-phone" name="phone" type="tel" autocomplete="tel" placeholder="For appointment confirmation only" />
+    </div>
+
+    <fieldset class="appointment-form__field appointment-form__field--full">
+      <legend>Mode *</legend>
+      <label><input type="radio" name="mode" value="appointment" required /> Private appointment</label>
+      <label><input type="radio" name="mode" value="delivery" /> Free local delivery</label>
+      <label><input type="radio" name="mode" value="both" /> Both</label>
+    </fieldset>
+
+    <div class="appointment-form__field">
+      <label for="ap-area">City / area *</label>
+      <select id="ap-area" name="area" required>
+        <option value="">Choose…</option>
+        <option value="truckee">Truckee</option>
+        <option value="kings-beach">Kings Beach</option>
+        <option value="tahoe-vista">Tahoe Vista</option>
+        <option value="other">Other (please describe)</option>
+      </select>
+    </div>
+
+    <div class="appointment-form__field appointment-form__field--full">
+      <label for="ap-pieces">Pieces you'd like to see / order *</label>
+      <textarea
+        id="ap-pieces"
+        name="pieces"
+        rows="3"
+        required
+        placeholder="Product names, gauges, materials, or 'anything in titanium'…"
+      ></textarea>
+    </div>
+
+    <div class="appointment-form__field appointment-form__field--full">
+      <label for="ap-dates">Preferred dates *</label>
+      <textarea
+        id="ap-dates"
+        name="dates"
+        rows="2"
+        required
+        placeholder="e.g., Saturday afternoons, this Friday after 5pm, next week"
+      ></textarea>
+    </div>
+
+    <div class="appointment-form__field appointment-form__field--full">
+      <label for="ap-notes">Notes (optional)</label>
+      <textarea
+        id="ap-notes"
+        name="notes"
+        rows="2"
+        placeholder="First-time stretching, gift, ritual milestone, etc."
+      ></textarea>
+    </div>
+  </div>
+
+  <div class="appointment-form__consent">
+    <label>
+      <input type="checkbox" name="consent" required />
+      <span>I understand the appointment location is confirmed privately after booking.</span>
+    </label>
+  </div>
+
+  <button type="submit" class="btn btn--solid appointment-form__submit">Request</button>
+
+  <div class="appointment-form__status" role="status" aria-live="polite" hidden></div>
+
+  <p class="appointment-form__fallback-link">
+    Or write to us directly:
+    <a href="mailto:marimari@wenumapuonline.com?subject=Appointment%20request">marimari@wenumapuonline.com</a>
+  </p>
+</form>
+
+<script>
+  const form = document.getElementById('appointment-request-form');
+  if (form) {
+    const status = form.querySelector('.appointment-form__status');
+    const setStatus = (msg, ok, html) => {
+      status.hidden = false;
+      if (html) status.innerHTML = msg;
+      else status.textContent = msg;
+      status.classList.toggle('appointment-form__status--ok', !!ok);
+      status.classList.toggle('appointment-form__status--err', !ok);
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const mode = String(fd.get('mode') || '');
+      const interestTag = mode === 'delivery'
+        ? 'interest:local-delivery'
+        : mode === 'both'
+          ? 'interest:appointment'
+          : 'interest:appointment';
+
+      const payload = {
+        email: String(fd.get('email') || '').trim(),
+        name: String(fd.get('name') || '').trim(),
+        fields: {
+          phone: String(fd.get('phone') || ''),
+          mode,
+          area: String(fd.get('area') || ''),
+          pieces: String(fd.get('pieces') || '').slice(0, 1500),
+          dates: String(fd.get('dates') || '').slice(0, 500),
+          notes: String(fd.get('notes') || '').slice(0, 1000),
+        },
+        tags: ['source:appointment-request', 'tier:circle', 'consent:marketing', interestTag],
+      };
+
+      if (!payload.email || !mode || !fd.get('consent')) {
+        setStatus('Please complete all required fields and confirm consent.', false);
+        return;
+      }
+
+      setStatus('Sending…', true);
+      try {
+        const resp = await fetch('/api/appointment-request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          setStatus('Request received. We respond within 48 business hours.', true);
+          form.reset();
+        } else if (data.reason === 'no-provider') {
+          const summary = [
+            `Mode: ${payload.fields.mode}`,
+            `Area: ${payload.fields.area}`,
+            `Pieces: ${payload.fields.pieces}`,
+            `Preferred dates: ${payload.fields.dates}`,
+            `Notes: ${payload.fields.notes || '(none)'}`,
+            `Phone: ${payload.fields.phone || '(none)'}`,
+          ].join('\n');
+          const mailtoBody = encodeURIComponent(summary);
+          setStatus(
+            'Direct submissions are being configured. Please send this to ' +
+            '<a href="mailto:marimari@wenumapuonline.com?subject=Appointment%20request&body=' + mailtoBody + '">marimari@wenumapuonline.com</a>',
+            false,
+            true
+          );
+        } else {
+          setStatus('Could not submit. Please write to marimari@wenumapuonline.com.', false);
+        }
+      } catch (err) {
+        setStatus('Could not submit. Please write to marimari@wenumapuonline.com.', false);
+      }
+    });
+  }
+</script>
