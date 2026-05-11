@@ -1,18 +1,30 @@
 ---
 import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
 import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities } from '../../lib/woo';
 import type { WooProduct } from '../../lib/woo';
 import en from '../../i18n/en.json';
 
 export async function getStaticPaths() {
   const products = await getProducts(100);
-  return products.map((p: WooProduct) => ({
-    params: { slug: p.slug },
-    props: { product: p },
-  }));
+  return products.map((p: WooProduct) => {
+    // Cross-sell rail: up to 3 other products sharing at least one category,
+    // excluding the current product and any item without a primary image.
+    const related = products
+      .filter(other =>
+        other.id !== p.id &&
+        other.images.length > 0 && other.images[0].src &&
+        other.categories.some(c => p.categories.some(pc => pc.id === c.id))
+      )
+      .slice(0, 3);
+    return {
+      params: { slug: p.slug },
+      props: { product: p, related },
+    };
+  });
 }
 
-const { product } = Astro.props as { product: WooProduct };
+const { product, related } = Astro.props as { product: WooProduct; related: WooProduct[] };
 
 const desc = cleanDescription(product.description || product.short_description || '');
 const mainImg = product.images[0];
@@ -111,23 +123,25 @@ const breadcrumbLd = {
             ● {product.stock_status === 'instock' ? en.product.in_stock : en.product.out_of_stock}
           </p>
 
-          {(gauge || material) && (
-            <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
-              {gauge && (
-                <p style="font-size: var(--fs-small); margin-bottom: var(--space-1);">
-                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
-                  {gauge.options.join(', ')}
-                  <a href="/sizing-guide" style="margin-left: var(--space-2); color: var(--ember); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
-                </p>
-              )}
-              {material && (
-                <p style="font-size: var(--fs-small);">
-                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
-                  {material.options.join(', ')}
-                </p>
-              )}
-            </div>
-          )}
+          <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
+            {gauge && (
+              <p style="font-size: var(--fs-small); margin-bottom: var(--space-1);">
+                <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
+                {gauge.options.join(', ')}
+                <a href="/sizing-guide" style="margin-left: var(--space-2); color: var(--ember); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
+              </p>
+            )}
+            {material && (
+              <p style="font-size: var(--fs-small); margin-bottom: var(--space-1);">
+                <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
+                {material.options.join(', ')}
+              </p>
+            )}
+            <p style="font-size: var(--fs-small);">
+              <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.made_in_label}</span>
+              {en.product.made_in_value}
+            </p>
+          </div>
 
           <a href={`https://www.wenumapuonline.com/cart/?add-to-cart=${product.id}`} class="btn btn--solid" style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);">
             {en.product.add_to_cart}
@@ -163,6 +177,22 @@ const breadcrumbLd = {
           </div>
         </div>
       </div>
+
+      {related.length > 0 && (
+        <section style="margin-top: var(--space-7); padding-top: var(--space-5); border-top: var(--border-thin);" aria-labelledby="related-title">
+          <p class="eyebrow">{en.product.related_eyebrow}</p>
+          <h2 id="related-title" style="font-size: clamp(1.4rem, 2vw, 1.8rem); margin: var(--space-3) 0 var(--space-4);">
+            {en.product.related_title}
+          </h2>
+          <div class="featured-v2__rail">
+            {related.map(p => (
+              <div class="featured-v2__cell">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   </article>
 </Base>
