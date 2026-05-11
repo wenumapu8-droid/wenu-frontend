@@ -1,0 +1,181 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import PatternBand from '../../components/PatternBand.astro';
+import { getCollection, render } from 'astro:content';
+import { getProducts } from '../../lib/woo';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('journal');
+  return entries.map(entry => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { title, eyebrow, date, ogImage, excerpt, related } = entry.data;
+
+// Tail rail: filter products by related material if present, otherwise top 2 with images.
+const all = await getProducts(50);
+const materialMatch = related.find((r: string) => r.startsWith('/material/'));
+const materialKey = materialMatch ? materialMatch.replace('/material/', '') : null;
+const candidates = all.filter(p => p.images.length > 0 && p.images[0].src);
+const tail = materialKey
+  ? candidates.filter(p => p.categories.some(c => c.slug.toLowerCase().includes(materialKey))).slice(0, 2)
+  : candidates.slice(0, 2);
+
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description: excerpt,
+  datePublished: date.toISOString(),
+  image: `https://wenumapuonline.com${ogImage}`,
+  author: { '@type': 'Organization', name: 'Wenu Mapu' },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Wenu Mapu',
+    logo: { '@type': 'ImageObject', url: 'https://wenumapuonline.com/img/brand/wenu-mapu-mark.svg' },
+  },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Journal', item: 'https://wenumapuonline.com/journal/' },
+    { '@type': 'ListItem', position: 3, name: title, item: `https://wenumapuonline.com/journal/${entry.id}/` },
+  ],
+};
+
+const dateLabel = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+<Base
+  title={`${title} | Wenu Mapu Journal`}
+  description={excerpt}
+  ogImage={ogImage}
+  ogType="article"
+  jsonLd={[articleLd, breadcrumbLd]}
+>
+  <article class="section section--mega journal-entry">
+    <div class="container">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1 class="page-title">{title}</h1>
+      <p class="entry-meta">{dateLabel}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <div class="entry-prose">
+        <Content />
+      </div>
+
+      <div class="page-divider" style="margin-top: var(--space-6);"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      {tail.length > 0 && (
+        <div class="landing__rail" aria-label="From the catalogue">
+          <div class="landing__rail-head">
+            <p class="eyebrow">From the catalogue</p>
+            <a href="/shop" class="text-accent">View all →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {tail.map(product => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {related.length > 0 && (
+        <nav class="entry-related" aria-label="Related pages">
+          <p class="eyebrow">Related</p>
+          <ul class="entry-related__list">
+            {related.map((href: string) => (
+              <li><a href={href}>{href}</a></li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
+      <p class="entry-back">
+        <a href="/journal">← All entries</a>
+      </p>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .journal-entry .entry-meta {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--silver, #a8a39a);
+    margin-top: var(--space-2);
+  }
+  .entry-prose {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--bone, #f2ede4);
+  }
+  .entry-prose :global(h2) {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-3);
+    color: var(--bronze, #8a6a43);
+  }
+  .entry-prose :global(p) {
+    margin-bottom: var(--space-4);
+  }
+  .entry-prose :global(em) {
+    font-style: italic;
+  }
+  .entry-prose :global(strong) {
+    font-weight: 600;
+  }
+  .entry-prose :global(a) {
+    color: var(--bronze, #8a6a43);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .entry-prose :global(a:hover) {
+    color: var(--ember, #c4935a);
+  }
+  .entry-related {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+  }
+  .entry-related__list {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .entry-related__list a {
+    color: var(--bronze, #8a6a43);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+  }
+  .entry-back {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .entry-back a {
+    color: var(--silver, #a8a39a);
+    text-decoration: none;
+  }
+  .entry-back a:hover {
+    color: var(--bone, #f2ede4);
+  }
+</style>

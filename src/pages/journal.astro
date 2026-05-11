@@ -1,18 +1,15 @@
 ---
 import Base from '../layouts/Base.astro';
 import PatternBand from '../components/PatternBand.astro';
+import { getCollection } from 'astro:content';
 import en from '../i18n/en.json';
 
-const sections = [
-  { id: 'rituals',   label: en.footer.rituals,   blurb: 'Ceremonial use of body adornment across cultures and time.' },
-  { id: 'cosmology', label: en.footer.cosmology, blurb: 'Mapuche cosmology, the four cardinals, and ancestral geometries we draw from.' },
-  { id: 'ancestry',  label: en.footer.ancestry,  blurb: 'Pieces as memory: how form holds inheritance.' },
-  { id: 'stories',   label: en.footer.stories,   blurb: 'Notes from the studio. Process, materials, fragments.' },
-];
+const entries = (await getCollection('journal'))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 ---
 <Base
   title="Journal — Wenu Mapu"
-  description="Field notes from the Wenu Mapu studio in Truckee, California. Ritual, cosmology, ancestry, process."
+  description="Field notes from the Wenu Mapu studio in Truckee, California. Material stories, process notes, cosmology, aftercare, curation."
 >
   <section class="section section--mega">
     <div class="container">
@@ -21,17 +18,73 @@ const sections = [
       <p class="lede">{en.journal.intro}</p>
       <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
 
-      <div class="journal-grid">
-        {sections.map(s => (
-          <article id={s.id} class="journal-card">
-            <h2 class="journal-card__label">{s.label}</h2>
-            <p class="journal-card__blurb">{s.blurb}</p>
-            <p class="journal-card__soon">First entries forthcoming.</p>
-          </article>
-        ))}
-      </div>
-
-      <p class="muted" style="margin-top: var(--space-6);">{en.journal.soon}</p>
+      {entries.length === 0 ? (
+        <p class="muted" style="margin-top: var(--space-6);">{en.journal.soon}</p>
+      ) : (
+        <ul class="journal-index">
+          {entries.map(entry => {
+            const dateLabel = entry.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            return (
+              <li class="journal-index__item">
+                <a class="journal-index__link" href={`/journal/${entry.id}/`}>
+                  <p class="eyebrow">{entry.data.eyebrow}</p>
+                  <h2 class="journal-index__title">{entry.data.title}</h2>
+                  <p class="journal-index__excerpt">{entry.data.excerpt}</p>
+                  <p class="journal-index__meta">{dateLabel}{entry.data.length_words ? ` · ${entry.data.length_words} words` : ''}</p>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   </section>
 </Base>
+
+<style>
+  .journal-index {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-6) 0 0;
+    display: grid;
+    gap: var(--space-5);
+  }
+  .journal-index__item {
+    border-top: 1px solid color-mix(in srgb, var(--silver, #a8a39a) 30%, transparent);
+    padding-top: var(--space-5);
+  }
+  .journal-index__item:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+  .journal-index__link {
+    display: block;
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .journal-index__link:hover .journal-index__title {
+    color: var(--ember, #c4935a);
+  }
+  .journal-index__title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--bone, #f2ede4);
+    margin: var(--space-2) 0;
+    transition: color 0.2s ease;
+  }
+  .journal-index__excerpt {
+    font-family: var(--font-serif);
+    color: var(--silver, #a8a39a);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin-bottom: var(--space-2);
+  }
+  .journal-index__meta {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--silver, #a8a39a);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+</style>
