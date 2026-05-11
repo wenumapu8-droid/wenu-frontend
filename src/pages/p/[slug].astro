@@ -1,6 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
-import ProductCard from '../../components/ProductCard.astro';
+import Spec from '../../components/visual/Spec.astro';
+import RelatedPieces from '../../components/visual/RelatedPieces.astro';
 import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities } from '../../lib/woo';
 import type { WooProduct } from '../../lib/woo';
 import en from '../../i18n/en.json';
@@ -8,23 +9,14 @@ import en from '../../i18n/en.json';
 export async function getStaticPaths() {
   const products = await getProducts(100);
   return products.map((p: WooProduct) => {
-    // Cross-sell rail: up to 3 other products sharing at least one category,
-    // excluding the current product and any item without a primary image.
-    const related = products
-      .filter(other =>
-        other.id !== p.id &&
-        other.images.length > 0 && other.images[0].src &&
-        other.categories.some(c => p.categories.some(pc => pc.id === c.id))
-      )
-      .slice(0, 3);
     return {
       params: { slug: p.slug },
-      props: { product: p, related },
+      props: { product: p, allProducts: products },
     };
   });
 }
 
-const { product, related } = Astro.props as { product: WooProduct; related: WooProduct[] };
+const { product, allProducts } = Astro.props as { product: WooProduct; allProducts: WooProduct[] };
 
 const desc = cleanDescription(product.description || product.short_description || '');
 const mainImg = product.images[0];
@@ -150,6 +142,8 @@ const breadcrumbLd = {
             {en.product.pickup_truckee}
           </a>
 
+          <Spec product={product} />
+
           {desc && (
             <div style="margin-top: var(--space-5); padding-top: var(--space-4); border-top: var(--border-thin);">
               <p class="eyebrow" style="margin-bottom: var(--space-3);">{en.product.about_piece}</p>
@@ -178,21 +172,7 @@ const breadcrumbLd = {
         </div>
       </div>
 
-      {related.length > 0 && (
-        <section style="margin-top: var(--space-7); padding-top: var(--space-5); border-top: var(--border-thin);" aria-labelledby="related-title">
-          <p class="eyebrow">{en.product.related_eyebrow}</p>
-          <h2 id="related-title" style="font-size: clamp(1.4rem, 2vw, 1.8rem); margin: var(--space-3) 0 var(--space-4);">
-            {en.product.related_title}
-          </h2>
-          <div class="featured-v2__rail">
-            {related.map(p => (
-              <div class="featured-v2__cell">
-                <ProductCard product={p} />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
+      <RelatedPieces product={product} allProducts={allProducts} />
     </div>
   </article>
 </Base>

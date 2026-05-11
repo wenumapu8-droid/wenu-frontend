@@ -1,0 +1,115 @@
+---
+import ProductCard from '../ProductCard.astro';
+import { decodeEntities } from '../../lib/woo';
+import type { WooProduct } from '../../lib/woo';
+import en from '../../i18n/en.json';
+
+type ProductWithMeta = WooProduct & {
+  featured?: boolean;
+  date_created?: string;
+  date_created_gmt?: string;
+};
+
+interface Props {
+  product: ProductWithMeta;
+  allProducts: ProductWithMeta[];
+}
+
+const { product, allProducts } = Astro.props;
+
+const materialSlugs = ['sterling-silver', 'silver', 'vacamuerta', 'meteorite', 'atacama', 'titanium', 'titanio', 'walnut', 'wood', 'madera', 'brass', 'bronze', '14k-gold', 'gold'];
+const collectionSlugs = ['ritual-ring-vacamuerta', 'mystic-series', 'author-jewelry', 'piezas-autor', 'piezas-de-autor'];
+const placementSlugs = ['piercing', 'piercings', 'hangers', 'ear-weights', 'amulets', 'ritual-objects', 'septums', 'labrets', 'plugs', 'tunnels', 'ear-cuffs'];
+
+const categorySlugs = (p: WooProduct) => p.categories.map(category => category.slug.toLowerCase());
+const productCategorySlugs = categorySlugs(product);
+
+const productText = (p: WooProduct) => [
+  decodeEntities(p.name),
+  ...p.categories.flatMap(category => [category.slug, category.name]),
+  ...p.attributes.flatMap(attribute => [attribute.name, ...attribute.options]),
+].join(' ').toLowerCase();
+
+const matchingKeys = (p: WooProduct, keys: string[]) => {
+  const slugs = categorySlugs(p);
+  const text = productText(p);
+  return keys.filter(key => slugs.some(slug => slug.includes(key)) || text.includes(key));
+};
+
+const seriesPrefix = (name: string) => decodeEntities(name)
+  .split(/\s+(?:—|Nº|No\.|No\s)/)[0]
+  .trim()
+  .toLowerCase();
+
+const currentMaterials = matchingKeys(product, materialSlugs);
+const currentCollections = matchingKeys(product, collectionSlugs);
+const currentPlacements = matchingKeys(product, placementSlugs);
+const currentPrefix = seriesPrefix(product.name);
+
+const scored = allProducts
+  .filter(candidate =>
+    candidate.id !== product.id &&
+    candidate.images.length > 0 &&
+    Boolean(candidate.images[0].src)
+  )
+  .map(candidate => {
+    const candidateSlugs = categorySlugs(candidate);
+    const candidateMaterials = matchingKeys(candidate, materialSlugs);
+    const candidateCollections = matchingKeys(candidate, collectionSlugs);
+    const candidatePlacements = matchingKeys(candidate, placementSlugs);
+    const candidatePrefix = seriesPrefix(candidate.name);
+    const sharesCategory = candidateSlugs.some(slug => productCategorySlugs.includes(slug));
+    const sharesPrefix = currentPrefix.length > 2 && currentPrefix === candidatePrefix;
+
+    let score = 0;
+    if (candidateMaterials.some(key => currentMaterials.includes(key))) score += 3;
+    if (candidateCollections.some(key => currentCollections.includes(key))) score += 2;
+    if (candidatePlacements.some(key => currentPlacements.includes(key))) score += 1;
+    if (sharesPrefix) score += 2;
+
+    return { candidate, score, sharesCategory, sharesPrefix };
+  })
+  .filter(item => item.score > 0 || item.sharesCategory || item.sharesPrefix)
+  .sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (Number(Boolean(b.candidate.featured)) !== Number(Boolean(a.candidate.featured))) {
+      return Number(Boolean(b.candidate.featured)) - Number(Boolean(a.candidate.featured));
+    }
+    const dateA = Date.parse(a.candidate.date_created || a.candidate.date_created_gmt || '') || 0;
+    const dateB = Date.parse(b.candidate.date_created || b.candidate.date_created_gmt || '') || 0;
+    return dateB - dateA;
+  })
+  .slice(0, 3)
+  .map(item => item.candidate);
+---
+
+{scored.length > 0 && (
+  <section class="related-pieces section--mega" aria-labelledby="related-pieces-title">
+    <div class="container">
+      <p class="eyebrow">{en.related.eyebrow}</p>
+      <h2 id="related-pieces-title">{en.related.title}</h2>
+      <div class="landing__rail" aria-label={en.related.title}>
+        <div class="featured-v2__rail">
+          {scored.map(relatedProduct => (
+            <div class="featured-v2__cell">
+              <ProductCard product={relatedProduct} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+<style>
+  .related-pieces {
+    border-top: var(--border-thin);
+    margin-top: var(--space-7);
+    padding-top: var(--space-6);
+  }
+
+  .related-pieces h2 {
+    font-size: clamp(1.4rem, 2vw, 1.8rem);
+    margin: var(--space-3) 0 var(--space-4);
+  }
+</style>

@@ -1,0 +1,153 @@
+---
+import { decodeEntities } from '../../lib/woo';
+import type { WooProduct } from '../../lib/woo';
+import en from '../../i18n/en.json';
+
+interface Props {
+  product: WooProduct;
+}
+
+const { product } = Astro.props;
+
+const sourceText = [
+  decodeEntities(product.name),
+  product.sku,
+  ...product.categories.flatMap(category => [category.slug, category.name]),
+  ...product.attributes.flatMap(attribute => [attribute.name, ...attribute.options]),
+].join(' ').toLowerCase();
+
+const materialLockups = [
+  {
+    keys: ['silver', 'sterling', '925', '950', 'plata'],
+    text: 'Sterling Silver 950 — Pure, durable, and alive with light.',
+  },
+  {
+    keys: ['gold', '14k', 'oro'],
+    text: '14k Gold — heirloom-grade. Warm. Made to outlast the wearer.',
+  },
+  {
+    keys: ['titanium', 'titanio'],
+    text: 'ASTM F-136 implant-grade titanium — hypoallergenic, durable, lightweight.',
+  },
+  {
+    keys: ['vacamuerta', 'meteorite', 'atacama', 'meteorito'],
+    text: 'Atacama meteorite — cosmic fragments, 4.5 billion years old.',
+  },
+  {
+    keys: ['walnut', 'wood', 'madera'],
+    text: 'Walnut & tropical wood — sustainably sourced, warm, and grounded.',
+  },
+  {
+    keys: ['brass', 'bronze', 'laton', 'latón', 'bronce'],
+    text: 'Brass & bronze — bold ancestral metals with deep tribal roots.',
+  },
+];
+
+const materialText = materialLockups
+  .filter(material => material.keys.some(key => sourceText.includes(key)))
+  .map(material => material.text)
+  .join(' · ');
+
+const gaugeAttributes = product.attributes.filter(attribute => {
+  const name = attribute.name.toLowerCase();
+  return ['gauge', 'size', 'caliber', 'calibre', 'diameter', 'diametro', 'diámetro', 'post', 'length', 'mm']
+    .some(key => name.includes(key));
+});
+
+const gaugeText = gaugeAttributes
+  .flatMap(attribute => attribute.options)
+  .filter(Boolean)
+  .map(decodeEntities)
+  .slice(0, 3)
+  .join(' · ');
+
+const rows = [
+  materialText && { label: en.spec.label_material, value: materialText },
+  gaugeText && { label: en.spec.label_gauge, value: gaugeText },
+  { label: en.spec.label_made_in, value: en.spec.made_in_value },
+  { label: en.spec.label_sizing, href: '/sizing-guide', value: en.spec.sizing_cta },
+  { label: en.spec.label_aftercare, href: '/care-guide', value: en.spec.aftercare_cta },
+  { label: en.spec.label_returns, href: '/shipping', value: en.spec.returns_cta },
+  { label: en.spec.label_custom, href: '/custom-orders', value: en.spec.custom_cta },
+].filter(Boolean);
+---
+
+<section class="spec-block" aria-label="Product details">
+  <dl class="spec-block__table">
+    {rows.map(row => (
+      <div class="spec-block__row">
+        <dt>{row.label}</dt>
+        <dd>
+          {row.href ? <a href={row.href}>{row.value}</a> : row.value}
+        </dd>
+      </div>
+    ))}
+  </dl>
+</section>
+
+<style>
+  .spec-block {
+    border: var(--border-thin);
+    background: var(--bone);
+    margin: var(--space-4) 0 var(--space-5);
+  }
+
+  .spec-block__table {
+    margin: 0;
+  }
+
+  .spec-block__row {
+    display: grid;
+    grid-template-columns: minmax(7.5rem, 0.34fr) 1fr;
+    border-bottom: var(--border-thin);
+  }
+
+  .spec-block__row:last-child {
+    border-bottom: 0;
+  }
+
+  .spec-block dt,
+  .spec-block dd {
+    margin: 0;
+    padding: var(--space-3);
+    font-size: var(--fs-small);
+    line-height: 1.45;
+  }
+
+  .spec-block dt {
+    border-right: var(--border-thin);
+    color: var(--fg-soft);
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+  }
+
+  .spec-block dd {
+    color: var(--fg);
+  }
+
+  .spec-block a {
+    color: var(--ember);
+    text-decoration: none;
+  }
+
+  .spec-block a:hover {
+    color: var(--bronze);
+  }
+
+  @media (max-width: 600px) {
+    .spec-block__row {
+      grid-template-columns: 1fr;
+    }
+
+    .spec-block dt {
+      border-right: 0;
+      padding-bottom: var(--space-1);
+    }
+
+    .spec-block dd {
+      padding-top: 0;
+    }
+  }
+</style>
