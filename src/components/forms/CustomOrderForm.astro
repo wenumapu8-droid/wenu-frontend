@@ -1,0 +1,227 @@
+---
+import en from '../../i18n/en.json';
+
+const f = en.custom.form;
+
+const pieceTypes = [
+  'Ring',
+  'Amulet / pendant',
+  'Hanger',
+  'Ear weight',
+  'Piercing top',
+  'Other',
+];
+
+const materials = [f.material_silver, f.material_gold, f.material_open];
+
+const budgets = [
+  { value: 'under-400', label: f.budget_under_400 },
+  { value: '400-800', label: '$400–$800' },
+  { value: '800-1500', label: '$800–$1500' },
+  { value: '1500-2500', label: '$1500–$2500' },
+  { value: '2500-plus', label: '$2500+' },
+  { value: 'open', label: f.budget_open },
+];
+
+const timings = [
+  { value: 'standard', label: f.timing_standard },
+  { value: 'specific-date', label: f.timing_specific },
+  { value: 'no-rush', label: f.timing_no_rush },
+];
+---
+<form class="custom-form__form" data-custom-order-form>
+  <div class="custom-form__row">
+    <label class="custom-form__field">
+      <span>{f.name_label}</span>
+      <input name="name" autocomplete="name" required />
+    </label>
+    <label class="custom-form__field">
+      <span>{f.email_label}</span>
+      <input name="email" type="email" autocomplete="email" required />
+    </label>
+  </div>
+
+  <div class="custom-form__row">
+    <label class="custom-form__field">
+      <span>{f.type_label}</span>
+      <select name="pieceType" required>
+        <option value="">{f.select_placeholder}</option>
+        {pieceTypes.map(option => <option value={option}>{option}</option>)}
+      </select>
+    </label>
+    <label class="custom-form__field">
+      <span>{f.placement_label}</span>
+      <input name="placement" placeholder={f.placement_placeholder} />
+    </label>
+  </div>
+
+  <div class="custom-form__row">
+    <label class="custom-form__field">
+      <span>{f.material_label}</span>
+      <select name="material" required>
+        <option value="">{f.select_placeholder}</option>
+        {materials.map(option => <option value={option}>{option}</option>)}
+      </select>
+    </label>
+    <label class="custom-form__field">
+      <span>{f.stone_label}</span>
+      <input name="stone" placeholder={f.stone_placeholder} />
+    </label>
+  </div>
+
+  <div class="custom-form__row">
+    <label class="custom-form__field">
+      <span>{f.budget_label}</span>
+      <select name="budget" required>
+        <option value="">{f.select_placeholder}</option>
+        {budgets.map(option => <option value={option.value}>{option.label}</option>)}
+      </select>
+    </label>
+    <label class="custom-form__field">
+      <span>{f.timing_label}</span>
+      <select name="timing" required data-custom-order-timing>
+        <option value="">{f.select_placeholder}</option>
+        {timings.map(option => <option value={option.value}>{option.label}</option>)}
+      </select>
+    </label>
+  </div>
+
+  <label class="custom-form__field" data-custom-order-date hidden>
+    <span>{f.deadline_label}</span>
+    <input name="specificDate" type="date" />
+  </label>
+
+  <label class="custom-form__field custom-form__field--full">
+    <span>{f.story_label}</span>
+    <textarea name="story" rows="7" minlength="50" maxlength="1000" placeholder={f.story_placeholder} required></textarea>
+  </label>
+
+  <label class="custom-form__field custom-form__field--full">
+    <span>{f.inspiration_label}</span>
+    <input name="inspirationUrl" type="url" placeholder={f.inspiration_placeholder} />
+  </label>
+
+  <label class="custom-form__consent">
+    <input name="consent" type="checkbox" required />
+    <span>{f.consent}</span>
+  </label>
+
+  <div class="custom-form__fallback-panel" data-custom-order-panel hidden aria-live="polite"></div>
+
+  <button class="btn btn--solid custom-form__submit" type="submit">{f.submit}</button>
+
+  <p class="custom-form__fallback">
+    {f.fallback_direct} <a href={`mailto:marimari@wenumapuonline.com?subject=${encodeURIComponent(f.fallback_subject)}`}>marimari@wenumapuonline.com</a>
+  </p>
+</form>
+
+<script define:vars={{ f }}>
+  const form = document.querySelector('[data-custom-order-form]');
+  const timing = form?.querySelector('[data-custom-order-timing]');
+  const dateField = form?.querySelector('[data-custom-order-date]');
+  const panel = form?.querySelector('[data-custom-order-panel]');
+
+  const sixMonthsFromNow = () => {
+    const date = new Date();
+    date.setMonth(date.getMonth() + 6);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
+  const fieldValue = (data, key) => String(data.get(key) || '').trim();
+
+  const buildSummary = payload => [
+    `Name: ${payload.name}`,
+    `Email: ${payload.email}`,
+    `Type: ${payload.pieceType}`,
+    `Placement: ${payload.placement || 'N/A'}`,
+    `Material: ${payload.material}`,
+    `Stone / inclusion: ${payload.stone || 'N/A'}`,
+    `Budget: ${payload.budget}`,
+    `Timing: ${payload.timing}`,
+    `Specific date: ${payload.specificDate || 'N/A'}`,
+    `Inspiration URL: ${payload.inspirationUrl || 'N/A'}`,
+    '',
+    'Story:',
+    payload.story,
+  ].join('\n');
+
+  const showPanel = html => {
+    if (!panel) return;
+    panel.innerHTML = html;
+    panel.hidden = false;
+  };
+
+  const fallbackHtml = payload => {
+    const summary = buildSummary(payload);
+    const href = `mailto:marimari@wenumapuonline.com?subject=${encodeURIComponent(f.fallback_subject)}&body=${encodeURIComponent(summary)}`;
+    return `
+      <p class="custom-form__fallback-intro">${f.fallback_local}</p>
+      <textarea class="custom-form__field" rows="10" readonly>${summary}</textarea>
+      <a class="btn btn--solid custom-form__submit" href="${href}">${f.fallback_cta}</a>
+    `;
+  };
+
+  timing?.addEventListener('change', () => {
+    if (!dateField) return;
+    dateField.hidden = timing.value !== 'specific-date';
+  });
+
+  form?.addEventListener('submit', async event => {
+    event.preventDefault();
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const data = new FormData(form);
+    const payload = {
+      name: fieldValue(data, 'name'),
+      email: fieldValue(data, 'email'),
+      pieceType: fieldValue(data, 'pieceType'),
+      placement: fieldValue(data, 'placement'),
+      material: fieldValue(data, 'material'),
+      stone: fieldValue(data, 'stone'),
+      budget: fieldValue(data, 'budget'),
+      timing: fieldValue(data, 'timing'),
+      specificDate: fieldValue(data, 'specificDate'),
+      story: fieldValue(data, 'story'),
+      inspirationUrl: fieldValue(data, 'inspirationUrl'),
+      consent: data.get('consent') === 'on',
+    };
+
+    const notes = [];
+    if (payload.budget === 'under-400') {
+      notes.push(`${f.budget_soft_note} <a href="/jewelry-styling" class="text-accent">${f.curation_link}</a>`);
+    }
+    if (payload.timing === 'specific-date' && payload.specificDate) {
+      const selected = new Date(`${payload.specificDate}T00:00:00`);
+      if (selected < sixMonthsFromNow()) notes.push(f.date_soft_note);
+    }
+
+    if (notes.length > 0) {
+      showPanel(`<p class="custom-form__fallback-intro">${notes.join('<br>')}</p>${fallbackHtml(payload)}`);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/custom-order', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json().catch(() => null);
+      if (response.ok && result?.ok) {
+        showPanel(`<p class="custom-form__fallback-intro">${f.success_message}</p>`);
+        form.reset();
+        if (dateField) dateField.hidden = true;
+        return;
+      }
+    } catch {
+      // Static builds intentionally fall back to mailto until a provider endpoint exists.
+    }
+
+    showPanel(fallbackHtml(payload));
+  });
+</script>
