@@ -160,6 +160,20 @@ export function formatPrice(price: string): string {
   return `$${n.toFixed(0)} USD`;
 }
 
+/** Truncate a string for a meta description / OG description without slicing
+ *  mid-word. Returns text up to `maxLen` chars, ending at the last word
+ *  boundary, with an ellipsis if truncation happened. Trims trailing
+ *  punctuation that would read awkwardly before the ellipsis. */
+export function truncateForMeta(text: string, maxLen = 160): string {
+  if (!text) return '';
+  const clean = text.trim();
+  if (clean.length <= maxLen) return clean;
+  const slice = clean.slice(0, maxLen - 1);
+  const lastSpace = slice.lastIndexOf(' ');
+  const cut = lastSpace > maxLen * 0.5 ? slice.slice(0, lastSpace) : slice;
+  return cut.replace(/[\s.,;:!?\-—–]+$/, '') + '…';
+}
+
 // ─── CATEGORY LOCALIZATION (Spanish DB → English UI) ────────────────────────
 // The Postgres / Woo backend stores category names in Spanish (Amuletos,
 // Anillos, Aros, etc). The site is in English. This map normalizes the
