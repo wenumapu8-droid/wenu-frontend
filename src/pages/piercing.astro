@@ -7,9 +7,7 @@ import en from '../i18n/en.json';
 
 const L = en.landing.piercing;
 
-// Filter products whose category slug includes any piercing-related keyword.
-// This is a curated subset for the landing page — the full filterable catalog
-// stays at /shop?cat=piercing.
+// Curated subset of piercing products with images
 const KEYWORDS = ['piercing', 'septum', 'labret', 'plug', 'tunnel', 'tapón', 'tunel'];
 const all = await getProducts(50);
 const matched = all.filter(p =>
@@ -18,62 +16,335 @@ const matched = all.filter(p =>
 );
 const featured = matched.slice(0, 6);
 
+// Service pricing — sourced from Wenu_Mapu_Pricing_List_Truckee.pdf (Nov 2025)
+const services = [
+  { zone: 'Nose',     items: [
+    { name: 'Nostril (one side)',                   price: 80 },
+    { name: 'Septum',                                price: 90 },
+  ]},
+  { zone: 'Ear',      items: [
+    { name: 'Lobe (each)',                           price: 80 },
+    { name: 'Helix / Flat / Tragus / Forward Helix', price: 85 },
+    { name: 'Rook / Daith / Conch',                  price: 90 },
+  ]},
+  { zone: 'Face',     items: [
+    { name: 'Eyebrow — classic placement',           price: 85 },
+    { name: 'Lip · Labret / Side Labret / Medusa',   price: 85 },
+    { name: 'Tongue — center',                       price: 95 },
+  ]},
+  { zone: 'Body',     items: [
+    { name: 'Navel — classic belly button',          price: 110 },
+  ]},
+  { zone: 'Service',  items: [
+    { name: 'Jewelry change or removal',             price: 25 },
+    { name: 'Titanium jewelry replacement',          priceRange: '30–60' },
+  ]},
+];
+
+const includes = [
+  'Implant-grade titanium starter jewelry (ASTM F-136)',
+  'Sterile single-use needle',
+  'Pre-procedure consultation & marking',
+  'Aftercare guide + 14-day check-in',
+  'Sterilized workspace at Truth Tattoo, Truckee',
+];
+
 const collectionLd = {
   '@context': 'https://schema.org',
-  '@type': 'CollectionPage',
-  name: L.title,
-  description: L.intro,
-  url: 'https://wenumapuonline.com/piercing',
-  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+  '@type': 'Service',
+  serviceType: 'Body Piercing',
+  provider: {
+    '@type': 'LocalBusiness',
+    name: 'Wenu Mapu — Piercing',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Truckee',
+      addressRegion: 'CA',
+      addressCountry: 'US',
+    },
+    telephone: '+1 408 500 6211',
+    email: 'marimari@wenumapuonline.com',
+  },
+  areaServed: 'Truckee, North Lake Tahoe',
+  offers: services.flatMap(s => s.items.map(item => ({
+    '@type': 'Offer',
+    name: `${s.zone} — ${item.name}`,
+    price: item.price ?? item.priceRange,
+    priceCurrency: 'USD',
+  }))),
 };
 
 const breadcrumbLd = {
   '@context': 'https://schema.org',
   '@type': 'BreadcrumbList',
   itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 1, name: 'Home',     item: 'https://wenumapuonline.com/' },
     { '@type': 'ListItem', position: 2, name: 'Piercing', item: 'https://wenumapuonline.com/piercing' },
   ],
 };
 ---
 <Base
-  title="Piercing — Implant-grade titanium body jewelry | Wenu Mapu"
-  description="Septums, labrets, plugs, tunnels and curated piercing pieces in ASTM F-136 implant-grade titanium. Hand-forged in Truckee, California."
+  title="Piercing — Ritual Body Piercing in Truckee, CA | Wenu Mapu"
+  description="Ritual body piercing by Nicolás Ortega at Truth Tattoo, Truckee — California. ASTM F-136 implant-grade titanium starter jewelry. Sterile single-use needles. Book a session."
   ogImage="/img/categories/piercing.png"
   jsonLd={[collectionLd, breadcrumbLd]}
 >
-  <section class="section section--mega">
+  <section class="section section--mega piercing-hero">
     <div class="container">
-      <p class="eyebrow">{L.eyebrow}</p>
-      <h1 class="page-title">{L.title}</h1>
-      <p class="lede">{L.intro}</p>
+      <p class="eyebrow">RITUAL PIERCING · TRUCKEE, CALIFORNIA</p>
+      <h1 class="page-title">Piercing as a passage,<br/>not a transaction.</h1>
+      <p class="lede">
+        Ritual body piercing by <strong>Nicolás Ortega</strong> at Truth Tattoo, Truckee — California.
+        Every piercing starts with implant-grade titanium (ASTM F-136),
+        a sterile single-use needle, and a slow conversation about placement.
+      </p>
       <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
 
-      <div class="landing__copy">
-        <p>{L.p1}</p>
-        <p>{L.p2}</p>
-      </div>
-
       <div class="landing__cta">
-        <a href={L.shop_target} class="btn btn--solid">{L.cta_primary} →</a>
-        <a href="/care-guide" class="btn btn--ghost">{L.cta_secondary}</a>
+        <a href="#book" class="btn btn--solid">Book a session →</a>
+        <a href="https://aftercare.wenumapuonline.com/" target="_blank" rel="noopener" class="btn btn--ghost">Aftercare guide</a>
       </div>
-
-      {featured.length > 0 && (
-        <div class="landing__rail" aria-label="Selected piercing pieces">
-          <div class="landing__rail-head">
-            <p class="eyebrow">Selected pieces</p>
-            <a href={L.shop_target} class="text-accent">View all →</a>
-          </div>
-          <div class="featured-v2__rail">
-            {featured.map(product => (
-              <div class="featured-v2__cell">
-                <ProductCard product={product} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   </section>
+
+  <!-- ── PRICING TABLE ── -->
+  <section class="section piercing-pricing" aria-labelledby="pricing-title">
+    <div class="container">
+      <p class="eyebrow">SERVICES · USD</p>
+      <h2 id="pricing-title" class="section-title">Pricing list</h2>
+      <p class="section-lede">
+        Prices are <strong>per piercing</strong> and include starter titanium jewelry, sterile setup,
+        and aftercare brief. Payment in-studio: Zelle, Venmo or cash.
+      </p>
+
+      <div class="pricing-grid">
+        {services.map(s => (
+          <div class="pricing-group">
+            <h3 class="pricing-group__title">{s.zone}</h3>
+            <ul class="pricing-list">
+              {s.items.map(item => (
+                <li class="pricing-row">
+                  <span class="pricing-row__name">{item.name}</span>
+                  <span class="pricing-row__dots" aria-hidden="true"></span>
+                  <span class="pricing-row__price">
+                    {item.price ? `$${item.price}` : `$${item.priceRange}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── INCLUDES ── -->
+  <section class="section piercing-includes" aria-labelledby="includes-title">
+    <div class="container">
+      <p class="eyebrow">EVERY SESSION INCLUDES</p>
+      <h2 id="includes-title" class="section-title">What you receive.</h2>
+      <ul class="includes-list">
+        {includes.map(item => (
+          <li class="includes-item">
+            <span class="includes-bullet" aria-hidden="true">◆</span>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── BOOKING ── -->
+  <section id="book" class="section piercing-book" aria-labelledby="book-title">
+    <div class="container">
+      <p class="eyebrow">BOOK A SESSION</p>
+      <h2 id="book-title" class="section-title">Truth Tattoo · Truckee, CA</h2>
+      <p class="section-lede">
+        Sessions are by appointment. Pick a time, share the area you want pierced and any notes,
+        and you'll get a confirmation email within 24 hours.
+      </p>
+
+      <div class="book-grid">
+        <div class="book-grid__col">
+          <h3 class="book-subtitle">Logistics</h3>
+          <ul class="book-list">
+            <li><strong>Location:</strong> Truth Tattoo · Truckee, California</li>
+            <li><strong>Piercer:</strong> Nicolás Ortega · Instagram <a href="https://instagram.com/wenu__mapu" target="_blank" rel="noopener">@wenu__mapu</a></li>
+            <li><strong>Duration:</strong> 30–60 min per session</li>
+            <li><strong>Payment in-studio:</strong> Zelle, Venmo, cash</li>
+            <li><strong>ID required:</strong> Government-issued photo ID. Minors must be accompanied by parent/legal guardian with their own ID.</li>
+          </ul>
+        </div>
+
+        <div class="book-grid__col">
+          <h3 class="book-subtitle">Reserve your time</h3>
+          <p class="book-cta-lede">
+            Online booking calendar is being prepared. Until it goes live, write to us and we'll
+            confirm the closest available slot manually.
+          </p>
+          <div class="book-cta-stack">
+            <a href="mailto:marimari@wenumapuonline.com?subject=Piercing%20booking%20request" class="btn btn--solid">Email to book →</a>
+            <a href="https://wa.me/14085006211?text=Hi%20Wenu%20Mapu%2C%20I%27d%20like%20to%20book%20a%20piercing%20session" target="_blank" rel="noopener" class="btn btn--ghost">WhatsApp +1 (408) 500-6211</a>
+          </div>
+          <!-- CALENDLY_EMBED_HERE — replace this block with the official Calendly inline-widget once URL is provided. Recommended:
+            <div class="calendly-inline-widget" data-url="https://calendly.com/wenu-mapu/piercing-session" style="min-width:320px;height:680px"></div>
+            <script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
+          -->
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SAFETY ── -->
+  <section class="section piercing-safety" aria-labelledby="safety-title">
+    <div class="container">
+      <p class="eyebrow">SAFETY · STANDARDS</p>
+      <h2 id="safety-title" class="section-title">Body-safe by default.</h2>
+      <div class="landing__copy">
+        <p>
+          All starter jewelry is <strong>ASTM F-136 implant-grade titanium</strong> — bio-compatible,
+          hypoallergenic, and safe to wear during healing. No mystery alloys. No surgical steel
+          for first piercings. We use only sterile single-use needles, autoclave-sterilized tools,
+          and disposable gloves.
+        </p>
+        <p>
+          Healing is a passage — your responsibility starts the moment you leave the studio.
+          You'll receive a printed aftercare card with cleaning ritual, healing times by zone,
+          and a 14-day check-in by email. The full online guide lives at
+          <a href="https://aftercare.wenumapuonline.com/" target="_blank" rel="noopener">aftercare.wenumapuonline.com</a>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURED PIECES ── -->
+  {featured.length > 0 && (
+    <section class="section piercing-featured" aria-label="Selected piercing pieces">
+      <div class="container">
+        <div class="landing__rail-head">
+          <p class="eyebrow">PIECES · TITANIUM &amp; SILVER</p>
+          <a href={L.shop_target} class="text-accent">View all →</a>
+        </div>
+        <h2 class="section-title">Curated piercing pieces.</h2>
+        <p class="section-lede">
+          Selected pieces from our piercing line — septums, labrets, plugs, and titanium tops.
+          All in implant-grade titanium or 925 silver.
+        </p>
+        <div class="featured-v2__rail">
+          {featured.map(product => (
+            <div class="featured-v2__cell">
+              <ProductCard product={product} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )}
 </Base>
+
+<style>
+  .piercing-hero { padding-bottom: var(--space-5); }
+  .piercing-pricing { background: var(--charcoal); padding: var(--space-7) 0; border-top: var(--border-thin); border-bottom: var(--border-thin); }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    font-weight: var(--fw-regular);
+    line-height: 1.1;
+    color: var(--bone);
+    text-transform: uppercase;
+    margin: var(--space-3) 0 var(--space-3);
+  }
+  .section-lede {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    font-size: var(--fs-body-lg);
+    line-height: 1.6;
+    color: var(--fg-soft);
+    max-width: 60ch;
+    margin-bottom: var(--space-6);
+  }
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-5);
+    margin-top: var(--space-5);
+  }
+  .pricing-group {
+    background: var(--obsidian);
+    padding: var(--space-5);
+    border: var(--border-thin);
+  }
+  .pricing-group__title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--ember);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 var(--space-4);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid rgba(196,147,90,0.25);
+  }
+  .pricing-list { list-style: none; padding: 0; margin: 0; }
+  .pricing-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    font-family: var(--font-serif);
+    color: var(--bone);
+    line-height: 1.4;
+  }
+  .pricing-row__name { flex: 0 1 auto; font-weight: var(--fw-thin); }
+  .pricing-row__dots {
+    flex: 1 1 auto;
+    border-bottom: 1px dotted rgba(168,163,154,0.35);
+    transform: translateY(-3px);
+    min-width: 12px;
+  }
+  .pricing-row__price {
+    flex: 0 0 auto;
+    font-family: var(--font-display);
+    color: var(--ember);
+    font-size: 1.05rem;
+  }
+  .piercing-includes { padding: var(--space-7) 0; }
+  .includes-list { list-style: none; padding: 0; margin: var(--space-4) 0 0; display: grid; gap: var(--space-3); max-width: 56ch; }
+  .includes-item {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    font-family: var(--font-serif);
+    color: var(--bone);
+    line-height: 1.6;
+    font-weight: var(--fw-thin);
+  }
+  .includes-bullet { color: var(--ember); font-size: 0.8em; flex: 0 0 auto; }
+  .piercing-book { background: var(--charcoal); padding: var(--space-7) 0; border-top: var(--border-thin); border-bottom: var(--border-thin); }
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-5);
+  }
+  .book-subtitle {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    color: var(--bone);
+    text-transform: uppercase;
+    margin: 0 0 var(--space-3);
+  }
+  .book-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+  .book-list li { font-family: var(--font-serif); color: var(--fg-soft); line-height: 1.6; font-weight: var(--fw-thin); }
+  .book-list strong { color: var(--bone); font-weight: var(--fw-regular); }
+  .book-list a { color: var(--ember); }
+  .book-cta-lede {
+    font-family: var(--font-serif);
+    color: var(--fg-soft);
+    line-height: 1.6;
+    margin: 0 0 var(--space-4);
+    font-weight: var(--fw-thin);
+  }
+  .book-cta-stack { display: grid; gap: var(--space-3); max-width: 320px; }
+  .piercing-safety { padding: var(--space-7) 0; }
+  .piercing-featured { padding: var(--space-7) 0; border-top: var(--border-thin); }
+</style>
