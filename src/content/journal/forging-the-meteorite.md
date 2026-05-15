@@ -24,11 +24,11 @@ The tablet is rough at this stage — saw marks, dull surface, no hint yet of wh
 
 The cut face gets a sequence of finer and finer abrasive treatments. We start with a coarse silicon-carbide paper and step down through grits — 220, 400, 800, 1500, 3000 — until the surface reads as a slightly cloudy mirror.
 
-This is the most patient step. Pressing too hard on iron-nickel produces friction heat that damages the crystalline structure. Each grit takes 20 to 40 minutes of hand work. By the end of the week, the tablet looks, briefly, like a featureless gray mirror. You would not yet guess what is inside.
+This is the most patient step. Pressing too hard on meteorite metal produces friction heat that can damage the crystalline structure. Each grit takes 20 to 40 minutes of hand work. By the end of the week, the tablet looks, briefly, like a featureless gray mirror. You would not yet guess what is inside.
 
 ## Week 3 — The etch
 
-The Widmanstätten pattern emerges only when the polished surface is etched with a mild acid — typically a dilute solution of nitric acid in alcohol, called *nital*. We apply it carefully with a soft brush. The acid reacts differently with the two iron-nickel phases that make up the meteorite — kamacite (low nickel) and taenite (high nickel) — and the differential rate of dissolution reveals the lattice that formed inside the parent asteroid as it cooled across millions of years.
+The crystalline pattern emerges only when the polished surface is etched with a mild acid — typically a dilute solution of nitric acid in alcohol, called *nital*. We apply it carefully with a soft brush. The acid reacts differently with the metallic phases inside the meteorite, revealing a structure that formed inside the parent body as it cooled across cosmic time.
 
 The pattern that surfaces is not invented. It was waiting there. We are the first humans to see it on this particular fragment.
 
@@ -42,7 +42,7 @@ The setting is hand-finished before the meteorite goes in: the band is polished,
 
 ## Week 5 — Setting
 
-Setting an iron-nickel meteorite into silver or gold is delicate. The bezel is gently pushed over the perimeter of the tablet, mil by mil, with a curved burnisher — never hammered. Heat from soldering would damage the meteorite, so any soldering is done before the tablet is in place. The pressure is read by feel: enough to hold the tablet against any motion, not enough to crack the brittle Widmanstätten lattice at the edge.
+Setting a Vaca Muerta meteorite tablet into silver or gold is delicate. The bezel is gently pushed over the perimeter of the tablet, mil by mil, with a curved burnisher — never hammered. Heat from soldering would damage the meteorite, so any soldering is done before the tablet is in place. The pressure is read by feel: enough to hold the tablet against any motion, not enough to crack the brittle crystalline edge.
 
 Once the bezel is set, a final inspection: we look at the piece under a 10x loupe and check for any uneven gap between bezel and tablet, any stress mark on the surface, any small surface contamination from the setting process. If anything is wrong, we stop. Setting failures are real; we have refused to ship pieces over a tenth-of-a-millimeter gap.
 

@@ -45,6 +45,71 @@ const careHowToLd = {
     </div>
   </section>
 
+  <section class="section section--tight" aria-labelledby="followup-title">
+    <div class="container care-followup">
+      <p class="eyebrow">Personal aftercare follow-up · By Mari Mari</p>
+      <h2 id="followup-title" class="care-followup__title">Receive personal check-ins as you heal.</h2>
+      <p class="care-followup__body">
+        Si te perforaste con Mari Mari (o con alguien de tu confianza) y querés acompañamiento durante la sanación —
+        vas a recibir cuatro emails calmos y específicos: el primero esta misma noche, después al día 3, día 14 y día 90. Bilingual EN / ES.
+      </p>
+      <p class="care-followup__sub">
+        Sin spam. Sin marketing. Solo cuidado del cuerpo. Te podés desuscribir desde cualquier email.
+      </p>
+
+      <form class="care-followup__form" id="aftercare-subscribe-form" novalidate>
+        <!-- Honeypot — invisible to humans, filled by bots -->
+        <input type="text" name="website" class="care-followup__hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+        <label class="care-followup__field">
+          <span class="care-followup__label">Email <em>(required)</em></span>
+          <input type="email" name="email" required autocomplete="email" placeholder="you@example.com" />
+        </label>
+
+        <label class="care-followup__field">
+          <span class="care-followup__label">First name <em>(optional)</em></span>
+          <input type="text" name="firstName" autocomplete="given-name" placeholder="How should we greet you?" maxlength="60" />
+        </label>
+
+        <div class="care-followup__row">
+          <label class="care-followup__field">
+            <span class="care-followup__label">Placement</span>
+            <select name="placement">
+              <option value="helix">Helix</option>
+              <option value="lobe">Lobe / earlobe</option>
+              <option value="tragus">Tragus</option>
+              <option value="rook">Rook</option>
+              <option value="daith">Daith</option>
+              <option value="conch">Conch</option>
+              <option value="industrial">Industrial</option>
+              <option value="flat">Flat</option>
+              <option value="septum">Septum</option>
+              <option value="nostril">Nostril</option>
+              <option value="lip">Lip</option>
+              <option value="labret">Labret</option>
+              <option value="tongue">Tongue</option>
+              <option value="navel">Navel</option>
+              <option value="nipple">Nipple</option>
+              <option value="eyebrow">Eyebrow</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+
+          <label class="care-followup__field">
+            <span class="care-followup__label">Piercing date</span>
+            <input type="date" name="piercingDate" />
+          </label>
+        </div>
+
+        <button type="submit" class="btn btn--solid care-followup__submit">
+          Receive aftercare check-ins
+        </button>
+
+        <p class="care-followup__status" id="aftercare-subscribe-status" role="status" aria-live="polite"></p>
+      </form>
+    </div>
+  </section>
+
   <section class="section section--tight" aria-labelledby="download-title">
     <div class="container care-download">
       <p class="eyebrow">Bilingual print guide · EN / ES</p>
@@ -54,9 +119,85 @@ const careHowToLd = {
     </div>
   </section>
 
+  <script is:inline define:vars={{ endpoint: import.meta.env.PUBLIC_AFTERCARE_ENDPOINT || '' }}>
+    (function () {
+      const form = document.getElementById('aftercare-subscribe-form');
+      const status = document.getElementById('aftercare-subscribe-status');
+      if (!form) return;
+      const dateInput = form.elements.piercingDate;
+      if (dateInput && !dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+      }
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        status.textContent = '';
+        status.dataset.kind = '';
+        const data = Object.fromEntries(new FormData(form).entries());
+        if (data.website) return;
+        if (!data.email) { status.textContent = 'Email is required.'; status.dataset.kind = 'err'; return; }
+        const btn = form.querySelector('button[type="submit"]');
+        if (!endpoint) {
+          status.textContent = 'Aftercare signup is not connected yet. Write to aftercare@wenumapuonline.com and I will add you manually.';
+          status.dataset.kind = 'err';
+          return;
+        }
+        btn.disabled = true; btn.textContent = 'Subscribing…';
+        try {
+          const r = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          const json = await r.json();
+          if (json.ok) {
+            status.textContent = json.alreadySubscribed
+              ? 'Ya estás suscrito. The check-ins are scheduled.'
+              : 'Listo — el check-in del día 0 viene en camino a tu inbox. ¡Cuidate!';
+            status.dataset.kind = 'ok';
+            form.reset();
+          } else {
+            status.textContent = json.error === 'invalid-email'
+              ? 'Email format looks off — verificalo y reintentá.'
+              : json.error === 'rate-limited'
+                ? 'Demasiados intentos desde tu IP. Probá de nuevo en una hora.'
+                : 'Algo no funcionó. Reintentá o escribime a aftercare@wenumapuonline.com.';
+            status.dataset.kind = 'err';
+          }
+        } catch (err) {
+          status.textContent = 'No me pude conectar al servidor. Reintentá más tarde o escribime a aftercare@wenumapuonline.com.';
+          status.dataset.kind = 'err';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Receive aftercare check-ins';
+        }
+      });
+    })();
+  </script>
+
   <style>
     .care-download{text-align:center;max-width:640px;margin:0 auto}
     .care-download__title{font-family:var(--font-display);font-size:clamp(1.75rem,4vw,2.5rem);margin:.5rem 0 1rem;color:var(--color-bone)}
     .care-download__body{color:var(--color-silver);margin-bottom:1.75rem;line-height:1.6}
+
+    .care-followup{max-width:640px;margin:0 auto}
+    .care-followup__title{font-family:var(--font-display);font-size:clamp(1.75rem,4vw,2.5rem);margin:.5rem 0 1rem;color:var(--color-bone);font-weight:normal;letter-spacing:-0.3px}
+    .care-followup__body{color:var(--color-bone);margin-bottom:1rem;line-height:1.6}
+    .care-followup__sub{color:var(--color-silver);font-size:.9rem;margin-bottom:1.75rem;line-height:1.6}
+    .care-followup__form{display:flex;flex-direction:column;gap:1rem;margin-top:2rem;text-align:left}
+    .care-followup__field{display:flex;flex-direction:column;gap:.35rem}
+    .care-followup__label{font-family:var(--font-sans);font-size:.78rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--color-silver)}
+    .care-followup__label em{font-style:normal;opacity:.65;margin-left:.25rem}
+    .care-followup__form input,.care-followup__form select{
+      background:transparent;border:1px solid var(--line, #2A2520);
+      color:var(--color-bone);padding:.75rem 1rem;font-family:var(--font-serif);font-size:1rem;border-radius:0;
+    }
+    .care-followup__form input:focus,.care-followup__form select:focus{outline:none;border-color:var(--color-ember,#C4935A)}
+    .care-followup__row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    @media (max-width:600px){.care-followup__row{grid-template-columns:1fr}}
+    .care-followup__hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+    .care-followup__submit{margin-top:.75rem;align-self:flex-start}
+    .care-followup__submit:disabled{opacity:.55;cursor:wait}
+    .care-followup__status{min-height:1.25rem;font-size:.9rem;margin:.5rem 0 0;color:var(--color-silver)}
+    .care-followup__status[data-kind="ok"]{color:var(--color-ember,#C4935A)}
+    .care-followup__status[data-kind="err"]{color:#cf6b6b}
   </style>
 </Base>

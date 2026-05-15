@@ -8,25 +8,25 @@ related: ["/material/vacamuerta", "/about", "/artistry"]
 length_words: 720
 ---
 
-The first time you hold a fragment of Vacamuerta meteorite, it is heavier than you expect. Iron-nickel meteorites are denser than terrestrial iron — about 7.8 grams per cubic centimeter — and the weight registers in the hand as something between a stone and a tool. It does not feel made. It feels found.
+The first time you hold a fragment of Vacamuerta meteorite, it is heavier than you expect. Vaca Muerta is a rare stony-iron meteorite — a mesosiderite — and the weight registers in the hand as something between a stone and a tool. It does not feel made. It feels found.
 
 That is, in fact, what it is.
 
-Vacamuerta is our name for the iron-nickel meteorites recovered from Chile's Atacama Desert. The Atacama is the driest non-polar desert on Earth — in some places, no measurable rainfall has been recorded for centuries. Meteorites that fall there are preserved instead of weathering away. A piece that struck the surface ten thousand years ago can be picked up today, cleaned, and held with the impact rings still visible across its mass.
+Vacamuerta is our studio name for the Vaca Muerta meteorite found in Chile's Atacama Desert. The Atacama is the driest non-polar desert on Earth — in some places, no measurable rainfall has been recorded for centuries. Meteorites that fall there are preserved instead of weathering away. A piece that struck the surface ten thousand years ago can be picked up today, cleaned, and held with the impact rings still visible across its mass.
 
-The fragments we use carry roughly 4.5 billion years of history. That is older than the Earth. It is older than the Sun in its current form. The iron-nickel core of an asteroid that broke apart in the early solar system fell here, eventually, after orbiting in fragments for an unimaginable span. By the time it arrived in the Atacama, life on Earth had been waiting for half its history to receive it.
+The fragments we use carry roughly 4.5 billion years of history. That is older than the Earth. It is older than the Sun in its current form. A stony-iron body from the early solar system broke apart and fell here, eventually, after orbiting in fragments for an unimaginable span. By the time it arrived in the Atacama, life on Earth had been waiting for half its history to receive it.
 
 We do not invent the cosmology. The cosmology is in the material.
 
 ## Where the meteorites come from
 
-The Vacamuerta fragments we work are sourced through verified Chilean cooperatives that operate in the heart of the Atacama. Provenance is documented — region of recovery, approximate find date, mineralogical confirmation. We do not buy meteorite from unverified channels. Forged provenance is common in the meteorite trade, and a piece of jewelry built on a falsified origin story collapses every claim downstream of it.
+The Vacamuerta fragments we work are sourced through verified Chilean channels connected to the Atacama. Provenance is documented — region of recovery, approximate find date, mineralogical confirmation. We do not buy meteorite from unverified channels. Forged provenance is common in the meteorite trade, and a piece of jewelry built on a falsified origin story collapses every claim downstream of it.
 
 Each piece that ships with Vacamuerta carries a Certificate of Authenticity naming the find region and approximate fragment age. The certificate is not decoration; it is the chain of custody.
 
 ## What we do with it
 
-Iron-nickel meteorite cuts hard. It does not behave like silver or bronze. The standard approach in fine jewelry is to slice the meteorite into thin tablets, polish them flat, and then etch the surface with a mild acid to reveal the *Widmanstätten pattern* — the cross-hatched crystalline lattice that forms only in metals cooled over millions of years inside an asteroid. The Widmanstätten pattern cannot be faked. If you see it on a piece of metal, that metal cooled in space.
+Stony-iron meteorite cuts hard. It does not behave like silver or bronze. The standard approach in fine jewelry is to slice the meteorite into thin tablets, polish them flat, and then etch the surface with a mild acid to reveal its internal metallic structure. In meteorite jewelry, that visible crystalline pattern is part of the evidence: it formed across cosmic time, not in a workshop.
 
 We set the etched tablet by hand into sterling silver or 14k gold. Never glued. Never dyed. The ring or the amulet is the frame; the meteorite is the work.
 
@@ -34,7 +34,7 @@ Most Vacamuerta pieces are one-of-a-kind. The fragments themselves are limited a
 
 ## A note on care
 
-Iron-nickel meteorite is reactive to moisture and to chloride salts. A meteorite that survived 4.5 billion years in space and 10,000 years in the driest desert on Earth can rust if you wear it in a swimming pool. Keep dry. Wipe with a soft cloth after wear. Light surface oxidation over years is expected and considered patina, not damage.
+Meteorite metal is reactive to moisture and to chloride salts. A meteorite that survived 4.5 billion years in space and thousands of years in the driest desert on Earth can rust if you wear it in a swimming pool. Keep dry. Wipe with a soft cloth after wear. Light surface oxidation over years is expected and considered patina, not damage.
 
 Detailed care for meteorite pieces lives in our [care guide](/care-guide).
 
