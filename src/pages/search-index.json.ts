@@ -5,7 +5,7 @@ import { getProducts, formatPrice, localizeCategory, decodeEntities } from '../l
 import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async () => {
-  const products = await getProducts(100);
+  const products = await getProducts();
 
   const index = products.map(p => ({
     id: p.id,

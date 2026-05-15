@@ -63,17 +63,35 @@ function authParams() {
   return `consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}`;
 }
 
-export async function getProducts(perPage = 50): Promise<WooProduct[]> {
-  try {
+let productsCache: Promise<WooProduct[]> | null = null;
+
+async function fetchAllProducts(): Promise<WooProduct[]> {
+  const perPage = 100; // WooCommerce REST maximum.
+  const products: WooProduct[] = [];
+  let page = 1;
+
+  while (true) {
     const res = await fetch(
-      `${WC_URL}/products?per_page=${perPage}&status=publish&${authParams()}`
+      `${WC_URL}/products?per_page=${perPage}&page=${page}&status=publish&${authParams()}`
     );
     if (!res.ok) {
-      throw new Error(`WC products fetch failed: HTTP ${res.status} from ${WC_URL}/products`);
+      throw new Error(`WC products fetch failed: HTTP ${res.status} from ${WC_URL}/products?page=${page}`);
     }
     const data: WooProduct[] = await res.json();
-    console.log(`[woo] fetched ${data.length} products`);
-    return data;
+    products.push(...data);
+    if (data.length < perPage) break;
+    page += 1;
+  }
+
+  console.log(`[woo] fetched ${products.length} products`);
+  return products;
+}
+
+export async function getProducts(limit?: number): Promise<WooProduct[]> {
+  try {
+    productsCache ||= fetchAllProducts();
+    const products = await productsCache;
+    return typeof limit === 'number' ? products.slice(0, limit) : products;
   } catch (e) {
     if (ALLOW_EMPTY) {
       console.warn('[woo] WARNING: getProducts failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);
