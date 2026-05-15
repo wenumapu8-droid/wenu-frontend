@@ -19,7 +19,8 @@ Last updated: 2026-05-09
 | `PERMISSIONS_MATRIX.md` | Before any action that affects shared state (DNS, prod, secrets). |
 | `TASK_QUEUE.md` | To pick the next task. |
 | `AGENT_HANDOFF_PROTOCOL.md` | Before handing off work to another agent. |
-| `PROMPTS_FOR_AGENTS.md` | When invoking another agent — copy a templated prompt. |
+| `PARALLEL_WORKSTREAM_PROTOCOL.md` | Before activating more than one agent at the same time. |
+| `PROMPTS_FOR_AGENTS.md` | When invoking another agent — copy a templated prompt (10 templates). |
 
 External references (DO NOT duplicate their content here):
 
