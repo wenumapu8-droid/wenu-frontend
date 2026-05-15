@@ -32,11 +32,45 @@ What changed since the 2026-05-09 baseline below. Read this first.
 - Moved 6 duplicate documentation files (created earlier this session in `/docs/` and `/prompts/`) to `/Users/user1/wenu-frontend-backup/2026-05-15-duplicate-docs/`. They duplicated `agent-control/CURRENT_STATE.md`, `AGENT_CONTROL_CENTER.md`, `DECISION_LOG.md`, and `TASK_QUEUE.md`. Reversible: `mv` back into repo if needed.
 - `/docs/` now contains only the legitimate `handoffs/` and `snippets/` subfolders from commit `f0966cf`.
 
+### Agent register — OpenCode (opencode CLI) integrated
+
+**Track:** T1 (audit/plan) + T2 (code edit) — flexible según tarea.
+**Status:** Active. Conectado desde terminal, attached al workspace `/Users/user1/wenu-frontend`.
+**Capabilities:** Read/write filesystem, bash, search, multi-agent orchestration, web fetch.
+**Permissions:** Same as Claude Code (T1) + Codex/OpenCode (T2) per `PERMISSIONS_MATRIX.md`.
+**Nota:** Invocar via `PROMPTS_FOR_AGENTS.md` Prompt #1 (audit) o Prompt #2 (implementation). Primera integración formal el 2026-05-15.
+
 ### Real gaps identified (no work done yet)
 
 1. `~/Obsidian/WenuAgent/brand/06-social-templates/{instagram-post,instagram-story,pinterest,tiktok}/` — all four folders are empty.
 2. `PROMPTS_FOR_AGENTS.md` lacks templates for: interaction-systems engineering, Figma Make translation, brutal QA audit, and content-creator (Instagram/social batch).
 3. Parallel-workstream pattern is documented in `~/.claude/plans/parallel-workstream-no-cryptic-zebra.md` but not formalised as a runtime workflow in `/agent-control/`.
+
+### Correction + new work — 2026-05-15 (tarde, cadena multi-agente)
+
+Gaps 1-2 above are RESOLVED — closed by commits made after this snapshot's 12:49 timestamp:
+- `PROMPTS_FOR_AGENTS.md` has all 10 templates complete (7-10 written ~13:06).
+- The 4 `06-social-templates/*/TEMPLATE.md` files all exist with substantial content.
+Gap 3 still open.
+
+New work this session (multi-agent chain T1/T4/T5 + recon):
+- `reports/catalog-reconciliation-2026-05-15.md` created. Canonical count: **50 live products**,
+  0 missing price/photo among published. 7 dup clusters still pending human approval.
+- Wording audit: `Petrolia`/`Lucky7`/`showroom` = 0 matches (already clean). Remaining items
+  need OWNER DECISION, not autonomous edit:
+  - `src/pages/piercing.astro` references "Truth Tattoo" + "Nicolás Ortega" + a WhatsApp
+    booking link. This is a business-model question — is the piercing partnership real?
+  - Department email aliases (`orders@/custom@/support@/aftercare@`) in `src/i18n/en.json`
+    and `wholesale@` in `wholesale.astro` — confirm these mailboxes are live.
+  - `src/pages/care-guide.astro` also has `aftercare@` but is OFF-LIMITS per DO_NOT_TOUCH.
+- **NocoDB inventory is NOT greenfield.** It runs as a loose Docker container on
+  `localhost:8080` (no compose file), SQLite backend, base `pbmsibdovaalqw4`. Two tables:
+  "Piezas" (`m5s3jnm72tzhk9g`, **89 real pieces** — 84 RAW, 5 SOLD OUT) and "Fotos"
+  (`m68mef57yfy4uwc`). Full API v2 client already exists at `~/wenu-platform/src/nocodb.mjs`
+  (985 lines, auto-SKU, supplier dedup). Recommended next: version a `docker-compose.yml`
+  for NocoDB, evaluate SQLite→Postgres migration.
+- **SECURITY:** `~/wenu-platform/SISTEMA-CLASIFICADOR.md` lines 62-69 contain a plaintext
+  `NOCODB_TOKEN` (`nc_pat_...`). Move to `.env` and rotate.
 
 ---
 
