@@ -6,6 +6,13 @@ When you need to revisit a decision, **add a new entry that supersedes it** rath
 
 ---
 
+## 2026-05-15 — Consolidate duplicate control structures into `/agent-control/`
+
+**Decided:** A prior session created parallel governance files in `/docs/` (`AGENT_RULES.md`, `PROJECT_STATE.md`, `CHANGELOG_AI.md`) and `/prompts/` (`00-master-context.md`, `01-current-task.md`, `02-next-actions.md`). These duplicated the canonical files in `/agent-control/` (`AGENT_CONTROL_CENTER.md`, `DO_NOT_TOUCH.md`, `CURRENT_STATE.md`, `DECISION_LOG.md`, `TASK_QUEUE.md`) and ignored the existing 7 subagents, 26 plans in `~/.claude/plans/`, and brand system in `~/Obsidian/WenuAgent/brand/`.
+**Why:** Two parallel sources of truth would diverge within days. The `/agent-control/` system is older, more complete, and already wired into the subagent ecosystem and `AGENT_HANDOFF_PROTOCOL.md`. The new files were derivative and lacked the cross-references.
+**Action:** Moved the 6 duplicate files to `/Users/user1/wenu-frontend-backup/2026-05-15-duplicate-docs/` (outside repo, reversible). `/docs/handoffs/` and `/docs/snippets/` from commit `f0966cf` are kept — they are legitimate.
+**Forecloses:** Future sessions creating governance files outside `/agent-control/`. New prompt templates go into `PROMPTS_FOR_AGENTS.md`. New state snapshots update `CURRENT_STATE.md` with a dated delta section, not a new file.
+
 ## 2026-05-09 — Agent Control Center introduced
 
 **Decided:** Centralize project orchestration in `~/wenu-frontend/agent-control/` with 9 governance files. All agents must read `AGENT_CONTROL_CENTER.md` first.

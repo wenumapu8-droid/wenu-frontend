@@ -1,6 +1,42 @@
-# Current State — 2026-05-09
+# Current State
 
 Snapshot of the Wenu Mapu technical state. Agents must read this before any technical work. If the snapshot is older than 7 days, run a fresh audit before acting.
+
+---
+
+## Delta — 2026-05-15
+
+What changed since the 2026-05-09 baseline below. Read this first.
+
+### Resolved since 2026-05-09
+
+| Item | Old state | New state |
+|---|---|---|
+| `wenu-frontend` git remote | None configured | **`origin` → `https://github.com/wenumapu8-droid/wenu-frontend.git`** — P3.2 done |
+| Branch tracking | local-only | `redesign-v2` tracks `origin/redesign-v2` |
+
+### New facts (2026-05-15)
+
+- **Node session mismatch:** active shell is `v20.18.3`. `package.json engines` requires `>=22.12.0` and `.nvmrc` pins to `24.14.1`. Build will fail until `nvm use` runs.
+- **28 uncommitted modifications** on `redesign-v2`. Mostly `src/pages/*` (amulets, ear-cuffs, hangers, piercing, material/*, collection/*, p/[slug], shop, index, journal/[slug]), plus `src/lib/woo.ts`, `src/i18n/en.json`, `public/_redirects`, `.env.example`, `src/content/journal/*`, `src/components/visual/Spec.astro`. Owner must decide: commit, discard, or continue editing before new work starts.
+- **Untracked new dirs:** `.runtime/`, `drafts/`, `scripts/cleanup/`, and `reports/` with 8 new artifacts (B2B emails batch 1, IG day 1, suggested prices CSV for 23 products, catalog cleanup status, copy bank for 10 depublished products, B2B lookbook v1 PDF + philosophy, photo-as-product cleanup CSV).
+- **Existing infrastructure confirmed (do not duplicate):**
+  - `/agent-control/` 9-file control plane is canonical (this folder).
+  - `~/.claude/agents/` has 7 subagents installed (wenu-orchestrator, wenu-brand, wenu-producto, wenuos-ops, segundo-cerebro, daily-synth, chatgpt-importer).
+  - `~/.claude/plans/` has 26 plans including `parallel-workstream-no-cryptic-zebra.md`.
+  - `~/Obsidian/WenuAgent/brand/` has 8 sub-folders (01-identity → 08-copy-bank).
+  - Root has 52 markdown reports/plans including `codex-task-1..6` prompts ready to execute.
+
+### Cleanup completed 2026-05-15
+
+- Moved 6 duplicate documentation files (created earlier this session in `/docs/` and `/prompts/`) to `/Users/user1/wenu-frontend-backup/2026-05-15-duplicate-docs/`. They duplicated `agent-control/CURRENT_STATE.md`, `AGENT_CONTROL_CENTER.md`, `DECISION_LOG.md`, and `TASK_QUEUE.md`. Reversible: `mv` back into repo if needed.
+- `/docs/` now contains only the legitimate `handoffs/` and `snippets/` subfolders from commit `f0966cf`.
+
+### Real gaps identified (no work done yet)
+
+1. `~/Obsidian/WenuAgent/brand/06-social-templates/{instagram-post,instagram-story,pinterest,tiktok}/` — all four folders are empty.
+2. `PROMPTS_FOR_AGENTS.md` lacks templates for: interaction-systems engineering, Figma Make translation, brutal QA audit, and content-creator (Instagram/social batch).
+3. Parallel-workstream pattern is documented in `~/.claude/plans/parallel-workstream-no-cryptic-zebra.md` but not formalised as a runtime workflow in `/agent-control/`.
 
 ---
 
