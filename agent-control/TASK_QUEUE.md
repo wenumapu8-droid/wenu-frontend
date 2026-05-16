@@ -13,7 +13,7 @@ Status legend: `[ ]` not started · `[~]` in progress · `[x]` done · `[!]` blo
 - [?] **C.** rotate the leaked cloudflared connector token via locally-managed migration *(plan: `cloudflared-local-managed-migration-plan.md`; deferred behind Pages cutover per 2026-05-09 decision)*
 - [ ] **E.** lock down `wenu-agent-hub` `.env.*` backups (5 files): expand `.gitignore` + move to `~/wenu-secrets-backup/` *(plan: `security-cleanup-plan.md` Step E)*
 - [ ] **F.** chmod 600 on plain `.env` files across all `wenu-*` projects *(plan: `security-cleanup-plan.md` Step F)*
-- [ ] **G.** harden `.gitignore` defensively in `wenu-frontend` (`.env.local`, `.env.bak`, `*.pem`, etc.) *(plan: `security-cleanup-plan.md` Step G)*
+- [x] **G.** harden `.gitignore` defensively in `wenu-frontend` *(verified 2026-05-15 — `.gitignore` already carries a defensive secrets block: `.env*`, `*.pem`, `*.key`, `*.crt`, `*.p12`, `*.pfx`, `secrets/`, `tokens/`, `.cloudflared/`. Done.)*
 
 Owners: Claude plans, human runs sudo, Codex may run non-sudo file edits.
 
@@ -39,12 +39,12 @@ Owner: human drives dashboard; Claude verifies via curl + screenshots.
 
 ## P3 — Full-site architecture (Cloudflare Pages preview)
 
-- [?] **P3.1** Decide: GitHub remote for `wenu-frontend` — yes (auto-deploy via Pages) or no (direct upload)?
-- [ ] **P3.2** If P3.1 = yes: create GitHub repo, add remote, push `redesign-v2`. Repo private. Branch protection on `main`.
-- [ ] **P3.3** Create Cloudflare Pages project `wenu-mapu-redesign`, framework Astro, build `npm run build`, output `dist`, root `/`. Production branch = `redesign-v2`.
-- [ ] **P3.4** Add Pages env vars (encrypted): `NODE_VERSION=24`, `WC_URL`, `WC_CONSUMER_KEY`, `WC_CONSUMER_SECRET`. Human pastes; agents never see.
-- [ ] **P3.5** Trigger first preview build. Verify 82-page output on `*.pages.dev`. Verify 64 product pages and `/aftercare/` both 200.
-- [ ] **P3.6** Document the preview URL in `CURRENT_STATE.md`.
+- [x] **P3.1** Decided **yes** — GitHub remote for auto-deploy. `origin` → `github.com/wenumapu8-droid/wenu-frontend`.
+- [x] **P3.2** GitHub repo created, `origin` added, `redesign-v2` pushed and tracking. *(Branch protection on `main` — confirm in GitHub settings; not verified.)*
+- [~] **P3.3** Cloudflare Pages project created — **actual name is `wenu-frontend`** (not `wenu-mapu-redesign`). Auto-deploys `redesign-v2`. **OPEN:** Production branch is NOT set to `redesign-v2` — it deploys as a preview branch alias (`x-robots-tag: noindex`); canonical `wenu-frontend.pages.dev` returns 404. Owner must set Production branch = `redesign-v2` in the Pages dashboard. See `CURRENT_STATE.md` → Cloudflare Pages.
+- [ ] **P3.4** Add Pages env vars (encrypted): `NODE_VERSION=24`, `WC_URL`, `WC_CONSUMER_KEY`, `WC_CONSUMER_SECRET`. Human pastes; agents never see. *(Build succeeds on Pages, so these are likely already set — confirm.)*
+- [x] **P3.5** Preview build verified 2026-05-15 on `redesign-v2.wenu-frontend.pages.dev` — HTTP 200 on home, /shop, /piercing, /hangers, /shipping, /contact, /local, /aftercare/, a PDP, search-index, sitemap, robots. **62** published products (count moved 64→62 as catalog cleanup depublished items).
+- [x] **P3.6** Preview URL documented in `CURRENT_STATE.md` → Cloudflare Pages section + Ronda 4 delta.
 - [ ] **P3.7** Do NOT attach apex domain. Stay on `*.pages.dev` until cutover decision.
 
 Owner: human drives dashboards; Claude verifies; Codex makes any code changes if Pages build surfaces them.
@@ -53,7 +53,7 @@ Owner: human drives dashboards; Claude verifies; Codex makes any code changes if
 
 - [ ] **P4.1** Verify `WC_CONSUMER_KEY` is read-only scoped (`read_products`) in WP admin → WooCommerce → Settings → Advanced → REST API.
 - [ ] **P4.2** Reconcile catalog count discrepancy (build saw 64; memory says WC shows 104 vs 59 estimated). Owner: `wenu-producto`.
-- [ ] **P4.3** Decide: keep `getProducts` `per_page=50` paginated up, or hard cap. Today the build catches 64 products by accident of single-call default.
+- [x] **P4.3** Premise was wrong. `src/lib/woo.ts` `fetchAllProducts()` already paginates correctly — `per_page=100` (WC max) in a `while` loop until the last short page. The build fetches **all** `status=publish` products (62 today); nothing is dropped by a single-call default. No change needed.
 - [ ] **P4.4** Document the canonical product code scheme (WM-AMU, WM-AUT, WM-CLS) in `agent-control/CURRENT_STATE.md` once `wenu-producto` confirms.
 
 ## P5 — Forms
@@ -64,9 +64,9 @@ Owner: human drives dashboards; Claude verifies; Codex makes any code changes if
 
 ## P6 — GitHub remote / Cloudflare Pages preview (operational ergonomics)
 
-- [ ] **P6.1** Install `gh` CLI: `brew install gh`. Human approves.
-- [ ] **P6.2** `gh auth login` — human authenticates in browser; token stored in macOS Keychain.
-- [ ] **P6.3** `gh repo create` for `wenu-frontend` (private). Add `origin`. Push `redesign-v2`.
+- [x] **P6.1** `gh` CLI installed — v2.92.0 at `/usr/local/bin/gh`.
+- [ ] **P6.2** `gh auth login` — confirm gh is authenticated (push worked, so credentials exist somewhere).
+- [x] **P6.3** Repo exists, `origin` set, `redesign-v2` pushed (= P3.2).
 - [ ] **P6.4** Use the same gh token to wire Cloudflare Pages → GitHub auto-deploy.
 
 (This overlaps with P3.2 — execute together.)
@@ -74,9 +74,13 @@ Owner: human drives dashboards; Claude verifies; Codex makes any code changes if
 ## P7 — Visual system polish
 
 - [ ] **P7.1** Audit visual consistency across the 23 pages in `src/pages/` and Aftercare. Owner: `wenu-brand`.
-- [ ] **P7.2** Confirm fonts (Cinzel Decorative, Cormorant Garamond, DM Serif Display, Source Serif Pro, Inter Variable) are correctly self-hosted (`@fontsource-*` packages already in deps).
-- [ ] **P7.3** Confirm color tokens match brand system (`--bronze`, `--wm-*`, etc.) per `~/Obsidian/WenuAgent/brand/color-palette.md`.
+- [x] **P7.2** Font stack confirmed — `package.json` ships **3** `@fontsource` families: DM Serif Display, Source Serif Pro, Inter Variable. **No Cinzel Decorative / Cormorant Garamond** (that list was stale; zero refs in `src/`). Self-hosted via `@fontsource`. *(Open perf item → P7.6.)*
+- [x] **P7.3** Color tokens verified in `src/styles/tokens.css` — Obsidian `#080706`, Bone `#F2EDE4`, Sand `#D6C1A3`, Silver `#A8A39A`, Bronze `#8A6A43`, Ember `#C4935A` all present and match the brand palette.
 - [ ] **P7.4** Decide on hero video / motion budget (Aftercare uses `.mp4`; full-site doesn't yet).
+- [ ] **P7.5** Convert the 4 aftercare PNGs (~10.2 MB total) to WebP/AVIF, and extend `scripts/clean-images.mjs` + `scripts/gen-avif.mjs` to scan `public/aftercare/`, not just `public/img/`. *(opencode audit P0 — `reports/audit-opencode-perf-2026-05-15.md`)*
+- [ ] **P7.6** Add `<link rel="preload">` for the 3 `@fontsource` families in `Base.astro`. *(opencode audit P1)*
+- [ ] **P7.7** Add explicit `width`/`height` to the ~13 `<img>` tags missing them (CLS fix); fix the `p/[slug].astro` LCP image (missing w/h + `loading`) and the `custom-orders` hero. *(opencode audit P0/P1)*
+- [ ] **P7.8** Fix `src/pages/sets.astro` — passes a string to `Base.astro`'s `preloadImage` prop, which expects an object → preload silently broken. *(opencode audit P0)*
 
 ## P8 — Production cutover (last)
 

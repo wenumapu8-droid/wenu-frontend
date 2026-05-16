@@ -1,0 +1,91 @@
+{
+  "_doc": "Departamentos de Wenu Mapu — la empresa dentro del computador. El Captain reparte; cada departamento toma UNA tarea con dueno, archivos y limite. owns=prioridades del TASK_QUEUE. feeds=a que departamento le pasa trabajo. task=la tarea asignada ahora (genera el prompt copiable).",
+  "zones": [
+    {
+      "id": "cap", "tag": "D0", "name": "CAPITAN", "role": "nucleo", "color": "#C4935A",
+      "agents": ["orquestador"],
+      "specialty": "gerente general — mira el mapa completo, decide prioridad, reparte tareas, revisa riesgos",
+      "domain": "todo el mapa: TASK_QUEUE, CURRENT_STATE, handoffs",
+      "limit": "no ejecuta carril rojo (commit / push / deploy) sin tu OK",
+      "owns": [],
+      "feeds": ["code", "ops", "prod", "brand", "brain"],
+      "task": {
+        "title": "Tras OK del dueno: ejecutar RED-LANE BATCH (commit+push Ronda 4) y coordinar la asignacion",
+        "files": "git + agent-control/ + docs/handoffs/",
+        "forbidden": "ejecutar carril rojo sin OK del dueno"
+      }
+    },
+    {
+      "id": "code", "tag": "D1", "name": "CODIGO", "color": "#6f97b8",
+      "agents": ["codex"],
+      "specialty": "ingenieria — edita el website, arregla bugs, integra cambios, corre el build",
+      "domain": "src/ del repo wenu-frontend",
+      "limit": "espera handoff; toca solo los archivos asignados; nunca .env ni aftercare",
+      "owns": ["P5", "P6", "P7"],
+      "feeds": ["ops"],
+      "runner": "codex",
+      "task": {
+        "title": "P7.7 — agregar width y height a la imagen LCP de la ficha de producto",
+        "files": "src/pages/p/[slug].astro",
+        "forbidden": "cualquier otro archivo, .env, aftercare, git commit/push, npm install"
+      }
+    },
+    {
+      "id": "ops", "tag": "D2", "name": "OPERACIONES", "color": "#b483c0",
+      "agents": ["opencode", "wenuos-ops"],
+      "specialty": "la maquina — Docker, PM2, n8n, launchd, logs, servicios caidos, deploy",
+      "domain": "infra local + Cloudflare Pages/tunnel + scripts/",
+      "limit": "no edita codigo de la app; comandos sudo necesitan tu OK",
+      "owns": ["P0", "P1", "P2", "P3", "P8"],
+      "feeds": ["code"],
+      "runner": "opencode",
+      "task": {
+        "title": "Auditar la maquina: correr 'npm run system:audit' en wenu-agent-hub y revisar Docker, PM2 y servicios caidos",
+        "files": "solo lectura; escribir un reporte en reports/",
+        "forbidden": "editar codigo de la app, comandos sudo sin OK"
+      }
+    },
+    {
+      "id": "prod", "tag": "D3", "name": "PRODUCTO", "color": "#d8a24f",
+      "agents": ["wenu-producto"],
+      "specialty": "catalogo — SKUs, WooCommerce, inventario NocoDB, fichas y fotos de producto",
+      "domain": "catalogo WC + base NocoDB + reports de catalogo",
+      "limit": "no escribe a WooCommerce sin OK; no toca codigo",
+      "owns": ["P4"],
+      "feeds": ["brand", "code"],
+      "task": {
+        "title": "Revisar los 7 clusters de productos duplicados y devolver una hoja de decision",
+        "files": "reports/ (solo escribir el reporte)",
+        "forbidden": "escribir a WooCommerce, editar codigo"
+      }
+    },
+    {
+      "id": "brand", "tag": "D4", "name": "MARCA", "color": "#84b069",
+      "agents": ["wenu-brand"],
+      "specialty": "marketing — Instagram, textos, voz de marca, visuales, campanas",
+      "domain": "Obsidian brand/ + contenido IG/journal + reports de marca",
+      "limit": "no toca codigo; devuelve contenido y el Captain lo guarda",
+      "owns": [],
+      "feeds": ["brain"],
+      "task": {
+        "title": "Producir el siguiente lote: 6 captions IG + 1 entrada de journal en voz de marca",
+        "files": "devuelve texto al Captain",
+        "forbidden": "tocar codigo, escribir archivos directamente"
+      }
+    },
+    {
+      "id": "brain", "tag": "D5", "name": "SEGUNDO CEREBRO", "color": "#9a93a8",
+      "agents": ["segundo-cerebro", "daily-synth"],
+      "specialty": "oficina central — ordena Obsidian, conecta notas, guarda memoria de decisiones",
+      "domain": "vault Obsidian, bitacora diaria, mapas maestros (MOCs)",
+      "limit": "no toca codigo; solo lee y organiza conocimiento",
+      "owns": [],
+      "feeds": ["cap"],
+      "task": {
+        "title": "Conectar los reports nuevos (auditorias + reconciliacion) a los MOCs del vault y registrar la Ronda 4 en la bitacora",
+        "files": "vault Obsidian",
+        "forbidden": "tocar codigo del repo"
+      }
+    }
+  ]
+}
