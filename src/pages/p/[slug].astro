@@ -26,7 +26,29 @@ const attrs = product.attributes || [];
 const gauge = attrs.find(a => a.name.toLowerCase().includes('gauge') || a.name.toLowerCase().includes('size'));
 const material = attrs.find(a => a.name.toLowerCase().includes('material'));
 
-const productLd = {
+// Canonical product URL — no trailing slash to match Astro's default
+// `trailingSlash: 'ignore'` and keep breadcrumb / offer URLs consistent.
+const productUrl = `https://wenumapuonline.com/p/${product.slug}`;
+
+// priceValidUntil — recommended for Product rich results. ~1 year ahead.
+const priceValidUntil = (() => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+})();
+
+// Map product attributes → schema fields.
+const materialValue = material?.options?.length ? material.options.join(', ') : undefined;
+const additionalProperty = [
+  gauge?.options?.length
+    ? { '@type': 'PropertyValue', name: 'Gauge / Size', value: gauge.options.join(', ') }
+    : null,
+  materialValue
+    ? { '@type': 'PropertyValue', name: 'Material', value: materialValue }
+    : null,
+].filter(Boolean);
+
+const productLd: Record<string, unknown> = {
   '@context': 'https://schema.org',
   '@type': 'Product',
   name: decodeEntities(product.name),
@@ -34,14 +56,53 @@ const productLd = {
   description: truncateForMeta(desc, 500) || `${decodeEntities(product.name)} — handcrafted body jewelry by Wenu Mapu.`,
   image: product.images.map(i => i.src),
   brand: { '@type': 'Brand', name: 'Wenu Mapu' },
+  ...(materialValue ? { material: materialValue } : {}),
+  ...(additionalProperty.length ? { additionalProperty } : {}),
   offers: {
     '@type': 'Offer',
     priceCurrency: 'USD',
     price: parseFloat(product.price || '0').toFixed(2),
+    priceValidUntil,
+    itemCondition: 'https://schema.org/NewCondition',
     availability: product.stock_status === 'instock'
       ? 'https://schema.org/InStock'
       : 'https://schema.org/OutOfStock',
-    url: `https://wenumapuonline.com/p/${product.slug}`,
+    url: productUrl,
+    hasMerchantReturnPolicy: {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'US',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: 30,
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/FreeReturn',
+    },
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: 'US',
+      },
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: '0',
+        currency: 'USD',
+      },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 1,
+          maxValue: 3,
+          unitCode: 'DAY',
+        },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 2,
+          maxValue: 7,
+          unitCode: 'DAY',
+        },
+      },
+    },
   },
 };
 
@@ -50,8 +111,8 @@ const breadcrumbLd = {
   '@type': 'BreadcrumbList',
   itemListElement: [
     { '@type': 'ListItem', position: 1, name: 'Home',  item: 'https://wenumapuonline.com/' },
-    { '@type': 'ListItem', position: 2, name: 'Shop',  item: 'https://wenumapuonline.com/shop/' },
-    { '@type': 'ListItem', position: 3, name: product.name, item: `https://wenumapuonline.com/p/${product.slug}/` },
+    { '@type': 'ListItem', position: 2, name: 'Shop',  item: 'https://wenumapuonline.com/shop' },
+    { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
   ],
 };
 ---

@@ -72,6 +72,13 @@ New work this session (multi-agent chain T1/T4/T5 + recon):
 - **SECURITY:** `~/wenu-platform/SISTEMA-CLASIFICADOR.md` lines 62-69 contain a plaintext
   `NOCODB_TOKEN` (`nc_pat_...`). Move to `.env` and rotate.
 
+### Ronda 4 — 2026-05-15 (deploy verificado)
+
+- **Git push:** nada que pushear. Local `redesign-v2` == `origin/redesign-v2` == `6450f5b` (0 ahead / 0 behind). Los commits que parecían pendientes ya se subieron al configurar el remoto (P3.2).
+- **Cloudflare Pages:** proyecto `wenu-frontend` existe y auto-deploya `redesign-v2`. El deploy está **vivo y sano en `redesign-v2.wenu-frontend.pages.dev` (200)**, pero corre como **preview branch alias** (`x-robots-tag: noindex`), no como producción.
+- **Gap abierto:** la URL canónica de producción `wenu-frontend.pages.dev` devuelve **404** → no hay deploy de producción. El "production branch" del proyecto Pages NO está en `redesign-v2` pese a lo asumido. Fix = cambiar Production branch a `redesign-v2` en el dashboard + retrigger. Carril rojo, acción del dueño.
+- **Verificación curl:** todas las rutas clave 200 (home, /shop, /piercing, /hangers, /shipping, /contact, /local, /aftercare/, PDP, /search-index.json [62 productos], /sitemap-index.xml, /robots.txt).
+
 ---
 
 ## WordPress / WooCommerce (live store)
@@ -126,10 +133,11 @@ New work this session (multi-agent chain T1/T4/T5 + recon):
 
 | Field | Value |
 |---|---|
-| State | **Not yet wired.** No Pages project exists. |
+| State | **Wired + deploying.** Project `wenu-frontend` exists, connected to GitHub `origin`, auto-deploys `redesign-v2`. |
+| Live URL (preview) | `https://redesign-v2.wenu-frontend.pages.dev` — **HTTP 200**, verified 2026-05-15 (home, /shop, /piercing, /hangers, /shipping, /contact, /local, /aftercare/, PDP, search-index, sitemap, robots — all 200; 62 products in index). |
+| Canonical URL (production) | `https://wenu-frontend.pages.dev` — **HTTP 404**. No successful production deployment exists. |
+| Open config gap | `redesign-v2` deploys as a **preview branch alias** (`x-robots-tag: noindex`), NOT as production. To make it production: set **Production branch = `redesign-v2`** in Pages dashboard (Settings → Builds & deployments) and retrigger a deploy. Owner action — requires Cloudflare console login. |
 | Plan | `cloudflare-pages-deploy.md` + `deployment-readiness-report.md` |
-| Recommended first step | Option A: full-site preview deploy to `*.pages.dev` from `redesign-v2` branch |
-| Blocker | `wenu-frontend` has no git remote → cannot connect Pages → GitHub auto-deploy. Direct upload via wrangler also blocked: wrangler not installed. |
 | Production target | NOT yet `wenumapuonline.com` apex. Stay on `*.pages.dev` until apex cutover decision is explicitly made by human. |
 
 ## Git / GitHub
