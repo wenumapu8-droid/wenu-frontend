@@ -15,6 +15,8 @@ const ROOT = path.join(DIR, '..');
 const PORT = Number(process.env.CC_PORT || 7878);
 const LIVE = 'https://redesign-v2.wenu-frontend.pages.dev';
 const BRANCH = 'redesign-v2';
+const REDLANE_CONFIRM = `PUBLICAR ${BRANCH}`;
+const REDLANE_ENABLED = process.env.WENU_COMMAND_CENTER_ALLOW_REDLANE === '1';
 
 const read = (p) => { try { return fs.readFileSync(path.join(ROOT, p), 'utf8'); } catch { return ''; } };
 const resolveBin = (n) => { try { return execSync(`command -v ${n}`, { encoding: 'utf8' }).trim(); } catch { return ''; } };
@@ -80,7 +82,8 @@ function buildPrompt(z) {
   return [
     `Actua como el departamento ${z.name} de Wenu Mapu (agente: ${(z.agents || []).join(' / ')}).`,
     `Workspace: ${ROOT}   ·   branch: ${BRANCH}`,
-    `Lee primero: agent-control/AGENT_HANDOFF_PROTOCOL.md y agent-control/CURRENT_STATE.md.`,
+    `Lee primero: agent-control/AGENT_HANDOFF_PROTOCOL.md, agent-control/CURRENT_STATE.md y docs/handoffs/2026-05-15-vscode-codex-agent-handoff.md si existe.`,
+    `Antes de editar declara exactamente: TASK / FILES ALLOWED / FORBIDDEN.`,
     ``,
     `TAREA: ${t.title}`,
     `FILES ALLOWED: ${t.files}`,
@@ -88,6 +91,7 @@ function buildPrompt(z) {
     `LIMITE DEL DEPARTAMENTO: ${z.limit}`,
     ``,
     `Trabaja SOLO en los archivos permitidos. No otro archivo. No commitees ni pushees.`,
+    `Si hay archivos sucios fuera de tu alcance, para y reporta handoff en vez de editar.`,
     `Al terminar devolve: RESULT (success/blocked/partial) / WHAT CHANGED / WHAT VERIFIED / WHAT NEXT.`,
   ].join('\n');
 }
@@ -196,6 +200,11 @@ async function buildState() {
     queue, rounds: parseRounds(), activity,
     git: git(), site: await siteHealth(), liveUrl: LIVE, runners: RUNNERS,
     inventory: await inventory(), agents: buildAgents(activity),
+    safety: {
+      redlaneEnabled: REDLANE_ENABLED,
+      redlaneConfirm: REDLANE_CONFIRM,
+      forbidden: ['secrets', 'DNS', 'production deploys', 'WooCommerce writes', 'sudo', 'aftercare'],
+    },
   };
 }
 
@@ -209,6 +218,10 @@ function dispatch(zoneId) {
   const z = loadZones().find((x) => x.id === zoneId);
   if (!z) return { ok: false, error: 'departamento desconocido' };
   if (!z.runner || !RUNNERS[z.runner]) return { ok: false, error: 'este departamento lo despacha el Captain — copia el prompt' };
+  const active = parseActivity().find((a) => a.status === 'wip' && (z.agents || []).includes(a.agent));
+  if (active) {
+    return { ok: false, error: `ese departamento ya tiene trabajo en curso: ${active.action}` };
+  }
   const prompt = buildPrompt(z);
   const logPath = path.join(ROOT, `command-center/dispatch-${zoneId}.log`);
   fs.writeFileSync(logPath, `# despacho ${z.name} · ${new Date().toISOString()}\n# ${z.task.title}\n\n`);
@@ -222,9 +235,43 @@ function dispatch(zoneId) {
   return { ok: true, runner: z.runner, pid: child.pid };
 }
 
-function redlane() {
+function redlane(payload = {}) {
   const log = [];
+  if (!REDLANE_ENABLED) {
+    return {
+      ok: false,
+      log: [
+        'RED-LANE bloqueado por seguridad.',
+        'Para habilitarlo, reinicia el centro con WENU_COMMAND_CENTER_ALLOW_REDLANE=1.',
+        `Aun habilitado, exige confirmacion exacta: ${REDLANE_CONFIRM}`,
+      ],
+    };
+  }
+
+  if (payload.confirm !== REDLANE_CONFIRM) {
+    return {
+      ok: false,
+      log: [
+        'Confirmacion incorrecta.',
+        `Escribe exactamente: ${REDLANE_CONFIRM}`,
+      ],
+    };
+  }
+
   try {
+    const dirty = execFileSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' })
+      .split('\n')
+      .filter(Boolean);
+    if (dirty.length > 30) {
+      return {
+        ok: false,
+        log: [
+          `RED-LANE bloqueado: hay ${dirty.length} archivos dirty.`,
+          'Revisa y reduce el lote antes de publicar.',
+        ],
+      };
+    }
+
     execFileSync('git', ['add', '-A'], { cwd: ROOT });
     log.push('git add -A — ok');
     try {
@@ -253,7 +300,7 @@ const server = http.createServer(async (req, res) => {
       try {
         const p = JSON.parse(body || '{}');
         if (p.type === 'dispatch') out = dispatch(p.dept);
-        else if (p.type === 'redlane') out = redlane();
+        else if (p.type === 'redlane') out = redlane(p);
         else if (p.type === 'log') { appendActivity(p.event || {}); out = { ok: true }; }
         else out = { ok: false, error: 'accion desconocida' };
       } catch (e) { out = { ok: false, error: String(e) }; }

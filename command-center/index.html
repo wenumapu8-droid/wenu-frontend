@@ -41,6 +41,9 @@
   .bigbtn.sec { background:transparent; color:var(--soft); border:1.5px solid var(--line); font-size:14px; padding:11px 18px; }
   .pubout { margin-top:13px; background:#0d0b08; border:1px solid var(--line); border-radius:11px; padding:13px 15px; font-size:14px; color:var(--soft); white-space:pre-wrap; display:none; }
   .pubout.on { display:block; }
+  .confirmbox { margin-top:13px; display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+  .confirmbox input { flex:1 1 240px; min-width:0; background:#0d0b08; color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:12px 13px; font:inherit; }
+  .guard { margin-top:11px; color:var(--amber); font-size:13.5px; }
 
   /* ---- como va todo ---- */
   .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:13px; }
@@ -152,11 +155,17 @@ function render(s){
   // ---- esto te espera ----
   const hayTrabajo = s.git.dirty>0 || s.git.ahead>0;
   if(hayTrabajo){
+    const redEnabled = s.safety && s.safety.redlaneEnabled;
+    const confirmText = s.safety ? s.safety.redlaneConfirm : 'PUBLICAR redesign-v2';
     $('todo').innerHTML = `<div class="todo need">
       <div class="lbl">👉 Esto te espera</div>
-      <h1>Hay trabajo terminado, listo para publicar</h1>
-      <p>Los agentes terminaron: contenido nuevo para el blog e Instagram, arreglos en el sitio y este centro de mando. Está todo probado y funcionando. Solo falta que vos lo publiques para que quede guardado y online.</p>
-      <button class="bigbtn" id="pubbtn" onclick="pubClick()">✅ Publicar el trabajo</button>
+      <h1>Hay cambios locales esperando revisión</h1>
+      <p>Antes de publicar hay que revisar qué archivos están cambiados y quién los tocó. El carril rojo está bloqueado por defecto para evitar subir trabajo mezclado.</p>
+      <div class="guard">${redEnabled ? `Para publicar escribe exactamente: ${esc(confirmText)}` : 'Publicación desactivada. Reinicia el panel con WENU_COMMAND_CENTER_ALLOW_REDLANE=1 solo después de revisar git status.'}</div>
+      <div class="confirmbox">
+        <input id="pubconfirm" ${redEnabled ? '' : 'disabled'} placeholder="${esc(confirmText)}" />
+        <button class="bigbtn" id="pubbtn" ${redEnabled ? '' : 'disabled'} onclick="pubClick()">✅ Publicar</button>
+      </div>
       <div class="pubout" id="pubout"></div>
     </div>`;
   } else {
@@ -224,6 +233,16 @@ function render(s){
 
 function pubClick(){
   const b=$('pubbtn');
+  const inp=$('pubconfirm');
+  const phrase = STATE && STATE.safety ? STATE.safety.redlaneConfirm : 'PUBLICAR redesign-v2';
+  if(!STATE || !STATE.safety || !STATE.safety.redlaneEnabled){
+    toast('RED-LANE está bloqueado por seguridad');
+    return;
+  }
+  if(!inp || inp.value.trim() !== phrase){
+    toast('Escribe la frase exacta para publicar');
+    return;
+  }
   if(!pubArmed){
     pubArmed=true; b.textContent='👉 Tocá otra vez para confirmar'; b.classList.add('confirm');
     toast('Tocá el botón otra vez para publicar de verdad');
@@ -235,7 +254,8 @@ function pubClick(){
 }
 async function doPublish(){
   const out=$('pubout'); out.classList.add('on'); out.textContent='Guardando y publicando el trabajo…';
-  const r=await action({type:'redlane'});
+  const phrase = STATE && STATE.safety ? STATE.safety.redlaneConfirm : '';
+  const r=await action({type:'redlane', confirm: phrase});
   if(r.ok){ out.textContent='✅ Listo. El trabajo quedó guardado y publicado.'; out.style.color='var(--green)'; toast('✅ Publicado con éxito'); }
   else { out.textContent='⚠️ No se pudo publicar:\n'+(r.log||[]).join('\n'); out.style.color='var(--red)'; toast('⚠️ Hubo un problema al publicar'); }
   setTimeout(sync,1200);
