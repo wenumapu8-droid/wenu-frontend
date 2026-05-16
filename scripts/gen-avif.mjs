@@ -1,5 +1,6 @@
-// Generate .avif companions for every .webp in public/img/.
-// Run: node scripts/gen-avif.mjs
+// Generate .avif companions for every .webp in target directory.
+// Run: node scripts/gen-avif.mjs [root]
+//   root — default: public/img, e.g. node scripts/gen-avif.mjs public/aftercare
 //
 // Idempotent: skips files where the .avif is newer than the .webp source.
 
@@ -7,7 +8,7 @@ import sharp from 'sharp';
 import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
-const ROOT = path.resolve('public/img');
+const ROOT = path.resolve(process.argv[2] || 'public/img');
 
 async function* walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {

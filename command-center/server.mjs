@@ -289,6 +289,56 @@ function redlane(payload = {}) {
   }
 }
 
+// ---- voz: responde preguntas en lenguaje natural sobre el estado ----
+function answer(qRaw, s) {
+  const q = (qRaw || '').toLowerCase().trim();
+  const has = (...ws) => ws.some((w) => q.includes(w));
+  if (!q) return 'No te escuche bien. Preguntame de nuevo: por ejemplo, que hay que hacer, o como va todo.';
+
+  if (has('hola', 'buenas', 'buenos dias', 'buen dia', 'que tal', 'como estas')) {
+    return 'Hola. Soy el centro de mando de Wenu Mapu. Preguntame que hay que hacer, como va todo, que hacen los agentes, o como va el inventario.';
+  }
+  if (has('que hay que hacer', 'que falta', 'que tengo que hacer', 'que hago', 'pendiente', 'que sigue')) {
+    const pend = [];
+    if (s.git.dirty > 0 || s.git.ahead > 0) pend.push('hay trabajo terminado todavia sin publicar');
+    const esperan = s.zones.filter((z) => z.status === 'ESPERA OK');
+    if (esperan.length) pend.push(`${esperan.length} departamento${esperan.length > 1 ? 's esperan' : ' espera'} tu permiso`);
+    if (!pend.length) return 'No tenes nada urgente esperandote. Todo al dia. Los agentes siguen trabajando solos.';
+    return 'Esto te espera: ' + pend.join('. Y ademas, ') + '. Cuando quieras, lo aprobamos.';
+  }
+  if (has('como va', 'como esta', 'como vamos', 'como anda', 'estado', 'todo bien')) {
+    const ok = s.site.every((r) => r.ok);
+    return `El sitio web esta ${ok ? 'funcionando bien' : 'con algo para revisar'}. Vas por el nivel ${s.stages.level} de ${s.stages.stages.length}, ${s.stages.currentName}. La mision total va en ${s.mission.pct} por ciento.`;
+  }
+  if (has('agente', 'equipo', 'quien trabaja', 'quien esta')) {
+    const work = s.agents.filter((a) => a.status === 'TRABAJANDO');
+    if (!work.length) return `Tu equipo tiene ${s.agents.length} agentes. Ahora ninguno esta trabajando, estan todos disponibles esperando ordenes.`;
+    return `Ahora estan trabajando: ${work.map((a) => a.name).join(', ')}. El resto del equipo esta disponible.`;
+  }
+  if (has('inventario', 'producto', 'tienda', 'catalogo', 'cuantos')) {
+    const n = s.inventory.live.count;
+    return n != null ? `La tienda tiene ${n} productos publicados ahora mismo.` : 'No pude leer el inventario en este momento.';
+  }
+  if (has('nivel', 'etapa', 'progreso')) {
+    const cur = s.stages.current;
+    if (!cur) return `Vas por el nivel ${s.stages.level}.`;
+    return `Estas en el nivel ${cur.n}, ${cur.name}. Llevas ${cur.done} de ${cur.total} objetivos. Faltan ${cur.total - cur.done} para subir de nivel.`;
+  }
+  if (has('que paso', 'novedad', 'ultimo', 'reciente', 'historial')) {
+    const a = s.activity[0];
+    return a ? `Lo ultimo que paso: ${a.action}.` : 'Todavia no hay actividad registrada.';
+  }
+  if (has('publica', 'publicar', 'subir')) {
+    return (s.git.dirty > 0 || s.git.ahead > 0)
+      ? 'Hay trabajo listo para publicar. Si me decis que si, lo dejamos online.'
+      : 'No hay nada pendiente de publicar. Todo esta al dia.';
+  }
+  if (has('gracias', 'genial', 'perfecto', 'buenisimo', 'excelente')) {
+    return 'De nada. Aca estoy para lo que necesites.';
+  }
+  return 'Puedo contarte: que hay que hacer, como va todo, que hacen los agentes, como va el inventario, o en que nivel estas. Preguntame una de esas.';
+}
+
 const server = http.createServer(async (req, res) => {
   const json = (code, obj) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(obj)); };
 
@@ -305,6 +355,18 @@ const server = http.createServer(async (req, res) => {
         else out = { ok: false, error: 'accion desconocida' };
       } catch (e) { out = { ok: false, error: String(e) }; }
       json(200, out);
+    });
+    return;
+  }
+  if (req.method === 'POST' && req.url === '/api/ask') {
+    let body = '';
+    req.on('data', (c) => { body += c; if (body.length > 1e5) req.destroy(); });
+    req.on('end', async () => {
+      try {
+        const p = JSON.parse(body || '{}');
+        const s = await buildState();
+        json(200, { answer: answer(p.question, s) });
+      } catch (e) { json(200, { answer: 'Tuve un problema para responder. Proba de nuevo.' }); }
     });
     return;
   }

@@ -32,6 +32,8 @@ export interface WooImage {
   id: number;
   src: string;
   alt: string;
+  width?: number;
+  height?: number;
 }
 
 export interface WooCategory {

@@ -1,30 +1,53 @@
 ---
 import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
 import PatternBand from '../../components/PatternBand.astro';
+import { getProducts } from '../../lib/woo';
 import en from '../../i18n/en.json';
 
 const L = en.landing.collection_hub;
 
-const collections = [
+const collectionDefs = [
   {
     title: 'Ritual Ring Vacamuerta',
     sub: 'Author series built around Atacama meteorite. One-of-a-kind, numbered.',
     href: '/collection/ritual-ring-vacamuerta',
-    image: '/img/categories/amulets.webp',
+    image: '/img/brand/meteorite-collection.webp',
+    keywords: ['ritual-ring', 'vacamuerta', 'meteorite', 'atacama'],
   },
   {
     title: 'Mystic Series',
     sub: 'Themed pieces — cardinal forces, volcanic line, sky world.',
     href: '/collection/mystic-series',
     image: '/img/categories/amulets.webp',
+    keywords: ['mystic', 'amulet', 'amethyst', 'snake', 'bee'],
   },
   {
     title: 'Author Jewelry',
     sub: 'One-of-a-kind pieces signed by the maker.',
     href: '/collection/author-jewelry',
-    image: '/img/categories/amulets.webp',
+    image: '/img/products/ritual-ring-950.webp',
+    keywords: ['ritual-ring', 'carved-ethnic-ring', 'author', 'one-of-a-kind', 'signed', 'numbered'],
   },
 ];
+
+const allProducts = await getProducts();
+const searchable = (product) => [
+  product.name,
+  product.slug,
+  product.sku,
+  ...product.categories.map(c => c.name),
+  ...product.categories.map(c => c.slug),
+  ...product.attributes.flatMap(a => [a.name, ...a.options]),
+].join(' ').toLowerCase();
+
+const collections = collectionDefs.map(collection => ({
+  ...collection,
+  products: allProducts
+    .filter(product => product.images[0]?.src)
+    .filter(product => collection.keywords.some(keyword => searchable(product).includes(keyword)))
+    .slice(0, 6),
+}));
 
 const collectionLd = {
   '@context': 'https://schema.org',
@@ -47,7 +70,7 @@ const breadcrumbLd = {
 <Base
   title="Collections — Ritual rings, mystic studies, author jewelry | Wenu Mapu"
   description="The three founding Wenu Mapu collections. Ritual Ring Vacamuerta, Mystic Series, Author Jewelry."
-  ogImage="/img/categories/amulets.webp"
+  ogImage="/img/brand/meteorite-collection.webp"
   jsonLd={[collectionLd, breadcrumbLd]}
 >
   <section class="section section--mega">
@@ -65,16 +88,33 @@ const breadcrumbLd = {
         {collections.map(c => (
           <a class="archive-card" href={c.href}>
             <div class="archive-card__media">
-              <img src={c.image} alt={c.title} loading="lazy" />
+              <img src={c.image} alt={c.title} loading="lazy" decoding="async" />
             </div>
             <div class="archive-card__body">
               <h2 class="archive-card__title">{c.title}</h2>
               <p class="archive-card__sub">{c.sub}</p>
+              <p class="archive-card__sub">{c.products.length} matching pieces in the current catalogue.</p>
               <span class="archive-card__cta">Browse the collection →</span>
             </div>
           </a>
         ))}
       </div>
+
+      {collections.map(c => c.products.length > 0 && (
+        <div class="landing__rail" aria-label={`Selected pieces in ${c.title}`}>
+          <div class="landing__rail-head">
+            <p class="eyebrow">{c.title}</p>
+            <a href={c.href} class="text-accent">Open collection →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {c.products.map(product => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
     </div>
   </section>
 </Base>

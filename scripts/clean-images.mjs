@@ -1,7 +1,8 @@
-// Strip EXIF/metadata from all images in public/img/ and re-encode to optimal weight.
+// Strip EXIF/metadata from all images and re-encode to optimal weight.
 // Convention: lowercase kebab-case names; webp for photos >800KB.
 //
-// Run: node scripts/clean-images.mjs
+// Run: node scripts/clean-images.mjs [root]
+//   root — default: public/img, e.g. node scripts/clean-images.mjs public/aftercare
 //
 // Idempotent: safe to re-run. Replaces files in place.
 
@@ -9,7 +10,7 @@ import sharp from 'sharp';
 import { readdir, rename, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 
-const ROOT = path.resolve('public/img');
+const ROOT = path.resolve(process.argv[2] || 'public/img');
 
 async function* walk(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
