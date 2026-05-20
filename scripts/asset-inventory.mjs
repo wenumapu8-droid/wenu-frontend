@@ -114,7 +114,7 @@ async function main() {
 
   const obsidianSkuGroups = groupBySku(obsidianAssets);
   const marketingBanners = obsidianAssets.filter(asset => /banner|collection|meteorite|ritual/i.test(asset.relative));
-  const publicCollections = siteAssets.filter(asset => /brand|categories|products/i.test(asset.path));
+  const publicCollections = siteAssets.filter(asset => /brand|categories|products|graphics|sets/i.test(asset.path));
   const productMatches = products.map(product => {
     const ranked = obsidianAssets
       .map(asset => ({ asset, score: scoreAsset(product, asset) }))

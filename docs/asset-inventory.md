@@ -1,6 +1,6 @@
 # Wenu Mapu Asset Inventory
 
-Generated: 2026-05-16T03:30:41.207Z
+Generated: 2026-05-16T04:22:34.547Z
 
 ## Scope
 
@@ -12,7 +12,7 @@ Generated: 2026-05-16T03:30:41.207Z
 ## Counts
 
 - Products in generated search index: 50
-- Site image assets under public/img: 32
+- Site image assets under public/img: 40
 - Obsidian marketing/product image assets scanned: 123
 - Obsidian SKU folders detected: 22
 - Products with likely Obsidian image candidates: 1
@@ -27,12 +27,18 @@ Generated: 2026-05-16T03:30:41.207Z
 
 ## Current Public Collection/Product Assets
 
+- brand/artistry-workbench.avif (avif, 55 KB)
+- brand/artistry-workbench.webp (webp, 100 KB)
 - brand/meteorite-banner.avif (avif, 36 KB)
 - brand/meteorite-banner.webp (webp, 48 KB)
 - brand/meteorite-collection.avif (avif, 31 KB)
 - brand/meteorite-collection.webp (webp, 39 KB)
 - brand/meteorite-final.avif (avif, 35 KB)
 - brand/meteorite-final.webp (webp, 46 KB)
+- brand/obsidian-textile-texture.avif (avif, 145 KB)
+- brand/obsidian-textile-texture.webp (webp, 218 KB)
+- brand/shop-ritual-septum-hero.avif (avif, 99 KB)
+- brand/shop-ritual-septum-hero.webp (webp, 135 KB)
 - categories/amulets.avif (avif, 122 KB)
 - categories/amulets.webp (webp, 156 KB)
 - categories/ear-weights.avif (avif, 11 KB)
@@ -45,6 +51,8 @@ Generated: 2026-05-16T03:30:41.207Z
 - products/psy-spectrum-ring.webp (webp, 45 KB)
 - products/ritual-ring-950.avif (avif, 19 KB)
 - products/ritual-ring-950.webp (webp, 21 KB)
+- sets/ritual-amanecer.avif (avif, 14 KB)
+- sets/ritual-amanecer.webp (webp, 28 KB)
 
 ## Likely Product Image Candidates
 

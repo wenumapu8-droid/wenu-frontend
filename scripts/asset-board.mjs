@@ -5,7 +5,10 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'docs/asset-board.html');
 const SOURCES = [
   { label: 'Website brand assets', root: path.join(ROOT, 'public/img/brand'), limit: 80 },
+  { label: 'Website graphic primitives', root: path.join(ROOT, 'public/img/graphics'), limit: 80 },
   { label: 'Website product assets', root: path.join(ROOT, 'public/img/products'), limit: 80 },
+  { label: 'Website lifestyle assets', root: path.join(ROOT, 'public/img/lifestyle'), limit: 80 },
+  { label: 'Website set assets', root: path.join(ROOT, 'public/img/sets'), limit: 80 },
   {
     label: 'Obsidian marketing banners',
     root: '/Users/user1/Obsidian/WenuAgent/brand/07-marketing-collateral/banners',
@@ -15,6 +18,21 @@ const SOURCES = [
     label: 'Obsidian product macro finals',
     root: '/Users/user1/Obsidian/WenuAgent/brand/04-photography/product-macro/final',
     limit: 240,
+  },
+  {
+    label: 'LaCie marketing',
+    root: '/Volumes/LaCie/Wenu mapu/WenuMapu/Marketing',
+    limit: 80,
+  },
+  {
+    label: 'LaCie design product photography',
+    root: '/Volumes/LaCie/Wenu mapu/WenuMapu/🎨 _DISEÑO/Product_Photography',
+    limit: 120,
+  },
+  {
+    label: 'LaCie WooCommerce-ready',
+    root: '/Volumes/LaCie/Wenu mapu/WenuMapu/📦 _WOOCOMMERCE_READY',
+    limit: 160,
   },
 ];
 const IMAGE_EXT = /\.(avif|webp|png|jpe?g)$/i;
