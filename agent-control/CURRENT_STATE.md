@@ -8,6 +8,28 @@ Snapshot of the Wenu Mapu technical state. Agents must read this before any tech
 
 What changed since the 2026-05-09 baseline below. Read this first.
 
+## Delta — 2026-05-18
+
+Trabajo nocturno verificado con `npm run build` en Node 24.14.1: **96 páginas**, postbuild OK,
+50 product pages.
+
+- `~/wenu-platform/SISTEMA-CLASIFICADOR.md` ya no contiene el valor plano `nc_pat_`;
+  el documento apunta a `~/wenu-platform/.env`. `NOCODB_TOKEN` existe en `.env`, verificado
+  sin imprimir el valor.
+- `~/wenu-platform/docker-compose.yml` existe para NocoDB con volumen externo
+  `nocodb_data -> /usr/app/data`; no se bajó ni recreó el contenedor activo. `docker compose config`
+  validó OK. Ver `~/wenu-platform/NOCODB_DOCKER_README.md`.
+- `~/wenu-platform` tiene prototipo de generador de láminas técnicas:
+  `src/technical-sheet.mjs`, `scripts/generate-technical-sheet.mjs`,
+  `TECHNICAL_SHEETS_README.md`. Lee NocoDB solo-read, genera HTML+SVG y exporta PNG/PDF
+  con `puppeteer-core`. Prueba exportada para `WM-HAN-001` en
+  `.runtime/technical-sheets-final/`.
+- Auditoría BEM markup↔CSS documentada en `docs/css-orphan-bem-audit-2026-05-18.md`.
+  Bug real de `archive-card__title/sub/cta` arreglado en `src/styles/global.css`; los demás
+  hallazgos quedaron clasificados como falsos positivos/no-layout.
+- No hubo commits: `DO_NOT_TOUCH.md` exige aprobación explícita por commit y la orden del prompt
+  de commitear contradice esa regla superior.
+
 ### Resolved since 2026-05-09
 
 | Item | Old state | New state |

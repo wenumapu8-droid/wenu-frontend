@@ -32,6 +32,13 @@ Red lights (run sequential):
 | T4    | wenu-brand subagent          | `~/Obsidian/WenuAgent/brand/` + `contenido/` | none — vault is owner's brain |
 | T5    | wenu-producto subagent       | WC catalog reads (writes only via pipeline scripts) | none for reads; YES for writes |
 
+Main business tracks:
+| Track | Agent                        | Surface                                 | Approval gate                 |
+|-------|------------------------------|------------------------------------------|-------------------------------|
+| T9    | OpenCode / Claude            | Metrics & wallet: revenue, orders, AOV   | Agent pulls from APIs; human verifies |
+| T10   | wenu-brand / OpenCode        | Marketing: campaigns, content pipeline   | Human approves campaign spend |
+| T11   | wenu-brand / visual agent    | Design: asset pipeline, brand system     | None for internal tracking |
+
 Bonus lanes for occasional use:
 - T6: wenuos-ops — Cloudflare, tunnel, DNS (always human-driven in dashboard)
 - T7: segundo-cerebro — vault cleanup, MOC maintenance

@@ -73,16 +73,55 @@ Owner: human drives dashboards; Claude verifies; Codex makes any code changes if
 
 ## P7 — Visual system polish
 
-- [ ] **P7.1** Audit visual consistency across the 23 pages in `src/pages/` and Aftercare. Owner: `wenu-brand`.
+- [x] **P7.1** Audit visual consistency across the 23 pages in `src/pages/` and Aftercare. Done 2026-05-18:
+  `docs/audit-visual-consistency-2026-05-18.md`.
 - [x] **P7.2** Font stack confirmed — `package.json` ships **3** `@fontsource` families: DM Serif Display, Source Serif Pro, Inter Variable. **No Cinzel Decorative / Cormorant Garamond** (that list was stale; zero refs in `src/`). Self-hosted via `@fontsource`. *(Open perf item → P7.6.)*
 - [x] **P7.3** Color tokens verified in `src/styles/tokens.css` — Obsidian `#080706`, Bone `#F2EDE4`, Sand `#D6C1A3`, Silver `#A8A39A`, Bronze `#8A6A43`, Ember `#C4935A` all present and match the brand palette.
 - [ ] **P7.4** Decide on hero video / motion budget (Aftercare uses `.mp4`; full-site doesn't yet).
 - [ ] **P7.5** Convert the 4 aftercare PNGs (~10.2 MB total) to WebP/AVIF, and extend `scripts/clean-images.mjs` + `scripts/gen-avif.mjs` to scan `public/aftercare/`, not just `public/img/`. *(opencode audit P0 — `reports/audit-opencode-perf-2026-05-15.md`)*
 - [ ] **P7.6** Add `<link rel="preload">` for the 3 `@fontsource` families in `Base.astro`. *(opencode audit P1)*
-- [ ] **P7.7** Add explicit `width`/`height` to the ~13 `<img>` tags missing them (CLS fix); fix the `p/[slug].astro` LCP image (missing w/h + `loading`) and the `custom-orders` hero. *(opencode audit P0/P1)*
-- [ ] **P7.8** Fix `src/pages/sets.astro` — passes a string to `Base.astro`'s `preloadImage` prop, which expects an object → preload silently broken. *(opencode audit P0)*
+- [x] **P7.7** Add explicit `width`/`height` to the ~13 `<img>` tags missing them (CLS fix); fix the `p/[slug].astro` LCP image (missing w/h + `loading`) and the `custom-orders` hero. Done 2026-05-18; the remaining real issue found in this lane was CSS class mismatch on archive cards, fixed and documented.
+- [x] **P7.8** Fix `src/pages/sets.astro` — passes a string to `Base.astro`'s `preloadImage` prop, which expects an object → preload silently broken. Done before this pass per `PLAN-DE-AVANCE.md`.
 
 ## P8 — Production cutover (last)
+
+- [ ] **P8.1** All P0–P7 checkmarked.
+- [ ] **P8.2** Pages preview URL has been live and verified for at least 7 days.
+- [ ] **P8.3** Forms decision (P5) is settled.
+- [ ] **P8.4** Tunnel rotation (P0-C) is complete.
+- [ ] **P8.5** Apex DNS cutover plan written and approved by human.
+- [ ] **P8.6** Cutover window scheduled. Rollback path documented.
+- [ ] **P8.7** Execute cutover. Monitor 24h. Confirm `wenumapuonline.com` serves the new site, all forms work, all products render, all assets load.
+- [ ] **P8.8** Retire the cloudflared tunnel for apex + api routes (keep only for `wenuos` dev).
+
+Owner: human only. Agents prepare and verify. The cutover button is yours.
+
+## P9 — Metrics & Wallet (T9)
+
+- [ ] **P9.1** Connect WooCommerce Orders API in `src/lib/woo.ts` (read-only `GET /orders` with status filter). Expose `getOrders()` next to `getProducts()`.
+- [ ] **P9.2** Create a build-time or scheduled script that fetches order data and writes `reports/metrics-YYYY-MM-DD.json`.
+- [ ] **P9.3** First manual seed: human exports Stripe or WooCommerce Analytics and pastes into `BUSINESS_METRICS.md`.
+- [ ] **P9.4** Set up monthly recurring: agent reads the last 30 days of orders and updates the revenue snapshot.
+
+Owner: OpenCode implements API reads; human seeds initial data.
+
+## P10 — Marketing (T10)
+
+- [ ] **P10.1** Audit current IG channel: follower count, post cadence, top-performing content.
+- [ ] **P10.2** Draft Q3 2026 content calendar (June–August) based on product launch plan.
+- [ ] **P10.3** Track wholesale outreach pipeline: B2B emails sent, responses, orders placed.
+- [ ] **P10.4** Create `reports/marketing-dashboard-YYYY-MM-DD.md` template.
+
+Owner: wenu-brand + OpenCode.
+
+## P11 — Design (T11)
+
+- [ ] **P11.1** Populate `06-social-templates/` with actual Canva/PSD templates (4 channels).
+- [ ] **P11.2** Audit visual consistency across all 96 built pages + aftercare.
+- [ ] **P11.3** Replace `PatternBand.astro` placeholder geometry with final SVG asset.
+- [ ] **P11.4** IG story template batch: 5 story templates for product launches.
+
+Owner: wenu-brand + visual agent. Human may need to create Canva assets.
 
 - [ ] **P8.1** All P0–P3 checkmarked.
 - [ ] **P8.2** Pages preview URL has been live and verified for at least 7 days.
