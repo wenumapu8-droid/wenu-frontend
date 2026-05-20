@@ -61,6 +61,29 @@ export interface WooProduct {
   stock_quantity: number | null;
 }
 
+/** Minimal order shape from WooCommerce Orders API. */
+export interface WooOrder {
+  id: number;
+  number: string;
+  status: string;
+  date_created: string;
+  total: string;
+  total_tax: string;
+  shipping_total: string;
+  discount_total: string;
+  currency: string;
+  payment_method_title: string;
+  line_items: {
+    product_id: number;
+    name: string;
+    quantity: number;
+    price: number;
+    total: string;
+  }[];
+  billing: { email: string; first_name: string; last_name: string };
+  shipping: { city: string; state: string; country: string } | null;
+}
+
 function authParams() {
   return `consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}`;
 }
@@ -141,6 +164,83 @@ export async function getCategories(): Promise<WooCategory[]> {
     console.error('[woo] FATAL: getCategories failed and ALLOW_EMPTY_PRODUCTS is not true.', e);
     throw e instanceof Error ? e : new Error(String(e));
   }
+}
+
+let ordersCache: Promise<WooOrder[]> | null = null;
+
+async function fetchAllOrders(status?: string): Promise<WooOrder[]> {
+  const perPage = 100;
+  const orders: WooOrder[] = [];
+  let page = 1;
+  const statusParam = status ? `&status=${status}` : '';
+
+  while (true) {
+    const res = await fetch(
+      `${WC_URL}/orders?per_page=${perPage}&page=${page}${statusParam}&${authParams()}`
+    );
+    if (!res.ok) {
+      if (res.status === 401) {
+        console.warn(
+          '[woo] Orders API returned 401 — the WC consumer key likely lacks read_orders scope. ' +
+          'Create a new key with read_orders permission in WP Admin → WooCommerce → Settings → Advanced → REST API.'
+        );
+        return [];
+      }
+      throw new Error(`WC orders fetch failed: HTTP ${res.status}`);
+    }
+    const data: WooOrder[] = await res.json();
+    orders.push(...data);
+    if (data.length < perPage) break;
+    page += 1;
+  }
+
+  console.log(`[woo] fetched ${orders.length} orders${status ? ` (status=${status})` : ''}`);
+  return orders;
+}
+
+export async function getOrders(status?: string): Promise<WooOrder[]> {
+  try {
+    ordersCache ||= fetchAllOrders(status);
+    return await ordersCache;
+  } catch (e) {
+    console.warn('[woo] WARNING: getOrders failed — returning [].', e);
+    return [];
+  }
+}
+
+/** Aggregate order data into a metrics snapshot. */
+export function aggregateMetrics(orders: WooOrder[]): {
+  totalRevenue: number;
+  orderCount: number;
+  avgOrderValue: number;
+  topProducts: { name: string; revenue: number; quantity: number }[];
+} {
+  const revenueMap = new Map<string, { revenue: number; quantity: number }>();
+  let total = 0;
+
+  for (const order of orders) {
+    if (order.status === 'cancelled' || order.status === 'refunded') continue;
+    total += parseFloat(order.total) || 0;
+    for (const item of order.line_items) {
+      const r = parseFloat(item.total) || 0;
+      const existing = revenueMap.get(item.name) || { revenue: 0, quantity: 0 };
+      existing.revenue += r;
+      existing.quantity += item.quantity;
+      revenueMap.set(item.name, existing);
+    }
+  }
+
+  const topProducts = [...revenueMap.entries()]
+    .map(([name, data]) => ({ name, revenue: data.revenue, quantity: data.quantity }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10);
+
+  return {
+    totalRevenue: total,
+    orderCount: orders.filter(o => o.status !== 'cancelled' && o.status !== 'refunded').length,
+    avgOrderValue: orders.length > 0 ? total / orders.length : 0,
+    topProducts,
+  };
 }
 
 /** Decode common HTML entities returned by WooCommerce in product names

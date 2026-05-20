@@ -134,6 +134,42 @@ No agent ships production code, deploys, pushes, rotates credentials, or message
 
 ---
 
+### T9 — Metrics & Wallet
+
+**Owns:**
+- Revenue tracking, orders, AOV, top products.
+- WooCommerce Orders API reads for financial data.
+- Cost tracking (COGS, marketing, shipping, tools).
+- Profitability analysis.
+
+**Does not:**
+- Access Stripe API without explicit per-action approval.
+- Publish financial data outside `agent-control/BUSINESS_METRICS.md`.
+
+### T10 — Marketing
+
+**Owns:**
+- Campaign tracking (channel, budget, spend, attribution).
+- Content pipeline (IG, Pinterest, email, wholesale).
+- Copy drafts for social, email, ads.
+
+**Does not:**
+- Spend money or launch campaigns without human approval.
+- Edit the live store product copy or pricing.
+
+### T11 — Design
+
+**Owns:**
+- Visual asset pipeline (what needs to be made, what's in progress).
+- Brand system audit and consistency checks.
+- Social template batch production.
+
+**Does not:**
+- Replace or delete brand assets without explicit approval.
+- Modify the brand system (`~/Obsidian/WenuAgent/brand/`) without going through `wenu-brand`.
+
+---
+
 ## Subagent table (loaded in `~/.claude/agents/`)
 
 | Subagent | Model | Domain | Invoke when |
