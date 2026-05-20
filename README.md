@@ -32,6 +32,19 @@ ALLOW_EMPTY_PRODUCTS=true npm run build
 
 This repo targets **Cloudflare Pages preview** on the `redesign-v2` branch. The production domain `wenumapuonline.com` is **not** connected to this build — it continues to serve the legacy WordPress / WooCommerce site. See `CLAUDE.md` for the Cloudflare Pages settings and required environment variables.
 
+## VS Code + IA / gestión de trabajo
+
+Este repositorio ya incluye recomendaciones para usar VS Code como tu centro de trabajo. Usa:
+
+- `GitHub Copilot` y `Copilot Chat` para generación y revisión de código.
+- `Project Manager` para acceder rápido a carpetas y proyectos.
+- `Todo Tree` para encontrar tareas y pendientes dentro de markdown y código.
+- Markdown en el repo como flujo de trabajo: crea `todo.md`, `notes.md`, o usa los documentos existentes.
+
+Abre la carpeta `/Users/user1/wenu-frontend` en VS Code y usa la terminal integrada (`Ctrl+` ``) para comandos.
+
+Para una guía paso a paso, lee `docs/vscode-ia-workflow.md`.
+
 ## Aftercare
 
 The `/aftercare` page and any `aftercare.*` deploy are handled in a separate workstream. Do not modify `public/aftercare/` from this branch.
