@@ -19,10 +19,10 @@ import re
 import sys
 import json
 import glob
+import time
 import argparse
 import mimetypes
 from pathlib import Path
-from urllib.parse import urlencode
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -244,9 +244,81 @@ def find_or_create_category(name_text):
     return None
 
 
-def create_product(sheet_data, dry_run=False):
-    """Create WC product. Returns (id, error)."""
-    # Upload photo first
+_SKU_INDEX = None
+
+
+def _build_sku_index():
+    """Paginate the whole catalog and map sku -> (id, [image_srcs]).
+
+    The WooCommerce REST `?sku=` filter is unreliable on this install
+    (the wc_product_meta_lookup table is out of sync, and most legacy
+    products have an empty SKU), so we scan client-side instead. Pages
+    are kept small because HostGator ModSecurity drops large responses."""
+    global _SKU_INDEX
+    _SKU_INDEX = {}
+    page = 1
+    while True:
+        resp = None
+        for attempt in range(3):
+            try:
+                resp = requests.get(
+                    f"{WC_URL}/wp-json/wc/v3/products",
+                    auth=wc_auth,
+                    params={'per_page': 20, 'page': page, 'status': 'any'},
+                    headers={'User-Agent': BROWSER_UA},
+                    timeout=25,
+                )
+                break
+            except requests.exceptions.RequestException:
+                time.sleep(2)
+        if resp is None:
+            print(f"    WARN: sku index page {page} failed after retries")
+            break
+        if resp.status_code != 200:
+            print(f"    WARN: sku index page {page} HTTP {resp.status_code}")
+            break
+        items = resp.json()
+        if not items:
+            break
+        for p in items:
+            sku = (p.get('sku') or '').strip()
+            if sku:
+                _SKU_INDEX[sku] = (
+                    p['id'],
+                    [img.get('src', '') for img in p.get('images', [])],
+                )
+        total_pages = int(resp.headers.get('X-WP-TotalPages', page) or page)
+        if page >= total_pages:
+            break
+        page += 1
+    print(f"    sku index built: {len(_SKU_INDEX)} products with a SKU")
+
+
+def find_product_by_sku(sku):
+    """Return (product_id, [image_srcs]) for an existing SKU, else (None, None)."""
+    if not sku:
+        return None, None
+    if _SKU_INDEX is None:
+        _build_sku_index()
+    return _SKU_INDEX.get(sku, (None, None))
+
+
+def create_product(sheet_data, dry_run=False, update_existing=False):
+    """Create or update a WC product. Returns (id, action, error).
+
+    action is one of: 'created', 'updated', 'skipped', 'error'.
+    When the SKU already exists and update_existing is False the product
+    is left untouched (safe default). With update_existing=True an
+    existing product is PUT-updated from the sheet — this replaces the
+    image gallery, name, price, description and attributes with the
+    sheet's curated values."""
+    sku = sheet_data['sku']
+    existing_id, existing_imgs = find_product_by_sku(sku)
+
+    if existing_id and not update_existing:
+        return existing_id, 'skipped', f'sku_exists:{existing_id} (pass --update-existing to overwrite)'
+
+    # Upload photo
     media_id = None
     if sheet_data['foto_path']:
         if dry_run:
@@ -255,7 +327,7 @@ def create_product(sheet_data, dry_run=False):
         else:
             media_id, err = upload_media(sheet_data['foto_path'])
             if err:
-                return None, f"upload_failed:{err}"
+                return None, 'error', f"upload_failed:{err}"
             print(f"    photo uploaded media_id={media_id}")
 
     # Build product payload
@@ -281,9 +353,25 @@ def create_product(sheet_data, dry_run=False):
         payload['images'] = [{'id': media_id}]
 
     if dry_run:
+        action = 'updated' if existing_id else 'created'
+        print(f"    [dry-run] would {action.upper()} (existing_id={existing_id})")
+        if existing_id and existing_imgs:
+            print(f"    [dry-run] current image(s): {[s[-50:] for s in existing_imgs]}")
         print(f"    [dry-run] payload preview:")
         print(json.dumps({k: v for k, v in payload.items() if k != 'description'}, indent=2)[:800])
-        return -1, None
+        return (existing_id or -1), action, None
+
+    if existing_id:
+        r = requests.put(
+            f"{WC_URL}/wp-json/wc/v3/products/{existing_id}",
+            auth=wc_auth,
+            json=payload,
+            headers={'User-Agent': BROWSER_UA},
+            timeout=30,
+        )
+        if r.status_code in (200, 201):
+            return r.json()['id'], 'updated', None
+        return None, 'error', f"update_failed_{r.status_code}:{r.text[:300]}"
 
     r = requests.post(
         f"{WC_URL}/wp-json/wc/v3/products",
@@ -293,8 +381,8 @@ def create_product(sheet_data, dry_run=False):
         timeout=30,
     )
     if r.status_code in (200, 201):
-        return r.json()['id'], None
-    return None, f"create_failed_{r.status_code}:{r.text[:300]}"
+        return r.json()['id'], 'created', None
+    return None, 'error', f"create_failed_{r.status_code}:{r.text[:300]}"
 
 
 # --- Main loop ------------------------------------------------------------
@@ -304,6 +392,9 @@ def main():
     parser.add_argument('--sheet', default=None, help='single sheet path')
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--dry-run', action='store_true')
+    parser.add_argument('--update-existing', action='store_true',
+                        help='PUT-update products whose SKU already exists '
+                             '(replaces image, name, price, description from the sheet)')
     args = parser.parse_args()
 
     if args.sheet:
@@ -318,7 +409,8 @@ def main():
     if args.limit:
         sheets = sheets[:args.limit]
 
-    print(f"Processing {len(sheets)} sheets (dry_run={args.dry_run})")
+    print(f"Processing {len(sheets)} sheets "
+          f"(dry_run={args.dry_run}, update_existing={args.update_existing})")
 
     results = []
     for i, sheet_path in enumerate(sheets, 1):
@@ -328,24 +420,35 @@ def main():
             print(f"    sku={data['sku']} tier={data['tier']} precio=${data['precio']}")
             print(f"    name: {data['name'][:60]}")
             print(f"    foto: {data['foto_path']}")
-            wc_id, err = create_product(data, dry_run=args.dry_run)
-            if err:
+            wc_id, action, err = create_product(
+                data, dry_run=args.dry_run, update_existing=args.update_existing)
+            if err and action == 'error':
                 print(f"    FAIL: {err}")
-                results.append({'sheet': sheet_path, 'sku': data['sku'], 'ok': False, 'error': err})
+                results.append({'sheet': sheet_path, 'sku': data['sku'],
+                                'ok': False, 'action': action, 'error': err})
+            elif action == 'skipped':
+                print(f"    SKIPPED: {err}")
+                results.append({'sheet': sheet_path, 'sku': data['sku'],
+                                'ok': True, 'action': 'skipped', 'wc_id': wc_id})
             else:
-                print(f"    OK wc_id={wc_id}")
-                results.append({'sheet': sheet_path, 'sku': data['sku'], 'ok': True, 'wc_id': wc_id})
+                print(f"    OK [{action}] wc_id={wc_id}")
+                results.append({'sheet': sheet_path, 'sku': data['sku'],
+                                'ok': True, 'action': action, 'wc_id': wc_id})
         except Exception as e:
             print(f"    EXCEPTION: {e}")
-            results.append({'sheet': sheet_path, 'ok': False, 'error': f'exception:{e}'})
+            results.append({'sheet': sheet_path, 'ok': False,
+                            'action': 'error', 'error': f'exception:{e}'})
 
     # Save log
     with open(LOG_FILE, 'w') as f:
         json.dump(results, f, indent=2)
     print(f"\nLog: {LOG_FILE}")
-    ok = sum(1 for r in results if r['ok'])
-    fail = len(results) - ok
-    print(f"Summary: {ok} OK, {fail} FAILED")
+    created = sum(1 for r in results if r.get('action') == 'created')
+    updated = sum(1 for r in results if r.get('action') == 'updated')
+    skipped = sum(1 for r in results if r.get('action') == 'skipped')
+    fail = sum(1 for r in results if not r['ok'])
+    print(f"Summary: {created} created, {updated} updated, "
+          f"{skipped} skipped, {fail} failed")
 
 
 if __name__ == '__main__':
