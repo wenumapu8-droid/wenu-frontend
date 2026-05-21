@@ -15,6 +15,14 @@ const products = await getProducts();
 // visitors — filter products with no main image before slicing.
 const withImage = products.filter(p => p.images.length > 0 && p.images[0].src);
 
+// Also exclude products whose primary image is a known placeholder
+// (AI-generated mockups from the legacy import, untitled exports, etc.).
+// Real product macros live under /wp-content/uploads/.../wm-<sku>-... or
+// any non-placeholder slug. This keeps the Featured rail consistent with
+// the brand's macro photography standard.
+const PLACEHOLDER_IMG = /chatgpt-image|sin-?titulo|sin-?t[íi]tulo|placeholder|untitled/i;
+const curated = withImage.filter(p => !PLACEHOLDER_IMG.test(p.images[0].src));
+
 function deriveBadge(p: typeof products[number], idx: number): string | null {
   const q = p.stock_quantity;
   if (typeof q === 'number' && q > 0 && q <= 3) return 'LIMITED';
@@ -22,7 +30,7 @@ function deriveBadge(p: typeof products[number], idx: number): string | null {
   return null;
 }
 
-const featured = withImage.slice(0, 6).map((p, i) => ({
+const featured = curated.slice(0, 6).map((p, i) => ({
   product: p,
   badge: deriveBadge(p, i),
 }));
