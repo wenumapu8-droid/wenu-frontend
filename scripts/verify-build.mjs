@@ -10,7 +10,10 @@
 import { readdirSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-const MIN_PRODUCTS = 20;
+// Lowered 2026-05-22 from 20 → 10. Current WC catalog has ~12 published; some
+// recovered SKUs are still draft. Threshold of 10 still catches an empty/broken
+// build but stops blocking deploys when the catalog dips below 20 temporarily.
+const MIN_PRODUCTS = 10;
 const dist = resolve('dist');
 const productsDir = resolve('dist/p');
 const allowEmpty = process.env.ALLOW_EMPTY_PRODUCTS === 'true';
