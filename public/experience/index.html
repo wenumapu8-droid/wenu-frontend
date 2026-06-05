@@ -90,18 +90,23 @@
 
 <!-- Preload the wallpapers used by the 10 stars + center default,
      so when the loader fades, hover responses are instant (no network wait). -->
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-n-antu.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-s-kuyen.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-e-azmapu.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-w-lafken.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-ne-dawn.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-se-tierra.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-sw-nebula.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-nw-void.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-ne-wunelfe.webp">
-<link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-treng-chakana.webp">
+<!-- Critical for initial paint: only the cosmos background image -->
 <link rel="preload" as="image" type="image/webp" href="wenu-assets/wenu-bg-starmap.webp">
-<link rel="preload" as="video" type="video/webm" href="wenu-assets/wenu-center-portal-default.webm">
+<!-- Star wallpapers are shown only on hover. Use prefetch (low-priority hint) to avoid
+     console warnings about preloaded-but-unused, while still warming the cache. -->
+<link rel="prefetch" href="wenu-assets/wenu-n-antu.webp">
+<link rel="prefetch" href="wenu-assets/wenu-s-kuyen.webp">
+<link rel="prefetch" href="wenu-assets/wenu-e-azmapu.webp">
+<link rel="prefetch" href="wenu-assets/wenu-w-lafken.webp">
+<link rel="prefetch" href="wenu-assets/wenu-ne-dawn.webp">
+<link rel="prefetch" href="wenu-assets/wenu-se-tierra.webp">
+<link rel="prefetch" href="wenu-assets/wenu-sw-nebula.webp">
+<link rel="prefetch" href="wenu-assets/wenu-nw-void.webp">
+<link rel="prefetch" href="wenu-assets/wenu-ne-wunelfe.webp">
+<link rel="prefetch" href="wenu-assets/wenu-treng-chakana.webp">
+<!-- Default cosmic loop. preload as=video has spotty support; the inner <video>
+     element already does preload="metadata" so this is just a cache warm. -->
+<link rel="prefetch" href="wenu-assets/wenu-center-portal-default.webm">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -2638,7 +2643,9 @@ function drawCosmos(t) {
   // Per-tier parallax — near layer moves more (depth illusion)
   const parallaxByTier = { far: 0.002, mid: 0.005, near: 0.010 };
   stars.forEach(s => {
-    const twinkle = 0.4 + 0.6 * Math.sin(t * s.speed + s.phase);
+    // Sin(...) ranges [-1, 1]. 0.4 + 0.6 * sin → [-0.2, 1.0]. Clamp lower bound to
+    // a small positive so canvas radius/gradient calls never receive a negative value.
+    const twinkle = Math.max(0.05, 0.4 + 0.6 * Math.sin(t * s.speed + s.phase));
     const pf = parallaxByTier[s.tier] || 0.004;
     const px = s.x + (mx - W/2) * pf;
     const py = s.y + (my - H/2) * pf;
@@ -2674,7 +2681,7 @@ function drawCosmos(t) {
       ctx.stroke();
     }
     ctx.beginPath();
-    ctx.arc(px, py, s.r * twinkle, 0, Math.PI*2);
+    ctx.arc(px, py, Math.max(0.05, s.r * twinkle), 0, Math.PI*2);
     ctx.fillStyle = s.color;
     ctx.globalAlpha = twinkle * 0.7 * (warp > 0 ? 0.35 : 1);
     ctx.fill();
@@ -3473,7 +3480,7 @@ function drawTrail() {
   for (const p of trailPoints) {
     const age = (now - p.t) / TRAIL_LIFE;
     const alpha = (1 - age) * 0.78;
-    const radius = 3.2 * (1 - age * 0.65);
+    const radius = Math.max(0.1, 3.2 * (1 - age * 0.65));
     const grad = tctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 2);
     grad.addColorStop(0, `rgba(255,235,180,${alpha})`);
     grad.addColorStop(0.5, `rgba(240,192,96,${alpha * 0.4})`);
@@ -3748,7 +3755,10 @@ window.addEventListener('resize', () => {
 // ─── SERVICE WORKER — instant second visit + offline-capable ───
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./wenu-assets/sw.js', { scope: './' })
+    /* SW must live at /experience/sw.js (not inside /wenu-assets/) so its
+       max-allowed scope covers '/experience/'. Browsers reject scope='./'
+       when the SW file is in a deeper folder. */
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
       .catch(() => { /* silent fail — no SW means no offline, page still works */ });
   });
 }
