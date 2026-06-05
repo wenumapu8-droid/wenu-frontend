@@ -3,6 +3,7 @@ import Base from '../../layouts/Base.astro';
 import ProductCard from '../../components/ProductCard.astro';
 import PatternBand from '../../components/PatternBand.astro';
 import { getProducts } from '../../lib/woo';
+import { collections as themedCollections } from '../../data/collections';
 import en from '../../i18n/en.json';
 
 const L = en.landing.collection_hub;
@@ -49,6 +50,17 @@ const collections = collectionDefs.map(collection => ({
     .slice(0, 6),
 }));
 
+const themed = themedCollections.map(c => ({
+  ...c,
+  href: `/collection/${c.slug}`,
+  image: `/img/banners/collection/${c.slug}.webp`,
+  imageAvif: `/img/banners/collection/${c.slug}.avif`,
+  count: allProducts
+    .filter(product => product.images[0]?.src)
+    .filter(product => c.keywords.some(keyword => searchable(product).includes(keyword)))
+    .length,
+}));
+
 const collectionLd = {
   '@context': 'https://schema.org',
   '@type': 'CollectionPage',
@@ -68,11 +80,36 @@ const breadcrumbLd = {
 };
 ---
 <Base
-  title="Collections — Ritual rings, mystic studies, author jewelry | Wenu Mapu"
-  description="The three founding Wenu Mapu collections. Ritual Ring Vacamuerta, Mystic Series, Author Jewelry."
+  title="Collections — editorial chapters and archive lines | Wenu Mapu"
+  description="Editorial collection pages live first; archive lines from the Noco catalogue follow as assets and family logic are prepared."
   ogImage="/img/brand/meteorite-collection.webp"
   jsonLd={[collectionLd, breadcrumbLd]}
 >
+  <div class="cat-masthead cat-masthead--titled">
+    <picture>
+      <source
+        type="image/avif"
+        srcset="/img/banners/cosmic/collections-portal-900w.avif 900w, /img/banners/cosmic/collections-portal-1200w.avif 1200w, /img/banners/cosmic/collections-portal-1600w.avif 1600w, /img/banners/cosmic/collections-portal-1920w.avif 1920w"
+        sizes="100vw"
+      />
+      <img
+        src="/img/banners/cosmic/collections-portal-1200w.webp"
+        srcset="/img/banners/cosmic/collections-portal-900w.webp 900w, /img/banners/cosmic/collections-portal-1200w.webp 1200w, /img/banners/cosmic/collections-portal-1600w.webp 1600w, /img/banners/cosmic/collections-portal-1920w.webp 1920w"
+        sizes="100vw"
+        alt=""
+        width="1672"
+        height="941"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
+    </picture>
+    <div class="cat-masthead__label">
+      <p class="cat-masthead__title">{L.title}</p>
+      <p class="cat-masthead__eyebrow">Portals · Chapters</p>
+    </div>
+  </div>
+
   <section class="section section--mega">
     <div class="container">
       <p class="eyebrow">{L.eyebrow}</p>
@@ -82,6 +119,11 @@ const breadcrumbLd = {
 
       <div class="landing__copy">
         <p>{L.lede}</p>
+        <p>
+          The pages below are the editorial chapters already shaped for the storefront.
+          Additional lines from the Noco catalogue are being prepared more slowly — with real photos,
+          stronger family logic, and fewer generic archive pages.
+        </p>
       </div>
 
       <div class="archive-grid" style="margin-top: var(--space-6);">
@@ -115,6 +157,32 @@ const breadcrumbLd = {
           </div>
         </div>
       ))}
+
+      <section class="section" aria-labelledby="collection-themes-title" style="padding: var(--space-7) 0 0;">
+        <div class="landing__rail-head">
+          <p class="eyebrow">Themed collections</p>
+          <a href="/shop" class="text-accent">Shop everything →</a>
+        </div>
+        <h2 id="collection-themes-title" class="section-title" style="margin-top: var(--space-2);">Chapters of the world, by theme.</h2>
+        <div class="archive-grid" style="margin-top: var(--space-5);">
+          {themed.map(c => (
+            <a class="archive-card" href={c.href}>
+              <div class="archive-card__img-wrap">
+                <picture>
+                  <source type="image/avif" srcset={c.imageAvif} />
+                  <img src={c.image} alt={`${c.title} collection`} loading="lazy" decoding="async" />
+                </picture>
+              </div>
+              <div class="archive-card__body">
+                <h3 class="archive-card__title">{c.title}</h3>
+                <p class="archive-card__sub">{c.intro}</p>
+                <p class="archive-card__sub">{c.count > 0 ? `${c.count} matching piece${c.count === 1 ? '' : 's'} in the current catalogue.` : 'Pieces in the forge — browse all now.'}</p>
+                <span class="archive-card__cta">Open the collection →</span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
     </div>
   </section>
 </Base>

@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro';
 import Spec from '../../components/visual/Spec.astro';
 import RelatedPieces from '../../components/visual/RelatedPieces.astro';
+import RitualProductHero from '../../components/visual/RitualProductHero.astro';
 import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities, truncateForMeta } from '../../lib/woo';
 import { addToCartUrl } from '../../lib/config';
 import type { WooProduct } from '../../lib/woo';
@@ -25,6 +26,10 @@ const gallery = product.images.slice(1);
 const attrs = product.attributes || [];
 const gauge = attrs.find(a => a.name.toLowerCase().includes('gauge') || a.name.toLowerCase().includes('size'));
 const material = attrs.find(a => a.name.toLowerCase().includes('material'));
+const primaryCategory = product.categories[0];
+const primaryCategorySlug = primaryCategory?.slug?.toLowerCase() ?? '';
+const isSupportProduct = /wm-care/i.test(product.sku || '') || /aftercare|saline/.test(product.slug) || primaryCategorySlug.includes('uncategorized');
+const shouldUseRitualHero = Boolean(mainImg) && !isSupportProduct;
 
 // Canonical product URL — no trailing slash to match Astro's default
 // `trailingSlash: 'ignore'` and keep breadcrumb / offer URLs consistent.
@@ -123,7 +128,24 @@ const breadcrumbLd = {
   ogImage={mainImg?.src}
   ogType="product"
   jsonLd={[productLd, breadcrumbLd]}
+  noQuote
 >
+  {/* ── RITUAL PRODUCT HERO ── product macro wrapped in obsidian atmosphere
+       (textil pattern + ember halo + smoke + vignette). Caption is symmetric.
+       The header wordmark already lives in <Nav>; we do NOT repeat it here. */}
+  {shouldUseRitualHero && mainImg && (
+    <RitualProductHero
+      imgSrc={mainImg.src}
+      imgAlt={mainImg.alt || decodeEntities(product.name)}
+      imgWidth={mainImg.width}
+      imgHeight={mainImg.height}
+      eyebrow={primaryCategory ? localizeCategory(primaryCategory) : en.product.category_default}
+      title={decodeEntities(product.name)}
+      material={material?.options?.join(', ')}
+      badge={product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity <= 3 ? 'LIMITED STOCK' : undefined}
+    />
+  )}
+
   <article class="section">
     <div class="container">
       <nav style="font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--fg-soft); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; margin-bottom: var(--space-5);">
@@ -138,8 +160,8 @@ const breadcrumbLd = {
         <div>
           {mainImg
             ? (
-              <div style="aspect-ratio: 4/5; overflow: hidden; background: var(--bg-alt); margin-bottom: var(--space-1); border: var(--border-thin);">
-                <img src={mainImg.src} alt={mainImg.alt || product.name} width={mainImg.width} height={mainImg.height} loading="eager" fetchpriority="high" style="width: 100%; height: 100%; object-fit: cover;" />
+              <div class="pdp-main-figure">
+                <img src={mainImg.src} alt={mainImg.alt || product.name} width={mainImg.width} height={mainImg.height} loading="eager" fetchpriority="high" />
               </div>
             )
             : (
@@ -174,10 +196,18 @@ const breadcrumbLd = {
         </div>
 
         <div>
-          <p class="eyebrow">{product.categories[0] ? localizeCategory(product.categories[0]) : en.product.category_default}</p>
-          <h1 style="font-size: clamp(1.8rem, 3.5vw, 3rem); margin: var(--space-3) 0 var(--space-2); line-height: 0.95;">
-            {decodeEntities(product.name)}
-          </h1>
+          {/* When the Ritual hero is shown it already carries the page H1
+              (eyebrow + name). Repeating it here created a second H1 and a
+              visual echo — so the buy column only owns the heading when there
+              is no hero (support products). One H1 per page, always. */}
+          {!shouldUseRitualHero && (
+            <>
+              <p class="eyebrow">{product.categories[0] ? localizeCategory(product.categories[0]) : en.product.category_default}</p>
+              <h1 style="font-size: clamp(1.8rem, 3.5vw, 3rem); margin: var(--space-3) 0 var(--space-2); line-height: 0.95;">
+                {decodeEntities(product.name)}
+              </h1>
+            </>
+          )}
           {product.sku && (
             <p style="font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--fg-soft); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; margin-bottom: var(--space-4);">
               SKU · {product.sku}
@@ -191,64 +221,426 @@ const breadcrumbLd = {
             ● {product.stock_status === 'instock' ? en.product.in_stock : en.product.out_of_stock}
           </p>
 
-          <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
-            {gauge && (
-              <p style="font-size: var(--fs-small); margin-bottom: var(--space-1);">
-                <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
-                {gauge.options.join(', ')}
-                <a href="/sizing-guide" style="margin-left: var(--space-2); color: var(--ember); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
-              </p>
-            )}
-            {material && (
-              <p style="font-size: var(--fs-small); margin-bottom: var(--space-1);">
-                <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
-                {material.options.join(', ')}
-              </p>
-            )}
-            <p style="font-size: var(--fs-small);">
-              <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.made_in_label}</span>
-              {en.product.made_in_value}
-            </p>
-          </div>
-
-          <a href={addToCartUrl(product.id)} class="btn btn--solid" style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);">
-            {en.product.add_to_cart}
-          </a>
-          <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
-            {en.product.pickup_truckee}
-          </a>
-
-          <Spec product={product} />
-
-          {desc && (
-            <div style="margin-top: var(--space-5); padding-top: var(--space-4); border-top: var(--border-thin);">
-              <p class="eyebrow" style="margin-bottom: var(--space-3);">{en.product.about_piece}</p>
-              <p style="color: var(--fg-soft); font-size: var(--fs-body); line-height: 1.7;">{desc}</p>
+          {/* Quick-spec box above the CTA — gauge + material only. "Made in"
+              lives in the <Spec> table + Materials accordion below, so we no
+              longer repeat it here (was the same line three times). The box
+              only renders when there is something to show — no empty frame. */}
+          {(gauge || material) && (
+            <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
+              {gauge && (
+                <p style={`font-size: var(--fs-small);${material ? ' margin-bottom: var(--space-1);' : ''}`}>
+                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
+                  {gauge.options.join(', ')}
+                  <a href="/sizing-guide" style="margin-left: var(--space-2); color: var(--ember); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
+                </p>
+              )}
+              {material && (
+                <p style="font-size: var(--fs-small);">
+                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
+                  {material.options.join(', ')}
+                </p>
+              )}
             </div>
           )}
 
-          <div style="margin-top: var(--space-5); padding-top: var(--space-4); border-top: var(--border-thin);">
-            <p class="eyebrow" style="margin-bottom: var(--space-3);">{en.product.shipping_pickup}</p>
-            <p style="font-size: var(--fs-small); color: var(--fg-soft); line-height: 1.7;">{en.product.shipping_body}</p>
-            <p style="font-size: var(--fs-small); color: var(--fg-soft); line-height: 1.7; margin-top: var(--space-3);">
-              {en.product.pickup_body} <a href="/local" class="text-accent">/local</a>.
-            </p>
-          </div>
+          {product.stock_status === 'instock' ? (
+            <>
+              <a href={addToCartUrl(product.id)} class="btn btn--solid" style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);">
+                {en.product.add_to_cart}
+              </a>
+              <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
+                {en.product.pickup_truckee}
+              </a>
+            </>
+          ) : (
+            <>
+              {/* SOLD OUT → re-frame as commission opportunity (capture lead in lugar de perderlo) */}
+              <a
+                href={`/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`}
+                class="btn btn--solid"
+                style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+              >
+                Reserve a custom commission →
+              </a>
+              <p style="font-family: var(--font-serif); font-style: italic; font-size: var(--fs-small); color: var(--fg-soft); margin: var(--space-2) 0 var(--space-3); line-height: 1.55; text-align: center;">
+                This piece is forged one at a time. Open a private commission and we’ll begin yours.
+              </p>
+              <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
+                {en.product.pickup_truckee}
+              </a>
+            </>
+          )}
 
-          <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: var(--border-thin); display: flex; gap: var(--space-4); flex-wrap: wrap;">
-            <a href="/care-guide" class="text-accent" style="font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Care & healing →</a>
-            <a href="/sizing-guide" class="text-accent" style="font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
-            <a href="/shipping-returns" class="text-accent" style="font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Shipping & returns →</a>
-            <a href="/custom-orders" class="text-accent" style="font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Want it custom? →</a>
-          </div>
+          {/* Reveal-anchor for the desktop sticky buy bar: once the primary CTA
+              above scrolls out of view, the slim bottom bar appears so price +
+              action stay one tap away through the whole page (SSENSE / Aesop). */}
+          <div id="pdp-buy-anchor" aria-hidden="true" style="height: 1px;"></div>
 
-          <div style="margin-top: var(--space-4); padding-top: var(--space-3); border-top: var(--border-thin); font-size: var(--fs-tiny); color: var(--fg-soft);">
-            {en.product.returns_note}
+          <Spec product={product} />
+
+          {/* ── ACCORDIONS (UX Audit F2026-05-29 - Tigo)
+               Reemplaza el "wall of text" anterior (About / Shipping / Care / Custom)
+               por 4 details/summary nativos — accesibles, sin JS, plegables.
+               Cada bloque: borde dorado fino arriba, chevron, padding generoso. */}
+          <div class="product-accordions">
+            {desc && (
+              <details class="product-accordion" open>
+                <summary class="product-accordion__summary">
+                  <span class="product-accordion__label">{en.product.about_piece}</span>
+                  <span class="product-accordion__chev" aria-hidden="true">+</span>
+                </summary>
+                <div class="product-accordion__body">
+                  <p>{desc}</p>
+                </div>
+              </details>
+            )}
+
+            <details class="product-accordion">
+              <summary class="product-accordion__summary">
+                <span class="product-accordion__label">Materials &amp; Origin</span>
+                <span class="product-accordion__chev" aria-hidden="true">+</span>
+              </summary>
+              <div class="product-accordion__body">
+                {material && (
+                  <p><strong>Material:</strong> {material.options.join(', ')}.</p>
+                )}
+                <p>{en.product.made_in_label} {en.product.made_in_value}.</p>
+                <p>
+                  Each piece leaves the studio touched only by the hands that made it.
+                  Material provenance documented in our <a href="/material" class="text-accent">materials page</a>.
+                </p>
+              </div>
+            </details>
+
+            <details class="product-accordion">
+              <summary class="product-accordion__summary">
+                <span class="product-accordion__label">{en.product.shipping_pickup}</span>
+                <span class="product-accordion__chev" aria-hidden="true">+</span>
+              </summary>
+              <div class="product-accordion__body">
+                <p>{en.product.shipping_body}</p>
+                <p>{en.product.pickup_body} <a href="/local" class="text-accent">/local</a>.</p>
+                <p class="product-accordion__note">{en.product.returns_note}</p>
+                <p>
+                  <a href="/shipping-returns" class="text-accent">Shipping &amp; returns →</a>
+                </p>
+              </div>
+            </details>
+
+            <details class="product-accordion">
+              <summary class="product-accordion__summary">
+                <span class="product-accordion__label">Care &amp; Sizing</span>
+                <span class="product-accordion__chev" aria-hidden="true">+</span>
+              </summary>
+              <div class="product-accordion__body">
+                <p>
+                  Healing times and aftercare protocol live in our
+                  <a href="/care-guide" class="text-accent"> care guide</a>.
+                </p>
+                <p>
+                  For gauge ↔ mm conversion and inner diameter recommendations,
+                  see the <a href="/sizing-guide" class="text-accent">sizing guide</a>.
+                </p>
+                <p>
+                  Want this piece in a different size, material or stone?
+                  <a href="/custom-orders" class="text-accent"> Open a commission →</a>
+                </p>
+              </div>
+            </details>
           </div>
         </div>
       </div>
 
+      {/* ── EDITORIAL CONTEXT MODULE (UX Audit F2026-05-29 - Tigo)
+           Wide image + ritual-context typography + 3-col specs grid.
+           Inspired by "WORN AS A THRESHOLD" reference. Dark obsidian, museum tone. */}
+      {mainImg && (
+        <section class="ritual-context" aria-label="Ritual context">
+          <div class="ritual-context__image">
+            <img
+              src={(gallery[0] || mainImg).src}
+              alt={(gallery[0] || mainImg).alt || decodeEntities(product.name)}
+              width={(gallery[0] || mainImg).width}
+              height={(gallery[0] || mainImg).height}
+              loading="lazy"
+            />
+          </div>
+          <div class="ritual-context__copy">
+            <p class="eyebrow">RITUAL CONTEXT</p>
+            <h2 class="ritual-context__title">
+              {decodeEntities(product.name).toUpperCase()}.
+            </h2>
+            {(product.short_description || desc) && (
+              <div class="ritual-context__body">
+                <p>{cleanDescription(product.short_description || '') || desc}</p>
+              </div>
+            )}
+            <dl class="ritual-context__specs">
+              <div class="ritual-context__spec">
+                <dt>Material</dt>
+                <dd>{material?.options?.join(' · ') || 'Hand-forged'}</dd>
+              </div>
+              <div class="ritual-context__spec">
+                <dt>Element</dt>
+                <dd>{primaryCategory ? localizeCategory(primaryCategory) : 'Ritual adornment'}</dd>
+              </div>
+              {gauge?.options?.length ? (
+                <div class="ritual-context__spec">
+                  <dt>Size</dt>
+                  <dd>{gauge.options.join(' · ')}</dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
+        </section>
+      )}
+
       <RelatedPieces product={product} allProducts={allProducts} />
     </div>
   </article>
+
+  {/* ── Sticky buy bar — fixed bottom on mobile (always) and on desktop it
+       reveals on scroll once the main CTA leaves the viewport. Price + action
+       stay one tap away through the whole page. ── */}
+  <div class="sticky-cta" aria-hidden="false">
+    <div class="sticky-cta__inner">
+      <div class="sticky-cta__price">
+        <span class="sticky-cta__name">{decodeEntities(product.name)}</span>
+        <span class="sticky-cta__amount">{formatPrice(product.price)}</span>
+      </div>
+      {product.stock_status === 'instock' ? (
+        <a href={addToCartUrl(product.id)} class="btn btn--solid sticky-cta__btn">
+          {en.product.add_to_cart}
+        </a>
+      ) : (
+        <a
+          href={`/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`}
+          class="btn btn--solid sticky-cta__btn"
+        >
+          Reserve →
+        </a>
+      )}
+    </div>
+  </div>
+
+  {/* Desktop reveal-on-scroll for the sticky buy bar. On mobile the bar is
+      always shown via CSS, so toggling the class is harmless there. */}
+  <script>
+    const bar = document.querySelector('.sticky-cta');
+    const anchor = document.getElementById('pdp-buy-anchor');
+    if (bar && anchor) {
+      // Show the bar once the primary CTA has scrolled above the viewport.
+      // Called directly (not rAF-deferred) so it stays correct even on
+      // synthetic scrolls and in tabs where rAF is throttled. A single
+      // getBoundingClientRect read per scroll is negligible for one element.
+      const update = () => {
+        bar.classList.toggle('is-visible', anchor.getBoundingClientRect().top < 0);
+      };
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update, { passive: true });
+      update();
+    }
+  </script>
+
+  <style>
+    /* ─── MAIN PRODUCT FIGURE ─── obsidian "luminous orb" treatment, matching
+       RitualProductHero. Replaces the old white-bg 4/5 cover crop that clashed
+       with the dark hero. The radial mask feathers the photo's square edges
+       into the obsidian so a white studio background dissolves to a glowing
+       body of light; a dark background simply fades into the theme. */
+    .pdp-main-figure {
+      aspect-ratio: 4 / 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: var(--space-1);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(196, 147, 90, 0.10) 0%, rgba(196, 147, 90, 0.03) 36%, transparent 62%),
+        var(--obsidian, #080706);
+    }
+    .pdp-main-figure img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 50%, rgba(0, 0, 0, 0.55) 68%, transparent 85%);
+      mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 50%, rgba(0, 0, 0, 0.55) 68%, transparent 85%);
+      filter: drop-shadow(0 14px 40px rgba(8, 7, 6, 0.8)) drop-shadow(0 0 32px rgba(196, 147, 90, 0.14));
+    }
+
+    /* ─── PRODUCT ACCORDIONS ─── 2026-05-29 (Tigo)
+       Reemplaza el bloque secuencial About/Shipping/Care/Custom por details/summary
+       nativos. Cero JS. Borde dorado fino arriba, chevron derecha, padding generoso. */
+    .product-accordions {
+      margin-top: var(--space-5);
+    }
+    .product-accordion {
+      border-top: 1px solid var(--bronze);
+      padding: 0;
+    }
+    .product-accordion:last-of-type {
+      border-bottom: 1px solid var(--bronze);
+    }
+    .product-accordion__summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) 0;
+      font-family: var(--font-sans);
+      font-size: var(--fs-eyebrow);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      color: var(--bone);
+      transition: color var(--t-fast);
+    }
+    .product-accordion__summary::-webkit-details-marker { display: none; }
+    .product-accordion__summary:hover,
+    .product-accordion__summary:focus-visible {
+      color: var(--ember);
+      outline: none;
+    }
+    .product-accordion__chev {
+      font-family: var(--font-sans);
+      font-size: 1.4rem;
+      line-height: 1;
+      color: var(--bronze);
+      transition: transform var(--t-fast), color var(--t-fast);
+      width: 1.4rem;
+      text-align: center;
+    }
+    .product-accordion[open] > .product-accordion__summary .product-accordion__chev {
+      transform: rotate(45deg);
+      color: var(--ember);
+    }
+    .product-accordion__body {
+      padding: 0 0 var(--space-5);
+      color: var(--fg-soft);
+      font-family: var(--font-serif);
+      font-size: var(--fs-small);
+      line-height: 1.7;
+    }
+    .product-accordion__body p { margin: 0 0 var(--space-3); }
+    .product-accordion__body p:last-child { margin-bottom: 0; }
+    .product-accordion__body strong {
+      color: var(--bone);
+      font-weight: var(--fw-regular);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      font-size: var(--fs-tiny);
+      font-family: var(--font-sans);
+    }
+    .product-accordion__body a { color: var(--ember); }
+    .product-accordion__body a:hover { color: var(--bronze); }
+    .product-accordion__note {
+      font-style: italic;
+      color: var(--fg-mute);
+      font-size: var(--fs-tiny);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--line-soft);
+      margin-top: var(--space-3) !important;
+    }
+
+    /* ─── RITUAL CONTEXT EDITORIAL MODULE ─── 2026-05-29 (Tigo)
+       Wide image + título poético + body + 3-col specs. Museum / threshold tone. */
+    .ritual-context {
+      margin: var(--space-7) calc(var(--gutter) * -1) 0;
+      padding: var(--space-7) var(--gutter);
+      background: var(--obsidian, #080706);
+      border-top: 1px solid var(--bronze);
+      border-bottom: 1px solid var(--bronze);
+      display: grid;
+      gap: var(--space-6);
+      grid-template-columns: 1fr;
+    }
+    .ritual-context__image {
+      width: 100%;
+      max-height: 70vh;
+      overflow: hidden;
+      background: var(--bg-alt);
+    }
+    .ritual-context__image img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      max-height: 70vh;
+    }
+    .ritual-context__copy {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .ritual-context__title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 1;
+      letter-spacing: 0.01em;
+      margin: var(--space-3) 0 var(--space-5);
+      color: var(--bone);
+    }
+    .ritual-context__body p {
+      font-family: var(--font-serif);
+      font-weight: var(--fw-thin, 300);
+      font-size: var(--fs-body);
+      line-height: 1.65;
+      color: var(--fg-soft);
+      max-width: 64ch;
+      margin: 0 0 var(--space-5);
+    }
+    .ritual-context__specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-3) var(--space-5);
+      margin: var(--space-5) 0 0;
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--line-soft);
+    }
+    .ritual-context__spec dt {
+      font-family: var(--font-sans);
+      font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      color: var(--bronze);
+      margin-bottom: var(--space-2);
+    }
+    .ritual-context__spec dd {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: var(--fs-small);
+      line-height: 1.4;
+      color: var(--bone);
+    }
+    @media (min-width: 900px) {
+      .ritual-context {
+        grid-template-columns: 1.1fr 1fr;
+        align-items: center;
+        gap: var(--space-7);
+      }
+      .ritual-context__copy {
+        margin: 0;
+      }
+    }
+    @media (max-width: 600px) {
+      .ritual-context {
+        padding: var(--space-5) var(--gutter);
+        margin-top: var(--space-6);
+      }
+      .ritual-context__specs {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+      }
+      .ritual-context__spec {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding-bottom: var(--space-2);
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .ritual-context__spec dt { margin: 0; }
+    }
+  </style>
 </Base>

@@ -84,3 +84,53 @@ export async function subscribeCustomOrder(payload: CustomOrderPayload): Promise
     message: 'Inquiry received.',
   };
 }
+
+export type NewsletterPayload = {
+  email: string;
+  name?: string;
+  source?: string;
+};
+
+export async function subscribeNewsletter(payload: NewsletterPayload): Promise<SubscribeResult> {
+  const token = process.env.MAILERLITE_API_KEY;
+
+  if (!token) {
+    return {
+      ok: false,
+      configured: false,
+      message: 'MailerLite is not configured. Use the mailto fallback.',
+    };
+  }
+
+  const response = await fetch(MAILERLITE_API_URL, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      accept: 'application/json',
+      authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      email: payload.email,
+      fields: payload.name ? { name: payload.name } : {},
+      groups: [],
+      tags: [
+        'source:newsletter',
+        `entry:${cleanTagValue(payload.source || 'site-popup')}`,
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    return {
+      ok: false,
+      configured: true,
+      message: 'MailerLite rejected the subscription request.',
+    };
+  }
+
+  return {
+    ok: true,
+    configured: true,
+    message: 'Subscribed.',
+  };
+}

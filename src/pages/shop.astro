@@ -28,6 +28,7 @@ const localizedCategories = (() => {
   for (const c of categories) {
     const en = localizeCategory(c);
     const key = en.toLowerCase();
+    if (/uncategorized|sin-categorizar/i.test(c.slug) || /uncategorized/i.test(key)) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ slug: c.slug, name: en });
@@ -35,7 +36,7 @@ const localizedCategories = (() => {
   return out;
 })();
 
-const shopDescription = 'Complete catalogue of handcrafted body jewelry. Plugs, tunnels, septums, hangers and pendants in noble materials. Ships across the US.';
+const shopDescription = 'Curated catalogue of handcrafted body jewelry in titanium, silver, wood, stone and bronze. Real pieces, photographed and released from Truckee.';
 
 const collectionLd = {
   '@context': 'https://schema.org',
@@ -74,9 +75,41 @@ const breadcrumbLd = {
   description={shopDescription}
   ogImage="/img/brand/shop-ritual-septum-hero.webp"
   jsonLd={[collectionLd, itemListLd, breadcrumbLd]}
+  noQuote
 >
+  <div class="cat-masthead cat-masthead--titled">
+    <picture>
+      <source type="image/avif" srcset="/img/banners/atmospheric/mountain-starfield.avif" />
+      <img src="/img/banners/atmospheric/mountain-starfield.webp" alt="" width="1600" height="686" loading="eager" decoding="async" fetchpriority="high" />
+    </picture>
+    <div class="cat-masthead__label">
+      <p class="cat-masthead__title">{en.shop.title}</p>
+      <p class="cat-masthead__eyebrow">{en.shop.eyebrow}</p>
+    </div>
+  </div>
+
   <section class="section">
     <div class="container">
+      {/* Guardian banner — visible when /shop?guardian=<slug>. Continúa la narrativa del oráculo del home. */}
+      <aside class="guardian-banner" data-guardian-banner hidden aria-live="polite">
+        <div class="guardian-banner__inner">
+          <picture class="guardian-banner__img">
+            <source type="image/avif" data-guardian-avif/>
+            <img data-guardian-img alt="" width="120" height="160" decoding="async"/>
+          </picture>
+          <div class="guardian-banner__copy">
+            <p class="eyebrow guardian-banner__eyebrow">The oracle chose for you</p>
+            <p class="guardian-banner__name">
+              <span data-guardian-arn></span> · <span data-guardian-name></span>
+            </p>
+            <p class="guardian-banner__meaning" data-guardian-meaning></p>
+          </div>
+          <a href="/#oracle-title" class="guardian-banner__again" data-guardian-again>
+            <span aria-hidden="true">↻</span> Ask again
+          </a>
+        </div>
+      </aside>
+
       <p class="eyebrow">{en.shop.eyebrow}</p>
       <h1 style="margin: var(--space-3) 0 var(--space-4); max-width: 16ch;">{en.shop.title}</h1>
       <div class="divider-h"></div>
@@ -96,6 +129,13 @@ const breadcrumbLd = {
           decoding="async"
         />
       </picture>
+
+      <div class="shop-archive-note">
+        <p class="eyebrow" style="margin: 0 0 var(--space-2);">CURATED ARCHIVE</p>
+        <p style="margin: 0; max-width: 58ch; color: var(--fg-soft);">
+          Released pieces only. Real product photos first. If you're comparing materials, sizing, or placement, write to us and we'll curate the shortlist with you.
+        </p>
+      </div>
 
       {localizedCategories.length > 0 && (
         <div class="filter-bar" id="filter-bar">
@@ -169,7 +209,7 @@ const breadcrumbLd = {
         <a href="/material/brass-bronze" class="material-tile">
           <p class="eyebrow" style="margin: 0;">06</p>
           <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">Brass & bronze</h3>
-          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">Bold ancestral metals with tribal roots.</p>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">Ceremonial metals chosen for weight, patina and presence.</p>
         </a>
       </div>
       <p style="margin-top: var(--space-5); font-size: var(--fs-small);">
@@ -209,6 +249,13 @@ const breadcrumbLd = {
     width: 100%;
     height: 100%;
     object-fit: cover;
+  }
+
+  .shop-archive-note {
+    margin: 0 0 var(--space-5);
+    padding: var(--space-4);
+    border: var(--border-thin);
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.04));
   }
 
   @media (max-width: 700px) {
@@ -268,5 +315,37 @@ const breadcrumbLd = {
     if (initial) {
       applyFilter(findMatchingTab(initial));
     }
+  }
+</script>
+
+<script>
+  /* Guardian banner — continúa la narrativa del oráculo cuando llegan con ?guardian=<slug>. */
+  const GUARDIANS: Record<string, { name: string; arn: string; meaning: string }> = {
+    puma:      { name: 'Puma',      arn: 'Trapial',  meaning: 'Strength · guardian of the earth' },
+    condor:    { name: 'Cóndor',    arn: 'Mañke',    meaning: 'Vision · messenger of the sky' },
+    serpiente: { name: 'Serpiente', arn: 'Filu',     meaning: 'Water · transformation · memory' },
+    zorro:     { name: 'Zorro',     arn: 'Ngürü',    meaning: 'Cunning · the path between' },
+    ballena:   { name: 'Ballena',   arn: 'Yene',     meaning: 'Depth · the ocean that remembers' },
+    pudu:      { name: 'Pudú',      arn: 'Püdü',     meaning: 'Gentleness · the quiet of the forest' },
+  };
+
+  const url = new URL(window.location.href);
+  const guardianSlug = url.searchParams.get('guardian');
+  const data = guardianSlug ? GUARDIANS[guardianSlug] : null;
+  const banner = document.querySelector<HTMLElement>('[data-guardian-banner]');
+
+  if (data && banner) {
+    const avif    = banner.querySelector<HTMLSourceElement>('[data-guardian-avif]');
+    const img     = banner.querySelector<HTMLImageElement>('[data-guardian-img]');
+    const arn     = banner.querySelector<HTMLElement>('[data-guardian-arn]');
+    const name    = banner.querySelector<HTMLElement>('[data-guardian-name]');
+    const meaning = banner.querySelector<HTMLElement>('[data-guardian-meaning]');
+
+    if (avif)    avif.setAttribute('srcset', `/img/power-animals/${guardianSlug}-560w.avif`);
+    if (img)     { img.src = `/img/power-animals/${guardianSlug}-560w.webp`; img.alt = `${data.arn} · ${data.name}`; }
+    if (arn)     arn.textContent = data.arn;
+    if (name)    name.textContent = data.name;
+    if (meaning) meaning.textContent = data.meaning;
+    banner.hidden = false;
   }
 </script>

@@ -2,7 +2,9 @@
 import '../styles/global.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
+import PrefooterQuote from '../components/PrefooterQuote.astro';
 import SearchModal from '../components/SearchModal.astro';
+import NewsletterModal from '../components/NewsletterModal.astro';
 import Analytics from '../components/Analytics.astro';
 import { STORE_ORIGIN } from '../lib/config';
 
@@ -18,6 +20,11 @@ interface Props {
   ogType?: 'website' | 'article' | 'product';
   noNav?: boolean;
   noFooter?: boolean;
+  /** Hide global overlays (search + newsletter modal) — for immersive/standalone pages. */
+  noOverlays?: boolean;
+  /** Hide the editorial prefooter quote (Montecino) — for checkout, /p/[slug],
+   *  /shop and other commerce pages where the rhythm shouldn't break. */
+  noQuote?: boolean;
   /** Optional JSON-LD object to inject as structured data */
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
   /** Optional LCP image to preload (with AVIF/WebP source set if both provided). */
@@ -35,6 +42,8 @@ const {
   ogType = 'website',
   noNav = false,
   noFooter = false,
+  noOverlays = false,
+  noQuote = false,
   jsonLd,
   preloadImage = null,
 } = Astro.props;
@@ -85,6 +94,15 @@ const ldArray = jsonLd
     <link rel="dns-prefetch" href={STORE_ORIGIN} />
     <link rel="dns-prefetch" href="https://formspree.io" />
 
+    {/* Fonts — interim Google Fonts CDN (transition to @fontsource self-hosted
+        once `npm install` runs and pulls @fontsource/instrument-{serif,sans}). */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Instrument+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
     {preloadImage?.avif && (
       <link rel="preload" as="image" href={preloadImage.avif} type="image/avif" fetchpriority="high" />
     )}
@@ -104,8 +122,10 @@ const ldArray = jsonLd
     <main id="main">
       <slot />
     </main>
+    {!noQuote && !noFooter && <PrefooterQuote />}
     {!noFooter && <Footer />}
-    <SearchModal />
+    {!noOverlays && <SearchModal />}
+    {!noOverlays && <NewsletterModal />}
     <script>
       // IntersectionObserver-driven fade-in for elements marked with
       // data-fade-in or data-fade-in-stagger. Triggers once when 12% of the

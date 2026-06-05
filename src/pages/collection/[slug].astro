@@ -1,0 +1,95 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import PatternBand from '../../components/PatternBand.astro';
+import { getProducts } from '../../lib/woo';
+import { collections } from '../../data/collections';
+
+export async function getStaticPaths() {
+  return collections.map((c) => ({ params: { slug: c.slug }, props: { collection: c } }));
+}
+
+const { collection } = Astro.props;
+const { slug, title, eyebrow, intro, description, keywords } = collection;
+
+const all = await getProducts();
+const searchable = (product) => [
+  product.name,
+  product.slug,
+  product.sku,
+  ...product.categories.map((c) => c.name),
+  ...product.categories.map((c) => c.slug),
+  ...product.attributes.flatMap((a) => [a.name, ...a.options]),
+].join(' ').toLowerCase();
+
+const matched = all.filter(
+  (p) => p.images.length > 0 && p.images[0].src && keywords.some((k) => searchable(p).includes(k)),
+);
+const featured = matched.slice(0, 8);
+
+const banner = `/img/banners/collection/${slug}`;
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: title,
+  description: intro,
+  url: `https://wenumapuonline.com/collection/${slug}`,
+  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+};
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Collections', item: 'https://wenumapuonline.com/collection/' },
+    { '@type': 'ListItem', position: 3, name: title, item: `https://wenumapuonline.com/collection/${slug}` },
+  ],
+};
+---
+<Base
+  title={`${title} — Collection | Wenu Mapu`}
+  description={description}
+  ogImage={`${banner}.webp`}
+  jsonLd={[collectionLd, breadcrumbLd]}
+>
+  <div class="cat-masthead">
+    <picture>
+      <source type="image/avif" srcset={`${banner}.avif`} />
+      <img src={`${banner}.webp`} alt={`Wenu Mapu — ${title} collection`} width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
+    </picture>
+  </div>
+
+  <section class="section section--mega">
+    <div class="container">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1 class="page-title">{title}</h1>
+      <p class="lede">{intro}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      {featured.length > 0 ? (
+        <div class="landing__rail" aria-label={`Pieces in the ${title} collection`}>
+          <div class="landing__rail-head">
+            <p class="eyebrow">Available pieces</p>
+            <a href="/shop" class="text-accent">View all →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {featured.map((product) => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div class="landing__copy">
+          <p>Pieces are being forged for this collection. Follow the work, or browse everything available now.</p>
+          <div class="landing__cta">
+            <a href="/shop" class="btn btn--solid">Browse all pieces →</a>
+            <a href="/collection/" class="btn btn--ghost">All collections</a>
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+</Base>

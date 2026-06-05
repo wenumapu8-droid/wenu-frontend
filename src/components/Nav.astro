@@ -1,5 +1,4 @@
 ---
-import Logo from './Logo.astro';
 import en from '../i18n/en.json';
 import { STORE_CART_URL } from '../lib/config';
 
@@ -13,6 +12,7 @@ const shopSubmenu = [
   { href: '/amulets',        label: 'Amulets' },
   { href: '/ear-cuffs',      label: 'Ear cuffs' },
   { href: '/ritual-objects', label: 'Ritual objects' },
+  { href: '/lines/antu',     label: 'Shop by element' },
   { href: '/materials',      label: 'Shop by material' },
   { href: '/collection',     label: 'Collections' },
   { href: '/custom-orders',  label: 'Commissions' },
@@ -28,6 +28,10 @@ const mainItems = [
   { href: 'https://aftercare.wenumapuonline.com/',   label: 'Care',        match: '/aftercare', external: true },
 ];
 
+// Split links around the centered logo
+const leftItems = mainItems.slice(0, 3);   // Piercing, Hangers, Materials
+const rightItems = mainItems.slice(3);     // Commissions, About, Journal, Care
+
 const isActive = (m: string) => {
   if (m.startsWith('/')) return path.startsWith(m);
   return Astro.url.search.includes(`cat=${m}`);
@@ -35,11 +39,7 @@ const isActive = (m: string) => {
 ---
 <nav class="nav" aria-label="Primary">
   <div class="nav__inner">
-    <a href="/" class="nav__logo" aria-label="Wenu Mapu home">
-      <Logo height={32} />
-    </a>
-
-    <ul class="nav__links" role="menubar">
+    <ul class="nav__links nav__links--left" role="menubar">
       <li role="none" class="nav__shop-wrap">
         <button
           type="button"
@@ -59,7 +59,7 @@ const isActive = (m: string) => {
           ))}
         </ul>
       </li>
-      {mainItems.map(item => (
+      {leftItems.map(item => (
         <li role="none">
           <a
             href={item.href}
@@ -73,7 +73,32 @@ const isActive = (m: string) => {
       ))}
     </ul>
 
-    <div class="nav__icons">
+    <a href="/" class="nav__logo nav__brand" aria-label="Wenu Mapu home">
+      <span class="nav__brand-row">
+        <img src="/logos/wenu-word-woven.png" alt="" class="nav__brand-word-img nav__brand-word-img--wenu" aria-hidden="true" />
+        <img src="/img/brand/wenu-mandala-transparent.png" alt="" class="nav__brand-mark" aria-hidden="true" />
+        <img src="/logos/mapu-word-woven.png" alt="" class="nav__brand-word-img nav__brand-word-img--mapu" aria-hidden="true" />
+      </span>
+      <span class="nav__brand-tagline">Tribal Ritual Jewelry</span>
+    </a>
+
+    <div class="nav__right">
+      <ul class="nav__links nav__links--right" role="menubar">
+        {rightItems.map(item => (
+          <li role="none">
+            <a
+              href={item.href}
+              role="menuitem"
+              class={isActive(item.match) ? 'active' : ''}
+              {...(item.external ? { target: '_blank', rel: 'noopener' } : {})}
+            >
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+
+      <div class="nav__icons">
       <button
         type="button"
         class="nav__icon nav__search"
@@ -111,37 +136,43 @@ const isActive = (m: string) => {
         <span class="nav__burger-bar"></span>
         <span class="nav__burger-bar"></span>
       </button>
+      </div>
     </div>
   </div>
 
-  <div id="nav-drawer" class="nav__drawer" data-drawer hidden aria-label="Mobile menu">
-    <div class="nav__drawer-head">
-      <span class="nav__drawer-title">{en.nav.menu}</span>
-      <button type="button" class="nav__drawer-close" aria-label={en.nav.close} data-drawer-close>
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
-          <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/>
-          <line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/>
-        </svg>
-      </button>
-    </div>
-    <ul class="nav__drawer-list">
-      <li><span class="nav__drawer-section">{en.nav.shop}</span></li>
-      {shopSubmenu.map(item => (
-        <li><a href={item.href}>{item.label}</a></li>
-      ))}
-      <li class="nav__drawer-rule" aria-hidden="true"></li>
-      {mainItems.map(item => (
-        <li><a href={item.href}>{item.label}</a></li>
-      ))}
-      <li><a href="/contact">{en.nav.contact}</a></li>
-      <li><a href="/local">{en.nav.local}</a></li>
-      <li class="nav__drawer-rule" aria-hidden="true"></li>
-      <li>
-        <a href={STORE_CART_URL} target="_blank" rel="noopener">{en.nav.cart}</a>
-      </li>
-    </ul>
-  </div>
 </nav>
+
+{/* Drawer mobile — RENDERED OUTSIDE <nav> on purpose.
+    El <nav> tiene backdrop-filter, lo que crea un containing block para
+    position:fixed children y rompe inset:0 (queda anclado al nav, no al viewport).
+    Como sibling de <nav>, el drawer queda libre y cubre todo bien. */}
+<div id="nav-drawer" class="nav__drawer" data-drawer hidden aria-label="Mobile menu">
+  <div class="nav__drawer-head">
+    <span class="nav__drawer-title">{en.nav.menu}</span>
+    <button type="button" class="nav__drawer-close" aria-label={en.nav.close} data-drawer-close>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/>
+        <line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
+  <ul class="nav__drawer-list">
+    <li><span class="nav__drawer-section">{en.nav.shop}</span></li>
+    {shopSubmenu.map(item => (
+      <li><a href={item.href}>{item.label}</a></li>
+    ))}
+    <li class="nav__drawer-rule" aria-hidden="true"></li>
+    {mainItems.map(item => (
+      <li><a href={item.href}>{item.label}</a></li>
+    ))}
+    <li><a href="/contact">{en.nav.contact}</a></li>
+    <li><a href="/local">{en.nav.local}</a></li>
+    <li class="nav__drawer-rule" aria-hidden="true"></li>
+    <li>
+      <a href={STORE_CART_URL} target="_blank" rel="noopener">{en.nav.cart}</a>
+    </li>
+  </ul>
+</div>
 
 <script>
   const trigger = document.querySelector<HTMLButtonElement>('[data-shop-trigger]');
@@ -196,5 +227,17 @@ const isActive = (m: string) => {
   drawerClose?.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
+  });
+
+  /* Close drawer when user navigates via any link inside it (UX) */
+  drawer?.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => {
+      if (drawer && !drawer.hidden) closeDrawer();
+    });
+  });
+
+  /* Close drawer if user taps the empty area to the side (defensive UX) */
+  drawer?.addEventListener('click', (e) => {
+    if (e.target === drawer) closeDrawer();
   });
 </script>

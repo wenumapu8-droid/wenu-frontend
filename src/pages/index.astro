@@ -1,15 +1,32 @@
 ---
 import Base from '../layouts/Base.astro';
 import ProductCard from '../components/ProductCard.astro';
-import EmbossedSeal from '../components/EmbossedSeal.astro';
 import CategoryStrip from '../components/CategoryStrip.astro';
-import CardinalGrid from '../components/CardinalGrid.astro';
 import Newsletter from '../components/Newsletter.astro';
 import PatternBand from '../components/PatternBand.astro';
+import PowerAnimalsOracle from '../components/PowerAnimalsOracle.astro';
+import ManifestoKultrunSection from '../components/ManifestoKultrunSection.astro';
+import HeroBookCover from '../components/HeroBookCover.astro';
+import CosmicLinesRail from '../components/CosmicLinesRail.astro';
 import { getProducts } from '../lib/woo';
+import { collections } from '../data/collections';
 import en from '../i18n/en.json';
 
 const products = await getProducts();
+
+// Home "Portals" showcase — surface the strongest collections by real catalog
+// depth (NocoDB counts: origin 69, neo 27, organic 24, ornamental 11,
+// india 10, atacama 7). The thin lines (araucanía/maya, 1 each) are kept off
+// the home grid but remain reachable at /collection. Banners carry their own
+// baked title art, so the cards render the artwork frame-only (no HTML title).
+const HOME_COLLECTION_ORDER = ['origin', 'neo', 'organic', 'ornamental', 'india', 'atacama'];
+const homeCollections = HOME_COLLECTION_ORDER
+  .map(slug => collections.find(c => c.slug === slug))
+  .filter((c): c is (typeof collections)[number] => Boolean(c));
+
+// Power-animal poster series (maestro "animales de poder"). Baked-text brand
+// posters — displayed whole as a guardian gallery, museum-label captions below.
+const POWER_ANIMALS = ['puma', 'condor', 'serpiente', 'zorro', 'ballena', 'pudu'] as const;
 
 // Featured surface should never show "NO IMAGE" placeholders to first-time
 // visitors — filter products with no main image before slicing.
@@ -22,6 +39,17 @@ const withImage = products.filter(p => p.images.length > 0 && p.images[0].src);
 // the brand's macro photography standard.
 const PLACEHOLDER_IMG = /chatgpt-image|sin-?titulo|sin-?t[íi]tulo|placeholder|untitled/i;
 const curated = withImage.filter(p => !PLACEHOLDER_IMG.test(p.images[0].src));
+const FEATURED_SLUGS = [
+  'drop-con-amatista-2',
+  'carved-ethnic-ring',
+  'gold-titanium-marquise-onyx-piercing',
+  'ornamental-wood-ear-weights',
+];
+const WEAK_CATEGORY = /uncategorized/i;
+
+function hasWeakCategory(p: typeof products[number]) {
+  return p.categories.some(c => WEAK_CATEGORY.test(c.slug) || WEAK_CATEGORY.test(c.name));
+}
 
 function deriveBadge(p: typeof products[number], idx: number): string | null {
   const q = p.stock_quantity;
@@ -30,7 +58,12 @@ function deriveBadge(p: typeof products[number], idx: number): string | null {
   return null;
 }
 
-const featured = curated.slice(0, 6).map((p, i) => ({
+const curatedStrong = curated.filter(p => !hasWeakCategory(p));
+const preferredFeatured = FEATURED_SLUGS
+  .map(slug => curatedStrong.find(p => p.slug === slug))
+  .filter((p): p is typeof products[number] => Boolean(p));
+const featuredSource = preferredFeatured.length >= 4 ? preferredFeatured : curatedStrong.slice(0, 4);
+const featured = featuredSource.slice(0, 4).map((p, i) => ({
   product: p,
   badge: deriveBadge(p, i),
 }));
@@ -38,6 +71,7 @@ const featured = curated.slice(0, 6).map((p, i) => ({
 const orgLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': 'https://wenumapuonline.com/#organization',
   name: 'Wenu Mapu',
   url: 'https://wenumapuonline.com',
   logo: 'https://wenumapuonline.com/logos/wenu-mapu-square.png',
@@ -49,10 +83,75 @@ const orgLd = {
     addressRegion: 'CA',
     addressCountry: 'US',
   },
+  founder: {
+    '@id': 'https://wenumapuonline.com/#person-nicolas-ortega',
+  },
   sameAs: [
     'https://instagram.com/wenu__mapu',
     'https://tiktok.com/@wenumapu',
     'https://pinterest.com/wenumapu',
+    'https://www.behance.net/wenumapu',
+  ],
+};
+
+// Person schema — connects Nicolás Ortega across platforms (Google identity graph).
+// sameAs is the authoritative signal for entity resolution.
+// hasCredential is the SEO signal that gets him recognized as a certified piercer
+// in Google Knowledge Panel (canonical source: Obsidian credenciales-y-cv.md).
+const personLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': 'https://wenumapuonline.com/#person-nicolas-ortega',
+  name: 'Rodrigo Nicolás Ortega García',
+  givenName: 'Rodrigo Nicolás',
+  familyName: 'Ortega García',
+  alternateName: ['Nicolás Ortega', 'Ocin', 'Nico'],
+  jobTitle: 'Designer · Founder · Professional Piercer',
+  worksFor: { '@id': 'https://wenumapuonline.com/#organization' },
+  url: 'https://wenumapuonline.com/about',
+  sameAs: [
+    'https://www.linkedin.com/in/nicolas-ortega-790538279/',
+    'https://www.behance.net/wenumapu',
+    'https://www.instagram.com/0cin8/',
+    'https://www.instagram.com/wenu__mapu/',
+    'https://www.tiktok.com/@wenumapu',
+  ],
+  hasCredential: [
+    {
+      '@type': 'EducationalOccupationalCredential',
+      name: 'APP Core Essentials Vol. 4',
+      credentialCategory: 'certificate',
+      recognizedBy: { '@type': 'Organization', name: 'Association of Professional Piercers' },
+      dateCreated: '2025-12',
+    },
+    {
+      '@type': 'EducationalOccupationalCredential',
+      name: 'Bloodborne Pathogens Certification (OSHA-compliant)',
+      credentialCategory: 'certificate',
+      recognizedBy: { '@type': 'Organization', name: 'American Heart Association' },
+      validFrom: '2023-01-01',
+      expires: '2027-12-31',
+    },
+    {
+      '@type': 'EducationalOccupationalCredential',
+      name: 'First Aid · CPR · AED',
+      credentialCategory: 'certificate',
+      recognizedBy: { '@type': 'Organization', name: 'American Heart Association' },
+    },
+    {
+      '@type': 'EducationalOccupationalCredential',
+      name: 'Continuing Education · Professional Piercers Collective',
+      credentialCategory: 'certificate',
+      recognizedBy: { '@type': 'Organization', name: 'Professional Piercers Collective' },
+      dateCreated: '2025-11',
+    },
+    {
+      '@type': 'EducationalOccupationalCredential',
+      name: 'Industrial Design',
+      credentialCategory: 'degree',
+      recognizedBy: { '@type': 'CollegeOrUniversity', name: 'Duoc UC', address: { '@type': 'PostalAddress', addressLocality: 'Santiago', addressCountry: 'CL' } },
+      dateCreated: '2020-08',
+    },
   ],
 };
 
@@ -67,83 +166,37 @@ const websiteLd = {
     'query-input': 'required name=search_term_string',
   },
 };
+
+// HERO 2026-06-03: rediseñado al lenguaje visual de la tapa del libro Wenumapu
+// (spec brand/02-visual-system/spec-hero-rediseno-tapa-libro.md). El rotator
+// anterior (4 banners full-bleed) queda archivado en git history. El kultrún
+// ornamentado se mantiene como momento editorial profundo más abajo en
+// ManifestoKultrunSection.
 ---
 
 <Base
   title="Wenu Mapu — Adornment for the sacred body"
   description="Ancestral-cosmic body jewelry forged by hand in Truckee, California. Implant-grade titanium, sterling silver, 14k gold. Custom commissions accepted."
-  jsonLd={[orgLd, websiteLd]}
-  preloadImage={{
-    avif: '/img/hero/hero-portrait-1200w.avif',
-    webp: '/img/hero/hero-portrait-1200w.webp',
-    alt: 'Model wearing Wenu Mapu ritual body jewelry',
-  }}
+  jsonLd={[orgLd, personLd, websiteLd]}
 >
 
-  <!-- ── HERO V2 — RITUAL PORTRAIT ── -->
-  <section class="hero-v2" aria-label="Wenu Mapu — adornment for the sacred body">
-    <div class="hero-v2__copy">
-      <div class="hero-v2__mark" aria-hidden="true">
-        <span class="sacred-mark" style="width:18px;height:18px;"></span>
-      </div>
-      <p class="hero-v2__ritual" lang="arn" title="I dreamt this">{en.hero.ritual}</p>
-      <h1 class="hero-v2__headline">{en.hero.headline}</h1>
-      <p class="hero-v2__sub">{en.hero.sub_short}</p>
-      <div class="hero-v2__cta">
-        <a href="/shop" class="btn btn--solid">{en.hero.cta_primary} <span aria-hidden="true">→</span></a>
-        <a href="/local" class="btn btn--ghost">{en.hero.cta_secondary}</a>
-      </div>
-      <div class="hero-v2__coords">
-        <span>39°19′N · 120°11′W</span>
-        <span class="hero-v2__coord-sep" aria-hidden="true"></span>
-        <span>{en.hero.eyebrow}</span>
-      </div>
-    </div>
-    <div class="hero-v2__media">
-      <picture>
-        <source
-          type="image/avif"
-          srcset="/img/hero/hero-portrait-600w.avif 600w, /img/hero/hero-portrait-900w.avif 900w, /img/hero/hero-portrait-1200w.avif 1200w, /img/hero/hero-portrait-1800w.avif 1800w"
-          sizes="(max-width: 900px) 100vw, 50vw"
-        />
-        <source
-          type="image/webp"
-          srcset="/img/hero/hero-portrait-600w.webp 600w, /img/hero/hero-portrait-900w.webp 900w, /img/hero/hero-portrait-1200w.webp 1200w, /img/hero/hero-portrait-1800w.webp 1800w"
-          sizes="(max-width: 900px) 100vw, 50vw"
-        />
-        <img
-          src="/img/hero/hero-portrait-1200w.webp"
-          srcset="/img/hero/hero-portrait-600w.webp 600w, /img/hero/hero-portrait-900w.webp 900w, /img/hero/hero-portrait-1200w.webp 1200w, /img/hero/hero-portrait-1800w.webp 1800w"
-          sizes="(max-width: 900px) 100vw, 50vw"
-          alt="Model wearing Wenu Mapu ritual body jewelry"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-          width="1200"
-          height="1500"
-        />
-      </picture>
-      <div class="hero-v2__media-veil" aria-hidden="true"></div>
-      <div class="hero-v2__media-seal" aria-hidden="true">
-        <EmbossedSeal text="WENU · MAPU · TRUCKEE · 2026" size={120} />
-      </div>
-    </div>
-  </section>
+  <!-- ── HERO — tapa libro Wenumapu (Canio & Pozo 2015) ── -->
+  <HeroBookCover ctaHref="/shop" ctaLabel="enter the threshold" />
 
-  <!-- ── PROOF BEAT ── -->
-  <!-- TODO(marimari): confirm cities + "shipped to N countries since YEAR" before push.
-       Cities use a real-feeling default; replace any that haven't actually been shipped to. -->
+  <!-- ── COSMIC LINES RAIL — 6 arquetipos cosmológicos del libro ── -->
+  <CosmicLinesRail />
+
+  <!-- ── PROOF BEAT ── verified operational facts only -->
   <section class="proof" aria-label="Trust signals">
     <div class="proof__inner">
-      <span class="eyebrow proof__lead">Worn from</span>
+      <span class="eyebrow proof__lead">DIRECT · APPOINTMENT · DISPATCH</span>
       <ul class="proof__list" role="list">
-        <li>Truckee · CA</li>
-        <li>Brooklyn · NY</li>
-        <li>Mexico City</li>
-        <li>Berlin</li>
-        <li>Tokyo</li>
+        <li>Handmade in Truckee · California</li>
+        <li>Private appointments · Truckee / North Lake Tahoe</li>
+        <li>Free local delivery · Truckee area</li>
+        <li>USPS Priority across the US</li>
       </ul>
-      <span class="proof__cite">— forged by hand, one piece at a time, since 2023.</span>
+      <span class="proof__cite">— direct retail only. No showroom. No middleman.</span>
     </div>
   </section>
 
@@ -175,28 +228,104 @@ const websiteLd = {
     </section>
   )}
 
-  <!-- ── SACRED TERRITORY + CARDINALS ── -->
-  <section class="sacred" aria-labelledby="sacred-title">
-    <div class="sacred__inner">
-      <div class="sacred__copy">
-        <p class="eyebrow">{en.sacred.eyebrow}</p>
-        <h2 id="sacred-title" class="sacred__title">{en.sacred.title}</h2>
-        <p class="sacred__p">{en.sacred.p1}</p>
-        <p class="sacred__p">{en.sacred.p2}</p>
-        <p class="sacred__p sacred__p--accent">{en.sacred.p3}</p>
-        <div class="sacred__cta-row">
-          <a href="/artistry" class="btn btn--ghost">{en.sacred.cta} <span aria-hidden="true">→</span></a>
-          <p class="sacred__ritual" lang="arn">{en.sacred.ritual}</p>
-        </div>
-      </div>
-      <CardinalGrid />
+  <!-- ── ANCESTRAL MANIFESTO + KULTRÚN ── kultrún sacred map as visual center
+       (after Featured pieces: producto primero, manifiesto como momento editorial). -->
+  <ManifestoKultrunSection />
+
+  <!-- ── PORTALS / COLLECTIONS SHOWCASE ── -->
+  <section class="portals" aria-labelledby="portals-title">
+    <div class="container portals__head">
+      <p class="eyebrow">PORTALS · COLLECTIONS</p>
+      <h2 id="portals-title" class="portals__title">Enter a portal.</h2>
+      <p class="portals__lede" lang="arn" title="Wenu Mapu — the world above">Each collection is a doorway — a landscape, a sky, a lineage. Step through and the pieces gather around you.</p>
+    </div>
+    <div class="container portals__grid" data-fade-in-stagger>
+      {homeCollections.map(c => (
+        <a href={`/collection/${c.slug}`} class="portal-card" aria-label={`${c.title} collection`}>
+          <picture>
+            <source type="image/avif" srcset={`/img/banners/collection/${c.slug}.avif`} />
+            <img
+              src={`/img/banners/collection/${c.slug}.webp`}
+              alt={`Wenu Mapu — ${c.title} collection`}
+              loading="lazy"
+              decoding="async"
+              width="1600"
+              height="900"
+            />
+          </picture>
+          <span class="portal-card__frame" aria-hidden="true"></span>
+          <span class="portal-card__enter" aria-hidden="true">Enter <span class="portal-card__arrow">→</span></span>
+        </a>
+      ))}
+    </div>
+    <div class="container portals__foot">
+      <a href="/collection" class="btn btn--ghost">All collections <span aria-hidden="true">→</span></a>
     </div>
   </section>
 
-  <!-- ── PATTERN DIVIDER 2 ── -->
-  <div class="section-divider">
-    <PatternBand variant="hairline" tone="bronze" />
-  </div>
+  {/*
+    EDITORIAL BAND — 2026-05-22 reactivada con foto macro real WM-HAN-001 Witral Vilu.
+    Reemplaza el asset AI archivado en ~/Obsidian/WenuAgent/90-Archivo/lifestyle-AI-2026-05-22/.
+    Cumple BRAND-DNA D8: foto real propia, tier-1 macro curada.
+  */}
+  <section class="editorial-band" aria-label="Wenu Mapu — Witral Vilu, paired bronze serpents">
+    <picture>
+      <source
+        type="image/avif"
+        srcset="/img/hero/wm-han-001-medium.avif 1600w, /img/hero/wm-han-001-large.avif 2400w, /img/hero/wm-han-001-xlarge.avif 3200w"
+        sizes="100vw"
+      />
+      <source
+        type="image/webp"
+        srcset="/img/hero/wm-han-001-medium.webp 1600w, /img/hero/wm-han-001-large.webp 2400w, /img/hero/wm-han-001-xlarge.webp 3200w"
+        sizes="100vw"
+      />
+      <img
+        src="/img/hero/wm-han-001-large.webp"
+        alt="Witral Vilu — two paired bronze serpent ear weights, hand-cast, on midnight blue ground"
+        loading="lazy"
+        decoding="async"
+        width="2400"
+        height="1590"
+      />
+    </picture>
+    <div class="editorial-band__veil" aria-hidden="true"></div>
+    <p class="editorial-band__caption eyebrow">Witral Vilu · Paired Serpents · Bronze</p>
+  </section>
+
+  {/* 2026-05-29: ManifestoKultrunSection movido más arriba (entre Featured y Portals),
+      Oracle bajado a justo antes de USPS (después de Commissions) — per UX audit:
+      ver Obsidian: 30-Auditorias/2026-05-29-ux-audit-jerarquia-comercial.md */}
+
+  <!-- ── COSMIC THRESHOLD ── full-bleed sidereal portal between guardians + studio -->
+  <section class="threshold" aria-label="Wenu Mapu — the world above">
+    <picture>
+      <source
+        type="image/avif"
+        srcset="/img/banners/cosmic/threshold-mandala-900w.avif 900w, /img/banners/cosmic/threshold-mandala-1200w.avif 1200w, /img/banners/cosmic/threshold-mandala-1600w.avif 1600w, /img/banners/cosmic/threshold-mandala-1920w.avif 1920w"
+        sizes="100vw"
+      />
+      <source
+        type="image/webp"
+        srcset="/img/banners/cosmic/threshold-mandala-900w.webp 900w, /img/banners/cosmic/threshold-mandala-1200w.webp 1200w, /img/banners/cosmic/threshold-mandala-1600w.webp 1600w, /img/banners/cosmic/threshold-mandala-1920w.webp 1920w"
+        sizes="100vw"
+      />
+      <img
+        src="/img/banners/cosmic/threshold-mandala-1600w.webp"
+        alt=""
+        loading="lazy"
+        decoding="async"
+        width="1672"
+        height="941"
+      />
+    </picture>
+    <div class="threshold__veil" aria-hidden="true"></div>
+    <div class="container threshold__copy">
+      <p class="threshold__arn eyebrow" lang="arn">{en.threshold.arn}</p>
+      <p class="threshold__title">{en.threshold.title}</p>
+      <p class="threshold__line">{en.threshold.line}</p>
+    </div>
+  </section>
 
   <!-- ── TRUCKEE SHOWCASE ── -->
   <section class="truckee" aria-labelledby="truckee-title">
@@ -211,7 +340,7 @@ const websiteLd = {
       <p class="eyebrow">{en.showcase.eyebrow}</p>
       <h2 id="truckee-title" class="truckee__title">{en.showcase.title}</h2>
       <p class="truckee__body">{en.showcase.body}</p>
-      <a href="/local" class="btn btn--solid truckee__cta">{en.showcase.cta} <span aria-hidden="true">→</span></a>
+      <a href="/local" class="btn btn--ghost truckee__cta">{en.showcase.cta} <span aria-hidden="true">→</span></a>
     </div>
   </section>
 
@@ -222,7 +351,7 @@ const websiteLd = {
         <p class="eyebrow">{en.custom.teaser.eyebrow}</p>
         <h2 id="commissions-teaser-title" class="commissions-teaser__title">{en.custom.teaser.title}</h2>
         <p class="commissions-teaser__body">{en.custom.teaser.body}</p>
-        <a href="/custom-orders" class="btn btn--solid commissions-teaser__cta">{en.custom.teaser.cta} →</a>
+        <a href="/custom-orders" class="btn btn--ghost commissions-teaser__cta">{en.custom.teaser.cta} →</a>
       </div>
       <div class="commissions-teaser__media" aria-hidden="true">
         <picture>
@@ -233,6 +362,10 @@ const websiteLd = {
       </div>
     </div>
   </section>
+
+  <!-- ── POWER ANIMALS / ANIMALES DE PODER ── interactive oracle
+       (después de Commissions: engagement + recomendación de pieza, no roba protagonismo al producto). -->
+  <PowerAnimalsOracle />
 
   <!-- ── USPS GRID ── -->
   <section class="usps" aria-label="Why Wenu Mapu">
@@ -289,3 +422,4 @@ const websiteLd = {
   <Newsletter />
 
 </Base>
+
