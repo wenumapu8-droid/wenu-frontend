@@ -161,7 +161,7 @@ const breadcrumbLd = {
           {mainImg
             ? (
               <div class="pdp-main-figure">
-                <img src={mainImg.src} alt={mainImg.alt || product.name} width={mainImg.width} height={mainImg.height} loading="eager" fetchpriority="high" />
+                <img id="pdp-stage-img" src={mainImg.src} alt={mainImg.alt || product.name} width={mainImg.width} height={mainImg.height} loading="eager" fetchpriority="high" />
               </div>
             )
             : (
@@ -184,12 +184,21 @@ const breadcrumbLd = {
               </div>
             )
           }
-          {gallery.length > 0 && (
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; border-top: var(--border-thin); border-left: var(--border-thin); margin-top: 1px;">
-              {gallery.map(img => (
-                <div style="aspect-ratio: 1; overflow: hidden; background: var(--bg-alt); border-right: var(--border-thin); border-bottom: var(--border-thin);">
-                  <img src={img.src} alt={img.alt || product.name} width={img.width} height={img.height} style="width: 100%; height: 100%; object-fit: cover;" loading="lazy" />
-                </div>
+          {mainImg && product.images.length > 1 && (
+            <div class="pdp-thumbs" role="list" aria-label="Other angles">
+              {product.images.map((img, i) => (
+                <button
+                  type="button"
+                  role="listitem"
+                  class:list={['pdp-thumb', { 'is-active': i === 0 }]}
+                  aria-label={`View angle ${i + 1} of ${product.images.length}`}
+                  data-src={img.src}
+                  data-alt={img.alt || product.name}
+                  data-w={String(img.width ?? '')}
+                  data-h={String(img.height ?? '')}
+                >
+                  <img src={img.src} alt="" width={img.width} height={img.height} loading="lazy" />
+                </button>
               ))}
             </div>
           )}
@@ -442,6 +451,28 @@ const breadcrumbLd = {
     }
   </script>
 
+  {/* Gallery angle swap: clicking a thumbnail repaints the main "stage" image.
+      Pure progressive enhancement — without JS the thumbs still show every
+      angle, they just don't drive the stage. */}
+  <script>
+    const stage = document.getElementById('pdp-stage-img');
+    const thumbs = document.querySelectorAll('.pdp-thumb');
+    if (stage && thumbs.length) {
+      thumbs.forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          const { src, alt, w, h } = thumb.dataset;
+          if (!src) return;
+          stage.src = src;
+          stage.alt = alt || '';
+          if (w) stage.setAttribute('width', w);
+          if (h) stage.setAttribute('height', h);
+          thumbs.forEach((t) => t.classList.remove('is-active'));
+          thumb.classList.add('is-active');
+        });
+      });
+    }
+  </script>
+
   <style>
     /* ─── MAIN PRODUCT FIGURE ─── obsidian "luminous orb" treatment, matching
        RitualProductHero. Replaces the old white-bg 4/5 cover crop that clashed
@@ -468,6 +499,59 @@ const breadcrumbLd = {
       -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 50%, rgba(0, 0, 0, 0.55) 68%, transparent 85%);
       mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 50%, rgba(0, 0, 0, 0.55) 68%, transparent 85%);
       filter: drop-shadow(0 14px 40px rgba(8, 7, 6, 0.8)) drop-shadow(0 0 32px rgba(196, 147, 90, 0.14));
+    }
+
+    /* ─── GALLERY ANGLE THUMBNAILS ─── same luminous-orb language as the stage,
+       at small scale. Each thumb is a button that repaints the main image.
+       Wraps so 5+ angles flow to a second row; the active one carries an ember
+       ring + glow so the current angle is always legible. */
+    .pdp-thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+    }
+    .pdp-thumb {
+      flex: 0 0 auto;
+      width: 72px;
+      height: 72px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(196, 147, 90, 0.10) 0%, transparent 64%),
+        var(--obsidian, #080706);
+      border: 1px solid color-mix(in srgb, var(--bronze) 45%, transparent);
+      border-radius: 2px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+    .pdp-thumb img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      -webkit-mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000 52%, transparent 88%);
+      mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000 52%, transparent 88%);
+    }
+    .pdp-thumb:hover {
+      border-color: color-mix(in srgb, var(--ember) 60%, transparent);
+      transform: translateY(-1px);
+    }
+    .pdp-thumb:focus-visible {
+      outline: 2px solid var(--ember);
+      outline-offset: 2px;
+    }
+    .pdp-thumb.is-active {
+      border-color: var(--ember);
+      box-shadow: 0 0 0 1px var(--ember), 0 0 18px rgba(196, 147, 90, 0.28);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pdp-thumb { transition: none; }
+      .pdp-thumb:hover { transform: none; }
     }
 
     /* ─── PRODUCT ACCORDIONS ─── 2026-05-29 (Tigo)
