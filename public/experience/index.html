@@ -134,13 +134,56 @@ body {
   background-image: url('wenu-assets/wenu-bg-starmap.webp');
   background-size: cover;
   background-position: center;
-  /* Very slow drift to feel alive */
   animation: starmap-drift 80s ease-in-out infinite alternate;
-  filter: brightness(0.55) saturate(0.85);
+  filter: brightness(0.42) saturate(0.95);
 }
 @keyframes starmap-drift {
   from { background-position: 48% 50%; transform: scale(1); }
   to   { background-position: 52% 50%; transform: scale(1.04); }
+}
+
+/* ─── REAL NEBULAE — multi-layer radial gradients drifting like deep-space gas clouds.
+   Inspired by Hubble/JWST imagery: warm magentas, cool teals, purple voids.
+   Each layer drifts at its own pace → parallax depth without raster images. ─── */
+#nebula-layers {
+  position: fixed; inset:0; z-index:0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+}
+#nebula-layers::before, #nebula-layers::after,
+#nebula-layers .neb-aux {
+  content: ''; position: absolute; inset: -10%;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+/* Layer 1 — warm magenta/copper nebula (sparse, slow) like Carina */
+#nebula-layers::before {
+  background:
+    radial-gradient(ellipse 50% 35% at 18% 28%, rgba(180, 60, 100, 0.32), transparent 60%),
+    radial-gradient(ellipse 40% 50% at 82% 70%, rgba(220, 110, 60, 0.22),  transparent 65%),
+    radial-gradient(ellipse 35% 30% at 65% 15%, rgba(150, 80, 130, 0.18),  transparent 55%);
+  filter: blur(40px);
+  animation: nebula-drift-a 110s ease-in-out infinite alternate;
+}
+/* Layer 2 — cool teal/azure (denser, mid speed) like Orion or Veil */
+#nebula-layers::after {
+  background:
+    radial-gradient(ellipse 60% 40% at 70% 30%, rgba(60, 140, 180, 0.22),  transparent 60%),
+    radial-gradient(ellipse 45% 55% at 25% 75%, rgba(40, 90, 150, 0.22),  transparent 65%),
+    radial-gradient(ellipse 30% 40% at 50% 50%, rgba(80, 60, 160, 0.15),  transparent 55%);
+  filter: blur(55px);
+  animation: nebula-drift-b 140s ease-in-out infinite alternate;
+}
+@keyframes nebula-drift-a {
+  0%   { transform: translate(0,    0)    rotate(0deg)  scale(1.0); opacity: 0.55; }
+  50%  { transform: translate(-3%,  2%)   rotate(2deg)  scale(1.06); opacity: 0.75; }
+  100% { transform: translate(2%,  -1%)   rotate(-1deg) scale(1.02); opacity: 0.6; }
+}
+@keyframes nebula-drift-b {
+  0%   { transform: translate(0,   0)    rotate(0deg)  scale(1.0); opacity: 0.45; }
+  50%  { transform: translate(4%, -3%)   rotate(-2deg) scale(1.08); opacity: 0.65; }
+  100% { transform: translate(-2%, 2%)   rotate(1deg)  scale(1.04); opacity: 0.5; }
 }
 /* ─── COSMOS LAYERS (procedural live stars over bg) ─── */
 canvas#cosmos {
@@ -1948,6 +1991,7 @@ canvas#cosmos { animation: hue-cycle 45s ease-in-out infinite; }
 
 <!-- STARMAP BACKGROUND (anchors the scene) -->
 <div id="starmap-bg"></div>
+<div id="nebula-layers" aria-hidden="true"></div>
 
 <!-- COSMOS (live stars on top, blend mode) -->
 <canvas id="cosmos"></canvas>
@@ -2531,13 +2575,36 @@ document.addEventListener('mousemove', e => {
 const cosmosCanvas = $('cosmos');
 const ctx = cosmosCanvas.getContext('2d');
 cosmosCanvas.width = W; cosmosCanvas.height = H;
-const stars = Array.from({length: 160}, () => ({
-  x: Math.random() * W, y: Math.random() * H,
-  r: Math.random() * 1.3 + 0.2,
-  speed: Math.random() * 0.15 + 0.02,
-  phase: Math.random() * Math.PI * 2,
-  color: Math.random() > 0.85 ? '#f0c060' : (Math.random() > 0.7 ? '#c4501a' : '#d4a843')
-}));
+// Real stellar palette — like a Hubble deep-field photograph:
+//   ~60% white/bone (most stars), ~15% blue-white (hot young O/B), ~12% gold (sun-like G),
+//   ~8% warm orange (K-type), ~5% red giants (M-type)
+function pickStarColor() {
+  const r = Math.random();
+  if (r > 0.95) return '#ff7848';   // red giant
+  if (r > 0.87) return '#ffb060';   // warm K-type
+  if (r > 0.75) return '#f8d878';   // gold G-type (sun-like)
+  if (r > 0.60) return '#bcd8ff';   // blue-white O/B
+  return '#fff5e0';                 // baseline cool white
+}
+// Three depth tiers — far (small, fast twinkle), mid, near (large, slow twinkle).
+// Bumped count 160 → 260 for deep-field richness.
+const stars = Array.from({length: 260}, (_, i) => {
+  const tier = i < 130 ? 'far' : (i < 220 ? 'mid' : 'near');
+  const sizeMap   = { far: [0.2, 0.6], mid: [0.5, 1.1], near: [1.0, 1.8] };
+  const speedMap  = { far: [0.10, 0.22], mid: [0.05, 0.14], near: [0.02, 0.08] };
+  const [smin, smax] = sizeMap[tier];
+  const [vmin, vmax] = speedMap[tier];
+  return {
+    x: Math.random() * W, y: Math.random() * H,
+    r: Math.random() * (smax - smin) + smin,
+    speed: Math.random() * (vmax - vmin) + vmin,
+    phase: Math.random() * Math.PI * 2,
+    color: pickStarColor(),
+    tier,
+    // ~3% of stars get a diffraction spike — telescope-like cross
+    spike: Math.random() > 0.97
+  };
+});
 let warpFramesLeft = 0;
 const WARP_DURATION = 38; // ~0.63s @60fps (was 22)
 function triggerWarp() { warpFramesLeft = WARP_DURATION; }
@@ -2568,10 +2635,29 @@ function drawCosmos(t) {
   const warp = warpFramesLeft / WARP_DURATION;
   // Ease-out curve so warp peaks fast and fades slow
   const warpEase = warp * warp;
+  // Per-tier parallax — near layer moves more (depth illusion)
+  const parallaxByTier = { far: 0.002, mid: 0.005, near: 0.010 };
   stars.forEach(s => {
     const twinkle = 0.4 + 0.6 * Math.sin(t * s.speed + s.phase);
-    const px = s.x + (mx - W/2) * 0.004 * s.r;
-    const py = s.y + (my - H/2) * 0.004 * s.r;
+    const pf = parallaxByTier[s.tier] || 0.004;
+    const px = s.x + (mx - W/2) * pf;
+    const py = s.y + (my - H/2) * pf;
+    // Diffraction spike — soft cross flare for hero stars (telescope feel)
+    if (s.spike && warp <= 0) {
+      const len = s.r * 14 * twinkle;
+      const grad = ctx.createRadialGradient(px, py, 0, px, py, len);
+      grad.addColorStop(0, s.color + 'cc');
+      grad.addColorStop(0.4, s.color + '40');
+      grad.addColorStop(1, s.color + '00');
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = Math.max(0.5, s.r * 0.6);
+      ctx.globalAlpha = 0.55 * twinkle;
+      ctx.beginPath();
+      ctx.moveTo(px - len, py); ctx.lineTo(px + len, py);
+      ctx.moveTo(px, py - len); ctx.lineTo(px, py + len);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
     if (warp > 0) {
       // HYPERSPACE: streaks from screen center outward
       const dx = px - W/2, dy = py - H/2;

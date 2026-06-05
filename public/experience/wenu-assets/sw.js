@@ -1,6 +1,6 @@
 // Wenu Mapu portal — service worker
 // Caches all critical assets so the second visit is instant + offline-capable.
-const CACHE_NAME = 'wenu-portal-v15';
+const CACHE_NAME = 'wenu-portal-v18';
 const CRITICAL = [
   './',
   './index.html',
