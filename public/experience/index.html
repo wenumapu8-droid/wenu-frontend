@@ -803,6 +803,48 @@ body.kultrun-struck #kultrun-sigil { animation: kultrun-strike 1.05s cubic-bezie
 @media (max-width: 720px) {
   #brand-wordmark img { height: 22px; }
 }
+
+/* ─── MOBILE PERFORMANCE GATE ─── empirical audit on iPhone 12 + 4× CPU
+   throttling: 2.7 FPS, 1466ms worst frame, 90 active animations. The biggest
+   single offenders were backdrop-filter (6 elements, very GPU-expensive),
+   drop-shadow filter chains (74 elements), mix-blend-mode (6 elements), and
+   light-leak / dust-drift / nebula-drift purely-ambient effects. On phones
+   we kill the heavy ambient layer and keep the essentials: kultrún + stars +
+   wallpapers. Effect: smooth scroll/hover at the cost of subtle atmosphere. */
+@media (pointer: coarse), (max-width: 720px) {
+  /* 1. Disable ALL backdrop-filters on mobile (single biggest GPU win) */
+  *, *::before, *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  /* 2. Disable purely-ambient effects that nobody notices on a small screen */
+  #leaks, #dither, #grain, #nebula-layers { display: none !important; }
+  canvas#dust { display: none !important; }
+  /* 3. Pause non-active star animations — only the one being hovered animates */
+  .star .core { animation-play-state: paused !important; }
+  .star.lit .core { animation-play-state: running !important; }
+  /* 4. Disable Ken Burns drift on deep portal background — saves continual repaint */
+  #deep-portal.open #deep-bg { animation: none !important; }
+  /* 5. Strip drop-shadow filters on decorative elements (text already has shadow) */
+  .nav__brand-mark, #loader-mandala, .corner, #status, .star .name {
+    filter: none !important;
+  }
+  /* 6. Disable mix-blend-mode where it forces a compositor layer */
+  canvas#cosmos, #nebula-layers { mix-blend-mode: normal !important; }
+  /* 7. Slow down the few animations that remain — battery + heat win */
+  #kultrun-sigil { animation-duration: 60s !important; }
+  /* 8. Disable hyperspace warp transitions (heavy canvas redraws) */
+  /* (handled in JS — IS_LOW_POWER flag skips warp) */
+}
+
+/* Honour the OS-level reduced motion preference too (e.g. iOS Settings) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001s !important;
+  }
+}
 .corner.tr { top:28px; right:32px; text-align:right; }
 .corner.bl { bottom:28px; left:32px; }
 .corner.br { bottom:28px; right:32px; text-align:right; }
@@ -2612,7 +2654,12 @@ const stars = Array.from({length: 260}, (_, i) => {
 });
 let warpFramesLeft = 0;
 const WARP_DURATION = 38; // ~0.63s @60fps (was 22)
-function triggerWarp() { warpFramesLeft = WARP_DURATION; }
+function triggerWarp() {
+  // Mobile/low-power devices skip the hyperspace effect entirely — empirical:
+  // it was the single biggest source of frame stalls on iPhone 12 + 4× CPU throttle.
+  if (typeof IS_LOW_POWER !== 'undefined' && IS_LOW_POWER) return;
+  warpFramesLeft = WARP_DURATION;
+}
 let shootingStar = null;
 function spawnShootingStar() {
   const side = Math.random();
@@ -2756,7 +2803,13 @@ function spawnGlyph() {
   glyphsContainer.appendChild(g);
   setTimeout(() => g.remove(), dur*1000);
 }
-setInterval(spawnGlyph, 500);
+// Mobile/coarse-pointer detection — gates expensive ambient effects below.
+// Real-world data: live audit on iPhone 12 + 4x CPU throttling showed 2.7 FPS
+// with 31 glyphs + 4 canvases + 6 backdrop-filters. Mobile gets a lighter scene.
+const IS_LOW_POWER = matchMedia('(pointer: coarse), (max-width: 720px)').matches;
+// Glyph spawn rate: desktop every 500ms (~14 visible at once);
+// mobile every 1800ms (~3 visible). Saves ~25 animations on mobile.
+setInterval(spawnGlyph, IS_LOW_POWER ? 1800 : 500);
 
 // ─── MANDALA rotation ───
 const mandala = $('mandala');
