@@ -28,9 +28,25 @@
  *   node scripts/sync-to-wc.mjs --only-with-photo
  *   node scripts/sync-to-wc.mjs --only-status READY
  *   node scripts/sync-to-wc.mjs --skip-existing  (don't update products already in WC)
+ *   node scripts/sync-to-wc.mjs --vegas-filter    (8 hard criteria + Estado=READY — recommended pre-Vegas)
  *
  * Always creates products as status=draft. You publish manually in wp-admin.
  * Always backups the WC state of every product touched before modifying.
+ *
+ * Field mapping (NocoDB → WC):
+ *   Title / Nombre interno  → name
+ *   SKU                     → sku
+ *   Precio venta USD        → regular_price
+ *   Cantidad stock          → stock_quantity (manage_stock=true)
+ *   Peso g                  → weight (DIVIDED by 1000 — WC store unit is kg)
+ *   Categoría (vía prefix)  → categories
+ *   Descripción ritual/int. → description
+ *   Nombre ritual           → short_description
+ *   (meta) Origen           → _wenu_origin (default 'imported-curated')
+ *   (meta) Material         → _wenu_material
+ *   (meta) Línea            → _wenu_linea
+ *   (meta) Peso g raw       → _wenu_peso_g (preserved for reference)
+ *   (meta) Noco Id          → _wenu_noco_id
  */
 
 import fs from 'node:fs';
@@ -55,6 +71,18 @@ const SKU_FILTER = flag('--sku');
 const ONLY_PHOTO = has('--only-with-photo');
 const ONLY_STATUS = flag('--only-status');
 const SKIP_EXISTING = has('--skip-existing');
+// VEGAS FILTER (Ocin 2026-06-04 pre-Vegas): aplica los 8 criterios duros
+// definidos por el dueño antes de tocar WC. Filtra por:
+//   1. Title o Nombre interno (no vacío)
+//   2. SKU (no vacío)
+//   3. Precio venta USD > 0
+//   4. Cantidad stock no-null (puede ser 0)
+//   5. Foto macro (al menos 1 imagen real)
+//   6. Descripción interna (no vacía)
+//   7. Categoría (no vacía)
+//   8. Peso g (no-null, gramos — se convierte a kg en payload WC)
+// + Estado === 'READY' (certificación visual del dueño)
+const VEGAS_FILTER = has('--vegas-filter');
 
 if (APPLY && !CONFIRM) {
   console.error('ERROR: --apply requires --confirm to actually modify WC.');
@@ -105,7 +133,7 @@ const SKU_PREFIX_TO_CAT = {
   PRC: [{id:174}],
   NCK: [{id:86}],
   AMU: [{id:431}],
-  OTH: [],
+  OTH: [{id:345}],
 };
 
 const slugify = s => (s||'').toLowerCase()
@@ -118,17 +146,35 @@ const normSku = s => (s||'').toUpperCase().replace(/_(front|back|detail|angle|ma
 console.log('[sync-to-wc] mode:', APPLY ? '*** APPLY ***' : 'DRY-RUN');
 console.log();
 
-// Fetch NocoDB
+// Fetch NocoDB — paginated (max 100 per page in v2 API)
 console.log('Fetching NocoDB…');
-const nrec = await fetch(`${NC_URL}/api/v2/tables/${NC_TABLE}/records?limit=200`, {
-  headers: {'xc-token': NC_TOKEN}
-}).then(r => r.json());
-const noco = nrec.list || [];
+async function fetchNocoPage(offset, tries = 10) {
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(`${NC_URL}/api/v2/tables/${NC_TABLE}/records?limit=100&offset=${offset}`,
+        { headers: { 'xc-token': NC_TOKEN } });
+      if (r.ok) return (await r.json()).list || [];
+    } catch {}
+    await new Promise(rr => setTimeout(rr, 1500 * (i + 1)));
+  }
+  throw new Error(`NocoDB page ${offset} failed after ${tries} tries`);
+}
+let noco = [];
+for (let off = 0; off < 1000; off += 100) {
+  const page = await fetchNocoPage(off);
+  if (page.length === 0) break;
+  noco = noco.concat(page);
+  if (page.length < 100) break;
+  await new Promise(r => setTimeout(r, 800));
+}
 console.log(`  ${noco.length} products in NocoDB`);
 
-// Fetch WC
-console.log('Fetching WC…');
+// Fetch WC — including trash (orphan SKUs from past failed syncs block CREATE
+// with "already in lookup table" errors. We treat trashed records as UPDATE
+// targets and restore them to draft.)
+console.log('Fetching WC (publish/draft/private/pending + trash)…');
 let wc = [];
+// status=any covers publish/draft/private/pending but NOT trash
 for (let page=1; page<=10; page++) {
   const b = await fetch(`${WC_URL}/wp-json/wc/v3/products?per_page=100&status=any&page=${page}`, {
     headers: {Authorization: wcAuth}
@@ -137,11 +183,21 @@ for (let page=1; page<=10; page++) {
   wc = wc.concat(b);
   if (b.length < 100) break;
 }
-console.log(`  ${wc.length} products in WC`);
+const liveCount = wc.length;
+for (let page=1; page<=5; page++) {
+  const b = await fetch(`${WC_URL}/wp-json/wc/v3/products?per_page=100&status=trash&page=${page}`, {
+    headers: {Authorization: wcAuth}
+  }).then(r => r.json());
+  if (!Array.isArray(b) || b.length === 0) break;
+  wc = wc.concat(b);
+  if (b.length < 100) break;
+}
+console.log(`  ${liveCount} live + ${wc.length - liveCount} in trash = ${wc.length} total in WC`);
 
 const wcByNormSku = {};
 for (const p of wc) {
-  const k = normSku(p.sku);
+  // SKU in trash often has trailing whitespace padding — trim before indexing
+  const k = normSku((p.sku || '').trim());
   if (k) (wcByNormSku[k] = wcByNormSku[k] || []).push(p);
 }
 
@@ -150,6 +206,26 @@ let candidates = noco;
 if (SKU_FILTER) candidates = candidates.filter(r => r.SKU === SKU_FILTER);
 if (ONLY_PHOTO) candidates = candidates.filter(r => Array.isArray(r['Foto macro']) && r['Foto macro'].length);
 if (ONLY_STATUS) candidates = candidates.filter(r => r['Estado'] === ONLY_STATUS);
+
+// Vegas filter — 8 hard criteria + Estado=READY
+if (VEGAS_FILTER) {
+  const isStr = v => typeof v === 'string' && v.trim().length > 0;
+  const hasNum = v => typeof v === 'number' && Number.isFinite(v);
+  const hasPhoto = v => Array.isArray(v) && v.length > 0 && v[0]?.path;
+  const before = candidates.length;
+  candidates = candidates.filter(r =>
+    (isStr(r.Title) || isStr(r['Nombre interno'])) &&
+    isStr(r.SKU) &&
+    hasNum(r['Precio venta USD']) && r['Precio venta USD'] > 0 &&
+    r['Cantidad stock'] != null &&
+    hasPhoto(r['Foto macro']) &&
+    isStr(r['Descripción interna']) &&
+    isStr(r['Categoría']) &&
+    hasNum(r['Peso g']) &&
+    r['Estado'] === 'READY'
+  );
+  console.log(`[vegas-filter] ${before} → ${candidates.length} after hard 8-criteria + Estado=READY`);
+}
 
 console.log();
 console.log(`Filtered: ${candidates.length} candidates`);
@@ -177,27 +253,51 @@ for (const rec of candidates) {
   const name = rec.Title || rec['Nombre interno'] || sku;
   const prefix = (sku.split('-')[1] || '');
 
-  const payload = {
+  // Weight conversion: NocoDB stores grams, WC store unit is kg (verified
+  // 2026-06-04 via wp-json/wc/v3/settings/products). Convert /1000.
+  const pesoG = typeof rec['Peso g'] === 'number' ? rec['Peso g'] : null;
+  const weightKg = pesoG != null ? (pesoG / 1000).toFixed(4) : '';
+
+  // Origen canon (Ocin rule): default 'imported-curated' to NEVER claim
+  // handmade on imported pieces. The handful of actually-handmade pieces
+  // (Ortega rings — WM-RNG-001/002/007/008) must be flipped manually.
+  const origen = rec['Origen'] || 'imported-curated';
+
+  // SAFETY 2026-06-04: payload differs on CREATE vs UPDATE.
+  // - CREATE: sets status='draft' + slug (we own the URL from scratch)
+  // - UPDATE (live product): NEVER sends status or slug. Keeping current
+  //   WC values prevents silent un-publishing of live products and avoids
+  //   breaking established permalinks / shared links / SEO.
+  // - UPDATE (trashed product): sends status='draft' to RESTORE the record
+  //   from trash. Otherwise the record stays in the bin and the sync is
+  //   effectively a no-op for that SKU.
+  const existingStatus = exists ? matches[0].status : null;
+  const isTrashed = existingStatus === 'trash';
+  const commonPayload = {
     name,
     sku,
-    slug: slugify(name),
     type: 'simple',
-    status: 'draft',  // ALWAYS draft. Owner publishes manually.
     regular_price: String(rec['Precio venta USD'] || ''),
     short_description: rec['Nombre ritual'] || '',
     description: rec['Descripción ritual'] || rec['Descripción interna'] || '',
     categories: SKU_PREFIX_TO_CAT[prefix] || [],
     manage_stock: rec['Cantidad stock'] != null,
     stock_quantity: rec['Cantidad stock'] || null,
+    weight: weightKg,
     meta_data: [
       { key: '_wenu_noco_id', value: String(rec.Id) },
       { key: '_wenu_material', value: Array.isArray(rec.Material)?rec.Material.join(','):(rec.Material||'') },
       { key: '_wenu_linea', value: rec['Línea'] || '' },
+      { key: '_wenu_origin', value: origen },
+      { key: '_wenu_peso_g', value: pesoG != null ? String(pesoG) : '' },
     ],
   };
+  const payload = exists
+    ? (isTrashed ? { ...commonPayload, status: 'draft' } : commonPayload)
+    : { ...commonPayload, slug: slugify(name), status: 'draft' };
 
-  const action = exists ? 'UPDATE' : 'CREATE';
-  console.log(`${action} ${sku.padEnd(15)} ${name.slice(0,40)} $${rec['Precio venta USD']||'-'}`);
+  const action = exists ? (isTrashed ? 'RESTORE' : 'UPDATE ') : 'CREATE ';
+  console.log(`${action} ${sku.padEnd(15)} ${name.slice(0,38).padEnd(38)} $${String(rec['Precio venta USD']||'-').padStart(4)} stock=${String(rec['Cantidad stock']??'-').padStart(2)} w=${String(weightKg||'-').padStart(7)}kg origen=${origen}`);
 
   if (!APPLY) continue;
 

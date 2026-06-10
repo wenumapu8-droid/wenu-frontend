@@ -9,7 +9,64 @@ const source = process.argv[2] || "reports/nocodb-catalog-current-2026-05-20.jso
 if (!fs.existsSync(source)) throw new Error(`Missing source report: ${source}`);
 
 const audit = JSON.parse(fs.readFileSync(source, "utf8"));
-const rows = audit.rows || [];
+
+function inferStatusFromAuditRow(row) {
+  const note = String(row.photoNote || "");
+  if (note.includes("✓")) return "READY";
+  if (note.includes("FALTA")) return "MISSING_PHOTO";
+  return row.completeness >= 80 ? "RAW" : "DRAFT";
+}
+
+function inferCategoryFromSku(sku = "") {
+  const code = String(sku).split("-")[1] || "";
+  const map = {
+    PLG: "Plug",
+    TUN: "Tunnel",
+    HAN: "Hanger",
+    SEP: "Septum",
+    LAB: "Piercing",
+    PRC: "Piercing",
+    EAR: "Earrings",
+    RNG: "Ring",
+    RIN: "Ring",
+    NCK: "Necklace",
+    COL: "Necklace",
+    SAD: "Hanger",
+    OTH: "Other",
+    AUT: "Author",
+    ORG: "Organic",
+  };
+  return map[code] || "Other";
+}
+
+function normalizeRows(payload) {
+  if (Array.isArray(payload)) {
+    return payload.map((row) => {
+      const status = inferStatusFromAuditRow(row);
+      const hasMacro = String(row.photoNote || "").includes("✓");
+      const missing = Array.isArray(row.missing) ? row.missing : [];
+      return {
+        SKU: row.sku,
+        title: row.name,
+        estado: status,
+        categoria: inferCategoryFromSku(row.sku),
+        material: row.material || "",
+        linea: row.linea || "",
+        precioUsd: row.price,
+        hasFotoReferencia: !missing.includes("Foto referencia"),
+        hasFotoMacro: hasMacro,
+      };
+    });
+  }
+
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  return [];
+}
+
+const rows = normalizeRows(audit);
+if (!rows.length) {
+  throw new Error(`Unsupported audit schema in ${source}: expected {rows:[...]} or audit array.`);
+}
 
 const ready = rows.filter((row) => row.estado === "READY");
 const available = rows.filter((row) => ["READY", "RAW"].includes(row.estado));

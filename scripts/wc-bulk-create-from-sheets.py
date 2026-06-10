@@ -390,6 +390,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--tier', default=None, help='atelier-forged|atelier-assembled|curated|atacama|collab')
     parser.add_argument('--sheet', default=None, help='single sheet path')
+    parser.add_argument('--sheets-file', default=None,
+                        help='file with one sheet path per line (# comments allowed)')
     parser.add_argument('--limit', type=int, default=0)
     parser.add_argument('--dry-run', action='store_true')
     parser.add_argument('--update-existing', action='store_true',
@@ -399,6 +401,9 @@ def main():
 
     if args.sheet:
         sheets = [args.sheet]
+    elif args.sheets_file:
+        sheets = [ln.strip() for ln in Path(args.sheets_file).read_text().splitlines()
+                  if ln.strip() and not ln.strip().startswith('#')]
     elif args.tier:
         sheets = sorted(glob.glob(f"{SHEETS_DIR}/{args.tier}/*.md"))
     else:
