@@ -1,9 +1,9 @@
 # Wenu Mapu — Autopilot Next Actions
 
-Generated: 2026-05-20T18:51:56.580Z
+Generated: 2026-05-22T16:09:19.864Z
 Mode: dispatch
 Runners: codex=ok, opencode=ok
-Git: redesign-v2, dirty=9, ahead=7
+Git: redesign-v2, dirty=41, ahead=0
 
 ## Dispatchable
 
@@ -11,9 +11,10 @@ Git: redesign-v2, dirty=9, ahead=7
 
 ## Blocked / Waiting
 
-- CODIGO: Auditar referencias reales de public/img/brand y public/img/lifestyle en src/docs/public, sin borrar nada, y escribir reporte de candidatos source-only — status is wip; agent has a recent wip entry
-- CODIGO: Correr verificacion local de build con Node 24 y escribir reporte corto de salud del sitio — agent has a recent wip entry; queue already has live wip: asset-reference-audit-2026-05-20
-- PRODUCTO: Resumir la cola visual Noco READY y faltantes en un handoff corto para siguiente agente humano/visual — agent has a recent wip entry; queue already has live wip: asset-reference-audit-2026-05-20
+- CODIGO: Auditar referencias reales de public/img/brand y public/img/lifestyle en src/docs/public, sin borrar nada, y escribir reporte de candidatos source-only — status is done; output already exists: reports/asset-reference-audit-2026-05-20.md
+- CODIGO: Correr verificacion local de build con Node 24 y escribir reporte corto de salud del sitio — status is done; output already exists: reports/build-health-2026-05-20.md
+- PRODUCTO: Resumir la cola visual Noco READY y faltantes en un handoff corto para siguiente agente humano/visual — status is done; output already exists: reports/visual-queue-next-actions-2026-05-20.md
+- OPERACIONES: Auditar en modo solo lectura el estado local de PM2, autopilot y servicios Wenu tipo n8n, y escribir un reporte de salud operativa — status is done; output already exists: reports/opencode-system-status-2026-05-20.md
 
 ## Safety
 
