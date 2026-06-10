@@ -26,7 +26,7 @@ This repo is built for Cloudflare Pages preview deploys. Production cutover is *
 
 | Field | Value |
 |---|---|
-| Project name | `wenu-mapu-redesign` |
+| Project name | `wenu-frontend` (Direct Upload — `git push` NO despliega; subir `dist/` con `wrangler pages deploy`. Ver memoria reference_cloudflare_deploy) |
 | Production branch (in this Pages project) | `redesign-v2` |
 | Framework preset | Astro |
 | Build command | `npm run build` |
@@ -73,13 +73,16 @@ Documentación de marca en `~/Obsidian/WenuAgent/brand/`:
 
 CSS puro, sin Tailwind.
 
-- `src/styles/tokens.css` — design tokens (paleta, escala tipográfica, spacing). Paleta dark-first: Obsidian #080706, Bone #F2EDE4, Sand #D6C1A3, Silver #A8A39A, Bronze #8A6A43, Ember #C4935A.
+- `src/styles/tokens.css` — design tokens (paleta, escala tipográfica, spacing). Paleta canónica dark-first: Obsidian #0a0a0a, Charcoal #121212, Bone #f0ede8, Sand #9a948a, Silver #b8b4aa, Bronze #6a4a28, Ember #c9a84c. **No hardcodear hex en componentes — usar siempre los tokens `var(--obsidian)`, `var(--bone)`, `var(--ember)`, etc.**
 - `src/styles/global.css` — reset, typography, clases reusables (`.archive-card`, `.product-card`, `.btn`, `.btn--solid`, `.btn--ghost`, `.section--mega`, `.constellation-divider`, `.eyebrow`, `.sacred-mark`).
 
-Tipografías cargadas vía `@fontsource`:
-- DM Serif Display (display)
-- Source Serif Pro (body)
-- Inter Variable (UI/metadata)
+Tipografías cargadas vía `@fontsource` (self-hosted, imports en `global.css`):
+- Instrument Serif (display / wordmark editorial)
+- Cormorant Garamond (serif ritual / manifiesto)
+- Instrument Sans (body / UI / e-commerce)
+- JetBrains Mono (mono — fallback a system mono si no se carga)
+
+**NO migrar a otras fuentes** (decisión owner 2026-05-30). El logo va como PNG/imagen, no como font.
 
 ## Componentes existentes (reusables)
 
