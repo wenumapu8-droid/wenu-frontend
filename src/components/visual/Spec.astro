@@ -61,10 +61,49 @@ const gaugeText = gaugeAttributes
   .slice(0, 3)
   .join(' · ');
 
+// Origin detection (mirrors logic in src/pages/p/[slug].astro)
+// Honest labeling: never claim "hand-forged" for imported pieces.
+const originAttr = product.attributes.find(a => /origen|origin|made by|fabricaci/i.test(a.name));
+const originRaw = (originAttr?.options?.[0] || '').toLowerCase().trim();
+
+// Smart fallback by keywords when Origen attribute not set in WC.
+// 5 honest categories:
+// - hand-forged: forged from raw material in studio (meteorite rings, Vacamuerta)
+// - handmade: made entirely by Nico (picoyo wire-wrap, Author Jewelry, collabs)
+// - hand-assembled: Nico assembles imported parts into unique pieces (serpent hangers,
+//   colgante earrings — sold in branded carton)
+// - curated-independent: made by other independent artists Wenu Mapu curates
+//   (Alai Wakan / @alaiwakan — Spanish silversmith, handmade hangers)
+// - imported-curated: curated selection from international suppliers, sold as-is
+type Origin = 'handmade' | 'hand-forged' | 'hand-assembled' | 'curated-independent' | 'imported-curated';
+
+const inferredOrigin: Origin =
+  /vacamuerta|meteorite|meteorito|atacama/.test(sourceText) ? 'hand-forged' :
+  /picoyo|wire-wrap|wirewrap/.test(sourceText)              ? 'handmade' :
+  /author-jewelry|author jewelry|one-of-a-kind|custom-forged|tipichill|cami/.test(sourceText) ? 'handmade' :
+  /alai|alaiwakan|wakan/.test(sourceText)                   ? 'curated-independent' :
+  /serpent|serpiente|filu|colgante|treng/.test(sourceText) && /hanger|earring|pendant/.test(sourceText) ? 'hand-assembled' :
+  'imported-curated';
+
+const origin: Origin =
+  /imported|ali|china|sourced|import/.test(originRaw) ? 'imported-curated' :
+  /assembled|ensambl/.test(originRaw)                 ? 'hand-assembled' :
+  /independent|curat/.test(originRaw)                 ? 'curated-independent' :
+  /handmade|hecho/.test(originRaw)                    ? 'handmade' :
+  /forged|forjad/.test(originRaw)                     ? 'hand-forged' :
+  inferredOrigin;
+
+const originRow =
+  origin === 'hand-forged'        ? { label: en.spec.label_made_in, value: 'Truckee, CA — hand-forged in studio' } :
+  origin === 'handmade'           ? { label: en.spec.label_made_in, value: 'Truckee, CA — handmade in studio' } :
+  origin === 'hand-assembled'     ? { label: en.spec.label_made_in, value: 'Truckee, CA — hand-assembled by the maker · components sourced, composition is ours' } :
+  origin === 'curated-independent' ? { label: 'Origin', value: 'Curated · handmade by an independent silversmith partner' } :
+                                    { label: 'Origin', value: 'Curated · international suppliers · not made in our studio' };
+
 const rows = [
   materialText && { label: en.spec.label_material, value: materialText },
   gaugeText && { label: en.spec.label_gauge, value: gaugeText },
-  { label: en.spec.label_made_in, value: en.spec.made_in_value },
+  originRow,
   { label: en.spec.label_sizing, href: '/sizing-guide', value: en.spec.sizing_cta },
   { label: en.spec.label_aftercare, href: '/care-guide', value: en.spec.aftercare_cta },
   { label: en.spec.label_returns, href: '/shipping', value: en.spec.returns_cta },

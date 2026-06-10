@@ -108,8 +108,35 @@ async function fetchAllProducts(): Promise<WooProduct[]> {
     page += 1;
   }
 
+  // Reorder each product's images so the hero shot leads.
+  // Editorial / macro photos go first; ruler / sizing references move to the end.
+  // Fixes catalogs where the sizing photo was uploaded first by mistake.
+  for (const p of products) {
+    if (p.images?.length > 1) {
+      p.images = reorderImagesForHero(p.images);
+    }
+  }
+
   console.log(`[woo] fetched ${products.length} products`);
   return products;
+}
+
+/** Reorder images so the editorial/macro shot is first, references last. */
+function reorderImagesForHero(imgs: WooImage[]): WooImage[] {
+  const norm = (s: string) => (s || '').toLowerCase();
+  const PREFER = /\b(principal|macro|hero|editorial|cover)\b/;
+  const AVOID  = /\b(ruler|westcott|sizing|size-?guide|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
+  const score = (img: WooImage): number => {
+    const txt = norm(img.alt) + ' ' + norm(img.src);
+    if (PREFER.test(txt)) return -2;     // very high priority
+    if (AVOID.test(txt)) return 2;       // push to the end
+    return 0;                            // neutral
+  };
+  // Stable sort: keep original order between equal-score items.
+  return imgs
+    .map((img, i) => ({ img, i, s: score(img) }))
+    .sort((a, b) => a.s - b.s || a.i - b.i)
+    .map(x => x.img);
 }
 
 export async function getProducts(limit?: number): Promise<WooProduct[]> {
@@ -136,7 +163,11 @@ export async function getProduct(slug: string): Promise<WooProduct | null> {
       throw new Error(`WC product fetch failed: HTTP ${res.status} for slug=${slug}`);
     }
     const data: WooProduct[] = await res.json();
-    return data[0] || null;
+    const p = data[0] || null;
+    if (p?.images?.length > 1) {
+      p.images = reorderImagesForHero(p.images);
+    }
+    return p;
   } catch (e) {
     if (ALLOW_EMPTY) {
       console.warn(`[woo] WARNING: getProduct(${slug}) failed but ALLOW_EMPTY_PRODUCTS=true — returning null.`, e);
@@ -277,7 +308,46 @@ export function cleanDescription(html: string): string {
 export function formatPrice(price: string): string {
   const n = parseFloat(price);
   if (isNaN(n)) return '';
-  return `$${n.toFixed(0)} USD`;
+  // US format: $1,000.00 — drop trailing ".00" when whole dollars to keep
+  // the wordmark clean. Localized to en-US so thousands separator is comma
+  // and decimal is dot (not the European "." for thousands).
+  const formatted = n.toLocaleString('en-US', {
+    minimumFractionDigits: n % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `$${formatted} USD`;
+}
+
+/**
+ * Pick the best hero image for a product card.
+ *
+ * Priority:
+ *  1. Image whose alt or src signals it's a "principal" / "macro" / editorial.
+ *  2. First image NOT flagged as reference / ruler / sizing / placeholder.
+ *  3. Fall back to `images[0]` to never break rendering.
+ *
+ * Why: WooCommerce serves images in the order set in wp-admin. If a product was
+ * uploaded with the sizing photo first (ruler on white paper), the catalog
+ * shows that instead of the editorial macro on obsidian. This helper rescues
+ * the right hero without requiring every product to be reordered manually.
+ */
+export function getHeroImage(p: WooProduct): WooImage | null {
+  if (!p?.images?.length) return null;
+
+  const norm = (s: string) => (s || '').toLowerCase();
+  const PREFER = /\b(principal|macro|hero|editorial|cover)\b/;
+  const AVOID  = /\b(ruler|westcott|sizing|size-?guide|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
+
+  // Prefer images explicitly tagged as macro/principal in alt or filename.
+  const preferred = p.images.find(img => PREFER.test(norm(img.alt)) || PREFER.test(norm(img.src)));
+  if (preferred) return preferred;
+
+  // Otherwise, return the first image that doesn't look like a reference shot.
+  const clean = p.images.find(img => !AVOID.test(norm(img.alt)) && !AVOID.test(norm(img.src)));
+  if (clean) return clean;
+
+  // Fallback so we never render a broken card.
+  return p.images[0];
 }
 
 /** Truncate a string for a meta description / OG description without slicing
