@@ -14,10 +14,10 @@
    a self-hosted (descomentar los @import de abajo y borrar el <link> en Base.astro).
    Cormorant SÍ va self-hosted (ya está en node_modules).
 */
-/* @import '@fontsource/instrument-serif/400.css';     */ /* enable after `npm install` */
-/* @import '@fontsource/instrument-sans/400.css';      */
-/* @import '@fontsource/instrument-sans/500.css';      */
-/* @import '@fontsource/instrument-sans/600.css';      */
+@import '@fontsource/instrument-serif/400.css';
+@import '@fontsource/instrument-sans/400.css';
+@import '@fontsource/instrument-sans/500.css';
+@import '@fontsource/instrument-sans/600.css';
 @import '@fontsource/cormorant-garamond/300.css';
 @import '@fontsource/cormorant-garamond/400.css';
 @import '@fontsource/cormorant-garamond/500.css';
@@ -1511,16 +1511,67 @@ p {
 @media (max-width: 900px) {
   .nav__links { display: none; }
   .nav__burger { display: flex; }
-  .nav__inner { height: 72px; }
+  .nav__inner { height: 64px; padding: 0 16px; column-gap: var(--space-3); }
   .nav__brand-word-img { height: 19px !important; }
   .nav__brand-mark { height: 30px !important; }
   .nav__brand-tagline { font-size: 0.5rem; letter-spacing: 0.34em; }
 }
 
-@media (max-width: 420px) {
-  .nav__brand-word-img { height: 16px !important; }
-  .nav__brand-row { gap: 0.5rem; }
+/* 2026-06-06: per Ocin — mantener las wordmarks WENU + MAPU visibles
+   en mobile junto al mandala, a la misma altura. Antes solo se veía el
+   mandala (ver fix 2026-06-05). El equilibrio: wordmarks pequeñas + mandala
+   compacto + iconos con flex-shrink:0 para que carrito y hamburguesa
+   nunca queden cortados.                                                 */
+@media (max-width: 768px) {
+  .nav { overflow-x: hidden; }
+  .nav__inner {
+    grid-template-columns: 1fr auto;
+    column-gap: var(--space-2);
+    height: 60px;
+    padding: 0 12px;
+    max-width: 100vw;
+  }
+  .nav__logo { grid-column: 1; justify-self: flex-start; min-width: 0; flex: 1; }
+  .nav__right { grid-column: 2; flex-shrink: 0; }
+  .nav__brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .nav__brand-word-img {
+    display: block !important;
+    height: 16px !important;
+    width: auto !important;
+    flex-shrink: 1;
+    object-fit: contain;
+  }
+  .nav__brand-mark {
+    height: 28px !important;
+    width: auto;
+    animation: none !important;  /* spin pesa en mobile y compite con scroll */
+    opacity: 1;
+    flex-shrink: 0;
+  }
   .nav__brand-tagline { display: none; }
+  .nav__icons {
+    gap: var(--space-2);
+    flex-shrink: 0;
+  }
+  .nav__icon, .nav__burger {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .nav__inner { padding: 0 10px; column-gap: var(--space-1); }
+  .nav__brand-mark { height: 24px !important; }
+  .nav__brand-word-img { height: 14px !important; }
+  .nav__brand-row { gap: 6px; }
+  .nav__icons { gap: 4px; }
 }
 
 /* Cramped desktop band: image logo is wider than the old text wordmark,
@@ -3933,6 +3984,10 @@ p {
   padding: 0 0 var(--space-4);
   color: var(--fg-mute);
 }
+.footer-v2.has-cosmic-veil > *:not(.cosmic-veil) {
+  position: relative;
+  z-index: 1;
+}
 
 .footer-v2__crest {
   border-bottom: var(--border-thin);
@@ -5543,6 +5598,11 @@ a.contact-channels__value:hover {
   border-top: 1px solid rgba(168, 163, 154, 0.12);
   border-bottom: 1px solid rgba(168, 163, 154, 0.12);
 }
+.cosmic-lines .cosmic-lines__head,
+.cosmic-lines .cosmic-lines__rail {
+  position: relative;
+  z-index: 1;
+}
 .cosmic-lines__head {
   text-align: center;
   max-width: 640px;
@@ -5589,16 +5649,43 @@ a.contact-channels__value:hover {
   padding: clamp(1rem, 2vw, 1.6rem) 0.5rem;
   text-decoration: none;
   color: var(--bone);
-  background: transparent;
-  border: 1px solid rgba(168, 163, 154, 0.18);
-  transition: border-color 0.35s ease, background 0.35s ease, transform 0.35s ease;
+  background:
+    radial-gradient(120% 80% at 50% 0%,
+      rgba(232, 193, 127, 0.06) 0%,
+      rgba(232, 193, 127, 0) 60%);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  transition: background 0.45s ease, border-color 0.45s ease, transform 0.45s ease, box-shadow 0.45s ease;
+  position: relative;
+  isolation: isolate;
+}
+.cosmic-line-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: radial-gradient(140% 100% at 50% 50%,
+    rgba(232, 193, 127, 0.12) 0%,
+    rgba(232, 193, 127, 0) 70%);
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  z-index: -1;
+  pointer-events: none;
 }
 .cosmic-line-card:hover,
-.cosmic-line-card:focus-visible {
-  border-color: var(--ember);
-  background: rgba(201, 168, 76, 0.04);
+.cosmic-line-card:focus-visible,
+.cosmic-line-card:active {
+  border-color: rgba(232, 193, 127, 0.35);
   outline: none;
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow:
+    0 8px 32px -12px rgba(232, 193, 127, 0.28),
+    0 0 0 1px rgba(232, 193, 127, 0.18) inset;
+}
+.cosmic-line-card:hover::before,
+.cosmic-line-card:focus-visible::before,
+.cosmic-line-card:active::before {
+  opacity: 1;
 }
 .cosmic-line-card__glyph {
   color: var(--ember);
@@ -5631,6 +5718,34 @@ a.contact-channels__value:hover {
   color: var(--silver);
   opacity: 0.7;
   margin-top: 0.2rem;
+}
+
+/* Trust block on PDP — visible at decision moment, not buried.
+   Body jewelry buyers verify shipping + hygiene before clicking buy. */
+.pdp-trust {
+  list-style: none;
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  margin: var(--space-4, 16px) 0 0;
+  background: rgba(232, 193, 127, 0.04);
+  border: 1px solid rgba(168, 163, 154, 0.16);
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
+  color: var(--sand);
+}
+.pdp-trust li {
+  position: relative;
+  padding-left: 1.1em;
+}
+.pdp-trust li + li { margin-top: 0.25rem; }
+.pdp-trust li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--ember);
+  font-weight: bold;
 }
 /* Tablet: 3 col */
 @media (max-width: 980px) {
@@ -5955,6 +6070,97 @@ a.contact-channels__value:hover {
 .canon__cta a:hover { color: var(--bone); }
 @media (max-width: 600px) {
   .canon__voices { grid-template-columns: 1fr; }
+}
+
+/* ─── COSMIC VEIL ─── 2026-06-05
+   Capa atmosférica reusable: nebulosa viva (violeta/índigo/magenta) que deriva
+   lentamente sobre la obsidiana. Da la ilusión "cosmos NASA" sin tocar marca ni
+   producto. Reglas de uso:
+     • El contenedor padre necesita `.has-cosmic-veil` (position:relative + isolate).
+     • El contenido real debe ir con z-index >= 1 (ya garantizado por isolate +
+       el veil en z-index 0).
+     • NUNCA usar sobre la galería/ficha de producto (PDP) — ahí manda obsidiana
+       plana + orbe ámbar. Sólo hero, divisores y banda sacra/footer.
+   El ámbar (--ember) sigue siendo el único acento; estos morados son profundidad
+   espacial difusa, jamás bordes ni texto.                                       */
+.has-cosmic-veil {
+  position: relative;
+  isolation: isolate;
+}
+.cosmic-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--obsidian);
+}
+/* Dos nubes de nebulosa que respiran y derivan en contrafase */
+.cosmic-veil::before,
+.cosmic-veil::after {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(40% 38% at 28% 32%, var(--cosmic-glow) 0%, rgba(140, 90, 200, 0) 60%),
+    radial-gradient(46% 42% at 74% 64%, var(--cosmic-glow-mag) 0%, rgba(150, 60, 130, 0) 62%),
+    radial-gradient(34% 30% at 60% 22%, var(--cosmic-ember) 0%, rgba(201, 168, 76, 0) 55%);
+  will-change: transform, opacity;
+}
+.cosmic-veil::before {
+  animation: cosmic-drift-a 46s ease-in-out infinite alternate;
+}
+.cosmic-veil::after {
+  background:
+    radial-gradient(44% 40% at 70% 30%, var(--cosmic-glow) 0%, rgba(110, 70, 170, 0) 60%),
+    radial-gradient(38% 36% at 24% 72%, var(--cosmic-glow-mag) 0%, rgba(150, 60, 130, 0) 60%);
+  mix-blend-mode: screen;
+  animation: cosmic-drift-b 58s ease-in-out infinite alternate;
+}
+/* Velo de estrellas finas — patrón estático muy sutil sobre la nebulosa */
+.cosmic-veil__stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, var(--cosmic-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 38% 64%, var(--cosmic-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 67% 28%, var(--cosmic-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 84% 76%, var(--cosmic-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 52% 88%, var(--cosmic-star) 50%, transparent 51%),
+    radial-gradient(1px 1px at 92% 44%, var(--cosmic-star) 50%, transparent 51%);
+  background-repeat: no-repeat;
+  opacity: 0.5;
+  animation: cosmic-twinkle 11s ease-in-out infinite;
+}
+/* Variante suave para footer/banda sacra (menos saturación, más quieta) */
+.cosmic-veil--soft::before,
+.cosmic-veil--soft::after { opacity: 0.6; }
+.cosmic-veil--soft::before { animation-duration: 72s; }
+.cosmic-veil--soft::after  { animation-duration: 84s; }
+/* Variante divisor: franja delgada entre secciones */
+.cosmic-veil--band::before,
+.cosmic-veil--band::after { inset: -40%; }
+
+@keyframes cosmic-drift-a {
+  0%   { transform: translate3d(-3%, -2%, 0) scale(1.05); opacity: 0.85; }
+  100% { transform: translate3d(4%, 3%, 0) scale(1.15); opacity: 1; }
+}
+@keyframes cosmic-drift-b {
+  0%   { transform: translate3d(3%, 2%, 0) scale(1.1); opacity: 0.7; }
+  100% { transform: translate3d(-4%, -3%, 0) scale(1.02); opacity: 0.95; }
+}
+@keyframes cosmic-twinkle {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 0.22; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cosmic-veil::before,
+  .cosmic-veil::after,
+  .cosmic-veil__stars {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 
