@@ -32,6 +32,8 @@ export interface ThemedCollection {
   description: string;
   /** Lowercase tokens matched against product name/slug/sku/categories/attributes */
   keywords: string[];
+  /** True if the banner image already has the title burned in (skip CSS overlay) */
+  bakedTitle?: boolean;
 }
 
 export const collections: ThemedCollection[] = [
@@ -106,6 +108,7 @@ export const collections: ThemedCollection[] = [
     intro: 'Dense, ceremonial ornamentation — heavy adornment for the ritual body.',
     description: 'India — densely ornamented ceremonial ritual jewelry. Heavy, detail-rich adornment.',
     keywords: ['india'],
+    bakedTitle: true,
   },
   {
     slug: 'maya',
