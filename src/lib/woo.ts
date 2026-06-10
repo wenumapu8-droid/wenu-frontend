@@ -56,6 +56,11 @@ export interface WooProduct {
   images: WooImage[];
   categories: WooCategory[];
   attributes: { id: number; name: string; options: string[] }[];
+  // WooCommerce ships these on the raw product JSON even though the catalog
+  // doesn't populate structured attributes. weight is in KILOGRAMS (WC store
+  // unit) — e.g. "0.0200" = 20 g. dimensions are in cm and almost always blank.
+  weight?: string;
+  dimensions?: { length: string; width: string; height: string };
   stock_status: string;
   manage_stock: boolean;
   stock_quantity: number | null;
