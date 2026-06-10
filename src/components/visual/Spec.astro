@@ -1,6 +1,7 @@
 ---
 import { decodeEntities } from '../../lib/woo';
 import type { WooProduct } from '../../lib/woo';
+import { deriveSpecs } from '../../lib/specs';
 import en from '../../i18n/en.json';
 
 interface Props {
@@ -9,57 +10,18 @@ interface Props {
 
 const { product } = Astro.props;
 
+// The WC catalog has NO structured attributes — every differentiating detail
+// (material, gauge, stone, finish, color, technique, weight) is parsed out of
+// the product name / weight / description by deriveSpecs(). Each field is null
+// when absent, so the table only renders rows that carry real data.
+const specs = deriveSpecs(product);
+
 const sourceText = [
   decodeEntities(product.name),
   product.sku,
   ...product.categories.flatMap(category => [category.slug, category.name]),
   ...product.attributes.flatMap(attribute => [attribute.name, ...attribute.options]),
 ].join(' ').toLowerCase();
-
-const materialLockups = [
-  {
-    keys: ['silver', 'sterling', '925', '950', 'plata'],
-    text: 'Sterling Silver 950 — Pure, durable, and alive with light.',
-  },
-  {
-    keys: ['gold', '14k', 'oro'],
-    text: '14k Gold — heirloom-grade. Warm. Made to outlast the wearer.',
-  },
-  {
-    keys: ['titanium', 'titanio'],
-    text: 'ASTM F-136 implant-grade titanium — hypoallergenic, durable, lightweight.',
-  },
-  {
-    keys: ['vacamuerta', 'meteorite', 'atacama', 'meteorito'],
-    text: 'Vaca Muerta mesosiderite — rare stony-iron meteorite from Chile’s Atacama Desert.',
-  },
-  {
-    keys: ['walnut', 'wood', 'madera'],
-    text: 'Walnut & tropical wood — sustainably sourced, warm, and grounded.',
-  },
-  {
-    keys: ['brass', 'bronze', 'laton', 'latón', 'bronce'],
-    text: 'Brass & bronze — bold ancestral metals with deep tribal roots.',
-  },
-];
-
-const materialText = materialLockups
-  .filter(material => material.keys.some(key => sourceText.includes(key)))
-  .map(material => material.text)
-  .join(' · ');
-
-const gaugeAttributes = product.attributes.filter(attribute => {
-  const name = attribute.name.toLowerCase();
-  return ['gauge', 'size', 'caliber', 'calibre', 'diameter', 'diametro', 'diámetro', 'post', 'length', 'mm']
-    .some(key => name.includes(key));
-});
-
-const gaugeText = gaugeAttributes
-  .flatMap(attribute => attribute.options)
-  .filter(Boolean)
-  .map(decodeEntities)
-  .slice(0, 3)
-  .join(' · ');
 
 // Origin detection (mirrors logic in src/pages/p/[slug].astro)
 // Honest labeling: never claim "hand-forged" for imported pieces.
@@ -100,25 +62,45 @@ const originRow =
   origin === 'curated-independent' ? { label: 'Origin', value: 'Curated · handmade by an independent silversmith partner' } :
                                     { label: 'Origin', value: 'Curated · international suppliers · not made in our studio' };
 
-const rows = [
-  materialText && { label: en.spec.label_material, value: materialText },
-  gaugeText && { label: en.spec.label_gauge, value: gaugeText },
+// Differentiated, piece-specific rows. Each is conditional — a piece only
+// shows the spec rows it actually has data for, so no two pieces read the same.
+const specRows = [
+  specs.material   && { label: en.spec.label_material,   value: specs.material },
+  specs.size       && { label: en.spec.label_gauge,      value: specs.size },
+  specs.weight     && { label: en.spec.label_weight,     value: specs.weight },
+  specs.dimensions && { label: en.spec.label_dimensions, value: specs.dimensions },
+  specs.stone      && { label: en.spec.label_stone,      value: specs.stone },
+  specs.finish     && { label: en.spec.label_finish,     value: specs.finish },
+  specs.color      && { label: en.spec.label_color,      value: specs.color },
+  specs.technique  && { label: en.spec.label_technique,  value: specs.technique },
   originRow,
-  { label: en.spec.label_sizing, href: '/sizing-guide', value: en.spec.sizing_cta },
-  { label: en.spec.label_aftercare, href: '/care-guide', value: en.spec.aftercare_cta },
-  { label: en.spec.label_returns, href: '/shipping', value: en.spec.returns_cta },
-  { label: en.spec.label_custom, href: '/custom-orders', value: en.spec.custom_cta },
+  { label: en.spec.label_sold_as, value: specs.soldAs },
 ].filter(Boolean);
+
+// Generic reference links — kept, but moved into a smaller, muted block below
+// the real specs so they stop competing with the piece-specific data.
+const linkRows = [
+  { label: en.spec.label_sizing,    href: '/sizing-guide',  value: en.spec.sizing_cta },
+  { label: en.spec.label_aftercare, href: '/care-guide',    value: en.spec.aftercare_cta },
+  { label: en.spec.label_returns,   href: '/shipping',      value: en.spec.returns_cta },
+  { label: en.spec.label_custom,    href: '/custom-orders', value: en.spec.custom_cta },
+];
 ---
 
 <section class="spec-block" aria-label="Product details">
   <dl class="spec-block__table">
-    {rows.map(row => (
+    {specRows.map(row => (
       <div class="spec-block__row">
         <dt>{row.label}</dt>
-        <dd>
-          {row.href ? <a href={row.href}>{row.value}</a> : row.value}
-        </dd>
+        <dd>{row.value}</dd>
+      </div>
+    ))}
+  </dl>
+  <dl class="spec-block__table spec-block__links">
+    {linkRows.map(row => (
+      <div class="spec-block__row">
+        <dt>{row.label}</dt>
+        <dd><a href={row.href}>{row.value}</a></dd>
       </div>
     ))}
   </dl>
@@ -173,6 +155,22 @@ const rows = [
 
   .spec-block a:hover {
     color: var(--bronze);
+  }
+
+  /* Generic reference links — demoted below the real specs: thinner divider,
+     smaller muted type, so the piece-specific data reads as primary. */
+  .spec-block__links {
+    border-top: var(--border-thin);
+    opacity: 0.82;
+  }
+  .spec-block__links .spec-block__row {
+    border-bottom: 0;
+  }
+  .spec-block__links dt,
+  .spec-block__links dd {
+    padding-top: var(--space-2);
+    padding-bottom: var(--space-2);
+    font-size: var(--fs-tiny);
   }
 
   @media (max-width: 600px) {
