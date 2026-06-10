@@ -1,0 +1,195 @@
+---
+/**
+ * HeroCarousel — hero rotativo full-bleed con 4-5 slides en crossfade automático.
+ * El wordmark WENU MAPU queda fijo; las imágenes (cosmos · cuerpo · paisajes · pieza)
+ * se mueven solas cada ~5.5s. El eyebrow cambia con cada slide.
+ *
+ * Respeta prefers-reduced-motion (muestra el 1º, sin auto-avance) y pausa en hover/focus.
+ * Imágenes atmosféricas (regla marca: AI solo atmosférica, nunca producto).
+ */
+interface Slide { img: string; alt: string; eyebrow: string; headline: string; }
+/* 5 motivos, 5 ventanas a la marca — cada slide es un eje narrativo distinto.
+   El headline grande NO repite "WENU MAPU" en cada slide; cada una habla
+   por sí misma y dirige al cliente a un ángulo distinto de la marca. */
+const slides: Slide[] = [
+  { img: '/img/hero/hero-cosmos-eclipse.webp',      alt: 'Wenu Mapu — sidereal eclipse over the Wallmapu sky',  eyebrow: 'Dimension of sidereal space', headline: 'The world above, worn close.' },
+  { img: '/img/hero/hero-body-eclipse.webp',        alt: 'Adorned body — tribal piercings and silver',          eyebrow: 'Adornment for the sacred body', headline: 'The body is sacred territory.' },
+  { img: '/img/banners/collection/araucania.webp',  alt: 'Araucanía — ancestral forest of the Wallmapu',        eyebrow: 'Rooted in the Wallmapu',        headline: 'Forged where the forest meets the sky.' },
+  { img: '/img/banners/collection/atacama.webp',    alt: 'Atacama — desert where meteorites fall',              eyebrow: 'Stone fallen from the sky',     headline: 'Stars you can hold in your hand.' },
+  { img: '/img/hero/hero-model-old.webp',           alt: 'Tribal ritual jewelry on the body — Wenu Mapu adornment',             eyebrow: 'Tribal ritual jewelry',         headline: 'Adornment that walks with you.' },
+];
+
+const { ctaHref = '/shop', ctaLabel = 'Enter the shop' } = Astro.props;
+---
+
+<section class="hero-cx" aria-label="Wenu Mapu — tribal ritual jewelry" data-hero-cx>
+  <div class="hero-cx__slides">
+    {slides.map((s, i) => (
+      <figure class={`hero-cx__slide${i === 0 ? ' is-active' : ''}`} data-slide aria-hidden={i === 0 ? 'false' : 'true'}>
+        <img
+          src={s.img}
+          alt={s.alt}
+          width="1920" height="1000"
+          loading={i === 0 ? 'eager' : 'lazy'}
+          fetchpriority={i === 0 ? 'high' : 'auto'}
+          decoding="async"
+        />
+      </figure>
+    ))}
+    <div class="hero-cx__scrim" aria-hidden="true"></div>
+  </div>
+
+  <div class="hero-cx__copy">
+    <p class="hero-cx__eyebrow" data-hero-eyebrow>{slides[0].eyebrow}</p>
+    <h1 class="hero-cx__wordmark" aria-label="Wenu Mapu" data-hero-headline>
+      {slides[0].headline}
+    </h1>
+    <a href={ctaHref} class="hero-cx__cta">
+      <span class="hero-cx__cta-line" aria-hidden="true"></span>
+      <span class="hero-cx__cta-label">{ctaLabel}</span>
+      <span class="hero-cx__cta-line" aria-hidden="true"></span>
+    </a>
+  </div>
+
+  <div class="hero-cx__dots" role="tablist" aria-label="Hero slides" data-hero-dots>
+    {slides.map((s, i) => (
+      <button type="button" class={`hero-cx__dot${i === 0 ? ' is-active' : ''}`} data-dot={i}
+        role="tab" aria-selected={i === 0 ? 'true' : 'false'} aria-label={s.eyebrow}></button>
+    ))}
+  </div>
+</section>
+
+<script is:inline data-hero-eyebrows={JSON.stringify(slides.map(s => s.eyebrow))} data-hero-headlines={JSON.stringify(slides.map(s => s.headline))}>
+  (function () {
+    const root = document.querySelector('[data-hero-cx]');
+    if (!root) return;
+    const slidesEls = Array.from(root.querySelectorAll('[data-slide]'));
+    const dots = Array.from(root.querySelectorAll('[data-dot]'));
+    const eyebrowEl = root.querySelector('[data-hero-eyebrow]');
+    const headlineEl = root.querySelector('[data-hero-headline]');
+    const eyebrows = JSON.parse(document.currentScript.getAttribute('data-hero-eyebrows') || '[]');
+    const headlines = JSON.parse(document.currentScript.getAttribute('data-hero-headlines') || '[]');
+    let i = 0, timer = null;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DUR = 5500;
+
+    function go(n) {
+      i = (n + slidesEls.length) % slidesEls.length;
+      slidesEls.forEach((el, k) => {
+        const on = k === i;
+        el.classList.toggle('is-active', on);
+        el.setAttribute('aria-hidden', on ? 'false' : 'true');
+      });
+      dots.forEach((d, k) => {
+        d.classList.toggle('is-active', k === i);
+        d.setAttribute('aria-selected', k === i ? 'true' : 'false');
+      });
+      if (eyebrowEl && eyebrows[i]) {
+        eyebrowEl.style.opacity = '0';
+        setTimeout(() => { eyebrowEl.textContent = eyebrows[i]; eyebrowEl.style.opacity = '1'; }, 220);
+      }
+      if (headlineEl && headlines[i]) {
+        headlineEl.style.opacity = '0';
+        setTimeout(() => { headlineEl.textContent = headlines[i]; headlineEl.style.opacity = '1'; }, 220);
+      }
+    }
+    function start() { if (reduce) return; stop(); timer = setInterval(() => go(i + 1), DUR); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+    dots.forEach((d, k) => d.addEventListener('click', () => { go(k); start(); }));
+    root.addEventListener('mouseenter', stop);
+    root.addEventListener('mouseleave', start);
+    root.addEventListener('focusin', stop);
+    root.addEventListener('focusout', start);
+    document.addEventListener('visibilitychange', () => { document.hidden ? stop() : start(); });
+    start();
+  })();
+</script>
+
+<style>
+  .hero-cx {
+    position: relative;
+    min-height: 92svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--obsidian);
+    isolation: isolate;
+  }
+  .hero-cx__slides { position: absolute; inset: 0; z-index: -2; }
+  .hero-cx__slide {
+    position: absolute; inset: 0; margin: 0;
+    opacity: 0;
+    transition: opacity 1.4s ease, transform 7s ease;
+    transform: scale(1.06);
+    will-change: opacity;
+  }
+  .hero-cx__slide.is-active { opacity: 1; transform: scale(1); }
+  .hero-cx__slide img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+
+  .hero-cx__scrim {
+    position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(120% 90% at 50% 40%, transparent 0%, rgba(10,10,10,0.45) 70%, rgba(10,10,10,0.82) 100%),
+      linear-gradient(180deg, rgba(10,10,10,0.55) 0%, transparent 30%, transparent 55%, rgba(10,10,10,0.85) 100%);
+  }
+
+  .hero-cx__copy { position: relative; text-align: center; padding: 0 24px; z-index: 1; }
+
+  .hero-cx__eyebrow {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny, 0.72rem);
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin: 0 0 var(--space-4, 22px);
+    transition: opacity 0.4s ease;
+  }
+  .hero-cx__wordmark {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(2rem, 6.5vw, 4.6rem);
+    line-height: 1.06;
+    letter-spacing: 0.01em;
+    color: var(--bone);
+    margin: 0;
+    text-shadow: 0 2px 40px rgba(0,0,0,0.6);
+    max-width: 16ch;
+    margin-inline: auto;
+    transition: opacity 0.4s ease;
+    text-wrap: balance;
+  }
+  .hero-cx__cta {
+    display: inline-flex; align-items: center; gap: 14px;
+    margin-top: clamp(28px, 4vw, 48px);
+    font-family: var(--font-sans);
+    font-size: 0.78rem; letter-spacing: 0.26em; text-transform: uppercase;
+    color: var(--bone); text-decoration: none;
+    transition: color var(--t-fast, 0.2s);
+  }
+  .hero-cx__cta-line { width: 30px; height: 1px; background: var(--ember); transition: width var(--t-base, 0.3s); }
+  .hero-cx__cta:hover { color: var(--ember); }
+  .hero-cx__cta:hover .hero-cx__cta-line { width: 44px; }
+
+  .hero-cx__dots {
+    position: absolute; left: 0; right: 0; bottom: clamp(20px, 4vh, 40px);
+    display: flex; gap: 12px; justify-content: center; z-index: 1;
+  }
+  .hero-cx__dot {
+    width: 8px; height: 8px; border-radius: 50%; padding: 0;
+    border: 1px solid rgba(240,237,232,0.5);
+    background: transparent; cursor: pointer;
+    transition: background var(--t-fast, 0.2s), border-color var(--t-fast, 0.2s), transform var(--t-fast, 0.2s);
+  }
+  .hero-cx__dot.is-active { background: var(--ember); border-color: var(--ember); transform: scale(1.15); }
+  .hero-cx__dot:hover { border-color: var(--ember); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-cx__slide { transition: opacity 0.3s ease; transform: none; }
+    .hero-cx__slide.is-active { transform: none; }
+  }
+  @media (max-width: 600px) {
+    .hero-cx { min-height: 86svh; }
+  }
+</style>
