@@ -26,6 +26,49 @@ const gallery = product.images.slice(1);
 const attrs = product.attributes || [];
 const gauge = attrs.find(a => a.name.toLowerCase().includes('gauge') || a.name.toLowerCase().includes('size'));
 const material = attrs.find(a => a.name.toLowerCase().includes('material'));
+// Origin attribute drives "Materials & Origin" copy + visibility of
+// "Custom commission" CTA. Imported pieces (Ali/China) are curated, NOT
+// hand-forged in Truckee — per canonical rule [[regla-handmade-vs-sourced]].
+const originAttr = attrs.find(a => /origen|origin|made by|fabricaci/i.test(a.name));
+const originRaw = (originAttr?.options?.[0] || '').toLowerCase().trim();
+
+// Smart fallback when Origen attribute isn't set in WC. 5 honest categories:
+// - hand-forged: forged from raw material in studio (Vacamuerta/meteorite rings)
+// - handmade: made entirely by Nico (picoyo wire-wrap, Author Jewelry, collabs)
+// - hand-assembled: Nico assembles imported parts into unique pieces (serpent
+//   hangers, colgante earrings — sold in branded carton)
+// - curated-independent: made by other independent artists Wenu Mapu curates
+//   (Alai Wakan / @alaiwakan — Spanish silversmith)
+// - imported-curated: curated selection from international suppliers, sold as-is
+type Origin = 'handmade' | 'hand-forged' | 'hand-assembled' | 'curated-independent' | 'imported-curated';
+
+const productSignals = [
+  product.name,
+  product.slug,
+  product.sku || '',
+  ...product.categories.map(c => `${c.slug} ${c.name}`),
+  ...attrs.flatMap(a => [a.name, ...(a.options || [])]),
+].join(' ').toLowerCase();
+
+const inferredOrigin: Origin =
+  /vacamuerta|meteorite|meteorito|atacama/.test(productSignals) ? 'hand-forged' :
+  /picoyo|wire-wrap|wirewrap/.test(productSignals)              ? 'handmade' :
+  /author-jewelry|author jewelry|tipichill|cami|one-of-a-kind/.test(productSignals) ? 'handmade' :
+  /alai|alaiwakan|wakan/.test(productSignals)                   ? 'curated-independent' :
+  /serpent|serpiente|filu|colgante|treng/.test(productSignals) && /hanger|earring|pendant/.test(productSignals) ? 'hand-assembled' :
+  'imported-curated';
+
+// Normalize to one of: 5 origin types
+const origin: Origin =
+  /imported|ali|china|sourced|import/.test(originRaw) ? 'imported-curated' :
+  /assembled|ensambl/.test(originRaw)                 ? 'hand-assembled' :
+  /independent|curat/.test(originRaw)                 ? 'curated-independent' :
+  /handmade|hecho/.test(originRaw)                    ? 'handmade' :
+  /forged|forjad/.test(originRaw)                     ? 'hand-forged' :
+  inferredOrigin;
+const isImported = origin === 'imported-curated';
+const isCurated  = origin === 'curated-independent' || origin === 'imported-curated';
+const isForged   = origin === 'handmade' || origin === 'hand-forged';
 const primaryCategory = product.categories[0];
 const primaryCategorySlug = primaryCategory?.slug?.toLowerCase() ?? '';
 const isSupportProduct = /wm-care/i.test(product.sku || '') || /aftercare|saline/.test(product.slug) || primaryCategorySlug.includes('uncategorized');
@@ -142,7 +185,7 @@ const breadcrumbLd = {
       eyebrow={primaryCategory ? localizeCategory(primaryCategory) : en.product.category_default}
       title={decodeEntities(product.name)}
       material={material?.options?.join(', ')}
-      badge={product.stock_quantity != null && product.stock_quantity > 0 && product.stock_quantity <= 3 ? 'LIMITED STOCK' : undefined}
+      badge={product.stock_quantity != null && product.stock_quantity > 0 && 3 >= product.stock_quantity ? 'LIMITED STOCK' : undefined}
     />
   )}
 
@@ -254,29 +297,72 @@ const breadcrumbLd = {
 
           {product.stock_status === 'instock' ? (
             <>
-              <a href={addToCartUrl(product.id)} class="btn btn--solid" style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);">
-                {en.product.add_to_cart}
+              {/* Differentiated CTA per origin + scarcity.
+                 - "Claim this piece" → one-of-one (stock=1) imported OR collab
+                 - "Open a commission" → hand-forged/handmade (commissionable)
+                 - "Add to cart"     → standard in-stock products  */}
+              <a
+                href={addToCartUrl(product.id)}
+                class="btn btn--solid"
+                style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+              >
+                {
+                  product.manage_stock && product.stock_quantity === 1
+                    ? 'Claim this piece →'
+                    : isForged
+                      ? 'Open a commission →'
+                      : en.product.add_to_cart
+                }
               </a>
               <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
                 {en.product.pickup_truckee}
               </a>
+              {/* Trust block — visible at the moment of decision, not buried
+                 deep in accordions. Body jewelry buyers want to know:
+                 origin of shipping, speed, freight threshold, hygiene policy. */}
+              <ul class="pdp-trust" aria-label="Shipping &amp; trust">
+                <li>Ships from Truckee, California</li>
+                <li>USPS Priority · 2–3 business days</li>
+                <li>Free US shipping over $150</li>
+                <li>Body jewelry is final sale (hygiene)</li>
+              </ul>
             </>
           ) : (
             <>
-              {/* SOLD OUT → re-frame as commission opportunity (capture lead in lugar de perderlo) */}
+              {/* SOLD OUT → re-frame depending on origin.
+                 - Forged / handmade → commission opportunity (we can make another).
+                 - Imported / curated → notify when restocked OR commission a similar piece. */}
               <a
-                href={`/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`}
+                href={isForged
+                  ? `/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`
+                  : '/contact'}
                 class="btn btn--solid"
                 style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
               >
-                Reserve a custom commission →
+                {isForged
+                  ? 'Reserve a custom commission →'
+                  : origin === 'curated-independent'
+                    ? 'Notify me when restocked →'
+                    : 'Notify me when restocked →'}
               </a>
               <p style="font-family: var(--font-serif); font-style: italic; font-size: var(--fs-small); color: var(--fg-soft); margin: var(--space-2) 0 var(--space-3); line-height: 1.55; text-align: center;">
-                This piece is forged one at a time. Open a private commission and we’ll begin yours.
+                {isForged
+                  ? 'This piece is forged one at a time. Open a private commission and we’ll begin yours.'
+                  : origin === 'hand-assembled'
+                    ? 'This piece is hand-assembled in studio. We may compose another with similar components — write to us.'
+                    : origin === 'curated-independent'
+                      ? 'Curated piece by an independent silversmith partner. Tell us your interest and we’ll let you know when more arrive.'
+                      : 'Curated selection — sold as found. Tell us your interest and we’ll let you know when more arrive.'}
               </p>
               <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
                 {en.product.pickup_truckee}
               </a>
+              <ul class="pdp-trust" aria-label="Shipping &amp; trust">
+                <li>Ships from Truckee, California</li>
+                <li>USPS Priority · 2–3 business days</li>
+                <li>Free US shipping over $150</li>
+                <li>Body jewelry is final sale (hygiene)</li>
+              </ul>
             </>
           )}
 
@@ -313,11 +399,53 @@ const breadcrumbLd = {
                 {material && (
                   <p><strong>Material:</strong> {material.options.join(', ')}.</p>
                 )}
-                <p>{en.product.made_in_label} {en.product.made_in_value}.</p>
-                <p>
-                  Each piece leaves the studio touched only by the hands that made it.
-                  Material provenance documented in our <a href="/material" class="text-accent">materials page</a>.
-                </p>
+                {origin === 'hand-forged' && (
+                  <>
+                    <p><strong>Origin:</strong> hand-forged in our Truckee studio.</p>
+                    <p>
+                      Shaped from raw material with hammer, file and anvil. Signed by the maker.
+                      Material provenance documented in our <a href="/material" class="text-accent">materials page</a>.
+                    </p>
+                  </>
+                )}
+                {origin === 'handmade' && (
+                  <>
+                    <p><strong>Origin:</strong> handmade in our Truckee studio.</p>
+                    <p>
+                      Made entirely by hand — no CNC, no mold, no shortcut. Each piece signed
+                      by the maker before it leaves the studio.
+                    </p>
+                  </>
+                )}
+                {origin === 'hand-assembled' && (
+                  <>
+                    <p><strong>Origin:</strong> hand-assembled by Wenu Mapu in Truckee, California.</p>
+                    <p>
+                      Individual components sourced from suppliers, then composed by hand into a
+                      unique piece in our studio. Each one designed, finished and packaged in branded
+                      carton by the maker. <em>The composition is ours; the raw components are not
+                      forged by us.</em>
+                    </p>
+                  </>
+                )}
+                {origin === 'curated-independent' && (
+                  <>
+                    <p><strong>Origin:</strong> curated piece — handmade by an independent silversmith partner.</p>
+                    <p>
+                      Selected for design, materials and craftsmanship before joining the catalogue.
+                      Inspected, finished and shipped from Truckee, California.
+                    </p>
+                  </>
+                )}
+                {isImported && (
+                  <>
+                    <p><strong>Origin:</strong> curated selection — sourced from international suppliers.</p>
+                    <p>
+                      Each piece chosen for design, material and finish. Quality-checked and shipped
+                      from Truckee, California. <em>Not made by hand in our studio.</em>
+                    </p>
+                  </>
+                )}
               </div>
             </details>
 
@@ -350,10 +478,18 @@ const breadcrumbLd = {
                   For gauge ↔ mm conversion and inner diameter recommendations,
                   see the <a href="/sizing-guide" class="text-accent">sizing guide</a>.
                 </p>
-                <p>
-                  Want this piece in a different size, material or stone?
-                  <a href="/custom-orders" class="text-accent"> Open a commission →</a>
-                </p>
+                {isForged && (
+                  <p>
+                    Want this piece in a different size, material or stone?
+                    <a href="/custom-orders" class="text-accent"> Open a commission →</a>
+                  </p>
+                )}
+                {!isForged && (
+                  <p>
+                    Looking for a custom hand-forged piece instead?
+                    <a href="/custom-orders" class="text-accent"> Start a commission →</a>
+                  </p>
+                )}
               </div>
             </details>
           </div>
@@ -384,21 +520,53 @@ const breadcrumbLd = {
                 <p>{cleanDescription(product.short_description || '') || desc}</p>
               </div>
             )}
+            {/* Ritual specs grid — Material / Size / Gauge / Use / Sold as /
+                Origin / Availability. Honest defaults when an attribute is
+                missing (don't fake "hand-forged" on imports). */}
             <dl class="ritual-context__specs">
               <div class="ritual-context__spec">
                 <dt>Material</dt>
-                <dd>{material?.options?.join(' · ') || 'Hand-forged'}</dd>
+                <dd>{material?.options?.join(' · ') || '—'}</dd>
               </div>
               <div class="ritual-context__spec">
-                <dt>Element</dt>
-                <dd>{primaryCategory ? localizeCategory(primaryCategory) : 'Ritual adornment'}</dd>
+                <dt>Use</dt>
+                <dd>{primaryCategory ? localizeCategory(primaryCategory) : 'Body adornment'}</dd>
               </div>
-              {gauge?.options?.length ? (
+              {gauge?.options?.length && (
                 <div class="ritual-context__spec">
-                  <dt>Size</dt>
+                  <dt>Size · gauge</dt>
                   <dd>{gauge.options.join(' · ')}</dd>
                 </div>
-              ) : null}
+              )}
+              <div class="ritual-context__spec">
+                <dt>Sold as</dt>
+                <dd>{
+                  product.manage_stock && product.stock_quantity === 1
+                    ? 'One of one'
+                    : /pair|par/i.test(product.name)
+                      ? 'Pair'
+                      : 'Single piece'
+                }</dd>
+              </div>
+              <div class="ritual-context__spec">
+                <dt>Origin</dt>
+                <dd>{
+                  origin === 'handmade'           ? 'Handmade · Truckee, CA' :
+                  origin === 'hand-forged'        ? 'Hand-forged · Truckee, CA' :
+                  origin === 'hand-assembled'     ? 'Hand-assembled · Truckee, CA' :
+                  origin === 'curated-independent' ? 'Curated · independent silversmith' :
+                                                    'Curated · international suppliers'
+                }</dd>
+              </div>
+              <div class="ritual-context__spec">
+                <dt>Availability</dt>
+                <dd>{
+                  product.stock_status !== 'instock' ? 'Sold out · commission only' :
+                  product.manage_stock && product.stock_quantity === 1 ? 'Last one · one of one' :
+                  product.manage_stock && 3 >= (product.stock_quantity || 0) ? `Limited · ${product.stock_quantity} left` :
+                  'Ready to ship'
+                }</dd>
+              </div>
             </dl>
           </div>
         </section>
@@ -419,7 +587,13 @@ const breadcrumbLd = {
       </div>
       {product.stock_status === 'instock' ? (
         <a href={addToCartUrl(product.id)} class="btn btn--solid sticky-cta__btn">
-          {en.product.add_to_cart}
+          {
+            product.manage_stock && product.stock_quantity === 1
+              ? 'Claim →'
+              : isForged
+                ? 'Commission →'
+                : en.product.add_to_cart
+          }
         </a>
       ) : (
         <a
