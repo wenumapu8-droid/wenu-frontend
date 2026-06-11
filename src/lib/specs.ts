@@ -9,7 +9,7 @@
 // returns null when nothing is found, so the PDP only renders rows that carry
 // real data. Honest-by-default — never invents a value.
 
-import { decodeEntities, cleanDescription } from './woo';
+import { decodeEntities } from './woo';
 import type { WooProduct } from './woo';
 
 export interface DerivedSpecs {
@@ -26,33 +26,51 @@ export interface DerivedSpecs {
   isPair: boolean;
 }
 
-// Material lockups — short editorial line per material family. Mirrors the
-// (now-removed) inline table that lived in Spec.astro.
-const MATERIAL_LOCKUPS: { keys: RegExp; text: string }[] = [
-  { keys: /\b(sterling|925|950)\b|\bplata\b/, text: 'Sterling silver — pure, durable, alive with light.' },
-  { keys: /\b14k\b|\bgold\b|\boro\b/, text: '14k gold — heirloom-grade, warm, made to outlast the wearer.' },
-  { keys: /titanium|titanio/, text: 'ASTM F-136 implant-grade titanium — hypoallergenic, lightweight.' },
-  { keys: /vacamuerta|meteorite|meteorito|atacama/, text: 'Vaca Muerta mesosiderite — rare stony-iron meteorite from Chile’s Atacama Desert.' },
-  { keys: /surgical steel|stainless|\bsteel\b/, text: 'Surgical-grade steel — strong, body-tolerant, easy to wear.' },
-  { keys: /alpaca|nickel silver/, text: 'Alpaca (nickel silver) — bright ancestral alloy, worked by hand.' },
-  { keys: /\bbrass\b|\bbronze\b|laton|latón|bronce/, text: 'Brass & bronze — bold ancestral metals with deep tribal roots.' },
-  { keys: /walnut|\bwood\b|madera|padauk/, text: 'Walnut & tropical wood — sustainably sourced, warm, grounded.' },
-  { keys: /\bresin\b/, text: 'Resin — hand-poured, lightweight, vivid in the light.' },
+// Material families — each carries a long editorial line (Spec table) and a
+// short label (hero caption + ritual-context grid). Order = display priority;
+// capped to the top 2 matches so a "Silver Titanium" piece reads cleanly.
+//
+// Honesty rules baked into the regexes:
+//   - "silver" / "gold" are matched on their own (most names just say "Silver
+//     Ring" / "Gold Hoop"), BUT a negative lookahead drops "silver-tone" /
+//     "gold-tone" — those describe the FINISH of another metal (e.g. a
+//     PVD-coated titanium septum), not a precious-metal body.
+//   - The "14k gold — heirloom-grade" claim is reserved for names that actually
+//     say 14k. A plain "gold" piece is labeled the honest "Gold-tone" instead,
+//     so a fashion gold-plated chain never claims solid-gold provenance.
+const MATERIALS: { re: RegExp; long: string; short: string }[] = [
+  { re: /\bsterling\b|\b925\b|\b950\b|\bplata\b|\bsilver\b(?!-?tone)/, long: 'Sterling silver — pure, durable, alive with light.', short: 'Sterling silver' },
+  { re: /\b14k\b|14\s?k\b|\boro\b/,                                    long: '14k gold — heirloom-grade, warm, made to outlast the wearer.', short: '14k gold' },
+  { re: /\bgold\b(?!-?tone)/,                                          long: 'Gold-tone — warm, luminous metal.', short: 'Gold-tone' },
+  { re: /titanium|titanio/,                                           long: 'ASTM F-136 implant-grade titanium — hypoallergenic, lightweight.', short: 'Titanium' },
+  { re: /vacamuerta|meteorite|meteorito|atacama/,                     long: 'Vaca Muerta mesosiderite — rare stony-iron meteorite from Chile’s Atacama Desert.', short: 'Atacama meteorite' },
+  { re: /surgical steel|stainless|\bsteel\b/,                         long: 'Surgical-grade steel — strong, body-tolerant, easy to wear.', short: 'Surgical steel' },
+  { re: /alpaca|nickel silver/,                                       long: 'Alpaca (nickel silver) — bright ancestral alloy, worked by hand.', short: 'Alpaca' },
+  { re: /\bbrass\b|\bbronze\b|laton|latón|bronce/,                    long: 'Brass & bronze — bold ancestral metals with deep tribal roots.', short: 'Brass & bronze' },
+  { re: /walnut|\bwood\b|madera|padauk/,                              long: 'Walnut & tropical wood — sustainably sourced, warm, grounded.', short: 'Wood' },
+  { re: /\bresin\b/,                                                  long: 'Resin — hand-poured, lightweight, vivid in the light.', short: 'Resin' },
 ];
 
-// Short material labels — for the hero caption + ritual-context grid, where the
-// long editorial lockup above would overflow. Same keyword order as the lockups.
-const MATERIAL_SHORT: { re: RegExp; name: string }[] = [
-  { re: /\b(sterling|925|950)\b|\bplata\b/, name: 'Sterling silver' },
-  { re: /\b14k\b|\bgold\b|\boro\b/, name: '14k gold' },
-  { re: /titanium|titanio/, name: 'Titanium' },
-  { re: /vacamuerta|meteorite|meteorito|atacama/, name: 'Atacama meteorite' },
-  { re: /surgical steel|stainless|\bsteel\b/, name: 'Surgical steel' },
-  { re: /alpaca|nickel silver/, name: 'Alpaca' },
-  { re: /\bbrass\b|\bbronze\b|laton|latón|bronce/, name: 'Brass & bronze' },
-  { re: /walnut|\bwood\b|madera|padauk/, name: 'Wood' },
-  { re: /\bresin\b/, name: 'Resin' },
-];
+/** Resolve up to 2 material families. The 14k and plain-gold rules are mutually
+ *  exclusive in practice (a "14k Gold" name matches the 14k row first, and the
+ *  plain-gold row is skipped once gold is already represented). */
+function deriveMaterial(text: string): { long: string | null; short: string | null } {
+  const hits: { long: string; short: string }[] = [];
+  let hasGold = false;
+  for (const m of MATERIALS) {
+    if (!m.re.test(text)) continue;
+    const isGold = m.short === '14k gold' || m.short === 'Gold-tone';
+    if (isGold && hasGold) continue; // never show both "14k gold" and "Gold-tone"
+    if (isGold) hasGold = true;
+    hits.push({ long: m.long, short: m.short });
+    if (hits.length >= 2) break;
+  }
+  if (!hits.length) return { long: null, short: null };
+  return {
+    long: hits.map(h => h.long).join(' · '),
+    short: hits.map(h => h.short).join(' · '),
+  };
+}
 
 const STONES: { re: RegExp; name: string }[] = [
   { re: /labradorite/, name: 'Labradorite' },
@@ -98,7 +116,9 @@ const TECHNIQUES: { re: RegExp; name: string }[] = [
   { re: /clicker|hinged/, name: 'Hinged clicker' },
   { re: /\binlay\b|inlaid/, name: 'Inlay' },
   { re: /articulat/, name: 'Articulated' },
-  { re: /woven|witral/, name: 'Hand-woven' },
+  // NOTE: only English "woven" — the Mapudungun "witral" appears in ritual
+  // names (short_description) and would mislabel cast/assembled pieces.
+  { re: /\bwoven\b/, name: 'Hand-woven' },
 ];
 
 // Color palette — only words that read as a finish/color descriptor on a piece.
@@ -166,24 +186,20 @@ export function deriveSpecs(product: WooProduct): DerivedSpecs {
   const name = decodeEntities(product.name || '');
   const isPair = /\bpair\b|\bpar\b/i.test(name);
 
-  // Structured fields parse from the name only (most reliable, least noisy).
-  const nameText = [name, product.slug, product.sku].join(' ').toLowerCase();
-
-  // Keyword fields scan name + sku + categories + descriptions for richer hits.
-  const fullText = [
+  // All detectors read the structured English NAME (+ slug, sku, categories) —
+  // never the descriptions. The short_description is a Mapudungun ritual name
+  // and the description is Spanish poetry; both mention materials/techniques
+  // metaphorically ("plata", "telar", "witral") and would produce dishonest
+  // spec rows. The product name is the authoritative, structured source.
+  const nameText = [
     name,
     product.slug,
     product.sku,
     ...product.categories.flatMap(c => [c.slug, c.name]),
-    cleanDescription(product.short_description || ''),
-    cleanDescription(product.description || ''),
   ].join(' ').toLowerCase();
+  const fullText = nameText;
 
-  const material = MATERIAL_LOCKUPS
-    .filter(m => m.keys.test(fullText))
-    .map(m => m.text)
-    .slice(0, 2)
-    .join(' · ') || null;
+  const material = deriveMaterial(fullText);
 
   const soldAs =
     product.manage_stock && product.stock_quantity === 1 ? 'One of one' :
@@ -191,8 +207,8 @@ export function deriveSpecs(product: WooProduct): DerivedSpecs {
     'Single piece';
 
   return {
-    material,
-    materialShort: joinMatches(MATERIAL_SHORT, fullText, 2),
+    material: material.long,
+    materialShort: material.short,
     size: deriveSize(name),
     weight: deriveWeight(product, isPair),
     dimensions: deriveDimensions(product),

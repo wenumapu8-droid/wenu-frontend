@@ -4,6 +4,7 @@ import Spec from '../../components/visual/Spec.astro';
 import RelatedPieces from '../../components/visual/RelatedPieces.astro';
 import RitualProductHero from '../../components/visual/RitualProductHero.astro';
 import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities, truncateForMeta } from '../../lib/woo';
+import { deriveSpecs } from '../../lib/specs';
 import { addToCartUrl } from '../../lib/config';
 import type { WooProduct } from '../../lib/woo';
 import en from '../../i18n/en.json';
@@ -26,6 +27,13 @@ const gallery = product.images.slice(1);
 const attrs = product.attributes || [];
 const gauge = attrs.find(a => a.name.toLowerCase().includes('gauge') || a.name.toLowerCase().includes('size'));
 const material = attrs.find(a => a.name.toLowerCase().includes('material'));
+// The WC catalog ships empty attributes, so the structured fields above are
+// almost always undefined. deriveSpecs() parses the real per-piece data out of
+// the name / weight / description — used to fill the hero caption, the quick
+// spec box and the ritual-context grid (which otherwise rendered "—").
+const specs = deriveSpecs(product);
+const materialLabel = specs.materialShort || material?.options?.join(', ') || null;
+const sizeLabel = specs.size || gauge?.options?.join(' · ') || null;
 // Origin attribute drives "Materials & Origin" copy + visibility of
 // "Custom commission" CTA. Imported pieces (Ali/China) are curated, NOT
 // hand-forged in Truckee — per canonical rule [[regla-handmade-vs-sourced]].
@@ -184,7 +192,7 @@ const breadcrumbLd = {
       imgHeight={mainImg.height}
       eyebrow={primaryCategory ? localizeCategory(primaryCategory) : en.product.category_default}
       title={decodeEntities(product.name)}
-      material={material?.options?.join(', ')}
+      material={materialLabel ?? undefined}
       badge={product.stock_quantity != null && product.stock_quantity > 0 && 3 >= product.stock_quantity ? 'LIMITED STOCK' : undefined}
     />
   )}
@@ -277,19 +285,19 @@ const breadcrumbLd = {
               lives in the <Spec> table + Materials accordion below, so we no
               longer repeat it here (was the same line three times). The box
               only renders when there is something to show — no empty frame. */}
-          {(gauge || material) && (
+          {(sizeLabel || materialLabel) && (
             <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
-              {gauge && (
-                <p style={`font-size: var(--fs-small);${material ? ' margin-bottom: var(--space-1);' : ''}`}>
+              {sizeLabel && (
+                <p style={`font-size: var(--fs-small);${materialLabel ? ' margin-bottom: var(--space-1);' : ''}`}>
                   <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
-                  {gauge.options.join(', ')}
+                  {sizeLabel}
                   <a href="/sizing-guide" style="margin-left: var(--space-2); color: var(--ember); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
                 </p>
               )}
-              {material && (
+              {materialLabel && (
                 <p style="font-size: var(--fs-small);">
                   <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
-                  {material.options.join(', ')}
+                  {materialLabel}
                 </p>
               )}
             </div>
@@ -526,16 +534,22 @@ const breadcrumbLd = {
             <dl class="ritual-context__specs">
               <div class="ritual-context__spec">
                 <dt>Material</dt>
-                <dd>{material?.options?.join(' · ') || '—'}</dd>
+                <dd>{materialLabel || specs.stone || '—'}</dd>
               </div>
               <div class="ritual-context__spec">
                 <dt>Use</dt>
                 <dd>{primaryCategory ? localizeCategory(primaryCategory) : 'Body adornment'}</dd>
               </div>
-              {gauge?.options?.length && (
+              {sizeLabel && (
                 <div class="ritual-context__spec">
                   <dt>Size · gauge</dt>
-                  <dd>{gauge.options.join(' · ')}</dd>
+                  <dd>{sizeLabel}</dd>
+                </div>
+              )}
+              {specs.stone && materialLabel && (
+                <div class="ritual-context__spec">
+                  <dt>Stone · gem</dt>
+                  <dd>{specs.stone}</dd>
                 </div>
               )}
               <div class="ritual-context__spec">
