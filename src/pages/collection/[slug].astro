@@ -4,13 +4,26 @@ import ProductCard from '../../components/ProductCard.astro';
 import PatternBand from '../../components/PatternBand.astro';
 import { getProducts } from '../../lib/woo';
 import { collections } from '../../data/collections';
+import membershipRaw from '../../data/collection-membership.json';
 
 export async function getStaticPaths() {
   return collections.map((c) => ({ params: { slug: c.slug }, props: { collection: c } }));
 }
 
 const { collection } = Astro.props;
-const { slug, title, eyebrow, intro, description, keywords } = collection;
+const { slug, title, eyebrow, subtitle, intro, story, description, keywords } = collection;
+
+// REAL membership from NocoDB (2026-06-24): by_collection maps a capitalized
+// collection name → its SKUs. Match case-insensitively to this slug. Keyword
+// matching stays only as a fallback for collections with no membership yet.
+const byCollection: Record<string, string[]> = (membershipRaw as any).by_collection ?? {};
+// Accent-insensitive match: membership keys are accented ("Araucanía") while slugs
+// are plain ("araucania"). Without normalising, accented collections miss their
+// membership and fall to keyword matching — where the generic 'mapu' token matches
+// the brand name "Wenu Mapu" on nearly every product and returns random pieces.
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const membershipKey = Object.keys(byCollection).find((k) => norm(k) === norm(slug));
+const skuSet = new Set(membershipKey ? byCollection[membershipKey] : []);
 
 const all = await getProducts();
 const searchable = (product) => [
@@ -22,10 +35,14 @@ const searchable = (product) => [
   ...product.attributes.flatMap((a) => [a.name, ...a.options]),
 ].join(' ').toLowerCase();
 
-const matched = all.filter(
-  (p) => p.images.length > 0 && p.images[0].src && keywords.some((k) => searchable(p).includes(k)),
-);
-const featured = matched.slice(0, 8);
+const hasImg = (p) => p.images.length > 0 && p.images[0].src;
+const byMembership = all.filter((p) => hasImg(p) && p.sku && skuSet.has(p.sku));
+// Membership wins; keyword match is the fallback only when membership is empty.
+const matched = byMembership.length > 0
+  ? byMembership
+  : all.filter((p) => hasImg(p) && keywords.some((k) => searchable(p).includes(k)));
+// Show the WHOLE collection grid (Ocin 2026-06-26: the banner leads to ALL pieces).
+const pieces = matched;
 
 const banner = `/img/banners/collection/${slug}`;
 
@@ -53,37 +70,37 @@ const breadcrumbLd = {
   ogImage={`${banner}.webp`}
   jsonLd={[collectionLd, breadcrumbLd]}
 >
-  <div class="cat-masthead">
+  <a class="cat-masthead cat-masthead--art cat-masthead--link" href="#collection-pieces" aria-label={`See all pieces in the ${title} collection`}>
     <picture>
       <source type="image/avif" srcset={`${banner}.avif`} />
       <img src={`${banner}.webp`} alt={`Wenu Mapu — ${title} collection`} width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
     </picture>
-  </div>
+    <span class="cat-masthead__enter" aria-hidden="true">See the collection <span>↓</span></span>
+  </a>
 
-  <section class="section section--mega">
+  <section id="collection-pieces" class="section section--mega">
     <div class="container">
       <p class="eyebrow">{eyebrow}</p>
       <h1 class="page-title">{title}</h1>
-      <p class="lede">{intro}</p>
+      {subtitle && <p class="collection-subtitle">{subtitle}</p>}
+      <p class="lede">{story || intro}</p>
       <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
 
-      {featured.length > 0 ? (
+      {pieces.length > 0 ? (
         <div class="landing__rail" aria-label={`Pieces in the ${title} collection`}>
           <div class="landing__rail-head">
-            <p class="eyebrow">Available pieces</p>
-            <a href="/shop" class="text-accent">View all →</a>
+            <p class="eyebrow">{pieces.length} piece{pieces.length === 1 ? '' : 's'} in this collection</p>
+            <a href="/shop" class="text-accent">Shop everything →</a>
           </div>
-          <div class="featured-v2__rail">
-            {featured.map((product) => (
-              <div class="featured-v2__cell">
-                <ProductCard product={product} />
-              </div>
+          <div class="collection-grid">
+            {pieces.map((product) => (
+              <ProductCard product={product} />
             ))}
           </div>
         </div>
       ) : (
         <div class="landing__copy">
-          <p>Pieces are being forged for this collection. Follow the work, or browse everything available now.</p>
+          <p>Pieces are being added to this collection. Follow the work, or browse everything available now.</p>
           <div class="landing__cta">
             <a href="/shop" class="btn btn--solid">Browse all pieces →</a>
             <a href="/collection/" class="btn btn--ghost">All collections</a>
@@ -93,3 +110,56 @@ const breadcrumbLd = {
     </div>
   </section>
 </Base>
+
+<style>
+  .collection-subtitle {
+    font-family: var(--font-sans);
+    font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--ember);
+    margin: 0 0 var(--space-4);
+  }
+  .section--mega .lede { max-width: 64ch; }
+
+  /* Clickable collection banner → jumps to the full grid below. Subtle dark-ritual
+     hover (gentle zoom + warm lift), with a quiet "See the collection ↓" cue. */
+  .cat-masthead--link {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+  }
+  .cat-masthead--link img { transition: transform var(--t-slow), filter var(--t-base); }
+  .cat-masthead--link:hover img,
+  .cat-masthead--link:focus-visible img { transform: scale(1.03); filter: brightness(1.08); }
+  .cat-masthead__enter {
+    position: absolute;
+    bottom: clamp(14px, 3vw, 28px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--bone);
+    opacity: 0.82;
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.75);
+    transition: opacity var(--t-base), color var(--t-base);
+  }
+  .cat-masthead--link:hover .cat-masthead__enter,
+  .cat-masthead--link:focus-visible .cat-masthead__enter { opacity: 1; color: var(--ember); }
+  .cat-masthead--link:focus-visible { outline: 1px solid var(--ember); outline-offset: -3px; }
+
+  .collection-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+  }
+</style>
