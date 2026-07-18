@@ -574,6 +574,27 @@ export function getHeroImage(p: WooProduct): WooImage | null {
   return p.images[0];
 }
 
+/**
+ * Pick a SECOND, distinct gallery image for the catalogue hover-swap
+ * (task A3, 2026-07-18). Returns null when the product only has one usable
+ * photo — callers must not render a swap effect in that case.
+ *
+ * Reuses getHeroImage()'s AVOID list so we never swap into a ruler/reference/
+ * sizing shot on hover — that would look broken, not editorial.
+ */
+export function getSecondaryImage(p: WooProduct, hero: WooImage | null): WooImage | null {
+  if (!p?.images?.length || p.images.length < 2 || !hero) return null;
+
+  const norm = (s: string) => (s || '').toLowerCase();
+  const AVOID = /\b(ruler|westcott|sizing|size-?guide|spec|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
+
+  const others = p.images.filter(img => img.src !== hero.src);
+  if (!others.length) return null;
+
+  const clean = others.find(img => !AVOID.test(norm(img.alt)) && !AVOID.test(norm(img.src)));
+  return clean || null;
+}
+
 /** Truncate a string for a meta description / OG description without slicing
  *  mid-word. Returns text up to `maxLen` chars, ending at the last word
  *  boundary, with an ellipsis if truncation happened. Trims trailing
