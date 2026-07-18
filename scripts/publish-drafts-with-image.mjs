@@ -21,6 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { isKeepDraft, keepDraftReason } from './lib/keep-draft-guard.mjs';
 
 const args = process.argv.slice(2);
 const APPLY = args.includes('--apply');
@@ -62,11 +63,20 @@ const EXCLUDE_NAME_PATTERNS = [
 ];
 
 const toPublish = [];
-const keepDraft = { noImage: [], excluded: [], soldOut: [] };
+const keepDraft = { noImage: [], excluded: [], soldOut: [], keepDraftFlag: [] };
 
 for (const p of drafts) {
   const sku = p.sku || '(no-sku)';
   const name = p.name || '';
+
+  // GUARD anti-republicación: si el producto está marcado keep-draft
+  // (meta _wenu_keep_draft, tag keep-draft/duplicado/archivado, o marcador
+  // [DUPLICADO]/[ARCHIVO]/[NO-PUBLICAR] en el nombre) NUNCA se republica,
+  // aunque tenga foto, stock y SKU válido. Esto frena que los drafts vuelvan solos.
+  if (isKeepDraft(p)) {
+    keepDraft.keepDraftFlag.push({ sku, name, id: p.id, reason: keepDraftReason(p) });
+    continue;
+  }
 
   // Exclude products with no canonical SKU
   if (!p.sku || p.sku.trim() === '' || p.sku === '(no-sku)') {
@@ -104,6 +114,7 @@ console.log(`╔═════════════════════�
 console.log(`║  Classification                          ║`);
 console.log(`╚══════════════════════════════════════════╝`);
 console.log(`✅ TO PUBLISH  : ${String(toPublish.length).padStart(3)}  (have image + in stock + not excluded)`);
+console.log(`🔒 keep draft  : ${String(keepDraft.keepDraftFlag.length).padStart(3)}  MARCADO no-republicar (_wenu_keep_draft / tag / [DUPLICADO])`);
 console.log(`⬜ keep draft  : ${String(keepDraft.noImage.length).padStart(3)}  no image (priority: upload missing photos)`);
 console.log(`⬜ keep draft  : ${String(keepDraft.soldOut.length).padStart(3)}  sold out / no stock`);
 console.log(`⬜ keep draft  : ${String(keepDraft.excluded.length).padStart(3)}  excluded (WOO-legacy, INDICE/ARCHIVO patterns)`);
@@ -114,6 +125,12 @@ if (toPublish.length > 0) {
   for (const p of toPublish) {
     console.log(`  PUBLISH id=${String(p.id).padStart(4)}  ${p.sku.padEnd(13)}  $${String(p.price).padStart(4)}  ${p.images}img  ${p.name.slice(0,55)}`);
   }
+}
+
+if (keepDraft.keepDraftFlag.length > 0) {
+  console.log();
+  console.log('── Stay draft: MARCADO no-republicar (protegido del republish) ──');
+  for (const p of keepDraft.keepDraftFlag) console.log(`  🔒 ${p.sku.padEnd(13)}  ${String(p.reason).padEnd(28)}  ${p.name.slice(0,45)}`);
 }
 
 if (keepDraft.noImage.length > 0) {

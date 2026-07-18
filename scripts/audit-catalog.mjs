@@ -77,11 +77,22 @@ async function fetchWcProducts() {
   if (!key || !sec) throw new Error('WC_CONSUMER_KEY/SECRET missing in env');
   const auth = Buffer.from(`${key}:${sec}`).toString('base64');
   const fields = 'id,sku,name,status,stock_status,price,categories,images';
-  const r = await fetch(`${url}/products?per_page=100&status=publish&_fields=${fields}`, {
-    headers: { Authorization: `Basic ${auth}` },
-  });
-  if (!r.ok) throw new Error(`WC API ${r.status}`);
-  return r.json();
+  const all = [];
+  let page = 1;
+  let totalPages = 1;
+  do {
+    const r = await fetch(`${url}/products?per_page=100&status=publish&page=${page}&_fields=${fields}`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    if (!r.ok) throw new Error(`WC API ${r.status} (page ${page})`);
+    const batch = await r.json();
+    all.push(...batch);
+    const hdr = parseInt(r.headers.get('x-wp-totalpages') || '', 10);
+    // fallback si el header no viene: seguir mientras la página venga llena
+    totalPages = Number.isFinite(hdr) ? hdr : (batch.length === 100 ? page + 1 : page);
+    page++;
+  } while (page <= totalPages);
+  return all;
 }
 
 function readNocoSnapshot() {
