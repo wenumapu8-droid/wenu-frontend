@@ -1,0 +1,2003 @@
+---
+/**
+ * ManifestoSpiral3D.astro — WebGL "visionary" upgrade of the manifesto's
+ * opening journey (Ocin's dream, prototype v5 — audited + approved, 2026-07-18).
+ *
+ * The journey (14 stations, mapuche cosmology): WENU MAPU / THE SUN (divine
+ * source: granulated surface, prominences, corona, sacred-geometry mandala) ->
+ * PLANETS (banded gas giant + ring, Mars) -> THE MOON -> NAG MAPU / THE EARTH
+ * (procedural blue-marble + fresnel atmosphere, now properly LIT: key + rim
+ * directional lights give every body a real terminator) -> the four forces
+ * (Kütral·Kürüf·Ko·Kura = plasma/gas/liquid/solid) -> MELI WITRAN MAPU (an
+ * authentic kultrún: canvas-drawn drumhead — 4-direction cross from the east,
+ * choike/ñandú three-toed terminals, Antü sun + Küyen crescent moon + Melipal
+ * Southern Cross + Wüñelfe morning star at the quadrants, wood rim) -> the
+ * COSMIC DNA, now obsidian crystalline (MeshPhysicalMaterial iridescent
+ * strands with a canvas star-glint skin, base pairs as glowing sacred-
+ * geometry star-cross Sprites, not plain jewels) -> the primordial COSMIC
+ * SERPENT, Wenumawiza australis, coiling in the cosmos NEAR THE PLANETS (not
+ * around the DNA) — an obsidian MeshPhysicalMaterial body with a real
+ * faceted diamond-scale lattice (map + bumpMap relief, each rhombus a
+ * domed scale, plus an emissiveMap of crystalline glints and a spine
+ * constellation line), an elongated head with four star-marks (the four
+ * winds) and pupil-less white/electric-blue eyes, tail ending in a small
+ * orbit/eclipse -> ITROFILL MONGEN (a toroidal net of hundreds of eyes —
+ * InstancedBufferGeometry + ShaderMaterial, one draw call; pupils track the
+ * pointer, idle-drift on touch, per-instance blink) converging on a NET OF
+ * BEING (a bright central light + radiating gold rays at the torus' heart,
+ * Alex Grey style) -> MIÑCHE MAPU (a whirlpool black hole that sucks every
+ * particle into its centre) -> a fade to absolute black + "· nothing ·
+ * everything ·" at the very end of the scroll.
+ *
+ * Ported 1:1 from the approved prototype:
+ *   /private/tmp/.../scratchpad/manifesto3d/index.html
+ *   (v5, kultrún-audited + contrast-veil + capability-gate fix + serpent
+ *   repositioned/restyled 3x (Filu -> obsidian star-glint -> obsidian
+ *   faceted diamond-scale w/ bump relief) + DNA restyled twice
+ *   (de-saturated gold/teal -> obsidian crystalline), 2026-07-19)
+ *
+ * PROGRESSIVE ENHANCEMENT (non-negotiable, unchanged since v3):
+ * - `ManifestoSpiral.astro` (hand-coded SVG) stays the DEFAULT served visual —
+ *   only prefers-reduced-motion, no WebGL, or a genuinely tiny viewport
+ *   (<360px) get it instead of the 3D. hardwareConcurrency/deviceMemory do
+ *   NOT gate this fallback (fixed 2026-07-18 — low core counts are common on
+ *   perfectly capable machines/VMs/previews and would wrongly hide the 3D);
+ *   they only pick a lighter quality PRESET inside the engine (see `lowPerf`).
+ * - A tiny synchronous `is:inline` script decides capability (matchMedia +
+ *   WebGL feature-detect only — no Three.js touched) and flips which of the
+ *   two blocks is `hidden`, before the user is likely to have scrolled.
+ * - The engine (~500kb: three + gsap + lenis) is dynamic-import()'d only
+ *   inside an IntersectionObserver callback — reduced-motion / no-WebGL /
+ *   tiny-viewport visitors download none of it.
+ * - Inside the engine itself, the HEAVY depth (kultrún, DNA tubes, the eye
+ *   net, the black hole) is built in a deferred `buildDeep()` — requestIdle
+ *   Callback (setTimeout fallback) — so the opening (sun/planets/earth) paints
+ *   fast and the rest streams in "while you read" the first few stations.
+ * - The render loop is fully paused (cancelAnimationFrame) whenever the
+ *   section scrolls out of view, and the fixed canvas/UI chrome hides at the
+ *   same moment (a `position:fixed` canvas would otherwise paint over the
+ *   Kultrun section / Footer below once scrolled past).
+ *
+ * Lenis note: Lenis smooths the WHOLE window scroll while the engine is
+ * loaded (its default mode, exactly like the approved prototype) — this only
+ * ever happens on /manifesto (this component is imported nowhere else), so
+ * it never touches scroll feel on Shop/Home/other pages.
+ */
+import ManifestoSpiral from './ManifestoSpiral.astro';
+
+type Station = {
+  chapter: string;
+  eyebrow: string;
+  eyebrowClass?: 'teal' | 'ame';
+  heading: string;
+  hero?: boolean;
+  lede?: string;
+  body?: string;
+  phase?: string;
+  es?: string;
+};
+
+// Copy verbatim from the approved v5 prototype (mapuche cosmology pass).
+const STATIONS: Station[] = [
+  {
+    chapter: 'I · Wenu Mapu — the sky-world',
+    eyebrow: 'Wenu Mapu — the manifesto',
+    hero: true,
+    heading: 'The body is<br>sacred territory',
+    lede: 'An awakening · from the sky-world to the self',
+  },
+  {
+    chapter: 'II · Antü — the first light',
+    eyebrow: 'The source',
+    heading: 'Everything begins<br>as light',
+    body: 'The Mapuche name the world above Wenu Mapu — the land of light, where the ancestors dwell. A single radiance chose to become many. You are one of the ways it learned to see itself.',
+  },
+  {
+    chapter: "III · Rüpü — the ancestors' road",
+    eyebrow: 'The wandering fires',
+    eyebrowClass: 'ame',
+    heading: 'The fire that lit the stars<br>sleeps inside your bones',
+    body: 'The Milky Way is Rüpü — the luminous road the ancestors walk. Iron, gold, calcium: every atom in you was forged along it. You are not watching the cosmos. You are the cosmos, remembering itself.',
+  },
+  {
+    chapter: 'IV · Küyen — the tide within',
+    eyebrow: 'The moon',
+    eyebrowClass: 'teal',
+    heading: 'She who moves the sea<br>moves the blood',
+    body: 'Küyen never touches you, yet you answer her. Every rhythm in the body is a smaller echo of a larger sky.',
+    es: 'Küyen ñi az',
+  },
+  {
+    chapter: 'V · Nag Mapu — the living ground',
+    eyebrow: 'The earth',
+    heading: 'A blue seed<br>suspended in the dark',
+    body: 'Nag Mapu — the land here, where we stand. Water, breath, soil and stone practiced making bodies long before they made ours. We are the earth, learning to walk and to wonder.',
+  },
+  {
+    chapter: 'VI · The descent — toward Miñche Mapu',
+    eyebrow: 'The threshold',
+    eyebrowClass: 'ame',
+    heading: 'Now we turn inward,<br>toward the world below',
+    body: 'To descend into the body is to travel toward Miñche Mapu, the land beneath — through the four forces from which every living thing is woven.',
+    phase: 'Kütral · Kürüf · Ko · Kura',
+  },
+  {
+    chapter: 'VII · Kütral — the first fire',
+    eyebrow: 'Plasma · fire',
+    heading: 'Before form,<br>there was only fire',
+    body: 'Kütral — the state of stars and lightning. Pure charge, undecided, still becoming. The first breath of creation, still glowing in the deep.',
+  },
+  {
+    chapter: 'VIII · Kürüf — the breath',
+    eyebrow: 'Gas · wind',
+    eyebrowClass: 'teal',
+    heading: 'Then the fire cooled<br>into breath',
+    body: 'Kürüf — the wind, the air, the spirit that fills the lungs and moves the world. To breathe is to remember you were once wind.',
+  },
+  {
+    chapter: 'IX · Ko — the flow',
+    eyebrow: 'Liquid · water',
+    eyebrowClass: 'teal',
+    heading: 'Breath became water,<br>water became blood',
+    body: 'Ko — water. The body is mostly ocean. What flows through the rivers flows through you: the same water, only borrowed for a lifetime.',
+  },
+  {
+    chapter: 'X · Kura — the form',
+    eyebrow: 'Solid · stone',
+    heading: 'And water became<br>bone, stone, metal',
+    body: 'Kura — stone. Matter finally holds a shape. Here adornment is born: form made sacred, the cosmos choosing to wear a face.',
+  },
+  {
+    chapter: 'XI · Meli Witran Mapu — the four directions',
+    eyebrow: 'The kultrún',
+    eyebrowClass: 'ame',
+    heading: 'The drum is a map<br>of the whole universe',
+    body: 'Meli Witran Mapu — the four places, oriented from the east: Puel, Willi, Lafken, Pikun. The kultrún holds the three worlds at once. To adorn the body is to carry the cosmos, oriented.',
+    es: 'Meli Witran Mapu',
+  },
+  {
+    chapter: 'XII · The cosmic code',
+    eyebrow: 'The spiral within',
+    eyebrowClass: 'teal',
+    heading: 'At the center of the body:<br>the same spiral as the sky',
+    body: 'The strand that writes every living thing turns like a galaxy, coils like a serpent, rises like smoke. The ancestors read the spiral in the stars before we found it in the cell.',
+  },
+  {
+    chapter: 'XIII · Itrofill Mongen — you are seen',
+    eyebrow: 'The net of eyes',
+    eyebrowClass: 'ame',
+    heading: 'You were never<br>watching alone',
+    body: 'Itrofill Mongen — all life, whole and interwoven. The Ngen — spirits of water, forest and stone — are watching. The cosmos looks back at you through a thousand eyes.',
+  },
+  {
+    chapter: 'XIV · Miñche Mapu — the return',
+    eyebrow: 'The source, again',
+    heading: 'All that spirals out<br>spirals home',
+    body: 'The whirlpool takes the sun, the stars, the body, the name — everything returns to the still center, the great mystery. And from the nothing, it all begins again.',
+    es: 'Wenu mapu ñi kimün',
+  },
+];
+---
+
+<section id="ms3d" class="ms3d" aria-label="The manifesto — a cosmic journey">
+  <p class="visually-hidden">
+    A visionary journey through Mapuche cosmology: Wenu Mapu, the sky-world and
+    its sun, the ancestors' road of stars, the moon, Nag Mapu the living earth,
+    descending through the four forces — fire, wind, water, stone — to the
+    kultrún as a map of the universe, the cosmic double helix at the center, a
+    toroidal net of eyes that watches back, and Miñche Mapu — the whirlpool
+    that returns everything to the still center, to nothing, to begin again.
+  </p>
+
+  {/* DEFAULT — the existing hand-coded SVG spiral. Untouched. Visible unless
+      the inline capability check below decides the device can run the 3D. */}
+  <div id="ms3d-poster" class="ms3d-poster">
+    <ManifestoSpiral />
+  </div>
+
+  {/* ENHANCED — WebGL journey + real HTML station text. `hidden` until JS
+      confirms the device qualifies (see the is:inline script). */}
+  <div id="ms3d-enhanced" class="ms3d-enhanced" hidden>
+    <canvas id="ms3d-webgl" class="ms3d-webgl" aria-hidden="true"></canvas>
+    <div class="ms3d-vignette" aria-hidden="true"></div>
+    <div id="ms3d-void" class="ms3d-void" aria-hidden="true"></div>
+    <div id="ms3d-voidword" class="ms3d-voidword" aria-hidden="true">· nothing · everything ·</div>
+    <div id="ms3d-rail" class="ms3d-rail" aria-hidden="true"></div>
+    <div id="ms3d-chapter" class="ms3d-chapter" aria-hidden="true"></div>
+    <p class="ms3d-hint" aria-hidden="true">Scroll slowly — from Wenu Mapu to the world below</p>
+    <div id="ms3d-loading" class="ms3d-loading" aria-hidden="true">Opening the eye of the sky…</div>
+
+    <main id="ms3d-stations" class="ms3d-stations">
+      {STATIONS.map((s) => (
+        <section class="ms3d-station" data-chapter={s.chapter}>
+          <div class="ms3d-reveal">
+            <p class:list={['ms3d-eyebrow', s.eyebrowClass && `ms3d-eyebrow--${s.eyebrowClass}`]}>{s.eyebrow}</p>
+            {s.hero
+              ? <h2 class="ms3d-heading ms3d-heading--hero" set:html={s.heading} />
+              : <h2 class="ms3d-heading" set:html={s.heading} />}
+            {s.lede && <p class="ms3d-lede">{s.lede}</p>}
+            {s.body && (
+              <p class="ms3d-body">
+                {s.body}
+                {s.es && <span class="ms3d-es" lang="arn">{s.es}</span>}
+              </p>
+            )}
+            {s.phase && <p class="ms3d-phase">{s.phase}</p>}
+          </div>
+        </section>
+      ))}
+    </main>
+  </div>
+</section>
+
+{/* Cheap, synchronous, BEFORE the heavy engine: decides once whether this
+    device qualifies for 3D, and flips the two blocks' visibility immediately
+    (no Three.js loaded yet — just a WebGL context probe). Runs at parse time
+    (classic inline script), before the deferred module below and before the
+    user is likely to have scrolled — avoids a visible layout jump.
+
+    IMPORTANT (fixed 2026-07-18, owner catch): the SVG fallback is for
+    devices that genuinely CAN'T run this — no WebGL, prefers-reduced-motion,
+    or a truly tiny viewport (<360px). hardwareConcurrency/deviceMemory do
+    NOT gate the fallback — low core counts are common and harmless (VMs,
+    some laptops, browser previews) and would wrongly hide the 3D from
+    perfectly capable machines. Those two signals only pick a lower-quality
+    PRESET (fewer particles/segments, lower DPR, half-res bloom) via the
+    existing `mobile` branches inside the engine — see __ms3dLowPerf below. */}
+<script is:inline>
+(function () {
+  function ms3dCapable() {
+    try {
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+      if (innerWidth < 360) return false;
+      var probe = document.createElement('canvas');
+      var gl = probe.getContext('webgl2') || probe.getContext('webgl');
+      if (!gl) return false;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  function ms3dLowPerf() {
+    try {
+      var nav = navigator;
+      return !!((nav.deviceMemory && nav.deviceMemory < 4) || (nav.hardwareConcurrency && nav.hardwareConcurrency <= 2));
+    } catch (e) {
+      return false;
+    }
+  }
+  var ok = ms3dCapable();
+  window.__ms3dCapable = ok;
+  window.__ms3dLowPerf = ms3dLowPerf();
+  if (ok) {
+    var poster = document.getElementById('ms3d-poster');
+    var enhanced = document.getElementById('ms3d-enhanced');
+    if (poster) poster.hidden = true;
+    if (enhanced) enhanced.hidden = false;
+  }
+})();
+</script>
+
+{/* Heavy engine — lazy, gated. Astro bundles this as a module via Vite, so
+    the dynamic import()s below are code-split into their own chunks and are
+    only fetched over the network once loadEngine() actually runs (never, for
+    reduced-motion / no-WebGL / low-end visitors — window.__ms3dCapable is
+    false and this whole block short-circuits at the top). */}
+<script>
+  const section = document.getElementById('ms3d');
+  const enhanced = document.getElementById('ms3d-enhanced');
+
+  if (section && enhanced && (window as any).__ms3dCapable) {
+    let engine: { pause: () => void; resume: () => void; dispose: () => void } | null = null;
+    let loading = false;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            enhanced.classList.add('is-active');
+            if (engine) engine.resume();
+            else if (!loading) {
+              loading = true;
+              loadEngine().finally(() => {
+                loading = false;
+              });
+            }
+          } else {
+            enhanced.classList.remove('is-active');
+            if (engine) engine.pause();
+          }
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(section);
+
+    window.addEventListener('pagehide', () => {
+      io.disconnect();
+      engine?.dispose();
+    });
+
+    async function loadEngine() {
+      // `mobile` doubles as the quality PRESET switch (segments, particle
+      // counts, DPR cap, bloom resolution — all the existing branches below).
+      // A small/narrow viewport forces it; a weak-but-wide device (low core
+      // count or <4GB reported memory) also gets the lighter preset, without
+      // ever being denied the 3D itself (that gate lives in the is:inline
+      // script above and does NOT look at hardwareConcurrency/deviceMemory).
+      const lowPerf = (window as any).__ms3dLowPerf === true;
+      const mobile = innerWidth < 760 || lowPerf;
+      const [THREE, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, gsapMod, stMod, lenisMod] =
+        await Promise.all([
+          import('three'),
+          import('three/addons/postprocessing/EffectComposer.js'),
+          import('three/addons/postprocessing/RenderPass.js'),
+          import('three/addons/postprocessing/UnrealBloomPass.js'),
+          import('gsap'),
+          import('gsap/ScrollTrigger'),
+          import('lenis'),
+        ]);
+      const gsap = (gsapMod as any).gsap || (gsapMod as any).default;
+      const ScrollTrigger = (stMod as any).ScrollTrigger || (stMod as any).default;
+      const Lenis = (lenisMod as any).default;
+      engine = buildEngine({ THREE, EffectComposer, RenderPass, UnrealBloomPass, gsap, ScrollTrigger, Lenis, mobile });
+    }
+
+    function buildEngine({
+      THREE,
+      EffectComposer,
+      RenderPass,
+      UnrealBloomPass,
+      gsap,
+      ScrollTrigger,
+      Lenis,
+      mobile,
+    }: any) {
+      const SEG = mobile ? 28 : 56;
+      const C = { obsidian: 0x07070c, bone: 0xf0ede8, ember: 0xc9a84c, teal: 0x64e0d0, amethyst: 0x9a7ee0, silver: 0xb8b4aa };
+      const L = THREE.MathUtils.lerp;
+      const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
+      const canvas = document.getElementById('ms3d-webgl') as HTMLCanvasElement;
+      const renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.75 : 2));
+      renderer.setClearColor(C.obsidian, 1);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+      const scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(C.obsidian, 0.0034);
+      const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2200);
+
+      const sprite = (() => {
+        const c = document.createElement('canvas');
+        c.width = c.height = 64;
+        const x = c.getContext('2d')!;
+        const g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+        g.addColorStop(0, '#fff');
+        g.addColorStop(0.4, 'rgba(255,255,255,.55)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = g;
+        x.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(c);
+      })();
+      const pts = (geo: any, { size = 0.5, opacity = 1, color = null as any, vertexColors = false }) =>
+        new THREE.Points(
+          geo,
+          new THREE.PointsMaterial({
+            size,
+            map: sprite,
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            sizeAttenuation: true,
+            opacity,
+            vertexColors,
+            ...(color != null ? { color } : {}),
+          })
+        );
+
+      // ── sacred-geometry mandala (Flower of Life + Sri Yantra hint) ───────
+      function mandala(px: number, hex: string) {
+        const c = document.createElement('canvas');
+        c.width = c.height = px;
+        const x = c.getContext('2d')!;
+        x.translate(px / 2, px / 2);
+        x.strokeStyle = hex;
+        x.lineWidth = Math.max(1, px / 640);
+        x.lineJoin = 'round';
+        const R = px * 0.085,
+          seeds: [number, number][] = [[0, 0]];
+        for (let k = 0; k < 6; k++) {
+          const a = (k * Math.PI) / 3;
+          seeds.push([Math.cos(a) * R, Math.sin(a) * R]);
+        }
+        for (let k = 0; k < 6; k++) {
+          const a = (k * Math.PI) / 3;
+          seeds.push([Math.cos(a) * R * 2, Math.sin(a) * R * 2]);
+        }
+        for (let k = 0; k < 6; k++) {
+          const a = (k * Math.PI) / 3 + Math.PI / 6,
+            d = R * Math.sqrt(3);
+          seeds.push([Math.cos(a) * d, Math.sin(a) * d]);
+        }
+        x.globalAlpha = 0.5;
+        for (const [ax, ay] of seeds) {
+          x.beginPath();
+          x.arc(ax, ay, R, 0, 6.283);
+          x.stroke();
+        }
+        x.globalAlpha = 0.85;
+        for (const rr of [R * 2, R * 3, R * 3.5]) {
+          x.beginPath();
+          x.arc(0, 0, rr, 0, 6.283);
+          x.stroke();
+        }
+        x.globalAlpha = 0.3;
+        for (let k = 0; k < 24; k++) {
+          const a = (k * Math.PI) / 12;
+          x.beginPath();
+          x.moveTo(Math.cos(a) * R * 1.2, Math.sin(a) * R * 1.2);
+          x.lineTo(Math.cos(a) * R * 3.5, Math.sin(a) * R * 3.5);
+          x.stroke();
+        }
+        x.globalAlpha = 0.55;
+        const tri = (rot: number) => {
+          x.beginPath();
+          for (let k = 0; k < 3; k++) {
+            const a = rot + (k * 2 * Math.PI) / 3,
+              tx = Math.cos(a) * R * 2.7,
+              ty = Math.sin(a) * R * 2.7;
+            k ? x.lineTo(tx, ty) : x.moveTo(tx, ty);
+          }
+          x.closePath();
+          x.stroke();
+        };
+        tri(-Math.PI / 2);
+        tri(Math.PI / 2);
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      function mandalaPlane(size: number, texColor: string, tint: any, opacity: number) {
+        const m = new THREE.Mesh(
+          new THREE.PlaneGeometry(size, size),
+          new THREE.MeshBasicMaterial({
+            map: mandala(mobile ? 512 : 1024, texColor),
+            color: tint,
+            transparent: true,
+            opacity,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+          })
+        );
+        scene.add(m);
+        return m;
+      }
+      function fresnelMat(color: number, power: number, scaleV: number) {
+        return new THREE.ShaderMaterial({
+          uniforms: { glow: { value: new THREE.Color(color) }, p: { value: power }, s: { value: scaleV } },
+          vertexShader: `varying float i; uniform float p; uniform float s;
+            void main(){ vec3 n=normalize(normalMatrix*normal); vec3 v=normalize((modelViewMatrix*vec4(position,1.0)).xyz);
+            i=pow(clamp(s - dot(n,-v),0.0,1.0),p); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+          fragmentShader: `varying float i; uniform vec3 glow; void main(){ gl_FragColor=vec4(glow,1.0)*i; }`,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+          side: THREE.BackSide,
+        });
+      }
+
+      // ── world Y map ────────────────────────────────────────────────────────
+      const SUN_Y = 285,
+        PLANET_Y = 232,
+        MARS_Y = 192,
+        MOON_Y = 150,
+        EARTH_Y = 104;
+      const PLASMA = [40, 84],
+        GAS = [-8, 38],
+        LIQUID = [-60, -12],
+        SOLID = [-108, -64];
+      const KULTRUN_Y = -140,
+        DNA_TOP = -150,
+        DNA_BOT = -250,
+        EYES_C = -290,
+        BH_Y = -360,
+        CAM_BOT = -350;
+      const SUN_R = 34,
+        EARTH_R = 15;
+
+      // ── LIGHTS — key + rim, so every body has a real terminator ─────────────
+      scene.add(new THREE.AmbientLight(0x161f2e, 0.34));
+      const sunLight = new THREE.PointLight(0xfff0d0, 2.0, 1700, 0.4);
+      sunLight.position.set(0, SUN_Y, 0);
+      scene.add(sunLight);
+      const keyLight = new THREE.DirectionalLight(0xffe7c4, 1.5);
+      keyLight.position.set(0.55, 0.9, 0.4);
+      scene.add(keyLight);
+      const rimLight = new THREE.DirectionalLight(0x6f5fb0, 0.7);
+      rimLight.position.set(-0.6, -0.35, -0.55);
+      scene.add(rimLight);
+
+      // ── starfield ─────────────────────────────────────────────────────────
+      let stars: any;
+      (function () {
+        const N = mobile ? 1500 : 3000,
+          a = new Float32Array(N * 3),
+          col = new Float32Array(N * 3),
+          t = new THREE.Color(),
+          cB = new THREE.Color(C.bone),
+          cA = new THREE.Color(C.amethyst);
+        for (let i = 0; i < N; i++) {
+          const r = 320 + Math.random() * 560,
+            th = Math.random() * 6.283,
+            ph = Math.acos(2 * Math.random() - 1);
+          a[i * 3] = r * Math.sin(ph) * Math.cos(th);
+          a[i * 3 + 1] = (SUN_Y + BH_Y) / 2 + r * Math.cos(ph) * 0.8;
+          a[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+          t.copy(cB).lerp(cA, Math.random() * 0.4);
+          col[i * 3] = t.r;
+          col[i * 3 + 1] = t.g;
+          col[i * 3 + 2] = t.b;
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(a, 3));
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        stars = pts(g, { size: 1.0, vertexColors: true, opacity: 0.7 });
+        scene.add(stars);
+      })();
+
+      // ── procedural textures ──────────────────────────────────────────────────
+      function sunTexture() {
+        const s = 512,
+          c = document.createElement('canvas');
+        c.width = c.height = s;
+        const x = c.getContext('2d')!;
+        x.fillStyle = '#ffae3a';
+        x.fillRect(0, 0, s, s);
+        for (let i = 0; i < 1800; i++) {
+          const bx = Math.random() * s,
+            by = Math.random() * s,
+            r = 2 + Math.random() * 11,
+            b = Math.random();
+          const g = x.createRadialGradient(bx, by, 0, bx, by, r);
+          g.addColorStop(0, b > 0.72 ? 'rgba(255,252,225,.95)' : 'rgba(255,206,96,.7)');
+          g.addColorStop(1, 'rgba(255,150,40,0)');
+          x.fillStyle = g;
+          x.fillRect(bx - r, by - r, r * 2, r * 2);
+        }
+        for (let i = 0; i < 9; i++) {
+          const bx = Math.random() * s,
+            by = Math.random() * s,
+            r = 6 + Math.random() * 15;
+          x.fillStyle = 'rgba(150,66,18,.5)';
+          x.beginPath();
+          x.arc(bx, by, r, 0, 6.283);
+          x.fill();
+        }
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      function bandedTexture() {
+        const w = 512,
+          h = 256,
+          c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const x = c.getContext('2d')!;
+        let y = 0;
+        while (y < h) {
+          const bh = 5 + Math.random() * 20,
+            sh = Math.random();
+          x.fillStyle = sh > 0.66 ? '#d9b98a' : sh > 0.33 ? '#b98a5c' : '#9c7048';
+          x.fillRect(0, y, w, bh);
+          x.globalAlpha = 0.12;
+          x.fillStyle = '#fff';
+          if (Math.random() > 0.6) x.fillRect(0, y, w, bh * 0.4);
+          x.globalAlpha = 1;
+          y += bh;
+        }
+        x.fillStyle = 'rgba(178,74,46,.85)';
+        x.beginPath();
+        x.ellipse(w * 0.66, h * 0.62, 30, 17, 0, 0, 6.283);
+        x.fill();
+        x.fillStyle = 'rgba(210,120,80,.4)';
+        x.beginPath();
+        x.ellipse(w * 0.66, h * 0.62, 20, 10, 0, 0, 6.283);
+        x.fill();
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      function marsTexture() {
+        const s = 512,
+          c = document.createElement('canvas');
+        c.width = c.height = s;
+        const x = c.getContext('2d')!;
+        x.fillStyle = '#a8482a';
+        x.fillRect(0, 0, s, s);
+        for (let i = 0; i < 60; i++) {
+          const bx = Math.random() * s,
+            by = Math.random() * s,
+            r = 8 + Math.random() * 46;
+          x.fillStyle = `rgba(${(90 + Math.random() * 40) | 0},${(40 + Math.random() * 20) | 0},20,.35)`;
+          x.beginPath();
+          x.arc(bx, by, r, 0, 6.283);
+          x.fill();
+        }
+        x.fillStyle = 'rgba(240,235,230,.9)';
+        x.beginPath();
+        x.arc(s / 2, 20, 40, 0, 6.283);
+        x.fill();
+        x.beginPath();
+        x.arc(s / 2, s - 20, 34, 0, 6.283);
+        x.fill();
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      function moonTexture() {
+        const s = 512,
+          c = document.createElement('canvas');
+        c.width = c.height = s;
+        const x = c.getContext('2d')!;
+        x.fillStyle = '#9a9a9a';
+        x.fillRect(0, 0, s, s);
+        for (let i = 0; i < 10; i++) {
+          const bx = Math.random() * s,
+            by = Math.random() * s,
+            r = 30 + Math.random() * 70;
+          x.fillStyle = 'rgba(120,120,124,.5)';
+          x.beginPath();
+          x.arc(bx, by, r, 0, 6.283);
+          x.fill();
+        }
+        for (let i = 0; i < 90; i++) {
+          const bx = Math.random() * s,
+            by = Math.random() * s,
+            r = 2 + Math.random() * 13;
+          x.fillStyle = `rgba(70,70,72,${0.2 + Math.random() * 0.35})`;
+          x.beginPath();
+          x.arc(bx, by, r, 0, 6.283);
+          x.fill();
+        }
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      function earthTexture() {
+        const c = document.createElement('canvas');
+        c.width = 1024;
+        c.height = 512;
+        const x = c.getContext('2d')!;
+        const og = x.createLinearGradient(0, 0, 0, 512);
+        og.addColorStop(0, '#0a3a5c');
+        og.addColorStop(0.5, '#0f5a82');
+        og.addColorStop(1, '#0a3a5c');
+        x.fillStyle = og;
+        x.fillRect(0, 0, 1024, 512);
+        const blob = (cx: number, cy: number, r: number, color: string) => {
+          x.fillStyle = color;
+          x.beginPath();
+          for (let a = 0; a < 6.283; a += 0.24) {
+            const rr = r * (0.55 + Math.random() * 0.6),
+              pxp = cx + Math.cos(a) * rr,
+              pyp = cy + Math.sin(a) * rr * 0.7;
+            a === 0 ? x.moveTo(pxp, pyp) : x.lineTo(pxp, pyp);
+          }
+          x.closePath();
+          x.fill();
+        };
+        const greens = ['#3a7d42', '#4a8f4e', '#6b8f3a', '#7a7538', '#356b3a'];
+        for (let i = 0; i < 32; i++) blob(Math.random() * 1024, 120 + Math.random() * 280, 26 + Math.random() * 80, greens[i % greens.length]);
+        x.fillStyle = 'rgba(244,248,252,.95)';
+        x.fillRect(0, 0, 1024, 38);
+        x.fillRect(0, 474, 1024, 38);
+        x.globalAlpha = 0.1;
+        x.fillStyle = '#fff';
+        for (let i = 0; i < 34; i++) blob(Math.random() * 1024, Math.random() * 512, 16 + Math.random() * 40, '#fff');
+        x.globalAlpha = 1;
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+      // authentic kultrún drumhead — audited pass: 4-direction cross from the
+      // east, choike/ñandú three-toed terminals (the signature kultrún foot),
+      // and the four quadrant motifs each centered on its diagonal: Antü the
+      // sun (rays), Küyen the crescent moon, Melipal the Southern Cross (four
+      // stars), Wüñelfe the eight-point morning star.
+      function kultrunTexture() {
+        const s = 512,
+          c = document.createElement('canvas');
+        c.width = c.height = s;
+        const x = c.getContext('2d')!;
+        x.translate(s / 2, s / 2);
+        const R = 6.283;
+        x.fillStyle = '#0d0a07';
+        x.beginPath();
+        x.arc(0, 0, s * 0.47, 0, R);
+        x.fill(); // leather membrane
+        x.strokeStyle = '#c9a84c';
+        x.fillStyle = '#c9a84c';
+        x.globalAlpha = 0.97;
+        x.lineCap = 'round';
+        x.lineJoin = 'round';
+        x.lineWidth = 7;
+        x.beginPath();
+        x.arc(0, 0, s * 0.45, 0, R);
+        x.stroke(); // rim
+        const arm = s * 0.37;
+        x.lineWidth = 9;
+        x.beginPath();
+        x.moveTo(-arm, 0);
+        x.lineTo(arm, 0);
+        x.moveTo(0, -arm);
+        x.lineTo(0, arm);
+        x.stroke(); // 4-direction cross (from the east)
+        // choike (ñandú) three-toed feet at each cardinal end — the signature kultrún terminal
+        x.lineWidth = 6;
+        const foot = (ang: number) => {
+          x.save();
+          x.rotate(ang);
+          const b = arm,
+            tp = s * 0.455;
+          x.beginPath();
+          x.moveTo(b, 0);
+          x.lineTo(tp, 0);
+          x.moveTo(b, 0);
+          x.lineTo(tp * 0.97, -s * 0.085);
+          x.moveTo(b, 0);
+          x.lineTo(tp * 0.97, s * 0.085);
+          x.stroke();
+          x.restore();
+        };
+        for (let k = 0; k < 4; k++) foot((k * Math.PI) / 2);
+        x.lineWidth = 3;
+        x.beginPath();
+        x.arc(0, 0, s * 0.13, 0, R);
+        x.stroke(); // inner circle — centre of the world
+        x.strokeStyle = '#e8c766';
+        x.fillStyle = '#e8c766';
+        const q = s * 0.27; // mid-quadrant, on the diagonals
+        // Antü — the sun (upper-right / east): disc + rays
+        ((cx: number, cy: number, r: number) => {
+          x.lineWidth = 4;
+          x.beginPath();
+          x.arc(cx, cy, r * 0.42, 0, R);
+          x.fill();
+          for (let k = 0; k < 12; k++) {
+            const a = (k * R) / 12;
+            x.beginPath();
+            x.moveTo(cx + Math.cos(a) * r * 0.55, cy + Math.sin(a) * r * 0.55);
+            x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+            x.stroke();
+          }
+        })(q, -q, 30);
+        // Küyen — the moon (upper-left): filled crescent
+        ((cx: number, cy: number, r: number) => {
+          x.beginPath();
+          x.arc(cx, cy, r, Math.PI * 0.5, Math.PI * 1.5, false);
+          x.arc(cx + r * 0.55, cy, r * 0.92, Math.PI * 1.5, Math.PI * 0.5, true);
+          x.closePath();
+          x.fill();
+        })(-q, -q, 26);
+        // Melipal — the Southern Cross (lower-left): four stars
+        ((cx: number, cy: number) => {
+          const points: [number, number][] = [
+            [0, -22],
+            [0, 16],
+            [-14, -2],
+            [13, 4],
+          ];
+          for (const [dx, dy] of points) {
+            x.beginPath();
+            x.arc(cx + dx, cy + dy, 3.4, 0, R);
+            x.fill();
+            x.lineWidth = 2;
+            for (let k = 0; k < 4; k++) {
+              const a = (k * Math.PI) / 2;
+              x.beginPath();
+              x.moveTo(cx + dx, cy + dy);
+              x.lineTo(cx + dx + Math.cos(a) * 6, cy + dy + Math.sin(a) * 6);
+              x.stroke();
+            }
+          }
+        })(-q, q);
+        // Wüñelfe — the morning star (lower-right): eight-point star
+        ((cx: number, cy: number, r: number) => {
+          x.lineWidth = 4;
+          for (let k = 0; k < 8; k++) {
+            const a = (k * R) / 8,
+              len = k % 2 ? r * 0.5 : r;
+            x.beginPath();
+            x.moveTo(cx, cy);
+            x.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+            x.stroke();
+          }
+          x.beginPath();
+          x.arc(cx, cy, 3.6, 0, R);
+          x.fill();
+        })(q, q, 24);
+        x.fillStyle = '#f0ede8';
+        x.beginPath();
+        x.arc(0, 0, 9, 0, R);
+        x.fill(); // centre — the world / the machi's land
+        const t = new THREE.CanvasTexture(c);
+        t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      }
+
+      // ── THE SUN — Wenu Mapu / the source ─────────────────────────────────────
+      const sun = new THREE.Mesh(new THREE.SphereGeometry(SUN_R, SEG, SEG), new THREE.MeshBasicMaterial({ map: sunTexture() }));
+      sun.position.set(0, SUN_Y, 0);
+      scene.add(sun);
+      const sunGlow = new THREE.Mesh(new THREE.SphereGeometry(SUN_R * 1.14, SEG, SEG), fresnelMat(0xffcf70, 3.0, 1.0));
+      sunGlow.position.copy(sun.position);
+      scene.add(sunGlow);
+      (function () {
+        const N = mobile ? 1200 : 2200,
+          a = new Float32Array(N * 3),
+          col = new Float32Array(N * 3),
+          c1 = new THREE.Color(0xffe19a),
+          c2 = new THREE.Color(C.ember),
+          t = new THREE.Color();
+        for (let i = 0; i < N; i++) {
+          const r = SUN_R + Math.pow(Math.random(), 2) * 54,
+            th = Math.random() * 6.283,
+            ph = Math.acos(2 * Math.random() - 1);
+          a[i * 3] = r * Math.sin(ph) * Math.cos(th);
+          a[i * 3 + 1] = SUN_Y + r * Math.cos(ph);
+          a[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
+          t.copy(c1).lerp(c2, Math.random());
+          col[i * 3] = t.r;
+          col[i * 3 + 1] = t.g;
+          col[i * 3 + 2] = t.b;
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(a, 3));
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        scene.add(pts(g, { size: 1.5, vertexColors: true, opacity: 0.9 }));
+      })();
+      const proms = new THREE.Group();
+      proms.position.copy(sun.position);
+      scene.add(proms);
+      for (let i = 0; i < (mobile ? 4 : 6); i++) {
+        const tm = new THREE.Mesh(
+          new THREE.TorusGeometry(SUN_R * 0.5, SUN_R * 0.028, 8, 44, Math.PI * rand(0.5, 0.9)),
+          new THREE.MeshBasicMaterial({ color: 0xff9a3c, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending })
+        );
+        tm.position.set(0, SUN_R * 0.92, 0);
+        const piv = new THREE.Group();
+        piv.rotation.set(rand(0, 6.28), rand(0, 6.28), rand(0, 6.28));
+        piv.add(tm);
+        (piv.userData as any).ph = rand(0, 6.28);
+        proms.add(piv);
+      }
+      const mandalaSun = mandalaPlane(SUN_R * 7.5, '#ffe6a8', new THREE.Color(0xffd070), 0.26);
+      mandalaSun.position.copy(sun.position);
+
+      // ── PLANETS + MOON (lit for contrast) ─────────────────────────────────
+      const gasGiant = new THREE.Mesh(new THREE.SphereGeometry(16, SEG, SEG), new THREE.MeshStandardMaterial({ map: bandedTexture(), roughness: 0.95, metalness: 0.0 }));
+      gasGiant.position.set(13, PLANET_Y, -8);
+      gasGiant.rotation.z = 0.18;
+      scene.add(gasGiant);
+      (function () {
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(20, 30, 72),
+          new THREE.MeshBasicMaterial({ color: 0xe0c79c, transparent: true, opacity: 0.4, side: THREE.DoubleSide, blending: THREE.AdditiveBlending })
+        );
+        ring.position.copy(gasGiant.position);
+        ring.rotation.x = Math.PI * 0.42;
+        ring.rotation.y = 0.3;
+        scene.add(ring);
+      })();
+      const mars = new THREE.Mesh(new THREE.SphereGeometry(8, SEG, SEG), new THREE.MeshStandardMaterial({ map: marsTexture(), roughness: 1, metalness: 0 }));
+      mars.position.set(-14, MARS_Y, 6);
+      scene.add(mars);
+      const moon = new THREE.Mesh(new THREE.SphereGeometry(5.4, SEG, SEG), new THREE.MeshStandardMaterial({ map: moonTexture(), roughness: 1, metalness: 0 }));
+      moon.position.set(16, MOON_Y, 7);
+      scene.add(moon);
+
+      // ── THE EARTH — Nag Mapu ───────────────────────────────────────────────
+      const earth = new THREE.Mesh(
+        new THREE.SphereGeometry(EARTH_R, SEG, SEG),
+        new THREE.MeshStandardMaterial({ map: earthTexture(), roughness: 0.9, metalness: 0.02, emissive: 0x08203a, emissiveIntensity: 0.22 })
+      );
+      earth.position.set(0, EARTH_Y, 0);
+      scene.add(earth);
+      const earthAtmo = new THREE.Mesh(new THREE.SphereGeometry(EARTH_R * 1.09, SEG, SEG), fresnelMat(0x7fc4ec, 3.4, 1.0));
+      earthAtmo.position.copy(earth.position);
+      scene.add(earthAtmo);
+
+      // ── connective spiral thread (earth -> into DNA) ──────────────────────
+      (function () {
+        const N = mobile ? 5000 : 9000,
+          a = new Float32Array(N * 3),
+          col = new Float32Array(N * 3);
+        const top = EARTH_Y - 18,
+          bot = DNA_TOP + 4,
+          turns = 8,
+          cE = new THREE.Color(C.ember),
+          cT = new THREE.Color(C.teal),
+          cA = new THREE.Color(C.amethyst),
+          cB = new THREE.Color(C.bone),
+          t = new THREE.Color();
+        for (let i = 0; i < N; i++) {
+          const u = i / N,
+            y = L(top, bot, u),
+            rad = 3 + 16 * Math.pow(1 - u, 0.7),
+            strand = i % 3;
+          let ang = u * turns * 6.283 + (strand === 1 ? Math.PI : 0),
+            r = rad;
+          if (strand === 2) {
+            r = rad * (0.3 + Math.random() * 1.1);
+            ang += (Math.random() - 0.5) * 1.2;
+          } else {
+            r += (Math.random() - 0.5) * 1.6;
+          }
+          a[i * 3] = Math.cos(ang) * r;
+          a[i * 3 + 1] = y + (strand === 2 ? (Math.random() - 0.5) * 5 : 0);
+          a[i * 3 + 2] = Math.sin(ang) * r;
+          t.copy(strand === 1 ? cT : cE)
+            .lerp(cA, Math.pow(u, 2) * 0.4)
+            .lerp(cB, Math.pow(u, 1.6) * 0.3);
+          col[i * 3] = t.r;
+          col[i * 3 + 1] = t.g;
+          col[i * 3 + 2] = t.b;
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(a, 3));
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        scene.add(pts(g, { size: 0.55, vertexColors: true, opacity: 0.9 }));
+      })();
+
+      // ── states of matter (Kütral · Kürüf · Ko · Kura) ─────────────────────
+      function cloudPts(n: number, fn: (i: number) => any, color: any, { size = 0.6, opacity = 0.8, vc = false } = {}) {
+        const arr = new Float32Array(n * 3),
+          carr = vc ? new Float32Array(n * 3) : null,
+          base = new THREE.Color(color),
+          t = new THREE.Color();
+        for (let i = 0; i < n; i++) {
+          const p = fn(i);
+          arr[i * 3] = p.x;
+          arr[i * 3 + 1] = p.y;
+          arr[i * 3 + 2] = p.z;
+          if (vc) {
+            t.copy(base).lerp(new THREE.Color(p.tint || color), p.k || 0);
+            carr![i * 3] = t.r;
+            carr![i * 3 + 1] = t.g;
+            carr![i * 3 + 2] = t.b;
+          }
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+        if (vc) g.setAttribute('color', new THREE.BufferAttribute(carr!, 3));
+        const P = pts(g, { size, opacity, vertexColors: vc, color: vc ? null : color });
+        scene.add(P);
+        return P;
+      }
+      const NB = mobile ? 1400 : 2600;
+      const plasma = cloudPts(
+        NB,
+        () => {
+          const r = Math.random() * 24,
+            a = Math.random() * 6.283;
+          return { x: Math.cos(a) * r, y: L(PLASMA[0], PLASMA[1], Math.random()), z: Math.sin(a) * r, tint: 0xffffff, k: Math.random() * 0.6 };
+        },
+        C.ember,
+        { size: 0.85, vc: true, opacity: 0.9 }
+      );
+      const gas = cloudPts(
+        NB,
+        () => {
+          const r = Math.random() * 32,
+            a = Math.random() * 6.283;
+          return { x: Math.cos(a) * r, y: L(GAS[0], GAS[1], Math.random()), z: Math.sin(a) * r };
+        },
+        C.teal,
+        { size: 0.72, opacity: 0.5 }
+      );
+      const liquid = cloudPts(
+        NB,
+        (i) => {
+          const u = i / NB,
+            a = u * 6.283 * 30,
+            r = 8 + 6 * Math.sin(u * 40);
+          return { x: Math.cos(a) * r, y: L(LIQUID[0], LIQUID[1], u), z: Math.sin(a) * r };
+        },
+        0x5aa9d6,
+        { size: 0.62, opacity: 0.8 }
+      );
+      const solid = (function () {
+        const step = 4,
+          arr: number[] = [];
+        for (let gx = -12; gx <= 12; gx += step)
+          for (let gy = SOLID[0]; gy <= SOLID[1]; gy += step)
+            for (let gz = -12; gz <= 12; gz += step) {
+              if (Math.hypot(gx, gz) > 13) continue;
+              arr.push(gx + rand(-0.5, 0.5), gy + rand(-0.5, 0.5), gz + rand(-0.5, 0.5));
+            }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(arr), 3));
+        const P = pts(g, { size: 0.72, color: C.silver, opacity: 0.85 });
+        scene.add(P);
+        return P;
+      })();
+
+      // ── bloom + composer (mobile: cheaper — lower res, higher threshold) ───
+      const composer = new EffectComposer(renderer);
+      composer.addPass(new RenderPass(scene, camera));
+      const bloomRes = new THREE.Vector2(innerWidth, innerHeight);
+      if (mobile) bloomRes.multiplyScalar(0.6);
+      const bloom = new UnrealBloomPass(bloomRes, mobile ? 0.55 : 0.7, 0.55, mobile ? 0.4 : 0.3);
+      composer.addPass(bloom);
+      function resize() {
+        const w = innerWidth,
+          h = innerHeight;
+        renderer.setSize(w, h);
+        composer.setSize(w, h);
+        bloom.setSize(mobile ? w * 0.6 : w, mobile ? h * 0.6 : h);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+      resize();
+      addEventListener('resize', resize);
+
+      // ── deferred DEEP build (kultrún, DNA, eyes, black hole) — loads while
+      //    you read the first stations, so the opening paints fast ───────────
+      let kultrun: any, kultrunGlow: any, dna: any, eyeNet: any, blackhole: any, mandalaDna: any, mandalaBH: any;
+      let serpent: any, eyeSource: any, eyeRays: any;
+      const eyeTarget = { x: 0, y: 0 },
+        eyeLook = { x: 0, y: 0 };
+      let eyeIdle = 0;
+      const onPointerMove = (e: PointerEvent) => {
+        eyeTarget.x = (e.clientX / innerWidth) * 2 - 1;
+        eyeTarget.y = -((e.clientY / innerHeight) * 2 - 1);
+        eyeIdle = 0;
+      };
+      addEventListener('pointermove', onPointerMove, { passive: true });
+
+      function buildDeep() {
+        // MELI WITRAN MAPU — the kultrún drum
+        kultrun = new THREE.Mesh(new THREE.CircleGeometry(22, 72), new THREE.MeshBasicMaterial({ map: kultrunTexture(), transparent: true, opacity: 0.98, depthWrite: false, side: THREE.DoubleSide }));
+        kultrun.position.set(0, KULTRUN_Y, 0);
+        scene.add(kultrun);
+        const rim = new THREE.Mesh(new THREE.TorusGeometry(22, 0.9, 10, 72), new THREE.MeshStandardMaterial({ color: 0x6a4a28, roughness: 0.7, metalness: 0.2, emissive: 0x2a1c0e, emissiveIntensity: 0.4 }));
+        rim.position.copy(kultrun.position);
+        kultrun.add(rim);
+        kultrunGlow = mandalaPlane(64, '#ffe6a8', new THREE.Color(0xffce70), 0.12);
+        kultrunGlow.position.set(0, KULTRUN_Y, 0);
+
+        // THE COSMIC DNA — bold glowing tubes + base-pair jewels
+        dna = new THREE.Group();
+        scene.add(dna);
+        (function () {
+          const STEPS = mobile ? 110 : 200,
+            turns = 7,
+            rad = 9.5,
+            P1: any[] = [],
+            P2: any[] = [],
+            RA: any[] = [],
+            RB: any[] = [];
+          for (let i = 0; i <= STEPS; i++) {
+            const u = i / STEPS,
+              y = L(DNA_TOP, DNA_BOT, u),
+              ang = u * turns * 6.283;
+            const v1 = new THREE.Vector3(Math.cos(ang) * rad, y, Math.sin(ang) * rad),
+              v2 = new THREE.Vector3(Math.cos(ang + Math.PI) * rad, y, Math.sin(ang + Math.PI) * rad);
+            P1.push(v1);
+            P2.push(v2);
+            if (i % 6 === 0) {
+              RA.push(v1);
+              RB.push(v2);
+            }
+          }
+          const c1 = new THREE.CatmullRomCurve3(P1),
+            c2 = new THREE.CatmullRomCurve3(P2),
+            seg = mobile ? 140 : 240;
+          // obsidian glint skin (dark, silver/blue star-glints) — matches the astral serpent
+          const dskin = (function () {
+            const w = 256,
+              h = 64,
+              c = document.createElement('canvas');
+            c.width = w;
+            c.height = h;
+            const x = c.getContext('2d')!;
+            x.fillStyle = '#08080f';
+            x.fillRect(0, 0, w, h);
+            x.strokeStyle = 'rgba(120,130,180,0.12)';
+            x.lineWidth = 1;
+            for (let ry = 0; ry <= h; ry += 7) {
+              for (let rx = (ry / 7) % 2 ? 0 : 5; rx < w; rx += 10) {
+                x.beginPath();
+                x.arc(rx, ry, 5, Math.PI, 2 * Math.PI);
+                x.stroke();
+              }
+            }
+            for (let i = 0; i < 130; i++) {
+              const px = Math.random() * w,
+                py = Math.random() * h,
+                r = 0.4 + Math.random() * 1.2;
+              x.fillStyle = Math.random() > 0.6 ? 'rgba(200,215,255,0.95)' : 'rgba(225,225,240,0.8)';
+              x.beginPath();
+              x.arc(px, py, r, 0, 6.283);
+              x.fill();
+            }
+            const t = new THREE.CanvasTexture(c);
+            t.colorSpace = THREE.SRGBColorSpace;
+            t.wrapS = t.wrapT = THREE.RepeatWrapping;
+            t.repeat.set(30, 1);
+            return t;
+          })();
+          const strandMat = () =>
+            new THREE.MeshPhysicalMaterial({
+              map: dskin,
+              color: 0x0a0a16,
+              emissive: 0xffffff,
+              emissiveMap: dskin,
+              emissiveIntensity: 0.6,
+              roughness: 0.25,
+              metalness: 0.55,
+              iridescence: 1.0,
+              iridescenceIOR: 1.5,
+              iridescenceThicknessRange: [140, 460],
+              clearcoat: 0.5,
+            });
+          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c1, seg, 0.95, 12, false), strandMat()));
+          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c2, seg, 0.95, 12, false), strandMat()));
+          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c1, seg, 1.5, 10, false), new THREE.MeshBasicMaterial({ color: 0x5566c0, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false })));
+          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c2, seg, 1.5, 10, false), new THREE.MeshBasicMaterial({ color: 0x8a6ec8, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false })));
+          // base pairs = glowing sacred-geometry star-crosses
+          const starTex = (function () {
+            const s = 64,
+              c = document.createElement('canvas');
+            c.width = c.height = s;
+            const x = c.getContext('2d')!;
+            x.translate(s / 2, s / 2);
+            x.strokeStyle = 'rgba(220,225,255,0.95)';
+            x.lineWidth = 1.2;
+            for (let k = 0; k < 4; k++) {
+              const a = (k * Math.PI) / 2;
+              x.beginPath();
+              x.moveTo(0, 0);
+              x.lineTo(Math.cos(a) * 30, Math.sin(a) * 30);
+              x.stroke();
+            }
+            for (let k = 0; k < 4; k++) {
+              const a = Math.PI / 4 + (k * Math.PI) / 2;
+              x.beginPath();
+              x.moveTo(0, 0);
+              x.lineTo(Math.cos(a) * 15, Math.sin(a) * 15);
+              x.stroke();
+            }
+            x.strokeStyle = 'rgba(185,165,255,0.8)';
+            x.beginPath();
+            for (let k = 0; k < 4; k++) {
+              const a = Math.PI / 4 + (k * Math.PI) / 2,
+                px = Math.cos(a) * 11,
+                py = Math.sin(a) * 11;
+              k ? x.lineTo(px, py) : x.moveTo(px, py);
+            }
+            x.closePath();
+            x.stroke();
+            const g = x.createRadialGradient(0, 0, 0, 0, 0, 9);
+            g.addColorStop(0, 'rgba(255,255,255,1)');
+            g.addColorStop(1, 'rgba(255,255,255,0)');
+            x.fillStyle = g;
+            x.beginPath();
+            x.arc(0, 0, 9, 0, 6.283);
+            x.fill();
+            return new THREE.CanvasTexture(c);
+          })();
+          const starMat = new THREE.SpriteMaterial({ map: starTex, color: 0xd6ccff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+          const jgeo = new THREE.SphereGeometry(0.5, 8, 8),
+            jmat = new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending });
+          for (let i = 0; i < RA.length; i++) {
+            const a = RA[i],
+              b = RB[i],
+              mid = a.clone().add(b).multiplyScalar(0.5);
+            const bar = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.15, 0.15, a.distanceTo(b), 6),
+              new THREE.MeshBasicMaterial({ color: 0x9aa8e0, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            bar.position.copy(mid);
+            bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+            dna.add(bar);
+            const st = new THREE.Sprite(starMat);
+            st.scale.setScalar(4.5);
+            st.position.copy(mid);
+            dna.add(st);
+            const j1 = new THREE.Mesh(jgeo, jmat);
+            j1.position.copy(a);
+            dna.add(j1);
+            const j2 = new THREE.Mesh(jgeo, jmat);
+            j2.position.copy(b);
+            dna.add(j2);
+          }
+          const core = new THREE.Mesh(new THREE.SphereGeometry(1.8, SEG, SEG), new THREE.MeshBasicMaterial({ color: 0xe8e0ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending }));
+          core.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
+          dna.add(core);
+        })();
+        mandalaDna = mandalaPlane(150, '#c9b8ff', new THREE.Color(C.amethyst), 0.2);
+        mandalaDna.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
+
+        // ITROFILL MONGEN — big toroidal net of eyes (Alex Grey "Net of Being")
+        eyeNet = (function () {
+          const Nu = mobile ? 30 : 48,
+            Nv = mobile ? 10 : 16,
+            N = Nu * Nv,
+            R = 58,
+            r = 34;
+          const base = new THREE.PlaneGeometry(1, 1);
+          const geo = new THREE.InstancedBufferGeometry();
+          geo.index = base.index;
+          geo.setAttribute('position', base.attributes.position);
+          geo.setAttribute('uv', base.attributes.uv);
+          const off = new Float32Array(N * 3),
+            esz = new Float32Array(N),
+            ecl = new Float32Array(N * 3),
+            eph = new Float32Array(N),
+            grid: any[] = [];
+          const cols = [new THREE.Color(0x64e0d0), new THREE.Color(0x9a7ee0), new THREE.Color(0xc9a84c), new THREE.Color(0xf0ede8)];
+          let k = 0;
+          for (let iu = 0; iu < Nu; iu++) {
+            grid[iu] = [];
+            for (let iv = 0; iv < Nv; iv++) {
+              const u = (iu / Nu) * 6.283,
+                v = (iv / Nv) * 6.283,
+                rr = R + r * Math.cos(v);
+              const px = rr * Math.cos(u),
+                pz = rr * Math.sin(u),
+                py = EYES_C + r * Math.sin(v);
+              off[k * 3] = px;
+              off[k * 3 + 1] = py;
+              off[k * 3 + 2] = pz;
+              esz[k] = rand(3.0, 5.4);
+              const c = cols[k % 4];
+              ecl[k * 3] = c.r;
+              ecl[k * 3 + 1] = c.g;
+              ecl[k * 3 + 2] = c.b;
+              eph[k] = Math.random() * 10;
+              grid[iu][iv] = [px, py, pz];
+              k++;
+            }
+          }
+          geo.setAttribute('aOff', new THREE.InstancedBufferAttribute(off, 3));
+          geo.setAttribute('aSize', new THREE.InstancedBufferAttribute(esz, 1));
+          geo.setAttribute('aCol', new THREE.InstancedBufferAttribute(ecl, 3));
+          geo.setAttribute('aPhase', new THREE.InstancedBufferAttribute(eph, 1));
+          (geo as any).instanceCount = N;
+          const mat = new THREE.ShaderMaterial({
+            uniforms: { uMouse: { value: new THREE.Vector2(0, 0) }, uTime: { value: 0 } },
+            transparent: true,
+            depthWrite: false,
+            vertexShader: `attribute vec3 aOff; attribute float aSize; attribute vec3 aCol; attribute float aPhase; varying vec2 vUv; varying vec3 vCol; varying float vPhase;
+              void main(){ vUv=uv; vCol=aCol; vPhase=aPhase; vec4 mv=modelViewMatrix*vec4(aOff,1.0); mv.xy+=position.xy*aSize; gl_Position=projectionMatrix*mv; }`,
+            fragmentShader: `precision highp float; uniform vec2 uMouse; uniform float uTime; varying vec2 vUv; varying vec3 vCol; varying float vPhase;
+              void main(){ vec2 p=vUv-0.5; float cyc=fract(uTime*0.06+vPhase); float blink=clamp(smoothstep(0.0,0.02,cyc)-smoothstep(0.05,0.09,cyc),0.0,1.0); p.y*=1.0+blink*7.0; float d=length(p);
+                float sclera=smoothstep(0.5,0.42,d); if(sclera<=0.001) discard;
+                vec2 look=clamp(uMouse,-1.0,1.0)*0.16; float di=length(p-look);
+                float iris=smoothstep(0.22,0.18,di); float pupil=smoothstep(0.14,0.11,di); float spark=smoothstep(0.05,0.0,length(p-look-vec2(0.055,0.055)));
+                vec3 col=vec3(0.60,0.58,0.54)*sclera; col=mix(col,vCol*1.1,iris*0.95); col=mix(col,vec3(0.01,0.01,0.02),pupil); col+=spark*0.8;
+                gl_FragColor=vec4(col, sclera); }`,
+          });
+          const mesh = new THREE.Mesh(geo, mat);
+          mesh.frustumCulled = false;
+          scene.add(mesh);
+          const lp: number[] = [];
+          for (let iu = 0; iu < Nu; iu++)
+            for (let iv = 0; iv < Nv; iv++) {
+              const a = grid[iu][iv],
+                b = grid[(iu + 1) % Nu][iv],
+                c = grid[iu][(iv + 1) % Nv];
+              lp.push(a[0], a[1], a[2], b[0], b[1], b[2]);
+              lp.push(a[0], a[1], a[2], c[0], c[1], c[2]);
+            }
+          const lg = new THREE.BufferGeometry();
+          lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lp), 3));
+          scene.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x9a7ee0, transparent: true, opacity: 0.2, blending: THREE.AdditiveBlending })));
+          return mat;
+        })();
+
+        // COSMIC SERPENT — the primordial serpent coiling through the cosmos
+        // (with the planets, near the source — not the DNA; owner catch 2026-07-18:
+        // it belongs up in the primordial cosmos, not coiled around the double helix).
+        serpent = new THREE.Group();
+        scene.add(serpent);
+        (function () {
+          const TOP = 276,
+            BOT = 164,
+            coils = 2.15,
+            STEPS = mobile ? 120 : 190,
+            P: any[] = [];
+          for (let i = 0; i <= STEPS; i++) {
+            const u = i / STEPS,
+              y = L(BOT, TOP, u) + 4 * Math.sin(u * 5),
+              ang = u * coils * 6.283,
+              r = 28 + 15 * Math.sin(u * Math.PI);
+            P.push(new THREE.Vector3(Math.cos(ang) * r, y, Math.sin(ang) * r));
+          }
+          const curve = new THREE.CatmullRomCurve3(P),
+            tubeR = mobile ? 2.6 : 3.1,
+            tubes = mobile ? 150 : 230;
+          // Wenumawiza australis — obsidian DIAMOND-SCALE skin: faceted rhombus
+          // lattice (map) + real relief (bump) + crystalline glints (emissive)
+          const S = (function () {
+            const w = 512,
+              h = 256,
+              mk = () => {
+                const c = document.createElement('canvas');
+                c.width = w;
+                c.height = h;
+                return c;
+              };
+            const mc = mk(),
+              bc = mk(),
+              gc = mk(),
+              mx = mc.getContext('2d')!,
+              bx = bc.getContext('2d')!,
+              gx = gc.getContext('2d')!;
+            mx.fillStyle = '#0a0a14';
+            mx.fillRect(0, 0, w, h);
+            bx.fillStyle = '#000';
+            bx.fillRect(0, 0, w, h);
+            gx.fillStyle = '#000';
+            gx.fillRect(0, 0, w, h);
+            const dw = 22,
+              dh = 15,
+              dia = (x: number, y: number, ctx: CanvasRenderingContext2D) => {
+                ctx.beginPath();
+                ctx.moveTo(x, y - dh / 2);
+                ctx.lineTo(x + dw / 2, y);
+                ctx.lineTo(x, y + dh / 2);
+                ctx.lineTo(x - dw / 2, y);
+                ctx.closePath();
+              };
+            let row = 0;
+            for (let ry = 0; ry < h + dh; ry += dh / 2, row++) {
+              const off = row % 2 ? dw / 2 : 0;
+              for (let rx = off; rx < w + dw; rx += dw) {
+                const irid = Math.random() < 0.17,
+                  g = mx.createLinearGradient(rx - dw / 2, ry - dh / 2, rx + dw / 2, ry + dh / 2);
+                if (irid) {
+                  g.addColorStop(0, '#41477f');
+                  g.addColorStop(0.5, '#191a33');
+                  g.addColorStop(1, '#0a0a17');
+                } else {
+                  g.addColorStop(0, '#262633');
+                  g.addColorStop(0.45, '#111119');
+                  g.addColorStop(1, '#08080e');
+                }
+                dia(rx, ry, mx);
+                mx.fillStyle = g;
+                mx.fill();
+                mx.strokeStyle = 'rgba(150,160,205,0.16)';
+                mx.lineWidth = 0.6;
+                mx.stroke();
+                const bg = bx.createRadialGradient(rx, ry - 1, 0, rx, ry, dw * 0.5);
+                bg.addColorStop(0, '#ffffff');
+                bg.addColorStop(0.6, '#8a8a8a');
+                bg.addColorStop(1, '#0a0a0a');
+                dia(rx, ry, bx);
+                bx.fillStyle = bg;
+                bx.fill();
+                if (Math.random() < 0.11) {
+                  gx.fillStyle = Math.random() < 0.5 ? 'rgba(205,222,255,1)' : 'rgba(255,255,255,0.92)';
+                  gx.beginPath();
+                  gx.arc(rx, ry - dh * 0.22, 1.0 + Math.random() * 1.1, 0, 6.283);
+                  gx.fill();
+                }
+              }
+            }
+            gx.strokeStyle = 'rgba(175,198,255,0.55)';
+            gx.lineWidth = 1.2;
+            gx.beginPath();
+            gx.moveTo(0, h / 2);
+            for (let dx = 0; dx <= w; dx += 6) {
+              gx.lineTo(dx, h / 2 + Math.sin(dx * 0.03) * 10);
+            }
+            gx.stroke();
+            const rep = (t: any) => {
+              t.colorSpace = THREE.SRGBColorSpace;
+              t.wrapS = t.wrapT = THREE.RepeatWrapping;
+              t.repeat.set(7, 2.4);
+              return t;
+            };
+            const bt = new THREE.CanvasTexture(bc);
+            bt.wrapS = bt.wrapT = THREE.RepeatWrapping;
+            bt.repeat.set(7, 2.4);
+            return { map: rep(new THREE.CanvasTexture(mc)), bump: bt, glint: rep(new THREE.CanvasTexture(gc)) };
+          })();
+          const bodyMat = new THREE.MeshPhysicalMaterial({
+            map: S.map,
+            bumpMap: S.bump,
+            bumpScale: 0.4,
+            emissive: 0xffffff,
+            emissiveMap: S.glint,
+            emissiveIntensity: 0.95,
+            color: 0x12121e,
+            roughness: 0.28,
+            metalness: 0.55,
+            iridescence: 1.0,
+            iridescenceIOR: 1.55,
+            iridescenceThicknessRange: [130, 440],
+            clearcoat: 0.55,
+            clearcoatRoughness: 0.3,
+          });
+          serpent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, tubes, tubeR, 16, false), bodyMat));
+          serpent.add(
+            new THREE.Mesh(
+              new THREE.TubeGeometry(curve, tubes, tubeR * 1.4, 10, false),
+              new THREE.MeshBasicMaterial({ color: 0x4657a8, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })
+            )
+          );
+          // HEAD — elongated obsidian wedge, oriented along the curve
+          const hp = curve.getPointAt(0.984),
+            ht = curve.getTangentAt(0.984).normalize();
+          const perp = new THREE.Vector3().crossVectors(ht, new THREE.Vector3(0, 1, 0)).normalize();
+          const up = new THREE.Vector3().crossVectors(perp, ht).normalize();
+          const head = new THREE.Mesh(new THREE.SphereGeometry(tubeR * 1.7, 20, 16), bodyMat);
+          head.position.copy(hp);
+          head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ht);
+          head.scale.set(1.15, 0.72, 2.3);
+          serpent.add(head);
+          // four star-marks on the head — the four winds (Meli Witran Mapu)
+          const stG = new THREE.SphereGeometry(0.5, 8, 8),
+            stM = new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }),
+            hc = hp
+              .clone()
+              .add(up.clone().multiplyScalar(tubeR * 0.9))
+              .add(ht.clone().multiplyScalar(tubeR * 0.3));
+          [
+            [0, 1.7],
+            [1.7, 0],
+            [0, -1.7],
+            [-1.7, 0],
+          ].forEach((o) => {
+            const m = new THREE.Mesh(stG, stM);
+            m.position.copy(hc).add(perp.clone().multiplyScalar(o[0])).add(ht.clone().multiplyScalar(o[1]));
+            serpent.add(m);
+          });
+          // eyes — white / electric-blue, no pupil
+          const eg = new THREE.SphereGeometry(0.85, 12, 12),
+            em = new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending });
+          const eB = hp
+            .clone()
+            .add(ht.clone().multiplyScalar(tubeR * 1.5))
+            .add(up.clone().multiplyScalar(tubeR * 0.5));
+          const e1 = new THREE.Mesh(eg, em);
+          e1.position.copy(eB).add(perp.clone().multiplyScalar(tubeR * 0.9));
+          serpent.add(e1);
+          const e2 = new THREE.Mesh(eg, em);
+          e2.position.copy(eB).add(perp.clone().multiplyScalar(-tubeR * 0.9));
+          serpent.add(e2);
+          // TAIL — ends in a small orbit / eclipse
+          const tp = curve.getPointAt(0.006),
+            tt = curve.getTangentAt(0.006),
+            oc = tp.clone().add(tt.clone().multiplyScalar(-5));
+          const orbit = new THREE.Mesh(new THREE.TorusGeometry(4, 0.22, 10, 48), new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending }));
+          orbit.position.copy(oc);
+          orbit.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tt);
+          serpent.add(orbit);
+          const eclipse = new THREE.Mesh(new THREE.SphereGeometry(2.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x02020a }));
+          eclipse.position.copy(oc);
+          serpent.add(eclipse);
+        })();
+
+        // NET OF BEING — central source of light + radiating rays at the heart of the eye-torus
+        eyeSource = new THREE.Mesh(new THREE.SphereGeometry(3.4, SEG, SEG), new THREE.MeshBasicMaterial({ color: 0xfff0d0, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending }));
+        eyeSource.position.set(0, EYES_C, 0);
+        scene.add(eyeSource);
+        (function () {
+          const NR = mobile ? 30 : 52,
+            rp: number[] = [];
+          for (let k = 0; k < NR; k++) {
+            const a = (k / NR) * 6.283,
+              vy = Math.sin(k * 2.3) * 0.5,
+              len = 54 + Math.sin(k * 1.3) * 16;
+            rp.push(0, EYES_C, 0, Math.cos(a) * len, EYES_C + vy * len, Math.sin(a) * len);
+          }
+          const rg = new THREE.BufferGeometry();
+          rg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(rp), 3));
+          eyeRays = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: 0xffd070, transparent: true, opacity: 0.19, blending: THREE.AdditiveBlending }));
+          scene.add(eyeRays);
+        })();
+
+        // MIÑCHE MAPU — the black hole / whirlpool that swallows all
+        blackhole = new THREE.Group();
+        blackhole.position.set(0, BH_Y, 0);
+        scene.add(blackhole);
+        (function () {
+          blackhole.add(new THREE.Mesh(new THREE.SphereGeometry(9, SEG, SEG), new THREE.MeshBasicMaterial({ color: 0x000000 })));
+          blackhole.add(new THREE.Mesh(new THREE.SphereGeometry(9.8, SEG, SEG), fresnelMat(0x140a22, 2.4, 1.0)));
+          const photon = new THREE.Mesh(new THREE.TorusGeometry(10.4, 0.34, 16, 120), new THREE.MeshBasicMaterial({ color: 0xfff2cc, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }));
+          photon.rotation.x = Math.PI * 0.5;
+          blackhole.add(photon);
+          const disk = new THREE.Mesh(new THREE.TorusGeometry(18, 3.6, 30, 150), new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
+          disk.rotation.x = Math.PI * 0.46;
+          blackhole.add(disk);
+          const disk2 = new THREE.Mesh(new THREE.TorusGeometry(25, 1.2, 24, 150), new THREE.MeshBasicMaterial({ color: 0x9a7ee0, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
+          disk2.rotation.x = Math.PI * 0.46;
+          blackhole.add(disk2);
+          // whirlpool inflow — particles spiral inward and vanish at the centre
+          const N = mobile ? 1200 : 2400,
+            a = new Float32Array(N * 3),
+            col = new Float32Array(N * 3),
+            data: any[] = [],
+            cE = new THREE.Color(0xffcf70),
+            cA = new THREE.Color(0x9a7ee0),
+            t = new THREE.Color();
+          for (let i = 0; i < N; i++) {
+            const rad = 10 + Math.random() * 46,
+              ang = Math.random() * 6.283,
+              yy = (Math.random() - 0.5) * 7;
+            data.push({ ang, rad, y: yy });
+            a[i * 3] = Math.cos(ang) * rad;
+            a[i * 3 + 1] = yy * (rad / 56);
+            a[i * 3 + 2] = Math.sin(ang) * rad;
+            t.copy(cE).lerp(cA, rad / 56);
+            col[i * 3] = t.r;
+            col[i * 3 + 1] = t.g;
+            col[i * 3 + 2] = t.b;
+          }
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.BufferAttribute(a, 3));
+          g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+          const swirl = pts(g, { size: 0.85, vertexColors: true, opacity: 0.92 });
+          swirl.rotation.x = Math.PI * 0.46;
+          blackhole.add(swirl);
+          blackhole.userData = { disk, disk2, swirl, data, pos: a, geo: g };
+        })();
+        mandalaBH = mandalaPlane(150, '#c9b8ff', new THREE.Color(0x9a7ee0), 0.2);
+        mandalaBH.position.set(0, BH_Y, 0);
+      }
+      let idleHandle: number | null = null;
+      let idleIsTimeout = false;
+      if ('requestIdleCallback' in window) {
+        idleHandle = (window as any).requestIdleCallback(buildDeep, { timeout: 1400 });
+      } else {
+        idleIsTimeout = true;
+        idleHandle = window.setTimeout(buildDeep, 700) as any;
+      }
+
+      // ── camera descent (slow, meditative) ─────────────────────────────────
+      const progress = { p: 0 };
+      const voidEl = document.getElementById('ms3d-void');
+      const voidWord = document.getElementById('ms3d-voidword');
+      function placeCamera(p: number) {
+        const camY = L(SUN_Y + 42, CAM_BOT, p),
+          ang = p * 3.2 * Math.PI,
+          radc = L(74, 12, Math.pow(p, 0.85));
+        camera.position.set(Math.cos(ang) * radc, camY, Math.sin(ang) * radc);
+        const lookAhead = L(30, 6, p);
+        camera.lookAt(Math.cos(ang) * radc * 0.1, camY - lookAhead, Math.sin(ang) * radc * 0.1);
+        const bloomBase = mobile ? 0.6 : 0.78;
+        bloom.strength = bloomBase + (p < 0.5 ? p * 0.4 : (1 - p) * 0.3) + (p > 0.9 ? (p - 0.9) * 4.0 : 0);
+      }
+      placeCamera(0);
+
+      // ── scroll wiring — slow smooth + suction-to-void at the very end ──────
+      gsap.registerPlugin(ScrollTrigger);
+      const railEl = document.getElementById('ms3d-rail');
+      const chapterEl = document.getElementById('ms3d-chapter');
+      const lenis = new Lenis({ smoothWheel: true, lerp: 0.055, wheelMultiplier: 0.85, touchMultiplier: 1.1 });
+      lenis.on('scroll', ScrollTrigger.update);
+      gsap.ticker.add((t: number) => lenis.raf(t * 1000));
+      gsap.ticker.lagSmoothing(0);
+      const scrollTween = gsap.to(progress, {
+        p: 1,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '#ms3d-stations',
+          start: 'top top',
+          end: 'bottom bottom',
+          scrub: 1.3,
+          onUpdate: (s: any) => {
+            if (railEl) railEl.style.width = s.progress * 100 + '%';
+            const v = Math.max(0, (s.progress - 0.955) / 0.045);
+            if (voidEl) voidEl.style.opacity = String(v);
+            if (voidWord) voidWord.style.opacity = String(Math.min(1, v * 1.3));
+          },
+        },
+      });
+      const stationTriggers: any[] = [];
+      document.querySelectorAll('#ms3d-stations .ms3d-station').forEach((sec) => {
+        const rev = sec.querySelector('.ms3d-reveal') as HTMLElement | null;
+        const ch = (sec as HTMLElement).dataset.chapter || '';
+        if (!rev) return;
+        stationTriggers.push(
+          ScrollTrigger.create({ trigger: sec, start: 'top 80%', onEnter: () => rev.classList.add('in'), onLeaveBack: () => rev.classList.remove('in') })
+        );
+        stationTriggers.push(
+          ScrollTrigger.create({
+            trigger: sec,
+            start: 'top 55%',
+            end: 'bottom 45%',
+            onToggle: (s: any) => {
+              if (s.isActive && chapterEl) chapterEl.textContent = ch;
+            },
+          })
+        );
+      });
+
+      // ── render loop (everything turns SLOWLY; fully stoppable) ────────────
+      const clock = new THREE.Clock();
+      let rafId: number | null = null;
+      const loadingEl = document.getElementById('ms3d-loading');
+      let firstFrame = true;
+      function tick() {
+        const dt = Math.min(clock.getDelta(), 0.05),
+          t = clock.elapsedTime,
+          p = progress.p;
+        placeCamera(p);
+        sun.rotation.y += dt * 0.008;
+        proms.rotation.y += dt * 0.02;
+        proms.children.forEach((pv: any) => {
+          pv.children[0].scale.setScalar(1 + 0.1 * Math.sin(t * 1.1 + pv.userData.ph));
+        });
+        gasGiant.rotation.y += dt * 0.05;
+        mars.rotation.y += dt * 0.05;
+        moon.rotation.y += dt * 0.03;
+        earth.rotation.y += dt * 0.02;
+        plasma.rotation.y += dt * 0.15;
+        (plasma.material as any).opacity = 0.7 + 0.22 * Math.sin(t * 3.0);
+        gas.rotation.y -= dt * 0.03;
+        liquid.position.x = Math.sin(t * 0.5) * 1.0;
+        liquid.rotation.y += dt * 0.02;
+        mandalaSun.quaternion.copy(camera.quaternion);
+        mandalaSun.rotateZ(t * 0.014);
+        if (kultrun) {
+          kultrun.quaternion.copy(camera.quaternion);
+          kultrun.rotateZ(t * 0.02);
+          kultrunGlow.quaternion.copy(camera.quaternion);
+        }
+        if (dna) {
+          dna.rotation.y += dt * 0.06;
+          mandalaDna.quaternion.copy(camera.quaternion);
+          mandalaDna.rotateZ(-t * 0.02);
+        }
+        if (eyeNet) {
+          eyeIdle += dt;
+          if (eyeIdle > 2) {
+            eyeTarget.x = Math.sin(t * 0.3) * 0.6;
+            eyeTarget.y = Math.cos(t * 0.22) * 0.45;
+          }
+          eyeLook.x += (eyeTarget.x - eyeLook.x) * 0.06;
+          eyeLook.y += (eyeTarget.y - eyeLook.y) * 0.06;
+          eyeNet.uniforms.uMouse.value.set(eyeLook.x, eyeLook.y);
+          eyeNet.uniforms.uTime.value = t;
+        }
+        if (serpent) serpent.rotation.y += dt * 0.03;
+        if (eyeSource) eyeSource.scale.setScalar(1 + 0.12 * Math.sin(t * 1.5));
+        if (eyeRays) eyeRays.rotation.y += dt * 0.02;
+        if (blackhole) {
+          const bh = blackhole.userData;
+          mandalaBH.quaternion.copy(camera.quaternion);
+          mandalaBH.rotateZ(t * 0.02);
+          bh.disk.rotation.z += dt * 0.5;
+          bh.disk2.rotation.z -= dt * 0.35;
+          const d = bh.data,
+            pos = bh.pos,
+            suck = 1 + p * 3;
+          for (let i = 0; i < d.length; i++) {
+            const q = d[i];
+            q.ang += (0.4 + 12 / (q.rad + 3)) * dt * 0.5;
+            q.rad -= dt * (2.2 + 18 / (q.rad + 4)) * suck;
+            if (q.rad < 2) {
+              q.rad = 20 + Math.random() * 36;
+              q.ang = Math.random() * 6.283;
+            }
+            pos[i * 3] = Math.cos(q.ang) * q.rad;
+            pos[i * 3 + 1] = q.y * (q.rad / 56);
+            pos[i * 3 + 2] = Math.sin(q.ang) * q.rad;
+          }
+          bh.geo.attributes.position.needsUpdate = true;
+        }
+        stars.rotation.y += dt * 0.002;
+        composer.render();
+        if (firstFrame) {
+          firstFrame = false;
+          if (loadingEl) {
+            (loadingEl as HTMLElement).style.opacity = '0';
+            setTimeout(() => loadingEl.remove(), 800);
+          }
+        }
+        rafId = requestAnimationFrame(tick);
+      }
+      function resume() {
+        if (rafId == null) {
+          clock.getDelta(); // drop the idle gap so dt doesn't spike on resume
+          rafId = requestAnimationFrame(tick);
+        }
+      }
+      function pause() {
+        if (rafId != null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+      }
+      resume(); // called only while #ms3d is already intersecting
+
+      function dispose() {
+        pause();
+        removeEventListener('resize', resize);
+        removeEventListener('pointermove', onPointerMove as any);
+        if (idleHandle != null) {
+          if (idleIsTimeout) clearTimeout(idleHandle);
+          else if ('cancelIdleCallback' in window) (window as any).cancelIdleCallback(idleHandle);
+        }
+        scrollTween.scrollTrigger?.kill();
+        scrollTween.kill();
+        stationTriggers.forEach((st) => st.kill());
+        lenis.destroy();
+        scene.traverse((obj: any) => {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach((m: any) => {
+              if (m.map) m.map.dispose();
+              m.dispose();
+            });
+          }
+        });
+        sprite.dispose();
+        composer.passes.forEach((pass: any) => pass.dispose && pass.dispose());
+        composer.dispose();
+        renderer.dispose();
+      }
+
+      return { pause, resume, dispose };
+    }
+  }
+</script>
+
+<style>
+  /* Bespoke accents (not in the shared token set): teal already matches the
+     hand-coded SVG's second helix strand (#64e0d0); amethyst is new for the
+     kultrún/DNA/eyes/black-hole chapters, requested by Ocin. Declared once
+     here rather than repeated as raw hex through the rules below. */
+  .ms3d {
+    --ms3d-teal: #64e0d0;
+    --ms3d-amethyst: #9a7ee0;
+    position: relative;
+    background: var(--obsidian);
+  }
+  .ms3d-poster[hidden],
+  .ms3d-enhanced[hidden] {
+    display: none;
+  }
+
+  /* ── enhanced (WebGL) layer ── */
+  .ms3d-enhanced {
+    position: relative;
+  }
+  .ms3d-webgl {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    display: block;
+    z-index: 0;
+  }
+  .ms3d-vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: radial-gradient(130% 92% at 50% 44%, transparent 40%, rgba(3, 3, 8, 0.72) 100%);
+  }
+  .ms3d-void {
+    position: fixed;
+    inset: 0;
+    z-index: 6;
+    background: #000;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .ms3d-voidword {
+    position: fixed;
+    inset: 0;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: #3a3550;
+  }
+  .ms3d-rail {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 2px;
+    width: 0;
+    z-index: 4;
+    background: linear-gradient(90deg, var(--ember), var(--ms3d-amethyst), var(--ms3d-teal));
+    box-shadow: 0 0 12px var(--ember);
+  }
+  .ms3d-chapter {
+    position: fixed;
+    top: 14px;
+    right: 16px;
+    z-index: 4;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--sand);
+    opacity: 0.7;
+    max-width: 60vw;
+    text-align: right;
+  }
+  .ms3d-hint {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    z-index: 3;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--sand);
+    animation: ms3d-bob 2.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .ms3d-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--obsidian);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--sand);
+    transition: opacity 0.8s ease;
+  }
+  @keyframes ms3d-bob {
+    0%, 100% { transform: translate(-50%, 0); opacity: 0.6; }
+    50%      { transform: translate(-50%, 7px); opacity: 1; }
+  }
+
+  /* Fixed chrome only shows while #ms3d is actually on screen — prevents a
+     fixed canvas from painting over the Kultrun section / Footer below once
+     the user has scrolled past this component. The void/voidword fade is
+     driven by inline styles set from scroll progress (higher specificity),
+     so this group only gates their baseline visibility. */
+  .ms3d-webgl, .ms3d-vignette, .ms3d-void, .ms3d-voidword, .ms3d-rail, .ms3d-chapter, .ms3d-hint {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.4s ease;
+  }
+  .ms3d-enhanced.is-active .ms3d-webgl,
+  .ms3d-enhanced.is-active .ms3d-vignette,
+  .ms3d-enhanced.is-active .ms3d-void,
+  .ms3d-enhanced.is-active .ms3d-voidword,
+  .ms3d-enhanced.is-active .ms3d-rail,
+  .ms3d-enhanced.is-active .ms3d-chapter,
+  .ms3d-enhanced.is-active .ms3d-hint {
+    visibility: visible;
+  }
+  .ms3d-enhanced.is-active .ms3d-webgl,
+  .ms3d-enhanced.is-active .ms3d-vignette,
+  .ms3d-enhanced.is-active .ms3d-rail,
+  .ms3d-enhanced.is-active .ms3d-chapter,
+  .ms3d-enhanced.is-active .ms3d-hint {
+    opacity: 1;
+  }
+
+  /* ── station text (real HTML, always in the flow when enhanced is active) ── */
+  .ms3d-stations {
+    position: relative;
+    z-index: 2;
+  }
+  .ms3d-station {
+    min-height: 130vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 9vh 6vw;
+  }
+  .ms3d-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: var(--ember);
+    opacity: 0.92;
+    margin-bottom: 1.1rem;
+    text-shadow: 0 1px 16px rgba(3, 3, 8, 0.85);
+  }
+  .ms3d-eyebrow--teal { color: var(--ms3d-teal); }
+  .ms3d-eyebrow--ame  { color: var(--ms3d-amethyst); }
+  .ms3d-heading {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.1;
+    color: var(--bone);
+    font-size: clamp(1.85rem, 5vw, 3.7rem);
+    text-shadow: 0 2px 34px rgba(3, 3, 8, 0.8), 0 0 10px rgba(3, 3, 8, 0.6);
+  }
+  .ms3d-heading--hero { font-size: clamp(2.4rem, 7vw, 5.8rem); }
+  .ms3d-lede {
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 0.78rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--silver);
+    margin-top: 1.5rem;
+    text-shadow: 0 1px 16px rgba(3, 3, 8, 0.85);
+  }
+  .ms3d-body {
+    max-width: 39ch;
+    margin: 1.5rem auto 0;
+    font-size: clamp(1.06rem, 2.4vw, 1.5rem);
+    line-height: 1.55;
+    color: #d8d3c8;
+    text-shadow: 0 1px 18px rgba(3, 3, 8, 0.9);
+    font-family: var(--font-serif);
+  }
+  .ms3d-es {
+    display: block;
+    font-family: var(--font-mono);
+    font-style: normal;
+    font-size: 0.66rem;
+    letter-spacing: 0.3em;
+    color: var(--ember);
+    text-transform: uppercase;
+    margin-top: 1.1rem;
+    opacity: 0.9;
+  }
+  .ms3d-phase {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--ms3d-teal);
+    opacity: 0.75;
+    margin-top: 2.2rem;
+  }
+  .ms3d-reveal {
+    position: relative;
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 1.4s ease, transform 1.4s ease;
+  }
+  /* Soft dark veil behind the text box — legibility fix over bright zones
+     (Sun, DNA, eyes), owner-requested 2026-07-18. Sits between the canvas and
+     the text (z-index:-1 inside .ms3d-reveal's own stacking context), so it
+     never covers the art itself — just softens what's directly behind the
+     words. Verified in the v5 prototype: title/eyebrow/lede read cleanly over
+     the bright Sun. */
+  .ms3d-reveal::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(820px, 130%);
+    height: 200%;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(ellipse 66% 60% at 50% 50%, rgba(4, 4, 9, 0.78), rgba(4, 4, 9, 0.58) 50%, transparent 82%);
+    filter: blur(14px);
+  }
+  .ms3d-reveal.in { opacity: 1; transform: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ms3d-hint { display: none; }
+    .ms3d-reveal { opacity: 1; transform: none; transition: none; }
+  }
+</style>
