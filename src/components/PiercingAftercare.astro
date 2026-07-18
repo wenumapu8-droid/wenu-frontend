@@ -1,0 +1,438 @@
+---
+/**
+ * PiercingAftercare — aftercare + downsize + "when can I wear anything" + a
+ * Healing Reminder mini-tool (2026-06-24). Content verified against APP
+ * (safepiercing.org) + Infinite Body Piercing healing times — see Obsidian
+ * brand/contenido-aftercare-downsize-recordatorio-2026-06-23.md. Honest copy,
+ * no medical promises. Progressive disclosure via <details>. Dark, mobile-first.
+ * Diagrams are ORIGINAL line art (no third-party illustrations copied).
+ */
+const API_BASE = import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com';
+// Live Wenu Platform backend (Postgres subscriber + welcome email + Telegram).
+// The old Formspree form (mblrgwya) was dead (404) and dropped every opt-in.
+const NEWSLETTER_ENDPOINT = import.meta.env.PUBLIC_NEWSLETTER_ENDPOINT?.trim() || `${API_BASE}/newsletter/subscribe`;
+
+// downWk / healWk drive the reminder tool (start of the downsize window, and a
+// typical fully-healed point in weeks). The strings are the human ranges shown
+// in the table. data-* attributes feed the client script.
+const PIERCINGS = [
+  { id: 'lobe',      label: 'Earlobe',                          downsize: '6–8 weeks',   healed: '2–3 months',   downWk: 6,  healWk: 9 },
+  { id: 'cartilage', label: 'Cartilage — helix · conch · tragus', downsize: '8–12 weeks',  healed: '6–9+ months',  downWk: 8,  healWk: 26 },
+  { id: 'daith',     label: 'Daith · rook · forward helix',     downsize: '12–16 weeks', healed: '8–12+ months', downWk: 12, healWk: 34 },
+  { id: 'nostril',   label: 'Nostril',                          downsize: '6–10 weeks',  healed: '4–6 months',   downWk: 6,  healWk: 17 },
+  { id: 'septum',    label: 'Septum',                           downsize: 'if swelling', healed: '6–8 weeks',    downWk: 4,  healWk: 7 },
+  { id: 'labret',    label: 'Labret · lip',                     downsize: '2–4 weeks',   healed: '2–3 months',   downWk: 2,  healWk: 9 },
+  { id: 'tongue',    label: 'Tongue',                           downsize: '2–4 weeks',   healed: '4–8 weeks',    downWk: 2,  healWk: 6 },
+  { id: 'navel',     label: 'Navel',                            downsize: '~3 months',   healed: '6–12 months',  downWk: 12, healWk: 34 },
+  { id: 'nipple',    label: 'Nipple',                           downsize: '~3–4 months', healed: '6–12 months',  downWk: 14, healWk: 34 },
+];
+---
+<section class="section pa" aria-labelledby="pa-title" id="aftercare">
+  <div class="container">
+    <p class="eyebrow">AFTERCARE · DOWNSIZE · HEALING</p>
+    <h2 id="pa-title" class="pa__title">Healing is a passage.</h2>
+    <p class="pa__lede">
+      What you do after the needle matters as much as the piercing itself. The full cleaning routine lives
+      in the care guide — here's the part most people miss: why your first jewelry is longer than it looks,
+      when to downsize, and when your piercing is finally ready for anything you like.
+    </p>
+
+    {/* ── Original line diagram: long bar → swelling → downsized ── */}
+    <div class="pa__diagram" role="img" aria-label="Four stages: a fresh piercing uses a longer bar so the ends sit clear of the tissue with room to swell; swelling rises then settles; the now-loose long bar can snag and tilt; a downsized shorter bar sits snug and heals straight.">
+      {/* 1 · FRESH — long bar, visible gap above & below the tissue band */}
+      <figure class="pa__stage">
+        <svg viewBox="0 0 120 150" aria-hidden="true">
+          <rect x="16" y="65" width="88" height="20" rx="10" fill="var(--sand)" opacity="0.26"/>
+          <rect x="16" y="65" width="88" height="20" rx="10" fill="none" stroke="var(--sand)" stroke-width="1" opacity="0.55"/>
+          <line x1="60" y1="24" x2="60" y2="126" stroke="var(--ember)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="60" cy="24" r="9" fill="var(--ember)"/>
+          <circle cx="60" cy="126" r="9" fill="var(--ember)"/>
+          <g stroke="var(--bone)" stroke-width="0.9" opacity="0.75">
+            <line x1="80" y1="33" x2="80" y2="65" stroke-dasharray="2 2"/>
+            <line x1="76" y1="33" x2="84" y2="33"/><line x1="76" y1="65" x2="84" y2="65"/>
+            <line x1="80" y1="85" x2="80" y2="117" stroke-dasharray="2 2"/>
+            <line x1="76" y1="85" x2="84" y2="85"/><line x1="76" y1="117" x2="84" y2="117"/>
+          </g>
+          <text x="90" y="52" font-size="8.5" fill="var(--bone)" opacity="0.85" font-family="var(--font-sans)">room</text>
+        </svg>
+        <figcaption>Fresh — the longer bar leaves room for the tissue to swell.</figcaption>
+      </figure>
+
+      {/* 2 · SWELLING — tissue puffed toward the ends, gap keeps them clear */}
+      <figure class="pa__stage">
+        <svg viewBox="0 0 120 150" aria-hidden="true">
+          <ellipse cx="60" cy="75" rx="48" ry="27" fill="var(--sand)" opacity="0.30"/>
+          <ellipse cx="60" cy="75" rx="48" ry="27" fill="none" stroke="var(--sand)" stroke-width="1" opacity="0.55"/>
+          <line x1="60" y1="24" x2="60" y2="126" stroke="var(--ember)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="60" cy="24" r="9" fill="var(--ember)"/>
+          <circle cx="60" cy="126" r="9" fill="var(--ember)"/>
+        </svg>
+        <figcaption>Swelling rises in the first weeks — the extra room keeps the ends from pressing in.</figcaption>
+      </figure>
+
+      {/* 3 · SETTLED — swelling gone, long bar now loose → tilts, can snag */}
+      <figure class="pa__stage">
+        <svg viewBox="0 0 120 150" aria-hidden="true">
+          <rect x="16" y="65" width="88" height="20" rx="10" fill="var(--sand)" opacity="0.26"/>
+          <rect x="16" y="65" width="88" height="20" rx="10" fill="none" stroke="var(--sand)" stroke-width="1" opacity="0.55"/>
+          <g transform="rotate(13 60 75)">
+            <line x1="60" y1="24" x2="60" y2="126" stroke="var(--ember)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="60" cy="24" r="9" fill="var(--ember)"/>
+            <circle cx="60" cy="126" r="9" fill="var(--ember)"/>
+          </g>
+        </svg>
+        <figcaption>Once it settles, the long bar is loose — it can snag and migrate.</figcaption>
+      </figure>
+
+      {/* 4 · DOWNSIZED — short bar, ends snug to settled tissue, straight */}
+      <figure class="pa__stage">
+        <svg viewBox="0 0 120 150" aria-hidden="true">
+          <rect x="16" y="65" width="88" height="20" rx="10" fill="var(--sand)" opacity="0.26"/>
+          <rect x="16" y="65" width="88" height="20" rx="10" fill="none" stroke="var(--sand)" stroke-width="1" opacity="0.55"/>
+          <line x1="60" y1="54" x2="60" y2="96" stroke="var(--ember)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="60" cy="54" r="9" fill="var(--ember)"/>
+          <circle cx="60" cy="96" r="9" fill="var(--ember)"/>
+        </svg>
+        <figcaption>Downsized — a shorter bar sits snug and heals straight.</figcaption>
+      </figure>
+    </div>
+    <p class="pa__diagram-note">Original schematic — not to scale.</p>
+
+    {/* ── Progressive-disclosure accordions ── */}
+    <a href="/care-guide" class="pa__carelink">
+      <span class="pa__carelink-k">Aftercare — the daily ritual</span>
+      <span class="pa__carelink-v">Sterile saline, what to avoid, healing signs, and healing times by zone live in the full care guide.</span>
+      <span class="pa__carelink-cta">Read the care guide <span aria-hidden="true">→</span></span>
+    </a>
+
+    <div class="pa__acc">
+      <details class="pa__item" open>
+        <summary class="pa__sum"><span>1 · Downsizing — the follow-up visit</span><span class="pa__plus" aria-hidden="true"></span></summary>
+        <div class="pa__body">
+          <p>Your first jewelry is deliberately <strong>longer</strong> — it leaves room for the swelling that comes in the first days, so the jewelry doesn't get embedded. Once the swelling drops, that extra length has to be <strong>shortened (downsized)</strong>, or the long bar snags, migrates, causes bumps, and in oral piercings can damage teeth and gums.</p>
+          <p><strong>Only a professional piercer</strong> should downsize — poor sizing raises complications sharply. It's preventive: it won't fix an already-irritated piercing.</p>
+          <div class="pa__table-wrap">
+            <table class="pa__table">
+              <thead><tr><th>Piercing</th><th>Downsize</th><th>Fully healed (typical)</th></tr></thead>
+              <tbody>
+                {PIERCINGS.map(p => (
+                  <tr><td>{p.label}</td><td>{p.downsize}</td><td>{p.healed}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p class="pa__fine">Windows are typical ranges — your piercer confirms the timing for your body.</p>
+          <a href="#book" class="btn btn--ghost pa__cta-sm">Book a downsize <span aria-hidden="true">→</span></a>
+        </div>
+      </details>
+
+      <details class="pa__item">
+        <summary class="pa__sum"><span>2 · When can you wear anything?</span><span class="pa__plus" aria-hidden="true"></span></summary>
+        <div class="pa__body">
+          <p>Once a piercing is <strong>fully healed</strong> — no discharge, swelling, redness or tenderness — you can change to other <strong>quality, pre-sterilized jewelry</strong>: implant-grade titanium (ASTM F-136), solid 14k gold, or glass.</p>
+          <p>For <strong>fresh</strong> piercings, stay with quality internally-threaded or threadless pieces only. <strong>Organic materials</strong> (wood, stone, bone) are for <strong>stretched, fully-healed lobes only</strong> — never a fresh piercing.</p>
+        </div>
+      </details>
+
+      <details class="pa__item">
+        <summary class="pa__sum"><span>3 · Stretching · expanding</span><span class="pa__plus" aria-hidden="true"></span></summary>
+        <div class="pa__body">
+          <p>Only on a <strong>fully-healed lobe</strong>. One size at a time, never skip a gauge. Wait <strong>4–6+ weeks per size</strong> (longer at larger sizes). Never force it — use a taper and lubricant to insert, then jojoba oil and massage. If you see thinning or a blowout, drop a size and wait.</p>
+          <a href="/ear-stretching" class="btn btn--ghost pa__cta-sm">Full stretching guide <span aria-hidden="true">→</span></a>
+        </div>
+      </details>
+    </div>
+
+    {/* ── ★ Healing Reminder tool ── */}
+    <div class="pa__tool" data-pa-tool>
+      <p class="eyebrow pa__tool-eyebrow">★ Healing reminder</p>
+      <h3 class="pa__tool-title">Get a reminder for your downsize &amp; healed date</h3>
+      <p class="pa__tool-lede">Tell us the piercing and the day you got it. We'll estimate when to book your downsize and when your piercing should be ready for other quality jewelry — then you can save it.</p>
+
+      <div class="pa__tool-row">
+        <label class="pa__field">
+          <span>Piercing type</span>
+          <select data-pa-type>
+            {PIERCINGS.map(p => (
+              <option value={p.id} data-down={p.downWk} data-heal={p.healWk} data-label={p.label}>{p.label}</option>
+            ))}
+          </select>
+        </label>
+        <label class="pa__field">
+          <span>Date you got it</span>
+          <input type="date" data-pa-date />
+        </label>
+        <button type="button" class="btn btn--solid pa__calc" data-pa-calc>Calculate</button>
+      </div>
+
+      <div class="pa__result" data-pa-result hidden>
+        <div class="pa__result-grid">
+          <div class="pa__result-card">
+            <p class="pa__result-k">Downsize — book around</p>
+            <p class="pa__result-v" data-pa-down-date>—</p>
+            <p class="pa__result-note">Start of the typical window. <a href="#book">Book a downsize →</a></p>
+          </div>
+          <div class="pa__result-card">
+            <p class="pa__result-k">Likely fully healed</p>
+            <p class="pa__result-v" data-pa-heal-date>—</p>
+            <p class="pa__result-note">From here, quality pre-sterilized jewelry is usually fine.</p>
+          </div>
+        </div>
+
+        <div class="pa__result-actions">
+          <button type="button" class="btn btn--ghost" data-pa-ics>Add to calendar (.ics)</button>
+        </div>
+
+        <form class="pa__email" method="POST" action={NEWSLETTER_ENDPOINT} data-pa-form>
+          <input type="hidden" name="_subject" value="Wenu Mapu — healing reminder opt-in" />
+          <input type="hidden" name="source" value="piercing-healing-reminder" />
+          <input type="hidden" name="piercing" data-pa-hidden-type value="" />
+          <input type="hidden" name="downsize_date" data-pa-hidden-down value="" />
+          <input type="hidden" name="healed_date" data-pa-hidden-heal value="" />
+          <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="pa__honey" aria-hidden="true" />
+          <p class="pa__email-line">Or email me the reminders (joins the first circle — sent rarely):</p>
+          <div class="pa__email-row">
+            <input type="email" name="email" required placeholder="E-mail" autocomplete="email" class="pa__input" />
+            <button type="submit" class="btn btn--solid">Email me</button>
+          </div>
+          <p class="pa__email-ok" data-pa-ok hidden role="status">Saved — we'll be in touch around those dates.</p>
+        </form>
+      </div>
+
+      <p class="pa__disclaimer">Estimates follow APP healing-time standards — your piercer confirms the timing for your body. This isn't medical advice; if anything looks or feels wrong, see your piercer or a clinician.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-pa-tool]');
+  if (root) {
+    const typeSel = root.querySelector<HTMLSelectElement>('[data-pa-type]')!;
+    const dateInp = root.querySelector<HTMLInputElement>('[data-pa-date]')!;
+    const calc = root.querySelector<HTMLButtonElement>('[data-pa-calc]')!;
+    const result = root.querySelector<HTMLElement>('[data-pa-result]')!;
+    const downOut = root.querySelector<HTMLElement>('[data-pa-down-date]')!;
+    const healOut = root.querySelector<HTMLElement>('[data-pa-heal-date]')!;
+    const icsBtn = root.querySelector<HTMLButtonElement>('[data-pa-ics]')!;
+    const form = root.querySelector<HTMLFormElement>('[data-pa-form]')!;
+    const hidType = root.querySelector<HTMLInputElement>('[data-pa-hidden-type]')!;
+    const hidDown = root.querySelector<HTMLInputElement>('[data-pa-hidden-down]')!;
+    const hidHeal = root.querySelector<HTMLInputElement>('[data-pa-hidden-heal]')!;
+    const okMsg = root.querySelector<HTMLElement>('[data-pa-ok]')!;
+
+    const fmt = (d: Date) => d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const addWeeks = (d: Date, w: number) => { const n = new Date(d); n.setDate(n.getDate() + w * 7); return n; };
+    const icsDate = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '');
+    let downDate: Date | null = null, healDate: Date | null = null, label = '';
+
+    function compute() {
+      if (!dateInp.value) { dateInp.focus(); return; }
+      const opt = typeSel.selectedOptions[0];
+      const base = new Date(dateInp.value + 'T00:00:00');
+      label = opt.dataset.label || typeSel.value;
+      downDate = addWeeks(base, +(opt.dataset.down || 6));
+      healDate = addWeeks(base, +(opt.dataset.heal || 12));
+      downOut.textContent = fmt(downDate);
+      healOut.textContent = fmt(healDate);
+      hidType.value = label;
+      hidDown.value = fmt(downDate);
+      hidHeal.value = fmt(healDate);
+      result.hidden = false;
+      okMsg.hidden = true;
+    }
+
+    function downloadIcs() {
+      if (!downDate || !healDate) return;
+      const stamp = icsDate(new Date());
+      const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2)}@wenumapuonline.com`;
+      const ev = (date: Date, title: string, desc: string) =>
+        ['BEGIN:VEVENT', `UID:${uid()}`, `DTSTAMP:${stamp}T000000Z`,
+         `DTSTART;VALUE=DATE:${icsDate(date)}`, `SUMMARY:${title}`, `DESCRIPTION:${desc}`,
+         'END:VEVENT'].join('\r\n');
+      const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Wenu Mapu//Healing Reminder//EN', 'CALSCALE:GREGORIAN',
+        ev(downDate, `Downsize my ${label} piercing`, 'Book a downsize with your piercer around now (start of the typical window). Wenu Mapu.'),
+        ev(healDate, `${label} piercing likely healed`, 'Likely fully healed — quality pre-sterilized jewelry is usually fine from here. Confirm with your piercer. Wenu Mapu.'),
+        'END:VCALENDAR'].join('\r\n');
+      const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `wenu-mapu-${label.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '')}-reminders.ics`;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+
+    calc.addEventListener('click', compute);
+    icsBtn.addEventListener('click', downloadIcs);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const honey = (form.querySelector('input[name="_gotcha"]') as HTMLInputElement | null)?.value;
+      const email = (form.querySelector('input[name="email"]') as HTMLInputElement | null)?.value?.trim();
+      const source = (form.querySelector('input[name="source"]') as HTMLInputElement | null)?.value || 'piercing-healing-reminder';
+      try {
+        if (honey) { throw new Error('bot'); }
+        const res = await fetch(form.action, {
+          method: 'POST',
+          body: JSON.stringify({ email, source, lang: 'en' }),
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        });
+        if (res.ok) { (form.querySelector('.pa__email-row') as HTMLElement).hidden = true; okMsg.hidden = false; }
+      } catch { /* let the user retry */ }
+    });
+  }
+</script>
+
+<style>
+  .pa { padding: var(--space-7) 0; border-top: var(--border-thin); }
+  .pa__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.1; color: var(--bone);
+    text-transform: uppercase; margin: var(--space-3) 0;
+  }
+  .pa__lede {
+    font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-body-lg); line-height: 1.6; color: var(--fg-soft);
+    max-width: 64ch; margin: 0 0 var(--space-6);
+  }
+
+  /* Diagram */
+  .pa__diagram {
+    display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+    gap: var(--space-4); margin: var(--space-5) 0 var(--space-2);
+    padding: var(--space-5); border: var(--border-thin); background: var(--obsidian);
+  }
+  .pa__stage { margin: 0; text-align: center; max-width: 160px; }
+  .pa__stage svg { width: clamp(84px, 18vw, 116px); height: auto; }
+  .pa__stage figcaption {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    line-height: 1.4; margin-top: var(--space-2);
+  }
+  .pa__arrow { color: var(--ember); font-size: 1.4rem; }
+  .pa__diagram-note {
+    text-align: center; font-family: var(--font-sans); font-size: var(--fs-tiny);
+    color: var(--silver); margin: 0 0 var(--space-6); letter-spacing: 0.04em;
+  }
+
+  /* Aftercare link card (full routine lives on /care-guide) */
+  .pa__carelink {
+    display: block; max-width: 72ch; margin: 0 auto var(--space-5);
+    padding: var(--space-4) var(--space-5);
+    border: 1px solid rgba(201, 168, 76, 0.32); background: var(--charcoal);
+    text-decoration: none; transition: border-color var(--t-fast), transform var(--t-fast);
+  }
+  .pa__carelink:hover { border-color: var(--ember); transform: translateY(-2px); }
+  .pa__carelink-k {
+    display: block; font-family: var(--font-display); font-size: 1.2rem; color: var(--bone);
+  }
+  .pa__carelink-v {
+    display: block; font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-small); color: var(--fg-soft); line-height: 1.5; margin: var(--space-2) 0 var(--space-3);
+  }
+  .pa__carelink-cta {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--ember);
+  }
+
+  /* Accordions */
+  .pa__acc { max-width: 72ch; margin: 0 auto; }
+  .pa__item { border-bottom: 1px solid var(--line-soft); }
+  .pa__sum {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3); padding: var(--space-4) 0; cursor: pointer; list-style: none;
+    font-family: var(--font-display); font-size: 1.2rem; color: var(--bone);
+  }
+  .pa__sum::-webkit-details-marker { display: none; }
+  .pa__plus { position: relative; width: 13px; height: 13px; flex: none; }
+  .pa__plus::before, .pa__plus::after {
+    content: ""; position: absolute; background: var(--ember); transition: transform var(--t-fast), opacity var(--t-fast);
+  }
+  .pa__plus::before { top: 6px; left: 0; width: 13px; height: 1.5px; }
+  .pa__plus::after { left: 6px; top: 0; width: 1.5px; height: 13px; }
+  .pa__item[open] .pa__plus::after { transform: scaleY(0); opacity: 0; }
+  .pa__body {
+    padding: 0 0 var(--space-5); font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-body); line-height: 1.7; color: var(--fg-soft);
+  }
+  .pa__body p { margin: 0 0 var(--space-4); }
+  .pa__body strong { color: var(--bone); font-weight: var(--fw-regular); }
+  .pa__list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+  .pa__list li { position: relative; padding-left: 1.2rem; }
+  .pa__list li::before { content: '◆'; position: absolute; left: 0; top: 0.15em; color: var(--ember); font-size: 0.7rem; }
+  .pa__cta-sm { margin-top: var(--space-2); font-size: var(--fs-tiny); }
+  .pa__fine { font-size: var(--fs-small); color: var(--silver); font-style: italic; }
+
+  .pa__table-wrap { overflow-x: auto; margin: var(--space-3) 0 var(--space-4); }
+  .pa__table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); }
+  .pa__table th, .pa__table td {
+    text-align: left; padding: var(--space-3) var(--space-3);
+    border-bottom: 1px solid var(--line-soft); font-size: var(--fs-small); white-space: nowrap;
+  }
+  .pa__table th {
+    font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase; color: var(--sand); font-weight: var(--fw-regular);
+  }
+  .pa__table td { color: var(--bone); }
+  .pa__table td:first-child { color: var(--bone); white-space: normal; }
+  .pa__table td:not(:first-child) { color: var(--ember); }
+
+  /* Reminder tool */
+  .pa__tool {
+    max-width: 72ch; margin: var(--space-7) auto 0; padding: var(--space-6) var(--space-5);
+    border: 1px solid rgba(201, 168, 76, 0.32); background: var(--charcoal);
+  }
+  .pa__tool-eyebrow { color: var(--ember); }
+  .pa__tool-title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.5rem, 3vw, 2rem); line-height: 1.15; color: var(--bone);
+    margin: var(--space-2) 0 var(--space-3);
+  }
+  .pa__tool-lede {
+    font-family: var(--font-serif); font-weight: var(--fw-thin); font-size: var(--fs-body);
+    line-height: 1.6; color: var(--fg-soft); margin: 0 0 var(--space-5);
+  }
+  .pa__tool-row { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+  .pa__field { display: flex; flex-direction: column; gap: var(--space-2); flex: 1 1 180px; }
+  .pa__field > span {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--sand);
+  }
+  .pa__field select, .pa__field input, .pa__input {
+    background: var(--obsidian); border: 1px solid var(--line-bright); color: var(--bone);
+    font-family: var(--font-sans); font-size: var(--fs-body); padding: var(--space-3) var(--space-3);
+    width: 100%; color-scheme: dark;
+  }
+  .pa__field select:focus-visible, .pa__field input:focus-visible, .pa__input:focus-visible {
+    outline: none; border-color: var(--ember);
+  }
+  .pa__calc { flex: 0 0 auto; }
+
+  .pa__result { margin-top: var(--space-5); }
+  .pa__result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); }
+  .pa__result-card { border: 1px solid var(--line-soft); padding: var(--space-4); background: var(--obsidian); }
+  .pa__result-k {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--sand); margin: 0;
+  }
+  .pa__result-v {
+    font-family: var(--font-display); font-size: 1.5rem; color: var(--ember); margin: var(--space-2) 0;
+  }
+  .pa__result-note { font-family: var(--font-serif); font-size: var(--fs-small); color: var(--fg-soft); margin: 0; line-height: 1.5; }
+  .pa__result-note a { color: var(--ember); }
+  .pa__result-actions { margin: var(--space-4) 0; }
+
+  .pa__email { border-top: 1px solid var(--line-soft); padding-top: var(--space-4); margin-top: var(--space-2); }
+  .pa__email-line { font-family: var(--font-serif); font-style: italic; color: var(--fg-soft); margin: 0 0 var(--space-3); font-size: var(--fs-small); }
+  .pa__email-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .pa__input { flex: 1 1 12rem; }
+  .pa__honey { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .pa__email-ok { font-family: var(--font-serif); font-style: italic; color: var(--bone); margin: var(--space-3) 0 0; }
+
+  .pa__disclaimer {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    line-height: 1.6; margin: var(--space-5) 0 0; letter-spacing: 0.03em;
+  }
+
+  @media (max-width: 560px) {
+    .pa__calc { width: 100%; }
+    .pa__sum { font-size: 1.05rem; }
+  }
+</style>

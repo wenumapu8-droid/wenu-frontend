@@ -9,13 +9,46 @@
  */
 interface Cert {
   img: string;
+  href?: string;     // documento completo a abrir (PDF). Si falta, abre la imagen.
   title: string;     // qué acredita
   issuer: string;    // organización
   date: string;      // legible, ej "Nov 2025"
   mentor?: string;   // instructor/mentor si aplica
 }
+import MarqueeDrag from './MarqueeDrag.astro';
 
 const certs: Cert[] = [
+  {
+    img: '/img/piercing/certs/app-conference-2026.webp',
+    title: 'Annual Conference & Exposition 2026 — Recognition of Attendance',
+    issuer: 'Association of Professional Piercers (APP)',
+    date: 'Jun 2026',
+  },
+  {
+    img: '/img/piercing/certs/app-transcript-2026.webp',
+    href: '/img/piercing/certs/app-transcript-2026.pdf',
+    title: 'Official Transcript — Continuing Education Units (CEUs) · 29th Annual Conference 2026',
+    issuer: 'Association of Professional Piercers (APP)',
+    date: 'Jun 2026',
+  },
+  {
+    img: '/img/piercing/certs/corpo-territorio-2026.webp',
+    title: 'Simpósio Solidário para Piercers — Participation',
+    issuer: 'Corpo Território · Coletivo Sala Solidária',
+    date: 'Apr 2026',
+  },
+  {
+    img: '/img/piercing/certs/aha-bbp-2023.webp',
+    title: 'Heartsaver — Bloodborne Pathogens Course',
+    issuer: 'American Heart Association',
+    date: 'Jul 2023',
+  },
+  {
+    img: '/img/piercing/certs/aha-firstaid-cpr-aed-2023.webp',
+    title: 'Heartsaver — First Aid · CPR · AED',
+    issuer: 'American Heart Association',
+    date: 'Mar 2023',
+  },
   {
     img: '/img/piercing/certs/ppc-2026-01-11-nasal-masterclass.webp',
     title: 'Master Class — Nasal Piercings',
@@ -62,10 +95,12 @@ const certs: Cert[] = [
     </p>
   </div>
 
-  <ul class="container certs__grid" data-fade-in-stagger>
-    {certs.map(c => (
-      <li class="cert-card">
-        <a href={c.img} target="_blank" rel="noopener noreferrer" class="cert-card__link"
+  <div class="certs__marquee" data-explore-marquee>
+    <ul class="certs__track">
+    {[...certs, ...certs].map((c, i) => (
+      <li class="cert-card" aria-hidden={i >= certs.length ? 'true' : undefined}>
+        <a href={c.href || c.img} target="_blank" rel="noopener noreferrer" class="cert-card__link"
+           tabindex={i >= certs.length ? -1 : undefined}
            aria-label={`${c.title} — ${c.issuer}, ${c.date}. View full certificate`}>
           <div class="cert-card__img-wrap">
             <img src={c.img} alt={`${c.title} — ${c.issuer}`} loading="lazy" decoding="async" width="850" height="1100" />
@@ -82,7 +117,9 @@ const certs: Cert[] = [
         </a>
       </li>
     ))}
-  </ul>
+    </ul>
+  </div>
+  <MarqueeDrag />
 </section>
 
 <style>
@@ -113,10 +150,27 @@ const certs: Cert[] = [
     color: var(--fg-soft);
     margin: 0;
   }
-  .certs__grid {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  /* Auto-scrolling certificate band (marquee) — list rendered twice, shifts
+     -50% for a seamless loop. Hover/focus pause; reduced-motion → manual scroll. */
+  .certs__marquee {
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  }
+  .certs__track {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; gap: var(--space-4); width: max-content;
+    animation: certs-scroll 80s linear infinite; will-change: transform;
+  }
+  .certs__marquee:hover .certs__track,
+  .certs__marquee:focus-within .certs__track { animation-play-state: paused; }
+  @keyframes certs-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .cert-card { flex: 0 0 clamp(200px, 22vw, 264px); }
+  @media (prefers-reduced-motion: reduce) {
+    .certs__marquee { overflow-x: auto; }
+    .certs__track { animation: none; }
+  }
+  .certs__grid-unused {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: var(--space-4);
@@ -133,7 +187,7 @@ const certs: Cert[] = [
   .cert-card__img-wrap {
     aspect-ratio: 3 / 4;
     overflow: hidden;
-    background: #f4f1ea;
+    background: var(--product-panel);
     display: flex;
     align-items: center;
     justify-content: center;

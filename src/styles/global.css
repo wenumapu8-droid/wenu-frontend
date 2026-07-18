@@ -26,17 +26,44 @@
 
 /* ─── DESIGN TOKENS ─── */
 @import './tokens.css';
+@import './themes.css';
 
 /* ─── RESET ─── */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  /* Kill the default grey/black tap box on mobile — produced an ugly square
+     flash when tapping cards/links (Ocin "me da TOC" 2026-06-20). Intentional
+     :active / :focus-visible states below provide the real feedback. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+}
+
+/* Interactive targets: remove the 300ms tap delay and the highlight square,
+   so taps feel immediate and clean on touch devices. */
+a, button, [role="button"], summary, label, .product-card, .archive-card,
+.portal-card, .themed-card, .cosmic-line-card, .category-strip__tile {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Gentle, intentional press feedback on cards (replaces the harsh tap square
+   with a soft settle). Disabled under reduced-motion. */
+@media (hover: none) {
+  .product-card:active, .archive-card:active, .portal-card:active,
+  .themed-card:active, .category-strip__tile:active {
+    transform: scale(0.99);
+    transition: transform 0.12s ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .product-card:active, .archive-card:active, .portal-card:active,
+  .themed-card:active, .category-strip__tile:active { transform: none; }
 }
 
 /* ─── MATERIALS / ARTISTRY / STOCKISTS pages ─── */
@@ -511,39 +538,39 @@ p {
   vertical-align: middle;
 }
 
-/* ─── SACRED FOUR-DIRECTION MARK ─── */
+/* ─── SACRED FOUR-DIRECTION MARK ─── (sello ritual · Wenu sigil)
+   Reemplaza la vieja cruz cruda por el emblema oficial de marca, pintado con
+   mask-image sobre el SVG vector (public/img/brand/wenu-sigil.svg). Hereda el
+   color de `currentColor` → usar sobre var(--ember)/var(--bone) según fondo.
+   Fuente de verdad: components/WenuSigil.astro. */
 .sacred-mark {
-  display: inline-flex;
-  position: relative;
+  display: inline-block;
   width: 24px;
   height: 24px;
   flex-shrink: 0;
+  background-color: currentColor;
+  color: var(--ember);
+  -webkit-mask: url('/img/brand/wenu-sigil.svg') center / contain no-repeat;
+  mask: url('/img/brand/wenu-sigil.svg') center / contain no-repeat;
 }
 
-.sacred-mark::before,
-.sacred-mark::after {
+/* Divisor decorativo de constelación — el mismo sello ritual centrado como
+   pausa editorial entre secciones. Documentado en CLAUDE.md. */
+.constellation-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5, 2rem) 0;
+}
+.constellation-divider::before {
   content: '';
-  position: absolute;
-  background: var(--bronze);
-  opacity: 0.6;
-}
-
-.sacred-mark::before {
-  /* vertical */
-  top: 0;
-  left: 50%;
-  width: 1px;
-  height: 100%;
-  transform: translateX(-50%);
-}
-
-.sacred-mark::after {
-  /* horizontal */
-  left: 0;
-  top: 50%;
-  width: 100%;
-  height: 1px;
-  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  background-color: currentColor;
+  color: var(--ember);
+  opacity: 0.85;
+  -webkit-mask: url('/img/brand/wenu-sigil.svg') center / contain no-repeat;
+  mask: url('/img/brand/wenu-sigil.svg') center / contain no-repeat;
 }
 
 /* ─── GRID ASIMÉTRICO ─── */
@@ -582,8 +609,26 @@ p {
   background: transparent;
   color: var(--fg);
   cursor: pointer;
+  /* label + arrow never split across lines (arrow stays glued to the text) */
+  white-space: nowrap;
   transition: background var(--t-base), color var(--t-base), border-color var(--t-base),
               transform var(--t-fast), box-shadow var(--t-base);
+}
+
+/* The trailing arrow (<span aria-hidden>→</span>) sits as its own flex item;
+   give it a small gap and keep it from ever wrapping alone. Pattern site-wide. */
+.btn > span[aria-hidden] {
+  white-space: nowrap;
+  margin-left: 0.5em;
+}
+
+/* Mobile: long uppercase CTAs (e.g. "Start a custom commission →") would overflow
+   360px at full padding/tracking. Tighten both so nowrap labels still fit. */
+@media (max-width: 480px) {
+  .btn {
+    padding-inline: var(--space-4);
+    letter-spacing: 0.1em;
+  }
 }
 
 .btn:hover, .btn:focus-visible {
@@ -661,7 +706,24 @@ p {
   position: relative;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  background: var(--bg-lift);
+  /* warm shell panel so white-studio photos blend (not a harsh white box). */
+  background: var(--product-panel);
+}
+
+/* Broken Woo image (onerror removed the <img>) → cardinal-cross placeholder,
+   so a card never shows raw alt text. */
+.card-img-broken { position: relative; background: var(--obsidian); }
+.card-img-broken::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(106, 74, 40, 0.22), transparent 62%);
+}
+.card-img-broken::after {
+  content: "✛";
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--bronze); font-size: clamp(1.8rem, 6vw, 2.6rem); opacity: 0.5;
 }
 
 .product-card__badge {
@@ -678,6 +740,43 @@ p {
   background: var(--obsidian);
   padding: 4px 10px;
   border: 1px solid var(--bronze);
+}
+
+/* ── Stock badges (SOLD / COMING SOON) — 2026-06-26 ──────────────────────────
+   Sits over the photo, top-right, so it never covers the piece (centred). Uses
+   FIXED overlay tokens (--brand-bone / --brand-gold over a dark scrim) so it
+   stays legible in all three themes regardless of the card panel colour. */
+.stock-badge {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 3;
+  font-family: var(--font-sans);
+  font-size: var(--fs-tiny);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  background: var(--scrim-strong);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  color: var(--brand-bone);
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  pointer-events: none;
+}
+.stock-badge--sold {
+  color: var(--brand-bone);
+  border-color: rgba(184, 180, 170, 0.5);
+}
+.stock-badge--soon {
+  color: var(--brand-gold);
+  border-color: rgba(201, 168, 76, 0.7);
+}
+/* Sold pieces read as gone: gently dim + desaturate the photo (not too much). */
+.product-card[data-stock="sold"] .product-card__img-wrap img,
+.archive-card[data-stock="sold"] .archive-card__img-wrap img {
+  opacity: 0.74;
+  filter: grayscale(0.25);
 }
 
 .product-card__placeholder {
@@ -719,6 +818,7 @@ p {
   flex-direction: column;
   gap: var(--space-1);
   border-top: var(--border-accent);
+  flex: 1 1 auto;
 }
 
 .product-card__cat {
@@ -737,6 +837,15 @@ p {
   line-height: 1.05;
   color: var(--fg);
   margin: var(--space-1) 0 var(--space-2);
+  /* Lock every name to exactly two lines so a 1-line and a 3-line title occupy
+     the SAME height — cards stay even in both the grid and the carousels
+     (Ocin 2026-06-27). Overflow is clipped with an ellipsis. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(2 * 1.05em);
 }
 
 .product-card__price {
@@ -750,10 +859,14 @@ p {
 /* ─── ARCHIVE CARD (product as ritual archive object) ─── */
 .archive-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 0;
   border-top: var(--border-accent);
   border-left: var(--border-accent);
+}
+/* Clean 2-up catalogue grid on phones (the reference layout), even cells. */
+@media (max-width: 640px) {
+  .archive-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 .archive-card {
@@ -785,6 +898,19 @@ p {
   background: var(--bg-lift);
   position: relative;
 }
+/* Clean-catalogue panel: the piece FLOATS centred on a consistent shell panel
+   (concha in the dark themes, soft ivory in Solar) with even padding — every
+   card frames its piece identically (Ocin 2026-06-27, "Swords & Crosses" layout
+   in a Wenu skin). */
+.archive-card__img-wrap--panel {
+  background:
+    radial-gradient(120% 100% at 50% 22%, rgba(255, 255, 255, 0.05), transparent 60%),
+    var(--product-panel);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(18px, 7%, 40px);
+}
 
 .archive-card__img-wrap img {
   width: 100%;
@@ -793,11 +919,16 @@ p {
   transition: transform var(--t-slow), filter var(--t-slow);
   filter: grayscale(30%) contrast(1.05);
 }
+.archive-card__img-wrap--panel img {
+  object-fit: contain;
+  filter: none;
+}
 
 .archive-card:hover .archive-card__img-wrap img {
   transform: scale(1.07);
   filter: grayscale(0%) contrast(1.02) brightness(1.05);
 }
+.archive-card__img-wrap--panel:hover img { transform: scale(1.05); filter: none; }
 
 /* Fragment index label — top-left overlay */
 .archive-card__index {
@@ -818,19 +949,24 @@ p {
 .archive-card__body {
   padding: var(--space-3) var(--space-4) var(--space-4);
   border-top: var(--border-accent);
+  flex: 1 1 auto;
 }
 
-.archive-card__meta {
+.archive-card__meta,
+.archive-card__eyebrow {
   font-family: var(--font-sans);
   font-size: var(--fs-tiny);
   font-weight: var(--fw-medium);
   letter-spacing: var(--letter-spacing-ritual);
   text-transform: uppercase;
-  color: var(--silver);
-  margin-bottom: var(--space-2);
+  color: var(--bronze);
+  margin: 0 0 var(--space-2);
   display: flex;
   align-items: center;
   gap: var(--space-2);
+}
+.archive-card__eyebrow {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;
 }
 
 .archive-card__meta-dot {
@@ -844,12 +980,46 @@ p {
 
 .archive-card__name {
   font-family: var(--font-display);
-  font-size: 1.3rem;
+  font-size: 1.18rem;
   font-weight: var(--fw-regular);
-  line-height: 1.05;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.1;
   color: var(--bone);
   margin-bottom: var(--space-2);
+  /* same two-line lock as product cards → the shop grid stays even (Ocin) */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: calc(2 * 1.1em);
 }
+
+/* Variant finish swatches — small clickable-looking squares under the price. */
+.archive-card__swatches { display: flex; gap: 6px; margin-top: var(--space-2); }
+.archive-card__swatch {
+  width: 14px; height: 14px;
+  background: var(--sw, var(--bronze));
+  border: 1px solid color-mix(in srgb, var(--bone) 30%, transparent);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+/* Clean catalogue badges (sold out · back soon · feature · note). Top-left,
+   stacked, fixed overlay tokens so they read in all three themes. */
+.archive-card__badges { position: absolute; top: var(--space-3); left: var(--space-3); z-index: 3; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.pc-badge {
+  font-family: var(--font-sans); font-size: var(--fs-tiny);
+  font-weight: var(--fw-medium); letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 4px 9px; line-height: 1;
+  background: var(--scrim-strong); color: var(--brand-bone);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  border: 1px solid rgba(201, 168, 76, 0.4);
+}
+.pc-badge--feature { color: var(--brand-gold); border-color: rgba(201, 168, 76, 0.7); }
+.pc-badge--note { color: var(--brand-bone); border-color: rgba(184, 180, 170, 0.45); }
+.pc-badge--sold { color: var(--brand-bone); border-color: rgba(184, 180, 170, 0.55); }
+.pc-badge--soon { color: var(--brand-gold); border-color: rgba(201, 168, 76, 0.7); }
 
 .archive-card__price {
   font-family: var(--font-sans);
@@ -1201,6 +1371,7 @@ p {
   margin-top: 10vh;
   display: flex;
   flex-direction: column;
+  min-height: min(56vh, 460px);
   max-height: 80vh;
   overflow: hidden;
 }
@@ -1248,6 +1419,240 @@ p {
 
 .search__close:hover {
   color: var(--bone);
+}
+
+/* ── Kai's niche — warm gold-lit alcove behind him (2026-07-11 owner design
+   pass). Wraps his label + speech line + sprite + floor line in the menu,
+   search and cart surfaces, so he reads as built into the page rather than a
+   loose floating sprite. Internal stacking (label → line → sprite → floor)
+   is identical everywhere; each surface's own wrapper (.navkd__kai /
+   .search__kai / .wmcart__kai) controls width/centering/placement, and
+   compact/non-empty states strip the card chrome back down (see each
+   component's own CSS). Purely decorative/static — nothing here animates,
+   so prefers-reduced-motion needs no special handling. ── */
+.kai-niche {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  background: radial-gradient(120% 95% at 50% 16%, #251d11, #0f0b06);
+  border: 1px solid rgba(201, 168, 76, 0.20);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+.kai-niche__label {
+  font-family: "Press Start 2P", ui-monospace, monospace;
+  font-size: 6.5px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: #c9a84c;
+}
+/* Thin floor line under his paws, ON TOP OF (not instead of) the contact
+   shadow the canvas itself already draws — a subtle "he's standing on
+   something" cue for the niche floor. */
+.kai-niche__floor {
+  width: 70%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.38), transparent);
+}
+
+/* ── Retro CRT screen pass (2026-07-12 owner design pass, contained
+   2026-07-14 — premium/calm read for fine jewelry, less simultaneous
+   motion). 3 decorative layers + a sprite bob, all pointer-events:none, in 2
+   intensities via modifier classes on .kai-niche itself:
+     .kai-niche--a = subtle  (menu, cart empty-state hero, SEARCH too now —
+                              only /gracias gets to shine brighter)
+     .kai-niche--b = marked  (ONLY /gracias — the order-complete celebration
+                              is the one moment allowed to be louder)
+   Layers:
+     .kai-niche__aura       — radial glow BEHIND the sprite. Lives inside
+                               each surface's own -stage element (first
+                               child, before the canvas) so it sits under
+                               him and centers on his silhouette, not the
+                               whole card.
+     .kai-niche__scanlines  — CRT scanline overlay, on top of everything.
+                               ALWAYS static now (no flicker anywhere, even
+                               in B) — texture, not a light show.
+     .kai-niche__vignette   — inset "glass" vignette, on top.
+   Max ~2 simultaneous soft motions at any time: the sprite's own
+   bob+blink+breathing (kai-anim.js/CSS) + one slow aura pulse. Scanlines and
+   vignette are always static. prefers-reduced-motion turns off pulse/bob
+   entirely — aura/scanlines/vignette stay, just static. ── */
+.kai-niche__aura {
+  position: absolute;
+  top: 6%; right: -20%; bottom: -22%; left: -20%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.kai-niche__scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.kai-niche__vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  border-radius: inherit;
+  pointer-events: none;
+}
+/* Keep every sprite canvas above its own aura, whatever the DOM order. */
+.kai-niche [class$="__kai-sprite"] { position: relative; z-index: 1; }
+
+/* ── Kai textile curtain (Ocin 2026-07-15) ──────────────────────────────────
+   A woven mapuche panel that HIDES Kai until tapped, on every Kai screen. The
+   pattern (random, animated, auto-reshuffling) is painted by kai-textile.js on
+   any [data-kai-textile]; this is just the frame + reveal. Tap → .is-open on the
+   .kai-niche parts the curtain. The nav has its own bespoke long-screen version;
+   this generic one covers the cart / search / gracias niches. */
+.kai-niche .kai-cover {
+  position: absolute; inset: 0; z-index: 12;
+  border-radius: inherit;
+  background-color: #0d0d10;                 /* kai-textile.js paints the weave on top */
+  cursor: pointer;
+  transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.2,0.7,0.2,1);
+}
+/* revealed: curtain lifts */
+.kai-niche.is-open .kai-cover {
+  opacity: 0; transform: scale(1.06); pointer-events: none;
+}
+/* Kai peeks through the weave intermittently (Ocin 2026-07-15) — the curtain
+   goes sheer for a beat so his silhouette shows, then re-weaves. */
+.kai-niche.kai-peek .kai-cover { opacity: 0.12 !important; }
+
+/* A — slow, low-amplitude (menu, cart hero, search). */
+@keyframes kai-aura-pulse-a {
+  0%, 100% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+/* B — only /gracias now, a touch livelier but still calm next to A. */
+@keyframes kai-aura-pulse-b {
+  0%, 100% { transform: scale(0.92); opacity: 0.75; }
+  50% { transform: scale(1.09); opacity: 1; }
+}
+@keyframes kai-niche-bob {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-1px) scaleY(0.985); }
+}
+.kai-niche [class$="__kai-sprite"] { animation: kai-niche-bob 3s ease-in-out infinite; }
+
+/* A — subtle (menu, cart hero, search protagonist). */
+.kai-niche--a .kai-niche__aura {
+  background: radial-gradient(closest-side, rgba(201, 168, 76, 0.20), rgba(201, 168, 76, 0.05), transparent);
+  animation: kai-aura-pulse-a 5s ease-in-out infinite;
+}
+.kai-niche--a .kai-niche__scanlines {
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 3px);
+}
+.kai-niche--a .kai-niche__vignette {
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* B — marked, /gracias only: the one moment allowed to shine a little more. */
+.kai-niche--b .kai-niche__aura {
+  background: radial-gradient(closest-side, rgba(224, 190, 96, 0.55), rgba(201, 168, 76, 0.14), transparent);
+  animation: kai-aura-pulse-b 4s ease-in-out infinite;
+}
+.kai-niche--b .kai-niche__scanlines {
+  /* Static, like A — no flicker anywhere (2026-07-14 containment pass). */
+  background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0 1px, transparent 1px 3px);
+}
+.kai-niche--b .kai-niche__vignette {
+  box-shadow: inset 0 0 46px rgba(0, 0, 0, 0.72), inset 0 14px 22px rgba(201, 168, 76, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kai-niche__aura,
+  .kai-niche [class$="__kai-sprite"] { animation: none !important; }
+}
+
+/* ── Kai — protagonista del buscador (ver src/components/SearchModal.astro).
+   Ocupa el gran espacio vacío bajo el input; se achica cuando hay una
+   búsqueda activa para dejar respirar los resultados. ── */
+.search__kai {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  flex: 2 0 auto;
+  min-height: min(42vh, 340px);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  border-bottom: 1px solid var(--line-soft);
+  transition: min-height var(--t-base), padding var(--t-base), opacity var(--t-base);
+}
+/* Protagonist size — ~30% larger than the first pass (2026-07-11 design
+   audit): the overlay below the input is a big empty space and Kai read as
+   small in it. */
+.search__kai-stage { position: relative; width: 156px; height: 150px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; }
+.search__kai-sprite { width: 156px; height: 150px; image-rendering: pixelated; cursor: pointer; }
+/* 8-bit speech-bubble font — ONLY Kai's line, rest of the search modal keeps
+   its normal type (2026-07-11). Press Start 2P renders large/wide per pixel,
+   so it needs a much smaller font-size + generous line-height + a capped
+   width to wrap cleanly instead of overflowing (e.g. "Let's sniff it out -
+   what are we after?" wraps 2-3 lines here, never spills out). */
+.search__kai-line {
+  margin: 0;
+  padding: 0 2px;
+  max-width: min(238px, 82%);
+  min-height: 3.6em;
+  font-family: "Press Start 2P", ui-monospace, monospace;
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0;
+  line-height: 1.8;
+  color: var(--sand);
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+@media (max-width: 480px) {
+  .search__kai-line { font-size: 9px; max-width: min(210px, 82%); }
+}
+/* Compact — while an active query is typed, shrink out of the way of results. */
+.search__kai--compact {
+  min-height: 0;
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-4);
+  flex-direction: row;
+  gap: var(--space-3);
+}
+.search__kai--compact .search__kai-stage { width: 44px; height: 42px; order: -1; }
+.search__kai--compact .search__kai-sprite { width: 44px; height: 42px; }
+/* Compact keeps 8px on purpose (2026-07-16 legibility pass) — the only place
+   the small size survives, everywhere else large bubbles moved to 10px. */
+.search__kai--compact .search__kai-line { max-width: none; min-height: 1.8em; flex: 1 1 auto; min-width: 0; font-size: 8px; text-align: left; }
+/* The golden niche is the empty-overlay "protagonist" moment — while an
+   active query is typed, drop the card chrome back to a plain compact row
+   (icon + line), same spirit as the cart's non-empty state below. */
+.search__kai--compact .kai-niche {
+  width: auto;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+.search__kai--compact .kai-niche__label,
+.search__kai--compact .kai-niche__floor,
+.search__kai--compact .kai-niche__aura,
+.search__kai--compact .kai-niche__scanlines,
+.search__kai--compact .kai-niche__vignette { display: none; }
+.search__kai--compact [class$="__kai-sprite"] { animation: none; }
+
+@media (max-width: 600px) {
+  .search__kai { padding: var(--space-6) var(--space-4); }
+  .search__kai-stage { width: 125px; height: 120px; }
+  .search__kai-sprite { width: 125px; height: 120px; }
 }
 
 .search__hints {
@@ -1316,6 +1721,22 @@ p {
   overflow: hidden;
   flex-shrink: 0;
 }
+/* placeholder for results whose Woo image is missing/broken — cardinal cross */
+.search__thumb--empty {
+  position: relative;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(201,168,76,0.10), transparent 70%),
+    var(--obsidian);
+}
+.search__thumb--empty::before,
+.search__thumb--empty::after {
+  content: "";
+  position: absolute;
+  background: var(--bronze);
+  opacity: 0.6;
+}
+.search__thumb--empty::before { top: 50%; left: 28%; right: 28%; height: 1px; transform: translateY(-50%); }
+.search__thumb--empty::after  { left: 50%; top: 28%; bottom: 28%; width: 1px; transform: translateX(-50%); }
 
 .search__thumb img {
   width: 100%;
@@ -1755,17 +2176,23 @@ p {
 .cat-masthead {
   position: relative;
   width: 100%;
-  aspect-ratio: 1672 / 700;
-  max-height: 56vh;
+  /* Lead with presence: a tall editorial hero, not a letterbox strip.
+     On-body / portrait banners now read as the page's opening image. */
+  min-height: clamp(440px, 64vh, 680px);
   overflow: hidden;
   background: var(--obsidian);
   border-bottom: var(--border-thin);
+}
+.cat-masthead > picture {
+  position: absolute;
+  inset: 0;
+  display: block;
 }
 .cat-masthead img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
+  object-position: center 30%;  /* favour the face / upper subject, not the chest crop */
   display: block;
   filter: saturate(0.95) contrast(1.04);
 }
@@ -1774,10 +2201,48 @@ p {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(8, 7, 6, 0) 58%, rgba(8, 7, 6, 0.55) 100%);
+  background: linear-gradient(180deg, var(--scrim-0) 58%, var(--scrim-mid) 100%);
 }
 @media (max-width: 700px) {
-  .cat-masthead { aspect-ratio: 16 / 11; max-height: none; }
+  /* Portrait banners breathe taller on mobile so the subject leads the page. */
+  .cat-masthead { min-height: clamp(440px, 78vh, 620px); }
+}
+
+/* ─── ART VARIANT — full designed banner with baked title (wide composition).
+   These must NOT be cover-cropped: their title lives at a fixed spot in the art,
+   so cropping on narrow viewports cuts the title. Show the whole banner at its
+   natural aspect ratio (letterboxes gracefully into the obsidian page). ─── */
+.cat-masthead--art { min-height: 0 !important; height: auto !important; aspect-ratio: auto !important; border-bottom: none; overflow: visible; }
+.cat-masthead--art > picture { position: static !important; display: block !important; }
+.cat-masthead--art img {
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1600 / 900 !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  object-position: center;
+  filter: none;
+}
+.cat-masthead--art::after { display: none; }
+@media (max-width: 700px) {
+  .cat-masthead--art { min-height: 0; }
+}
+
+/* PDP collection masthead — the collection banner above a product. It's an <a>
+   (links to the collection), capped so it leads without dominating the product. */
+.pdp-collection-masthead {
+  display: block;
+  max-height: 460px;
+  text-decoration: none;
+}
+.pdp-collection-masthead img {
+  max-height: 460px;
+  margin-inline: auto;
+}
+@media (max-width: 700px) {
+  .pdp-collection-masthead { max-height: none; }
+  .pdp-collection-masthead img { max-height: none; }
 }
 
 /* ─── TITLED VARIANT — atmospheric banner + HTML overlay (pages without a baked-title banner) ─── */
@@ -1802,7 +2267,7 @@ p {
   letter-spacing: 0.14em;
   line-height: 1;
   font-size: clamp(2rem, 6vw, 4.5rem);
-  text-shadow: 0 2px 24px rgba(8, 7, 6, 0.6);
+  text-shadow: 0 2px 24px var(--scrim-strong);
 }
 .cat-masthead--titled .cat-masthead__eyebrow {
   margin: 0.9rem 0 0 0;
@@ -1814,14 +2279,21 @@ p {
 }
 .cat-masthead--titled::after {
   background:
-    linear-gradient(90deg, rgba(8, 7, 6, 0) 28%, rgba(8, 7, 6, 0.55) 100%),
-    linear-gradient(180deg, rgba(8, 7, 6, 0) 52%, rgba(8, 7, 6, 0.5) 100%);
+    linear-gradient(90deg, var(--scrim-0) 28%, var(--scrim-mid) 100%),
+    linear-gradient(180deg, var(--scrim-0) 52%, var(--scrim-soft) 100%);
 }
 @media (max-width: 700px) {
   .cat-masthead--titled .cat-masthead__label {
     align-items: center;
     text-align: center;
     padding: 0 1.25rem;
+  }
+  /* Texto centrado en mobile → el velo derecha/abajo no lo cubre.
+     Veil centrado (pool radial + base vertical) para contraste a 360px. */
+  .cat-masthead--titled::after {
+    background:
+      radial-gradient(ellipse 130% 75% at 50% 50%, var(--scrim-mid) 0%, var(--scrim-0) 72%),
+      linear-gradient(180deg, var(--scrim-0) 0%, var(--scrim-soft) 100%);
   }
 }
 
@@ -2232,13 +2704,21 @@ p {
   place-items: end center;
   padding-bottom: clamp(var(--space-5), 6vh, var(--space-7));
 }
-.threshold img {
+/* Scope to the BACKGROUND picture only — the spinning .threshold__seal-mandala is
+   also an <img> inside .threshold, and ".threshold img" (more specific than its
+   own class) was stretching it to inset:0/100% so the rotate(translate(-50%,-50%))
+   flung it to the top-left corner. That was the real off-centre cause (Ocin). */
+.threshold picture img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center center;
+  /* The background chakana's bright EYE sits at ~48% of the image height (measured),
+     not 50%. object-position pins that 48% line of the image to the 48% line of the
+     box REGARDLESS of how max-height crops it — so the spinning white seal (also at
+     48%, below) lands exactly on the eye on every screen size (Ocin 2026-06-27). */
+  object-position: 50% 48%;
   display: block;
   filter: contrast(1.05) brightness(1.02);
 }
@@ -2258,6 +2738,9 @@ p {
   max-width: 640px;
 }
 .threshold__arn {
+  /* "Wenu Mapu" eyebrow removed from the portal (Ocin 2026-06-28 — no WENU MAPU
+     text anywhere on "The world above"). The seal-text ring is already hidden. */
+  display: none;
   color: var(--ember);
   margin: 0 0 var(--space-3);
 }
@@ -2283,7 +2766,349 @@ p {
     aspect-ratio: 3 / 4;
     max-height: none;
   }
-  .threshold img { object-position: center 38%; }
+  /* keep the chakana eye pinned at 48% on mobile too, so the spinning seal sits
+     exactly on it (Ocin 2026-06-27). Picture-scoped so it never touches the seal. */
+  .threshold--portal picture img { object-position: 50% 48%; }
+}
+
+/* ─── COSMIC PORTAL — threshold as a clickable, spinning entry to /experience/cosmos.
+   Signature element (restored 2026-06-24). Seal ring + centre mandala both rotate. ─── */
+.threshold--portal {
+  display: block;
+  padding: 0;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: filter 0.5s ease;
+}
+/* Seal centred exactly on the section's mandala (background is object-position
+   centre), so it no longer floats to a corner. Copy sits below, near the foot. */
+.threshold__seal {
+  position: absolute;
+  /* 49% — measured against the real chakana: its centre core sits at ~49% of the
+     mobile crop, so the mandala hole lands on the eye (Ocin 2026-06-28). */
+  top: 49%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: block;
+  /* Seal box enlarged (Ocin 2026-07-07: the crisp white mandala should reach the
+     outer ring of the background chakana). Was clamp(150px,22vw,230px). */
+  width: clamp(184px, 27vw, 288px);
+  height: clamp(184px, 27vw, 288px);
+}
+.threshold--portal .threshold__copy {
+  position: absolute;
+  /* Center with left/right + margin-auto, NOT translateX(-50%): the copy carries
+     [data-reveal], and `.reveal-ready [data-reveal].is-revealed { transform: none }`
+     (higher specificity) wiped out any translateX, dropping the block's left edge at
+     the 50% line so the text overflowed and was clipped on the right (Ocin 2026-07-06).
+     left/right:0 + margin-inline:auto centers it independent of the transform. */
+  left: 0;
+  right: 0;
+  bottom: clamp(var(--space-5), 7vh, var(--space-7));
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+  padding: 0 var(--space-4);
+}
+.threshold__seal-text {
+  /* The rotating "WENU MAPU · COSMIC PORTAL" text ring is removed (Ocin 2026-06-27)
+     — the portal now shows the spinning mandala alone, clean over the sun. */
+  display: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: threshold-seal-spin 30s linear infinite;
+  pointer-events: none;
+}
+.threshold__seal-mandala {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Fill more of the seal box so the crisp mandala reaches near the outer ring of
+     the faint background chakana (Ocin 2026-07-07). Was 54%. */
+  width: 76%;
+  height: 76%;
+  object-fit: contain;
+  transform: translate(-50%, -50%);
+  animation: threshold-mandala-spin 52s linear infinite, threshold-seal-glow 4.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.threshold--portal:hover { filter: brightness(1.06); }
+.threshold--portal:hover .threshold__seal-text { animation-duration: 13s; }
+.threshold--portal:hover .threshold__seal-mandala { animation-duration: 17s, 1.7s; }
+.threshold--portal:focus-visible {
+  outline: 1px solid rgba(245, 234, 216, 0.6);
+  outline-offset: 6px;
+}
+.threshold--portal .threshold__copy { z-index: 2; }
+.threshold__enter {
+  display: inline-block;
+  margin-top: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--letter-spacing-ritual);
+  text-transform: uppercase;
+  color: var(--ember);
+  transition: color 0.4s ease;
+}
+.threshold--portal:hover .threshold__enter { color: var(--bone); }
+@keyframes threshold-seal-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes threshold-mandala-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes threshold-seal-glow {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4)) drop-shadow(0 0 12px rgba(255, 255, 255, 0.15)); }
+  50% { filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.82)) drop-shadow(0 0 30px rgba(255, 255, 255, 0.3)) drop-shadow(0 0 50px rgba(240, 192, 96, 0.1)); }
+}
+
+/* ─── PORTAL — interactive 3D vortex stage (Ocin 2026, GPU-only, lazy) ─── */
+.threshold--portal { perspective: 1100px; --tx: 0deg; --ty: 0deg; }
+/* the whole depth field rotates with pointer / scroll / device tilt */
+.threshold__stage {
+  position: absolute; inset: 0; z-index: 2;
+  pointer-events: none;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--ty)) rotateY(var(--tx));
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+/* rotating conic "vortex" swirls, two depths + speeds */
+.threshold__vortex {
+  position: absolute; top: 49%; left: 50%;
+  width: clamp(320px, 62vw, 700px); aspect-ratio: 1; border-radius: 50%;
+  pointer-events: none; mix-blend-mode: screen;
+  -webkit-mask: radial-gradient(circle, transparent 20%, #000 40%, #000 70%, transparent 84%);
+          mask: radial-gradient(circle, transparent 20%, #000 40%, #000 70%, transparent 84%);
+  will-change: transform;
+}
+.threshold__vortex--a {
+  transform: translate(-50%, -50%) translateZ(-70px);
+  background: conic-gradient(from 0deg,
+    transparent 0deg, rgba(201,168,76,0.12) 44deg, transparent 96deg,
+    rgba(245,234,216,0.07) 180deg, transparent 232deg,
+    rgba(201,168,76,0.12) 308deg, transparent 360deg);
+  animation: portal-vortex 42s linear infinite;
+}
+.threshold__vortex--b {
+  width: clamp(220px, 44vw, 500px);
+  transform: translate(-50%, -50%) translateZ(-44px);
+  background: conic-gradient(from 120deg,
+    transparent 0deg, rgba(245,234,216,0.06) 60deg, transparent 140deg,
+    rgba(201,168,76,0.10) 250deg, transparent 320deg);
+  animation: portal-vortex-rev 66s linear infinite;
+}
+/* drifting starfield */
+.threshold__stars {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  pointer-events: none; opacity: 0.75; mix-blend-mode: screen;
+  transform: translateZ(-58px) scale(1.06);
+}
+/* breathing golden aura pooling out of the sun/eye */
+.threshold__aura {
+  position: absolute; top: 49%; left: 50%;
+  width: clamp(300px, 56vw, 640px); aspect-ratio: 1;
+  pointer-events: none;
+  background: radial-gradient(circle,
+    rgba(240,192,96,0.20) 0%, rgba(201,168,76,0.10) 28%, rgba(201,168,76,0.03) 50%, transparent 68%);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%) translateZ(-14px);
+  animation: portal-aura 7.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+/* sacred-geometry ring — counter-rotating groups */
+.threshold__geo {
+  position: absolute; top: 49%; left: 50%;
+  width: clamp(240px, 44vw, 500px); aspect-ratio: 1;
+  pointer-events: none; opacity: 0.9; color: var(--bone);
+  mix-blend-mode: screen;
+  transform: translate(-50%, -50%) translateZ(18px);
+  will-change: transform;
+}
+.threshold__geo-spin { transform-box: fill-box; transform-origin: center; animation: portal-geo-spin 96s linear infinite; }
+.threshold__geo-counter { transform-box: fill-box; transform-origin: center; animation: portal-geo-counter 74s linear infinite; }
+.threshold__geo-node { animation: portal-node-pulse 4.5s ease-in-out infinite; }
+.threshold__geo-node:nth-child(3) { animation-delay: 1.1s; }
+.threshold__geo-node:nth-child(4) { animation-delay: 2.2s; }
+.threshold__geo-node:nth-child(5) { animation-delay: 3.3s; }
+/* nearest layer: the mandala seal floats forward */
+.threshold--portal .threshold__seal { transform: translate(-50%, -50%) translateZ(46px); }
+
+@keyframes portal-vortex     { to { transform: translate(-50%, -50%) translateZ(-70px) rotate(360deg); } }
+@keyframes portal-vortex-rev { to { transform: translate(-50%, -50%) translateZ(-44px) rotate(-360deg); } }
+@keyframes portal-aura {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+@keyframes portal-geo-spin    { from { rotate: 0deg; } to { rotate: 360deg; } }
+@keyframes portal-geo-counter { from { rotate: 0deg; } to { rotate: -360deg; } }
+@keyframes portal-node-pulse  { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+/* Solar (light) theme: darken decorative layers so they read on the light portal */
+html[data-theme="solar"] .threshold__stars,
+html[data-theme="solar"] .threshold__geo,
+html[data-theme="solar"] .threshold__vortex { mix-blend-mode: multiply; opacity: 0.5; }
+html[data-theme="solar"] .threshold__aura { mix-blend-mode: multiply; opacity: 0.4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .threshold__seal-text,
+  .threshold__seal-mandala,
+  .threshold--portal:hover .threshold__seal-text,
+  .threshold--portal:hover .threshold__seal-mandala { animation: none !important; }
+  /* calm, static version: no rotation, no drift, no tilt */
+  .threshold__stage { transform: none !important; transition: none !important; }
+  .threshold__aura,
+  .threshold__vortex,
+  .threshold__geo-spin,
+  .threshold__geo-counter,
+  .threshold__geo-node { animation: none !important; }
+  .threshold__aura { opacity: 0.7; }
+  .threshold__stars { display: none; }
+}
+
+/* ─── Site-wide scroll reveals (gentle, progressive-enhancement gated) ─── */
+.reveal-ready [data-reveal] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.85s cubic-bezier(0.2, 0.7, 0.2, 1),
+              transform 0.85s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: opacity, transform;
+}
+.reveal-ready [data-reveal].is-revealed { opacity: 1; transform: none; }
+[data-reveal][data-reveal-delay="1"] { transition-delay: 0.09s; }
+[data-reveal][data-reveal-delay="2"] { transition-delay: 0.18s; }
+[data-reveal][data-reveal-delay="3"] { transition-delay: 0.27s; }
+
+/* ─── Hidden Sky v2 — "Real-Flight Signal": a rare, small, fast UFO that punches
+   through an ember rift, hard-darts across the upper field, and is catchable.
+   WM FICTION / SIGNAL only. Seizure-safe: flickers are shallow + ≤3/sec. ─── */
+.hidden-sky {
+  position: fixed; z-index: 3; left: 0; top: 0;
+  pointer-events: none;               /* the field never blocks the page */
+  contain: layout paint;              /* keep this fixed layer off the page's layout */
+  transform: translate(0, 0);         /* JS drives the hop position here */
+  will-change: transform;
+}
+.hs-craft {
+  width: clamp(52px, 6.4vw, 96px); height: auto; display: block;
+  opacity: 0;
+  /* the clip has a near-black bg — screen blend drops it so only the craft glows */
+  mix-blend-mode: screen;
+  filter: saturate(0.72) brightness(0.96) contrast(1.05);
+  will-change: transform, opacity, filter;
+}
+/* forgiving ~28px hit ring; craft is the only element that ever takes pointer events */
+.hs-craft::after { content: ''; position: absolute; inset: -14px; }
+.hidden-sky.is-active .hs-craft { pointer-events: auto; cursor: crosshair; }
+
+/* portal rift (pure CSS, sits behind the craft) */
+.hs-rift {
+  position: absolute; inset: 50% auto auto 50%;
+  width: 130%; height: 130%;
+  transform: translate(-50%, -50%) scale(0);
+  border-radius: 50%; opacity: 0; pointer-events: none;
+  mix-blend-mode: screen; filter: blur(0.5px);
+  background: radial-gradient(circle,
+    rgba(240,237,232,.80) 0%, rgba(201,168,76,.52) 22%, rgba(201,168,76,.13) 46%, rgba(10,10,10,0) 66%);
+}
+/* palette-locked RGB ghost siblings — near-subliminal channel re-lock */
+.hs-ghost { position: absolute; inset: 0; width: 100%; height: auto; opacity: 0; pointer-events: none; mix-blend-mode: screen; will-change: transform, opacity; }
+.hs-ghost--warm { filter: sepia(1) saturate(3.2) hue-rotate(-28deg) brightness(1.08); }
+.hs-ghost--cool { filter: sepia(1) saturate(2.4) hue-rotate(150deg) brightness(1.04); }
+
+/* ENTRY: rift iris + craft punch-through + one shallow tear */
+@keyframes hs-rift-open {
+  0%   { transform: translate(-50%,-50%) scale(0);   opacity: 0; }
+  30%  { transform: translate(-50%,-50%) scale(1);   opacity: 1; }
+  55%  { transform: translate(-50%,-50%) scale(.42); opacity: .85; }
+  100% { transform: translate(-50%,-50%) scale(0);   opacity: 0; }
+}
+@keyframes hs-craft-emerge {
+  0%   { opacity: 0; transform: scale(.2);  filter: saturate(.72) brightness(1.9); }
+  40%  { opacity: 1; transform: scale(1.1); filter: saturate(.72) brightness(1.35); }
+  60%  { transform: scale(.97); }
+  100% { opacity: var(--peak,.5); transform: scale(1); filter: saturate(.72) brightness(.96) contrast(1.05); }
+}
+@keyframes hs-breach-tear {
+  0%, 100% { clip-path: inset(0 0 0 0);     transform: translateX(0); }
+  48%      { clip-path: inset(40% 0 42% 0); transform: translateX(-2px); }
+  74%      { clip-path: inset(12% 0 66% 0); transform: translateX(2px); }
+}
+.hidden-sky.is-entering .hs-rift  { animation: hs-rift-open 460ms cubic-bezier(.16,1,.3,1) forwards; }
+.hidden-sky.is-entering .hs-craft { animation:
+  hs-craft-emerge 460ms cubic-bezier(.34,1.56,.64,1) forwards,
+  hs-breach-tear  200ms steps(1) 300ms 1; }
+
+/* MOTION: hover-only wobble + amber running-light pulse (no always-on churn) */
+@keyframes hs-wobble {
+  0%, 100% { translate: 0 0;        rotate: -.5deg; }
+  33%      { translate: .5px -.4px; }
+  66%      { translate: -.4px .3px; rotate: .6deg; }
+}
+@keyframes hs-pulse {
+  0%, 100% { filter: saturate(.72) brightness(.96) contrast(1.05) drop-shadow(0 0 3px rgba(201,168,76,0)); }
+  50%      { filter: saturate(.78) brightness(1.08) contrast(1.05) drop-shadow(0 0 6px rgba(201,168,76,.4)); }
+}
+.hidden-sky.is-hover .hs-craft { animation: hs-wobble .46s ease-in-out infinite, hs-pulse 1.15s ease-in-out infinite; }
+
+/* near-subliminal RGB re-lock, fired per hop */
+@keyframes hs-ghost-lock { 0% { opacity: .30; } 100% { opacity: 0; transform: translate(0,0); } }
+.hidden-sky.is-locking .hs-ghost--warm { transform: translate(2.5px,-1.5px); animation: hs-ghost-lock 160ms ease-out forwards; }
+.hidden-sky.is-locking .hs-ghost--cool { transform: translate(-2.5px,1.5px); animation: hs-ghost-lock 160ms ease-out forwards; }
+
+/* cloak flicker — shallow, dips only to .10 (never black), spaced ≥100ms */
+@keyframes hs-cloak { 0% { opacity: var(--peak,.5); } 30% { opacity: .10; } 60% { opacity: .10; } 100% { opacity: var(--peak,.5); } }
+.hidden-sky.is-cloaking .hs-craft { animation: hs-cloak 300ms ease-in-out 1; }
+
+/* EXIT: snap-out + rift seal */
+@keyframes hs-craft-vanish {
+  0%   { opacity: var(--peak,.5); transform: scale(1); }
+  30%  { opacity: 1;   transform: scale(1.14); filter: saturate(.8) brightness(1.5); }
+  60%  { opacity: .85; transform: scale(.5); }
+  100% { opacity: 0;   transform: scale(.05); }
+}
+@keyframes hs-rift-seal {
+  0%   { transform: translate(-50%,-50%) scale(0);  opacity: 0; }
+  35%  { transform: translate(-50%,-50%) scale(.9); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(0);  opacity: 0; }
+}
+.hidden-sky.is-leaving .hs-craft { animation: hs-craft-vanish 360ms cubic-bezier(.5,0,.75,0) forwards; }
+.hidden-sky.is-leaving .hs-rift  { animation: hs-rift-seal   360ms cubic-bezier(.5,0,.75,0) forwards; }
+
+/* CLICK BURST: ember ping ring at the pointer */
+.hs-ping { position: fixed; z-index: 4; pointer-events: none; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 1px solid rgba(201,168,76,.6); opacity: 0; }
+@keyframes hs-ping-out { 0% { transform: scale(.3); opacity: .6; } 100% { transform: scale(9); opacity: 0; } }
+.hs-ping.go { animation: hs-ping-out 520ms cubic-bezier(.2,.7,.3,1) forwards; }
+
+/* TOAST: "signal received" transmission — ember on obsidian */
+.hs-toast {
+  position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 12px);
+  z-index: 40; max-width: min(90vw, 360px); pointer-events: auto; opacity: 0;
+  padding: .75rem 2.1rem .75rem 1rem;
+  background: rgba(10,10,10,.92); backdrop-filter: blur(6px);
+  border: 1px solid rgba(201,168,76,.38); border-radius: 2px; color: var(--bone);
+  transition: opacity .24s ease, transform .24s cubic-bezier(.16,1,.3,1);
+}
+.hs-toast.go { opacity: 1; transform: translate(-50%, 0); }
+.hs-toast .hs-eyebrow { font-family: var(--font-sans); font-size: .62rem; letter-spacing: .2em; text-transform: uppercase; color: var(--ember); display: block; margin-bottom: .2rem; }
+.hs-toast .hs-coord { font-family: var(--font-sans); font-size: .68rem; letter-spacing: .06em; color: var(--silver); display: block; }
+.hs-toast .hs-ritual { font-family: var(--font-serif); font-style: italic; font-size: .95rem; color: var(--sand); display: block; margin-top: .15rem; }
+.hs-toast .hs-trace { font-family: var(--font-sans); font-size: .6rem; letter-spacing: .14em; text-transform: uppercase; color: var(--ember); text-decoration: none; border-bottom: 1px solid rgba(201,168,76,.35); display: inline-block; margin-top: .5rem; }
+.hs-toast .hs-close { position: absolute; top: 6px; right: 8px; width: 16px; height: 16px; background: none; border: none; color: var(--sand); font-size: 14px; line-height: 1; cursor: pointer; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* reduced-motion: opacity-only sighting, no rift/hops/glitch/wobble */
+  .hs-rift { display: none; }
+  .hidden-sky .hs-craft, .hidden-sky .hs-ghost { animation: none !important; }
+  .hidden-sky.is-entering .hs-craft, .hidden-sky.is-leaving .hs-craft { animation: none !important; }
+  .hs-toast { transition: opacity .2s ease; transform: translate(-50%, 0); }
+  .reveal-ready [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
 }
 
 /* ─── CATEGORY STRIP ─── */
@@ -3326,7 +4151,7 @@ p {
 }
 
 .sizing__table tbody td {
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--line-soft);
   color: var(--fg-soft);
 }
@@ -3334,6 +4159,18 @@ p {
 .sizing__table tbody td:first-child {
   color: var(--bone);
 }
+
+/* The "Size" visual column needs real breathing room so the number columns to
+   its left don't crowd it, and the silhouette sits in its own airy cell (Ocin
+   2026-06-27). Give it a comfortable min-width and extra left padding. */
+.sizing__table .sizing__vis,
+.sizing__table .sizing__vis-h {
+  width: 34%;
+  min-width: 180px;
+  padding-left: var(--space-6);
+  white-space: normal;
+}
+.sizing__table .sizing__vis { text-align: left; }
 
 .sizing__note {
   font-family: var(--font-sans);
@@ -3699,9 +4536,9 @@ p {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: left center;
+  object-position: center;
   display: block;
-  filter: saturate(0.78) brightness(0.85);
+  filter: saturate(0.92) brightness(0.9);
 }
 
 .truckee__media-veil {
@@ -3991,7 +4828,7 @@ p {
 
 .footer-v2__crest {
   border-bottom: var(--border-thin);
-  margin-bottom: var(--space-7);
+  margin-bottom: var(--space-3);
   background: var(--obsidian);
   line-height: 0;
 }
@@ -4008,6 +4845,16 @@ p {
   max-height: clamp(120px, 18vw, 240px);
   object-position: center;
   opacity: 0.92;
+}
+/* Real (editable) tagline — replaces the baked text removed from the crest. */
+.footer-v2__tagline {
+  margin: 0 0 var(--space-7);
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--letter-spacing-archive);
+  text-transform: uppercase;
+  color: var(--fg-mute);
 }
 
 .footer-v2__inner {
@@ -4454,11 +5301,29 @@ p {
 /* ─── FILTER TABS ─── */
 .filter-bar {
   display: flex;
-  gap: 0;
+  gap: var(--space-4);
   flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
   margin-bottom: var(--space-5);
   border-bottom: var(--border-thin);
 }
+.filter-bar__tabs { display: flex; gap: 0; flex-wrap: wrap; align-items: center; }
+.filter-bar__label {
+  font-family: var(--font-sans); font-size: var(--fs-tiny);
+  letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+  color: var(--silver); margin-right: var(--space-3); align-self: center;
+}
+.filter-sort { display: inline-flex; align-items: center; gap: var(--space-2); padding-bottom: 6px; }
+.filter-sort select {
+  font-family: var(--font-sans); font-size: var(--fs-small);
+  letter-spacing: 0.04em; color: var(--bone);
+  background: transparent; border: 1px solid var(--line-bright);
+  padding: 6px var(--space-3); cursor: pointer;
+}
+.filter-sort select:focus-visible { outline: none; border-color: var(--ember); }
+html[data-theme="solar"] .filter-sort select { background: rgba(255, 255, 255, 0.55); border-color: var(--bronze); }
+.filter-sort select option { background: var(--charcoal); color: var(--bone); }
 
 .filter-tab {
   padding: var(--space-2) var(--space-4);
@@ -5265,7 +6130,7 @@ a.contact-channels__value:hover {
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border: 1px solid rgba(138, 106, 67, 0.32);
-  background: #000;
+  background: var(--obsidian);
   text-decoration: none;
   isolation: isolate;
 }
@@ -5354,7 +6219,7 @@ a.contact-channels__value:hover {
   border: 1px solid rgba(138, 106, 67, 0.32);
   border-radius: 2px;
   aspect-ratio: 1122 / 1402;
-  background: #050403;
+  background: var(--obsidian);
 }
 .guardian-card__frame img {
   width: 100%;

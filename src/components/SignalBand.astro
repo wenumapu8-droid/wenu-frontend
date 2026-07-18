@@ -1,0 +1,744 @@
+---
+/**
+ * SignalBand — "TRANSMISSION" home band, rebuilt PRODUCT-FORWARD (Ocin 2026-07-06).
+ *
+ * BEFORE: a purely abstract mood band ("Geometry borrowed from the sky",
+ * "Connected to the cosmos · since 2013") over a procedural mandala/spectrum.
+ * Ocin: "no la entiendo, no tiene sentido, no tiene el wow de Rage Nation."
+ *
+ * AFTER: the Rage-Nation MECHANISM adapted to the Wenu world — a cinematic
+ * block that puts REAL PIECES ON STAGE. Not their streetwear look; the mechanism:
+ *   · one hero piece in scene with a subtle scanline / RGB-split entrance glitch,
+ *     its NAME + PRICE + badge (NEW / LIMITED / ONE-OF-A-KIND), tap → its PDP;
+ *   · a strip of smaller pieces beside it, each a real product → its PDP;
+ *   · category CHIPS with the Wenu star glyph that jump straight to /shop filtered;
+ *   · a short, honest ethos (NO invented founding year — see note below);
+ *   · a clear "Enter the collection →" to /shop.
+ *
+ * The old procedural spectral band + sacred geometry are KEPT as a faint, slow
+ * backdrop (atmosphere, not the content) so the dark-ritual beauty survives, but
+ * the eye lands on product. The whole thing degrades to a clean static frame
+ * under prefers-reduced-motion and on low-power devices.
+ *
+ * PROVENANCE (regla dura): the previous "Connected to the cosmos · since 2013"
+ * read as lifted from Rage Nation and is NOT a verified Wenu founding year. Wenu
+ * Mapu was born in Wallmapu / Chile (founder's silversmithing path), operating
+ * now from Truckee — no confirmed public "since" year on file. So the sub is an
+ * honest, dateless line, not an invented date. (ref: reference_wenu_origen_marca)
+ *
+ * PERFORMANCE
+ *  · Backdrop is the same lazy procedural <canvas> (IntersectionObserver, pauses
+ *    off-screen / tab hidden, DPR + resolution capped, device-tiered).
+ *  · The entrance glitch on the pieces is transform/opacity/clip only (GPU),
+ *    plays ONCE on reveal, then rests. Low frequency, capped opacity → no
+ *    photosensitive-flash risk.
+ *  · prefers-reduced-motion → static band, no glitch, no sweep.
+ */
+import { formatPrice, decodeEntities, getHeroImage } from '../lib/woo';
+import type { WooProduct } from '../lib/woo';
+import { resolveSpecs } from '../lib/specs';
+import RitualGlyph from './RitualGlyph.astro';
+
+/** A category chip that FILTERS INLINE: `product` is the representative piece
+ *  surfaced in-page when the chip is tapped (built at build time from real WC
+ *  products in index.astro). `href` is only used by the "Enter the collection"
+ *  CTA — the chip itself never navigates. */
+interface Category { key: string; label: string; href: string; product: WooProduct; }
+interface Chip { label: string; href: string; }
+interface Props {
+  products?: WooProduct[];
+  categories?: Category[];
+  title?: string;
+  tag?: string;
+  sub?: string;
+  href?: string;
+  chips?: Chip[];
+}
+
+const {
+  products = [],
+  categories = [],
+  title = 'Forged on earth, worn by the sky.',
+  tag = 'Transmission · The collection',
+  // HONEST, DATELESS ethos — no invented founding year (see provenance note).
+  sub = 'Born in Wallmapu · hand-forged · worn close to the body',
+  href = '/shop',
+  // Fallback chips (used only when no inline-filter `categories` are supplied).
+  // Slugs verified against live getCategories() (same set CategoryStrip uses).
+  chips = [
+    { label: 'Piercing',        href: '/shop?cat=piercing-en' },
+    { label: 'Hangers · Weights', href: '/shop?cat=hangers-weights' },
+    { label: 'Ear jewelry',     href: '/shop?cat=earrings' },
+    { label: 'Rings',           href: '/shop?cat=ring' },
+    { label: 'Plugs',           href: '/shop?cat=plug' },
+  ],
+} = Astro.props;
+
+// INLINE-FILTER MODE is on when we were handed per-chip representative products.
+// Each category resolves to a real hero image (getHeroImage skips ruler shots);
+// drop any that can't (never surface a broken swap).
+const filterCats = categories
+  .map(c => ({ ...c, img: getHeroImage(c.product) }))
+  .filter((c): c is typeof c & { img: NonNullable<ReturnType<typeof getHeroImage>> } => Boolean(c.img));
+const inlineFilter = filterCats.length > 0;
+
+const noise = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
+
+// ── Build the staged pieces from real WooCommerce products ──────────────────
+// Only real macro photos (getHeroImage skips ruler/placeholder shots). Lead with
+// a hero, then up to 3 supporting pieces beside it. Each links to its PDP.
+const staged = products
+  .map(p => ({ p, img: getHeroImage(p) }))
+  .filter((x): x is { p: WooProduct; img: NonNullable<ReturnType<typeof getHeroImage>> } => Boolean(x.img))
+  .slice(0, 4);
+
+const hero = staged[0] ?? null;
+const rail = staged.slice(1, 4);
+
+// Badges are STOCK claims, not decoration (Ocin 2026-07-13): "One of one" only
+// when the piece really is the last tracked unit AND still in stock AND is not
+// sold as a Pair (a pair is two pieces — it can never be one-of-one).
+function badgeFor(p: WooProduct, i: number): string | null {
+  const q = p.stock_quantity;
+  const inStock = p.stock_status === 'instock';
+  const isPair = resolveSpecs(p).isPair;
+  if (inStock && typeof q === 'number' && q === 1 && !isPair) return 'One of one';
+  if (inStock && typeof q === 'number' && q > 0 && q <= 3) return 'Limited';
+  if (i === 0) return 'New';
+  return null;
+}
+
+// Chip markers now come from the shared Wenu ritual glyph SYSTEM (RitualGlyph) so
+// the cosmic bands (SignalBand · EmberCore · FrequencyBand) read as one language —
+// no more generic ✦. Cycle through the set so each chip carries its own Wenu mark.
+const CHIP_GLYPHS = ['wunelfe', 'kultrun', 'chakana', 'rombo', 'antu'] as const;
+---
+<section class="signal" aria-labelledby="signal-title">
+  {/* ── Atmospheric backdrop (kept from the old band, now behind product) ── */}
+  <canvas class="signal__band" aria-hidden="true"></canvas>
+  <span class="signal__geo" aria-hidden="true">
+    <svg viewBox="-120 -120 240 240" class="signal__geo-svg" preserveAspectRatio="xMidYMid meet">
+      <g class="signal__seed">
+        <circle cx="0" cy="0" r="84" class="signal__seed-ring" />
+        <circle cx="0" cy="0" r="112" class="signal__seed-ring signal__seed-ring--faint" />
+      </g>
+    </svg>
+  </span>
+  <span class="signal__scan" aria-hidden="true"></span>
+  <span class="signal__static" aria-hidden="true" style={`--noise:url("${noise}")`}></span>
+  <span class="signal__plate" aria-hidden="true"></span>
+
+  <div class="signal__inner container">
+    {/* ── Copy column: tag · title · ethos · chips · CTA ── */}
+    <div class="signal__copy">
+      <p class="signal__tag">{tag}</p>
+      <h2 id="signal-title" class="signal__title">{title}</h2>
+      <p class="signal__sub">{sub}</p>
+
+      {inlineFilter ? (
+        /* INLINE FILTER: chips are BUTTONS that swap the staged piece in-page
+           (no navigation). Radio-group semantics; the CTA follows the active
+           category's /shop filter. */
+        <div class="signal__chips" role="radiogroup" aria-label="Filter the featured piece by category" data-signal-chips>
+          {filterCats.map((c, i) => (
+            <button
+              type="button"
+              class:list={["signal__chip", { "is-active": i === 0 }]}
+              role="radio"
+              aria-checked={i === 0 ? 'true' : 'false'}
+              data-signal-chip={c.key}
+              data-cat-href={c.href}
+              tabindex={i === 0 ? 0 : -1}
+            >
+              <span class="signal__chip-glyph" aria-hidden="true">
+                <RitualGlyph name={CHIP_GLYPHS[i % CHIP_GLYPHS.length]} size={13} weight={1.5} />
+              </span>
+              <span>{c.label}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        chips.length > 0 && (
+          <nav class="signal__chips" aria-label="Shop by category">
+            {chips.map((c, i) => (
+              <a class="signal__chip" href={c.href}>
+                <span class="signal__chip-glyph" aria-hidden="true">
+                  <RitualGlyph name={CHIP_GLYPHS[i % CHIP_GLYPHS.length]} size={13} weight={1.5} />
+                </span>
+                <span>{c.label}</span>
+              </a>
+            ))}
+          </nav>
+        )
+      )}
+
+      <a href={inlineFilter ? filterCats[0].href : href} class="signal__enter" data-signal-enter>
+        Enter the collection <span aria-hidden="true">→</span>
+      </a>
+    </div>
+
+    {inlineFilter ? (
+      /* ── INLINE-FILTER STAGE: one big panel per category, only the active one
+           shown; tapping a chip cross-fades to that category's piece. Each panel
+           is a link → its PDP. A live region announces the swap for SR users. ── */
+      <div class="signal__stage signal__stage--filter" data-signal-stage>
+        <p class="signal__sr" aria-live="polite" data-signal-live></p>
+        {filterCats.map((c, i) => {
+          const badge = badgeFor(c.product, i === 0 ? 0 : i);
+          return (
+            <a
+              href={`/p/${c.product.slug}`}
+              class:list={["signal__hero", "signal__panel", { "is-active": i === 0 }]}
+              data-signal-panel={c.key}
+              data-signal-glitch
+              aria-hidden={i === 0 ? undefined : 'true'}
+              tabindex={i === 0 ? undefined : -1}
+            >
+              <span class="signal__hero-media">
+                <img
+                  src={c.img.src}
+                  alt={c.img.alt || decodeEntities(c.product.name)}
+                  width={c.img.width}
+                  height={c.img.height}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span class="signal__hero-r" aria-hidden="true" style={`--src:url("${c.img.src}")`}></span>
+                <span class="signal__hero-b" aria-hidden="true" style={`--src:url("${c.img.src}")`}></span>
+                <span class="signal__hero-scan" aria-hidden="true"></span>
+              </span>
+              <span class="signal__cat-tag" aria-hidden="true">{c.label}</span>
+              {badge && <span class="signal__badge">{badge}</span>}
+              <span class="signal__hero-meta">
+                <span class="signal__hero-name">{decodeEntities(c.product.name)}</span>
+                <span class="signal__hero-price">{formatPrice(c.product.price)}</span>
+              </span>
+            </a>
+          );
+        })}
+      </div>
+    ) : (
+      /* ── Product stage: hero piece + supporting rail, real pieces → PDP ── */
+      hero && (
+        <div class="signal__stage" data-signal-stage>
+          <a href={`/p/${hero.p.slug}`} class="signal__hero" data-signal-glitch>
+            <span class="signal__hero-media">
+              <img
+                src={hero.img.src}
+                alt={hero.img.alt || decodeEntities(hero.p.name)}
+                width={hero.img.width}
+                height={hero.img.height}
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="signal__hero-r" aria-hidden="true" style={`--src:url("${hero.img.src}")`}></span>
+              <span class="signal__hero-b" aria-hidden="true" style={`--src:url("${hero.img.src}")`}></span>
+              <span class="signal__hero-scan" aria-hidden="true"></span>
+            </span>
+            {badgeFor(hero.p, 0) && <span class="signal__badge">{badgeFor(hero.p, 0)}</span>}
+            <span class="signal__hero-meta">
+              <span class="signal__hero-name">{decodeEntities(hero.p.name)}</span>
+              <span class="signal__hero-price">{formatPrice(hero.p.price)}</span>
+            </span>
+          </a>
+
+          {rail.length > 0 && (
+            <div class="signal__rail">
+              {rail.map(({ p, img }, i) => (
+                <a href={`/p/${p.slug}`} class="signal__mini" data-signal-glitch style={`--d:${(i + 1) * 90}ms`}>
+                  <span class="signal__mini-media">
+                    <img src={img.src} alt={img.alt || decodeEntities(p.name)} loading="lazy" decoding="async" width={img.width} height={img.height} />
+                    <span class="signal__mini-scan" aria-hidden="true"></span>
+                  </span>
+                  {badgeFor(p, i + 1) && <span class="signal__badge signal__badge--mini">{badgeFor(p, i + 1)}</span>}
+                  <span class="signal__mini-meta">
+                    <span class="signal__mini-name">{decodeEntities(p.name)}</span>
+                    <span class="signal__mini-price">{formatPrice(p.price)}</span>
+                  </span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )
+    )}
+  </div>
+</section>
+
+<style>
+  .signal {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    isolation: isolate;
+    padding: var(--section-y) 0;
+    /* dark cosmic ground so the glow reads in every theme; text pinned light. */
+    background:
+      radial-gradient(120% 150% at 50% 40%, #16111f 0%, #0b0910 55%, #070509 100%);
+    border-block: var(--border-thin);
+  }
+
+  .signal__band {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+    filter: blur(0.5px) saturate(1.0);
+    opacity: 0.85;
+  }
+  .signal__scan {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(4,3,6,0.28) 2px 3px);
+    opacity: 0.26; animation: sig-scan 8s linear infinite;
+  }
+  .signal__static {
+    position: absolute; inset: -20%; z-index: 1; pointer-events: none;
+    background-image: var(--noise); background-size: 220px 220px;
+    opacity: 0.04; mix-blend-mode: screen; animation: sig-static 0.24s steps(2) infinite;
+  }
+  .signal__plate {
+    position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background:
+      radial-gradient(90% 90% at 28% 50%, rgba(6,5,10,0.78) 0%, rgba(6,5,10,0.34) 46%, transparent 78%),
+      linear-gradient(180deg, rgba(6,5,10,0.30), rgba(6,5,10,0.55));
+  }
+
+  /* ── layout ── copy left, stage right (stacks on mobile) ── */
+  .signal__inner {
+    position: relative; z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+    align-items: center;
+    gap: clamp(28px, 5vw, 68px);
+  }
+  @media (max-width: 880px) {
+    .signal__inner { grid-template-columns: 1fr; gap: clamp(28px, 8vw, 44px); }
+  }
+
+  .signal__copy { display: flex; flex-direction: column; gap: var(--space-3); max-width: 40ch; }
+  .signal__tag {
+    font-family: var(--font-mono, monospace); font-size: var(--fs-tiny);
+    letter-spacing: 0.22em; text-transform: uppercase; color: #d8b45a; margin: 0;
+  }
+  .signal__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(2rem, 5.4vw, 3.6rem); line-height: 1.03; letter-spacing: 0.01em;
+    color: #f2ece1; margin: 0; text-wrap: balance;
+    text-shadow: 0 0 22px rgba(201,168,76,0.20), 0 2px 18px rgba(0,0,0,0.55);
+  }
+  .signal__sub {
+    font-family: var(--font-mono, monospace); font-size: var(--fs-tiny);
+    letter-spacing: 0.14em; text-transform: uppercase; color: #b9b2a4; margin: 0;
+  }
+
+  /* ── category chips (Rage-Nation-style quick jumps, Wenu star glyph) ── */
+  .signal__chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: var(--space-2); }
+  .signal__chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.06em; text-transform: uppercase; color: #efe7dc; text-decoration: none;
+    padding: 8px 14px; border-radius: 999px;
+    border: 1px solid color-mix(in srgb, #d8b45a 42%, transparent);
+    background: rgba(12,10,16,0.42);
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+  }
+  .signal__chip-glyph {
+    display: inline-flex; align-items: center; color: #d8b45a; line-height: 0;
+    transition: transform var(--t-base), color var(--t-fast);
+  }
+  .signal__chip:hover {
+    color: #0a0a0a; background: #d8b45a; border-color: #d8b45a; transform: translateY(-1px);
+  }
+  .signal__chip:hover .signal__chip-glyph { color: #0a0a0a; transform: rotate(90deg); }
+  .signal__chip:focus-visible { outline: 1px solid #d8b45a; outline-offset: 3px; }
+
+  .signal__enter {
+    margin-top: var(--space-3);
+    align-self: flex-start;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: #0a0a0a; text-decoration: none;
+    background: #efe7dc; border: 1px solid #efe7dc; border-radius: 999px;
+    padding: 13px 26px; transition: background var(--t-base), color var(--t-base), border-color var(--t-base);
+  }
+  .signal__enter:hover { background: #d8b45a; border-color: #d8b45a; }
+  .signal__enter:focus-visible { outline: 1px solid #d8b45a; outline-offset: 3px; }
+
+  /* chips rendered as <button> in inline-filter mode — strip the UA button chrome
+     so they read identically to the <a> chips. */
+  button.signal__chip {
+    font: inherit; cursor: pointer; -webkit-appearance: none; appearance: none;
+  }
+  .signal__chip.is-active {
+    color: #0a0a0a; background: #d8b45a; border-color: #d8b45a;
+  }
+  .signal__chip.is-active .signal__chip-glyph { color: #0a0a0a; }
+
+  /* ── product stage ── */
+  .signal__stage {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: clamp(10px, 1.6vw, 18px);
+    align-items: stretch;
+  }
+  @media (max-width: 520px) {
+    .signal__stage { grid-template-columns: 1fr; }
+  }
+
+  /* ── inline-filter stage: category panels stacked, only active shown ── */
+  .signal__stage--filter {
+    display: block;               /* panels are absolutely stacked in a fixed frame */
+    position: relative;
+    aspect-ratio: 4 / 5;
+    max-width: clamp(320px, 42vw, 520px);
+    margin-inline: auto;
+    width: 100%;
+  }
+  .signal__sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+  /* scoped under --filter so these WIN over the later `.signal__hero { position:relative }`
+     base rule (equal specificity would otherwise let the later rule stack the panels). */
+  .signal__stage--filter .signal__panel {
+    position: absolute; inset: 0;
+    opacity: 0; visibility: hidden;
+    transform: scale(1.02);
+    transition: opacity 420ms ease, transform 520ms cubic-bezier(.22,.61,.36,1), visibility 0s linear 420ms;
+    pointer-events: none;
+  }
+  .signal__stage--filter .signal__panel.is-active {
+    opacity: 1; visibility: visible; transform: scale(1);
+    transition: opacity 420ms ease, transform 520ms cubic-bezier(.22,.61,.36,1);
+    pointer-events: auto;
+  }
+  .signal__stage--filter .signal__panel .signal__hero-media { aspect-ratio: 4 / 5; height: 100%; }
+  /* the category label chip, top-right, so you can see which filter is showing */
+  .signal__cat-tag {
+    position: absolute; top: 10px; right: 10px; z-index: 4;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.14em; text-transform: uppercase; color: #efe7dc;
+    background: rgba(10,8,14,0.62); border: 1px solid color-mix(in srgb, #d8b45a 46%, transparent);
+    border-radius: 999px; padding: 4px 11px; backdrop-filter: blur(2px);
+  }
+  @media (max-width: 880px) {
+    .signal__stage--filter { max-width: 420px; }
+  }
+
+  .signal__hero, .signal__mini {
+    position: relative; display: block; overflow: hidden;
+    border-radius: 14px; text-decoration: none; color: inherit;
+    background: var(--charcoal);
+    border: 1px solid color-mix(in srgb, var(--bronze) 55%, transparent);
+    box-shadow: 0 18px 40px -18px rgba(0,0,0,0.7);
+  }
+  .signal__hero-media, .signal__mini-media {
+    position: relative; display: block; overflow: hidden; background: var(--bg-alt);
+  }
+  .signal__hero-media { aspect-ratio: 4 / 5; }
+  .signal__mini-media { aspect-ratio: 1 / 1; }
+  .signal__hero-media img, .signal__mini-media img {
+    width: 100%; height: 100%; object-fit: cover;
+    filter: saturate(0.96) contrast(1.04);
+    transition: transform var(--t-slow);
+  }
+  .signal__hero:hover .signal__hero-media img,
+  .signal__mini:hover .signal__mini-media img { transform: scale(1.05); }
+
+  /* meta plate */
+  .signal__hero-meta, .signal__mini-meta {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: var(--space-3);
+    background: linear-gradient(180deg, transparent, rgba(6,5,10,0.86) 62%);
+  }
+  .signal__hero-name, .signal__mini-name {
+    font-family: var(--font-serif); color: #f2ece1; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .signal__hero-name { font-size: var(--fs-body); }
+  .signal__mini-name { font-size: var(--fs-small); -webkit-line-clamp: 1; }
+  .signal__hero-price, .signal__mini-price {
+    font-family: var(--font-sans); color: #d8b45a; letter-spacing: 0.02em;
+  }
+  .signal__hero-price { font-size: var(--fs-small); }
+  .signal__mini-price { font-size: var(--fs-tiny); }
+
+  /* badge (NEW / LIMITED / ONE OF ONE) */
+  .signal__badge {
+    position: absolute; top: 10px; left: 10px; z-index: 4;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.14em; text-transform: uppercase; color: #0a0a0a;
+    background: #d8b45a; border-radius: 999px; padding: 4px 11px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+  }
+  .signal__badge--mini { top: 8px; left: 8px; padding: 3px 8px; font-size: 0.6rem; }
+
+  .signal__rail {
+    display: grid; grid-template-rows: repeat(3, 1fr);
+    gap: clamp(10px, 1.6vw, 18px);
+  }
+  @media (max-width: 520px) {
+    .signal__rail { grid-template-rows: none; grid-template-columns: repeat(3, 1fr); }
+    .signal__mini-name { display: none; }
+  }
+
+  /* ── entrance glitch (plays once on reveal) — RGB-split + scanline sweep ── */
+  .signal__hero-r, .signal__hero-b {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background-image: var(--src); background-size: cover; background-position: center;
+    mix-blend-mode: screen; opacity: 0;
+  }
+  .signal__hero-scan, .signal__mini-scan {
+    position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0;
+    background: linear-gradient(180deg, transparent, rgba(216,180,90,0.28) 50%, transparent);
+  }
+  /* trigger when the stage becomes visible */
+  .signal__stage.is-in [data-signal-glitch] .signal__hero-r,
+  .signal__stage.is-in .signal__hero-r { animation: sig-glitch-r 620ms steps(2) 1; }
+  .signal__stage.is-in .signal__hero-b { animation: sig-glitch-b 620ms steps(2) 1; }
+  .signal__stage.is-in .signal__hero-scan,
+  .signal__stage.is-in .signal__mini-scan {
+    animation: sig-scan-sweep 700ms ease-out 1;
+    animation-delay: var(--d, 0ms);
+  }
+  /* sig-rise sets opacity:0→1; EXCLUDE filter panels (they own their opacity via
+     .is-active so the rise must not fight the cross-fade). */
+  .signal__stage.is-in [data-signal-glitch]:not(.signal__panel) { animation: sig-rise 620ms cubic-bezier(.22,.61,.36,1) both; animation-delay: var(--d, 0ms); }
+  /* glitch/scan on the filter stage should only play on the ACTIVE panel so the
+     hidden panels don't churn their RGB layers. */
+  .signal__stage--filter .signal__panel:not(.is-active) .signal__hero-r,
+  .signal__stage--filter .signal__panel:not(.is-active) .signal__hero-b,
+  .signal__stage--filter .signal__panel:not(.is-active) .signal__hero-scan { animation: none !important; opacity: 0 !important; }
+  /* replay the entrance glitch each time a panel becomes active (swap flash). */
+  .signal__stage--filter .signal__panel.is-active.is-swapping .signal__hero-r { animation: sig-glitch-r 520ms steps(2) 1; }
+  .signal__stage--filter .signal__panel.is-active.is-swapping .signal__hero-b { animation: sig-glitch-b 520ms steps(2) 1; }
+  .signal__stage--filter .signal__panel.is-active.is-swapping .signal__hero-scan { animation: sig-scan-sweep 560ms ease-out 1; }
+
+  @keyframes sig-glitch-r {
+    0% { opacity: 0.5; transform: translateX(-7px); filter: hue-rotate(-20deg); }
+    40% { opacity: 0.32; transform: translateX(5px); }
+    100% { opacity: 0; transform: translateX(0); }
+  }
+  @keyframes sig-glitch-b {
+    0% { opacity: 0.5; transform: translateX(7px); filter: hue-rotate(30deg); }
+    40% { opacity: 0.3; transform: translateX(-5px); }
+    100% { opacity: 0; transform: translateX(0); }
+  }
+  @keyframes sig-scan-sweep {
+    0% { opacity: 0.9; transform: translateY(-100%); }
+    100% { opacity: 0; transform: translateY(100%); }
+  }
+  @keyframes sig-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── faint geometry ring backdrop ── */
+  .signal__geo { position: absolute; inset: 0; z-index: 0; display: grid; place-items: center; pointer-events: none; }
+  .signal__geo-svg { width: clamp(320px, 46vw, 620px); height: auto; color: #d8b45a; opacity: 0.16; }
+  .signal__seed circle { fill: none; stroke: currentColor; vector-effect: non-scaling-stroke; }
+  .signal__seed-ring { stroke-width: 0.6; opacity: 0.5; }
+  .signal__seed-ring--faint { opacity: 0.28; }
+  .signal__seed { transform-box: fill-box; transform-origin: center; animation: sig-breathe 12s ease-in-out infinite; }
+
+  @keyframes sig-breathe { 0%,100% { transform: scale(0.98); } 50% { transform: scale(1.03); } }
+  @keyframes sig-scan   { to { background-position: 0 96px; } }
+  @keyframes sig-static { 0% { transform: translate(0,0); } 100% { transform: translate(6px,4px); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .signal__scan, .signal__static, .signal__seed { animation: none !important; }
+    .signal__stage.is-in [data-signal-glitch],
+    .signal__stage.is-in .signal__hero-r,
+    .signal__stage.is-in .signal__hero-b,
+    .signal__stage.is-in .signal__hero-scan,
+    .signal__stage.is-in .signal__mini-scan { animation: none !important; }
+    .signal__hero-r, .signal__hero-b, .signal__hero-scan, .signal__mini-scan { opacity: 0 !important; }
+    .signal__hero-media img, .signal__mini-media img { transition: none; }
+    /* filter panels: swap instantly (no cross-fade / glitch) but still fully functional. */
+    .signal__panel { transition: none !important; }
+    .signal__stage--filter .signal__panel.is-active.is-swapping .signal__hero-r,
+    .signal__stage--filter .signal__panel.is-active.is-swapping .signal__hero-b,
+    .signal__stage--filter .signal__panel.is-active.is-swapping .signal__hero-scan { animation: none !important; }
+  }
+</style>
+
+<script>
+  // ── Entrance glitch trigger: add .is-in when the stage scrolls into view ──
+  // One-shot; respects reduced-motion (CSS neutralises the animations anyway).
+  (() => {
+    const stages = document.querySelectorAll<HTMLElement>('[data-signal-stage]');
+    if (!stages.length) return;
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add('is-in'); io.unobserve(e.target); }
+      }
+    }, { threshold: 0.35 });
+    stages.forEach(s => io.observe(s));
+  })();
+
+  // ── Inline category filter: tap a chip → cross-fade the staged piece to that
+  //    category's representative, IN-PAGE, no navigation. Keyboard: arrows move
+  //    between chips (radiogroup), Enter/Space selects. The "Enter the collection"
+  //    CTA follows the active category's /shop filter. Fully progressive: with no
+  //    JS the first panel is shown and its chip is the CTA target (still usable). ──
+  (() => {
+    const groups = document.querySelectorAll<HTMLElement>('[data-signal-chips]');
+    groups.forEach((group) => {
+      const section = group.closest('.signal');
+      if (!section) return;
+      const stage = section.querySelector<HTMLElement>('.signal__stage--filter');
+      const cta = section.querySelector<HTMLAnchorElement>('[data-signal-enter]');
+      const live = section.querySelector<HTMLElement>('[data-signal-live]');
+      const chips = Array.from(group.querySelectorAll<HTMLButtonElement>('[data-signal-chip]'));
+      if (!stage || !chips.length) return;
+
+      const select = (key: string, focus = false) => {
+        chips.forEach((c) => {
+          const on = c.dataset.signalChip === key;
+          c.classList.toggle('is-active', on);
+          c.setAttribute('aria-checked', String(on));
+          c.tabIndex = on ? 0 : -1;
+          if (on && focus) c.focus();
+          if (on && cta) {
+            const href = c.dataset.catHref;
+            if (href) cta.setAttribute('href', href);
+          }
+        });
+        stage.querySelectorAll<HTMLElement>('[data-signal-panel]').forEach((panel) => {
+          const on = panel.dataset.signalPanel === key;
+          panel.classList.toggle('is-active', on);
+          if (on) {
+            panel.removeAttribute('aria-hidden');
+            panel.removeAttribute('tabindex');
+            // retrigger the entrance glitch on the newly active panel
+            panel.classList.remove('is-swapping');
+            void panel.offsetWidth; // reflow so the animation can replay
+            panel.classList.add('is-swapping');
+            const name = panel.querySelector('.signal__hero-name')?.textContent?.trim();
+            const label = chips.find(c => c.dataset.signalChip === key)?.textContent?.trim();
+            if (live && name) live.textContent = `${label ? label + ': ' : ''}${name}`;
+          } else {
+            panel.setAttribute('aria-hidden', 'true');
+            panel.setAttribute('tabindex', '-1');
+            panel.classList.remove('is-swapping');
+          }
+        });
+      };
+
+      chips.forEach((chip, i) => {
+        chip.addEventListener('click', () => select(chip.dataset.signalChip!));
+        chip.addEventListener('keydown', (ev) => {
+          if (ev.key === 'ArrowRight' || ev.key === 'ArrowDown') {
+            ev.preventDefault();
+            select(chips[(i + 1) % chips.length].dataset.signalChip!, true);
+          } else if (ev.key === 'ArrowLeft' || ev.key === 'ArrowUp') {
+            ev.preventDefault();
+            select(chips[(i - 1 + chips.length) % chips.length].dataset.signalChip!, true);
+          }
+        });
+      });
+    });
+  })();
+
+  // ── Procedural cosmic backdrop (unchanged mechanism, now atmosphere only) ──
+  type Star = { x: number; y: number; r: number; a: number; tw: number; ph: number };
+  type Blob = { x: number; y: number; rx: number; ry: number; ph: number; sp: number };
+
+  const SPECTRUM: Array<[number, number, number]> = [
+    [86, 150, 132], [138, 162, 116], [201, 168, 76], [226, 198, 140],
+    [214, 138, 84], [182, 84, 60], [176, 96, 128], [128, 92, 150],
+  ];
+  function sampleSpectrum(u: number): [number, number, number] {
+    u = u - Math.floor(u);
+    const n = SPECTRUM.length; const f = u * n;
+    const i = Math.floor(f) % n; const j = (i + 1) % n; const k = f - Math.floor(f);
+    const a = SPECTRUM[i], b = SPECTRUM[j];
+    return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k];
+  }
+
+  function initBand(root: HTMLElement) {
+    const canvas = root.querySelector<HTMLCanvasElement>('.signal__band');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const smallScreen = Math.min(window.innerWidth, window.innerHeight) <= 820;
+    const fewCores = typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4;
+    const lowMem = typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4;
+    const lowPower = (coarse && smallScreen) || fewCores || lowMem;
+
+    let W = 0, H = 0, dpr = 1;
+    let stars: Star[] = []; let blobs: Blob[] = [];
+    let raf = 0; let running = false; let visible = false;
+
+    function build() {
+      const rect = root.getBoundingClientRect();
+      const dprCap = lowPower ? 1 : (coarse ? 1.25 : 1.5);
+      dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+      const cw = Math.min(rect.width, lowPower ? 1000 : 1400);
+      const ch = Math.min(rect.height, lowPower ? 420 : 640);
+      W = Math.max(1, Math.round(cw * dpr));
+      H = Math.max(1, Math.round(ch * dpr));
+      canvas.width = W; canvas.height = H;
+      const count = Math.round((cw * ch) / (lowPower ? 11000 : 6000));
+      stars = [];
+      for (let i = 0; i < count; i++) {
+        const g = (Math.random() + Math.random() + Math.random()) / 3 - 0.5;
+        stars.push({ x: Math.random() * W, y: H * 0.5 + g * H * 0.95, r: (Math.random() * 1.1 + 0.25) * dpr, a: Math.random() * 0.6 + 0.25, tw: Math.random() * 2.2 + 0.6, ph: Math.random() * Math.PI * 2 });
+      }
+      blobs = [];
+      const bcount = 6;
+      for (let i = 0; i < bcount; i++) {
+        blobs.push({ x: (i / bcount + Math.random() * 0.06) * W, y: H * (0.40 + Math.random() * 0.20), rx: (0.10 + Math.random() * 0.10) * W, ry: (0.16 + Math.random() * 0.12) * H, ph: Math.random() * Math.PI * 2, sp: 0.4 + Math.random() * 0.6 });
+      }
+    }
+
+    function draw(now: number) {
+      const t = now * 0.00006;
+      const cy = H * 0.5;
+      const bg = ctx.createLinearGradient(0, 0, 0, H);
+      bg.addColorStop(0, '#070509'); bg.addColorStop(0.5, '#100c18'); bg.addColorStop(1, '#060409');
+      ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const b of blobs) {
+        const u = (b.x / W) * 1.25 + t; const [r, g, bl] = sampleSpectrum(u);
+        const pulse = 0.08 + 0.05 * Math.sin(now * 0.0004 * b.sp + b.ph);
+        const yy = b.y + Math.sin(now * 0.00013 + b.ph) * H * 0.03;
+        const grd = ctx.createRadialGradient(b.x, yy, 0, b.x, yy, Math.max(b.rx, b.ry));
+        grd.addColorStop(0, `rgba(${r|0},${g|0},${bl|0},${pulse})`); grd.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grd; ctx.save(); ctx.translate(b.x, yy); ctx.scale(1, b.ry / b.rx);
+        ctx.beginPath(); ctx.arc(0, 0, b.rx, 0, Math.PI * 2); ctx.restore(); ctx.fill();
+      }
+      for (const s of stars) {
+        const u = (s.x / W) * 1.25 + t; const [r, g, bl] = sampleSpectrum(u);
+        const tw = reduce ? 1 : 0.6 + 0.4 * Math.sin(now * 0.001 * s.tw + s.ph);
+        const a = s.a * tw;
+        const rr = (r + 255) / 2, gg = (g + 252) / 2, bb = (bl + 246) / 2;
+        ctx.fillStyle = `rgba(${rr|0},${gg|0},${bb|0},${a})`;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    function loop(now: number) { draw(now); if (running) raf = requestAnimationFrame(loop); }
+    function start() { if (running || reduce) return; running = true; raf = requestAnimationFrame(loop); }
+    function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+    function onResize() { build(); if (reduce || !running) draw(performance.now()); }
+
+    const io = new IntersectionObserver((entries) => {
+      visible = entries[0].isIntersecting;
+      if (visible) { if (reduce) draw(performance.now()); else start(); } else { stop(); }
+    }, { rootMargin: '120px' });
+
+    build(); draw(performance.now()); io.observe(root);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else if (visible && !reduce) start(); });
+    let rt: number | undefined;
+    window.addEventListener('resize', () => { window.clearTimeout(rt); rt = window.setTimeout(onResize, 180); });
+  }
+
+  function boot() { document.querySelectorAll<HTMLElement>('.signal').forEach(initBand); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+</script>

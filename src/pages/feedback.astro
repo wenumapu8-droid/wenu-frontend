@@ -1,7 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
 
-const formEndpoint = 'https://formspree.io/f/mblrgwya';
+// The old Formspree form (mblrgwya) was dead (404) and silently dropped every
+// message. Feedback now falls back to a real inbox via mailto (no backend route
+// exists for feedback yet). JS below builds the mailto from the field values.
+const feedbackEmail = 'marimari@wenumapuonline.com';
 
 const pageTitle = 'Feedback — Wenu Mapu';
 const pageDescription = 'Share what you think of your piece, your ritual, or anything we can do better. Every message is read by hand.';
@@ -20,12 +23,11 @@ const pageDescription = 'Share what you think of your piece, your ritual, or any
 
     <form
       class="feedback__form"
-      method="POST"
-      action={formEndpoint}
+      data-feedback-form
+      data-feedback-email={feedbackEmail}
       autocomplete="on"
       novalidate
     >
-      <input type="hidden" name="_subject" value="Wenu Mapu — feedback" />
       <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;" />
 
       <fieldset class="feedback__fields">
@@ -106,6 +108,32 @@ const pageDescription = 'Share what you think of your piece, your ritual, or any
       </ul>
     </aside>
   </section>
+
+  <script>
+    // Build a mailto from the feedback fields (no backend feedback route yet).
+    // Honeypot _gotcha filled → silently ignore (bot).
+    const fb = document.querySelector('[data-feedback-form]');
+    if (fb) {
+      fb.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const g = fb.querySelector('[name="_gotcha"]');
+        if (g && g.value) return;
+        const to = fb.getAttribute('data-feedback-email') || 'marimari@wenumapuonline.com';
+        const val = (n) => (fb.querySelector('[name="' + n + '"]')?.value || '').trim();
+        const name = val('name'), email = val('email'), topic = val('topic'), message = val('message');
+        if (!message) { fb.querySelector('[name="message"]')?.focus(); return; }
+        const body =
+          'Message:\n' + message + '\n\n' +
+          '— name: ' + (name || '(not given)') +
+          '\n— email: ' + (email || '(not given)') +
+          '\n— topic: ' + (topic || '(not chosen)');
+        window.location.href =
+          'mailto:' + to +
+          '?subject=' + encodeURIComponent('Wenu Mapu — feedback' + (topic ? ' (' + topic + ')' : '')) +
+          '&body=' + encodeURIComponent(body);
+      });
+    }
+  </script>
 </Base>
 
 <style>
@@ -153,7 +181,7 @@ const pageDescription = 'Share what you think of your piece, your ritual, or any
     letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--sand);
-    margin-top: 1.5rem;
+    margin-top: var(--space-4);
   }
   .feedback__label small {
     text-transform: none;
@@ -190,19 +218,19 @@ const pageDescription = 'Share what you think of your piece, your ritual, or any
     line-height: 1.5;
   }
   .feedback__submit {
-    margin-top: 1.5rem;
+    margin-top: var(--space-4);
     align-self: flex-start;
   }
   .feedback__altchan {
     max-width: 640px;
     margin: clamp(3rem, 5vw, 4.5rem) auto 0;
-    padding: 0 24px;
+    padding: 0 var(--space-4);
     text-align: center;
   }
   .feedback__altchan-list {
     list-style: none;
     padding: 0;
-    margin: 1rem 0 0;
+    margin: var(--space-3) 0 0;
     display: flex;
     flex-direction: column;
     gap: 0.6rem;

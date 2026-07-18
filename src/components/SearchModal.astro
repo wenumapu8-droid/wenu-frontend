@@ -28,6 +28,30 @@
         </svg>
       </button>
     </form>
+    {/* Kai — protagonista del buscador: acompaña, no es un panel de soporte.
+        Vive en el gran espacio que antes quedaba vacío bajo el input, dentro
+        de su "niche" dorado (.kai-niche, global.css) para sentirse parte de
+        la página. Se achica/oculta el niche mientras hay resultados en
+        pantalla (ver script + .search__kai--compact, que también apaga las
+        capas CRT de abajo), y vuelve a su tamaño completo cuando el campo
+        está vacío. Sprite pixel-art animado por cuadros (motor
+        public/kai/kai-anim.js), montado solo mientras el buscador está
+        abierto. Intensidad A (sutil) del efecto CRT — bajada de B a A en el
+        pase de contención 2026-07-14 (solo /gracias se mantiene en B). */}
+    <div class="search__kai" data-kai-search>
+      <div class="kai-niche kai-niche--a">
+        <span class="kai-niche__label" aria-hidden="true">KAI</span>
+        <p class="search__kai-line" id="search-kai-line">Let's sniff it out - what are we after?</p>
+        <div class="search__kai-stage">
+          <span class="kai-niche__aura" aria-hidden="true"></span>
+          <canvas id="search-kai-canvas" class="search__kai-sprite" width="156" height="150" aria-hidden="true"></canvas>
+        </div>
+        <span class="kai-niche__floor" aria-hidden="true"></span>
+        <span class="kai-niche__scanlines" aria-hidden="true"></span>
+        <span class="kai-niche__vignette" aria-hidden="true"></span>
+        <span class="kai-cover" data-kai-textile data-kai-palette="bw" data-kai-cover-reveal aria-hidden="true"></span>
+      </div>
+    </div>
     <div class="search__hints">
       <kbd>/</kbd> to open · <kbd>Esc</kbd> to close · <kbd>↑↓</kbd> navigate · <kbd>↵</kbd> open
     </div>
@@ -45,10 +69,107 @@
   const loading = document.querySelector<HTMLParagraphElement>('[data-search-loading]');
   const closeBtn = document.querySelector<HTMLButtonElement>('[data-search-close]');
 
+  // Kai — motor de animación por cuadros (public/kai/kai-anim.js). Compañero
+  // de búsqueda, no un asistente de soporte: sin panel, sin chips, solo
+  // presencia + una reacción sutil cuando el usuario escribe.
+  const kaiCanvas = document.getElementById('search-kai-canvas') as HTMLCanvasElement | null;
+  const kaiLine = document.getElementById('search-kai-line');
+  const kaiBlock = document.querySelector<HTMLDivElement>('[data-kai-search]');
+  let kaiCtl: { trigger: (s: string) => void; poke: () => void; destroy: () => void } | null = null;
+  let kaiLineT: number | null = null;
+
+  // Personality pass (2026-07-13, owner tone: cosmic/mystic + tender + soft
+  // jokes, mapuche soul "connected to the cosmos"). ASCII punctuation only
+  // (no em-dash/ellipsis glyphs - "-"/"."/"..." instead). Every bank rotates
+  // at random via pick(), avoiding the same line twice in a row.
+  const KAI_OPEN_LINES = [
+    "Tell me what calls you. I'll track its light.",
+    "Every piece hums. Let's find your frequency.",
+    "Sniffing the constellations... what are we after?",
+    "Name a stone or a feeling. I'll fetch it.",
+  ];
+  const KAI_THINK_LINE = 'Sniffing through the pieces...';
+  const KAI_PET_LINES = [
+    "Aww. Cosmic scritches, yes please.",
+    "*happy hum from the stars*",
+    "You found me. Both my eyes agree: nice.",
+  ];
+  const KAI_WAKE_LINES = [
+    "*yawn* dreaming of meteor showers.",
+    "Oh, you're back. The stars missed you.",
+  ];
+  const KAI_SLEEP_LINES = ["*curls under the stars* wake me if you need me."];
+  // Idle/ambient — fires off the engine's own ~9-15s "glance" timer while
+  // resting; shows ~3s, then reverts to whatever was showing before. Soft
+  // jokes mixed in at ~1-in-4/5 (see pickAmbientOrJoke()).
+  const KAI_AMBIENT_LINES = [
+    "Every stone fell from somewhere. Wild, right?",
+    "I'm small, but I've seen galaxies.",
+    "Take your time. Light travels slow out here.",
+    "One eye of sky, one of earth. Both watching.",
+    "*stargazing with you*",
+    "Tell me your story. I'll find your piece.",
+    "Need a paw? I read stars for a living.",
+  ];
+  const KAI_JOKE_LINES = [
+    "I'm fluent in two tongues: bark and starlight.",
+    "They said sit. I chose to guide you.",
+    "Bob-tailed, yet the universe still spins.",
+  ];
+
+  let lastOpen: string | null = null;
+  let lastPet: string | null = null;
+  let lastWake: string | null = null;
+  let lastAmbient: string | null = null;
+  let restingLine = '';
+
+  function pick(arr: string[], avoid?: string | null): string {
+    if (arr.length === 1) return arr[0];
+    let choice = arr[Math.floor(Math.random() * arr.length)];
+    let guard = 0;
+    while (choice === avoid && guard++ < 6) choice = arr[Math.floor(Math.random() * arr.length)];
+    return choice;
+  }
+  function pickAmbientOrJoke(): string {
+    const line = Math.random() < 0.22 ? pick(KAI_JOKE_LINES, lastAmbient) : pick(KAI_AMBIENT_LINES, lastAmbient);
+    lastAmbient = line;
+    return line;
+  }
+  function showTemp(text: string, ms: number) {
+    if (kaiLine) kaiLine.textContent = text;
+    if (kaiLineT) window.clearTimeout(kaiLineT);
+    kaiLineT = window.setTimeout(() => { if (kaiLine) kaiLine.textContent = restingLine; }, ms);
+  }
+  function pickOpenLine(): string {
+    lastOpen = pick(KAI_OPEN_LINES, lastOpen);
+    restingLine = lastOpen;
+    return lastOpen;
+  }
+
+  function kaiOnAmbient(kind: string, text?: string) {
+    if (!kaiLine) return;
+    if (kind === 'trick') {
+      // 2026-07-17 (TRUCOS de Kai): the engine passes the trick's own fixed
+      // phrase straight through — no host-side pick() bank for this one.
+      if (text) showTemp(text, 2600);
+    } else if (kind === 'pet') {
+      lastPet = pick(KAI_PET_LINES, lastPet);
+      showTemp(lastPet, 2200);
+    } else if (kind === 'glance') {
+      showTemp(pickAmbientOrJoke(), 3000);
+    } else if (kind === 'sleep') {
+      if (kaiLineT) { window.clearTimeout(kaiLineT); kaiLineT = null; }
+      kaiLine.textContent = pick(KAI_SLEEP_LINES);
+    } else if (kind === 'wake') {
+      lastWake = pick(KAI_WAKE_LINES, lastWake);
+      showTemp(lastWake, 2600);
+    }
+  }
+
   if (!dlg || !input || !list) {
     console.warn('Search modal: missing elements');
   } else {
-    interface IndexItem { id: number; slug: string; name: string; price: string; image: string | null; cat: string; cats: string[]; }
+    interface IndexItem { id: number; slug: string; name: string; price: string; image: string | null; cat: string; cats: string[]; kw?: string; }
     let index: IndexItem[] | null = null;
     let loadPromise: Promise<IndexItem[]> | null = null;
     let highlight = -1;
@@ -75,10 +196,12 @@
       const n = item.name.toLowerCase();
       const c = item.cat.toLowerCase();
       if (n === q) return 100;
-      if (n.startsWith(q)) return 80;
-      if (n.includes(q)) return 60;
-      if (c.includes(q)) return 40;
-      if (item.cats.some(x => x.includes(q))) return 30;
+      if (n.startsWith(q)) return 85;
+      if (n.includes(q)) return 70;
+      if (c.includes(q)) return 50;
+      if (item.cats.some(x => x.includes(q))) return 45;
+      // material / slug / description haystack — finds "meteorite" in Vacamuerta rings
+      if (item.kw && item.kw.includes(q)) return 40;
       return 0;
     }
 
@@ -118,7 +241,11 @@
           img.setAttribute('src', item.image);
           img.setAttribute('alt', '');
           img.setAttribute('loading', 'lazy');
+          // broken Woo image → fall back to the cardinal-cross placeholder
+          img.addEventListener('error', () => { thumb.classList.add('search__thumb--empty'); img.remove(); });
           thumb.appendChild(img);
+        } else {
+          thumb.classList.add('search__thumb--empty');
         }
 
         const meta = document.createElement('span');
@@ -160,6 +287,13 @@
         dlg.setAttribute('open', '');
       }
       requestAnimationFrame(() => input?.focus());
+      if (!kaiCtl && kaiCanvas && (window as any).kaiAnim) {
+        kaiCtl = (window as any).kaiAnim(kaiCanvas, {
+          width: 156, height: 150, targetHeight: 112,
+          initial: 'alert', onAmbient: kaiOnAmbient,
+        });
+        if (kaiLine) kaiLine.textContent = pickOpenLine();
+      }
     }
 
     function close() {
@@ -172,6 +306,9 @@
       input!.value = '';
       list!.innerHTML = '';
       empty?.setAttribute('hidden', '');
+      if (kaiLineT) { window.clearTimeout(kaiLineT); kaiLineT = null; }
+      if (kaiCtl) { kaiCtl.destroy(); kaiCtl = null; }
+      if (kaiBlock) kaiBlock.classList.remove('search__kai--compact');
     }
 
     document.addEventListener('click', (e) => {
@@ -222,6 +359,14 @@
     input.addEventListener('input', () => {
       if (debounce) window.clearTimeout(debounce);
       debounce = window.setTimeout(() => search(input.value), 100);
+
+      // Kai olfatea/reacciona mientras escribís — presencia, no un bot que responde.
+      // Se achica/oculta con una búsqueda activa para no competir con los resultados.
+      const hasQuery = input.value.trim().length > 0;
+      if (kaiLineT) { window.clearTimeout(kaiLineT); kaiLineT = null; }
+      if (kaiCtl) kaiCtl.trigger(hasQuery ? 'think' : 'alert');
+      if (kaiLine) kaiLine.textContent = hasQuery ? KAI_THINK_LINE : pickOpenLine();
+      if (kaiBlock) kaiBlock.classList.toggle('search__kai--compact', hasQuery);
     });
   }
 </script>

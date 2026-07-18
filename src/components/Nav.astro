@@ -1,214 +1,316 @@
 ---
+/**
+ * Nav — Kiwi-simple, Wenu-dark (2026-06-23 redesign).
+ * Bar = hamburger · centered logo · search + cart. ALL navigation lives in a
+ * calm slide-out drawer: one line per destination, hairline dividers, air.
+ * Shop expands to the REAL brand collections (data/collections.ts).
+ * Old mega-menu retired. Reversible via git.
+ */
 import en from '../i18n/en.json';
-import { STORE_CART_URL } from '../lib/config';
+import { getProducts, getHeroImage, formatPrice, decodeEntities } from '../lib/woo';
 
-const path = Astro.url.pathname;
+// Account → on-brand apex page /account (2026-07-17, audit fix). Pointing the nav
+// straight at the WordPress www /my-account/ broke apex-first coherence and returned
+// 406 to non-browser clients. So the nav lands on /account (apex, 200, on-brand),
+// and /account itself carries a clear "Sign in / create account" link to the real
+// WordPress login (WooCommerce + Ultimate Member + Nextend). Login stays one click
+// away; the broken cross-host link is gone.
+const ACCOUNT_URL = '/account';
 
-/* Nav submenu — curated set per 2026-06-06 brand audit.
-   Dropped diluting categories: Classic, Author, Simple, Decoration, Clothes,
-   Steel. They split attention without converting. Kept canonical body
-   jewelry categories + cosmovision + materials axes. */
-const shopSubmenu = [
-  { href: '/shop',           label: 'All pieces' },
-  { href: '/piercing',       label: 'Piercing jewelry' },
-  { href: '/hangers',        label: 'Hangers & weights' },
-  { href: '/ear-cuffs',      label: 'Ornaments · amulets' },
-  { href: '/ritual-objects', label: 'Ritual objects' },
-  { href: '/custom-orders',  label: 'Atelier · author’s art' },
-  { href: '/lines/antu',     label: 'Shop by element' },
-  { href: '/materials',      label: 'Shop by material' },
-  { href: '/collection',     label: 'Collections' },
+// ── "LO NUEVO" — newest published pieces for the New arrivals drawer preview.
+// getProducts() is build-time and cached, so this is free. Filter to real macro
+// photos (no placeholders), sort by WooCommerce date_created desc, take 4.
+const PLACEHOLDER_IMG = /chatgpt-image|sin-?titulo|sin-?t[íi]tulo|placeholder|untitled/i;
+const _allProducts = await getProducts();
+const newArrivals = _allProducts
+  .filter(p => p.images.length > 0 && p.images[0].src && !PLACEHOLDER_IMG.test(p.images[0].src))
+  .sort((a, b) => {
+    const da = a.date_created_gmt || a.date_created || '';
+    const db = b.date_created_gmt || b.date_created || '';
+    return db.localeCompare(da);
+  })
+  .slice(0, 4)
+  .map(p => {
+    const img = getHeroImage(p);
+    return { slug: p.slug, name: decodeEntities(p.name), price: formatPrice(p.price), img: img?.src || null };
+  });
+
+// The FOUR doors of the site (Wültufe architecture 2026-06-29): shop · design ·
+// book · care. Everything else is secondary, lower in the drawer.
+const doors = [
+  { href: '/shop',           label: 'Shop Jewelry' },
+  { href: '/constelaciones', label: 'Design Your Ear · Wültufe' },
+  { href: '/piercing',       label: 'Book a Piercing · Truckee' },
+  { href: '/care-guide',     label: 'Care & Healing' },
 ];
-
-const mainItems = [
-  { href: '/piercing',                               label: 'Piercing',    match: '/piercing' },
-  { href: '/hangers',                                label: 'Hangers',     match: '/hangers' },
-  { href: '/materials',                              label: 'Materials',   match: '/material' },
-  { href: '/custom-orders',                          label: 'Atelier',     match: '/custom-orders' },
-  { href: '/about',                                  label: en.nav.about,  match: '/about' },
-  { href: '/journal',                                label: en.nav.journal, match: '/journal' },
-  { href: 'https://aftercare.wenumapuonline.com/',   label: 'Care',        match: '/aftercare', external: true },
+// Collections door → the 10 REAL brand collections (each has its banner).
+const collectionLinks = [
+  { href: '/collection/origin',    label: 'Origin' },
+  { href: '/collection/atacama',   label: 'Atacama' },
+  { href: '/collection/araucania', label: 'Araucanía' },
+  { href: '/collection/solar',     label: 'Solar' },
+  { href: '/collection/neo',       label: 'Neo' },
+  { href: '/collection/ornamental',label: 'Ornamental' },
+  { href: '/collection/organic',   label: 'Organic' },
+  { href: '/collection/fossil',    label: 'Fossil' },
+  { href: '/collection/india',     label: 'India' },
+  { href: '/collection/maya',      label: 'Maya' },
+  { href: '/collections',          label: 'All collections' },
 ];
-
-// Split links around the centered logo
-const leftItems = mainItems.slice(0, 3);   // Piercing, Hangers, Materials
-const rightItems = mainItems.slice(3);     // Atelier, About, Journal, Care
-
-const isActive = (m: string) => {
-  if (m.startsWith('/')) return path.startsWith(m);
-  return Astro.url.search.includes(`cat=${m}`);
-};
+// New & Limited door → new + limited + one-of-one (renamed from "The Edit", Ocin 2026-06-25).
+const editLinks = [
+  { href: '/new-arrivals',     label: 'New arrivals' },
+  { href: '/limited-objects',  label: 'Limited objects' },
+  { href: '/stones-one-of-one',label: 'Stones & one of one' },
+];
+// Piercing · service door → expands to the high-value service sub-items.
+const piercingLinks = [
+  { href: '/piercing',            label: 'Book a session' },
+  { href: '/care-guide',          label: 'Aftercare' },
+  { href: '/care-guide#downsize', label: 'Downsize' },
+  { href: '/piercing-jewelry',    label: 'Upgrade your jewelry' },
+  { href: '/constelaciones',      label: 'Design your ear' },
+  { href: '/shop',                label: 'Recommendations' },
+  { href: '/sizing-guide',        label: 'Sizing guide' },
+];
+// Secondary — out of the main doors.
+const secondary = [
+  { href: '/shop',          label: 'Shop all' },
+  { href: '/custom-orders', label: 'Atelier' },
+  { href: '/about',         label: 'About' },
+  { href: '/manifesto',     label: 'Manifesto' },
+  { href: '/journal',       label: 'Journal' },
+];
 ---
-<nav class="nav" aria-label="Primary">
-  <div class="nav__inner">
-    <ul class="nav__links nav__links--left" role="menubar">
-      <li role="none" class="nav__shop-wrap">
-        <button
-          type="button"
-          class={path === '/shop' ? 'nav__shop active' : 'nav__shop'}
-          aria-haspopup="true"
-          aria-expanded="false"
-          aria-controls="nav-shop-menu"
-          data-shop-trigger
-        >
-          {en.nav.shop} <span class="nav__chev" aria-hidden="true">▾</span>
+<nav class="navk" aria-label="Primary">
+  <div class="navk__bar">
+    <button type="button" class="navk__burger" data-burger aria-label={en.nav.menu} aria-controls="navk-drawer" aria-expanded="false">
+      <span class="navk__burger-bar"></span>
+      <span class="navk__burger-bar"></span>
+    </button>
+
+    <a href="/" class="navk__logo" aria-label="Wenu Mapu home">
+      <span class="navk__brand-row">
+        <img src="/logos/wenu-word-woven.webp" alt="" width="589" height="154" class="navk__word navk__word--wenu" aria-hidden="true" />
+        <img src="/img/brand/wenu-mandala-transparent.webp" alt="" width="120" height="120" class="navk__mark" aria-hidden="true" />
+        <img src="/logos/mapu-word-woven.webp" alt="" width="613" height="136" class="navk__word navk__word--mapu" aria-hidden="true" />
+      </span>
+    </a>
+
+    <div class="navk__icons">
+      <button type="button" class="navk__icon" data-search-trigger aria-label={en.nav.search} title="Search · /">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="10.5" cy="10.5" r="6.5"/><line x1="20" y1="20" x2="15.5" y2="15.5"/>
+        </svg>
+      </button>
+      <a href="/cart" class="navk__icon navk__cart" data-cart-open aria-label={en.nav.cart}>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <path d="M3 5h2.5l2.4 11.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.5L21 8H6" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="9.5" cy="20.5" r="1.2"/><circle cx="17.5" cy="20.5" r="1.2"/>
+        </svg>
+        <span class="navk__cart-count" data-cart-count hidden></span>
+      </a>
+    </div>
+  </div>
+</nav>
+
+{/* Slide-out drawer — sibling of <nav> so position:fixed anchors to the viewport. */}
+<div id="navk-drawer" class="navkd" data-drawer hidden aria-label={en.nav.menu}>
+  <div class="navkd__panel">
+    <button type="button" class="navkd__close" data-drawer-close aria-label={en.nav.close}>
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+        <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/><line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/>
+      </svg>
+    </button>
+
+    {/* Kai — recibe al usuario que abre el menú. Compañero de marca, no un
+        asistente de soporte: sprite pixel-art animado por cuadros (12 poses,
+        motor en public/kai/kai-anim.js), montado solo mientras el drawer está
+        abierto (ver <script> abajo). Vive en su "niche" dorado (.kai-niche,
+        global.css), ancho completo del contenido del drawer. Intensidad A
+        (sutil) del efecto CRT — retro-glow pass 2026-07-12. */}
+    <div class="navkd__kai" data-kai-menu>
+      {/* ONE long screen (Ocin 2026-07-15): a single LCD holding Kai + his line,
+          the living cosmos behind them. A black-and-white mapuche textile panel
+          covers it by default — it reads as part of the page — and parts like a
+          curtain on tap to reveal Kai. */}
+      <button type="button" class="kai-niche kai-niche--a navkd__kai-screen" data-kai-reveal
+              aria-label="Wake Kai">
+        <span class="kai-niche__aura" aria-hidden="true"></span>
+        <span class="kai-niche__scanlines" aria-hidden="true"></span>
+        <span class="navkd__kai-inner">
+          <span class="navkd__kai-stage">
+            <canvas id="navkd-kai-canvas" class="navkd__kai-sprite" width="72" height="72" aria-hidden="true"></canvas>
+          </span>
+          <span class="navkd__kai-text">
+            <span class="kai-niche__label" aria-hidden="true">KAI</span>
+            <span class="navkd__kai-line" id="navkd-kai-line">Hey - I'm Kai. Need a paw?</span>
+          </span>
+        </span>
+        <span class="navkd__kai-cover" data-kai-textile aria-hidden="true"></span>
+      </button>
+    </div>
+
+    <ul class="navkd__list">
+      {doors.map(d => (<li><a href={d.href}>{d.label}</a></li>))}
+      <li class="navkd__has-sub">
+        <button type="button" class="navkd__expand" data-acc-toggle aria-expanded="false">
+          <span>Piercing · service</span>
+          <span class="navkd__chev" aria-hidden="true">›</span>
         </button>
-        <ul id="nav-shop-menu" class="nav__submenu" role="menu" data-shop-menu hidden>
-          {shopSubmenu.map(item => (
-            <li role="none">
-              <a href={item.href} role="menuitem">{item.label}</a>
-            </li>
-          ))}
+        <ul class="navkd__sub" data-acc hidden>
+          {piercingLinks.map(l => (<li><a href={l.href}>{l.label}</a></li>))}
         </ul>
       </li>
-      {leftItems.map(item => (
-        <li role="none">
-          <a
-            href={item.href}
-            role="menuitem"
-            class={isActive(item.match) ? 'active' : ''}
-            {...(item.external ? { target: '_blank', rel: 'noopener' } : {})}
-          >
-            {item.label}
-          </a>
-        </li>
+      <li class="navkd__has-sub">
+        <button type="button" class="navkd__expand" data-acc-toggle aria-expanded="false">
+          <span>Collections</span>
+          <span class="navkd__chev" aria-hidden="true">›</span>
+        </button>
+        <ul class="navkd__sub" data-acc hidden>
+          {collectionLinks.map(l => (<li><a href={l.href}>{l.label}</a></li>))}
+        </ul>
+      </li>
+      <li class="navkd__has-sub navkd__has-sub--new">
+        <button type="button" class="navkd__expand" data-acc-toggle aria-expanded="false">
+          <span class="navkd__new-label">New &amp; Limited <span class="navkd__pill" aria-hidden="true">Lo nuevo</span></span>
+          <span class="navkd__chev" aria-hidden="true">›</span>
+        </button>
+        <div class="navkd__sub navkd__sub--new" data-acc hidden>
+          {newArrivals.length > 0 && (
+            <div class="navkd__newgrid" aria-label="Newest pieces">
+              {newArrivals.map(p => (
+                <a href={`/p/${p.slug}`} class="navkd__newcard">
+                  <span class="navkd__newthumb">
+                    {p.img
+                      ? <img src={p.img} alt={p.name} width="120" height="120" loading="lazy" decoding="async" />
+                      : <span class="navkd__newthumb-ph" aria-hidden="true">✦</span>}
+                  </span>
+                  <span class="navkd__newname">{p.name}</span>
+                  {p.price && <span class="navkd__newprice">{p.price}</span>}
+                </a>
+              ))}
+            </div>
+          )}
+          <ul class="navkd__newlinks">
+            {editLinks.map(l => (<li><a href={l.href}>{l.label}</a></li>))}
+          </ul>
+        </div>
+      </li>
+    </ul>
+
+    <ul class="navkd__list navkd__list--secondary">
+      {secondary.map(l => (
+        <li><a href={l.href} {...(l.external ? { target: '_blank', rel: 'noopener' } : {})}>{l.label}</a></li>
       ))}
     </ul>
 
-    <a href="/" class="nav__logo nav__brand" aria-label="Wenu Mapu home">
-      <span class="nav__brand-row">
-        <img src="/logos/wenu-word-woven.webp" alt="" width="589" height="154" class="nav__brand-word-img nav__brand-word-img--wenu" aria-hidden="true" />
-        <img src="/img/brand/wenu-mandala-transparent.webp" alt="" width="120" height="120" class="nav__brand-mark" aria-hidden="true" />
-        <img src="/logos/mapu-word-woven.webp" alt="" width="613" height="136" class="nav__brand-word-img nav__brand-word-img--mapu" aria-hidden="true" />
-      </span>
-      <span class="nav__brand-tagline">Tribal Jewelry · Connected to the Cosmos</span>
-    </a>
-
-    <div class="nav__right">
-      <ul class="nav__links nav__links--right" role="menubar">
-        {rightItems.map(item => (
-          <li role="none">
-            <a
-              href={item.href}
-              role="menuitem"
-              class={isActive(item.match) ? 'active' : ''}
-              {...(item.external ? { target: '_blank', rel: 'noopener' } : {})}
-            >
-              {item.label}
-            </a>
-          </li>
-        ))}
-      </ul>
-
-      <div class="nav__icons">
-      <button
-        type="button"
-        class="nav__icon nav__search"
-        aria-label={en.nav.search}
-        data-search-trigger
-        title="Search · press / or ⌘K"
-      >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="10.5" cy="10.5" r="6.5"/>
-          <line x1="20" y1="20" x2="15.5" y2="15.5"/>
+    <div class="navkd__foot">
+      <a href={ACCOUNT_URL} class="navkd__account">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+          <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6" stroke-linecap="round"/>
         </svg>
-        <kbd class="nav__search-hint" aria-hidden="true">/</kbd>
-      </button>
-      <a
-        href={STORE_CART_URL}
-        target="_blank"
-        rel="noopener"
-        aria-label={en.nav.cart}
-        class="nav__icon"
-      >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
-          <path d="M3 5h2.5l2.4 11.2a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 2-1.5L21 8H6" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="9.5" cy="20.5" r="1.2"/>
-          <circle cx="17.5" cy="20.5" r="1.2"/>
-        </svg>
+        <span>Account</span>
       </a>
-      <button
-        type="button"
-        class="nav__burger"
-        aria-label={en.nav.menu}
-        aria-controls="nav-drawer"
-        aria-expanded="false"
-        data-burger
-      >
-        <span class="nav__burger-bar"></span>
-        <span class="nav__burger-bar"></span>
-      </button>
-      </div>
     </div>
   </div>
-
-</nav>
-
-{/* Drawer mobile — RENDERED OUTSIDE <nav> on purpose.
-    El <nav> tiene backdrop-filter, lo que crea un containing block para
-    position:fixed children y rompe inset:0 (queda anclado al nav, no al viewport).
-    Como sibling de <nav>, el drawer queda libre y cubre todo bien. */}
-<div id="nav-drawer" class="nav__drawer" data-drawer hidden aria-label="Mobile menu">
-  <div class="nav__drawer-head">
-    <span class="nav__drawer-title">{en.nav.menu}</span>
-    <button type="button" class="nav__drawer-close" aria-label={en.nav.close} data-drawer-close>
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
-        <line x1="6" y1="6" x2="18" y2="18" stroke-linecap="round"/>
-        <line x1="18" y1="6" x2="6" y2="18" stroke-linecap="round"/>
-      </svg>
-    </button>
-  </div>
-  <ul class="nav__drawer-list">
-    <li><span class="nav__drawer-section">{en.nav.shop}</span></li>
-    {shopSubmenu.map(item => (
-      <li><a href={item.href}>{item.label}</a></li>
-    ))}
-    <li class="nav__drawer-rule" aria-hidden="true"></li>
-    {mainItems.map(item => (
-      <li><a href={item.href}>{item.label}</a></li>
-    ))}
-    <li><a href="/contact">{en.nav.contact}</a></li>
-    <li><a href="/local">{en.nav.local}</a></li>
-    <li class="nav__drawer-rule" aria-hidden="true"></li>
-    <li>
-      <a href={STORE_CART_URL} target="_blank" rel="noopener">{en.nav.cart}</a>
-    </li>
-  </ul>
 </div>
 
 <script>
-  const trigger = document.querySelector<HTMLButtonElement>('[data-shop-trigger]');
-  const menu = document.querySelector<HTMLUListElement>('[data-shop-menu]');
-  const wrap = trigger?.closest('.nav__shop-wrap');
-
-  const openMenu = () => {
-    if (!menu || !trigger) return;
-    menu.hidden = false;
-    trigger.setAttribute('aria-expanded', 'true');
-  };
-  const closeMenu = () => {
-    if (!menu || !trigger) return;
-    menu.hidden = true;
-    trigger.setAttribute('aria-expanded', 'false');
-  };
-
-  trigger?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    if (trigger.getAttribute('aria-expanded') === 'true') closeMenu();
-    else openMenu();
-  });
-  wrap?.addEventListener('mouseenter', openMenu);
-  wrap?.addEventListener('mouseleave', closeMenu);
-  document.addEventListener('click', (e) => {
-    if (!wrap?.contains(e.target as Node)) closeMenu();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeMenu();
-  });
-
   const burger = document.querySelector<HTMLButtonElement>('[data-burger]');
   const drawer = document.querySelector<HTMLDivElement>('[data-drawer]');
   const drawerClose = document.querySelector<HTMLButtonElement>('[data-drawer-close]');
+
+  // Kai — motor de animación por cuadros (public/kai/kai-anim.js), montado
+  // solo mientras el drawer está abierto (nada corre en segundo plano el
+  // resto del tiempo).
+  const kaiCanvas = document.getElementById('navkd-kai-canvas') as HTMLCanvasElement | null;
+  const kaiLine = document.getElementById('navkd-kai-line');
+  let kaiCtl: { trigger: (s: string) => void; poke: () => void; destroy: () => void } | null = null;
+  let kaiGreetT: number | null = null;
+  let kaiLineT: number | null = null;
+
+  // Personality pass (2026-07-13, owner tone: cosmic/mystic + tender + soft
+  // jokes, mapuche soul "connected to the cosmos"). ASCII punctuation only
+  // (no em-dash/ellipsis glyphs - "-"/"."/"..." instead). Every bank rotates
+  // at random via pick(), avoiding the same line twice in a row.
+  const KAI_GREETINGS = [
+    "Mari mari. The sky sent you here.",
+    "Wander with me. Every path glows.",
+    "Looking for a piece of the cosmos?",
+    "The stars drew a map. Let's read it.",
+  ];
+  const KAI_PET_LINES = [
+    "Aww. Cosmic scritches, yes please.",
+    "*happy hum from the stars*",
+    "You found me. Both my eyes agree: nice.",
+  ];
+  const KAI_WAKE_LINES = [
+    "*yawn* dreaming of meteor showers.",
+    "Oh, you're back. The stars missed you.",
+  ];
+  const KAI_SLEEP_LINES = ["*curls under the stars* wake me if you need me."];
+  // Idle/ambient — fires off the engine's own ~9-15s "glance" timer while
+  // resting; shows ~3s, then reverts to whatever was showing before. Soft
+  // jokes mixed in at ~1-in-4/5 (see pickAmbientOrJoke()).
+  const KAI_AMBIENT_LINES = [
+    "Every stone fell from somewhere. Wild, right?",
+    "I'm small, but I've seen galaxies.",
+    "Take your time. Light travels slow out here.",
+    "One eye of sky, one of earth. Both watching.",
+    "*stargazing with you*",
+    "Tell me your story. I'll find your piece.",
+    "Need a paw? I read stars for a living.",
+  ];
+  const KAI_JOKE_LINES = [
+    "I'm fluent in two tongues: bark and starlight.",
+    "They said sit. I chose to guide you.",
+    "Bob-tailed, yet the universe still spins.",
+  ];
+
+  let lastGreeting: string | null = null;
+  let lastPet: string | null = null;
+  let lastWake: string | null = null;
+  let lastAmbient: string | null = null;
+  let restingLine = '';
+
+  function pick(arr: string[], avoid?: string | null): string {
+    if (arr.length === 1) return arr[0];
+    let choice = arr[Math.floor(Math.random() * arr.length)];
+    let guard = 0;
+    while (choice === avoid && guard++ < 6) choice = arr[Math.floor(Math.random() * arr.length)];
+    return choice;
+  }
+  function pickAmbientOrJoke(): string {
+    const line = Math.random() < 0.22 ? pick(KAI_JOKE_LINES, lastAmbient) : pick(KAI_AMBIENT_LINES, lastAmbient);
+    lastAmbient = line;
+    return line;
+  }
+  function showTemp(text: string, ms: number) {
+    if (kaiLine) kaiLine.textContent = text;
+    if (kaiLineT) window.clearTimeout(kaiLineT);
+    kaiLineT = window.setTimeout(() => { if (kaiLine) kaiLine.textContent = restingLine; }, ms);
+  }
+
+  function kaiOnAmbient(kind: string, text?: string) {
+    if (!kaiLine) return;
+    if (kind === 'trick') {
+      // 2026-07-17 (TRUCOS de Kai): the engine passes the trick's own fixed
+      // phrase straight through — no host-side pick() bank for this one.
+      if (text) showTemp(text, 2600);
+    } else if (kind === 'pet') {
+      lastPet = pick(KAI_PET_LINES, lastPet);
+      showTemp(lastPet, 2200);
+    } else if (kind === 'glance') {
+      showTemp(pickAmbientOrJoke(), 3000);
+    } else if (kind === 'sleep') {
+      if (kaiLineT) { window.clearTimeout(kaiLineT); kaiLineT = null; }
+      kaiLine.textContent = pick(KAI_SLEEP_LINES);
+    } else if (kind === 'wake') {
+      lastWake = pick(KAI_WAKE_LINES, lastWake);
+      showTemp(lastWake, 2600);
+    }
+  }
 
   const openDrawer = () => {
     if (!drawer || !burger) return;
@@ -216,30 +318,412 @@ const isActive = (m: string) => {
     requestAnimationFrame(() => drawer.classList.add('is-open'));
     burger.setAttribute('aria-expanded', 'true');
     document.body.style.overflow = 'hidden';
+    document.querySelector('[data-kai-reveal]')?.classList.remove('is-open'); // cover Kai each open
+    if (!kaiCtl && kaiCanvas && (window as any).kaiAnim) {
+      kaiCtl = (window as any).kaiAnim(kaiCanvas, {
+        width: 72, height: 72, targetHeight: 52,
+        initial: 'alert', onAmbient: kaiOnAmbient,
+      });
+      lastGreeting = pick(KAI_GREETINGS, lastGreeting);
+      restingLine = lastGreeting;
+      if (kaiLine) kaiLine.textContent = lastGreeting;
+      kaiGreetT = window.setTimeout(() => { kaiCtl?.trigger('idle'); }, 2600);
+    }
   };
   const closeDrawer = () => {
     if (!drawer || !burger) return;
     drawer.classList.remove('is-open');
     burger.setAttribute('aria-expanded', 'false');
     document.body.style.overflow = '';
-    setTimeout(() => { if (drawer) drawer.hidden = true; }, 300);
+    setTimeout(() => { if (drawer) drawer.hidden = true; }, 320);
+    if (kaiGreetT) { window.clearTimeout(kaiGreetT); kaiGreetT = null; }
+    if (kaiLineT) { window.clearTimeout(kaiLineT); kaiLineT = null; }
+    if (kaiCtl) { kaiCtl.destroy(); kaiCtl = null; }
   };
+  // Kai reveal: the screen is covered by the B&W textile until tapped. First tap
+  // parts the curtain (reveals Kai + cosmos); after that, taps fall through to
+  // Kai's own handlers (long-press = home, etc). Reset to covered each open.
+  const kaiScreen = document.querySelector('[data-kai-reveal]') as HTMLElement | null;
+  let kaiTaps = 0; let kaiTapT: number | null = null;
+  kaiScreen?.addEventListener('click', () => {
+    if (kaiScreen.classList.contains('is-open')) return;  // already revealed → let Kai handle
+    kaiTaps++;
+    if (kaiTapT) window.clearTimeout(kaiTapT);
+    if (kaiTaps >= 3) {                                    // three taps parts the curtain
+      kaiTaps = 0;
+      kaiScreen.classList.add('is-open');
+      kaiCtl?.trigger('wake');
+    } else {
+      kaiTapT = window.setTimeout(() => { kaiTaps = 0; }, 900);
+    }
+  });
 
   burger?.addEventListener('click', openDrawer);
   drawerClose?.addEventListener('click', closeDrawer);
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer();
-  });
+  drawer?.addEventListener('click', (e) => { if (e.target === drawer) closeDrawer(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer(); });
+  drawer?.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { if (drawer && !drawer.hidden) closeDrawer(); }));
 
-  /* Close drawer when user navigates via any link inside it (UX) */
-  drawer?.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => {
-      if (drawer && !drawer.hidden) closeDrawer();
+  // Accordions (Collections · The Edit)
+  document.querySelectorAll<HTMLButtonElement>('[data-acc-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sub = btn.parentElement?.querySelector<HTMLElement>('[data-acc]');
+      if (!sub) return;
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      sub.hidden = open;
     });
   });
-
-  /* Close drawer if user taps the empty area to the side (defensive UX) */
-  drawer?.addEventListener('click', (e) => {
-    if (e.target === drawer) closeDrawer();
-  });
 </script>
+
+<style>
+  .navk {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(10, 10, 10, 0.82);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .navk__bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-3);
+    max-width: var(--max-w);
+    margin: 0 auto;
+    padding: var(--space-3) var(--gutter);
+  }
+  .navk__burger {
+    justify-self: start;
+    display: inline-flex;
+    flex-direction: column;
+    gap: 5px;
+    width: 30px;
+    padding: 6px 0;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .navk__burger-bar { display: block; height: 1px; width: 24px; background: var(--bone); transition: background var(--t-fast); }
+  .navk__burger:hover .navk__burger-bar { background: var(--ember); }
+
+  .navk__logo { justify-self: center; display: inline-flex; text-decoration: none; }
+  .navk__brand-row { display: inline-flex; align-items: center; gap: clamp(6px, 1.4vw, 14px); }
+  .navk__word { height: clamp(16px, 2.4vw, 22px); width: auto; opacity: 0.95; }
+  .navk__mark {
+    height: clamp(26px, 3.4vw, 34px); width: auto;
+    /* Slow continuous portal rotation — reconnected 2026-06-26 (the spin rule was
+       orphaned on the old .nav__brand-mark class after the navk redesign). Uses
+       transform only, so the Solar invert filter is untouched. Keyframes live in
+       global.css (nav-mark-spin). */
+    animation: nav-mark-spin 50s linear infinite;
+    transform-origin: 50% 50%;
+  }
+  .navk__logo:hover .navk__mark { animation-duration: 18s; }
+  @media (prefers-reduced-motion: reduce) {
+    .navk__mark { animation: none; }
+  }
+
+  .navk__icons { justify-self: end; display: inline-flex; align-items: center; gap: var(--space-3); }
+  .navk__icon { display: inline-flex; background: none; border: 0; color: var(--bone); cursor: pointer; padding: 4px; transition: color var(--t-fast); text-decoration: none; }
+  .navk__icon:hover { color: var(--ember); }
+  .navk__cart { position: relative; }
+  .navk__cart-count {
+    position: absolute; top: -2px; right: -4px;
+    min-width: 16px; height: 16px; padding: 0 4px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--ember); color: var(--obsidian);
+    font-family: var(--font-mono); font-size: 10px; line-height: 1; font-weight: 600;
+    border-radius: 9px;
+  }
+  .navk__cart-count[hidden] { display: none; }
+
+  /* ── Drawer ── */
+  .navkd {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(6, 5, 4, 0.6);
+    opacity: 0;
+    transition: opacity var(--t-base);
+  }
+  .navkd.is-open { opacity: 1; }
+  .navkd__panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: min(86vw, 420px);
+    background: var(--obsidian);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    transform: translateX(-100%);
+    transition: transform var(--t-slow);
+    overflow-y: auto;
+  }
+  .navkd.is-open .navkd__panel { transform: none; }
+
+  .navkd__close {
+    align-self: flex-start;
+    background: none; border: 0; color: var(--silver); cursor: pointer;
+    padding: 4px; margin-bottom: var(--space-5);
+    transition: color var(--t-fast);
+  }
+  .navkd__close:hover { color: var(--bone); }
+
+  /* ── Kai — ONE long cosmos screen, revealed from behind a B&W textile
+        (Ocin 2026-07-15). Single frame; Kai + his line live INSIDE it. ── */
+  .navkd__kai {
+    padding: 0 0 var(--space-4);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  /* the single long LCD (a <button>, so tap reveals Kai). Overrides the
+     column .kai-niche into a wide horizontal screen. */
+  .navkd__kai .navkd__kai-screen {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 92px;
+    padding: 0;
+    gap: 0;
+    border: 0;
+    border-radius: 6px 6px 16px 6px;      /* Game Boy screen corner */
+    background: linear-gradient(158deg, #0d0a1c, #05040f);  /* deep space base */
+    box-shadow:
+      inset 0 0 0 2px #2b2740,             /* bezel ring */
+      inset 0 2px 10px rgba(0,0,0,0.75),   /* screen depth */
+      inset 0 0 18px rgba(150,90,210,0.16);/* nebula glow */
+    overflow: hidden;
+    cursor: pointer;
+    font: inherit;
+    image-rendering: pixelated;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* The living nebula (on the aura layer, behind everything) — drifts + shifts
+     hue forever. "que vaya cambiando." */
+  .navkd__kai .kai-niche__aura {
+    opacity: 1; z-index: 0; inset: 0; border-radius: inherit;
+    background:
+      radial-gradient(52% 70% at 72% 30%, rgba(168, 86, 214, 0.60), transparent 62%),
+      radial-gradient(56% 76% at 24% 68%, rgba(96, 74, 208, 0.52), transparent 62%),
+      radial-gradient(38% 52% at 50% 50%, rgba(214, 96, 178, 0.34), transparent 60%);
+    background-size: 175% 175%;
+    animation: kai-nebula-drift 34s ease-in-out infinite alternate,
+               kai-nebula-hue 60s linear infinite;
+  }
+  @keyframes kai-nebula-drift {
+    0%   { background-position: 18% 28%; transform: scale(1); }
+    100% { background-position: 82% 72%; transform: scale(1.14); }
+  }
+  @keyframes kai-nebula-hue {
+    0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); }
+  }
+  /* starfield + faint scanlines */
+  .navkd__kai .kai-niche__scanlines {
+    opacity: 1; z-index: 2; inset: 0; border-radius: inherit; pointer-events: none;
+    background:
+      radial-gradient(1px 1px at 12% 26%, #fff, transparent),
+      radial-gradient(1px 1px at 40% 16%, #cfe6ff, transparent),
+      radial-gradient(1px 1px at 64% 34%, #fff, transparent),
+      radial-gradient(1px 1px at 82% 22%, #ffe6f7, transparent),
+      radial-gradient(1px 1px at 30% 60%, #fff, transparent),
+      radial-gradient(1px 1px at 54% 74%, #cfe6ff, transparent),
+      radial-gradient(1px 1px at 88% 66%, #fff, transparent),
+      radial-gradient(1px 1px at 20% 84%, #ffe6f7, transparent),
+      repeating-linear-gradient(to bottom, rgba(255,255,255,0.03) 0 1px, transparent 1px 3px);
+  }
+  /* red power LED */
+  .navkd__kai-screen::before {
+    content: ""; position: absolute; top: 6px; left: 7px;
+    width: 4px; height: 4px; border-radius: 50%;
+    background: #d84a3a; box-shadow: 0 0 4px #d84a3a; z-index: 8;
+  }
+
+  /* inner: Kai left, his line right — inside the screen */
+  .navkd__kai-inner {
+    position: relative; z-index: 3;
+    display: flex; align-items: center; gap: 12px;
+    height: 100%; padding: 0 14px;
+    opacity: 0; pointer-events: none;                    /* first tap reveals, not plays */
+    transition: opacity 0.45s ease 0.15s;
+  }
+  .navkd__kai-screen.is-open .navkd__kai-inner { pointer-events: auto; }
+  .navkd__kai-stage {
+    position: relative; flex-shrink: 0;
+    width: 58px; height: 58px;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .navkd__kai-sprite { width: 58px; height: 58px; image-rendering: pixelated; cursor: pointer; }
+  .navkd__kai-text { display: flex; flex-direction: column; gap: 5px; min-width: 0; text-align: left; }
+  .navkd__kai-text .kai-niche__label { color: #c9a84c; text-align: left; }
+  .navkd__kai-line {
+    margin: 0;
+    padding: 0 2px;
+    max-width: 235px;
+    min-height: 3.6em;
+    font-family: "Press Start 2P", ui-monospace, monospace;
+    font-style: normal; font-size: 10px; letter-spacing: 0; line-height: 1.8;
+    color: var(--bone);
+    white-space: normal; overflow-wrap: break-word;
+  }
+  @media (max-width: 480px) {
+    .navkd__kai-line { font-size: 9px; max-width: 190px; }
+  }
+
+  /* The ethnic mapuche textile that HIDES Kai until you tap (Ocin 2026-07-15) —
+     a woven field of stepped diamonds (greca), coded as an inline SVG tile, bone
+     on obsidian with an ember heart. Reads as part of the page until it parts. */
+  .navkd__kai-cover {
+    position: absolute; inset: 0; z-index: 12; border-radius: inherit;
+    pointer-events: none;
+    background-color: #0d0d10;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' fill='%230d0d10'/%3E%3Cpolygon points='24,2 46,24 24,46 2,24' fill='%23efe9dd'/%3E%3Cpolygon points='24,10 38,24 24,38 10,24' fill='%230d0d10'/%3E%3Cpolygon points='24,16 32,24 24,32 16,24' fill='%23efe9dd'/%3E%3Cpolygon points='24,20 28,24 24,28 20,24' fill='%23c9a84c'/%3E%3Cpolygon points='24,-3 29,2 24,7 19,2' fill='%23efe9dd'/%3E%3Cpolygon points='24,41 29,46 24,51 19,46' fill='%23efe9dd'/%3E%3Cpolygon points='-3,24 2,19 7,24 2,29' fill='%23efe9dd'/%3E%3Cpolygon points='41,24 46,19 51,24 46,29' fill='%23efe9dd'/%3E%3C/svg%3E");
+    background-size: 30px 30px;
+    background-repeat: repeat;
+    transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.2,0.7,0.2,1), clip-path 0.55s ease;
+    clip-path: inset(0 0 0 0);
+  }
+  /* revealed state: curtain parts, Kai + cosmos appear */
+  .navkd__kai-screen.is-open .navkd__kai-cover {
+    opacity: 0; transform: scale(1.06); clip-path: inset(0 0 100% 0);
+  }
+  .navkd__kai-screen.is-open .navkd__kai-inner { opacity: 1; }
+  /* Kai peeks through the weave intermittently (Ocin 2026-07-15) — curtain goes
+     sheer + his cosmos/silhouette shows for a beat, then re-weaves. */
+  .navkd__kai-screen.kai-peek .navkd__kai-cover { opacity: 0.12 !important; }
+  .navkd__kai-screen.kai-peek .navkd__kai-inner { opacity: 0.85; }
+  /* a faint "tap me" pulse on the border while still covered */
+  .navkd__kai-screen:not(.is-open) { animation: kai-cover-breathe 3.4s ease-in-out infinite; }
+  @keyframes kai-cover-breathe {
+    0%,100% { box-shadow: inset 0 0 0 2px #2b2740, inset 0 2px 10px rgba(0,0,0,.75); }
+    50%     { box-shadow: inset 0 0 0 2px #6a4a28, inset 0 2px 10px rgba(0,0,0,.75); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .navkd__kai .kai-niche__aura,
+    .navkd__kai-screen:not(.is-open) { animation: none; }
+    .navkd__kai-cover, .navkd__kai-inner { transition: none; }
+  }
+
+  .navkd__list { list-style: none; margin: 0; padding: 0; }
+  .navkd__list > li { border-top: 1px solid var(--line); }
+  .navkd__list > li:last-of-type { border-bottom: 1px solid var(--line); }
+  .navkd__list a,
+  .navkd__expand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: var(--space-4) 0;
+    background: none; border: 0; cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    letter-spacing: var(--letter-spacing-archive);
+    text-transform: uppercase;
+    color: var(--bone);
+    text-decoration: none;
+    transition: color var(--t-fast);
+  }
+  .navkd__list a:hover,
+  .navkd__expand:hover { color: var(--ember); }
+  .navkd__chev { color: var(--ember); font-size: 1.2rem; transition: transform var(--t-base); }
+  .navkd__expand[aria-expanded="true"] .navkd__chev { transform: rotate(90deg); }
+
+  .navkd__sub { list-style: none; margin: 0 0 var(--space-3); padding: 0 0 var(--space-2); }
+  .navkd__sub li { border: 0; }
+  .navkd__sub a {
+    padding: var(--space-2) 0 var(--space-2) var(--space-3);
+    font-size: var(--fs-small);
+    letter-spacing: 0.1em;
+    color: var(--fg-soft);
+    text-transform: none;
+  }
+  .navkd__sub a:hover { color: var(--ember); }
+
+  /* ── New arrivals preview (the "lo nuevo" expandable) ── */
+  .navkd__new-label { display: inline-flex; align-items: center; gap: var(--space-2); }
+  .navkd__pill {
+    font-family: var(--font-sans); font-size: 0.58rem;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--obsidian); background: var(--ember);
+    padding: 2px 7px; border-radius: 999px; line-height: 1.4;
+  }
+  .navkd__sub--new { padding-top: var(--space-2); }
+  .navkd__newgrid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);
+    margin: 0 0 var(--space-3);
+  }
+  .navkd__newcard {
+    display: flex; flex-direction: column; gap: 6px;
+    text-decoration: none; color: inherit;
+  }
+  .navkd__newthumb {
+    display: block; aspect-ratio: 1 / 1; overflow: hidden;
+    background: var(--charcoal); border: 1px solid var(--line-soft);
+  }
+  .navkd__newthumb img {
+    width: 100%; height: 100%; object-fit: cover;
+    filter: saturate(0.92) contrast(1.04);
+    transition: transform var(--t-slow);
+  }
+  .navkd__newcard:hover .navkd__newthumb img { transform: scale(1.05); }
+  .navkd__newthumb-ph {
+    display: grid; place-items: center; width: 100%; height: 100%;
+    color: var(--bronze); font-size: 1.3rem;
+  }
+  .navkd__newname {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    line-height: 1.25; color: var(--bone); text-transform: none; letter-spacing: 0.02em;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .navkd__newprice {
+    font-family: var(--font-mono); font-size: 0.62rem; color: var(--bronze);
+  }
+  .navkd__newlinks { list-style: none; margin: 0; padding: 0 0 var(--space-2); }
+  .navkd__newlinks li { border: 0; }
+  .navkd__newlinks a {
+    padding: var(--space-2) 0 var(--space-2) var(--space-3);
+    font-size: var(--fs-small); letter-spacing: 0.1em;
+    color: var(--fg-soft); text-transform: none;
+  }
+  .navkd__newlinks a:hover { color: var(--ember); }
+
+  .navkd__sub-head {
+    padding: var(--space-3) 0 var(--space-1) var(--space-3);
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--bronze);
+  }
+
+  /* Secondary group — demoted below the four doors. */
+  .navkd__list--secondary { margin-top: var(--space-4); }
+  .navkd__list--secondary > li { border-top: 1px solid var(--line-soft); }
+  .navkd__list--secondary > li:last-of-type { border-bottom: 0; }
+  .navkd__list--secondary a {
+    padding: var(--space-3) 0;
+    font-size: var(--fs-small);
+    letter-spacing: 0.1em;
+    color: var(--silver);
+  }
+  .navkd__list--secondary a:hover { color: var(--ember); }
+
+  .navkd__foot { margin-top: auto; padding-top: var(--space-5); }
+  .navkd__account {
+    display: inline-flex; align-items: center; gap: var(--space-2);
+    color: var(--silver); text-decoration: none;
+    font-family: var(--font-sans); font-size: var(--fs-small);
+    letter-spacing: var(--letter-spacing-archive); text-transform: uppercase;
+    transition: color var(--t-fast);
+  }
+  .navkd__account:hover { color: var(--ember); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .navkd, .navkd__panel { transition: none; }
+  }
+</style>

@@ -1,0 +1,355 @@
+---
+/**
+ * /account — "Your circle" (2026-07-10, Ocin).
+ *
+ * The new Astro site has NO login / registration. Purchases are guest-by-email:
+ * the buyer checks out or reserves in the cart drawer (see Cart.astro /
+ * ReserveModal.astro), we confirm by hand and follow up over EMAIL. This page
+ * replaces the old, jarring jump to the legacy WordPress /my-account/ (Bridge/
+ * Elementor, Spanish, demo-store banner) with a calm, on-brand explanation of
+ * how an order lives here — plus a deterministic "track my order" affordance that
+ * opens a pre-filled email to support. No runtime AI, no server session, no
+ * broken promises: the mailto works with or without JS.
+ */
+import Base from '../layouts/Base.astro';
+import EmbossedSeal from '../components/EmbossedSeal.astro';
+
+const SUPPORT_EMAIL = 'marimari@wenumapuonline.com';
+
+const steps = [
+  {
+    n: '01',
+    title: 'You gather & send',
+    body: 'Add pieces to your selection and check out — or reserve a one-of-a-kind piece to hold it. All we ask is your name and email. No account, no password.',
+  },
+  {
+    n: '02',
+    title: 'We confirm by hand',
+    body: 'Every order is read by the maker. We verify the piece, confirm your total with shipping or Truckee pickup, and email you the exact amount to pay.',
+  },
+  {
+    n: '03',
+    title: 'You pay & we send',
+    body: 'Pay by Venmo, Zelle or card (Mercado Pago). Once payment is matched, we hand-finish, pack and ship — and keep you updated by email the whole way.',
+  },
+];
+
+const links = [
+  { href: '/shop', label: 'Shop jewelry', body: 'Browse the full catalogue of ritual pieces.' },
+  { href: '/care-guide', label: 'Care & healing', body: 'Aftercare, downsizing and healing timelines.' },
+  { href: '/contact', label: 'Contact', body: 'Reach the maker directly — no chatbot.' },
+];
+---
+<Base
+  title="Your orders — Wenu Mapu"
+  description="How your Wenu Mapu order works: guest checkout by email. Confirm, pay and track your piece by email — no account or password needed."
+  robots="noindex, follow"
+>
+  <section class="section section--mega account">
+    <div class="container-narrow account__inner">
+      <header class="account__head">
+        <p class="eyebrow">Your circle</p>
+        <h1 class="page-title">Your orders</h1>
+        <p class="lede">
+          Wenu Mapu keeps things human. You don't need an account to buy — every
+          order lives in your email, confirmed by the maker and followed to your
+          door. But if you'd rather have a login, you can create one any time.
+        </p>
+        <p class="account__signin-row">
+          <a class="btn btn--ghost account__signin" href="https://www.wenumapuonline.com/my-account/">
+            Sign in / create account <span aria-hidden="true">→</span>
+          </a>
+        </p>
+        <div class="account__seal" aria-hidden="true">
+          <EmbossedSeal text="RÜPÜ · ORDERS · 2026" size={132} />
+        </div>
+      </header>
+
+      <ol class="account__steps" aria-label="How your order works">
+        {steps.map(s => (
+          <li class="account__step">
+            <span class="account__step-n" aria-hidden="true">{s.n}</span>
+            <div class="account__step-copy">
+              <h2 class="account__step-title">{s.title}</h2>
+              <p class="account__step-body">{s.body}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      <div class="constellation-divider" aria-hidden="true"></div>
+
+      <section class="account__track" aria-labelledby="track-title">
+        <p class="eyebrow" id="track-title">Track your order</p>
+        <p class="account__track-lede">
+          Every confirmation, payment note and shipping update is sent to the
+          email you used at checkout — search your inbox for
+          <span class="account__mark">Wenu Mapu</span>. Need a hand or a status
+          check? Send us the email you ordered with and we'll answer personally.
+        </p>
+
+        <form class="account__form" data-track-form>
+          <label class="account__field">
+            <span>Your order email</span>
+            <input type="email" name="email" autocomplete="email" placeholder="you@email.com" required />
+          </label>
+          <label class="account__field">
+            <span>Order reference — optional</span>
+            <input type="text" name="ref" placeholder="Name on the order, or the piece" />
+          </label>
+          <button type="submit" class="btn btn--solid account__submit" data-track-submit>
+            <span>Check on my order →</span>
+          </button>
+          <p class="account__form-fine">
+            Opens a pre-filled email to <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+            We reply within 48 business hours.
+          </p>
+        </form>
+      </section>
+
+      <div class="constellation-divider" aria-hidden="true"></div>
+
+      <section class="account__trust" aria-label="How we handle your order">
+        <ul class="account__trust-list">
+          <li>
+            <span class="sacred-mark" aria-hidden="true"></span>
+            <span>Guest checkout — no account, no stored password.</span>
+          </li>
+          <li>
+            <span class="sacred-mark" aria-hidden="true"></span>
+            <span>No card data touches this site. Card payments run on Mercado Pago's own secure page.</span>
+          </li>
+          <li>
+            <span class="sacred-mark" aria-hidden="true"></span>
+            <span>One-of-a-kind pieces are held for you the moment you reserve.</span>
+          </li>
+        </ul>
+      </section>
+
+      <nav class="account__links" aria-label="Helpful links">
+        {links.map(l => (
+          <a href={l.href} class="account__link">
+            <span class="account__link-label">{l.label}</span>
+            <span class="account__link-body">{l.body}</span>
+            <span class="account__link-arrow" aria-hidden="true">→</span>
+          </a>
+        ))}
+      </nav>
+    </div>
+  </section>
+
+  <script is:inline define:vars={{ SUPPORT_EMAIL }}>
+    // Deterministic "track my order": build a pre-filled mailto from the entered
+    // email + reference. No backend order-status endpoint is exposed, so this is
+    // the honest, unbreakable affordance — works even if this script fails.
+    const form = document.querySelector('[data-track-form]');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const data = new FormData(form);
+        const email = (data.get('email') || '').toString().trim();
+        const ref = (data.get('ref') || '').toString().trim();
+        if (!email) return;
+        const subject = 'Order status — ' + email;
+        const bodyLines = [
+          'Hi Wenu Mapu,',
+          '',
+          'Could you let me know the status of my order?',
+          '',
+          'Order email: ' + email,
+          ref ? 'Order reference: ' + ref : '',
+          '',
+          'Thank you.',
+        ].filter(Boolean);
+        const href = 'mailto:' + SUPPORT_EMAIL +
+          '?subject=' + encodeURIComponent(subject) +
+          '&body=' + encodeURIComponent(bodyLines.join('\n'));
+        window.location.href = href;
+      });
+    }
+  </script>
+
+  <style>
+    .account__inner { display: flex; flex-direction: column; gap: var(--space-6); }
+    .account__head { position: relative; }
+    .account__head .lede { margin-top: var(--space-3); }
+    .account__signin-row { margin-top: var(--space-4); }
+    .account__seal {
+      margin-top: var(--space-5);
+      opacity: 0.9;
+    }
+
+    /* ── How it works — numbered ritual steps ── */
+    .account__steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: var(--space-4);
+    }
+    .account__step {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: var(--space-4);
+      align-items: start;
+      padding: var(--space-4) 0;
+      border-top: 1px solid var(--line);
+    }
+    .account__step:last-child { border-bottom: 1px solid var(--line); }
+    .account__step-n {
+      font-family: var(--font-mono);
+      font-size: var(--fs-small);
+      letter-spacing: 0.1em;
+      color: var(--ember);
+      padding-top: 0.35em;
+    }
+    .account__step-title {
+      font-family: var(--font-display);
+      font-weight: var(--fw-regular);
+      font-size: var(--fs-h3);
+      line-height: 1.1;
+      color: var(--fg);
+      margin: 0 0 var(--space-2);
+    }
+    .account__step-body {
+      font-family: var(--font-sans);
+      font-size: var(--fs-body);
+      line-height: 1.6;
+      color: var(--fg-soft);
+      margin: 0;
+      max-width: 52ch;
+    }
+
+    /* ── Track your order ── */
+    .account__track-lede {
+      font-family: var(--font-serif);
+      font-size: var(--fs-body-lg);
+      line-height: 1.55;
+      color: var(--fg-soft);
+      margin: var(--space-3) 0 var(--space-4);
+      max-width: 56ch;
+    }
+    .account__mark {
+      font-family: var(--font-mono);
+      font-size: 0.86em;
+      letter-spacing: 0.02em;
+      color: var(--ember);
+      white-space: nowrap;
+    }
+    .account__form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      max-width: 460px;
+    }
+    .account__field {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+      font-family: var(--font-sans);
+      font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      color: var(--sand);
+    }
+    .account__field input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--line-bright);
+      color: var(--fg);
+      font-family: var(--font-sans);
+      font-size: var(--fs-body);
+      letter-spacing: normal;
+      text-transform: none;
+      padding: var(--space-3);
+      min-height: 48px;
+    }
+    html[data-theme="solar"] .account__field input {
+      background: rgba(255, 255, 255, 0.7);
+      border-color: var(--bronze);
+    }
+    .account__field input:focus-visible { outline: none; border-color: var(--ember); }
+    .account__submit { margin-top: var(--space-1); align-self: flex-start; }
+    .account__form-fine {
+      font-family: var(--font-sans);
+      font-size: var(--fs-tiny);
+      color: var(--silver);
+      line-height: 1.5;
+      margin: 0;
+    }
+    .account__form-fine a { color: var(--ember); text-decoration: none; }
+    .account__form-fine a:hover { text-decoration: underline; }
+
+    /* ── Trust list ── */
+    .account__trust-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: var(--space-3);
+    }
+    .account__trust-list li {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      gap: var(--space-3);
+      align-items: start;
+      font-family: var(--font-sans);
+      font-size: var(--fs-small);
+      line-height: 1.5;
+      color: var(--fg-soft);
+    }
+    .account__trust-list .sacred-mark { width: 20px; height: 20px; margin-top: 1px; }
+
+    /* ── Helpful links ── */
+    .account__links {
+      display: grid;
+      gap: var(--space-3);
+    }
+    .account__link {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "label arrow" "body arrow";
+      column-gap: var(--space-3);
+      align-items: center;
+      padding: var(--space-4);
+      border: 1px solid var(--line);
+      text-decoration: none;
+      transition: border-color var(--t-base), background var(--t-base);
+    }
+    .account__link:hover { border-color: var(--ember); background: rgba(201, 168, 76, 0.05); }
+    .account__link-label {
+      grid-area: label;
+      font-family: var(--font-sans);
+      font-size: var(--fs-small);
+      letter-spacing: var(--letter-spacing-archive);
+      text-transform: uppercase;
+      color: var(--fg);
+    }
+    .account__link-body {
+      grid-area: body;
+      font-family: var(--font-serif);
+      font-size: var(--fs-body);
+      color: var(--fg-soft);
+      margin-top: 2px;
+    }
+    .account__link-arrow {
+      grid-area: arrow;
+      font-family: var(--font-mono);
+      color: var(--ember);
+      font-size: 1.1rem;
+      transition: transform var(--t-base);
+    }
+    .account__link:hover .account__link-arrow { transform: translateX(4px); }
+
+    @media (min-width: 640px) {
+      .account__links { grid-template-columns: repeat(3, 1fr); }
+      .account__link {
+        grid-template-columns: 1fr;
+        grid-template-areas: "label" "body" "arrow";
+        align-items: start;
+        gap: var(--space-2);
+        min-height: 148px;
+      }
+      .account__link-arrow { justify-self: start; margin-top: auto; }
+    }
+  </style>
+</Base>

@@ -1,9 +1,33 @@
 ---
 import Base from '../layouts/Base.astro';
 import PatternBand from '../components/PatternBand.astro';
+import { getProducts } from '../lib/woo';
 import en from '../i18n/en.json';
 
 const materials = en.about.materials.items;
+
+// ── SHOP BY MATERIAL (Ocin 2026-06-27) ───────────────────────────────────────
+// Each tile leads to the per-material shop view (/material/<key>) which already
+// filters the live catalogue and shows buyable ProductCards. We count matches
+// here so each tile shows real depth — the same keyword logic the pages use.
+const allProducts = await getProducts();
+const searchable = (p: any) => [
+  p.name, p.slug, p.sku,
+  ...p.categories.map((c: any) => c.name), ...p.categories.map((c: any) => c.slug),
+  ...((p.attributes || []).flatMap((a: any) => [a.name, ...(a.options || [])])),
+].join(' ').toLowerCase();
+
+const shopMaterials = [
+  { name: 'Sterling Silver', spec: '925 · recycled alloy', url: '/material/sterling-silver', sw: '#c8c8cc', keys: ['silver', 'plata', 'sterling', '925', '950'] },
+  { name: '14k Gold',        spec: 'Yellow · rose · white', url: '/material/14k-gold',        sw: '#c9a84c', keys: ['gold', 'oro', '14k', '18k'] },
+  { name: 'Titanium',        spec: 'ASTM F-136 implant-grade', url: '/material/titanium',     sw: '#9298a0', keys: ['titanium', 'titanio', 'astm'] },
+  { name: 'Atacama Meteorite', spec: 'Vaca Muerta mesosiderite', url: '/material/vacamuerta',  sw: '#7a6a58', keys: ['meteorite', 'meteorito', 'vacamuerta', 'vaca-muerta', 'atacama', 'mesosiderite'] },
+  { name: 'Stone & Wood',    spec: 'Obsidian · walnut · palo santo', url: '/material/walnut-wood', sw: '#8a6a43', keys: ['wood', 'madera', 'walnut', 'stone', 'piedra', 'obsidian', 'labradorite', 'fluorite'] },
+  { name: 'Brass & Bronze',  spec: 'Ceremonial metals', url: '/material/brass-bronze',        sw: '#b08d57', keys: ['brass', 'bronze', 'laton', 'latón', 'bronce'] },
+].map(m => ({
+  ...m,
+  count: allProducts.filter(p => p.images[0]?.src && m.keys.some(k => searchable(p).includes(k))).length,
+}));
 
 // Cross-link map to per-material deep-dive landings (under /material/<key>).
 // Brass & bronze deep-dive exists at /material/brass-bronze but is not in this
@@ -32,8 +56,8 @@ const detail: Record<string, { origin: string; care: string }> = {
     care: 'Soft cloth polish. Avoid chlorinated water — it can damage the alloy bond over time.',
   },
   'Atacama meteorite': {
-    origin: 'Verified Chilean iron meteorite specimens, sourced through certified Atacama cooperatives. Each stone has lived 4+ billion years.',
-    care: 'Keep dry. Light wipe only. Iron-based meteorites can rust if exposed to humidity for long periods.',
+    origin: 'Verified Vaca Muerta mesosiderite (a rare stony-iron meteorite) from Chile, sourced through certified Atacama cooperatives. Each fragment has lived 4+ billion years.',
+    care: 'Keep dry. Light wipe only. The metallic phase of a stony-iron meteorite can surface-oxidize if exposed to humidity for long periods.',
   },
   'Stone & wood': {
     origin: 'Stones selected one by one (labradorite, fluorite, obsidian). Wood from sustainable South American hardwoods (lignum vitae, palo santo).',
@@ -43,7 +67,7 @@ const detail: Record<string, { origin: string; care: string }> = {
 ---
 <Base
   title="Materials — Wenu Mapu"
-  description="The materials we forge with: implant-grade titanium, sterling silver 925, 14k gold, Atacama meteorite, stone and wood. Origin and care for each."
+  description="The materials we work with: implant-grade titanium, sterling silver 925, 14k gold, Atacama meteorite, stone and wood. Origin and care for each."
   ogImage="/img/brand/meteorite-collection.webp"
 >
   <div class="cat-masthead cat-masthead--titled">
@@ -61,8 +85,25 @@ const detail: Record<string, { origin: string; care: string }> = {
     <div class="container">
       <p class="eyebrow">MATERIALS · NOBLE MATTER</p>
       <h1 class="page-title">{en.about.materials.heading}</h1>
-      <p class="lede">Each material we work with carries a lineage. Below: where it comes from, what it does in the body, and how to care for it.</p>
-      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+      <p class="lede">Shop by the matter itself. Choose a material to see every piece forged from it — or read its lineage, origin and care below.</p>
+
+      {/* SHOP BY MATERIAL — functional grid → per-material shop views */}
+      <div class="shopmat-grid" role="list">
+        {shopMaterials.map(m => (
+          <a class="shopmat" href={m.url} role="listitem" aria-label={`Shop ${m.name} — ${m.count} pieces`}>
+            <span class="shopmat__swatch" style={`--sw:${m.sw}`} aria-hidden="true"></span>
+            <span class="shopmat__body">
+              <span class="shopmat__name">{m.name}</span>
+              <span class="shopmat__spec">{m.spec}</span>
+              <span class="shopmat__count">{m.count > 0 ? `${m.count} piece${m.count === 1 ? '' : 's'}` : 'In the forge'}</span>
+            </span>
+            <span class="shopmat__cta" aria-hidden="true">Shop →</span>
+          </a>
+        ))}
+      </div>
+
+      <div class="page-divider" style="margin-top: var(--space-6);"><PatternBand variant="hairline" tone="bronze" /></div>
+      <h2 class="sizing__heading" style="margin-top: var(--space-5);">The lineage of each matter</h2>
 
       <ol class="materials-list">
         {materials.map((m, i) => (
@@ -96,3 +137,67 @@ const detail: Record<string, { origin: string; care: string }> = {
     </div>
   </section>
 </Base>
+
+<style>
+  /* SHOP BY MATERIAL — clean on-brand tiles, theme-aware, same level as /shop. */
+  .shopmat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 0;
+    margin-top: var(--space-5);
+    border-top: var(--border-accent);
+    border-left: var(--border-accent);
+  }
+  @media (max-width: 640px) { .shopmat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .shopmat {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border-right: var(--border-accent);
+    border-bottom: var(--border-accent);
+    background: var(--bg-alt);
+    color: inherit;
+    text-decoration: none;
+    transition: background var(--t-base), transform var(--t-base), box-shadow var(--t-base);
+  }
+  .shopmat:hover {
+    background: var(--bg-lift);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.6), inset 0 0 0 1px var(--bronze);
+    z-index: 1;
+  }
+  .shopmat__swatch {
+    flex: 0 0 auto;
+    width: 38px; height: 38px;
+    background:
+      radial-gradient(120% 120% at 30% 25%, rgba(255, 255, 255, 0.45), transparent 55%),
+      var(--sw, var(--bronze));
+    border: 1px solid color-mix(in srgb, var(--bone) 28%, transparent);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+  .shopmat__body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .shopmat__name {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: 1.18rem; letter-spacing: 0.03em; text-transform: uppercase; color: var(--bone);
+    line-height: 1.1;
+  }
+  .shopmat__spec {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.04em; color: var(--sand);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .shopmat__count {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--ember);
+    margin-top: 2px;
+  }
+  .shopmat__cta {
+    margin-left: auto;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--silver); white-space: nowrap; transition: color var(--t-base);
+  }
+  .shopmat:hover .shopmat__cta { color: var(--ember); }
+</style>

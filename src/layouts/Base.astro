@@ -4,12 +4,25 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import SearchModal from '../components/SearchModal.astro';
 import NewsletterModal from '../components/NewsletterModal.astro';
+import Cart from '../components/Cart.astro';
+import Immersive from '../components/Immersive.astro';
 import Analytics from '../components/Analytics.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
 import { STORE_ORIGIN } from '../lib/config';
+
+// Day-cycle theme feature flag. OFF by default → no [data-theme], no toggle,
+// no pre-paint script: the site is pure Nocturne, byte-identical to before.
+// Enable per-environment with PUBLIC_THEMES_ENABLED=true (set for the preview).
+const themesEnabled = import.meta.env.PUBLIC_THEMES_ENABLED === 'true';
+
+// Pre-paint resolver — runs synchronously in <head> before first paint so the
+// chosen theme is set with no flash (FOUC). Manual choice wins over the clock.
+const themeInit = `(function(){try{var hm=(location.hash.match(/theme=(solar|sunset|nocturne)/)||[])[1];if(hm){document.documentElement.setAttribute('data-theme',hm);return;}var K='wmTheme',M='wmThemeMode';var m=localStorage.getItem(M);var t='nocturne';if(m==='manual'){t=localStorage.getItem(K)||'nocturne';}else if(m==='auto'){var h=new Date().getHours();t=(h>=7&&h<17)?'solar':(h>=17&&h<20)?'sunset':'nocturne';}if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
 
 interface Props {
   title?: string;
   description?: string;
+  robots?: string;
   ogImage?: string;
   /** Descriptive alt text for the OG image (improves social card a11y). */
   ogImageAlt?: string;
@@ -34,6 +47,7 @@ const SITE = 'https://wenumapuonline.com';
 const {
   title = 'Wenu Mapu — Adornment for the sacred body',
   description = 'Ancestral-cosmic body jewelry forged by hand in Truckee, California. Implant-grade titanium, sterling silver, 14k gold. Ships across the US · Local pickup.',
+  robots = 'index, follow',
   ogImage = '/img/hero/hero-portrait.webp',
   ogImageAlt,
   ogImageWidth = 1800,
@@ -61,6 +75,7 @@ const ldArray = jsonLd
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {themesEnabled && <script is:inline set:html={themeInit} />}
     <meta name="google" content="notranslate" />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -86,14 +101,35 @@ const ldArray = jsonLd
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta name="theme-color" content="#0a0a0a" />
     <meta name="color-scheme" content="dark" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={robots} />
 
     {/* DNS prefetch + preconnect to third-party origins we always hit */}
     <link rel="preconnect" href={STORE_ORIGIN} crossorigin />
     <link rel="dns-prefetch" href={STORE_ORIGIN} />
-    <link rel="dns-prefetch" href="https://formspree.io" />
+    {/* Wenu Platform API — orders + newsletter subscribe land here */}
+    <link rel="dns-prefetch" href="https://api.wenumapuonline.com" />
 
     {/* Fonts — self-hosted via @fontsource (imported in global.css). No render-blocking CDN. */}
+
+    {/* Press Start 2P — 8-bit pixel font, ONLY for Kai's speech-bubble text
+        (.navkd__kai-line / .search__kai-line / .wmcart__kai-line). Everything
+        else on the site keeps Instrument Serif/Cormorant/Instrument Sans —
+        this is a narrow, intentional exception (2026-07-11), not a font
+        migration. Loaded via Google Fonts CDN (small single-weight file). */}
+    {/* Cargada de forma NO bloqueante (media=print → all on load): la fuente
+        solo se ve dentro del menú/buscador/carrito abiertos, así que no puede
+        costar first paint en TODAS las páginas. display=swap ya evita FOIT. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    </noscript>
 
     {preloadImage?.avif && (
       <link rel="preload" as="image" href={preloadImage.avif} type="image/avif" fetchpriority="high" />
@@ -107,6 +143,27 @@ const ldArray = jsonLd
     ))}
 
     <Analytics />
+    {/* Kai — motor de animación por cuadros (canvas, 12 poses pixel-art),
+        cargado como script clásico DIFERIDO (no módulo). `defer` lo saca del
+        camino del first paint (antes bloqueaba el parser en cada página) pero
+        MANTIENE el orden: los scripts defer clásicos y los módulos comparten la
+        misma cola diferida y corren en orden de documento, así que window.kaiAnim
+        existe antes que los <script> de Nav/SearchModal/Cart/gracias — que es
+        donde Kai vive (top del menú, overlay del buscador, carrito, /gracias).
+        Reemplaza al viejo motor de <img> + estirado procedural (kai-idle.js,
+        retirado 2026-07-11). Ver public/kai/kai-anim.js. */}
+    <script is:inline defer src="/kai/kai-anim.js"></script>
+    {/* Kai — "Hogar de Kai" (sistema tamagotchi): medidores, acciones,
+        recompensas, rangos y progreso por eventos reales del sitio. Mismo patrón
+        que el motor de arriba (clásico + defer → corre DESPUÉS de kai-anim.js,
+        así window.kaiAnim ya existe). Vive entero en public/ (no lo compila
+        Astro) y no cuesta nada hasta que alguien abre el hogar: la hoja de
+        estilos se inyecta recién al primer intento. Se engancha solo al DOM
+        existente (Nav/Cart/PDP sin tocar). Ver public/kai/kai-home.js. */}
+    <script is:inline defer src="/kai/kai-home.js"></script>
+    {/* Living mapuche-textile covers for every Kai screen — random woven pattern
+        per screen, looping weave, auto-reshuffle. Any [data-kai-textile] element. */}
+    <script is:inline defer src="/kai/kai-textile.js"></script>
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to main content</a>
@@ -115,8 +172,15 @@ const ldArray = jsonLd
       <slot />
     </main>
     {!noFooter && <Footer />}
+    {themesEnabled && (
+      <div class="theme-bar">
+        <ThemeToggle />
+      </div>
+    )}
     {!noOverlays && <SearchModal />}
     {!noOverlays && <NewsletterModal />}
+    <Cart />
+    <Immersive />
     <script>
       // IntersectionObserver-driven fade-in for elements marked with
       // data-fade-in or data-fade-in-stagger. Triggers when ANY pixel enters
@@ -143,3 +207,15 @@ const ldArray = jsonLd
     </script>
   </body>
 </html>
+
+<style>
+  /* Theme switcher strip — sits flush under the (always-dark) sacred footer and
+     stays dark in every theme (its core tokens are reset in themes.css). */
+  .theme-bar {
+    display: flex;
+    justify-content: center;
+    background: var(--obsidian);
+    border-top: 1px solid var(--line-soft);
+    padding: var(--space-4) var(--gutter);
+  }
+</style>

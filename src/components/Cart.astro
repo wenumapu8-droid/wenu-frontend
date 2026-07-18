@@ -1,0 +1,888 @@
+---
+/**
+ * Cart — client-side cart drawer (2026-06-27, Ocin).
+ * State lives in localStorage ('wmCart'); no server session. Opened by the nav
+ * bag icon ([data-cart-open]) or auto on add. Items come from any element with
+ * [data-add-cart] + data-sku/slug/name/price/img/max/stock.
+ *
+ * Checkout offers four paths from one cart:
+ *   • Venmo / Zelle  → MANUAL. Site SHOWS the handle + QR + order summary and
+ *     CAPTURES the order to {API}/shop/order (Ocin reconciles payment by hand). No
+ *     money is moved by the site, no card data, no secrets.
+ *   • Mercado Pago   → hosted checkout link from {API}/shop/checkout-link (card/intl).
+ *   • Reserve        → holds the pieces; captures the order to {API}/shop/order, no payment now.
+ *
+ * All order capture goes to the backend `/shop/order` (Postgres + email to Ocin +
+ * Telegram). The old Formspree form (mblrgwya, 404) was removed 2026-07-05 — it
+ * dropped orders silently.
+ */
+const API_BASE = import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com';
+// Real order endpoint — the JS submit posts JSON here (see submitOrder()).
+const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
+---
+<aside class="wmcart" data-wmcart data-api={API_BASE} data-order={ORDER_ENDPOINT} hidden role="dialog" aria-modal="true" aria-label="Your selection">
+  <div class="wmcart__backdrop" data-wmcart-close></div>
+  <div class="wmcart__panel">
+    <header class="wmcart__head">
+      <div>
+        <p class="eyebrow">Your selection</p>
+        <h2 class="wmcart__title">The bundle</h2>
+      </div>
+      <button type="button" class="wmcart__x" data-wmcart-close aria-label="Close">×</button>
+    </header>
+
+    <ul class="wmcart__items" data-wmcart-items></ul>
+    <p class="wmcart__empty" data-wmcart-empty>Nothing gathered yet. Add a piece to begin the rite.</p>
+
+    <!-- Kai — acompaña el carrito (protagonista del hueco vacío bajo "Nothing
+         gathered yet…") y celebra cuando agregás una pieza de verdad (hook
+         real en add(), no un panel de soporte). Sprite pixel-art animado por
+         cuadros (motor public/kai/kai-anim.js), montado solo mientras el
+         carrito está abierto. Se queda visible aunque ya haya piezas, para
+         poder celebrar ahí mismo cuando se agrega otra. Su "niche" dorado
+         (.kai-niche, global.css) se activa solo en el hueco vacío
+         (.wmcart__kai--hero); con piezas en el carrito vuelve a fila chica
+         (la neutralización de abajo también apaga las capas CRT). Intensidad
+         A (sutil) del efecto CRT — retro-glow pass 2026-07-12. -->
+    <div class="wmcart__kai" data-kai-cart>
+      <div class="kai-niche kai-niche--a">
+        <span class="kai-niche__label" aria-hidden="true">KAI</span>
+        <p class="wmcart__kai-line" id="wmcart-kai-line">Kai's here while you choose.</p>
+        <div class="wmcart__kai-stage">
+          <span class="kai-niche__aura" aria-hidden="true"></span>
+          <canvas id="wmcart-kai-canvas" class="wmcart__kai-sprite" width="64" height="64" aria-hidden="true"></canvas>
+        </div>
+        <span class="kai-niche__floor" aria-hidden="true"></span>
+        <span class="kai-niche__scanlines" aria-hidden="true"></span>
+        <span class="kai-niche__vignette" aria-hidden="true"></span>
+        <span class="kai-cover" data-kai-textile data-kai-cover-reveal aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <div class="wmcart__foot" data-wmcart-foot hidden>
+      <div class="wmcart__subtotal">
+        <div class="wmcart__subtotal-line">
+          <span>Subtotal</span>
+          <span data-wmcart-subtotal>$0</span>
+        </div>
+        <p class="wmcart__ship">+ shipping — confirmed by email before you pay</p>
+      </div>
+
+      <button type="button" class="btn btn--solid wmcart__checkout" data-wmcart-checkout>Checkout →</button>
+
+      <!-- Step 1 — your details + choose how to pay.
+           Order (Ocin 2026-07-13): VENMO first and highlighted → Zelle → everything
+           else folded away under "Other payment methods" (card + crypto). -->
+      <div class="wmcart__co" data-wmcart-co hidden>
+        <label class="wmcart__field">Name<input type="text" data-wmcart-name autocomplete="name" /></label>
+        <label class="wmcart__field">Email<input type="email" data-wmcart-email autocomplete="email" required /></label>
+        <label class="wmcart__field">Discount code — optional<input type="text" data-wmcart-code autocomplete="off" placeholder="If you were given one" /></label>
+
+        <p class="wmcart__choose">How would you like to pay?</p>
+
+        <!-- Primary — Venmo, straight to the maker. -->
+        <button type="button" class="wmcart__method wmcart__method--primary" data-wmcart-method="venmo">
+          <span class="wmcart__method-label">Venmo</span>
+          <span class="wmcart__method-sub">@Wenu_mapu8 · fastest · confirmed by hand</span>
+        </button>
+
+        <button type="button" class="wmcart__method wmcart__method--wide" data-wmcart-method="zelle">
+          <span class="wmcart__method-label">Zelle</span>
+          <span class="wmcart__method-sub">Bank transfer · scan the QR on the next step</span>
+        </button>
+
+        <details class="wmcart__other">
+          <summary class="wmcart__other-sum">Other payment methods</summary>
+          <div class="wmcart__other-body">
+            <button type="button" class="wmcart__method wmcart__method--wide" data-wmcart-method="mercadopago">
+              <span class="wmcart__method-label">Pay by card</span>
+              <span class="wmcart__method-sub">Credit / debit · secure page by Mercado Pago</span>
+            </button>
+            <p class="wmcart__other-row">
+              <strong>Crypto</strong> — USDT accepted.
+              <a href="mailto:wenu.mapu8@gmail.com?subject=Crypto%20payment%20-%20Wenu%20Mapu">Write to us</a>
+              and we send the address + network.
+            </p>
+          </div>
+        </details>
+
+        <button type="button" class="wmcart__reserve-btn" data-wmcart-method="reserve">
+          <span class="wmcart__reserve-title">Reserve — hold my pieces</span>
+          <span class="wmcart__reserve-sub">No payment now · we email you the total</span>
+        </button>
+
+        <p class="wmcart__secure">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke-linecap="round"/>
+          </svg>
+          <span>Secure checkout — no card details are stored on this site.</span>
+        </p>
+        <p class="wmcart__status" data-wmcart-status role="status" hidden></p>
+      </div>
+
+      <!-- Step 2 — manual Venmo/Zelle: reference code + handle/QR + summary + send -->
+      <div class="wmcart__manual" data-wmcart-manual hidden>
+        <button type="button" class="wmcart__back" data-wmcart-back>← Back</button>
+        <p class="wmcart__manual-h" data-wmcart-manual-h>Pay with Venmo</p>
+        <p class="wmcart__manual-amt"><span data-wmcart-manual-amt>$0</span></p>
+
+        <!-- PAYMENT REFERENCE (Ocin 2026-07-13) — the constancia that lets the
+             maker match a Venmo/Zelle deposit to a real order. SKUs of every piece
+             in the cart joined with "+", plus the discount code when one is typed. -->
+        <div class="wmcart__ref">
+          <p class="wmcart__ref-h">Include this code in your payment note:</p>
+          <div class="wmcart__ref-row">
+            <code class="wmcart__ref-code" data-wmcart-ref-code>—</code>
+            <button type="button" class="wmcart__copy" data-wmcart-copy>Copy</button>
+          </div>
+          <p class="wmcart__ref-note">We match it to your order and confirm by email within 24 hours.</p>
+        </div>
+
+        <div class="wmcart__qrwrap" data-wmcart-qrwrap>
+          <img class="wmcart__qr" data-wmcart-qr src="" alt="" width="320" height="320" />
+          <p class="wmcart__handle" data-wmcart-handle></p>
+        </div>
+        <p class="wmcart__manual-note" data-wmcart-manual-note></p>
+
+        <!-- Folded away by default: the Zelle QR (revealed only here), crypto and card. -->
+        <details class="wmcart__other">
+          <summary class="wmcart__other-sum">Other payment methods</summary>
+          <div class="wmcart__other-body">
+            <div class="wmcart__other-qr" data-wmcart-zelle-qr hidden>
+              <img class="wmcart__qr" src="/img/pay/zelle.png" alt="Zelle QR code — Wenu Mapu" loading="lazy" width="783" height="1069" />
+              <p class="wmcart__other-cap">Zelle — scan with your bank's app and send the amount above.</p>
+            </div>
+            <p class="wmcart__other-row">
+              <strong>Crypto</strong> — USDT accepted.
+              <a href="mailto:wenu.mapu8@gmail.com?subject=Crypto%20payment%20-%20Wenu%20Mapu">Write to us</a>
+              and we send the address + network.
+            </p>
+            <p class="wmcart__other-row">
+              <strong>Card</strong> — credit / debit on Mercado Pago's secure page.
+              <button type="button" class="wmcart__linkbtn" data-wmcart-tocard>Pay by card instead →</button>
+            </p>
+          </div>
+        </details>
+
+        <div class="wmcart__summary" data-wmcart-summary></div>
+        <button type="button" class="btn btn--solid wmcart__send" data-wmcart-send>I've sent payment — send my order →</button>
+        <p class="wmcart__status" data-wmcart-status2 role="status" hidden></p>
+      </div>
+
+      <!-- Step 3 — confirmation -->
+      <div class="wmcart__done" data-wmcart-done hidden>
+        <p class="wmcart__done-title" data-wmcart-done-title>Order received.</p>
+        <p class="wmcart__done-body" data-wmcart-done-body></p>
+        <button type="button" class="btn btn--ghost wmcart__done-close" data-wmcart-close>Close</button>
+      </div>
+
+      <p class="wmcart__fine">No card data touches this site. Venmo &amp; Zelle are confirmed by hand · Mercado Pago hosts its own secure page.</p>
+    </div>
+  </div>
+</aside>
+
+<script>
+  (function () {
+    const KEY = 'wmCart';
+    const root = document.querySelector('[data-wmcart]');
+    if (!root) return;
+    const api = (root.getAttribute('data-api') || '').replace(/\/$/, '');
+    const orderEndpoint = root.getAttribute('data-order') || '';
+    const $ = (s) => root.querySelector(s);
+
+    const itemsEl = $('[data-wmcart-items]');
+    const emptyEl = $('[data-wmcart-empty]');
+    const footEl = $('[data-wmcart-foot]');
+    const subEl = $('[data-wmcart-subtotal]');
+    const coEl = $('[data-wmcart-co]');
+    const manualEl = $('[data-wmcart-manual]');
+    const doneEl = $('[data-wmcart-done]');
+    const statusEl = $('[data-wmcart-status]');
+    const status2El = $('[data-wmcart-status2]');
+    const checkoutBtn = $('[data-wmcart-checkout]');
+    const subRow = root.querySelector('.wmcart__subtotal');
+
+    // Kai — motor de animación por cuadros (public/kai/kai-anim.js). Compañero
+    // del carrito: presencia mientras elegís, celebra de verdad al agregar. No
+    // es un asistente de soporte.
+    const kaiCanvas = /** @type {HTMLCanvasElement|null} */ (document.getElementById('wmcart-kai-canvas'));
+    const kaiLine = document.getElementById('wmcart-kai-line');
+    const kaiBlock = root.querySelector('[data-kai-cart]');
+    let kaiCtl = null;
+    let kaiLineT = null;
+
+    // Personality pass (2026-07-13, owner tone: cosmic/mystic + tender + soft
+    // jokes, mapuche soul "connected to the cosmos"). ASCII punctuation only
+    // (no em-dash/ellipsis glyphs - "-"/"."/"..." instead). Every bank rotates
+    // at random via pick(), avoiding the same line twice in a row.
+    const KAI_CART_HERO_LINES = [
+      'Nothing gathered yet. The sky is patient.',
+      'Empty for now, like the night before stars.',
+      'Add a piece and the constellation begins.',
+    ];
+    const KAI_CART_DEFAULT = "Kai's here while you choose.";
+    // Cookie-reward pass (2026-07-11) — add-to-cart is now a "treat" (pose
+    // `treat` in kai-anim.js: eats a cookie, then hops), not just a jump.
+    const KAI_CART_TREAT_LINES = [
+      'The stars nod. Good choice.',
+      'This one carries good energy.',
+      'A piece that remembers the cosmos.',
+      'Nom nom. Stardust flavored, I bet.',
+    ];
+    const KAI_CART_CHECKOUT = "You're one step away!";
+    const KAI_PET_LINES = [
+      'Aww. Cosmic scritches, yes please.',
+      '*happy hum from the stars*',
+      'You found me. Both my eyes agree: nice.',
+    ];
+    const KAI_WAKE_LINES = [
+      '*yawn* dreaming of meteor showers.',
+      "Oh, you're back. The stars missed you.",
+    ];
+    const KAI_SLEEP_LINES = ['*curls under the stars* wake me if you need me.'];
+    // Idle/ambient — fires off the engine's own ~9-15s "glance" timer while
+    // resting; shows ~3s, then reverts to whatever was showing before. Soft
+    // jokes mixed in at ~1-in-4/5 (see pickAmbientOrJoke()).
+    const KAI_AMBIENT_LINES = [
+      'Every stone fell from somewhere. Wild, right?',
+      "I'm small, but I've seen galaxies.",
+      'Take your time. Light travels slow out here.',
+      'One eye of sky, one of earth. Both watching.',
+      '*stargazing with you*',
+      "Tell me your story. I'll find your piece.",
+      'Need a paw? I read stars for a living.',
+    ];
+    const KAI_JOKE_LINES = [
+      "I'm fluent in two tongues: bark and starlight.",
+      'They said sit. I chose to guide you.',
+      'Bob-tailed, yet the universe still spins.',
+    ];
+
+    let lastHero = null;
+    let lastTreat = null;
+    let lastPet = null;
+    let lastWake = null;
+    let lastAmbient = null;
+    let restingLine = KAI_CART_DEFAULT;
+
+    function pick(arr, avoid) {
+      if (arr.length === 1) return arr[0];
+      let choice = arr[Math.floor(Math.random() * arr.length)];
+      let guard = 0;
+      while (choice === avoid && guard++ < 6) choice = arr[Math.floor(Math.random() * arr.length)];
+      return choice;
+    }
+    function pickAmbientOrJoke() {
+      const line = Math.random() < 0.22 ? pick(KAI_JOKE_LINES, lastAmbient) : pick(KAI_AMBIENT_LINES, lastAmbient);
+      lastAmbient = line;
+      return line;
+    }
+    function showTemp(text, ms) {
+      if (kaiLine) kaiLine.textContent = text;
+      if (kaiLineT) clearTimeout(kaiLineT);
+      kaiLineT = setTimeout(() => { if (kaiLine) kaiLine.textContent = restingLine; }, ms);
+    }
+
+    function kaiOnAmbient(kind, text) {
+      if (!kaiLine) return;
+      if (kind === 'trick') {
+        // 2026-07-17 (TRUCOS de Kai): the engine passes the trick's own fixed
+        // phrase straight through — no host-side pick() bank for this one.
+        if (text) showTemp(text, 2600);
+      } else if (kind === 'pet') {
+        lastPet = pick(KAI_PET_LINES, lastPet);
+        showTemp(lastPet, 2200);
+      } else if (kind === 'glance') {
+        showTemp(pickAmbientOrJoke(), 3000);
+      } else if (kind === 'sleep') {
+        if (kaiLineT) { clearTimeout(kaiLineT); kaiLineT = null; }
+        kaiLine.textContent = pick(KAI_SLEEP_LINES);
+      } else if (kind === 'wake') {
+        lastWake = pick(KAI_WAKE_LINES, lastWake);
+        showTemp(lastWake, 2600);
+      }
+    }
+    function kaiMount() {
+      if (!kaiCtl && kaiCanvas && window.kaiAnim) {
+        kaiCtl = window.kaiAnim(kaiCanvas, {
+          width: 64, height: 64, targetHeight: 46,
+          initial: 'idle', onAmbient: kaiOnAmbient,
+        });
+      }
+    }
+    function kaiUnmount() {
+      if (kaiCtl) { kaiCtl.destroy(); kaiCtl = null; }
+      if (kaiLineT) { clearTimeout(kaiLineT); kaiLineT = null; }
+    }
+    function kaiSyncLine() {
+      const isEmpty = read().length === 0;
+      if (isEmpty) {
+        lastHero = pick(KAI_CART_HERO_LINES, lastHero);
+        restingLine = lastHero;
+      } else {
+        restingLine = KAI_CART_DEFAULT;
+      }
+      if (kaiLine) kaiLine.textContent = restingLine;
+      // "Hero" layout — when the cart is empty, Kai centers in that empty gap
+      // right under "Nothing gathered yet…" instead of sitting pinned near
+      // the bottom (2026-07-11 design-audit fix).
+      if (kaiBlock) kaiBlock.classList.toggle('wmcart__kai--hero', isEmpty);
+    }
+    function kaiCelebrate() {
+      kaiMount();
+      // 'treat' plays the cookie + hops sequence and bursts cookie particles
+      // itself (kai-anim.js owns the choreography — the host just triggers it).
+      if (kaiCtl) kaiCtl.trigger('treat');
+      lastTreat = pick(KAI_CART_TREAT_LINES, lastTreat);
+      showTemp(lastTreat, 4200);
+    }
+
+    // Venmo shows its handle + QR openly. Zelle does NOT surface a personal name
+    // anywhere (Ocin 2026-07-13): its QR is the only identifier and it lives folded
+    // inside "Other payment methods" (the QR image itself can't be changed).
+    const PAY = {
+      venmo: { label: 'Venmo', handle: '@Wenu_mapu8', img: '/img/pay/venmo.png', qr: true,
+        note: 'Open Venmo and send the amount above to @Wenu_mapu8 (scan the code or search the handle). Paste the reference code above into the payment note. Then tap “send my order” so we can match your payment.' },
+      zelle: { label: 'Zelle', handle: '', img: '', qr: false,
+        note: 'Open your bank’s Zelle and scan the QR under “Other payment methods” below to send the amount above. Paste the reference code above into the memo. Then tap “send my order” so we can match your payment.' },
+    };
+
+    const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+    const write = (a) => { localStorage.setItem(KEY, JSON.stringify(a)); render(); syncBadge(); };
+    const money = (n) => '$' + (Math.round(n * 100) / 100).toLocaleString('en-US');
+    const num = (v) => parseFloat(v) || 0;
+
+    function add(item) {
+      if (!item || !item.sku) return;
+      const a = read();
+      const max = item.max && item.max > 0 ? item.max : 99;
+      const f = a.find((x) => x.sku === item.sku);
+      if (f) { f.qty = Math.min(max, (f.qty || 1) + (item.qty || 1)); f.max = max; f.pair = !!item.pair; }
+      else { a.push({ sku: item.sku, slug: item.slug || '', name: item.name || 'Piece', price: item.price || '0', img: item.img || '', qty: Math.min(max, item.qty || 1), max, pair: !!item.pair }); }
+      write(a); open(); kaiCelebrate();
+    }
+    function remove(sku) { write(read().filter((x) => x.sku !== sku)); }
+    function setQty(sku, n) {
+      const a = read(); const f = a.find((x) => x.sku === sku); if (!f) return;
+      const q = Math.max(1, Math.min(f.max || 99, n)); f.qty = q; write(a);
+    }
+    const subtotal = () => read().reduce((s, x) => s + num(x.price) * x.qty, 0);
+    const count = () => read().reduce((s, x) => s + x.qty, 0);
+    function syncBadge() {
+      const c = count();
+      document.querySelectorAll('[data-cart-count]').forEach((b) => { b.textContent = c; b.hidden = c === 0; });
+    }
+
+    // Reset checkout back to the cart/list view (used on open + after each step change)
+    function showStep(step) {
+      coEl.hidden = step !== 'co';
+      manualEl.hidden = step !== 'manual';
+      doneEl.hidden = step !== 'done';
+      checkoutBtn.hidden = step !== 'list';
+      if (subRow) subRow.hidden = step === 'done';
+      itemsEl.hidden = step === 'done';
+      if (statusEl) { statusEl.hidden = true; statusEl.textContent = ''; }
+      if (status2El) { status2El.hidden = true; status2El.textContent = ''; }
+    }
+
+    function render() {
+      const a = read();
+      emptyEl.hidden = a.length > 0;
+      footEl.hidden = a.length === 0;
+      kaiSyncLine();
+      itemsEl.innerHTML = '';
+      a.forEach((x) => {
+        const li = document.createElement('li');
+        li.className = 'wmcart-item';
+        const atMax = x.qty >= (x.max || 99);
+        li.innerHTML =
+          '<div class="wmcart-item__img">' + (x.img ? '<img src="' + x.img + '" alt="" loading="lazy">' : '<span class="wmcart-item__ph">✛</span>') + '</div>' +
+          '<div class="wmcart-item__body">' +
+            '<a class="wmcart-item__name" href="/p/' + x.slug + '">' + x.name + '</a>' +
+            '<span class="wmcart-item__price">' + money(num(x.price)) + '</span>' +
+            '<div class="wmcart-item__qty">' +
+              '<button type="button" data-q="dec" aria-label="Decrease quantity">−</button>' +
+              '<span class="wmcart-item__q">' + x.qty + '</span>' +
+              '<button type="button" data-q="inc" aria-label="Increase quantity"' + (atMax ? ' disabled' : '') + '>+</button>' +
+              // Scarcity label = real stock (max === 1), and NEVER on a piece sold
+              // as a Pair — a pair is two pieces, it can't be one of a kind.
+              (x.max === 1 && !x.pair ? '<span class="wmcart-item__solo">one of a kind</span>' : '') +
+              '<button type="button" class="wmcart-item__rm" data-rm>Remove</button>' +
+            '</div>' +
+          '</div>';
+        li.querySelector('[data-q="dec"]').addEventListener('click', () => setQty(x.sku, x.qty - 1));
+        li.querySelector('[data-q="inc"]').addEventListener('click', () => setQty(x.sku, x.qty + 1));
+        li.querySelector('[data-rm]').addEventListener('click', () => remove(x.sku));
+        itemsEl.appendChild(li);
+      });
+      subEl.textContent = money(subtotal());
+    }
+    function open() { root.hidden = false; document.body.style.overflow = 'hidden'; showStep('list'); render(); kaiMount(); kaiSyncLine(); }
+    function close() { root.hidden = true; document.body.style.overflow = ''; kaiUnmount(); }
+
+    root.querySelectorAll('[data-wmcart-close]').forEach((b) => b.addEventListener('click', close));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !root.hidden) close(); });
+
+    document.addEventListener('click', (e) => {
+      const o = e.target.closest('[data-cart-open]');
+      if (o) { e.preventDefault(); open(); }
+    });
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-add-cart]');
+      if (!btn) return;
+      e.preventDefault();
+      const st = btn.getAttribute('data-stock');
+      if (st === 'sold' || st === 'outofstock') return;
+      add({
+        sku: btn.getAttribute('data-sku') || btn.getAttribute('data-slug'),
+        slug: btn.getAttribute('data-slug'),
+        name: btn.getAttribute('data-name'),
+        price: btn.getAttribute('data-price'),
+        img: btn.getAttribute('data-img') || '',
+        max: parseInt(btn.getAttribute('data-max') || '99', 10),
+        pair: btn.getAttribute('data-pair') === '1',
+      });
+    });
+
+    // ── helpers for the order capture ──────────────────────────────
+    function getDetails() {
+      const name = ($('[data-wmcart-name]').value || '').trim();
+      const email = ($('[data-wmcart-email]').value || '').trim();
+      return { name, email };
+    }
+
+    // Payment reference — what the buyer pastes into the Venmo/Zelle note so the
+    // deposit can be matched to this exact order. Every SKU in the cart joined with
+    // "+", then the discount code (if any). This is Ocin's paper trail.
+    function refCode() {
+      const skus = read().map((x) => x.sku).filter(Boolean);
+      const codeEl = $('[data-wmcart-code]');
+      const code = ((codeEl && codeEl.value) || '').trim().toUpperCase();
+      const base = skus.join('+') || 'WENU-ORDER';
+      return code ? base + ' · ' + code : base;
+    }
+    async function submitOrder(method) {
+      const { name, email } = getDetails();
+      const items = read().map((x) => ({ sku: x.sku, name: x.name, price: num(x.price), qty: x.qty, max: x.max }));
+      if (!items.length) throw new Error('empty cart');
+      const res = await fetch(api + '/shop/order', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email, name, method, items }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data || !data.ok) throw new Error((data && data.error) || 'submit failed');
+      return true;
+    }
+    function finish(title, body) {
+      localStorage.removeItem(KEY); syncBadge();
+      $('[data-wmcart-done-title]').textContent = title;
+      $('[data-wmcart-done-body]').innerHTML = body;
+      showStep('done');
+    }
+
+    // ── step 1: open the details/method panel ──────────────────────
+    checkoutBtn.addEventListener('click', () => {
+      showStep('co');
+      $('[data-wmcart-email]').focus();
+      if (kaiCtl) kaiCtl.trigger('point');
+      if (kaiLine) kaiLine.textContent = KAI_CART_CHECKOUT;
+    });
+
+    // ── method buttons ─────────────────────────────────────────────
+    coEl.querySelectorAll('[data-wmcart-method]').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const method = btn.getAttribute('data-wmcart-method');
+        const { name, email } = getDetails();
+        if (!email) { statusEl.hidden = false; statusEl.textContent = 'Add your email first.'; return; }
+
+        if (method === 'mercadopago') {
+          const items = read().map((x) => ({ sku: x.sku, name: x.name, price: num(x.price), qty: x.qty }));
+          if (!items.length) return;
+          btn.disabled = true; statusEl.hidden = false; statusEl.textContent = 'Creating secure payment link…';
+          try {
+            const r = await fetch(api + '/shop/checkout-link', {
+              method: 'POST', headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ email, name, items }),
+            });
+            const data = await r.json();
+            if (data && data.ok && data.url) { window.location.href = data.url; return; }
+            statusEl.textContent = (data && data.error) ? data.error : 'Could not create the link — try Venmo or Zelle.';
+          } catch (err) { statusEl.textContent = 'Network error — try Venmo or Zelle.'; }
+          btn.disabled = false;
+          return;
+        }
+
+        if (method === 'reserve') {
+          btn.disabled = true; statusEl.hidden = false; statusEl.textContent = 'Holding your pieces…';
+          try {
+            await submitOrder('reserve');
+            finish('Your pieces are held.',
+              'We’ve noted your selection under your name and emailed you a copy. One-of-a-kind pieces are held for you while we confirm the order and send you the exact amount to pay.');
+          } catch (e) { statusEl.textContent = 'Could not send — please try again, or email us.'; btn.disabled = false; }
+          return;
+        }
+
+        // venmo / zelle → manual panel
+        const cfg = PAY[method];
+        if (!cfg) return;
+        manualEl.dataset.method = method;
+        $('[data-wmcart-manual-h]').textContent = 'Pay with ' + cfg.label;
+        $('[data-wmcart-manual-amt]').textContent = money(subtotal());
+
+        // Reference code (SKUs + discount code) — rebuilt each time we enter this step.
+        const refEl = $('[data-wmcart-ref-code]');
+        if (refEl) refEl.textContent = refCode();
+        const copyBtn = $('[data-wmcart-copy]');
+        if (copyBtn) copyBtn.textContent = 'Copy';
+
+        // Venmo: handle + QR in the open. Zelle: no name, no QR here — its QR lives
+        // inside the collapsed "Other payment methods" block below.
+        const qr = $('[data-wmcart-qr]');
+        const qrWrap = $('[data-wmcart-qrwrap]');
+        const zelleQr = $('[data-wmcart-zelle-qr]');
+        if (cfg.qr && cfg.img) {
+          qr.src = cfg.img; qr.alt = cfg.label + ' QR code — Wenu Mapu';
+          if (qrWrap) qrWrap.hidden = false;
+        } else {
+          qr.removeAttribute('src'); qr.alt = '';
+          if (qrWrap) qrWrap.hidden = true;
+        }
+        if (zelleQr) zelleQr.hidden = method !== 'zelle';
+        $('[data-wmcart-handle]').textContent = cfg.handle;
+        $('[data-wmcart-manual-note]').textContent = cfg.note;
+        $('[data-wmcart-summary]').innerHTML =
+          '<p class="wmcart__summary-h">Your order</p>' +
+          read().map((x) => '<div class="wmcart__summary-row"><span>' + x.qty + '× ' + x.name + '</span><span>' + money(num(x.price) * x.qty) + '</span></div>').join('') +
+          '<div class="wmcart__summary-row"><span>Subtotal</span><span>' + money(subtotal()) + '</span></div>' +
+          '<div class="wmcart__summary-row wmcart__summary-ship"><span>Shipping</span><span>Confirmed by email</span></div>' +
+          '<div class="wmcart__summary-row wmcart__summary-total"><span>Amount to send now</span><span>' + money(subtotal()) + '</span></div>';
+        const sendBtn = $('[data-wmcart-send]');
+        sendBtn.disabled = false;
+        showStep('manual');
+      });
+    });
+
+    // back from manual → method panel
+    $('[data-wmcart-back]').addEventListener('click', () => showStep('co'));
+
+    // "Pay by card instead" (inside Other payment methods) → back to the chooser,
+    // with the folded block already open so the Mercado Pago button is in view.
+    const toCardBtn = $('[data-wmcart-tocard]');
+    if (toCardBtn) toCardBtn.addEventListener('click', () => {
+      showStep('co');
+      const d = coEl.querySelector('.wmcart__other');
+      if (d) d.open = true;
+    });
+
+    // Copy the payment reference (SKUs + discount code) to the clipboard.
+    // navigator.clipboard needs a secure context; the textarea path is the fallback.
+    const copyBtnEl = $('[data-wmcart-copy]');
+    if (copyBtnEl) copyBtnEl.addEventListener('click', async () => {
+      const txt = (($('[data-wmcart-ref-code]') || {}).textContent || '').trim();
+      if (!txt || txt === '—') return;
+      let done = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(txt);
+          done = true;
+        }
+      } catch (e) { done = false; }
+      if (!done) {
+        const ta = document.createElement('textarea');
+        ta.value = txt;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.top = '-1000px';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+      copyBtnEl.textContent = 'Copied ✓';
+      setTimeout(() => { copyBtnEl.textContent = 'Copy'; }, 2000);
+    });
+
+    // send order after paying via venmo/zelle
+    $('[data-wmcart-send]').addEventListener('click', async () => {
+      const method = manualEl.dataset.method || 'venmo';
+      const label = (PAY[method] && PAY[method].label) || method;
+      const sendBtn = $('[data-wmcart-send]');
+      sendBtn.disabled = true; status2El.hidden = false; status2El.textContent = 'Sending your order…';
+      try {
+        await submitOrder(method);
+        finish('Order received.',
+          'Thank you. We’ve got your order and your ' + label + ' payment note. We’ll confirm the payment and follow up by email with shipping or pickup details.');
+      } catch (e) { status2El.textContent = 'Could not send — please try again, or email us.'; sendBtn.disabled = false; }
+    });
+
+    window.wmCart = { add, remove, setQty, get: read, open, close, count };
+    syncBadge();
+  })();
+</script>
+
+<!-- Styles are global on purpose: the cart rows and order summary are built with
+     innerHTML at runtime, so they never receive Astro's scoped data-cid attribute.
+     Every class here is uniquely prefixed `wmcart`, so global scope is collision-safe. -->
+<style is:global>
+  .wmcart { position: fixed; inset: 0; z-index: 1100; }
+  .wmcart[hidden] { display: none; }
+  /* Step panels set their own display (flex/grid), which would override the bare
+     [hidden] attribute. This higher-specificity rule restores hide-on-[hidden]
+     for every element inside the drawer (co / manual / done / checkout / subtotal). */
+  .wmcart [hidden] { display: none; }
+  .wmcart__backdrop { position: absolute; inset: 0; background: rgba(6, 5, 4, 0.74); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); animation: wmcart-fade 0.3s ease; }
+  .wmcart__panel {
+    position: absolute; top: 0; right: 0; height: 100%;
+    width: min(440px, 92vw);
+    background: var(--charcoal);
+    border-left: 1px solid var(--line-soft);
+    box-shadow: -20px 0 60px -20px rgba(0, 0, 0, 0.7);
+    display: flex; flex-direction: column;
+    animation: wmcart-slide 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  @keyframes wmcart-fade { from { opacity: 0; } }
+  @keyframes wmcart-slide { from { transform: translateX(40px); opacity: 0.4; } }
+  @media (prefers-reduced-motion: reduce) { .wmcart__panel, .wmcart__backdrop { animation: none; } }
+  .wmcart__head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    padding: var(--space-5) var(--space-5) var(--space-4);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .wmcart__title { font-family: var(--font-display); font-weight: var(--fw-regular); font-size: 1.6rem; color: var(--bone); margin: var(--space-1) 0 0; }
+  .wmcart__x { background: none; border: 0; color: var(--silver); font-size: 1.8rem; line-height: 1; cursor: pointer; padding: 0 4px; transition: color var(--t-fast); }
+  .wmcart__x:hover { color: var(--ember); }
+  .wmcart__items { list-style: none; margin: 0; padding: var(--space-3) var(--space-5); overflow-y: auto; flex: 1 1 auto; }
+  /* Empty (no <li>s) — collapse instead of splitting the empty-state space
+     50/50 with .wmcart__empty, which used to push Kai down near the footer. */
+  .wmcart__items:empty { flex: 0 0 0; padding: 0; }
+  .wmcart__empty { padding: var(--space-6) var(--space-5) var(--space-2); color: var(--silver); font-family: var(--font-serif); font-style: italic; flex: 0 0 auto; }
+
+  /* ── Kai — acompaña el carrito, celebra al agregar (ver script arriba).
+     Default: compact row, sits above the footer while there ARE items. ── */
+  /* Outer wrapper — just spacing. The golden card look lives in .kai-niche
+     (global.css) and is the DEFAULT look, used for the empty-cart "hero"
+     moment; with items already in the cart it's neutralized back to a plain
+     compact row below (2026-07-11 owner design pass). */
+  .wmcart__kai { padding: 0 var(--space-5) var(--space-4); }
+  /* Smaller Kai in the side panel (Ocin 2026-07-15) — was 64px. */
+  .wmcart__kai-stage { position: relative; width: 44px; height: 44px; flex-shrink: 0; display: flex; align-items: flex-end; justify-content: center; }
+  .wmcart__kai-sprite { width: 44px; height: 44px; image-rendering: pixelated; cursor: pointer; }
+  /* Has items — no hero moment here, drop the card chrome to a plain
+     compact row (icon + line), same spirit as the search's compact state. */
+  .wmcart__kai:not(.wmcart__kai--hero) .kai-niche {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+  }
+  .wmcart__kai:not(.wmcart__kai--hero) .kai-niche__label,
+  .wmcart__kai:not(.wmcart__kai--hero) .kai-niche__floor,
+  .wmcart__kai:not(.wmcart__kai--hero) .kai-niche__aura,
+  .wmcart__kai:not(.wmcart__kai--hero) .kai-niche__scanlines,
+  .wmcart__kai:not(.wmcart__kai--hero) .kai-niche__vignette { display: none; }
+  .wmcart__kai:not(.wmcart__kai--hero) .wmcart__kai-sprite { animation: none; }
+  .wmcart__kai:not(.wmcart__kai--hero) .wmcart__kai-stage { order: -1; }
+  /* Non-hero (has items) — tight compact row, same spirit as the search's
+     compact 8px (2026-07-16 legibility pass): the hero's 10px/wide bubble
+     would crowd the small 64px icon here. */
+  .wmcart__kai:not(.wmcart__kai--hero) .wmcart__kai-line { font-size: 9px; min-height: 1.8em; }
+  /* 8-bit speech-bubble font — ONLY Kai's line, rest of the cart keeps its
+     normal type (2026-07-11). Press Start 2P renders large/wide per pixel, so
+     it needs a much smaller font-size + generous line-height to wrap cleanly
+     instead of overflowing the drawer. flex:1/min-width:0 lets it wrap inside
+     the default row layout (icon + text next to each other). */
+  .wmcart__kai-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 0 2px;
+    font-family: "Press Start 2P", ui-monospace, monospace;
+    font-style: normal;
+    font-size: 10px;
+    letter-spacing: 0;
+    line-height: 1.8;
+    color: var(--sand);
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+  @media (max-width: 480px) {
+    .wmcart__kai--hero .wmcart__kai-line { font-size: 9px; }
+  }
+
+  /* "Hero" — empty cart: Kai centers in the empty gap right under "Nothing
+     gathered yet…", instead of being pinned near the bottom of the drawer
+     (2026-07-11 design-audit fix). Toggled via kaiSyncLine() in the script. */
+  .wmcart__kai--hero {
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-1) var(--space-5) var(--space-6);
+    text-align: center;
+  }
+  .wmcart__kai--hero .wmcart__kai-line { max-width: 240px; min-height: 3.6em; }
+  .wmcart-item { display: grid; grid-template-columns: 64px 1fr; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line-soft); }
+  .wmcart-item__img { aspect-ratio: 1; background: var(--product-panel); overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .wmcart-item__img img { width: 100%; height: 100%; object-fit: cover; }
+  .wmcart-item__ph { color: var(--bronze); opacity: 0.6; }
+  .wmcart-item__name { display: block; font-family: var(--font-display); font-size: 1.05rem; color: var(--bone); text-decoration: none; }
+  .wmcart-item__name:hover { color: var(--ember); }
+  .wmcart-item__price { display: block; font-family: var(--font-sans); font-size: var(--fs-small); color: var(--ember); margin: 2px 0 var(--space-2); }
+  .wmcart-item__qty { display: flex; align-items: center; gap: var(--space-2); }
+  .wmcart-item__qty button { width: 26px; height: 26px; border: 1px solid var(--line-bright); background: transparent; color: var(--bone); cursor: pointer; font-size: 1rem; line-height: 1; transition: border-color var(--t-fast), color var(--t-fast); }
+  .wmcart-item__qty button:hover:not(:disabled) { border-color: var(--ember); color: var(--ember); }
+  .wmcart-item__qty button:disabled { opacity: 0.3; cursor: not-allowed; }
+  .wmcart-item__q { min-width: 1.4em; text-align: center; color: var(--bone); font-family: var(--font-mono); }
+  .wmcart-item__solo { font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.12em; text-transform: uppercase; color: var(--bronze); }
+  .wmcart-item__rm { margin-left: auto; background: none; border: 0; width: auto !important; height: auto !important; color: var(--silver) !important; font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; }
+  .wmcart-item__rm:hover { color: var(--ember) !important; }
+  .wmcart__foot { padding: var(--space-4) var(--space-5) var(--space-5); border-top: 1px solid var(--bronze); background: var(--obsidian); overflow-y: auto; max-height: 78vh; }
+  .wmcart__subtotal { margin-bottom: var(--space-3); }
+  .wmcart__subtotal[hidden] { display: none; }
+  .wmcart__subtotal-line { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-sans); letter-spacing: 0.06em; text-transform: uppercase; font-size: var(--fs-small); color: var(--bone); }
+  .wmcart__subtotal-line span:last-child { font-size: 1.35rem; color: var(--ember); letter-spacing: 0; }
+  .wmcart__ship { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); letter-spacing: 0.02em; margin: var(--space-1) 0 0; }
+  .wmcart__checkout, .wmcart__send { width: 100%; }
+  .wmcart__co { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+  .wmcart__field { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.08em; text-transform: uppercase; color: var(--silver); }
+  .wmcart__field input { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line-bright); color: var(--bone); padding: var(--space-2) var(--space-3); font-family: var(--font-sans); font-size: var(--fs-body); }
+  html[data-theme="solar"] .wmcart__field input { background: rgba(255, 255, 255, 0.7); border-color: var(--bronze); }
+  .wmcart__field input:focus-visible { outline: none; border-color: var(--ember); }
+  .wmcart__choose { font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sand); margin: var(--space-2) 0 var(--space-1); }
+  .wmcart__methods { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .wmcart__method, .wmcart__reserve-btn {
+    font-family: var(--font-sans); font-size: var(--fs-small); letter-spacing: 0.04em;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--line-bright); color: var(--bone);
+    padding: var(--space-3); min-height: 48px; cursor: pointer;
+    transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+  }
+  .wmcart__method:hover, .wmcart__reserve-btn:hover { border-color: var(--ember); color: var(--ember); }
+
+  /* Primary — card payment sits on top, gold-leaning, full width. */
+  .wmcart__method--primary {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    width: 100%; text-align: left; padding: var(--space-3) var(--space-4);
+    border-color: var(--ember); background: rgba(201, 168, 76, 0.10);
+  }
+  .wmcart__method--primary:hover { background: rgba(201, 168, 76, 0.16); color: var(--bone); border-color: var(--ember); }
+  .wmcart__method-label { font-size: var(--fs-body); color: var(--ember); letter-spacing: 0.03em; }
+  .wmcart__method-sub { font-size: var(--fs-tiny); color: var(--silver); letter-spacing: 0.02em; }
+
+  /* "or pay directly" divider between card and the manual methods. */
+  .wmcart__or {
+    display: flex; align-items: center; gap: var(--space-2); margin: var(--space-2) 0 var(--space-1);
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--sand);
+  }
+  .wmcart__or::before, .wmcart__or::after { content: ''; flex: 1; height: 1px; background: var(--line-soft); }
+
+  .wmcart__reserve-btn {
+    width: 100%; border-style: dashed; color: var(--silver);
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
+    margin-top: var(--space-1);
+  }
+  .wmcart__reserve-title { font-size: var(--fs-small); }
+  .wmcart__reserve-sub { font-size: var(--fs-tiny); color: var(--sand); letter-spacing: 0.02em; }
+  .wmcart__reserve-btn:hover .wmcart__reserve-sub { color: var(--ember); }
+
+  .wmcart__secure {
+    display: flex; align-items: center; gap: var(--space-2);
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    letter-spacing: 0.02em; line-height: 1.4; margin: var(--space-3) 0 0;
+  }
+  .wmcart__secure svg { flex-shrink: 0; color: var(--ember); }
+  .wmcart__back { background: none; border: 0; color: var(--silver); font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; padding: 0; margin-bottom: var(--space-2); }
+  .wmcart__back:hover { color: var(--ember); }
+  .wmcart__manual { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); text-align: center; }
+  .wmcart__manual-h { font-family: var(--font-display); font-size: 1.3rem; color: var(--bone); margin: 0; }
+  .wmcart__manual-amt { font-family: var(--font-sans); font-size: 1.5rem; color: var(--ember); margin: 0; }
+  .wmcart__qrwrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); margin: var(--space-2) 0; }
+  .wmcart__qr { width: min(240px, 70%); height: auto; border-radius: 6px; background: var(--bone); }
+  .wmcart__handle { font-family: var(--font-mono); font-size: var(--fs-body); color: var(--bone); margin: 0; }
+  .wmcart__manual-note { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); line-height: 1.5; margin: 0; text-align: left; }
+  .wmcart__summary { text-align: left; border-top: 1px solid var(--line-soft); padding-top: var(--space-2); margin-top: var(--space-1); }
+  .wmcart__summary-h { font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.1em; text-transform: uppercase; color: var(--sand); margin: 0 0 var(--space-1); }
+  .wmcart__summary-row { display: flex; justify-content: space-between; font-family: var(--font-sans); font-size: var(--fs-small); color: var(--silver); padding: 2px 0; }
+  .wmcart__summary-ship span:last-child { color: var(--sand); font-style: italic; }
+  .wmcart__summary-total { color: var(--bone); border-top: 1px solid var(--line-soft); margin-top: 4px; padding-top: 6px; font-size: var(--fs-body); }
+  .wmcart__summary-total span:last-child { color: var(--ember); }
+  .wmcart__send { margin-top: var(--space-2); }
+  .wmcart__done { margin-top: var(--space-3); text-align: center; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) 0; }
+  .wmcart__done-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--ember); margin: 0; }
+  .wmcart__done-body { font-family: var(--font-serif); font-weight: var(--fw-thin); color: var(--fg-soft); line-height: 1.6; margin: 0; }
+  .wmcart__done-close { align-self: center; }
+  .wmcart__status { font-family: var(--font-sans); font-size: var(--fs-small); color: var(--ember); margin: 0; }
+  .wmcart__alt { font-family: var(--font-serif); font-style: italic; font-size: var(--fs-small); color: var(--silver); margin: var(--space-1) 0 0; }
+  .wmcart__fine { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); letter-spacing: 0.03em; margin: var(--space-3) 0 0; }
+
+  /* ── Secondary full-width method (Zelle · card) — same shape as the primary
+     Venmo button, without the gold. Venmo stays the loudest thing on screen. */
+  .wmcart__method--wide {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    width: 100%; text-align: left; padding: var(--space-3) var(--space-4);
+    margin-top: var(--space-2);
+  }
+  .wmcart__method--wide .wmcart__method-label { color: var(--bone); }
+  .wmcart__method--wide:hover .wmcart__method-label { color: var(--ember); }
+
+  /* ── "Other payment methods" — folded away by default. Holds the Zelle QR
+     (which carries an identity we do not want on screen), crypto and card. ── */
+  .wmcart__other { margin-top: var(--space-3); border-top: 1px solid var(--line-soft); }
+  .wmcart__other-sum {
+    list-style: none; cursor: pointer; padding: var(--space-3) 0;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--sand);
+  }
+  .wmcart__other-sum::-webkit-details-marker { display: none; }
+  .wmcart__other-sum::after { content: '+'; color: var(--bronze); font-size: 1.1rem; line-height: 1; }
+  .wmcart__other[open] > .wmcart__other-sum::after { content: '−'; color: var(--ember); }
+  .wmcart__other-sum:hover { color: var(--ember); }
+  .wmcart__other-body { padding: 0 0 var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+  .wmcart__other-qr { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+  .wmcart__other-qr[hidden] { display: none; }
+  .wmcart__other-cap { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); margin: 0; text-align: center; }
+  .wmcart__other-row { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); line-height: 1.55; margin: 0; text-align: left; }
+  .wmcart__other-row strong { color: var(--bone); font-weight: var(--fw-regular); }
+  .wmcart__other-row a { color: var(--ember); }
+  .wmcart__linkbtn {
+    background: none; border: 0; padding: 0; cursor: pointer;
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--ember);
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .wmcart__linkbtn:hover { color: var(--bone); }
+
+  /* ── Payment reference — the code the buyer pastes into the Venmo/Zelle note.
+     This is how a deposit gets matched to an order. It must be impossible to miss. */
+  .wmcart__ref {
+    border: 1px solid var(--ember); background: rgba(201, 168, 76, 0.08);
+    padding: var(--space-3); margin: var(--space-2) 0; text-align: left;
+  }
+  .wmcart__ref-h {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--sand); margin: 0 0 var(--space-2);
+  }
+  .wmcart__ref-row { display: flex; align-items: center; gap: var(--space-2); }
+  .wmcart__ref-code {
+    flex: 1 1 auto; min-width: 0; word-break: break-all;
+    font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ember);
+    background: rgba(0, 0, 0, 0.28); border: 1px solid var(--line-bright);
+    padding: var(--space-2); line-height: 1.4;
+  }
+  html[data-theme="solar"] .wmcart__ref-code { background: rgba(255, 255, 255, 0.6); }
+  .wmcart__copy {
+    flex: 0 0 auto; cursor: pointer;
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--obsidian); background: var(--ember);
+    border: 1px solid var(--ember); padding: var(--space-2) var(--space-3); min-height: 38px;
+    transition: opacity var(--t-fast);
+  }
+  .wmcart__copy:hover { opacity: 0.85; }
+  .wmcart__ref-note { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); line-height: 1.5; margin: var(--space-2) 0 0; }
+</style>

@@ -1,61 +1,65 @@
 ---
-// Newsletter subscription popup. Lives in Base layout. Hidden by default.
-// Auto-opens once per visitor (localStorage 'wm-news-v1') after a short delay
-// or on exit-intent. Manual trigger via [data-newsletter-trigger].
-// Submits to /api/subscribe (inactive in static build) and falls back to mailto.
-// Esc / backdrop / close button dismiss it. Honors prefers-reduced-motion via CSS.
+// Newsletter invitation popup. Lives in Base layout. Hidden by default.
+// Auto-opens once per visitor after a short delay or on exit intent.
+// Captures the email directly here (no more "go to the home page" redirect),
+// posting to the same live Wenu Platform backend the home-page form uses
+// (/newsletter/subscribe → Postgres subscriber + welcome email + owner ping).
 import en from '../i18n/en.json';
 const n = en.newsletterModal;
-const EMAIL = 'marimari@wenumapuonline.com';
-const mailtoHref = `mailto:${EMAIL}?subject=${encodeURIComponent(n.fallback_subject)}&body=${encodeURIComponent(n.fallback_body)}`;
+const FALLBACK_EMAIL = 'marimari@wenumapuonline.com';
+const mailto = `mailto:${FALLBACK_EMAIL}?subject=${encodeURIComponent(n.fallback_subject)}&body=${encodeURIComponent(n.fallback_body)}`;
+const API_BASE = import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com';
+const NEWSLETTER_ENDPOINT = import.meta.env.PUBLIC_NEWSLETTER_ENDPOINT?.trim() || `${API_BASE}/newsletter/subscribe`;
 ---
 <dialog id="newsletter-modal" class="nlm" aria-labelledby="nlm-title">
   <div class="nlm__inner">
-    <picture class="nlm__bg" aria-hidden="true">
-      <source type="image/avif" srcset="/img/banners/cosmic/cosmos-field-900w.avif 900w, /img/banners/cosmic/cosmos-field-1200w.avif 1200w" sizes="(max-width:720px) 90vw, 520px" />
-      <img src="/img/banners/cosmic/cosmos-field-900w.webp" srcset="/img/banners/cosmic/cosmos-field-900w.webp 900w, /img/banners/cosmic/cosmos-field-1200w.webp 1200w" sizes="(max-width:720px) 90vw, 520px" alt="" width="1672" height="941" loading="lazy" decoding="async" />
-    </picture>
-    <div class="nlm__veil" aria-hidden="true"></div>
-
     <button type="button" class="nlm__close" aria-label={n.close} data-newsletter-close>
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
         <line x1="6" y1="6" x2="18" y2="18"/>
         <line x1="18" y1="6" x2="6" y2="18"/>
       </svg>
     </button>
 
+    {/* A quiet window of sky at the top, fading cleanly into obsidian */}
+    <div class="nlm__sky" aria-hidden="true">
+      <picture>
+        <source type="image/avif" srcset="/img/banners/cosmic/cosmos-field-900w.avif 900w, /img/banners/cosmic/cosmos-field-1200w.avif 1200w" sizes="(max-width:720px) 94vw, 460px" />
+        <img src="/img/banners/cosmic/cosmos-field-900w.webp" srcset="/img/banners/cosmic/cosmos-field-900w.webp 900w, /img/banners/cosmic/cosmos-field-1200w.webp 1200w" sizes="(max-width:720px) 94vw, 460px" alt="" width="1672" height="941" loading="lazy" decoding="async" />
+      </picture>
+      <div class="nlm__sky-fade"></div>
+    </div>
+
     <div class="nlm__body">
+      <picture class="nlm__sello" aria-hidden="true">
+        <source type="image/avif" srcset="/img/brand/wenu-mandala-transparent.avif"/>
+        <source type="image/webp" srcset="/img/brand/wenu-mandala-transparent.webp"/>
+        <img src="/img/brand/wenu-mandala-transparent.png" alt="" width="64" height="64" loading="lazy" decoding="async"/>
+      </picture>
+
       <p class="eyebrow nlm__eyebrow">{n.eyebrow}</p>
       <h2 id="nlm-title" class="nlm__title">{n.title}</h2>
       <p class="nlm__text">{n.body}</p>
 
-      <form class="nlm__form" novalidate data-newsletter-form data-fallback={mailtoHref}>
+      <form class="nlm__form" method="POST" action={NEWSLETTER_ENDPOINT} data-newsletter-form>
+        {/* honeypot — bots fill this, humans never see it */}
+        <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="nlm__honey" aria-hidden="true" />
         <label class="visually-hidden" for="nlm-email">{n.placeholder}</label>
-        <div class="nlm__field">
-          <input
-            id="nlm-email"
-            type="email"
-            name="email"
-            placeholder={n.placeholder}
-            autocomplete="email"
-            required
-          />
-          <button type="submit" class="btn btn--solid nlm__submit">{n.submit}</button>
+        <div class="nlm__row" data-newsletter-row>
+          <input id="nlm-email" class="nlm__input" type="email" name="email" required placeholder={n.placeholder} autocomplete="email" />
+          <button type="submit" class="nlm__submit">{n.submit} <span aria-hidden="true">→</span></button>
         </div>
-        <label class="nlm__consent">
-          <input type="checkbox" name="consent" required />
-          <span>{n.consent}</span>
-        </label>
-        <p class="nlm__error" data-newsletter-error hidden>{n.error}</p>
+        <p class="nlm__micro" data-newsletter-micro>{n.microcopy}</p>
+
+        <div class="nlm__done" data-newsletter-success hidden role="status">
+          <p class="nlm__done-title">{n.success_title}</p>
+          <p class="nlm__done-body">{n.success_body}</p>
+        </div>
+        <p class="nlm__error" data-newsletter-error hidden role="alert">
+          {n.error} <a href={mailto}>{FALLBACK_EMAIL}</a>
+        </p>
       </form>
 
       <button type="button" class="nlm__dismiss" data-newsletter-close>{n.dismiss}</button>
-    </div>
-
-    <div class="nlm__success" data-newsletter-success hidden>
-      <h2 class="nlm__title">{n.success_title}</h2>
-      <p class="nlm__text">{n.success_body}</p>
-      <button type="button" class="btn btn--ghost" data-newsletter-close>{n.close}</button>
     </div>
   </div>
 </dialog>
@@ -64,14 +68,6 @@ const mailtoHref = `mailto:${EMAIL}?subject=${encodeURIComponent(n.fallback_subj
   const KEY = 'wm-news-v1';
   const dlg = document.getElementById('newsletter-modal') as HTMLDialogElement | null;
   if (dlg) {
-    const form = dlg.querySelector<HTMLFormElement>('[data-newsletter-form]');
-    const bodyEl = dlg.querySelector<HTMLElement>('.nlm__body');
-    const successEl = dlg.querySelector<HTMLElement>('[data-newsletter-success]');
-    const errorEl = dlg.querySelector<HTMLElement>('[data-newsletter-error]');
-    const emailInput = dlg.querySelector<HTMLInputElement>('#nlm-email');
-    const consentInput = dlg.querySelector<HTMLInputElement>('input[name="consent"]');
-    const fallbackHref = form?.getAttribute('data-fallback') || '';
-
     let seen = false;
     try { seen = localStorage.getItem(KEY) !== null; } catch { seen = false; }
 
@@ -84,63 +80,62 @@ const mailtoHref = `mailto:${EMAIL}?subject=${encodeURIComponent(n.fallback_subj
       if (typeof dlg.showModal === 'function') dlg.showModal();
       else dlg.setAttribute('open', '');
     }
+
     function close() {
       if (!dlg) return;
       if (typeof dlg.close === 'function') dlg.close();
       else dlg.removeAttribute('open');
     }
 
-    function showSuccess() {
-      bodyEl?.setAttribute('hidden', '');
-      successEl?.removeAttribute('hidden');
-    }
-
-    // Manual trigger (e.g. footer link) — always works, even if already seen.
+    // Any element can summon the modal with [data-newsletter-trigger] (e.g. footer link)
     document.addEventListener('click', (e) => {
       const t = (e.target as HTMLElement).closest('[data-newsletter-trigger]');
       if (t) { e.preventDefault(); open(); }
     });
 
-    // Dismiss controls
     dlg.querySelectorAll('[data-newsletter-close]').forEach((el) => {
       el.addEventListener('click', () => { remember('dismissed'); close(); });
     });
+
+    // Backdrop click + Esc dismiss
     dlg.addEventListener('click', (e) => {
-      if (e.target === dlg) { remember('dismissed'); close(); } // backdrop
+      if (e.target === dlg) { remember('dismissed'); close(); }
     });
-    dlg.addEventListener('cancel', () => { remember('dismissed'); }); // Esc
+    dlg.addEventListener('cancel', () => { remember('dismissed'); });
 
-    // Submit → POST /api/subscribe, fall back to mailto.
-    form?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      errorEl?.setAttribute('hidden', '');
-      const email = emailInput?.value.trim() || '';
-      const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      if (!validEmail) { emailInput?.focus(); return; }
-      if (consentInput && !consentInput.checked) { consentInput.focus(); return; }
-
-      let delivered = false;
-      try {
-        const res = await fetch('/api/subscribe', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ email, source: 'site-popup' }),
-        });
-        if (res.ok) {
-          const data = await res.json().catch(() => null);
-          delivered = Boolean(data && data.ok);
+    // Real email capture — AJAX so the visitor never leaves the page.
+    const form = dlg.querySelector<HTMLFormElement>('[data-newsletter-form]');
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const row = form.querySelector<HTMLElement>('[data-newsletter-row]');
+        const micro = form.querySelector<HTMLElement>('[data-newsletter-micro]');
+        const success = form.querySelector<HTMLElement>('[data-newsletter-success]');
+        const error = form.querySelector<HTMLElement>('[data-newsletter-error]');
+        if (error) error.hidden = true;
+        const honey = (form.querySelector('input[name="_gotcha"]') as HTMLInputElement | null)?.value;
+        const email = (form.querySelector('input[name="email"]') as HTMLInputElement | null)?.value?.trim();
+        try {
+          if (honey) throw new Error('bot');
+          const res = await fetch(form.action, {
+            method: 'POST',
+            body: JSON.stringify({ email, source: 'newsletter-modal', lang: 'en' }),
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          });
+          if (res.ok) {
+            remember('subscribed');
+            if (row) row.hidden = true;
+            if (micro) micro.hidden = true;
+            if (success) success.hidden = false;
+          } else if (error) {
+            error.hidden = false;
+          }
+        } catch {
+          if (error) error.hidden = false;
         }
-      } catch { delivered = false; }
+      });
+    }
 
-      if (!delivered && fallbackHref) {
-        // Static build: API route inactive → open prefilled email as graceful fallback.
-        window.location.href = fallbackHref;
-      }
-      remember('subscribed');
-      showSuccess();
-    });
-
-    // Auto-open once per visitor: 25s dwell OR exit-intent, whichever first.
     if (!seen) {
       let armed = true;
       const fire = () => {
@@ -161,159 +156,252 @@ const mailtoHref = `mailto:${EMAIL}?subject=${encodeURIComponent(n.fallback_subj
 
 <style>
   .nlm {
+    /* Robust centering: the global `* { margin:0 }` reset kills the UA dialog
+       centering, so we restore it explicitly. */
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    height: max-content;
+    max-height: calc(100dvh - 2rem);
     border: none;
     padding: 0;
     background: transparent;
-    max-width: 560px;
-    width: min(92vw, 560px);
+    width: min(94vw, 460px);
     color: var(--bone);
     overflow: visible;
   }
   .nlm::backdrop {
-    background: rgba(8, 7, 6, 0.78);
-    backdrop-filter: blur(3px);
+    background: rgba(6, 5, 4, 0.82);
+    backdrop-filter: blur(6px);
   }
+  .nlm[open] { animation: nlm-pop var(--t-slow) cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .nlm[open]::backdrop { animation: nlm-fade var(--t-slow) ease; }
+  @keyframes nlm-pop {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes nlm-fade { from { opacity: 0; } to { opacity: 1; } }
+
   .nlm__inner {
     position: relative;
-    border: var(--border-thin);
     background: var(--obsidian);
+    border: 1px solid rgba(201, 168, 76, 0.38);
     overflow: hidden;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 32px 80px -28px rgba(0, 0, 0, 0.85);
   }
-  .nlm__bg, .nlm__bg img {
+
+  /* ── Sky window: cosmos band at the top, fading cleanly into obsidian ── */
+  .nlm__sky {
+    position: relative;
+    height: 152px;
+    overflow: hidden;
+  }
+  .nlm__sky picture,
+  .nlm__sky img {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    object-position: center 42%;
+    display: block;
   }
-  .nlm__veil {
+  .nlm__sky-fade {
     position: absolute;
     inset: 0;
     background:
-      radial-gradient(120% 90% at 50% 0%, rgba(8,7,6,0.35), rgba(8,7,6,0.9) 75%),
-      linear-gradient(180deg, rgba(8,7,6,0.55), rgba(8,7,6,0.92));
+      radial-gradient(120% 140% at 50% -10%, rgba(201, 168, 76, 0.16), transparent 46%),
+      linear-gradient(180deg, rgba(10, 10, 10, 0) 32%, rgba(10, 10, 10, 0.72) 74%, var(--obsidian) 100%);
   }
-  .nlm__body, .nlm__success {
+
+  .nlm__body {
     position: relative;
-    padding: var(--space-6) var(--space-5) var(--space-5);
+    padding: 0 var(--space-5) var(--space-5);
     text-align: center;
   }
-  .nlm__eyebrow { color: var(--ember); }
+
+  /* Sacred sello sits on the seam between sky and body */
+  .nlm__sello {
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: -32px auto var(--space-3);
+    position: relative;
+    z-index: 2;
+  }
+  .nlm__sello img {
+    width: 100%;
+    height: auto;
+    filter: brightness(1.08) drop-shadow(0 0 14px rgba(201, 168, 76, 0.4));
+    /* Same slow portal rotation as the main brand mark in the nav. */
+    animation: nav-mark-spin 50s linear infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nlm__sello img { animation: none; }
+  }
+
+  .nlm__eyebrow {
+    color: var(--ember);
+    letter-spacing: 0.3em;
+    font-size: 0.68rem;
+  }
   .nlm__title {
     font-family: var(--font-display);
-    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-size: clamp(1.9rem, 5vw, 2.7rem);
     font-weight: var(--fw-regular);
-    line-height: 1.08;
+    line-height: 1.04;
     color: var(--bone);
     margin: var(--space-2) 0 var(--space-3);
   }
   .nlm__text {
     font-family: var(--font-serif);
-    font-weight: var(--fw-thin);
-    font-size: var(--fs-body);
-    line-height: 1.6;
-    color: var(--fg-soft);
-    max-width: 42ch;
+    font-weight: var(--fw-regular);
+    font-size: var(--fs-body-lg);
+    line-height: 1.55;
+    color: var(--silver);
+    max-width: 40ch;
     margin: 0 auto var(--space-4);
   }
-  .nlm__form { display: block; }
-  .nlm__field {
+
+  /* ── Email capture ── */
+  /* Guarantee the [hidden] attribute wins over class display rules below
+     (e.g. .nlm__row{display:flex}) so the success swap actually hides the form. */
+  .nlm [hidden] { display: none !important; }
+  .nlm__form { max-width: 22rem; margin: 0 auto; }
+  .nlm__honey { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .nlm__row {
     display: flex;
+    flex-direction: column;
     gap: var(--space-2);
-    flex-wrap: wrap;
-    justify-content: center;
   }
-  .nlm__field input[type="email"] {
-    flex: 1 1 220px;
-    min-width: 0;
-    padding: 0.85rem 1rem;
-    background: rgba(242, 237, 228, 0.06);
-    border: var(--border-thin);
+  .nlm__input {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--bronze);
     color: var(--bone);
-    font-family: var(--font-ui);
+    font-family: var(--font-sans);
     font-size: var(--fs-body);
+    text-align: center;
+    padding: var(--space-3) var(--space-4);
+    transition: border-color var(--t-fast), background var(--t-fast);
   }
-  .nlm__field input[type="email"]::placeholder { color: var(--silver); }
-  .nlm__field input[type="email"]:focus-visible {
+  .nlm__input::placeholder { color: var(--silver); }
+  .nlm__input:focus-visible {
     outline: none;
     border-color: var(--ember);
+    background: rgba(0, 0, 0, 0.5);
   }
-  .nlm__submit { flex: 0 0 auto; white-space: nowrap; }
-  .nlm__consent {
-    display: flex;
-    gap: 0.55rem;
-    align-items: flex-start;
+  .nlm__submit {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
     justify-content: center;
-    margin-top: var(--space-3);
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
-    line-height: 1.4;
-    color: var(--silver);
-    text-align: left;
-    max-width: 40ch;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .nlm__consent input { margin-top: 0.15rem; accent-color: var(--ember); }
-  .nlm__error {
-    margin-top: var(--space-3);
-    color: var(--ember);
-    font-family: var(--font-ui);
-    font-size: 0.82rem;
-  }
-  .nlm__dismiss {
-    margin-top: var(--space-4);
-    background: none;
-    border: none;
-    color: var(--silver);
-    font-family: var(--font-ui);
-    font-size: 0.78rem;
+    gap: 0.5ch;
+    background: var(--ember);
+    color: var(--obsidian);
+    border: 1px solid var(--ember);
+    font-family: var(--font-sans);
+    font-weight: var(--fw-medium);
+    font-size: var(--fs-body);
     letter-spacing: 0.04em;
+    padding: var(--space-3) var(--space-4);
+    cursor: pointer;
+    transition: background var(--t-base), color var(--t-base);
+  }
+  .nlm__submit:hover,
+  .nlm__submit:focus-visible {
+    background: transparent;
+    color: var(--ember);
+    outline: none;
+  }
+  .nlm__submit span { transition: transform var(--t-base); }
+  .nlm__submit:hover span { transform: translateX(3px); }
+
+  .nlm__micro {
+    margin: var(--space-3) 0 0;
+    font-family: var(--font-sans);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--sand);
+  }
+
+  /* Success state */
+  .nlm__done { margin-top: var(--space-2); }
+  .nlm__done-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 3.5vw, 1.8rem);
+    color: var(--ember);
+    line-height: 1.1;
+    margin-bottom: var(--space-2);
+  }
+  .nlm__done-body {
+    font-family: var(--font-serif);
+    font-size: var(--fs-body);
+    color: var(--silver);
+    line-height: 1.5;
+  }
+  .nlm__error {
+    margin: var(--space-3) 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--fs-small);
+    color: var(--clay);
+    line-height: 1.5;
+  }
+  .nlm__error a { color: var(--ember); }
+
+  .nlm__dismiss {
+    display: block;
+    margin: var(--space-4) auto 0;
+    background: none;
+    border: 0;
+    padding: var(--space-1) var(--space-2);
+    color: var(--sand);
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    transition: color var(--t-fast);
   }
-  .nlm__dismiss:hover { color: var(--bone); }
+  .nlm__dismiss:hover,
+  .nlm__dismiss:focus-visible { color: var(--bone); outline: none; }
+
   .nlm__close {
     position: absolute;
-    top: 0.75rem;
-    right: 0.75rem;
-    z-index: 2;
-    display: grid;
-    place-items: center;
-    width: 38px;
-    height: 38px;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 1px solid rgba(240, 237, 232, 0.28);
+    border-radius: 999px;
     background: rgba(8, 7, 6, 0.5);
-    border: var(--border-thin);
     color: var(--bone);
     cursor: pointer;
+    transition: background var(--t-base), border-color var(--t-base);
   }
-  .nlm__close:hover { background: rgba(8, 7, 6, 0.8); }
-  .visually-hidden {
-    position: absolute;
-    width: 1px; height: 1px;
-    padding: 0; margin: -1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-    border: 0;
+  .nlm__close:hover,
+  .nlm__close:focus-visible {
+    background: rgba(8, 7, 6, 0.8);
+    border-color: var(--ember);
+    outline: none;
   }
 
-  /* Entrance — honored only when motion is allowed. */
-  @media (prefers-reduced-motion: no-preference) {
-    .nlm[open] .nlm__inner {
-      animation: nlm-rise 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-    }
-    @keyframes nlm-rise {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+  /* Roomier layout where there's width for it */
+  @media (min-width: 420px) {
+    .nlm__body { padding: 0 var(--space-6) var(--space-6); }
+    .nlm__row { flex-direction: row; }
+    .nlm__input { text-align: left; flex: 1 1 auto; }
+    .nlm__submit { width: auto; flex: 0 0 auto; }
   }
 
-  @media (max-width: 720px) {
-    .nlm__field input[type="email"] { flex: 1 1 100%; }
-    .nlm__submit { width: 100%; }
+  @media (prefers-reduced-motion: reduce) {
+    .nlm[open],
+    .nlm[open]::backdrop { animation: none; }
   }
 </style>

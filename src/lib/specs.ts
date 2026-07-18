@@ -11,6 +11,38 @@
 
 import { decodeEntities } from './woo';
 import type { WooProduct } from './woo';
+// NocoDB is the source of truth for structured per-piece data (material, size,
+// weight, type, color, packaging…). `export-specs.mjs` freezes it to this JSON
+// keyed by SKU. We PREFER it over the name-derived guesses below, and only fall
+// back to derivation for fields NocoDB doesn't carry (stone, finish, technique,
+// dimensions). Honest by default — never fabricate a value.
+import specsBySku from '../data/specs-by-sku.json';
+
+interface NocoSpec {
+  material?: string;
+  size?: string;
+  weight?: string;
+  type?: string;
+  placement?: string;
+  threading?: string;
+  soldAs?: string;
+  packaging?: string;
+  color?: string;
+  _estado?: string | null;
+}
+const NOCO: Record<string, NocoSpec> = specsBySku as Record<string, NocoSpec>;
+
+// Reverse map: NocoDB's long editorial material label → short caption label.
+const MATERIAL_SHORT: Record<string, string> = {
+  'ASTM F-136 implant-grade titanium': 'Titanium',
+  'Surgical-grade stainless steel': 'Surgical steel',
+  'Sterling silver (925)': 'Sterling silver',
+  'Brass': 'Brass',
+  'Bronze': 'Bronze',
+  'Wood': 'Wood',
+  'Natural stone': 'Natural stone',
+  'Hand-poured resin': 'Resin',
+};
 
 export interface DerivedSpecs {
   material: string | null;
@@ -201,9 +233,13 @@ export function deriveSpecs(product: WooProduct): DerivedSpecs {
 
   const material = deriveMaterial(fullText);
 
+  // "One of one" is a STOCK claim, never a template flourish (Ocin 2026-07-13):
+  //  · pairs are NEVER one-of-one — a pair is two pieces, sold together;
+  //  · it requires REAL tracked stock of exactly 1 AND the piece still in stock.
+  // Pair check runs FIRST so a tracked single-unit pair reads "Pair", not "One of one".
   const soldAs =
-    product.manage_stock && product.stock_quantity === 1 ? 'One of one' :
     isPair ? 'Pair' :
+    product.manage_stock && product.stock_quantity === 1 && product.stock_status === 'instock' ? 'One of one' :
     'Single piece';
 
   return {
@@ -218,5 +254,49 @@ export function deriveSpecs(product: WooProduct): DerivedSpecs {
     technique: joinMatches(TECHNIQUES, fullText),
     soldAs,
     isPair,
+  };
+}
+
+// ─── RESOLVED SPECS ─────────────────────────────────────────────────────────
+// Merge: NocoDB (authoritative, real per-piece data) overlaid on the
+// name-derived fallback. NocoDB wins for every field it carries; derivation
+// only fills what NocoDB lacks (stone, finish, technique, dimensions). This is
+// what every PDP surface should consume.
+export interface ResolvedSpecs extends DerivedSpecs {
+  type: string | null;        // piece type (Expansion, Earring, Plug…)
+  placement: string | null;   // body placement (Lobe, Septum…)
+  threading: string | null;   // Threadless / Internally threaded…
+  packaging: string | null;   // Cloth pouch, Branded carton…
+  hasNoco: boolean;           // true when real structured data exists for the SKU
+}
+
+export function resolveSpecs(product: WooProduct): ResolvedSpecs {
+  const d = deriveSpecs(product);
+  const sku = (product.sku || '').trim();
+  const n = sku ? NOCO[sku] : undefined;
+
+  if (!n) {
+    return { ...d, type: null, placement: null, threading: null, packaging: null, hasNoco: false };
+  }
+
+  const nz = (v?: string | null) => (v && String(v).trim() ? String(v).trim() : null);
+  const material = nz(n.material) || d.material;
+  return {
+    material,
+    materialShort: (n.material && MATERIAL_SHORT[n.material]) || nz(n.material) || d.materialShort,
+    size: nz(n.size) || d.size,
+    weight: nz(n.weight) || d.weight,
+    dimensions: d.dimensions,
+    stone: d.stone,
+    finish: d.finish,
+    color: nz(n.color) || d.color,
+    technique: d.technique,
+    soldAs: nz(n.soldAs) || d.soldAs,
+    isPair: n.soldAs ? /pair/i.test(n.soldAs) : d.isPair,
+    type: nz(n.type),
+    placement: nz(n.placement),
+    threading: nz(n.threading),
+    packaging: nz(n.packaging),
+    hasNoco: true,
   };
 }

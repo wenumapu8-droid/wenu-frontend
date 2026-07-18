@@ -1,0 +1,443 @@
+---
+/**
+ * SizeMeasurer v2 — on-screen ring / gauge / length tool (2026-06-24, Ocin feedback).
+ * Calibrate against a real bank card (ISO/IEC 7810 ID-1 = 85.60 mm wide) to get
+ * px/mm, then:
+ *   · Ring size  — grow a circle to a ring's inner Ø → US size + mm
+ *   · Gauge      — match a horizontal BAR to a post's thickness → gauge + mm
+ *                  (with a side-by-side 18/16/14/12g reference scale)
+ *   · Length     — a mm ruler to read a post / barbell / labret length
+ * Calibration range is generous and the card can grow full-bleed so the gold
+ * outline can reach (and exceed) a real card width on any phone. Pure HTML/CSS/JS.
+ * Dark-first, tokens.
+ */
+---
+<div class="sm" data-sm>
+  <div class="sm__head">
+    <p class="eyebrow sm__eyebrow">On-screen tool</p>
+    <h2 class="sm__title">Measure it on your screen</h2>
+    <p class="sm__lede">Calibrate against any bank card, then lay the piece on the screen and match it. Works on any phone or laptop.</p>
+  </div>
+
+  {/* 1 · Calibrate */}
+  <div class="sm__panel">
+    <p class="sm__step">1 · Calibrate</p>
+    <p class="sm__hint">Hold any bank or credit card against the screen and slide until the gold outline matches its edge exactly. On a phone the card is shown upright (we match its short edge); on a wider screen it lies flat. This sets the scale for all three tools.</p>
+    <div class="sm__cal-bleed">
+      <div class="sm__card-wrap">
+        <div class="sm__card" data-sm-card><span class="sm__card-tag" data-sm-card-tag>85.6 mm</span></div>
+      </div>
+    </div>
+    <input class="sm__range" type="range" data-sm-cal min="120" max="900" value="300" step="1" aria-label="Calibrate to your card edge" />
+    <p class="sm__sub-hint" data-sm-cal-note></p>
+  </div>
+
+  {/* 2 · Measure */}
+  <div class="sm__panel">
+    <div class="sm__modes" role="tablist" aria-label="Measurement mode">
+      <button type="button" class="sm__mode is-active" data-sm-mode="ring" role="tab" aria-selected="true">Ring size</button>
+      <button type="button" class="sm__mode" data-sm-mode="gauge" role="tab" aria-selected="false">Gauge</button>
+      <button type="button" class="sm__mode" data-sm-mode="length" role="tab" aria-selected="false">Length</button>
+    </div>
+
+    <div class="sm__stage">
+      <div class="sm__pane" data-sm-stage="ring">
+        <div class="sm__ring" data-sm-ring aria-hidden="true"></div>
+      </div>
+
+      <div class="sm__pane" data-sm-stage="gauge" hidden>
+        <p class="sm__lhint">Slide until the bar — and the dot beside it — are exactly as thick as the post (side view + head-on).</p>
+        <div class="sm__gauge-row">
+          <div class="sm__gbar-wrap"><div class="sm__gbar" data-sm-gbar aria-hidden="true"></div></div>
+          <div class="sm__dot" data-sm-dot aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <div class="sm__pane sm__pane--length" data-sm-stage="length" hidden>
+        <p class="sm__lhint">Lay the post flat along the ruler from your screen's edge, and read where it ends.</p>
+        <div class="sm__modes sm__modes--sub">
+          <button type="button" class="sm__mode is-active" data-sm-edge="left">Left edge</button>
+          <button type="button" class="sm__mode" data-sm-edge="right">Right edge</button>
+        </div>
+        <div class="sm__hedgewrap" data-sm-hedgewrap data-side="left">
+          <div class="sm__hruler" data-sm-hruler aria-hidden="true">
+            <div class="sm__hmark" data-sm-hmark></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="sm__readout" data-sm-readout aria-live="polite"></p>
+    <input class="sm__range" type="range" data-sm-size min="13" max="23" value="18" step="0.1" aria-label="Adjust measurement" />
+    <p class="sm__instruct" data-sm-instruct>Rest the ring on the screen and grow the circle until it fits inside it.</p>
+  </div>
+
+  <p class="sm__note">Calibrated against a standard card (ISO 85.6 mm). Numbers are rounded; for a fresh or healing piercing, confirm the size with us before ordering.</p>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-sm]');
+  if (root) {
+    const cal = root.querySelector<HTMLInputElement>('[data-sm-cal]')!;
+    const card = root.querySelector<HTMLElement>('[data-sm-card]')!;
+    const cardTag = root.querySelector<HTMLElement>('[data-sm-card-tag]')!;
+    const calNote = root.querySelector<HTMLElement>('[data-sm-cal-note]')!;
+    const sizeSlider = root.querySelector<HTMLInputElement>('[data-sm-size]')!;
+    const ring = root.querySelector<HTMLElement>('[data-sm-ring]')!;
+    const gbar = root.querySelector<HTMLElement>('[data-sm-gbar]')!;
+    const dot = root.querySelector<HTMLElement>('[data-sm-dot]')!;
+    const hedgewrap = root.querySelector<HTMLElement>('[data-sm-hedgewrap]')!;
+    const hruler = root.querySelector<HTMLElement>('[data-sm-hruler]')!;
+    const hmark = root.querySelector<HTMLElement>('[data-sm-hmark]')!;
+    const edgeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-sm-edge]'));
+    const nearestLen = (mm: number) => LENGTHS.reduce((b, l) => (Math.abs(l[0] - mm) < Math.abs(b[0] - mm) ? l : b));
+    const readout = root.querySelector<HTMLElement>('[data-sm-readout]')!;
+    const instruct = root.querySelector<HTMLElement>('[data-sm-instruct]')!;
+    const panes = Array.from(root.querySelectorAll<HTMLElement>('[data-sm-stage]'));
+    const modeBtns = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-sm-mode]'));
+
+    const CARD_LONG = 85.6, CARD_SHORT = 53.98;
+    // Standard piercing post lengths — inch fraction + mm. The edge ruler marks these.
+    const LENGTHS: [number, string][] = [
+      [6, '1/4"'], [8, '5/16"'], [10, '3/8"'], [11, '7/16"'],
+      [13, '1/2"'], [14, '9/16"'], [16, '5/8"'], [19, '3/4"'],
+    ];
+    const LEN_MIN = 0; // ruler starts at 0 at the screen edge — rest the post against it and read the length (Ocin 2026-06-25)
+    const LEN_MAX = 22;
+    let edgeSide: 'left' | 'right' = 'left';
+    const GAUGES: [number, string][] = [
+      [0.8, '20G'], [1.0, '18G'], [1.2, '16G'], [1.6, '14G'], [2.0, '12G'],
+      [2.4, '10G'], [3.2, '8G'], [4.0, '6G'], [5.0, '4G'], [6.0, '2G'], [8.0, '0G'], [10.0, '00G'],
+    ];
+    const REF: [number, string][] = [[1.0, '18G'], [1.2, '16G'], [1.6, '14G'], [2.0, '12G']];
+    const nearestGauge = (mm: number) =>
+      GAUGES.reduce((best, g) => (Math.abs(g[0] - mm) < Math.abs(best[0] - mm) ? g : best))[1];
+    const usRing = (mm: number) => Math.round(((mm - 11.54) / 0.8128) * 2) / 2;
+
+    // Portrait (calibrate to the card's 53.98 mm SHORT edge, card stood upright)
+    // on narrow screens — a credit card is wider than most phones in landscape.
+    const isPortrait = () => window.innerWidth < 620;
+    let refMm = isPortrait() ? CARD_SHORT : CARD_LONG;
+    let pxPerMm = +cal.value / refMm;
+    let mode: 'ring' | 'gauge' | 'length' = 'ring';
+
+    function buildHRuler() {
+      hruler.querySelectorAll('.sm__htick').forEach(t => t.remove());
+      const xOf = (mm: number) => ((mm - LEN_MIN) * pxPerMm) + 'px';
+      for (let i = Math.ceil(LEN_MIN); i <= LEN_MAX; i++) {
+        const t = document.createElement('div');
+        t.className = 'sm__htick';
+        t.style.setProperty('--x', xOf(i));
+        hruler.appendChild(t);
+      }
+      const start = document.createElement('div');
+      start.className = 'sm__htick sm__htick--major';
+      start.style.setProperty('--x', xOf(LEN_MIN));
+      const sl = document.createElement('span');
+      sl.className = 'sm__hlabel sm__hlabel--hi';
+      sl.innerHTML = `0mm<br>edge`;
+      start.appendChild(sl);
+      hruler.appendChild(start);
+      // Alternate labels above / below the line so close standards never overlap.
+      LENGTHS.forEach(([mm, frac], idx) => {
+        const t = document.createElement('div');
+        t.className = 'sm__htick sm__htick--major';
+        t.style.setProperty('--x', xOf(mm));
+        const l = document.createElement('span');
+        l.className = 'sm__hlabel ' + (idx % 2 ? 'sm__hlabel--lo' : 'sm__hlabel--hi');
+        l.innerHTML = `${mm}mm<br>${frac}`;
+        t.appendChild(l);
+        hruler.appendChild(t);
+      });
+      hruler.style.width = ((LEN_MAX - LEN_MIN) * pxPerMm) + 'px';
+    }
+
+    function applyOrientation() {
+      const portrait = isPortrait();
+      refMm = portrait ? CARD_SHORT : CARD_LONG;
+      card.classList.toggle('sm__card--portrait', portrait);
+      card.classList.toggle('sm__card--landscape', !portrait);
+      cardTag.textContent = portrait ? '53.6 mm · short edge' : '85.6 mm · long edge';
+      calNote.textContent = portrait
+        ? 'On a phone the card is turned upright — match the gold outline to its SHORT edge.'
+        : 'Match the gold outline to the LONG edge of your card.';
+      const maxPx = Math.min(900, window.innerWidth - 24);
+      if (+cal.value > maxPx) cal.value = String(maxPx);
+    }
+
+    function calibrate() {
+      pxPerMm = +cal.value / refMm;
+      // Remember the calibration so PDP specs can render measures at real size.
+      try { localStorage.setItem('wmPxPerMm', String(pxPerMm)); } catch { /* ignore */ }
+      card.style.width = cal.value + 'px';
+      buildHRuler();
+      update();
+      // let the real-size jewelry silhouettes on this page re-render live
+      try { window.dispatchEvent(new Event('wm-calibrated')); } catch { /* ignore */ }
+    }
+
+    function update() {
+      const v = +sizeSlider.value;
+      if (mode === 'ring') {
+        const px = Math.max(2, v * pxPerMm);
+        ring.style.width = px + 'px';
+        ring.style.height = px + 'px';
+        readout.innerHTML = `<span class="sm__big">US ${usRing(v)}</span><span class="sm__sub">${v.toFixed(1)} mm inner Ø</span>`;
+      } else if (mode === 'gauge') {
+        // Bar (side view) + dot (head-on) both = the post's real thickness.
+        const px = Math.max(2, v * pxPerMm);
+        gbar.style.height = px + 'px';
+        dot.style.width = px + 'px';
+        dot.style.height = px + 'px';
+        readout.innerHTML = `<span class="sm__big">${nearestGauge(v)}</span><span class="sm__sub">${v.toFixed(1)} mm thick</span>`;
+      } else {
+        // Draggable marker along the edge ruler; readout shows mm + fraction.
+        hmark.style.setProperty('--x', ((v - LEN_MIN) * pxPerMm) + 'px');
+        readout.innerHTML = `<span class="sm__big">${v.toFixed(1)} mm</span><span class="sm__sub">${nearestLen(v)[1]} · post length</span>`;
+      }
+    }
+
+    function setMode(m: 'ring' | 'gauge' | 'length') {
+      mode = m;
+      modeBtns.forEach(b => {
+        const on = b.dataset.smMode === m;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panes.forEach(p => { p.hidden = p.dataset.smStage !== m; });
+      if (m === 'ring') {
+        sizeSlider.min = '13'; sizeSlider.max = '23'; sizeSlider.step = '0.1'; sizeSlider.value = '18';
+        instruct.textContent = 'Rest the ring on the screen and grow the circle until it fits inside it.';
+      } else if (m === 'gauge') {
+        sizeSlider.min = '0.8'; sizeSlider.max = '12'; sizeSlider.step = '0.1'; sizeSlider.value = '1.6';
+        instruct.textContent = 'Slide until the bar is exactly as thick as the post — read the gauge.';
+      } else {
+        sizeSlider.min = String(LEN_MIN); sizeSlider.max = String(LEN_MAX); sizeSlider.step = '0.5'; sizeSlider.value = '0';
+        instruct.textContent = 'Lay the post from the screen edge, slide the marker to its tip — the length reads below.';
+      }
+      sizeSlider.style.display = '';
+      readout.style.display = '';
+      update();
+    }
+
+    cal.addEventListener('input', calibrate);
+    sizeSlider.addEventListener('input', update);
+    modeBtns.forEach(b => b.addEventListener('click', () => setMode(b.dataset.smMode as 'ring' | 'gauge' | 'length')));
+    edgeBtns.forEach(b => b.addEventListener('click', () => {
+      edgeSide = (b.dataset.edge as 'left' | 'right');
+      edgeBtns.forEach(x => x.classList.toggle('is-active', x === b));
+      hedgewrap.dataset.side = edgeSide;
+    }));
+    window.addEventListener('resize', () => { applyOrientation(); calibrate(); });
+    applyOrientation();
+    calibrate();
+    const h = location.hash.replace('#', '');
+    const initMode = h.startsWith('gauge') ? 'gauge' : h.startsWith('length') ? 'length' : 'ring';
+    setMode(initMode);
+    if (initMode === 'length' && h.includes('right')) {
+      edgeSide = 'right';
+      edgeBtns.forEach(x => x.classList.toggle('is-active', x.dataset.edge === 'right'));
+      hedgewrap.dataset.side = 'right';
+    }
+  }
+</script>
+
+<style>
+  .sm {
+    border: var(--border-thin);
+    background: var(--charcoal);
+    padding: var(--space-6) var(--space-5);
+    margin: var(--space-5) 0;
+    /* no overflow:hidden — it clipped the full-bleed edge ruler + its labels */
+  }
+  .sm__head { text-align: center; max-width: 52ch; margin: 0 auto var(--space-5); }
+  .sm__eyebrow { color: var(--ember); }
+  .sm__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.6rem, 3.5vw, 2.4rem); line-height: 1.1;
+    color: var(--bone); margin: var(--space-2) 0 var(--space-3);
+  }
+  .sm__lede {
+    font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-body); line-height: 1.6; color: var(--fg-soft); margin: 0;
+  }
+
+  .sm__panel { border-top: var(--border-thin); padding: var(--space-5) 0; }
+  .sm__step {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--ember); margin: 0 0 var(--space-2);
+  }
+  .sm__hint {
+    font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-small); line-height: 1.5; color: var(--fg-soft);
+    margin: 0 0 var(--space-4); max-width: 56ch;
+  }
+  .sm__sub-hint {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    color: var(--ember); margin: var(--space-3) 0 0; letter-spacing: 0.04em;
+  }
+
+  /* Calibration — allowed to break full-bleed so the outline can reach a real
+     card's width even on a narrow phone; scrolls if it exceeds the viewport. */
+  .sm__cal-bleed {
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    overflow-x: auto;
+    padding: var(--space-3) 0;
+  }
+  .sm__card-wrap { display: flex; justify-content: center; min-width: min-content; padding: 0 var(--space-4); }
+  .sm__card {
+    width: 300px;
+    max-width: none;
+    flex: none;
+    border: 2px solid var(--ember);
+    border-radius: 8px;
+    background: rgba(201, 168, 76, 0.06);
+    display: flex; align-items: flex-end; justify-content: center;
+    box-shadow: 0 0 24px -8px rgba(201, 168, 76, 0.4);
+  }
+  .sm__card--landscape { aspect-ratio: 85.6 / 53.98; }
+  .sm__card--portrait  { aspect-ratio: 53.98 / 85.6; align-items: flex-start; }
+  .sm__card--portrait .sm__card-tag { padding: 6px 0 0; writing-mode: vertical-rl; transform: rotate(180deg); }
+  .sm__card-tag {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.12em; text-transform: uppercase; color: var(--ember);
+    padding-bottom: 6px; white-space: nowrap;
+  }
+
+  /* Range sliders */
+  .sm__range {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 2px; margin: var(--space-3) 0 0;
+    background: var(--line-bright); cursor: pointer; accent-color: var(--ember);
+  }
+  .sm__range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--ember); border: 2px solid var(--obsidian);
+    box-shadow: 0 0 12px rgba(201, 168, 76, 0.5);
+  }
+  .sm__range::-moz-range-thumb {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--ember); border: 2px solid var(--obsidian);
+  }
+
+  .sm__modes { display: flex; gap: var(--space-2); margin-bottom: var(--space-4); }
+  .sm__mode {
+    flex: 1 1 0;
+    appearance: none; -webkit-appearance: none;
+    background: transparent; border: var(--border-accent); color: var(--silver);
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: var(--space-3) var(--space-2); cursor: pointer; white-space: nowrap;
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+  }
+  .sm__mode:hover { border-color: var(--ember); color: var(--bone); }
+  .sm__mode.is-active { background: var(--ember); border-color: var(--ember); color: var(--obsidian); }
+
+  .sm__stage {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 240px; padding: var(--space-5) var(--space-3);
+    background:
+      radial-gradient(circle at 50% 50%, rgba(201,168,76,0.06) 0%, transparent 60%),
+      var(--obsidian);
+    border: var(--border-thin);
+  }
+  .sm__pane { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .sm__pane[hidden] { display: none; }
+
+  /* Ring */
+  .sm__ring {
+    box-sizing: border-box;
+    border: 2px solid var(--ember); border-radius: 50%; background: transparent;
+    box-shadow: 0 0 18px -4px rgba(201, 168, 76, 0.5);
+  }
+
+  /* Gauge — adjustable bar + reference scale */
+  /* Gauge — one bright HORIZONTAL bar that fattens / thins (height = thickness).
+     Lay the post across it and slide until the bar is as thick as the post. */
+  .sm__gauge-row {
+    display: flex; align-items: center; justify-content: center; gap: var(--space-5);
+    width: 100%; min-height: 150px;
+  }
+  .sm__gbar-wrap { flex: 1 1 auto; display: flex; align-items: center; justify-content: center; }
+  .sm__gbar {
+    width: min(240px, 100%); min-height: 2px;
+    background: var(--ember); border-radius: 3px;
+    box-shadow: 0 0 20px rgba(201, 168, 76, 0.75);
+  }
+  .sm__dot {
+    flex: none; border-radius: 50%; background: var(--ember);
+    box-shadow: 0 0 18px rgba(201, 168, 76, 0.7); min-width: 3px; min-height: 3px;
+  }
+
+  /* Length — HORIZONTAL ruler starting at the screen edge (left or right). 0 at the
+     physical edge; vertical ticks mark the standard piercing lengths. Bright gold. */
+  .sm__lhint {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    letter-spacing: 0.04em; text-align: center; margin: 0 0 var(--space-3);
+  }
+  .sm__modes--sub { max-width: 300px; margin: 0 auto var(--space-4); }
+  .sm__hedgewrap {
+    position: relative;
+    width: 100vw;
+    margin-inline: calc(50% - 50vw);
+    height: 132px;
+    margin-top: var(--space-4);
+    /* no overflow:hidden — would clip the ruler / labels */
+  }
+  /* ruler sits a hair in from the screen edge so the end labels never clip */
+  .sm__hruler { position: absolute; top: 0; height: 84px; }
+  .sm__hedgewrap[data-side="left"]  .sm__hruler { left: 24px; }
+  .sm__hedgewrap[data-side="right"] .sm__hruler { right: 24px; }
+  /* gold baseline through the middle — the post rests along it */
+  .sm__hruler::before {
+    content: ""; position: absolute; top: 42px; left: 0; right: 0; height: 3px;
+    background: var(--ember); box-shadow: 0 0 14px rgba(201, 168, 76, 0.8);
+  }
+  /* ticks + labels are created in JS, so they DON'T get Astro's scope hash —
+     these selectors must be :global or the rules won't match them. */
+  :global(.sm__htick) { position: absolute; top: 38px; left: var(--x); width: 1px; height: 11px; background: var(--silver); }
+  .sm__hedgewrap[data-side="right"] :global(.sm__htick) { left: auto; right: var(--x); }
+  :global(.sm__htick--major) { top: 33px; height: 21px; width: 2px; background: var(--ember); box-shadow: 0 0 8px rgba(201, 168, 76, 0.7); }
+  :global(.sm__hlabel) {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    text-align: center; white-space: nowrap; line-height: 1.12;
+    font-family: var(--font-mono, monospace); font-size: 0.6rem;
+    color: var(--bone); letter-spacing: 0.01em;
+  }
+  :global(.sm__hlabel--hi) { bottom: calc(100% + 5px); }
+  :global(.sm__hlabel--lo) { top: calc(100% + 5px); }
+  .sm__hmark {
+    position: absolute; top: 28px; height: 32px; left: var(--x); width: 2px;
+    background: var(--bone); box-shadow: 0 0 10px rgba(240, 237, 232, 0.9);
+  }
+  .sm__hedgewrap[data-side="right"] .sm__hmark { left: auto; right: var(--x); }
+  .sm__hmark::before {
+    content: ""; position: absolute; top: -7px; left: 50%; transform: translateX(-50%);
+    width: 11px; height: 11px; border-radius: 50%; background: var(--bone);
+  }
+
+  .sm__readout {
+    display: flex; align-items: baseline; justify-content: center; gap: var(--space-3);
+    margin: var(--space-4) 0 0; text-align: center; flex-wrap: wrap;
+  }
+  .sm__readout :global(.sm__big) {
+    font-family: var(--font-display); font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1; color: var(--bone);
+  }
+  .sm__readout :global(.sm__sub) {
+    font-family: var(--font-sans); font-size: var(--fs-small);
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--ember);
+  }
+  .sm__instruct {
+    text-align: center; font-family: var(--font-serif); font-style: italic;
+    font-size: var(--fs-small); color: var(--fg-soft); margin: var(--space-3) 0 0;
+  }
+  .sm__note {
+    border-top: var(--border-thin); margin: var(--space-5) 0 0; padding-top: var(--space-4);
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.04em; color: var(--silver); line-height: 1.6;
+  }
+</style>

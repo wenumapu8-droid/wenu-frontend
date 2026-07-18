@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import ProductCard from '../components/ProductCard.astro';
+import CategoryStrip from '../components/CategoryStrip.astro';
 import { getProducts, getCategories, localizeCategory } from '../lib/woo';
 import { STORE_BASE_URL } from '../lib/config';
 import en from '../i18n/en.json';
@@ -11,10 +12,7 @@ const [products, categories] = await Promise.all([
 ]);
 
 const ritualCatPrefix: Record<string, string> = {
-  'plug': 'KÜRÜF',
   'tunnel': 'KÜRÜF',
-  'septum': 'KUYÉN',
-  'hanger': 'ANTÜ',
   'stone': 'TROMÜ',
   'steel': 'PAÑILWE',
   'labret': 'WÜN',
@@ -71,21 +69,18 @@ const breadcrumbLd = {
 ---
 
 <Base
-  title="Shop — Wenu Mapu"
+  title="Shop — Ritual body jewelry, plugs, septums & hangers | Wenu Mapu"
   description={shopDescription}
   ogImage="/img/brand/shop-ritual-septum-hero.webp"
   jsonLd={[collectionLd, itemListLd, breadcrumbLd]}
   noQuote
 >
-  <div class="cat-masthead cat-masthead--titled">
+  {/* Plain masthead — the title lives once, in the section <h1> below (no echo). */}
+  <div class="cat-masthead">
     <picture>
       <source type="image/avif" srcset="/img/banners/atmospheric/mountain-starfield.avif" />
       <img src="/img/banners/atmospheric/mountain-starfield.webp" alt="" width="1600" height="686" loading="eager" decoding="async" fetchpriority="high" />
     </picture>
-    <div class="cat-masthead__label">
-      <p class="cat-masthead__title">{en.shop.title}</p>
-      <p class="cat-masthead__eyebrow">{en.shop.eyebrow}</p>
-    </div>
   </div>
 
   <section class="section">
@@ -121,7 +116,7 @@ const breadcrumbLd = {
         <source srcset="/img/brand/shop-ritual-septum-hero.avif" type="image/avif" />
         <img
           src="/img/brand/shop-ritual-septum-hero.webp"
-          alt="Silver ritual septum jewelry photographed on obsidian stone"
+          alt="Golden Metatron's Cube sacred geometry over a cosmic altar — winged guardians, candles and stars"
           width="1600"
           height="1000"
           loading="eager"
@@ -129,7 +124,16 @@ const breadcrumbLd = {
           decoding="async"
         />
       </picture>
+    </div>
+  </section>
 
+  {/* Shop by collection — banda de tarjetas de categoría (horizontal-scroll rail).
+      Cada tile linkea a /shop?cat=<slug> y filtra el archivo. Los banners cat-* son
+      placeholder optimizado; se swapean por el arte premium (chakana + starfield). */}
+  <CategoryStrip />
+
+  <section class="section">
+    <div class="container">
       <div class="shop-archive-note">
         <p class="eyebrow" style="margin: 0 0 var(--space-2);">CURATED ARCHIVE</p>
         <p style="margin: 0; max-width: 58ch; color: var(--fg-soft);">
@@ -137,8 +141,9 @@ const breadcrumbLd = {
         </p>
       </div>
 
-      {localizedCategories.length > 0 && (
-        <div class="filter-bar" id="filter-bar">
+      <div class="filter-bar" id="filter-bar">
+        <div class="filter-bar__tabs">
+          <span class="filter-bar__label">Product type</span>
           <button class="filter-tab active" data-cat="all">{en.shop.all}</button>
           {localizedCategories.map(cat => {
             const slug = cat.slug.toLowerCase();
@@ -150,9 +155,18 @@ const breadcrumbLd = {
             );
           })}
         </div>
-      )}
+        <label class="filter-sort">
+          <span class="filter-bar__label">Sort</span>
+          <select data-sort aria-label="Sort products">
+            <option value="featured">Curated</option>
+            <option value="price-asc">Price · low to high</option>
+            <option value="price-desc">Price · high to low</option>
+            <option value="name">Name · A–Z</option>
+          </select>
+        </label>
+      </div>
 
-      <div class="product-grid" id="product-grid">
+      <div class="archive-grid" id="product-grid">
         {products.length === 0
           ? (
             <div style="grid-column: 1/-1; text-align: center; padding: var(--space-7) 0;">
@@ -162,7 +176,7 @@ const breadcrumbLd = {
               </a>
             </div>
           )
-          : products.map(p => <ProductCard product={p} />)
+          : products.map(p => <ProductCard product={p} archive />)
         }
       </div>
 
@@ -220,26 +234,23 @@ const breadcrumbLd = {
 </Base>
 
 <style>
+  /* Borderless — a top hairline gives structure; type + space order the rest. */
   .material-tile {
     display: block;
-    padding: var(--space-4);
-    background: var(--bg);
-    border: var(--border-thin);
+    padding: var(--space-4) var(--space-4) var(--space-4) 0;
+    border-top: var(--border-thin);
     text-decoration: none;
     color: inherit;
-    transition: border-color 200ms ease, transform 200ms ease;
+    transition: transform 200ms ease;
   }
-  .material-tile:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-  }
+  .material-tile:hover { transform: translateY(-2px); }
+  .material-tile:hover h3 { color: var(--ember); }
 
   .shop-visual-band {
     display: block;
     width: 100%;
     aspect-ratio: 16 / 7;
     overflow: hidden;
-    border: var(--border-thin);
     margin: calc(var(--space-5) * -1) 0 var(--space-5);
     background: var(--bg-alt);
   }
@@ -252,10 +263,7 @@ const breadcrumbLd = {
   }
 
   .shop-archive-note {
-    margin: 0 0 var(--space-5);
-    padding: var(--space-4);
-    border: var(--border-thin);
-    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.04));
+    margin: 0 0 var(--space-6);
   }
 
   @media (max-width: 700px) {
@@ -280,7 +288,8 @@ const breadcrumbLd = {
         card.style.display = '';
         return;
       }
-      const cats = (card.dataset.cats || '').toLowerCase();
+      // Exact slug match — split the list so "ring" no longer matches "earrings".
+      const cats = (card.dataset.cats || '').toLowerCase().split(/[\s,]+/).filter(Boolean);
       card.style.display = cats.includes(cat.toLowerCase()) ? '' : 'none';
     });
   }
@@ -315,6 +324,22 @@ const breadcrumbLd = {
     if (initial) {
       applyFilter(findMatchingTab(initial));
     }
+
+    // ── Sort (client-side reorder of the grid cells) ──────────────────────────
+    const sortSel = bar.querySelector<HTMLSelectElement>('[data-sort]');
+    const original = Array.from(grid.querySelectorAll<HTMLElement>('.archive-card, .product-card'));
+    function applySort(mode: string) {
+      const cards = Array.from(grid.querySelectorAll<HTMLElement>('.archive-card, .product-card'));
+      let sorted = cards;
+      const price = (c: HTMLElement) => parseFloat(c.dataset.price || '0') || 0;
+      const name = (c: HTMLElement) => (c.dataset.name || '').toLowerCase();
+      if (mode === 'price-asc') sorted = [...cards].sort((a, b) => price(a) - price(b));
+      else if (mode === 'price-desc') sorted = [...cards].sort((a, b) => price(b) - price(a));
+      else if (mode === 'name') sorted = [...cards].sort((a, b) => name(a).localeCompare(name(b)));
+      else sorted = original.slice(); // 'featured' → original curated order
+      sorted.forEach(c => grid.appendChild(c));
+    }
+    if (sortSel) sortSel.addEventListener('change', () => applySort(sortSel.value));
   }
 </script>
 

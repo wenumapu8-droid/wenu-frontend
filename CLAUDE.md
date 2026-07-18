@@ -20,9 +20,9 @@ Node version: pinned to **24.14.1** via `.nvmrc`. `package.json` `engines.node =
 - `npm run postbuild` runs `scripts/verify-build.mjs` which fails the build if `dist/p/` has fewer than 20 product directories.
 - Intentional offline/dev build: `ALLOW_EMPTY_PRODUCTS=true npm run build` — logs warnings, skips the assertion.
 
-## Cloudflare Pages preview
+## Cloudflare Pages
 
-This repo is built for Cloudflare Pages preview deploys. Production cutover is **not** wired here yet — `wenumapuonline.com` continues to serve the legacy WordPress / WooCommerce site.
+**ACTUALIZADO 2026-07-04:** `wenumapuonline.com` YA sirve este sitio Astro rediseñado (Cloudflare Pages, branch `redesign-v2`), NO el WordPress legacy. Lo que Ocin ve en el dominio es este repo: el banner "Geometry borrowed from the sky / TUNE IN", los PDP nuevos, `/constelaciones`, etc. Los productos siguen leyéndose de WooCommerce REST en build time (solo como fuente de datos). **Verificar siempre en `wenumapuonline.com` (lo que ve Ocin), no solo en `*.pages.dev`; forzar refresh si hay caché.** El deploy es Direct Upload vía `deploy-now.sh` (build + verify + `wrangler pages deploy`); `git push` NO despliega.
 
 | Field | Value |
 |---|---|

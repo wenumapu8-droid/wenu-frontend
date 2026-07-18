@@ -11,6 +11,10 @@ const journal = defineCollection({
     excerpt: z.string(),
     related: z.array(z.string()).default([]),
     length_words: z.number().optional(),
+    // Series support — e.g. "The Apprentice's Path" diary. Optional, additive.
+    series: z.string().optional(),
+    page: z.number().optional(),
+    draft: z.boolean().optional(),
   }),
 });
 

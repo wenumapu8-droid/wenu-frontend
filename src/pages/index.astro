@@ -5,12 +5,38 @@ import CategoryStrip from '../components/CategoryStrip.astro';
 import Newsletter from '../components/Newsletter.astro';
 import PatternBand from '../components/PatternBand.astro';
 import PowerAnimalsOracle from '../components/PowerAnimalsOracle.astro';
-import ManifestoKultrunSection from '../components/ManifestoKultrunSection.astro';
+// ManifestoKultrunSection FUSED into EmberCore on the home (Ocin 2026-07-06) — the two
+// kültrún sections ("The burning centre" + "Meli Witran Mapu · four lands, one drum")
+// were near-duplicates; EmberCore now carries BOTH the ember fire + HUD + touch-to-ignite
+// AND the four-lands "touch a land to turn the drum" interaction. This import + its usage
+// below are kept (commented) so the standalone section can be reinstated at /manifesto or
+// reverted here. Regla no-borrar: the component file stays in src/components/.
+// import ManifestoKultrunSection from '../components/ManifestoKultrunSection.astro';
+import MarqueeDrag from '../components/MarqueeDrag.astro';
+import SignalBand from '../components/SignalBand.astro';
+import FrequencyBand from '../components/FrequencyBand.astro';
+import EmberCore from '../components/EmberCore.astro';
 // PrefooterQuote moved to /canon (academic source page) — per Ocin 2026-06-07.
 import HeroCarousel from '../components/HeroCarousel.astro';
+import MandalaPortal from '../components/MandalaPortal.astro';
 import CosmicLinesRail from '../components/CosmicLinesRail.astro';
+// CollectionCarousel (abstract collection graphics) retired from the home
+// 2026-07-05 per Ocin — replaced by PiercingBanner + MiniCatalog (real content).
+// Component file kept in src/components/ for reuse; import archived below.
+// import CollectionCarousel from '../components/CollectionCarousel.astro';
+// PiercingBanner standalone section retired from the home 2026-07-07 per Ocin —
+// duplicate of the hero carousel's piercing slide. Component kept for reuse.
+// import PiercingBanner from '../components/PiercingBanner.astro';
+import DesignYourEarBanner from '../components/DesignYourEarBanner.astro';
+// MiniCatalog (horizontal snap rail) retired from the home 2026-07-05 per Ocin —
+// replaced by CatalogDeck (stacked, swipeable deck of pieces à la MP "Sugerencias").
+// Component file kept in src/components/ for reuse; import left for easy revert.
+import MiniCatalog from '../components/MiniCatalog.astro';
+import CatalogDeck from '../components/CatalogDeck.astro';
+import FeaturedShowcase from '../components/FeaturedShowcase.astro';
 import { getProducts } from '../lib/woo';
 import { collections } from '../data/collections';
+import { getCollection } from 'astro:content';
 import en from '../i18n/en.json';
 
 const products = await getProducts();
@@ -40,11 +66,17 @@ const withImage = products.filter(p => p.images.length > 0 && p.images[0].src);
 // the brand's macro photography standard.
 const PLACEHOLDER_IMG = /chatgpt-image|sin-?titulo|sin-?t[íi]tulo|placeholder|untitled/i;
 const curated = withImage.filter(p => !PLACEHOLDER_IMG.test(p.images[0].src));
+// Lead with the crown jewels — the exclusive, one-of-one pieces that carry the
+// brand (meteorite, Nico's wire-wrap, Alai Wakan, Galo). These were buried; the
+// home Featured rail now opens with them. Falls back to curatedStrong if a slug
+// isn't resolvable. Order = display order (rail shows the first 4).
 const FEATURED_SLUGS = [
-  'drop-con-amatista-2',
-  'carved-ethnic-ring',
-  'gold-titanium-marquise-onyx-piercing',
-  'ornamental-wood-ear-weights',
+  'jimmy-atacama-meteorite-ring-19mm-casting',
+  'ancient-picoyo-pendant-with-silver-inlays',
+  'alai-wakan-articulated-triangle-hanger-bronze-alpaca-jump-link',
+  'labradorite-wire-wrapped-pendant-gold-silver-mont-shasta',
+  'ritual-ring-vacamuerta-n-3-sterling-silver-atacama-meteorite',
+  'galo-escultor-bronze-ant-miniature-sculpture-1-casting-mexico',
 ];
 const WEAK_CATEGORY = /uncategorized/i;
 
@@ -68,6 +100,123 @@ const featured = featuredSource.slice(0, 4).map((p, i) => ({
   product: p,
   badge: deriveBadge(p, i),
 }));
+
+// ── HOME VITRINE (Ocin 2026-07-05) ──────────────────────────────────────────
+// The home felt empty of real product photography. After recovering 203 photos,
+// many pieces now have real galleries. Surface a richer real-products vitrine:
+// lead with the crown jewels, then fill with the strongest-gallery curated
+// pieces that carry real macro photos (not placeholders), deduped, 8 total.
+const richGallery = (p: typeof products[number]) => (p.images?.length ?? 0) >= 2;
+const showcaseSeen = new Set<string>();
+const showcaseProducts = [
+  ...preferredFeatured,
+  ...curatedStrong.filter(richGallery),
+  ...curatedStrong,
+]
+  .filter(p => (showcaseSeen.has(p.slug) ? false : (showcaseSeen.add(p.slug), true)))
+  .slice(0, 8);
+
+// ── CATALOGUE DECK (Ocin 2026-07-05) ────────────────────────────────────────
+// Stacked, swipeable DECK of real catalogue pieces — the MP "Sugerencias" MECHANISM
+// (peeked stack, swipe the top card to bring the next) rendered in the Wenu world.
+// Real WooCommerce pieces with real macro photos, deduped, each links to its PDP;
+// the deck leads to /shop. Mix crown jewels + strong-gallery curated pieces so the
+// deck reads as a genuine escaparate (12 max — the deck loops over the selection).
+// `miniCatalog` (same source) still feeds the retired MiniCatalog if reverted.
+const miniSeen = new Set<string>();
+const catalogDeck = [
+  ...preferredFeatured,
+  ...curatedStrong.filter(richGallery),
+  ...curatedStrong,
+]
+  .filter(p => (miniSeen.has(p.slug) ? false : (miniSeen.add(p.slug), true)))
+  .slice(0, 12);
+const miniCatalog = catalogDeck.slice(0, 10);
+
+// ── "JUST LANDED" — newest published pieces (real photo, sorted by date) ─────
+// WooCommerce ships date_created on the product JSON; sort desc for the true
+// newest. Fall back to catalog order if timestamps are absent. Feeds the home
+// New-arrivals strip AND the Nav "New arrivals" preview.
+const newest = [...curated]
+  .sort((a, b) => {
+    const da = a.date_created_gmt || a.date_created || '';
+    const db = b.date_created_gmt || b.date_created || '';
+    return db.localeCompare(da);
+  })
+  .slice(0, 8);
+
+// ── EXPLORE-BY tiles (north 2026-06-23: one idea per screen, 2-up) ──
+const findImg = (slug: string) => products.find(p => p.slug === slug)?.images?.[0]?.src ?? null;
+const cat = (n: string) => ({ avif: `/img/banners/category/${n}.avif`, webp: `/img/banners/category/${n}.webp` });
+const explorePiercing = [
+  { label: 'Septum',     href: '/piercing-jewelry', ...cat('septum') },
+  { label: 'Plugs',      href: '/piercing-jewelry', ...cat('plug') },
+  { label: 'Tunnels',    href: '/piercing-jewelry', ...cat('tunnel') },
+  { label: 'Rings',      href: '/piercing-jewelry', ...cat('ring') },
+  { label: 'Hangers',    href: '/piercing-jewelry', ...cat('hanger') },
+  { label: 'Ear cuffs',  href: '/piercing-jewelry', ...cat('ear-cuff') },
+  { label: 'Earrings',   href: '/piercing-jewelry', ...cat('earring') },
+  { label: 'Necklaces',  href: '/piercing-jewelry', ...cat('necklace') },
+  { label: 'Bracelets',  href: '/piercing-jewelry', ...cat('bracelet') },
+];
+const coll = (n: string) => ({ avif: `/img/banners/collection/${n}.avif`, webp: `/img/banners/collection/${n}.webp` });
+const exploreStone = [
+  { label: 'Meteorite',          href: '/collection/atacama',    ...coll('atacama') },
+  { label: 'Wood & bone',        href: '/collection/organic',    ...coll('organic') },
+  { label: 'Fossil',             href: '/collection/fossil',     ...coll('fossil') },
+  { label: 'Brass · solar',      href: '/collection/solar',      ...coll('solar') },
+  { label: 'Ornamental',         href: '/collection/ornamental', ...coll('ornamental') },
+  { label: 'Araucanía',          href: '/collection/araucania',  ...coll('araucania') },
+  { label: 'Stone · one of one', href: '/stones-one-of-one',     ...coll('neo') },
+];
+
+// Latest 3 journal entries (image + title + date).
+const journalEntries = (await getCollection('journal'))
+  .filter(e => !e.data.draft)
+  .sort((a, b) => +new Date(b.data.date) - +new Date(a.data.date))
+  .slice(0, 3);
+const fmtJournalDate = (d: unknown) =>
+  new Date(d as string).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+// ── SIGNAL BAND · inline category filter (Ocin 2026-07-06) ──────────────────
+// The "Forged on earth, worn by the sky" band chips now FILTER INLINE: tapping a
+// chip swaps the featured piece to a representative of THAT category, in-page, no
+// navigation. Build a representative product per chip at build time from the real
+// WooCommerce catalog (getHeroImage skips ruler/placeholder shots so the swap
+// always shows a real macro). Each chip maps to real WC category slugs (verified
+// against getCategories() — same set CategoryStrip uses). Tap the piece → its PDP;
+// "Enter the collection →" is the only CTA that navigates (to the filtered /shop).
+const signalChips = [
+  { key: 'piercing', label: 'Piercing',          href: '/shop?cat=piercing-en',     match: /piercing|septum|nostril|labret|helix|tragus|conch|daith|industrial|flat|eyebrow|nipple|lip|tongue/i },
+  { key: 'hangers',  label: 'Hangers · Weights', href: '/shop?cat=hangers-weights', match: /hanger|weight|pendiente|peso/i },
+  { key: 'ear',      label: 'Ear jewelry',       href: '/shop?cat=earrings',        match: /earring|ear-jewel|aros?\b|cuff|stud/i },
+  { key: 'rings',    label: 'Rings',             href: '/shop?cat=ring',            match: /\bring\b|anillo/i },
+  { key: 'plugs',    label: 'Plugs',             href: '/shop?cat=plug',            match: /plug|tunnel|tunel|expansi|stretch|tapon/i },
+];
+// Prefer a curated piece with a real macro photo in the matching category; fall
+// back to any product in that category, then to a strong curated piece so a chip
+// is never empty. Dedupe so two chips don't surface the identical piece when the
+// catalog is thin.
+const signalUsed = new Set<string>();
+function pickForChip(match: RegExp) {
+  const inCat = (p: typeof products[number]) =>
+    p.categories.some(c => match.test(c.slug) || match.test(c.name));
+  const pools = [
+    curatedStrong.filter(p => richGallery(p) && inCat(p)),
+    curatedStrong.filter(inCat),
+    curated.filter(inCat),
+    curatedStrong.filter(richGallery),
+    curatedStrong,
+  ];
+  for (const pool of pools) {
+    const pick = pool.find(p => !signalUsed.has(p.slug));
+    if (pick) { signalUsed.add(pick.slug); return pick; }
+  }
+  return null;
+}
+const signalCategories = signalChips
+  .map(c => ({ ...c, product: pickForChip(c.match) }))
+  .filter((c): c is typeof c & { product: NonNullable<typeof c['product']> } => Boolean(c.product));
 
 const orgLd = {
   '@context': 'https://schema.org',
@@ -103,8 +252,8 @@ const personLd = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   '@id': 'https://wenumapuonline.com/#person-nicolas-ortega',
-  name: 'Rodrigo Nicolás Ortega García',
-  givenName: 'Rodrigo Nicolás',
+  name: 'Nicolás Ortega García',
+  givenName: 'Nicolás',
   familyName: 'Ortega García',
   alternateName: ['Nicolás Ortega', 'Ocin', 'Nico'],
   jobTitle: 'Designer · Founder · Professional Piercer',
@@ -183,110 +332,500 @@ const websiteLd = {
 
   <!-- ── HERO — carrusel rotativo (cosmos · cuerpo · paisajes · pieza) ── -->
   <div class="hero-with-portal-seal">
-    <HeroCarousel ctaHref="/shop" ctaLabel="Enter the shop" />
-    <!-- Spinning seal in the bottom-right of the hero. Text rotates around;
-         the mandala in the centre spins on its own axis. Click → /experience/. -->
-    <a href="/experience/" class="portal-seal" aria-label="Enter the cosmic dimensional portal" title="Enter the dimensional portal — a map of Mapuche cosmovision">
-      <svg class="portal-seal__text" viewBox="0 0 200 200" aria-hidden="true">
-        <defs>
-          <path id="portal-seal-textpath" d="M 100,100 m -84,0 a 84,84 0 1,1 168,0 a 84,84 0 1,1 -168,0" fill="none"/>
-        </defs>
-        <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(245,234,216,0.5)" stroke-width="0.7"/>
-        <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(245,234,216,0.25)" stroke-width="0.4"/>
-        <text font-size="9.5" letter-spacing="3.5" fill="rgba(245,234,216,0.92)" style="font-family: var(--font-sans, 'Instrument Sans', sans-serif);">
-          <textPath href="#portal-seal-textpath" startOffset="0%">WENU · MAPU · COSMIC PORTAL · ENTER · WENU · MAPU · COSMIC PORTAL · ENTER · </textPath>
-        </text>
-      </svg>
-      <img class="portal-seal__mandala" src="/img/portal-mandala-white.png" alt="" loading="lazy" decoding="async"/>
-    </a>
+    <HeroCarousel ctaHref="/shop" ctaLabel="Shop the pieces" />
+    <!-- Spinning mandala seal in the bottom-right of the hero. Unified portal
+         component: text rotates around; the mandala in the centre spins on
+         its own axis. Click → /experience/. Wrapped in an index-scoped div so the
+         absolute positioning applies (the component root carries its OWN Astro
+         scope hash, so a class passed to it can't be targeted by this page's
+         scoped <style> — the seal would otherwise fall back to in-flow and spill
+         below the hero into the next band). -->
+    <div class="hero-portal-seal-position">
+      <MandalaPortal variant="seal" />
+    </div>
   </div>
   <style>
     .hero-with-portal-seal { position: relative; }
-    .portal-seal {
+    .hero-portal-seal-position {
       position: absolute;
       right: clamp(20px, 4vw, 56px);
       bottom: clamp(20px, 4vw, 56px);
       z-index: 4;
-      display: block;
-      width: clamp(96px, 11vw, 140px);
-      height: clamp(96px, 11vw, 140px);
-      text-decoration: none;
-      color: inherit;
-      cursor: pointer;
-      transition: filter 0.5s ease, transform 0.5s ease;
-    }
-    .portal-seal__text {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      animation: portal-seal-text-spin 28s linear infinite;
-      pointer-events: none;
-    }
-    .portal-seal__mandala {
-      position: absolute;
-      top: 50%; left: 50%;
-      width: 56%;
-      height: 56%;
-      object-fit: contain;
-      transform: translate(-50%, -50%);
-      animation: portal-seal-mandala-spin 50s linear infinite, portal-seal-glow 4.5s ease-in-out infinite;
-      pointer-events: none;
-    }
-    .portal-seal:hover { filter: brightness(1.12); transform: scale(1.04); }
-    .portal-seal:hover .portal-seal__text { animation-duration: 12s; }
-    .portal-seal:hover .portal-seal__mandala { animation-duration: 16s, 1.6s; }
-    .portal-seal:focus-visible {
-      outline: 1px solid rgba(245,234,216,0.6);
-      outline-offset: 8px;
-      border-radius: 50%;
-    }
-    @keyframes portal-seal-text-spin   { from { transform: rotate(0deg);                            } to { transform: rotate(360deg);                            } }
-    @keyframes portal-seal-mandala-spin { from { transform: translate(-50%, -50%) rotate(0deg);   } to { transform: translate(-50%, -50%) rotate(360deg);   } }
-    @keyframes portal-seal-glow {
-      0%, 100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4))  drop-shadow(0 0 12px rgba(255,255,255,0.15)); }
-      50%      { filter: drop-shadow(0 0 14px rgba(255,255,255,0.85)) drop-shadow(0 0 28px rgba(255,255,255,0.32)) drop-shadow(0 0 50px rgba(240,192,96,0.10)); }
-    }
-    /* Mobile: smaller + keep visible but less prominent */
-    @media (max-width: 720px) {
-      .portal-seal { width: 84px; height: 84px; right: 14px; bottom: 14px; }
-    }
-    /* Honour OS reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      .portal-seal__text,
-      .portal-seal__mandala,
-      .portal-seal:hover .portal-seal__text,
-      .portal-seal:hover .portal-seal__mandala { animation: none !important; }
     }
   </style>
 
-  <!-- ── COSMIC LINES RAIL — 6 arquetipos cosmológicos del libro ── -->
-  <CosmicLinesRail />
+  {/* ── EXPLORE BY PIERCING ── 2-up · one idea per screen (north 2026-06-23).
+       Moved to sit DIRECTLY under the hero carousel (Ocin 2026-07-07): the two
+       Explore-by sections (piercing → collection) are now the FIRST thing after the
+       hero slides, above Design-your-ear / SignalBand / New arrivals / CatalogDeck.
+       Their shared <style> block stays lower in the page (CSS is page-global). ── */}
+  <section class="explore" aria-labelledby="explore-piercing-title">
+    <div class="container explore__head">
+      <p class="eyebrow">Shop by piercing</p>
+      <h2 id="explore-piercing-title" class="explore__title">Explore by piercing</h2>
+      <a href="/piercing-jewelry" class="explore__viewall">View all <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="explore__marquee" data-explore-marquee>
+      <div class="explore__track">
+        {[...explorePiercing, ...explorePiercing].map((t, i) => (
+          <a href={t.href} class="explore__tile" aria-label={t.label} aria-hidden={i >= explorePiercing.length ? 'true' : undefined} tabindex={i >= explorePiercing.length ? -1 : undefined}>
+            <picture>
+              <source type="image/avif" srcset={t.avif} />
+              <img src={t.webp} alt={`Wenu Mapu — ${t.label}`} width="1200" height="900" loading="lazy" decoding="async" style="object-position: 22% center;" />
+            </picture>
+            <span class="explore__veil" aria-hidden="true"></span>
+            <span class="explore__label">{t.label}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
 
-  <!-- ── PROOF BEAT ── verified operational facts only -->
+  {/* ── EXPLORE BY STONE & MATERIAL ── 2-up ── */}
+  <section class="explore explore--collections" aria-labelledby="explore-stone-title">
+    <div class="container explore__head">
+      <p class="eyebrow">Shop by collection</p>
+      <h2 id="explore-stone-title" class="explore__title">Explore by collection</h2>
+      <a href="/collection/" class="explore__viewall">View all <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="explore__marquee explore__marquee--rev" data-explore-marquee>
+      <div class="explore__track">
+        {[...exploreStone, ...exploreStone].map((t, i) => (
+          <a href={t.href} class="explore__tile" aria-label={t.label} aria-hidden={i >= exploreStone.length ? 'true' : undefined} tabindex={i >= exploreStone.length ? -1 : undefined}>
+            <picture>
+              <source type="image/avif" srcset={t.avif} />
+              <img src={t.webp} alt={`Wenu Mapu — ${t.label}`} width="1200" height="900" loading="lazy" decoding="async" />
+            </picture>
+            <span class="explore__veil" aria-hidden="true"></span>
+            <span class="explore__label">{t.label}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  {/* ── PIERCING BANNER ── standalone service banner RETIRED from the home
+       (Ocin 2026-07-07). The piercing story now lives as a slide inside the
+       HeroCarousel, so this standalone section was a duplicate. Component file
+       kept in src/components/PiercingBanner.astro for reuse (no-borrar rule);
+       only the home render is removed. Reversible: uncomment <PiercingBanner />.
+       <PiercingBanner /> */}
+
+  {/* ── DESIGN YOUR EAR ── dedicated invitation to co-design a curated ear
+       (Ocin 2026-07-06). Promotes the /constelaciones experience from a buried
+       ghost button into a real, meaningful banner: Ocin's own annotated ear-map
+       as a live "planning canvas", the opportunity spelled out (bespoke
+       constellation, plotted on your anatomy, piercer-evaluated), CTA straight to
+       /constelaciones. Image + CSS only, both themes, mobile-first. Reversible:
+       delete this line + its import. ── */}
+  <DesignYourEarBanner />
+
+  {/* ── SIGNAL / TRANSMISSION BAND ── moved ABOVE Ngen/CatalogDeck (Ocin 2026-07-06).
+       "Forged on earth, worn by the sky" with category chips that now FILTER INLINE:
+       tapping a chip swaps the featured piece to a representative of that category in
+       the same page (no navigation); tap the piece → its PDP; "Enter the collection →"
+       is the CTA that navigates to the filtered /shop. Real pieces + subtle entrance
+       glitch, fed the crown jewels + per-chip representatives built at build time. ── */}
+  <SignalBand products={showcaseProducts} categories={signalCategories} />
+
+  {/* ── JUST LANDED ── the newest published pieces, real photos, sorted by date.
+       Reordered 2026-07-07 (Ocin): sits directly under the SignalBand and directly
+       above the CatalogDeck → SignalBand → New arrivals → Ngen/CatalogDeck. ── */}
+  {newest.length > 0 && (
+    <FeaturedShowcase
+      products={newest}
+      eyebrow="We foliltun · Just landed"
+      title="New arrivals"
+      ctaHref="/new-arrivals"
+      ctaLabel="See all new arrivals"
+    />
+  )}
+
+  {/* ── CATALOGUE DECK (Ngen) ── moved directly BELOW New arrivals (Ocin 2026-07-07).
+       Stacked, swipeable deck of real pieces — the MP "Sugerencias" MECHANISM. Real
+       WooCommerce pieces, macro photo + name + price, tap → PDP; the deck loops and
+       leads to /shop. ── */}
+  <CatalogDeck products={catalogDeck} />
+
+  <style>
+    .explore { padding: var(--section-y) 0; }
+    /* Two explore marquees run back-to-back (piercing → collection). Collapse the
+       second's top padding so the seam between them matches one-section rhythm. */
+    .explore + .explore { padding-top: 0; }
+    .explore__head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      flex-wrap: wrap; gap: var(--space-2) var(--space-4);
+      margin-bottom: var(--space-5);
+    }
+    .explore__head .eyebrow { flex-basis: 100%; }
+    .explore__title {
+      font-family: var(--font-display); font-weight: var(--fw-regular);
+      font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.05;
+      color: var(--bone); margin: var(--space-1) 0 0;
+    }
+    .explore__viewall {
+      font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+      letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+      color: var(--ember); text-decoration: none; white-space: nowrap;
+      transition: color var(--t-fast);
+    }
+    .explore__viewall:hover { color: var(--bone); }
+    /* Auto-scrolling category band (marquee). Track holds the list twice and
+       shifts -50% so the loop is seamless. Hover/focus pause; reduced-motion
+       stops it and lets the user scroll by hand. */
+    .explore__marquee {
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    }
+    .explore__track {
+      display: flex; gap: var(--space-3); width: max-content;
+      animation: explore-scroll 72s linear infinite;
+      will-change: transform;
+    }
+    .explore__marquee--rev .explore__track { animation-direction: reverse; }
+    /* Collection banners already carry their NAME + tagline baked in → hide the
+       duplicate code label, and use a landscape card so the baked title shows in
+       full (not side-cropped like the 4:5 piercing tiles). */
+    .explore__marquee--rev .explore__label { display: none; }
+    .explore__marquee--rev .explore__veil { display: none; }
+    .explore__marquee--rev .explore__tile {
+      flex-basis: clamp(300px, 40vw, 480px);
+      aspect-ratio: 16 / 9;
+      /* The collection banners are near-black at the edges and carry no label/veil
+         (their title is baked in) → on the obsidian page they bled into the
+         background and the whole band read as "not there". A hairline gives each
+         banner an edge without touching the artwork. */
+      border: 1px solid var(--line-soft);
+    }
+    .explore__marquee--rev .explore__tile img { object-position: center; }
+    .explore__collection-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(var(--space-2), 1.8vw, var(--space-4));
+    }
+    .explore__tile--collection {
+      min-width: 0;
+      aspect-ratio: 16 / 9;
+    }
+    .explore__tile--collection .explore__label,
+    .explore__tile--collection .explore__veil {
+      display: none;
+    }
+    .explore__tile--collection img {
+      object-position: center;
+    }
+    .explore__marquee:hover .explore__track,
+    .explore__marquee:focus-within .explore__track { animation-play-state: paused; }
+    @keyframes explore-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+    .explore__tile {
+      position: relative; display: block; flex: 0 0 clamp(210px, 24vw, 300px);
+      aspect-ratio: 4 / 5; overflow: hidden;
+      background: var(--obsidian); text-decoration: none;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      /* No motion allowed → the band becomes a plain, hand-scrollable row.
+         The duplicated set only exists to make the loop seamless, so hide it
+         here (it stays aria-hidden either way) and drop the edge mask so the
+         first tile isn't clipped. THIS is the only place the duplicates should
+         be hidden — hiding them while the marquee animates leaves the reverse
+         band with nothing to show. */
+      .explore__marquee {
+        overflow-x: auto;
+        -webkit-mask-image: none; mask-image: none;
+        scrollbar-width: none;
+      }
+      .explore__marquee::-webkit-scrollbar { display: none; }
+      .explore__track { animation: none; }
+      .explore__tile[aria-hidden="true"] { display: none; }
+    }
+    .explore__tile img {
+      width: 100%; height: 100%; object-fit: cover;
+      filter: saturate(0.92) contrast(1.04); transition: transform var(--t-slow);
+    }
+    .explore__tile:hover img { transform: scale(1.04); }
+    .explore__veil {
+      position: absolute; inset: 0; pointer-events: none;
+      background: linear-gradient(180deg, var(--scrim-0) 45%, var(--scrim-strong) 100%);
+    }
+    .explore__label {
+      position: absolute; left: var(--space-4); bottom: var(--space-4); z-index: 1;
+      font-family: var(--font-display); font-size: clamp(1.4rem, 3vw, 2.2rem);
+      /* fixed light — sits on a dark category photo, so white in every theme. */
+      color: var(--brand-bone); text-shadow: 0 2px 18px var(--scrim-strong), 0 0 2px rgba(0,0,0,0.6);
+    }
+    @media (max-width: 600px) {
+      /* MOBILE = the SAME live marquee as desktop (Ocin 2026-07-13: "la banda no
+         se mueve, y la de colección no está").
+
+         An earlier patch here turned both bands into a static swipe row
+         (`animation: none` + hiding the aria-hidden duplicates). It killed the
+         motion, and it left the COLLECTION band — which runs in reverse — with a
+         half-empty / invisible row, because the reverse loop leans on the
+         duplicated set to have anything under the viewport at rest. That patch was
+         chasing "cut / empty" tiles whose real cause was a horizontal DOCUMENT
+         overflow (`repeat(N, 1fr)` grids, since fixed with `minmax(0, 1fr)` in
+         FeaturedShowcase + jbar) — not the marquee. So the patch is gone.
+
+         The marquee keeps `overflow: hidden` from the base rule → it clips its own
+         track and can never push the page sideways. MarqueeDrag bails on <=600px,
+         so mobile is driven by the pure-CSS `explore-scroll` keyframe. Sizing only
+         below. */
+      /* Gap as MARGIN, not flex `gap`: the keyframe shifts the track -50%, and with
+         a flex gap that lands half-a-gap short of one full copy → a visible jump
+         each loop. With the gap baked into each tile's box, 50% of the track is
+         EXACTLY one copy → seamless. (Desktop is JS-measured, so it doesn't care.) */
+      .explore__track { gap: 0; }
+      .explore__tile {
+        flex-basis: clamp(150px, 52vw, 210px);
+        aspect-ratio: 3 / 4;
+        margin-right: var(--space-2);
+      }
+      .explore__marquee--rev .explore__tile {
+        flex-basis: clamp(240px, 78vw, 330px);
+        aspect-ratio: 16 / 9;
+      }
+      .explore__collection-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+      }
+      .explore__tile--collection {
+        flex-basis: auto;
+        width: 100%;
+      }
+    }
+    @media (min-width: 601px) and (max-width: 980px) {
+      .explore__collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+
+  {/* ── HOME VITRINE (Wiñoltun · Worn pieces, real hands) ── RETIRED 2026-07-06 per Ocin
+       ("está demás, no es necesario"). Removed from the home; the FeaturedShowcase
+       component + its `showcaseProducts` source are kept (New arrivals below still uses
+       the component, and this can be reinstated by uncommenting). Regla no-borrar. ── */}
+  {/* <FeaturedShowcase products={showcaseProducts} /> */}
+
+  {/* ── LATEST EDITORIAL ── one big seasonal image (We Tripantu) ── */}
+  <!-- ── WE TRIPANTU ── editorial / newspaper "almanac" (winter solstice) -->
+  <section class="tripantu" aria-labelledby="tripantu-title">
+    <div class="tripantu__paper">
+      <div class="tripantu__masthead">
+        <span>The Wenu Mapu Almanac · No. II</span>
+        <span>Strawberry Moon · Wallmapu</span>
+      </div>
+      <hr class="tripantu__rule tripantu__rule--thick" />
+      <p class="eyebrow tripantu__eyebrow">Rising now · Strawberry full moon</p>
+      <h2 id="tripantu-title" class="tripantu__title">The first plenitude after the new sun</h2>
+      <hr class="tripantu__rule" />
+      <div class="tripantu__cols">
+        <p class="tripantu__body">The new sun of We Tripantu has risen; now the first full moon swells over the Wallmapu — the strawberry moon, plenitude after the longest night. What was sown in the dark is revealed in full light.</p>
+        <p class="tripantu__body">It is the hinge where the Celestial Cycle surfaces — meteorite and cosmos, geometry borrowed from the turning sky. Wenu Mapu looks up, as it always has: the world above, written overhead.</p>
+      </div>
+      <a href="/journal/we-tripantu" class="tripantu__cta">Read the note <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+  <style>
+    .tripantu {
+      background: var(--charcoal);
+      border-block: var(--border-thin);
+      padding: var(--section-y) var(--gutter);
+    }
+    .tripantu__paper { max-width: 760px; margin: 0 auto; }
+    .tripantu__masthead {
+      display: flex; justify-content: space-between; align-items: baseline;
+      gap: var(--space-3); flex-wrap: wrap;
+      font-family: var(--font-sans); font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--sand);
+    }
+    .tripantu__rule { border: 0; border-top: 1px solid var(--line); margin: var(--space-3) 0; }
+    .tripantu__rule--thick { border-top: 2px solid var(--bone); opacity: 0.8; margin-top: var(--space-2); }
+    .tripantu__eyebrow { color: var(--ember); text-align: center; margin: var(--space-4) 0 var(--space-2); }
+    .tripantu__title {
+      font-family: var(--font-display); font-weight: var(--fw-regular);
+      font-size: clamp(2.2rem, 6vw, 4rem); line-height: 1.02; color: var(--bone);
+      margin: 0 0 var(--space-2); text-align: center;
+    }
+    .tripantu__cols { columns: 2; column-gap: var(--space-6); margin: var(--space-4) 0 var(--space-5); }
+    .tripantu__body {
+      font-family: var(--font-serif); font-size: var(--fs-body); line-height: 1.72;
+      color: var(--fg-soft); margin: 0 0 var(--space-3); text-align: justify;
+    }
+    .tripantu__cols .tripantu__body:first-child::first-letter {
+      font-family: var(--font-display); font-size: 3.2em; line-height: 0.78;
+      float: left; margin: 6px 10px 0 0; color: var(--ember);
+    }
+    .tripantu__cta {
+      display: inline-block; font-family: var(--font-sans); font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+      color: var(--ember); text-decoration: none; border-bottom: 1px solid var(--bronze); padding-bottom: 2px;
+    }
+    .tripantu__cta:hover { color: var(--bone); border-color: var(--bone); }
+    @media (max-width: 640px) { .tripantu__cols { columns: 1; } }
+  </style>
+
+  {/* ── EMBER CORE ── the cinematic BURNING CENTRE (Ocin flagship 2026-07-06).
+       The "wow": the brand's Wüñelfe sigil set on ember fire inside a ritual-tech
+       HUD (brackets · ticks · mono readouts in mapudungun). Opens the cosmic zone
+       so the transmission world (EmberCore → cosmic ritual → FrequencyBand) reads
+       as one coherent signal. Pure CSS/SVG glow — no canvas, GPU-only, reduced-
+       motion → static glowing frame. Reversible: delete this line + its import. ── */}
+  <EmberCore />
+
+  {/* ── COSMIC RITUAL — temporal band for World UFO Day 02.07.
+       HIDDEN 2026-07-07 (Ocin): the date (02.07) has passed, so this temporal
+       "World UFO Day · We all come from the stars" band no longer applies and is
+       guarded off the home. Regla no-borrar: the markup + its <style> below are
+       kept intact; flip the guard to `true` to reinstate for a future 02.07.
+       Editorial limit: mystery/cosmos only — NO claim tying Mapuche/Inca to UFOs. ── */}
+  {false && (
+  <section class="cosmic-ritual" aria-labelledby="cosmic-ritual-title">
+    <span class="cosmic-ritual__bg" aria-hidden="true"></span>
+    <span class="cosmic-ritual__veil" aria-hidden="true"></span>
+    <div class="cosmic-ritual__inner">
+      <p class="eyebrow cosmic-ritual__eyebrow">World UFO Day · 02.07 · Transmission</p>
+      <h2 id="cosmic-ritual-title" class="cosmic-ritual__title">We all come from the stars</h2>
+      <p class="cosmic-ritual__body">The cosmos has always been a source of mystery, transformation and connection. WENU MAPU explores the space between the ancestral and the unknown through ritual objects, body jewelry and symbols made to accompany your path. Adornment for those who carry a universe within.</p>
+      <a href="/collection/solar" class="cosmic-ritual__cta">Explore the cosmic ritual <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+  )}
+  <style>
+    .cosmic-ritual {
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      border-block: var(--border-thin);
+      padding: clamp(64px, 11vw, 140px) var(--gutter);
+      background: var(--obsidian);
+    }
+    .cosmic-ritual__bg {
+      position: absolute; inset: 0; z-index: 0;
+      background: url('/img/hero/hero-cosmos-eclipse.webp') center 30% / cover no-repeat;
+      opacity: 0.42;
+      filter: saturate(0.9) contrast(1.05);
+      transform: scale(1.04);
+    }
+    .cosmic-ritual__veil {
+      position: absolute; inset: 0; z-index: 1; pointer-events: none;
+      background:
+        radial-gradient(120% 130% at 50% 42%, rgba(201, 168, 76, 0.10), transparent 60%),
+        linear-gradient(180deg, rgba(8,7,6,0.72) 0%, rgba(8,7,6,0.42) 42%, rgba(8,7,6,0.86) 100%);
+    }
+    .cosmic-ritual__inner {
+      position: relative; z-index: 2;
+      max-width: 680px; margin: 0 auto;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      gap: var(--space-4);
+    }
+    .cosmic-ritual__eyebrow { color: var(--ember); margin: 0; }
+    .cosmic-ritual__title {
+      font-family: var(--font-display); font-weight: var(--fw-regular);
+      font-size: clamp(2.3rem, 7vw, 4.4rem); line-height: 1.02; letter-spacing: 0.01em;
+      color: var(--bone); margin: 0; text-wrap: balance; text-transform: uppercase;
+      text-shadow: 0 0 26px rgba(201, 168, 76, 0.16);
+    }
+    .cosmic-ritual__body {
+      font-family: var(--font-serif); font-size: var(--fs-body); line-height: 1.74;
+      color: var(--fg-soft); max-width: 56ch; margin: 0;
+    }
+    .cosmic-ritual__cta {
+      margin-top: var(--space-2);
+      font-family: var(--font-sans); font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+      color: var(--bone); text-decoration: none;
+      border: 1px solid var(--bronze); border-radius: 999px;
+      padding: 14px 26px; transition: background var(--t-base), color var(--t-base), border-color var(--t-base);
+    }
+    .cosmic-ritual__cta:hover { background: var(--ember); border-color: var(--ember); color: var(--obsidian); }
+    @media (prefers-reduced-motion: no-preference) {
+      .cosmic-ritual__bg { animation: cosmic-drift 26s ease-in-out infinite alternate; }
+    }
+    @keyframes cosmic-drift {
+      from { transform: scale(1.04) translateY(0); }
+      to   { transform: scale(1.10) translateY(-2%); }
+    }
+  </style>
+
+  {/* ── FREQUENCY BAND ── interactive CRT oscilloscope / spectrum-analyzer band
+       (Ocin 2026-07-06). A green-phosphor "frequency / transmission" scope with a
+       central peak, scanlines, grid, phosphor grain + CRT vignette; at rest a calm
+       static signal under a short ritual line, and it COMES ALIVE on touch/pointer
+       — the peak follows the finger with an RGB-split + datamosh glitch, settling
+       back on release. Standalone beat; does NOT touch the product SignalBand /
+       CatalogDeck / FeaturedShowcase. Perf per efectos-livianos-mobile-wenu.md. ── */}
+  <FrequencyBand />
+
+  {/* ── JOURNAL ── 3 clean cards · image · title · date (north 2026-06-23) ── */}
+  <section class="jbar" aria-labelledby="jbar-title">
+    <div class="container explore__head">
+      <p class="eyebrow">Signals</p>
+      <h2 id="jbar-title" class="explore__title">From the journal</h2>
+      <a href="/journal" class="explore__viewall">View all <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="container jbar__grid">
+      {journalEntries.map(e => (
+        <a href={`/journal/${e.id}`} class="jcard">
+          <span class="jcard__media">
+            <img src={e.data.ogImage} alt="" width="800" height="600" loading="lazy" decoding="async" />
+          </span>
+          <p class="jcard__date">{fmtJournalDate(e.data.date)}</p>
+          <h3 class="jcard__title">{e.data.title}</h3>
+        </a>
+      ))}
+    </div>
+  </section>
+  <style>
+    .jbar { padding: var(--section-y) 0; border-top: var(--border-thin); }
+    .jbar__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); }
+    .jcard { display: block; text-decoration: none; color: inherit; }
+    .jcard__media { display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--bg-alt); }
+    .jcard__media img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.92) contrast(1.04); transition: transform var(--t-slow); }
+    .jcard:hover .jcard__media img { transform: scale(1.04); }
+    .jcard__date {
+      margin: var(--space-3) 0 var(--space-1);
+      font-family: var(--font-sans); font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--bronze);
+    }
+    .jcard__title {
+      font-family: var(--font-display); font-weight: var(--fw-regular);
+      font-size: var(--fs-h3); line-height: 1.15; color: var(--bone); margin: 0;
+      transition: color var(--t-fast);
+    }
+    .jcard:hover .jcard__title { color: var(--ember); }
+    @media (max-width: 760px) { .jbar__grid { grid-template-columns: 1fr; } }
+  </style>
+
+  {/* DECLUTTER/NORTH 2026-06-23 (reversible): Proof · Category strip · Featured ·
+      Truckee · Editorial band · Commissions hidden — north flow is
+      Hero → Explore → Latest → Journal → Newsletter. Toggle the guards to restore. */}
+  {false && (
   <section class="proof" aria-label="Trust signals">
     <div class="proof__inner">
-      <span class="eyebrow proof__lead">DIRECT · APPOINTMENT · DISPATCH</span>
+      <span class="eyebrow proof__lead">HANDMADE · APPOINTMENT · SHIPPING</span>
       <ul class="proof__list" role="list">
         <li>Handmade in Truckee · California</li>
         <li>Private appointments · Truckee / North Lake Tahoe</li>
         <li>Free local delivery · Truckee area</li>
         <li>USPS Priority across the US</li>
       </ul>
-      <span class="proof__cite">— direct retail only. No showroom. No middleman.</span>
+      <span class="proof__cite">— handmade in Truckee, shipped directly from the maker.</span>
     </div>
   </section>
+  )}
 
-  <!-- ── CATEGORY STRIP ── -->
-  <CategoryStrip />
+  {/* CATEGORY STRIP — hidden (north) */}
+  {false && (<CategoryStrip />)}
 
-  <!-- ── PATTERN DIVIDER ── -->
+  {/* DECLUTTER 2026-06-23 (reversible — set the guard to true to restore):
+      ornamental pattern divider hidden to let the black breathe between sections. */}
+  {false && (
   <div class="section-divider">
     <PatternBand variant="hairline" tone="bronze" />
   </div>
+  )}
 
-  <!-- ── FEATURED PIECES ── -->
-  {featured.length > 0 && (
+  {/* FEATURED rail — hidden (north: replaced by Explore-by sections). */}
+  {false && featured.length > 0 && (
     <section class="featured-v2" aria-labelledby="featured-title">
       <div class="container featured-v2__head">
         <div>
@@ -305,19 +844,36 @@ const websiteLd = {
     </section>
   )}
 
-  <!-- ── ANCESTRAL MANIFESTO + KULTRÚN ── kultrún sacred map as visual center
-       (after Featured pieces: producto primero, manifiesto como momento editorial). -->
-  <ManifestoKultrunSection />
+  {/* TRUCKEE showcase — hidden (north). Reversible. */}
+  {false && (
+  <section class="truckee" aria-labelledby="truckee-title">
+    <div class="truckee__media">
+      <picture>
+        <img src="/img/lifestyle/vitrina-truckee-01.webp" alt="Wenu Mapu showcase — the atelier in Truckee, California" width="1600" height="1067" loading="lazy" decoding="async" />
+      </picture>
+      <div class="truckee__media-veil" aria-hidden="true"></div>
+    </div>
+    <div class="truckee__copy">
+      <p class="eyebrow">{en.showcase.eyebrow}</p>
+      <h2 id="truckee-title" class="truckee__title">{en.showcase.title}</h2>
+      <p class="truckee__body">{en.showcase.body}</p>
+      <a href="/local" class="btn btn--ghost truckee__cta">{en.showcase.cta} <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+  )}
 
-  {/* Sonia Montecino academic quote was here — moved to /canon (academic source page)
-      on 2026-06-07 per Ocin. Lives there alongside book context, ISBN, voices list. */}
+  <!-- ── NEWSLETTER ── moved up after product clarity and local trust -->
+  <Newsletter />
 
-  <!-- ── PORTALS / COLLECTIONS SHOWCASE ── -->
+  {/* DECLUTTER 2026-06-23 (reversible — set guard to true to restore):
+      Portals/collections grid hidden — redundant with the SHOP mega-menu and the
+      new /collections index; it added a heavy full-bleed grid mid-home. */}
+  {false && (
   <section class="portals" aria-labelledby="portals-title">
-    <div class="container portals__head">
-      <p class="eyebrow">PORTALS · COLLECTIONS</p>
+    <div class="container portals__head" data-reveal>
+      <p class="eyebrow">SHOP BY COLLECTION</p>
       <h2 id="portals-title" class="portals__title">Enter a portal.</h2>
-      <p class="portals__lede" lang="arn" title="Wenu Mapu — the world above">Each collection is a doorway — a landscape, a sky, a lineage. Step through and the pieces gather around you.</p>
+      <p class="portals__lede" lang="arn" title="Wenu Mapu — the world above">Browse by world, atmosphere and lineage — when you want to enter through feeling, not category.</p>
     </div>
     <div class="container portals__grid" data-fade-in-stagger>
       {homeCollections.map(c => (
@@ -334,20 +890,38 @@ const websiteLd = {
             />
           </picture>
           <span class="portal-card__frame" aria-hidden="true"></span>
-          <span class="portal-card__enter" aria-hidden="true">Enter <span class="portal-card__arrow">→</span></span>
+          <span class="portal-card__enter" aria-hidden="true">View collection <span class="portal-card__arrow">→</span></span>
         </a>
       ))}
     </div>
     <div class="container portals__foot">
-      <a href="/collection" class="btn btn--ghost">All collections <span aria-hidden="true">→</span></a>
+      <a href="/collection" class="btn btn--ghost">View all collections <span aria-hidden="true">→</span></a>
     </div>
   </section>
+  )}
+
+  {/* Manifesto + Kultrún — FUSED into EmberCore above (Ocin 2026-07-06). The home had
+      TWO near-duplicate kültrún sections; they are now ONE ("The burning drum" — ember
+      fire + HUD + touch-to-ignite + the four-lands "touch a land to turn the drum").
+      The standalone ManifestoKultrunSection still lives in src/components/ and at
+      /manifesto; restore here by uncommenting the import + this line. Regla no-borrar. */}
+  {/* <ManifestoKultrunSection /> */}
+
+  {/* Sonia Montecino academic quote was here — moved to /canon (academic source page)
+      on 2026-06-07 per Ocin. Lives there alongside book context, ISBN, voices list. */}
+
+  {/* DECLUTTER 2026-06-23 (reversible): CosmicLinesRail hidden — a second editorial
+      archetype rail stacked near the manifesto/threshold; removed to reduce density. */}
+  {false && (
+  <CosmicLinesRail />
+  )}
 
   {/*
     EDITORIAL BAND — 2026-05-22 reactivada con foto macro real WM-HAN-001 Witral Vilu.
     Reemplaza el asset AI archivado en ~/Obsidian/WenuAgent/90-Archivo/lifestyle-AI-2026-05-22/.
     Cumple BRAND-DNA D8: foto real propia, tier-1 macro curada.
   */}
+  {false && (
   <section class="editorial-band" aria-label="Wenu Mapu — Witral Vilu, paired bronze serpents">
     <picture>
       <source
@@ -372,13 +946,22 @@ const websiteLd = {
     <div class="editorial-band__veil" aria-hidden="true"></div>
     <p class="editorial-band__caption eyebrow">Witral Vilu · Paired Serpents · Bronze</p>
   </section>
+  )}
 
   {/* 2026-05-29: ManifestoKultrunSection movido más arriba (entre Featured y Portals),
       Oracle bajado a justo antes de USPS (después de Commissions) — per UX audit:
       ver Obsidian: 30-Auditorias/2026-05-29-ux-audit-jerarquia-comercial.md */}
 
-  <!-- ── COSMIC THRESHOLD ── full-bleed sidereal portal between guardians + studio -->
-  <section class="threshold" aria-label="Wenu Mapu — the world above">
+  {/* SIGNATURE — Cosmic Portal (restored 2026-06-24 per Ocin).
+      The entry to the star-map experience. The seal text ring + the centre mandala
+      both rotate; the whole band is the click target → /experience/cosmos.
+      Reduced-motion stops all rotation. This is soul, not clutter. */}
+  {/* Signal / transmission band RELOCATED 2026-07-06 (Ocin): it now sits ABOVE
+       Ngen/CatalogDeck (just after DesignYourEarBanner) with INLINE-filter chips.
+       It is no longer rendered here — see <SignalBand> up top. Regla no-borrar:
+       the anchor context (cosmic portal below) is untouched. */}
+
+  <a href="/experience/cosmos" class="threshold threshold--portal" aria-label="Enter the cosmos — a map of Mapuche cosmovision">
     <picture>
       <source
         type="image/avif"
@@ -400,31 +983,64 @@ const websiteLd = {
       />
     </picture>
     <div class="threshold__veil" aria-hidden="true"></div>
-    <div class="container threshold__copy">
+
+    {/* Immersive 3D depth stage (Ocin 2026 — futuristic portal/vortex, GPU-only).
+        Pointer/scroll/device-tilt rotate the stage; layers sit at different Z depths.
+        Lazy starfield inits via IntersectionObserver; all frozen by reduced-motion. */}
+    <div class="threshold__stage" data-portal-stage aria-hidden="true">
+    <div class="threshold__vortex threshold__vortex--a" aria-hidden="true"></div>
+    <div class="threshold__vortex threshold__vortex--b" aria-hidden="true"></div>
+    <canvas class="threshold__stars" aria-hidden="true" data-portal-stars></canvas>
+    <div class="threshold__aura" aria-hidden="true"></div>
+    <svg class="threshold__geo" viewBox="0 0 400 400" aria-hidden="true" fill="none" preserveAspectRatio="xMidYMid meet">
+      <g class="threshold__geo-spin" stroke="currentColor">
+        <circle cx="200" cy="200" r="150" stroke-opacity="0.10" stroke-width="0.6"/>
+        <circle cx="200" cy="200" r="118" stroke-opacity="0.16" stroke-width="0.6"/>
+        <circle cx="200" cy="200" r="150" stroke-opacity="0.22" stroke-width="0.5" stroke-dasharray="1 7" stroke-linecap="round"/>
+        <g stroke-opacity="0.12" stroke-width="0.5">
+          <path d="M200 50 L200 350 M50 200 L350 200 M94 94 L306 306 M306 94 L94 306"/>
+        </g>
+        {/* hexagram — two interlocked triangles (ember) */}
+        <g stroke="currentColor" stroke-opacity="0.30" stroke-width="0.7" style="color: var(--ember)">
+          <path d="M200 78 L306 262 L94 262 Z"/>
+          <path d="M200 322 L94 138 L306 138 Z"/>
+        </g>
+      </g>
+      <g class="threshold__geo-counter" stroke="currentColor">
+        <circle cx="200" cy="200" r="86" stroke-opacity="0.14" stroke-width="0.5" stroke-dasharray="2 10"/>
+        {/* orbiting nodes */}
+        <circle class="threshold__geo-node" cx="200" cy="52" r="1.7" fill="currentColor" stroke="none" style="color: var(--ember)"/>
+        <circle class="threshold__geo-node" cx="348" cy="200" r="1.3" fill="currentColor" stroke="none"/>
+        <circle class="threshold__geo-node" cx="200" cy="348" r="1.3" fill="currentColor" stroke="none"/>
+        <circle class="threshold__geo-node" cx="52" cy="200" r="1.3" fill="currentColor" stroke="none" style="color: var(--ember)"/>
+      </g>
+    </svg>
+
+    <div class="threshold__seal" aria-hidden="true">
+      <svg class="threshold__seal-text" viewBox="0 0 200 200" aria-hidden="true">
+        <defs>
+          <path id="threshold-seal-path" d="M 100,100 m -84,0 a 84,84 0 1,1 168,0 a 84,84 0 1,1 -168,0" fill="none"/>
+        </defs>
+        <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(245,234,216,0.5)" stroke-width="0.6"/>
+        <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(245,234,216,0.22)" stroke-width="0.4"/>
+        <text font-size="9" letter-spacing="3.6" fill="rgba(245,234,216,0.92)" style="font-family: var(--font-sans, 'Instrument Sans', sans-serif);">
+          <textPath href="#threshold-seal-path" startOffset="0%">ENTER · WENU MAPU · COSMIC PORTAL · ENTER · WENU MAPU · COSMIC PORTAL · </textPath>
+        </text>
+      </svg>
+      <img class="threshold__seal-mandala" src="/img/portal-mandala-white.png" alt="" loading="lazy" decoding="async"/>
+    </div>
+    </div>{/* /threshold__stage */}
+
+    <div class="container threshold__copy" data-reveal>
       <p class="threshold__arn eyebrow" lang="arn">{en.threshold.arn}</p>
       <p class="threshold__title">{en.threshold.title}</p>
       <p class="threshold__line">{en.threshold.line}</p>
+      <span class="threshold__enter">Enter the cosmos <span aria-hidden="true">→</span></span>
     </div>
-  </section>
+  </a>
 
-  <!-- ── TRUCKEE SHOWCASE ── -->
-  <section class="truckee" aria-labelledby="truckee-title">
-    <div class="truckee__media">
-      <picture>
-        <source srcset="/img/truckee/showcase.avif" type="image/avif" />
-        <img src="/img/truckee/showcase.webp" alt="Truckee landscape — Sierra Nevada" width="1200" height="384" loading="lazy" decoding="async" />
-      </picture>
-      <div class="truckee__media-veil" aria-hidden="true"></div>
-    </div>
-    <div class="truckee__copy">
-      <p class="eyebrow">{en.showcase.eyebrow}</p>
-      <h2 id="truckee-title" class="truckee__title">{en.showcase.title}</h2>
-      <p class="truckee__body">{en.showcase.body}</p>
-      <a href="/local" class="btn btn--ghost truckee__cta">{en.showcase.cta} <span aria-hidden="true">→</span></a>
-    </div>
-  </section>
-
-  <!-- ── COMMISSIONS TEASER ── -->
+  {/* COMMISSIONS teaser — hidden (north). Reversible. */}
+  {false && (
   <section class="commissions-teaser" aria-labelledby="commissions-teaser-title">
     <div class="commissions-teaser__inner">
       <div class="commissions-teaser__copy">
@@ -442,64 +1058,11 @@ const websiteLd = {
       </div>
     </div>
   </section>
+  )}
 
   <!-- ── POWER ANIMALS / ANIMALES DE PODER ── interactive oracle
        (después de Commissions: engagement + recomendación de pieza, no roba protagonismo al producto). -->
   <PowerAnimalsOracle />
 
-  <!-- ── USPS GRID ── -->
-  <section class="usps" aria-label="Why Wenu Mapu">
-    <div class="usps__inner" data-fade-in-stagger>
-      {[
-        { ...en.values.noble,  glyph: 'titanium' },
-        { ...en.values.craft,  glyph: 'materials' },
-        { ...en.values.ship,   glyph: 'design' },
-        { ...en.values.pickup, glyph: 'quality' },
-      ].map(item => (
-        <div class="usps__item">
-          <span class="usps__glyph" aria-hidden="true">
-            {item.glyph === 'titanium' && (
-              <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="16" cy="16" r="9"/>
-                <path d="M16 7 L16 25 M7 16 L25 16"/>
-                <circle cx="16" cy="16" r="2.2" fill="currentColor"/>
-              </svg>
-            )}
-            {item.glyph === 'materials' && (
-              <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 4 L26 12 L22 26 L10 26 L6 12 Z"/>
-                <path d="M16 4 L16 26 M6 12 L26 12"/>
-              </svg>
-            )}
-            {item.glyph === 'design' && (
-              <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 4 L28 16 L16 28 L4 16 Z"/>
-                <path d="M16 10 L22 16 L16 22 L10 16 Z"/>
-                <circle cx="16" cy="16" r="1.5" fill="currentColor"/>
-              </svg>
-            )}
-            {item.glyph === 'quality' && (
-              <svg viewBox="0 0 32 32" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="16" cy="16" r="11"/>
-                <circle cx="16" cy="16" r="6"/>
-                <path d="M16 5 L16 27 M5 16 L27 16" opacity="0.5"/>
-              </svg>
-            )}
-          </span>
-          <h3 class="usps__title">{item.title}</h3>
-          <p class="usps__body">{item.body}</p>
-        </div>
-      ))}
-    </div>
-  </section>
-
-  <!-- ── PATTERN DIVIDER 3 ── -->
-  <div class="section-divider">
-    <PatternBand variant="hairline" tone="bronze" />
-  </div>
-
-  <!-- ── NEWSLETTER ── -->
-  <Newsletter />
-
+  <MarqueeDrag />
 </Base>
-

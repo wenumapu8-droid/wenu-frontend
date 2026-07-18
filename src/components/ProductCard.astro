@@ -22,6 +22,38 @@ const catName  = p.categories[0] ? localizeCategory(p.categories[0]) : 'Jewelry'
 
 // Hero image: prefer editorial/macro over reference/ruler shots.
 const heroImg = getHeroImage(p);
+
+// Stock state → corner badge (2026-06-26). SOLD = WC outofstock (the 9 sold
+// rings); COMING SOON = WC onbackorder (not yet available). Both disable buying.
+const stockState = p.stock_status === 'outofstock' ? 'sold'
+  : (p.stock_status === 'onbackorder' || !heroImg) ? 'soon' : null;
+const stockLabel = stockState === 'sold' ? 'Sold' : stockState === 'soon' ? 'Coming soon' : null;
+
+// ── Clean-catalogue card data (2026-06-27, "Swords & Crosses" structure, Wenu skin)
+// Material EYEBROW above the name (925 STERLING SILVER · 14K GOLD · TITANIUM …).
+const materialEyebrow = (material || catName || 'Jewelry').toUpperCase();
+
+// Variant swatches — a metal/colour attribute with >1 option → little squares.
+const SWATCH: Record<string, string> = {
+  silver: '#c8c8cc', sterling: '#c8c8cc', '925': '#c8c8cc',
+  gold: '#c9a84c', '14k': '#c9a84c', '18k': '#e3c66a', yellow: '#c9a84c',
+  rose: '#d8a48f', brass: '#b08d57', bronze: '#8a6a43', copper: '#b87333',
+  titanium: '#9298a0', steel: '#9298a0', niobium: '#7f8aa0',
+  black: '#1a1a1a', obsidian: '#1a1a1a', white: '#e9e6df',
+};
+const swatchColor = (s: string) => {
+  const k = s.toLowerCase();
+  const hit = Object.keys(SWATCH).find(key => k.includes(key));
+  return hit ? SWATCH[hit] : '#6a4a28';
+};
+const variantAttr = p.attributes?.find(a => /material|colou?r|metal|finish/i.test(a.name) && (a.options?.length ?? 0) > 1);
+const isVariable = (p.type === 'variable') || ((p.variations?.length ?? 0) > 0) || !!variantAttr;
+const swatches = (variantAttr?.options || []).slice(0, 6).map(o => ({ label: o, color: swatchColor(o) }));
+
+// CLASP INCLUDED — for necklaces/chains/bracelets that ship with a clasp, when an
+// attribute says so (honest: only when the data supports it).
+const clasp = p.attributes?.some(a => /clasp|chain/i.test(a.name) && a.options?.some(o => /clasp|included/i.test(o)))
+  || /clasp included/i.test(p.name);
 ---
 
 {archive ? (
@@ -29,11 +61,19 @@ const heroImg = getHeroImage(p);
     href={`/p/${p.slug}`}
     class="archive-card"
     data-cats={p.categories.map(c => c.slug).join(' ')}
+    data-stock={stockState}
+    data-price={parseFloat(p.price) || 0}
+    data-name={decodeEntities(p.name)}
   >
-    <div class="archive-card__img-wrap">
+    <div class="archive-card__img-wrap archive-card__img-wrap--panel">
+      <div class="archive-card__badges">
+        {badge && !stockLabel && <span class="pc-badge pc-badge--feature">{badge}</span>}
+        {stockLabel && <span class:list={['pc-badge', `pc-badge--${stockState}`]}>{stockState === 'sold' ? 'Sold out' : 'Back soon'}</span>}
+        {clasp && !stockLabel && <span class="pc-badge pc-badge--note">Clasp included</span>}
+      </div>
       {fragLabel && <span class="archive-card__index">{fragLabel}</span>}
       {heroImg
-        ? <img src={heroImg.src} alt={heroImg.alt || decodeEntities(p.name)} width={heroImg.width} height={heroImg.height} loading="lazy" />
+        ? <img src={heroImg.src} alt={heroImg.alt || decodeEntities(p.name)} width={heroImg.width} height={heroImg.height} loading="lazy" onerror="this.onerror=null; this.src='/img/products/placeholder-cardinal-bronze.webp';" />
         : <span class="product-card__placeholder" aria-hidden="true">
             <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="24" cy="24" r="14"/>
@@ -45,17 +85,16 @@ const heroImg = getHeroImage(p);
       }
     </div>
     <div class="archive-card__body">
-      <p class="archive-card__meta">
-        <span>{catName}</span>
-        {material && (
-          <>
-            <span class="archive-card__meta-dot"></span>
-            <span>{material}</span>
-          </>
-        )}
-      </p>
+      <p class="archive-card__eyebrow">{materialEyebrow}</p>
       <p class="archive-card__name">{decodeEntities(p.name)}</p>
       <p class="archive-card__price">{formatPrice(p.price)}</p>
+      {swatches.length > 0 && (
+        <div class="archive-card__swatches" aria-label="Available finishes">
+          {swatches.map(s => (
+            <span class="archive-card__swatch" style={`--sw:${s.color}`} title={s.label} aria-label={s.label}></span>
+          ))}
+        </div>
+      )}
     </div>
   </a>
 ) : (
@@ -63,11 +102,13 @@ const heroImg = getHeroImage(p);
     href={`/p/${p.slug}`}
     class="product-card"
     data-cats={p.categories.map(c => c.slug).join(' ')}
+    data-stock={stockState}
   >
     <div class="product-card__img-wrap">
-      {badge && <span class="product-card__badge">{badge}</span>}
+      {badge && !stockLabel && <span class="product-card__badge">{badge}</span>}
+      {stockLabel && <span class:list={['stock-badge', `stock-badge--${stockState}`]}>{stockLabel}</span>}
       {heroImg
-        ? <img src={heroImg.src} alt={heroImg.alt || decodeEntities(p.name)} width={heroImg.width} height={heroImg.height} loading="lazy" />
+        ? <img src={heroImg.src} alt={heroImg.alt || decodeEntities(p.name)} width={heroImg.width} height={heroImg.height} loading="lazy" onerror="this.onerror=null; this.src='/img/products/placeholder-cardinal-bronze.webp';" />
         : <span class="product-card__placeholder" aria-hidden="true">
             <svg viewBox="0 0 48 48" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="24" cy="24" r="14"/>

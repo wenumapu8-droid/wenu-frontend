@@ -42,6 +42,19 @@ export interface WooCategory {
   slug: string;
 }
 
+/** A single variation of a VARIABLE product (e.g. one size of a multi-size hanger). */
+export interface WooVariant {
+  id: number;
+  size: string;          // primary size / gauge option label (e.g. "12mm", "16g")
+  /** Full per-variation attribute map, e.g. { Color: 'Silver', Size: '16mm' }. */
+  attributes?: Record<string, string>;
+  /** Variation featured image src (for image swap on selection). */
+  image?: string;
+  price: string;
+  stock_status: string;  // 'instock' | 'outofstock' | 'onbackorder'
+  sku: string;
+}
+
 export interface WooProduct {
   id: number;
   name: string;
@@ -50,6 +63,13 @@ export interface WooProduct {
   price: string;
   regular_price: string;
   sale_price: string;
+  // WooCommerce product type. VARIABLE products leave `price`/`regular_price`
+  // empty on the parent — the real price lives on the variations. We derive it.
+  type?: string;
+  variations?: number[];
+  // Derived at fetch time from variations (min/max across variations, in store currency).
+  price_min?: number;
+  price_max?: number;
   status: string;
   description: string;
   short_description: string;
@@ -64,6 +84,12 @@ export interface WooProduct {
   stock_status: string;
   manage_stock: boolean;
   stock_quantity: number | null;
+  // WooCommerce ships ISO timestamps on the raw product JSON by default. Used to
+  // surface the newest published pieces (home "Just landed" + Nav "New arrivals").
+  date_created?: string;
+  date_created_gmt?: string;
+  // Populated at fetch time for VARIABLE products: one entry per size variation.
+  variants?: WooVariant[];
 }
 
 /** Minimal order shape from WooCommerce Orders API. */
@@ -93,6 +119,59 @@ function authParams() {
   return `consumer_key=${WC_KEY}&consumer_secret=${WC_SECRET}`;
 }
 
+// Browser-like UA: Cloudflare's bot-fight can hard-block default runtime UAs
+// (returns HTTP 403 "error code: 1010"). Sending a real UA avoids that class of
+// failure on the build's server-side fetches.
+const BUILD_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 ' +
+  '(KHTML, like Gecko) Version/17.0 Safari/605.1.15';
+
+/**
+ * fetch with a hard per-attempt timeout + bounded retries.
+ *
+ * Why this exists: the WC API sits behind Cloudflare. Under rate-limiting or a
+ * transient hold, a plain `fetch()` (no default timeout) can hang FOREVER on a
+ * held socket — which silently freezes the whole SSG build at 0% CPU with no
+ * error. An AbortController timeout turns that hang into a retryable failure.
+ */
+/** Minimal Response-like wrapper: body already consumed under the timeout. */
+interface WcResponse {
+  ok: boolean;
+  status: number;
+  json: () => any;
+}
+
+async function wcFetch(url: string, timeoutMs = 8000, tries = 3): Promise<WcResponse> {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= tries; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': BUILD_UA } });
+      // CRITICAL: read the body while the abort timer is still armed. A plain
+      // fetch resolves once headers arrive; if Cloudflare then HOLDS the body,
+      // `res.json()` (or .text()) hangs forever with no timeout — which is what
+      // silently froze the SSG build. Consuming it here keeps it under the abort.
+      const text = await res.text();
+      clearTimeout(timer);
+      // 429 / 5xx are transient (rate limit / gateway) — back off and retry.
+      if ((res.status === 429 || res.status >= 500) && attempt < tries) {
+        await new Promise(r => setTimeout(r, 800 * attempt));
+        continue;
+      }
+      return { ok: res.ok, status: res.status, json: () => (text ? JSON.parse(text) : null) };
+    } catch (e) {
+      clearTimeout(timer);
+      lastErr = e;
+      if (attempt < tries) {
+        await new Promise(r => setTimeout(r, 800 * attempt)); // linear backoff
+        continue;
+      }
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`wcFetch failed: ${url}`);
+}
+
 let productsCache: Promise<WooProduct[]> | null = null;
 
 async function fetchAllProducts(): Promise<WooProduct[]> {
@@ -101,7 +180,7 @@ async function fetchAllProducts(): Promise<WooProduct[]> {
   let page = 1;
 
   while (true) {
-    const res = await fetch(
+    const res = await wcFetch(
       `${WC_URL}/products?per_page=${perPage}&page=${page}&status=publish&${authParams()}`
     );
     if (!res.ok) {
@@ -122,22 +201,144 @@ async function fetchAllProducts(): Promise<WooProduct[]> {
     }
   }
 
-  console.log(`[woo] fetched ${products.length} products`);
+  // ── PRICE DERIVATION FOR VARIABLE PRODUCTS ──────────────────────────────
+  // WooCommerce leaves `price`/`regular_price` empty on a VARIABLE parent — the
+  // real price lives on each variation. Without this, PDP/shop/search-index show
+  // no price and JSON-LD emits price 0.00 ("free" to Google). For every product
+  // missing a usable price, fetch its variations and set price = min variation
+  // price (+ price_min/price_max for ranges). Concurrency-limited to be gentle.
+  // VARIABLE products: fetch full variation detail (size + price + stock per
+  // variant) so the PDP can render a size selector, and derive the price range.
+  // Any VARIABLE product needs its variations (for swatches/size + price range),
+  // even if WC already reports a parent price range — otherwise a colour selector
+  // silently fails to render. Belt-and-suspenders: type OR variations[] OR no price.
+  const needVariants = products.filter(p =>
+    p.type === 'variable' || (p.variations?.length ?? 0) > 0 || !(parseFloat(p.price) > 0));
+  await mapLimit(needVariants, 1, async (p) => {  // sequential: Cloudflare burst-protection holds parallel sockets; one-at-a-time is slower but reliable
+    try {
+      const variants = await fetchVariations(p.id);
+      if (!variants.length) return;
+      p.variants = variants;
+      const prices = variants.map(v => parseFloat(v.price)).filter(n => n > 0);
+      if (prices.length) {
+        const min = Math.min(...prices);
+        const max = Math.max(...prices);
+        if (!(parseFloat(p.price) > 0)) {
+          p.price = String(min);
+          p.regular_price = p.regular_price || String(min);
+        }
+        p.price_min = min;
+        p.price_max = max;
+      }
+    } catch (e) {
+      console.warn(`[woo] variation fetch failed for #${p.id} (${p.slug}):`, e instanceof Error ? e.message : e);
+    }
+  });
+
+  const withPrice = products.filter(p => parseFloat(p.price) > 0).length;
+  console.log(`[woo] fetched ${products.length} products · ${withPrice} with price (${needVariants.length} variation lookups)`);
   return products;
 }
 
-/** Reorder images so the editorial/macro shot is first, references last. */
+/** Fetch a variable product's variation prices (numeric, >0) from the WC REST API. */
+async function fetchVariationPrices(productId: number): Promise<number[]> {
+  const out: number[] = [];
+  let page = 1;
+  while (true) {
+    const res = await wcFetch(
+      `${WC_URL}/products/${productId}/variations?per_page=100&page=${page}&${authParams()}`
+    );
+    if (!res.ok) {
+      if (res.status === 404) break; // simple product with no variations
+      throw new Error(`variations HTTP ${res.status}`);
+    }
+    const data: { price?: string; regular_price?: string; sale_price?: string }[] = await res.json();
+    for (const v of data) {
+      const n = parseFloat(v.price || v.sale_price || v.regular_price || '');
+      if (!isNaN(n) && n > 0) out.push(n);
+    }
+    if (data.length < 100) break;
+    page += 1;
+  }
+  return out;
+}
+
+/** Fetch a variable product's full variation detail (size + price + stock + sku). */
+async function fetchVariations(productId: number): Promise<WooVariant[]> {
+  const out: WooVariant[] = [];
+  let page = 1;
+  while (true) {
+    const res = await wcFetch(
+      `${WC_URL}/products/${productId}/variations?per_page=100&page=${page}&${authParams()}`
+    );
+    if (!res.ok) {
+      if (res.status === 404) break; // simple product with no variations
+      throw new Error(`variations HTTP ${res.status}`);
+    }
+    const data: any[] = await res.json();
+    for (const v of data) {
+      const attrs: { name?: string; option?: string }[] = Array.isArray(v.attributes) ? v.attributes : [];
+      const sizeAttr = attrs.find(a => /size|talla|gauge|medida|tama|largo|length|di[aá]met/i.test(a.name || '')) || attrs[0];
+      const attrMap: Record<string, string> = {};
+      for (const a of attrs) { if (a.name && a.option) attrMap[a.name.trim()] = a.option.trim(); }
+      out.push({
+        id: v.id,
+        size: (sizeAttr?.option || '').trim(),
+        attributes: attrMap,
+        image: v.image?.src || undefined,
+        price: String(v.price || v.sale_price || v.regular_price || ''),
+        stock_status: v.stock_status || 'instock',
+        sku: v.sku || '',
+      });
+    }
+    if (data.length < 100) break;
+    page += 1;
+  }
+  // Keep every priced variation (colour-only variants have no size label but must
+  // survive for the swatch selector). Sort the sized ones by numeric size asc.
+  const priced = out.filter(v => v.price || (v.attributes && Object.keys(v.attributes).length));
+  const numOf = (s: string) => { const m = s.match(/[\d.]+/); return m ? parseFloat(m[0]) : 0; };
+  priced.sort((a, b) => numOf(a.size) - numOf(b.size));
+  return priced.length ? priced : out;
+}
+
+/** Run an async mapper over items with bounded concurrency. */
+async function mapLimit<T>(items: T[], limit: number, fn: (item: T) => Promise<void>): Promise<void> {
+  let i = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (i < items.length) {
+      const idx = i++;
+      await fn(items[idx]);
+    }
+  });
+  await Promise.all(workers);
+}
+
+/**
+ * Reorder images so a real hero shot leads and reference/ruler shots trail.
+ *
+ * IMPORTANT: WooCommerce image order (position 0 = cover) is authoritative.
+ * The owner sets the intended cover by ordering images in wp-admin, so we
+ * DO NOT override a good hand-set order. We only:
+ *   1. Promote images explicitly flagged as hero/principal/studio/editorial.
+ *   2. Demote clear reference shots (ruler / sizing / spec / placeholder).
+ * "macro" is intentionally NOT a promote signal: the owner names ruler/scale
+ * shots "…-macro.jpg", so treating "macro" as hero forced the sizing photo to
+ * the cover no matter what he uploaded first. Everything else keeps its WC
+ * order (a stable sort preserves position 0 as the default cover).
+ */
 function reorderImagesForHero(imgs: WooImage[]): WooImage[] {
   const norm = (s: string) => (s || '').toLowerCase();
-  const PREFER = /\b(principal|macro|hero|editorial|cover)\b/;
-  const AVOID  = /\b(ruler|westcott|sizing|size-?guide|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
+  const PREFER = /\b(principal|hero|studio|editorial|cover)\b/;
+  const AVOID  = /\b(ruler|westcott|sizing|size-?guide|spec|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
   const score = (img: WooImage): number => {
     const txt = norm(img.alt) + ' ' + norm(img.src);
-    if (PREFER.test(txt)) return -2;     // very high priority
-    if (AVOID.test(txt)) return 2;       // push to the end
-    return 0;                            // neutral
+    if (AVOID.test(txt)) return 2;       // push reference/ruler shots to the end
+    if (PREFER.test(txt)) return -1;     // gently promote explicit hero shots
+    return 0;                            // neutral → keep WC order (position 0 = cover)
   };
-  // Stable sort: keep original order between equal-score items.
+  // Stable sort: keep original WooCommerce order between equal-score items,
+  // so an un-flagged position-0 image stays the cover.
   return imgs
     .map((img, i) => ({ img, i, s: score(img) }))
     .sort((a, b) => a.s - b.s || a.i - b.i)
@@ -161,7 +362,7 @@ export async function getProducts(limit?: number): Promise<WooProduct[]> {
 
 export async function getProduct(slug: string): Promise<WooProduct | null> {
   try {
-    const res = await fetch(
+    const res = await wcFetch(
       `${WC_URL}/products?slug=${slug}&${authParams()}`
     );
     if (!res.ok) {
@@ -171,6 +372,22 @@ export async function getProduct(slug: string): Promise<WooProduct | null> {
     const p = data[0] || null;
     if (p?.images?.length > 1) {
       p.images = reorderImagesForHero(p.images);
+    }
+    // Variable products have an empty parent price — derive from variations so
+    // the PDP, its JSON-LD and "add to cart" all show the real price.
+    if (p && !(parseFloat(p.price) > 0)) {
+      try {
+        const prices = await fetchVariationPrices(p.id);
+        if (prices.length) {
+          const min = Math.min(...prices);
+          p.price = String(min);
+          p.regular_price = p.regular_price || String(min);
+          p.price_min = min;
+          p.price_max = Math.max(...prices);
+        }
+      } catch (e) {
+        console.warn(`[woo] variation price fetch failed for ${slug}:`, e instanceof Error ? e.message : e);
+      }
     }
     return p;
   } catch (e) {
@@ -185,7 +402,7 @@ export async function getProduct(slug: string): Promise<WooProduct | null> {
 
 export async function getCategories(): Promise<WooCategory[]> {
   try {
-    const res = await fetch(
+    const res = await wcFetch(
       `${WC_URL}/products/categories?per_page=50&hide_empty=true&${authParams()}`
     );
     if (!res.ok) {
@@ -211,7 +428,7 @@ async function fetchAllOrders(status?: string): Promise<WooOrder[]> {
   const statusParam = status ? `&status=${status}` : '';
 
   while (true) {
-    const res = await fetch(
+    const res = await wcFetch(
       `${WC_URL}/orders?per_page=${perPage}&page=${page}${statusParam}&${authParams()}`
     );
     if (!res.ok) {
@@ -327,27 +544,29 @@ export function formatPrice(price: string): string {
  * Pick the best hero image for a product card.
  *
  * Priority:
- *  1. Image whose alt or src signals it's a "principal" / "macro" / editorial.
- *  2. First image NOT flagged as reference / ruler / sizing / placeholder.
+ *  1. Image explicitly flagged as principal / hero / studio / editorial.
+ *  2. First image NOT flagged as reference / ruler / sizing / spec / placeholder
+ *     (this respects the WooCommerce order — position 0 wins by default).
  *  3. Fall back to `images[0]` to never break rendering.
  *
- * Why: WooCommerce serves images in the order set in wp-admin. If a product was
- * uploaded with the sizing photo first (ruler on white paper), the catalog
- * shows that instead of the editorial macro on obsidian. This helper rescues
- * the right hero without requiring every product to be reordered manually.
+ * Why: WooCommerce serves images in the order set in wp-admin, and that order is
+ * authoritative (position 0 = intended cover). We only rescue the case where a
+ * ruler/sizing shot leads. "macro" is NOT a promote signal — the owner names
+ * ruler/scale shots "…-macro.jpg", so promoting "macro" forced the sizing photo
+ * to the cover. Kept in sync with reorderImagesForHero().
  */
 export function getHeroImage(p: WooProduct): WooImage | null {
   if (!p?.images?.length) return null;
 
   const norm = (s: string) => (s || '').toLowerCase();
-  const PREFER = /\b(principal|macro|hero|editorial|cover)\b/;
-  const AVOID  = /\b(ruler|westcott|sizing|size-?guide|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
+  const PREFER = /\b(principal|hero|studio|editorial|cover)\b/;
+  const AVOID  = /\b(ruler|westcott|sizing|size-?guide|spec|reference|referencia|measure|escala|regla|placeholder|wireframe|sketch|mock(up)?)\b/;
 
-  // Prefer images explicitly tagged as macro/principal in alt or filename.
+  // Prefer images explicitly tagged as hero/principal/studio in alt or filename.
   const preferred = p.images.find(img => PREFER.test(norm(img.alt)) || PREFER.test(norm(img.src)));
   if (preferred) return preferred;
 
-  // Otherwise, return the first image that doesn't look like a reference shot.
+  // Otherwise, return the first image (WC order) that isn't a reference shot.
   const clean = p.images.find(img => !AVOID.test(norm(img.alt)) && !AVOID.test(norm(img.src)));
   if (clean) return clean;
 

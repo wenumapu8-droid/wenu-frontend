@@ -132,6 +132,9 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
   rot: (i - mid) * 7,                 // -14° … +14°
   lift: Math.abs(i - mid) * 16,       // outer cards drop, center rides high
   z: CARD_COUNT - Math.abs(i - mid),  // center card on top
+  // deal order: cards leave the stack from the top of the pile downward
+  // (top card = highest --z deals first), so the fan builds outward-in.
+  deal: CARD_COUNT - (CARD_COUNT - Math.abs(i - mid)),
 }));
 ---
 
@@ -141,19 +144,21 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     <h2 id="oracle-title" class="oracle__title">{en.power_animals.title}</h2>
     <p class="oracle__lede">{en.power_animals.lede}</p>
 
-    <div class="oracle__stage" data-oracle-stage>
+    <div class="oracle__stage is-stacked" data-oracle-stage>
       <p class="oracle__prompt" data-oracle-prompt>
-        <span class="oracle__prompt-en">Draw the card that calls you</span>
+        <span class="oracle__prompt-en">Tap the deck to shuffle</span>
         <span class="oracle__prompt-arn" lang="arn">Witrañpüramün ñi pewma — draw your dream</span>
       </p>
 
-      <div class="oracle__fan" data-oracle-fan>
+      <div class="oracle__fan is-stacked" data-oracle-fan role="button" tabindex="0"
+           aria-label="Open the oracle deck — tap to fan out the guardian cards"
+           aria-expanded="false">
         {cards.map(card => (
           <button
             type="button"
             class="oracle-card"
             data-oracle-card
-            style={`--rot:${card.rot}deg; --lift:${card.lift}px; --z:${card.z};`}
+            style={`--rot:${card.rot}deg; --lift:${card.lift}px; --z:${card.z}; --i:${card.i}; --deal:${card.deal};`}
             aria-label="Draw a guardian card from the oracle"
           >
             <span class="oracle-card__flip">
@@ -202,6 +207,17 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
         ))}
       </div>
 
+      {/* Deck hint — visible only while the deck is stacked (collapsed). */}
+      <p class="oracle__deck-hint" data-oracle-deck-hint aria-hidden="true">
+        <span class="oracle__deck-hint-pulse"></span>
+        Tap the deck to shuffle
+      </p>
+
+      {/* Confirm step — appears once a card is selected (stage 1). Second tap reveals. */}
+      <button type="button" class="oracle__reveal" data-oracle-reveal hidden>
+        Reveal this guardian <span aria-hidden="true">→</span>
+      </button>
+
       {/* Reveal caption — appears once a card is drawn. Order ritual:
           native · display → display title → keywords → reading → pieces preview → CTA → again */}
       <div class="oracle__caption" data-oracle-caption hidden aria-live="polite">
@@ -220,12 +236,12 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
           </ul>
         </div>
         <p class="oracle__pieces-empty" data-oracle-pieces-empty hidden>
-          Tu próxima pieza está siendo forjada. <a href="/custom-orders">Open a commission →</a>
+          No piece is aligned to this guardian yet. <a href="/custom-orders">Start a commission →</a>
         </p>
 
         <div class="oracle__actions">
           <a href="/shop" class="btn btn--solid oracle__shop" data-oracle-shop>
-            Shop this energy <span aria-hidden="true">→</span>
+            Shop pieces aligned with this guardian <span aria-hidden="true">→</span>
           </a>
           <button type="button" class="oracle__again" data-oracle-again>
             <span aria-hidden="true">↻</span> Draw again
@@ -358,6 +374,59 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
       filter 0.45s ease;
     z-index: var(--z);
   }
+  /* ══ Dealing the fan — each card travels from the pile to its slot ══
+     Instead of every card sliding at once, each one is DEALT individually:
+     it starts stacked at the deck centre (tight, slightly rotated), then flies
+     out to its fan position with a staggered delay so you SEE the cards land
+     one after another. GPU-only (transform/opacity). The card's resting
+     transform (translateY(--lift) rotate(--rot)) is the animation's end state,
+     so it settles exactly where the static fan expects it. */
+  .oracle__fan.is-opening .oracle-card {
+    /* deal strictly left → right (--i is 0…4) so each of the five cards lands
+       distinctly, one after another. 0.15s between cards → a calm, readable
+       reparto that ends ~1.5s in. */
+    animation: oracle-card-deal 0.9s cubic-bezier(0.22, 0.68, 0.16, 1) both;
+    animation-delay: calc(var(--i, 0) * 0.15s);
+  }
+  @keyframes oracle-card-deal {
+    0% {
+      /* still on the pile: pulled toward the deck centre (each card slides in by
+         its distance from the middle slot, index 2), tight rotation, sitting low
+         and faint — reads as lifting off the stack. */
+      transform:
+        translateX(calc((2 - var(--i)) * 46px))
+        translateY(calc((5 - var(--z)) * 4px + 16px))
+        rotate(calc((var(--z) - 5) * 1.2deg))
+        scale(0.92);
+      opacity: 0;
+    }
+    16% { opacity: 1; }
+    40% {
+      /* mid-flight — still travelling toward the slot */
+      transform:
+        translateX(calc((2 - var(--i)) * 14px))
+        translateY(calc(var(--lift) - 18px))
+        rotate(calc(var(--rot) * 0.7))
+        scale(1.02);
+      opacity: 1;
+    }
+    /* a gentle overshoot past the slot, then it eases back — a card being tossed
+       into place and settling. */
+    68% {
+      transform:
+        translateY(calc(var(--lift) - 12px))
+        rotate(calc(var(--rot) * 1.08))
+        scale(1.03);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(var(--lift)) rotate(var(--rot)) scale(1);
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__fan.is-opening .oracle-card { animation: none; }
+  }
   .oracle-card:hover,
   .oracle-card:focus-visible {
     transform: translateY(calc(var(--lift) - 26px)) rotate(calc(var(--rot) * 0.35)) scale(1.05);
@@ -368,12 +437,237 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     box-shadow: 0 0 0 2px var(--ember), 0 20px 48px -16px rgba(0, 0, 0, 0.7);
   }
 
+  /* ══ Shuffling — the deliberate riffle/mix before the fan opens ══
+     A calm, ceremonial gesture: the deck rocks and the cards riffle in place
+     (staggered up/down + slight rotation) a couple of times, THEN they spread.
+     No card is selected during or after — the spread is a clean, open fan. */
+  .oracle__fan.is-shuffling {
+    cursor: default;
+    animation: oracle-deck-rock 2.2s ease-in-out both;
+  }
+  .oracle__fan.is-shuffling .oracle-card {
+    /* each card lifts/drops on its own beat → a slow riffle, not a snap */
+    animation: oracle-card-riffle 2.2s ease-in-out both;
+    animation-delay: calc((5 - var(--z)) * 0.09s);
+  }
+  @keyframes oracle-deck-rock {
+    0%   { transform: translateY(0) rotate(0deg); }
+    22%  { transform: translateY(-4px) rotate(-1.4deg); }
+    50%  { transform: translateY(-2px) rotate(1.2deg); }
+    74%  { transform: translateY(-5px) rotate(-0.8deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  @keyframes oracle-card-riffle {
+    0% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 3px))
+        translateY(calc((5 - var(--z)) * 4px))
+        rotate(calc((var(--z) - 5) * 1.4deg));
+    }
+    /* riffle out — cards fan up and apart, then settle back into a tighter stack */
+    30% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 15px))
+        translateY(calc((5 - var(--z)) * 3px - 26px))
+        rotate(calc((var(--z) - 5) * 6deg));
+    }
+    55% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 5px))
+        translateY(calc((5 - var(--z)) * 4px - 4px))
+        rotate(calc((var(--z) - 5) * 2deg));
+    }
+    78% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 12px))
+        translateY(calc((5 - var(--z)) * 3px - 16px))
+        rotate(calc((var(--z) - 5) * 4.5deg));
+    }
+    100% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 3px))
+        translateY(calc((5 - var(--z)) * 4px))
+        rotate(calc((var(--z) - 5) * 1.4deg));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__fan.is-shuffling,
+    .oracle__fan.is-shuffling .oracle-card { animation: none; }
+  }
+
+  /* ══ Stacked deck (collapsed default) ══
+     Cards pile up: cancel the fan arc, overlap tightly, tiny offset/rotation so
+     it reads as a real deck. Only the top card sits fully lit; the deck is one
+     tap target (the fan wrapper carries role=button). */
+  .oracle__fan.is-stacked {
+    cursor: pointer;
+    padding-top: var(--space-4);
+    transition: transform var(--t-fast);
+    /* CRITICAL: with every card position:absolute, the flex wrapper would
+       collapse to width:0 and its tap target (role=button) would be an
+       invisible zero-width strip — a tap on the visible deck would miss it
+       entirely (the bug: deck never opened on touch). Give the stacked deck
+       a real, card-sized hit box so a tap anywhere on it reaches the handler. */
+    width: clamp(150px, 46vw, 210px);
+    aspect-ratio: 3 / 5;
+    max-width: 210px;
+    margin: 0 auto;
+    /* the whole box is the tap target */
+    touch-action: manipulation;
+  }
+  .oracle__fan.is-stacked .oracle-card {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    margin: 0;
+    /* Cards stay tappable so a touch on a visible card ALSO opens the deck
+       (their click handler calls openDeck first). Belt-and-suspenders with
+       the sized wrapper above. */
+    pointer-events: auto;
+    /* stack: each deeper card nudged down/right + faint rotation */
+    transform:
+      translateX(calc(-50% + (var(--z) - 5) * 3px))
+      translateY(calc((5 - var(--z)) * 4px))
+      rotate(calc((var(--z) - 5) * 1.4deg))
+      scale(1);
+    transition: transform 0.55s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.4s ease;
+  }
+  /* only the top card (highest --z == CARD_COUNT) is crisp; lower ones recede */
+  .oracle__fan.is-stacked .oracle-card:not([style*="--z:5"]) {
+    opacity: 0.9;
+    filter: brightness(0.82);
+  }
+  /* gentle breathing pulse on the whole deck — affordance that it's tappable */
+  .oracle__fan.is-stacked {
+    animation: oracle-deck-pulse 3.4s ease-in-out infinite;
+  }
+  /* while shuffling, the rock animation takes over the wrapper (beats the pulse) */
+  .oracle__fan.is-stacked.is-shuffling {
+    animation: oracle-deck-rock 2.2s ease-in-out both;
+  }
+  .oracle__fan.is-stacked:hover,
+  .oracle__fan.is-stacked:focus-visible {
+    animation: none;
+    outline: none;
+    transform: translateY(-4px);
+  }
+  .oracle__fan.is-stacked:focus-visible .oracle-card[style*="--z:5"] .oracle-card__back,
+  .oracle__fan.is-stacked:hover .oracle-card[style*="--z:5"] .oracle-card__back {
+    box-shadow:
+      0 0 0 1px var(--ember),
+      0 0 34px rgba(201, 168, 76, 0.4),
+      0 20px 48px -16px rgba(0, 0, 0, 0.7);
+  }
+  @keyframes oracle-deck-pulse {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__fan.is-stacked { animation: none; }
+    .oracle__fan.is-stacked .oracle-card { transition: none; }
+  }
+
+  /* ── Deck hint (only while stacked) ── */
+  .oracle__deck-hint {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--silver);
+    margin: 0;
+  }
+  .oracle__stage.is-stacked .oracle__deck-hint {
+    display: flex;
+  }
+  .oracle__deck-hint-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ember);
+    box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.55);
+    animation: oracle-hint-pulse 2.2s ease-out infinite;
+  }
+  @keyframes oracle-hint-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.55); opacity: 1; }
+    70%  { box-shadow: 0 0 0 10px rgba(201, 168, 76, 0); opacity: 0.7; }
+    100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__deck-hint-pulse { animation: none; }
+  }
+  /* While stacked, hide the arn/en prompt (deck-hint carries the affordance) */
+  .oracle__stage.is-stacked .oracle__prompt {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+  }
+
   /* fade the cards not chosen */
   .oracle__fan.is-drawing .oracle-card:not(.is-chosen) {
     opacity: 0;
     pointer-events: none;
     transform: translateY(48px) rotate(var(--rot)) scale(0.9);
   }
+
+  /* ── Stage 1: a card is selected (lifted + glowing, awaiting reveal) ── */
+  .oracle__fan.is-selecting .oracle-card:not(.is-selected) {
+    opacity: 0.38;
+    filter: grayscale(0.45) brightness(0.7);
+    /* stay tappable so the user can change their mind before revealing */
+  }
+  .oracle-card.is-selected {
+    transform: translateY(calc(var(--lift) - 52px)) rotate(0deg) scale(1.15);
+    z-index: 30;
+  }
+  .oracle-card.is-selected .oracle-card__back {
+    box-shadow:
+      0 0 0 1px var(--ember),
+      0 0 38px rgba(201, 168, 76, 0.42),
+      0 26px 54px -18px rgba(0, 0, 0, 0.72);
+    animation: oracle-sel-glow 2.6s ease-in-out infinite;
+  }
+  /* The lifted card breathes — reads as "alive", chosen, waiting to be revealed. */
+  @keyframes oracle-sel-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 1px var(--ember), 0 0 30px rgba(201, 168, 76, 0.32), 0 26px 54px -18px rgba(0, 0, 0, 0.72);
+    }
+    50% {
+      box-shadow: 0 0 0 1px var(--ember), 0 0 52px rgba(201, 168, 76, 0.6), 0 30px 60px -18px rgba(0, 0, 0, 0.75);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle-card.is-selected .oracle-card__back { animation: none; }
+  }
+
+  /* ── Reveal confirm button (appears in stage 1) ── */
+  .oracle__reveal {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: var(--border-accent);
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: var(--fs-eyebrow);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    padding: var(--space-3) var(--space-5);
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity var(--t-base), transform var(--t-base),
+                border-color var(--t-base), color var(--t-base);
+  }
+  .oracle__reveal[hidden] { display: none; }
+  .oracle__reveal.is-shown { opacity: 1; transform: none; }
+  .oracle__reveal:hover,
+  .oracle__reveal:focus-visible { border-color: var(--ember); color: var(--ember); outline: none; }
+  .oracle__reveal > span { margin-left: 0.5em; }
 
   /* the drawn card — centered (via --draw-shift), lifted, flipped */
   .oracle-card.is-chosen {
@@ -754,11 +1048,12 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     /* Mobile fan — laterals breathe, central rides taller (per oracle critique) */
     .oracle__fan { padding-top: var(--space-4); }
     .oracle-card { margin: 0 -28px; width: clamp(108px, 32vw, 152px); }
-    /* Side cards (rotation ≠ 0) drop opacity so they feel like backup; central stays full */
-    .oracle-card[style*="--rot:7deg"],
-    .oracle-card[style*="--rot:14deg"],
-    .oracle-card[style*="--rot:-7deg"],
-    .oracle-card[style*="--rot:-14deg"] {
+    /* Side cards (rotation ≠ 0) drop opacity so they feel like backup; central stays full.
+       Only in the open fan — the stacked deck manages its own opacity. */
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:7deg"],
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:14deg"],
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:-7deg"],
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:-14deg"] {
       opacity: 0.68;
     }
     .oracle-card[style*="--rot:0deg"] {
@@ -819,11 +1114,103 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
 
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    let drawn = false;
+    const revealBtn = root.querySelector<HTMLButtonElement>('[data-oracle-reveal]');
+    const promptEn  = root.querySelector<HTMLElement>('.oracle__prompt-en');
+    const PROMPT_IDLE    = 'Tap the deck to shuffle';
+    const PROMPT_SHUFFLE = 'Shuffling the deck…';
+    const PROMPT_CHOOSE  = 'Choose the card that calls you';
+    const PROMPT_PICK    = 'Tap the card again to reveal · or choose another';
 
-    const draw = (card: HTMLButtonElement) => {
-      if (drawn || !fan || !caption || data.length === 0) return;
-      drawn = true;
+    const deckHint = root.querySelector<HTMLElement>('[data-oracle-deck-hint]');
+
+    let selectedCard: HTMLButtonElement | null = null;
+    let revealed = false;
+    let deckOpen = false;
+    let shuffling = false;
+    let shuffleTimer = 0;
+
+    /* Stage 0 — the deck starts stacked (collapsed). First tap SHUFFLES the deck
+       (a slow, calm riffle) and THEN fans it open. No card is auto-selected — the
+       user chooses one afterwards. reduced-motion → spread instantly, no shuffle. */
+    const SHUFFLE_MS = 2200;   // must match the shuffle CSS animation duration
+    const openDeck = () => {
+      if (deckOpen || shuffling) return;
+
+      const finishOpen = () => {
+        shuffling = false;
+        deckOpen = true;
+        stage?.classList.remove('is-stacked');
+        fan?.classList.remove('is-stacked', 'is-shuffling');
+        fan?.classList.add('is-opening');
+        fan?.setAttribute('aria-expanded', 'true');
+        // Once open the wrapper is no longer the tap target; cards take over.
+        fan?.removeAttribute('role');
+        fan?.setAttribute('tabindex', '-1');
+        if (promptEn) promptEn.textContent = PROMPT_CHOOSE;
+        // Drop the deal-animation class only AFTER every card has landed, so no
+        // card snaps mid-flight. Last card: delay (4·0.16s) + duration (0.92s)
+        // ≈ 1.56s; give it a little headroom.
+        window.setTimeout(() => fan?.classList.remove('is-opening'), 1750);
+      };
+
+      if (prefersReduced) { finishOpen(); return; }
+
+      // Ceremonial phase: rock + riffle the stacked deck in place, then spread.
+      shuffling = true;
+      if (promptEn) promptEn.textContent = PROMPT_SHUFFLE;
+      if (deckHint) deckHint.style.display = 'none';
+      fan?.classList.add('is-shuffling');
+      shuffleTimer = window.setTimeout(finishOpen, SHUFFLE_MS);
+    };
+
+    /* Return to the stacked deck (used by "Draw again"). */
+    const closeDeck = () => {
+      deckOpen = false;
+      shuffling = false;
+      if (shuffleTimer) { window.clearTimeout(shuffleTimer); shuffleTimer = 0; }
+      stage?.classList.add('is-stacked');
+      fan?.classList.add('is-stacked');
+      fan?.classList.remove('is-shuffling', 'is-opening');
+      fan?.setAttribute('role', 'button');
+      fan?.setAttribute('tabindex', '0');
+      fan?.setAttribute('aria-expanded', 'false');
+      if (deckHint) deckHint.style.display = '';
+      if (promptEn) promptEn.textContent = PROMPT_IDLE;
+    };
+
+    /* prefers-reduced-motion → skip the ritual open, present the fan directly. */
+    if (prefersReduced) {
+      openDeck();
+      if (deckHint) deckHint.style.display = 'none';
+    }
+
+    /* Stage 1 — a tap selects a card (lifts + glows, others dim). */
+    const select = (card: HTMLButtonElement) => {
+      if (!deckOpen) return;   // ignore until the deck is fanned open
+      if (revealed) return;
+      if (selectedCard === card) { reveal(); return; }  // second tap on same card reveals
+      selectedCard = card;
+      cards.forEach(c => c.classList.toggle('is-selected', c === card));
+      stage?.classList.add('is-selecting');
+      fan?.classList.add('is-selecting');
+      if (promptEn) promptEn.textContent = PROMPT_PICK;
+      if (revealBtn) {
+        revealBtn.hidden = false;
+        void revealBtn.offsetWidth;
+        revealBtn.classList.add('is-shown');
+      }
+    };
+
+    /* Stage 2 — the chosen card flips and the guardian is revealed. */
+    const reveal = () => {
+      if (revealed || !selectedCard || !fan || !caption || data.length === 0) return;
+      revealed = true;
+      const card = selectedCard;
+
+      if (revealBtn) { revealBtn.classList.remove('is-shown'); revealBtn.hidden = true; }
+      stage?.classList.remove('is-selecting');
+      fan.classList.remove('is-selecting');
+      card.classList.remove('is-selected');
 
       const chosen = data[Math.floor(Math.random() * data.length)];
 
@@ -900,19 +1287,60 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
         caption.hidden = true;
         stage?.classList.remove('is-drawing');
         fan.classList.remove('is-drawing');
+        stage?.classList.remove('is-selecting');
+        fan.classList.remove('is-selecting');
         cards.forEach(c => {
           c.classList.remove('is-chosen');
+          c.classList.remove('is-selected');
           c.style.removeProperty('--draw-shift');
         });
         // Reset guardian-pieces preview between draws
         if (piecesWrap)  piecesWrap.hidden  = true;
         if (piecesEmpty) piecesEmpty.hidden = true;
         if (piecesList)  piecesList.innerHTML = '';
-        drawn = false;
+        if (revealBtn) { revealBtn.classList.remove('is-shown'); revealBtn.hidden = true; }
+        if (promptEn) promptEn.textContent = PROMPT_IDLE;
+        selectedCard = null;
+        revealed = false;
+        // Re-stack the deck for a fresh draw (unless reduced-motion keeps it open).
+        if (!prefersReduced) closeDeck();
       }, prefersReduced ? 120 : 320);
     };
 
-    cards.forEach(card => card.addEventListener('click', () => draw(card)));
+    // Open the deck. On mobile the stacked wrapper collapses oddly and touch
+    // events can be swallowed, so we listen for BOTH pointerup and click and
+    // guard against double-firing. A single confirmed tap opens the fan.
+    let openingLock = false;
+    const tryOpenDeck = (e?: Event) => {
+      if (deckOpen || shuffling) return;
+      // pointerup fires before the synthetic click; lock so click doesn't re-run.
+      if (openingLock) return;
+      openingLock = true;
+      window.setTimeout(() => { openingLock = false; }, 400);
+      e?.preventDefault?.();
+      openDeck();
+    };
+    // pointerup covers touch + mouse + pen reliably; click is the fallback.
+    fan?.addEventListener('pointerup', tryOpenDeck);
+    fan?.addEventListener('click', tryOpenDeck);
+    fan?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (deckOpen || shuffling) return;
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        openDeck();
+      }
+    });
+
+    // Each card: if the deck is still stacked, a tap opens it (belt-and-
+    // suspenders with the wrapper handler above, since the sized wrapper and
+    // the cards both sit under the finger). Once open, a tap selects.
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        if (!deckOpen) { tryOpenDeck(); return; }
+        select(card);
+      });
+    });
+    revealBtn?.addEventListener('click', reveal);
     againBtn?.addEventListener('click', reset);
   }
 </script>

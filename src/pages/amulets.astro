@@ -7,13 +7,27 @@ import en from '../i18n/en.json';
 
 const L = en.landing.amulets;
 
-const KEYWORDS = ['amulet', 'amulets', 'amuleto', 'amuletos', 'talisman', 'talisman', 'pendant'];
+/**
+ * Amulets / ornaments surfacing — WC has NO "amulet/pendant" category, so the
+ * amulet-ness lives in the product NAME, not the category slug. Match by name/slug
+ * (pendants, talismans, wire-wrap pieces like the Monte Shasta wire pendant & "picoyo",
+ * necklaces, obsidian points) plus the `necklace` category. Exclude earrings — those
+ * belong to the earrings/ear-adornment section, not amulets.
+ * (Inventory agent is loading macros for wire-wrap amulets in parallel — they surface
+ *  automatically once their names land in WooCommerce.)
+ */
+const CAT_AMULET = /(necklace|amulet|pendant|talisman|collar)/i;
+const NAME_AMULET = /(pendant|amulet|talisman|charm|wire[\s-]?wrap|wrapped|picoyo|shasta|obsidian\s*point|quartz|crystal|necklace|choker|collar|moon\s*phase|sun[\s-]?ray)/i;
 const all = await getProducts();
-const matched = all.filter(p =>
-  p.images.length > 0 && p.images[0].src &&
-  p.categories.some(c => KEYWORDS.some(k => c.slug.toLowerCase().includes(k)))
-);
-const featured = matched.slice(0, 6);
+const matched = all.filter(p => {
+  if (!(p.images.length > 0 && p.images[0]?.src)) return false;
+  const hay = `${p.slug} ${p.name}`;
+  const isEarring = /earring/i.test(hay) || p.categories.some(c => /earring/i.test(c.slug));
+  if (isEarring) return false;
+  const inCat = p.categories.some(c => CAT_AMULET.test(c.slug));
+  return inCat || NAME_AMULET.test(hay);
+});
+const featured = matched.slice(0, 8);
 
 const collectionLd = {
   '@context': 'https://schema.org',
@@ -35,14 +49,15 @@ const breadcrumbLd = {
 ---
 <Base
   title="Amulets — Cosmic-symbol pendants in silver, gold, meteorite | Wenu Mapu"
-  description="Hand-forged amulets and talismans in sterling silver, 14k gold and Atacama meteorite. Cosmic-symbol pendants for daily wear. Small editions, often one-of-a-kind."
+  description="Handcrafted amulets and talismans in sterling silver, 14k gold and Atacama meteorite. Cosmic-symbol pendants for daily wear. Small editions, often one-of-a-kind."
   ogImage="/img/categories/amulets.webp"
   jsonLd={[collectionLd, breadcrumbLd]}
 >
+  {/* On-body lead: the Mont Shasta labradorite wire-wrap (WM-NCK-003) — a real
+      amulet worn, not a generic atmosphere. */}
   <div class="cat-masthead cat-masthead--titled">
     <picture>
-      <source type="image/avif" srcset="/img/banners/atmospheric/mountain-starfield.avif" />
-      <img src="/img/banners/atmospheric/mountain-starfield.webp" alt="" width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
+      <img src="/img/lifestyle/mont-shasta-onbody.webp" alt="Wenu Mapu — labradorite wire-wrapped amulet worn at the throat" width="1120" height="1400" loading="eager" decoding="async" fetchpriority="high" style="object-position: center 48%;" />
     </picture>
     <div class="cat-masthead__label">
       <p class="cat-masthead__title">Amulets</p>

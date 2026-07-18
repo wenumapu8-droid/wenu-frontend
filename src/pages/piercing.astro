@@ -4,7 +4,10 @@ import ProductCard from '../components/ProductCard.astro';
 import PatternBand from '../components/PatternBand.astro';
 import AtelierGallery from '../components/AtelierGallery.astro';
 import CertificationsGallery from '../components/CertificationsGallery.astro';
+import PiercingAftercare from '../components/PiercingAftercare.astro';
+import BookingBuilder from '../components/BookingBuilder.astro';
 import { getProducts } from '../lib/woo';
+import { buildLocalBusinessLd, WENU_PHONE, WENU_EMAIL, WENU_AREA_SERVED } from '../lib/localBusiness';
 import en from '../i18n/en.json';
 
 const L = en.landing.piercing;
@@ -125,23 +128,58 @@ const reservationNotes = [
   'If you have anatomy, healing, or jewelry questions, ask before reserving and we will confirm fit first.',
 ];
 
+/**
+ * Contraindications / "before you book".
+ * Fuente canónica: Obsidian `20-Operaciones/contraindicaciones-piercing-2026-06-29.md`
+ * (APP / safepiercing.org, CA Penal Code §652, AAFP, HemAware — verificado 2026-06-29).
+ * Encuadre OBLIGATORIO: política del estudio + "consult your physician".
+ * NUNCA diagnóstico ni promesa médica; sin afirmaciones médicas absolutas.
+ */
+const beforeBook = [
+  {
+    title: 'Pregnancy & breastfeeding',
+    body: 'We ask you to wait. A new piercing takes months to heal, and during pregnancy or nursing your body is already doing important work. Please talk to your physician about the right time — most piercers suggest waiting until after this season.',
+  },
+  {
+    title: 'Minors',
+    body: 'Under California law, anyone under 18 must be pierced in the presence of a parent or legal guardian, who also shows their own photo ID. Nipple and genital piercings on minors are not permitted by law. Please bring your guardian and plan to talk it through together.',
+  },
+  {
+    title: 'No alcohol or drugs',
+    body: 'We cannot pierce anyone under the influence. It comes down to informed consent and your safety — intoxication affects bleeding, fainting and healing. Come sober and rested, and we will take good care of you.',
+  },
+  {
+    title: 'Medications',
+    body: 'If you take blood thinners, isotretinoin (Accutane), immunosuppressants or other regular medication, tell us before booking. Some need clearance from your doctor, and Accutane usually means waiting. Never stop a medication on your own — ask your physician first.',
+  },
+  {
+    title: 'Health conditions',
+    body: 'If you live with diabetes, a heart or valve condition, a bleeding or clotting disorder, an autoimmune condition, metal allergies, a skin condition at the site, or a history of keloids, please consult your physician first and let us know. We may ask for medical clearance.',
+  },
+];
+
+// Canonical LocalBusiness (JewelryStore) — NAP kept in sync via the shared
+// helper. Service-area business: NO PostalAddress; geography lives in
+// areaServed (the fake-locality pattern Google penalizes is avoided here).
+const businessLd = buildLocalBusinessLd({
+  name: 'Wenu Mapu — Piercing',
+  description:
+    'Ritual body piercing by private appointment in the Truckee / North Lake Tahoe / Reno area. ASTM F-136 implant-grade titanium starter jewelry, sterile single-use needles.',
+  image: 'https://wenumapuonline.com/img/categories/piercing.png',
+});
+
 const collectionLd = {
   '@context': 'https://schema.org',
   '@type': 'Service',
   serviceType: 'Body Piercing',
   provider: {
-    '@type': 'LocalBusiness',
+    '@type': 'JewelryStore',
     name: 'Wenu Mapu — Piercing',
-    address: {
-      '@type': 'PostalAddress',
-      addressLocality: 'Truckee',
-      addressRegion: 'CA',
-      addressCountry: 'US',
-    },
-    telephone: '+1 408 500 6211',
-    email: 'marimari@wenumapuonline.com',
+    telephone: WENU_PHONE,
+    email: WENU_EMAIL,
+    areaServed: WENU_AREA_SERVED,
   },
-  areaServed: 'Truckee, North Lake Tahoe',
+  areaServed: WENU_AREA_SERVED,
   offers: services.flatMap(s => s.items.map(item => ({
     '@type': 'Offer',
     name: `${s.zone} — ${item.name}`,
@@ -163,7 +201,7 @@ const breadcrumbLd = {
   title="Piercing — Ritual Body Piercing in Truckee, CA | Wenu Mapu"
   description="Ritual body piercing by private appointment in the Truckee / North Lake Tahoe area. ASTM F-136 implant-grade titanium starter jewelry. Sterile single-use needles. Book a session."
   ogImage="/img/categories/piercing.png"
-  jsonLd={[collectionLd, breadcrumbLd]}
+  jsonLd={[businessLd, collectionLd, breadcrumbLd]}
 >
   <div class="cat-masthead">
     <picture>
@@ -185,7 +223,7 @@ const breadcrumbLd = {
 
       <div class="landing__cta">
         <a href="#book" class="btn btn--solid">Book a session →</a>
-        <a href="https://aftercare.wenumapuonline.com/" target="_blank" rel="noopener" class="btn btn--ghost">Aftercare guide</a>
+        <a href="#aftercare" class="btn btn--ghost">Aftercare &amp; healing reminder</a>
       </div>
     </div>
   </section>
@@ -199,8 +237,9 @@ const breadcrumbLd = {
       <p class="eyebrow">SERVICES · USD</p>
       <h2 id="pricing-title" class="section-title">Pricing list</h2>
       <p class="section-lede">
-        Prices are <strong>per piercing</strong> and include starter titanium jewelry, sterile setup,
-        and aftercare brief. Payment at your appointment: Zelle, Venmo or cash.
+        Prices are <strong>per piercing</strong> and include implant-grade titanium jewelry, sterile
+        single-use setup, and an aftercare brief. Solid 14kt gold is an optional upgrade.
+        <a href="/initial-jewelry">See every piece we install →</a>
       </p>
 
       <div class="pricing-grid">
@@ -224,6 +263,39 @@ const breadcrumbLd = {
     </div>
   </section>
 
+  {/* ── DESIGN YOUR EAR ── Ear Constellations tool, nested inside piercing services */}
+  <section class="section piercing-design" aria-labelledby="design-title">
+    <div class="container">
+      <div class="design-feature">
+        <div class="design-feature__media">
+          {/* Ocin's own labelled ear map (his art) — the shaded ear with gold placements
+              named. Framed on a fixed-dark plate so it reads with volume in every theme
+              (Solar included) instead of flattening to a black blob. */}
+          <figure class="design-ear-plate">
+            <img src="/img/ear/ear-map-teaser.webp" width="1200" height="1190" loading="lazy" decoding="async"
+                 class="design-ear-plate__img"
+                 alt="Ocin's curated ear map — a shaded ear with gold placements labelled: high helix, forward helix, rook, daith, conch, tragus, snug, industrial, lobe and more." />
+            <figcaption class="design-ear-plate__cap">Your canvas · every placement, named</figcaption>
+          </figure>
+        </div>
+        <div class="design-feature__copy">
+          <p class="eyebrow">PLAN YOUR CURATION</p>
+          <h2 id="design-title" class="section-title">Design your ear.</h2>
+          <p class="section-lede">
+            Not sure how to combine a helix, a conch and a daith? Open the Ear
+            Constellations tool — hover any point to learn the piercing, tap to place a
+            jewel, and watch your composition connect like a constellation. Build the ear
+            you dream of, then bring it to your session and we'll plan the order that heals best.
+          </p>
+          <div class="design-feature__cta">
+            <a href="/constelaciones" class="btn btn--solid">Design your ear →</a>
+            <a href="#book" class="btn btn--ghost">Book a session</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ── INCLUDES ── -->
   <section class="section piercing-includes" aria-labelledby="includes-title">
     <div class="container">
@@ -240,46 +312,40 @@ const breadcrumbLd = {
     </div>
   </section>
 
-  <!-- ── BOOKING ── -->
-  <section id="book" class="section piercing-book" aria-labelledby="book-title">
+  <!-- ── BEFORE YOU BOOK / CONTRAINDICATIONS ── (research: contraindicaciones-piercing-2026-06-29.md) -->
+  <section class="section piercing-before" aria-labelledby="before-title">
     <div class="container">
-      <p class="eyebrow">BOOK A SESSION</p>
-      <h2 id="book-title" class="section-title">Private appointments · Truckee / North Lake Tahoe</h2>
+      <p class="eyebrow">YOUR SAFETY · BEFORE YOU BOOK</p>
+      <h2 id="before-title" class="section-title">Before you book.</h2>
       <p class="section-lede">
-        Sessions are by appointment. Write directly to Marimari with the area you want pierced,
-        your preferred days, and any jewelry questions — you'll get a human confirmation,
-        not an automated checkout flow.
+        A piercing is a passage your body has to heal, so a few things help us keep it safe.
+        None of this is medical advice — when in doubt, talk to your physician. Where it matters,
+        we may ask for medical clearance before we pierce.
       </p>
 
-      <div class="book-grid">
-        <div class="book-grid__col">
-          <h3 class="book-subtitle">Logistics</h3>
-          <ul class="book-list">
-            <li><strong>Area:</strong> Private appointments in the Truckee / North Lake Tahoe area</li>
-            <li><strong>Direct contact:</strong> marimari@wenumapuonline.com · +1 (408) 500-6211</li>
-            <li><strong>Instagram:</strong> <a href="https://instagram.com/wenu__mapu" target="_blank" rel="noopener">@wenu__mapu</a></li>
-            <li><strong>Duration:</strong> 30–60 min per session</li>
-            <li><strong>Payment:</strong> Zelle, Venmo, cash</li>
-            <li><strong>ID required:</strong> Government-issued photo ID. Minors must be accompanied by parent/legal guardian with their own ID.</li>
-          </ul>
-        </div>
+      <ul class="before-grid" role="list">
+        {beforeBook.map((c) => (
+          <li class="before-card">
+            <h3 class="before-card__title">{c.title}</h3>
+            <p class="before-card__body">{c.body}</p>
+          </li>
+        ))}
+      </ul>
 
-        <div class="book-grid__col">
-          <h3 class="book-subtitle">Reserve your time</h3>
-          <p class="book-cta-lede">
-            Online booking calendar is being prepared. Until it goes live, write to us and we'll
-            confirm the closest available slot manually.
-          </p>
-          <div class="book-cta-stack">
-            <a href="mailto:marimari@wenumapuonline.com?subject=Piercing%20booking%20request" class="btn btn--solid">Email to book →</a>
-            <a href="tel:+14085006211" class="btn btn--ghost">Call +1 (408) 500-6211</a>
-          </div>
-          <!-- CALENDLY_EMBED_HERE — replace this block with the official Calendly inline-widget once URL is provided. Recommended:
+      <aside class="before-policy" role="note" aria-label="Piercing policy">
+        <p class="before-policy__kicker">PIERCING POLICY</p>
+        <p class="before-policy__rule">Maximum of <strong>2 piercings per day</strong>.</p>
+        <p class="before-policy__body">
+          Your body heals one passage at a time. If you want a fuller curation, we will plan it
+          across separate sessions so each piercing has the room it needs to settle.
+        </p>
+      </aside>
 
-            <script type="text/javascript" src="https://assets.calendly.com/assets/external/widget.js" async></script>
-          -->
-        </div>
-      </div>
+      <p class="before-note">
+        Not sure whether something applies to you? Ask before you reserve — write to
+        <a href="mailto:marimari@wenumapuonline.com?subject=Piercing%20question">marimari@wenumapuonline.com</a>
+        and we will confirm first.
+      </p>
     </div>
   </section>
 
@@ -329,15 +395,14 @@ const breadcrumbLd = {
         </article>
 
         <article class="credentials-card credentials-card--reservation">
-          <h3 class="credentials-card__title">Reserve your piercing</h3>
+          <h3 class="credentials-card__title">Before you reserve</h3>
           <ul class="credentials-list">
             {reservationNotes.map((item) => (
               <li>{item}</li>
             ))}
           </ul>
           <div class="credentials-card__actions">
-            <a href="mailto:marimari@wenumapuonline.com?subject=Piercing%20booking%20request" class="btn btn--solid">Reserve by email →</a>
-            <a href="https://instagram.com/wenu__mapu" target="_blank" rel="noopener" class="btn btn--ghost">DM on Instagram</a>
+            <a href="#book" class="btn btn--solid">Build your session →</a>
           </div>
         </article>
       </div>
@@ -369,6 +434,52 @@ const breadcrumbLd = {
     </div>
   </section>
 
+  <!-- ── BOOKING ── The single point of conversion. Everything above earns the
+       decision (proof, price, safety, credentials); everything below is for after
+       it (aftercare, browse). One booking surface on the page, no competing CTA. -->
+  <section id="book" class="section piercing-book" aria-labelledby="book-title">
+    <div class="container">
+      <p class="eyebrow">BOOK A SESSION</p>
+      <h2 id="book-title" class="section-title">Reserve your passage.</h2>
+      <p class="section-lede">
+        By private appointment in Truckee / North Lake Tahoe. Build your session below —
+        placement, jewelry, day and time — and a person confirms it, not a robot.
+      </p>
+
+      {/* The four-step builder (Ocin's mockup, on real prices). It composes a fully
+          specified request so the first message already says everything. */}
+      <BookingBuilder />
+
+      <div class="book-grid book-grid--after">
+        <div class="book-grid__col">
+          <h3 class="book-subtitle">Good to know</h3>
+          <ul class="book-list">
+            <li><strong>Private appointment only</strong> — no rushed walk-ins. 30–60 min per session.</li>
+            <li><strong>Direct contact:</strong> marimari@wenumapuonline.com · +1 (408) 500-6211</li>
+            <li><strong>Instagram:</strong> <a href="https://instagram.com/wenu__mapu" target="_blank" rel="noopener">@wenu__mapu</a></li>
+            <li><strong>Payment</strong> at your appointment: Zelle, Venmo or cash.</li>
+            <li><strong>ID required:</strong> government-issued photo ID. Minors must be accompanied by a parent or legal guardian with their own ID.</li>
+          </ul>
+        </div>
+
+        <div class="book-grid__col">
+          <h3 class="book-subtitle">Prefer to just talk?</h3>
+          <p class="book-cta-lede">
+            The builder above is the fastest way — it sends everything at once. But if you'd
+            rather ask first, or you're not sure yet, write or call. A person answers.
+          </p>
+          <div class="book-cta-stack">
+            <a href="mailto:marimari@wenumapuonline.com?subject=Piercing%20booking%20request" class="btn btn--solid">Email to book →</a>
+            <a href="tel:+14085006211" class="btn btn--ghost">Call +1 (408) 500-6211</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {/* ── AFTERCARE · DOWNSIZE · HEALING REMINDER ── full guide + tool (2026-06-24) */}
+  <PiercingAftercare />
+
   <!-- ── FEATURED PIECES ── -->
   {featured.length > 0 && (
     <section class="section piercing-featured" aria-label="Selected piercing pieces">
@@ -397,6 +508,8 @@ const breadcrumbLd = {
 <style>
   .piercing-hero { padding-bottom: var(--space-5); }
   .piercing-pricing { background: var(--charcoal); padding: var(--space-7) 0; border-top: var(--border-thin); border-bottom: var(--border-thin); }
+  /* The BookingBuilder now leads the #book section; the logistics grid follows it. */
+  .book-grid--after { margin-top: var(--space-6); }
   .section-title {
     font-family: var(--font-display);
     font-size: clamp(2rem, 4vw, 3.2rem);
@@ -459,6 +572,42 @@ const breadcrumbLd = {
     color: var(--ember);
     font-size: 1.05rem;
   }
+  .piercing-design {
+    padding: var(--space-7) 0;
+    background: var(--charcoal);
+    border-top: var(--border-thin);
+    border-bottom: var(--border-thin);
+  }
+  .design-feature {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+    align-items: center;
+    background: linear-gradient(180deg, rgba(201,168,76,0.08), rgba(201,168,76,0.02)), var(--obsidian);
+    border: 1px solid rgba(201,168,76,0.32);
+    padding: var(--space-5);
+  }
+  .design-feature__media { display: flex; justify-content: center; }
+  /* Fixed-dark plate: Ocin's map is dark art, so we keep the frame dark in EVERY theme
+     (portal exception, mirrors the studio canvas) — never a black blob on Solar. */
+  .design-ear-plate {
+    position: relative; margin: 0; width: 100%; max-width: 340px;
+    background: radial-gradient(120% 90% at 50% 0%, rgba(201,168,76,0.10), transparent 60%), #0a0a0a;
+    border: 1px solid rgba(201,168,76,0.28); border-radius: 14px; overflow: hidden;
+    box-shadow: 0 14px 40px rgba(0,0,0,0.4);
+  }
+  .design-ear-plate__img { display: block; width: 100%; height: auto; filter: none; mix-blend-mode: normal; }
+  .design-ear-plate__cap {
+    position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 12px;
+    background: linear-gradient(0deg, rgba(10,10,10,0.85), transparent);
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-archive);
+    text-transform: uppercase; color: var(--sand); text-align: center;
+  }
+  .design-feature__cta { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+  @media (min-width: 760px) {
+    .design-feature { grid-template-columns: 360px 1fr; gap: var(--space-6); padding: var(--space-6); }
+  }
+  .design-feature .section-lede { margin-bottom: var(--space-2); }
   .piercing-includes { padding: var(--space-7) 0; }
   .includes-list { list-style: none; padding: 0; margin: var(--space-4) 0 0; display: grid; gap: var(--space-3); max-width: 56ch; }
   .includes-item {
@@ -598,7 +747,7 @@ const breadcrumbLd = {
     color: var(--clay);
     margin-left: 4px;
   }
-  .credentials-card__status--expiring { color: #c79555; }
+  .credentials-card__status--expiring { color: var(--ember); }
   .credentials-card__status--expired { color: var(--clay); }
   .credentials-card__body {
     font-family: var(--font-serif);
@@ -622,4 +771,82 @@ const breadcrumbLd = {
 
   .piercing-safety { padding: var(--space-7) 0; }
   .piercing-featured { padding: var(--space-7) 0; border-top: var(--border-thin); }
+
+  /* ── Before you book / contraindications (2026-06-29) ─────────────────────── */
+  .piercing-before {
+    padding: var(--space-7) 0;
+    background: var(--charcoal);
+    border-top: var(--border-thin);
+    border-bottom: var(--border-thin);
+  }
+  .before-grid {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-5) 0 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-5);
+  }
+  .before-card {
+    background: var(--obsidian);
+    border: var(--border-thin);
+    padding: var(--space-5);
+  }
+  .before-card__title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: var(--ember);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 0 0 var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid rgba(196, 147, 90, 0.25);
+  }
+  .before-card__body {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    font-size: var(--fs-small);
+    line-height: 1.6;
+    color: var(--fg-soft);
+    margin: 0;
+  }
+  .before-policy {
+    margin-top: var(--space-5);
+    padding: var(--space-5);
+    background: linear-gradient(180deg, rgba(201, 168, 76, 0.10), rgba(201, 168, 76, 0.02)), var(--obsidian);
+    border: 1px solid rgba(201, 168, 76, 0.40);
+  }
+  .before-policy__kicker {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--ember);
+    margin: 0 0 var(--space-2);
+  }
+  .before-policy__rule {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.4vw, 1.8rem);
+    color: var(--bone);
+    text-transform: uppercase;
+    line-height: 1.15;
+    margin: 0 0 var(--space-2);
+  }
+  .before-policy__rule strong { color: var(--ember); font-weight: inherit; }
+  .before-policy__body {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    line-height: 1.6;
+    color: var(--fg-soft);
+    margin: 0;
+    max-width: 60ch;
+  }
+  .before-note {
+    margin-top: var(--space-5);
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    line-height: 1.6;
+    color: var(--fg-soft);
+  }
+  .before-note a { color: var(--ember); }
 </style>

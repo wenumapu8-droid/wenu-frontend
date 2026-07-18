@@ -28,7 +28,7 @@ Each piece that ships with Vacamuerta carries a Certificate of Authenticity nami
 
 Stony-iron meteorite cuts hard. It does not behave like silver or bronze. The standard approach in fine jewelry is to slice the meteorite into thin tablets, polish them flat, and then etch the surface with a mild acid to reveal its internal metallic structure. In meteorite jewelry, that visible crystalline pattern is part of the evidence: it formed across cosmic time, not in a workshop.
 
-We set the etched tablet by hand into sterling silver or 14k gold. Never glued. Never dyed. The ring or the amulet is the frame; the meteorite is the work.
+The rings are hand-cast in sterling silver or 14k gold by Jimmy, the artisan who makes our Atacama meteorite series — lost-wax casting, not forging — and the etched tablet is set into the cast band by hand. Never glued. Never dyed. The ring or the amulet is the frame; the meteorite is the work.
 
 Most Vacamuerta pieces are one-of-a-kind. The fragments themselves are limited and irregular, and a piece designed around a 12mm × 18mm tablet does not repeat exactly when the next tablet is 11mm × 19mm with a different vein structure. That is part of why these pieces sit in the catalogue as ritual objects, not commodities.
 

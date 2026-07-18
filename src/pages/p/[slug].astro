@@ -3,11 +3,22 @@ import Base from '../../layouts/Base.astro';
 import Spec from '../../components/visual/Spec.astro';
 import RelatedPieces from '../../components/visual/RelatedPieces.astro';
 import RitualProductHero from '../../components/visual/RitualProductHero.astro';
+import ArtistCredit from '../../components/visual/ArtistCredit.astro';
+import ReserveModal from '../../components/ReserveModal.astro';
 import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities, truncateForMeta } from '../../lib/woo';
-import { deriveSpecs } from '../../lib/specs';
-import { addToCartUrl } from '../../lib/config';
+import { resolveSpecs } from '../../lib/specs';
+import { salesMode, CONCIERGE_LINE } from '../../lib/sales-mode';
 import type { WooProduct } from '../../lib/woo';
 import en from '../../i18n/en.json';
+import membershipRaw from '../../data/collection-membership.json';
+import { collections } from '../../data/collections';
+
+// ── SALES MODE ───────────────────────────────────────────────────────────────
+// (Ocin 2026-07-13) The old `RESERVE_MIN_PRICE = 200` gate is GONE: a price tag
+// was never a reason to talk to a human. How a piece is sold now comes from
+// `salesMode()` — 'cart' (default, cart only), 'cart_concierge' (cart first +
+// one small white-glove line) or 'inquire' (form only, no cart). Rules and the
+// per-SKU override map live in `src/lib/sales-mode.ts`.
 
 export async function getStaticPaths() {
   const products = await getProducts();
@@ -21,6 +32,16 @@ export async function getStaticPaths() {
 
 const { product, allProducts } = Astro.props as { product: WooProduct; allProducts: WooProduct[] };
 
+// PDP masthead = the banner of THIS product's collection (2026-06-24, per Ocin).
+// SKU → collection name (NocoDB membership) → lowercase slug. Only render when the
+// slug is a real themed collection with a banner; otherwise no masthead (fallback,
+// never break). Uses the --art variant so the baked title isn't cropped on mobile.
+const _collMembership: Record<string, string> = (membershipRaw as any).membership ?? {};
+const _validCollSlugs = new Set(collections.map(c => c.slug));
+const _rawColl = product.sku ? _collMembership[product.sku] : undefined;
+const collectionSlug = _rawColl && _validCollSlugs.has(_rawColl.toLowerCase()) ? _rawColl.toLowerCase() : null;
+const collectionTitle = collectionSlug ? (collections.find(c => c.slug === collectionSlug)?.title ?? collectionSlug) : null;
+
 const desc = cleanDescription(product.description || product.short_description || '');
 const mainImg = product.images[0];
 const gallery = product.images.slice(1);
@@ -31,7 +52,7 @@ const material = attrs.find(a => a.name.toLowerCase().includes('material'));
 // almost always undefined. deriveSpecs() parses the real per-piece data out of
 // the name / weight / description — used to fill the hero caption, the quick
 // spec box and the ritual-context grid (which otherwise rendered "—").
-const specs = deriveSpecs(product);
+const specs = resolveSpecs(product);
 const materialLabel = specs.materialShort || material?.options?.join(', ') || null;
 const sizeLabel = specs.size || gauge?.options?.join(' · ') || null;
 // Origin attribute drives "Materials & Origin" copy + visibility of
@@ -40,15 +61,18 @@ const sizeLabel = specs.size || gauge?.options?.join(' · ') || null;
 const originAttr = attrs.find(a => /origen|origin|made by|fabricaci/i.test(a.name));
 const originRaw = (originAttr?.options?.[0] || '').toLowerCase().trim();
 
-// Smart fallback when Origen attribute isn't set in WC. 5 honest categories:
-// - hand-forged: forged from raw material in studio (Vacamuerta/meteorite rings)
+// Smart fallback when Origen attribute isn't set in WC. Honest categories:
+// - collab-jimmy: Atacama meteorite (Vaca Muerta) rings crafted by the artisan
+//   Jimmy, a Wenu Mapu collaborator — NOT forged by the studio. Neutral verb
+//   ("crafted") until Ocin confirms forged vs. cast. [2026-06-24 coherence fix]
+// - hand-forged: forged from raw material in studio (studio metalwork)
 // - handmade: made entirely by Nico (picoyo wire-wrap, Author Jewelry, collabs)
 // - hand-assembled: Nico assembles imported parts into unique pieces (serpent
 //   hangers, colgante earrings — sold in branded carton)
 // - curated-independent: made by other independent artists Wenu Mapu curates
 //   (Alai Wakan / @alaiwakan — Spanish silversmith)
 // - imported-curated: curated selection from international suppliers, sold as-is
-type Origin = 'handmade' | 'hand-forged' | 'hand-assembled' | 'curated-independent' | 'imported-curated';
+type Origin = 'collab-jimmy' | 'handmade' | 'hand-forged' | 'hand-assembled' | 'curated-independent' | 'imported-curated';
 
 const productSignals = [
   product.name,
@@ -58,10 +82,17 @@ const productSignals = [
   ...attrs.flatMap(a => [a.name, ...(a.options || [])]),
 ].join(' ').toLowerCase();
 
+// Provenance pass 2026-07-10 (Ocin's handmade-vs-sourced rule, conservative):
+// only assert "handmade in Truckee" for signals that DOCUMENT Ocin's own hands
+// (wire-wrapped pendants — "wrapped by Ocin"). Dropped the loose picoyo /
+// author-jewelry / tipichill / cami / one-of-a-kind triggers: a piece being
+// one-of-a-kind or a named-artist collaboration (Tipichill × Camí) does NOT make
+// it hand-forged by Wenu Mapu. Those now fall through to imported-curated /
+// curated-independent so we never over-claim handmade. Genuine A pieces get their
+// label from an explicit WC Origin attribute, not fuzzy inference.
 const inferredOrigin: Origin =
-  /vacamuerta|meteorite|meteorito|atacama/.test(productSignals) ? 'hand-forged' :
-  /picoyo|wire-wrap|wirewrap/.test(productSignals)              ? 'handmade' :
-  /author-jewelry|author jewelry|tipichill|cami|one-of-a-kind/.test(productSignals) ? 'handmade' :
+  /vacamuerta|meteorite|meteorito|atacama/.test(productSignals) ? 'collab-jimmy' :
+  /wire-wrap|wirewrap/.test(productSignals)                     ? 'handmade' :
   /alai|alaiwakan|wakan/.test(productSignals)                   ? 'curated-independent' :
   /serpent|serpiente|filu|colgante|treng/.test(productSignals) && /hanger|earring|pendant/.test(productSignals) ? 'hand-assembled' :
   'imported-curated';
@@ -77,10 +108,91 @@ const origin: Origin =
 const isImported = origin === 'imported-curated';
 const isCurated  = origin === 'curated-independent' || origin === 'imported-curated';
 const isForged   = origin === 'handmade' || origin === 'hand-forged';
+
+// ── Scarcity truth ──────────────────────────────────────────────────────────
+// "One of one" / "Last one" are STOCK claims, not copy. They require REAL tracked
+// stock of exactly 1, the piece still in stock, and NOT a piece sold as a Pair
+// (a pair is two pieces — it can never be one-of-one). `specs.isPair` reads the
+// NocoDB `soldAs` field (src/data/specs-by-sku.json) first, name-derivation second.
+const isPairPiece = specs.isPair || /pair/i.test(specs.soldAs || '');
+const isOneOfOne =
+  Boolean(product.manage_stock) &&
+  product.stock_quantity === 1 &&
+  product.stock_status === 'instock' &&
+  !isPairPiece;
+
 const primaryCategory = product.categories[0];
 const primaryCategorySlug = primaryCategory?.slug?.toLowerCase() ?? '';
 const isSupportProduct = /wm-care/i.test(product.sku || '') || /aftercare|saline/.test(product.slug) || primaryCategorySlug.includes('uncategorized');
 const shouldUseRitualHero = Boolean(mainImg) && !isSupportProduct;
+
+// Stock badge (2026-06-26): SOLD = outofstock; COMING SOON = onbackorder.
+const stockState = product.stock_status === 'outofstock' ? 'sold'
+  : (product.stock_status === 'onbackorder' || !mainImg) ? 'soon' : null;
+const stockLabel = stockState === 'sold' ? 'Sold' : stockState === 'soon' ? 'Coming soon' : null;
+
+// ── Sales mode (see src/lib/sales-mode.ts) ───────────────────────────────────
+// 'cart'           → cart only. No other CTA. The default for all jewelry.
+// 'cart_concierge' → cart is ALWAYS the primary CTA; below it, a small secondary
+//                    line (a text link, never a button of equal weight) opens the
+//                    Inquire form. Solid 10k/14k gold, Atacama meteorite, forged.
+// 'inquire'        → no cart at all; the Inquire form is the single primary CTA.
+//                    Art & Objects (WM-ART / WM-OTH), coming soon, unpriced,
+//                    sold out, hand-forged without a cart.
+const mode = salesMode(product, specs, { origin });
+const showCart = mode === 'cart' || mode === 'cart_concierge';
+const showConcierge = mode === 'cart_concierge';
+const showInquire = mode === 'inquire';
+// The modal only mounts on pages that actually have a trigger for it.
+const usesInquiryForm = product.stock_status === 'instock' && (showInquire || showConcierge);
+
+// Size selector for VARIABLE products (multi-size hangers, tunnels, etc.).
+const variants = product.variants ?? [];
+
+// ── Colour / metal / finish SWATCH axis (image + price + stock swap) ──────────
+const SWATCH_MAP: Record<string, string> = {
+  // metals / finishes
+  silver: '#c8c8cc', sterling: '#c8c8cc', '925': '#c8c8cc', '950': '#c8c8cc', plata: '#c8c8cc',
+  gold: '#c9a84c', oro: '#c9a84c', '14k': '#c9a84c', '18k': '#e3c66a', yellow: '#c9a84c',
+  rose: '#d8a48f', white: '#e9e6df', brass: '#b08d57', laton: '#b08d57', bronze: '#8a6a43', bronce: '#8a6a43',
+  copper: '#b87333', cobre: '#b87333', titanium: '#9298a0', titanio: '#9298a0', steel: '#9298a0',
+  // gemstones / piedras 💎 (Ocin 2026-06-28 — elegir por color de gema)
+  amethyst: '#9966cc', amatista: '#9966cc', onyx: '#1a1a1a', onix: '#1a1a1a', obsidian: '#1a1a1a', obsidiana: '#1a1a1a',
+  turquoise: '#40c0c0', turquesa: '#40c0c0', opal: '#cfe6e6', opalo: '#cfe6e6', moonstone: '#dde6ee', piedraluna: '#dde6ee',
+  garnet: '#7a2030', granate: '#7a2030', ruby: '#9b111e', rubi: '#9b111e', citrine: '#e0a420', citrino: '#e0a420',
+  quartz: '#e8e0e0', cuarzo: '#e8e0e0', jade: '#4a8a5a', labradorite: '#5a6a7a', labradorita: '#5a6a7a',
+  lapis: '#26619c', lapislazuli: '#26619c', malachite: '#2f7a52', malaquita: '#2f7a52', tiger: '#b8860b', ojodetigre: '#b8860b',
+  agate: '#9a6a5a', agata: '#9a6a5a', sapphire: '#0f52ba', zafiro: '#0f52ba', emerald: '#2a8a5a', esmeralda: '#2a8a5a',
+  topaz: '#7ad0e0', topacio: '#7ad0e0', pearl: '#f0ead6', perla: '#f0ead6', coral: '#ff7050', carnelian: '#b03a2e',
+  cornalina: '#b03a2e', fluorite: '#7a5aa0', fluorita: '#7a5aa0', peridot: '#9abe3a', aquamarine: '#7fd0d0', aguamarina: '#7fd0d0',
+  // generic colours
+  black: '#1a1a1a', negro: '#1a1a1a', blue: '#3a5a8a', azul: '#3a5a8a', clear: '#e8e8ec', transparent: '#e8e8ec',
+  green: '#4a6a4a', verde: '#4a6a4a', red: '#9a3a3a', rojo: '#9a3a3a', purple: '#6a4a8a', violet: '#6a4a8a', pink: '#d98aa8', rosa: '#d98aa8',
+  champagne: '#e6c9a0', aurora: '#dfe3f5', ab: '#dfe3f5', iridescent: '#dfe3f5',
+};
+const swColor = (s: string) => { const k = (s || '').toLowerCase().replace(/[\s\-_]/g, ''); const hit = Object.keys(SWATCH_MAP).find(x => k.includes(x)); return hit ? SWATCH_MAP[hit] : '#6a4a28'; };
+// Swatch axis = Colour / Gem / Stone / Metal / Finish (anything but a size axis).
+const COLOR_ATTR = /colou?r|gem|gema|stone|piedra|cristal|crystal|metal|finish|tono|acabado|material/i;
+const SIZE_ATTR = /size|talla|gauge|medida|tama|largo|length|di[aá]met/i;
+const swatchAttrName = (() => {
+  for (const v of variants) { const k = v.attributes && Object.keys(v.attributes).find(k => COLOR_ATTR.test(k) && !SIZE_ATTR.test(k)); if (k) return k; }
+  return 'Finish';
+})();
+const swatchVariants = variants
+  .filter(v => v.attributes && Object.keys(v.attributes).some(k => COLOR_ATTR.test(k) && !SIZE_ATTR.test(k)))
+  .map(v => {
+    const key = Object.keys(v.attributes!).find(k => COLOR_ATTR.test(k) && !SIZE_ATTR.test(k))!;
+    const label = v.attributes![key];
+    return { label, color: swColor(label), price: formatPrice(v.price), sku: v.sku, stock: v.stock_status, image: v.image || mainImg?.src || '' };
+  })
+  .filter((s, i, arr) => arr.findIndex(x => x.label === s.label) === i); // dedupe by label
+const hasSwatches = swatchVariants.length > 1;
+const defaultSwatchIdx = Math.max(0, swatchVariants.findIndex(s => s.stock !== 'outofstock'));
+
+// Size pills only when there's a genuine size axis (not when the only axis is colour).
+const sizeVariants = variants.filter(v => v.size);
+const hasSizes = sizeVariants.length > 1 && !hasSwatches;
+const defaultVarIdx = (() => { const i = variants.findIndex(v => v.stock_status === 'instock'); return i >= 0 ? i : 0; })();
 
 // Canonical product URL — no trailing slash to match Astro's default
 // `trailingSlash: 'ignore'` and keep breadcrumb / offer URLs consistent.
@@ -181,6 +293,18 @@ const breadcrumbLd = {
   jsonLd={[productLd, breadcrumbLd]}
   noQuote
 >
+  {/* ── COLLECTION MASTHEAD ── the banner of this piece's collection sits above
+       the product, as wayfinding + context. --art = full banner, no mobile crop.
+       Only shows when the SKU maps to a real collection with a banner. */}
+  {collectionSlug && (
+    <a href={`/collection/${collectionSlug}`} class="cat-masthead cat-masthead--art pdp-collection-masthead" aria-label={`Part of the ${collectionTitle} collection`}>
+      <picture>
+        <source type="image/avif" srcset={`/img/banners/collection/${collectionSlug}.avif`} />
+        <img src={`/img/banners/collection/${collectionSlug}.webp`} alt={`Wenu Mapu — ${collectionTitle} collection`} width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
+      </picture>
+    </a>
+  )}
+
   {/* ── RITUAL PRODUCT HERO ── product macro wrapped in obsidian atmosphere
        (textil pattern + ember halo + smoke + vignette). Caption is symmetric.
        The header wordmark already lives in <Nav>; we do NOT repeat it here. */}
@@ -193,7 +317,7 @@ const breadcrumbLd = {
       eyebrow={primaryCategory ? localizeCategory(primaryCategory) : en.product.category_default}
       title={decodeEntities(product.name)}
       material={materialLabel ?? undefined}
-      badge={product.stock_quantity != null && product.stock_quantity > 0 && 3 >= product.stock_quantity ? 'LIMITED STOCK' : undefined}
+      badge={stockLabel ? stockLabel.toUpperCase() : (product.stock_quantity != null && product.stock_quantity > 0 && 3 >= product.stock_quantity ? 'LIMITED STOCK' : undefined)}
     />
   )}
 
@@ -211,7 +335,8 @@ const breadcrumbLd = {
         <div>
           {mainImg
             ? (
-              <div class="pdp-main-figure">
+              <div class="pdp-main-figure" data-stock={stockState}>
+                {stockLabel && <span class:list={['stock-badge', `stock-badge--${stockState}`]}>{stockLabel}</span>}
                 <img id="pdp-stage-img" src={mainImg.src} alt={mainImg.alt || product.name} width={mainImg.width} height={mainImg.height} loading="eager" fetchpriority="high" />
               </div>
             )
@@ -274,19 +399,70 @@ const breadcrumbLd = {
             </p>
           )}
           <div class="divider-h"></div>
-          <p class="display" style="font-size: clamp(1.6rem, 2.5vw, 2.2rem); color: var(--accent); margin: var(--space-3) 0 var(--space-4);">
-            {formatPrice(product.price)}
+          <p id="pdp-price" class="display" style="font-size: clamp(1.6rem, 2.5vw, 2.2rem); color: var(--accent); margin: var(--space-3) 0 var(--space-4);">
+            {hasSwatches ? swatchVariants[defaultSwatchIdx]?.price : hasSizes ? formatPrice(variants[defaultVarIdx]?.price || product.price) : formatPrice(product.price)}
           </p>
-          <p class="eyebrow" style={`color: ${product.stock_status === 'instock' ? 'var(--moss)' : 'var(--clay)'};`}>
-            ● {product.stock_status === 'instock' ? en.product.in_stock : en.product.out_of_stock}
+          <p id="pdp-stock" class="eyebrow" style={`color: ${product.stock_status === 'instock' ? 'var(--moss)' : stockState === 'soon' ? 'var(--ember)' : 'var(--clay)'};`}>
+            ● {product.stock_status === 'instock' ? en.product.in_stock : stockState === 'soon' ? 'Coming soon' : en.product.out_of_stock}
           </p>
+
+          {hasSwatches && (
+            <div class="variant-swatches" data-variant-swatches data-default={String(defaultSwatchIdx)}>
+              <p class="eyebrow size-select__label">{swatchAttrName} · <span data-variant-current>{swatchVariants[defaultSwatchIdx]?.label}</span></p>
+              <div class="variant-swatches__row" role="radiogroup" aria-label="Choose a finish">
+                {swatchVariants.map((s, i) => (
+                  <button
+                    type="button"
+                    class:list={['variant-swatch', { 'is-sold': s.stock === 'outofstock', 'is-active': i === defaultSwatchIdx }]}
+                    role="radio"
+                    aria-checked={i === defaultSwatchIdx ? 'true' : 'false'}
+                    aria-label={s.label}
+                    title={s.stock === 'outofstock' ? `${s.label} — sold out` : s.label}
+                    style={`--sw:${s.color}`}
+                    data-variant
+                    data-label={s.label}
+                    data-price={s.price}
+                    data-sku={s.sku}
+                    data-stock={s.stock}
+                    data-img={s.image}
+                    disabled={s.stock === 'outofstock'}
+                  ></button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hasSizes && (
+            <div class="size-select" data-size-select data-default={String(defaultVarIdx)}>
+              <p class="eyebrow size-select__label">Size · choose one</p>
+              <div class="size-select__pills" role="radiogroup" aria-label="Choose a size">
+                {variants.map((v, i) => (
+                  <button
+                    type="button"
+                    class:list={['size-pill', { 'is-sold': v.stock_status === 'outofstock', 'is-active': i === defaultVarIdx }]}
+                    role="radio"
+                    aria-checked={i === defaultVarIdx ? 'true' : 'false'}
+                    data-size-pill
+                    data-size={v.size}
+                    data-price={formatPrice(v.price)}
+                    data-sku={v.sku}
+                    data-stock={v.stock_status}
+                    disabled={v.stock_status === 'outofstock'}
+                  >
+                    <span class="size-pill__label">{v.size}</span>
+                    {v.stock_status === 'outofstock' && <span class="size-pill__sold">Sold</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick-spec box above the CTA — gauge + material only. "Made in"
               lives in the <Spec> table + Materials accordion below, so we no
               longer repeat it here (was the same line three times). The box
               only renders when there is something to show — no empty frame. */}
           {(sizeLabel || materialLabel) && (
-            <div style="background: var(--bg-alt); border: var(--border-thin); padding: var(--space-3) var(--space-4); margin: var(--space-4) 0;">
+            <div style="border-left: 2px solid var(--ember); padding: var(--space-2) 0 var(--space-2) var(--space-4); margin: var(--space-4) 0;">
               {sizeLabel && (
                 <p style={`font-size: var(--fs-small);${materialLabel ? ' margin-bottom: var(--space-1);' : ''}`}>
                   <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
@@ -305,23 +481,58 @@ const breadcrumbLd = {
 
           {product.stock_status === 'instock' ? (
             <>
-              {/* Differentiated CTA per origin + scarcity.
-                 - "Claim this piece" → one-of-one (stock=1) imported OR collab
-                 - "Open a commission" → hand-forged/handmade (commissionable)
-                 - "Add to cart"     → standard in-stock products  */}
-              <a
-                href={addToCartUrl(product.id)}
-                class="btn btn--solid"
-                style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
-              >
-                {
-                  product.manage_stock && product.stock_quantity === 1
-                    ? 'Claim this piece →'
-                    : isForged
-                      ? 'Open a commission →'
-                      : en.product.add_to_cart
-                }
-              </a>
+              {/* CTA by SALES MODE (Ocin 2026-07-13) — see src/lib/sales-mode.ts.
+                 - 'cart'           → Add to cart. Nothing else.
+                 - 'cart_concierge' → Add to cart (primary, always) + one small
+                                      secondary text link to the Inquire form.
+                 - 'inquire'        → no cart; the Inquire form is the only CTA. */}
+              {showCart && (
+                <button
+                  type="button"
+                  class="btn btn--solid"
+                  data-add-cart
+                  data-sku={product.sku || product.slug}
+                  data-slug={product.slug}
+                  data-name={decodeEntities(product.name)}
+                  data-price={product.price}
+                  data-img={mainImg?.src || ''}
+                  data-max={product.manage_stock && product.stock_quantity ? product.stock_quantity : 99}
+                  data-stock={stockState || ''}
+                  data-pair={isPairPiece ? '1' : ''}
+                  style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+                >
+                  Add to cart →
+                </button>
+              )}
+              {showConcierge && (
+                <p class="pdp-concierge">
+                  <button
+                    type="button"
+                    class="pdp-concierge__link"
+                    data-rsv-open
+                    data-piece={decodeEntities(product.name)}
+                    data-sku={product.sku || ''}
+                    data-price={formatPrice(product.price)}
+                    data-verb="consult"
+                  >
+                    {CONCIERGE_LINE}
+                  </button>
+                </p>
+              )}
+              {showInquire && (
+                <button
+                  type="button"
+                  class="btn btn--solid"
+                  data-rsv-open
+                  data-piece={decodeEntities(product.name)}
+                  data-sku={product.sku || ''}
+                  data-price={formatPrice(product.price)}
+                  data-verb="inquire"
+                  style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+                >
+                  Inquire about this piece →
+                </button>
+              )}
               <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
                 {en.product.pickup_truckee}
               </a>
@@ -329,10 +540,12 @@ const breadcrumbLd = {
                  deep in accordions. Body jewelry buyers want to know:
                  origin of shipping, speed, freight threshold, hygiene policy. */}
               <ul class="pdp-trust" aria-label="Shipping &amp; trust">
-                <li>Ships from Truckee, California</li>
-                <li>USPS Priority · 2–3 business days</li>
+                <li>Secure checkout · encrypted payment</li>
+                <li>Handmade &amp; curated · one by one</li>
+                <li>Ships from Truckee · USPS Priority 2–3 days</li>
                 <li>Free US shipping over $150</li>
                 <li>Body jewelry is final sale (hygiene)</li>
+                <li>Free local pickup in Truckee</li>
               </ul>
             </>
           ) : (
@@ -366,10 +579,12 @@ const breadcrumbLd = {
                 {en.product.pickup_truckee}
               </a>
               <ul class="pdp-trust" aria-label="Shipping &amp; trust">
-                <li>Ships from Truckee, California</li>
-                <li>USPS Priority · 2–3 business days</li>
+                <li>Secure checkout · encrypted payment</li>
+                <li>Handmade &amp; curated · one by one</li>
+                <li>Ships from Truckee · USPS Priority 2–3 days</li>
                 <li>Free US shipping over $150</li>
                 <li>Body jewelry is final sale (hygiene)</li>
+                <li>Free local pickup in Truckee</li>
               </ul>
             </>
           )}
@@ -406,6 +621,16 @@ const breadcrumbLd = {
               <div class="product-accordion__body">
                 {material && (
                   <p><strong>Material:</strong> {material.options.join(', ')}.</p>
+                )}
+                {origin === 'collab-jimmy' && (
+                  <>
+                    <p><strong>Origin:</strong> crafted by the artisan Jimmy — a Wenu Mapu collaborator — set with Vaca Muerta mesosiderite from Chile's Atacama Desert.</p>
+                    <p>
+                      A rare stony-iron meteorite, over four billion years old, worked one piece at a time.
+                      Finished and shipped from Truckee, California. Material provenance documented on our
+                      <a href="/material/vacamuerta" class="text-accent"> Vacamuerta page</a>.
+                    </p>
+                  </>
                 )}
                 {origin === 'hand-forged' && (
                   <>
@@ -454,6 +679,17 @@ const breadcrumbLd = {
                     </p>
                   </>
                 )}
+
+                {/* ── Mini-banners de crédito ──
+                     Artist credit  → piezas curadas de Alai Wakan (curated-independent).
+                     Material origin → piezas con meteorito Vaca Muerta / Atacama. */}
+                <ArtistCredit
+                  artist={origin === 'curated-independent' ? 'Alai Wakan' : undefined}
+                  igHandle={origin === 'curated-independent' ? '@alaiwakan' : undefined}
+                  igUrl={origin === 'curated-independent' ? 'https://www.instagram.com/alaiwakan' : undefined}
+                  materialOrigin={/vacamuerta|meteorite|atacama/.test(productSignals) ? 'Atacama meteorite · Vaca Muerta mesosiderite' : undefined}
+                  materialOriginUrl={/vacamuerta|meteorite|atacama/.test(productSignals) ? '/material/vacamuerta' : undefined}
+                />
               </div>
             </details>
 
@@ -528,56 +764,26 @@ const breadcrumbLd = {
                 <p>{cleanDescription(product.short_description || '') || desc}</p>
               </div>
             )}
-            {/* Ritual specs grid — Material / Size / Gauge / Use / Sold as /
-                Origin / Availability. Honest defaults when an attribute is
-                missing (don't fake "hand-forged" on imports). */}
+            {/* Ritual-context status strip — at-a-glance "Use" + "Availability"
+                ONLY. The full, piece-specific spec sheet (material, gauge, stone,
+                weight, origin, sold-as…) lives once in the <Spec> table near the
+                CTA; repeating it here produced a second, half-empty table
+                (Tigo feedback 2026-06-20). This keeps the editorial module clean
+                and non-redundant — every row always carries real data. */}
             <dl class="ritual-context__specs">
-              <div class="ritual-context__spec">
-                <dt>Material</dt>
-                <dd>{materialLabel || specs.stone || '—'}</dd>
-              </div>
               <div class="ritual-context__spec">
                 <dt>Use</dt>
                 <dd>{primaryCategory ? localizeCategory(primaryCategory) : 'Body adornment'}</dd>
               </div>
-              {sizeLabel && (
-                <div class="ritual-context__spec">
-                  <dt>Size · gauge</dt>
-                  <dd>{sizeLabel}</dd>
-                </div>
-              )}
-              {specs.stone && materialLabel && (
-                <div class="ritual-context__spec">
-                  <dt>Stone · gem</dt>
-                  <dd>{specs.stone}</dd>
-                </div>
-              )}
-              <div class="ritual-context__spec">
-                <dt>Sold as</dt>
-                <dd>{
-                  product.manage_stock && product.stock_quantity === 1
-                    ? 'One of one'
-                    : /pair|par/i.test(product.name)
-                      ? 'Pair'
-                      : 'Single piece'
-                }</dd>
-              </div>
-              <div class="ritual-context__spec">
-                <dt>Origin</dt>
-                <dd>{
-                  origin === 'handmade'           ? 'Handmade · Truckee, CA' :
-                  origin === 'hand-forged'        ? 'Hand-forged · Truckee, CA' :
-                  origin === 'hand-assembled'     ? 'Hand-assembled · Truckee, CA' :
-                  origin === 'curated-independent' ? 'Curated · independent silversmith' :
-                                                    'Curated · international suppliers'
-                }</dd>
-              </div>
               <div class="ritual-context__spec">
                 <dt>Availability</dt>
+                {/* Availability = REAL stock, never a template flourish.
+                    "Last one · one of one" requires tracked stock === 1, in stock,
+                    and NOT sold as a Pair (see isOneOfOne at the top of this file). */}
                 <dd>{
                   product.stock_status !== 'instock' ? 'Sold out · commission only' :
-                  product.manage_stock && product.stock_quantity === 1 ? 'Last one · one of one' :
-                  product.manage_stock && 3 >= (product.stock_quantity || 0) ? `Limited · ${product.stock_quantity} left` :
+                  isOneOfOne ? 'Last one · one of one' :
+                  product.manage_stock && (product.stock_quantity || 0) > 0 && 3 >= (product.stock_quantity || 0) ? `Limited · ${product.stock_quantity} left` :
                   'Ready to ship'
                 }</dd>
               </div>
@@ -599,22 +805,43 @@ const breadcrumbLd = {
         <span class="sticky-cta__name">{decodeEntities(product.name)}</span>
         <span class="sticky-cta__amount">{formatPrice(product.price)}</span>
       </div>
-      {product.stock_status === 'instock' ? (
-        <a href={addToCartUrl(product.id)} class="btn btn--solid sticky-cta__btn">
-          {
-            product.manage_stock && product.stock_quantity === 1
-              ? 'Claim →'
-              : isForged
-                ? 'Commission →'
-                : en.product.add_to_cart
-          }
-        </a>
+      {/* The sticky bar mirrors the PRIMARY CTA only. In 'cart_concierge' the cart
+          is always primary, so the bar carries Add to cart — never the concierge
+          line (that stays a small secondary link up in the buy column). */}
+      {product.stock_status === 'instock' && showCart ? (
+        <button
+          type="button"
+          class="btn btn--solid sticky-cta__btn"
+          data-add-cart
+          data-sku={product.sku || product.slug}
+          data-slug={product.slug}
+          data-name={decodeEntities(product.name)}
+          data-price={product.price}
+          data-img={mainImg?.src || ''}
+          data-max={product.manage_stock && product.stock_quantity ? product.stock_quantity : 99}
+          data-stock={stockState || ''}
+          data-pair={isPairPiece ? '1' : ''}
+        >
+          Add to cart →
+        </button>
+      ) : product.stock_status === 'instock' && showInquire ? (
+        <button
+          type="button"
+          class="btn btn--solid sticky-cta__btn"
+          data-rsv-open
+          data-piece={decodeEntities(product.name)}
+          data-sku={product.sku || ''}
+          data-price={formatPrice(product.price)}
+          data-verb="inquire"
+        >
+          Inquire →
+        </button>
       ) : (
         <a
-          href={`/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`}
+          href={stockState === 'soon' ? '/contact' : `/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`}
           class="btn btn--solid sticky-cta__btn"
         >
-          Reserve →
+          {stockState === 'soon' ? 'Coming soon →' : isForged ? 'Sold · commission →' : 'Sold · notify me →'}
         </a>
       )}
     </div>
@@ -668,15 +895,16 @@ const breadcrumbLd = {
        into the obsidian so a white studio background dissolves to a glowing
        body of light; a dark background simply fades into the theme. */
     .pdp-main-figure {
+      position: relative;
       aspect-ratio: 4 / 5;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
       margin-bottom: var(--space-1);
+      /* warm shell panel — white-studio photos blend in; object-fit:contain. */
       background:
-        radial-gradient(circle at 50% 50%, rgba(196, 147, 90, 0.10) 0%, rgba(196, 147, 90, 0.03) 36%, transparent 62%),
-        var(--obsidian, #080706);
+        radial-gradient(circle at 50% 44%, #f1ece2 0%, var(--product-panel) 70%);
     }
     .pdp-main-figure img {
       max-width: 100%;
@@ -684,8 +912,8 @@ const breadcrumbLd = {
       width: auto;
       height: auto;
       object-fit: contain;
-      -webkit-mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 50%, rgba(0, 0, 0, 0.55) 68%, transparent 85%);
-      mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 50%, rgba(0, 0, 0, 0.55) 68%, transparent 85%);
+      /* 2026-06-24 (Ocin): radial edge-mask removed — it was clipping the piece.
+         Whole macro shows on the dark panel; glow/shadow give depth, no crop. */
       filter: drop-shadow(0 14px 40px rgba(8, 7, 6, 0.8)) drop-shadow(0 0 32px rgba(196, 147, 90, 0.14));
     }
 
@@ -709,9 +937,8 @@ const breadcrumbLd = {
       justify-content: center;
       overflow: hidden;
       cursor: pointer;
-      background:
-        radial-gradient(circle at 50% 50%, rgba(196, 147, 90, 0.10) 0%, transparent 64%),
-        var(--obsidian, #080706);
+      /* warm shell panel — white-bg thumbs blend (matches main figure). */
+      background: var(--product-panel);
       border: 1px solid color-mix(in srgb, var(--bronze) 45%, transparent);
       border-radius: 2px;
       transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
@@ -740,6 +967,44 @@ const breadcrumbLd = {
     @media (prefers-reduced-motion: reduce) {
       .pdp-thumb { transition: none; }
       .pdp-thumb:hover { transform: none; }
+    }
+
+    /* ─── CONCIERGE LINE ─── 'cart_concierge' only (Ocin 2026-07-13).
+       Sits UNDER the Add-to-cart button. It is a text link, never a button:
+       serif, italic, small, no border, no fill — so the cart always reads as
+       the one primary action and this stays a quiet aside. */
+    .pdp-concierge {
+      margin: 0 0 var(--space-3);
+      text-align: center;
+    }
+    .pdp-concierge__link {
+      display: inline;
+      background: none;
+      border: 0;
+      margin: 0;
+      padding: var(--space-2) 0;
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: var(--fw-thin, 300);
+      font-size: var(--fs-small);
+      line-height: 1.55;
+      color: var(--fg-soft);
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--ember) 45%, transparent);
+      text-underline-offset: 3px;
+      transition: color var(--t-fast), text-decoration-color var(--t-fast);
+    }
+    .pdp-concierge__link:hover {
+      color: var(--ember);
+      text-decoration-color: var(--ember);
+    }
+    .pdp-concierge__link:focus-visible {
+      outline: 2px solid var(--ember);
+      outline-offset: 3px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pdp-concierge__link { transition: none; }
     }
 
     /* ─── PRODUCT ACCORDIONS ─── 2026-05-29 (Tigo)
@@ -914,5 +1179,136 @@ const breadcrumbLd = {
       }
       .ritual-context__spec dt { margin: 0; }
     }
+  </style>
+
+  {/* The Inquire modal only mounts where a trigger for it actually exists:
+      'inquire' pages (it IS the CTA) and 'cart_concierge' pages (the small
+      white-glove link under the cart). Plain 'cart' pages ship without it —
+      one road: add to cart. Component kept, never deleted. */}
+  {usesInquiryForm && <ReserveModal />}
+
+  <script>
+    // Size selector for variable products: switch price / stock / CTA per variant.
+    (function () {
+      const wrap = document.querySelector<HTMLElement>('[data-size-select]');
+      if (!wrap) return;
+      const pills = Array.from(wrap.querySelectorAll<HTMLButtonElement>('[data-size-pill]'));
+      const priceEl = document.getElementById('pdp-price');
+      const stockEl = document.getElementById('pdp-stock');
+      const rsvBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-rsv-open]'));
+      function select(pill: HTMLButtonElement) {
+        pills.forEach(p => {
+          const on = p === pill;
+          p.classList.toggle('is-active', on);
+          p.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+        const { size = '', price = '', sku = '', stock = 'instock' } = pill.dataset;
+        if (priceEl && price) priceEl.textContent = price;
+        if (stockEl) {
+          const inStock = stock === 'instock';
+          stockEl.textContent = '● ' + (inStock ? 'In stock' : stock === 'onbackorder' ? 'Coming soon' : 'Sold out');
+          stockEl.style.color = inStock ? 'var(--moss)' : stock === 'onbackorder' ? 'var(--ember)' : 'var(--clay)';
+        }
+        rsvBtns.forEach(b => {
+          if (price) b.dataset.price = price;
+          if (sku) b.dataset.sku = sku;
+          b.dataset.size = size;
+        });
+      }
+      pills.forEach(p => p.addEventListener('click', () => { if (!p.disabled) select(p); }));
+      const def = pills[Number(wrap.dataset.default || 0)] || pills.find(p => !p.disabled) || pills[0];
+      if (def) select(def);
+    })();
+  </script>
+
+  <script>
+    // Colour / metal SWATCH selector for variable products: swap image + price +
+    // stock + the add-to-cart / reserve buttons per finish (Ocin 2026-06-27).
+    (function () {
+      const wrap = document.querySelector<HTMLElement>('[data-variant-swatches]');
+      if (!wrap) return;
+      const sw = Array.from(wrap.querySelectorAll<HTMLButtonElement>('[data-variant]'));
+      const priceEl = document.getElementById('pdp-price');
+      const stockEl = document.getElementById('pdp-stock');
+      const stage = document.getElementById('pdp-stage-img') as HTMLImageElement | null;
+      const curLabel = wrap.querySelector<HTMLElement>('[data-variant-current]');
+      const rsvBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-rsv-open]'));
+      const addBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-add-cart]'));
+      const baseName = (addBtns[0]?.dataset.name) || (rsvBtns[0]?.dataset.piece) || document.title;
+      function select(b: HTMLButtonElement) {
+        sw.forEach(x => { const on = x === b; x.classList.toggle('is-active', on); x.setAttribute('aria-checked', on ? 'true' : 'false'); });
+        const { label = '', price = '', sku = '', stock = 'instock', img = '' } = b.dataset;
+        if (priceEl && price) priceEl.textContent = price;
+        if (curLabel) curLabel.textContent = label;
+        if (stockEl) {
+          const inStock = stock === 'instock';
+          stockEl.textContent = '● ' + (inStock ? 'In stock' : stock === 'onbackorder' ? 'Coming soon' : 'Sold out');
+          stockEl.style.color = inStock ? 'var(--moss)' : stock === 'onbackorder' ? 'var(--ember)' : 'var(--clay)';
+        }
+        if (stage && img) stage.src = img;
+        rsvBtns.forEach(x => { if (price) x.dataset.price = price; if (sku) x.dataset.sku = sku; x.dataset.piece = baseName + ' · ' + label; });
+        addBtns.forEach(x => {
+          if (price) x.dataset.price = price.replace(/[^0-9.]/g, '');
+          if (sku) x.dataset.sku = sku;
+          if (img) x.dataset.img = img;
+          x.dataset.name = baseName + ' · ' + label;
+          x.dataset.stock = stock === 'outofstock' ? 'sold' : '';
+        });
+      }
+      sw.forEach(b => b.addEventListener('click', () => { if (!b.disabled) select(b); }));
+      const def = sw[Number(wrap.dataset.default || 0)] || sw.find(b => !b.disabled) || sw[0];
+      if (def) select(def);
+    })();
+  </script>
+
+  <style>
+    /* Colour / metal finish swatches (variable products) */
+    .variant-swatches { margin: var(--space-3) 0 var(--space-5); }
+    .variant-swatches__row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+    .variant-swatch {
+      width: 34px; height: 34px; padding: 0; cursor: pointer;
+      background:
+        radial-gradient(120% 120% at 30% 25%, rgba(255, 255, 255, 0.45), transparent 55%),
+        var(--sw, var(--bronze));
+      border: 1px solid color-mix(in srgb, var(--bone) 30%, transparent);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+      transition: transform var(--t-fast), box-shadow var(--t-fast), outline-color var(--t-fast);
+      outline: 2px solid transparent; outline-offset: 2px;
+    }
+    .variant-swatch:hover { transform: translateY(-1px); }
+    .variant-swatch.is-active { outline-color: var(--ember); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), 0 0 0 1px var(--ember); }
+    .variant-swatch.is-sold { cursor: not-allowed; opacity: 0.4; position: relative; }
+    .variant-swatch.is-sold::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(45deg, transparent 44%, color-mix(in srgb, var(--bone) 70%, transparent) 46%, color-mix(in srgb, var(--bone) 70%, transparent) 54%, transparent 56%);
+    }
+    .size-select { margin: var(--space-3) 0 var(--space-5); }
+    .size-select__label { color: var(--sand); margin: 0 0 var(--space-2); }
+    .size-select__pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .size-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-width: 56px; justify-content: center;
+      padding: var(--space-2) var(--space-3);
+      background: transparent;
+      border: 1px solid var(--line-bright);
+      color: var(--fg);
+      font-family: var(--font-sans); font-size: var(--fs-small);
+      letter-spacing: 0.08em; cursor: pointer;
+      transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+    }
+    .size-pill:hover { border-color: var(--ember); color: var(--ember); }
+    .size-pill.is-active {
+      background: var(--ember); color: var(--obsidian); border-color: var(--ember);
+    }
+    .size-pill.is-sold {
+      opacity: 0.5; cursor: not-allowed; text-decoration: line-through;
+      border-style: dashed;
+    }
+    .size-pill.is-sold:hover { border-color: var(--line-bright); color: var(--fg); }
+    .size-pill__sold {
+      font-size: var(--fs-tiny); letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--clay); text-decoration: none;
+    }
+    .size-pill:focus-visible { outline: 1px solid var(--ember); outline-offset: 2px; }
   </style>
 </Base>

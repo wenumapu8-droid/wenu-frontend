@@ -1,0 +1,293 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from '../components/ProductCard.astro';
+import PatternBand from '../components/PatternBand.astro';
+import { getProducts } from '../lib/woo';
+import { buildPiercingJewelry, placementCounts } from '../lib/piercingTaxonomy';
+
+import MarqueeDrag from '../components/MarqueeDrag.astro';
+
+const all = await getProducts();
+const tagged = buildPiercingJewelry(all);
+const chips = placementCounts(tagged);
+
+// ── SHOP BY PIERCING visual band (Ocin 2026-06-28) ───────────────────────────
+// Each piercing TYPE = a body photo with a subtle white ring over the real
+// piercing + its name; click filters the grid by that placement. ring x/y are the
+// piercing's position in the 3:4 photo (card aspect = photo aspect → no crop).
+const countFor = (key: string) => chips.find(c => c.key === key)?.count ?? 0;
+const PIERCE_TYPES: { key: string; label: string; img: string; rx: number; ry: number }[] = [
+  { key: 'lobe',     label: 'Lobe',          img: '/img/piercing/types/lobe.webp',          rx: 78, ry: 55 },
+  { key: 'helix',    label: 'Helix',         img: '/img/piercing/types/helix.webp',         rx: 55, ry: 30 },
+  { key: 'helix',    label: 'Forward helix', img: '/img/piercing/types/forward-helix.webp', rx: 84, ry: 33 },
+  { key: 'conch',    label: 'Conch',         img: '/img/piercing/types/conch.webp',         rx: 77, ry: 49 },
+  { key: 'tragus',   label: 'Tragus',        img: '/img/piercing/types/tragus.webp',        rx: 78, ry: 41 },
+  { key: 'tragus',   label: 'Rook',          img: '/img/piercing/types/rook.webp',          rx: 70, ry: 35 },
+  { key: 'septum',   label: 'Septum',        img: '/img/piercing/types/septum.webp',        rx: 70, ry: 31 },
+  { key: 'nostril',  label: 'Nostril',       img: '/img/piercing/types/nostril.webp',       rx: 80, ry: 61 },
+  { key: 'labret',   label: 'Labret / Lip',  img: '/img/piercing/types/labret.webp',        rx: 82, ry: 52 },
+  { key: 'navel',    label: 'Navel',         img: '/img/piercing/types/navel.webp',         rx: 84, ry: 49 },
+  { key: 'eyebrow',  label: 'Eyebrow',       img: '/img/piercing/types/eyebrow.webp',       rx: 68, ry: 47 },
+];
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Piercing jewelry',
+  description: 'Shop body-piercing jewelry by placement — a single piece serves several piercings by type and diameter.',
+  url: 'https://wenumapuonline.com/piercing-jewelry',
+  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Piercing jewelry', item: 'https://wenumapuonline.com/piercing-jewelry' },
+  ],
+};
+---
+<Base
+  title="Piercing jewelry — by placement | Wenu Mapu"
+  description="Shop body-piercing jewelry by placement: labret & flat-back studs, septum clickers, nostril, navel and stretched-lobe pieces. One piece serves several piercings by type and diameter. Implant-grade titanium (ASTM F-136), silver and gold."
+  ogImage="/img/banners/category/piercing.webp"
+  jsonLd={[collectionLd, breadcrumbLd]}
+>
+  {/* Banner carries baked "PIERCING · BODY JEWELRY" lettering → ART variant so the
+      whole composition shows (object-fit contain) and the title never crops on
+      mobile (Ocin 2026-06-28). */}
+  <div class="cat-masthead cat-masthead--art">
+    <picture>
+      <source type="image/avif" srcset="/img/banners/category/piercing.avif" />
+      <img src="/img/banners/category/piercing.webp" alt="Wenu Mapu — piercing jewelry, hand-selected" width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
+    </picture>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <p class="eyebrow">PIERCING JEWELRY · SHOP BY PLACEMENT</p>
+      <h1 class="page-title">The right piece for the spot.</h1>
+      <p class="lede">
+        Body jewelry organized the way a piercer thinks — by where it goes. One ring or
+        clicker can serve septum, daith, helix, lobe and nostril at once, so a piece shows up
+        under every placement it fits. Implant-grade titanium (ASTM F-136), 925 silver and solid gold.
+      </p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <div class="pj-split" role="note">
+        <p class="pj-split__text">
+          Looking to <strong>get pierced</strong> by Nico in Truckee — booking, prices, aftercare?
+        </p>
+        <a href="/piercing" class="btn btn--ghost">Get pierced · book a session <span aria-hidden="true">→</span></a>
+      </div>
+
+      {/* ── SHOP BY PIERCING — visual placement band ── */}
+      <p class="eyebrow pj-band__eyebrow">Shop by piercing</p>
+      <div class="pj-band" data-explore-marquee aria-label="Shop by piercing placement">
+        <ul class="pj-band__track">
+          {[...PIERCE_TYPES, ...PIERCE_TYPES].map((t, i) => (
+            <li class="pj-band__cell" aria-hidden={i >= PIERCE_TYPES.length ? 'true' : undefined}>
+              <button
+                type="button"
+                class="pj-band__card"
+                data-pj-band-card
+                data-pj-chip={t.key}
+                style={`--rx:${t.rx}%;--ry:${t.ry}%`}
+                tabindex={i >= PIERCE_TYPES.length ? -1 : undefined}
+                aria-label={`Shop ${t.label} piercing jewelry`}
+              >
+                <span class="pj-band__media">
+                  <img src={t.img} alt={`${t.label} piercing`} width="608" height="760" loading="lazy" decoding="async" />
+                  <span class="pj-band__ring" aria-hidden="true"></span>
+                  {countFor(t.key) > 0 && <span class="pj-band__count">{countFor(t.key)}</span>}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <MarqueeDrag />
+
+      {/* ── Placement filter chips (compact secondary filter) ── */}
+      <div class="pj-filter" role="group" aria-label="Filter by piercing placement" data-pj-filter>
+        <button type="button" class="pj-chip is-active" data-pj-chip="all" aria-pressed="true">
+          All <span class="pj-chip__n">{tagged.length}</span>
+        </button>
+        {chips.map(c => (
+          <button type="button" class="pj-chip" data-pj-chip={c.key} aria-pressed="false">
+            {c.label} <span class="pj-chip__n">{c.count}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Single grid; each item tagged with its placements ── */}
+      <div class="pj-grid" data-pj-grid>
+        {tagged.map(t => (
+          <div class="pj-item" data-placements={t.placements.join(' ')}>
+            <ProductCard product={t.product} />
+          </div>
+        ))}
+      </div>
+      <p class="pj-none" data-pj-none hidden>No ready-to-ship pieces for this placement yet — <a href="/custom-orders" class="text-accent">commission one →</a></p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .pj-split {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: var(--space-3) var(--space-5);
+    margin: var(--space-5) 0 var(--space-6);
+    padding: var(--space-4) var(--space-5);
+    border: var(--border-thin); background: var(--charcoal);
+  }
+  .pj-split__text {
+    font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-body-lg); color: var(--fg-soft); margin: 0; max-width: 52ch;
+  }
+  .pj-split__text strong { color: var(--bone); font-weight: var(--fw-regular); }
+
+  .pj-filter {
+    display: flex; flex-wrap: wrap; gap: var(--space-2);
+    margin-bottom: var(--space-5);
+  }
+  .pj-chip {
+    appearance: none; -webkit-appearance: none;
+    background: transparent; border: var(--border-accent); color: var(--silver);
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    padding: var(--space-2) var(--space-3); cursor: pointer; white-space: nowrap;
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+  }
+  .pj-chip:hover, .pj-chip:focus-visible { border-color: var(--ember); color: var(--bone); outline: none; }
+  .pj-chip.is-active { background: var(--ember); border-color: var(--ember); color: var(--obsidian); }
+  .pj-chip__n { opacity: 0.7; font-size: 0.9em; }
+  .pj-chip.is-active .pj-chip__n { opacity: 0.85; }
+
+  .pj-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-4);
+  }
+  .pj-item.is-hidden { display: none; }
+  .pj-none { font-family: var(--font-serif); font-style: italic; color: var(--fg-soft); margin-top: var(--space-4); }
+
+  /* ── Shop-by-piercing visual band ── */
+  .pj-band__eyebrow { margin: var(--space-5) 0 var(--space-3); }
+  .pj-band {
+    overflow-x: auto; scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 3%, #000 97%, transparent);
+    margin-bottom: var(--space-4);
+  }
+  .pj-band::-webkit-scrollbar { display: none; }
+  .pj-band__track {
+    list-style: none; margin: 0; padding: var(--space-1) 0; display: flex; gap: var(--space-3);
+    width: max-content; animation: pj-band-scroll 72s linear infinite; will-change: transform;
+  }
+  .pj-band:hover .pj-band__track, .pj-band:focus-within .pj-band__track { animation-play-state: paused; }
+  @keyframes pj-band-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @media (prefers-reduced-motion: reduce) { .pj-band__track { animation: none; } }
+  .pj-band__cell { flex: 0 0 clamp(138px, 30vw, 188px); }
+  .pj-band__card { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; text-align: left; color: inherit; }
+  .pj-band__media {
+    position: relative; display: block; aspect-ratio: 3 / 4; overflow: hidden;
+    background: var(--product-panel); border: var(--border-thin);
+  }
+  .pj-band__media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--t-slow); }
+  .pj-band__card:hover .pj-band__media img { transform: scale(1.04); }
+  .pj-band__ring {
+    position: absolute; left: var(--rx, 50%); top: var(--ry, 45%);
+    transform: translate(-50%, -50%);
+    width: clamp(26px, 8vw, 44px); aspect-ratio: 1;
+    border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 50%;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28), 0 0 14px 2px rgba(255, 255, 255, 0.32);
+    pointer-events: none; transition: border-color var(--t-base), box-shadow var(--t-base);
+  }
+  .pj-band__card:hover .pj-band__ring { border-color: var(--ember); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.28), 0 0 18px 3px rgba(201, 168, 76, 0.5); }
+  .pj-band__count {
+    position: absolute; bottom: 8px; right: 8px;
+    font-family: var(--font-mono); font-size: var(--fs-tiny); line-height: 1;
+    color: var(--brand-bone); background: var(--scrim-strong);
+    -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    padding: 3px 7px; border: 1px solid rgba(201, 168, 76, 0.4);
+  }
+  .pj-band__card.is-active .pj-band__media { outline: 2px solid var(--ember); outline-offset: -2px; }
+
+  /* Force the baked-title PIERCING banner to show WHOLE on every width — pin the
+     masthead to the image's 16:9 ratio so cover fills it exactly (no crop, no cut
+     "PIERC…"). Overrides the tall editorial min-height (Ocin 2026-06-28). */
+  .cat-masthead--art {
+    aspect-ratio: auto !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: visible;
+  }
+  .cat-masthead--art > picture { position: static !important; display: block !important; }
+  .cat-masthead--art img {
+    position: static !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 1600 / 900 !important;
+    max-height: none !important;
+    object-fit: contain !important;
+    display: block !important;
+  }
+
+  /* ── Mobile overflow guards (Ocin 2026-06-28): nothing escapes the viewport ── */
+  @media (max-width: 600px) {
+    .pj-split { flex-direction: column; align-items: stretch; gap: var(--space-3); }
+    .pj-split .btn {
+      display: flex; width: 100%; box-sizing: border-box;
+      white-space: normal; text-align: center; justify-content: center;
+      padding-inline: var(--space-3);
+    }
+    .pj-filter { gap: 6px; }
+  }
+  .pj-band, .pj-filter, .pj-grid { max-width: 100%; }
+</style>
+
+<script>
+  const root = document.querySelector('[data-pj-filter]');
+  const grid = document.querySelector('[data-pj-grid]');
+  const none = document.querySelector('[data-pj-none]');
+  if (root && grid) {
+    const chips = Array.from(root.querySelectorAll('[data-pj-chip]'));
+    const items = Array.from(grid.querySelectorAll('.pj-item'));
+    const bandCards = Array.from(document.querySelectorAll('[data-pj-band-card]'));
+    const apply = (key) => {
+      let shown = 0;
+      items.forEach(it => {
+        const set = (it.getAttribute('data-placements') || '').split(' ');
+        const show = key === 'all' || set.includes(key);
+        it.classList.toggle('is-hidden', !show);
+        if (show) shown++;
+      });
+      chips.forEach(c => {
+        const active = c.getAttribute('data-pj-chip') === key;
+        c.classList.toggle('is-active', active);
+        c.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      bandCards.forEach(c => c.classList.toggle('is-active', c.getAttribute('data-pj-chip') === key));
+      if (none) none.hidden = shown !== 0;
+    };
+    chips.forEach(c => c.addEventListener('click', () => apply(c.getAttribute('data-pj-chip'))));
+    bandCards.forEach(c => c.addEventListener('click', () => {
+      apply(c.getAttribute('data-pj-chip'));
+      grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }));
+
+    // Deep-link from the Ear Constellations tool: /piercing-jewelry#helix etc.
+    const validKeys = chips.map(c => c.getAttribute('data-pj-chip'));
+    const applyHash = () => {
+      const key = decodeURIComponent(location.hash.replace('#', '')).trim();
+      if (key && validKeys.includes(key)) {
+        apply(key);
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+  }
+</script>

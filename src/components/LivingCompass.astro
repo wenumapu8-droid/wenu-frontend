@@ -1,0 +1,422 @@
+---
+/**
+ * LivingCompass — instrumento ritual SIMULADO: brújula decorativa + nivel sobre el
+ * Wenu sigil.
+ *
+ * Idea (Ocin 2026-07-06): NO es un GPS ni un rastreador. Es una brújula SIMULADA
+ * que responde SOLO a cómo se sostiene el teléfono (DeviceOrientation: heading/tilt).
+ * El sello gira y la burbuja de nivel se acomoda según la inclinación. Nada de
+ * ubicación, geolocalización, declinación ni "norte verdadero".
+ *
+ * REGLAS (implementación):
+ *  · SIN GEOLOCATION. Nunca pide ubicación. Nunca se siente rastreo.
+ *  · OPT-IN: nunca pide permisos al cargar. Solo tras el TAP del botón.
+ *  · iOS 13+: DeviceOrientationEvent.requestPermission() (permiso de MOVIMIENTO,
+ *    no ubicación) disparado por el gesto del botón. Manejado.
+ *  · Heading SIMULADO: usamos webkitCompassHeading si existe, o `alpha`, tal cual
+ *    llega del sensor — SIN corrección de declinación. Es un instrumento lúdico,
+ *    no un bearing topográfico. El copy lo dice honesto.
+ *  · NIVEL: burbuja movida por beta/gamma; se centra con el teléfono plano.
+ *  · DESKTOP / sin sensor / permiso NEGADO: NUNCA queda muerto. Cae a una
+ *    animación IDLE suave (el sello oscila/gira lento) para que igual se sienta
+ *    vivo. Nunca "no funciona".
+ *  · prefers-reduced-motion: sin rotación automática ni transiciones.
+ *  · Performante: pintura en un solo requestAnimationFrame; sensor solo guarda.
+ *
+ * Autónomo: NO toca la sección Meli Witran (kültrún) ni el portal (threshold).
+ */
+interface Props {
+  /** Etiqueta decorativa del sello (default: la marca). */
+  targetLabel?: string;
+}
+const { targetLabel = 'Wenu' } = Astro.props;
+const arm = 'M121 46 A70 70 0 0 1 156 104 C154 112 147 114 141 111 A44 44 0 0 0 121 46 Z';
+const rot = (a: number) => `rotate(${a} 100 100)`;
+---
+<section class="lc is-idle" data-lc aria-labelledby="lc-title">
+  <div class="lc__inner">
+    <p class="eyebrow lc__eyebrow">Wüñelfe · a simulated compass</p>
+    <h2 id="lc-title" class="lc__title">Living compass</h2>
+    <p class="lc__lede">
+      A ritual instrument, not a map. Tap to let the
+      <span data-lc-target>{targetLabel.toLowerCase()}</span> seal turn with your
+      phone — it spins as you rotate and the bubble settles when you hold it level.
+      No location, nothing tracked. On a desktop it simply drifts on its own.
+    </p>
+
+    <div class="lc__stage">
+      <!-- housing + rotating rose + fixed index + level bubble -->
+      <div class="lc__instrument" data-lc-instrument aria-hidden="true">
+        <!-- fixed rings + ticks (do NOT rotate) -->
+        <svg class="lc__radar" viewBox="0 0 240 240">
+          <g fill="none" stroke="currentColor">
+            <circle cx="120" cy="120" r="116" stroke-width="1" opacity="0.30"/>
+            <circle cx="120" cy="120" r="100" stroke-width="0.6" opacity="0.16"/>
+            <circle cx="120" cy="120" r="78"  stroke-width="0.6" opacity="0.10"/>
+          </g>
+          <g class="lc__ticks" stroke="currentColor" stroke-width="1" opacity="0.5"></g>
+        </svg>
+
+        <!-- rotating compass rose = the Wenu sigil -->
+        <svg class="lc__rose" data-lc-rose viewBox="0 0 200 200"
+             fill="currentColor" stroke="currentColor">
+          <g fill="none" stroke-width="1">
+            <circle cx="100" cy="100" r="92" opacity="0.34"/>
+            <circle cx="100" cy="100" r="86" opacity="0.16"/>
+          </g>
+          <g>
+            <path d={arm}/>
+            <path transform={rot(90)} d={arm}/>
+            <path transform={rot(180)} d={arm}/>
+            <path transform={rot(270)} d={arm}/>
+          </g>
+          <g>
+            {[0, 90, 180, 270].map((a) => (
+              <g transform={rot(a)}>
+                <path d="M100 22 L103.4 41 L100 51 L96.6 41 Z"/>
+                <circle cx="100" cy="14" r="2.4"/>
+              </g>
+            ))}
+          </g>
+          <!-- one dagger emphasised (ember) so the seal reads as a needle -->
+          <path class="lc__north" d="M100 22 L103.4 41 L100 51 L96.6 41 Z"/>
+          <circle cx="100" cy="100" r="21" fill="none" stroke-width="1.3"/>
+          {[0, 90, 180, 270].map((a) => (
+            <path transform={rot(a)} d="M100 78 L103 99 L100 100 L97 99 Z"/>
+          ))}
+          {[45, 135, 225, 315].map((a) => (
+            <path transform={rot(a)} d="M100 88 L101.6 98 L100 100 L98.4 98 Z"/>
+          ))}
+          <circle cx="100" cy="100" r="2.8"/>
+        </svg>
+
+        <!-- level bubble (moves with tilt, centres when flat) -->
+        <span class="lc__bubble" data-lc-bubble></span>
+
+        <!-- fixed index at top (the direction the phone faces) -->
+        <span class="lc__index"></span>
+      </div>
+
+      <!-- readouts (simulated bearing — decorative) -->
+      <div class="lc__readout" data-lc-readout hidden>
+        <span class="lc__heading"><b data-lc-deg>--</b>°<small data-lc-card>--</small></span>
+        <span class="lc__tilt">tilt <b data-lc-tilt>--</b>°</span>
+      </div>
+    </div>
+
+    <button class="lc__btn" type="button" data-lc-btn>
+      <span class="lc__btn-mark" aria-hidden="true"></span>
+      <span data-lc-btn-label>Activate compass ✦</span>
+    </button>
+
+    <p class="lc__status" data-lc-status role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+<style>
+  .lc {
+    position: relative;
+    color: var(--bone);
+    background:
+      radial-gradient(circle at 50% 38%, rgba(201,168,76,0.08), transparent 46%),
+      var(--obsidian);
+    border-top: 1px solid rgba(201,192,174,0.14);
+    border-bottom: 1px solid rgba(201,192,174,0.14);
+    overflow: hidden;
+  }
+  .lc__inner {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: clamp(56px,8vw,110px) clamp(20px,5vw,48px);
+    text-align: center;
+  }
+  .lc__eyebrow { color: var(--ember); }
+  .lc__title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    font-size: clamp(2rem,4.6vw,3.2rem);
+    line-height: 1.05;
+    margin: 12px 0 16px;
+  }
+  .lc__lede {
+    font-family: var(--font-serif);
+    color: rgba(238,232,220,0.72);
+    font-size: clamp(1rem,1.3vw,1.15rem);
+    line-height: 1.6;
+    max-width: 44ch;
+    margin: 0 auto clamp(28px,5vw,44px);
+  }
+  .lc__lede [data-lc-target] { color: var(--ember); font-style: italic; }
+
+  .lc__stage { display: flex; flex-direction: column; align-items: center; }
+  .lc__instrument {
+    position: relative;
+    width: min(78vw, 320px);
+    aspect-ratio: 1;
+    color: var(--ember);
+    filter: drop-shadow(0 0 26px rgba(201,168,76,0.10));
+  }
+  .lc__radar, .lc__rose {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+  }
+  .lc__rose {
+    /* smoothing between sensor frames; disabled under reduced-motion + when idle */
+    transition: transform 0.18s linear;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+  .lc__north { fill: var(--ember); }
+  .lc:not(.is-live) .lc__north { fill: currentColor; }
+
+  /* fixed index — a small triangle at the top rim */
+  .lc__index {
+    position: absolute; top: -2px; left: 50%;
+    width: 0; height: 0; transform: translateX(-50%);
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-top: 12px solid var(--bone);
+    opacity: 0.9;
+  }
+  /* level bubble */
+  .lc__bubble {
+    position: absolute; top: 50%; left: 50%;
+    width: 16px; height: 16px; border-radius: 50%;
+    margin: -8px 0 0 -8px;
+    background: radial-gradient(circle at 40% 40%, rgba(240,237,232,0.95), rgba(201,168,76,0.5));
+    box-shadow: 0 0 10px rgba(201,168,76,0.5);
+    transform: translate(0,0);
+    transition: transform 0.12s ease-out, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .lc.is-live .lc__bubble { opacity: 0.95; }
+  .lc.is-level .lc__bubble {
+    box-shadow: 0 0 14px rgba(201,168,76,0.85), 0 0 26px rgba(201,168,76,0.3);
+  }
+
+  .lc__readout {
+    margin-top: clamp(20px,4vw,32px);
+    display: flex; gap: 22px; justify-content: center; align-items: baseline;
+    font-family: var(--font-mono, monospace);
+    color: rgba(238,232,220,0.82);
+    letter-spacing: 0.06em;
+  }
+  .lc__readout[hidden] { display: none; }
+  .lc__heading b { color: var(--ember); font-size: 1.35rem; }
+  .lc__heading small { margin-left: 6px; color: var(--silver, #b8b4aa); font-size: 0.78rem; letter-spacing: 0.14em; }
+  .lc__tilt { font-size: 0.78rem; color: rgba(238,232,220,0.6); }
+  .lc__tilt b { color: rgba(238,232,220,0.9); }
+
+  .lc__btn {
+    margin-top: clamp(30px,5vw,46px);
+    display: inline-flex; align-items: center; gap: 0.6em;
+    min-height: 52px; padding: 0 28px;
+    background: transparent;
+    border: 1px solid rgba(201,192,174,0.4);
+    border-radius: 999px;
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: 0.72rem; letter-spacing: 0.22em; text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+  }
+  .lc__btn:hover, .lc__btn:focus-visible { border-color: var(--ember); color: var(--ember); outline: none; }
+  .lc__btn:focus-visible { outline: 1px solid var(--ember); outline-offset: 3px; }
+  .lc__btn[aria-pressed="true"] { color: var(--ember); border-color: var(--ember); }
+  .lc__btn-mark {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: 1px solid currentColor; position: relative;
+  }
+  .lc__btn-mark::after {
+    content: ''; position: absolute; inset: 3px; border-radius: 50%;
+    background: currentColor; opacity: 0.25; transition: opacity 0.3s ease;
+  }
+  .lc__btn[aria-pressed="true"] .lc__btn-mark::after { opacity: 1; }
+
+  .lc__status {
+    margin-top: 18px; min-height: 1.2em;
+    font-family: var(--font-sans);
+    font-size: 0.78rem; letter-spacing: 0.04em;
+    color: rgba(238,232,220,0.55);
+  }
+
+  /* IDLE — decorative simulated drift. Runs everywhere (mobile before opt-in,
+     desktop always, and as the graceful fallback when no sensor / permission).
+     Honest: it's clearly a slow ritual spin, not a real bearing. */
+  .lc.is-idle .lc__rose { animation: lcDrift 48s linear infinite; }
+  @keyframes lcDrift { to { transform: rotate(360deg); } }
+
+  /* live sensor mode overrides the idle animation (JS sets inline transform) */
+  .lc.is-live .lc__rose { animation: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lc__rose, .lc__bubble { transition: none; }
+    .lc.is-idle .lc__rose { animation: none; }
+  }
+</style>
+
+<script>
+  type LC = HTMLElement;
+
+  const toRad = Math.PI / 180;
+  const CARDINALS = ['N','NE','E','SE','S','SW','W','NW'];
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const cardinal = (deg: number) => CARDINALS[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
+
+  document.querySelectorAll<LC>('[data-lc]').forEach((root) => {
+    const rose = root.querySelector<SVGElement>('[data-lc-rose]');
+    const bubble = root.querySelector<HTMLElement>('[data-lc-bubble]');
+    const btn = root.querySelector<HTMLButtonElement>('[data-lc-btn]');
+    const btnLabel = root.querySelector<HTMLElement>('[data-lc-btn-label]');
+    const status = root.querySelector<HTMLElement>('[data-lc-status]');
+    const readout = root.querySelector<HTMLElement>('[data-lc-readout]');
+    const degEl = root.querySelector<HTMLElement>('[data-lc-deg]');
+    const cardEl = root.querySelector<HTMLElement>('[data-lc-card]');
+    const tiltEl = root.querySelector<HTMLElement>('[data-lc-tilt]');
+    const ticks = root.querySelector<SVGGElement>('.lc__ticks');
+
+    // build radar ticks (every 30°) once
+    if (ticks) {
+      let d = '';
+      for (let a = 0; a < 360; a += 30) {
+        const r1 = a % 90 === 0 ? 104 : 110, r2 = 116;
+        const rad = (a - 90) * toRad;
+        d += `M${120 + r1 * Math.cos(rad)} ${120 + r1 * Math.sin(rad)} L${120 + r2 * Math.cos(rad)} ${120 + r2 * Math.sin(rad)} `;
+      }
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', d);
+      ticks.appendChild(p);
+    }
+
+    let on = false;
+    let hasFix = false;         // got at least one orientation event
+    let heading = 0, tilt = 0, level = false;
+    let beta = 0, gamma = 0;
+    let raf = 0, sawEventTimer = 0;
+
+    const setStatus = (msg: string) => { if (status) status.textContent = msg; };
+
+    // start in the decorative idle drift (unless reduced-motion)
+    if (!reduced) root.classList.add('is-idle');
+
+    // ── paint loop (single rAF; sensor only stores latest values) ──────────
+    const paint = () => {
+      if (rose) rose.style.transform = `rotate(${-heading}deg)`;
+      if (bubble) {
+        const max = 46;
+        const bx = Math.max(-max, Math.min(max, gamma * 1.6));
+        const by = Math.max(-max, Math.min(max, beta * 1.6));
+        bubble.style.transform = `translate(${bx}px, ${by}px)`;
+      }
+      if (degEl) degEl.textContent = String(Math.round(((heading % 360) + 360) % 360));
+      if (cardEl) cardEl.textContent = cardinal(heading);
+      if (tiltEl) tiltEl.textContent = String(Math.round(tilt));
+      root.classList.toggle('is-level', level);
+      raf = requestAnimationFrame(paint);
+    };
+
+    // ── orientation handler (SIMULATED — no location, no declination) ──────
+    const onOrient = (e: DeviceOrientationEvent & { webkitCompassHeading?: number }) => {
+      hasFix = true;
+      if (typeof e.webkitCompassHeading === 'number') {
+        heading = e.webkitCompassHeading;
+      } else if (e.alpha != null) {
+        // device-frame magnetic-ish heading, corrected only for screen rotation.
+        // Simulated — we make no claim of true north.
+        const scr = (screen.orientation && screen.orientation.angle) || 0;
+        heading = ((360 - e.alpha + scr) % 360 + 360) % 360;
+      }
+      beta = e.beta ?? 0;
+      gamma = e.gamma ?? 0;
+      tilt = Math.round(Math.hypot(beta, gamma));
+      level = Math.abs(beta) < 6 && Math.abs(gamma) < 6;
+    };
+
+    const startPaint = () => { if (!raf) raf = requestAnimationFrame(paint); };
+    const stopPaint = () => { cancelAnimationFrame(raf); raf = 0; };
+
+    const attach = () => {
+      window.addEventListener('deviceorientationabsolute', onOrient as any, true);
+      window.addEventListener('deviceorientation', onOrient as any, true);
+    };
+
+    // fall back to the pretty idle drift; never leave it dead
+    const fallbackIdle = (msg: string) => {
+      setStatus(msg);
+      root.classList.remove('is-live');
+      on = false;
+      hasFix = false;
+      btn?.setAttribute('aria-pressed', 'false');
+      if (btnLabel) btnLabel.textContent = 'Activate compass ✦';
+      readout?.setAttribute('hidden', '');
+      stopPaint();
+      if (!reduced) root.classList.add('is-idle');
+    };
+
+    const goLive = () => {
+      on = true;
+      root.classList.remove('is-idle');   // sensor drives the seal now
+      root.classList.add('is-live');
+      readout?.removeAttribute('hidden');
+      btn?.setAttribute('aria-pressed', 'true');
+      if (btnLabel) btnLabel.textContent = 'Compass on';
+      startPaint();
+      // if no event within 1.2s → no usable sensor → graceful idle
+      sawEventTimer = window.setTimeout(() => {
+        if (!hasFix) {
+          fallbackIdle("No motion sensor here — the seal drifts on its own instead.");
+        } else {
+          setStatus('Live · a simulated bearing that follows your phone (not true north).');
+        }
+      }, 1200);
+    };
+
+    const enable = async () => {
+      setStatus('');
+      const DOE: any = (window as any).DeviceOrientationEvent;
+      // iOS 13+ needs explicit MOTION permission from a user gesture (this handler).
+      // This is NOT a location permission.
+      if (DOE && typeof DOE.requestPermission === 'function') {
+        try {
+          const res = await DOE.requestPermission();
+          if (res !== 'granted') {
+            fallbackIdle('Motion access declined — the seal drifts on its own instead.');
+            return;
+          }
+        } catch {
+          fallbackIdle('Motion access was blocked — the seal drifts on its own instead.');
+          return;
+        }
+      } else if (!DOE) {
+        fallbackIdle('No motion sensor here — the seal drifts on its own instead.');
+        return;
+      }
+      attach();
+      goLive();
+    };
+
+    const disable = () => {
+      on = false;
+      window.removeEventListener('deviceorientationabsolute', onOrient as any, true);
+      window.removeEventListener('deviceorientation', onOrient as any, true);
+      clearTimeout(sawEventTimer);
+      stopPaint();
+      root.classList.remove('is-live', 'is-level');
+      readout?.setAttribute('hidden', '');
+      btn?.setAttribute('aria-pressed', 'false');
+      if (btnLabel) btnLabel.textContent = 'Activate compass ✦';
+      if (rose) rose.style.transform = '';   // hand back to CSS idle drift
+      setStatus('');
+      if (!reduced) root.classList.add('is-idle');
+    };
+
+    btn?.addEventListener('click', () => { on ? disable() : enable(); });
+
+    // stop the sensor rAF when tab hidden (battery); idle drift is pure CSS
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && on) stopPaint();
+      else if (!document.hidden && on) startPaint();
+    });
+  });
+</script>

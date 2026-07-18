@@ -7,19 +7,14 @@
 
 const DEFAULT_STORE_BASE = 'https://www.wenumapuonline.com';
 
-/** Origin of the live WooCommerce store (where checkout/cart/account live).
- *  Falls back to the legacy www. host until Fase C cutover. */
+/** Origin of the live WooCommerce store host (product data source / CDN).
+ *  Falls back to the legacy www. host until Fase C cutover. Kept ONLY as the
+ *  product-image origin for <link rel="preconnect"> — no checkout/cart/account
+ *  affordance links here anymore. The new site is guest-checkout (see Cart.astro,
+ *  ReserveModal.astro, /account); nothing routes buyers to the legacy WooCommerce
+ *  cart/my-account. STORE_CART_URL + addToCartUrl were removed 2026-07-10. */
 export const STORE_BASE_URL: string =
   import.meta.env.STORE_BASE_URL || DEFAULT_STORE_BASE;
-
-/** Public-facing cart URL. Used by Nav and fallback CTAs. */
-export const STORE_CART_URL = `${STORE_BASE_URL}/cart`;
-
-/** Build an "Add to cart" URL for a specific WooCommerce product id.
- *  Mirrors WC's `?add-to-cart=ID` query-param flow. */
-export function addToCartUrl(productId: number): string {
-  return `${STORE_BASE_URL}/cart/?add-to-cart=${productId}`;
-}
 
 /** Bare origin of the store, useful for <link rel="preconnect"> etc. */
 export const STORE_ORIGIN = STORE_BASE_URL;
