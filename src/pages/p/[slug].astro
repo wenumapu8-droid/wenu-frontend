@@ -5,6 +5,7 @@ import RelatedPieces from '../../components/visual/RelatedPieces.astro';
 import RitualProductHero from '../../components/visual/RitualProductHero.astro';
 import ArtistCredit from '../../components/visual/ArtistCredit.astro';
 import ReserveModal from '../../components/ReserveModal.astro';
+import ProductInstagramBlock from '../../components/ProductInstagramBlock.astro';
 import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities, truncateForMeta } from '../../lib/woo';
 import { resolveSpecs } from '../../lib/specs';
 import { salesMode, CONCIERGE_LINE } from '../../lib/sales-mode';
@@ -12,7 +13,6 @@ import type { WooProduct } from '../../lib/woo';
 import en from '../../i18n/en.json';
 import membershipRaw from '../../data/collection-membership.json';
 import { collections } from '../../data/collections';
-import { instagramLinks } from '../../data/instagram-links';
 
 // ── SALES MODE ───────────────────────────────────────────────────────────────
 // (Ocin 2026-07-13) The old `RESERVE_MIN_PRICE = 200` gate is GONE: a price tag
@@ -43,9 +43,10 @@ const _rawColl = product.sku ? _collMembership[product.sku] : undefined;
 const collectionSlug = _rawColl && _validCollSlugs.has(_rawColl.toLowerCase()) ? _rawColl.toLowerCase() : null;
 const collectionTitle = collectionSlug ? (collections.find(c => c.slug === collectionSlug)?.title ?? collectionSlug) : null;
 
-// Discreet "See it on Instagram" link — renders ONLY when this product's slug
-// has a confirmed real post URL in src/data/instagram-links.ts. Never invented.
-const igLink = instagramLinks[product.slug];
+// "On Instagram" rich block (task A2, 2026-07-18) — resolved and rendered
+// entirely inside <ProductInstagramBlock>, which reads instagram-links.ts
+// (single source of truth: instagram-product-map.json) and renders nothing
+// when the slug has no CONFIRMED pairing. See that component for details.
 
 const desc = cleanDescription(product.description || product.short_description || '');
 const mainImg = product.images[0];
@@ -65,6 +66,17 @@ const sizeLabel = specs.size || gauge?.options?.join(' · ') || null;
 // hand-forged in Truckee — per canonical rule [[regla-handmade-vs-sourced]].
 const originAttr = attrs.find(a => /origen|origin|made by|fabricaci/i.test(a.name));
 const originRaw = (originAttr?.options?.[0] || '').toLowerCase().trim();
+
+// Named-maker credit. When a piece comes from a real artisan with a name
+// (artisan-sourced / named-maker), we credit them explicitly instead of
+// hardcoding a single partner. Falls back to the historical Alai Wakan
+// credit for curated-independent pieces that carry no Maker attribute.
+const makerAttr = attrs.find(a => /^\s*maker\s*$|artesano|artisan/i.test(a.name));
+const makerName = (makerAttr?.options?.[0] || '').trim();
+const makerIgAttr = attrs.find(a => /maker\s*ig|ig\s*maker|instagram/i.test(a.name));
+const makerIgRaw = (makerIgAttr?.options?.[0] || '').trim();
+const makerIg = makerIgRaw ? (makerIgRaw.startsWith('@') ? makerIgRaw : `@${makerIgRaw}`) : '';
+const makerIgUrl = makerIg ? `https://www.instagram.com/${makerIg.replace(/^@/, '')}` : '';
 
 // Smart fallback when Origen attribute isn't set in WC. Honest categories:
 // - collab-jimmy: Atacama meteorite (Vaca Muerta) rings crafted by the artisan
@@ -668,7 +680,7 @@ const breadcrumbLd = {
                 )}
                 {origin === 'curated-independent' && (
                   <>
-                    <p><strong>Origin:</strong> curated piece — handmade by an independent silversmith partner.</p>
+                    <p><strong>Origin:</strong> curated piece — handmade by an independent artisan partner.</p>
                     <p>
                       Selected for design, materials and craftsmanship before joining the catalogue.
                       Inspected, finished and shipped from Truckee, California.
@@ -689,20 +701,12 @@ const breadcrumbLd = {
                      Artist credit  → piezas curadas de Alai Wakan (curated-independent).
                      Material origin → piezas con meteorito Vaca Muerta / Atacama. */}
                 <ArtistCredit
-                  artist={origin === 'curated-independent' ? 'Alai Wakan' : undefined}
-                  igHandle={origin === 'curated-independent' ? '@alaiwakan' : undefined}
-                  igUrl={origin === 'curated-independent' ? 'https://www.instagram.com/alaiwakan' : undefined}
+                  artist={makerName || (origin === 'curated-independent' ? 'Alai Wakan' : undefined)}
+                  igHandle={makerName ? (makerIg || undefined) : (origin === 'curated-independent' ? '@alaiwakan' : undefined)}
+                  igUrl={makerName ? (makerIgUrl || undefined) : (origin === 'curated-independent' ? 'https://www.instagram.com/alaiwakan' : undefined)}
                   materialOrigin={/vacamuerta|meteorite|atacama/.test(productSignals) ? 'Atacama meteorite · Vaca Muerta mesosiderite' : undefined}
                   materialOriginUrl={/vacamuerta|meteorite|atacama/.test(productSignals) ? '/material/vacamuerta' : undefined}
                 />
-
-                {igLink && (
-                  <p class="product-ig-link">
-                    <a href={igLink.igUrl} target="_blank" rel="noopener noreferrer" class="text-accent">
-                      See it on Instagram <span aria-hidden="true">↗</span>
-                    </a>
-                  </p>
-                )}
               </div>
             </details>
 
@@ -750,6 +754,14 @@ const breadcrumbLd = {
               </div>
             </details>
           </div>
+
+          {mainImg && (
+            <ProductInstagramBlock
+              slug={product.slug}
+              image={{ src: mainImg.src, alt: mainImg.alt, width: mainImg.width, height: mainImg.height }}
+              productName={decodeEntities(product.name)}
+            />
+          )}
         </div>
       </div>
 

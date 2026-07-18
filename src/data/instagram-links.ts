@@ -1,45 +1,57 @@
 /**
- * instagram-links.ts — optional per-product Instagram post URL, keyed by slug.
+ * instagram-links.ts — typed accessor over `instagram-product-map.json`
+ * (repo root), which is the SINGLE SOURCE OF TRUTH for product ↔ Instagram
+ * post pairings.
  *
- * Purpose: power the discreet "See it on Instagram" link on the PDP
- * (src/pages/p/[slug].astro). A product only shows the link when its slug
- * has an entry here — never invented, never guessed at render time.
+ * Unified 2026-07-18 (task A2): this file used to duplicate a hand-picked
+ * subset of the JSON with its own `confidence` field. That duplication meant
+ * two places could drift. Now this file only reads and re-shapes the JSON —
+ * it adds/removes/edits NOTHING. To change a pairing, edit
+ * `instagram-product-map.json` at the repo root; this file picks it up
+ * automatically on next build.
  *
- * Source: seeded 2026-07-18 from `instagram-product-map.json` (repo root),
- * built by reading the real, logged-in @wenu__mapu profile. Each entry below
- * is a REAL post URL. `confidence` carries over from that source so a human
- * can prioritize review — MEDIUM entries have a matching product/post NAME
- * but an unconfirmed detail (color/variant); HIGH/MEDIUM-HIGH are solid.
+ * REGLA DURA (owner, 2026-07-18): only `status: "CONFIRMED"` entries are
+ * exposed here. `HELD` entries (e.g. the Guemil septum — a limited/custom
+ * piece with no SKU) are intentionally excluded so they never get linked to
+ * the wrong PDP.
  *
- * To add more: paste a confirmed slug + post URL below. To remove a shaky
- * match: delete the entry (the PDP link simply stops rendering for it).
+ * Consumers:
+ *  - `src/components/ProductInstagramBlock.astro` (the rich "On Instagram"
+ *    card on the PDP — task A2).
+ *  - Anything else that wants "does this product have a confirmed IG post"
+ *    can just check `instagramLinks[slug]`.
  */
+import productMap from '../../instagram-product-map.json';
+
 export interface InstagramLink {
   igUrl: string;
-  /** carried over for humans reviewing this file — not read by the UI */
-  confidence: 'HIGH' | 'MEDIUM-HIGH' | 'MEDIUM';
-  reviewNote?: string;
+  /** Short caption from the real post — used as the excerpt on the PDP block. */
+  caption: string;
+  /** Internal post name from the source map (not shown in UI), kept for debugging. */
+  igName?: string;
 }
 
-export const instagramLinks: Record<string, InstagramLink> = {
-  'solar-light-weight-tunnel-flower-of-life-14mm': {
-    igUrl: 'https://www.instagram.com/wenu__mapu/p/DXo9Lh6FCfx/',
-    confidence: 'HIGH',
-  },
-  'titanium-starburst-north-star-labret-16g-gold-tone-central-cz': {
-    igUrl: 'https://www.instagram.com/wenu__mapu/p/DXo9u86lAJZ/',
-    confidence: 'MEDIUM-HIGH',
-  },
-  'crown-spine-hangers-10mm': {
-    igUrl: 'https://www.instagram.com/wenu__mapu/p/DXjy_gYlB9K/',
-    confidence: 'MEDIUM',
-    reviewNote:
-      "Confirm: 'Teal Resin Hexagon Hangers' (this slug) vs 'Polished Hexagonal Magnetic Hanger' — the post shows a teal hexagonal hanger.",
-  },
-  'trinity-cluster-blue-cz-labret-top-titanium-16g': {
-    igUrl: 'https://www.instagram.com/wenu__mapu/p/DXYUyLBlJvx/',
-    confidence: 'MEDIUM',
-    reviewNote:
-      "Name 'Trinity Cluster' matches; the post caption says EMERALD (green) but this SKU is blue CZ — confirm variant with the owner.",
-  },
-};
+interface RawProductEntry {
+  slug: string | null;
+  igName: string;
+  igUrl: string;
+  caption: string;
+  date?: string;
+  status: 'CONFIRMED' | 'HELD' | string;
+  verify?: string;
+}
+
+interface RawMap {
+  profile: string;
+  products: RawProductEntry[];
+}
+
+const raw = productMap as unknown as RawMap;
+
+export const IG_PROFILE = raw.profile;
+
+export const instagramLinks: Record<string, InstagramLink> = Object.fromEntries(
+  raw.products
+    .filter((e) => e.status === 'CONFIRMED' && !!e.slug)
+    .map((e) => [e.slug as string, { igUrl: e.igUrl, caption: e.caption, igName: e.igName }]),
+);
