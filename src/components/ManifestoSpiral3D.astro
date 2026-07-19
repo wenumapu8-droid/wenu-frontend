@@ -1425,10 +1425,13 @@ const STATIONS: Station[] = [
             clearcoatRoughness: 0.3,
           });
           serpent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, tubes, tubeR, 16, false), bodyMat));
+          // rim light — a thin fresnel tube that catches the light along the
+          // coils' edge/silhouette (same fresnelMat used by Sun/Earth/black hole)
+          serpent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, tubes, tubeR * 1.09, 12, false), fresnelMat(0x8a95e8, 2.6, 1.0)));
           serpent.add(
             new THREE.Mesh(
               new THREE.TubeGeometry(curve, tubes, tubeR * 1.4, 10, false),
-              new THREE.MeshBasicMaterial({ color: 0x4657a8, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })
+              new THREE.MeshBasicMaterial({ color: 0x4657a8, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false })
             )
           );
           // HEAD — a real serpent head at the BOTTOM of the coil (dark space,
@@ -1497,6 +1500,8 @@ const STATIONS: Station[] = [
           tail.position.copy(curve.getPointAt(0.99)).add(tt.clone().multiplyScalar(tubeR * 2.5));
           tail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tt);
           serpent.add(tail);
+          serpent.userData.bodyMat = bodyMat;
+          serpent.userData.glint = S.glint;
         })();
 
         // NET OF BEING — central source of light + radiating rays at the heart of the eye-torus
@@ -1682,7 +1687,12 @@ const STATIONS: Station[] = [
           eyeNet.uniforms.uMouse.value.set(eyeLook.x, eyeLook.y);
           eyeNet.uniforms.uTime.value = t;
         }
-        if (serpent) serpent.rotation.y += dt * 0.03;
+        if (serpent) {
+          serpent.rotation.y += dt * 0.012;
+          const su = serpent.userData as any;
+          if (su.bodyMat) su.bodyMat.emissiveIntensity = 0.85 + 0.2 * Math.sin(t * 0.5);
+          if (su.glint) su.glint.offset.x += dt * 0.012;
+        }
         if (eyeSource) eyeSource.scale.setScalar(1 + 0.12 * Math.sin(t * 1.5));
         if (eyeRays) eyeRays.rotation.y += dt * 0.02;
         if (blackhole) {
