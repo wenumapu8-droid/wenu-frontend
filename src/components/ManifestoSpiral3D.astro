@@ -1305,8 +1305,8 @@ const STATIONS: Station[] = [
         serpent = new THREE.Group();
         scene.add(serpent);
         (function () {
-          const TOP = 276,
-            BOT = 164,
+          const TOP = 250,
+            BOT = 146,
             coils = 2.15,
             STEPS = mobile ? 120 : 190,
             P: any[] = [];
@@ -1431,57 +1431,72 @@ const STATIONS: Station[] = [
               new THREE.MeshBasicMaterial({ color: 0x4657a8, transparent: true, opacity: 0.08, blending: THREE.AdditiveBlending, depthWrite: false })
             )
           );
-          // HEAD — elongated obsidian wedge, oriented along the curve
-          const hp = curve.getPointAt(0.984),
-            ht = curve.getTangentAt(0.984).normalize();
+          // HEAD — a real serpent head at the BOTTOM of the coil (dark space,
+          // clearly visible): tapering snout, flattened top. Sculpted from a
+          // sphere by pushing its own vertices (owner catch 2026-07-19: the
+          // stretched-sphere-plus-4-dots version read as "weird" and hard to
+          // see — this reads as an actual snake head).
+          const hp = curve.getPointAt(0.02),
+            ht = curve.getTangentAt(0.02).clone().multiplyScalar(-1).normalize();
           const perp = new THREE.Vector3().crossVectors(ht, new THREE.Vector3(0, 1, 0)).normalize();
           const up = new THREE.Vector3().crossVectors(perp, ht).normalize();
-          const head = new THREE.Mesh(new THREE.SphereGeometry(tubeR * 1.7, 20, 16), bodyMat);
+          const hg = new THREE.SphereGeometry(tubeR * 2.1, 30, 22);
+          (function () {
+            const Pos = hg.attributes.position,
+              r = tubeR * 2.1;
+            for (let i = 0; i < Pos.count; i++) {
+              const z = Pos.getZ(i),
+                tz = (z + r) / (2 * r),
+                taper = 1 - 0.55 * tz * tz;
+              Pos.setX(i, Pos.getX(i) * taper * 1.12);
+              Pos.setY(i, Pos.getY(i) * taper * 0.54);
+              Pos.setZ(i, z * 2.05);
+            }
+            hg.computeVertexNormals();
+          })();
+          const head = new THREE.Mesh(hg, bodyMat);
           head.position.copy(hp);
           head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ht);
-          head.scale.set(1.15, 0.72, 2.3);
           serpent.add(head);
-          // four star-marks on the head — the four winds (Meli Witran Mapu)
-          const stG = new THREE.SphereGeometry(0.5, 8, 8),
-            stM = new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }),
-            hc = hp
-              .clone()
-              .add(up.clone().multiplyScalar(tubeR * 0.9))
-              .add(ht.clone().multiplyScalar(tubeR * 0.3));
-          [
-            [0, 1.7],
-            [1.7, 0],
-            [0, -1.7],
-            [-1.7, 0],
-          ].forEach((o) => {
-            const m = new THREE.Mesh(stG, stM);
-            m.position.copy(hc).add(perp.clone().multiplyScalar(o[0])).add(ht.clone().multiplyScalar(o[1]));
-            serpent.add(m);
-          });
-          // eyes — white / electric-blue, no pupil
-          const eg = new THREE.SphereGeometry(0.85, 12, 12),
-            em = new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 1, blending: THREE.AdditiveBlending });
+          // brow ridge shadow (subtle) + eyes: bright white/electric-blue, no
+          // pupil, on the upper-sides, each with a soft glow halo
+          const eg = new THREE.SphereGeometry(1.5, 18, 18),
+            em = new THREE.MeshBasicMaterial({ color: 0xe8f4ff, blending: THREE.AdditiveBlending });
           const eB = hp
             .clone()
             .add(ht.clone().multiplyScalar(tubeR * 1.5))
             .add(up.clone().multiplyScalar(tubeR * 0.5));
           const e1 = new THREE.Mesh(eg, em);
-          e1.position.copy(eB).add(perp.clone().multiplyScalar(tubeR * 0.9));
+          e1.position.copy(eB).add(perp.clone().multiplyScalar(tubeR * 1.15));
           serpent.add(e1);
           const e2 = new THREE.Mesh(eg, em);
-          e2.position.copy(eB).add(perp.clone().multiplyScalar(-tubeR * 0.9));
+          e2.position.copy(eB).add(perp.clone().multiplyScalar(-tubeR * 1.15));
           serpent.add(e2);
-          // TAIL — ends in a small orbit / eclipse
-          const tp = curve.getPointAt(0.006),
-            tt = curve.getTangentAt(0.006),
-            oc = tp.clone().add(tt.clone().multiplyScalar(-5));
-          const orbit = new THREE.Mesh(new THREE.TorusGeometry(4, 0.22, 10, 48), new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending }));
+          const gh = new THREE.SphereGeometry(3.2, 14, 14),
+            ghm = new THREE.MeshBasicMaterial({ color: 0x5a8ad4, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false });
+          [e1, e2].forEach((e) => {
+            const g = new THREE.Mesh(gh, ghm);
+            g.position.copy(e.position);
+            serpent.add(g);
+          });
+          // ECLIPSE — the head curls near a small eclipse (as in the reference);
+          // the tail tapers away at the far end
+          const oc = hp
+            .clone()
+            .add(ht.clone().multiplyScalar(tubeR * 5))
+            .add(up.clone().multiplyScalar(-tubeR * 1.2));
+          const orbit = new THREE.Mesh(new THREE.TorusGeometry(4.5, 0.22, 10, 48), new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
           orbit.position.copy(oc);
-          orbit.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), tt);
+          orbit.quaternion.copy(head.quaternion);
           serpent.add(orbit);
-          const eclipse = new THREE.Mesh(new THREE.SphereGeometry(2.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x02020a }));
+          const eclipse = new THREE.Mesh(new THREE.SphereGeometry(2.4, 16, 16), new THREE.MeshBasicMaterial({ color: 0x02020a }));
           eclipse.position.copy(oc);
           serpent.add(eclipse);
+          const tt = curve.getTangentAt(0.99);
+          const tail = new THREE.Mesh(new THREE.ConeGeometry(tubeR * 0.9, tubeR * 6, 12), bodyMat);
+          tail.position.copy(curve.getPointAt(0.99)).add(tt.clone().multiplyScalar(tubeR * 2.5));
+          tail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tt);
+          serpent.add(tail);
         })();
 
         // NET OF BEING — central source of light + radiating rays at the heart of the eye-torus
