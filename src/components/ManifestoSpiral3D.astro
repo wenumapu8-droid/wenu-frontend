@@ -1320,6 +1320,49 @@ const STATIONS: Station[] = [
           const curve = new THREE.CatmullRomCurve3(P),
             tubeR = mobile ? 2.6 : 3.1,
             tubes = mobile ? 150 : 230;
+          // TAPERED body — real snakes taper from a thick neck to a fine tail
+          // (a uniform tube never reads as a snake)
+          const rfn = (u: number) => tubeR * Math.max(0.1, 1.22 - 1.12 * u);
+          function taperTube(T: number, Rs: number, rf: (u: number) => number) {
+            const fr = curve.computeFrenetFrames(T, false),
+              pos: number[] = [],
+              nor: number[] = [],
+              uv: number[] = [],
+              idx: number[] = [],
+              Pt = new THREE.Vector3();
+            for (let i = 0; i <= T; i++) {
+              const u = i / T;
+              curve.getPointAt(u, Pt);
+              const N = fr.normals[i],
+                B = fr.binormals[i],
+                r = rf(u);
+              for (let j = 0; j <= Rs; j++) {
+                const v = (j / Rs) * 6.283,
+                  cx = Math.cos(v),
+                  sv = Math.sin(v),
+                  nx = cx * N.x + sv * B.x,
+                  ny = cx * N.y + sv * B.y,
+                  nz = cx * N.z + sv * B.z;
+                pos.push(Pt.x + r * nx, Pt.y + r * ny, Pt.z + r * nz);
+                nor.push(nx, ny, nz);
+                uv.push(u * 7, j / Rs);
+              }
+            }
+            for (let i = 0; i < T; i++)
+              for (let j = 0; j < Rs; j++) {
+                const a = (Rs + 1) * i + j,
+                  b = (Rs + 1) * (i + 1) + j,
+                  c = (Rs + 1) * (i + 1) + j + 1,
+                  d = (Rs + 1) * i + j + 1;
+                idx.push(a, b, d, b, c, d);
+              }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+            g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+            g.setIndex(idx);
+            return g;
+          }
           // Wenumawiza australis — obsidian DIAMOND-SCALE skin: faceted rhombus
           // lattice (map) + real relief (bump) + crystalline glints (emissive)
           const S = (function () {
@@ -1424,16 +1467,18 @@ const STATIONS: Station[] = [
             clearcoat: 0.55,
             clearcoatRoughness: 0.3,
           });
-          serpent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, tubes, tubeR, 16, false), bodyMat));
+          serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
           // rim light — a thin fresnel tube that catches the light along the
           // coils' edge/silhouette (same fresnelMat used by Sun/Earth/black hole)
-          serpent.add(new THREE.Mesh(new THREE.TubeGeometry(curve, tubes, tubeR * 1.09, 12, false), fresnelMat(0x8a95e8, 2.6, 1.0)));
+          serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), fresnelMat(0x8a95e8, 2.6, 1.0)));
           serpent.add(
             new THREE.Mesh(
-              new THREE.TubeGeometry(curve, tubes, tubeR * 1.4, 10, false),
+              taperTube(tubes, 10, (u) => rfn(u) * 1.45),
               new THREE.MeshBasicMaterial({ color: 0x4657a8, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false })
             )
           );
+          serpent.userData.bodyMat = bodyMat;
+          serpent.userData.glint = S.glint;
           // HEAD — a real serpent head at the BOTTOM of the coil (dark space,
           // clearly visible): tapering snout, flattened top. Sculpted from a
           // sphere by pushing its own vertices (owner catch 2026-07-19: the
@@ -1483,7 +1528,8 @@ const STATIONS: Station[] = [
             serpent.add(g);
           });
           // ECLIPSE — the head curls near a small eclipse (as in the reference);
-          // the tail tapers away at the far end
+          // the body itself now tapers to a fine point at the far end (rfn()
+          // above), so no separate tail cone is needed
           const oc = hp
             .clone()
             .add(ht.clone().multiplyScalar(tubeR * 5))
@@ -1495,13 +1541,6 @@ const STATIONS: Station[] = [
           const eclipse = new THREE.Mesh(new THREE.SphereGeometry(2.4, 16, 16), new THREE.MeshBasicMaterial({ color: 0x02020a }));
           eclipse.position.copy(oc);
           serpent.add(eclipse);
-          const tt = curve.getTangentAt(0.99);
-          const tail = new THREE.Mesh(new THREE.ConeGeometry(tubeR * 0.9, tubeR * 6, 12), bodyMat);
-          tail.position.copy(curve.getPointAt(0.99)).add(tt.clone().multiplyScalar(tubeR * 2.5));
-          tail.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tt);
-          serpent.add(tail);
-          serpent.userData.bodyMat = bodyMat;
-          serpent.userData.glint = S.glint;
         })();
 
         // NET OF BEING — central source of light + radiating rays at the heart of the eye-torus
