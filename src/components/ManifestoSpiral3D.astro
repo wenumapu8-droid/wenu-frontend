@@ -1233,131 +1233,78 @@ const STATIONS: Station[] = [
           const c1 = new THREE.CatmullRomCurve3(P1),
             c2 = new THREE.CatmullRomCurve3(P2),
             seg = mobile ? 140 : 240;
-          // obsidian glint skin (dark, silver/blue star-glints) — matches the astral serpent
-          const dskin = (function () {
-            const w = 256,
-              h = 64,
-              c = document.createElement('canvas');
-            c.width = w;
-            c.height = h;
-            const x = c.getContext('2d')!;
-            x.fillStyle = '#08080f';
-            x.fillRect(0, 0, w, h);
-            x.strokeStyle = 'rgba(120,130,180,0.12)';
-            x.lineWidth = 1;
-            for (let ry = 0; ry <= h; ry += 7) {
-              for (let rx = (ry / 7) % 2 ? 0 : 5; rx < w; rx += 10) {
-                x.beginPath();
-                x.arc(rx, ry, 5, Math.PI, 2 * Math.PI);
-                x.stroke();
-              }
+          // FLAT RIBBON backbone (the sugar-phosphate skeleton) — a twisting flat band
+          // (width along the radial so it twists as it spirals, like a real DNA render)
+          function ribbon(pts: any[], width: number) {
+            const N = pts.length,
+              pos: number[] = [],
+              idx: number[] = [];
+            for (let i = 0; i < N; i++) {
+              const p = pts[i],
+                W = new THREE.Vector3(p.x, 0, p.z).normalize();
+              pos.push(p.x + W.x * width * 0.5, p.y, p.z + W.z * width * 0.5, p.x - W.x * width * 0.5, p.y, p.z - W.z * width * 0.5);
             }
-            for (let i = 0; i < 130; i++) {
-              const px = Math.random() * w,
-                py = Math.random() * h,
-                r = 0.4 + Math.random() * 1.2;
-              x.fillStyle = Math.random() > 0.6 ? 'rgba(200,215,255,0.95)' : 'rgba(225,225,240,0.8)';
-              x.beginPath();
-              x.arc(px, py, r, 0, 6.283);
-              x.fill();
+            for (let i = 0; i < N - 1; i++) {
+              const k = i * 2;
+              idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
             }
-            const t = new THREE.CanvasTexture(c);
-            t.colorSpace = THREE.SRGBColorSpace;
-            t.wrapS = t.wrapT = THREE.RepeatWrapping;
-            t.repeat.set(30, 1);
-            return t;
-          })();
-          const strandMat = () =>
-            new THREE.MeshPhysicalMaterial({
-              map: dskin,
-              color: 0x0a0a16,
-              emissive: 0xffffff,
-              emissiveMap: dskin,
-              emissiveIntensity: 0.6,
-              roughness: 0.25,
-              metalness: 0.55,
-              iridescence: 1.0,
-              iridescenceIOR: 1.5,
-              iridescenceThicknessRange: [140, 460],
-              clearcoat: 0.5,
-            });
-          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c1, seg, 0.95, 12, false), strandMat()));
-          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c2, seg, 0.95, 12, false), strandMat()));
-          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c1, seg, 1.5, 10, false), new THREE.MeshBasicMaterial({ color: 0x5566c0, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false })));
-          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c2, seg, 1.5, 10, false), new THREE.MeshBasicMaterial({ color: 0x8a6ec8, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false })));
-          // base pairs = glowing sacred-geometry star-crosses
-          const starTex = (function () {
-            const s = 64,
-              c = document.createElement('canvas');
-            c.width = c.height = s;
-            const x = c.getContext('2d')!;
-            x.translate(s / 2, s / 2);
-            x.strokeStyle = 'rgba(220,225,255,0.95)';
-            x.lineWidth = 1.2;
-            for (let k = 0; k < 4; k++) {
-              const a = (k * Math.PI) / 2;
-              x.beginPath();
-              x.moveTo(0, 0);
-              x.lineTo(Math.cos(a) * 30, Math.sin(a) * 30);
-              x.stroke();
-            }
-            for (let k = 0; k < 4; k++) {
-              const a = Math.PI / 4 + (k * Math.PI) / 2;
-              x.beginPath();
-              x.moveTo(0, 0);
-              x.lineTo(Math.cos(a) * 15, Math.sin(a) * 15);
-              x.stroke();
-            }
-            x.strokeStyle = 'rgba(185,165,255,0.8)';
-            x.beginPath();
-            for (let k = 0; k < 4; k++) {
-              const a = Math.PI / 4 + (k * Math.PI) / 2,
-                px = Math.cos(a) * 11,
-                py = Math.sin(a) * 11;
-              k ? x.lineTo(px, py) : x.moveTo(px, py);
-            }
-            x.closePath();
-            x.stroke();
-            const g = x.createRadialGradient(0, 0, 0, 0, 0, 9);
-            g.addColorStop(0, 'rgba(255,255,255,1)');
-            g.addColorStop(1, 'rgba(255,255,255,0)');
-            x.fillStyle = g;
-            x.beginPath();
-            x.arc(0, 0, 9, 0, 6.283);
-            x.fill();
-            return new THREE.CanvasTexture(c);
-          })();
-          const starMat = new THREE.SpriteMaterial({ map: starTex, color: 0xd6ccff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
-          const jgeo = new THREE.SphereGeometry(0.5, 8, 8),
-            jmat = new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending });
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            g.setIndex(idx);
+            g.computeVertexNormals();
+            return g;
+          }
+          const ribMat = new THREE.MeshStandardMaterial({ color: 0xaec6dd, roughness: 0.35, metalness: 0.5, emissive: 0x223a52, emissiveIntensity: 0.6, side: THREE.DoubleSide });
+          dna.add(new THREE.Mesh(ribbon(P1, 1.8), ribMat));
+          dna.add(new THREE.Mesh(ribbon(P2, 1.8), ribMat));
+          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c1, seg, 1.2, 8, false), new THREE.MeshBasicMaterial({ color: 0x6a9ad0, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false })));
+          dna.add(new THREE.Mesh(new THREE.TubeGeometry(c2, seg, 1.2, 8, false), new THREE.MeshBasicMaterial({ color: 0x8a6ec8, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false })));
+          // BASE PAIRS — real 4-colour rungs: A-red pairs T-yellow, G-blue pairs C-green.
+          // Each rung is two flat colour bars meeting in the middle (the two complementary bases).
+          const pairs = [
+            [0xe23b3b, 0xe8c93b],
+            [0x3b6fe2, 0x3bc46b],
+          ];
+          const jgeo = new THREE.SphereGeometry(0.42, 10, 10);
           const rungs: any[] = [];
           for (let i = 0; i < RA.length; i++) {
             const a = RA[i],
               b = RB[i],
-              mid = a.clone().add(b).multiplyScalar(0.5),
-              u = i / (RA.length - 1);
-            const bm = new THREE.MeshBasicMaterial({ color: 0xb8c6ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
-            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, a.distanceTo(b), 6), bm);
-            bar.position.copy(mid);
-            bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
-            dna.add(bar);
-            const sm = starMat.clone();
-            const st = new THREE.Sprite(sm);
-            st.scale.setScalar(4.5);
-            st.position.copy(mid);
-            dna.add(st);
-            const j1 = new THREE.Mesh(jgeo, jmat);
+              u = i / (RA.length - 1),
+              dir = b.clone().sub(a),
+              len = dir.length(),
+              q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), dir.clone().normalize());
+            const pr = pairs[Math.random() < 0.5 ? 0 : 1],
+              fl = Math.random() < 0.5,
+              mats: any[] = [];
+            [
+              [pr[fl ? 1 : 0], 0.26],
+              [pr[fl ? 0 : 1], 0.74],
+            ].forEach((pc) => {
+              const m = new THREE.MeshStandardMaterial({ color: pc[0], emissive: pc[0], emissiveIntensity: 0.6, roughness: 0.4, metalness: 0.1 });
+              const bar = new THREE.Mesh(new THREE.BoxGeometry(len * 0.46, 0.5, 0.95), m);
+              bar.position.copy(a).add(dir.clone().multiplyScalar(pc[1] as number));
+              bar.quaternion.copy(q);
+              dna.add(bar);
+              mats.push(m);
+            });
+            const j1 = new THREE.Mesh(jgeo, ribMat);
             j1.position.copy(a);
             dna.add(j1);
-            const j2 = new THREE.Mesh(jgeo, jmat);
+            const j2 = new THREE.Mesh(jgeo, ribMat);
             j2.position.copy(b);
             dna.add(j2);
-            rungs.push({ st, sm, bm, u });
+            rungs.push({ mats, u });
           }
           dna.userData.rungs = rungs;
-          const core = new THREE.Mesh(new THREE.SphereGeometry(1.8, SEG, SEG), new THREE.MeshBasicMaterial({ color: 0xe8e0ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending }));
-          core.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
-          dna.add(core);
+          // CELL NUCLEUS — the double helix unspools out of a translucent nucleus at the top
+          const nucleus = new THREE.Group();
+          nucleus.position.set(0, DNA_TOP + 3, 0);
+          dna.add(nucleus);
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(11, 32, 24), new THREE.MeshPhysicalMaterial({ color: 0x243550, transparent: true, opacity: 0.16, roughness: 0.5, metalness: 0, transmission: 0.4, side: THREE.DoubleSide, depthWrite: false })));
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(11.4, 22, 18), fresnelMat(0x5f86b8, 4.0, 1.0)));
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(2.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x8aa8d8, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false })));
+          dna.userData.nucleus = nucleus;
         })();
         mandalaDna = mandalaPlane(118, '#c9b8ff', new THREE.Color(C.amethyst), 0.2);
         mandalaDna.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
@@ -1415,12 +1362,20 @@ const STATIONS: Station[] = [
             vertexShader: `attribute vec3 aOff; attribute float aSize; attribute vec3 aCol; attribute float aPhase; varying vec2 vUv; varying vec3 vCol; varying float vPhase;
               void main(){ vUv=uv; vCol=aCol; vPhase=aPhase; vec4 mv=modelViewMatrix*vec4(aOff,1.0); mv.xy+=position.xy*aSize; gl_Position=projectionMatrix*mv; }`,
             fragmentShader: `precision highp float; uniform vec2 uMouse; uniform float uTime; varying vec2 vUv; varying vec3 vCol; varying float vPhase;
-              void main(){ vec2 p=vUv-0.5; float cyc=fract(uTime*0.06+vPhase); float blink=clamp(smoothstep(0.0,0.02,cyc)-smoothstep(0.05,0.09,cyc),0.0,1.0); p.y*=1.0+blink*7.0; float d=length(p);
-                float sclera=smoothstep(0.5,0.42,d); if(sclera<=0.001) discard;
-                vec2 look=clamp(uMouse,-1.0,1.0)*0.16; float di=length(p-look);
-                float iris=smoothstep(0.22,0.18,di); float pupil=smoothstep(0.14,0.11,di); float spark=smoothstep(0.05,0.0,length(p-look-vec2(0.055,0.055)));
-                vec3 col=vec3(0.60,0.58,0.54)*sclera; col=mix(col,vCol*1.1,iris*0.95); col=mix(col,vec3(0.01,0.01,0.02),pupil); col+=spark*0.8;
-                gl_FragColor=vec4(col, sclera); }`,
+              void main(){ vec2 p=vUv-0.5;
+                float cyc=fract(uTime*0.06+vPhase); float blink=clamp(smoothstep(0.0,0.02,cyc)-smoothstep(0.05,0.09,cyc),0.0,1.0);
+                // ALMOND Buddha/Shiva eye — pointed lids (not a round ball), upper lid closes on blink
+                float w=0.46; float t=1.0-(p.x*p.x)/(w*w); if(t<0.0) discard; float stt=sqrt(t);
+                float upper=(0.25 - blink*0.235)*stt, lower=-0.16*stt, sw=0.014;
+                float inside=smoothstep(-sw,sw, upper-p.y)*smoothstep(-sw,sw, p.y-lower); if(inside<=0.002) discard;
+                vec2 look=clamp(uMouse,-1.0,1.0)*vec2(0.14,0.06); float di=length(p-look);
+                float iris=smoothstep(0.17,0.13,di), pupil=smoothstep(0.085,0.055,di), spark=smoothstep(0.03,0.0,length(p-look-vec2(0.045,0.05)));
+                float liner=smoothstep(0.028,0.0, upper-p.y);
+                vec3 irisCol=mix(vec3(0.16,0.42,0.86), vCol, 0.3);
+                vec3 col=vec3(0.58,0.55,0.49);
+                col=mix(col, irisCol, iris*0.97); col=mix(col, vec3(0.02,0.02,0.05), pupil); col+=spark*0.55;
+                col=mix(col, vec3(0.06,0.04,0.03), liner*0.9);
+                gl_FragColor=vec4(col, inside); }`,
           });
           const mesh = new THREE.Mesh(geo, mat);
           mesh.frustumCulled = false;
@@ -1640,7 +1595,7 @@ const STATIONS: Station[] = [
               'uniform float uWave;\n' +
               sh.vertexShader.replace(
                 '#include <begin_vertex>',
-                '#include <begin_vertex>\n float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave;\n transformed.x += sin(ph)*amp;\n transformed.z += cos(ph)*amp*0.55;\n transformed += normal * sin(uv.x*3.0 - uWave*1.3)*0.10;'
+                '#include <begin_vertex>\n float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave; float swy=uv.x*0.55 - uWave*0.5;\n transformed.x += sin(ph)*amp + sin(swy)*amp*1.5;\n transformed.z += cos(ph)*amp*0.55 + cos(swy*1.1)*amp*1.0;\n transformed += normal * sin(uv.x*3.0 - uWave*1.3)*0.10;'
               );
           };
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
@@ -1650,7 +1605,7 @@ const STATIONS: Station[] = [
           rimMat.uniforms.uWave = waveU;
           rimMat.vertexShader = rimMat.vertexShader
             .replace('uniform float s;', 'uniform float s; uniform float uWave;')
-            .replace('void main(){', 'void main(){ float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave; vec3 wpos=position; wpos.x+=sin(ph)*amp; wpos.z+=cos(ph)*amp*0.55; wpos+=normal*sin(uv.x*3.0 - uWave*1.3)*0.10;')
+            .replace('void main(){', 'void main(){ float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave; float swy=uv.x*0.55 - uWave*0.5; vec3 wpos=position; wpos.x+=sin(ph)*amp + sin(swy)*amp*1.5; wpos.z+=cos(ph)*amp*0.55 + cos(swy*1.1)*amp*1.0; wpos+=normal*sin(uv.x*3.0 - uWave*1.3)*0.10;')
             .replace(/vec4\(position,1\.0\)/g, 'vec4(wpos,1.0)');
           serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), rimMat));
           serpent.add(
@@ -1693,26 +1648,71 @@ const STATIONS: Station[] = [
           // (no pupil) + a tight halo, set high on the head sides. Owner catch
           // 2026-07-19: the old big additive spheres read as "headlights/faros"
           // and made the face look weird — small + defined reads as real eyes.
-          const ball = new THREE.SphereGeometry(1.15, 16, 16),
-            ballm = new THREE.MeshStandardMaterial({ color: 0x0a1526, roughness: 0.35, metalness: 0.1, emissive: 0x14304f, emissiveIntensity: 0.5 });
-          const eg = new THREE.SphereGeometry(0.6, 16, 16),
-            em = new THREE.MeshBasicMaterial({ color: 0xe8f4ff, blending: THREE.AdditiveBlending });
-          const gh = new THREE.SphereGeometry(1.7, 14, 14),
-            ghm = new THREE.MeshBasicMaterial({ color: 0x6a9ad8, transparent: true, opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false });
+          // EYE — pale-blue iris + vertical SLIT pupil + catchlight, like a real viper (ref: bush viper photo)
+          const eyeTex = (function () {
+            const s = 128,
+              c = document.createElement('canvas');
+            c.width = c.height = s;
+            const x = c.getContext('2d')!;
+            x.translate(s / 2, s / 2);
+            x.fillStyle = '#0c1f22';
+            x.beginPath();
+            x.arc(0, 0, s * 0.5, 0, 6.283);
+            x.fill();
+            const g = x.createRadialGradient(0, 0, 2, 0, 0, s * 0.44);
+            g.addColorStop(0, '#d8f4ff');
+            g.addColorStop(0.45, '#69cbe8');
+            g.addColorStop(0.8, '#2f86ad');
+            g.addColorStop(1, '#0e3346');
+            x.fillStyle = g;
+            x.beginPath();
+            x.arc(0, 0, s * 0.44, 0, 6.283);
+            x.fill();
+            x.strokeStyle = 'rgba(15,55,75,0.45)';
+            x.lineWidth = 1;
+            for (let k = 0; k < 64; k++) {
+              const a = (k / 64) * 6.283;
+              x.beginPath();
+              x.moveTo(Math.cos(a) * s * 0.1, Math.sin(a) * s * 0.1);
+              x.lineTo(Math.cos(a) * s * 0.42, Math.sin(a) * s * 0.42);
+              x.stroke();
+            }
+            x.fillStyle = '#000';
+            x.beginPath();
+            x.ellipse(0, 0, s * 0.055, s * 0.36, 0, 0, 6.283);
+            x.fill(); // vertical slit pupil
+            x.fillStyle = 'rgba(255,255,255,0.92)';
+            x.beginPath();
+            x.arc(-s * 0.11, -s * 0.13, s * 0.055, 0, 6.283);
+            x.fill(); // catchlight
+            const t = new THREE.CanvasTexture(c);
+            t.colorSpace = THREE.SRGBColorSpace;
+            return t;
+          })();
+          const eyeBallG = new THREE.SphereGeometry(1.25, 20, 20),
+            eyeBallM = new THREE.MeshStandardMaterial({ color: 0x0a1518, roughness: 0.25, metalness: 0.1 });
+          const irisG = new THREE.CircleGeometry(1.05, 32),
+            irisM = new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true });
+          const gh = new THREE.SphereGeometry(1.9, 14, 14),
+            ghm = new THREE.MeshBasicMaterial({ color: 0x5ec8e8, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false });
           const eB = hp
             .clone()
             .add(ht.clone().multiplyScalar(tubeR * 1.6))
             .add(up.clone().multiplyScalar(tubeR * 0.72));
           [1, -1].forEach((sgn) => {
             const pos = eB.clone().add(perp.clone().multiplyScalar(sgn * tubeR * 1.05));
-            const b = new THREE.Mesh(ball, ballm);
+            const b = new THREE.Mesh(eyeBallG, eyeBallM);
             b.position.copy(pos);
             serpent.add(b);
-            const e = new THREE.Mesh(eg, em);
-            e.position.copy(pos).add(ht.clone().multiplyScalar(tubeR * 0.35));
-            serpent.add(e);
+            const outward = perp.clone().multiplyScalar(sgn * 0.85).add(ht.clone().multiplyScalar(0.35)).add(up.clone().multiplyScalar(0.12)).normalize();
+            const xAxis = new THREE.Vector3().crossVectors(up, outward).normalize(),
+              yAxis = new THREE.Vector3().crossVectors(outward, xAxis).normalize();
+            const iris = new THREE.Mesh(irisG, irisM);
+            iris.position.copy(pos).add(outward.clone().multiplyScalar(1.2));
+            iris.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, outward));
+            serpent.add(iris);
             const g = new THREE.Mesh(gh, ghm);
-            g.position.copy(e.position);
+            g.position.copy(pos);
             serpent.add(g);
           });
           // FACE detail — hooded brow ridges (fierce), nostrils on the snout, and a flicking forked tongue
@@ -2004,9 +2004,7 @@ const STATIONS: Station[] = [
               let d = Math.abs(R.u - ph);
               d = Math.min(d, 1 - d);
               const gl = Math.exp(-(d * d) / 0.004);
-              R.st.scale.setScalar(4.5 + gl * 6.0);
-              R.sm.opacity = 0.85 + gl * 0.15;
-              R.bm.opacity = 0.5 + gl * 0.45;
+              for (const m of R.mats) m.emissiveIntensity = 0.6 + gl * 1.6;
             }
           }
         }
