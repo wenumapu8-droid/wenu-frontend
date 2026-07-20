@@ -1636,7 +1636,12 @@ const STATIONS: Station[] = [
           });
           bodyMat.onBeforeCompile = (sh: any) => {
             sh.uniforms.uWave = waveU;
-            sh.vertexShader = 'uniform float uWave;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n transformed += normal * sin(uv.x*2.5 + uWave)*0.16;');
+            sh.vertexShader =
+              'uniform float uWave;\n' +
+              sh.vertexShader.replace(
+                '#include <begin_vertex>',
+                '#include <begin_vertex>\n transformed.x += sin(uv.x*2.0 + uWave)*1.3;\n transformed.z += cos(uv.x*2.0 + uWave)*1.3;\n transformed += normal * sin(uv.x*3.0 + uWave*1.3)*0.12;'
+              );
           };
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
           // rim light — a thin fresnel tube that catches the light along the
@@ -1645,7 +1650,7 @@ const STATIONS: Station[] = [
           rimMat.uniforms.uWave = waveU;
           rimMat.vertexShader = rimMat.vertexShader
             .replace('uniform float s;', 'uniform float s; uniform float uWave;')
-            .replace('void main(){', 'void main(){ vec3 wpos=position + normal*sin(uv.x*2.5+uWave)*0.16;')
+            .replace('void main(){', 'void main(){ vec3 wpos=position; wpos.x+=sin(uv.x*2.0+uWave)*1.3; wpos.z+=cos(uv.x*2.0+uWave)*1.3; wpos+=normal*sin(uv.x*3.0+uWave*1.3)*0.12;')
             .replace(/vec4\(position,1\.0\)/g, 'vec4(wpos,1.0)');
           serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), rimMat));
           serpent.add(
@@ -1929,11 +1934,11 @@ const STATIONS: Station[] = [
           eyeNet.uniforms.uTime.value = t;
         }
         if (serpent) {
-          serpent.rotation.y += dt * 0.012;
+          serpent.rotation.y += dt * 0.02;
           const su = serpent.userData as any;
           if (su.bodyMat) su.bodyMat.emissiveIntensity = 0.85 + 0.2 * Math.sin(t * 0.5);
           if (su.glint) su.glint.offset.x += dt * 0.012;
-          if (su.wave) su.wave.value += dt * 2.2;
+          if (su.wave) su.wave.value += dt * 1.7;
         }
         if (eyeSource) eyeSource.scale.setScalar(1 + 0.12 * Math.sin(t * 1.5));
         if (eyeRays) eyeRays.rotation.y += dt * 0.02;
