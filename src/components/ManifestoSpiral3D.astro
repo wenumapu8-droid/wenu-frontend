@@ -497,10 +497,10 @@ const STATIONS: Station[] = [
       }
 
       // ── world Y map ────────────────────────────────────────────────────────
-      const SUN_Y = 285,
-        PLANET_Y = 232,
-        MARS_Y = 192,
-        MOON_Y = 150,
+      const SUN_Y = 320,
+        PLANET_Y = 228,
+        MARS_Y = 182,
+        MOON_Y = 140,
         EARTH_Y = 104;
       const PLASMA = [40, 84],
         GAS = [-8, 38],
@@ -870,7 +870,7 @@ const STATIONS: Station[] = [
         x.stroke(); // inner circle — centre of the world
         x.strokeStyle = '#e8c766';
         x.fillStyle = '#e8c766';
-        const q = s * 0.27; // mid-quadrant, on the diagonals
+        const q = s * 0.215; // mid-quadrant, on the diagonals (nudged toward centre)
         // Antü — the sun (upper-right / east): disc + rays
         ((cx: number, cy: number, r: number) => {
           x.lineWidth = 4;
@@ -1640,7 +1640,7 @@ const STATIONS: Station[] = [
               'uniform float uWave;\n' +
               sh.vertexShader.replace(
                 '#include <begin_vertex>',
-                '#include <begin_vertex>\n transformed.x += sin(uv.x*2.0 + uWave)*1.3;\n transformed.z += cos(uv.x*2.0 + uWave)*1.3;\n transformed += normal * sin(uv.x*3.0 + uWave*1.3)*0.12;'
+                '#include <begin_vertex>\n float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave;\n transformed.x += sin(ph)*amp;\n transformed.z += cos(ph)*amp*0.55;\n transformed += normal * sin(uv.x*3.0 - uWave*1.3)*0.10;'
               );
           };
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
@@ -1650,7 +1650,7 @@ const STATIONS: Station[] = [
           rimMat.uniforms.uWave = waveU;
           rimMat.vertexShader = rimMat.vertexShader
             .replace('uniform float s;', 'uniform float s; uniform float uWave;')
-            .replace('void main(){', 'void main(){ vec3 wpos=position; wpos.x+=sin(uv.x*2.0+uWave)*1.3; wpos.z+=cos(uv.x*2.0+uWave)*1.3; wpos+=normal*sin(uv.x*3.0+uWave*1.3)*0.12;')
+            .replace('void main(){', 'void main(){ float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave; vec3 wpos=position; wpos.x+=sin(ph)*amp; wpos.z+=cos(ph)*amp*0.55; wpos+=normal*sin(uv.x*3.0 - uWave*1.3)*0.10;')
             .replace(/vec4\(position,1\.0\)/g, 'vec4(wpos,1.0)');
           serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), rimMat));
           serpent.add(
@@ -1715,20 +1715,108 @@ const STATIONS: Station[] = [
             g.position.copy(e.position);
             serpent.add(g);
           });
-          // ECLIPSE — the head curls near a small eclipse (as in the reference);
-          // the body itself now tapers to a fine point at the far end (rfn()
-          // above), so no separate tail cone is needed
-          const oc = hp
+          // FACE detail — hooded brow ridges (fierce), nostrils on the snout, and a flicking forked tongue
+          const faceMat = new THREE.MeshStandardMaterial({ color: 0x14142a, roughness: 0.5, metalness: 0.35, emissive: 0x0a0a18, emissiveIntensity: 0.4 });
+          const browG = new THREE.SphereGeometry(1, 10, 8);
+          [1, -1].forEach((sgn) => {
+            const brow = new THREE.Mesh(browG, faceMat);
+            brow.scale.set(tubeR * 0.3, tubeR * 0.16, tubeR * 0.9);
+            brow.position
+              .copy(eB)
+              .add(up.clone().multiplyScalar(tubeR * 0.55))
+              .add(ht.clone().multiplyScalar(tubeR * 0.1))
+              .add(perp.clone().multiplyScalar(sgn * tubeR * 0.95));
+            brow.quaternion.copy(head.quaternion);
+            serpent.add(brow);
+            const nos = new THREE.Mesh(new THREE.SphereGeometry(tubeR * 0.14, 8, 8), new THREE.MeshBasicMaterial({ color: 0x03030a }));
+            nos.position
+              .copy(hp)
+              .add(ht.clone().multiplyScalar(tubeR * 2.55))
+              .add(up.clone().multiplyScalar(tubeR * 0.16))
+              .add(perp.clone().multiplyScalar(sgn * tubeR * 0.36));
+            serpent.add(nos);
+          });
+          const tongue = new THREE.Group();
+          const tMat = new THREE.MeshBasicMaterial({ color: 0xff3a6a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
+          const tBase = new THREE.Mesh(new THREE.CylinderGeometry(tubeR * 0.09, tubeR * 0.13, tubeR * 1.8, 6), tMat);
+          tBase.position.set(0, tubeR * 0.9, 0);
+          tongue.add(tBase);
+          [1, -1].forEach((sgn) => {
+            const tip = new THREE.Mesh(new THREE.CylinderGeometry(tubeR * 0.02, tubeR * 0.09, tubeR * 1.0, 6), tMat);
+            tip.position.set(sgn * tubeR * 0.28, tubeR * 2.15, 0);
+            tip.rotation.z = -sgn * 0.55;
+            tongue.add(tip);
+          });
+          const snout = hp
             .clone()
-            .add(ht.clone().multiplyScalar(tubeR * 5))
-            .add(up.clone().multiplyScalar(-tubeR * 1.2));
-          const orbit = new THREE.Mesh(new THREE.TorusGeometry(4.5, 0.22, 10, 48), new THREE.MeshBasicMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
-          orbit.position.copy(oc);
-          orbit.quaternion.copy(head.quaternion);
-          serpent.add(orbit);
-          const eclipse = new THREE.Mesh(new THREE.SphereGeometry(2.4, 16, 16), new THREE.MeshBasicMaterial({ color: 0x02020a }));
-          eclipse.position.copy(oc);
-          serpent.add(eclipse);
+            .add(ht.clone().multiplyScalar(tubeR * 2.85))
+            .add(up.clone().multiplyScalar(-tubeR * 0.12));
+          tongue.position.copy(snout);
+          tongue.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ht);
+          tongue.scale.set(1, 0.12, 1);
+          serpent.add(tongue);
+          serpent.userData.tongue = tongue;
+          // PORTAL — the head dives into the eclipse as if into a portal (dark mouth
+          // + glowing rings + a swirl of suction); the tongue pokes through to the far side
+          const oc = hp.clone().add(ht.clone().multiplyScalar(tubeR * 3.0));
+          const portal = new THREE.Group();
+          portal.position.copy(oc);
+          portal.quaternion.copy(head.quaternion);
+          serpent.add(portal);
+          portal.add(new THREE.Mesh(new THREE.CircleGeometry(tubeR * 1.5, 40), new THREE.MeshBasicMaterial({ color: 0x02020a, side: THREE.DoubleSide })));
+          portal.add(new THREE.Mesh(new THREE.TorusGeometry(tubeR * 1.5, 0.3, 12, 64), new THREE.MeshBasicMaterial({ color: 0x9a7ee0, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending })));
+          portal.add(new THREE.Mesh(new THREE.TorusGeometry(tubeR * 1.9, 0.14, 12, 64), new THREE.MeshBasicMaterial({ color: 0x64e0d0, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending })));
+          (function () {
+            const N = 140,
+              pos = new Float32Array(N * 3);
+            for (let i = 0; i < N; i++) {
+              const u2 = i / N,
+                ang = u2 * 11,
+                r = tubeR * 1.5 * (1 - u2 * 0.9);
+              pos[i * 3] = Math.cos(ang) * r;
+              pos[i * 3 + 1] = Math.sin(ang) * r;
+              pos[i * 3 + 2] = -u2 * tubeR * 0.5;
+            }
+            const sg = new THREE.BufferGeometry();
+            sg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const swirl = new THREE.Line(sg, new THREE.LineBasicMaterial({ color: 0xc9b8ff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
+            portal.add(swirl);
+            portal.userData.swirl = swirl;
+          })();
+          serpent.userData.portal = portal;
+          // COSMOS — the tail emerges from a small glowing spiral cosmos out at the far end
+          const tailP = curve.getPointAt(0.995);
+          const cosmos = new THREE.Group();
+          cosmos.position.copy(tailP);
+          cosmos.rotation.set(1.0, 0.3, 0.2);
+          serpent.add(cosmos);
+          cosmos.add(new THREE.Mesh(new THREE.SphereGeometry(2.2, 16, 16), new THREE.MeshBasicMaterial({ color: 0xe0d0ff, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending })));
+          (function () {
+            const N = mobile ? 170 : 320,
+              a = new Float32Array(N * 3),
+              col = new Float32Array(N * 3),
+              t = new THREE.Color(),
+              cI = new THREE.Color(0xfff0d6),
+              cO = new THREE.Color(0x9a7ee0);
+            for (let i = 0; i < N; i++) {
+              const rad = Math.pow(Math.random(), 0.6) * 11,
+                arm = ((i % 2) / 2) * 6.283,
+                ang = arm + rad * 0.85,
+                sp = (Math.random() - 0.5) * 2.4;
+              a[i * 3] = Math.cos(ang) * rad + sp;
+              a[i * 3 + 1] = (Math.random() - 0.5) * 1.6;
+              a[i * 3 + 2] = Math.sin(ang) * rad + sp;
+              t.copy(cI).lerp(cO, Math.min(1, rad / 11));
+              col[i * 3] = t.r;
+              col[i * 3 + 1] = t.g;
+              col[i * 3 + 2] = t.b;
+            }
+            const g = new THREE.BufferGeometry();
+            g.setAttribute('position', new THREE.BufferAttribute(a, 3));
+            g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+            cosmos.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 1.4, map: sprite, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false, opacity: 0.85, vertexColors: true, fog: false })));
+          })();
+          serpent.userData.cosmos = cosmos;
           // dedicated cool key light that co-rotates with the serpent — models
           // the coils and lifts the obsidian body off the black space (owner
           // catch 2026-07-19: "la serpiente ni se ve"). Grouped so it orbits.
@@ -1939,6 +2027,13 @@ const STATIONS: Station[] = [
           if (su.bodyMat) su.bodyMat.emissiveIntensity = 0.85 + 0.2 * Math.sin(t * 0.5);
           if (su.glint) su.glint.offset.x += dt * 0.012;
           if (su.wave) su.wave.value += dt * 1.7;
+          if (su.tongue) {
+            const cc = (t * 0.42) % 1,
+              ext = cc < 0.22 ? Math.sin((cc / 0.22) * Math.PI) : 0;
+            su.tongue.scale.set(1, 0.12 + ext * 1.0, 1);
+          }
+          if (su.portal && su.portal.userData.swirl) su.portal.userData.swirl.rotation.z += dt * 0.9;
+          if (su.cosmos) su.cosmos.rotation.z += dt * 0.18;
         }
         if (eyeSource) eyeSource.scale.setScalar(1 + 0.12 * Math.sin(t * 1.5));
         if (eyeRays) eyeRays.rotation.y += dt * 0.02;
