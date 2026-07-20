@@ -367,10 +367,11 @@ const STATIONS: Station[] = [
       renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.75 : 2));
       renderer.setClearColor(C.obsidian, 1);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
-      // cinema: filmic tone mapping (AgX — best for dark scenes, new in r160) so
-      // highlights roll off instead of blowing out, and the deep blacks breathe
-      renderer.toneMapping = THREE.AgXToneMapping;
-      renderer.toneMappingExposure = 1.15;
+      // cinema: NEUTRAL tone mapping (Khronos PBR Neutral) — gently rolls off the
+      // brightest highlights WITHOUT crushing the mid/low emissive scenes (DNA, eye
+      // net) the way AgX/ACES do; the scene's emissive values were tuned for ~linear
+      renderer.toneMapping = THREE.NeutralToneMapping;
+      renderer.toneMappingExposure = 1.05;
 
       const scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(C.obsidian, 0.0034);
@@ -1329,18 +1330,19 @@ const STATIONS: Station[] = [
           const starMat = new THREE.SpriteMaterial({ map: starTex, color: 0xd6ccff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
           const jgeo = new THREE.SphereGeometry(0.5, 8, 8),
             jmat = new THREE.MeshBasicMaterial({ color: 0xbfe4ff, transparent: true, opacity: 0.65, blending: THREE.AdditiveBlending });
+          const rungs: any[] = [];
           for (let i = 0; i < RA.length; i++) {
             const a = RA[i],
               b = RB[i],
-              mid = a.clone().add(b).multiplyScalar(0.5);
-            const bar = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.19, 0.19, a.distanceTo(b), 6),
-              new THREE.MeshBasicMaterial({ color: 0xb8c6ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
-            );
+              mid = a.clone().add(b).multiplyScalar(0.5),
+              u = i / (RA.length - 1);
+            const bm = new THREE.MeshBasicMaterial({ color: 0xb8c6ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false });
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, a.distanceTo(b), 6), bm);
             bar.position.copy(mid);
             bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
             dna.add(bar);
-            const st = new THREE.Sprite(starMat);
+            const sm = starMat.clone();
+            const st = new THREE.Sprite(sm);
             st.scale.setScalar(4.5);
             st.position.copy(mid);
             dna.add(st);
@@ -1350,7 +1352,9 @@ const STATIONS: Station[] = [
             const j2 = new THREE.Mesh(jgeo, jmat);
             j2.position.copy(b);
             dna.add(j2);
+            rungs.push({ st, sm, bm, u });
           }
+          dna.userData.rungs = rungs;
           const core = new THREE.Mesh(new THREE.SphereGeometry(1.8, SEG, SEG), new THREE.MeshBasicMaterial({ color: 0xe8e0ff, transparent: true, opacity: 0.4, blending: THREE.AdditiveBlending }));
           core.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
           dna.add(core);
@@ -1610,6 +1614,10 @@ const STATIONS: Station[] = [
             bt.repeat.set(7, 2.4);
             return { map: rep(new THREE.CanvasTexture(mc)), bump: bt, glint: rep(new THREE.CanvasTexture(gc)) };
           })();
+          // LIVING undulation — a travelling muscle-wave runs along the body
+          // (uv.x maps along the spine). Same displacement injected into body +
+          // rim so they stay locked together; makes the serpent feel alive.
+          const waveU = { value: 0 };
           const bodyMat = new THREE.MeshPhysicalMaterial({
             map: S.map,
             bumpMap: S.bump,
@@ -1626,10 +1634,20 @@ const STATIONS: Station[] = [
             clearcoat: 0.55,
             clearcoatRoughness: 0.3,
           });
+          bodyMat.onBeforeCompile = (sh: any) => {
+            sh.uniforms.uWave = waveU;
+            sh.vertexShader = 'uniform float uWave;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n transformed += normal * sin(uv.x*2.5 + uWave)*0.16;');
+          };
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
           // rim light — a thin fresnel tube that catches the light along the
           // coils' edge/silhouette (same fresnelMat used by Sun/Earth/black hole)
-          serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), fresnelMat(0xaeb8ff, 2.1, 1.0)));
+          const rimMat = fresnelMat(0xaeb8ff, 2.1, 1.0);
+          rimMat.uniforms.uWave = waveU;
+          rimMat.vertexShader = rimMat.vertexShader
+            .replace('uniform float s;', 'uniform float s; uniform float uWave;')
+            .replace('void main(){', 'void main(){ vec3 wpos=position + normal*sin(uv.x*2.5+uWave)*0.16;')
+            .replace(/vec4\(position,1\.0\)/g, 'vec4(wpos,1.0)');
+          serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), rimMat));
           serpent.add(
             new THREE.Mesh(
               taperTube(tubes, 10, (u) => rfn(u) * 1.5),
@@ -1638,6 +1656,7 @@ const STATIONS: Station[] = [
           );
           serpent.userData.bodyMat = bodyMat;
           serpent.userData.glint = S.glint;
+          serpent.userData.wave = waveU;
           // HEAD — a real serpent head at the BOTTOM of the coil (dark space,
           // clearly visible): tapering snout, flattened top. Sculpted from a
           // sphere by pushing its own vertices (owner catch 2026-07-19: the
@@ -1884,6 +1903,19 @@ const STATIONS: Station[] = [
           dna.rotation.y += dt * 0.06;
           mandalaDna.quaternion.copy(camera.quaternion);
           mandalaDna.rotateZ(-t * 0.02);
+          // a pulse of light travels up the ladder — the code of life "switching on"
+          const rg = (dna.userData as any).rungs;
+          if (rg) {
+            const ph = (t * 0.12) % 1;
+            for (const R of rg) {
+              let d = Math.abs(R.u - ph);
+              d = Math.min(d, 1 - d);
+              const gl = Math.exp(-(d * d) / 0.004);
+              R.st.scale.setScalar(4.5 + gl * 6.0);
+              R.sm.opacity = 0.85 + gl * 0.15;
+              R.bm.opacity = 0.5 + gl * 0.45;
+            }
+          }
         }
         if (eyeNet) {
           eyeIdle += dt;
@@ -1901,6 +1933,7 @@ const STATIONS: Station[] = [
           const su = serpent.userData as any;
           if (su.bodyMat) su.bodyMat.emissiveIntensity = 0.85 + 0.2 * Math.sin(t * 0.5);
           if (su.glint) su.glint.offset.x += dt * 0.012;
+          if (su.wave) su.wave.value += dt * 2.2;
         }
         if (eyeSource) eyeSource.scale.setScalar(1 + 0.12 * Math.sin(t * 1.5));
         if (eyeRays) eyeRays.rotation.y += dt * 0.02;
