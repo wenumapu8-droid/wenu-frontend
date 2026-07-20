@@ -327,12 +327,14 @@ const STATIONS: Station[] = [
       // script above and does NOT look at hardwareConcurrency/deviceMemory).
       const lowPerf = (window as any).__ms3dLowPerf === true;
       const mobile = innerWidth < 760 || lowPerf;
-      const [THREE, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, gsapMod, stMod, lenisMod] =
+      const [THREE, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, { ShaderPass }, { OutputPass }, gsapMod, stMod, lenisMod] =
         await Promise.all([
           import('three'),
           import('three/addons/postprocessing/EffectComposer.js'),
           import('three/addons/postprocessing/RenderPass.js'),
           import('three/addons/postprocessing/UnrealBloomPass.js'),
+          import('three/addons/postprocessing/ShaderPass.js'),
+          import('three/addons/postprocessing/OutputPass.js'),
           import('gsap'),
           import('gsap/ScrollTrigger'),
           import('lenis'),
@@ -340,7 +342,7 @@ const STATIONS: Station[] = [
       const gsap = (gsapMod as any).gsap || (gsapMod as any).default;
       const ScrollTrigger = (stMod as any).ScrollTrigger || (stMod as any).default;
       const Lenis = (lenisMod as any).default;
-      engine = buildEngine({ THREE, EffectComposer, RenderPass, UnrealBloomPass, gsap, ScrollTrigger, Lenis, mobile });
+      engine = buildEngine({ THREE, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass, gsap, ScrollTrigger, Lenis, mobile });
     }
 
     function buildEngine({
@@ -348,6 +350,8 @@ const STATIONS: Station[] = [
       EffectComposer,
       RenderPass,
       UnrealBloomPass,
+      ShaderPass,
+      OutputPass,
       gsap,
       ScrollTrigger,
       Lenis,
@@ -363,6 +367,10 @@ const STATIONS: Station[] = [
       renderer.setPixelRatio(Math.min(devicePixelRatio, mobile ? 1.75 : 2));
       renderer.setClearColor(C.obsidian, 1);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
+      // cinema: filmic tone mapping (AgX — best for dark scenes, new in r160) so
+      // highlights roll off instead of blowing out, and the deep blacks breathe
+      renderer.toneMapping = THREE.AgXToneMapping;
+      renderer.toneMappingExposure = 1.15;
 
       const scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(C.obsidian, 0.0034);
@@ -497,12 +505,12 @@ const STATIONS: Station[] = [
         GAS = [-8, 38],
         LIQUID = [-60, -12],
         SOLID = [-108, -64];
-      const KULTRUN_Y = -140,
-        DNA_TOP = -150,
-        DNA_BOT = -250,
+      const KULTRUN_Y = -134,
+        DNA_TOP = -164,
+        DNA_BOT = -256,
         EYES_C = -290,
-        BH_Y = -360,
-        CAM_BOT = -350;
+        BH_Y = -338,
+        CAM_BOT = -352;
       const SUN_R = 34,
         EARTH_R = 15;
 
@@ -534,7 +542,12 @@ const STATIONS: Station[] = [
           a[i * 3] = r * Math.sin(ph) * Math.cos(th);
           a[i * 3 + 1] = (SUN_Y + BH_Y) / 2 + r * Math.cos(ph) * 0.8;
           a[i * 3 + 2] = r * Math.sin(ph) * Math.sin(th);
-          t.copy(cB).lerp(cA, Math.random() * 0.4);
+          const rr = Math.random(); // spectral classes — mostly dim, a few bright blue/gold/red
+          if (rr < 0.05) t.setRGB(0.6, 0.74, 1.0);
+          else if (rr < 0.12) t.setRGB(1.0, 0.97, 0.88);
+          else if (rr < 0.22) t.setRGB(1.0, 0.82, 0.52);
+          else if (rr < 0.28) t.setRGB(1.0, 0.62, 0.5);
+          else t.copy(cB).lerp(cA, Math.random() * 0.5);
           col[i * 3] = t.r;
           col[i * 3 + 1] = t.g;
           col[i * 3 + 2] = t.b;
@@ -544,6 +557,104 @@ const STATIONS: Station[] = [
         g.setAttribute('color', new THREE.BufferAttribute(col, 3));
         stars = pts(g, { size: 1.0, vertexColors: true, opacity: 0.7 });
         scene.add(stars);
+      })();
+
+      // ── nebulae (soft additive clouds) + a distant spiral galaxy ─────────────
+      let galaxy: any;
+      (function () {
+        const nebulaTex = (hex: string) => {
+          const s = 256,
+            c = document.createElement('canvas');
+          c.width = c.height = s;
+          const x = c.getContext('2d')!;
+          x.fillStyle = '#000';
+          x.fillRect(0, 0, s, s);
+          for (let i = 0; i < 110; i++) {
+            const px = Math.random() * s,
+              py = Math.random() * s,
+              r = 10 + Math.random() * 46,
+              gr = x.createRadialGradient(px, py, 0, px, py, r);
+            gr.addColorStop(0, hex + '26');
+            gr.addColorStop(1, 'rgba(0,0,0,0)');
+            x.fillStyle = gr;
+            x.beginPath();
+            x.arc(px, py, r, 0, 6.283);
+            x.fill();
+          }
+          const tx = new THREE.CanvasTexture(c);
+          tx.colorSpace = THREE.SRGBColorSpace;
+          return tx;
+        };
+        const nebs: [string, number, number, number, number][] = [
+          ['#3f7fd0', 360, -120, 60, -560],
+          ['#9a7ee0', 420, 420, -160, -620],
+          ['#64e0d0', 280, -460, -80, -500],
+          ['#c9a84c', 240, 300, 240, -540],
+          ['#7a3ea8', 380, -40, -360, -660],
+        ];
+        nebs.forEach(([hex, sz, px, py, pz]) => {
+          const m = new THREE.Mesh(
+            new THREE.PlaneGeometry(sz, sz),
+            new THREE.MeshBasicMaterial({ map: nebulaTex(hex), transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })
+          );
+          m.position.set(px, py, pz);
+          m.lookAt(0, py * 0.4, 0);
+          scene.add(m);
+        });
+        // spiral galaxy (reimplemented technique: particles on tight log-spiral
+        // arms + dense bright bulge, colour lerp warm core -> cool rim)
+        const N = mobile ? 3000 : 6000,
+          a = new Float32Array(N * 3),
+          col = new Float32Array(N * 3),
+          t = new THREE.Color(),
+          cCore = new THREE.Color(0xfff2d8),
+          cMid = new THREE.Color(0xe0c6ff),
+          cOut = new THREE.Color(0x5a7ad8),
+          arms = 2,
+          spin = 6.2,
+          R = 180;
+        for (let i = 0; i < N; i++) {
+          let x, y, z, u;
+          if (i % 5 === 0) {
+            const br = Math.pow(Math.random(), 2.2) * R * 0.28,
+              ph = Math.random() * 6.283,
+              el = (Math.random() - 0.5) * R * 0.14;
+            x = Math.cos(ph) * br;
+            z = Math.sin(ph) * br;
+            y = el;
+            u = br / R;
+          } else {
+            const rad = Math.pow(Math.random(), 0.6) * R,
+              arm = ((i % arms) / arms) * 6.283,
+              ang = arm + (rad * spin) / R,
+              spread = (0.05 + (0.14 * rad) / R) * R,
+              rp = (Math.random() - 0.5) * spread,
+              rz = (Math.random() - 0.5) * spread;
+            x = Math.cos(ang) * rad + rp;
+            z = Math.sin(ang) * rad + rz;
+            y = (Math.random() - 0.5) * R * 0.04;
+            u = rad / R;
+          }
+          a[i * 3] = x;
+          a[i * 3 + 1] = y;
+          a[i * 3 + 2] = z;
+          t.copy(cCore)
+            .lerp(cMid, Math.min(1, u * 1.6))
+            .lerp(cOut, Math.min(1, Math.max(0, (u - 0.4) / 0.6)));
+          col[i * 3] = t.r;
+          col[i * 3 + 1] = t.g;
+          col[i * 3 + 2] = t.b;
+        }
+        const gg = new THREE.BufferGeometry();
+        gg.setAttribute('position', new THREE.BufferAttribute(a, 3));
+        gg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+        galaxy = new THREE.Points(
+          gg,
+          new THREE.PointsMaterial({ size: 2.1, map: sprite, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, sizeAttenuation: false, opacity: 0.9, vertexColors: true, fog: false })
+        );
+        galaxy.position.set(-540, 150, -880);
+        galaxy.rotation.set(1.12, 0.35, 0.35);
+        scene.add(galaxy);
       })();
 
       // ── procedural textures ──────────────────────────────────────────────────
@@ -1031,12 +1142,38 @@ const STATIONS: Station[] = [
       if (mobile) bloomRes.multiplyScalar(0.6);
       const bloom = new UnrealBloomPass(bloomRes, mobile ? 0.55 : 0.7, 0.55, mobile ? 0.4 : 0.3);
       composer.addPass(bloom);
+      composer.addPass(new OutputPass()); // tone map + sRGB, correct order after bloom
+      // ── CINEMA grade pass — screen-space black-hole vortex + chromatic aberration
+      // + teal/warm grade + vignette + film grain, all in one fused full-screen pass
+      const CinemaShader = {
+        uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uAmt: { value: 1.0 }, uVortex: { value: 0.0 }, uAspect: { value: innerWidth / innerHeight } },
+        vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+        fragmentShader: `varying vec2 vUv; uniform sampler2D tDiffuse; uniform float uTime, uAmt, uVortex, uAspect;
+          float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+          void main(){ vec2 uv=vUv, c=uv-0.5;
+            if(uVortex>0.001){ vec2 cc=c*vec2(uAspect,1.0); float rad=length(cc), ang=atan(cc.y,cc.x);
+              ang += uVortex*(0.85+0.25*sin(uTime*0.5))/(rad+0.09);
+              rad *= 1.0 - uVortex*0.42*(1.0-smoothstep(0.0,0.55,rad));
+              cc = vec2(cos(ang),sin(ang))*rad; c = cc/vec2(uAspect,1.0); uv = c+0.5; }
+            float r2=dot(c,c), ab=0.0016*(r2*2.2+0.12)*uAmt + uVortex*0.01*r2;
+            vec3 col; col.r=texture2D(tDiffuse,uv-c*ab).r; col.g=texture2D(tDiffuse,uv).g; col.b=texture2D(tDiffuse,uv+c*ab).b;
+            float lum=dot(col,vec3(0.299,0.587,0.114));
+            col*=mix(vec3(0.90,0.98,1.08), vec3(1.07,1.01,0.90), smoothstep(0.0,0.7,lum));
+            float rr=length(c); col += uVortex*smoothstep(0.20,0.16,rr)*smoothstep(0.10,0.15,rr)*vec3(0.5,0.45,0.7);
+            col *= 1.0 - uVortex*smoothstep(0.14,0.0,rr)*0.96;
+            float vig=smoothstep(1.0,0.32,length(c)*1.26); col*=mix(1.0,vig,0.5*uAmt);
+            float g=hash(uv*vec2(1927.0,1081.0)+fract(uTime)*97.0); col+=(g-0.5)*0.04*uAmt;
+            gl_FragColor=vec4(col,1.0); }`,
+      };
+      const cinemaPass = new ShaderPass(CinemaShader);
+      composer.addPass(cinemaPass);
       function resize() {
         const w = innerWidth,
           h = innerHeight;
         renderer.setSize(w, h);
         composer.setSize(w, h);
         bloom.setSize(mobile ? w * 0.6 : w, mobile ? h * 0.6 : h);
+        cinemaPass.uniforms.uAspect.value = w / h;
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
       }
@@ -1197,8 +1334,8 @@ const STATIONS: Station[] = [
               b = RB[i],
               mid = a.clone().add(b).multiplyScalar(0.5);
             const bar = new THREE.Mesh(
-              new THREE.CylinderGeometry(0.15, 0.15, a.distanceTo(b), 6),
-              new THREE.MeshBasicMaterial({ color: 0x9aa8e0, transparent: true, opacity: 0.28, blending: THREE.AdditiveBlending, depthWrite: false })
+              new THREE.CylinderGeometry(0.19, 0.19, a.distanceTo(b), 6),
+              new THREE.MeshBasicMaterial({ color: 0xb8c6ff, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
             );
             bar.position.copy(mid);
             bar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
@@ -1218,7 +1355,7 @@ const STATIONS: Station[] = [
           core.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
           dna.add(core);
         })();
-        mandalaDna = mandalaPlane(150, '#c9b8ff', new THREE.Color(C.amethyst), 0.2);
+        mandalaDna = mandalaPlane(118, '#c9b8ff', new THREE.Color(C.amethyst), 0.2);
         mandalaDna.position.set(0, (DNA_TOP + DNA_BOT) / 2, 0);
 
         // ITROFILL MONGEN — big toroidal net of eyes (Alex Grey "Net of Being")
@@ -1320,9 +1457,20 @@ const STATIONS: Station[] = [
           const curve = new THREE.CatmullRomCurve3(P),
             tubeR = mobile ? 2.6 : 3.1,
             tubes = mobile ? 150 : 230;
-          // TAPERED body — real snakes taper from a thick neck to a fine tail
-          // (a uniform tube never reads as a snake)
-          const rfn = (u: number) => tubeR * Math.max(0.1, 1.22 - 1.12 * u);
+          // TAPERED body — real snake radius profile: bulged head/neck ->
+          // subtle neck pinch -> full body -> fine tapered tail (a uniform tube,
+          // or even a linear taper, never reads as a snake). Ref: Codrops
+          // procedural-snake technique (memory reference_webgl_snake_technique).
+          const ss = (a: number, b: number, x: number) => {
+            x = Math.max(0, Math.min(1, (x - a) / (b - a)));
+            return x * x * (3 - 2 * x);
+          };
+          const rfn = (u: number) => {
+            const headFull = ss(0.0, 0.1, u),
+              neck = 1 - 0.26 * Math.exp(-Math.pow((u - 0.09) / 0.045, 2)),
+              tail = 1 - ss(0.72, 1.0, u) * 0.93;
+            return tubeR * Math.max(0.06, (0.74 + 0.42 * headFull) * neck * tail);
+          };
           function taperTube(T: number, Rs: number, rf: (u: number) => number) {
             const fr = curve.computeFrenetFrames(T, false),
               pos: number[] = [],
@@ -1337,14 +1485,25 @@ const STATIONS: Station[] = [
                 B = fr.binormals[i],
                 r = rf(u);
               for (let j = 0; j <= Rs; j++) {
+                // ELLIPTICAL cross-section (flattened along the binormal) — real
+                // snakes are flattened, not round tubes. Position uses (cos, 0.6*sin);
+                // normal uses the ellipse gradient (0.6*cos, sin) normalized.
                 const v = (j / Rs) * 6.283,
                   cx = Math.cos(v),
                   sv = Math.sin(v),
-                  nx = cx * N.x + sv * B.x,
-                  ny = cx * N.y + sv * B.y,
-                  nz = cx * N.z + sv * B.z;
-                pos.push(Pt.x + r * nx, Pt.y + r * ny, Pt.z + r * nz);
-                nor.push(nx, ny, nz);
+                  pxo = cx,
+                  pzo = 0.6 * sv,
+                  nxo = 0.6 * cx,
+                  nzo = sv,
+                  nl = Math.hypot(nxo, nzo) || 1,
+                  ox = pxo * N.x + pzo * B.x,
+                  oy = pxo * N.y + pzo * B.y,
+                  oz = pxo * N.z + pzo * B.z,
+                  nX = (nxo * N.x + nzo * B.x) / nl,
+                  nY = (nxo * N.y + nzo * B.y) / nl,
+                  nZ = (nxo * N.z + nzo * B.z) / nl;
+                pos.push(Pt.x + r * ox, Pt.y + r * oy, Pt.z + r * oz);
+                nor.push(nX, nY, nZ);
                 uv.push(u * 7, j / Rs);
               }
             }
@@ -1457,10 +1616,10 @@ const STATIONS: Station[] = [
             bumpScale: 0.4,
             emissive: 0xffffff,
             emissiveMap: S.glint,
-            emissiveIntensity: 0.95,
-            color: 0x12121e,
-            roughness: 0.28,
-            metalness: 0.55,
+            emissiveIntensity: 1.25,
+            color: 0x1c1c30,
+            roughness: 0.4,
+            metalness: 0.38,
             iridescence: 1.0,
             iridescenceIOR: 1.55,
             iridescenceThicknessRange: [130, 440],
@@ -1470,11 +1629,11 @@ const STATIONS: Station[] = [
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
           // rim light — a thin fresnel tube that catches the light along the
           // coils' edge/silhouette (same fresnelMat used by Sun/Earth/black hole)
-          serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), fresnelMat(0x8a95e8, 2.6, 1.0)));
+          serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), fresnelMat(0xaeb8ff, 2.1, 1.0)));
           serpent.add(
             new THREE.Mesh(
-              taperTube(tubes, 10, (u) => rfn(u) * 1.45),
-              new THREE.MeshBasicMaterial({ color: 0x4657a8, transparent: true, opacity: 0.06, blending: THREE.AdditiveBlending, depthWrite: false })
+              taperTube(tubes, 10, (u) => rfn(u) * 1.5),
+              new THREE.MeshBasicMaterial({ color: 0x5a6cc8, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false })
             )
           );
           serpent.userData.bodyMat = bodyMat;
@@ -1506,23 +1665,28 @@ const STATIONS: Station[] = [
           head.position.copy(hp);
           head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ht);
           serpent.add(head);
-          // brow ridge shadow (subtle) + eyes: bright white/electric-blue, no
-          // pupil, on the upper-sides, each with a soft glow halo
-          const eg = new THREE.SphereGeometry(1.5, 18, 18),
+          // eyes: a DEFINED dark eyeball orb + a small crisp electric-blue core
+          // (no pupil) + a tight halo, set high on the head sides. Owner catch
+          // 2026-07-19: the old big additive spheres read as "headlights/faros"
+          // and made the face look weird — small + defined reads as real eyes.
+          const ball = new THREE.SphereGeometry(1.15, 16, 16),
+            ballm = new THREE.MeshStandardMaterial({ color: 0x0a1526, roughness: 0.35, metalness: 0.1, emissive: 0x14304f, emissiveIntensity: 0.5 });
+          const eg = new THREE.SphereGeometry(0.6, 16, 16),
             em = new THREE.MeshBasicMaterial({ color: 0xe8f4ff, blending: THREE.AdditiveBlending });
+          const gh = new THREE.SphereGeometry(1.7, 14, 14),
+            ghm = new THREE.MeshBasicMaterial({ color: 0x6a9ad8, transparent: true, opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false });
           const eB = hp
             .clone()
-            .add(ht.clone().multiplyScalar(tubeR * 1.5))
-            .add(up.clone().multiplyScalar(tubeR * 0.5));
-          const e1 = new THREE.Mesh(eg, em);
-          e1.position.copy(eB).add(perp.clone().multiplyScalar(tubeR * 1.15));
-          serpent.add(e1);
-          const e2 = new THREE.Mesh(eg, em);
-          e2.position.copy(eB).add(perp.clone().multiplyScalar(-tubeR * 1.15));
-          serpent.add(e2);
-          const gh = new THREE.SphereGeometry(3.2, 14, 14),
-            ghm = new THREE.MeshBasicMaterial({ color: 0x5a8ad4, transparent: true, opacity: 0.34, blending: THREE.AdditiveBlending, depthWrite: false });
-          [e1, e2].forEach((e) => {
+            .add(ht.clone().multiplyScalar(tubeR * 1.6))
+            .add(up.clone().multiplyScalar(tubeR * 0.72));
+          [1, -1].forEach((sgn) => {
+            const pos = eB.clone().add(perp.clone().multiplyScalar(sgn * tubeR * 1.05));
+            const b = new THREE.Mesh(ball, ballm);
+            b.position.copy(pos);
+            serpent.add(b);
+            const e = new THREE.Mesh(eg, em);
+            e.position.copy(pos).add(ht.clone().multiplyScalar(tubeR * 0.35));
+            serpent.add(e);
             const g = new THREE.Mesh(gh, ghm);
             g.position.copy(e.position);
             serpent.add(g);
@@ -1541,6 +1705,12 @@ const STATIONS: Station[] = [
           const eclipse = new THREE.Mesh(new THREE.SphereGeometry(2.4, 16, 16), new THREE.MeshBasicMaterial({ color: 0x02020a }));
           eclipse.position.copy(oc);
           serpent.add(eclipse);
+          // dedicated cool key light that co-rotates with the serpent — models
+          // the coils and lifts the obsidian body off the black space (owner
+          // catch 2026-07-19: "la serpiente ni se ve"). Grouped so it orbits.
+          const slight = new THREE.PointLight(0xbcd4ff, 2.6, 360, 1.1);
+          slight.position.set(62, 206, 74);
+          serpent.add(slight);
         })();
 
         // NET OF BEING — central source of light + radiating rays at the heart of the eye-torus
@@ -1572,11 +1742,11 @@ const STATIONS: Station[] = [
           const photon = new THREE.Mesh(new THREE.TorusGeometry(10.4, 0.34, 16, 120), new THREE.MeshBasicMaterial({ color: 0xfff2cc, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }));
           photon.rotation.x = Math.PI * 0.5;
           blackhole.add(photon);
-          const disk = new THREE.Mesh(new THREE.TorusGeometry(18, 3.6, 30, 150), new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }));
-          disk.rotation.x = Math.PI * 0.46;
+          const disk = new THREE.Mesh(new THREE.TorusGeometry(21, 3.0, 30, 160), new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending }));
+          disk.rotation.x = Math.PI * 0.5;
           blackhole.add(disk);
-          const disk2 = new THREE.Mesh(new THREE.TorusGeometry(25, 1.2, 24, 150), new THREE.MeshBasicMaterial({ color: 0x9a7ee0, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending }));
-          disk2.rotation.x = Math.PI * 0.46;
+          const disk2 = new THREE.Mesh(new THREE.TorusGeometry(28, 1.1, 24, 160), new THREE.MeshBasicMaterial({ color: 0x9a7ee0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending }));
+          disk2.rotation.x = Math.PI * 0.5;
           blackhole.add(disk2);
           // whirlpool inflow — particles spiral inward and vanish at the centre
           const N = mobile ? 1200 : 2400,
@@ -1607,7 +1777,7 @@ const STATIONS: Station[] = [
           blackhole.add(swirl);
           blackhole.userData = { disk, disk2, swirl, data, pos: a, geo: g };
         })();
-        mandalaBH = mandalaPlane(150, '#c9b8ff', new THREE.Color(0x9a7ee0), 0.2);
+        mandalaBH = mandalaPlane(92, '#c9b8ff', new THREE.Color(0x9a7ee0), 0.14);
         mandalaBH.position.set(0, BH_Y, 0);
       }
       let idleHandle: number | null = null;
@@ -1758,6 +1928,9 @@ const STATIONS: Station[] = [
           bh.geo.attributes.position.needsUpdate = true;
         }
         stars.rotation.y += dt * 0.002;
+        if (galaxy) galaxy.rotation.z += dt * 0.006;
+        cinemaPass.uniforms.uTime.value = t;
+        cinemaPass.uniforms.uVortex.value = Math.max(0, Math.min(1, (p - 0.85) / 0.13));
         composer.render();
         if (firstFrame) {
           firstFrame = false;
