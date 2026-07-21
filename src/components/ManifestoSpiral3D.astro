@@ -1152,7 +1152,7 @@ const STATIONS: Station[] = [
       composer.addPass(new RenderPass(scene, camera));
       const bloomRes = new THREE.Vector2(innerWidth, innerHeight);
       if (mobile) bloomRes.multiplyScalar(0.6);
-      const bloom = new UnrealBloomPass(bloomRes, mobile ? 0.55 : 0.7, 0.55, mobile ? 0.4 : 0.3);
+      const bloom = new UnrealBloomPass(bloomRes, mobile ? 0.55 : 0.7, 0.52, mobile ? 0.42 : 0.3);
       composer.addPass(bloom);
       composer.addPass(new OutputPass()); // tone map + sRGB, correct order after bloom
       // ── CINEMA grade pass — screen-space black-hole vortex + chromatic aberration
@@ -2028,10 +2028,12 @@ const STATIONS: Station[] = [
         // WARP zoom — a quick FOV punch at the macro→micro threshold (plunging into the DNA/cell)
         // and at the black-hole plunge; the wide-angle rush is the "wow" scale-warp effect
         const warp = Math.exp(-Math.pow((p - 0.685) / 0.05, 2)) * 22 + Math.exp(-Math.pow((p - 0.93) / 0.05, 2)) * 26;
-        camera.fov = 60 + warp;
+        // wider base FOV on mobile (portrait) so horizontal subjects — the serpent, the planets — actually FIT the frame
+        camera.fov = (mobile ? 72 : 60) + warp;
         camera.updateProjectionMatrix();
         const bloomBase = mobile ? 0.6 : 0.78;
-        bloom.strength = bloomBase + (p < 0.5 ? p * 0.4 : (1 - p) * 0.3) + (p > 0.9 ? (p - 0.9) * 4.0 : 0);
+        // plunge ramp made mobile-aware: *4.0 blew the black-hole/plunge to pure white on phones — desktop keeps its glow
+        bloom.strength = bloomBase + (p < 0.5 ? p * 0.36 : (1 - p) * 0.3) + (p > 0.9 ? (p - 0.9) * (mobile ? 1.9 : 3.6) : 0);
       }
       placeCamera(0);
 
@@ -2321,6 +2323,17 @@ const STATIONS: Station[] = [
     opacity: 0.7;
     max-width: 60vw;
     text-align: right;
+  }
+  /* mobile: the chapter label overflowed the right edge (long text + wide letter-spacing) — shrink so it fits cleanly */
+  @media (max-width: 600px) {
+    .ms3d-chapter {
+      top: 10px;
+      right: 12px;
+      font-size: 0.44rem;
+      letter-spacing: 0.1em;
+      max-width: 66vw;
+      line-height: 1.55;
+    }
   }
   .ms3d-hint {
     position: fixed;
