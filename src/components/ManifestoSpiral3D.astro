@@ -1680,8 +1680,8 @@ const STATIONS: Station[] = [
             ht = curve.getTangentAt(0.02).clone().multiplyScalar(-1).normalize();
           const perp = new THREE.Vector3().crossVectors(ht, new THREE.Vector3(0, 1, 0)).normalize();
           const up = new THREE.Vector3().crossVectors(perp, ht).normalize();
-          const HB = tubeR * 1.85,
-            hg = new THREE.SphereGeometry(HB, 48, 36);
+          const HB = tubeR * 1.9,
+            hg = new THREE.SphereGeometry(HB, 64, 48);
           (function () {
             const P = hg.attributes.position,
               r = HB;
@@ -1690,10 +1690,19 @@ const STATIONS: Station[] = [
                 y = P.getY(i),
                 z = P.getZ(i);
               const tz = (z + r) / (2 * r);
-              const w = Math.pow(Math.sin((0.1 + 0.85 * tz) * 3.14159), 0.6); // smooth spindle
-              x *= w * 0.94;
-              y *= w * 0.66;
-              z *= 2.0; // slender & elongated
+              // REAL snake-head silhouette: wide skull behind the eyes, BLUNT rounded snout (not a point),
+              // neck matches the body, flatter crown / fuller jaw, snout set a touch downward. Elegant, alive.
+              const skull = 1 + 0.4 * Math.exp(-Math.pow((tz - 0.58) / 0.26, 2));
+              const neckCap = 0.5 + 0.5 * Math.pow(Math.min(tz / 0.18, 1), 0.7);
+              const snoutCap = Math.max(1 - 0.55 * Math.pow(Math.max(tz - 0.55, 0) / 0.45, 1.4), 0.44);
+              const wx = skull * neckCap * snoutCap;
+              let sy = 0.62;
+              if (y > 0) sy *= 0.94 - 0.16 * tz;
+              else sy *= 1.0 + 0.16 * Math.exp(-Math.pow((tz - 0.5) / 0.28, 2));
+              x *= wx * 0.92;
+              y *= sy;
+              z *= 1.86; // slender, elongated
+              y -= 0.1 * r * Math.pow(Math.max(tz - 0.55, 0) / 0.45, 2); // snout dips down
               P.setXYZ(i, x, y, z);
             }
             hg.computeVertexNormals();
@@ -1770,8 +1779,8 @@ const STATIONS: Station[] = [
             eyeBallM = new THREE.MeshStandardMaterial({ color: 0x0a1518, roughness: 0.3, metalness: 0.15 });
           const irisG = new THREE.CircleGeometry(1.45, 36),
             irisM = new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true });
-          const socketG = new THREE.TorusGeometry(1.55, 0.24, 10, 32),
-            socketM = new THREE.MeshStandardMaterial({ color: 0x100c08, roughness: 0.5, metalness: 0.5, emissive: 0x2a2008, emissiveIntensity: 0.3 }); // dark rim with a faint GOLD cast (ref eye)
+          // socket rim (torus "aro") REMOVED per owner: it read as a portal/mechanical ring on the face.
+          // The eye is now a recessed dark eyeball + almond iris + soft cyan light — integrated, no ring.
           const eB = hp
             .clone()
             .add(ht.clone().multiplyScalar(tubeR * 1.4))
@@ -1785,15 +1794,11 @@ const STATIONS: Station[] = [
             const b = new THREE.Mesh(eyeBallG, eyeBallM);
             b.position.copy(pos).add(outward.clone().multiplyScalar(-0.2));
             serpent.add(b);
-            const sock = new THREE.Mesh(socketG, socketM);
-            sock.position.copy(pos).add(outward.clone().multiplyScalar(0.7));
-            sock.quaternion.setFromRotationMatrix(basis);
-            serpent.add(sock);
             const glow = new THREE.Mesh(
-              new THREE.CircleGeometry(0.95, 22),
-              new THREE.MeshBasicMaterial({ color: 0x2ea8cc, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+              new THREE.CircleGeometry(0.8, 22),
+              new THREE.MeshBasicMaterial({ color: 0x2ea8cc, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false })
             );
-            glow.position.copy(pos).add(outward.clone().multiplyScalar(0.68));
+            glow.position.copy(pos).add(outward.clone().multiplyScalar(0.6));
             glow.quaternion.setFromRotationMatrix(basis);
             serpent.add(glow);
             const iris = new THREE.Mesh(irisG, irisM);
