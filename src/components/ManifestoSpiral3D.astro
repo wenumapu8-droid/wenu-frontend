@@ -327,7 +327,7 @@ const STATIONS: Station[] = [
       // script above and does NOT look at hardwareConcurrency/deviceMemory).
       const lowPerf = (window as any).__ms3dLowPerf === true;
       const mobile = innerWidth < 760 || lowPerf;
-      const [THREE, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, { ShaderPass }, { OutputPass }, gsapMod, stMod, lenisMod] =
+      const [THREE, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, { ShaderPass }, { OutputPass }, { GLTFLoader }, gsapMod, stMod, lenisMod] =
         await Promise.all([
           import('three'),
           import('three/addons/postprocessing/EffectComposer.js'),
@@ -335,6 +335,7 @@ const STATIONS: Station[] = [
           import('three/addons/postprocessing/UnrealBloomPass.js'),
           import('three/addons/postprocessing/ShaderPass.js'),
           import('three/addons/postprocessing/OutputPass.js'),
+          import('three/addons/loaders/GLTFLoader.js'),
           import('gsap'),
           import('gsap/ScrollTrigger'),
           import('lenis'),
@@ -342,7 +343,7 @@ const STATIONS: Station[] = [
       const gsap = (gsapMod as any).gsap || (gsapMod as any).default;
       const ScrollTrigger = (stMod as any).ScrollTrigger || (stMod as any).default;
       const Lenis = (lenisMod as any).default;
-      engine = buildEngine({ THREE, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass, gsap, ScrollTrigger, Lenis, mobile });
+      engine = buildEngine({ THREE, EffectComposer, RenderPass, UnrealBloomPass, ShaderPass, OutputPass, GLTFLoader, gsap, ScrollTrigger, Lenis, mobile });
     }
 
     function buildEngine({
@@ -352,6 +353,7 @@ const STATIONS: Station[] = [
       UnrealBloomPass,
       ShaderPass,
       OutputPass,
+      GLTFLoader,
       gsap,
       ScrollTrigger,
       Lenis,
@@ -1680,58 +1682,91 @@ const STATIONS: Station[] = [
             ht = curve.getTangentAt(0.02).clone().multiplyScalar(-1).normalize();
           const perp = new THREE.Vector3().crossVectors(ht, new THREE.Vector3(0, 1, 0)).normalize();
           const up = new THREE.Vector3().crossVectors(perp, ht).normalize();
-          const HB = tubeR * 1.9,
-            hg = new THREE.SphereGeometry(HB, 64, 48);
-          (function () {
-            const P = hg.attributes.position,
-              r = HB;
-            for (let i = 0; i < P.count; i++) {
-              let x = P.getX(i),
-                y = P.getY(i),
-                z = P.getZ(i);
-              const tz = (z + r) / (2 * r);
-              // REAL snake-head silhouette: wide skull behind the eyes, BLUNT rounded snout (not a point),
-              // neck matches the body, flatter crown / fuller jaw, snout set a touch downward. Elegant, alive.
-              const skull = 1 + 0.4 * Math.exp(-Math.pow((tz - 0.58) / 0.26, 2));
-              const neckCap = 0.5 + 0.5 * Math.pow(Math.min(tz / 0.18, 1), 0.7);
-              const snoutCap = Math.max(1 - 0.55 * Math.pow(Math.max(tz - 0.55, 0) / 0.45, 1.4), 0.44);
-              const wx = skull * neckCap * snoutCap;
-              let sy = 0.62;
-              if (y > 0) sy *= 0.94 - 0.16 * tz;
-              else sy *= 1.0 + 0.16 * Math.exp(-Math.pow((tz - 0.5) / 0.28, 2));
-              x *= wx * 0.92;
-              y *= sy;
-              z *= 1.86; // slender, elongated
-              y -= 0.1 * r * Math.pow(Math.max(tz - 0.55, 0) / 0.45, 2); // snout dips down
-              P.setXYZ(i, x, y, z);
-            }
-            hg.computeVertexNormals();
-          })();
-          const head = new THREE.Mesh(hg, bodyMat);
-          head.position.copy(hp);
-          head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ht);
-          serpent.add(head);
+          // SCULPTED HEAD — Blender-Python parametric viper skull (public/models/serpent_head.glb), cosmic-scaled.
+          // neck at model origin, snout +Z(local). Oriented with a full basis (perp=side, up=crown, ht=forward);
+          // pre-rotated +90°X to undo the glTF y-up export (Blender snout +Z -> glTF +Y). Loaded async.
+          const HEAD_SCALE = tubeR * 1.62;
+          const HEAD_BACK = tubeR * 0.55;
+          const headGroup = new THREE.Group();
+          headGroup.position.copy(hp).add(ht.clone().multiplyScalar(-HEAD_BACK));
+          headGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(perp, up, ht));
+          serpent.add(headGroup);
+          serpent.userData.headGroup = headGroup;
+          // Mirrors bodyMat: emissive gold GLINT scales (crisp thanks to the GLB's baked cylindrical UVs) so the
+          // sculpted head wears the SAME cosmic lattice as the body — crisp scales + sculptural volume. No wave shader.
+          const cloneTex = (tx: any) => {
+            if (!tx) return null;
+            const c = tx.clone();
+            c.needsUpdate = true;
+            c.wrapS = c.wrapT = THREE.RepeatWrapping;
+            c.repeat.set(1, 1);
+            return c;
+          };
+          const headMat = new THREE.MeshPhysicalMaterial({
+            map: cloneTex(S.map),
+            bumpMap: cloneTex(S.bump),
+            bumpScale: 0.35,
+            emissive: 0xffffff,
+            emissiveMap: cloneTex(S.glint),
+            emissiveIntensity: 1.35,
+            color: 0x1c1c30,
+            roughness: 0.4,
+            metalness: 0.38,
+            iridescence: 1.0,
+            iridescenceIOR: 1.55,
+            iridescenceThicknessRange: [130, 440],
+            clearcoat: 0.55,
+            clearcoatRoughness: 0.3,
+          });
+          new GLTFLoader().load(
+            '/models/serpent_head.glb',
+            (gltf: any) => {
+              const m = gltf.scene;
+              m.rotation.x = Math.PI / 2; // glTF snout +Y -> local +Z
+              m.scale.setScalar(HEAD_SCALE);
+              m.traverse((o: any) => {
+                if (o.isMesh) {
+                  o.material = headMat;
+                  o.castShadow = false;
+                  o.frustumCulled = false;
+                }
+              });
+              headGroup.add(m);
+            },
+            undefined,
+            (err: any) => console.warn('serpent head glb failed', err)
+          );
           // HEAD lighting (owner brief #5): so the head reads even against the planet glow, and gets the
-          // cyan-below / violet-above rim look. Localized point lights that travel with the head.
-          const headKey = new THREE.PointLight(0xbcd6f0, 2.4, 46, 1.2);
+          // cyan-below / violet-above rim look. Localized point lights that travel with the head, raking
+          // over the larger sculpted skull.
+          const headKey = new THREE.PointLight(0xbcd6f0, 3.4, 70, 1.1);
           headKey.position
             .copy(hp)
-            .add(up.clone().multiplyScalar(9))
-            .add(perp.clone().multiplyScalar(11))
-            .add(ht.clone().multiplyScalar(-3));
+            .add(ht.clone().multiplyScalar(5))
+            .add(up.clone().multiplyScalar(11))
+            .add(perp.clone().multiplyScalar(9));
           serpent.add(headKey);
-          const headCyan = new THREE.PointLight(0x3fd0e8, 1.7, 34, 1.4);
+          const headCyan = new THREE.PointLight(0x3fd0e8, 2.6, 52, 1.3);
           headCyan.position
             .copy(hp)
-            .add(up.clone().multiplyScalar(-6))
-            .add(ht.clone().multiplyScalar(7));
+            .add(ht.clone().multiplyScalar(7))
+            .add(up.clone().multiplyScalar(-3))
+            .add(perp.clone().multiplyScalar(6));
           serpent.add(headCyan);
-          const headViolet = new THREE.PointLight(0x8a7ee0, 1.3, 34, 1.4);
+          const headViolet = new THREE.PointLight(0x8a7ee0, 2.0, 52, 1.3);
           headViolet.position
             .copy(hp)
-            .add(up.clone().multiplyScalar(10))
-            .add(ht.clone().multiplyScalar(-7));
+            .add(ht.clone().multiplyScalar(1))
+            .add(up.clone().multiplyScalar(11))
+            .add(perp.clone().multiplyScalar(-8));
           serpent.add(headViolet);
+          const headGold = new THREE.PointLight(0xe8c060, 1.4, 46, 1.4);
+          headGold.position
+            .copy(hp)
+            .add(ht.clone().multiplyScalar(9))
+            .add(up.clone().multiplyScalar(2))
+            .add(perp.clone().multiplyScalar(-5));
+          serpent.add(headGold);
           // EYE — pale-blue iris + vertical SLIT pupil + catchlight, like a real viper (ref: bush viper photo)
           const eyeTex = (function () {
             const s = 128,
