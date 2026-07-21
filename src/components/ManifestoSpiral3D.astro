@@ -1222,8 +1222,8 @@ const STATIONS: Station[] = [
         scene.add(dna);
         (function () {
           const STEPS = mobile ? 110 : 200,
-            turns = 7,
-            rad = 9.5,
+            turns = 4.2, // fewer turns → elongated helix, not an accordion
+            rad = 8.5,
             P1: any[] = [],
             P2: any[] = [],
             RA: any[] = [],
@@ -1340,13 +1340,22 @@ const STATIONS: Station[] = [
             rungs.push({ mats, u });
           }
           dna.userData.rungs = rungs;
-          // CELL NUCLEUS — the double helix unspools out of a translucent nucleus at the top
+          // THE CELL — the double helix unspools out of the nucleus of a cell at the top
+          // (cell membrane + denser nucleus + nucleolus + chromatin strands, so it reads as a cell, not a balloon)
           const nucleus = new THREE.Group();
-          nucleus.position.set(0, DNA_TOP + 3, 0);
+          nucleus.position.set(0, DNA_TOP + 9, 0);
           dna.add(nucleus);
-          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(11, 32, 24), new THREE.MeshPhysicalMaterial({ color: 0x243550, transparent: true, opacity: 0.16, roughness: 0.5, metalness: 0, transmission: 0.4, side: THREE.DoubleSide, depthWrite: false })));
-          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(11.4, 22, 18), fresnelMat(0x5f86b8, 4.0, 1.0)));
-          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(2.3, 16, 16), new THREE.MeshBasicMaterial({ color: 0x8aa8d8, transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false })));
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(14, 32, 24), new THREE.MeshPhysicalMaterial({ color: 0x1c2c44, transparent: true, opacity: 0.09, roughness: 0.6, metalness: 0, transmission: 0.3, side: THREE.DoubleSide, depthWrite: false }))); // cell membrane
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(14.2, 24, 18), fresnelMat(0x4a6c98, 3.2, 1.0))); // cell membrane rim
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(7.5, 28, 22), new THREE.MeshPhysicalMaterial({ color: 0x2a3a58, transparent: true, opacity: 0.18, roughness: 0.5, metalness: 0, transmission: 0.4, side: THREE.DoubleSide, depthWrite: false }))); // nucleus
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(7.7, 20, 16), fresnelMat(0x6f8fc0, 4.0, 1.0))); // nucleus rim
+          nucleus.add(new THREE.Mesh(new THREE.SphereGeometry(1.7, 16, 16), new THREE.MeshBasicMaterial({ color: 0x8aa8d8, transparent: true, opacity: 0.13, blending: THREE.AdditiveBlending, depthWrite: false }))); // nucleolus
+          for (let si = 0; si < 5; si++) {
+            const cp: any[] = [];
+            for (let ti = 0; ti < 6; ti++) cp.push(new THREE.Vector3(rand(-5, 5), rand(-5, 5), rand(-5, 5)));
+            const cc = new THREE.CatmullRomCurve3(cp);
+            nucleus.add(new THREE.Mesh(new THREE.TubeGeometry(cc, 24, 0.24, 5, false), new THREE.MeshBasicMaterial({ color: 0x9ab0e0, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }))); // chromatin
+          }
           dna.userData.nucleus = nucleus;
         })();
         mandalaDna = mandalaPlane(118, '#c9b8ff', new THREE.Color(C.amethyst), 0.2);
@@ -1354,11 +1363,11 @@ const STATIONS: Station[] = [
 
         // ITROFILL MONGEN — big toroidal net of eyes (Alex Grey "Net of Being")
         eyeNet = (function () {
-          const Nu = mobile ? 30 : 48,
-            Nv = mobile ? 10 : 16,
+          const Nu = mobile ? 26 : 42,
+            Nv = mobile ? 14 : 24,
             N = Nu * Nv,
-            R = 58,
-            r = 34;
+            R = 42, // TUNNEL of eyes (cylinder the camera flies through), not a torus
+            TUN = 140;
           const base = new THREE.PlaneGeometry(1, 1);
           const geo = new THREE.InstancedBufferGeometry();
           geo.index = base.index;
@@ -1374,16 +1383,15 @@ const STATIONS: Station[] = [
           for (let iu = 0; iu < Nu; iu++) {
             grid[iu] = [];
             for (let iv = 0; iv < Nv; iv++) {
-              const u = (iu / Nu) * 6.283,
-                v = (iv / Nv) * 6.283,
-                rr = R + r * Math.cos(v);
+              const u = (iu / Nu + (iv % 2) * 0.5 / Nu) * 6.283,
+                py = EYES_C + (iv / (Nv - 1) - 0.5) * TUN,
+                rr = R * (1.0 + 0.06 * Math.sin(iv * 1.3));
               const px = rr * Math.cos(u),
-                pz = rr * Math.sin(u),
-                py = EYES_C + r * Math.sin(v);
+                pz = rr * Math.sin(u);
               off[k * 3] = px;
               off[k * 3 + 1] = py;
               off[k * 3 + 2] = pz;
-              esz[k] = rand(3.0, 5.4);
+              esz[k] = rand(3.0, 5.2);
               const c = cols[k % 4];
               ecl[k * 3] = c.r;
               ecl[k * 3 + 1] = c.g;
@@ -1427,10 +1435,12 @@ const STATIONS: Station[] = [
           for (let iu = 0; iu < Nu; iu++)
             for (let iv = 0; iv < Nv; iv++) {
               const a = grid[iu][iv],
-                b = grid[(iu + 1) % Nu][iv],
-                c = grid[iu][(iv + 1) % Nv];
+                b = grid[(iu + 1) % Nu][iv];
               lp.push(a[0], a[1], a[2], b[0], b[1], b[2]);
-              lp.push(a[0], a[1], a[2], c[0], c[1], c[2]);
+              if (iv + 1 < Nv) {
+                const c = grid[iu][iv + 1];
+                lp.push(a[0], a[1], a[2], c[0], c[1], c[2]);
+              }
             }
           const lg = new THREE.BufferGeometry();
           lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(lp), 3));
@@ -1638,7 +1648,7 @@ const STATIONS: Station[] = [
               'uniform float uWave;\n' +
               sh.vertexShader.replace(
                 '#include <begin_vertex>',
-                '#include <begin_vertex>\n float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave; float swy=uv.x*0.55 - uWave*0.5;\n transformed.x += sin(ph)*amp + sin(swy)*amp*1.5;\n transformed.z += cos(ph)*amp*0.55 + cos(swy*1.1)*amp*1.0;\n transformed += normal * sin(uv.x*3.0 - uWave*1.3)*0.10;'
+                '#include <begin_vertex>\n float amp=0.25+uv.x*0.48; float ph=uv.x*1.6 - uWave;\n transformed.x += sin(ph)*amp;\n transformed.z += sin(ph+1.4)*amp*0.6;\n transformed += normal * sin(uv.x*3.0 - uWave*1.3)*0.09;'
               );
           };
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
@@ -1648,7 +1658,7 @@ const STATIONS: Station[] = [
           rimMat.uniforms.uWave = waveU;
           rimMat.vertexShader = rimMat.vertexShader
             .replace('uniform float s;', 'uniform float s; uniform float uWave;')
-            .replace('void main(){', 'void main(){ float amp=0.12+uv.x*0.34; float ph=uv.x*2.0 - uWave; float swy=uv.x*0.55 - uWave*0.5; vec3 wpos=position; wpos.x+=sin(ph)*amp + sin(swy)*amp*1.5; wpos.z+=cos(ph)*amp*0.55 + cos(swy*1.1)*amp*1.0; wpos+=normal*sin(uv.x*3.0 - uWave*1.3)*0.10;')
+            .replace('void main(){', 'void main(){ float amp=0.25+uv.x*0.48; float ph=uv.x*1.6 - uWave; vec3 wpos=position; wpos.x+=sin(ph)*amp; wpos.z+=sin(ph+1.4)*amp*0.6; wpos+=normal*sin(uv.x*3.0 - uWave*1.3)*0.09;')
             .replace(/vec4\(position,1\.0\)/g, 'vec4(wpos,1.0)');
           serpent.add(new THREE.Mesh(taperTube(tubes, 12, (u) => rfn(u) * 1.12), rimMat));
           serpent.add(
@@ -2036,11 +2046,11 @@ const STATIONS: Station[] = [
           eyeNet.uniforms.uTime.value = t;
         }
         if (serpent) {
-          serpent.rotation.y += dt * 0.02;
+          serpent.rotation.y += dt * 0.014;
           const su = serpent.userData as any;
           if (su.bodyMat) su.bodyMat.emissiveIntensity = 0.85 + 0.2 * Math.sin(t * 0.5);
           if (su.glint) su.glint.offset.x += dt * 0.012;
-          if (su.wave) su.wave.value += dt * 1.7;
+          if (su.wave) su.wave.value += dt * 1.5; // serpentine: S-wave travels head->tail
           if (su.tongue) {
             const cc = (t * 0.42) % 1,
               ext = cc < 0.22 ? Math.sin((cc / 0.22) * Math.PI) : 0;
