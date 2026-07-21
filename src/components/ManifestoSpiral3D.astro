@@ -1680,8 +1680,8 @@ const STATIONS: Station[] = [
             ht = curve.getTangentAt(0.02).clone().multiplyScalar(-1).normalize();
           const perp = new THREE.Vector3().crossVectors(ht, new THREE.Vector3(0, 1, 0)).normalize();
           const up = new THREE.Vector3().crossVectors(perp, ht).normalize();
-          const HB = tubeR * 1.95,
-            hg = new THREE.SphereGeometry(HB, 44, 32);
+          const HB = tubeR * 1.85,
+            hg = new THREE.SphereGeometry(HB, 48, 36);
           (function () {
             const P = hg.attributes.position,
               r = HB;
@@ -1690,14 +1690,10 @@ const STATIONS: Station[] = [
                 y = P.getY(i),
                 z = P.getZ(i);
               const tz = (z + r) / (2 * r);
-              // rounded serpentine wedge: neck slightly narrow, skull a bit wider behind the eyes,
-              // rounded-triangular snout — tubular cross-section (NOT a flat delta/ray)
-              let w = tz < 0.45 ? 0.78 + 0.5 * tz : 1.0 - 0.75 * (tz - 0.45);
-              w = Math.max(0.4, w);
-              x *= w * 0.9; // narrower (tubular, not a wide flat ray)
-              y *= (y > 0 ? 0.72 : 0.9) * Math.max(0.6, w); // rounder cross-section, fuller lower jaw
-              z *= 1.7; // elongated
-              if (z > 0) y -= (z / (r * 1.7)) * r * 0.06; // snout dips slightly (organic)
+              const w = Math.pow(Math.sin((0.1 + 0.85 * tz) * 3.14159), 0.6); // smooth spindle
+              x *= w * 0.94;
+              y *= w * 0.66;
+              z *= 2.0; // slender & elongated
               P.setXYZ(i, x, y, z);
             }
             hg.computeVertexNormals();
@@ -1912,10 +1908,60 @@ const STATIONS: Station[] = [
           const photon = new THREE.Mesh(new THREE.TorusGeometry(10.4, 0.34, 16, 120), new THREE.MeshBasicMaterial({ color: 0xfff2cc, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending }));
           photon.rotation.x = Math.PI * 0.5;
           blackhole.add(photon);
-          const disk = new THREE.Mesh(new THREE.TorusGeometry(21, 3.0, 30, 160), new THREE.MeshBasicMaterial({ color: 0xc9a84c, transparent: true, opacity: 0.92, blending: THREE.AdditiveBlending }));
+          // SOLAR accretion disk — blackbody gradient (white-hot inner → orange → deep red outer) + fbm spiral bands + Doppler
+          const dIn = 12,
+            dOut = 30,
+            diskGeo = new THREE.RingGeometry(dIn, dOut, 140, 10);
+          const diskMat = new THREE.ShaderMaterial({
+            uniforms: { uTime: { value: 0 }, uIn: { value: dIn }, uOut: { value: dOut } },
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            vertexShader: `varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+            fragmentShader: `precision highp float; varying vec2 vP; uniform float uTime,uIn,uOut;
+    float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+    float noise(vec2 p){ vec2 i=floor(p),f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }
+    float fbm(vec2 p){ float v=0.,a=.5; for(int k=0;k<4;k++){ v+=a*noise(p); p*=2.03; a*=.5; } return v; }
+    void main(){ float r=length(vP), rn=(r-uIn)/(uOut-uIn); if(rn<0.0||rn>1.0) discard;
+      float ang=atan(vP.y,vP.x);
+      float sw=fbm(vec2(ang*3.0 + log(r)*4.0 - uTime*0.7, r*0.12));
+      float band=0.5+0.75*sw; float t=1.0-rn;
+      vec3 col=mix(vec3(0.5,0.28,0.05), vec3(0.95,0.7,0.24), smoothstep(0.0,0.5,t));   // bronze rim -> gold
+      col=mix(col, vec3(1.0,0.93,0.72), smoothstep(0.6,1.0,t));                          // white-gold core
+      col*=band;
+      float rings=smoothstep(0.05,0.0, abs(fract(rn*6.0)-0.5)-0.42);                     // concentric sacred rings
+      col += rings*vec3(1.0,0.85,0.42)*0.55*band;
+      col*=0.62+0.68*smoothstep(-1.0,1.0,sin(ang));                                       // Doppler
+      float edge=smoothstep(0.0,0.1,rn)*smoothstep(1.0,0.68,rn);
+      gl_FragColor=vec4(col*1.35, edge*band*0.95); }`,
+          });
+          const disk = new THREE.Mesh(diskGeo, diskMat);
           disk.rotation.x = Math.PI * 0.5;
           blackhole.add(disk);
-          const disk2 = new THREE.Mesh(new THREE.TorusGeometry(28, 1.1, 24, 160), new THREE.MeshBasicMaterial({ color: 0x9a7ee0, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending }));
+          disk.userData.mat = diskMat;
+          const rayGeo = new THREE.RingGeometry(dOut * 0.8, dOut * 2.7, 220, 1);
+          const rayMat = new THREE.ShaderMaterial({
+            uniforms: { uTime: { value: 0 }, uOut: { value: dOut } },
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            side: THREE.DoubleSide,
+            vertexShader: `varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+            fragmentShader: `precision highp float; varying vec2 vP; uniform float uTime,uOut;
+    void main(){ float r=length(vP), ang=atan(vP.y,vP.x);
+      float ray=pow(0.5+0.5*sin(ang*22.0 + sin(ang*3.0+uTime*0.1)*0.6), 7.0);
+      float fall=smoothstep(uOut*2.6, uOut*0.9, r); float a=ray*fall*0.5;
+      gl_FragColor=vec4(vec3(1.0,0.83,0.42)*a, a); }`,
+          });
+          const rays = new THREE.Mesh(rayGeo, rayMat);
+          rays.rotation.x = Math.PI * 0.5;
+          blackhole.add(rays);
+          disk.userData.rays = rayMat;
+          const disk2 = new THREE.Mesh(
+            new THREE.TorusGeometry(31, 0.8, 20, 140),
+            new THREE.MeshBasicMaterial({ color: 0x7a2a2a, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending })
+          );
           disk2.rotation.x = Math.PI * 0.5;
           blackhole.add(disk2);
           // whirlpool inflow — particles spiral inward and vanish at the centre
@@ -2105,7 +2151,9 @@ const STATIONS: Station[] = [
           const bh = blackhole.userData;
           mandalaBH.quaternion.copy(camera.quaternion);
           mandalaBH.rotateZ(t * 0.02);
-          bh.disk.rotation.z += dt * 0.5;
+          if (bh.disk.userData.mat) bh.disk.userData.mat.uniforms.uTime.value = t;
+          if (bh.disk.userData.rays) bh.disk.userData.rays.uniforms.uTime.value = t;
+          bh.disk.rotation.z += dt * 0.06;
           bh.disk2.rotation.z -= dt * 0.35;
           const d = bh.data,
             pos = bh.pos,
