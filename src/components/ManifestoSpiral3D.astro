@@ -1557,8 +1557,8 @@ const STATIONS: Station[] = [
             bx.fillRect(0, 0, w, h);
             gx.fillStyle = '#000';
             gx.fillRect(0, 0, w, h);
-            const dw = 22,
-              dh = 15,
+            const dw = 46,
+              dh = 30,
               dia = (x: number, y: number, ctx: CanvasRenderingContext2D) => {
                 ctx.beginPath();
                 ctx.moveTo(x, y - dh / 2);
@@ -1570,23 +1570,25 @@ const STATIONS: Station[] = [
             let row = 0;
             for (let ry = 0; ry < h + dh; ry += dh / 2, row++) {
               const off = row % 2 ? dw / 2 : 0;
-              for (let rx = off; rx < w + dw; rx += dw) {
-                const irid = Math.random() < 0.17,
-                  g = mx.createLinearGradient(rx - dw / 2, ry - dh / 2, rx + dw / 2, ry + dh / 2);
-                if (irid) {
-                  g.addColorStop(0, '#41477f');
-                  g.addColorStop(0.5, '#191a33');
-                  g.addColorStop(1, '#0a0a17');
+              for (let rx0 = off; rx0 < w + dw; rx0 += dw) {
+                const rx = rx0 + (Math.random() - 0.5) * 3;
+                const neb = Math.random() < 0.38,
+                  g = mx.createRadialGradient(rx - dw * 0.12, ry - dh * 0.12, 0, rx, ry, dw * 0.6);
+                if (neb) {
+                  const hue = Math.random() < 0.5 ? '#2b2b5a' : '#153c4d';
+                  g.addColorStop(0, hue);
+                  g.addColorStop(0.55, '#0e0e1e');
+                  g.addColorStop(1, '#06060e');
                 } else {
-                  g.addColorStop(0, '#262633');
-                  g.addColorStop(0.45, '#111119');
-                  g.addColorStop(1, '#08080e');
+                  g.addColorStop(0, '#1b1b2a');
+                  g.addColorStop(0.55, '#0c0c16');
+                  g.addColorStop(1, '#06060e');
                 }
                 dia(rx, ry, mx);
                 mx.fillStyle = g;
                 mx.fill();
-                mx.strokeStyle = 'rgba(150,160,205,0.16)';
-                mx.lineWidth = 0.6;
+                mx.strokeStyle = 'rgba(201,168,76,0.55)'; // GOLD scale edge
+                mx.lineWidth = 1.1;
                 mx.stroke();
                 const bg = bx.createRadialGradient(rx, ry - 1, 0, rx, ry, dw * 0.5);
                 bg.addColorStop(0, '#ffffff');
@@ -1595,31 +1597,30 @@ const STATIONS: Station[] = [
                 dia(rx, ry, bx);
                 bx.fillStyle = bg;
                 bx.fill();
-                if (Math.random() < 0.11) {
-                  gx.fillStyle = Math.random() < 0.5 ? 'rgba(205,222,255,1)' : 'rgba(255,255,255,0.92)';
-                  gx.beginPath();
-                  gx.arc(rx, ry - dh * 0.22, 1.0 + Math.random() * 1.1, 0, 6.283);
-                  gx.fill();
-                }
+                dia(rx, ry, gx);
+                gx.strokeStyle = 'rgba(232,192,96,0.72)'; // emissive gold edge glow
+                gx.lineWidth = 1.0;
+                gx.stroke();
+                const nst = neb ? 3 : 1;
+                for (let s = 0; s < nst; s++) {
+                  if (Math.random() < 0.6) {
+                    gx.fillStyle = Math.random() < 0.5 ? 'rgba(150,200,255,0.9)' : 'rgba(255,255,255,0.82)';
+                    gx.beginPath();
+                    gx.arc(rx + (Math.random() - 0.5) * dw * 0.55, ry + (Math.random() - 0.5) * dh * 0.55, 0.5 + Math.random() * 1.1, 0, 6.283);
+                    gx.fill();
+                  }
+                } // cosmic stars inside
               }
             }
-            gx.strokeStyle = 'rgba(175,198,255,0.55)';
-            gx.lineWidth = 1.2;
-            gx.beginPath();
-            gx.moveTo(0, h / 2);
-            for (let dx = 0; dx <= w; dx += 6) {
-              gx.lineTo(dx, h / 2 + Math.sin(dx * 0.03) * 10);
-            }
-            gx.stroke();
             const rep = (t: any) => {
               t.colorSpace = THREE.SRGBColorSpace;
               t.wrapS = t.wrapT = THREE.RepeatWrapping;
-              t.repeat.set(7, 2.4);
+              t.repeat.set(3, 1.4);
               return t;
             };
             const bt = new THREE.CanvasTexture(bc);
             bt.wrapS = bt.wrapT = THREE.RepeatWrapping;
-            bt.repeat.set(7, 2.4);
+            bt.repeat.set(3, 1.4);
             return { map: rep(new THREE.CanvasTexture(mc)), bump: bt, glint: rep(new THREE.CanvasTexture(gc)) };
           })();
           // LIVING undulation — a travelling muscle-wave runs along the body
@@ -1679,17 +1680,25 @@ const STATIONS: Station[] = [
             ht = curve.getTangentAt(0.02).clone().multiplyScalar(-1).normalize();
           const perp = new THREE.Vector3().crossVectors(ht, new THREE.Vector3(0, 1, 0)).normalize();
           const up = new THREE.Vector3().crossVectors(perp, ht).normalize();
-          const hg = new THREE.SphereGeometry(tubeR * 1.65, 30, 22); // smaller head (was 2.1 → "cabezona")
+          const HB = tubeR * 1.95,
+            hg = new THREE.SphereGeometry(HB, 44, 32);
           (function () {
-            const Pos = hg.attributes.position,
-              r = tubeR * 1.65;
-            for (let i = 0; i < Pos.count; i++) {
-              const z = Pos.getZ(i),
-                tz = (z + r) / (2 * r),
-                taper = 1 - 0.55 * tz * tz;
-              Pos.setX(i, Pos.getX(i) * taper * 1.02);
-              Pos.setY(i, Pos.getY(i) * taper * 0.52);
-              Pos.setZ(i, z * 2.15);
+            const P = hg.attributes.position,
+              r = HB;
+            for (let i = 0; i < P.count; i++) {
+              let x = P.getX(i),
+                y = P.getY(i),
+                z = P.getZ(i);
+              const tz = (z + r) / (2 * r);
+              // rounded serpentine wedge: neck slightly narrow, skull a bit wider behind the eyes,
+              // rounded-triangular snout — tubular cross-section (NOT a flat delta/ray)
+              let w = tz < 0.45 ? 0.78 + 0.5 * tz : 1.0 - 0.75 * (tz - 0.45);
+              w = Math.max(0.4, w);
+              x *= w * 0.9; // narrower (tubular, not a wide flat ray)
+              y *= (y > 0 ? 0.72 : 0.9) * Math.max(0.6, w); // rounder cross-section, fuller lower jaw
+              z *= 1.7; // elongated
+              if (z > 0) y -= (z / (r * 1.7)) * r * 0.06; // snout dips slightly (organic)
+              P.setXYZ(i, x, y, z);
             }
             hg.computeVertexNormals();
           })();
@@ -1697,10 +1706,27 @@ const STATIONS: Station[] = [
           head.position.copy(hp);
           head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), ht);
           serpent.add(head);
-          // eyes: a DEFINED dark eyeball orb + a small crisp electric-blue core
-          // (no pupil) + a tight halo, set high on the head sides. Owner catch
-          // 2026-07-19: the old big additive spheres read as "headlights/faros"
-          // and made the face look weird — small + defined reads as real eyes.
+          // HEAD lighting (owner brief #5): so the head reads even against the planet glow, and gets the
+          // cyan-below / violet-above rim look. Localized point lights that travel with the head.
+          const headKey = new THREE.PointLight(0xbcd6f0, 2.4, 46, 1.2);
+          headKey.position
+            .copy(hp)
+            .add(up.clone().multiplyScalar(9))
+            .add(perp.clone().multiplyScalar(11))
+            .add(ht.clone().multiplyScalar(-3));
+          serpent.add(headKey);
+          const headCyan = new THREE.PointLight(0x3fd0e8, 1.7, 34, 1.4);
+          headCyan.position
+            .copy(hp)
+            .add(up.clone().multiplyScalar(-6))
+            .add(ht.clone().multiplyScalar(7));
+          serpent.add(headCyan);
+          const headViolet = new THREE.PointLight(0x8a7ee0, 1.3, 34, 1.4);
+          headViolet.position
+            .copy(hp)
+            .add(up.clone().multiplyScalar(10))
+            .add(ht.clone().multiplyScalar(-7));
+          serpent.add(headViolet);
           // EYE — pale-blue iris + vertical SLIT pupil + catchlight, like a real viper (ref: bush viper photo)
           const eyeTex = (function () {
             const s = 128,
@@ -1742,68 +1768,74 @@ const STATIONS: Station[] = [
             t.colorSpace = THREE.SRGBColorSpace;
             return t;
           })();
-          const eyeBallG = new THREE.SphereGeometry(1.25, 20, 20),
-            eyeBallM = new THREE.MeshStandardMaterial({ color: 0x0a1518, roughness: 0.25, metalness: 0.1 });
-          const irisG = new THREE.CircleGeometry(1.05, 32),
+          // EYE integrated as an almond cavity in the obsidian — recessed eyeball + dark mineral
+          // socket rim (NOT a glowing blue aro) + almond cyan slit iris + soft cyan light on the skin
+          const eyeBallG = new THREE.SphereGeometry(1.7, 22, 22),
+            eyeBallM = new THREE.MeshStandardMaterial({ color: 0x0a1518, roughness: 0.3, metalness: 0.15 });
+          const irisG = new THREE.CircleGeometry(1.45, 36),
             irisM = new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true });
-          const gh = new THREE.SphereGeometry(1.9, 14, 14),
-            ghm = new THREE.MeshBasicMaterial({ color: 0x5ec8e8, transparent: true, opacity: 0.14, blending: THREE.AdditiveBlending, depthWrite: false });
+          const socketG = new THREE.TorusGeometry(1.55, 0.24, 10, 32),
+            socketM = new THREE.MeshStandardMaterial({ color: 0x100c08, roughness: 0.5, metalness: 0.5, emissive: 0x2a2008, emissiveIntensity: 0.3 }); // dark rim with a faint GOLD cast (ref eye)
           const eB = hp
             .clone()
-            .add(ht.clone().multiplyScalar(tubeR * 1.6))
-            .add(up.clone().multiplyScalar(tubeR * 0.72));
+            .add(ht.clone().multiplyScalar(tubeR * 1.4))
+            .add(up.clone().multiplyScalar(tubeR * 0.45));
           [1, -1].forEach((sgn) => {
-            const pos = eB.clone().add(perp.clone().multiplyScalar(sgn * tubeR * 1.05));
-            const b = new THREE.Mesh(eyeBallG, eyeBallM);
-            b.position.copy(pos);
-            serpent.add(b);
-            const outward = perp.clone().multiplyScalar(sgn * 0.85).add(ht.clone().multiplyScalar(0.35)).add(up.clone().multiplyScalar(0.12)).normalize();
+            const pos = eB.clone().add(perp.clone().multiplyScalar(sgn * tubeR * 1.0));
+            const outward = perp.clone().multiplyScalar(sgn * 0.82).add(ht.clone().multiplyScalar(0.42)).add(up.clone().multiplyScalar(0.2)).normalize();
             const xAxis = new THREE.Vector3().crossVectors(up, outward).normalize(),
               yAxis = new THREE.Vector3().crossVectors(outward, xAxis).normalize();
+            const basis = new THREE.Matrix4().makeBasis(xAxis, yAxis, outward);
+            const b = new THREE.Mesh(eyeBallG, eyeBallM);
+            b.position.copy(pos).add(outward.clone().multiplyScalar(-0.2));
+            serpent.add(b);
+            const sock = new THREE.Mesh(socketG, socketM);
+            sock.position.copy(pos).add(outward.clone().multiplyScalar(0.7));
+            sock.quaternion.setFromRotationMatrix(basis);
+            serpent.add(sock);
+            const glow = new THREE.Mesh(
+              new THREE.CircleGeometry(0.95, 22),
+              new THREE.MeshBasicMaterial({ color: 0x2ea8cc, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false })
+            );
+            glow.position.copy(pos).add(outward.clone().multiplyScalar(0.68));
+            glow.quaternion.setFromRotationMatrix(basis);
+            serpent.add(glow);
             const iris = new THREE.Mesh(irisG, irisM);
-            iris.position.copy(pos).add(outward.clone().multiplyScalar(1.2));
-            iris.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(xAxis, yAxis, outward));
+            iris.scale.set(1.32, 1.0, 1);
+            iris.position.copy(pos).add(outward.clone().multiplyScalar(0.82));
+            iris.quaternion.setFromRotationMatrix(basis);
             serpent.add(iris);
-            const g = new THREE.Mesh(gh, ghm);
-            g.position.copy(pos);
-            serpent.add(g);
+            const el = new THREE.PointLight(0x4fd0e8, 0.75, 16, 1.5);
+            el.position.copy(pos).add(outward.clone().multiplyScalar(1.6));
+            serpent.add(el);
           });
-          // FACE detail — hooded brow ridges (fierce), nostrils on the snout, and a flicking forked tongue
-          const faceMat = new THREE.MeshStandardMaterial({ color: 0x14142a, roughness: 0.5, metalness: 0.35, emissive: 0x0a0a18, emissiveIntensity: 0.4 });
-          const browG = new THREE.SphereGeometry(1, 10, 8);
+          // FACE detail — nostrils on the (shorter) snout + a flicking forked tongue.
+          // Brow "plates" REMOVED (owner brief: they read as fins/loose plates) — the brow is now
+          // implicit in the head silhouette instead.
           [1, -1].forEach((sgn) => {
-            const brow = new THREE.Mesh(browG, faceMat);
-            brow.scale.set(tubeR * 0.3, tubeR * 0.16, tubeR * 0.9);
-            brow.position
-              .copy(eB)
-              .add(up.clone().multiplyScalar(tubeR * 0.55))
-              .add(ht.clone().multiplyScalar(tubeR * 0.1))
-              .add(perp.clone().multiplyScalar(sgn * tubeR * 0.95));
-            brow.quaternion.copy(head.quaternion);
-            serpent.add(brow);
-            const nos = new THREE.Mesh(new THREE.SphereGeometry(tubeR * 0.14, 8, 8), new THREE.MeshBasicMaterial({ color: 0x03030a }));
+            const nos = new THREE.Mesh(new THREE.SphereGeometry(tubeR * 0.12, 8, 8), new THREE.MeshBasicMaterial({ color: 0x03030a }));
             nos.position
               .copy(hp)
-              .add(ht.clone().multiplyScalar(tubeR * 2.55))
-              .add(up.clone().multiplyScalar(tubeR * 0.16))
-              .add(perp.clone().multiplyScalar(sgn * tubeR * 0.36));
+              .add(ht.clone().multiplyScalar(tubeR * 2.05))
+              .add(up.clone().multiplyScalar(tubeR * 0.12))
+              .add(perp.clone().multiplyScalar(sgn * tubeR * 0.3));
             serpent.add(nos);
           });
           const tongue = new THREE.Group();
           const tMat = new THREE.MeshBasicMaterial({ color: 0xff3a6a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false });
-          const tBase = new THREE.Mesh(new THREE.CylinderGeometry(tubeR * 0.09, tubeR * 0.13, tubeR * 1.8, 6), tMat);
-          tBase.position.set(0, tubeR * 0.9, 0);
+          const tBase = new THREE.Mesh(new THREE.CylinderGeometry(tubeR * 0.07, tubeR * 0.1, tubeR * 1.0, 6), tMat);
+          tBase.position.set(0, tubeR * 0.5, 0);
           tongue.add(tBase);
           [1, -1].forEach((sgn) => {
-            const tip = new THREE.Mesh(new THREE.CylinderGeometry(tubeR * 0.02, tubeR * 0.09, tubeR * 1.0, 6), tMat);
-            tip.position.set(sgn * tubeR * 0.28, tubeR * 2.15, 0);
-            tip.rotation.z = -sgn * 0.55;
+            const tip = new THREE.Mesh(new THREE.CylinderGeometry(tubeR * 0.015, tubeR * 0.07, tubeR * 0.55, 6), tMat);
+            tip.position.set(sgn * tubeR * 0.16, tubeR * 1.2, 0);
+            tip.rotation.z = -sgn * 0.5;
             tongue.add(tip);
           });
           const snout = hp
             .clone()
-            .add(ht.clone().multiplyScalar(tubeR * 2.85))
-            .add(up.clone().multiplyScalar(-tubeR * 0.12));
+            .add(ht.clone().multiplyScalar(tubeR * 2.55))
+            .add(up.clone().multiplyScalar(-tubeR * 0.14));
           tongue.position.copy(snout);
           tongue.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ht);
           tongue.scale.set(1, 0.12, 1);
