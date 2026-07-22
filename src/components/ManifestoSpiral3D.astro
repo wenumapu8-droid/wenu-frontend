@@ -1482,8 +1482,11 @@ const STATIONS: Station[] = [
           const rfn = (u: number) => {
             const headFull = ss(0.0, 0.1, u),
               neck = 1 - 0.26 * Math.exp(-Math.pow((u - 0.09) / 0.045, 2)),
-              tail = 1 - ss(0.72, 1.0, u) * 0.93;
-            return tubeR * Math.max(0.06, (0.74 + 0.42 * headFull) * neck * tail);
+              tail = 1 - ss(0.72, 1.0, u) * 0.93,
+              // capTaper: shrink the tube to ~a point where the sculpted HEAD sits (u->0) so the body
+              // tucks INTO the head instead of a cylinder poking out — head + body read as one creature.
+              capTaper = ss(0.0, 0.06, u);
+            return tubeR * Math.max(0.02, (0.74 + 0.42 * headFull) * neck * tail * capTaper);
           };
           function taperTube(T: number, Rs: number, rf: (u: number) => number) {
             const fr = curve.computeFrenetFrames(T, false),
@@ -1657,7 +1660,7 @@ const STATIONS: Station[] = [
           serpent.add(new THREE.Mesh(taperTube(tubes, 16, rfn), bodyMat));
           // rim light — a thin fresnel tube that catches the light along the
           // coils' edge/silhouette (same fresnelMat used by Sun/Earth/black hole)
-          const rimMat = fresnelMat(0xaeb8ff, 2.1, 1.0);
+          const rimMat = fresnelMat(0x8a98d8, 1.15, 1.2); // dimmer/softer so the rim doesn't read as two harsh light-beams (owner: distracting)
           rimMat.uniforms.uWave = waveU;
           rimMat.vertexShader = rimMat.vertexShader
             .replace('uniform float s;', 'uniform float s; uniform float uWave;')
@@ -1692,6 +1695,8 @@ const STATIONS: Station[] = [
           headGroup.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(perp.clone().negate(), up, ht)); // right-handed basis (perp negated) — else the sculpted head faces backward
           serpent.add(headGroup);
           serpent.userData.headGroup = headGroup;
+          serpent.userData.headBase = headGroup.position.clone(); // base pos; the tick adds the neck's S-wave so the head slithers WITH the body (one living creature)
+          serpent.userData.headBaseQ = headGroup.quaternion.clone();
           // Mirrors bodyMat: emissive gold GLINT scales (crisp thanks to the GLB's baked cylindrical UVs) so the
           // sculpted head wears the SAME cosmic lattice as the body — crisp scales + sculptural volume. No wave shader.
           const cloneTex = (tx: any) => {
@@ -1810,39 +1815,39 @@ const STATIONS: Station[] = [
           })();
           // EYE integrated as an almond cavity in the obsidian — recessed eyeball + dark mineral
           // socket rim (NOT a glowing blue aro) + almond cyan slit iris + soft cyan light on the skin
-          const eyeBallG = new THREE.SphereGeometry(1.7, 22, 22),
-            eyeBallM = new THREE.MeshStandardMaterial({ color: 0x0a1518, roughness: 0.3, metalness: 0.15 });
-          const irisG = new THREE.CircleGeometry(1.45, 36),
+          // SMALL integrated snake eyes (owner: the old radius-1.7 eyeballs read as giant mechanical bug-eyes on
+          // the sculpted head). Now tiny — a small dark eyeball flush on the upper-front side + a glowing cyan iris.
+          const eyeBallG = new THREE.SphereGeometry(0.6, 18, 18),
+            eyeBallM = new THREE.MeshStandardMaterial({ color: 0x05090c, roughness: 0.5, metalness: 0.1 });
+          const irisG = new THREE.CircleGeometry(0.5, 32),
             irisM = new THREE.MeshBasicMaterial({ map: eyeTex, transparent: true });
-          // socket rim (torus "aro") REMOVED per owner: it read as a portal/mechanical ring on the face.
-          // The eye is now a recessed dark eyeball + almond iris + soft cyan light — integrated, no ring.
           const eB = hp
             .clone()
-            .add(ht.clone().multiplyScalar(tubeR * 1.4))
-            .add(up.clone().multiplyScalar(tubeR * 0.45));
+            .add(ht.clone().multiplyScalar(tubeR * 1.85))
+            .add(up.clone().multiplyScalar(tubeR * 0.5));
           [1, -1].forEach((sgn) => {
-            const pos = eB.clone().add(perp.clone().multiplyScalar(sgn * tubeR * 1.0));
-            const outward = perp.clone().multiplyScalar(sgn * 0.82).add(ht.clone().multiplyScalar(0.42)).add(up.clone().multiplyScalar(0.2)).normalize();
+            const pos = eB.clone().add(perp.clone().multiplyScalar(sgn * tubeR * 0.62));
+            const outward = perp.clone().multiplyScalar(sgn * 0.8).add(up.clone().multiplyScalar(0.35)).add(ht.clone().multiplyScalar(0.25)).normalize();
             const xAxis = new THREE.Vector3().crossVectors(up, outward).normalize(),
               yAxis = new THREE.Vector3().crossVectors(outward, xAxis).normalize();
             const basis = new THREE.Matrix4().makeBasis(xAxis, yAxis, outward);
             const b = new THREE.Mesh(eyeBallG, eyeBallM);
-            b.position.copy(pos).add(outward.clone().multiplyScalar(-0.2));
+            b.position.copy(pos);
             serpent.add(b);
             const glow = new THREE.Mesh(
-              new THREE.CircleGeometry(0.8, 22),
-              new THREE.MeshBasicMaterial({ color: 0x2ea8cc, transparent: true, opacity: 0.42, blending: THREE.AdditiveBlending, depthWrite: false })
+              new THREE.CircleGeometry(0.42, 20),
+              new THREE.MeshBasicMaterial({ color: 0x2ea8cc, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
             );
-            glow.position.copy(pos).add(outward.clone().multiplyScalar(0.6));
+            glow.position.copy(pos).add(outward.clone().multiplyScalar(0.32));
             glow.quaternion.setFromRotationMatrix(basis);
             serpent.add(glow);
             const iris = new THREE.Mesh(irisG, irisM);
-            iris.scale.set(1.32, 1.0, 1);
-            iris.position.copy(pos).add(outward.clone().multiplyScalar(0.82));
+            iris.scale.set(1.25, 1.0, 1);
+            iris.position.copy(pos).add(outward.clone().multiplyScalar(0.42));
             iris.quaternion.setFromRotationMatrix(basis);
             serpent.add(iris);
-            const el = new THREE.PointLight(0x4fd0e8, 0.75, 16, 1.5);
-            el.position.copy(pos).add(outward.clone().multiplyScalar(1.6));
+            const el = new THREE.PointLight(0x4fd0e8, 0.5, 10, 1.6);
+            el.position.copy(pos).add(outward.clone().multiplyScalar(1.0));
             serpent.add(el);
           });
           // FACE detail — nostrils on the (shorter) snout + a flicking forked tongue.
@@ -2180,6 +2185,16 @@ const STATIONS: Station[] = [
           if (su.bodyMat) su.bodyMat.emissiveIntensity = 0.85 + 0.2 * Math.sin(t * 0.5);
           if (su.glint) su.glint.offset.x += dt * 0.012;
           if (su.wave) su.wave.value += dt * 1.5; // serpentine: S-wave travels head->tail
+          if (su.headGroup && su.headBase) {
+            // head rides the SAME S-wave as the neck -> head + body read as one living creature
+            const w = su.wave.value,
+              ux = 0.055,
+              amp = 0.3;
+            su.headGroup.position.set(su.headBase.x + Math.sin(ux - w) * amp, su.headBase.y + Math.sin(w * 0.7) * 0.12, su.headBase.z + Math.sin(ux - w + 1.4) * amp * 0.6);
+            const yaw = Math.sin(ux - w + 0.4) * 0.15,
+              pit = Math.sin(w * 0.7 + 0.5) * 0.05; // head leads the slither (turns + gentle nod), pivoting at the neck (no seam)
+            su.headGroup.quaternion.copy(su.headBaseQ).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(pit, yaw, 0)));
+          }
           if (su.tongue) {
             const cc = (t * 0.42) % 1,
               ext = cc < 0.22 ? Math.sin((cc / 0.22) * Math.PI) : 0;
