@@ -5,11 +5,15 @@
 // arrow-key page turn, and the +∞ white inversion at the end of the journey.
 
 import { initKxAudio } from './kodex-audio.js';
+import { record } from '../kodex/return/memory.js';
 
 export function initKx() {
   const root = document.querySelector('[data-kx]');
   if (!root) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // record the journey — every page visited feeds the visitor's RETURN specimen
+  try { record({ type: 'view', work: location.pathname }); } catch (e) {}
 
   // generative frequencies — a musical scene per level (♪ button in the status bar)
   initKxAudio(root);
@@ -830,6 +834,7 @@ export function initKx() {
         let n; do { n = Math.floor(Math.random()*POOL.length); } while (n === last && POOL.length > 1); last = n;
         const name = POOL[n];
         if (name === 'ORIGINAL') { cv.style.opacity = '0'; term.style.opacity = '0'; return; }
+        try { record({ type: 'effect', effect: name }); } catch (e) {}
         const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height; if (!iw) return;
         const s = Math.min(1, 900 / iw); const W = Math.round(iw*s), Hh = Math.round(ih*s);
         cv.width = W; cv.height = Hh;
