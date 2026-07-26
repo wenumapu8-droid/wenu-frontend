@@ -37,6 +37,17 @@ interface Props {
   /** Hide the editorial prefooter quote (Montecino) — for checkout, /p/[slug],
    *  /shop and other commerce pages where the rhythm shouldn't break. */
   noQuote?: boolean;
+  /** Lock the theme to dark and hide the LIGHT CYCLE toggle — for immersive art
+   *  pages (KODEX, gallery) where the background must stay fixed. */
+  noThemes?: boolean;
+  /** Skip the Kai mascot engine entirely (kai-anim/kai-home/kai-textile) — for
+   *  worlds where no commercial companion may appear (KODEX). */
+  noKai?: boolean;
+  /** Skip the global Cart drawer — no commerce chrome in the art worlds (KODEX). */
+  noCart?: boolean;
+  /** Skip the Immersive layer, incl. the Hidden Sky UFO blip — KODEX must stay
+   *  clean of the site-wide fiction/motion (KODEX pages carry their own reveals). */
+  noImmersive?: boolean;
   /** Optional JSON-LD object to inject as structured data */
   jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
   /** Optional LCP image to preload (with AVIF/WebP source set if both provided). */
@@ -57,9 +68,14 @@ const {
   noFooter = false,
   noOverlays = false,
   noQuote = false,
+  noThemes = false,
+  noKai = false,
+  noCart = false,
+  noImmersive = false,
   jsonLd,
   preloadImage = null,
 } = Astro.props;
+const themesOn = themesEnabled && !noThemes;
 
 const path = Astro.url.pathname;
 const canonical = new URL(path, SITE).toString();
@@ -75,7 +91,7 @@ const ldArray = jsonLd
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    {themesEnabled && <script is:inline set:html={themeInit} />}
+    {themesOn && <script is:inline set:html={themeInit} />}
     <meta name="google" content="notranslate" />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -152,7 +168,7 @@ const ldArray = jsonLd
         donde Kai vive (top del menú, overlay del buscador, carrito, /gracias).
         Reemplaza al viejo motor de <img> + estirado procedural (kai-idle.js,
         retirado 2026-07-11). Ver public/kai/kai-anim.js. */}
-    <script is:inline defer src="/kai/kai-anim.js"></script>
+    {!noKai && <script is:inline defer src="/kai/kai-anim.js"></script>}
     {/* Kai — "Hogar de Kai" (sistema tamagotchi): medidores, acciones,
         recompensas, rangos y progreso por eventos reales del sitio. Mismo patrón
         que el motor de arriba (clásico + defer → corre DESPUÉS de kai-anim.js,
@@ -160,10 +176,10 @@ const ldArray = jsonLd
         Astro) y no cuesta nada hasta que alguien abre el hogar: la hoja de
         estilos se inyecta recién al primer intento. Se engancha solo al DOM
         existente (Nav/Cart/PDP sin tocar). Ver public/kai/kai-home.js. */}
-    <script is:inline defer src="/kai/kai-home.js"></script>
+    {!noKai && <script is:inline defer src="/kai/kai-home.js"></script>}
     {/* Living mapuche-textile covers for every Kai screen — random woven pattern
         per screen, looping weave, auto-reshuffle. Any [data-kai-textile] element. */}
-    <script is:inline defer src="/kai/kai-textile.js"></script>
+    {!noKai && <script is:inline defer src="/kai/kai-textile.js"></script>}
   </head>
   <body>
     <a href="#main" class="skip-link">Skip to main content</a>
@@ -172,15 +188,15 @@ const ldArray = jsonLd
       <slot />
     </main>
     {!noFooter && <Footer />}
-    {themesEnabled && (
+    {themesOn && (
       <div class="theme-bar">
         <ThemeToggle />
       </div>
     )}
     {!noOverlays && <SearchModal />}
     {!noOverlays && <NewsletterModal />}
-    <Cart />
-    <Immersive />
+    {!noCart && <Cart />}
+    {!noImmersive && <Immersive />}
     <script>
       // IntersectionObserver-driven fade-in for elements marked with
       // data-fade-in or data-fade-in-stagger. Triggers when ANY pixel enters

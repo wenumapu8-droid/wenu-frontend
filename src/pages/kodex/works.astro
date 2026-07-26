@@ -1,0 +1,89 @@
+---
+// KODEX −∞ · THE ARCHIVE — gallery index of the 18 living work-pages.
+// A constellation of works over the luminous field; each opens its own page.
+import KodexShell from '../../layouts/KodexShell.astro';
+import { families, discoWorks, opName } from '../../lib/kodex.js';
+
+const EFFECTS = ['MIRROR', 'GLITCH', 'CHROMA', 'DITHER', 'PIXEL SORT', 'SCANLINES'];
+const works = [
+  ...families.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, acc: f.th.c })),
+  ...discoWorks.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, acc: f.th.c })),
+].map((w, i) => ({ ...w, fx: EFFECTS[i % EFFECTS.length] }));
+---
+
+<KodexShell title="KODEX −∞ · The Archive">
+  <main class="ar" data-ar>
+    <canvas id="kodex-world" data-world></canvas>
+
+    <header class="ar-top">
+      <a class="ar-home" href="/kodex/">◈ KODEX</a>
+      <span class="ar-count">{works.length} WORKS</span>
+      <a class="ar-about" href="/kodex/work/001/">ENTER →</a>
+    </header>
+
+    <section class="ar-intro">
+      <p class="ar-over" data-glitch>THE ARCHIVE · EXPLORE</p>
+      <h1 class="ar-title">Works</h1>
+      <p class="ar-lede">Each work is a page — its own light, its own codes, its own effect. Tap any to enter.</p>
+    </section>
+
+    <div class="ar-grid">
+      {works.map((w) => (
+        <a class="ar-cell" href={`/kodex/work/${w.n}/`} style={`--acc:${w.acc}`}>
+          <span class="ar-cell__frame"><img src={w.url} loading="lazy" alt={`KODEX−∞ — plate ${w.n}`} /></span>
+          <span class="ar-cell__n">{w.n}</span>
+          <span class="ar-cell__fx">◈ {w.fx}</span>
+          <span class="ar-cell__ops">{w.ops.join(' · ')}</span>
+        </a>
+      ))}
+    </div>
+
+    <footer class="ar-foot"><p>KODEX −∞ · a possibility given form · belongs to no one, and to all.</p></footer>
+  </main>
+
+  <style>
+    .ar{ position:relative; min-height:100vh; background:#000; color:#f0ede8; font-family:'JetBrains Mono',ui-monospace,monospace; }
+    #kodex-world{ position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; opacity:.5; }
+    .ar :where(a){ color:inherit; text-decoration:none; }
+    .ar > :not(#kodex-world){ position:relative; z-index:2; }
+
+    .ar-top{ position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between;
+      padding:16px clamp(14px,4vw,40px); font-size:11px; letter-spacing:.16em; background:linear-gradient(#000 55%,transparent); }
+    .ar-home{ font-family:'Instrument Serif',serif; font-size:18px; }
+    .ar-count{ color:#8f8f8f; }
+    .ar-about{ font-size:10px; letter-spacing:.2em; color:#c9a84c; border:1px solid #1c1c1c; padding:8px 14px; transition:.25s; }
+    .ar-about:hover{ border-color:#c9a84c; }
+
+    .ar-intro{ text-align:center; padding:clamp(40px,10vh,110px) 20px clamp(24px,5vh,50px); }
+    .ar-over{ font-size:11px; letter-spacing:.3em; color:#9a948a; margin:0; }
+    .ar-title{ font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(3rem,9vw,6rem); margin:12px 0 0; }
+    .ar-lede{ max-width:46ch; margin:18px auto 0; font-family:'Cormorant Garamond',serif; font-size:clamp(1.05rem,2.2vw,1.4rem); line-height:1.5; color:#c8c2b6; }
+
+    .ar-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(clamp(140px,20vw,220px),1fr));
+      gap:clamp(12px,2vw,26px); max-width:1300px; margin:0 auto; padding:clamp(20px,4vh,50px) clamp(14px,4vw,44px) 80px; }
+    .ar-cell{ display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid #141414; background:rgba(4,4,6,.5);
+      transition:border-color .4s, transform .4s, box-shadow .4s; }
+    .ar-cell:hover{ border-color:var(--acc,#c9a84c); transform:translateY(-3px); box-shadow:0 14px 40px rgba(0,0,0,.6), 0 0 30px color-mix(in srgb, var(--acc) 16%, transparent); }
+    .ar-cell__frame{ aspect-ratio:1/1; display:grid; place-items:center; overflow:hidden; background:#050505; }
+    .ar-cell__frame img{ max-width:96%; max-height:96%; width:auto; height:auto; object-fit:contain; object-position:center; opacity:.9; transition:opacity .4s, transform .5s; }
+    .ar-cell:hover .ar-cell__frame img{ opacity:1; transform:scale(1.03); }
+    .ar-cell__n{ font-family:'Instrument Serif',serif; font-size:1.1rem; color:#f0ede8; }
+    .ar-cell__fx{ font-size:9px; letter-spacing:.14em; color:var(--acc,#c9a84c); }
+    .ar-cell__ops{ font-size:8.5px; letter-spacing:.1em; color:#585858; }
+
+    .ar-foot{ text-align:center; padding:40px 20px; font-size:9.5px; letter-spacing:.14em; color:#3a3a3a; }
+  </style>
+
+  <script>
+    import { KodexWorld } from '../../kodex/engine/kodexWorld.js';
+    const canvas = document.getElementById('kodex-world');
+    const world = new KodexWorld(canvas, { seed: Math.random() });
+    world.setTint([0.90, 0.90, 0.93]); // archive overview — achromatic (B/W first)
+    (async () => { await world.loadArtwork('/img/kodex/works/bw-06.jpg'); world.start(); })();
+    document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else world.start(); });
+    // glitch the eyebrow
+    const GLY = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789∞ΩΔ·';
+    const el = document.querySelector('[data-glitch]');
+    if (el && !matchMedia('(prefers-reduced-motion: reduce)').matches) { const t = el.textContent; const scr = () => { const t0 = performance.now(); clearInterval(el.__g); el.__g = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / 800); let o = ''; for (let i = 0; i < t.length; i++) o += t[i] === ' ' ? ' ' : (i / t.length < p ? t[i] : GLY[Math.random() * GLY.length | 0]); el.textContent = o; if (p >= 1) clearInterval(el.__g); }, 40); }; setTimeout(scr, 250); setInterval(() => { if (Math.random() < 0.5) scr(); }, 7000); }
+  </script>
+</KodexShell>
