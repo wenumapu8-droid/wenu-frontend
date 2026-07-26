@@ -776,7 +776,26 @@ export function initKx() {
     //    itself, animated, no window, no controls. Tap again → the original
     //    returns. Reuses the effect algorithms + B8 dither matrix above.
     const IP_FX = ['DITHER', 'GLITCH', 'CHROMA', 'PIXEL SORT', 'SCANLINES', 'MIRROR'];
+    const IP_CODE = {
+      DITHER: '// DITHER · Bayer 8x8 -> 1 bit\nv = luminance(px)\nout = v > bayer[y%8][x%8] ? 255 : 0',
+      GLITCH: '// GLITCH · displace bands, shift channels\nfor band in bands: offset(row, rand())\nR.x += 3 ; B.x -= 3',
+      CHROMA: '// CHROMA · split colour in space\nout.R = src(x + d).R\nout.B = src(x - d).B',
+      'PIXEL SORT': '// PIXEL SORT · order spans by light\nfor row: sort(span, key = luminance)',
+      SCANLINES: '// SCANLINES · CRT phosphor\npx *= 0.7 + 0.3 * sin(y * PI)',
+      MIRROR: '// MIRROR · fourfold reflection\nout[y][x] = src[H - y][W - x]',
+    };
     const reduceFx = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const GLY2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789∞ΩΔ·';
+    const typeTerm = (el, full, delay) => {
+      if (reduceFx) { el.textContent = full; return; }
+      const t0 = performance.now(); clearInterval(el.__t);
+      el.__t = setInterval(() => {
+        const n = Math.max(0, ((performance.now() - t0 - delay) / 8) | 0);
+        if (n >= full.length) { el.textContent = full; clearInterval(el.__t); return; }
+        let o = ''; for (let i = 0; i < full.length; i++) o += i < n ? full[i] : (full[i] === '\n' ? '\n' : (i < n + 3 ? GLY2[Math.random()*GLY2.length|0] : ''));
+        el.textContent = o;
+      }, 26);
+    };
     const paintFx = (cx, base, W, Hh, name) => {
       cx.clearRect(0, 0, W, Hh); cx.drawImage(base, 0, 0, W, Hh);
       let d; try { d = cx.getImageData(0, 0, W, Hh); } catch (e) { return; } const p = d.data;
@@ -790,25 +809,36 @@ export function initKx() {
     root.querySelectorAll('.kx-cell[data-files], .kx-specimen .kx-frame[data-spec], .kx-frame--hero').forEach((el) => {
       const img = el.querySelector('img'); if (!img) return;
       el.style.cursor = 'pointer';
-      let cv = null, last = -1;
-      const POOL = ['ORIGINAL', ...IP_FX];   // each click = a random reading; can land back on the pure work
+      let cv = null, term = null, last = -1;
+      // weighted toward the DRAMATIC readings so every touch is memorable.
+      const POOL = ['GLITCH', 'CHROMA', 'MIRROR', 'PIXEL SORT', 'GLITCH', 'CHROMA', 'MIRROR', 'DITHER', 'SCANLINES', 'ORIGINAL'];
+      const title = ((el.dataset.title || el.querySelector('figcaption')?.textContent || el.querySelector('.kx-frame__tag')?.textContent || 'SPECIMEN').trim()).toUpperCase();
+      const ops = el.dataset.opsfull || el.dataset.ops || '';
       el.addEventListener('click', (e) => {
         e.preventDefault(); e.stopPropagation();
+        const host = img.parentElement || el; if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
         if (!cv) {
           cv = document.createElement('canvas');
           cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .4s ease;z-index:4;';
-          const host = img.parentElement; if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
-          (host || el).appendChild(cv);
+          host.appendChild(cv);
+          term = document.createElement('div');
+          term.style.cssText = 'position:absolute;left:6px;right:6px;bottom:6px;z-index:5;pointer-events:none;opacity:0;transition:opacity .35s ease;padding:8px 10px;background:linear-gradient(rgba(0,0,0,.35),rgba(0,4,6,.82));border-left:2px solid #00f0ff;box-shadow:inset 0 0 0 1px rgba(0,240,255,.1),0 0 22px rgba(0,240,255,.14);';
+          const dl = document.createElement('pre'); dl.style.cssText = 'margin:0;white-space:pre-wrap;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:8.5px;line-height:1.5;letter-spacing:.04em;color:#00f0ff;text-shadow:0 0 7px rgba(0,240,255,.5);';
+          const cl = document.createElement('pre'); cl.style.cssText = 'margin:4px 0 0;white-space:pre-wrap;font-family:"JetBrains Mono",ui-monospace,monospace;font-size:9px;line-height:1.5;color:#a6ff00;text-shadow:0 0 7px rgba(166,255,0,.4);';
+          term.__dl = dl; term.__cl = cl; term.appendChild(dl); term.appendChild(cl); host.appendChild(term);
         }
         let n; do { n = Math.floor(Math.random()*POOL.length); } while (n === last && POOL.length > 1); last = n;
         const name = POOL[n];
-        if (name === 'ORIGINAL') { cv.style.opacity = '0'; return; }
+        if (name === 'ORIGINAL') { cv.style.opacity = '0'; term.style.opacity = '0'; return; }
         const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height; if (!iw) return;
         const s = Math.min(1, 900 / iw); const W = Math.round(iw*s), Hh = Math.round(ih*s);
         cv.width = W; cv.height = Hh;
-        const cx = cv.getContext('2d', { willReadFrequently: true });
-        paintFx(cx, img, W, Hh, name);
-        if (reduceFx) { cv.style.opacity = '1'; } else { cv.style.opacity = '0'; requestAnimationFrame(() => requestAnimationFrame(() => { cv.style.opacity = '1'; })); }
+        paintFx(cv.getContext('2d', { willReadFrequently: true }), img, W, Hh, name);
+        const seed = '0x' + ((((title.length * 40503) + (name.length * 6151)) * 2654435761 >>> 8) & 0xffffff).toString(16).toUpperCase().padStart(6, '0');
+        typeTerm(term.__dl, '◈ ' + name + ' · ' + title + '\nSEED ' + seed + (ops ? '  OPS ' + ops : '') + '  φ 137.5°', 0);
+        typeTerm(term.__cl, IP_CODE[name] || '', 220);
+        if (reduceFx) { cv.style.opacity = '1'; term.style.opacity = '1'; }
+        else { cv.style.opacity = '0'; term.style.opacity = '0'; requestAnimationFrame(() => requestAnimationFrame(() => { cv.style.opacity = '1'; term.style.opacity = '1'; })); }
       });
     });
   }
