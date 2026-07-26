@@ -184,7 +184,7 @@ export function initKx() {
       if (!seen.has(s)) { seen.add(s); s.querySelectorAll('.kx-chapter__term[data-term]').forEach(typeTerm); }
       const last = cur === slides.length - 1;
       // first pages (cover + index) advance by their own doors / the radar — no NEXT button there
-      if (bNext) { bNext.textContent = last ? nextLabel : 'NEXT ›'; bNext.classList.toggle('kx-deckbar--turn', last); bNext.style.visibility = (cur <= 1 && !last) ? 'hidden' : 'visible'; }
+      if (bNext) { bNext.textContent = last ? nextLabel : 'NEXT ›'; bNext.classList.toggle('kx-deckbar--turn', last); bNext.style.visibility = (/\/kodex\/?$/.test(location.pathname) && cur <= 1 && !last) ? 'hidden' : 'visible'; }
       if (bPrev) bPrev.style.visibility = (cur === 0 && !prevUrl) ? 'hidden' : 'visible';
     };
     const goNext = () => { if (cur < slides.length - 1) activate(cur + 1); else if (nextUrl) turn(nextUrl); };
@@ -790,24 +790,25 @@ export function initKx() {
     root.querySelectorAll('.kx-cell[data-files], .kx-specimen .kx-frame[data-spec], .kx-frame--hero').forEach((el) => {
       const img = el.querySelector('img'); if (!img) return;
       el.style.cursor = 'pointer';
-      let cv = null, on = false, last = -1;
+      let cv = null, last = -1;
+      const POOL = ['ORIGINAL', ...IP_FX];   // each click = a random reading; can land back on the pure work
       el.addEventListener('click', (e) => {
         e.preventDefault(); e.stopPropagation();
         if (!cv) {
           cv = document.createElement('canvas');
-          cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .45s ease;z-index:4;';
+          cv.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .4s ease;z-index:4;';
           const host = img.parentElement; if (host && getComputedStyle(host).position === 'static') host.style.position = 'relative';
           (host || el).appendChild(cv);
         }
-        if (on) { cv.style.opacity = '0'; on = false; return; }   // tap again → original returns
+        let n; do { n = Math.floor(Math.random()*POOL.length); } while (n === last && POOL.length > 1); last = n;
+        const name = POOL[n];
+        if (name === 'ORIGINAL') { cv.style.opacity = '0'; return; }
         const iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height; if (!iw) return;
         const s = Math.min(1, 900 / iw); const W = Math.round(iw*s), Hh = Math.round(ih*s);
         cv.width = W; cv.height = Hh;
         const cx = cv.getContext('2d', { willReadFrequently: true });
-        let n; do { n = Math.floor(Math.random()*IP_FX.length); } while (n === last && IP_FX.length > 1); last = n;
-        paintFx(cx, img, W, Hh, IP_FX[n]);
+        paintFx(cx, img, W, Hh, name);
         if (reduceFx) { cv.style.opacity = '1'; } else { cv.style.opacity = '0'; requestAnimationFrame(() => requestAnimationFrame(() => { cv.style.opacity = '1'; })); }
-        on = true;
       });
     });
   }
