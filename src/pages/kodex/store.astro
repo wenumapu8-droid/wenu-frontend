@@ -7,8 +7,25 @@
 // from the main store, zero Kai/UFO.
 import KodexShell from '../../layouts/KodexShell.astro';
 import { families, discoWorks, opName } from '../../lib/kodex.js';
+import { getKodexProducts } from '../../lib/woo.ts';
+
+// KODEX commerce lane: WC products in category 485 (slug 'kodex').
+// Filter is applied — these never leak into /shop of the jewelry store.
+const kodexProducts = await getKodexProducts().catch(() => []);
+const wcBySlug = Object.fromEntries(kodexProducts.map(p => [p.slug, p]));
+const wcState = (slug: string) => {
+  const p = wcBySlug[slug];
+  if (!p) return { has: false, live: false, price: null, download: null };
+  const live = p.status === 'publish';
+  const download = p.downloads?.[0]?.file || null;
+  const price = parseFloat(p.price || '') > 0 ? p.price : null;
+  return { has: true, live, price, download, id: p.id, name: p.name };
+};
 
 const MAIL = 'marimari@wenumapuonline.com';
+// WC checkout URL — direct add-to-cart + go to checkout in one hop.
+const WC_STORE = 'https://www.wenumapuonline.com';
+const buyUrl = (id: number) => `${WC_STORE}/?add-to-cart=${id}`;
 const products = [
   ...families.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, acc: f.th.c })),
   ...discoWorks.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, acc: f.th.c })),
@@ -25,11 +42,11 @@ const channels = [
 const mailReq = (subj) => `mailto:${MAIL}?subject=${encodeURIComponent('KODEX −∞ · ' + subj)}`;
 // downloadable repos — curated sets of plates as high-res files (free · liberation)
 const packs = [
-  { name: 'ACHROMA',     sub: 'The true forms · black & white',  n: 12, size: '4.1 MB', explore: '/kodex/movement/achroma/', file: '/img/kodex/packs/kodex-achroma.zip',     acc: '#cfc7b6' },
-  { name: 'DISCO SOLAR', sub: 'Signal in colour · neon fractal', n: 11, size: '6.1 MB', explore: '/kodex/movement/disco/',   file: '/img/kodex/packs/kodex-disco-solar.zip', acc: '#e0559b' },
-  { name: 'TRIBE SPACE', sub: 'Mask · body · sign',              n: 10, size: '5.2 MB', explore: '/kodex/movement/tribe/',   file: '/img/kodex/packs/kodex-tribe.zip',       acc: '#c98a3c' },
-  { name: 'THE ARCHIVE', sub: 'The whole codex · 52 plates',     n: 52, size: '12 MB',  explore: '/kodex/works/',           file: '/img/kodex/packs/kodex-archive.zip',     acc: '#00f0ff' },
-];
+  { slug: 'kodex-pack-achroma',     name: 'ACHROMA',     sub: 'The true forms · black & white',  n: 12, size: '4.1 MB', explore: '/kodex/movement/achroma/', acc: '#cfc7b6' },
+  { slug: 'kodex-pack-disco-solar', name: 'DISCO SOLAR', sub: 'Signal in colour · neon fractal', n: 11, size: '6.1 MB', explore: '/kodex/movement/disco/',   acc: '#e0559b' },
+  { slug: 'kodex-pack-tribe-space', name: 'TRIBE SPACE', sub: 'Mask · body · sign',              n: 10, size: '5.2 MB', explore: '/kodex/movement/tribe/',   acc: '#c98a3c' },
+  { slug: 'kodex-pack-archive',     name: 'THE ARCHIVE', sub: 'The whole codex · 52 plates',     n: 52, size: '12 MB',  explore: '/kodex/works/',           acc: '#00f0ff' },
+].map(p => ({ ...p, wc: wcState(p.slug) }));
 ---
 
 <KodexShell title="KODEX −∞ · Store">
@@ -72,11 +89,20 @@ const packs = [
       <div class="ks-packgrid">
         {packs.map((p) => (
           <article class="ks-pack" style={`--acc:${p.acc}`}>
-            <div class="ks-pack__h"><span class="ks-pack__n">◈ {p.name}</span><span class="ks-pack__sz">{p.n} · {p.size}</span></div>
+            <div class="ks-pack__h">
+              <span class="ks-pack__n">◈ {p.name}</span>
+              <span class="ks-pack__sz">
+                {p.n} · {p.size}{p.wc.price ? ` · $${p.wc.price}` : ''}
+              </span>
+            </div>
             <p class="ks-pack__s">{p.sub}</p>
             <div class="ks-pack__acts">
               <a class="ks-buy" href={p.explore}>⧉ ENTER THE COLLECTION</a>
-              <a class="ks-buy ks-buy--soon" href={mailReq('Send me the ' + p.name + ' pack (.zip)')}>⤓ FULL PACK · SOON</a>
+              {p.wc.live && p.wc.download
+                ? <a class="ks-buy" href={p.wc.download} download>⤓ DOWNLOAD PACK · ${p.wc.price}</a>
+                : p.wc.live
+                  ? <a class="ks-buy" href={buyUrl(p.wc.id!)}>⤓ BUY PACK · ${p.wc.price}</a>
+                  : <a class="ks-buy ks-buy--soon" href={mailReq('Notify me · ' + p.name + ' pack')}>⤓ FULL PACK · SOON</a>}
             </div>
           </article>
         ))}

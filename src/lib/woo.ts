@@ -176,7 +176,7 @@ let productsCache: Promise<WooProduct[]> | null = null;
 
 async function fetchAllProducts(): Promise<WooProduct[]> {
   const perPage = 100; // WooCommerce REST maximum.
-  const products: WooProduct[] = [];
+  let products: WooProduct[] = [];
   let page = 1;
 
   while (true) {
@@ -191,6 +191,12 @@ async function fetchAllProducts(): Promise<WooProduct[]> {
     if (data.length < perPage) break;
     page += 1;
   }
+
+  // Exclude KODEX products from the jewelry shop. KODEX (Ocin's digital archive)
+  // lives at /kodex/store with its own commerce chrome — its WC products must not
+  // leak into /shop, /search-index.json, PDPs, categories, sitemaps, or JSON-LD.
+  // Filter by category slug so the exclusion survives category-ID re-creation.
+  products = products.filter(p => !p.categories?.some(c => c.slug === 'kodex'));
 
   // Reorder each product's images so the hero shot leads.
   // Editorial / macro photos go first; ruler / sizing references move to the end.
@@ -360,6 +366,37 @@ export async function getProducts(limit?: number): Promise<WooProduct[]> {
   }
 }
 
+/**
+ * Fetch KODEX products (category slug 'kodex') — the digital-archive commerce
+ * lane. Includes drafts so /kodex/store can render "COMING SOON" placeholders
+ * before Ocin publishes prices/downloads. Never mixes with getProducts().
+ */
+export async function getKodexProducts(): Promise<WooProduct[]> {
+  try {
+    const out: WooProduct[] = [];
+    let page = 1;
+    while (true) {
+      const res = await wcFetch(
+        `${WC_URL}/products?per_page=100&page=${page}&status=any&category=485&${authParams()}`
+      );
+      if (!res.ok) throw new Error(`WC kodex products fetch failed: HTTP ${res.status}`);
+      const data: WooProduct[] = await res.json();
+      out.push(...data);
+      if (data.length < 100) break;
+      page += 1;
+    }
+    // Defensive: only return items truly tagged kodex (category id 485 or slug).
+    return out.filter(p => p.categories?.some(c => c.slug === 'kodex' || c.id === 485));
+  } catch (e) {
+    if (ALLOW_EMPTY) {
+      console.warn('[woo] WARNING: getKodexProducts failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);
+      return [];
+    }
+    console.error('[woo] FATAL: getKodexProducts failed.', e);
+    throw e instanceof Error ? e : new Error(String(e));
+  }
+}
+
 export async function getProduct(slug: string): Promise<WooProduct | null> {
   try {
     const res = await wcFetch(
@@ -370,6 +407,8 @@ export async function getProduct(slug: string): Promise<WooProduct | null> {
     }
     const data: WooProduct[] = await res.json();
     const p = data[0] || null;
+    // KODEX products must not resolve at /p/[slug] — their PDP lives in /kodex/store.
+    if (p?.categories?.some(c => c.slug === 'kodex')) return null;
     if (p?.images?.length > 1) {
       p.images = reorderImagesForHero(p.images);
     }
@@ -408,7 +447,9 @@ export async function getCategories(): Promise<WooCategory[]> {
     if (!res.ok) {
       throw new Error(`WC categories fetch failed: HTTP ${res.status}`);
     }
-    return await res.json();
+    const cats: WooCategory[] = await res.json();
+    // Hide KODEX category from jewelry-store surfaces (nav, filters, sitemap).
+    return cats.filter(c => c.slug !== 'kodex');
   } catch (e) {
     if (ALLOW_EMPTY) {
       console.warn('[woo] WARNING: getCategories failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);
