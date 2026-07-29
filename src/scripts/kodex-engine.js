@@ -155,6 +155,8 @@ export function initKx() {
   // ring you can jump anywhere; #hash deep-links land on the right plate.
   const nextUrl = root.getAttribute('data-next-url');
   const prevUrl = root.getAttribute('data-prev-url');
+  const stageIdxStatic = root.getAttribute('data-stage-idx');
+  const stageTotalStatic = root.getAttribute('data-stage-total') || root.querySelector('[data-deck-total]')?.textContent?.trim() || '07';
   const overlaysOpen = () => document.body.style.overflow === 'hidden';
   let turning = false;
   const turn = (url) => {
@@ -170,15 +172,16 @@ export function initKx() {
     const totEl = root.querySelector('[data-deck-total]');
     const nextLabel = root.getAttribute('data-next-label') || 'CONTINUE ›';
     const seen = new WeakSet();
+    const isThresholdRoot = /\/kodex\/?$/.test(location.pathname);
     let cur = 0;
-    if (totEl) totEl.textContent = String(slides.length).padStart(2, '0');
+    if (totEl) totEl.textContent = stageIdxStatic ? stageTotalStatic : String(slides.length).padStart(2, '0');
     const activate = (i) => {
       cur = Math.max(0, Math.min(slides.length - 1, i));
       slides.forEach((s, k) => {
         s.classList.toggle('kx-active', k === cur);
         s.classList.toggle('kx-passed', k < cur);
       });
-      if (idxEl) idxEl.textContent = String(cur + 1).padStart(2, '0');
+      if (idxEl) idxEl.textContent = stageIdxStatic && slides.length === 1 ? String(stageIdxStatic).padStart(2, '0') : String(cur + 1).padStart(2, '0');
       slides[cur].scrollTop = 0;
       deckP = slides.length > 1 ? cur / (slides.length - 1) : 1;
       onScroll();
@@ -187,12 +190,15 @@ export function initKx() {
       rs.forEach((el, k) => { el.classList.remove('kx-in'); void el.offsetWidth; setTimeout(() => el.classList.add('kx-in'), 90 + k * 110); });
       if (!seen.has(s)) { seen.add(s); s.querySelectorAll('.kx-chapter__term[data-term]').forEach(typeTerm); }
       const last = cur === slides.length - 1;
-      // first pages (cover + index) advance by their own doors / the radar — no NEXT button there
-      if (bNext) { bNext.textContent = last ? nextLabel : 'NEXT ›'; bNext.classList.toggle('kx-deckbar--turn', last); bNext.style.visibility = (/\/kodex\/?$/.test(location.pathname) && cur <= 1 && !last) ? 'hidden' : 'visible'; }
+      if (bNext) {
+        bNext.textContent = last ? nextLabel : 'NEXT ›';
+        bNext.classList.toggle('kx-deckbar--turn', last);
+        bNext.style.visibility = (isThresholdRoot && slides.length === 1) ? 'hidden' : ((isThresholdRoot && cur <= 1 && !last) ? 'hidden' : 'visible');
+      }
       if (bPrev) bPrev.style.visibility = (cur === 0 && !prevUrl) ? 'hidden' : 'visible';
     };
-    const goNext = () => { if (cur < slides.length - 1) activate(cur + 1); else if (nextUrl) turn(nextUrl); };
-    const goPrev = () => { if (cur > 0) activate(cur - 1); else if (prevUrl) turn(prevUrl); };
+    const goNext = () => { try { window.kdx && window.kdx('next_scene', { from: cur + 1 }); } catch (_) {} if (cur < slides.length - 1) activate(cur + 1); else if (nextUrl) turn(nextUrl); };
+    const goPrev = () => { try { window.kdx && window.kdx('previous_scene', { from: cur + 1 }); } catch (_) {} if (cur > 0) activate(cur - 1); else if (prevUrl) turn(prevUrl); };
     bNext?.addEventListener('click', goNext);
     bPrev?.addEventListener('click', goPrev);
     addEventListener('keydown', (e) => {
@@ -222,6 +228,107 @@ export function initKx() {
       if (e.key === 'ArrowRight' && nextUrl) turn(nextUrl);
       else if (e.key === 'ArrowLeft' && prevUrl) turn(prevUrl);
     });
+  }
+
+  const thresholdArtifact = root.querySelector('.kx-threshold__artifact-core');
+  if (thresholdArtifact) {
+    let raf = 0;
+    const applyTilt = (px, py) => {
+      const x = (px - 0.5) * 10;
+      const y = (py - 0.5) * 10;
+      thresholdArtifact.style.setProperty('--kdx-art-x', `${x * 0.45}px`);
+      thresholdArtifact.style.setProperty('--kdx-art-y', `${y * -0.35}px`);
+      thresholdArtifact.style.setProperty('--kdx-art-rx', `${y * -0.7}deg`);
+      thresholdArtifact.style.setProperty('--kdx-art-ry', `${x * 0.7}deg`);
+    };
+    const queueTilt = (clientX, clientY) => {
+      const rect = thresholdArtifact.getBoundingClientRect();
+      const px = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const py = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => applyTilt(px, py));
+    };
+    const resetTilt = () => applyTilt(0.5, 0.5);
+    resetTilt();
+    thresholdArtifact.addEventListener('pointermove', (e) => queueTilt(e.clientX, e.clientY), { passive: true });
+    thresholdArtifact.addEventListener('pointerleave', resetTilt, { passive: true });
+    thresholdArtifact.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (t) queueTilt(t.clientX, t.clientY);
+    }, { passive: true });
+    thresholdArtifact.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (t) queueTilt(t.clientX, t.clientY);
+    }, { passive: true });
+    thresholdArtifact.addEventListener('touchend', resetTilt, { passive: true });
+    thresholdArtifact.addEventListener('touchcancel', resetTilt, { passive: true });
+  }
+
+  const artifactPanel = root.querySelector('[data-kdx-artifact-panel]');
+  if (artifactPanel) {
+    const artifactButtons = [...root.querySelectorAll('[data-kdx-artifact-open]')];
+    const focusable = () => artifactPanel.querySelectorAll('a[href],button:not([disabled])');
+    const basePath = `${location.pathname}${location.search}`;
+    let lastFocus = null;
+    let openedByHash = false;
+
+    const openArtifact = ({ fromHash = false } = {}) => {
+      if (!fromHash) openedByHash = false;
+      lastFocus = document.activeElement;
+      artifactPanel.hidden = false;
+      requestAnimationFrame(() => artifactPanel.setAttribute('data-open', ''));
+      artifactPanel.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      artifactButtons.forEach((b) => b.setAttribute('aria-expanded', 'true'));
+      const first = focusable()[0]; if (first) first.focus();
+      try { window.kdx && window.kdx('artifact_open'); } catch (_) {}
+    };
+
+    const closeArtifact = ({ syncHash = true } = {}) => {
+      artifactPanel.removeAttribute('data-open');
+      artifactPanel.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      artifactButtons.forEach((b) => b.setAttribute('aria-expanded', 'false'));
+      setTimeout(() => { artifactPanel.hidden = true; }, 260);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+      if (!syncHash) return;
+      if (location.hash === '#artifact' && !openedByHash && history.length > 1) history.back();
+      else if (location.hash === '#artifact') history.replaceState(null, '', basePath);
+    };
+
+    artifactButtons.forEach((b) => b.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (location.hash !== '#artifact') {
+        history.pushState(null, '', `${basePath}#artifact`);
+        openArtifact();
+        return;
+      }
+      openArtifact();
+    }));
+
+    artifactPanel.querySelector('[data-kdx-artifact-close]')?.addEventListener('click', () => closeArtifact());
+    artifactPanel.addEventListener('click', (e) => { if (e.target === artifactPanel) closeArtifact(); });
+    addEventListener('keydown', (e) => {
+      if (artifactPanel.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeArtifact(); return; }
+      if (e.key === 'Tab') {
+        const els = [...focusable()]; if (!els.length) return;
+        const first = els[0], last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+
+    const syncArtifactHash = () => {
+      if (location.hash === '#artifact') {
+        openedByHash = true;
+        if (artifactPanel.hidden) openArtifact({ fromHash: true });
+        return;
+      }
+      if (!artifactPanel.hidden) closeArtifact({ syncHash: false });
+    };
+    addEventListener('hashchange', syncArtifactHash);
+    syncArtifactHash();
   }
 
   // ── +∞ — THE WHITE — when the whole codex has been seen, it turns to light ──
@@ -390,6 +497,25 @@ export function initKx() {
     const recipeEl = root.querySelector('[data-atelier-recipe]');
     const sigEl = root.querySelector('[data-atelier-sig]');
     const srcEl2 = root.querySelector('[data-atelier-src]');
+    // Real MACHINE state hooks (KODEX-BUILD.md §3 storyboard)
+    const idEl = root.querySelector('[data-atelier-id]');
+    const seedEl = root.querySelector('[data-atelier-seed]');
+    const methodEl = root.querySelector('[data-atelier-method]');
+    const sourceEl = root.querySelector('[data-atelier-source]');
+    const statusEl = root.querySelector('[data-atelier-status]');
+    const setStatus = (v, label) => {
+      if (!statusEl) return;
+      statusEl.textContent = label || v.toUpperCase();
+      statusEl.setAttribute('data-kdx-status', v);
+    };
+    const hex4 = () => Math.random().toString(16).slice(2, 6).toUpperCase().padStart(4, '0');
+    const seedStr = () => `${hex4()}-${hex4()}`;
+    const codeFromSrc = (s) => {
+      const base = (s.split('/').pop() || '').replace(/\.[a-z]+$/i, '');
+      const kind = /disco/i.test(s) ? 'DISCO' : (/tribe|mask/i.test(s) ? 'TRIBE' : 'ACHROMA');
+      const n = (base.match(/(\d+)/)?.[1] || '00').padStart(2, '0');
+      return `${kind}-${n}`;
+    };
     const S = 620;
     const FX = {
       MIRROR: () => { const W = AC.width, H = AC.height; tmp.width = W; tmp.height = H; tc.clearRect(0, 0, W, H); tc.drawImage(AC, 0, 0);
@@ -410,9 +536,12 @@ export function initKx() {
     let gen = 0, iv = 0;
     const makeWork = () => {
       const imgs = [...root.querySelectorAll('.kx-cell img')].map((i) => i.getAttribute('src')).filter(Boolean);
-      const uniq = [...new Set(imgs)]; if (!uniq.length) return;
+      const uniq = [...new Set(imgs)]; if (!uniq.length) { setStatus('error', 'ERROR · NO SOURCE'); return; }
       const src = uniq[(Math.random() * uniq.length) | 0];
       const im = new Image();
+      setStatus('generating');
+      try { window.kdx && window.kdx('generator_start', { source: src.split('/').pop() }); } catch (_) {}
+      im.onerror = () => { setStatus('error'); AC.style.opacity = ''; };
       im.onload = () => {
         const W = AC.width = S, H = AC.height = S;
         ax.fillStyle = '#000'; ax.fillRect(0, 0, W, H);
@@ -424,14 +553,26 @@ export function initKx() {
         for (const t of chain) { try { FX[t](); } catch (e) {} }
         if (window.__kxSignal) { ax.globalCompositeOperation = 'overlay'; ax.fillStyle = 'rgba(224,85,155,0.22)'; ax.fillRect(0, 0, W, H); ax.globalCompositeOperation = 'source-over'; }
         gen++;
+        const seed = seedStr();
+        const id = 'KDX-GEN-' + String(1000 + gen).padStart(4, '0');
+        const methodText = chain.join('/');
+        const srcCode = codeFromSrc(src);
         if (recipeEl) recipeEl.textContent = chain.join('  →  ');
-        if (sigEl) sigEl.textContent = 'KODEX·MACHINE · №' + String(1000 + gen);
+        if (sigEl) sigEl.textContent = id;
         if (srcEl2) srcEl2.textContent = 'source · ' + (src.split('/').pop() || '—');
+        if (idEl) idEl.textContent = id;
+        if (seedEl) seedEl.textContent = seed;
+        if (methodEl) methodEl.textContent = methodText;
+        if (sourceEl) sourceEl.textContent = srcCode;
+        setStatus(reduce ? 'reduced' : 'complete');
+        try { window.kdx && window.kdx('generator_complete', { id, seed, method: methodText, source: srcCode }); } catch (_) {}
         AC.style.opacity = '';
       };
       AC.style.opacity = '0.15';
       im.src = src;
     };
+    // Boot: machine is READY as soon as it mounts (before first generation).
+    setStatus('ready');
     const io2 = new IntersectionObserver((es) => es.forEach((e) => {
       if (e.isIntersecting) { if (!gen) makeWork(); if (!iv && !reduce) iv = setInterval(makeWork, 7500); }
       else if (iv) { clearInterval(iv); iv = 0; }
@@ -542,7 +683,8 @@ export function initKx() {
 
   if (canvas) {
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    if (!gl) { if (statEl) statEl.textContent = 'NO WEBGL'; }
+    const setStatKdx = (v, label) => { if (!statEl) return; statEl.textContent = label || v.toUpperCase(); statEl.setAttribute('data-kdx-status', v); };
+    if (!gl) { setStatKdx('reduced', 'NO WEBGL'); }
     else {
       const VERT = 'attribute vec2 p; void main(){ gl_Position = vec4(p,0.0,1.0); }';
       const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
@@ -558,7 +700,7 @@ export function initKx() {
       const progs = SHADERS.map((s) => ({ ...s, ...(mk(s.src) || {}) }));
       gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
       let active = progs.find((p) => p.pr) || progs[0];
-      if (statEl) statEl.textContent = active.pr ? 'COMPILED OK' : 'ERROR';
+      setStatKdx(active.pr ? 'ready' : 'error', active.pr ? 'READY' : 'ERROR');
 
       if (chEl) progs.forEach((p) => {
         const b = document.createElement('button');
@@ -754,6 +896,7 @@ export function initKx() {
       if (vSig) vSig.innerHTML = sigilHtml || '';
     };
     const open = (src, title, d, sigilHtml) => {
+      try { window.kdx && window.kdx('artwork_open', { title, src: (src || '').split('/').pop() }); } catch (_) {}
       const isVideo = d && d.video;
       if (vVideo) {
         if (isVideo) { vVideo.src = d.video + '.webm'; vVideo.hidden = false; vVideo.play?.().catch(() => {}); }
