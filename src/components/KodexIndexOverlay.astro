@@ -4,6 +4,7 @@
 // Opened by any [data-kdx-index-open] button (KodexChrome exposes one).
 import { scenes } from '../lib/kodexScenes.js';
 const currentPath = Astro.url.pathname.replace(/\/+$/, '') + '/';
+const samePath = (href) => href.replace(/#.*$/, '').replace(/\/+$/, '') + '/' === currentPath;
 ---
 <aside class="kdx-index" data-kdx-index hidden aria-hidden="true" aria-modal="true" role="dialog" aria-labelledby="kdx-index-title">
   <div class="kdx-index__inner">
@@ -15,14 +16,14 @@ const currentPath = Astro.url.pathname.replace(/\/+$/, '') + '/';
 
     <ol class="kdx-index__list" role="list">
       {scenes.map((s) => (
-        <li class={`kdx-scene kdx-scene--${s.accent}${s.href === currentPath ? ' is-current' : ''}`} style={`--kdx-scene-accent:${s.accentHex}`}>
-          <a class="kdx-scene__link" href={s.href} data-kdx-scene={s.index}>
+        <li class={`kdx-scene kdx-scene--${s.accent}${(samePath(s.href) && s.hash === 'threshold') || s.href === currentPath ? ' is-current' : ''}`} style={`--kdx-scene-accent:${s.accentHex}`}>
+          <a class="kdx-scene__link" href={s.href} data-kdx-scene={s.index} data-kdx-target={s.hash}>
             <span class="kdx-scene__idx">{s.index}</span>
             <span class="kdx-scene__body">
               <span class="kdx-scene__code">{s.code}</span>
               <span class="kdx-scene__sub">{s.subtitle}</span>
             </span>
-            <span class="kdx-scene__cta">{s.href === currentPath ? 'YOU ARE HERE' : 'ENTER'} →</span>
+            <span class="kdx-scene__cta">{((samePath(s.href) && s.hash === 'threshold') || s.href === currentPath) ? 'YOU ARE HERE' : 'ENTER'} →</span>
           </a>
         </li>
       ))}
@@ -93,11 +94,27 @@ const currentPath = Astro.url.pathname.replace(/\/+$/, '') + '/';
   (() => {
     const overlay = document.querySelector('[data-kdx-index]');
     if (!overlay) return;
+    const links = [...overlay.querySelectorAll('a[data-kdx-scene]')];
     const focusable = () => overlay.querySelectorAll('a[href],button:not([disabled])');
     const root = document.querySelector('[data-kx]');
     const basePath = `${location.pathname}${location.search}`;
+    const normalizePath = (href) => new URL(href, location.origin).pathname.replace(/\/+$/, '') + '/';
     let lastFocus = null;
     let openedByHash = false;
+
+    const applyCurrentState = () => {
+      const current = location.pathname.replace(/\/+$/, '') + '/';
+      const hash = (location.hash || '').replace('#', '');
+      links.forEach((link) => {
+        const li = link.closest('.kdx-scene');
+        const target = link.dataset.kdxTarget || '';
+        const pathMatch = normalizePath(link.href) === current;
+        const isCurrent = pathMatch && ((hash && target === hash) || (!hash && (!target || target === 'threshold')));
+        li?.classList.toggle('is-current', isCurrent);
+        const cta = link.querySelector('.kdx-scene__cta');
+        if (cta) cta.textContent = `${isCurrent ? 'YOU ARE HERE' : 'ENTER'} →`;
+      });
+    };
 
     const open = ({ fromHash = false } = {}) => {
       if (!fromHash) openedByHash = false;
@@ -147,6 +164,7 @@ const currentPath = Astro.url.pathname.replace(/\/+$/, '') + '/';
 
     const applyHash = () => {
       const h = (location.hash || '').replace('#', '');
+      applyCurrentState();
       if (!h) {
         if (!overlay.hidden) close({ syncHash: false });
         return;
@@ -156,10 +174,16 @@ const currentPath = Astro.url.pathname.replace(/\/+$/, '') + '/';
         if (overlay.hidden) open({ fromHash: true });
         return;
       }
-      const link = overlay.querySelector(`a[data-kdx-scene][href*="/${h}"]`)
-        || [...overlay.querySelectorAll('a[data-kdx-scene]')].find((a) => a.href.toLowerCase().includes(h));
-      if (link && !link.classList.contains('is-current')) window.location.href = link.getAttribute('href');
-      if (!link && root?.classList.contains('kx--threshold') && !overlay.hidden) close({ syncHash: false });
+      const link = links.find((a) => (a.dataset.kdxTarget || '').toLowerCase() === h.toLowerCase())
+        || links.find((a) => a.href.toLowerCase().includes(h));
+      if (link) {
+        const samePath = normalizePath(link.href) === normalizePath(location.href);
+        const targetHash = link.dataset.kdxTarget ? `#${link.dataset.kdxTarget}` : '';
+        if (samePath && targetHash === location.hash) return;
+        window.location.href = link.getAttribute('href');
+        return;
+      }
+      if (root?.classList.contains('kx--threshold') && !overlay.hidden) close({ syncHash: false });
     };
     addEventListener('hashchange', applyHash);
     applyHash();

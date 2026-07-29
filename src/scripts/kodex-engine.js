@@ -156,6 +156,7 @@ export function initKx() {
   const nextUrl = root.getAttribute('data-next-url');
   const prevUrl = root.getAttribute('data-prev-url');
   const stageIdxStatic = root.getAttribute('data-stage-idx');
+  const stageBase = Number(root.getAttribute('data-stage-base') || (stageIdxStatic ? Number(stageIdxStatic) : 0));
   const stageTotalStatic = root.getAttribute('data-stage-total') || root.querySelector('[data-deck-total]')?.textContent?.trim() || '07';
   const overlaysOpen = () => document.body.style.overflow === 'hidden';
   let turning = false;
@@ -172,16 +173,26 @@ export function initKx() {
     const totEl = root.querySelector('[data-deck-total]');
     const nextLabel = root.getAttribute('data-next-label') || 'CONTINUE ›';
     const seen = new WeakSet();
-    const isThresholdRoot = /\/kodex\/?$/.test(location.pathname);
     let cur = 0;
     if (totEl) totEl.textContent = stageIdxStatic ? stageTotalStatic : String(slides.length).padStart(2, '0');
-    const activate = (i) => {
+    const nodeEls = [...root.querySelectorAll('.kx-deckbar__nodes i')];
+    const activate = (i, { syncHash = true } = {}) => {
       cur = Math.max(0, Math.min(slides.length - 1, i));
       slides.forEach((s, k) => {
         s.classList.toggle('kx-active', k === cur);
         s.classList.toggle('kx-passed', k < cur);
       });
-      if (idxEl) idxEl.textContent = stageIdxStatic && slides.length === 1 ? String(stageIdxStatic).padStart(2, '0') : String(cur + 1).padStart(2, '0');
+      const deckIndex = stageIdxStatic ? stageBase + cur : cur + 1;
+      if (idxEl) idxEl.textContent = String(deckIndex).padStart(2, '0');
+      nodeEls.forEach((node, nodeIdx) => node.classList.toggle('is-active', nodeIdx === deckIndex));
+      if (syncHash) {
+        const anchor = slides[cur]?.id;
+        const currentOverlayHash = location.hash === '#index' || location.hash === '#artifact';
+        if (root.hasAttribute('data-sync-deck-hash') && !currentOverlayHash) {
+          const nextHash = anchor && anchor !== 'threshold' ? `#${anchor}` : '';
+          history.replaceState(null, '', `${location.pathname}${location.search}${nextHash}`);
+        }
+      }
       slides[cur].scrollTop = 0;
       deckP = slides.length > 1 ? cur / (slides.length - 1) : 1;
       onScroll();
@@ -193,9 +204,9 @@ export function initKx() {
       if (bNext) {
         bNext.textContent = last ? nextLabel : 'NEXT ›';
         bNext.classList.toggle('kx-deckbar--turn', last);
-        bNext.style.visibility = (isThresholdRoot && slides.length === 1) ? 'hidden' : ((isThresholdRoot && cur <= 1 && !last) ? 'hidden' : 'visible');
+        bNext.style.visibility = (cur < slides.length - 1 || nextUrl) ? 'visible' : 'hidden';
       }
-      if (bPrev) bPrev.style.visibility = (cur === 0 && !prevUrl) ? 'hidden' : 'visible';
+      if (bPrev) bPrev.style.visibility = (cur > 0 || prevUrl) ? 'visible' : 'hidden';
     };
     const goNext = () => { try { window.kdx && window.kdx('next_scene', { from: cur + 1 }); } catch (_) {} if (cur < slides.length - 1) activate(cur + 1); else if (nextUrl) turn(nextUrl); };
     const goPrev = () => { try { window.kdx && window.kdx('previous_scene', { from: cur + 1 }); } catch (_) {} if (cur > 0) activate(cur - 1); else if (prevUrl) turn(prevUrl); };
@@ -221,7 +232,15 @@ export function initKx() {
       const si = tgt ? slides.findIndex((s) => s.contains(tgt)) : -1;
       if (si >= 0) start = si;
     }
-    activate(start);
+    activate(start, { syncHash: false });
+    const syncDeckHash = () => {
+      if (location.hash === '#index' || location.hash === '#artifact') return;
+      if (!location.hash) { if (cur !== 0) activate(0, { syncHash: false }); return; }
+      const tgt = deck.querySelector(location.hash.replace(/[^#\w-]/g, ''));
+      const si = tgt ? slides.findIndex((s) => s.contains(tgt)) : -1;
+      if (si >= 0 && si !== cur) activate(si, { syncHash: false });
+    };
+    addEventListener('hashchange', syncDeckHash);
   } else {
     addEventListener('keydown', (e) => {
       if (overlaysOpen()) return;
@@ -230,8 +249,9 @@ export function initKx() {
     });
   }
 
-  const thresholdArtifact = root.querySelector('.kx-threshold__artifact-core');
+  const thresholdArtifact = root.querySelector('[data-kdx-threshold-parallax]');
   if (thresholdArtifact) {
+    const thresholdShell = thresholdArtifact.closest('.kx-threshold__artifact');
     let raf = 0;
     const applyTilt = (px, py) => {
       const x = (px - 0.5) * 10;
@@ -240,6 +260,8 @@ export function initKx() {
       thresholdArtifact.style.setProperty('--kdx-art-y', `${y * -0.35}px`);
       thresholdArtifact.style.setProperty('--kdx-art-rx', `${y * -0.7}deg`);
       thresholdArtifact.style.setProperty('--kdx-art-ry', `${x * 0.7}deg`);
+      thresholdShell?.style.setProperty('--kdx-field-x', `${x * 0.28}px`);
+      thresholdShell?.style.setProperty('--kdx-field-y', `${y * -0.22}px`);
     };
     const queueTilt = (clientX, clientY) => {
       const rect = thresholdArtifact.getBoundingClientRect();
@@ -262,6 +284,103 @@ export function initKx() {
     }, { passive: true });
     thresholdArtifact.addEventListener('touchend', resetTilt, { passive: true });
     thresholdArtifact.addEventListener('touchcancel', resetTilt, { passive: true });
+  }
+
+  const prologueEye = root.querySelector('[data-kdx-prologue-eye]');
+  if (prologueEye) {
+    const visual = prologueEye.closest('.kx-prologue-stage__visual');
+    const reduceMotion = reduce || matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let raf = 0;
+    const applyFocus = (px, py, intensity = 1) => {
+      const x = (px - 0.5) * 2;
+      const y = (py - 0.5) * 2;
+      prologueEye.style.setProperty('--kdx-eye-x', `${x * 8 * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-y', `${y * 7 * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-field-x', `${x * 4 * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-field-y', `${y * -3 * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-glow', `${0.76 + Math.min(0.22, (Math.abs(x) + Math.abs(y)) * 0.08)}`);
+    };
+    const queueFocus = (clientX, clientY, intensity = 1) => {
+      const rect = prologueEye.getBoundingClientRect();
+      const px = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const py = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => applyFocus(px, py, intensity));
+    };
+    const resetFocus = () => applyFocus(0.5, 0.5, 0.5);
+    resetFocus();
+    visual?.addEventListener('pointermove', (e) => queueFocus(e.clientX, e.clientY), { passive: true });
+    visual?.addEventListener('pointerleave', resetFocus, { passive: true });
+    visual?.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      queueFocus(t.clientX, t.clientY, 1.1);
+      prologueEye.classList.add('is-perturbed');
+    }, { passive: true });
+    visual?.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (t) queueFocus(t.clientX, t.clientY, 1.05);
+    }, { passive: true });
+    const releaseTouch = () => {
+      prologueEye.classList.remove('is-perturbed');
+      resetFocus();
+    };
+    visual?.addEventListener('touchend', releaseTouch, { passive: true });
+    visual?.addEventListener('touchcancel', releaseTouch, { passive: true });
+    if (reduceMotion) applyFocus(0.5, 0.5, 0.35);
+  }
+
+  const protocolPanel = root.querySelector('[data-kdx-protocol-panel]');
+  if (protocolPanel) {
+    const protocolButtons = [...root.querySelectorAll('[data-kdx-protocol-open]')];
+    const focusable = () => protocolPanel.querySelectorAll('a[href],button:not([disabled])');
+    let lastFocus = null;
+    const openProtocol = () => {
+      lastFocus = document.activeElement;
+      protocolPanel.hidden = false;
+      requestAnimationFrame(() => protocolPanel.setAttribute('data-open', ''));
+      protocolPanel.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      protocolButtons.forEach((b) => b.setAttribute('aria-expanded', 'true'));
+      focusable()[0]?.focus();
+      try { window.kdx && window.kdx('protocol_open'); } catch (_) {}
+    };
+    const closeProtocol = () => {
+      protocolPanel.removeAttribute('data-open');
+      protocolPanel.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      protocolButtons.forEach((b) => b.setAttribute('aria-expanded', 'false'));
+      setTimeout(() => { protocolPanel.hidden = true; }, 220);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+    };
+    protocolButtons.forEach((b) => b.addEventListener('click', (e) => {
+      e.preventDefault();
+      openProtocol();
+    }));
+    protocolPanel.querySelector('[data-kdx-protocol-close]')?.addEventListener('click', closeProtocol);
+    protocolPanel.addEventListener('click', (e) => { if (e.target === protocolPanel) closeProtocol(); });
+    addEventListener('keydown', (e) => {
+      if (protocolPanel.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); closeProtocol(); return; }
+      if (e.key === 'Tab') {
+        const els = [...focusable()]; if (!els.length) return;
+        const first = els[0], last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+  }
+
+  const prologueCta = root.querySelector('.kx-prologue-stage__cta');
+  if (prologueCta) {
+    prologueCta.addEventListener('click', (e) => {
+      const href = prologueCta.getAttribute('href');
+      if (!href) return;
+      e.preventDefault();
+      root.classList.add('kx-prologue-exit');
+      try { window.kdx && window.kdx('prologue_begin_observation'); } catch (_) {}
+      setTimeout(() => { location.href = href; }, 280);
+    });
   }
 
   const artifactPanel = root.querySelector('[data-kdx-artifact-panel]');

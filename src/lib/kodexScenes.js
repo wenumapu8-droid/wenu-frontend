@@ -19,7 +19,7 @@ export const scenes = [
     motif: 'iris · dithered eye',
     lede: 'This is not a gallery. It is a system, and it descends. Each signal is a work — read it, generate from it, carry it. You choose the depth.',
     cta: 'BEGIN OBSERVATION',
-    href: '/kodex/folio/i/', hash: 'prologue',
+    href: '/kodex/#prologue', hash: 'prologue',
   },
   {
     i: 2, index: '02', code: 'DESCENT',
