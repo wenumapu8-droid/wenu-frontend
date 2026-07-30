@@ -6,11 +6,25 @@
 
 import { initKxAudio } from './kodex-audio.js';
 import { record } from '../kodex/return/memory.js';
+import { createSceneController } from '../lib/kodex/scene-controller.js';
+import { getParticleBudget, getSceneMotion, KODEX_MESSAGES } from '../lib/kodex/motion-config.js';
 
 export function initKx() {
   const root = document.querySelector('[data-kx]');
   if (!root) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sceneController = createSceneController(root);
+  let motionState = sceneController.getState();
+  sceneController.subscribe((next) => { motionState = next; });
+  const thresholdMotion = getSceneMotion('threshold');
+  const prologueMotion = getSceneMotion('prologue');
+  root.style.setProperty('--kdx-motion-orbit-outer', `${thresholdMotion.outerOrbitDuration}s`);
+  root.style.setProperty('--kdx-motion-orbit-inner', `${thresholdMotion.innerOrbitDuration}s`);
+  root.style.setProperty('--kdx-motion-prologue-outer', `${prologueMotion.outerOrbitDuration}s`);
+  root.style.setProperty('--kdx-motion-prologue-inner', `${prologueMotion.innerOrbitDuration}s`);
+  const isSceneActive = (scene) => (motionState.activeScene || 'threshold') === scene;
+  const isMotionPaused = (scene) => motionState.paused || !isSceneActive(scene);
+  const isMobileRuntime = () => window.innerWidth <= 768 || matchMedia('(pointer: coarse)').matches;
 
   // record the journey — every page visited feeds the visitor's RETURN specimen
   try { record({ type: 'view', work: location.pathname }); } catch (e) {}
@@ -286,6 +300,126 @@ export function initKx() {
     thresholdArtifact.addEventListener('touchcancel', resetTilt, { passive: true });
   }
 
+  const thresholdParticles = root.querySelector('[data-kdx-particle-field][data-kdx-scene="threshold"], [data-kdx-threshold-particles]');
+  if (thresholdParticles && !reduce) {
+    const ctx = thresholdParticles.getContext('2d');
+    const mediaReduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const makeParticles = (count) => Array.from({ length: count }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: Math.random() * 1.6 + 0.4,
+      vx: (Math.random() - 0.5) * 0.00034,
+      vy: (Math.random() - 0.5) * 0.00028,
+      a: Math.random() * 0.45 + 0.08,
+    }));
+    let particles = makeParticles(getParticleBudget({ scene: 'threshold', lowPower: motionState.lowPower, mobile: isMobileRuntime() }));
+    let rafId = 0;
+    const syncBudget = () => {
+      const nextBudget = getParticleBudget({ scene: 'threshold', lowPower: motionState.lowPower, mobile: isMobileRuntime() });
+      if (nextBudget !== particles.length) particles = makeParticles(nextBudget);
+    };
+    const resize = () => {
+      const rect = thresholdParticles.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      thresholdParticles.width = Math.max(1, Math.round(rect.width * dpr));
+      thresholdParticles.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const draw = () => {
+      rafId = requestAnimationFrame(draw);
+      if (mediaReduce.matches || isMotionPaused('threshold')) return;
+      syncBudget();
+      const width = thresholdParticles.width / (Math.min(window.devicePixelRatio || 1, 2));
+      const height = thresholdParticles.height / (Math.min(window.devicePixelRatio || 1, 2));
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach((p, idx) => {
+        p.x = (p.x + p.vx + 1) % 1;
+        p.y = (p.y + p.vy + 1) % 1;
+        const pulse = 0.74 + Math.sin((performance.now() * 0.0004) + idx) * 0.26;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(255,39,51,${(p.a * pulse).toFixed(3)})`;
+        ctx.arc(p.x * width, p.y * height, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    };
+    resize();
+    draw();
+    addEventListener('resize', resize, { passive: true });
+  }
+
+  const prologueParticles = root.querySelector('[data-kdx-particle-field][data-kdx-scene="prologue"]');
+  if (prologueParticles && !reduce) {
+    const ctx = prologueParticles.getContext('2d');
+    const mediaReduce = matchMedia('(prefers-reduced-motion: reduce)');
+    const makeParticles = (count) => Array.from({ length: count }, () => ({
+      x: Math.random(),
+      y: Math.random(),
+      r: Math.random() * 1.4 + 0.3,
+      vx: (Math.random() - 0.5) * 0.00018,
+      vy: (Math.random() - 0.5) * 0.00022,
+      a: Math.random() * 0.38 + 0.06,
+    }));
+    let particles = makeParticles(getParticleBudget({ scene: 'prologue', lowPower: motionState.lowPower, mobile: isMobileRuntime() }));
+    const syncBudget = () => {
+      const nextBudget = getParticleBudget({ scene: 'prologue', lowPower: motionState.lowPower, mobile: isMobileRuntime() });
+      if (nextBudget !== particles.length) particles = makeParticles(nextBudget);
+    };
+    const resize = () => {
+      const rect = prologueParticles.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      prologueParticles.width = Math.max(1, Math.round(rect.width * dpr));
+      prologueParticles.height = Math.max(1, Math.round(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    const draw = () => {
+      requestAnimationFrame(draw);
+      if (mediaReduce.matches || isMotionPaused('prologue')) return;
+      syncBudget();
+      const width = prologueParticles.width / (Math.min(window.devicePixelRatio || 1, 2));
+      const height = prologueParticles.height / (Math.min(window.devicePixelRatio || 1, 2));
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach((p, idx) => {
+        p.x = (p.x + p.vx + 1) % 1;
+        p.y = (p.y + p.vy + 1) % 1;
+        const pulse = 0.7 + Math.sin((performance.now() * 0.00035) + idx * 0.7) * 0.24;
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(142,112,255,${(p.a * pulse).toFixed(3)})`;
+        ctx.arc(p.x * width, p.y * height, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    };
+    resize();
+    draw();
+    addEventListener('resize', resize, { passive: true });
+  }
+
+  const thresholdWave = root.querySelector('[data-kdx-waveform][data-kdx-scene="threshold"] [data-kdx-waveform-trace], [data-kdx-threshold-wave] .kx-threshold__waveform-trace');
+  if (thresholdWave && !reduce) {
+    const points = 18;
+    const width = 552;
+    const height = 92;
+    const baseline = height / 2;
+    let waveRaf = 0;
+    const renderWave = (time) => {
+      waveRaf = requestAnimationFrame(renderWave);
+      if (isMotionPaused('threshold')) return;
+      const samples = Array.from({ length: points }, (_, idx) => {
+        const x = 4 + ((width - 8) / (points - 1)) * idx;
+        const y = baseline + Math.sin(time * thresholdMotion.waveformPrimaryRate + idx * 0.8) * thresholdMotion.waveformAmplitude + Math.sin(time * thresholdMotion.waveformSecondaryRate + idx * 0.33) * thresholdMotion.waveformSecondaryAmplitude;
+        return [x, y];
+      });
+      let d = `M${samples[0][0].toFixed(1)} ${samples[0][1].toFixed(1)}`;
+      for (let i = 1; i < samples.length; i += 1) {
+        const [x0, y0] = samples[i - 1];
+        const [x1, y1] = samples[i];
+        const cx = ((x0 + x1) / 2).toFixed(1);
+        d += ` Q ${cx} ${y0.toFixed(1)} ${x1.toFixed(1)} ${y1.toFixed(1)}`;
+      }
+      thresholdWave.setAttribute('d', d);
+    };
+    waveRaf = requestAnimationFrame(renderWave);
+  }
+
   const prologueEye = root.querySelector('[data-kdx-prologue-eye]');
   if (prologueEye) {
     const visual = prologueEye.closest('.kx-prologue-stage__visual');
@@ -294,20 +428,21 @@ export function initKx() {
     const applyFocus = (px, py, intensity = 1) => {
       const x = (px - 0.5) * 2;
       const y = (py - 0.5) * 2;
-      prologueEye.style.setProperty('--kdx-eye-x', `${x * 8 * intensity}px`);
-      prologueEye.style.setProperty('--kdx-eye-y', `${y * 7 * intensity}px`);
-      prologueEye.style.setProperty('--kdx-eye-field-x', `${x * 4 * intensity}px`);
-      prologueEye.style.setProperty('--kdx-eye-field-y', `${y * -3 * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-x', `${x * (prologueMotion.eyeTravel * 0.57) * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-y', `${y * (prologueMotion.eyeTravel * 0.5) * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-field-x', `${x * (prologueMotion.fieldTravel * 0.5) * intensity}px`);
+      prologueEye.style.setProperty('--kdx-eye-field-y', `${y * (prologueMotion.fieldTravel * -0.38) * intensity}px`);
       prologueEye.style.setProperty('--kdx-eye-glow', `${0.76 + Math.min(0.22, (Math.abs(x) + Math.abs(y)) * 0.08)}`);
     };
     const queueFocus = (clientX, clientY, intensity = 1) => {
+      if (isMotionPaused('prologue')) return;
       const rect = prologueEye.getBoundingClientRect();
       const px = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
       const py = Math.min(1, Math.max(0, (clientY - rect.top) / rect.height));
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => applyFocus(px, py, intensity));
     };
-    const resetFocus = () => applyFocus(0.5, 0.5, 0.5);
+    const resetFocus = () => applyFocus(0.5, 0.5, motionState.lowPower ? 0.32 : 0.5);
     resetFocus();
     visual?.addEventListener('pointermove', (e) => queueFocus(e.clientX, e.clientY), { passive: true });
     visual?.addEventListener('pointerleave', resetFocus, { passive: true });
@@ -329,6 +464,34 @@ export function initKx() {
     visual?.addEventListener('touchcancel', releaseTouch, { passive: true });
     if (reduceMotion) applyFocus(0.5, 0.5, 0.35);
   }
+
+  const messageBands = [...root.querySelectorAll('[data-kdx-hidden-message]')];
+  messageBands.forEach((band) => {
+    const scene = band.getAttribute('data-kdx-scene') || 'threshold';
+    const text = band.querySelector('[data-kdx-message]');
+    const messages = KODEX_MESSAGES[scene] || KODEX_MESSAGES.threshold;
+    if (!text || messages.length < 2) return;
+    let index = 0;
+    let engaged = scene !== 'prologue';
+    const interval = getSceneMotion(scene).messageInterval || 4200;
+    const rotate = () => {
+      if (!engaged || isMotionPaused(scene)) return;
+      index = (index + 1) % messages.length;
+      text.style.opacity = '0';
+      window.setTimeout(() => {
+        text.textContent = messages[index];
+        text.style.opacity = '1';
+      }, 120);
+    };
+    if (scene === 'prologue') {
+      const activator = root.querySelector('[data-kdx-prologue-eye]') || root.querySelector('.kx-prologue-stage__visual');
+      const engage = () => { engaged = true; };
+      activator?.addEventListener('pointerdown', engage, { passive: true });
+      activator?.addEventListener('touchstart', engage, { passive: true });
+      activator?.addEventListener('keydown', engage);
+    }
+    window.setInterval(rotate, interval);
+  });
 
   const protocolPanel = root.querySelector('[data-kdx-protocol-panel]');
   if (protocolPanel) {

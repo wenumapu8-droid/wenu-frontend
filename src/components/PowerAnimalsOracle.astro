@@ -190,6 +190,11 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
                   <img data-card-img alt="" loading="lazy" decoding="async" />
                 </picture>
                 <span class="oracle-card__glow" aria-hidden="true"></span>
+                <span class="oracle-card__foil-aura" aria-hidden="true"></span>
+                <span class="oracle-card__foil-frame" aria-hidden="true"></span>
+                <span class="oracle-card__foil-grain" aria-hidden="true"></span>
+                <span class="oracle-card__glare" aria-hidden="true"></span>
+                <span class="oracle-card__sweep" aria-hidden="true"></span>
                 <span class="oracle-card__edge"></span>
                 <span class="oracle-card__edge-inner"></span>
                 <svg class="oracle-card__corner oracle-card__corner--tl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
@@ -357,6 +362,12 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     --rot: 0deg;
     --lift: 0px;
     --z: 1;
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+    --glare-x: 50%;
+    --glare-y: 42%;
+    --shadow-x: 0px;
+    --shadow-y: 28px;
     flex: 0 0 auto;
     width: clamp(118px, 15vw, 172px);
     aspect-ratio: 3 / 5;
@@ -671,9 +682,18 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
 
   /* the drawn card — centered (via --draw-shift), lifted, flipped */
   .oracle-card.is-chosen {
-    transform: translateX(var(--draw-shift, 0px)) translateY(-12px) rotate(0deg) scale(1.16);
+    transform:
+      translateX(var(--draw-shift, 0px))
+      translateY(-12px)
+      rotate(0deg)
+      rotateX(var(--tilt-x))
+      rotateY(var(--tilt-y))
+      scale(1.16);
     z-index: 40;
-    pointer-events: none;
+    cursor: default;
+    pointer-events: auto;
+    touch-action: pan-y;
+    filter: drop-shadow(var(--shadow-x) var(--shadow-y) 30px rgba(0, 0, 0, 0.46));
   }
 
   .oracle-card__flip {
@@ -698,6 +718,7 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     display: flex;
     align-items: center;
     justify-content: center;
+    isolation: isolate;
   }
 
   /* dorso */
@@ -846,12 +867,93 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
       radial-gradient(ellipse at 50% 30%, rgba(196, 147, 90, 0.22) 0%, transparent 60%),
       linear-gradient(180deg, transparent 55%, rgba(8, 7, 6, 0.55) 100%);
     pointer-events: none;
+    z-index: 1;
+  }
+  .oracle-card__foil-aura,
+  .oracle-card__foil-frame,
+  .oracle-card__foil-grain,
+  .oracle-card__glare,
+  .oracle-card__sweep {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 2;
+  }
+  .oracle-card__foil-aura {
+    background:
+      radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(245, 234, 216, 0.22) 0 6%, transparent 24%),
+      radial-gradient(ellipse at 24% 18%, rgba(190, 176, 213, 0.16), transparent 38%),
+      radial-gradient(ellipse at 80% 82%, rgba(196, 147, 90, 0.16), transparent 36%),
+      conic-gradient(from 210deg at 50% 50%,
+        transparent 0deg,
+        rgba(178, 171, 160, 0.14) 46deg,
+        rgba(118, 96, 142, 0.12) 94deg,
+        rgba(196, 147, 90, 0.1) 136deg,
+        transparent 190deg,
+        rgba(245, 234, 216, 0.12) 248deg,
+        transparent 312deg);
+    mix-blend-mode: screen;
+  }
+  .oracle-card__foil-frame {
+    inset: 8px;
+    border: 1px solid rgba(245, 234, 216, 0.22);
+    background:
+      linear-gradient(90deg, rgba(245, 234, 216, 0.38), rgba(196, 147, 90, 0.16), rgba(160, 150, 190, 0.2), rgba(245, 234, 216, 0.34)) top / 100% 1px no-repeat,
+      linear-gradient(90deg, rgba(120, 98, 78, 0.24), rgba(245, 234, 216, 0.3), rgba(196, 147, 90, 0.22)) bottom / 100% 1px no-repeat,
+      linear-gradient(180deg, rgba(245, 234, 216, 0.34), rgba(196, 147, 90, 0.14), rgba(160, 150, 190, 0.18)) left / 1px 100% no-repeat,
+      linear-gradient(180deg, rgba(160, 150, 190, 0.18), rgba(196, 147, 90, 0.18), rgba(245, 234, 216, 0.32)) right / 1px 100% no-repeat;
+    box-shadow:
+      inset 0 0 18px rgba(245, 234, 216, 0.08),
+      inset 0 0 0 6px rgba(8, 7, 6, 0.18);
+    mix-blend-mode: screen;
+  }
+  .oracle-card__foil-grain {
+    background:
+      repeating-linear-gradient(116deg, rgba(245, 234, 216, 0.08) 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(31deg, rgba(196, 147, 90, 0.05) 0 1px, transparent 1px 7px);
+    mix-blend-mode: overlay;
+  }
+  .oracle-card__glare {
+    background:
+      radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(255, 252, 240, 0.5) 0 5%, rgba(245, 234, 216, 0.16) 12%, transparent 34%),
+      linear-gradient(115deg, transparent 28%, rgba(245, 234, 216, 0.18) 46%, transparent 62%);
+    mix-blend-mode: screen;
+  }
+  .oracle-card__sweep {
+    inset: -20%;
+    background: linear-gradient(112deg, transparent 36%, rgba(255, 248, 224, 0.44) 48%, rgba(190, 176, 213, 0.16) 52%, transparent 64%);
+    transform: translateX(-82%) rotate(0.001deg);
+    mix-blend-mode: screen;
   }
   .oracle-card.is-chosen .oracle-card__front {
     box-shadow:
-      0 24px 60px -16px rgba(0, 0, 0, 0.7),
+      var(--shadow-x) var(--shadow-y) 68px -18px rgba(0, 0, 0, 0.78),
       0 0 0 1px rgba(196, 147, 90, 0.45),
-      0 0 36px rgba(196, 147, 90, 0.28);
+      0 0 36px rgba(196, 147, 90, 0.24),
+      inset 0 0 28px rgba(245, 234, 216, 0.07);
+  }
+  .oracle-card.is-chosen .oracle-card__foil-aura { opacity: 0.52; }
+  .oracle-card.is-chosen .oracle-card__foil-frame { opacity: 0.88; }
+  .oracle-card.is-chosen .oracle-card__foil-grain { opacity: 0.36; }
+  .oracle-card.is-chosen .oracle-card__glare { opacity: 0.72; }
+  .oracle-card.is-chosen .oracle-card__corner {
+    z-index: 4;
+    color: rgba(245, 234, 216, 0.78);
+    filter: drop-shadow(0 0 6px rgba(196, 147, 90, 0.28));
+  }
+  .oracle-card.is-chosen .oracle-card__edge,
+  .oracle-card.is-chosen .oracle-card__edge-inner,
+  .oracle-card.is-chosen .oracle-card__nameplate {
+    z-index: 4;
+  }
+  .oracle-card.is-chosen .oracle-card__sweep {
+    animation: oracle-reveal-sweep 0.9s cubic-bezier(0.22, 0.68, 0.16, 1) 0.78s both;
+  }
+  @keyframes oracle-reveal-sweep {
+    0%   { opacity: 0; transform: translateX(-82%) rotate(0.001deg); }
+    28%  { opacity: 0.58; }
+    100% { opacity: 0; transform: translateX(82%) rotate(0.001deg); }
   }
 
   /* ── Reveal caption ── */
@@ -1066,6 +1168,15 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     .oracle-card__flip,
     .oracle__caption,
     .oracle__prompt { transition: opacity 0.2s ease; }
+    .oracle-card.is-chosen {
+      --tilt-x: 0deg;
+      --tilt-y: 0deg;
+      --shadow-x: 0px;
+      --shadow-y: 28px;
+      filter: none;
+    }
+    .oracle-card.is-chosen .oracle-card__sweep { animation: none; }
+    .oracle-card.is-chosen .oracle-card__glare { opacity: 0.32; }
   }
 </style>
 
@@ -1128,6 +1239,41 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
     let deckOpen = false;
     let shuffling = false;
     let shuffleTimer = 0;
+    let tiltFrame = 0;
+
+    const resetCardFoil = (card: HTMLElement) => {
+      card.style.removeProperty('--tilt-x');
+      card.style.removeProperty('--tilt-y');
+      card.style.removeProperty('--glare-x');
+      card.style.removeProperty('--glare-y');
+      card.style.removeProperty('--shadow-x');
+      card.style.removeProperty('--shadow-y');
+    };
+
+    const updateCardFoil = (card: HTMLElement, event: PointerEvent) => {
+      if (prefersReduced || !card.classList.contains('is-chosen')) return;
+      const rect = card.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      const clampedX = Math.max(0, Math.min(1, x));
+      const clampedY = Math.max(0, Math.min(1, y));
+      const tiltY = (clampedX - 0.5) * 10;
+      const tiltX = (0.5 - clampedY) * 12;
+      const shadowX = (0.5 - clampedX) * 18;
+      const shadowY = 24 + clampedY * 12;
+
+      if (tiltFrame) window.cancelAnimationFrame(tiltFrame);
+      tiltFrame = window.requestAnimationFrame(() => {
+        card.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+        card.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+        card.style.setProperty('--glare-x', `${(clampedX * 100).toFixed(1)}%`);
+        card.style.setProperty('--glare-y', `${(clampedY * 100).toFixed(1)}%`);
+        card.style.setProperty('--shadow-x', `${shadowX.toFixed(1)}px`);
+        card.style.setProperty('--shadow-y', `${shadowY.toFixed(1)}px`);
+      });
+    };
 
     /* Stage 0 — the deck starts stacked (collapsed). First tap SHUFFLES the deck
        (a slow, calm riffle) and THEN fans it open. No card is auto-selected — the
@@ -1293,6 +1439,7 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
           c.classList.remove('is-chosen');
           c.classList.remove('is-selected');
           c.style.removeProperty('--draw-shift');
+          resetCardFoil(c);
         });
         // Reset guardian-pieces preview between draws
         if (piecesWrap)  piecesWrap.hidden  = true;
@@ -1339,6 +1486,9 @@ const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
         if (!deckOpen) { tryOpenDeck(); return; }
         select(card);
       });
+      card.addEventListener('pointermove', (e: PointerEvent) => updateCardFoil(card, e));
+      card.addEventListener('pointerleave', () => resetCardFoil(card));
+      card.addEventListener('blur', () => resetCardFoil(card));
     });
     revealBtn?.addEventListener('click', reveal);
     againBtn?.addEventListener('click', reset);

@@ -52,6 +52,10 @@ const PREFIX_TO_WC_CAT = {
   OTH: { id: 345, name: 'accessories' },
   NCK: { id: 86,  name: 'necklace' },
   CARE:{ id: 345, name: 'accessories' },
+  // KODEX commerce lane — isolated from jewelry catalog by design.
+  KDX: { id: 489, name: 'kodex' },
+  KOD: { id: 485, name: 'kodex-packs' },
+  ART: { id: 345, name: 'accessories' }, // art prints — matches WM-WOO-* audit expectation
 };
 const AI_FILENAME_PATTERNS = [
   /ChatGPT-Image/i,

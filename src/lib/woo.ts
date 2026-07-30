@@ -173,6 +173,21 @@ async function wcFetch(url: string, timeoutMs = 8000, tries = 3): Promise<WcResp
 }
 
 let productsCache: Promise<WooProduct[]> | null = null;
+let kodexCategoryIdCache: Promise<number | null> | null = null;
+
+async function getKodexCategoryId(): Promise<number | null> {
+  kodexCategoryIdCache ||= (async () => {
+    const res = await wcFetch(
+      `${WC_URL}/products/categories?slug=kodex&per_page=1&${authParams()}`
+    );
+    if (!res.ok) {
+      throw new Error(`WC kodex category lookup failed: HTTP ${res.status}`);
+    }
+    const data: WooCategory[] = await res.json();
+    return data[0]?.id ?? null;
+  })();
+  return kodexCategoryIdCache;
+}
 
 async function fetchAllProducts(): Promise<WooProduct[]> {
   const perPage = 100; // WooCommerce REST maximum.
@@ -373,11 +388,13 @@ export async function getProducts(limit?: number): Promise<WooProduct[]> {
  */
 export async function getKodexProducts(): Promise<WooProduct[]> {
   try {
+    const categoryId = await getKodexCategoryId();
+    if (!categoryId) return [];
     const out: WooProduct[] = [];
     let page = 1;
     while (true) {
       const res = await wcFetch(
-        `${WC_URL}/products?per_page=100&page=${page}&status=any&category=485&${authParams()}`
+        `${WC_URL}/products?per_page=100&page=${page}&status=any&category=${categoryId}&${authParams()}`
       );
       if (!res.ok) throw new Error(`WC kodex products fetch failed: HTTP ${res.status}`);
       const data: WooProduct[] = await res.json();
@@ -385,8 +402,8 @@ export async function getKodexProducts(): Promise<WooProduct[]> {
       if (data.length < 100) break;
       page += 1;
     }
-    // Defensive: only return items truly tagged kodex (category id 485 or slug).
-    return out.filter(p => p.categories?.some(c => c.slug === 'kodex' || c.id === 485));
+    // Defensive: only return items truly tagged kodex (current category id or slug).
+    return out.filter(p => p.categories?.some(c => c.slug === 'kodex' || c.id === categoryId));
   } catch (e) {
     if (ALLOW_EMPTY) {
       console.warn('[woo] WARNING: getKodexProducts failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);

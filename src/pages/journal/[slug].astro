@@ -5,6 +5,33 @@ import PatternBand from '../../components/PatternBand.astro';
 import { getCollection, render } from 'astro:content';
 import { getProducts } from '../../lib/woo';
 
+// Human labels for "Related" links — previously the raw href (e.g. "/material/
+// sterling-silver") was shown as the link text, which looks broken and gives
+// useless anchor text for SEO. (Audit fix 2026-07-21.)
+function relatedLabel(href: string): string {
+  const map: Record<string, string> = {
+    '/shop': 'Shop all pieces',
+    '/about': 'About Wenu Mapu',
+    '/canon': 'The canon · sources',
+    '/lexicon': 'Lexicon',
+    '/constelaciones': 'Design your ear',
+    '/piercing': 'Book a piercing',
+    '/care-guide': 'Care & healing',
+    '/jewelry-styling': 'Jewelry styling',
+    '/amulets': 'Amulets',
+    '/journal': 'The Journal',
+    '/manifesto': 'The manifesto',
+    '/custom-orders': 'The atelier · commissions',
+    '/initial-jewelry': 'Initial jewelry',
+  };
+  if (map[href]) return map[href];
+  const seg = href.replace(/\/+$/, '').split('/').filter(Boolean);
+  const last = (seg[seg.length - 1] || '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  if (href.startsWith('/material/')) return `Material · ${last}`;
+  if (href.startsWith('/collection/')) return `Collection · ${last}`;
+  return last || href;
+}
+
 export async function getStaticPaths() {
   const entries = await getCollection('journal');
   return entries.map(entry => ({
@@ -140,7 +167,7 @@ const dateLabel = date.toLocaleDateString('en-US', { year: 'numeric', month: 'lo
           <p class="eyebrow">Related</p>
           <ul class="entry-related__list">
             {related.map((href: string) => (
-              <li><a href={href}>{href}</a></li>
+              <li><a href={href}>{relatedLabel(href)} <span aria-hidden="true">→</span></a></li>
             ))}
           </ul>
         </nav>
