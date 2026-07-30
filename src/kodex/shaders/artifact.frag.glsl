@@ -1,0 +1,166 @@
+#ifdef GL_ES
+precision highp float;
+precision highp int;
+#endif
+
+// KODEX-∞ · ARTIFACT
+//
+// Trata la OBRA (mandala / roseton / arbol / patron mapuche) como un artefacto
+// archivado: pixelado por bloques, dither Bayer, scanlines, glow y un chroma
+// minimo. Reemplaza el anchor vectorial anterior, que se leia "cargado y
+// abstracto" -- un enredo de lineas suaves donde deberia haber una pieza.
+//
+// Reglas de direccion de arte (Ocin, 2026-07-30):
+//  · La obra es el FOCO. El tratamiento la envuelve, nunca compite con ella.
+//  · La densidad vive en los DATOS (rails, metadata), no en este visual.
+//  · El fondo es un campo sutil del color de la escena, no un tangle animado.
+//  · Legible ante todo: si el efecto tapa la pieza, el efecto esta mal.
+
+uniform sampler2D artwork;      // la obra, con alpha
+uniform vec2  resolution;
+uniform vec2  artworkSize;      // px reales, para respetar la proporcion
+uniform float time;
+uniform vec3  accent;           // color de la escena (threshold = rojo)
+uniform float pixelSize;        // lado del bloque, en px de pantalla
+uniform float ditherAmount;     // 0 = limpio · 1 = dither pleno
+uniform float scanlineAmount;
+uniform float glowAmount;
+uniform float chromaAmount;
+uniform float flickerAmount;
+uniform float reducedMotion;    // 1 = sin animacion
+uniform float reveal;           // 0..1 para la entrada
+
+varying vec2 v_texcoord;
+
+// Bayer 8x8 sin arreglo: los arreglos en WebGL1 no admiten indice dinamico en
+// todos los drivers, asi que se calcula el umbral por bit-interleaving. Sale
+// mas barato y funciona igual en GPUs viejas, que es la mitad del publico.
+float bayer8(vec2 pos) {
+  vec2 p = floor(mod(pos, 8.0));
+  float x = p.x;
+  float y = p.y;
+  float result = 0.0;
+  float scale = 1.0;
+  for (int i = 0; i < 3; i++) {
+    float xb = mod(x, 2.0);
+    float yb = mod(y, 2.0);
+    result += scale * (3.0 * mod(xb + yb, 2.0) + 2.0 * xb + yb) * 0.25;
+    x = floor(x * 0.5);
+    y = floor(y * 0.5);
+    scale *= 0.25;
+  }
+  return result;
+}
+
+float luma(vec3 c) {
+  return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
+// Muestrea la obra encajandola por "contain": nunca la deforma. Fuera de la
+// pieza devuelve alpha 0, para que el marco quede limpio.
+vec4 sampleArtwork(vec2 uv, vec2 offset) {
+  float canvasAspect = resolution.x / max(resolution.y, 1.0);
+  float artAspect = artworkSize.x / max(artworkSize.y, 1.0);
+  vec2 scale = artAspect > canvasAspect
+    ? vec2(1.0, canvasAspect / artAspect)
+    : vec2(artAspect / canvasAspect, 1.0);
+  vec2 p = (uv - 0.5) / scale + 0.5 + offset;
+  if (p.x < 0.0 || p.x > 1.0 || p.y < 0.0 || p.y > 1.0) return vec4(0.0);
+  return texture2D(artwork, p);
+}
+
+// Muestreo por BLOQUE, quedandose con lo mas presente del bloque.
+//
+// Por que existe: el mandala son lineas finas sobre transparente -- apenas el
+// 13% de los pixeles tienen tinta. Muestrear el centro del bloque hacia
+// desaparecer la pieza entera: si la linea no cruzaba justo ese punto, el
+// bloque salia vacio. Se toma el maximo alpha del bloque (una dilatacion) y el
+// color del punto de mas tinta, asi la geometria sobrevive a la pixelacion.
+vec4 sampleBlock(vec2 blockUv, vec2 texel, vec2 offset) {
+  vec4 best = vec4(0.0);
+  for (int y = -1; y <= 1; y++) {
+    for (int x = -1; x <= 1; x++) {
+      vec2 d = vec2(float(x), float(y)) * texel * 0.5;
+      vec4 s = sampleArtwork(blockUv + d, offset);
+      if (s.a > best.a) best = s;
+    }
+  }
+  return best;
+}
+
+void main() {
+  vec2 fragPos = v_texcoord * resolution;
+
+  // 1 · PIXELACION. Se cuantiza la coordenada, no el color: asi los bordes de
+  //     la obra quedan duros como en un artefacto de baja resolucion.
+  float px = max(pixelSize, 1.0);
+  vec2 blockPos = floor(fragPos / px) * px + px * 0.5;
+  vec2 blockUv = blockPos / resolution;
+
+  // 2 · CHROMA. Separacion horizontal de canales, de un bloque a lo sumo.
+  //     Sugiere señal analoga sin ensuciar la lectura.
+  vec2 texel = px / resolution;
+  float chroma = chromaAmount * px / max(resolution.x, 1.0);
+  float r = sampleBlock(blockUv, texel, vec2(-chroma, 0.0)).r;
+  vec4  g = sampleBlock(blockUv, texel, vec2(0.0, 0.0));
+  float b = sampleBlock(blockUv, texel, vec2( chroma, 0.0)).b;
+  vec3 art = vec3(r, g.g, b);
+  float alpha = g.a;
+
+  // 3 · DITHER BAYER sobre la luminancia. La obra se posteriza a pocos niveles
+  //     y el umbral ordenado reparte el error: es lo que da el grano de
+  //     holograma en vez de un degradado liso.
+  float threshold = bayer8(fragPos / px) - 0.5;
+  float l = luma(art);
+  float levels = mix(24.0, 4.0, ditherAmount);
+  float dithered = floor(l * levels + threshold * ditherAmount + 0.5) / levels;
+  vec3 tinted = accent * dithered;
+  // Se conserva algo del color propio de la pieza: tratada, no repintada.
+  vec3 color = mix(art * (0.35 + dithered * 0.65), tinted, 0.72);
+
+  // 4 · GLOW. Halo del color de la escena alrededor de la pieza, muestreando
+  //     el alpha en cruz. Barato y suficiente a esta escala.
+  float halo = 0.0;
+  for (int i = 1; i <= 4; i++) {
+    float d = float(i) * px * 1.5 / max(resolution.x, 1.0);
+    halo += sampleBlock(blockUv + vec2( d, 0.0), texel, vec2(0.0)).a;
+    halo += sampleBlock(blockUv + vec2(-d, 0.0), texel, vec2(0.0)).a;
+    halo += sampleBlock(blockUv + vec2(0.0,  d), texel, vec2(0.0)).a;
+    halo += sampleBlock(blockUv + vec2(0.0, -d), texel, vec2(0.0)).a;
+  }
+  halo = clamp(halo / 16.0 - alpha, 0.0, 1.0);
+  color += accent * halo * glowAmount;
+  alpha = clamp(alpha + halo * glowAmount * 0.55, 0.0, 1.0);
+
+  // 5 · SCANLINES fijas al pixel fisico: si escalaran con el zoom producirian
+  //     moire. Una linea cada dos pixeles de bloque.
+  float scan = 0.5 + 0.5 * sin(fragPos.y / max(px * 0.5, 1.0) * 3.14159265);
+  color *= 1.0 - scanlineAmount * (1.0 - scan) * 0.85;
+
+  // 6 · FLICKER. Latido lento, casi imperceptible. Con reducedMotion queda
+  //     completamente quieto: es un requisito de accesibilidad, no un extra.
+  float motion = 1.0 - reducedMotion;
+  float flicker = 1.0 + motion * flickerAmount * (
+      sin(time * 7.3) * 0.5 + sin(time * 17.1) * 0.3 + sin(time * 2.7) * 0.2
+    ) * 0.1;
+  color *= flicker;
+
+  // 7 · CAMPO DE FONDO. Retícula de puntos muy tenue del color de la escena.
+  //     Da cuerpo de dispositivo sin convertirse en un tangle.
+  // Ojo: no llamar a esta variable `dot` — es una funcion built-in de GLSL y
+  // varios compiladores rechazan la sombra.
+  vec2 gridPos = fract(fragPos / (px * 4.0)) - 0.5;
+  float gridDot = 1.0 - smoothstep(0.06, 0.14, length(gridPos));
+  float field = gridDot * 0.06 * (1.0 - alpha);
+  color += accent * field;
+  alpha = max(alpha, field * 2.2);
+
+  // 8 · REVELADO. La pieza entra de abajo hacia arriba, como un escaneo.
+  float scanReveal = smoothstep(0.0, 0.35, reveal - (1.0 - v_texcoord.y) * 0.55);
+  alpha *= scanReveal;
+  // Línea de barrido viva solo mientras revela.
+  float edge = 1.0 - smoothstep(0.0, 0.02, abs(reveal - (1.0 - v_texcoord.y) * 0.55 - 0.02));
+  color += accent * edge * 0.6 * (1.0 - step(0.999, reveal));
+
+  gl_FragColor = vec4(color, alpha);
+}
