@@ -65,6 +65,15 @@ float luma(vec3 c) {
   return dot(c, vec3(0.2126, 0.7152, 0.0722));
 }
 
+// Ruido barato y estable: se usa para decidir que franja glitchea y cuando.
+// Debe ser determinista por (franja, instante) o el glitch titilaria en cada
+// frame en vez de durar un momento.
+float hash21(vec2 p) {
+  p = fract(p * vec2(123.34, 456.21));
+  p += dot(p, p + 45.32);
+  return fract(p.x * p.y);
+}
+
 // Muestrea la obra encajandola por "contain": nunca la deforma. Fuera de la
 // pieza devuelve alpha 0, para que el marco quede limpio.
 vec4 sampleArtwork(vec2 uv, vec2 offset) {
@@ -157,13 +166,35 @@ void main() {
   float scan = 0.5 + 0.5 * sin(fragPos.y / max(px * 0.5, 1.0) * 3.14159265);
   color *= 1.0 - scanlineAmount * (1.0 - scan) * 0.85;
 
-  // 6 · FLICKER. Latido lento, casi imperceptible. Con reducedMotion queda
-  //     completamente quieto: es un requisito de accesibilidad, no un extra.
+  // 6 · VIDA HOLOGRAFICA. En las plantillas de KodeLife el holograma nunca
+  //     esta quieto: respira, se desalinea un instante y lo recorre un barrido.
+  //     Son tres gestos chicos y lentos; juntos hacen la diferencia entre una
+  //     imagen tratada y un artefacto proyectado.
   float motion = 1.0 - reducedMotion;
+
+  //   a · Latido de intensidad, con dos frecuencias que nunca coinciden.
   float flicker = 1.0 + motion * flickerAmount * (
       sin(time * 7.3) * 0.5 + sin(time * 17.1) * 0.3 + sin(time * 2.7) * 0.2
     ) * 0.1;
   color *= flicker;
+
+  //   b · Barrido de refresco: una banda tenue que sube cada pocos segundos,
+  //       como el rolling de una pantalla mal sincronizada.
+  float sweepPos = fract(time * 0.18);
+  float sweep = smoothstep(0.06, 0.0, abs(v_texcoord.y - sweepPos));
+  color += accent * sweep * 0.16 * motion * alpha;
+
+  //   c · Glitch de linea: cada tanto una franja se desplaza un bloque. Muy
+  //       breve y muy raro; si se nota el patron, deja de leerse como falla.
+  float band = floor(v_texcoord.y * 48.0);
+  float glitchGate = step(0.988, hash21(vec2(band, floor(time * 3.0))));
+  float glitchAmt = glitchGate * motion * 0.6;
+  if (glitchAmt > 0.0) {
+    vec2 shifted = blockUv + vec2(px * 2.0 / resolution.x, 0.0);
+    vec4 g2 = sampleBlock(shifted, texel, vec2(0.0));
+    color = mix(color, accent * luma(g2.rgb) + color * 0.4, glitchAmt);
+    alpha = max(alpha, g2.a * glitchAmt);
+  }
 
   // 7 · CAMPO DE FONDO. Retícula de puntos muy tenue del color de la escena.
   //     Da cuerpo de dispositivo sin convertirse en un tangle.

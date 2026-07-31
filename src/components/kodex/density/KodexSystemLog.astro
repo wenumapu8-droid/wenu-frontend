@@ -1,0 +1,205 @@
+---
+/**
+ * KODEX-∞ · SYSTEM LOG · CHECKSUM · THREAT MONITOR
+ *
+ * La franja de instrumentos del pie del board: el registro con timestamps, el
+ * checksum verificable y el monitor de anomalías con su onda.
+ *
+ * Los tres juntos porque en la referencia ocupan una sola banda y se leen como
+ * un bloque: es el "estado del sistema" bajo el titular.
+ *
+ * El monitor dibuja en canvas y no en SVG: la onda se mueve y animar paths SVG
+ * cuesta más que redibujar unas líneas. Con prefers-reduced-motion se queda en
+ * una traza fija — sigue diciendo lo mismo, sin latir.
+ */
+interface Props {
+  /** Entradas del log: [tiempo, texto]. Se muestran en orden. */
+  entries?: Array<[string, string]>;
+  checksum?: string;
+  verifyAt?: string;
+  threatLabel?: string;
+  accent?: string;
+  class?: string;
+}
+
+const {
+  entries = [
+    ["00:00:00", "KDX-CORE INITIALIZED"],
+    ["00:00:01", "MEMORY MATRIX ONLINE"],
+    ["00:00:02", "THRESHOLD PROTOCOL STANDBY"],
+    ["00:00:03", "WAITING FOR INTENT…"],
+  ],
+  checksum = "7A3F-9C21-E804-D7A1",
+  verifyAt = "KODEX-SYSTEMS/VERIFY",
+  threatLabel = "NO ANOMALIES DETECTED",
+  accent = "var(--kdx-scene-accent, var(--kdx-red, #FF2733))",
+  class: className = "",
+} = Astro.props;
+---
+
+<div class:list={["kdx-syslog", className]} style={`--log-accent:${accent};`}>
+  <section class="kdx-syslog__panel" aria-label="system log">
+    <p class="kdx-syslog__title">SYSTEM LOG //</p>
+    <ol class="kdx-syslog__list">
+      {entries.map(([t, msg]) => (
+        <li><span class="kdx-syslog__t">[{t}]</span> {msg}</li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="kdx-syslog__panel" aria-label="checksum">
+    <p class="kdx-syslog__title">CHECKSUM</p>
+    <p class="kdx-syslog__sum">{checksum}</p>
+    <span class="kdx-syslog__barcode" aria-hidden="true"></span>
+    <p class="kdx-syslog__verify">VERIFY AT: {verifyAt}</p>
+  </section>
+
+  <section class="kdx-syslog__panel" aria-label="threat monitor">
+    <p class="kdx-syslog__title">THREAT MONITOR</p>
+    <canvas class="kdx-syslog__wave" data-kdx-threat width="240" height="34" aria-hidden="true"></canvas>
+    <p class="kdx-syslog__threat">{threatLabel}</p>
+  </section>
+</div>
+
+<script>
+  /**
+   * Onda del monitor. Es ruido con un latido lento, no datos reales: no hay
+   * telemetría que graficar, y fingir una lectura precisa sería peor que una
+   * traza claramente ambiental.
+   */
+  const bootThreat = () => {
+    const canvases = document.querySelectorAll<HTMLCanvasElement>("[data-kdx-threat]");
+    const quiet = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    for (const canvas of canvases) {
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
+
+      const accent = getComputedStyle(canvas).color || "#FF2733";
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = canvas.width;
+      const h = canvas.height;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.scale(dpr, dpr);
+
+      let raf = 0;
+      let visible = true;
+
+      const draw = (t: number) => {
+        ctx.clearRect(0, 0, w, h);
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        for (let x = 0; x <= w; x++) {
+          const p = x / w;
+          // Tres senos desfasados + una púa ocasional: se lee como señal, no
+          // como una onda de manual.
+          const base =
+            Math.sin(p * 34 + t * 1.7) * 0.35 +
+            Math.sin(p * 71 + t * 2.9) * 0.22 +
+            Math.sin(p * 13 - t * 1.1) * 0.18;
+          const spike = Math.sin(p * 220 + t * 6) * 0.1 * Math.sin(t * 0.7 + p * 3);
+          const y = h / 2 + (base + spike) * h * 0.42;
+          x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      };
+
+      if (quiet) {
+        draw(0);
+        continue;
+      }
+
+      const loop = () => {
+        raf = 0;
+        draw(performance.now() / 1000);
+        if (visible) raf = requestAnimationFrame(loop);
+      };
+
+      // Fuera de pantalla no se dibuja: hay una de estas por lámina.
+      new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          visible = e.isIntersecting;
+          if (visible && !raf) raf = requestAnimationFrame(loop);
+          else if (!visible && raf) { cancelAnimationFrame(raf); raf = 0; }
+        }
+      }, { threshold: 0.01 }).observe(canvas);
+    }
+  };
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootThreat, { once: true });
+  } else {
+    bootThreat();
+  }
+</script>
+
+<style>
+  .kdx-syslog {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.3fr) minmax(140px, 1fr) minmax(160px, 1.1fr);
+    gap: 22px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--kdx-muted, #88888a);
+  }
+
+  .kdx-syslog__panel { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+  .kdx-syslog__title {
+    margin: 0;
+    color: var(--log-accent);
+    letter-spacing: 0.2em;
+    font-weight: 600;
+  }
+
+  .kdx-syslog__list { margin: 0; padding: 0; list-style: none; line-height: 1.75; }
+  .kdx-syslog__list li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .kdx-syslog__t { color: var(--log-accent); opacity: 0.75; }
+
+  .kdx-syslog__sum {
+    margin: 0;
+    color: var(--kdx-off-white, #e6e6e6);
+    letter-spacing: 0.16em;
+    font-variant-numeric: tabular-nums;
+  }
+  .kdx-syslog__verify { margin: 0; opacity: 0.6; font-size: 8px; }
+
+  .kdx-syslog__barcode {
+    height: 16px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--kdx-muted, #88888a) 0 1px,
+      transparent 1px 3px,
+      var(--kdx-muted, #88888a) 3px 5px,
+      transparent 5px 6px
+    );
+    opacity: 0.55;
+  }
+
+  /* El canvas hereda `color` para que el script lea el acento sin recibir
+     el valor por atributo. */
+  .kdx-syslog__wave {
+    color: var(--log-accent);
+    width: 100%;
+    max-width: 240px;
+    height: 34px;
+    display: block;
+  }
+  .kdx-syslog__threat { margin: 0; opacity: 0.7; }
+
+  @media (max-width: 780px) {
+    .kdx-syslog { grid-template-columns: 1fr 1fr; gap: 16px; }
+    .kdx-syslog__panel:last-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 520px) {
+    .kdx-syslog { grid-template-columns: 1fr; }
+    .kdx-syslog__panel:last-child { grid-column: auto; }
+  }
+</style>
