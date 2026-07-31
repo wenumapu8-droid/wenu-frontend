@@ -499,6 +499,12 @@ class KodexField {
 // Los shaders se importan crudos para que Vite los inline: son pocos y chicos,
 // y así no hay una petición de red por lámina.
 const SHADERS: Record<string, () => Promise<string>> = {
+  // Tanda 3 del motor visual: la DISTORSION ESPACIAL. Ocin la llama "la pieza
+  // que faltaba" -- no es el estilo, es la logica espacial. Sus uniforms son
+  // los estandar del §7, asi que entran a este runtime sin adaptaciones, que
+  // era exactamente el punto de haberlos implementado.
+  "wrinkled-reality": () => import("../../../kodex/shaders/lab/wrinkled-reality.frag?raw").then((m) => m.default),
+  "ripple-floor": () => import("../../../kodex/shaders/lab/ripple-floor.frag?raw").then((m) => m.default),
   "network-vortex": () => import("../../../kodex/shaders/lab/network-vortex.frag?raw").then((m) => m.default),
   "threshold-portal": () => import("../../../kodex/shaders/lab/threshold-portal.frag?raw").then((m) => m.default),
   "archive-orbit": () => import("../../../kodex/shaders/lab/archive-orbit.frag?raw").then((m) => m.default),

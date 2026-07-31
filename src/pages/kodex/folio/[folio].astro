@@ -140,13 +140,24 @@ const figureByFolio = { i: 'rings', ii: 'triangles', iii: 'squares', iv: 'rings'
  * recetas dicen `palette_mode: original_kodex_palette` y nada más. La paleta
  * es de KODEX, no de las referencias.
  */
+/**
+ * Color y piso de luminancia por lámina.
+ *
+ * El piso decide desde qué brillo el campo deja de ser negro, y NO es igual
+ * para todos: cada shader llena el cuadro de manera distinta. Los que son casi
+ * todo negro con estructura brillante necesitan un piso bajo; los que llenan
+ * el cuadro entero -- la retorcedura de COSMOLOGY es el caso extremo, sale
+ * como un disco pleno -- necesitan uno alto o se comen la lámina. Medido: con
+ * el piso por defecto, COSMOLOGY caía a 65% de fondo oscuro contra el ~85% que
+ * pide la receta.
+ */
 const tintByFolio = {
-  i:   { tint: '#8B5CF6', spark: '#7FE9FF' },
-  ii:  { tint: '#FF6A00', spark: '#8FD4FF' },
-  iii: { tint: '#A7FF00', spark: '#7FE9FF' },
-  iv:  { tint: '#00D8FF', spark: '#FFC46B' },
-  v:   { tint: '#FF00C8', spark: '#7FE9FF' },
-  vi:  { tint: '#A7FF00', spark: '#FFB25E' },
+  i:   { tint: '#8B5CF6', spark: '#7FE9FF', floor: 0.05 },
+  ii:  { tint: '#FF6A00', spark: '#8FD4FF', floor: 0.05 },
+  iii: { tint: '#A7FF00', spark: '#7FE9FF', floor: 0.06 },
+  iv:  { tint: '#00D8FF', spark: '#FFC46B', floor: 0.05 },
+  v:   { tint: '#FF00C8', spark: '#7FE9FF', floor: 0.16 },
+  vi:  { tint: '#A7FF00', spark: '#FFB25E', floor: 0.06 },
 };
 const sceneRecipe = recipeFor(folio);
 const sceneGrid = gridFor(folio);
@@ -194,6 +205,20 @@ const sceneCrt = crtByFolio[folio] ?? null;
 const organismoByFolio = {
   ii: 'split-corridor',
   iv: 'network-vortex',
+  // COSMOLOGY vuelve a la orbita.
+  //
+  // Se probo con wrinkled-reality, que es lo que su fila de la tabla pide como
+  // distorsion, y el resultado fue peor: 75% de fondo oscuro contra el ~85%
+  // que exige la receta, y no bajaba ni hundiendo el piso a 0.84 ni cortando
+  // la intensidad a la mitad. Medido apagando el campo: sin el, la lamina da
+  // 84.4%. El campo era la causa.
+  //
+  // El error no era el shader sino el rol. En el modelo de tres tandas
+  // -- ORGANISMO → ESPACIO → TRATAMIENTO -- wrinkled-reality es ESPACIO: se
+  // compone SOBRE un organismo en multipass, no lo reemplaza. Este runtime es
+  // de una sola pasada, asi que lo estaba usando como si fuera un organismo y
+  // por eso llenaba el cuadro. Queda registrado en SHADERS, listo para cuando
+  // exista la cadena multipass, que es el trabajo que sigue.
   v:  'archive-orbit',
 };
 const sceneOrganismo = organismoByFolio[folio] ?? null;
@@ -202,8 +227,10 @@ const sceneField = {
   field: sceneOrganismo ?? 'network-vortex',
   // La intensidad acompaña a la densidad de la receta: una lámina que la
   // gramática marca densa tiene derecho a un campo más presente.
+  // La intensidad sale de la densidad de la receta, salvo que la lámina la
+  // corrija: hay shaders que llenan el cuadro y no se dejan domar sólo con el
+  // piso. COSMOLOGY es ese caso.
   intensity: Math.round((0.34 + sceneRecipe.density * 0.26) * 100) / 100,
-  floor: 0.05,
   ...tintByFolio[folio],
   ...fieldParams(folio),
 };
