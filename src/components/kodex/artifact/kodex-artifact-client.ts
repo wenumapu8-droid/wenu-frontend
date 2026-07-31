@@ -26,6 +26,7 @@ type ArtifactOptions = {
   chroma: number;
   flicker: number;
   lumaFloor: number;
+  lumaCeil: number;
   tint: number;
 };
 
@@ -37,6 +38,7 @@ const DEFAULTS: ArtifactOptions = {
   chroma: 0.6,
   flicker: 0.5,
   lumaFloor: 0.12,
+  lumaCeil: 1,
   tint: 0.18,
 };
 
@@ -60,7 +62,7 @@ class KodexArtifact {
   private readonly options: ArtifactOptions;
   private readonly accent: [number, number, number];
 
-  // -1 = sin decidir todavia; lo resuelve detectAlpha al cargar la obra.
+  // -1 = sin decidir todavia; lo resuelve analyzeArtwork al cargar la obra.
   private lumaKey = -1;
   private texture: WebGLTexture | null = null;
   private textureSize: [number, number] = [1, 1];
@@ -99,6 +101,7 @@ class KodexArtifact {
       chroma: Number(root.dataset.chroma ?? DEFAULTS.chroma),
       flicker: Number(root.dataset.flicker ?? DEFAULTS.flicker),
       lumaFloor: Number(root.dataset.lumaFloor ?? DEFAULTS.lumaFloor),
+      lumaCeil: Number(root.dataset.lumaCeil ?? DEFAULTS.lumaCeil),
       tint: Number(root.dataset.tint ?? DEFAULTS.tint),
     };
     this.accent = hexToRgb(root.dataset.accent ?? "#FF2733");
@@ -130,6 +133,8 @@ class KodexArtifact {
       canvas: [this.canvas.width, this.canvas.height],
       reducedMotion: this.reducedMotion,
       lumaKey: this.lumaKey,
+      lumaFloor: this.options.lumaFloor,
+      lumaCeil: this.options.lumaCeil,
     };
   }
 
@@ -179,7 +184,7 @@ class KodexArtifact {
     const names = [
       "artwork", "resolution", "artworkSize", "time", "accent", "pixelSize",
       "ditherAmount", "scanlineAmount", "glowAmount", "chromaAmount",
-      "flickerAmount", "reducedMotion", "reveal", "lumaKey", "lumaFloor", "tint",
+      "flickerAmount", "reducedMotion", "reveal", "lumaKey", "lumaFloor", "lumaCeil", "tint",
     ];
     for (const name of names) {
       this.uniforms.set(name, this.gl.getUniformLocation(this.program, name));
@@ -203,7 +208,16 @@ class KodexArtifact {
       // opacos sobre negro y pedirle al autor que marque cuál lleva alpha es
       // una fuente de error silenciosa. Si el archivo no tiene transparencia,
       // la silueta se saca del brillo.
-      if (this.lumaKey < 0) this.lumaKey = this.detectAlpha(image) ? 0 : 1;
+      const analisis = this.analyzeArtwork(image);
+      if (this.lumaKey < 0) this.lumaKey = analisis?.hasAlpha ? 0 : 1;
+      // El piso medido sólo entra si la plantilla no fijó uno a mano: un valor
+      // explícito en la lámina es una decisión, no un valor por defecto.
+      if (analisis && this.root.dataset.lumaFloor === undefined) {
+        this.options.lumaFloor = analisis.floor;
+      }
+      if (analisis && this.root.dataset.lumaCeil === undefined) {
+        this.options.lumaCeil = analisis.ceil;
+      }
       const texture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, texture);
       // La obra no es potencia de dos: CLAMP + LINEAR es lo único válido en
@@ -227,28 +241,55 @@ class KodexArtifact {
   }
 
   /**
-   * ¿El archivo trae transparencia real? Se muestrea una miniatura en vez de
-   * la imagen completa: con 1200×1200 leer todo el buffer costaría más que el
-   * primer frame, y para esta decisión basta una muestra.
+   * Lee la obra antes de tratarla: si trae transparencia real, y con qué
+   * brillo empieza a ser obra en vez de fondo.
+   *
+   * Se muestrea una miniatura en vez de la imagen completa: con 2048×2048 leer
+   * todo el buffer costaría más que el primer frame, y para esto basta.
+   *
+   * El umbral tiene que salir de cada pieza. Con un valor fijo el recorte
+   * funcionaba en la obra clara del archivo y borraba las demás: cinco de las
+   * seis láminas son casi negras -- bw-07 tiene luminancia media 0.04 y sólo
+   * un 6% de píxeles sobre 0.30 -- así que un piso de 0.12 dejaba la placa
+   * vacía. La pieza estaba ahí y el tratamiento se la comía.
+   *
+   * Se toma el percentil que deja pasar más o menos un tercio del cuadro: en
+   * una obra sobre negro ese tercio es la obra. Así el recorte sigue quitando
+   * el fondo, que es para lo que existe, sin decidir de antemano qué tan
+   * brillante tiene derecho a ser una pieza.
    */
-  private detectAlpha(image: HTMLImageElement): boolean {
+  private analyzeArtwork(image: HTMLImageElement): { hasAlpha: boolean; floor: number; ceil: number } | null {
     try {
       const size = 64;
       const c = document.createElement("canvas");
       c.width = c.height = size;
       const ctx = c.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return false;
+      if (!ctx) return null;
       ctx.drawImage(image, 0, 0, size, size);
       const data = ctx.getImageData(0, 0, size, size).data;
+
+      const total = size * size;
       let transparentes = 0;
-      for (let i = 3; i < data.length; i += 4) if (data[i] < 250) transparentes++;
+      const lumas = new Float32Array(total);
+      for (let i = 0, p = 0; i < data.length; i += 4, p++) {
+        if (data[i + 3] < 250) transparentes++;
+        lumas[p] = (data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722) / 255;
+      }
+
       // Un 4% de píxeles no opacos ya indica recorte intencional. Por debajo
       // de eso puede ser ruido de compresión.
-      return transparentes > size * size * 0.04;
+      const hasAlpha = transparentes > total * 0.04;
+
+      lumas.sort();
+      const floor = Math.min(0.45, Math.max(0.045, lumas[Math.floor(total * 0.66)]));
+      // El techo se toma cerca del máximo, no en el máximo: un solo píxel
+      // quemado por la compresión no debe fijar la escala de toda la pieza.
+      const ceil = Math.min(1, Math.max(floor + 0.08, lumas[Math.floor(total * 0.99)]));
+      return { hasAlpha, floor, ceil };
     } catch {
       // Imagen de otro origen: el canvas queda contaminado y no se puede leer.
       // Se asume opaca, que es el caso más común del portafolio.
-      return false;
+      return null;
     }
   }
 
@@ -345,6 +386,7 @@ class KodexArtifact {
     gl.uniform1f(u("reveal"), this.reveal);
     gl.uniform1f(u("lumaKey"), this.lumaKey < 0 ? 0 : this.lumaKey);
     gl.uniform1f(u("lumaFloor"), this.options.lumaFloor);
+    gl.uniform1f(u("lumaCeil"), this.options.lumaCeil);
     gl.uniform1f(u("tint"), this.options.tint);
 
     gl.enable(gl.BLEND);

@@ -1,0 +1,83 @@
+---
+/**
+ * KODEX-∞ · ASCII
+ *
+ * El motor generativo ASCII/PETSCII del kit, montado como pieza de la lámina.
+ *
+ * No es otro fondo: el KODEX ya tiene el artefacto tramado y el campo vivo
+ * detrás. Este va en el lugar de la figura, y sólo donde la escena lo pide —
+ * el kit trae los mismos CTA que las láminas ("BEGIN OBSERVATION",
+ * "GENERATE SIGNAL"), así que sus escenas y las nuestras son la misma cosa
+ * escrita dos veces. Ponerlo donde no corresponde lo volvería decoración.
+ */
+interface Props {
+  /** Escena generativa del kit. */
+  scene: "observe" | "descent" | "cosmology" | "signal";
+  /** Alfabeto. `kodex` es el propio; `petscii` trae los bloques del C64. */
+  glyphs?: "kodex" | "ascii" | "petscii" | "blocks";
+  /**
+   * Paleta de seis tonos, del fondo al brillo. Si se omite, se usa la del kit
+   * para esa escena — que en observe y descent ya coincide con el acento de
+   * la lámina, porque el kit se escribió contra el mismo sistema.
+   */
+  palette?: string[];
+  label?: string;
+  /**
+   * `bed` lo pone como lecho: absoluto y ocupando la placa que lo contiene,
+   * por debajo de la obra. Es un modo del componente y no una clase de la
+   * página a propósito -- los estilos con ámbito del componente le ganan por
+   * especificidad a los de la página, así que posicionarlo desde afuera no
+   * funciona y falla en silencio dejándolo en altura cero.
+   */
+  bed?: boolean;
+  class?: string;
+}
+
+const { scene, glyphs = "kodex", palette, label, bed = false, class: className = "" } = Astro.props;
+---
+
+<div
+  class:list={["kdx-ascii", className]}
+  data-kdx-ascii
+  data-bed={bed ? "" : undefined}
+  data-scene={scene}
+  data-glyphs={glyphs}
+  data-palette={palette ? palette.join(",") : undefined}
+  role={label ? "img" : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : "true"}
+>
+  <canvas class="kdx-ascii__canvas" data-kdx-ascii-canvas></canvas>
+</div>
+
+<script>
+  import "./kodex-ascii-client.ts";
+</script>
+
+<style>
+  .kdx-ascii {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .kdx-ascii[data-bed] {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .kdx-ascii__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+  .kdx-ascii[data-kdx-ascii-state="ready"] .kdx-ascii__canvas { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-ascii__canvas { transition: none; }
+  }
+</style>

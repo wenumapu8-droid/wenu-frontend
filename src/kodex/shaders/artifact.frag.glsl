@@ -35,6 +35,12 @@ uniform float reveal;           // 0..1 para la entrada
 // alpha del archivo (mandala, PNG recortados).
 uniform float lumaKey;
 uniform float lumaFloor;        // por debajo de esto se considera fondo
+// Techo de la pieza: la luminancia donde la obra ya esta en su maximo. Con
+// piso y techo la trama se arma sobre el rango REAL de cada obra. Sin esto,
+// una pieza oscura -- bw-07 promedia 0.04 -- se dithereaba contra la escala
+// absoluta y salia negra sobre negro: la mascara la dejaba pasar y no habia
+// nada que ver. En 1.0 no altera a las obras que ya usan todo el rango.
+uniform float lumaCeil;
 // Cuanto del acento entra EN la pieza. Bajo por defecto: la obra se lee
 // clara y el color vive en el ambiente, como en los boards.
 uniform float tint;
@@ -136,7 +142,9 @@ void main() {
   //     y el umbral ordenado reparte el error: es lo que da el grano de
   //     holograma en vez de un degradado liso.
   float threshold = bayer8(fragPos / px) - 0.5;
-  float l = luma(art);
+  // La obra se lee en su propio rango, no en el absoluto.
+  float span = max(lumaCeil - lumaFloor, 0.03);
+  float l = clamp((luma(art) - lumaFloor) / span, 0.0, 1.0);
   float levels = mix(24.0, 4.0, ditherAmount);
   float dithered = floor(l * levels + threshold * ditherAmount + 0.5) / levels;
   // La obra se mantiene clara y el acento vive en el AMBIENTE -- anillos,
@@ -144,7 +152,8 @@ void main() {
   // mandala es blanco sobre negro y el rojo esta alrededor; tenirlo al 72%,
   // como estaba, se comia el patron justo cuando la pieza es el motivo de
   // toda la lamina.
-  vec3 base = mix(vec3(dithered), art * (0.45 + dithered * 0.55), 0.35);
+  vec3 artN = clamp((art - vec3(lumaFloor)) / span, 0.0, 1.0);
+  vec3 base = mix(vec3(dithered), artN * (0.45 + dithered * 0.55), 0.35);
   vec3 color = mix(base, accent * dithered, tint);
 
   // 4 · GLOW. Halo del color de la escena alrededor de la pieza, muestreando
