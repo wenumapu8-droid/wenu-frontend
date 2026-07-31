@@ -176,6 +176,9 @@ class KodexField {
   private readonly tint: [number, number, number];
   private readonly spark: [number, number, number];
   private readonly pointer = { x: 0.5, y: 0.5 };
+  /** Velocidad del puntero, suavizada. Un salto crudo se lee como glitch. */
+  private readonly pointerVel = { x: 0, y: 0 };
+  private pointerPrev = { x: 0.5, y: 0.5 };
 
   /** Par de framebuffers para el feedback: se escribe en uno y se lee del otro. */
   private targets: Array<{ fb: WebGLFramebuffer; tex: WebGLTexture }> = [];
@@ -272,6 +275,13 @@ class KodexField {
       "u_audio", "u_audioLow", "u_audioMid", "u_audioHigh",
       "u_kdxGain", "u_kdxGrade", "u_kdxFloor", "u_kdxDetail", "u_kdxTime",
       "u_kdxTint", "u_kdxSpark", "u_kdxRes",
+      // Uniforms estandar de la Receta Madre §7. Se envian aunque el shader
+      // actual no los declare: getUniformLocation devuelve null y asignar
+      // sobre null es un no-op. El punto es que cualquier shader del lab entre
+      // sin adaptaciones, que es lo que hace que "una gramatica, siete
+      // productos" sea operable y no una intencion.
+      "u_pointerVelocity", "u_scrollProgress", "u_sceneProgress",
+      "u_transition", "u_state", "u_devicePixelRatio", "u_reducedMotion",
     ];
     for (const n of names) {
       this.uniforms.set(n, this.gl.getUniformLocation(this.program, n));
@@ -372,6 +382,26 @@ class KodexField {
     gl.uniform1f(u("u_delta"), delta);
     gl.uniform2f(u("u_resolution"), canvas.width, canvas.height);
     gl.uniform2f(u("u_pointer"), this.pointer.x, this.pointer.y);
+
+    // §7 · el resto de los uniforms estandar.
+    const vx = this.pointer.x - this.pointerPrev.x;
+    const vy = this.pointer.y - this.pointerPrev.y;
+    // Media movil: la velocidad instantanea salta y produce tirones; suavizada
+    // se lee como inercia, que es lo que un instrumento tiene.
+    this.pointerVel.x += (vx - this.pointerVel.x) * 0.18;
+    this.pointerVel.y += (vy - this.pointerVel.y) * 0.18;
+    this.pointerPrev = { x: this.pointer.x, y: this.pointer.y };
+    gl.uniform2f(u("u_pointerVelocity"), this.pointerVel.x, this.pointerVel.y);
+
+    const alto = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+    gl.uniform1f(u("u_scrollProgress"), Math.min(1, scrollY / alto));
+
+    const est = estadoEscena();
+    gl.uniform1f(u("u_sceneProgress"), est.intensidad);
+    gl.uniform1f(u("u_state"), est.intensidad);
+    gl.uniform1f(u("u_transition"), est.actual === "transitionOut" ? 1 : 0);
+    gl.uniform1f(u("u_devicePixelRatio"), devicePixelRatio || 1);
+    gl.uniform1f(u("u_reducedMotion"), this.reducedMotion ? 1 : 0);
     gl.uniform1f(u("u_seed"), this.options.seed);
     // Sin la pasada al framebuffer el "cuadro previo" queda congelado. Si la
     // mezcla siguiera encendida, el shader mancharia contra una imagen vieja

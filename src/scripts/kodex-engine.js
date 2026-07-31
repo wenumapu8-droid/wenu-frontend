@@ -176,6 +176,11 @@ export function initKx() {
   let turning = false;
   const turn = (url) => {
     if (!url || turning) return; turning = true;
+    // El ritual de transicion, si esta montado. Es el "transition ritual" que
+    // la formula de escena pide: colapsa, navega y la lamina siguiente se
+    // recompone. El desvanecido de abajo queda como respaldo -- si el modulo
+    // no cargo, la navegacion no puede quedarse trabada.
+    if (typeof window.__kdxRitual === 'function') { window.__kdxRitual(url); return; }
     root.style.transition = 'opacity .55s ease'; root.style.opacity = '0';
     setTimeout(() => { location.href = url; }, 480);
   };
