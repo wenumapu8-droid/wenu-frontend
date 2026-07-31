@@ -127,7 +127,14 @@ class Sonda {
       // Una obra en "ready" que no se ve es el fallo silencioso que mas veces
       // aparecio en este proyecto: textura cargada, estado correcto, nada en
       // pantalla. Por eso se muestran piso y techo, que es donde estaba.
-      f.push(["obra", `${d.estado} · piso ${Number(d.lumaFloor).toFixed(2)} · techo ${Number(d.lumaCeil).toFixed(2)}`]);
+      // El tamaño del lienzo es el dato decisivo: una obra "ready" sobre un
+      // canvas de alto cero se ve exactamente igual que una que no cargó.
+      const [cw, ch] = (d.canvas ?? [0, 0]) as number[];
+      f.push([
+        "obra",
+        `${d.estado} · ${cw}x${ch} · piso ${Number(d.lumaFloor).toFixed(2)}`,
+        !ch || !cw,
+      ]);
     }
 
     const q = doc.dataset.kdxQuality;
