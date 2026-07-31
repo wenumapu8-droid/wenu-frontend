@@ -3,13 +3,13 @@
  * KODEX-∞ · VOLUMEN
  *
  * Una ruta para toda la biblioteca. Agregar un volumen al manifiesto crea su
- * página; no hay que escribir nada acá. Eso es el ∞ del nombre hecho
- * operable: el archivo se expande, cada acceso una nueva capa.
+ * página; acá no se escribe nada.
  *
- * La composición es la del dossier — héroe, ficha, cuerpo, glifos, datos
- * vivos — pero se adapta al tipo: un `math` muestra su fórmula donde un
- * `artwork` muestra su ficha de obra, y un volumen con poco contenido se ve
- * sobrio en vez de roto.
+ * El héroe es la obra real tratada — o, mientras no exista, **el organismo
+ * vivo** teñido con el color de su estrato. Esa caída no es un placeholder: un
+ * volumen sin obra igual tiene un cuerpo, porque el sistema genera. Es la
+ * diferencia entre una biblioteca que espera a estar llena y una que ya está
+ * viva y se va llenando.
  */
 import Base from '../../../layouts/Base.astro';
 import KodexChrome from '../../../components/KodexChrome.astro';
@@ -22,118 +22,141 @@ import KodexTransition from '../../../components/kodex/transition/KodexTransitio
 import KodexDebug from '../../../components/kodex/debug/KodexDebug.astro';
 import '../../../styles/kodex.css';
 import '../../../styles/kodex-micrographics.css';
-import { leerManifiesto, normalizar, decir, razon, type Volumen } from '../../../lib/kodex/volumenes';
+import { leerManifiesto, resolver, razon, type VolumenResuelto } from '../../../lib/kodex/volumenes';
 
 export async function getStaticPaths() {
-  const vols = normalizar(await leerManifiesto());
+  const vols = resolver(await leerManifiesto());
   return vols.map((v) => ({ params: { slug: v.slug }, props: { v } }));
 }
 
-const { v } = Astro.props as { v: Volumen };
-const acento = v.acento ?? '#FF3833';
-const r = razon(v.hero.aspecto);
-// El héroe ocupa el ancho que su forma pide. Una pieza apaisada usa más
-// columna y una vertical menos: es la obra la que decide, no la grilla.
-const anchoHero = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
+const { v } = Astro.props as { v: VolumenResuelto };
+const r = razon(v.hero?.aspecto);
+// La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
+const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
+const checksum = v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
 
-const checksum = v.slug.toUpperCase().slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
+/**
+ * Diagnósticos del dossier. Derivan del propio volumen, no del azar: el mismo
+ * volumen muestra siempre lo mismo. Un número que cambia en cada carga no es
+ * un dato, es ruido con forma de dato.
+ */
+const semilla = [...v.slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
+const diag = [
+  { k: 'INTEGRIDAD', v: `${(90 + (semilla % 10))}.${semilla % 10}%` },
+  { k: 'PROFUNDIDAD', v: `−${(semilla % 900) + 100}` },
+  { k: 'ESCRITURA', v: (v.escritura ?? '—').toUpperCase() },
+  { k: 'REGISTRO', v: v.fecha ?? '—' },
+];
 ---
 
 <Base
   kodexFonts={true}
-  title={`${v.numero} · ${decir(v.titulo, 'es')} — KODEX−∞`}
-  description={decir(v.bajada, 'en') || decir(v.titulo, 'en')}
+  title={`${v.numero} · ${v.titulo_es} — KODEX−∞`}
+  description={v.curaduria_en ?? v.curaduria_es ?? v.titulo_es}
   robots="index, follow"
-  ogImage={v.hero.src}
+  ogImage={v.hero?.src ?? '/img/kodex/works/mandala-0cin-negativo.png'}
   noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
 >
   <div
     class={`kx kx--vol kx--vol-${v.tipo}`}
     data-kx
     data-kdx-tool="intensificar"
-    style={`--acc:${acento};--kdx-scene-accent:${acento}`}
+    data-kdx-recipe={`VOL_${v.numero}`}
+    data-kdx-grid={v.estrato}
+    style={`--acc:${v.color};--kdx-scene-accent:${v.color}`}
   >
     <KodexTransition />
     <KodexDebug />
     <KodexChrome segs={7} />
-    <KodexRegistration accent={acento} />
+    <KodexRegistration accent={v.color} />
 
     <article class="kx-vol">
       <KodexField
         field="network-vortex"
-        intensity={0.34}
-        tint={acento}
+        intensity={v.hero ? 0.3 : 0.42}
+        tint={v.color}
         spark="#7FE9FF"
         floor={0.06}
         detail={0.62}
         speed={0.7}
+        seed={(semilla % 97) + 1}
         class="kx-vol__campo"
       />
 
       <header class="kx-vol__cab">
-        <p class="kx-vol__tipo">{v.tipo} · VOL {v.numero}</p>
-        <h1 class="kx-vol__titulo">{decir(v.titulo, 'es')}</h1>
-        {v.titulo.en && <p class="kx-vol__titulo-en">{v.titulo.en}</p>}
-        {v.bajada && <p class="kx-vol__bajada">{decir(v.bajada, 'es')}</p>}
+        <p class="kx-vol__tipo">
+          <span>{v.tipo}</span>
+          <span class="kx-vol__glifos" aria-hidden="true">{v.glifos}</span>
+          <span>VOL {v.numero}</span>
+        </p>
+        <h1 class="kx-vol__titulo">{v.titulo_es}</h1>
+        {v.titulo_en && <p class="kx-vol__titulo-en">{v.titulo_en}</p>}
+        <p class="kx-vol__estrato">ESTRATO {v.estratoNumero} · {v.estratoTitulo}</p>
       </header>
 
-      {/* EL HÉROE. La obra entra al shader y sale tratada, con SU proporción.
-          Aplastar una pieza para que entre en un cuadrado es deformarla. */}
-      <figure class={`kx-vol__hero kx-vol__hero--${anchoHero}`}>
-        <KodexArtifact
-          artwork={v.hero.src}
-          aspecto={v.hero.aspecto}
-          accent={acento}
-          label={v.hero.alt ?? decir(v.titulo, 'es')}
-          id={checksum}
-          status={v.tipo.toUpperCase()}
-          coords={`${v.numero} · ${v.tipo}`}
-          pixelSize={3}
-          dither={0.86}
-          scanlines={0.3}
-          glow={0.46}
-          chroma={0.5}
-          flicker={0.34}
-          class="kx-vol__artifact"
-        />
+      <figure class={`kx-vol__hero kx-vol__hero--${forma}`}>
+        {v.hero ? (
+          <KodexArtifact
+            artwork={v.hero.src}
+            aspecto={v.hero.aspecto}
+            accent={v.color}
+            label={v.hero.alt ?? v.titulo_es}
+            id={checksum}
+            status={v.tipo.toUpperCase()}
+            coords={`${v.numero} · ${v.estratoTitulo}`}
+            pixelSize={3}
+            dither={0.86}
+            scanlines={0.3}
+            glow={0.46}
+            chroma={0.5}
+            flicker={0.34}
+          />
+        ) : (
+          <div class="kx-vol__organismo">
+            <KodexField
+              field="network-vortex"
+              intensity={0.72}
+              tint={v.color}
+              spark="#7FE9FF"
+              floor={0.05}
+              detail={0.78}
+              speed={0.85}
+              seed={(semilla % 53) + 1}
+            />
+            <figcaption>ORGANISMO GENERADO · OBRA PENDIENTE DE ARCHIVO</figcaption>
+          </div>
+        )}
       </figure>
 
       <div class="kx-vol__cuerpo" data-kdx-scrollable>
         {v.formula && (
           <div class="kx-vol__formula">
             <p class="kx-vol__tex">{v.formula.tex}</p>
-            <p class="kx-vol__lee">{decir(v.formula.lee, 'es')}</p>
-            {v.formula.lee.en && <p class="kx-vol__lee kx-vol__lee--en">{v.formula.lee.en}</p>}
+            <p class="kx-vol__lee">{v.formula.lee_es}</p>
+            {v.formula.lee_en && <p class="kx-vol__lee kx-vol__lee--en">{v.formula.lee_en}</p>}
           </div>
         )}
-
-        {v.cuerpo?.map((p) => (
+        {v.curaduria_es && (
           <div class="kx-vol__parrafo">
-            <p>{decir(p, 'es')}</p>
-            {p.en && <p class="kx-vol__en">{p.en}</p>}
+            <p>{v.curaduria_es}</p>
+            {v.curaduria_en && <p class="kx-vol__en">{v.curaduria_en}</p>}
           </div>
-        ))}
-
-        {v.repo && (
-          <a class="kx-vol__enlace" href={v.repo.url} rel="noopener">
-            REPOSITORIO{v.repo.lenguaje ? ` · ${v.repo.lenguaje}` : ''} →
-          </a>
         )}
+        {v.links && Object.entries(v.links).map(([k, url]) => (
+          <a class="kx-vol__enlace" href={url} rel="noopener">{k.toUpperCase()} →</a>
+        ))}
         {v.oferta?.url && (
-          <a class="kx-vol__enlace kx-vol__enlace--oferta" href={v.oferta.url} rel="noopener">
+          <a class="kx-vol__enlace" href={v.oferta.url} rel="noopener">
             {v.oferta.edicion ? `${v.oferta.edicion} · ` : ''}{v.oferta.precio ?? 'VER'} →
           </a>
         )}
       </div>
 
       <aside class="kx-vol__rail">
-        {v.ficha?.map((f) => (
-          <div class="kx-vol__kv"><span>{f.k}</span><b>{f.v}</b></div>
+        {diag.map((d) => (
+          <div class="kx-vol__kv"><span>{d.k}</span><b>{d.v}</b></div>
         ))}
-        {v.etiquetas && (
-          <p class="kx-vol__tags">{v.etiquetas.map((t) => `#${t}`).join(' ')}</p>
-        )}
-        <KodexEje posicion={0.5} accent={acento} class="kx-vol__eje" />
+        <KodexEje posicion={0.5} accent={v.color} class="kx-vol__eje" />
         <nav class="kx-vol__nav">
           <a href="/kodex/folio/iii/">‹ ARCHIVE</a>
           <a href="/kodex/">THRESHOLD ›</a>
@@ -141,17 +164,13 @@ const checksum = v.slug.toUpperCase().slice(0, 4).padEnd(4, 'X') + '-' + v.numer
       </aside>
 
       <KodexSystemFooter
-        code={`KDX-VOL-${v.numero}`}
+        code={`KDX-${v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 18)}`}
         checksum={checksum}
-        kind={`${v.tipo} · ${v.estrato ? `ESTRATO ${v.estrato}` : 'ARCHIVO VIVO'}`}
-        accent={acento}
+        kind={`${v.tipo} · ESTRATO ${v.estratoNumero}`}
+        accent={v.color}
         class="kx-vol__pie"
       />
     </article>
-
-    {/* Sin barra propia: KodexChrome ya trae la del deck y dos barras fijas
-        en el mismo borde se solapan. Los enlaces de la biblioteca viven en el
-        rail, que es donde vive el resto de la navegacion de la lamina. */}
   </div>
 </Base>
 
@@ -161,127 +180,112 @@ const checksum = v.slug.toUpperCase().slice(0, 4).padEnd(4, 'X') + '-' + v.numer
   .kx-vol {
     position: relative;
     display: grid;
-    /* height y no min-height: la lamina es UN viewport y su contenido se
-       acomoda adentro. Con min-height el contenido la estiraba y la pagina
-       scrolleaba. */
+    /* height y no min-height: la lámina es UN viewport y su contenido se
+       acomoda adentro. Con min-height el contenido la estira y la página
+       scrollea, que es regla dura del proyecto. */
     height: 100dvh;
-    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
     grid-template-areas: "cab hero" "cuerpo hero" "rail hero" "pie pie";
-    gap: clamp(14px, 2vw, 30px);
-    /* La barra del deck es fija y se come los ultimos ~73px de la ventana. */
-    padding: clamp(76px, 10vh, 110px) clamp(18px, 4vw, 56px) clamp(120px, 14vh, 150px);
+    gap: clamp(12px, 1.8vw, 26px);
+    /* La barra del deck es fija y se come los últimos ~73px de la ventana. */
+    padding: clamp(72px, 9vh, 100px) clamp(18px, 4vw, 56px) clamp(118px, 13vh, 146px);
     box-sizing: border-box;
     align-content: start;
   }
 
-  .kx-vol__campo { position: absolute; inset: 0; z-index: 0; opacity: 0.6; }
-  .kx-vol > * { position: relative; z-index: 1; }
+  .kx-vol__campo { position: absolute; inset: 0; z-index: 0; opacity: 0.55; }
+  .kx-vol > *:not(.kx-vol__campo) { position: relative; z-index: 1; }
 
-  .kx-vol__cab { grid-area: cab; }
+  .kx-vol__cab { grid-area: cab; min-width: 0; }
   .kx-vol__tipo {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
     margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: var(--acc);
+    font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--acc);
   }
+  /* Glifos del estrato: acento de archivo universal, nunca traducción. */
+  .kx-vol__glifos { letter-spacing: 0.3em; opacity: 0.62; font-size: 12px; }
+
   .kx-vol__titulo {
     margin: 0; font-family: "Barlow Condensed", "Inter Tight", system-ui, sans-serif;
-    font-weight: 800; font-size: clamp(2rem, 5vw, 4.2rem); line-height: 0.92;
+    font-weight: 800; font-size: clamp(1.9rem, 4.4vw, 3.8rem); line-height: 0.94;
     text-transform: uppercase; color: #e8e5df; text-wrap: balance;
   }
-  .kx-vol__titulo-en {
+  .kx-vol__titulo-en, .kx-vol__estrato {
     margin: 4px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 10px; letter-spacing: 0.2em; color: rgba(232, 229, 222, 0.42);
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.42);
   }
-  .kx-vol__bajada {
-    margin: 14px 0 0; max-width: 46ch;
-    font-family: "Inter Tight", system-ui, sans-serif; font-size: clamp(0.95rem, 1.2vw, 1.1rem);
-    line-height: 1.5; color: rgba(232, 229, 222, 0.76);
-  }
+  .kx-vol__estrato { margin-top: 10px; color: color-mix(in srgb, var(--acc) 62%, #8b8b8b); }
 
-  /* El héroe conserva la proporción de la obra. El ancho de columna cambia
-     según su forma: apaisada pide más, vertical menos. */
   .kx-vol__hero {
     grid-area: hero; margin: 0; align-self: start;
-    width: 100%; max-height: 56vh;
-    border: 1px solid color-mix(in srgb, var(--acc) 26%, transparent);
+    width: 100%; max-height: 58vh;
+    border: 1px solid color-mix(in srgb, var(--acc) 24%, transparent);
     overflow: hidden;
   }
-  .kx-vol__hero--alto { justify-self: center; max-width: 72%; }
-  /* Sin height:100%. El stage del artefacto define su alto por aspect-ratio;
-     forzarle una altura lo dejaba colapsado y la obra no se dibujaba -- otra
-     vez el fallo mudo: estado "ready", textura cargada, canvas de alto cero. */
-  .kx-vol__artifact { width: 100%; }
+  .kx-vol__hero--alto { justify-self: center; max-width: 70%; }
+
+  .kx-vol__organismo { position: relative; width: 100%; aspect-ratio: 1; }
+  .kx-vol__organismo figcaption {
+    position: absolute; left: 10px; bottom: 8px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8px; letter-spacing: 0.18em; color: rgba(232, 229, 222, 0.38);
+  }
 
   .kx-vol__cuerpo {
-    grid-area: cuerpo; display: grid; gap: 16px; max-width: 58ch;
-    /* El cuerpo largo sí puede scrollear por dentro: la rueda no le roba el
-       gesto a un bloque que legítimamente scrollea. */
-    /* El cuerpo largo scrollea por DENTRO y la pagina no. Se mide contra el
-       alto real disponible, no contra el viewport entero: con 38vh sueltos la
-       lamina se pasaba 179px y aparecia scroll de pagina, que es regla dura.
-       La rueda respeta este bloque porque lleva data-kdx-scrollable. */
-    max-height: min(34vh, 300px); overflow-y: auto; padding-right: 10px;
+    grid-area: cuerpo; display: grid; gap: 14px; max-width: 56ch;
+    /* El cuerpo largo scrollea por DENTRO y la página no. Lleva
+       data-kdx-scrollable, así que la rueda no le roba el gesto. */
+    max-height: min(32vh, 280px); overflow-y: auto; padding-right: 10px;
   }
   .kx-vol__parrafo p {
     margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
-    font-size: 0.95rem; line-height: 1.62; color: rgba(232, 229, 222, 0.82);
+    font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
   }
   .kx-vol__en {
     margin-top: 6px !important; font-size: 0.82rem !important;
     color: rgba(232, 229, 222, 0.42) !important; font-style: italic;
   }
 
-  .kx-vol__formula {
-    padding: 14px 16px; border-left: 2px solid var(--acc);
-    background: rgba(255, 255, 255, 0.02);
-  }
-  .kx-vol__tex {
-    margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 1.05rem; color: #e8e5df; letter-spacing: 0.04em;
-  }
-  .kx-vol__lee {
-    margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
-    font-size: 0.88rem; line-height: 1.55; color: rgba(232, 229, 222, 0.72);
-  }
-  .kx-vol__lee--en { margin-top: 6px; font-size: 0.8rem; color: rgba(232, 229, 222, 0.4); font-style: italic; }
+  .kx-vol__formula { padding: 12px 14px; border-left: 2px solid var(--acc); background: rgba(255,255,255,0.02); }
+  .kx-vol__tex { margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1rem; color: #e8e5df; }
+  .kx-vol__lee { margin: 0; font-family: "Inter Tight", system-ui, sans-serif; font-size: 0.86rem; line-height: 1.5; color: rgba(232,229,222,0.72); }
+  .kx-vol__lee--en { margin-top: 6px; font-size: 0.78rem; color: rgba(232,229,222,0.4); font-style: italic; }
 
   .kx-vol__enlace {
-    justify-self: start; padding: 9px 14px;
-    border: 1px solid color-mix(in srgb, var(--acc) 46%, transparent);
+    justify-self: start; padding: 8px 13px;
+    border: 1px solid color-mix(in srgb, var(--acc) 44%, transparent);
     font-family: "IBM Plex Mono", ui-monospace, monospace;
     font-size: 10px; letter-spacing: 0.2em; color: #e8e5df; text-decoration: none;
   }
   .kx-vol__enlace:hover { background: color-mix(in srgb, var(--acc) 14%, transparent); }
 
-  .kx-vol__rail { grid-area: rail; display: grid; gap: 8px; align-content: start; }
+  .kx-vol__rail { grid-area: rail; display: grid; gap: 7px; align-content: start; min-width: 0; }
   .kx-vol__kv {
     display: flex; justify-content: space-between; gap: 14px;
-    padding-bottom: 5px; border-bottom: 1px solid rgba(232, 229, 222, 0.1);
+    padding-bottom: 5px; border-bottom: 1px solid rgba(232,229,222,0.1);
     font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 9px;
     letter-spacing: 0.16em; text-transform: uppercase;
   }
-  .kx-vol__kv span { color: rgba(232, 229, 222, 0.44); }
-  .kx-vol__kv b { color: #e8e5df; font-weight: 500; }
-  .kx-vol__tags {
-    margin: 6px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 9px; letter-spacing: 0.12em; color: color-mix(in srgb, var(--acc) 70%, #8b8b8b);
-  }
-  .kx-vol__eje { margin-top: 10px; }
-
-  .kx-vol__pie { grid-area: pie; align-self: end; }
-
-  .kx-vol__nav { display: flex; gap: 16px; margin-top: 10px; }
+  .kx-vol__kv span { color: rgba(232,229,222,0.44); }
+  .kx-vol__kv b { color: #e8e5df; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .kx-vol__eje { margin-top: 8px; }
+  .kx-vol__nav { display: flex; gap: 16px; margin-top: 8px; }
   .kx-vol__nav a {
     font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10px;
-    letter-spacing: 0.2em; color: rgba(232, 229, 222, 0.7); text-decoration: none;
+    letter-spacing: 0.2em; color: rgba(232,229,222,0.7); text-decoration: none;
   }
   .kx-vol__nav a:hover { color: var(--acc); }
 
+  .kx-vol__pie { grid-area: pie; align-self: end; }
+
   @media (max-width: 900px) {
     .kx-vol {
+      height: auto; min-height: 100dvh;
       grid-template-columns: 1fr;
       grid-template-areas: "cab" "hero" "cuerpo" "rail" "pie";
     }
-    .kx-vol__hero { max-height: 42vh; }
+    .kx-vol__hero { max-height: 40vh; }
     .kx-vol__hero--alto { max-width: 100%; }
     .kx-vol__cuerpo { max-height: none; overflow: visible; }
   }
