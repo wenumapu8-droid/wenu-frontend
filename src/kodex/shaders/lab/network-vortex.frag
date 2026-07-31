@@ -108,6 +108,17 @@ void main() {
   float finoA = trace(anillo * 2.0 + caida * 0.7, 2.0) * 0.24;
   malla += finoB + finoA;
 
+  // BRAZOS QUE SE ENCIENDEN Y SE APAGAN. En la referencia la red no esta toda
+  // prendida al mismo tiempo: hay ramas activas y ramas en sombra, y eso es lo
+  // que la hace parecer que esta pasando algo por ella. Cada brazo tiene su
+  // propio ciclo, lento y desfasado, y ninguno se apaga del todo -- una rama
+  // que desaparece se lee como un error de dibujo, no como una rama en reposo.
+  float idBrazo = floor(brazo);
+  float hb = hash21(vec2(idBrazo, 3.7) + u_seed);
+  float encendido = 0.34 + 0.66 * smoothstep(0.15, 0.85,
+    0.5 + 0.5 * sin(u_time * (0.18 + hb * 0.5) + hb * TAU));
+  malla *= encendido;
+
   // --- NODOS -------------------------------------------------------------
   vec2 celda = vec2(brazo, anillo);
   vec2 id = floor(celda);
@@ -129,6 +140,26 @@ void main() {
   // Halo corto alrededor del nodo: sin el, los puntos se ven pegados encima.
   float halo = existe * exp(-d * 3.4) * 0.2 * latido;
 
+  // --- PULSOS QUE VIAJAN ---------------------------------------------------
+  // Paquetes de luz recorriendo las lineas hacia el centro. Es lo que separa
+  // una red dibujada de una red POR LA QUE PASA ALGO: sin esto la malla se
+  // mueve entera, y lo que tiene que moverse es lo que circula por ella.
+  //
+  // Cada brazo lanza el suyo con su propia fase, asi que nunca llegan todos
+  // juntos. El paquete vive sobre la traza del brazo -- fuera de la linea no
+  // se dibuja, porque un pulso que viaja por el vacio no viaja por nada.
+  float faseP = fract(anillo * 0.5 - u_time * 0.34 + hb);
+  float paquete = exp(-faseP * 9.0) + exp(-(1.0 - faseP) * 22.0);
+  float pulsoViajero = paquete * tBrazo * encendido;
+
+  // --- FONDO GRANULAR ------------------------------------------------------
+  // La capa de atras: puntos finos y ruido, muy tenue. En la referencia hay
+  // profundidad por capas -- filamentos brillantes al frente, polvo al fondo --
+  // y sin esa capa el negro se ve plano, como papel en vez de espacio.
+  vec2 grano = floor(gl_FragCoord.xy / 3.0);
+  float polvo = hash21(grano + floor(u_time * 3.0) * 0.13);
+  polvo = step(0.9955, polvo) * 0.5 + hash21(grano) * 0.035;
+
   // --- CUERPO ------------------------------------------------------------
   // Nucleo: la red se enciende hacia el centro y se apaga en el borde, que es
   // lo que la hace un vortice y no un papel mural.
@@ -138,7 +169,10 @@ void main() {
   // se aprieta hasta el infinito y sale un bulto blanco. Se apaga el ojo del
   // vortice, que ademas es lo que le da el hueco de la referencia.
   float ojo = smoothstep(0.008, 0.055, r);
-  float energia = (malla * 0.72 + nodo * 1.5 + halo) * mix(0.42, 1.0, nucleo) * borde * ojo;
+  float energia = (malla * 0.72 + nodo * 1.5 + halo + pulsoViajero * 1.1) * mix(0.42, 1.0, nucleo) * borde * ojo;
+  // El polvo no pasa por el ojo ni por el nucleo: es fondo, ocupa todo el
+  // cuadro y no pertenece a la estructura de la espiral.
+  energia += polvo * borde * 0.5;
 
   // Pulso lento que recorre la espiral hacia afuera: la red respira.
   float pulso = 0.5 + 0.5 * sin(lr * 3.4 - u_time * 1.1);
@@ -152,8 +186,8 @@ void main() {
   vec3 frio  = vec3(0.30, 0.72, 1.00);
   vec3 calido = vec3(1.00, 0.74, 0.38);
   vec3 color = mix(frio, calido, tono);
-  // Los nodos tiran a blanco: son el punto mas caliente de la red.
-  color = mix(color, vec3(1.0), clamp(nodo * 0.8, 0.0, 0.85));
+  // Los nodos y los pulsos tiran a blanco: son los puntos mas calientes.
+  color = mix(color, vec3(1.0), clamp(nodo * 0.8 + pulsoViajero * 0.55, 0.0, 0.9));
 
   // Se entrega con la traza cerca del tope del rango. La etapa de grado del
   // runtime recorta por piso y afina con una curva de potencia: un campo que
