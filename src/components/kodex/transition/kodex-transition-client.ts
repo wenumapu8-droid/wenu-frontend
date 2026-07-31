@@ -11,6 +11,7 @@
  * escena siguiente se siente como continuación y no como página nueva.
  */
 import { estadoEscena, montarEstadoEscena } from "../../../lib/kodex/estado";
+import { montarRueda } from "../../../lib/kodex/scroll";
 
 const REDUCIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -149,6 +150,11 @@ const montar = () => {
   const raiz = document.querySelector<HTMLElement>("[data-kdx-ritual]");
   if (!raiz) return;
   montarEstadoEscena();
+  // La rueda se monta desde acá y no desde el campo: el ritual está en las
+  // siete láminas y el campo no. Montarla desde el campo dejaba sin
+  // herramienta a las escenas sin organismo -- ARCHIVE y RETURN -- y la regla
+  // de "el scroll es una herramienta" no admite excepciones por escena.
+  montarRueda();
   ritual = new Ritual(raiz);
 
   // Se expone para que el motor del deck lo use en vez de su desvanecido.

@@ -84,6 +84,23 @@ class Sonda {
     })();
     f.push(["webgl2", gl2 ? "si" : "NO — sin portal", !gl2]);
 
+    // Si un preset no arrancó, decirlo con nombre. Un campo caído se ve
+    // igual que una escena sobria, y esa ambiguedad ya costo horas.
+    if (campo?.dataset.kdxFieldError) {
+      f.push(["campo caido", campo.dataset.kdxFieldError, true]);
+    }
+
+    // La rueda: qué herramienta declaró la escena y cuánto lleva girado. Sin
+    // esto, "el scroll no hace nada" tiene tres causas posibles y ninguna se
+    // distingue de las otras.
+    const r = (window as unknown as { __kdxRueda?: { herramienta: string; valor: number; progreso: number } }).__kdxRueda;
+    const decl = document.querySelector<HTMLElement>("[data-kdx-tool]")?.dataset.kdxTool;
+    f.push([
+      "rueda",
+      r ? `${r.herramienta} · ${r.valor.toFixed(2)}` : decl ? `${decl} · SIN MONTAR` : "sin herramienta",
+      Boolean(decl) && !r,
+    ]);
+
     // "CERO scroll de pagina" es regla dura de la mision: cada escena es un
     // viewport. Se vigila acá porque es exactamente el tipo de rotura que no
     // avisa -- la pagina scrollea y nadie lo nota hasta que alguien la abre en

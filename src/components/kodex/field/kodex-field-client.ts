@@ -24,6 +24,7 @@
 
 import { perfilKodex } from "../../../lib/kodex/perf";
 import { estadoEscena, montarEstadoEscena } from "../../../lib/kodex/estado";
+import { montarRueda } from "../../../lib/kodex/scroll";
 
 const VERT = `#version 300 es
 precision highp float;
@@ -368,7 +369,40 @@ class KodexField {
     if (this.targets.length < 2) return;
 
     const now = performance.now();
-    const time = ((now - this.start) / 1000) * this.options.speed;
+
+    // LA RUEDA MUEVE EL TIEMPO DE LA ESCENA.
+    //
+    // Primer intento: mandar la rueda por u_scrollProgress. No hizo nada --
+    // los shaders del lab no declaran ese uniform, asi que era un no-op y la
+    // rueda giraba en el vacio.
+    //
+    // Esto es mejor y no es un rodeo. En estas escenas el tiempo ES el
+    // movimiento propio: el corredor cae con el tiempo, la orbita gira con el
+    // tiempo, el patron se rehace con el tiempo. Mover el tiempo desde la
+    // rueda convierte el gesto en "avanzar la escena", que es exactamente lo
+    // que cada herramienta significa -- descender, orbitar, recorrer,
+    // reensamblar. Un solo mecanismo, sentido correcto en cada lamina.
+    //
+    // El campo nunca se congela: el tiempo propio sigue corriendo debajo. La
+    // rueda adelanta, no reemplaza.
+    const rueda = (window as unknown as {
+      __kdxRueda?: { valor: number; progreso: number; herramienta: string };
+    }).__kdxRueda;
+    // Cuanto adelanta la rueda depende de la herramienta, y no es capricho:
+    // cada escena se mueve a su ritmo y el mismo empuje no significa lo mismo
+    // en todas. Medido -- con 40 segundos parejos, MACHINE cambiaba 3.9% y el
+    // corredor de DESCENT no se movia nada, porque su ciclo propio es mucho
+    // mas largo. Descender tiene que sentirse como avanzar, no como esperar.
+    const ESCALA: Record<string, number> = {
+      descender: 150,     // el corredor entero pasa
+      recorrer: 110,      // se avanza por el catalogo
+      reensamblar: 90,    // el patron se rehace
+      orbitar: 70,        // la orbita completa una vuelta larga
+      intensificar: 45,   // sube, no viaja
+      girar: 0,           // gira por su propio uniform, no por el tiempo
+    };
+    const empuje = rueda ? rueda.valor * (ESCALA[rueda.herramienta] ?? 40) : 0;
+    const time = ((now - this.start) / 1000) * this.options.speed + empuje;
     const delta = Math.min(0.05, (now - this.last) / 1000);
     this.last = now;
 
@@ -393,8 +427,11 @@ class KodexField {
     this.pointerPrev = { x: this.pointer.x, y: this.pointer.y };
     gl.uniform2f(u("u_pointerVelocity"), this.pointerVel.x, this.pointerVel.y);
 
-    const alto = Math.max(1, document.documentElement.scrollHeight - innerHeight);
-    gl.uniform1f(u("u_scrollProgress"), Math.min(1, scrollY / alto));
+    // El progreso YA no sale del scroll del documento -- no hay scroll de
+    // documento. Sale de la rueda, que es la herramienta de la escena. Los
+    // shaders del lab que declaran u_scrollProgress lo reciben sin cambios y
+    // pasan a responder al gesto en vez de a un valor que siempre era cero.
+    gl.uniform1f(u("u_scrollProgress"), rueda?.progreso ?? 0);
 
     const est = estadoEscena();
     gl.uniform1f(u("u_sceneProgress"), est.intensidad);
@@ -526,10 +563,28 @@ const boot = async (): Promise<void> => {
       if (!load) throw new Error(`KODEX field: shader desconocido "${name}"`);
       new KodexField(root, await load());
     } catch (error) {
-      // Nunca romper la lámina por el fondo: se apaga y queda el campo CSS
-      // que ya existía debajo.
-      console.warn(error);
-      root.dataset.kdxFieldState = "fallback";
+      // Un preset que no compila dejaba la lámina SIN campo y en silencio:
+      // el elemento montado, el estado en orden, el fondo plano. Es el mismo
+      // fallo mudo que ya costó horas en este proyecto -- pasó de nuevo con
+      // split-corridor en DESCENT y archive-orbit en COSMOLOGY, y sólo se
+      // detectó comparando capturas.
+      //
+      // Ahora hace dos cosas: se anota el motivo para que la sonda lo muestre,
+      // y se cae al vórtice, que compila en todas partes. Una escena con el
+      // campo equivocado se nota y se corrige; una escena sin campo se ve
+      // "así de sobria" y se queda años.
+      console.warn(`[kodex-field] "${name}" no arrancó:`, error);
+      root.dataset.kdxFieldError = String((error as Error)?.message ?? error).slice(0, 120);
+
+      if (name !== "network-vortex") {
+        try {
+          new KodexField(root, await SHADERS["network-vortex"]());
+          root.dataset.kdxFieldState = "fallback";
+          root.dataset.field = `${name} → network-vortex`;
+          continue;
+        } catch { /* si tampoco el vórtice, se apaga */ }
+      }
+      root.dataset.kdxFieldState = "failed";
     }
   }
 };
