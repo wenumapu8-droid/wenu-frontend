@@ -75,6 +75,13 @@ class Sonda {
       ["dpr", String(devicePixelRatio || 1)],
     ];
 
+    // "CERO scroll de pagina" es regla dura de la mision: cada escena es un
+    // viewport. Se vigila acá porque es exactamente el tipo de rotura que no
+    // avisa -- la pagina scrollea y nadie lo nota hasta que alguien la abre en
+    // una ventana mas baja y ve medio pie cortado.
+    const sobra = document.documentElement.scrollHeight - innerHeight;
+    f.push(["scroll", sobra > 4 ? `+${sobra}px DE MAS` : "un viewport", sobra > 4]);
+
     if (bus) {
       f.push([
         "audio",

@@ -58,6 +58,8 @@ const bars = Array.from({ length: 44 }, (_, i) => {
     <time class="kdx-sysfoot__value" data-kdx-utc>--:--:--</time>
     <span class="kdx-sysfoot__label">UPTIME</span>
     <span class="kdx-sysfoot__value" data-kdx-uptime>00:00:00</span>
+    <span class="kdx-sysfoot__label">ENERGY</span>
+    <span class="kdx-sysfoot__meter" aria-hidden="true"><i data-kdx-energy></i></span>
   </div>
 
   <div class="kdx-sysfoot__signals" aria-hidden="true">
@@ -68,7 +70,7 @@ const bars = Array.from({ length: 44 }, (_, i) => {
 
   <div class="kdx-sysfoot__meta">
     <span>{kind}</span>
-    <span class="kdx-sysfoot__checksum">CHECKSUM {checksum}</span>
+    <span class="kdx-sysfoot__checksum">CHECKSUM <span data-kdx-checksum>{checksum}</span></span>
   </div>
 </footer>
 
@@ -91,6 +93,11 @@ const bars = Array.from({ length: 44 }, (_, i) => {
 
   latir();
   let id = window.setInterval(latir, 1000);
+
+  // Los demas datos del HUD -- energia, hex, coordenadas, checksum, registro --
+  // los mueve un solo modulo. La Receta Madre lo pone como pregunta de
+  // aprobacion: "¿los codigos respiran?".
+  import("../../../lib/kodex/vivos").then((m) => m.montarDatosVivos());
   // En segundo plano no hay a quién decirle la hora.
   document.addEventListener("visibilitychange", () => {
     window.clearInterval(id);
@@ -106,7 +113,7 @@ const bars = Array.from({ length: 44 }, (_, i) => {
     gap: clamp(14px, 3vw, 42px);
     padding: 8px clamp(12px, 2vw, 26px);
     border-top: 1px solid color-mix(in srgb, var(--kdx-sysfoot-accent) 22%, transparent);
-    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
     font-size: 9px;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -125,6 +132,20 @@ const bars = Array.from({ length: 44 }, (_, i) => {
   /* Los dígitos cambian cada segundo: sin cifras de ancho fijo el bloque
      entero se movería en cada tic. */
   .kdx-sysfoot__value { color: #e6e6e6; font-variant-numeric: tabular-nums; }
+
+  /* El medidor de energia sigue al audio cuando suena y respira lento cuando
+     no. Plano seria "roto"; respirando es "sin señal". */
+  .kdx-sysfoot__meter {
+    position: relative; display: inline-block; width: 64px; height: 3px;
+    background: color-mix(in srgb, var(--kdx-sysfoot-accent) 18%, transparent);
+    vertical-align: middle;
+  }
+  .kdx-sysfoot__meter i {
+    position: absolute; inset: 0 auto 0 0; width: 8%;
+    background: var(--kdx-sysfoot-accent);
+    box-shadow: 0 0 8px var(--kdx-sysfoot-accent);
+    transition: width 120ms linear;
+  }
 
   .kdx-sysfoot__signals { display: flex; align-items: center; gap: 12px; color: var(--kdx-sysfoot-accent); opacity: 0.8; }
 

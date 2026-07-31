@@ -44,7 +44,7 @@ class KodexAscii {
       // La celda chica es lo que hace legible la trama; en móvil el motor ya
       // la sube solo, así que acá basta con pedir el perfil bueno.
       profile: matchMedia("(max-width: 700px)").matches ? "balanced" : "full",
-      fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+      fontFamily: '"IBM Plex Mono", ui-monospace, monospace',
       palette: palette && palette.length >= 2 ? palette : undefined,
     });
 
