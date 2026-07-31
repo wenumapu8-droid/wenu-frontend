@@ -22,6 +22,8 @@
  *    para los que el shader no declara y asignar sobre null es un no-op seguro.
  */
 
+import { perfilKodex } from "../../../lib/kodex/perf";
+
 const VERT = `#version 300 es
 precision highp float;
 in vec2 a_position;
@@ -305,7 +307,11 @@ class KodexField {
     if (!rect.width || !rect.height) return;
     // El campo es atmósfera: se renderiza a media resolución y se deja que el
     // navegador lo escale. Cuesta la mitad y no se nota en un fondo difuso.
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * 0.6;
+    // La escala la fija el perfil de rendimiento: en un equipo lento el costo
+    // esta en la cantidad de pixeles, no en la logica del shader. Bajar
+    // resolucion conserva la composicion entera, que es lo que la receta madre
+    // pide no sacrificar nunca.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5) * 0.6 * perfilKodex().escala;
     const w = Math.max(2, Math.round(rect.width * dpr));
     const h = Math.max(2, Math.round(rect.height * dpr));
     if (canvas.width === w && canvas.height === h) return;
@@ -366,7 +372,10 @@ class KodexField {
     gl.uniform2f(u("u_resolution"), canvas.width, canvas.height);
     gl.uniform2f(u("u_pointer"), this.pointer.x, this.pointer.y);
     gl.uniform1f(u("u_seed"), this.options.seed);
-    gl.uniform1f(u("u_feedback"), this.options.feedback);
+    // Sin la pasada al framebuffer el "cuadro previo" queda congelado. Si la
+    // mezcla siguiera encendida, el shader mancharia contra una imagen vieja
+    // que ya nadie actualiza -- peor que no tener rastro.
+    gl.uniform1f(u("u_feedback"), perfilKodex().feedback ? this.options.feedback : 0);
     // El preset ve intensidad plena: el brillo lo fija la etapa de grado, que
     // es la única que lo aplica igual para todos.
     gl.uniform1f(u("u_intensity"), 1);
@@ -421,12 +430,17 @@ class KodexField {
     gl.uniform1i(u("u_previousFrame"), 0);
 
     // Pasada 1: al framebuffer, para que quede disponible como cuadro previo.
-    gl.bindFramebuffer(gl.FRAMEBUFFER, write.fb);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    // En LOW-POWER se salta: el rastro temporal cuesta una pasada completa mas
+    // dos texturas, y es lo primero que sobra cuando el equipo no da.
+    const conRastro = perfilKodex().feedback;
+    if (conRastro) {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, write.fb);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
 
-    // Pasada 2: a pantalla.
+    // Pasada a pantalla.
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);

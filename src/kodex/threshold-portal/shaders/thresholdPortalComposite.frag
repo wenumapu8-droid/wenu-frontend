@@ -69,7 +69,15 @@ void main() {
   vec2 uv = blockPos / max(u_res, vec2(1.0));
 
   // 2 · CHROMA. Un bloque a lo sumo; mas que eso es un efecto, no una señal.
-  float chroma = px / max(u_res.x, 1.0) * 0.55;
+  //
+  // La separacion se ata a la resolucion real. El bloque se mide en pixeles y
+  // el desplazamiento en coordenadas de textura: al bajar la resolucion en un
+  // perfil de bajo consumo, el mismo bloque ocupa proporcionalmente mas y la
+  // aberracion se disparaba hasta volverse confeti de colores. La receta
+  // permite bajar complejidad, no perder la identidad -- y el portal es rojo y
+  // blanco, no arcoiris.
+  float escala = clamp(u_res.x / 1400.0, 0.35, 1.0);
+  float chroma = px / max(u_res.x, 1.0) * 0.55 * escala;
   vec4 src = texture(u_tex, uv);
   vec3 col = vec3(
     texture(u_tex, uv + vec2(-chroma, 0.0)).r,
@@ -96,7 +104,14 @@ void main() {
   // rojo del portal.
   // El piso del divisor no puede ser muy bajo: donde la imagen es casi negra,
   // dividir por 0.04 multiplica por 25 y el ruido del fondo se vuelve bloque.
-  col *= dithered / max(l, 0.22);
+  //
+  // Y la ganancia lleva techo. Sin el, un pixel oscuro con un desbalance
+  // minimo de canales se multiplicaba por casi cinco y ese desbalance salia a
+  // la superficie como color saturado: en baja resolucion, donde cada bloque
+  // muestrea texeles distintos, el portal se volvia confeti de colores. El
+  // portal es rojo y blanco.
+  float ganancia = clamp(dithered / max(l, 0.22), 0.0, 1.8);
+  col *= ganancia;
 
   col *= mix(0.96, 1.0, sin(v_uv.y * u_res.y * 3.14159) * 0.5 + 0.5);
   col *= smoothstep(1.18, 0.22, length(v_uv - 0.5));

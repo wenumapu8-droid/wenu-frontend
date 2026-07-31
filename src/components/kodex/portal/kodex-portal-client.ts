@@ -14,6 +14,10 @@ import {
   KdxThresholdPortalRuntime,
   THRESHOLD_PORTAL_MOTION,
 } from "../../../kodex/threshold-portal/index.js";
+import { perfilKodex } from "../../../lib/kodex/perf";
+
+/** El runtime nombra sus niveles en mayusculas; el perfil, en minuscula. */
+const NIVEL = { "full": "HIGH", "balanced": "MEDIUM", "low-power": "LOW" } as const;
 
 type BusDeAudio = { activo: boolean; low: number; mid: number; high: number };
 
@@ -43,6 +47,10 @@ class KodexPortal {
       this.escuchar();
       this.seguirPuntero();
     }
+
+    // El portal sigue al perfil en vivo: si el equipo no da, baja de nivel sin
+    // recargar y sin perder la obra. Se sacrifica resolucion, nunca la pieza.
+    perfilKodex().suscribir((p) => this.runtime.setQualityLevel(NIVEL[p]));
 
     (root as any).__kdxPortal = this;
   }
