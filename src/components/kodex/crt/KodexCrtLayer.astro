@@ -1,0 +1,30 @@
+---
+interface Props {
+  sourceSelector: string;
+  preset?: 'neutral' | 'threshold' | 'observe' | 'descent' | 'archive' | 'machine' | 'cosmology' | 'return';
+  quality?: 'full' | 'balanced' | 'low-power';
+  class?: string;
+}
+const { sourceSelector, preset = 'observe', quality = 'balanced', class: className = '' } = Astro.props;
+const id = `kdx-crt-${crypto.randomUUID()}`;
+// El CRT es tratamiento, no contenido: nunca entra en el orden de lectura ni
+// captura el puntero. Lo que hay debajo sigue siendo la obra.
+---
+<div id={id} class={`kdx-crt-mount ${className}`} data-source-selector={sourceSelector} data-preset={preset} data-quality={quality} aria-hidden="true"></div>
+<script>
+  // El runtime vive en src/ y no en public/: asi Vite lo empaqueta, lo versiona
+  // junto al codigo y no queda un import a una ruta publica que el bundler no
+  // puede resolver. Es 14 KB y no tiene dependencias.
+  import { mountKodexCrt } from '../../../kodex/crt/kodex-crt.esm.js';
+  document.querySelectorAll<HTMLElement>('.kdx-crt-mount:not([data-mounted])').forEach((mount) => {
+    mount.dataset.mounted = '1';
+    const source = document.querySelector(mount.dataset.sourceSelector || '');
+    const container = mount.parentElement;
+    if (!source || !container) return console.warn('KODEX CRT source/container missing');
+    container.classList.add('kdx-crt-host');
+    (mount as any).__kdxCrt = mountKodexCrt({ source, container, preset: mount.dataset.preset, quality: mount.dataset.quality });
+  });
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll<HTMLElement>('.kdx-crt-mount').forEach((mount) => (mount as any).__kdxCrt?.destroy?.());
+  }, { once: true });
+</script>

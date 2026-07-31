@@ -11,6 +11,7 @@ import KodexRail from '../../../components/kodex/density/KodexRail.astro';
 import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.astro';
 import KodexField from '../../../components/kodex/field/KodexField.astro';
 import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
+import KodexCrtLayer from '../../../components/kodex/crt/KodexCrtLayer.astro';
 import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
 import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
 import '../../../styles/kodex-micrographics.css';
@@ -148,6 +149,27 @@ const tintByFolio = {
 const sceneRecipe = recipeFor(folio);
 const sceneGrid = gridFor(folio);
 const sceneMotion = motionVars(folio);
+/**
+ * El TRATAMIENTO de cada lámina, que es lo que la distingue.
+ *
+ * La regla del proyecto: una gramática, siete productos. Si tapo el chrome y
+ * pongo dos escenas lado a lado tienen que distinguirse al instante por
+ * organismo, tratamiento y color, y reconocerse como el mismo sistema. Si las
+ * siete parecen la misma lámina recoloreada, está mal.
+ *
+ * El CRT MASTER KIT trae un preset por escena -- observe, descent, archive,
+ * machine, cosmology, return -- y el de `observe` viene con tinte violeta
+ * [0.72, 0.48, 1.0], que es el acento de PROLOGUE. Fue escrito contra esta
+ * misma tabla.
+ *
+ * Se va conectando escena por escena. Las que todavía no tienen su preset
+ * siguen con el campo de red, que es de donde vienen.
+ */
+const crtByFolio = {
+  i: 'observe',
+};
+const sceneCrt = crtByFolio[folio] ?? null;
+
 const sceneField = {
   field: 'network-vortex',
   // La intensidad acompaña a la densidad de la receta: una lámina que la
@@ -220,7 +242,10 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
         <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug}>
           <KodexRegistration accent={sceneByFolio.accent} />
 
-          <KodexField
+          {/* El campo de red sólo donde la escena todavía no tiene su propio
+              tratamiento. Correr los dos deja dos sistemas peleando por el
+              mismo fondo. */}
+          {!sceneCrt && <KodexField
             field={sceneField.field}
             intensity={sceneField.intensity}
             feedback={sceneField.feedback}
@@ -231,7 +256,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             speed={sceneField.speed}
             seed={idx + 1}
             class="kx-os-stage__livefield"
-          />
+          />}
 
           <div class="kx-os-stage__field" aria-hidden="true">
             <span class="kx-os-stage__grid"></span>
@@ -357,8 +382,19 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
               />
             )}
             {folio === 'iv' && <canvas class="kx-machine-canvas" data-machine-canvas width="720" height="720"></canvas>}
+            {sceneCrt && (
+              <img
+                class="kx-os-stage__crt-source"
+                src={sceneByFolio.image}
+                alt=""
+                aria-hidden="true"
+                decoding="async"
+              />
+            )}
             {folio === 'v'
               ? <div class="kx-os-stage__cosmo"><CosmologyMap /></div>
+              : sceneCrt
+              ? null
               : (
                 /* La obra como ARTIFACT, no como <img> plana: pixelada, con
                    dither Bayer, scanlines y glow del color de la escena. Cada
@@ -380,12 +416,37 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   class="kx-os-stage__artifact"
                 />
               )}
+            {/* TRATAMIENTO CRT — la piel de PROLOGUE.
+                La tabla de distincion pide "CRT scanline + chroma" con barrido
+                de scan, y el preset `observe` del kit trae su propio violeta
+                [0.72 0.48 1.0], que es el acento de esta lamina. Fue escrito
+                contra esta misma tabla.
+
+                La FUENTE es la obra como <img>, no el canvas del artefacto.
+                Ese canvas es WebGL sin preserveDrawingBuffer: fuera de su
+                propio dibujo el buffer no se puede leer, asi que usarlo de
+                textura daba negro. Activarlo cuesta rendimiento en todas las
+                laminas para que sirva en una sola; la obra directa no cuesta
+                nada y es la misma pieza.
+
+                En esta lamina el CRT NO va encima del artefacto: ES el
+                tratamiento. Organismo por tratamiento, uno por escena. */}
+            {sceneCrt && (
+              <KodexCrtLayer
+                sourceSelector=".kx-os-stage__crt-source"
+                preset={sceneCrt}
+                quality="balanced"
+                class="kx-os-stage__crt"
+              />
+            )}
+
             {/* El pie de la placa sólo cuando la placa no trae obra. El
                 artefacto se rotula solo -- ARTIFACT / KDX-0n / ARCHIVED -- y
                 mantener los dos dejaba dos leyendas encimadas diciendo lo
                 mismo en la misma esquina. */}
             {folio === 'v' && (
-              <figcaption>{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · {sceneByFolio.motif}</figcaption>
+
+            <figcaption>{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · {sceneByFolio.motif}</figcaption>
             )}
           </figure>
 
