@@ -35,6 +35,9 @@ uniform float reveal;           // 0..1 para la entrada
 // alpha del archivo (mandala, PNG recortados).
 uniform float lumaKey;
 uniform float lumaFloor;        // por debajo de esto se considera fondo
+// Cuanto del acento entra EN la pieza. Bajo por defecto: la obra se lee
+// clara y el color vive en el ambiente, como en los boards.
+uniform float tint;
 
 varying vec2 v_texcoord;
 
@@ -127,9 +130,13 @@ void main() {
   float l = luma(art);
   float levels = mix(24.0, 4.0, ditherAmount);
   float dithered = floor(l * levels + threshold * ditherAmount + 0.5) / levels;
-  vec3 tinted = accent * dithered;
-  // Se conserva algo del color propio de la pieza: tratada, no repintada.
-  vec3 color = mix(art * (0.35 + dithered * 0.65), tinted, 0.72);
+  // La obra se mantiene clara y el acento vive en el AMBIENTE -- anillos,
+  // paneles, glow -- no dentro de la pieza. En la referencia de THRESHOLD el
+  // mandala es blanco sobre negro y el rojo esta alrededor; tenirlo al 72%,
+  // como estaba, se comia el patron justo cuando la pieza es el motivo de
+  // toda la lamina.
+  vec3 base = mix(vec3(dithered), art * (0.45 + dithered * 0.55), 0.35);
+  vec3 color = mix(base, accent * dithered, tint);
 
   // 4 · GLOW. Halo del color de la escena alrededor de la pieza, muestreando
   //     el alpha en cruz. Barato y suficiente a esta escala.

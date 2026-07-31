@@ -26,6 +26,7 @@ type ArtifactOptions = {
   chroma: number;
   flicker: number;
   lumaFloor: number;
+  tint: number;
 };
 
 const DEFAULTS: ArtifactOptions = {
@@ -36,6 +37,7 @@ const DEFAULTS: ArtifactOptions = {
   chroma: 0.6,
   flicker: 0.5,
   lumaFloor: 0.12,
+  tint: 0.18,
 };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -97,6 +99,7 @@ class KodexArtifact {
       chroma: Number(root.dataset.chroma ?? DEFAULTS.chroma),
       flicker: Number(root.dataset.flicker ?? DEFAULTS.flicker),
       lumaFloor: Number(root.dataset.lumaFloor ?? DEFAULTS.lumaFloor),
+      tint: Number(root.dataset.tint ?? DEFAULTS.tint),
     };
     this.accent = hexToRgb(root.dataset.accent ?? "#FF2733");
     // Se puede forzar desde la plantilla cuando la deteccion no acierta.
@@ -176,7 +179,7 @@ class KodexArtifact {
     const names = [
       "artwork", "resolution", "artworkSize", "time", "accent", "pixelSize",
       "ditherAmount", "scanlineAmount", "glowAmount", "chromaAmount",
-      "flickerAmount", "reducedMotion", "reveal", "lumaKey", "lumaFloor",
+      "flickerAmount", "reducedMotion", "reveal", "lumaKey", "lumaFloor", "tint",
     ];
     for (const name of names) {
       this.uniforms.set(name, this.gl.getUniformLocation(this.program, name));
@@ -342,6 +345,7 @@ class KodexArtifact {
     gl.uniform1f(u("reveal"), this.reveal);
     gl.uniform1f(u("lumaKey"), this.lumaKey < 0 ? 0 : this.lumaKey);
     gl.uniform1f(u("lumaFloor"), this.options.lumaFloor);
+    gl.uniform1f(u("tint"), this.options.tint);
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
