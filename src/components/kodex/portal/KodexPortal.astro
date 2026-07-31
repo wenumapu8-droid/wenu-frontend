@@ -1,0 +1,86 @@
+---
+/**
+ * KODEX-∞ · PORTAL
+ *
+ * El visualizador de THRESHOLD. No es un fondo con la obra encima: la obra ES
+ * la textura del shader. Eso es lo que separa a KODEX de un sitio con efectos
+ * -- acá el contenido vive DENTRO de la visualización, como en MilkDrop el
+ * tema vive dentro del preset.
+ *
+ * El motor de tres pasadas (source → feedback → composite) ya existía en
+ * `src/kodex/threshold-portal/` y nunca se había conectado a la página. Este
+ * componente no lo reescribe: lo monta y le da de comer.
+ *
+ * Qué le entra:
+ *  · u_tex     la obra real
+ *  · u_bass    los graves del motor de audio, por cuadro
+ *  · u_pointer el puntero, que sesga el portal y abre el filtro del sonido
+ *  · u_state   DORMANT → AWARE → OPEN, el mismo valor para audio e imagen
+ */
+interface Props {
+  /** La obra. Va cruda al sampler: el tratamiento lo hace el composite. */
+  artwork?: string;
+  /** Semilla del portal. Cambiarla da otra realización del mismo portal. */
+  seed?: number;
+  label?: string;
+  class?: string;
+}
+
+const {
+  artwork = "/img/brand/wenu-mandala-transparent.png",
+  seed = 0.382,
+  label = "THRESHOLD PORTAL",
+  class: className = "",
+} = Astro.props;
+---
+
+<div
+  class:list={["kdx-portal", className]}
+  data-kdx-portal
+  data-artwork={artwork}
+  data-seed={seed}
+  role="img"
+  aria-label={label}
+>
+  <canvas class="kdx-portal__canvas" data-kdx-portal-canvas></canvas>
+  <noscript>
+    <img src={artwork} alt={label} class="kdx-portal__fallback" />
+  </noscript>
+</div>
+
+<script>
+  import "./kodex-portal-client.ts";
+</script>
+
+<style>
+  .kdx-portal {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+  }
+
+  .kdx-portal__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    /* Entrada larga: el portal tiene que aparecer como algo que se enciende,
+       no como una imagen que carga. */
+    transition: opacity 1400ms ease;
+  }
+  .kdx-portal[data-kdx-portal-state="ready"] .kdx-portal__canvas { opacity: 1; }
+
+  .kdx-portal__fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-portal__canvas { transition: none; }
+  }
+</style>

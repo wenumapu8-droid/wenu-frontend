@@ -35,8 +35,11 @@ export const THRESHOLD_PORTAL_CONFIG = Object.freeze({
     line: [0.96, 0.83, 0.75],
   },
   feedback: {
-    decay: 0.93,
-    mix: 0.34,
+    // El rastro se acumula cuadro a cuadro: con mezcla alta el rojo del halo
+    // se esparce hasta llenar el disco y lo que era un borde termina siendo
+    // una mancha. Corto es memoria; largo es pintura.
+    decay: 0.88,
+    mix: 0.17,
   },
   breathing: {
     dormant: 0.025,

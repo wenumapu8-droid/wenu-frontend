@@ -49,14 +49,44 @@ void main() {
   vec4 artwork = texture(u_tex, sampleUv);
   float mask = artwork.a > 0.0 ? artwork.a : dot(artwork.rgb, vec3(0.3333));
 
-  float ring = smoothstep(0.72, 0.18, radius);
+  // El anillo define hasta donde llega el portal. Ancho, el disco entero se
+  // llena de ambiente y el negro se pierde; el sistema pide negro dominante y
+  // el color como señal.
+  float ring = smoothstep(0.50, 0.14, radius);
   float halo = exp(-8.0 * abs(radius - 0.22 - bassPulse * 0.5));
   float grain = (hash21(gl_FragCoord.xy + u_seed * 100.0) - 0.5) * 0.025;
 
-  vec3 base = mix(vec3(0.02, 0.01, 0.01), vec3(0.75, 0.08, 0.09), mask);
-  base += vec3(1.0, 0.26, 0.14) * halo * (0.35 + 0.4 * u_state);
+  // La obra es BLANCA y el rojo vive alrededor.
+  //
+  // Antes esto era mix(negro, rojo, mask): donde el mandala era opaco salia
+  // rojo pleno, y como el mandala es denso, la lamina entera se volvia una
+  // masa roja. Eso es pintura, y la regla del sistema es que el color sea
+  // señal -- negro dominante, un acento por escena, mucho aire negro.
+  //
+  // Con la obra en blanco se lee la geometria, que es el motivo de la lamina,
+  // y el rojo queda donde tiene que estar: en el halo y en el borde, como
+  // ambiente del portal y no como relleno de la pieza.
+  float cuerpo = smoothstep(0.42, 0.92, mask);
+  vec3 base = vec3(0.02, 0.012, 0.012);
+  base += vec3(0.94, 0.90, 0.88) * cuerpo * 0.86;
+
+  // El acento va en el CONTORNO real de la obra, medido por derivada, no en su
+  // franja de alfa medio. Restar el cuerpo a un smoothstep de alfa parece un
+  // borde y no lo es: en una obra con alfa suave -- y el centro de este mandala
+  // lo tiene -- esa franja es un area enorme, y lo que salia era un disco rojo
+  // pleno en el medio de la pieza. fwidth mide donde el alfa CAMBIA, que es
+  // donde esta el filo de verdad, y da una linea de un pixel.
+  float filo = smoothstep(0.0, 1.0, length(vec2(dFdx(mask), dFdy(mask))) * 14.0);
+  base += vec3(0.86, 0.10, 0.10) * filo * 0.55;
+
+  // El halo es un filo, no un relleno. Medido sobre la captura, con el valor
+  // anterior el cuadro quedaba en 69% de negro y 22% con color fuerte: la
+  // receta pide ~85% de negro. Esto lo baja a un borde de luz.
+  base += vec3(1.0, 0.26, 0.14) * pow(halo, 2.2) * (0.16 + 0.20 * u_state);
   base *= ring;
   base += grain;
 
-  o = vec4(base, max(mask, ring * 0.18));
+  // El alfa sigue a la pieza. El 18% del anillo que habia antes tapaba de rojo
+  // todo el disco aunque no hubiera obra ahi.
+  o = vec4(base, max(cuerpo, halo * 0.5 * ring));
 }
