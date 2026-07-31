@@ -236,6 +236,15 @@ export function initKxAudio(root) {
   };
 
   btn.addEventListener('click', () => setOn(!on));
+
+  // Los cuatro estados del archivo mueven las frecuencias. Se expone para que
+  // la fase los cambie: asi imagen y sonido se mueven con el MISMO valor en
+  // vez de coordinar dos animaciones.
+  window.__kxSetState = (clave) => {
+    if (!ctx || !bright) return;
+    const F = { E00: P.bright, T01: P.bright * 1.6, M11: P.bright * 2.6, R10: P.bright * 1.2 }[clave];
+    if (F) bright.frequency.setTargetAtTime(F, ctx.currentTime, 0.9);
+  };
   // re-arm across folios: if the listener chose sound, the first gesture
   // on the next page (the NEXT click itself) resumes the music
   let wants = false;

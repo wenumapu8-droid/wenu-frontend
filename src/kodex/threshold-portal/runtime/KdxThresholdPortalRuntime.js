@@ -210,7 +210,11 @@ export class KdxThresholdPortalRuntime {
       gl.uniform1f(u.u_seed, this.state.seed);
       gl.uniform2f(u.u_pointer, this.state.pointer[0], this.state.pointer[1]);
       gl.uniform1f(u.u_bass, this.state.bass);
-      gl.uniform1f(u.u_state, this.state.phaseValue / 2);
+      // La fase del archivo manda sobre u_state cuando existe. Es el eje que
+      // el visitante mueve a proposito; la fase interna del portal
+      // (DORMANT/AWARE/OPEN) queda de respaldo.
+      const arch = window.__kdxArchivoValor;
+      gl.uniform1f(u.u_state, typeof arch === 'number' ? arch : this.state.phaseValue / 2);
       gl.uniform1f(u.u_quality, qualityValue);
       // Giro de la rueda. Se lee del bus global y no de un setter porque la
       // rueda ya corre su propio bucle con inercia: pasarlo por eventos

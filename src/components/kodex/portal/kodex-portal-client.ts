@@ -17,6 +17,7 @@ import {
 import { perfilKodex } from "../../../lib/kodex/perf";
 import { estadoEscena, montarEstadoEscena, type Estado } from "../../../lib/kodex/estado";
 import { montarRueda } from "../../../lib/kodex/scroll";
+import { montarEstadoArchivo } from "../../../lib/kodex/archivo";
 
 /**
  * Las fases del portal dejan de ser suyas: son el estado de la escena leido
@@ -189,4 +190,7 @@ if (document.readyState === "loading") {
 document.addEventListener("astro:page-load", montar);
 montarEstadoEscena();
 montarRueda();
-document.addEventListener("astro:page-load", () => { montarEstadoEscena(); montarRueda(); });
+montarEstadoArchivo();
+document.addEventListener("astro:page-load", () => {
+  montarEstadoEscena(); montarRueda(); montarEstadoArchivo();
+});
