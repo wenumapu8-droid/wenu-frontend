@@ -75,6 +75,15 @@ class Sonda {
       ["dpr", String(devicePixelRatio || 1)],
     ];
 
+    // Ante una placa vacia, la primera pregunta es si el equipo tiene WebGL2.
+    // Aparecio revisando en un iMac de 2015: sin esto hay que adivinar entre
+    // "no cargo la obra", "el shader no compila" y "esta maquina no puede".
+    const gl2 = (() => {
+      try { return !!document.createElement("canvas").getContext("webgl2"); }
+      catch { return false; }
+    })();
+    f.push(["webgl2", gl2 ? "si" : "NO — sin portal", !gl2]);
+
     // "CERO scroll de pagina" es regla dura de la mision: cada escena es un
     // viewport. Se vigila acá porque es exactamente el tipo de rotura que no
     // avisa -- la pagina scrollea y nadie lo nota hasta que alguien la abre en

@@ -212,6 +212,10 @@ export class KdxThresholdPortalRuntime {
       gl.uniform1f(u.u_bass, this.state.bass);
       gl.uniform1f(u.u_state, this.state.phaseValue / 2);
       gl.uniform1f(u.u_quality, qualityValue);
+      // Giro de la rueda. Se lee del bus global y no de un setter porque la
+      // rueda ya corre su propio bucle con inercia: pasarlo por eventos
+      // agregaria una capa de retraso sobre algo que se siente en la mano.
+      gl.uniform1f(u.u_wheel, (window.__kdxRueda && window.__kdxRueda.valor) || 0);
       gl.uniform1f(u.u_motion, motionValue);
     });
 

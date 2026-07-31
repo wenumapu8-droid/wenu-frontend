@@ -43,9 +43,14 @@ const {
   aria-label={label}
 >
   <canvas class="kdx-portal__canvas" data-kdx-portal-canvas></canvas>
-  <noscript>
-    <img src={artwork} alt={label} class="kdx-portal__fallback" />
-  </noscript>
+  {/* El respaldo NO va en <noscript>.
+      Con JavaScript activo pero WebGL caido -- una GPU vieja, un driver en la
+      lista negra del navegador, un contexto perdido -- el noscript nunca se
+      muestra y la placa queda VACIA. Es justo el caso de un equipo de 2015, y
+      es como se detecto: Cowork abrio el preview en el suyo y vio THRESHOLD
+      sin obra.
+      Va siempre en el DOM y se revela solo si el portal no pudo montar. */}
+  <img src={artwork} alt={label} class="kdx-portal__fallback" decoding="async" />
 </div>
 
 <script>
@@ -78,7 +83,13 @@ const {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    /* Oculta mientras el portal viva. Se revela sola si no pudo montar. */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 600ms ease;
   }
+  .kdx-portal[data-kdx-portal-state="unavailable"] .kdx-portal__fallback { opacity: 1; }
+  .kdx-portal[data-kdx-portal-state="unavailable"] .kdx-portal__canvas { display: none; }
 
   @media (prefers-reduced-motion: reduce) {
     .kdx-portal__canvas { transition: none; }

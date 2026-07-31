@@ -12,6 +12,10 @@ uniform vec2 u_pointer;
 uniform float u_bass;
 uniform float u_state;
 uniform float u_quality;
+/* Giro de la rueda, en radianes. La herramienta de esta lamina es "girar": el
+   scroll no baja la pagina, hace rodar el mandala. Entra en el angulo y no en
+   el radio, asi que la pieza gira sobre si misma en vez de acercarse. */
+uniform float u_wheel;
 uniform float u_motion;
 
 float hash21(vec2 p) {
@@ -40,7 +44,7 @@ void main() {
   float pointerPull = dot(centered, u_pointer) * 0.12;
 
   float warpedRadius = radius * (1.0 - breathe - bassPulse) + polarWarp * (0.4 + u_quality * 0.6);
-  float warpedAngle = angle + pointerPull + sin(radius * 11.0 - u_time * 0.22) * 0.06;
+  float warpedAngle = angle + u_wheel + pointerPull + sin(radius * 11.0 - u_time * 0.22) * 0.06;
 
   vec2 sampleUv = vec2(cos(warpedAngle), sin(warpedAngle)) * warpedRadius;
   sampleUv.x /= u_res.x / max(1.0, u_res.y);

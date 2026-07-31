@@ -16,6 +16,7 @@ import {
 } from "../../../kodex/threshold-portal/index.js";
 import { perfilKodex } from "../../../lib/kodex/perf";
 import { estadoEscena, montarEstadoEscena, type Estado } from "../../../lib/kodex/estado";
+import { montarRueda } from "../../../lib/kodex/scroll";
 
 /**
  * Las fases del portal dejan de ser suyas: son el estado de la escena leido
@@ -187,4 +188,5 @@ if (document.readyState === "loading") {
 }
 document.addEventListener("astro:page-load", montar);
 montarEstadoEscena();
-document.addEventListener("astro:page-load", montarEstadoEscena);
+montarRueda();
+document.addEventListener("astro:page-load", () => { montarEstadoEscena(); montarRueda(); });
