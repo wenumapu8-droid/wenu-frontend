@@ -54,10 +54,17 @@ const GRADE = `
 uniform float u_kdxGain;
 uniform float u_kdxGrade;
 uniform float u_kdxFloor;
+uniform float u_kdxDetail;
+uniform float u_kdxTime;
 uniform vec3  u_kdxTint;
+uniform vec3  u_kdxSpark;
 uniform vec2  u_kdxRes;
 
 void kdxFieldSource();
+
+float kdxHash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
 
 void main() {
   kdxFieldSource();
@@ -75,14 +82,42 @@ void main() {
   // original vuelve a subir el brillo por el costado.
   src *= l / max(lRaw, 0.001);
 
+  // HEBRA. En la referencia -- el vortice de Motherboard -- no hay manchas:
+  // hay filamentos finos. Una curva de potencia hunde los medios y deja subir
+  // solo lo que ya era cresta, asi que la misma estructura del preset se lee
+  // como hebra en vez de como nube. Es la diferencia entre un degradado con
+  // color y algo que parece dibujado con luz.
+  l = pow(l, mix(1.0, 2.6, u_kdxDetail));
+  // La curva se lleva la mayor parte de la energia: sin devolverla, afinar la
+  // hebra equivale a apagar el campo. Se compensa aqui y no subiendo la
+  // ganancia de la lamina, que tambien levantaria el fondo que se acaba de
+  // hundir.
+  l = min(1.0, l * mix(1.0, 2.6, u_kdxDetail));
+
   // Rampa de la lámina: el acento toma el cuerpo medio y sólo los altos llegan
   // a blanco, que es lo que mantiene el campo por debajo del texto.
   vec3 ramp = u_kdxTint * smoothstep(0.02, 0.62, l);
+  // Segundo tono en las crestas. La referencia no es monocroma: sobre el azul
+  // hay puntos cian, ambar y blancos, y ese chispeo es lo que la hace leer
+  // como holograma y no como filtro de color. El acento sigue mandando en el
+  // cuerpo; el segundo tono aparece solo donde ya habia brillo.
+  ramp = mix(ramp, u_kdxSpark, smoothstep(0.52, 0.94, l) * u_kdxDetail * 0.8);
   // El blanco entra tarde y a propósito. Con un umbral más bajo el núcleo del
   // portal se abría en un velo pálido sobre el artefacto y apagaba la trama:
   // aquí sólo el filamento más caliente llega a blanco.
   ramp += vec3(smoothstep(0.86, 1.0, l)) * 0.7;
   vec3 color = mix(src, ramp, u_kdxGrade);
+
+  // NODOS. La referencia esta sembrada de puntos que titilan sobre las hebras,
+  // como una red vista de lejos. Se siembran en una grilla fija -- no por
+  // pixel, o serian ruido -- y solo prenden donde la hebra ya pasa: un punto
+  // en el vacio no seria un nodo, seria suciedad.
+  vec2 cell = floor(gl_FragCoord.xy / 7.0);
+  float seed = kdxHash(cell);
+  // Cada nodo late a su propio ritmo y con su propia fase.
+  float beat = 0.5 + 0.5 * sin(u_kdxTime * (0.6 + seed * 2.4) + seed * 31.4);
+  float node = step(0.968, seed + beat * 0.05) * smoothstep(0.22, 0.6, l);
+  color += mix(u_kdxSpark, vec3(1.0), 0.45) * node * beat * u_kdxDetail * 1.5;
 
   // Viñeta: el campo se apaga hacia los bordes, donde viven los paneles de
   // datos y la navegación. Sin esto el fondo compite justo donde hay que leer.
@@ -115,6 +150,8 @@ type FieldOptions = {
   grade: number;
   /** Luminancia por debajo de la cual el campo se va a negro. */
   floor: number;
+  /** Cuánta hebra y cuántos nodos. En 0 el campo vuelve a ser suave. */
+  detail: number;
 };
 
 /** #rrggbb a rgb lineal-ish. Basta para teñir: no hay que ser colorimétrico. */
@@ -134,6 +171,7 @@ class KodexField {
   private readonly reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   private readonly options: FieldOptions;
   private readonly tint: [number, number, number];
+  private readonly spark: [number, number, number];
   private readonly pointer = { x: 0.5, y: 0.5 };
 
   /** Par de framebuffers para el feedback: se escribe en uno y se lee del otro. */
@@ -167,8 +205,12 @@ class KodexField {
       seed: Number(root.dataset.seed ?? 1),
       grade: Number(root.dataset.grade ?? 0.82),
       floor: Number(root.dataset.floor ?? 0.16),
+      detail: Number(root.dataset.detail ?? 0.75),
     };
     this.tint = parseTint(root.dataset.tint ?? "#ff3b30");
+    // Segundo tono de las crestas. Por defecto un cian frio, que es el que
+    // hace el contraste en la referencia contra el cuerpo calido.
+    this.spark = parseTint(root.dataset.spark ?? "#7fe9ff");
 
     this.program = this.build(VERT, toWebGL2(fragSource));
     this.geometry();
@@ -225,7 +267,8 @@ class KodexField {
       "u_time", "u_delta", "u_resolution", "u_pointer", "u_seed",
       "u_feedback", "u_intensity", "u_previousFrame",
       "u_audio", "u_audioLow", "u_audioMid", "u_audioHigh",
-      "u_kdxGain", "u_kdxGrade", "u_kdxFloor", "u_kdxTint", "u_kdxRes",
+      "u_kdxGain", "u_kdxGrade", "u_kdxFloor", "u_kdxDetail", "u_kdxTime",
+      "u_kdxTint", "u_kdxSpark", "u_kdxRes",
     ];
     for (const n of names) {
       this.uniforms.set(n, this.gl.getUniformLocation(this.program, n));
@@ -330,6 +373,11 @@ class KodexField {
     gl.uniform1f(u("u_kdxGain"), this.options.intensity);
     gl.uniform1f(u("u_kdxGrade"), this.options.grade);
     gl.uniform1f(u("u_kdxFloor"), this.options.floor);
+    gl.uniform1f(u("u_kdxDetail"), this.reducedMotion ? this.options.detail * 0.5 : this.options.detail);
+    // Con prefers-reduced-motion los nodos dejan de latir: quedan sembrados,
+    // que sigue diciendo lo mismo sin parpadear.
+    gl.uniform1f(u("u_kdxTime"), this.reducedMotion ? 0.0 : time);
+    gl.uniform3f(u("u_kdxSpark"), this.spark[0], this.spark[1], this.spark[2]);
     gl.uniform3f(u("u_kdxTint"), this.tint[0], this.tint[1], this.tint[2]);
     gl.uniform2f(u("u_kdxRes"), canvas.width, canvas.height);
     // Sin audio en vivo: se sintetizan bandas lentas para que los shaders
@@ -377,6 +425,7 @@ class KodexField {
 // Los shaders se importan crudos para que Vite los inline: son pocos y chicos,
 // y así no hay una petición de red por lámina.
 const SHADERS: Record<string, () => Promise<string>> = {
+  "network-vortex": () => import("../../../kodex/shaders/lab/network-vortex.frag?raw").then((m) => m.default),
   "threshold-portal": () => import("../../../kodex/shaders/lab/threshold-portal.frag?raw").then((m) => m.default),
   "archive-orbit": () => import("../../../kodex/shaders/lab/archive-orbit.frag?raw").then((m) => m.default),
   "liquid-acid": () => import("../../../kodex/shaders/lab/liquid-acid.frag?raw").then((m) => m.default),
