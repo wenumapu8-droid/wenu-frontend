@@ -7,6 +7,8 @@ import KodexOverlays from '../../../components/KodexOverlays.astro';
 import CosmologyMap from '../../../components/kodex/CosmologyMap.astro';
 import KodexObserveScene from '../../../components/kodex/observe/KodexObserveScene.astro';
 import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
+import KodexRail from '../../../components/kodex/density/KodexRail.astro';
+import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.astro';
 import '../../../styles/kodex.css';
 import { specimens, families, discoWorks, folios, organs } from '../../../lib/kodexBook.js';
 
@@ -91,6 +93,28 @@ const archiveItems = [...families.slice(0, 13), ...discoWorks.slice(0, 5)].map((
 
 const selectedArchive = archiveItems[0];
 const selectedStratum = specimens[0];
+// Glifo por escena. En los boards el kana ancla la lectura del panel; se
+// elige uno que diga algo de la lamina, no un adorno al azar.
+const glyphByFolio = {
+  i: '観測',      // observacion
+  ii: '降下',     // descenso
+  iii: '記録',    // registro
+  iv: '機械',     // maquina
+  v: '宇宙',      // cosmos
+  vi: '回帰',     // retorno
+};
+const sceneGlyph = glyphByFolio[folio] ?? 'ポータル';
+
+// La tira lateral se arma con los metadatos que la escena ya declara: se parte
+// cada entrada 'CLAVE · VALOR' del rail existente. Asi no hay dos fuentes de
+// verdad que puedan desincronizarse.
+const stripRows = sceneByFolio.meta.map((row) => {
+  const [k, ...rest] = row.split('·');
+  return { k: k.trim(), v: rest.join('·').trim() || '—' };
+});
+
+const figureByFolio = { i: 'rings', ii: 'triangles', iii: 'squares', iv: 'rings', v: 'rings', vi: 'triangles' };
+
 const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent', 'Body', 'Matter', 'Memory', 'Territory', 'Signal', 'Machine'];
 ---
 
@@ -130,9 +154,19 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             <span class="kx-os-stage__scan"></span>
           </div>
 
-          <aside class="kx-os-stage__rail" aria-label={`${sceneByFolio.slug} metadata`}>
-            {sceneByFolio.meta.map((row) => <span>{row}</span>)}
-          </aside>
+          {/* La metadata era una columna de texto suelto. En los boards de
+              referencia ese costado es un panel: marco con esquinas cortadas,
+              pares clave/valor alineados, un medidor y una figura concentrica.
+              Mismos datos, leidos como instrumento. */}
+          <KodexDataStrip
+            title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
+            rows={stripRows}
+            accent={sceneByFolio.accent}
+            meter={(idx + 1) / 7}
+            meterLabel="DEPTH"
+            figure={figureByFolio[folio] ?? 'rings'}
+            class="kx-os-stage__strip"
+          />
 
           <main class="kx-os-stage__copy">
             <p class="kx-os-stage__kicker">{sceneByFolio.kicker}</p>
@@ -211,6 +245,20 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
           <figure class="kx-os-stage__art" data-kdx-art>
             <span class="kx-corner kx-corner--tl"></span><span class="kx-corner kx-corner--tr"></span>
             <span class="kx-corner kx-corner--bl"></span><span class="kx-corner kx-corner--br"></span>
+
+            {/* El rail va DENTRO de la figura, no como hijo del escenario: el
+                grid del stage tiene columnas fijas y meterle una fila nueva
+                empujaba la obra fuera de la pantalla. La numeracion pertenece
+                a la pieza, no al escenario. */}
+            <KodexRail
+              index={sceneByFolio.number}
+              label={sceneByFolio.slug}
+              accent={sceneByFolio.accent}
+              tail={sceneByFolio.motif.toUpperCase()}
+              glyph={sceneGlyph}
+              compact={true}
+              class="kx-os-stage__rail-top"
+            />
             {/* El OJO procedural de PROLOGUE se retiro: "horrible, no era lo
                 esperado" (KODEX-POLISH.md, correccion de Ocin 2026-07-29). En
                 su lugar queda la obra tratada, igual que en las demas laminas. */}
