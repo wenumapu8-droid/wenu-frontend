@@ -48,6 +48,9 @@ export function initKxAudio(root) {
 
   let ctx = null, master = null, noiseBuf = null, timer = 0, step = 0, on = false;
   let bright = null, droneOsc = [], texSrc = null;
+  // Analisis del propio bus. No hay microfono ni archivos: el KODEX genera su
+  // musica, asi que la fuente del analisis es la misma sintesis que suena.
+  let analyser = null, espectro = null, rangos = null;
 
   const build = () => {
     const AC = window.AudioContext || window.webkitAudioContext;
@@ -59,6 +62,32 @@ export function initKxAudio(root) {
     // one shared colour filter — the SIGNAL opens it (gold = brighter world)
     bright = ctx.createBiquadFilter(); bright.type = 'lowpass'; bright.frequency.value = P.bright; bright.Q.value = 0.7;
     master.connect(bright); bright.connect(limiter); limiter.connect(ctx.destination);
+
+    // El analizador cuelga del limitador, que es el ultimo eslabon: mide lo que
+    // realmente sale, no lo que se le pidio al sintetizador. Un kick que el
+    // compresor aplasto tiene que llegar aplastado tambien a la imagen.
+    analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    // 0.8 es el valor por defecto y el correcto aca: sin suavizado la imagen
+    // tiembla en cada cuadro, y con mas la imagen llega tarde al golpe.
+    analyser.smoothingTimeConstant = 0.8;
+    limiter.connect(analyser);
+    espectro = new Uint8Array(analyser.frequencyBinCount);
+
+    // Tres bandas, como el espectro de KodeLife -- que es contra lo que estan
+    // escritos estos shaders. Los limites se calculan en Hz y se traducen a
+    // indices con la frecuencia de muestreo real del equipo: fijar los indices
+    // a mano suena distinto en un equipo a 44.1k que en uno a 48k.
+    const porHz = analyser.fftSize / ctx.sampleRate;
+    const bin = (hz) => Math.max(1, Math.min(analyser.frequencyBinCount - 1, Math.round(hz * porHz)));
+    rangos = {
+      // graves: el drone y el bombo
+      low: [bin(30), bin(240)],
+      // medios: el bajo y el cuerpo
+      mid: [bin(240), bin(2000)],
+      // agudos: hats, blips y el shimmer del RETURN
+      high: [bin(2000), bin(9000)],
+    };
     // noise bed
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const nd = noiseBuf.getChannelData(0);
@@ -128,6 +157,45 @@ export function initKxAudio(root) {
     o.connect(g); g.connect(master); o.start(t); o.stop(t + 2.8);
   };
 
+  /**
+   * Energia media de una banda, normalizada a 0..1.
+   *
+   * Se promedia en vez de tomar el pico: el pico salta con cualquier
+   * transitorio y hace que la imagen parpadee. El promedio es lo que se siente
+   * como "cuanta energia hay ahi", que es lo que la imagen tiene que seguir.
+   */
+  const banda = ([a, b]) => {
+    let suma = 0;
+    for (let i = a; i < b; i++) suma += espectro[i];
+    return (suma / Math.max(b - a, 1)) / 255;
+  };
+
+  /**
+   * Publica las tres bandas para quien quiera seguirlas.
+   *
+   * Es un objeto global y no un evento a proposito: los campos WebGL ya tienen
+   * su propio bucle de dibujo y lo unico que necesitan es leer el valor mas
+   * reciente cuando les toca. Un evento por cuadro seria un mensaje por cada
+   * cuadro de cada campo para decir lo mismo.
+   *
+   * `activo` en false significa "no hay sonido": quien lo lea debe usar su
+   * propio respaldo en vez de quedarse en cero, o la imagen se congela cuando
+   * el visitante no prendio el audio.
+   */
+  const publicar = () => {
+    if (!analyser || !on) {
+      window.__kxAudio = { activo: false, low: 0, mid: 0, high: 0 };
+      return;
+    }
+    analyser.getByteFrequencyData(espectro);
+    window.__kxAudio = {
+      activo: true,
+      low: banda(rangos.low),
+      mid: banda(rangos.mid),
+      high: banda(rangos.high),
+    };
+  };
+
   let nextT = 0;
   const tick = () => {
     if (!on) return;
@@ -146,6 +214,7 @@ export function initKxAudio(root) {
       bright.frequency.setTargetAtTime(window.__kxSignal ? P.bright * 2.4 : P.bright, nextT, 0.8);
       nextT += spb; step++;
     }
+    publicar();
     timer = setTimeout(tick, 40);
   };
 
@@ -162,6 +231,7 @@ export function initKxAudio(root) {
     } else if (ctx) {
       master.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
       clearTimeout(timer);
+      publicar();
     }
   };
 

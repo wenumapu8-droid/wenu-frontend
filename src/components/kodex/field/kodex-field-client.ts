@@ -370,26 +370,51 @@ class KodexField {
     // El preset ve intensidad plena: el brillo lo fija la etapa de grado, que
     // es la única que lo aplica igual para todos.
     gl.uniform1f(u("u_intensity"), 1);
-    gl.uniform1f(u("u_kdxGain"), this.options.intensity);
+    // AUDIO. Cuando el visitante prende el sonido, estas tres bandas son
+    // reales: el KODEX sintetiza su propia musica por escena -- ambient en el
+    // umbral, dark psy en el descenso, techno en la maquina -- y el motor
+    // analiza su propio bus de salida y publica graves, medios y agudos.
+    //
+    // Es la misma division de tres bandas del espectro de KodeLife, que es
+    // contra lo que estos shaders estan escritos. Con el sonido encendido, la
+    // imagen y la musica dejan de ser dos cosas que ocurren a la vez y pasan a
+    // ser la misma senal mirada de dos maneras.
+    //
+    // Sin sonido se cae a una envolvente sintetica lenta. Es respaldo, no
+    // simulacion: el campo tiene que seguir vivo para quien no prende el audio,
+    // pero no se hace pasar por un analisis que no existe.
+    const bus = (window as unknown as { __kxAudio?: { activo: boolean; low: number; mid: number; high: number } }).__kxAudio;
+    const vivo = bus?.activo === true;
+    const low = vivo ? bus!.low : 0.5 + Math.sin(time * 0.7) * 0.3;
+    const mid = vivo ? bus!.mid : 0.5 + Math.sin(time * 1.3 + 1.7) * 0.25;
+    const high = vivo ? bus!.high : 0.5 + Math.sin(time * 2.1 + 3.1) * 0.2;
+    gl.uniform3f(u("u_audio"), low, mid, high);
+    gl.uniform1f(u("u_audioLow"), low);
+    gl.uniform1f(u("u_audioMid"), mid);
+    gl.uniform1f(u("u_audioHigh"), high);
+
+    // MOTION_11_AUDIO_PRESSURE de la gramatica: "low_pressure, mid_distortion,
+    // high_spark". Los graves empujan el brillo de toda la red y los agudos
+    // encienden los nodos. Con el sonido apagado el multiplicador queda en 1 y
+    // el campo se comporta como antes.
+    const presion = vivo ? 0.82 + low * 0.55 : 1.0;
+    // Los agudos casi no existen hasta que se enciende el SIGNAL: cada escena
+    // suena a traves de un filtro pasabajos y el SIGNAL es el que lo abre --
+    // MACHINE pasa de 1300 Hz a mas de 3000. Por eso la base es casi neutra y
+    // lo que sube es la respuesta: encender el SIGNAL abre la luz en el sonido
+    // y, por el mismo camino, enciende los nodos de la red. Una sola palanca
+    // para las dos cosas, que es lo que el KODEX viene diciendo.
+    const chispa = vivo ? 0.92 + high * 1.6 : 1.0;
+    gl.uniform1f(u("u_kdxGain"), this.options.intensity * presion);
     gl.uniform1f(u("u_kdxGrade"), this.options.grade);
     gl.uniform1f(u("u_kdxFloor"), this.options.floor);
-    gl.uniform1f(u("u_kdxDetail"), this.reducedMotion ? this.options.detail * 0.5 : this.options.detail);
+    gl.uniform1f(u("u_kdxDetail"), (this.reducedMotion ? this.options.detail * 0.5 : this.options.detail) * chispa);
     // Con prefers-reduced-motion los nodos dejan de latir: quedan sembrados,
     // que sigue diciendo lo mismo sin parpadear.
     gl.uniform1f(u("u_kdxTime"), this.reducedMotion ? 0.0 : time);
     gl.uniform3f(u("u_kdxSpark"), this.spark[0], this.spark[1], this.spark[2]);
     gl.uniform3f(u("u_kdxTint"), this.tint[0], this.tint[1], this.tint[2]);
     gl.uniform2f(u("u_kdxRes"), canvas.width, canvas.height);
-    // Sin audio en vivo: se sintetizan bandas lentas para que los shaders
-    // audio-reactivos tengan algo que seguir. Fingir un análisis real sería
-    // peor que una envolvente honesta y suave.
-    const low = 0.5 + Math.sin(time * 0.7) * 0.3;
-    const mid = 0.5 + Math.sin(time * 1.3 + 1.7) * 0.25;
-    const high = 0.5 + Math.sin(time * 2.1 + 3.1) * 0.2;
-    gl.uniform3f(u("u_audio"), low, mid, high);
-    gl.uniform1f(u("u_audioLow"), low);
-    gl.uniform1f(u("u_audioMid"), mid);
-    gl.uniform1f(u("u_audioHigh"), high);
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, read.tex);

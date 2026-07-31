@@ -15,6 +15,7 @@ import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFoot
 import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
 import '../../../styles/kodex-micrographics.css';
 import '../../../styles/kodex.css';
+import { fieldParams, motionVars, recipeFor, gridFor } from '../../../lib/kodex/grammar';
 import { specimens, families, discoWorks, folios, organs } from '../../../lib/kodexBook.js';
 
 export function getStaticPaths() {
@@ -125,29 +126,37 @@ const figureByFolio = { i: 'rings', ii: 'triangles', iii: 'squares', iv: 'rings'
  *
  * Todas corren la MISMA red -- el vórtice de la referencia -- porque es el
  * lenguaje de la experiencia, no un efecto de una escena: "así debe sentirse
- * esta red viva para cada pantallazo". Lo que cambia es cómo se comporta, y
- * cambia por lo que la escena hace.
+ * esta red viva para cada pantallazo".
  *
- * PROLOGUE observa: la red gira lento y ancha. DESCENT baja: cae rápido y con
- * rastro largo, que es la estela de estar bajando. ARCHIVE clasifica: densa y
- * quieta. MACHINE genera: apretada, rápida, con el chispeo ámbar contra su
- * cian. COSMOLOGY relaciona: la más abierta y lenta. RETURN cierra: vuelve al
- * ritmo de PROLOGUE, un poco más apagada.
+ * Cómo se comporta cada una ya no se elige a ojo: sale de la receta de la
+ * gramática visual, que es quien decide "cómo se comporta". DESCENT resulta la
+ * más rápida porque su receta declara mutación de secuencia; COSMOLOGY la más
+ * lenta y la más tejida porque es la receta más densa del set (0.96).
  *
- * El tinte es el acento que la lámina ya usa en sus paneles y el chispeo es el
- * segundo tono de las crestas -- sin ese segundo color la red se lee como un
- * filtro y no como holograma. La semilla cambia el sembrado de nodos: la misma
- * red, nunca el mismo dibujo.
+ * Lo único que se sigue eligiendo a mano es el color, y a propósito: las
+ * recetas dicen `palette_mode: original_kodex_palette` y nada más. La paleta
+ * es de KODEX, no de las referencias.
  */
-const fieldByFolio = {
-  i:   { field: 'network-vortex', intensity: 0.52, feedback: 0.30, speed: 0.70, tint: '#785CFF', floor: 0.05, spark: '#7FE9FF', detail: 0.50 },
-  ii:  { field: 'network-vortex', intensity: 0.56, feedback: 0.52, speed: 1.35, tint: '#FF6A00', floor: 0.05, spark: '#8FD4FF', detail: 0.46 },
-  iii: { field: 'network-vortex', intensity: 0.50, feedback: 0.26, speed: 0.55, tint: '#A6FF00', floor: 0.06, spark: '#7FE9FF', detail: 0.58 },
-  iv:  { field: 'network-vortex', intensity: 0.58, feedback: 0.34, speed: 1.15, tint: '#00EFFF', floor: 0.05, spark: '#FFC46B', detail: 0.60 },
-  v:   { field: 'network-vortex', intensity: 0.48, feedback: 0.38, speed: 0.42, tint: '#FF00CF', floor: 0.05, spark: '#7FE9FF', detail: 0.54 },
-  vi:  { field: 'network-vortex', intensity: 0.46, feedback: 0.36, speed: 0.62, tint: '#A6FF00', floor: 0.06, spark: '#FFB25E', detail: 0.48 },
+const tintByFolio = {
+  i:   { tint: '#785CFF', spark: '#7FE9FF' },
+  ii:  { tint: '#FF6A00', spark: '#8FD4FF' },
+  iii: { tint: '#A6FF00', spark: '#7FE9FF' },
+  iv:  { tint: '#00EFFF', spark: '#FFC46B' },
+  v:   { tint: '#FF00CF', spark: '#7FE9FF' },
+  vi:  { tint: '#A6FF00', spark: '#FFB25E' },
 };
-const sceneField = fieldByFolio[folio] ?? fieldByFolio.i;
+const sceneRecipe = recipeFor(folio);
+const sceneGrid = gridFor(folio);
+const sceneMotion = motionVars(folio);
+const sceneField = {
+  field: 'network-vortex',
+  // La intensidad acompaña a la densidad de la receta: una lámina que la
+  // gramática marca densa tiene derecho a un campo más presente.
+  intensity: Math.round((0.34 + sceneRecipe.density * 0.26) * 100) / 100,
+  floor: 0.05,
+  ...tintByFolio[folio],
+  ...fieldParams(folio),
+};
 
 /**
  * El motor ASCII, sólo donde la escena lo pide.
@@ -192,7 +201,9 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     data-prev-url={prevUrl}
     data-next-url={nextUrl}
     data-next-label={nextLabel}
-    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent}`}
+    data-kdx-recipe={sceneRecipe.id}
+    data-kdx-grid={sceneGrid.id}
+    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}`}
   >
     <KodexChrome segs={7} />
 
