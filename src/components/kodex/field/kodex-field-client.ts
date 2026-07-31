@@ -23,6 +23,7 @@
  */
 
 import { perfilKodex } from "../../../lib/kodex/perf";
+import { estadoEscena, montarEstadoEscena } from "../../../lib/kodex/estado";
 
 const VERT = `#version 300 es
 precision highp float;
@@ -414,7 +415,11 @@ class KodexField {
     // y, por el mismo camino, enciende los nodos de la red. Una sola palanca
     // para las dos cosas, que es lo que el KODEX viene diciendo.
     const chispa = vivo ? 0.92 + high * 1.6 : 1.0;
-    gl.uniform1f(u("u_kdxGain"), this.options.intensity * presion);
+    // El estado de la escena entra como presencia del campo: latente cuando
+    // nadie llego, pleno cuando la escena esta activa. Es la misma curva que
+    // abre el portal y el sonido.
+    const presencia = 0.55 + estadoEscena().intensidad * 0.45;
+    gl.uniform1f(u("u_kdxGain"), this.options.intensity * presion * presencia);
     gl.uniform1f(u("u_kdxGrade"), this.options.grade);
     gl.uniform1f(u("u_kdxFloor"), this.options.floor);
     gl.uniform1f(u("u_kdxDetail"), (this.reducedMotion ? this.options.detail * 0.5 : this.options.detail) * chispa);

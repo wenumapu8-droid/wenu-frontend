@@ -25,7 +25,18 @@ const id = `kdx-crt-${crypto.randomUUID()}`;
     // El kit trae sus propios perfiles y el perfil del sistema decide cual.
     // El atributo queda como valor de respaldo si el modulo no cargo.
     const calidad = (window as any).__kdxQuality || mount.dataset.quality;
-    (mount as any).__kdxCrt = mountKodexCrt({ source, container, preset: mount.dataset.preset, quality: calidad });
+    const crt = mountKodexCrt({ source, container, preset: mount.dataset.preset, quality: calidad });
+    (mount as any).__kdxCrt = crt;
+    // El kit expone signal/focus y la escena ya tiene un estado: se los pasa.
+    // Un CRT que no cambia con la escena es una textura; uno que sintoniza
+    // cuando la escena se activa es un aparato.
+    import('../../../lib/kodex/estado').then(({ estadoEscena, montarEstadoEscena }) => {
+      montarEstadoEscena();
+      estadoEscena().suscribir(() => {
+        const i = estadoEscena().intensidad;
+        crt.setSignalState?.({ signal: 0.45 + i * 0.5, focus: 0.4 + i * 0.55 });
+      });
+    });
   });
   document.addEventListener('astro:before-swap', () => {
     document.querySelectorAll<HTMLElement>('.kdx-crt-mount').forEach((mount) => (mount as any).__kdxCrt?.destroy?.());

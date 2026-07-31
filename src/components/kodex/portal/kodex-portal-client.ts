@@ -15,6 +15,20 @@ import {
   THRESHOLD_PORTAL_MOTION,
 } from "../../../kodex/threshold-portal/index.js";
 import { perfilKodex } from "../../../lib/kodex/perf";
+import { estadoEscena, montarEstadoEscena, type Estado } from "../../../lib/kodex/estado";
+
+/**
+ * Las fases del portal dejan de ser suyas: son el estado de la escena leido
+ * en el idioma del shader. La Receta Madre pide UNA maquina de estados por
+ * escena, no una por capa.
+ */
+const FASE: Record<Estado, "DORMANT" | "AWARE" | "OPEN"> = {
+  idle: "DORMANT",
+  aware: "AWARE",
+  locked: "AWARE",
+  active: "OPEN",
+  transitionOut: "OPEN",
+};
 
 /** El runtime nombra sus niveles en mayusculas; el perfil, en minuscula. */
 const NIVEL = { "full": "HIGH", "balanced": "MEDIUM", "low-power": "LOW" } as const;
@@ -44,13 +58,13 @@ class KodexPortal {
       this.runtime.renderOnce();
     } else {
       this.mirar();
-      this.escuchar();
       this.seguirPuntero();
     }
 
     // El portal sigue al perfil en vivo: si el equipo no da, baja de nivel sin
     // recargar y sin perder la obra. Se sacrifica resolucion, nunca la pieza.
     perfilKodex().suscribir((p) => this.runtime.setQualityLevel(NIVEL[p]));
+    estadoEscena().suscribir((e) => this.pasarA(FASE[e]));
 
     (root as any).__kdxPortal = this;
   }
@@ -107,7 +121,8 @@ class KodexPortal {
         this.runtime.setBass(bus.low);
         // Con sonido, el portal despierta solo: pasa a AWARE cuando la música
         // tiene cuerpo. No hace falta que nadie lo toque.
-        this.pasarA(bus.low > 0.45 ? "AWARE" : "DORMANT");
+        // El sonido ya no decide la fase: la decide la maquina de estados.
+        // Lo que el sonido mueve es el brillo, no el estado.
       } else {
         const t = performance.now() / 1000;
         this.runtime.setBass(0.22 + Math.sin(t * 0.55) * 0.16);
@@ -132,24 +147,13 @@ class KodexPortal {
         const x = (e.clientX / innerWidth) * 2 - 1;
         const y = (e.clientY / innerHeight) * 2 - 1;
         this.runtime.setPointer(x, -y);
-        this.pasarA("AWARE");
       },
       { passive: true },
     );
   }
 
-  private escuchar(): void {
-    // Cruzar el umbral abre el portal. Es el unico momento en que llega a OPEN:
-    // si estuviera abierto desde el principio, entrar no significaria nada.
-    document.querySelector('[href="#prologue"], .kx-threshold__cta')?.addEventListener(
-      "pointerenter",
-      () => this.pasarA("OPEN"),
-      { passive: true },
-    );
-  }
-
   private pasarA(fase: "DORMANT" | "AWARE" | "OPEN"): void {
-    if (this.fase === fase || this.fase === "OPEN") return;
+    if (this.fase === fase) return;
     this.fase = fase;
     this.runtime.setState(fase);
     this.root.dataset.kdxPortalPhase = fase;
@@ -182,3 +186,5 @@ if (document.readyState === "loading") {
   montar();
 }
 document.addEventListener("astro:page-load", montar);
+montarEstadoEscena();
+document.addEventListener("astro:page-load", montarEstadoEscena);
