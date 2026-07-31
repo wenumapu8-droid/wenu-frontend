@@ -86,12 +86,17 @@ que es donde estuvo el fallo más persistente del proyecto.
 
 Cada lámina apila tres sistemas distintos. Confundirlos es el error fácil.
 
-**1 · El campo (`KodexField` + `network-vortex.frag`)** — el fondo. Es una red
-en espiral logarítmica: brazos que giran, anillos que caen, trazas finas,
-nodos que laten, pulsos que viajan por las líneas y polvo granular al fondo.
-Se escribió contra el reel que mandó Ocín, porque ningún preset del lab hacía
-eso. Las siete láminas corren el MISMO shader; lo que cambia es cómo se
-comporta, y eso sale de la receta (ver abajo).
+**1 · El organismo** — lo que corre detrás, si es que corre algo. Ver la tabla
+de las siete recetas más arriba: no todas llevan el mismo, y dos no llevan
+ninguno. `network-vortex.frag` es uno de ellos — una red en espiral
+logarítmica con trazas finas, nodos que laten, pulsos que viajan por las
+líneas y polvo granular al fondo, escrita contra el reel que mandó Ocín porque
+ningún preset del lab hacía eso. Hoy corre sólo en MACHINE.
+
+> Hubo un momento en que las siete corrían este mismo shader. Estaba mal y el
+> canon lo dice con esas palabras: *"si las 7 parecen la misma lámina
+> recoloreada, está MAL"*. Si alguien vuelve a unificarlas, está deshaciendo
+> trabajo hecho a propósito.
 
 **2 · La etapa de grado** — se le injerta a todo preset al traducirlo a WebGL2.
 El preset aporta la estructura; el color lo pone la lámina. Sin esto, cada
@@ -99,9 +104,15 @@ preset arrastraba la página a su propia paleta y el KODEX dejaba de ser un
 sistema para volverse una galería de fondos ajenos. Acá viven también el piso
 de luminancia, la curva de hebra y la siembra de nodos.
 
-**3 · El artefacto (`KodexArtifact` + `artifact.frag.glsl`)** — la obra
-tratada: pixelada, dither Bayer, scanlines, glow. Es la pieza; el campo es
-atmósfera. La obra manda.
+**3 · El tratamiento sobre la obra** — o `KodexArtifact` (pixelado, dither
+Bayer, scanlines, glow), o el CRT del kit, o el portal de tres pasadas en
+THRESHOLD. Cambia por escena; lo que no cambia es la regla: la obra es la
+pieza y todo lo demás es atmósfera. La obra manda.
+
+**En THRESHOLD estas tres capas son una sola.** El portal toma la obra como
+`u_tex` y hace organismo y tratamiento en la misma pasada. Eso es lo que el
+concepto pide — el contenido vive DENTRO de la visualización, como en MilkDrop
+el tema vive dentro del preset — y es hacia donde deberían ir las demás.
 
 Sobre esas tres van los bloques de densidad (rail, tira de datos, vector de
 origen, registro de sistema, pie con barcode/UTC/uptime, cruces de registro) y
