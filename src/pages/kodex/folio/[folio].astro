@@ -14,6 +14,7 @@ import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
 import KodexCrtLayer from '../../../components/kodex/crt/KodexCrtLayer.astro';
 import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
 import KodexMuseo from '../../../components/kodex/museo/KodexMuseo.astro';
+import KodexTira from '../../../components/kodex/museo/KodexTira.astro';
 import { leerManifiesto, resolver } from '../../../lib/kodex/volumenes';
 import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
 import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
@@ -298,7 +299,37 @@ const sceneHerramienta = herramientaByFolio[folio] ?? null;
 // ARCHIVE es el indice de la biblioteca. Se lee el manifiesto solo en esa
 // lamina: las demas no lo necesitan y leerlo en todas seria trabajo de build
 // repetido seis veces para nada.
-const volumenes = folio === 'iii' ? resolver(await leerManifiesto()) : [];
+/**
+ * A qué estrato del sistema pertenece cada lámina.
+ *
+ * Los seis estratos son la estructura REAL del archivo -- están en el
+ * storyboard y en el segundo cerebro. Las siete escenas son el marco que se
+ * recorre; los estratos son lo que hay debajo. Este mapa los une, y la
+ * asignación sale de lo que cada uno dice ser:
+ *
+ *   PROLOGUE   01 macro-geometrías   el origen de las formas
+ *   DESCENT    04 sol negro          la puerta entre lo visible y lo invisible
+ *   ARCHIVE    —                     es el índice de TODOS
+ *   MACHINE    06 laboratorio        código, IA y arte generativo
+ *   COSMOLOGY  05 yayentru           geometría de energía y conexión
+ *   RETURN     03 respirantes        patrones que respiran y pulsan
+ *
+ * (02 portales es de THRESHOLD, que vive en la otra plantilla.)
+ */
+const estratoByFolio = {
+  i:  'macro-geometrias',
+  ii: 'sol-negro',
+  iv: 'laboratorio',
+  v:  'yayentru',
+  vi: 'geometrias-respirantes',
+};
+
+const todosLosVolumenes = resolver(await leerManifiesto());
+// ARCHIVE recibe todos: es el indice. Las demas, los de su estrato.
+const volumenes = folio === 'iii' ? todosLosVolumenes : [];
+const volumenesDelEstrato = folio === 'iii'
+  ? []
+  : todosLosVolumenes.filter((v) => v.estrato === estratoByFolio[folio]);
 
 /**
  * Dónde cae cada lámina en el eje −∞ · 0 · +∞.
@@ -380,6 +411,17 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
               referencia ese costado es un panel: marco con esquinas cortadas,
               pares clave/valor alineados, un medidor y una figura concentrica.
               Mismos datos, leidos como instrumento. */}
+          <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />
+
+          {/* Lo que hay DEBAJO de esta escena. La lamina es la superficie;
+              los volumenes son la profundidad que se abre al entrar. */}
+          <KodexTira
+            volumenes={volumenesDelEstrato}
+            estrato={estratoByFolio[folio] ?? ""}
+            accent={sceneByFolio.accent}
+            class="kx-os-stage__tira"
+          />
+
           <KodexDataStrip
             title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
             rows={stripRows}
