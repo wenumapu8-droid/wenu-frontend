@@ -29,6 +29,12 @@ uniform float chromaAmount;
 uniform float flickerAmount;
 uniform float reducedMotion;    // 1 = sin animacion
 uniform float reveal;           // 0..1 para la entrada
+// Casi todo el portafolio son JPG opacos sobre negro: no traen alpha del que
+// sacar la silueta. Con lumaKey en 1 la mascara se deriva de la luminancia,
+// que en una obra sobre fondo negro es exactamente la pieza. Con 0 se usa el
+// alpha del archivo (mandala, PNG recortados).
+uniform float lumaKey;
+uniform float lumaFloor;        // por debajo de esto se considera fondo
 
 varying vec2 v_texcoord;
 
@@ -78,13 +84,20 @@ vec4 sampleArtwork(vec2 uv, vec2 offset) {
 // color del punto de mas tinta, asi la geometria sobrevive a la pixelacion.
 vec4 sampleBlock(vec2 blockUv, vec2 texel, vec2 offset) {
   vec4 best = vec4(0.0);
+  float bestWeight = -1.0;
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
       vec2 d = vec2(float(x), float(y)) * texel * 0.5;
       vec4 s = sampleArtwork(blockUv + d, offset);
-      if (s.a > best.a) best = s;
+      // Con lumaKey la presencia la da el brillo, no el alpha: en un JPG sobre
+      // negro el alpha siempre es 1 y compararlo no distingue pieza de fondo.
+      float weight = mix(s.a, s.a * luma(s.rgb), lumaKey);
+      if (weight > bestWeight) { bestWeight = weight; best = s; }
     }
   }
+  // La mascara final: alpha del archivo, o la luminancia recortada por el piso.
+  float keyed = smoothstep(lumaFloor, lumaFloor + 0.22, luma(best.rgb));
+  best.a = mix(best.a, best.a * keyed, lumaKey);
   return best;
 }
 

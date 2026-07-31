@@ -25,6 +25,7 @@ type ArtifactOptions = {
   glow: number;
   chroma: number;
   flicker: number;
+  lumaFloor: number;
 };
 
 const DEFAULTS: ArtifactOptions = {
@@ -34,6 +35,7 @@ const DEFAULTS: ArtifactOptions = {
   glow: 0.5,
   chroma: 0.6,
   flicker: 0.5,
+  lumaFloor: 0.12,
 };
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
@@ -56,6 +58,8 @@ class KodexArtifact {
   private readonly options: ArtifactOptions;
   private readonly accent: [number, number, number];
 
+  // -1 = sin decidir todavia; lo resuelve detectAlpha al cargar la obra.
+  private lumaKey = -1;
   private texture: WebGLTexture | null = null;
   private textureSize: [number, number] = [1, 1];
   private startTime = performance.now();
@@ -92,8 +96,11 @@ class KodexArtifact {
       glow: Number(root.dataset.glow ?? DEFAULTS.glow),
       chroma: Number(root.dataset.chroma ?? DEFAULTS.chroma),
       flicker: Number(root.dataset.flicker ?? DEFAULTS.flicker),
+      lumaFloor: Number(root.dataset.lumaFloor ?? DEFAULTS.lumaFloor),
     };
     this.accent = hexToRgb(root.dataset.accent ?? "#FF2733");
+    // Se puede forzar desde la plantilla cuando la deteccion no acierta.
+    if (root.dataset.lumaKey !== undefined) this.lumaKey = Number(root.dataset.lumaKey);
 
     this.program = this.createProgram();
     this.prepareGeometry();
@@ -119,6 +126,7 @@ class KodexArtifact {
       textureSize: this.textureSize,
       canvas: [this.canvas.width, this.canvas.height],
       reducedMotion: this.reducedMotion,
+      lumaKey: this.lumaKey,
     };
   }
 
@@ -168,7 +176,7 @@ class KodexArtifact {
     const names = [
       "artwork", "resolution", "artworkSize", "time", "accent", "pixelSize",
       "ditherAmount", "scanlineAmount", "glowAmount", "chromaAmount",
-      "flickerAmount", "reducedMotion", "reveal",
+      "flickerAmount", "reducedMotion", "reveal", "lumaKey", "lumaFloor",
     ];
     for (const name of names) {
       this.uniforms.set(name, this.gl.getUniformLocation(this.program, name));
@@ -188,6 +196,11 @@ class KodexArtifact {
     image.onload = () => {
       if (this.disposed) return;
       const { gl } = this;
+      // Se decide aquí, no en la plantilla: casi todo el portafolio son JPG
+      // opacos sobre negro y pedirle al autor que marque cuál lleva alpha es
+      // una fuente de error silenciosa. Si el archivo no tiene transparencia,
+      // la silueta se saca del brillo.
+      if (this.lumaKey < 0) this.lumaKey = this.detectAlpha(image) ? 0 : 1;
       const texture = gl.createTexture();
       gl.bindTexture(gl.TEXTURE_2D, texture);
       // La obra no es potencia de dos: CLAMP + LINEAR es lo único válido en
@@ -208,6 +221,32 @@ class KodexArtifact {
     };
     image.onerror = () => this.fallback(`KODEX artifact: no se pudo cargar ${src}`);
     image.src = src;
+  }
+
+  /**
+   * ¿El archivo trae transparencia real? Se muestrea una miniatura en vez de
+   * la imagen completa: con 1200×1200 leer todo el buffer costaría más que el
+   * primer frame, y para esta decisión basta una muestra.
+   */
+  private detectAlpha(image: HTMLImageElement): boolean {
+    try {
+      const size = 64;
+      const c = document.createElement("canvas");
+      c.width = c.height = size;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      if (!ctx) return false;
+      ctx.drawImage(image, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      let transparentes = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] < 250) transparentes++;
+      // Un 4% de píxeles no opacos ya indica recorte intencional. Por debajo
+      // de eso puede ser ruido de compresión.
+      return transparentes > size * size * 0.04;
+    } catch {
+      // Imagen de otro origen: el canvas queda contaminado y no se puede leer.
+      // Se asume opaca, que es el caso más común del portafolio.
+      return false;
+    }
   }
 
   /** Deja visible la <img> de respaldo. Mejor la pieza plana que ninguna. */
@@ -301,6 +340,8 @@ class KodexArtifact {
     gl.uniform1f(u("flickerAmount"), this.options.flicker);
     gl.uniform1f(u("reducedMotion"), this.reducedMotion ? 1 : 0);
     gl.uniform1f(u("reveal"), this.reveal);
+    gl.uniform1f(u("lumaKey"), this.lumaKey < 0 ? 0 : this.lumaKey);
+    gl.uniform1f(u("lumaFloor"), this.options.lumaFloor);
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
