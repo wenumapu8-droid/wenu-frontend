@@ -2,6 +2,17 @@
 
 Última sesión: 2026-07-31. Escrito para que otro modelo retome sin arqueología.
 
+> **Empezá por acá:** el estándar de aprobación del proyecto NO está en este
+> repo. Está en la bóveda de Obsidian del iMac, en
+> `~/Obsidian/WenuAgent/estrategia/kodex-receta-madre-produccion-2026-07-29.md`,
+> y dice textualmente *"toda escena KODEX se aprueba contra esto"*. El mapa raíz
+> es `~/Obsidian/WenuAgent/00-Index/KODEX-MOC.md`, que abre con la frase que
+> ordena todo el proyecto: *"el vault es la versión invisible; KODEX es esa misma
+> red renderizada"*.
+>
+> La bóveda SÍ se puede leer por SSH — `~/Obsidian` no está protegida por TCC
+> como Descargas. Leela antes de tocar nada.
+
 ## Dónde está cada cosa
 
 | Qué | Dónde |
@@ -14,6 +25,62 @@
 
 Al cerrar el proyecto: todo al segundo cerebro, borrar la data del Mac Mini,
 dejarla en el iMac. Es el último paso y lo decide Ocín.
+
+## Una gramática, siete productos
+
+La regla más dura del proyecto: **las siete escenas no pueden verse iguales.**
+Si tapás el chrome y ponés dos lado a lado tienen que distinguirse al instante
+por organismo, tratamiento y color, y reconocerse como el mismo sistema.
+
+| | Organismo | Tratamiento | Acento |
+|---|---|---|---|
+| 00 THRESHOLD | portal polar sobre la obra, con feedback | pixelado + dither Bayer | rojo · 2° |
+| 01 PROLOGUE | la obra como retícula | CRT fósforo + aberración | violeta · 280° |
+| 02 DESCENT | corredor partido | CRT descent | naranja · 29° |
+| 03 ARCHIVE | ficha de espécimen, **sin campo detrás** | CRT archive | ácido · 73° |
+| 04 MACHINE | red de nodos | CRT machine | cyan · 181° |
+| 05 COSMOLOGY | mapa orbital | — | magenta · 331° |
+| 06 RETURN | mandala restaurado, **sin campo detrás** | CRT return | ácido/blanco · 78° |
+
+Las dos ausencias son decisión: ARCHIVE es un catálogo quieto (la tabla dice
+"rígido") y RETURN resuelve limpio. Un campo vivo ahí repetiría el recurso
+justo donde la escena pide lo contrario.
+
+RETURN es la única lámina clara — 29% de fondo oscuro contra ~85% del resto — y
+está bien: es el momento en que el archivo se resuelve y el codex se pone
+blanco. Su preset de audio ya se llamaba "lumen".
+
+**ARCHIVE y RETURN quedan a 3° de matiz.** Hoy no confunden porque están sobre
+fondos opuestos. Si alguna cambia de fondo, chocan.
+
+## Un solo estado para todas las capas
+
+`idle → aware → locked → active → transitionOut` en `src/lib/kodex/estado.ts`.
+
+Antes el portal tenía sus fases, el audio su encendido y el campo ninguna:
+coincidían por casualidad. Ahora es un valor y las tres capas lo leen. Cuando
+la escena se activa, el shader y el sonido se abren porque es **el mismo
+número**, no dos animaciones afinadas para parecer simultáneas. Esa es la
+diferencia entre una página con efectos y un instrumento.
+
+La máquina sólo avanza: pedir un estado anterior no hace nada.
+
+## Tres perfiles de rendimiento
+
+`src/lib/kodex/perf.ts`. FULL / BALANCED / LOW-POWER, con la regla del canon:
+*se reduce complejidad del shader, NUNCA la identidad ni la composición.*
+
+**No se adivina el hardware.** Se adivina una vez para arrancar y después se
+mide: mediana del tiempo de cuadro sobre 70 muestras, descartando las primeras
+20 porque son el costo de encender, no el de correr. Se fuerza con `?quality=`.
+
+Motivo real: el iMac de Ocín es de 2015 y no aguanta tres capas WebGL.
+
+## Cómo ver qué está pasando
+
+`?debug=1` en cualquier lámina. Muestra receta, grilla, estado, perfil, fps,
+capas montadas, bandas de audio y el piso/techo de luminancia de la obra —
+que es donde estuvo el fallo más persistente del proyecto.
 
 ## Las tres capas de imagen, y por qué son tres
 
@@ -120,16 +187,32 @@ varios choques de layout que parecían de diseño eran de ventana baja.
 
 ## Lo que queda
 
+- **La obra real.** Los shaders corren con las cuatro imágenes que ya estaban
+  en el repo. La fuente primaria es el book de Ocín en Drive (`book/0cin`), y
+  las 10 láminas de `book/Kodex` con el copy real deberían bajarse a
+  `public/img/kodex/refs/`. Bloqueado: Drive vive en CloudStorage, que SSH no
+  puede leer.
+- `kodex-threshold-live.html` — Ocín lo llamó "el mejor logrado" y sigue sin
+  poder leerse: está en `~/Downloads` del iMac. Mismo bloqueo.
+- **Ambos se destraban con un interruptor:** Ajustes del Sistema → Privacidad y
+  seguridad → Acceso total al disco → agregar `/usr/libexec/sshd-keygen-wrapper`.
+  Es un ajuste de seguridad; lo hace Ocín, no el agente.
 - Las animaciones CSS de los folios todavía no toman su ritmo de la receta.
   Las de THRESHOLD sí. Es el mismo patrón, replicado.
 - Tres efectos de los packs sin montar: wrinkled reality, ripple floor,
-  perspective flip. Están completos, con componente Astro y shader.
-- El pack de design system (`tokens/kdx.tokens.css`) sin revisar contra las
-  variables que el sitio ya usa.
+  perspective flip. La tabla los asigna a COSMOLOGY, DESCENT y MACHINE.
 - El pie de sistema existe en THRESHOLD; en los folios no.
-- `kodex-threshold-live.html` — Ocín lo llamó "el mejor logrado" y sigue sin
-  poder leerse: está en `~/Downloads` del iMac y macOS no deja entrar ahí por
-  SSH. Un `cp` a `~/kodex-ref/` lo desbloquea.
+- El pipeline de 7 pasos (§6) está completo en THRESHOLD; en las demás, parcial.
+
+## Cosas que NO hay que "corregir"
+
+- **Las duraciones de animación.** Se auditaron contra el §9 y salieron 13 de
+  15 "fuera de rango": era el clasificador, que metía en la misma bolsa el
+  parpadeo de un cursor de terminal (1s, correcto) y la respiración de un héroe
+  (12s). Además la gramática fija AMBIENT_BREATH en 14–24s y la receta dice
+  "Pulse 3–7s": no se contradicen, hablan de capas distintas.
+- **El 29% de fondo oscuro de RETURN.** Es la lámina blanca a propósito.
+- **Que ARCHIVE y RETURN no tengan campo vivo.** Es decisión, no olvido.
 
 ## Reglas que no se negocian
 
