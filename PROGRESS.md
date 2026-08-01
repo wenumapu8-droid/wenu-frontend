@@ -24,7 +24,8 @@ Un ítem que compila y no se ve NO está hecho.
       edition/certificate/trading-card
 - [~] **5 · Acabados** — sello SVG (árbol + ∞) en el chrome, reloj vivo con
       horas espejo (11:11, 4:44…), micro-interacción en la acción y **barcode
-      decodable**. Falta: hover sobre specimens ampliado.
+      decodable** y **foco uno-a-la-vez** en los specimens. El punto 5 queda
+      cerrado.
 - [~] **6 · Validación** — los cinco anchos verificados con captura y sin
       errores de consola. Falta medir FPS en móvil real y los 10 ciclos de
       fuga, que necesitan un dispositivo o instrumentación de memoria.
@@ -226,12 +227,34 @@ angosta=0"`). Es deliberado: *decodable* no es *adivinable*. Un secreto sin
 llave no es un secreto, es ruido — y un barcode de barras al azar sería
 decoración disfrazada de dato, que es justo lo que este proyecto no hace.
 
+### Foco uno a la vez ✅
+Al señalar un specimen, **los otros ceden** (opacidad 0.34) y el señalado se
+adelanta dos píxeles.
+
+Es la regla del sistema —*un movimiento focal a la vez*— aplicada a la atención
+y no sólo al movimiento. Si al pasar el puntero sólo se agrandara el señalado,
+las once piezas restantes seguirían compitiendo por la mirada; bajando las once,
+la elegida queda sola **sin haber crecido un píxel**. El desplazamiento es de
+2px: una lámina que alguien levanta del montón, no un botón que salta.
+
+Hecho con `:has()`, sin JavaScript: el estado vive donde ocurre.
+
+Con `prefers-reduced-motion` se conserva el foco —que es información— y se quita
+el desplazamiento, que es sólo gesto.
+
+**Alcance de la verificación, dicho con precisión:** comprobé que la regla
+compila y queda correctamente scopeada en el CSS de producción, y que la rama
+de reduced-motion está presente. **No la verifiqué visualmente**: una captura
+headless no puede simular hover. Queda para la revisión de Ocín o Cowork en un
+navegador real.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 09:20 — **Foco uno-a-la-vez** en los specimens. Punto 5 cerrado.
 - 08:50 — **Barcode decodable**, verificado decodificándolo desde el HTML.
 - 08:20 — **Validación de los cinco anchos.** Todos ≥88% oscuro, cero errores.
 - 07:50 — **Acabados, primera tanda**: sello, reloj con horas espejo, micro.
