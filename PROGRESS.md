@@ -12,7 +12,8 @@ Un ítem que compila y no se ve NO está hecho.
 - [x] **2 · Shell del viaje** — 7 escenas fullscreen horizontales, sin scroll,
       una acción por escena, chrome persistente, loop ∞, responsive 1440/390.
       Verificado en `/kodex/viaje/`.
-- [~] **3 · Escenas, una por una** — 00 THRESHOLD + 01 PROLOGUE verificadas.
+- [~] **3 · Escenas, una por una** — 00 THRESHOLD, 01 PROLOGUE y 03 ARCHIVE
+      verificadas; 02 DESCENT con respaldo visible (B4).
       00 ensamblado desde el módulo
       real (`src/kodex/threshold-portal/`, runtime de 3 pases). NO reescribí el
       shader. Capa SVG (marco, regla graduada, barcode) montada en las siete y
@@ -107,12 +108,30 @@ es calibración de shader y merece tiempo propio, no un número al azar.
 **Mientras tanto DESCENT usa el organismo de gesto**, que sí se ve. Una escena
 negra es peor que un placeholder honesto.
 
+### Escena 03 · ARCHIVE ✅
+Doce specimens del manifiesto REAL dentro de la escena. ARCHIVE es la única que
+muestra contenido y no sólo una acción, porque el archivo ES su contenido.
+
+**La obra va LIMPIA**: sin dither, sin filtro, sin tratamiento. Verificado en el
+CSS compilado — cero reglas de `filter` sobre esas imágenes. El tratamiento
+existe en el sistema, pero se pide; no se impone.
+
+Cada pieza conserva SU proporción. Hay verticales 9:16 y apaisadas √2 en el
+archivo y meterlas en una caja cuadrada las deformaría: el alto manda y el ancho
+lo pone la obra.
+
+Muestra DISTRIBUIDA, no las primeras doce: las primeras entradas de un
+manifiesto suelen ser de la misma serie, y una grilla con doce variaciones de lo
+mismo miente sobre lo que hay adentro.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 05:50 — **Escena 03 ARCHIVE verificada.** 94.4% oscuro, 12 specimens reales
+  y limpios, responsive.
 - 05:25 — Motor: capa de compatibilidad con el contrato viejo (`u_resolution`,
   `u_audioLow`, `u_state`…) y **traducción `#version 330 core` → `300 es`**,
   para poder hospedar los shaders del lab sin reescribirlos. B4 abierto.

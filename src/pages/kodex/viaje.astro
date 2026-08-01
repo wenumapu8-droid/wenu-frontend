@@ -18,6 +18,22 @@
 import Base from '../../layouts/Base.astro';
 import '../../styles/kodex-seed.css';
 import { VIAJE } from '../../lib/kodex/viaje';
+import { leerManifiesto, resolver } from '../../lib/kodex/volumenes';
+
+/**
+ * Los specimens de ARCHIVE.
+ *
+ * Salen del manifiesto REAL y se dibujan LIMPIOS: sin dither, sin filtro, sin
+ * tratamiento. Es la regla sobre la obra de Ocín y no admite excepción — el
+ * tratamiento existe, pero se pide, no se impone.
+ *
+ * Se toma una muestra distribuida, no los primeros: las primeras entradas de
+ * un manifiesto suelen ser de la misma serie, y una grilla que muestra doce
+ * variaciones de lo mismo miente sobre lo que hay en el archivo.
+ */
+const vols = resolver(await leerManifiesto()).filter((v) => v.hero);
+const paso = Math.max(1, Math.floor(vols.length / 12));
+const specimens = vols.filter((_, i) => i % paso === 0).slice(0, 12);
 ---
 
 <Base
@@ -70,6 +86,23 @@ import { VIAJE } from '../../lib/kodex/viaje';
           <p class="vj__n">{e.n}</p>
           <h1 class="vj__titulo">{e.titulo}</h1>
           <p class="vj__frase">{e.frase}</p>
+
+          {/* ARCHIVE trae su grilla dentro de la escena. Es la única que
+              muestra contenido y no sólo una acción: el archivo ES su
+              contenido. */}
+          {e.id === 'archive' && specimens.length > 0 && (
+            <ul class="vj__specimens">
+              {specimens.map((v) => (
+                <li style={`aspect-ratio:${v.hero!.aspecto ?? '1/1'}`}>
+                  <a href={`/kodex/vol/${v.slug}/`}>
+                    {/* LIMPIA. Sin filtro. */}
+                    <img src={v.hero!.src} alt={v.titulo_es} loading="lazy" decoding="async" />
+                    <span>{v.titulo_es}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
           {/* La acción única. Es un botón real: se alcanza con teclado y dice
               lo que hace. */}
           <button class="vj__accion" type="button" data-vj-accion={i}>
@@ -198,6 +231,37 @@ import { VIAJE } from '../../lib/kodex/viaje';
     font-size: clamp(11px, 1.4vw, 15px); line-height: 1.6;
     letter-spacing: 0.04em; color: var(--kdx-tinta-2);
   }
+  /* ── ARCHIVE · la grilla de specimens ─────────────────────────────────
+     Cada pieza conserva SU proporción: hay verticales 9:16 y apaisadas √2 en
+     el archivo, y meterlas todas en una caja cuadrada las deformaría. El alto
+     manda y el ancho lo pone la obra. */
+  .vj__specimens {
+    display: flex; flex-wrap: wrap; gap: var(--kdx-u);
+    margin: var(--kdx-u) 0 0; padding: 0; list-style: none;
+    max-width: min(760px, 58vw);
+  }
+  .vj__specimens li {
+    height: clamp(56px, 8vh, 92px); flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--c) 26%, transparent);
+    overflow: hidden;
+  }
+  .vj__specimens a { display: block; height: 100%; position: relative; text-decoration: none; }
+  .vj__specimens img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .vj__specimens span {
+    position: absolute; inset: auto 0 0 0; padding: 2px 4px;
+    font-size: var(--kdx-t-micro); letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--kdx-tinta); background: color-mix(in srgb, var(--kdx-negro) 82%, transparent);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; transition: opacity 200ms var(--kdx-ease);
+  }
+  .vj__specimens a:hover span, .vj__specimens a:focus-visible span { opacity: 1; }
+  .vj__specimens a:hover, .vj__specimens a:focus-visible { outline: none; }
+  .vj__specimens li:hover, .vj__specimens li:has(a:focus-visible) { border-color: var(--c); }
+  @media (max-width: 720px) {
+    .vj__specimens { max-width: 100%; }
+    .vj__specimens li { height: clamp(44px, 7vh, 64px); }
+  }
+
   .vj__accion {
     margin-top: var(--kdx-u2);
     display: inline-flex; align-items: center; gap: var(--kdx-u2);
