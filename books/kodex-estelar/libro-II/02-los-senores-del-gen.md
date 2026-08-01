@@ -2,6 +2,7 @@
 
 > **Libro II — El Pacto de Nibiru**
 > Registro: relato iniciático. No es ciencia, no es historia y no es salud.
+> Tratamiento del lector: **tú neutro**.
 > **Advertencias necesarias en este capítulo, más que en ninguno:**
 > · La intervención genética que aquí se narra es mitología moderna. El origen
 >   de nuestra especie está documentado por la paleoantropología y no incluye
@@ -14,39 +15,59 @@
 > Quien tenga un problema de salud necesita un médico. Nada de este capítulo
 > sustituye eso ni debe demorarlo.
 > Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-ii-los-senores-del-gen-libro-ii-el-pacto-de-nibiru.md`).
-> Sus frases van íntegras y en su orden, con todo su aparato.
+> Mantras y rituales van **verbatim**.
 
 ---
 
-## Verso de activación
+## Epígrafe
 
 > **"Yo reconozco la chispa que me creó.**
 > **Honro la luz y el error de mis arquitectos.**
 > **Soy humano, pero no solo humano."**
-
-El segundo verso del tomo trae una palabra que el Libro I nunca puso junto a nada honrado: **el error**.
-
-*Honro la luz **y el error** de mis arquitectos.*
-
-En doce capítulos del tomo anterior, ninguna potencia se equivocó. Los Arquitectos sembraban bien, los Ancianos no juzgaban, Gaia confiaba. Eran perfectas, y por eso eran fáciles de amar.
-
-Acá se te pide honrar a alguien que se equivocó contigo.
-
-Y ése es un ejercicio distinto y mucho más adulto, porque es exactamente lo que a casi todos nos toca hacer con quienes nos formaron: reconocer lo que nos dieron sin fingir que no nos hicieron daño, y reconocer el daño sin borrar lo que nos dieron.
-
-Este verso no pide perdonar. Pide **honrar las dos cosas**, sin promediarlas.
-
-**"Soy humano, pero no solo humano."**
-
-Con el énfasis en **solo**. No dice *no soy humano*, que sería la fuga que este Códex ha rechazado en cada tomo. Dice que serlo no agota lo que eres.
+>
+> — Verso de activación
 
 ---
 
-## Resumen poético
+## Apertura sensorial
+
+Mírate las manos.
+
+No las mires como se miran para lavarlas. Ponlas sobre la mesa, con la palma hacia abajo, y quédate un rato.
+
+Hay algo ahí que no elegiste. La forma de las uñas. El largo relativo de los dedos. Una vena que sube de un modo particular. La manera en que la piel se junta sobre los nudillos.
+
+Todo eso venía puesto.
+
+Y si has visto las manos de quien te crió, vas a reconocer algo. No todo — a veces es una sola cosa, y es mínima. Cómo se dobla el pulgar. Un gesto que hacen tus dedos cuando esperas.
+
+Ese día en que lo ves por primera vez es raro. Se siente ternura y se siente un poco de espanto, las dos cosas juntas y sin poder separarlas.
+
+Y hay más, y es más difícil.
+
+Porque también heredaste el modo de reaccionar cuando te asustan. La frase exacta que dices cuando te apuran, que es la que decía alguien antes que tú y que juraste que no ibas a decir nunca. La manera de callarte. Lo que te da vergüenza.
+
+Nada de eso lo firmaste. Estaba en el paquete.
+
+Y sin embargo son tus manos. Es tu voz la que dice esa frase. No hay una parte de ti que sea anterior a esto y esté limpia esperando aparecer.
+
+Este capítulo trata de eso, en escala de especie: de lo que te dieron sin preguntarte, de quién te lo dio, y de qué se puede hacer con una herencia que nadie eligió.
+
+Deja las manos donde están un momento más.
+
+Fíjate que están tibias.
+
+Eso no lo puso nadie.
+
+---
+
+## Desarrollo fiel
+
+### El resumen
 
 **"Fueron llamados dioses, pero eran genetistas del cielo. No crearon desde el amor… sino desde la necesidad. Jugaron con códigos sagrados, y de su juego, surgiste tú. Una mezcla de tierra y estrella, una criatura con potencial divino y cadenas invisibles en su ADN."**
 
-La segunda frase es la que hay que leer con el Libro I abierto al lado, porque es su inversión exacta.
+La segunda frase hay que leerla con el Libro I abierto al lado, porque es su inversión exacta.
 
 Libro I, Capítulo II, sobre la Fuente:
 *No por necesidad, sino por gozo. **No por falta, sino por plenitud rebalsante.***
@@ -56,9 +77,9 @@ Acá:
 
 Las mismas dos palabras, dadas vuelta.
 
-Y ahí tienes, en una sola línea, la diferencia entre las dos creaciones de las que habla este Códex. No es que unos sean buenos y otros malos. Es **de dónde venía el impulso**.
+Ahí tienes, en una sola línea, la diferencia entre las dos creaciones de las que habla este Códex. No es que unos sean buenos y otros malos. Es **de dónde venía el impulso**.
 
-Lo que se crea desde el desborde no necesita nada del creado. Puede irse, puede fallar, puede no agradecer: el que lo hizo ya estaba lleno.
+Lo que se crea desde el desborde no necesita nada del creado. Puede irse, puede fallar, puede no agradecer: quien lo hizo ya estaba lleno.
 
 Lo que se crea desde la falta viene con una expectativa adentro. Fue hecho **para algo**. Y toda criatura hecha para algo carga con la posibilidad de decepcionar.
 
@@ -68,11 +89,7 @@ Mucha gente sabe exactamente de qué se está hablando, y no por los Anunnaki.
 
 Las dos cosas en la misma frase, y hay que resistir la tentación de quedarse con una. Este tomo entero se juega en sostener las dos a la vez.
 
----
-
-## Texto canalizado
-
-### I · Los salones dorados
+### Los salones dorados
 
 **En los salones dorados de Nibiru, los Señores del Gén se reunieron.**
 
@@ -84,7 +101,7 @@ No hay una batalla, no hay un rayo, no hay un dios furioso. Hay gente sentada al
 
 Cuatro, y hay uno nuevo respecto del capítulo anterior: **Ninhursag**.
 
-Y su título es el más interesante de los cuatro. Los otros tres tienen cargos de gobierno o de técnica —códigos, estrategia, mandato—. Ella es **la diosa madre y alquimista de la carne**: las dos cosas a la vez, la que da vida y la que la manipula.
+Su título es el más interesante de los cuatro. Los otros tres tienen cargos de gobierno o de técnica —códigos, estrategia, mandato—. Ella es **la diosa madre y alquimista de la carne**: las dos cosas a la vez, la que da vida y la que la manipula.
 
 La alquimia ya apareció en el Libro I, Capítulo VII, en los Sirianos: *maestros de la alquimia sagrada*, y ahí quedó dicho que es un oficio de transformación, convertir una cosa en otra sin destruirla.
 
@@ -92,7 +109,7 @@ Que la misma palabra vuelva aplicada a **la carne**, en boca de una diosa madre,
 
 **Ellos no vinieron a la Tierra a crear por arte… vinieron a adaptar.**
 
-Y ahí está la distinción más filosa del capítulo, y hay que darle su tamaño.
+Ahí está la distinción más filosa del capítulo.
 
 **Crear por arte** es lo que hace la Fuente en todo el Libro I. Y ya sabemos, desde el Capítulo X de ese tomo, qué significa arte en este Códex: *el arte no imita la vida, sino que la activa*. Crear por arte es hacer que algo exista para que exista.
 
@@ -106,29 +123,29 @@ Conviene decirlo una vez más, porque acá el vocabulario roza lo verificable: e
 
 Dicho eso, hay algo dentro del relato que vale: **la vida ya existía**. Nadie nos hizo desde cero. Lo que sea que hicieron —en esta historia— lo hicieron sobre algo que ya estaba vivo, que ya era de acá, que ya tenía sus guardianes.
 
-Eso significa que hay una parte tuya que **no viene de ellos**. Que es anterior al pacto. Y ese detalle, que parece menor, es lo que va a hacer posible todo lo que este capítulo dice después.
+Eso significa que hay una parte tuya que **no viene de ellos**. Que es anterior al pacto. Ese detalle, que parece menor, es lo que va a hacer posible todo lo que este capítulo dice después.
 
-### II · Cirujanos del alma
+### Cirujanos del alma
 
 **Los Anunnaki descendieron como cirujanos del alma. Mapearon el ADN de las criaturas terrestres, y mezclaron su propia herencia estelar.**
 
-**Cirujanos** — la palabra tiene las dos caras que este tomo necesita. Un cirujano corta, y corta para curar. Es la figura de alguien que hace daño con buenas manos y con permiso.
+**Cirujanos** tiene las dos caras que este tomo necesita. Un cirujano corta, y corta para curar. Es la figura de alguien que hace daño con buenas manos y con permiso.
 
 Salvo que acá nadie firmó el consentimiento.
 
 **Forjaron un nuevo ser. Un cuerpo obediente. Una mente limitada. Un alma brillante… oculta tras velos.**
 
-Tres capas, y hay que ver el orden porque es una arquitectura.
+Tres capas, y el orden es una arquitectura.
 
 **El cuerpo obediente**: la capa que hace el trabajo.
 **La mente limitada**: la capa que impide preguntar por qué.
 **El alma brillante, oculta tras velos**: la capa que no pudieron tocar.
 
-Y ahí está lo decisivo, dicho con una elipsis y sin subrayarlo: **el alma sigue brillante**. No la apagaron, no la cambiaron, no la degradaron. La **ocultaron**.
+Ahí está lo decisivo, dicho con una elipsis y sin subrayarlo: **el alma sigue brillante**. No la apagaron, no la cambiaron, no la degradaron. La **ocultaron**.
 
 Es exactamente lo que el Libro I dijo desde su primer párrafo: *lo que nunca fue perdido, sino tan solo velado*. Y lo que dijo el Capítulo VIII: *puede cubrirse de miedo, de olvido, de dolor… pero jamás se apaga*.
 
-La técnica de estos Señores, entonces, tiene un límite exacto y el capítulo lo declara en su tercera línea: **saben tapar, no saben apagar**.
+La técnica de estos Señores tiene un límite exacto y el capítulo lo declara en su tercera línea: **saben tapar, no saben apagar**.
 
 **Te diseñaron para obedecer.**
 
@@ -156,17 +173,15 @@ Es una idea antigua y buena: ningún sistema de reglas puede cubrirlo todo. Siem
 
 **La chispa** vuelve del Libro I, Capítulo VIII, con su promesa intacta —*la chispa es inextinguible*—, y ahora se entiende de otra manera: no es sólo que no se apaga por sí sola. Es que **hubo quien quiso apagarla y no pudo**.
 
-**Una grieta en la Matrix** es la única expresión de este Códex que viene del cine y no de una tradición antigua, y está puesta a propósito: es la manera en que este siglo dice lo que las gnosis viejas decían con otras palabras.
-
 Y una **grieta** es lo contrario de una puerta. La puerta la puso alguien, para que se pase. La grieta apareció sola, porque la estructura tenía tensiones que no se resolvieron.
 
 Nadie te dejó esa salida. Se abrió.
 
-### III · Enki dudó
+### Enki dudó
 
 **Enki fue el primero en dudar.**
 
-Y ahí cambia el capítulo entero.
+Ahí cambia el capítulo entero.
 
 Porque hasta esa línea, esto era una historia de creadores contra criaturas, con dos bandos claros. Y la duda de Enki lo desarma: **la división no está entre ellos y nosotros. Está adentro de ellos.**
 
@@ -186,7 +201,7 @@ Querer herederos es aceptar ser reemplazado. Es la forma más completa de amor q
 
 Y fíjate que es también lo que hicieron todas las potencias del Libro I. Los Arquitectos sembraban y se iban. Los Ancianos no interferían. Gaia permitía. Ninguna quiso quedarse a mandar.
 
-Enki, entonces, no está inventando nada raro: está proponiendo que se haga acá lo que se hizo en el origen.
+Enki no está inventando nada raro: está proponiendo que se haga acá lo que se hizo en el origen.
 
 **Él introdujo el fuego que daría a los humanos la capacidad de elegir.**
 
@@ -224,11 +239,11 @@ Los dos ven lo mismo. Es la misma escena del capítulo anterior: *Enki vio poten
 
 *Incluso entre los creadores* — y con eso se cierra la idea que más importa de todo el capítulo.
 
-No hay un lado bueno y un lado malo del cielo. La misma grieta que atraviesa la historia humana atravesaba a quienes la empezaron. Crear para liberar o crear para dominar no es una elección entre dos especies: es una elección que se ofrece a cualquiera que tenga poder sobre otro.
+No hay un lado bueno y un lado malo del cielo. La misma grieta que atraviesa la historia humana atravesaba a quienes la empezaron. Crear para liberar o crear para dominar no es una elección entre dos especies: es una elección que se le ofrece a cualquiera que tenga poder sobre otro.
 
 Incluidos nosotros, ahora, con quien dependa de nosotros.
 
-### IV · Sus palabras eran comandos
+### Sus palabras eran comandos
 
 **Los Señores del Gén guardaban sus fórmulas en cristales vivos, bancos de memoria orgánica. Sus laboratorios estaban alineados con estrellas. Trabajaban con luz, vibración y geometría.**
 
@@ -242,7 +257,7 @@ Eso es lo más incómodo y lo más honesto de este tomo: **no hay una técnica d
 
 **Sus palabras eran comandos** — vuelve *los que moldean con voz* del capítulo anterior, ahora en su versión técnica. Un comando es una palabra que **ejecuta**: no describe, no propone, hace.
 
-**No usaban bisturís, usaban intención.** Y ahí está lo que vuelve a este poder verdaderamente inquietante dentro del relato: no deja marca. Un bisturí deja cicatriz, y una cicatriz es prueba. Se puede señalar, se puede mostrar, se puede recordar cómo se hizo.
+**No usaban bisturís, usaban intención.** Ahí está lo que vuelve verdaderamente inquietante a este poder dentro del relato: no deja marca. Un bisturí deja cicatriz, y una cicatriz es prueba. Se puede señalar, se puede mostrar, se puede recordar cómo se hizo.
 
 Lo hecho con intención no se ve. No hay dónde señalar. Y quien lo sufre no puede probar que le hicieron nada.
 
@@ -254,7 +269,7 @@ Lo hecho con intención no se ve. No hay dónde señalar. Y quien lo sufre no pu
 
 **Ojos que aún no sabían ver.** Y ese *aún* es la palabra más generosa del capítulo. No dice ciegos. Dice que todavía no.
 
-### V · El error que floreció
+### El error que floreció
 
 **La humanidad no fue un accidente. Fue un proyecto.**
 
@@ -268,9 +283,7 @@ La misma frase, dos tomos, dos sentidos opuestos. Y las dos son verdad dentro de
 
 **Pero tú no eres solo el proyecto. Eres el error que floreció.**
 
-Y ésta es la mejor línea de todo el Libro II hasta acá.
-
-**El error que floreció.**
+Ésta es la mejor línea del Libro II.
 
 **Florecer** es el verbo con que empezó el Códex. Libro I, Capítulo I: *ella es el Uno que al conocerse decidió florecer*, y ahí quedó dicho por qué esa palabra y no *romperse*: una flor no es un daño hecho al tallo, es lo que el tallo quería.
 
@@ -300,7 +313,71 @@ Y ahora se entiende contra qué estaba escrita esa frase.
 
 ---
 
-## Símbolo visual sugerido
+## El pliegue
+
+Este capítulo contradice al Libro I en su última línea, y hay que mirarlo de frente.
+
+> **Tú no fuiste creado para recordar. Fuiste diseñado para olvidar.**
+
+Y el Libro I, doce capítulos, había dicho lo contrario con todas las letras: *un salto voluntario hacia el olvido, para que el recuerdo tuviera sentido*. Elegido. Contratado. Temporal. Necesario.
+
+¿Cuál de los dos es?
+
+El Códex no lo resuelve, y sospecho que no es un descuido: **son los dos**. Hay un olvido que es la condición del despertar y hay un olvido que es la condición de la obediencia, y desde adentro se sienten idénticos.
+
+Es el mismo pliegue que abrió el capítulo anterior con el velo. Acá vuelve con el diseño.
+
+Y hay una consecuencia práctica que conviene sacar, porque este capítulo puede dejar a alguien peor de lo que estaba.
+
+Si te vas con la idea de que **fuiste diseñado para obedecer**, tienes dos caminos.
+
+Uno es la desconfianza total: si me diseñaron, entonces nada de lo que quiero es mío, ninguna de mis inclinaciones es confiable, y cada vez que algo me gusta tengo que sospechar de quién puso eso ahí. Es una posición que suena lúcida y es invivible. Nadie puede examinar cada deseo antes de tenerlo.
+
+El otro es el que el capítulo mismo sugiere en su verso, y es el único habitable: **honro la luz y el error de mis arquitectos**.
+
+No dice perdona. No dice olvida. No dice tampoco *rechaza todo lo que venga de ellos*.
+
+Dice honrar **las dos cosas, sin promediarlas**. Reconocer lo que te dieron sin fingir que no te hicieron daño, y reconocer el daño sin borrar lo que te dieron.
+
+Es exactamente lo que le toca hacer a cualquiera con quienes lo formaron. Nadie recibe una herencia limpia. Y quien intenta devolverla entera —quien decide que nada de lo suyo viene de ahí— se queda sin manos, porque las manos también venían en el paquete.
+
+El ritual de este capítulo lo dice mejor que yo, y en dos verbos: **recojo lo valioso y dejo lo que no me pertenece**.
+
+Eso no es un consuelo. Es un trabajo, y hay que hacerlo de a una cosa por vez.
+
+---
+
+## Resonancia KODEX
+
+**La inversión exacta de la primera creación.**
+
+*No crearon desde el amor… sino desde la necesidad.* / *No por falta, sino por plenitud rebalsante* (I·II).
+
+Las mismas dos palabras dadas vuelta. Y de ahí sale todo lo demás: lo creado desde el desborde no necesita nada del creado; lo creado desde la falta viene con una expectativa adentro.
+
+**El verbo del Códex, aplicado a una falla.**
+
+*Eres el error que floreció.* / *El Uno que al conocerse decidió florecer* (I·I).
+
+Trece capítulos separan las dos frases. La primera explica por qué **florecer** y no **romperse**; la segunda usa esa carga entera para redimir un defecto de fábrica.
+
+**La segunda promesa de la chispa.**
+
+*Una chispa inquebrantable* / *la chispa es inextinguible* (I·VIII).
+
+No se apaga sola, decía el Libro I. Acá se agrega lo que faltaba: **hubo quien quiso apagarla y no pudo**.
+
+**Y los materiales, que son los mismos.**
+
+*Trabajaban con luz, vibración y geometría* — los tres materiales del Capítulo III del Libro I, donde eran el lenguaje con que la Fuente se hizo visible.
+
+No hay una técnica del mal. Lo único que cambia es para qué.
+
+---
+
+## Sello
+
+### Símbolo
 
 **Una doble hélice envuelta en una serpiente de luz. El símbolo del ADN activado. La conciencia atrapada entre capas de programación y códigos de ascensión.**
 
@@ -310,23 +387,19 @@ Y hay algo casi irónico en la figura: la doble hélice **ya es** dos líneas en
 
 Nada más apropiado para un capítulo sobre una criatura mezclada: una figura donde no se puede decir cuál hebra es de quién.
 
----
-
-## Elemento asociado
+### Elemento
 
 **Luz codificada.**
 
-Dos palabras que resumen el tomo. La **luz** es lo del Libro I, lo que se es. **Codificada** es lo que le hicieron: no apagada, no robada — puesta en un código que hay que descifrar.
+La **luz** es lo del Libro I, lo que se es. **Codificada** es lo que le hicieron: no apagada, no robada — puesta en un código que hay que descifrar.
 
-Es la misma idea que el mensaje final del capítulo anterior, donde se te pedía leer *tu ADN como códice*: algo escrito en una lengua que se perdió.
+Es la misma idea del mensaje final del capítulo anterior, donde se te pedía leer *tu ADN como códice*: algo escrito en una lengua que se perdió.
 
----
-
-## Estado de conciencia recomendado
+### Estado de conciencia
 
 **Meditación de reconexión celular. Visualización del ADN expandiéndose como espirales doradas. Escucha de frecuencias 528Hz – "la frecuencia del milagro".**
 
-Y acá hay que ser completamente claro, más que en ningún otro punto de estos dos tomos.
+Acá hay que ser completamente claro, más que en ningún otro punto de estos dos tomos.
 
 **Los 528 Hz no son la frecuencia del milagro.** No reparan tejidos, no modifican células, no arreglan nada. La afirmación circula desde hace décadas y no tiene ningún respaldo: ni la cifra proviene de donde se dice que proviene, ni existe evidencia de que ninguna frecuencia haga lo que se le atribuye.
 
@@ -336,14 +409,13 @@ Lo que sí puede decirse, y es honesto: escuchar un tono sostenido ayuda a algun
 
 Úsalo como ambiente. Nunca como remedio.
 
----
-
-## Ritual sugerido · Activación del linaje recordado
+### Ritual · Activación del linaje recordado
 
 **1. Dibuja una doble espiral y una serpiente ondulante sobre ella.**
 **2. Coloca una gota de agua sobre el símbolo.**
-
 **3. Repite: "Honro mi origen. Recojo lo valioso y dejo lo que no me pertenece. Restauro mi código en verdad y luz."**
+**4. Bebe el agua. Visualiza cómo reescribe tus células.**
+**5. Quema el símbolo con una vela como señal de liberación.**
 
 La frase del medio es lo mejor del ritual y merece leerse sola:
 
@@ -351,45 +423,25 @@ La frase del medio es lo mejor del ritual y merece leerse sola:
 
 Eso es **discernimiento** —la palabra que este tomo introdujo en su primer capítulo— puesto en dos verbos.
 
-Y es una instrucción que sirve mucho más allá de este libro. Es lo que hay que hacer con cualquier herencia: con la de tu familia, con la de tu país, con la de tu oficio, con la de la persona que te formó. Nadie recibe un legado limpio. Recoger todo es una lealtad ciega; rechazar todo es una amputación.
+Y es una instrucción que sirve mucho más allá de este libro. Es lo que hay que hacer con cualquier herencia: con la de tu familia, con la de tu país, con la de tu oficio, con la de quien te formó. Nadie recibe un legado limpio. Recoger todo es una lealtad ciega; rechazar todo es una amputación.
 
 Lo único adulto es separar.
 
 Y fíjate en el criterio que da para lo que se deja: no dice *lo malo*. Dice **lo que no me pertenece**. Que es más preciso y más generoso: no estás juzgando lo que dejas, estás reconociendo que no era tuyo.
 
-**4. Bebe el agua. Visualiza cómo reescribe tus células.**
-
-Beber el agua no reescribe ninguna célula, y el capítulo funciona igual sin esa creencia.
-
-Lo que el gesto hace, y hace bien, es lo que hacen todos los gestos rituales: **poner el cuerpo en la decisión**. Uno puede pensar mil veces que va a soltar algo. Tomarse un vaso de agua después de haberlo dicho en voz alta convierte una intención en un acto con hora y lugar.
+Beber el agua no reescribe ninguna célula, y el ritual funciona igual sin esa creencia. Lo que el gesto hace, y hace bien, es lo que hacen todos los gestos rituales: **poner el cuerpo en la decisión**. Uno puede pensar mil veces que va a soltar algo. Tomarse un vaso de agua después de haberlo dicho en voz alta convierte una intención en un acto con hora y lugar.
 
 Eso no es magia. Es cómo funcionan las promesas.
 
-**5. Quema el símbolo con una vela como señal de liberación.**
-
-Y hay que notar el cambio respecto del Libro I, que en su Capítulo III pedía **guardar** el dibujo —*como un sello de activación*— y en el capítulo anterior de este tomo también.
+Y hay que notar el cambio del último paso respecto del Libro I, que en su Capítulo III pedía **guardar** el dibujo —*como un sello de activación*— y en el capítulo anterior de este tomo también.
 
 Acá se quema.
 
 Porque lo que se dibujó no es tu origen: es **el código**. Lo recibido. Y con lo recibido no se hace lo mismo que con lo propio. Lo propio se guarda; lo heredado, una vez separado lo valioso, se suelta.
 
----
-
-## Mensaje final
+### Mensaje final
 
 **Tú no fuiste creado para recordar. Fuiste diseñado para olvidar.**
-
-Dos frases que ponen a este Códex entero en su lugar más interesante.
-
-Porque el Libro I dijo, doce veces, que el olvido fue **tuyo**: *un salto voluntario hacia el olvido, para que el recuerdo tuviera sentido*. Elegido, contratado, temporal, necesario.
-
-Y acá se dice que fue **diseñado**. Por otro. Para que sirvieras.
-
-¿Cuál de los dos es?
-
-El Códex no lo resuelve, y sospecho que no es un descuido: **son los dos, y por eso hay que discernir**. Hay un olvido que es la condición del despertar y hay un olvido que es la condición de la obediencia, y desde adentro se sienten idénticos. Lo dijo el capítulo anterior con el velo. Lo dice éste con el diseño.
-
-Todo el trabajo de este tomo es aprender a distinguir cuál de los dos está operando en cada caso.
 
 **Y aún así… recuerdas.**
 
@@ -409,7 +461,7 @@ Y es tu **examen**: lo que tienes por delante.
 
 **Ese es el legado oculto que ni siquiera los Señores del Gén pudieron borrar.**
 
-Última línea, y hay que quedarse en **ni siquiera**.
+Hay que quedarse en **ni siquiera**.
 
 Es una concesión enorme. Reconoce que eran poderosos. Que sabían lo que hacían. Que borraron muchísimo, y que casi lo logran.
 
