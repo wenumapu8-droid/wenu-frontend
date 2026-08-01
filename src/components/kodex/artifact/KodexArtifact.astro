@@ -32,6 +32,15 @@ interface Props {
   flicker?: number;
   /** Cuanto acento entra en la pieza. Bajo = la obra se lee clara. */
   tint?: number;
+  /**
+   * La obra se muestra FIEL y el tratamiento es un acto del visitante.
+   *
+   * Es la regla de Ocín sobre su propio trabajo: la pieza se ve como es, sin
+   * dither ni pixelado, y los efectos entran recién al clic. El sistema tiene
+   * derecho a deformar sus escenarios; no tiene derecho a deformar la obra
+   * sin que se lo pidan.
+   */
+  fiel?: boolean;
   class?: string;
 }
 
@@ -50,6 +59,8 @@ const {
   chroma = 0.6,
   flicker = 0.5,
   tint = 0.18,
+  // Fiel por defecto: la obra se muestra como es, y el tratamiento se pide.
+  fiel = true,
   class: className = "",
 } = Astro.props;
 
@@ -58,7 +69,7 @@ const accentHex = accent.startsWith("#") ? accent : (accent.match(/#[0-9a-fA-F]{
 ---
 
 <figure
-  class:list={["kdx-artifact", className]}
+  class:list={["kdx-artifact", fiel && "kdx-artifact--fiel", className]}
   data-kdx-artifact
   data-artwork={artwork}
   data-accent={accentHex}
@@ -79,9 +90,22 @@ const accentHex = accent.startsWith("#") ? accent : (accent.match(/#[0-9a-fA-F]{
 
     <div class="kdx-artifact__stage">
       <canvas class="kdx-artifact__canvas" data-kdx-artifact-canvas aria-hidden="true"></canvas>
-      {/* Respaldo: si WebGL falla o la textura no carga, la pieza igual se ve.
-          Una lámina sin su obra no es una lámina. */}
-      <img class="kdx-artifact__fallback" src={artwork} alt="" loading="lazy" decoding="async" />
+      {/* La obra tal cual. En modo fiel es lo que se ve; en el otro es el
+          respaldo para cuando WebGL falla o la textura no carga. En los dos
+          casos la pieza siempre está: una lámina sin su obra no es una
+          lámina. */}
+      <img class="kdx-artifact__fallback" src={artwork} alt={label} loading="lazy" decoding="async" />
+
+      {fiel && (
+        <button
+          class="kdx-artifact__toque"
+          type="button"
+          data-kdx-artifact-toggle
+          aria-pressed="false"
+        >
+          <span class="kdx-artifact__toqueRot">TRATAR SEÑAL</span>
+        </button>
+      )}
     </div>
 
     <figcaption class="kdx-artifact__meta">
@@ -151,6 +175,51 @@ const accentHex = accent.startsWith("#") ? accent : (accent.match(/#[0-9a-fA-F]{
   }
   .kdx-artifact[data-kdx-artifact-state="ready"] .kdx-artifact__canvas { opacity: 1; }
 
+  /* MODO FIEL — el estado normal de la obra de Ocín.
+     El tratamiento existe y está listo, pero apagado: entra recién cuando el
+     visitante lo pide. El sistema puede deformar sus escenarios; la obra no se
+     toca sin permiso. */
+  .kdx-artifact--fiel .kdx-artifact__canvas { opacity: 0; }
+  .kdx-artifact--fiel .kdx-artifact__fallback { opacity: 1; }
+  .kdx-artifact--fiel[data-kdx-tratada] .kdx-artifact__canvas { opacity: 1; }
+  .kdx-artifact--fiel[data-kdx-tratada] .kdx-artifact__fallback { opacity: 0; }
+
+  /* La invitación. Discreta hasta que el puntero se acerca: la obra manda y el
+     control no debe competir con ella. */
+  .kdx-artifact__toque {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    align-items: end;
+    justify-items: end;
+    padding: 10px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  .kdx-artifact__toqueRot {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.55);
+    border: 1px solid rgba(232, 229, 222, 0.22);
+    background: rgba(5, 5, 7, 0.62);
+    padding: 4px 8px;
+    opacity: 0.32;
+    transition: opacity 220ms ease, border-color 220ms ease, color 220ms ease;
+  }
+  .kdx-artifact__toque:hover .kdx-artifact__toqueRot,
+  .kdx-artifact__toque:focus-visible .kdx-artifact__toqueRot {
+    opacity: 1;
+    color: #e8e5df;
+    border-color: var(--kdx-artifact-accent, #FF3833);
+  }
+  .kdx-artifact__toque:focus-visible { outline: 1px solid var(--kdx-artifact-accent, #FF3833); outline-offset: -2px; }
+  .kdx-artifact--fiel[data-kdx-tratada] .kdx-artifact__toqueRot { color: var(--kdx-artifact-accent, #FF3833); opacity: 0.8; }
+
   .kdx-artifact__fallback {
     position: absolute;
     inset: 0;
@@ -164,6 +233,10 @@ const accentHex = accent.startsWith("#") ? accent : (accent.match(/#[0-9a-fA-F]{
     transition: opacity 420ms ease;
   }
   .kdx-artifact[data-kdx-artifact-state="ready"] .kdx-artifact__fallback { opacity: 0; }
+  /* En modo fiel la regla de arriba no aplica: el canvas listo NO apaga la
+     obra. Se declara despues para que gane sin recurrir a !important. */
+  .kdx-artifact--fiel[data-kdx-artifact-state="ready"] .kdx-artifact__fallback { opacity: 1; }
+  .kdx-artifact--fiel[data-kdx-artifact-state="ready"][data-kdx-tratada] .kdx-artifact__fallback { opacity: 0; }
 
   .kdx-artifact__meta {
     display: flex;

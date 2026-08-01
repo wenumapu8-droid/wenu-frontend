@@ -120,10 +120,42 @@ class KodexArtifact {
     this.observe();
     this.watchResize();
 
+    this.montarToque();
+
     // Se expone la instancia para poder inspeccionarla desde la consola. Sin
     // esto, depurar "la pieza no aparece" es adivinar: el shader puede estar
     // perfecto y el problema ser que el loop nunca arrancó.
     (root as HTMLElement & { __kdxArtifact?: KodexArtifact }).__kdxArtifact = this;
+  }
+
+  /**
+   * El interruptor del tratamiento.
+   *
+   * En modo fiel la obra se ve como es y el shader queda apagado. Este boton
+   * lo enciende. El loop **no arranca hasta que se pide**: mantener un
+   * raymarcher corriendo detras de una capa invisible gasta GPU para nada, y
+   * en la maquina lenta con la que se revisa este proyecto eso se nota.
+   */
+  private montarToque(): void {
+    const boton = this.root.querySelector<HTMLButtonElement>("[data-kdx-artifact-toggle]");
+    if (!boton) return;
+
+    boton.addEventListener("click", () => {
+      const tratada = this.root.hasAttribute("data-kdx-tratada");
+      if (tratada) {
+        this.root.removeAttribute("data-kdx-tratada");
+        boton.setAttribute("aria-pressed", "false");
+        const rot = boton.querySelector("span");
+        if (rot) rot.textContent = "TRATAR SEÑAL";
+        this.stop();
+      } else {
+        this.root.setAttribute("data-kdx-tratada", "");
+        boton.setAttribute("aria-pressed", "true");
+        const rot = boton.querySelector("span");
+        if (rot) rot.textContent = "OBRA FIEL";
+        this.start();
+      }
+    });
   }
 
   /** Estado interno, para diagnóstico desde la consola. */
@@ -345,6 +377,9 @@ class KodexArtifact {
 
   private start(): void {
     if (this.raf || this.disposed || !this.texture) return;
+    // En modo fiel el tratamiento esta apagado hasta que el visitante lo pide:
+    // el observador de visibilidad no debe encenderlo por su cuenta.
+    if (this.root.classList.contains("kdx-artifact--fiel") && !this.root.hasAttribute("data-kdx-tratada")) return;
     // El reloj del barrido arranca con el loop, no con el constructor: entre
     // uno y otro esta la carga de la obra, y si contara ese tiempo la pieza
     // apareceria de golpe y ya revelada.

@@ -550,6 +550,9 @@ const SHADERS: Record<string, () => Promise<string>> = {
   "mandelbrot-field": () => import("../../../kodex/shaders/lab/mandelbrot-field.frag?raw").then((m) => m.default),
   "impossible-structure": () => import("../../../kodex/shaders/lab/impossible-structure.frag?raw").then((m) => m.default),
   "split-corridor": () => import("../../../kodex/shaders/lab/split-corridor.frag?raw").then((m) => m.default),
+  // El escenario surrealista: arquitectura imposible, cuerpos flotantes y
+  // espacio ondulado. Es ATMOSFERA — nunca se le aplica a la obra.
+  "surreal-dream": () => import("../../../kodex/shaders/lab/surreal-dream.frag?raw").then((m) => m.default),
 };
 
 const boot = async (): Promise<void> => {

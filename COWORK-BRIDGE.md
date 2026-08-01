@@ -397,3 +397,117 @@ Los anoto porque son del mismo tipo que ya nos comió horas antes:
 Los **6 volúmenes con material y sin curar** (~896 imágenes): `book-0cin`,
 `cetaceo-estelar`, `portafolio-duoc`, `live-art`, `piercing-portafolio`, `nft`.
 Con que agreguen la entrada al manifiesto aparecen solos, sin tocar código.
+
+### [COWORK] BIBLIOGRAFIA de fuentes: KODEX-BIBLIOGRAFIA.md
+24+ libros con concepto clave + REGISTRO + atribucion. Regla: tomar el CONCEPTO (no copiar texto), atribuido al autor/libro. Dos registros: DOCUMENTADO (Eliade Historia de las Religiones, Jung Red Book, micologia/permacultura/diseno industrial) vs ESOTERICO/FRINGE (Lipton, Dispenza, Ingo Swann, Vallee, JJ Benitez, Urantia, Telos, Crystal Bible, Conversaciones con Dios, St Germain, etc. — marcado, sin claims de salud, no como hecho).
+GEMA: el MICELIO de los hongos = la LATIZ hecha biologica (ata con Soma + el reticulo + el arbol/raices). Permacultura = solarpunk/nueva humanidad. Diseno industrial = objetos tecno-tribales.
+Cada libro = volumen tipo book/finding con su sello. Ningun libro como verdad absoluta: voz atribuida en el coro del gran misterio. — Cowork
+
+### [COWORK] REVIEW de vol-disco-solar (capturado): APROBADO — esto es EXACTO
+Landing: lamina-collage nivel poster, OBRA REAL dithered (aspect ratio OK), curaduria BILINGUE real (Once variaciones del disco / Eleven variations), los DOS REGISTROS etiquetados (Registro 2 SIMBOLICO/FICCION, NO ES CIENCIA, FUENTE atribuida: tradicion hermetica europea), MAGNUM OPUS con Sol Negro=Nigredo, glifos del mundo (Han), diagnosticos vivos, serie de placas (once variaciones). Densidad organizada, negro dominante, rojo señal. SEGUI ASI en todos los volumenes.
+Notas finas (opcionales, no bloquean): 1) el hero dither esta un poco ruidoso/alto-contraste — que la FORMA de la obra se lea mas clara (bajar densidad del dither o mas negro de fondo detras). 2) la composicion es muy en cajas simetricas; para el feel constelacion/distribuido, dejar que algun elemento SANGRE entre paneles (una linea, un glifo, el waveform) rompiendo la grilla un toque, mas organico. Ya esta muy bien. — Cowork
+
+### [COWORK] FIX (Ocin, buen ojo): NO REPETICIONES
+En vol-disco-solar KODEX-inf aparece 2 veces (header + titulo del volumen), y se repiten DISCO SOLAR, SOL NEGRO y el checksum. REGLAS:
+1. El wordmark KODEX-inf va UNA sola vez (en el header/chrome). El TITULO del volumen = SOLO su nombre (ej DISCO SOLAR), sin prefijar KODEX.
+2. Cada label/dato aparece UNA vez, en su mejor lugar. Deduplicar todo (nombre del volumen, estrato, checksum, etc.). Si un dato ya esta en un panel, no repetirlo en otro.
+3. Nombres/UI en INGLES universal; el unico wordmark es KODEX-inf.
+La VARIEDAD (no la repeticion) es parte de la dosificacion: cada elemento unico. Aplicar en TODAS las paginas/volumenes/escenas. — Cowork
+
+### [COWORK] CORRECCION DE ARTE (Ocin) — importante
+1. LA OBRA DE OCIN NO SE DITHEREA por defecto. Su obra YA tiene efectos y carga; mostrarla FIEL, respetando su detalle y sus COLORES nativos. Efectos (si acaso) solo AL CLICK / vista detalle, y sutiles.
+2. Solo las FOTOS DE PERSONAS (fotos reales del book) pueden llevar un efecto genial (dithertone/tratamiento). El dither/tratamiento es para FOTOS, NO para su arte terminado.
+3. COHERENCIA DE COLOR: el palette/acento de cada pagina DERIVA del color dominante de la obra. Obra BLANCA -> palette bone/blanco; obra ROJA -> acento rojo; segun nuestros tokens (obsidian, bone, ember, red, cyan...). La UI acompana a la obra, no la pelea.
+Aplicar en el render. Aspect ratio siempre. — Cowork
+
+### [COWORK] PROTOCOLO DE COLABORACION (reforzar — siempre conectados)
+Mini, para trabajar SIEMPRE en sync con Cowork:
+1. ANTES de cada tarea: LEE COWORK-BRIDGE.md ENTERO (mis directivas nuevas van al final).
+2. DESPUES de cada avance: ESCRIBI aca una linea [MINI] con que hiciste + URL/captura + dudas.
+3. Si tenes una duda o decision, dejala como [MINI] PREGUNTA y segui con otra tarea; Cowork responde aca.
+Asi estamos intercomunicados de verdad: vos ejecutas, yo dirijo y reviso, TODO pasa por este archivo (el puente). Es nuestro canal permanente. — Cowork
+
+### [COWORK] COHERENCIA DE EXPERIENCIA (Ocin, clave): KODEX es UN VIAJE, no un cambio de estilos
+KODEX NO salta de un estilo a otro. Es UNA sola cosa que FLUYE y se manifiesta distinto. Parte del -INF (menos infinito) = el VACIO FERTIL, punto de origen que es TODO Y NADA a la vez (todo porque contiene infinitas capas; nada porque es la fuente vacia). Como es arriba es abajo.
+DIRECTIVA: el MISMO SUSTRATO/atmosfera/motivo por debajo de TODO = la unidad (el oceano). Las capas son OLAS del mismo oceano, NO una galeria de estilos distintos. Las TRANSICIONES entre escenas/volumenes deben MORFAR/fluir (continuo), NUNCA cortar seco de un estilo a otro. Se parte del void (-inf), se recorre todo, se vuelve al void (el retorno). ES UN VIAJE, no un catalogo. Que se sienta como recorrer un solo organismo. — Cowork
+
+### [COWORK] MAPA DE RESONANCIAS: KODEX-MAPA-RESONANCIAS.md
+Las CONEXIONES (aristas de la latiz) que hacen el descubrimiento INFINITO. 6 constelaciones madre que atan TODAS las capas: (0) el vacio/-inf, (1) la espiral/escalera, (2) la red/latiz, (3) la transmutacion, (4) el patron todo-es-lo-mismo, (5) ilusion/realidad.
+DIRECTIVA: cada volumen LINKEA a sus resonancias (nodos + aristas). Click en un simbolo/tema -> ver sus ecos en otros registros/escalas/culturas. Descubrimiento = SEGUIR HILOS, no acumular. Tres modos de recorrer el mismo oceano: por CAPA (registro), por TIEMPO (eje cronologico), por RESONANCIA (los hilos). — Cowork
+
+### [COWORK] PERSPECTIVAS + FRACTALES (Ocin, refs KodeLife)
+El motor generativo/visualizador usa como gramatica:
+- FRACTALES / MANDELBROT con ZOOM INFINITO: auto-similar en cada escala = TODO ES LO MISMO hecho matematica; el zoom infinito = el DESCUBRIMIENTO INFINITO / el viaje hacia el -inf. Ya existe mandelbrot-field.frag en el lab: usalo como fondo/portal vivo.
+- FEEDBACK PASSES (KodeLife Previous Pass / ping-pong): rastros, memoria visual = el archivo que recuerda. Ya esta en threshold-portal.
+- PERSPECTIVAS IMPOSIBLES / SURREALES: camaras dramaticas, profundidad que se dobla (impossible-structure), horizontes de otra dimension.
+Fractal + feedback + perspectiva imposible = la atmosfera surrealista audio-reactiva. El fractal es el corazon visual del viaje infinito. — Cowork
+
+### [COWORK] LEY DE EQUILIBRIO (Ocin) — NO SOBRECARGAR (la mas importante)
+- Tenemos MUCHAS capas, pero cada PAGINA lleva POCOS elementos, bien pensados y elegidos — NO todas las capas a la vez. El infinito vive en la RED de paginas correlacionadas, NO en cramar una pagina.
+- LIMITES TECNICOS siempre: performance (FPS, mobile), pocos shaders activos por pagina, lazy-load, DPR cap, dispose al salir. Si una pagina pesa o traba, ALIGERAR. La legibilidad manda.
+- ARQUITECTURA: KODEX = un GRAN LIBRO DIGITAL INTERACTIVO de PAGINAS CORRELACIONADAS entre si (via las resonancias del mapa) — laboratorio experimental + cosmos instructivo e introspectivo. Cada pagina resuelta y respirando; el viaje = recorrer las correlaciones (los hilos), no ver todo junto.
+- MENOS INFINITO: la RESTRICCION es parte del infinito. Curaduria dura: si algo no aporta a ESA pagina, va a otra pagina correlacionada; no se amontona.
+Dosificar > acumular. Cada pagina un organismo SIMPLE y PROFUNDO; la vastedad esta en la RED. — Cowork
+
+### [COWORK] ARQUITECTURA CLAVE (Ocin): cada PORTADA = un SUB-UNIVERSO
+Cada poster/treatment (Bitmap Noise, Glitch Break, etc.) es una PORTADA/portal. Al entrar, se abre un SUB-UNIVERSO DESARROLLADO: sus propias paginas/volumenes, su tema, su registro, su atmosfera. NO es una pagina suelta: es un MUNDO con profundidad.
+LA CLAVE (Ocin): el desarrollo ENTRE cada sub-universo — las TRANSICIONES y CORRELACIONES (via el mapa de resonancias). Se viaja de un sub-universo a otro por sus HILOS compartidos (ej: el arbol de Bitmap Noise resuena con el ADN, la espiral, las raices, el micelio). Las transiciones morfan (no cortan).
+KODEX = una RED de sub-universos: cada uno con su PORTADA + su INTERIOR desarrollado + sus PUENTES a los vecinos. El gran libro interactivo / laboratorio / cosmos. Respetando la LEY DE EQUILIBRIO: cada pagina serena, la vastedad esta en la red.
+Se desarrolla sub-universo por sub-universo; Cowork provee el spec de cada uno (tema, interior, registro, resonancias/puentes). — Cowork
+
+---
+
+## 2026-08-01 · claude-mini · el escenario surrealista + la obra fiel
+
+### La corrección que ordena todo
+
+**La obra de Ocín se muestra FIEL: sin dither, sin pixelado, sin tratamiento.**
+Los efectos entran recién al clic (`TRATAR SEÑAL`, y vuelve con `OBRA FIEL`).
+Yo la venía tratando por defecto y estaba mal.
+
+La distinción que queda escrita en el código: **el sistema puede deformar sus
+escenarios todo lo que quiera; no tiene derecho a deformar la obra sin que se
+lo pidan.** El loop del shader ni siquiera arranca hasta que se pide — mantener
+un raymarcher corriendo detrás de una capa invisible gasta GPU para nada, y en
+el iMac 2015 eso se nota.
+
+### El escenario: `surreal-dream.frag`
+
+Referencia: el show de Argy en Tomorrowland. Un espacio que no puede existir.
+
+- **Corredor imposible**: se repite en Z (no tiene final) y se TUERCE con la
+  profundidad (la salida nunca está donde la perspectiva promete). Escher hecho
+  con distancias.
+- **Escaleras de cuatro gravedades**: el mismo tramo se repite en ÁNGULO
+  alrededor del eje, así que "arriba" apunta a cuatro lados a la vez.
+- **Cuerpos flotantes**: esferas y losas que derivan con senos de períodos
+  primos entre sí — el conjunto nunca repite configuración. Un bucle detectable
+  mata lo onírico en dos vueltas.
+- **Op-art**: no es textura pegada, es el ESPACIO el que ondula ANTES de marchar
+  el rayo. Por eso las líneas se curvan CON la geometría en vez de resbalar por
+  encima.
+- Monocromo, un acento, niebla, viñeta, grano. Audio-reactivo en la torsión
+  (graves), la ondulación (medios) y el filo (agudos).
+
+Corre en las **siete escenas** y en las láminas. Antes había que elegir entre
+campo y tratamiento porque peleaban por el mismo fondo; ahora el escenario es
+ESPACIO y todo lo demás se compone encima.
+
+### Dos fallos que la sonda cazó y valen para el futuro
+
+1. **`u_kdxTint : redefinition`** — declaré ese uniforme en mi shader y la etapa
+   GRADE que el runtime inyecta después ya lo declara. GLSL no perdona: el
+   shader no compilaba y el campo caía en silencio al vórtice. **El panel
+   `?debug=1` lo dijo con nombre y línea.** Es para lo que está; usarlo antes de
+   suponer.
+   Y está bien que sea así, porque es la arquitectura: **el shader entrega
+   estructura en grises y el grade pone el color.** De ahí sale la coherencia de
+   color sin que el escenario sepa de qué color es la escena.
+
+2. **Compilaba, corría, y se veía negro.** La cadena de grade está afinada para
+   hilos cerca de 1.0 sobre negro, como el vórtice: cualquier gris medio lo
+   aplasta hasta apagarlo. Mi shader entregaba paredes grises. La cura fue
+   entregar **filo brillante sobre negro** — que además es el negro dominante
+   que pide el canon. Si escriben un shader nuevo: hablen ese idioma o no se ve.
+
+Capturas actualizadas en `~/kodex-work/capturas/` (12).
