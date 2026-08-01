@@ -22,7 +22,9 @@ Un ítem que compila y no se ve NO está hecho.
       teñida con el acento por `currentColor`. Falta B3 (ver abajo).
 - [ ] **4 · ARCHIVE interior** — grid de specimens, dossier, zoom, metadata,
       edition/certificate/trading-card
-- [ ] **5 · Acabados** — hover, sellos SVG, mensajes decodables, horas divinas
+- [~] **5 · Acabados** — sello SVG (árbol + ∞) en el chrome, reloj vivo con
+      horas espejo (11:11, 4:44…), micro-interacción en la acción. Falta:
+      mensajes decodables, hover sobre specimens ampliado.
 - [ ] **6 · Validación** — 390/430/768/1440/1920, sin scroll, sin errores,
       FPS móvil ≥45, un canvas, 10 ciclos sin fuga
 
@@ -175,12 +177,26 @@ banco. Sobre `ripple-floor` el dither no movió nada, porque la luz de RETURN no
 está en medios tonos. Sirve para saber la DIRECCIÓN de cada pase, no como
 predicción exacta.
 
+### Acabados · primera tanda ✅
+- **Sello SVG** (árbol + ∞) en el chrome. Es el mismo que recurre en THRESHOLD,
+  SIGNAL BLOOM y en la frente del espécimen: la marca del archivo, no un logo
+  repetido. En SVG para que tome el acento de la escena y quede nítido.
+- **Reloj vivo con horas espejo.** Se marcan 11:11, 4:44 y compañía porque son
+  una convención contemporánea que el archivo reconoce. Lo que se dibuja es un
+  HECHO sobre el reloj —"hora espejo"— y nada más: el sistema celebra la
+  coincidencia, **no le atribuye poder**. Afirmar lo segundo sería un claim.
+  En la hora espejo el sello toma el acento: el archivo se abre.
+- **Micro-interacción de la acción:** la flecha avanza 4px al pasar. Un solo
+  movimiento y corto — la acción se siente como una puerta que ya está
+  cediendo, no como un botón que se anima. Apagada con reduced-motion.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 07:50 — **Acabados, primera tanda**: sello, reloj con horas espejo, micro.
 - 07:22 — **Tabla de tratamientos medida** (`docs/KDX-FX-MEDICIONES.md`).
   Tercer intento en RETURN: tampoco. Paré de ajustar ese número — la escena se
   lee bien y el desvío está documentado.

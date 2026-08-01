@@ -16,6 +16,7 @@
 import { KdxCore, type PasoFx } from "../../../kodex/core/kdx-core";
 import { KdxThresholdPortalRuntime } from "../../../kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js";
 import { VIAJE, siguiente, anterior } from "../../../lib/kodex/viaje";
+import { horaEspejo } from "../../../lib/kodex/simbolos";
 // El ojo se ENSAMBLA desde el shader que ya existe. No se reescribe.
 import OJO_FRAG from "../../../kodex/shaders/capitulo/observation-eye.frag?raw";
 import CORREDOR_FRAG from "../../../kodex/shaders/lab/split-corridor.frag?raw";
@@ -344,6 +345,7 @@ const montar = () => {
     // La capa SVG hereda el acento por currentColor: marco, regla y barcode
     // cambian juntos con un solo set.
     raiz.querySelector<SVGElement>(".vj__svg")?.style.setProperty("color", e.color);
+    raiz.style.setProperty("--c-actual", e.color);
 
     escenas.forEach((el, k) => {
       const act = k === i;
@@ -384,6 +386,31 @@ const montar = () => {
     if (e.key === "ArrowRight") ir(siguiente(i));
     if (e.key === "ArrowLeft") ir(anterior(i));
   });
+
+  /**
+   * El reloj y las horas espejo.
+   *
+   * Se marcan 11:11, 4:44 y compañía porque son una convención de la cultura
+   * contemporánea que el archivo reconoce. Lo que se dibuja es un HECHO sobre
+   * el reloj — "hora espejo" — y nada más: el sistema celebra la coincidencia,
+   * no le atribuye poder. Afirmar lo segundo sería un claim, y está prohibido.
+   */
+  const reloj = raiz.querySelector<HTMLElement>("[data-vj-reloj]");
+  const espejo = raiz.querySelector<HTMLElement>("[data-vj-espejo]");
+  const tic = () => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    if (reloj) reloj.textContent = `${p(d.getHours())}:${p(d.getMinutes())}`;
+    const e = horaEspejo(d.getHours(), d.getMinutes());
+    if (espejo) {
+      espejo.hidden = e === null;
+      if (e) espejo.textContent = `HORA ESPEJO ${e}`;
+    }
+    // El archivo se abre en la hora espejo: el sello toma el acento.
+    raiz.toggleAttribute("data-abierto", e !== null);
+  };
+  tic();
+  setInterval(tic, 15000);
 
   // Entrada por hash: `#cosmology` abre esa escena.
   const h = location.hash.slice(1);
