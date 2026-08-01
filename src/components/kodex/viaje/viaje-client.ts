@@ -116,6 +116,29 @@ const montar = () => {
     const cv = campo.querySelector("canvas")!;
     const e = VIAJE[i];
 
+    /**
+     * El lienzo se dimensiona ACÁ, explícitamente, antes de entregárselo a
+     * ningún runtime.
+     *
+     * Depender de que el CSS ya haya aplicado cuando el runtime mide es una
+     * carrera que se pierde: el canvas lo crea JS, los estilos de Astro van
+     * scopeados con un `data-astro-cid-…` que el elemento nuevo no lleva, y el
+     * runtime lee `clientWidth` — que devuelve los 300×150 por defecto. El
+     * organismo termina dibujado en una cajita de la esquina, sin un error.
+     *
+     * Con estilo en línea y las medidas puestas a mano, el runtime recibe un
+     * lienzo correcto pase lo que pase con la cascada.
+     *
+     * El DPR es el del spec: 1 en móvil, 1.5 en desktop.
+     */
+    const caja = campo.getBoundingClientRect();
+    const dpr = innerWidth < 720 ? 1 : Math.min(devicePixelRatio || 1, 1.5);
+    cv.style.display = "block";
+    cv.style.width = "100%";
+    cv.style.height = "100%";
+    cv.width = Math.max(1, Math.round(caja.width * dpr));
+    cv.height = Math.max(1, Math.round(caja.height * dpr));
+
     if (e.id === "threshold") {
       const p = new KdxThresholdPortalRuntime(cv, {
         state: "DORMANT",

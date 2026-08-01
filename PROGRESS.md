@@ -67,14 +67,25 @@ Buscados por nombre de carpeta y como .zip: open-visual-lab, spatial-engine,
 observe-prototype, visual-grammar, crt-master-kit. Cero coincidencias.
 Se resuelve con B1 o por AirDrop.
 
-### B3 · El portal dibuja en una caja de 300×150  ⛔ ABIERTO
+### B3 · El portal dibujaba en una caja de 300×150  ✅ CERRADO
 El runtime mide el lienzo dentro de `load()`, que corre antes de que el
 navegador aplique el `width:100%` del CSS: se queda con el tamaño por defecto
 del canvas y pinta el portal en una cajita de la esquina superior izquierda.
 
-Intenté forzar una remedida en el cuadro siguiente (`_resize()` + evento
-`resize`) y **no tomó** — el método debe llamarse distinto o guardar el tamaño
-en otro lado. **No sigo adivinando**: hay que leer el runtime y ver cómo mide.
+**Causa real, leída del runtime y no supuesta:** `_resize()` usa
+`canvas.clientWidth`. El canvas lo crea JS, los estilos de Astro van scopeados
+con un `data-astro-cid-…` que el elemento nuevo NO lleva, así que la regla
+`width:100%` nunca lo alcanzaba y `clientWidth` devolvía los 300 por defecto.
+Probé `:global()` y tampoco alcanzó.
+
+**Cura:** el lienzo se dimensiona explícitamente antes de entregárselo a
+ningún runtime — estilo en línea + `width`/`height` a mano, con el DPR del spec
+(móvil 1, desktop 1.5). Así el runtime recibe un lienzo correcto pase lo que
+pase con la cascada.
+
+Es la **quinta vez** que en este proyecto un elemento montado y sin errores no
+se ve por un problema de medida. Queda como regla: *ningún runtime recibe un
+lienzo sin medir.*
 
 Lo que SÍ quedó verificado de la escena 00: el módulo real monta, inicializa GL
 y dibuja (antes no dibujaba nada porque yo llamaba `start()` sin el `await
@@ -87,7 +98,12 @@ no existe en este repo).
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
-  B3 abierto: el canvas del portal mide mal. Sigo con la escena 01 mientras.
+- 04:27 — **B3 cerrado.** El portal llena el campo. Y apareció un problema de
+  composición que el bug tapaba: el portal se comía el titular. La cura NO fue
+  bajarle el brillo —eso sería perder la pieza— sino darle suelo al texto: un
+  velo direccional, negro pleno en la columna del texto y transparente donde
+  vive el portal. Desktop 72% oscuro, móvil 79%, ambos legibles. Verificado a
+  1440×900 y 390×844.
 
 ## Errores propios de esta noche, para no repetirlos
 
