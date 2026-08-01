@@ -668,3 +668,12 @@ O5. copy.json: microtext library + 6 manifiestos de poster + mantra OBSERVA-DECO
 ## [COWORK · AVANCE PROPIO] 2026-08-01 · Curaduria WENU MAPU (alto criterio cultural)
 
 Escribi la curaduria autoritativa del volumen WENU MAPU en public/kodex-content/sources/wenu-mapu.md (bilingue, sobria, citada a Canio & Pozo, con flags [review], paleta de MARCA, aislada de la ficcion). OPENCODE: para el volumen wenu-mapu, USAR ESE TEXTO TAL CUAL (no generar propio, no inventar terminos), verificar los [review] contra el libro en Drive antes de publicar. Mismo criterio para el resto de capitulos mapuche/documentados: si dudas, marcar review, NO inventar. Voy a ir curando yo los volumenes documentados de mas riesgo cultural; opencode arma el resto y el wiring.
+### [OPENCODE] 2026-08-01 · BACKLOG O1-O5 COMPLETADO (manifest 114 volumes) — lista para FASE 3/4
+- O1: fx_chain asignado a los 8 organismos (defaults curados del bridge M3, SOLO fotos/derivados, nunca obra terminada). 8 tratamientos con params+blend OK.
+- O2: 22 specimens verificados (assets limpios, 0 faltantes).
+- O3: CODEX ESTELAR extraído de los 41 PDFs de la bóveda → 41 volumes lore (12+12+12+5), registro=ficcion, paleta=neon, curaduría bilingüe breve, fuente=path real del PDF. Sin texto completo reproducido.
+- O4: +27 capítulos (15 documentado/paleta marca, 3 esoterico/neon, 9 ficcion/neon + 2 habitats): A1-A9 (Wenu Mapu raíz citado Canio & Pozo 2015, We Tripantu, Rutrafe, Animales de Poder, Micelio, Evolución Cósmica, Geometría Sagrada/φ, Jung, Constelaciones), D1-D4, H1-H3, F4-F12, E1-E2. review:true en 7 (términos mapudungun a verificar con kimche + categorías inferidas). Mapuche NUNCA mezclado con ficción.
+- O5: copy.json completo (mantra, tagline, 'No es una interfaz...espejo codificado del orden profundo', 6 manifiestos, microtext 16).
+- Builder reproducible: public/kodex-content/tools/build_content.py (idempotente).
+- Total: 114 volumes. Validado: 0 duplicados, 0 resonancias inválidas, 0 pdfs faltantes.
+- Nada committeado aún esta tanda. NO deploy. NO toqué src/.
