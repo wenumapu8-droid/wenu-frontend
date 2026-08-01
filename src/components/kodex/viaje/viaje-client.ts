@@ -16,6 +16,8 @@
 import { KdxCore } from "../../../kodex/core/kdx-core";
 import { KdxThresholdPortalRuntime } from "../../../kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js";
 import { VIAJE, siguiente, anterior } from "../../../lib/kodex/viaje";
+// El ojo se ENSAMBLA desde el shader que ya existe. No se reescribe.
+import OJO_FRAG from "../../../kodex/shaders/capitulo/observation-eye.frag?raw";
 
 /**
  * Organismo de fase 1.
@@ -171,6 +173,54 @@ const montar = () => {
         if (!reducido) setTimeout(() => { if (portal === p) p.setState("AWARE"); }, 1200);
       }).catch((err: unknown) => {
         campo.dataset.kdxPortalError = String(err).slice(0, 160);
+      });
+      return;
+    }
+
+    if (e.id === "prologue") {
+      // PROLOGUE · el ojo. Mismo shader del capítulo OBSERVATION EYE, montado
+      // en el motor del viaje. Sus parámetros propios entran por `uniformes`.
+      const t0 = performance.now();
+      let proxBlink = 2.4;
+      core = new KdxCore(campo, {
+        organismo: OJO_FRAG,
+        // DITHER MATRIX a media fuerza: le da materia de archivo sin tapar la
+        // fibra del iris, que es lo que hay que ver.
+        cadena: [{ id: "dither-matrix", mix: 0.34 }],
+        seed: 2,
+        uniformes: () => {
+          const t = reducido ? 3 : (performance.now() - t0) / 1000;
+          // El parpadeo va por reloj y a intervalos irregulares: metronómico
+          // se leería como animación, irregular se lee como vivo.
+          let blink = 0;
+          if (!reducido) {
+            const d = t - proxBlink;
+            if (d > 0 && d < 0.22) blink = Math.sin((d / 0.22) * Math.PI);
+            else if (d >= 0.22) proxBlink = t + 2.6 + ((t * 7919) % 5);
+          }
+          return {
+            /**
+             * `u_estado` mapeado, y esto es una lección de interfaz.
+             *
+             * El motor entrega 0–3 (DORMANT→AWARE→ACTIVE→OPEN). Este shader
+             * viene del capítulo OBSERVATION EYE, donde 0–2 significaba
+             * LOCK→TRACK→IDLE. Al montarlo tal cual, el ojo se leía a sí mismo
+             * como IDLE y se atenuaba al 42% — compilaba, corría, y salía casi
+             * negro sin un solo error.
+             *
+             * Se traduce acá y no se toca el shader: el organismo es código
+             * que ya funciona, y el que tiene que adaptarse es quien lo
+             * hospeda. El viaje avanza LOCK → TRACK, sin llegar nunca a IDLE:
+             * un ojo que observa no se apaga.
+             */
+            u_estado: Math.min(1, (core as any)?.progresoPublico?.() ?? 0.35),
+            u_blink: blink,
+            // La paleta del organismo, en su lugar: el motor no la conoce.
+            u_violeta: [0.565, 0.235, 1.0],   // #903CFF
+            u_cyan: [0.0, 0.969, 1.0],        // #00F7FF
+            u_rojo: [1.0, 0.125, 0.157],      // #FF2028
+          };
+        },
       });
       return;
     }

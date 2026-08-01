@@ -12,7 +12,8 @@ Un ítem que compila y no se ve NO está hecho.
 - [x] **2 · Shell del viaje** — 7 escenas fullscreen horizontales, sin scroll,
       una acción por escena, chrome persistente, loop ∞, responsive 1440/390.
       Verificado en `/kodex/viaje/`.
-- [~] **3 · Escenas, una por una** — 00 THRESHOLD ensamblado desde el módulo
+- [~] **3 · Escenas, una por una** — 00 THRESHOLD + 01 PROLOGUE verificadas.
+      00 ensamblado desde el módulo
       real (`src/kodex/threshold-portal/`, runtime de 3 pases). NO reescribí el
       shader. Capa SVG (marco, regla graduada, barcode) montada en las siete y
       teñida con el acento por `currentColor`. Falta B3 (ver abajo).
@@ -98,12 +99,30 @@ no existe en este repo).
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 04:57 — **Escena 01 PROLOGUE verificada.** 91.5% oscuro, el ojo lee y el
+  titular también. Extensión `uniformes` en el motor. B1 sigue bloqueado.
 - 04:27 — **B3 cerrado.** El portal llena el campo. Y apareció un problema de
   composición que el bug tapaba: el portal se comía el titular. La cura NO fue
   bajarle el brillo —eso sería perder la pieza— sino darle suelo al texto: un
   velo direccional, negro pleno en la columna del texto y transparente donde
   vive el portal. Desktop 72% oscuro, móvil 79%, ambos legibles. Verificado a
   1440×900 y 390×844.
+
+### Escena 01 · PROLOGUE ✅
+El ojo, ensamblado desde `shaders/capitulo/observation-eye.frag` — el mismo
+shader del capítulo, sin reescribir. Sus parámetros propios (paleta exacta,
+parpadeo por reloj a intervalos irregulares) entran por la extensión
+`uniformes` que le agregué al motor: una función evaluada cada cuadro, porque
+algunos valores dependen del reloj.
+
+Tratamiento DITHER MATRIX al 34%: le da materia de archivo sin tapar la fibra
+del iris, que es lo que hay que ver.
+
+**Una lección de interfaz.** El motor entrega `u_estado` 0–3
+(DORMANT→AWARE→ACTIVE→OPEN); ese shader venía de un capítulo donde 0–2 era
+LOCK→TRACK→IDLE. Montado tal cual, el ojo se leía a sí mismo como IDLE y se
+atenuaba al 42%. Se traduce en el hospedador y NO se toca el shader: el
+organismo es código que ya funciona, y quien se adapta es quien lo aloja.
 
 ## Errores propios de esta noche, para no repetirlos
 
@@ -114,6 +133,11 @@ no existe en este repo).
 3. Llamar `start()` de un módulo sin su `await load()`. El contrato importa:
    `load()` es quien crea el contexto GL y `start()` se sale solo si no lo
    encuentra, en silencio.
-4. Chrome headless escribe la captura AL CARGAR, no después de esperar. Todas
+4. **Arreglar una cosa rompió otra.** Para que el portal midiera bien empecé a
+   dimensionar el lienzo antes de entregarlo — y eso rompió el motor, porque su
+   `medir()` salía temprano cuando el tamaño "no había cambiado" y así nunca
+   creaba los framebuffers. Escena negra, sin error. Un chequeo de salida
+   temprana tiene que mirar TODO lo que la función produce, no sólo su entrada.
+5. Chrome headless escribe la captura AL CARGAR, no después de esperar. Todas
    las capturas muestran ~t=1s. Para fotografiar más tarde hay que usar enlaces
    profundos de estado.

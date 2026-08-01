@@ -47,6 +47,17 @@ export type OpcionesCore = {
   seed?: number;
   /** Texturas / máscaras: entrada global del plano. */
   texturas?: Record<string, string>;
+  /**
+   * Uniformes propios del organismo, evaluados CADA CUADRO.
+   *
+   * Las entradas globales del plano —tiempo, puntero, audio, estado— son las
+   * mismas para todos; pero cada organismo tiene sus parámetros: los colores
+   * exactos de su paleta, un parpadeo, un umbral. Se pasan como función y no
+   * como objeto fijo porque algunos cambian con el tiempo, y porque un valor
+   * que el motor no puede recalcular obliga a reconstruir el programa entero
+   * para mover un número.
+   */
+  uniformes?: () => Record<string, number | number[]>;
 };
 
 type Bus = { activo: boolean; low: number; mid: number; high: number };
@@ -224,7 +235,17 @@ export class KdxCore {
     const r = this.raiz.getBoundingClientRect();
     const w = Math.max(1, Math.round(r.width * dpr));
     const h = Math.max(1, Math.round(r.height * dpr));
-    if (w === this.cv.width && h === this.cv.height) return;
+    // La salida temprana comprueba DOS cosas, no una: que el tamaño no haya
+    // cambiado Y que los destinos ya existan.
+    //
+    // Con sólo el tamaño, el motor se rompía en un caso real: si quien lo
+    // monta ya dejó el lienzo con las medidas correctas —que es justo lo que
+    // hay que hacer para que un runtime no mida mal—, `medir()` salía en la
+    // primera llamada y los framebuffers nunca se creaban. El bucle entonces
+    // retornaba en su primera línea y la escena quedaba negra, sin error.
+    // Arreglar una cosa rompió otra; el chequeo tiene que ser completo.
+    const listo = this.ping && this.pong && this.memoria && this.memoriaB;
+    if (listo && w === this.cv.width && h === this.cv.height) return;
     this.cv.width = w; this.cv.height = h;
 
     for (const o of [this.ping, this.pong, this.memoria, this.memoriaB]) {
@@ -280,6 +301,15 @@ export class KdxCore {
     this.progreso = Math.min(1, this.progreso + dt * 0.05);
   }
 
+  /**
+   * El progreso, para quien lo necesite afuera.
+   *
+   * Lo pide el organismo del ojo, que tiene su propia escala de estados y
+   * necesita traducir la del motor. Exponer el número es mejor que dejar que
+   * cada organismo espíe un campo privado.
+   */
+  public progresoPublico(): number { return this.progreso; }
+
   /** Fuerza un estado. Lo usan las escenas que tienen su propio guion. */
   public irA(e: Estado): void {
     this.estado = e;
@@ -304,6 +334,21 @@ export class KdxCore {
     gl.uniform1f(u("u_progreso"), this.progreso);
     gl.uniform1f(u("u_reduced"), this.reducido ? 1 : 0);
     gl.uniform1f(u("u_seed"), this.seed);
+
+    // Los propios del organismo. Se piden al vuelo: puede que dependan del
+    // reloj. Un uniform que no existe en este programa devuelve null y se
+    // ignora — así el mismo bloque sirve para el organismo y para los pases.
+    const extra = this.opts.uniformes?.();
+    if (extra) {
+      for (const [n, v] of Object.entries(extra)) {
+        const loc = u(n);
+        if (!loc) continue;
+        if (typeof v === "number") gl.uniform1f(loc, v);
+        else if (v.length === 2) gl.uniform2f(loc, v[0], v[1]);
+        else if (v.length === 3) gl.uniform3f(loc, v[0], v[1], v[2]);
+        else if (v.length === 4) gl.uniform4f(loc, v[0], v[1], v[2], v[3]);
+      }
+    }
   }
 
   private readonly cuadro = (): void => {
