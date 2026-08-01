@@ -144,9 +144,33 @@ pulso de rama.
 **Resultado medido:** de 3.73 / 100 % oscuro (sólo fondo) a 60–66 de luz y ~44 %
 oscuro. **El corredor dibuja.**
 
-**Lo que queda de este ítem:** ahora sí es calibración — 44 % de fondo oscuro
-está muy por debajo del canon (~85 %). Pero ahora es un problema real y no una
-suposición, porque la escena existe. Se resuelve con la tabla de tratamientos.
+**DESCENT reactivado**, con la cadena elegida MIDIENDO sobre este organismo:
+
+| cadena sobre split-corridor | luz | oscuro |
+|-----------------------------|-----|--------|
+| sin tratamiento             | 62.18 | 44.5 % |
+| THERMAL                     | 65.39 | 52.6 % |
+| DITHER                      | 57.74 | 51.4 % |
+| **CRT + DITHER**            | **50.02** | **57.6 %** |
+| THERMAL + CRT               | 58.81 | 56.8 % |
+
+Confirma el límite de la tabla general: **THERMAL sube la luz sobre este
+organismo** aunque la bajaba sobre el de prueba. Medir sobre el organismo real
+no era una formalidad.
+
+CRT además es lo que el corredor pide: es un tubo, y las líneas del tubo lo
+dicen mejor que nada.
+
+**Lo que queda, medido y sin maquillar:**
+- A 1440 la escena da **61.9 % de fondo oscuro**, bajo el canon (~85 %).
+  A 390 da 93.6 %, bien.
+- **El copy queda sobre el núcleo claro.** El velo del texto está diseñado para
+  una columna izquierda; este organismo tiene la luz al CENTRO, así que el velo
+  no lo cubre. No es un número: es que el velo asume una composición que este
+  organismo no tiene.
+
+Ninguna de las dos se arregla subiendo un parámetro. La segunda pide un velo
+que responda a dónde está la luz del organismo, no a una posición fija.
 
 **Nota de método:** anoche escribí "sale oscuro, hay que subirle la ganancia" y
 lo repetí tres veces. Era falso. Sólo se supo midiendo el shader AISLADO y
@@ -327,6 +351,8 @@ tarea.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 10:29 — **DESCENT reactivado** con cadena elegida por medición. Quedan dos
+  cosas medidas y anotadas: 61.9% oscuro a 1440 y el copy sobre el núcleo.
 - 10:24 — **B4 RESUELTO** (bug de SDF) y **M1 corregido** en dos archivos.
 - 09:50 — **Banco extendido a cualquier organismo.** B4 reacotado con medición:
   no es falta de ganancia, no dibuja.

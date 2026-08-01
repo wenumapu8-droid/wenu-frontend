@@ -230,27 +230,29 @@ const montar = () => {
       return;
     }
 
-    // DESCENT · el corredor queda DESACTIVADO a propósito, ver B4 en
-    // PROGRESS.md: `split-corridor.frag` ya compila y corre en este motor
-    // (hizo falta traducir su `#version 330 core`), pero entrega tan poca luz
-    // que la escena se lee negra. Es un problema de calibración del shader, no
-    // del hospedador, y merece tiempo propio. Mientras tanto DESCENT usa el
-    // organismo de gesto, que SÍ se ve: una escena negra es peor que un
-    // placeholder honesto.
-    if (false && e.id === "descent") {
+    /**
+     * DESCENT · el corredor, REACTIVADO.
+     *
+     * Estuvo apagado mientras `split-corridor` no dibujaba. La causa era un
+     * bug de SDF —multiplicar una distancia con signo por un factor de
+     * revelado, ver B4— y está corregida.
+     *
+     * La cadena se eligió MIDIENDO sobre este organismo, no sobre el de
+     * prueba: CRT SCAN + DITHER MATRIX da 57.6% de fondo oscuro contra 44.5%
+     * crudo, y le gana a THERMAL (52.6%) y a DITHER solo (51.4%). Y CRT es
+     * además lo que el corredor pide: es un tubo, y las líneas del tubo lo
+     * dicen mejor que nada.
+     */
+    if (e.id === "descent") {
       core = new KdxCore(campo, {
         organismo: CORREDOR_FRAG,
-        // CRT SCAN suave: el corredor es un tubo, y las líneas del tubo lo
-        // dicen mejor que cualquier otra cosa.
-        cadena: [{ id: "crt-scan", mix: 0.5 }],
+        cadena: [
+          { id: "crt-scan", mix: 0.62 },
+          { id: "dither-matrix", mix: 0.42 },
+        ],
         seed: 3,
         uniformes: () => ({
-          // Este shader quedó anotado hace horas como "compila pero sale
-          // demasiado oscuro". La causa no era el shader: era que corría bajo
-          // una cadena de grade que aplastaba su salida. Acá se le da su
-          // ganancia propia — que es la calibración por shader que el problema
-          // pedía, no un número al azar.
-          u_intensity: 2.2,
+          u_intensity: 1.0,
           u_branchBias: 0.35,
           u_branchPulseAge: 0.0,
         }),
