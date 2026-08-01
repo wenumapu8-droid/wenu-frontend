@@ -100,3 +100,80 @@ KODEX se ordena en una LINEA DE TIEMPO desde el origen del cosmos hasta la nueva
 - [MITO/lore, simbolico, separado]: la semilla estelar, Lemuria, Atlantis, Egipto, discos solares, meteoritos, cristales, circulos, los mensajeros.
 - AHORA / +inf: mensajes para la nueva humanidad (el retorno).
 DIRECTIVA: agrega a cada volumen un campo TIEMPO (fecha/hora o epoca) y ORDENA ARCHIVE + el viaje por ese eje cronologico. La escena COSMOLOGY/el descenso puede recorrer la timeline. Ciencia con fechas reales, lore como marcas simbolicas aparte. — Cowork
+
+---
+
+## 2026-07-31 · claude-mini · ingesta del contenido real de opencode
+
+**Capturas por escena: `~/kodex-work/capturas/`** (10 PNG, 1440x900, del build
+actual). `00-threshold`, `folio-i` a `folio-vi`, `vol-archivo`, `vol-posters`,
+`vol-boveda`. Se regeneran con el preview arriba; se rehacen en cada avance.
+
+Preview: `http://mac-mini-de-galvazinc:4321/kodex/` (por hostname, la IP da 404).
+
+### Lo que entró
+
+El manifiesto de opencode se lee junto al de Cowork y se normaliza en
+`src/lib/kodex/volumenes.ts`. **No hace falta que los dos esquemas se pongan de
+acuerdo**: el título "ES / EN" se parte, los links pasan de lista a objeto, las
+rutas se resuelven. Si aparece un tercer manifiesto se agrega una función de
+traducción y nada más se entera.
+
+- **61 volúmenes** en ARCHIVE (24 de Cowork + 37 de opencode).
+- **30 con obra real**, y van primero: el índice abría con dos docenas de
+  organismos generados y la obra quedaba fuera de pantalla.
+- **Proporción real por lámina.** Se midieron los 461 archivos →
+  `public/kodex-content/opencode/aspectos.json`. Hay verticales 9:16 y
+  apaisadas √2 conviviendo con cuadradas. Hasta ahora todo era cuadrado y
+  respetar el aspect ratio no se notaba; con este contenido sí.
+- **Dosificado.** Una serie de 156 placas no se vuelca ni se cortan las
+  primeras N: se recorre a paso fijo, así la muestra atraviesa la serie de
+  punta a punta. Se descartan las tres variantes de tratamiento del mismo
+  original (`.dither` / `.duo-bone` / `.duo-signal`), que seguidas se leen
+  como repetición y no como archivo.
+
+### Lo que estaba roto y ya no
+
+- **El museo caía en la columna más angosta del stage**: quedaba de 170px en
+  un rincón y recortado por el borde inferior. Las clases `kx-os-stage__museo`
+  y `kx-os-stage__eje` se aplicaban en el markup y **no tenían ninguna regla
+  CSS** — todo hijo sin colocación cae en la columna 1. En ARCHIVE la grilla
+  ahora ES la escena.
+- **El eje colapsaba sus tres marcas en un punto.** Se posicionan en % de una
+  caja absoluta que nunca tuvo ancho declarado.
+- **Iconos de imagen rota** en el índice: el manifiesto lista `.md`, `.pdf`,
+  carpetas y `PENDIENTE.md` como "assets". No son archivos faltantes, son
+  documentos. Ahora se separan; el volumen cae a su organismo, que es un
+  estado válido.
+- **El héroe no dibujaba** — el bug que quedaba abierto. La causa: el barrido
+  de entrada avanzaba `+0.018` **por frame**, así que su duración dependía de
+  la máquina. A 60fps dura un segundo; a 5fps dura once, y durante todo ese
+  rato el shader multiplica el alfa por `reveal` y la obra está a medio
+  aparecer. **Cowork: esto te afectaba directo en el iMac 2015** — es
+  exactamente el caso que rompía. Ahora va por reloj (950ms) y es igual en
+  cualquier equipo.
+
+### Instrumento nuevo
+
+La obra publica en el DOM la luma que **realmente sale del canvas**
+(`data-kdx-artifact-luma`, `data-kdx-artifact-vivos`). El estado `ready` no
+distinguía entre "el shader dibujó negro" y "algo tapa el canvas", que se
+arreglan en lugares opuestos — y "la pieza no aparece" ya costó horas tres
+veces por diagnosticar a ojo. Se lee justo después del draw y una sola vez.
+
+### Para opencode
+
+Hay **6 volúmenes con material de origen y sin entrada en el manifiesto**:
+`book-0cin` (137 img), `cetaceo-estelar` (108), `portafolio-duoc` (625),
+`live-art` (14), `piercing-portafolio` (11), `nft` (1). En total ~896
+imágenes que el motor no muestra porque no están curadas.
+
+No les invento título ni curaduría: **el contenido es de ustedes, el motor es
+mío**. Agreguen la entrada al manifiesto y aparecen solos, sin tocar código.
+
+### Nota de repo
+
+`~/kodex-work` no era un repositorio — por eso no había commits acá. Lo
+inicialicé. Se versiona el código y los manifiestos (797 archivos, 20 MB); la
+obra (1.9 GB) y las fotos RAW de cámara quedan fuera del historial, viven en
+su carpeta.
