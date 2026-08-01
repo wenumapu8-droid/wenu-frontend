@@ -763,3 +763,35 @@ CABLEAR (mini):
 - KITS CREADORES (CRT master kit, SVG pack, typography, shader module): USD 29 c/u; bundle de 4: USD 89.
 - LICENCIA sistema visual: standard USD 340; commission desde USD 1200.
 Pagos via wenu-platform (NOWPayments/MercadoPago). opencode: cargar estos price_tier/asset_type en el manifest por volumen.
+
+
+---
+## [COWORK · DIRECTRICES INFINITAS + LIBRO + CONFIRMACIONES] 2026-08-01
+
+### CONFIRMACIONES (resueltas por COWORK, no bloquear)
+1. LIBRO OCIN paginas: proceder con 81 (el PDF real comprimido tiene 81). Si Ocin manda el PDF de 210, re-extraer; mientras tanto 81 es la edicion. Quitar el bloqueo.
+2. Terminos mapuche (wunelfe/wanguelen/wenu leufu): MANTENER [review] hasta verificar contra Canio & Pozo 2015. NO publicar como hecho; el flag [review] ES el salvaguarda. COWORK verificara via Drive.
+
+### LIBRO — texto profesional (COWORK)
+Escribi el manuscrito literario del libro en books/ocin/text/manuscrito.md (apertura El Umbral + 5 movimientos Genesis/Umbral/Descenso/Red/Transmutacion + cierre El Retorno + colofon, voz Serpiente Espectral Roja, tesis -inf/0/+inf, dos registros separados).
+- MINI: en el visor-libro, intercalar el texto: pagina de apertura con la APERTURA, y una intro de MOVIMIENTO antes de cada bloque de laminas (map de que laminas van en cada movimiento lo define Ocin/COWORK despues). Tipografia serif ritual para el texto, limpio, legible, sin FX. El texto es parte del libro.
+- OPENCODE: cargar el manuscrito en el volumen book-ocin y en el manifest (campo text/manuscrito).
+
+### MINI — BACKLOG INFINITO (autopiloto, sin parar; commit+push cada item; PROGRESS.md; NO deploy hasta APROBAR DEPLOY)
+1. Las 7 escenas a fidelidad de poster desde kodex-modules/ (observe/split-corridor/impossible-structure/spatial-engine/ripple/wrinkled + threshold aprobado). Cada una: sus 3 estados, verbos, audio, paleta, cadena FX.
+2. KDX FX SUITE completa (8 pases) con KODEX_CRT_MASTER_KIT; efectos solo sobre foto/derivados, obra de Ocin limpia.
+3. ARCHIVE product pipeline: dossier, zoom 800%, metadata, machine derivatives, edition/certificate(/verify)/trading-card/installation.
+4. Visor-libro (/kodex/libro ya existe): intercalar el manuscrito, transiciones, download edicion.
+5. Afordancia [DESCARGAR]/[COLECCIONAR] por nodo -> store/editions/verify. Assets free (wallpaper/glifos) con captura email.
+6. Cablear sello maestro (wordmark/OG/favicon, /img/kodex/brand/) + 7 emblemas (indice de escenas + og por escena).
+7. Acabados: relojes de horas divinas (11:11/4:44/3:33), mensajes ocultos decodables (Hidden Sky), micro-interacciones, hover, transiciones entre escenas.
+8. VALIDACION continua: 5 viewports (390/430/768/1440/1920), sin scroll, sin errores consola, FPS mobile >=45, UN canvas por escena, 10 ciclos sin fuga, reduced-motion.
+REGLA DE LOOP: cuando el backlog quede vacio, elegi la escena/pieza MENOS pulida y subila a fidelidad de poster; re-verifica; nunca quedes idle.
+
+### OPENCODE — BACKLOG INFINITO (public/kodex-content/, sin tocar motor; commit+push cada item)
+1. Aplicar confirmaciones (81 paginas; mantener [review] mapuche).
+2. Cargar el manuscrito del libro (books/ocin/text/manuscrito.md) en el volumen book-ocin + manifest.
+3. Curaduria COMPLETA de los 115 volumenes: bilingue, registro, categoria, resonancias, asset_type(free-download/edition/print/kit/license), price_tier (ver PRICING FINAL). Los mapuche/documentados desde sources/ TAL CUAL.
+4. copy.json completo (microtext library, 6 manifiestos, mantra OBSERVA-DECODIFICA-PARTICIPA-PERPETUA).
+5. Metadata de assets free-download (wallpapers de laminas, sample glyph pack) por volumen.
+REGLA DE LOOP: cuando termines, TEJE las resonancias (aristas de la latiz) entre volumenes que aun no linkean, y completa curaduria faltante; nunca quedes idle.
