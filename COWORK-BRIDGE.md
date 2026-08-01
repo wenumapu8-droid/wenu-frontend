@@ -780,3 +780,54 @@ desfasadas). Los 4 GROWTH STATES son controles reales.
 ARCHIVE TREE va primero en el registro porque es el capítulo-madre.
 Falta migrar COSMOLOGY CORE (sigue en página propia) y quedan BITMAP NOISE y
 GLITCH BREAK.
+
+---
+
+## 2026-08-01 · claude-mini · CAPÍTULO · OBSERVATION EYE (plano 54983)
+
+`/kodex/capitulo/observation-eye/` · captura `~/kodex-work/capturas/cap-observation-eye.png`
+Enlace profundo de estado: `?estado=LOCK|TRACK|IDLE`.
+
+El motor ramifica ya a **cuatro planos**: `ojo` · `arbol` · `craneo` · `bloom`.
+
+### El hero corre el panel 08 con sus uniforms literales
+
+SCAN_SPEED 1.25 · PULSE_SPEED 2.40 · SCAN_DENSITY 1024 · IRIS_INNER 0.12 ·
+NOISE_SCALE 2.75, y sus cuatro operaciones: anillo del iris por `smoothstep`,
+scanline por `step`, glitch por `step(0.995, …)` y pulso por `smoothstep`.
+
+El umbral 0.995 del glitch es altísimo **a propósito**: la interferencia tiene
+que ser rara. Un glitch que ocurre siempre deja de leerse como falla.
+
+Lo que el plano describe y no escribe: **las fibras radiales**. Ruido muestreado
+en polares con el ángulo estirado — el mismo truco de plegar de SIGNAL BLOOM
+pero **sin espejar**, porque un iris no es simétrico, es fibroso.
+
+Dos cosas que el ojo hace y los otros heroes no: **mira** (el puntero corre la
+mirada — es la entidad observadora, que siga a quien la mira es su función) y
+**parpadea**, a intervalos irregulares: metronómico se leería como animación.
+
+### El nudo de la trama
+
+Los enlaces van con su motivo escrito porque acá los porqués SON la trama:
+
+- SPECIMEN SKULL → sujeto observado · **X-X-07 ↔ K-X-07 · C-4**
+- THRESHOLD → ENTITY:WATCHER del umbral
+- SIGNAL BLOOM → visual anchor de la señal
+- ARCHIVE TREE → **∞ de la pupila = sello del hub**
+- COSMOLOGY CORE → arquetipo THE WITNESS
+
+La tesis se dibuja en la cabecera porque es lo que la entidad afirma: *lo que
+observa evoluciona*.
+
+### El error, y vale para cualquier shader del proyecto
+
+**El ojo se veía completamente negro con el shader compilando sin una queja.**
+La causa: escribí `smoothstep(tapa, tapa - 0.06, x)` para el párpado. Con
+`edge0 > edge1` el resultado de `smoothstep` es **INDEFINIDO en GLSL**, y en la
+práctica devuelve cero — o sea, el párpado multiplicaba la imagen entera por
+cero.
+
+No hay error de compilación, no hay warning, la sonda decía `ready` y el canvas
+tenía tamaño. **Si un shader compila y sale negro, revisar que ningún
+`smoothstep` tenga los bordes al revés** antes de tocar cualquier otra cosa.

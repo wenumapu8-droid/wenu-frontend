@@ -244,7 +244,7 @@ export const TELEMETRIA = [
  * volúmenes — el contenido es dato, el renderizador es código — y es lo que
  * hace que el capítulo diecisiete cueste horas y no días.
  */
-export type Plano = "bloom" | "orbita" | "craneo" | "arbol";
+export type Plano = "bloom" | "orbita" | "craneo" | "arbol" | "ojo";
 
 export type CapituloMotor = Capitulo & {
   plano: Plano;
@@ -578,4 +578,128 @@ export const LEMA_GLIFOS = "EACH GLYPH IS A FUNCTION. EACH FUNCTION IS A PROMISE
  * ARCHIVE TREE va primero porque es el capítulo-madre: todo lo demás cuelga
  * de él.
  */
-export const CAPITULOS: CapituloMotor[] = [ARCHIVE_TREE, SIGNAL_BLOOM, SPECIMEN_SKULL];
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TANDA 01 · OBSERVATION EYE · KX∞-V2.0
+   ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * El testigo.
+ *
+ * No es un capítulo más: es la ENTITY:WATCHER de THRESHOLD y el visual-anchor
+ * de SIGNAL BLOOM, y **observa al SPECIMEN SKULL** — el sujeto X-X-07 de este
+ * plano es el K-X-07 de aquél, con la misma clasificación C-4. Su arquetipo es
+ * EL TESTIGO, uno de los siete de COSMOLOGY CORE, y el ∞ de su pupila es el
+ * mismo sello que lleva el hub en el tronco.
+ *
+ * Su tesis: **lo que observa evoluciona.** Por eso el ojo no ilustra una
+ * cámara — mira, y lo que mira cambia.
+ */
+export const OBSERVATION_EYE: CapituloMotor = {
+  slug: "observation-eye",
+  titulo: "OBSERVATION EYE",
+  subtitulo_en: "SCAN PROTOCOL",
+  subtitulo_es: "OJO DE OBSERVACIÓN",
+  tanda: "TANDA-01",
+  archiveId: "KX∞-V2.0",
+  fecha: "2025-05-22",
+  sysVer: "01.00.00",
+  build: "REV 02.0",
+  acento: "#A855F7",
+  apoyo: "#22D3EE",
+  sello: "B",
+  selloTexto: "REGISTRO ② · ENTIDAD OBSERVADORA — FICCIÓN DE KODEX",
+  plano: "ojo",
+  paleta: ["#A855F7", "#7C3AED", "#4C1D95", "#22D3EE", "#FF2A2A", "#FFFFFF"],
+  seedHash: "KX∞-V2.0",
+  archivo: "SCAN PROTOCOL",
+  categoria: "OBSERVER ENTITY",
+  clase: "ENTITY:WATCHER",
+  clearance: "RED",
+};
+
+/** Panel 08 · los uniforms del plano. Corren tal cual en el shader. */
+export const UNIFORMS_OJO = [
+  ["SCAN_SPEED", "1.25"],
+  ["PULSE_SPEED", "2.40"],
+  ["SCAN_DENSITY", "1024"],
+  ["IRIS_INNER", "0.12"],
+  ["NOISE_SCALE", "2.75"],
+];
+
+/** Panel 01 · SCAN STATES. */
+export const ESTADOS_OJO = [
+  { id: "LOCK",  dato: "C-4",  lee: "TARGET HELD", color: "#FF2A2A" },
+  { id: "TRACK", dato: "87%",  lee: "FOLLOWING",   color: "#A855F7" },
+  { id: "IDLE",  dato: "42%",  lee: "POWER DOWN",  color: "#4C1D95" },
+];
+
+/** Panel 02 · MOTION NOTES / EYE BEHAVIOR. */
+export const CONDUCTA_OJO = [
+  { n: "BLINK", lineas: ["Rapid closure.", "Glitch on reopen."] },
+  { n: "SCAN",  lineas: ["Rotational sweep.", "Data trace."] },
+  { n: "PULSE", lineas: ["Iris expands.", "Core brightens.", "Energy ripple."] },
+];
+
+/** Panel 05 · EYE FRAGMENTS & TREATMENT CROPS. */
+export const TRATOS_OJO = [
+  "HALFTONE", "NEON ENERGY", "PIXEL SORT", "GLITCH MAP", "SCANLINE", "BITMAP NOISE",
+];
+
+/** Panel 04 · la óptica del núcleo. */
+export const OPTICA_OJO = [
+  { k: "AZIMUTH", v: "148.60", u: "°", amp: 1.8 },
+  { k: "ELEVATION", v: "-22.40", u: "°", amp: 0.9 },
+  { k: "ZOOM", v: "4.70", u: "×", amp: 0.15 },
+  { k: "APERTURE", v: "2.80", u: " f", amp: 0 },
+];
+
+/** Panel 06 · lectura espectral. */
+export const ESPECTRO_OJO = [
+  ["COHERENCE", "HIGH"],
+  ["PEAK", "612.4 nm"],
+  ["NOISE FLOOR", "-48 dB"],
+];
+
+/**
+ * Panel 07 · OBSERVATION LOGS.
+ *
+ * Los porcentajes de confianza son los del plano — 72 / 91 / 98 / 65. El log
+ * corre en streaming: se van agregando entradas con la hora real.
+ */
+export const LOGS_OJO = [
+  { ev: "SUBJECT ACQUIRED",  det: "vessel signature matched",   conf: 91 },
+  { ev: "PATTERN DRIFT",     det: "cranial matrix fluctuation", conf: 72 },
+  { ev: "LOCK CONFIRMED",    det: "X-X-07 · threat C-4",        conf: 98 },
+  { ev: "ANOMALY · UNSTABLE", det: "signal source unresolved",  conf: 65 },
+];
+
+/**
+ * Las escenas que este ojo enlaza.
+ *
+ * Cada una con su motivo, porque un enlace sin porqué es sólo un menú — y acá
+ * los porqués son la trama: el ojo mira al cráneo, ancla la señal del bloom,
+ * es la entidad del umbral y su pupila lleva el sello del hub.
+ */
+export const MIRA_OJO = [
+  { url: "/kodex/capitulo/specimen-skull/", titulo: "SPECIMEN SKULL", razon: "SUJETO OBSERVADO · X-X-07 ↔ K-X-07 · C-4" },
+  { url: "/kodex/", titulo: "THRESHOLD", razon: "ENTITY:WATCHER DEL UMBRAL" },
+  { url: "/kodex/capitulo/signal-bloom/", titulo: "SIGNAL BLOOM", razon: "VISUAL ANCHOR DE LA SEÑAL" },
+  { url: "/kodex/capitulo/archive-tree/", titulo: "ARCHIVE TREE", razon: "∞ DE LA PUPILA · SELLO DEL HUB" },
+  { url: "/kodex/capitulo/cosmology-core/", titulo: "COSMOLOGY CORE", razon: "ARQUETIPO · THE WITNESS" },
+];
+
+/** La tesis del capítulo. Se dibuja: es lo que el ojo afirma. */
+export const TESIS_OJO = "LO QUE OBSERVA EVOLUCIONA.";
+
+/**
+ * El motor recorre esto. Agregar un capítulo es agregar una línea.
+ *
+ * Va al FINAL a propósito: un `const` no se iza, y declarar la lista antes que
+ * sus miembros revienta el build con zona muerta. ARCHIVE TREE primero porque
+ * es el capítulo-madre.
+ */
+export const CAPITULOS: CapituloMotor[] = [
+  ARCHIVE_TREE, SIGNAL_BLOOM, SPECIMEN_SKULL, OBSERVATION_EYE,
+];
