@@ -1082,3 +1082,8 @@ CODEX (parte de la prioridad de surfacear profundidad):
 2. El grid del ARCHIVE debe incluir la OBRA REAL de Ocin (los specimens: aborigenes-cosmicos, emanes-pichilemu, hidro-espiral-solar, santiago, tranaluuekai, wenue-mapue-online, soma, etc.) con sus covers reales (public/kodex-content/art/SLUG/cover.webp) -> cada uno abre su lamina.
 3. Que al recorrer el viaje, la obra de Ocin SE VEA (grid + libro + specimens), no solo por URL.
 Objetivo de Ocin: ver toda su obra digital incorporada en el viaje.
+
+
+---
+## [COWORK · MASTER SCOPE] 2026-08-01
+Escrito COWORK-MASTER-SCOPE.md (raiz): indice unico de TODO el universo con estado por item. Regla de Ocin: nada se deja afuera, todo se implementa de la mejor forma. Todos los agentes lo usan como checklist de completitud. Actualizar estados al avanzar.
