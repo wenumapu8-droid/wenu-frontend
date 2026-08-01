@@ -503,12 +503,35 @@ necesita, porque recordar es su gesto— sin comerse la atenuación.
 2. **Verificar contra el BUNDLE, no contra la fuente.** Que el archivo diga lo
    correcto no prueba que lo compilado lo diga.
 
+### Auditoría de mis propias afirmaciones ✅ · y `scripts/verificar.sh`
+
+Después de descubrir que varios reemplazos habían fallado en silencio, audité
+**hacia atrás** todo lo que afirmé anoche, contra lo COMPILADO y no contra la
+fuente. Pasa todo:
+
+- los cuatro shaders con `u_intensity` conectado
+- las cuatro intensidades de escena presentes en el bundle (.34 .45 .55 .70)
+- las cadenas de tratamiento compiladas con sus mix
+- cero reglas de `filter` sobre los specimens — la obra va limpia
+- `prefers-reduced-motion` presente
+- el barcode decodifica a `KODEX`
+
+Y lo convertí en algo repetible: **`./scripts/verificar.sh`**. Mira `dist/`, no
+`src/`, porque esa es la lección: que el archivo diga lo correcto no prueba que
+lo compilado lo diga.
+
+Se corre después de cualquier build y devuelve código de salida distinto de cero
+si algo se rompió. Cualquiera que retome esto —Cowork, otro modelo, yo mismo en
+otra sesión— puede comprobar el estado sin creerme.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 13:05 — **Auditoría hacia atrás + `scripts/verificar.sh`**. Todo lo afirmado
+  anoche verificado contra el bundle. Pasa.
 - 12:49 — **RETURN al canon (84.9 %)**. La causa de tres vueltas perdidas eran
   mis propios reemplazos fallando en silencio. Dos reglas nuevas de método.
 - 12:28 — **Pase de regresión**: 8 rutas sin errores, 5 de 7 escenas al canon.
