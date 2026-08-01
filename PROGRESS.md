@@ -230,7 +230,25 @@ Muestra DISTRIBUIDA, no las primeras doce: las primeras entradas de un
 manifiesto suelen ser de la misma serie, y una grilla con doce variaciones de lo
 mismo miente sobre lo que hay adentro.
 
-### B5 · Organismos del lab: brillo ✅ · color ⛔ ABIERTO
+### B5 · Organismos del lab: brillo ✅ · color — REENCUADRADO, no es un defecto
+**Barrido de tinte:** ningún shader del lab declara un uniform de tinte
+(`u_kdxTint`, `u_tint`, `u_accent`). `archive-orbit` tiene su rojo escrito a
+mano: `vec3(1.0, 0.035, 0.08)`.
+
+Eso cambia el diagnóstico. **No hay un contrato declarado que honrar** —como
+pasaba con `u_intensity`—, así que agregarles un tinte sería REESCRIBIR
+shaders, que la regla prohíbe.
+
+Y hay algo más de fondo: `archive-orbit` no es el organismo que el plano asigna
+a COSMOLOGY. Es un sustituto que elegí porque no tengo `kodex-modules/`. **La
+incoherencia de color no es un defecto del sistema: es la consecuencia esperable
+de sustituir organismos.** Cuando lleguen los módulos reales, cada uno traerá su
+paleta correcta.
+
+**Decisión: no lo toco.** Meterle tintes a shaders que van a ser reemplazados es
+trabajo para tirar. Queda documentado para cuando llegue el material.
+
+
 **La mitad del brillo está resuelta** conectando `u_intensity` donde estaba
 declarado y sin usar (`split-corridor`, `ripple-floor`). Queda abierta sólo la
 coherencia de color.
@@ -410,12 +428,34 @@ COSMOLOGY sus anillos y nodos.
 ajustaba el número y no pasaba nada, se ponía a buscar el problema en el
 hospedador, en la cadena o en el estado. Me hizo perder tres vueltas.
 
+### `/kodex/works` · promesa sin catch ✅
+Segundo error de esa página, y era **funcional, no cosmético**:
+
+    (async () => { await world.loadArtwork('/img/kodex/works/bw-06.jpg'); world.start(); })();
+
+Un IIFE async sin `catch`. `bw-06.jpg` **no existe en este repo**, así que la
+promesa se rechazaba, **`world.start()` nunca corría** y el mundo quedaba
+muerto. La única pista era un `Uncaught (in promise) #<Event>` — y ese
+`#<Event>` es el `onerror` del `img`: la firma de una imagen que falta.
+
+**Cura:** `try/catch/finally`. Arranca igual, apunta a una obra que sí existe, y
+el motivo del fallo queda en el DOM en vez de sólo en consola. **Un archivo
+faltante degrada la escena; no la cancela.**
+
+Verificado: consola limpia y el mundo corriendo (87.4 % de fondo oscuro).
+
+Es la tercera vez esta noche que una obra por defecto no existe en el repo
+(`bw-06-alpha.png` en el portal, `bw-06.jpg` acá). Vale revisarlo cuando llegue
+el material real.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 11:53 — **`/kodex/works` sin errores**: la promesa sin catch mataba el mundo.
+  B5-color reencuadrado: no es defecto, es consecuencia de sustituir organismos.
 - 11:21 — **Barrido de `u_intensity`**: cuatro shaders con el mismo defecto.
   MACHINE 89.8 %, COSMOLOGY 97.4 %. Todas las escenas al canon o cerca.
 - 11:03 — **DESCENT al canon (88.1 %)** conectando `u_intensity`, que estaba

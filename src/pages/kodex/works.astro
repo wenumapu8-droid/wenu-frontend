@@ -187,7 +187,25 @@ const works = [
     const canvas = document.getElementById('kodex-world');
     const world = new KodexWorld(canvas, { seed: Math.random() });
     world.setTint([0.90, 0.90, 0.93]); // archive overview — achromatic (B/W first)
-    (async () => { await world.loadArtwork('/img/kodex/works/bw-06.jpg'); world.start(); })();
+    // La obra se carga, PERO su fallo no puede matar la escena.
+    //
+    // Antes: un IIFE async sin `catch`. `bw-06.jpg` no existe en este repo, así
+    // que la promesa se rechazaba, `world.start()` NUNCA corría y el mundo
+    // quedaba muerto — con un "Uncaught (in promise) #<Event>" en consola como
+    // única pista. El `#<Event>` es el `onerror` del `img`: la firma de una
+    // imagen que no está.
+    //
+    // Ahora arranca igual. Un archivo faltante degrada la escena; no la
+    // cancela. Y el motivo queda en el DOM en vez de sólo en la consola.
+    (async () => {
+      try {
+        await world.loadArtwork('/img/kodex/works/bw-01.jpg');
+      } catch (err) {
+        document.documentElement.dataset.kdxObraError = String(err).slice(0, 120);
+      } finally {
+        world.start();
+      }
+    })();
     document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else world.start(); });
     // glitch the eyebrow
     const GLY = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789∞ΩΔ·';
