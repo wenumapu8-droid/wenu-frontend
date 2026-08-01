@@ -233,3 +233,7 @@ Carl Jung (psicologia profunda, escuela real — presentar con precision, no woo
 - INDIVIDUACION / el Self / la Sombra / anima-animus = el VIAJE del visitante (descenso, integracion, retorno).
 - FILOSOFIA PERENNE (philosophia perennis): tesis academica de que todas las tradiciones comparten un nucleo = el marco RIGUROSO de todo es lo mismo. Nombrarla.
 Jung es el HILO CONDUCTOR: ata culturas (arquetipos), relojes (sincronicidad), alquimia (individuacion), obra (mandala) y viaje. Volumenes chapter/finding, bilingue, tono intelectual + ritual. — Cowork
+
+### [COWORK] RAZAS ESTELARES (Ocin) — capa de FICCION / lore (Codex Estelar)
+Pleyadianos, Sirianos, Arcturianos, Lyranos, Andromedanos, Anunnaki/Nibiru, etc. = seres estelares del universo de FICCION de KODEX (el Codex Estelar ya tiene El Pacto de Nibiru). Estetica alien-archival.
+REGLA DURA: es ficcion esoterica, marcada como tal, NUNCA presentada como hecho, y SEPARADA de las culturas documentadas — no decir que Maya/Mapuche/Inca vienen de las Pleyades como hecho (esa es la violacion Hidden Sky a evitar). Volumenes tipo chapter en la capa lore/ficcion. — Cowork

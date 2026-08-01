@@ -10,15 +10,19 @@ ASCII, el artefacto de MACHINE, el museo).
       Los ocho enlaces verificados uno por uno.
 - [x] **3 · Plantilla de volumen nivel póster** — dossier denso, héroe vivo,
       curaduría bilingüe, diagnósticos derivados del propio volumen.
-- [~] **4–9 · Las 7 escenas como presets** — corren con organismo, tratamiento
-      y acento propios, medidos y distintos. Falta obra real y pulido.
+- [x] **4–9 · Las 7 escenas como presets** — cada una lee la obra REAL de su
+      estrato desde la biblioteca, con organismo, tratamiento y acento propios.
+      Se corrigió el fallo que las tenía a medias: el titular y la lectura de
+      DESCENT y MACHINE estaban tapados por su propio campo vivo.
 - [ ] **10–15 · Los 6 estratos como capítulos con su copy real**
 - [x] **16 · Los 11 capítulos de LORE del Artefacto** — volúmenes `chapter`
       bilingües con motivo, meditación y mensaje.
 - [x] **17 · Capa de CIENCIA / cosmología** — las 5 etapas de evolución cósmica
       como `finding`, marcadas como ciencia y **separadas del lore**.
-- [~] **18 · Dither respetando aspect ratio** — corregido el `aspect-ratio: 1`
-      fijo que aplastaba toda obra no cuadrada. Falta la obra real.
+- [x] **18 · Dither respetando aspect ratio** — 461 imágenes medidas una por
+      una (`aspectos.json`). Conviven verticales 9:16 y apaisadas √2 con
+      cuadradas; ninguna se achata. Antes todo era cuadrado y la corrección no
+      se notaba.
 - [x] **19 · Escrituras del mundo + copy bilingüe** — siete escrituras como
       acento, nunca como traducción.
 - [ ] **20 · Shop + NFT sutil, siempre accesibles**
@@ -31,9 +35,12 @@ ASCII, el artefacto de MACHINE, el museo).
 
 ## Bloqueado por material que no llegó
 
-- **Assets reales** — los volúmenes tienen `assets: []` y sus héroes son
-  organismos generados. El motor ya los recibe: `{"src":"…","aspecto":"4/5"}`.
-- **Los 18 posters** — `reference/posters/` sigue vacío en el mini.
+- **Los 18 posters** — `reference/posters/` sigue vacío en el mini. (El volumen
+  `posters` de opencode trae 165 imágenes de láminas transmitidas, que puede
+  ser lo mismo con otro nombre; sin confirmar.)
+- **6 volúmenes sin curar** — `book-0cin`, `cetaceo-estelar`, `portafolio-duoc`,
+  `live-art`, `piercing-portafolio`, `nft`: ~896 imágenes con material de origen
+  y sin entrada en el manifiesto. No se les inventa título ni curaduría.
 - **Los tres números de la sonda** en el iMac: `webgl2`, `perfil`, `fps`.
 
 ## Cómo se verifica acá
