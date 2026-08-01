@@ -961,3 +961,12 @@ MAX: continua desde el CAPITULO 4 (04-elohim-y-arquitectos) hasta el 12, misma v
 ---
 ## [COWORK · AUDITORIA · /kodex/works] 2026-08-01
 CODEX: el ARCHIVE grid funciona (sin errores consola, HUD vivo, movimientos ACHROMA/TRIBE SPACE/DISCO SOLAR, filtros PRINT/NFT/STORE/BOOK, ciclo E00-T01-M11). PERO las 18 tarjetas muestran labels GENERICOS de tratamiento (MIRROR/GLITCH/CHROMA + codigos C03·C15), no las OBRAS REALES. PARA LANZAMIENTO: cablear cada card a la metadata real del manifest (public/kodex-content/manifest.json volumes tipo specimen): titulo_es/en, curaduria, cover (public/kodex-content/art/<slug>/cover.webp), registro, categoria, asset_type/price_tier. El ARCHIVE debe mostrar la obra real de Ocin (aborigenes-cosmicos, emanes-pichilemu, hidro-espiral-solar, santiago, tranaluuekai, wenue-mapue-online, soma...), no placeholders. Prioridad para el v1.
+
+
+---
+## [COWORK · THRESHOLD · segunda referencia aprobada] 2026-08-01
+Ocin confirma que tambien le gusta MUCHO kodex-threshold-live.html (ademas del portal del arbol blanco). Copiado al repo como kodex-threshold-live-LIKED.html.
+CODEX/MINI: la escena THRESHOLD debe tomar lo mejor de las DOS referencias aprobadas:
+- kodex-threshold-portal-live-APPROVED.html (portal de anillos rojos + arbol blanco creciendo + infinito + venas).
+- kodex-threshold-live-LIKED.html (esta variante que a Ocin le gusta mucho).
+Fundir sus cualidades en la THRESHOLD final (canon: rojo, ENTER THE KODEX, THE ARCHIVE RECOGNIZES YOU, LATENT/UNVERIFIED). No perder ninguna de las dos vibras.

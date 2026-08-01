@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>KODEX−∞ · THRESHOLD · live prototype</title>
+<style>
+  :root{
+    --obsidian:#0a0a0a; --char:#111214; --bone:#ededed; --sand:#8f8a80;
+    --red:#ff2733; --red-dim:#7a1216; --acid:#b7ff00;
+    --mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--obsidian);color:var(--bone);
+    font-family:var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased}
+  #stage{position:fixed;inset:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* ---- HUD (techno-flyer: mucha data, parece desorden, todo alineado a grilla) ---- */
+  .hud{position:absolute;inset:0;pointer-events:none;
+    padding:clamp(14px,2.4vw,34px);
+    display:grid;grid-template-rows:auto 1fr auto;
+    text-transform:uppercase;letter-spacing:.12em;font-size:11px;color:var(--sand)}
+  .row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .col{display:flex;flex-direction:column;gap:6px}
+  .mid{display:grid;grid-template-columns:170px 1fr 190px;align-items:center;gap:18px}
+  b{color:var(--bone);font-weight:500}
+  .red{color:var(--red)}
+  .tick{color:var(--bone);font-variant-numeric:tabular-nums}
+
+  /* rails */
+  .rail{display:flex;flex-direction:column;gap:12px;font-size:10.5px}
+  .rail .kv{display:flex;flex-direction:column;gap:2px}
+  .rail .kv span{color:var(--sand)}
+  .rail .kv b{font-size:12px;letter-spacing:.14em}
+  .hex{font-size:9.5px;line-height:1.5;color:var(--red-dim);letter-spacing:.05em;max-width:200px;word-break:break-all}
+
+  /* center headline over artifact */
+  .center{align-self:center;justify-self:center;text-align:center;pointer-events:none}
+  .eyebrow{font-size:10px;letter-spacing:.5em;color:var(--red)}
+  .command{font-family:"Instrument Serif",Georgia,serif;text-transform:none;letter-spacing:-.01em;
+    font-size:clamp(52px,11vw,150px);line-height:.9;color:var(--bone);
+    mix-blend-mode:screen;text-shadow:0 0 40px rgba(255,39,51,.35);margin:.06em 0}
+  .decree{font-size:11px;letter-spacing:.34em;color:var(--sand)}
+  .decree b{color:var(--bone)}
+
+  /* bottom band */
+  .band{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:end}
+  .barcode{display:flex;align-items:flex-end;gap:2px;height:34px}
+  .barcode i{display:block;width:2px;background:var(--bone);opacity:.85}
+  .log{font-size:9.5px;color:var(--sand);line-height:1.7;text-align:center}
+  .log .on{color:var(--acid)}
+  .chips{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .chip{border:1px solid rgba(237,237,237,.22);padding:5px 9px;font-size:9px;letter-spacing:.18em;color:var(--sand)}
+  .cta{pointer-events:auto;border:1px solid var(--red);color:var(--bone);background:rgba(255,39,51,.06);
+    padding:9px 16px;font-size:10px;letter-spacing:.3em;cursor:pointer;transition:.2s}
+  .cta:hover{background:rgba(255,39,51,.18)}
+
+  /* energy meter */
+  .meter{height:3px;background:rgba(237,237,237,.12);position:relative;overflow:hidden;width:190px}
+  .meter i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--red);box-shadow:0 0 10px var(--red)}
+
+  /* corner brackets */
+  .bracket{position:absolute;width:26px;height:26px;border:1px solid rgba(237,237,237,.35);pointer-events:none}
+  .b-tl{top:10px;left:10px;border-right:0;border-bottom:0}
+  .b-tr{top:10px;right:10px;border-left:0;border-bottom:0}
+  .b-bl{bottom:10px;left:10px;border-right:0;border-top:0}
+  .b-br{bottom:10px;right:10px;border-left:0;border-top:0}
+
+  /* gate */
+  #gate{position:absolute;inset:0;display:flex;flex-direction:column;gap:18px;
+    align-items:center;justify-content:center;background:rgba(10,10,10,.86);z-index:9;
+    backdrop-filter:blur(2px);cursor:pointer;text-align:center}
+  #gate .g-mark{font-family:"Instrument Serif",Georgia,serif;font-size:clamp(40px,9vw,96px);color:var(--bone)}
+  #gate .g-sub{font-size:11px;letter-spacing:.4em;color:var(--red)}
+  #gate .g-hint{font-size:10px;letter-spacing:.2em;color:var(--sand);margin-top:6px}
+  .fade{opacity:0;transition:opacity .8s;pointer-events:none!important}
+
+  @media (max-width:720px){
+    .mid{grid-template-columns:1fr;gap:8px}
+    .rail{display:none}
+    .band{grid-template-columns:1fr;gap:12px}
+    .chips{justify-content:center}
+    .barcode{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="gl"></canvas>
+
+  <div class="hud" id="hud">
+    <!-- TOP -->
+    <div class="row">
+      <div class="col">
+        <span class="red">KODEX&nbsp;−∞ · ACCESS</span>
+        <span>SIGNAL / MATTER / MEMORY</span>
+      </div>
+      <div class="col" style="text-align:right">
+        <span>SESSION <b class="tick" id="sid">—</b></span>
+        <span>T+<b class="tick" id="elapsed">00:00:00</b></span>
+      </div>
+    </div>
+
+    <!-- MIDDLE : rail · headline · rail -->
+    <div class="mid">
+      <div class="rail">
+        <div class="kv"><span>NODE</span><b>KDX_00</b></div>
+        <div class="kv"><span>STATE</span><b id="stateName" class="red">EXCAVATION · E00</b></div>
+        <div class="kv"><span>SIGNAL</span><b>SONIDO</b></div>
+        <div class="kv"><span>SOURCE</span><b>ARCHIVO VIVO</b></div>
+        <div class="kv"><span>ACCESS</span><b id="access">UNVERIFIED</b></div>
+      </div>
+
+      <div class="center">
+        <div class="eyebrow">THE ARCHIVE DOES NOT STORE</div>
+        <h1 class="command">KODEX−∞</h1>
+        <div class="decree">IT&nbsp; <b>REMEMBERS</b></div>
+      </div>
+
+      <div class="rail" style="text-align:right;align-items:flex-end">
+        <div class="kv"><span>RA</span><b id="ra">17h 45m 40s</b></div>
+        <div class="kv"><span>DEC</span><b id="dec">−29° 00′ 28″</b></div>
+        <div class="kv"><span>CHECKSUM</span><b id="checksum">A1F0-9C</b></div>
+        <div class="kv"><span>ENERGY</span><div class="meter"><i id="meter"></i></div></div>
+        <div class="hex" id="hex"></div>
+      </div>
+    </div>
+
+    <!-- BOTTOM band -->
+    <div class="band">
+      <div class="col">
+        <div class="barcode" id="barcode"></div>
+        <span style="font-size:9px">ARCHIVE KDX−∞ / SPECIMEN 00 / <b id="csum2">A1F0-9C</b></span>
+      </div>
+      <div class="log">
+        <div>SYSTEM LOG</div>
+        <div id="log1" class="on">PORTAL FIELD SEALED</div>
+        <div id="log2">GEOMETRY CALIBRATED</div>
+        <div id="log3">MEMORY CHANNEL LATENT</div>
+      </div>
+      <div class="col" style="align-items:flex-end;gap:12px">
+        <div class="chips">
+          <span class="chip">ARCHIVE SEALED</span>
+          <span class="chip">RITUAL MEMORY</span>
+          <span class="chip">OPERATIVE PORTAL</span>
+        </div>
+        <button class="cta" id="stateBtn">SHIFT STATE →</button>
+      </div>
+    </div>
+  </div>
+
+  <span class="bracket b-tl"></span><span class="bracket b-tr"></span>
+  <span class="bracket b-bl"></span><span class="bracket b-br"></span>
+
+  <div id="gate">
+    <div class="g-sub">KODEX &nbsp;−∞</div>
+    <div class="g-mark">THRESHOLD</div>
+    <div class="g-hint">TAP TO ENTER — ENABLE SOUND</div>
+  </div>
+</div>
+
+<script type="module">
+/* =========================================================================
+   KODEX−∞ · THRESHOLD — prototipo vivo
+   Fusiona el shader del threshold-portal de Ocin (source frag) con su motor
+   de audio kodexAudio (drone + analizador FFT). El mandala es procedural
+   como stand-in de su obra real (Drive book/0cin) — el punto de enchufe de
+   la textura está marcado abajo (u_tex). Tratamiento KodeLife encima:
+   pixelado + dither Bayer + scanlines + chroma + grano.
+   ========================================================================= */
+
+/* ---------- AUDIO (port de kodexAudio.js — drone + analyser energy) ---------- */
+class KodexAudio{
+  constructor(){this.energyV=0;this.started=false;}
+  async start(){
+    if(this.started)return;
+    const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(); await ctx.resume();
+    this.ctx=ctx; this.started=true;
+    const master=ctx.createGain(); master.gain.value=0;
+    const lim=ctx.createDynamicsCompressor(); lim.threshold.value=-6; lim.ratio.value=12;
+    master.connect(lim); lim.connect(ctx.destination); this.master=master;
+    const mk=(f,t,g)=>{const o=ctx.createOscillator();o.type=t;o.frequency.value=f;
+      const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);gg.connect(master);o.start();return o;};
+    this.sub=mk(55,'sine',0.25); this.drone=mk(82.5,'triangle',0.12); this.beat=mk(110.3,'sine',0.06);
+    const nb=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate); const nd=nb.getChannelData(0);
+    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*0.5;
+    const noise=ctx.createBufferSource(); noise.buffer=nb; noise.loop=true;
+    const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=320; nf.Q.value=4;
+    const ng=ctx.createGain(); ng.gain.value=0.09; noise.connect(nf); nf.connect(ng); ng.connect(master); noise.start();
+    this.nf=nf;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.12; const lg=ctx.createGain(); lg.gain.value=0.03;
+    lfo.connect(lg); lg.connect(master.gain); lfo.start();
+    const an=ctx.createAnalyser(); an.fftSize=256; master.connect(an);
+    this.an=an; this.bins=new Uint8Array(an.frequencyBinCount);
+    const now=ctx.currentTime; master.gain.setValueAtTime(0,now);
+    master.gain.linearRampToValueAtTime(0.9,now+4);
+  }
+  setCutoff(n){ if(this.nf&&this.ctx) this.nf.frequency.setTargetAtTime(180+n*1400,this.ctx.currentTime,0.2); }
+  setState(s){ if(!this.ctx)return; const t=this.ctx.currentTime,r=(p,v)=>p&&p.setTargetAtTime(v,t,0.9);
+    const S={E00:{a:55,d:82.5,b:110.3,c:320},T01:{a:55,d:110,b:165,c:720},
+      M11:{a:110,d:165,b:220,c:1500},R10:{a:55,d:82.5,b:110,c:460}}[s]; if(!S)return;
+    r(this.sub.frequency,S.a); r(this.drone.frequency,S.d); r(this.beat.frequency,S.b); r(this.nf.frequency,S.c); }
+  energy(){ if(!this.an)return 0; this.an.getByteFrequencyData(this.bins);
+    let s=0; for(let i=0;i<this.bins.length;i++)s+=this.bins[i];
+    const e=s/(this.bins.length*255); this.energyV+=(e-this.energyV)*0.2; return this.energyV; }
+}
+
+/* ---------- WebGL ---------- */
+const cv=document.getElementById('gl');
+const gl=cv.getContext('webgl2',{antialias:false,alpha:false});
+const VERT=`#version 300 es
+in vec2 p; out vec2 v_uv; void main(){ v_uv=p*0.5+0.5; gl_Position=vec4(p,0.,1.); }`;
+
+/* fragment: portal de Ocin (warp radial + halo + ring) con mandala procedural,
+   luego tratamiento KodeLife (pixelate + Bayer dither + scanline + chroma + grano) */
+const FRAG=`#version 300 es
+precision highp float;
+in vec2 v_uv; out vec4 o;
+uniform vec2 u_res; uniform float u_time; uniform float u_seed;
+uniform vec2 u_pointer; uniform float u_bass; uniform float u_state;
+uniform float u_px;   // tamaño de bloque (pixelación)
+
+float hash21(vec2 p){ p=fract(p*vec2(234.34,435.345)); p+=dot(p,p+34.23); return fract(p.x*p.y); }
+mat2 rot(float a){ float c=cos(a),s=sin(a); return mat2(c,-s,s,c); }
+float bayer(vec2 c){ // 4x4 Bayer ordered dither
+  int x=int(mod(c.x,4.)), y=int(mod(c.y,4.));
+  int i=x+y*4;
+  float m[16]=float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);
+  return m[i]/16.-0.5;
+}
+
+// MANDALA procedural (stand-in de la obra real de Ocin) → devuelve máscara [0,1]
+float mandala(vec2 c){
+  float r=length(c); float a=atan(c.y,c.x);
+  float rings=smoothstep(.02,.0,abs(fract(r*6.0-u_time*0.02)-0.5)-0.42);
+  float spokes=smoothstep(.55,1.,abs(sin(a*12.0)));
+  float petals=smoothstep(.35,.0,abs(r-0.34-0.05*sin(a*8.0+u_time*0.1)));
+  float cross=smoothstep(.012,.0,abs(c.x))+smoothstep(.012,.0,abs(c.y));
+  float core=smoothstep(.10,.06,r);
+  float m=max(max(rings*0.7, petals), max(spokes*smoothstep(.5,.15,r), core));
+  m=max(m, cross*smoothstep(.5,.0,r)*0.6);
+  return clamp(m,0.,1.);
+}
+
+void main(){
+  vec2 res=u_res;
+  // pixelación por bloques (cuantiza a grilla) — el look "código"
+  vec2 frag=gl_FragCoord.xy;
+  vec2 blk=floor(frag/u_px)*u_px + u_px*0.5;
+  vec2 uv=blk/res;
+  vec2 c=uv-0.5; c.x*=res.x/max(1.,res.y);
+
+  float radius=length(c); float angle=atan(c.y,c.x);
+  // warp del portal (de tu shader): breathe + bassPulse + polarWarp + pointer
+  float breathe=sin(u_time*mix(.12,.28,u_state))*mix(.02,.08,u_state);
+  float bassPulse=u_bass*mix(.05,.20,u_state);
+  float polarWarp=mix(.06,.24,u_state)*sin(angle*4.+u_time*.18+u_seed*6.283);
+  float pointerPull=dot(c,u_pointer)*0.12;
+  float wr=radius*(1.-breathe-bassPulse)+polarWarp*0.5;
+  float wa=angle+pointerPull+sin(radius*11.-u_time*.22)*.06;
+  vec2 sUv=vec2(cos(wa),sin(wa))*wr;
+
+  float mask=mandala(sUv);
+  float ring=smoothstep(.72,.18,radius);
+  float halo=exp(-8.*abs(radius-0.22-bassPulse*0.5));
+  float grain=(hash21(frag+u_seed*100.)-0.5)*0.05;
+
+  // paleta roja (obsidiana → rojo señal), halo cálido
+  vec3 base=mix(vec3(.02,.008,.008), vec3(.85,.09,.10), mask);
+  base+=vec3(1.,.26,.14)*halo*(0.35+0.5*u_state)*(0.6+u_bass);
+  base*=ring; base+=grain;
+
+  // dither Bayer sobre la luminancia (holograma)
+  float lum=dot(base,vec3(.299,.587,.114));
+  float d=bayer(frag/u_px);
+  float q=step(0.5, fract(lum*5.0 + d)); // bandas cuantizadas
+  base*= (0.72+0.42*q);
+
+  // scanlines
+  float scan=0.82+0.18*sin(frag.y*0.9 + u_time*2.0);
+  base*=scan;
+
+  // aberración cromática leve
+  base.r*=1.04; base.b+=mask*0.08+halo*0.06;
+
+  // viñeta
+  base*=smoothstep(1.15,.25,length(uv-0.5));
+
+  o=vec4(base,1.);
+}`;
+
+function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);
+  if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(x));return x;}
+const prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog); gl.useProgram(prog);
+const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+const loc=gl.getAttribLocation(prog,'p'); gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+const U=n=>gl.getUniformLocation(prog,n);
+const uRes=U('u_res'),uTime=U('u_time'),uSeed=U('u_seed'),uPtr=U('u_pointer'),
+      uBass=U('u_bass'),uState=U('u_state'),uPx=U('u_px');
+const seed=Math.random(); gl.uniform1f(uSeed,seed);
+
+let W,H,DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){ W=cv.clientWidth; H=cv.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; gl.viewport(0,0,cv.width,cv.height); }
+window.addEventListener('resize',resize); resize();
+
+let ptr=[0,0];
+window.addEventListener('pointermove',e=>{
+  ptr=[(e.clientX/window.innerWidth-0.5)*2,(0.5-e.clientY/window.innerHeight)*2];
+  if(audio.started)audio.setCutoff(e.clientY/window.innerHeight);
+});
+
+/* ---------- estados (audio + visual juntos) ---------- */
+const STATES=[
+  {k:'E00',name:'EXCAVATION · E00',v:0.15},
+  {k:'T01',name:'TRANSMUTATION · T01',v:0.5},
+  {k:'M11',name:'MANIFESTATION · M11',v:0.9},
+  {k:'R10',name:'RETURN · R10',v:0.35},
+];
+let si=0, stateV=STATES[0].v, stateTarget=STATES[0].v;
+
+const audio=new KodexAudio();
+
+/* ---------- HUD vivo ---------- */
+const $=id=>document.getElementById(id);
+const HEX='0123456789ABCDEF';
+const rnd=n=>Array.from({length:n},()=>HEX[Math.random()*16|0]).join('');
+$('sid').textContent=rnd(4)+'-'+rnd(4);
+// barcode
+const bc=$('barcode'); for(let i=0;i<42;i++){const b=document.createElement('i');
+  b.style.height=(8+Math.random()*26)+'px'; bc.appendChild(b);}
+const t0=performance.now();
+let frames=0, lastHUD=0;
+function fmt(ms){const s=ms/1000|0; const h=(s/3600|0), m=(s/60%60|0), ss=s%60;
+  const p=n=>String(n).padStart(2,'0'); return p(h)+':'+p(m)+':'+p(ss);}
+
+function hud(now){
+  frames++;
+  if(now-lastHUD>90){ lastHUD=now;
+    const e=audio.energy();
+    $('elapsed').textContent=fmt(now-t0);
+    $('meter').style.width=(8+e*92).toFixed(0)+'%';
+    $('hex').textContent=rnd(2)+' '+rnd(2)+' '+rnd(2)+' '+rnd(2)+' '+rnd(2)+' '+rnd(2)+' '+rnd(2)+' '+rnd(2);
+    // coords que derivan lento
+    const ra=(17+Math.sin(now*0.0001)*0.02).toFixed(0);
+    $('ra').textContent=ra+'h 45m '+(40+(Math.sin(now*0.0007)*9|0))+'s';
+    $('dec').textContent='−29° 00′ '+(20+(Math.cos(now*0.0006)*9|0))+'″';
+    if(Math.random()<0.06){ const cs=rnd(4)+'-'+rnd(2); $('checksum').textContent=cs; $('csum2').textContent=cs; }
+    // log flicker
+    const logs=['PORTAL FIELD SEALED','GEOMETRY CALIBRATED','MEMORY CHANNEL LATENT','ACCESS UNVERIFIED','SIGNAL RESONANT','SEED '+ (seed*1e6|0)];
+    if(Math.random()<0.12){ $('log2').textContent=logs[Math.random()*logs.length|0]; }
+    if(Math.random()<0.08){ $('log3').textContent=logs[Math.random()*logs.length|0]; }
+  }
+}
+
+/* ---------- loop ---------- */
+function frame(now){
+  const t=(now-t0)/1000;
+  stateV+=(stateTarget-stateV)*0.03;
+  const e=audio.started?audio.energy():0.15+0.1*Math.sin(t*0.6);
+  gl.uniform2f(uRes,cv.width,cv.height);
+  gl.uniform1f(uTime,t);
+  gl.uniform2f(uPtr,ptr[0],ptr[1]);
+  gl.uniform1f(uBass,e);
+  gl.uniform1f(uState,stateV);
+  gl.uniform1f(uPx, (5.0 + (1.0-stateV)*4.0)*DPR ); // más pixelado en estados bajos
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  hud(now);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- gate + state shift ---------- */
+$('stateBtn').addEventListener('click',(ev)=>{
+  ev.stopPropagation();
+  si=(si+1)%STATES.length; const s=STATES[si];
+  stateTarget=s.v; $('stateName').textContent=s.name;
+  if(audio.started)audio.setState(s.k);
+});
+const gate=document.getElementById('gate');
+async function enter(){
+  await audio.start(); audio.setState('E00');
+  $('access').textContent='GRANTED';
+  gate.classList.add('fade');
+  setTimeout(()=>gate.remove(),900);
+}
+gate.addEventListener('click',enter);
+</script>
+</body>
+</html>
