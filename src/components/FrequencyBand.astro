@@ -1,0 +1,471 @@
+---
+/**
+ * FrequencyBand — interactive CRT oscilloscope / spectrum-analyzer band (Ocin 2026-07-06).
+ *
+ * Ocin's brief (with reference: a green-phosphor CRT scope showing a frequency
+ * spectrum with a central peak, over cosmos): build a "frequency / transmission"
+ * banner that reads as an oscilloscope / spectrum analyzer — waveform with a
+ * central peak, scanlines, phosphor grain, subtle CRT curvature + vignette — and
+ * that COMES ALIVE when TOUCHED, like the Rage-Nation glitch band. At rest it is
+ * calm and legible: a static spectrum with a short ritual Wenu line. On
+ * pointermove / touchmove / drag the signal SPIKES and follows the finger, with a
+ * localized glitch (RGB-split, scanline jitter, block datamosh, noise) around the
+ * finger; on release it settles back to calm.
+ *
+ * This is a NEW band — it does NOT touch the product-forward SignalBand, the
+ * CatalogDeck, or FeaturedShowcase. It sits between the cosmic-ritual band and
+ * the journal on the home as a standalone "transmission" beat.
+ *
+ * COLOUR: phosphor green (the CRT guiño Ocin asked for) as the signal colour, on
+ * obsidian, with the brand ember (#c9a84c / var(--ember)) kept as the label/UI
+ * accent so it stays on-brand. Green is scoped to the scope trace only — it is a
+ * "monitor" motif, not a new brand accent.
+ *
+ * PERFORMANCE (efectos-livianos-mobile-wenu.md — canon):
+ *  · ONE canvas, ONE rAF chained; DPR capped (1.25 coarse / 1.5 desktop, 1 low).
+ *  · IntersectionObserver pauses the loop off-screen; visibilitychange pauses
+ *    when the tab hides. Pointer throttled to one read per frame + { passive }.
+ *  · At REST the loop still runs but draws a slow, calm signal (a few px of drift)
+ *    — bounded work; low-power / reduced-motion draw a single static frame and
+ *    stop (no rAF). Hard caps on spectrum bars + glitch blocks per tier.
+ *  · The scope trace is drawn in the canvas; the RGB-split / datamosh glitch is
+ *    done on the SAME canvas (per-frame localized redraws) — no per-particle DOM,
+ *    no filter/box-shadow animation. Scanlines + vignette are static CSS layers.
+ *  · No flashing: glitch intensity is eased, capped, and only rises under the
+ *    finger — never a full-frame flash, never to black.
+ */
+import RitualGlyph from './RitualGlyph.astro';
+interface Props {
+  line?: string;         // short ritual manifesto line (the "our soul…" equivalent)
+  label?: string;        // small mono readout label (top-left of the scope)
+  labelShort?: string;   // narrow-width fallback for the left readout
+  readout?: string;      // small mono readout label (top-right of the scope)
+  readoutShort?: string; // narrow-width fallback for the right readout
+}
+const {
+  line = 'Our signal is to weave the sky into the body.',
+  label = 'ANÁLISIS DE FRECUENCIA',
+  labelShort = 'FRECUENCIA',
+  readout = 'WENU · TRANSMISIÓN',
+  readoutShort = 'WENU · TX',
+} = Astro.props;
+---
+<section class="fqb" aria-label="Wenu Mapu frequency transmission — an interactive signal">
+  <div class="fqb__scope" data-fqb-scope>
+    {/* The signal itself — drawn in canvas (spectrum + peak + glitch). */}
+    <canvas class="fqb__canvas" data-fqb-canvas aria-hidden="true"></canvas>
+
+    {/* Static CRT dressing (CSS only, painted once): grid, scanlines, vignette,
+        phosphor grain, curvature glass. */}
+    <span class="fqb__grid" aria-hidden="true"></span>
+    <span class="fqb__scan" aria-hidden="true"></span>
+    <span class="fqb__grain" aria-hidden="true"></span>
+    <span class="fqb__glass" aria-hidden="true"></span>
+    <span class="fqb__vignette" aria-hidden="true"></span>
+
+    {/* Readouts + the ritual line, laid over the scope like CRT overlay text. */}
+    <span class="fqb__readout fqb__readout--l" aria-hidden="true"><RitualGlyph name="kultrun" size={11} /> <span class="fqb__readout-text fqb__readout-text--long">{label}</span><span class="fqb__readout-text fqb__readout-text--short">{labelShort}</span></span>
+    <span class="fqb__readout fqb__readout--r" aria-hidden="true"><span class="fqb__readout-text fqb__readout-text--long">{readout}</span><span class="fqb__readout-text fqb__readout-text--short">{readoutShort}</span> <RitualGlyph name="wunelfe" size={11} /></span>
+    <p class="fqb__line" data-fqb-line>{line}</p>
+    <span class="fqb__hint" aria-hidden="true">Move across the signal ↔</span>
+  </div>
+</section>
+
+<style>
+  .fqb {
+    position: relative;
+    padding: clamp(28px, 6vw, 64px) var(--gutter);
+    background: var(--obsidian);
+    border-block: var(--border-thin);
+  }
+
+  /* The scope screen — a bounded CRT panel, not full-bleed (bounds the canvas
+     work + reads like a real monitor). Green phosphor is scoped to inside here. */
+  .fqb__scope {
+    position: relative;
+    max-width: var(--max-w);
+    margin: 0 auto;
+    aspect-ratio: 16 / 6;
+    min-height: 200px;
+    max-height: 340px;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--bronze) 60%, transparent);
+    /* deep phosphor-tube ground: obsidian with a faint green wash toward centre */
+    background:
+      radial-gradient(120% 130% at 50% 46%, rgba(18, 40, 26, 0.55) 0%, rgba(6, 12, 9, 0.9) 60%, #050807 100%);
+    box-shadow:
+      0 24px 60px -28px rgba(0, 0, 0, 0.8),
+      inset 0 0 60px rgba(0, 0, 0, 0.55);
+    cursor: crosshair;
+    touch-action: pan-y;   /* let the page scroll vertically; we read x-drag */
+  }
+  @media (max-width: 640px) {
+    .fqb__scope { aspect-ratio: 4 / 3; max-height: 300px; }
+  }
+
+  .fqb__canvas {
+    position: absolute; inset: 0; z-index: 1;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
+
+  /* ── static CRT dressing ── all painted once, no animated blur/shadow ── */
+  .fqb__grid {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0.5;
+    background-image:
+      linear-gradient(rgba(64, 200, 120, 0.10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(64, 200, 120, 0.10) 1px, transparent 1px);
+    background-size: 44px 34px;
+    -webkit-mask-image: radial-gradient(120% 120% at 50% 50%, #000 55%, transparent 92%);
+    mask-image: radial-gradient(120% 120% at 50% 50%, #000 55%, transparent 92%);
+  }
+  .fqb__scan {
+    position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0.5;
+    background: repeating-linear-gradient(0deg, rgba(3, 8, 5, 0) 0 2px, rgba(3, 8, 5, 0.42) 2px 4px);
+    animation: fqb-scan-roll 9s linear infinite;
+  }
+  .fqb__grain {
+    position: absolute; inset: -20%; z-index: 3; pointer-events: none;
+    opacity: 0.05; mix-blend-mode: screen;
+    background-image: var(--fqb-noise);
+    background-size: 200px 200px;
+    animation: fqb-grain 0.28s steps(2) infinite;
+  }
+  .fqb__glass {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    /* subtle CRT curvature highlight — a static sheen, no blur */
+    background:
+      radial-gradient(140% 90% at 50% -10%, rgba(190, 255, 210, 0.06), transparent 42%),
+      radial-gradient(120% 120% at 50% 120%, rgba(0, 0, 0, 0.4), transparent 46%);
+  }
+  .fqb__vignette {
+    position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    box-shadow: inset 0 0 120px 24px rgba(2, 5, 3, 0.85);
+    border-radius: 14px;
+  }
+
+  /* ── overlay text (CRT-style) ──
+     Two readouts sit at the top corners. They MUST NOT collide at any width
+     (Ocin: "FRECUENCTRANSMISIÓN"), so each is capped to a share of the panel and
+     truncates rather than overrunning into its neighbour; the type scales down and
+     the tracking tightens as the panel narrows, and below 520px they shorten. */
+  .fqb__readout {
+    position: absolute; z-index: 5; pointer-events: none;
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono, monospace);
+    font-size: clamp(0.5rem, 1.4vw, var(--fs-tiny));
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(120, 230, 160, 0.72);
+    text-shadow: 0 0 8px rgba(64, 200, 120, 0.5);
+    top: 12px;
+    max-width: 44%;             /* leave a clear gutter between the two labels */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .fqb__readout .rglyph { opacity: 0.85; flex: 0 0 auto; }
+  .fqb__readout--l { left: 16px; justify-content: flex-start; }
+  .fqb__readout--r { right: 16px; justify-content: flex-end; color: var(--ember); text-shadow: 0 0 8px rgba(201, 168, 76, 0.4); }
+  /* the readout label text can itself ellipsize inside the flex row */
+  .fqb__readout .fqb__readout-text { overflow: hidden; text-overflow: ellipsis; }
+  /* narrow panels: show the SHORT forms (kept in the DOM), hide the long ones */
+  .fqb__readout-text--short { display: none; }
+  @media (max-width: 520px) {
+    .fqb__readout { font-size: 0.5rem; letter-spacing: 0.1em; max-width: 42%; }
+    .fqb__readout .rglyph { display: none; }
+    .fqb__readout-text--long { display: none; }
+    .fqb__readout-text--short { display: inline; }
+  }
+
+  .fqb__line {
+    position: absolute; z-index: 5; left: 0; right: 0; bottom: clamp(16px, 4vw, 30px);
+    margin: 0 auto; padding: 0 var(--space-4);
+    max-width: 30ch; text-align: center;
+    font-family: var(--font-serif);
+    font-size: clamp(1.1rem, 2.4vw, 1.8rem); line-height: 1.18; font-style: italic;
+    color: #eafff0;
+    text-shadow: 0 0 18px rgba(64, 200, 120, 0.35), 0 2px 14px rgba(0, 0, 0, 0.7);
+    /* GPU-only transforms are what the JS nudges on glitch (transform/opacity). */
+    will-change: transform;
+    transition: text-shadow var(--t-base);
+  }
+  .fqb__hint {
+    position: absolute; z-index: 5; left: 16px; bottom: 12px;
+    font-family: var(--font-mono, monospace); font-size: 0.58rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: rgba(120, 230, 160, 0.4);
+    animation: fqb-hint 3.4s ease-in-out infinite;
+  }
+
+  @keyframes fqb-scan-roll { to { background-position: 0 40px; } }
+  @keyframes fqb-grain { 0% { transform: translate(0, 0); } 100% { transform: translate(6px, 4px); } }
+  @keyframes fqb-hint { 0%, 100% { opacity: 0.28; } 50% { opacity: 0.6; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .fqb__scan, .fqb__grain, .fqb__hint { animation: none !important; }
+    .fqb__line { will-change: auto; }
+  }
+</style>
+
+<script>
+  // ── FrequencyBand — CRT scope + finger-reactive glitch ────────────────────
+  // Canon: efectos-livianos-mobile-wenu.md. One canvas, one rAF, DPR capped,
+  // IntersectionObserver + visibilitychange pausing, pointer throttled + passive,
+  // device tiering, hard caps, reduced-motion → single static frame.
+  (() => {
+    type Tier = 'off' | 'low' | 'mid' | 'high';
+    function tierOf(): Tier {
+      const mm = window.matchMedia;
+      if (mm('(prefers-reduced-motion: reduce)').matches) return 'off';
+      const nav = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+      if (nav.connection?.saveData === true) return 'low';
+      const mem = nav.deviceMemory ?? 4;
+      const cores = nav.hardwareConcurrency ?? 4;
+      const coarse = mm('(pointer: coarse)').matches;
+      if (mem <= 2 || cores <= 2) return 'low';
+      if (coarse && (mem <= 4 || cores <= 4)) return 'mid';
+      return coarse ? 'mid' : 'high';
+    }
+
+    function initScope(scope: HTMLElement) {
+      const canvas = scope.querySelector<HTMLCanvasElement>('[data-fqb-canvas]');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      if (!ctx) return;
+      const line = scope.querySelector<HTMLElement>('[data-fqb-line]');
+
+      const tier = tierOf();
+      const reduce = tier === 'off';
+      const coarse = window.matchMedia('(pointer: coarse)').matches;
+      const dprCap = tier === 'low' ? 1 : coarse ? 1.25 : 1.5;
+
+      // Hard caps by tier — cost scales with these.
+      const BARS = tier === 'low' ? 48 : coarse ? 72 : 128;   // spectrum resolution
+      const MAX_BLOCKS = tier === 'low' ? 3 : coarse ? 5 : 8;  // datamosh blocks on glitch
+
+      let W = 0, H = 0, dpr = 1;
+      let raf = 0, running = false, visible = false;
+
+      // Pointer state (0..1 in x, activity 0..1) — throttled to one read per frame.
+      let px = 0.5;              // finger x (normalized)
+      let active = 0;            // target activity (1 while pressing/hovering-moving)
+      let energy = 0;            // smoothed activity that drives the whole effect
+      let queued = false;
+      let lastMove = 0;
+
+      // Pre-seeded per-bar phase so the resting waveform has organic variance
+      // (seeded once — never allocate per frame).
+      const phase = new Float32Array(BARS);
+      const jitter = new Float32Array(BARS);
+      for (let i = 0; i < BARS; i++) { phase[i] = Math.random() * Math.PI * 2; jitter[i] = Math.random(); }
+
+      function resize() {
+        const r = scope.getBoundingClientRect();
+        dpr = Math.min(window.devicePixelRatio || 1, dprCap);
+        W = Math.max(1, Math.round(r.width));
+        H = Math.max(1, Math.round(r.height));
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);  // draw in CSS px
+      }
+
+      // ── the scope frame ──────────────────────────────────────────────────
+      // A spectrum-analyzer trace: a big central peak (like the reference) plus
+      // side lobes, drawn as a filled area + bright top line, in phosphor green.
+      // `e` = energy (0 rest → 1 finger). Near the finger the peak sharpens and
+      // a localized RGB-split + block-datamosh glitch is stamped over the trace.
+      function draw(now: number, e: number) {
+        const t = now * 0.001;
+        ctx.clearRect(0, 0, W, H);
+
+        const cx = px * W;                    // finger position drives the peak x
+        const baseY = H * 0.62;               // trace baseline
+        const peakH = H * (0.30 + 0.42 * e);  // peak grows with energy
+        const sigma = W * (0.10 - 0.055 * e); // peak sharpens (narrower) with energy
+
+        // build the trace as a poly-line across BARS samples
+        const xs = new Float64Array(BARS + 1);
+        const ys = new Float64Array(BARS + 1);
+        for (let i = 0; i <= BARS; i++) {
+          const u = i / BARS;
+          const x = u * W;
+          // central gaussian peak at the finger
+          const d = (x - cx) / (sigma || 1);
+          let amp = Math.exp(-0.5 * d * d);
+          // side lobes (a couple of static satellites, like a real spectrum)
+          amp += 0.16 * Math.exp(-Math.pow((x - W * 0.28) / (W * 0.05), 2));
+          amp += 0.12 * Math.exp(-Math.pow((x - W * 0.72) / (W * 0.05), 2));
+          // resting shimmer + a floor of grass so it's never a flat line
+          const idx = i % BARS;
+          const shimmer = reduce ? 0 : (0.04 + 0.10 * e) * Math.sin(t * (2 + jitter[idx] * 4) + phase[idx]);
+          const grass = 0.05 + 0.06 * jitter[idx];
+          const y = baseY - (amp * peakH) - shimmer * peakH - grass * H * 0.12;
+          xs[i] = x; ys[i] = y;
+        }
+
+        // ── dynamic signal colour ──────────────────────────────────────────
+        // The trace COLOUR shifts with the SIGNAL: phosphor green at the floor,
+        // sliding up through amber to brand ember at the top of the peak. Higher
+        // energy pushes the whole gradient warmer (the peak "heats up" as the
+        // finger drives it). A slow hue drift keeps it alive at rest. One gradient
+        // object per frame (same cost as before) — no per-pixel work.
+        const hueShift = reduce ? 0 : 0.5 + 0.5 * Math.sin(t * 0.5); // 0..1 slow breath
+        // fill body: green base → warm amber top, warmth grows with energy
+        const glow = ctx.createLinearGradient(0, baseY - peakH, 0, baseY);
+        glow.addColorStop(0, `rgba(${Math.round(150 + 90 * e)}, ${Math.round(210 - 40 * e)}, ${Math.round(120 - 40 * e)}, ${0.30 + 0.34 * e})`);
+        glow.addColorStop(0.5, `rgba(90, 220, 140, ${0.14 + 0.14 * e})`);
+        glow.addColorStop(1, 'rgba(30, 90, 55, 0.02)');
+        ctx.beginPath();
+        ctx.moveTo(0, baseY);
+        for (let i = 0; i <= BARS; i++) ctx.lineTo(xs[i], ys[i]);
+        ctx.lineTo(W, baseY);
+        ctx.closePath();
+        ctx.fillStyle = glow;
+        ctx.fill();
+
+        // bright top line — the trace itself. On glitch we stamp it 3× with an
+        // RGB split (screen blend) localized by opacity toward the finger.
+        function stroke(offx: number, color: string, alpha: number) {
+          ctx.beginPath();
+          for (let i = 0; i <= BARS; i++) ctx.lineTo(xs[i] + offx, ys[i]);
+          ctx.strokeStyle = color;
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = 1.6;
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        // same trace, but the stroke follows a (height-keyed) gradient so the
+        // colour of the signal changes with its amplitude.
+        function strokeGrad(offx: number, grad: CanvasGradient, alpha: number) {
+          ctx.beginPath();
+          for (let i = 0; i <= BARS; i++) ctx.lineTo(xs[i] + offx, ys[i]);
+          ctx.strokeStyle = grad;
+          ctx.globalAlpha = alpha;
+          ctx.lineWidth = 1.8;
+          ctx.lineJoin = 'round';
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+        ctx.globalCompositeOperation = 'lighter';
+        if (e > 0.02) {
+          const split = 6 * e;
+          stroke(-split, 'rgba(255, 70, 90, 1)', 0.5 * e);   // red ghost
+          stroke(split, 'rgba(70, 130, 255, 1)', 0.5 * e);   // blue ghost
+        }
+        // The green CORE trace is now a HEIGHT-KEYED gradient: cool phosphor green
+        // down at the baseline shifting to warm amber → brand ember at the crest of
+        // the peak. So the colour "changes with the signal" — the taller the wave,
+        // the hotter its top — and the slow hueShift + energy nudge it further warm.
+        const topY = baseY - peakH;
+        const core = ctx.createLinearGradient(0, topY, 0, baseY);
+        const warm = 0.35 + 0.5 * e + 0.15 * hueShift;       // how hot the crest runs
+        core.addColorStop(0.0, `rgba(${Math.round(210 + 45 * warm)}, ${Math.round(210 - 40 * warm)}, ${Math.round(140 - 40 * warm)}, 1)`); // crest → ember
+        core.addColorStop(0.45, 'rgba(180, 245, 180, 1)');   // mid → warm green
+        core.addColorStop(1.0, 'rgba(120, 240, 160, 1)');    // floor → phosphor green
+        strokeGrad(0, core, 0.92);
+        ctx.globalCompositeOperation = 'source-over';
+
+        // moving scan dot riding the peak (the "live cursor") — warms with energy
+        ctx.beginPath();
+        ctx.arc(cx, baseY - peakH, 2.4 + 1.6 * e, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, ${Math.round(240 - 40 * e)}, ${Math.round(200 - 60 * e)}, ${0.6 + 0.4 * e})`;
+        ctx.fill();
+
+        // ── datamosh: displace a few horizontal slices near the finger ──
+        // Copy a band of the freshly-drawn canvas and re-blit it shifted. Bounded
+        // to MAX_BLOCKS, only when energy is meaningful → cheap + no DOM.
+        if (e > 0.12 && !reduce) {
+          const n = Math.max(1, Math.round(MAX_BLOCKS * e));
+          const bandW = Math.max(40, W * (0.16 - 0.05 * e));
+          const sx = Math.max(0, Math.min(W - bandW, cx - bandW / 2));
+          for (let b = 0; b < n; b++) {
+            const sh = (Math.random() * 0.5 + 0.06) * H * (0.10 + 0.14 * e);
+            const sy = Math.random() * (H - sh);
+            const shift = (Math.random() - 0.5) * 26 * e;
+            // move a slice horizontally (drawImage of self — GPU-cheap blit)
+            ctx.drawImage(
+              canvas,
+              sx * dpr, sy * dpr, bandW * dpr, sh * dpr,   // src (device px)
+              sx + shift, sy, bandW, sh                     // dest (css px)
+            );
+          }
+        }
+      }
+
+      // ── drive loop ──────────────────────────────────────────────────────
+      function frame(now: number) {
+        if (!running) return;
+        // ease energy toward activity; auto-decay when idle (finger lifted or still)
+        if (now - lastMove > 140) active = 0;   // no recent movement → settle
+        energy += (active - energy) * 0.12;
+        if (energy < 0.003) energy = 0;
+        draw(now, energy);
+
+        // nudge the ritual line with a tiny GPU transform on strong glitch (no layout)
+        if (line) {
+          const j = energy > 0.25 ? (Math.random() - 0.5) * 3 * energy : 0;
+          line.style.transform = j ? `translate3d(${j}px,${(Math.random() - 0.5) * 2 * energy}px,0)` : '';
+        }
+        raf = requestAnimationFrame(frame);
+      }
+      function start() { if (running || reduce) return; running = true; raf = requestAnimationFrame(frame); }
+      function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+      // ── pointer → activity (throttled to one read per frame, passive) ──────
+      function readPointer(clientX: number) {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => {
+          const r = scope.getBoundingClientRect();
+          px = Math.min(1, Math.max(0, (clientX - r.left) / (r.width || 1)));
+          active = 1;
+          lastMove = performance.now();
+          queued = false;
+        });
+      }
+      if (!reduce) {
+        scope.addEventListener('pointermove', (e) => readPointer(e.clientX), { passive: true });
+        scope.addEventListener('pointerdown', (e) => { readPointer(e.clientX); active = 1; lastMove = performance.now(); }, { passive: true });
+        scope.addEventListener('touchmove', (e) => { if (e.touches[0]) readPointer(e.touches[0].clientX); }, { passive: true });
+        scope.addEventListener('pointerleave', () => { active = 0; }, { passive: true });
+        scope.addEventListener('pointerup', () => { active = 0; }, { passive: true });
+      }
+
+      // ── lifecycle: pause off-screen + tab-hidden ──────────────────────────
+      const io = new IntersectionObserver((entries) => {
+        visible = entries[0].isIntersecting;
+        if (visible) { if (reduce) drawStatic(); else start(); }
+        else stop();
+      }, { rootMargin: '120px' });
+
+      function drawStatic() { draw(performance.now(), 0); }
+
+      let rt: number | undefined;
+      window.addEventListener('resize', () => {
+        window.clearTimeout(rt);
+        rt = window.setTimeout(() => { resize(); if (reduce || !running) drawStatic(); }, 160);
+      }, { passive: true });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) stop();
+        else if (visible && !reduce) start();
+      });
+
+      resize();
+      drawStatic();          // paint one calm frame immediately (also the low/off frame)
+      io.observe(scope);
+    }
+
+    // inject the shared noise data-uri as a CSS var (phosphor grain), once.
+    function boot() {
+      const noise = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
+      document.querySelectorAll<HTMLElement>('[data-fqb-scope]').forEach((s) => {
+        s.style.setProperty('--fqb-noise', `url("${noise}")`);
+        initScope(s);
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+  })();
+</script>

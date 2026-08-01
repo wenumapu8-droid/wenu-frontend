@@ -1,0 +1,202 @@
+---
+/**
+ * KODEX-∞ · ARTIFACT
+ *
+ * La obra enmarcada como pieza archivada. Reemplaza el anchor vectorial que se
+ * leía "cargado y abstracto": acá la obra real es el foco y el tratamiento
+ * (pixelado, dither, scanlines, glow) la envuelve sin taparla.
+ *
+ * El marco no es decoración: es el gesto de "esto está catalogado". Por eso
+ * lleva ID, estado y coordenadas — la densidad va en los datos, no en el visual.
+ */
+interface Props {
+  /**
+   * Proporción real de la obra, "ancho/alto". La pieza nunca se deforma para
+   * entrar en la caja: la caja toma su forma.
+   */
+  aspecto?: string;
+  /** Ruta de la obra. Debe tener alpha para que el glow tenga de dónde salir. */
+  artwork: string;
+  /** Color de la escena. THRESHOLD rojo, PROLOGUE violeta, etc. */
+  accent?: string;
+  label?: string;
+  id?: string;
+  status?: string;
+  coords?: string;
+  /** Lado del bloque en px CSS. Más alto = más crudo. */
+  pixelSize?: number;
+  dither?: number;
+  scanlines?: number;
+  glow?: number;
+  chroma?: number;
+  flicker?: number;
+  /** Cuanto acento entra en la pieza. Bajo = la obra se lee clara. */
+  tint?: number;
+  class?: string;
+}
+
+const {
+  aspecto = '1',
+  artwork,
+  accent = "var(--kdx-red, #FF2733)",
+  label = "ARTIFACT",
+  id = "KDX-000",
+  status = "ARCHIVED",
+  coords = "",
+  pixelSize = 3,
+  dither = 0.85,
+  scanlines = 0.35,
+  glow = 0.5,
+  chroma = 0.6,
+  flicker = 0.5,
+  tint = 0.18,
+  class: className = "",
+} = Astro.props;
+
+// El shader necesita el color en hex crudo; el CSS puede seguir usando el token.
+const accentHex = accent.startsWith("#") ? accent : (accent.match(/#[0-9a-fA-F]{3,6}/)?.[0] ?? "#FF2733");
+---
+
+<figure
+  class:list={["kdx-artifact", className]}
+  data-kdx-artifact
+  data-artwork={artwork}
+  data-accent={accentHex}
+  data-pixel-size={pixelSize}
+  data-dither={dither}
+  data-scanlines={scanlines}
+  data-glow={glow}
+  data-chroma={chroma}
+  data-flicker={flicker}
+  data-tint={tint}
+  style={`--kdx-artifact-aspecto:${aspecto};--kdx-artifact-accent:${accent};`}
+>
+  <div class="kdx-artifact__frame">
+    <span class="kdx-artifact__corner kdx-artifact__corner--tl" aria-hidden="true"></span>
+    <span class="kdx-artifact__corner kdx-artifact__corner--tr" aria-hidden="true"></span>
+    <span class="kdx-artifact__corner kdx-artifact__corner--bl" aria-hidden="true"></span>
+    <span class="kdx-artifact__corner kdx-artifact__corner--br" aria-hidden="true"></span>
+
+    <div class="kdx-artifact__stage">
+      <canvas class="kdx-artifact__canvas" data-kdx-artifact-canvas aria-hidden="true"></canvas>
+      {/* Respaldo: si WebGL falla o la textura no carga, la pieza igual se ve.
+          Una lámina sin su obra no es una lámina. */}
+      <img class="kdx-artifact__fallback" src={artwork} alt="" loading="lazy" decoding="async" />
+    </div>
+
+    <figcaption class="kdx-artifact__meta">
+      <span class="kdx-artifact__label">{label}</span>
+      <span class="kdx-artifact__id">{id}</span>
+      <span class="kdx-artifact__status" data-status={status.toLowerCase()}>{status}</span>
+      {coords && <span class="kdx-artifact__coords">{coords}</span>}
+    </figcaption>
+  </div>
+</figure>
+
+<script>
+  import "./kodex-artifact-client.ts";
+</script>
+
+<style>
+  .kdx-artifact {
+    --edge: color-mix(in srgb, var(--kdx-artifact-accent) 42%, transparent);
+    --edge-soft: color-mix(in srgb, var(--kdx-artifact-accent) 16%, transparent);
+    position: relative;
+    margin: 0;
+    display: block;
+    width: 100%;
+  }
+
+  .kdx-artifact__frame {
+    position: relative;
+    padding: clamp(14px, 2.2vw, 26px);
+    border: 1px solid var(--edge-soft);
+    background:
+      radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--kdx-artifact-accent) 7%, transparent) 0%, transparent 68%),
+      var(--kdx-black, #080808);
+  }
+
+  /* Esquinas en L: leen como registro de catálogo, no como borde decorativo. */
+  .kdx-artifact__corner {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--edge);
+    pointer-events: none;
+  }
+  .kdx-artifact__corner--tl { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kdx-artifact__corner--tr { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+  .kdx-artifact__corner--bl { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+  .kdx-artifact__corner--br { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  .kdx-artifact__stage {
+    position: relative;
+    width: 100%;
+    /* La proporcion REAL de la pieza. Estaba fija en 1 y aplastaba cualquier
+       obra que no fuera cuadrada -- una apaisada entraba estirada y nadie lo
+       notaba porque el dither disimula la deformacion. La obra manda: si es
+       16/10, se ve 16/10. */
+    aspect-ratio: var(--kdx-artifact-aspecto, 1);
+    overflow: hidden;
+  }
+
+  .kdx-artifact__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    transition: opacity 420ms ease;
+  }
+  .kdx-artifact[data-kdx-artifact-state="ready"] .kdx-artifact__canvas { opacity: 1; }
+
+  .kdx-artifact__fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    /* Visible por defecto: si el shader nunca arranca, la obra igual está.
+       Se apaga recién cuando el canvas confirma que está dibujando. */
+    opacity: 0.9;
+    filter: grayscale(0.2) contrast(1.1);
+    transition: opacity 420ms ease;
+  }
+  .kdx-artifact[data-kdx-artifact-state="ready"] .kdx-artifact__fallback { opacity: 0; }
+
+  .kdx-artifact__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 14px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--edge-soft);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kdx-muted, #88888a);
+  }
+
+  .kdx-artifact__label { color: var(--kdx-artifact-accent); font-weight: 600; }
+  .kdx-artifact__id { color: var(--kdx-off-white, #e6e6e6); }
+  .kdx-artifact__status { margin-left: auto; }
+  /* Los estados vienen del sistema de archivo (PRESERVED, ARCHIVED, SEALED…),
+     no de este componente. Se acentúan todos por igual. */
+  .kdx-artifact__status[data-status] { color: var(--kdx-artifact-accent); }
+  .kdx-artifact__coords { width: 100%; margin-top: 4px; opacity: 0.65; }
+
+  @media (max-width: 640px) {
+    .kdx-artifact__meta { font-size: 9px; letter-spacing: 0.12em; }
+    .kdx-artifact__corner { width: 10px; height: 10px; }
+  }
+
+  /* El flicker lo apaga el shader; acá solo se quita la transición para que
+     nada se mueva al entrar. */
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-artifact__canvas,
+    .kdx-artifact__fallback { transition: none; }
+  }
+</style>

@@ -1,0 +1,137 @@
+---
+/**
+ * MarqueeDrag — smooth, seamless auto-scrolling bands with optional drag.
+ *
+ * Enhances every `[data-explore-marquee]` (home Explore bands, /piercing certs,
+ * the piercing-placement pj-band). Their content is rendered TWICE (a real copy
+ * + an aria-hidden duplicate) so the loop can restart invisibly.
+ *
+ * WHY A REWRITE (2026-07-11): the previous version drove the loop with
+ * `element.scrollLeft += 0.5` on the main thread. Two visible defects came from
+ * that:
+ *   1. STUTTER ("laguea") — main-thread scroll + sub-pixel rounding of
+ *      scrollLeft, plus a mask-image repaint every frame → janky motion.
+ *   2. AN 8px SEAM JUMP every loop — it wrapped at `scrollWidth / 2`, which with
+ *      a flex `gap` is half-a-gap short of the true one-copy period, so the band
+ *      snapped ~8px on each restart.
+ *
+ * This version drives the track with a compositor-friendly `translate3d` loop
+ * (GPU, real sub-pixel) and wraps at the EXACT one-copy period measured from the
+ * duplicated track via `offsetLeft` (gap-independent) → smooth and seam-free.
+ * Hover / focus / active drag pause it; a drag that moved is swallowed so it
+ * doesn't fire the card link.
+ *
+ * It bails on mobile (<=600px) and under prefers-reduced-motion. IMPORTANT
+ * (2026-07-13): bailing does NOT mean "no motion". On mobile the bands are still
+ * live marquees — the pure-CSS `*-scroll` keyframe runs them; this script simply
+ * doesn't add its drag/JS loop on top. Do NOT "help" by killing the CSS animation
+ * or hiding the aria-hidden duplicate set in a mobile media query: the duplicates
+ * ARE the loop, and without them a reverse band (home "Explore by collection")
+ * renders empty. Only prefers-reduced-motion may stop the animation.
+ */
+---
+<script is:inline>
+  (function () {
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Re-checked at enhance time (not once at load): a width of 0 means the tab
+    // isn't painted yet (throttled/background) — that's NOT mobile, so proceed.
+    function isMobile() {
+      var w = window.innerWidth || document.documentElement.clientWidth || 0;
+      return w > 0 && w <= 600;
+    }
+
+    function enhance(m) {
+      var track = m.querySelector('.explore__track, .certs__track, .pj-band__track');
+      if (!track || m.dataset.dragReady) return;
+      // On mobile / reduced-motion the CSS already turns each band into a native
+      // swipe row (or a static list) — don't fight it.
+      if (reduce || isMobile()) return;
+      m.dataset.dragReady = '1';
+
+      // Take the loop off CSS; we drive `transform` ourselves (GPU, subpixel).
+      track.style.animation = 'none';
+      track.style.willChange = 'transform';
+      track.style.width = 'max-content';
+      // Clip the translated track; no native scroll to fight the transform.
+      m.style.overflowX = 'hidden';
+
+      var reverse = m.classList.contains('explore__marquee--rev');
+      var dir = reverse ? -1 : 1;
+      var speed = 0.5;          // px per frame
+      var period = 0;           // exact width of ONE copy (incl. separating gap)
+
+      function measure() {
+        var kids = track.children;
+        var n = kids.length;
+        if (n < 2) { period = 0; return; }
+        var half = Math.floor(n / 2);
+        // Distance from the first tile to the first tile of the DUPLICATE copy —
+        // this is the exact seamless period regardless of gap. `scrollWidth / 2`
+        // would be half-a-gap short and cause the 8px jump.
+        period = kids[half].offsetLeft - kids[0].offsetLeft;
+      }
+      measure();
+      // Lazy tiles can change width after load → re-measure once they settle.
+      setTimeout(measure, 600);
+      window.addEventListener('load', measure);
+      var rt;
+      window.addEventListener('resize', function () {
+        window.clearTimeout(rt);
+        rt = window.setTimeout(measure, 180);
+      });
+
+      var pos = 0;              // 0..period, float (subpixel)
+      var paused = false, dragging = false, startX = 0, startPos = 0, moved = false;
+
+      function wrap() {
+        if (period > 0) pos = ((pos % period) + period) % period;
+      }
+      function apply() { track.style.transform = 'translate3d(' + (-pos) + 'px,0,0)'; }
+
+      function tick() {
+        if (!paused && !dragging && period > 0) {
+          pos += speed * dir;
+          wrap();
+          apply();
+        }
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+
+      m.addEventListener('pointerenter', function () { paused = true; });
+      m.addEventListener('pointerleave', function () { paused = false; });
+      m.addEventListener('focusin', function () { paused = true; });
+      m.addEventListener('focusout', function () { paused = false; });
+
+      m.addEventListener('pointerdown', function (e) {
+        dragging = true; moved = false; startX = e.clientX; startPos = pos;
+        m.style.cursor = 'grabbing';
+        try { m.setPointerCapture(e.pointerId); } catch (x) {}
+      });
+      m.addEventListener('pointermove', function (e) {
+        if (!dragging) return;
+        var dx = e.clientX - startX;
+        if (Math.abs(dx) > 3) moved = true;
+        pos = startPos - dx;
+        wrap();
+        apply();
+      });
+      function end() { dragging = false; m.style.cursor = 'grab'; }
+      m.addEventListener('pointerup', end);
+      m.addEventListener('pointercancel', end);
+      // Swallow the click that ends a drag so it doesn't open the card link.
+      m.addEventListener('click', function (e) {
+        if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
+      }, true);
+
+      m.style.cursor = 'grab';
+      m.style.touchAction = 'pan-y';
+    }
+
+    function init() {
+      document.querySelectorAll('[data-explore-marquee]').forEach(enhance);
+    }
+    if (document.readyState !== 'loading') init();
+    else document.addEventListener('DOMContentLoaded', init);
+  })();
+</script>

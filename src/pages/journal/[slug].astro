@@ -1,0 +1,397 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import PatternBand from '../../components/PatternBand.astro';
+import { getCollection, render } from 'astro:content';
+import { getProducts } from '../../lib/woo';
+
+// Human labels for "Related" links — previously the raw href (e.g. "/material/
+// sterling-silver") was shown as the link text, which looks broken and gives
+// useless anchor text for SEO. (Audit fix 2026-07-21.)
+function relatedLabel(href: string): string {
+  const map: Record<string, string> = {
+    '/shop': 'Shop all pieces',
+    '/about': 'About Wenu Mapu',
+    '/canon': 'The canon · sources',
+    '/lexicon': 'Lexicon',
+    '/constelaciones': 'Design your ear',
+    '/piercing': 'Book a piercing',
+    '/care-guide': 'Care & healing',
+    '/jewelry-styling': 'Jewelry styling',
+    '/amulets': 'Amulets',
+    '/journal': 'The Journal',
+    '/manifesto': 'The manifesto',
+    '/custom-orders': 'The atelier · commissions',
+    '/initial-jewelry': 'Initial jewelry',
+  };
+  if (map[href]) return map[href];
+  const seg = href.replace(/\/+$/, '').split('/').filter(Boolean);
+  const last = (seg[seg.length - 1] || '').replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  if (href.startsWith('/material/')) return `Material · ${last}`;
+  if (href.startsWith('/collection/')) return `Collection · ${last}`;
+  return last || href;
+}
+
+export async function getStaticPaths() {
+  const entries = await getCollection('journal');
+  return entries.map(entry => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const { title, eyebrow, date, ogImage, excerpt, related, series, page, draft } = entry.data;
+
+// Header image per entry (2026-06-24): leads each article so it's not a wall of
+// text. Falls back to the entry's ogImage; a few weak category-PNG ogImages get a
+// more editorial image from the existing bank. Never a broken/empty header.
+const HERO_OVERRIDE: Record<string, string> = {
+  'four-cardinal-forces':    '/img/brand/obsidian-cardinal-textile.webp',
+  'the-witral-thread':       '/img/brand/wenu-textil-pattern-real.webp',
+  'wood-as-body-material':   '/img/banners/atmospheric/night-forest-light.webp',
+  'aftercare-first-90-days': '/img/banners/atmospheric/night-forest-water.webp',
+};
+const heroImg = HERO_OVERRIDE[entry.id] ?? ogImage;
+// POSTER entries lead with a finished portrait graphic shown WHOLE (contained on a
+// dark band) instead of the wide cover-crop — e.g. Ocin's Piercing Day artwork.
+const POSTER_ENTRIES = new Set(['international-piercing-day']);
+const isPoster = POSTER_ENTRIES.has(entry.id);
+
+// Series navigation (e.g. The Apprentice's Path). Additive — null for normal entries.
+let seriesNav: null | { prev: any; next: any; total: number } = null;
+if (series) {
+  const sibs = (await getCollection('journal'))
+    .filter(e => e.data.series === series)
+    .sort((a, b) => (a.data.page ?? 0) - (b.data.page ?? 0));
+  const idx = sibs.findIndex(e => e.id === entry.id);
+  seriesNav = {
+    prev: idx > 0 ? sibs[idx - 1] : null,
+    next: idx < sibs.length - 1 ? sibs[idx + 1] : null,
+    total: sibs.length,
+  };
+}
+const cleanTitle = (t: string) => t.replace(/^Page\s*\d+\s*—\s*/i, '');
+
+// Tail rail: filter products by related material if present, otherwise top 2 with images.
+const all = await getProducts();
+const materialMatch = related.find((r: string) => r.startsWith('/material/'));
+const materialKey = materialMatch ? materialMatch.replace('/material/', '') : null;
+const candidates = all.filter(p => p.images.length > 0 && p.images[0].src);
+const tail = materialKey
+  ? candidates.filter(p => p.categories.some(c => c.slug.toLowerCase().includes(materialKey))).slice(0, 2)
+  : candidates.slice(0, 2);
+
+const articleLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description: excerpt,
+  datePublished: date.toISOString(),
+  image: `https://wenumapuonline.com${ogImage}`,
+  author: { '@type': 'Organization', name: 'Wenu Mapu' },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Wenu Mapu',
+    logo: { '@type': 'ImageObject', url: 'https://wenumapuonline.com/img/brand/wenu-mapu-mark.svg' },
+  },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Journal', item: 'https://wenumapuonline.com/journal/' },
+    { '@type': 'ListItem', position: 3, name: title, item: `https://wenumapuonline.com/journal/${entry.id}/` },
+  ],
+};
+
+const dateLabel = date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+---
+<Base
+  title={`${title} | Wenu Mapu Journal`}
+  description={excerpt}
+  ogImage={ogImage}
+  ogType="article"
+  jsonLd={[articleLd, breadcrumbLd]}
+>
+  <div class:list={['entry-hero', { 'entry-hero--poster': isPoster }]}>
+    <img src={heroImg} alt={isPoster ? title : ''} width={isPoster ? 665 : 1600} height={isPoster ? 1400 : 900} loading="eager" decoding="async" fetchpriority="high" />
+  </div>
+
+  <article class="section section--mega journal-entry">
+    <div class="container">
+      {/* Editorial masthead — every entry reads like a page of the almanac
+          (newspaper look applied to the whole journal, Ocin 2026-06-27). */}
+      <div class="entry-masthead">
+        <span class="entry-masthead__kicker">The Wenu Mapu Almanac</span>
+        <span class="entry-masthead__dateline">{dateLabel} · Wallmapu</span>
+      </div>
+      <div class="entry-rule entry-rule--thick"></div>
+
+      <p class="eyebrow entry-eyebrow">{eyebrow}</p>
+      <h1 class="page-title entry-headline">{series ? cleanTitle(title) : title}</h1>
+      <p class="entry-meta">
+        {dateLabel}
+        {series && <span> · The Apprentice's Path · Page {page}</span>}
+        {draft && <span class="entry-draft">· Draft</span>}
+      </p>
+      <div class="entry-rule"></div>
+
+      <div class="entry-prose entry-prose--editorial">
+        <Content />
+      </div>
+
+      <div class="page-divider" style="margin-top: var(--space-6);"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      {tail.length > 0 && (
+        <div class="landing__rail" aria-label="From the catalogue">
+          <div class="landing__rail-head">
+            <p class="eyebrow">From the catalogue</p>
+            <a href="/shop" class="text-accent">View all →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {tail.map(product => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {related.length > 0 && (
+        <nav class="entry-related" aria-label="Related pages">
+          <p class="eyebrow">Related</p>
+          <ul class="entry-related__list">
+            {related.map((href: string) => (
+              <li><a href={href}>{relatedLabel(href)} <span aria-hidden="true">→</span></a></li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
+      {seriesNav && (
+        <nav class="entry-series-nav" aria-label="The Apprentice's Path">
+          <div class="entry-series-nav__row">
+            {seriesNav.prev
+              ? <a href={`/journal/${seriesNav.prev.id}`}>← Page {seriesNav.prev.data.page}</a>
+              : <span aria-hidden="true"></span>}
+            <a href="/journal/apprentice" class="entry-series-nav__index">All pages</a>
+            {seriesNav.next
+              ? <a href={`/journal/${seriesNav.next.id}`}>Page {seriesNav.next.data.page} →</a>
+              : <span aria-hidden="true"></span>}
+          </div>
+          <p class="entry-series-nav__cta">New pages arrive rarely. <a href="/#newsletter-signup">Join the first circle →</a></p>
+        </nav>
+      )}
+
+      <p class="entry-back">
+        <a href={series ? '/journal/apprentice' : '/journal'}>← {series ? "The Apprentice's Path" : 'All entries'}</a>
+      </p>
+    </div>
+  </article>
+</Base>
+
+<style>
+  .entry-hero {
+    height: clamp(260px, 40vh, 440px);
+    overflow: hidden;
+    background: var(--obsidian);
+    border-bottom: 1px solid var(--line);
+  }
+  .entry-hero img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    filter: saturate(0.95) contrast(1.03);
+  }
+  /* Poster entry: show the finished portrait graphic WHOLE on a dark band. */
+  .entry-hero--poster {
+    height: auto;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(20px, 4vw, 48px) var(--gutter);
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(201, 168, 76, 0.06), transparent 60%),
+      var(--obsidian);
+  }
+  .entry-hero--poster img {
+    width: auto;
+    height: auto;
+    max-width: min(440px, 88vw);
+    max-height: 84vh;
+    object-fit: contain;
+    filter: none;
+    box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+  }
+  .journal-entry .entry-meta {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--silver, #a8a39a);
+    margin-top: var(--space-2);
+  }
+  .entry-prose {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--bone, #f2ede4);
+  }
+  .entry-prose :global(h2) {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-3);
+    color: var(--bronze, #8a6a43);
+  }
+  .entry-prose :global(p) {
+    margin-bottom: var(--space-4);
+  }
+  .entry-prose :global(em) {
+    font-style: italic;
+  }
+  .entry-prose :global(strong) {
+    font-weight: 600;
+  }
+  .entry-prose :global(a) {
+    color: var(--bronze, #8a6a43);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .entry-prose :global(a:hover) {
+    color: var(--ember, #c4935a);
+  }
+  /* ── Editorial / newspaper masthead for every journal entry ─────────────── */
+  .entry-masthead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    max-width: 68ch;
+    margin: 0 auto;
+  }
+  .entry-masthead__kicker {
+    font-family: var(--font-display);
+    font-size: clamp(1.05rem, 2.2vw, 1.5rem);
+    letter-spacing: 0.04em;
+    color: var(--bone);
+  }
+  .entry-masthead__dateline {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--silver);
+  }
+  .entry-rule {
+    max-width: 68ch;
+    margin: var(--space-3) auto;
+    height: 1px;
+    background: color-mix(in srgb, var(--silver, #a8a39a) 36%, transparent);
+  }
+  .entry-rule--thick {
+    height: 3px;
+    margin-top: var(--space-2);
+    background: var(--bronze);
+  }
+  .entry-eyebrow { max-width: 68ch; margin-inline: auto; text-align: center; }
+  .entry-headline {
+    max-width: 20ch;
+    margin-inline: auto;
+    text-align: center;
+    text-wrap: balance;
+  }
+  .journal-entry .entry-meta { text-align: center; }
+  /* drop cap + justified serif → the page reads like a printed almanac */
+  .entry-prose--editorial { text-align: justify; hyphens: auto; }
+  .entry-prose--editorial :global(p:first-of-type)::first-letter {
+    font-family: var(--font-display);
+    font-size: 3.4em;
+    line-height: 0.82;
+    float: left;
+    margin: 0.04em 0.08em 0 0;
+    color: var(--ember, #c4935a);
+  }
+  /* a touch of column flow only on wide screens for the editorial feel, kept to a
+     comfortable two so reading never forces long up/down scans */
+  @media (min-width: 1080px) {
+    .entry-prose--editorial {
+      max-width: 86ch;
+      columns: 2;
+      column-gap: var(--space-6);
+    }
+    .entry-prose--editorial :global(h2) { column-span: all; text-align: center; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .entry-prose--editorial { columns: 1; }
+  }
+
+  .entry-related {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+  }
+  .entry-related__list {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-3) 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+  .entry-related__list a {
+    color: var(--bronze, #8a6a43);
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+  }
+  .entry-back {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+    text-align: center;
+    font-family: var(--font-sans);
+  }
+  .entry-back a {
+    color: var(--silver, #a8a39a);
+    text-decoration: none;
+  }
+  .entry-back a:hover {
+    color: var(--bone, #f2ede4);
+  }
+
+  /* ── Series (The Apprentice's Path) ── */
+  .entry-draft { color: var(--clay); margin-left: 4px; }
+  .entry-series-nav {
+    max-width: 68ch;
+    margin: var(--space-6) auto 0;
+    padding-top: var(--space-5);
+    border-top: var(--border-thin);
+  }
+  .entry-series-nav__row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: var(--space-3);
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .entry-series-nav__row a { color: var(--silver); text-decoration: none; transition: color var(--t-fast); }
+  .entry-series-nav__row a:hover { color: var(--ember); }
+  .entry-series-nav__index { color: var(--ember) !important; }
+  .entry-series-nav__cta {
+    text-align: center;
+    margin: var(--space-4) 0 0;
+    font-family: var(--font-serif); font-style: italic;
+    color: var(--fg-soft);
+  }
+  .entry-series-nav__cta a { color: var(--ember); text-decoration: none; }
+</style>

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KODEX Image to ASCII</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;padding:20px;background:#050608;color:#e9ede8;font-family:monospace}
+    main{max-width:1200px;margin:auto}h1{font:900 clamp(42px,8vw,100px)/.8 Arial Narrow,Impact,sans-serif;margin:20px 0}
+    .controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+    input,button{min-height:44px;border:1px solid #343b42;background:#0a0d10;color:#e9ede8;padding:10px;font:inherit}
+    pre{overflow:auto;min-height:460px;padding:18px;border:1px solid #343b42;background:#030405;color:#b9ff3b;font-size:7px;line-height:.9;white-space:pre}
+    canvas{display:none}a{color:#b9ff3b}
+  </style>
+</head>
+<body>
+  <main>
+    <a href="../index.html">← VISUAL LAB</a>
+    <h1>IMAGE → ASCII</h1>
+    <div class="controls">
+      <input id="file" type="file" accept="image/*">
+      <label>WIDTH <input id="width" type="number" min="20" max="220" value="100"></label>
+      <label>RAMP <input id="ramp" value=" .:-=+*#%@"></label>
+      <button id="copy">COPY</button>
+    </div>
+    <canvas id="canvas"></canvas>
+    <pre id="output">SELECT AN IMAGE</pre>
+  </main>
+  <script>
+    const fileInput = document.querySelector("#file");
+    const widthInput = document.querySelector("#width");
+    const rampInput = document.querySelector("#ramp");
+    const output = document.querySelector("#output");
+    const canvas = document.querySelector("#canvas");
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    let image = null;
+
+    function render() {
+      if (!image) return;
+      const width = Number(widthInput.value);
+      const aspect = image.height / image.width;
+      const height = Math.max(1, Math.round(width * aspect * 0.48));
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(image, 0, 0, width, height);
+      const pixels = context.getImageData(0, 0, width, height).data;
+      const ramp = rampInput.value || " .:-=+*#%@";
+      const rows = [];
+
+      for (let y = 0; y < height; y += 1) {
+        let row = "";
+        for (let x = 0; x < width; x += 1) {
+          const i = (y * width + x) * 4;
+          const luminance =
+            pixels[i] * 0.2126 +
+            pixels[i + 1] * 0.7152 +
+            pixels[i + 2] * 0.0722;
+          const index = Math.min(
+            ramp.length - 1,
+            Math.floor(luminance / 256 * ramp.length),
+          );
+          row += ramp[index];
+        }
+        rows.push(row);
+      }
+
+      output.textContent = rows.join("\n");
+    }
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files?.[0];
+      if (!file) return;
+      const url = URL.createObjectURL(file);
+      const next = new Image();
+      next.onload = () => {
+        image = next;
+        URL.revokeObjectURL(url);
+        render();
+      };
+      next.src = url;
+    });
+
+    widthInput.addEventListener("input", render);
+    rampInput.addEventListener("input", render);
+    document.querySelector("#copy").addEventListener("click", async () => {
+      await navigator.clipboard.writeText(output.textContent);
+    });
+  </script>
+</body>
+</html>

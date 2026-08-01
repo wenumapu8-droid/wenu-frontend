@@ -1,0 +1,400 @@
+---
+/**
+ * CosmicPortal — interactive black hole / cosmic portal.
+ *
+ * Visual: agujero negro central + disco de acreción dorado + starfield orbital.
+ * Interactivo: parallax con mouse/touch · pulse al click · respiración constante.
+ * Respeta `prefers-reduced-motion`.
+ *
+ * Uso: insertar en home como hero alternativo o como pieza de transición editorial.
+ * No depende de Three.js (puro SVG + CSS + ~70 líneas JS) — ligero, mobile-first.
+ *
+ * Inspiración: post @hyperagentapp "Anatomy of a black hole" (concept de zonas
+ * concéntricas) traducido a la voz Wenu Mapu (ritual, dorado viejo, dark luxury).
+ */
+
+interface Props {
+  /** Si es hero principal de la página, ocupa ~85vh; si es sección, 60vh. */
+  variant?: 'hero' | 'section';
+  /** Texto opcional sobre el portal. */
+  title?: string;
+  subtitle?: string;
+  cta?: { label: string; href: string };
+}
+
+const {
+  variant = 'section',
+  title = 'Wenu Mapu',
+  subtitle = 'The world above.',
+  cta,
+} = Astro.props as Props;
+---
+
+<section
+  class={`cosmic-portal cosmic-portal--${variant}`}
+  data-cosmic-portal
+  aria-label="Wenu Mapu — cosmic portal"
+>
+  <div class="cosmic-portal__stage" data-cp-stage>
+    {/* Starfield orbital — capas de partículas con drift radial */}
+    <div class="cosmic-portal__stars cosmic-portal__stars--far" aria-hidden="true"></div>
+    <div class="cosmic-portal__stars cosmic-portal__stars--mid" aria-hidden="true"></div>
+    <div class="cosmic-portal__stars cosmic-portal__stars--near" aria-hidden="true"></div>
+
+    {/* SVG del black hole — núcleo + disco de acreción + lensing halo */}
+    <svg
+      class="cosmic-portal__svg"
+      viewBox="-150 -150 300 300"
+      role="img"
+      aria-hidden="true"
+      data-cp-svg
+    >
+      <defs>
+        {/* Halo exterior (gravitational lensing aura) */}
+        <radialGradient id="cp-halo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="rgba(196,147,90,0.0)"/>
+          <stop offset="55%" stop-color="rgba(196,147,90,0.16)"/>
+          <stop offset="85%" stop-color="rgba(196,147,90,0.06)"/>
+          <stop offset="100%" stop-color="rgba(196,147,90,0)"/>
+        </radialGradient>
+
+        {/* Anillo de acreción (gold-bronze radiance) */}
+        <radialGradient id="cp-ring" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="rgba(0,0,0,0)"/>
+          <stop offset="62%" stop-color="rgba(0,0,0,0)"/>
+          <stop offset="66%" stop-color="rgba(232,193,127,0.85)"/>
+          <stop offset="74%" stop-color="rgba(196,147,90,0.55)"/>
+          <stop offset="85%" stop-color="rgba(196,147,90,0.12)"/>
+          <stop offset="100%" stop-color="rgba(196,147,90,0)"/>
+        </radialGradient>
+
+        {/* Núcleo singular (event horizon) */}
+        <radialGradient id="cp-singularity" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"  stop-color="#000000"/>
+          <stop offset="62%" stop-color="#050505"/>
+          <stop offset="85%" stop-color="rgba(8,7,6,0.95)"/>
+          <stop offset="100%" stop-color="rgba(8,7,6,0)"/>
+        </radialGradient>
+
+        {/* Pattern de doppler shift (anillo asimétrico) */}
+        <linearGradient id="cp-doppler" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%"  stop-color="rgba(245,234,216,0.85)"/>
+          <stop offset="50%" stop-color="rgba(196,147,90,0.0)"/>
+          <stop offset="100%" stop-color="rgba(232,193,127,0.55)"/>
+        </linearGradient>
+      </defs>
+
+      {/* Lensing halo */}
+      <circle r="142" fill="url(#cp-halo)"/>
+
+      {/* Anillos concéntricos (kultrún resonance) */}
+      <g opacity="0.4" class="cosmic-portal__rings">
+        <circle r="120" fill="none" stroke="rgba(196,147,90,0.18)" stroke-width="0.4"/>
+        <circle r="100" fill="none" stroke="rgba(196,147,90,0.22)" stroke-width="0.4"/>
+        <circle r="84"  fill="none" stroke="rgba(196,147,90,0.28)" stroke-width="0.4"/>
+      </g>
+
+      {/* Acreción ring base + doppler asymmetric */}
+      <g class="cosmic-portal__accretion" data-cp-accretion>
+        <ellipse cx="0" cy="0" rx="110" ry="32" fill="url(#cp-ring)" opacity="0.92"/>
+        <ellipse cx="0" cy="0" rx="110" ry="32" fill="url(#cp-doppler)" opacity="0.55"/>
+      </g>
+
+      {/* Photon ring (thin glow at event horizon edge) */}
+      <circle r="58" fill="none" stroke="rgba(232,193,127,0.85)" stroke-width="0.9" class="cosmic-portal__photon-ring"/>
+      <circle r="58" fill="none" stroke="rgba(232,193,127,0.18)" stroke-width="3" class="cosmic-portal__photon-glow"/>
+
+      {/* Singularity (event horizon black core) */}
+      <circle r="56" fill="url(#cp-singularity)"/>
+
+      {/* Inner ritual mark — chakana/cross subtle dentro del horizonte */}
+      <g opacity="0.32" class="cosmic-portal__sigil">
+        <circle r="6" fill="rgba(196,147,90,0.65)"/>
+        <line x1="0" y1="-14" x2="0" y2="14" stroke="rgba(196,147,90,0.55)" stroke-width="0.5"/>
+        <line x1="-14" y1="0" x2="14" y2="0" stroke="rgba(196,147,90,0.55)" stroke-width="0.5"/>
+      </g>
+    </svg>
+
+    {/* Capa de pulso al click (animación CSS triggered by JS) */}
+    <span class="cosmic-portal__pulse" data-cp-pulse aria-hidden="true"></span>
+
+    {/* Capa de texto sobre el portal */}
+    {(title || subtitle || cta) && (
+      <div class="cosmic-portal__copy">
+        {title && <h1 class="cosmic-portal__title">{title}</h1>}
+        {subtitle && <p class="cosmic-portal__subtitle">{subtitle}</p>}
+        {cta && (
+          <a href={cta.href} class="cosmic-portal__cta">
+            {cta.label} <span aria-hidden="true">→</span>
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .cosmic-portal {
+    position: relative;
+    background: var(--obsidian);
+    overflow: hidden;
+    border-top: var(--border-thin);
+    border-bottom: var(--border-thin);
+  }
+  .cosmic-portal--hero    { min-height: clamp(620px, 88vh, 900px); }
+  .cosmic-portal--section { min-height: clamp(480px, 62vh, 680px); }
+
+  .cosmic-portal__stage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    perspective: 900px;
+  }
+
+  /* ── STARFIELD ────────────────────────────────────────────────── */
+  .cosmic-portal__stars {
+    position: absolute;
+    inset: -10%;
+    pointer-events: none;
+    background-repeat: repeat;
+    background-size: 320px 320px;
+    will-change: transform, opacity;
+  }
+  .cosmic-portal__stars--far {
+    opacity: 0.45;
+    background-image:
+      radial-gradient(circle 1px at 12% 18%, rgba(245,234,216,0.75) 50%, transparent 51%),
+      radial-gradient(circle 1px at 78% 32%, rgba(245,234,216,0.55) 50%, transparent 51%),
+      radial-gradient(circle 1px at 38% 72%, rgba(245,234,216,0.45) 50%, transparent 51%),
+      radial-gradient(circle 1px at 88% 82%, rgba(245,234,216,0.55) 50%, transparent 51%),
+      radial-gradient(circle 1px at 22% 88%, rgba(245,234,216,0.4)  50%, transparent 51%);
+    animation: cp-drift-slow 120s linear infinite;
+  }
+  .cosmic-portal__stars--mid {
+    opacity: 0.55;
+    background-image:
+      radial-gradient(circle 1.4px at 32% 12%, rgba(232,193,127,0.7) 50%, transparent 51%),
+      radial-gradient(circle 1.4px at 64% 48%, rgba(232,193,127,0.45) 50%, transparent 51%),
+      radial-gradient(circle 1.4px at 18% 64%, rgba(245,234,216,0.55) 50%, transparent 51%),
+      radial-gradient(circle 1.4px at 84% 22%, rgba(245,234,216,0.5)  50%, transparent 51%);
+    animation: cp-drift-med 80s linear infinite;
+  }
+  .cosmic-portal__stars--near {
+    opacity: 0.85;
+    background-image:
+      radial-gradient(circle 1.9px at 48% 28%, rgba(245,234,216,0.95) 50%, transparent 51%),
+      radial-gradient(circle 1.9px at 22% 42%, rgba(232,193,127,0.8)  50%, transparent 51%),
+      radial-gradient(circle 1.9px at 72% 76%, rgba(245,234,216,0.85) 50%, transparent 51%);
+    animation: cp-drift-near 50s linear infinite;
+  }
+  @keyframes cp-drift-slow { from {transform: translate3d(0,0,0);} to {transform: translate3d(-320px,160px,0);} }
+  @keyframes cp-drift-med  { from {transform: translate3d(0,0,0);} to {transform: translate3d(240px,-200px,0);} }
+  @keyframes cp-drift-near { from {transform: translate3d(0,0,0);} to {transform: translate3d(-180px,-140px,0);} }
+
+  /* ── SVG portal ──────────────────────────────────────────────── */
+  .cosmic-portal__svg {
+    position: relative;
+    width: min(78vw, 720px);
+    height: auto;
+    transform-style: preserve-3d;
+    transition: transform 0.18s ease-out;
+    will-change: transform;
+    z-index: 1;
+  }
+
+  /* Anillo de acreción gira lento */
+  .cosmic-portal__accretion {
+    transform-origin: center;
+    animation: cp-spin 22s linear infinite;
+  }
+  @keyframes cp-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* Anillo de fotones respira */
+  .cosmic-portal__photon-ring {
+    transform-origin: center;
+    animation: cp-breathe 6s ease-in-out infinite;
+  }
+  .cosmic-portal__photon-glow {
+    transform-origin: center;
+    animation: cp-breathe-glow 6s ease-in-out infinite;
+  }
+  @keyframes cp-breathe {
+    0%, 100% { transform: scale(1);    opacity: 0.85; }
+    50%      { transform: scale(1.04); opacity: 1; }
+  }
+  @keyframes cp-breathe-glow {
+    0%, 100% { transform: scale(1.04); opacity: 0.18; }
+    50%      { transform: scale(1.15); opacity: 0.42; }
+  }
+
+  /* Anillos concéntricos giran muy lento (counter) */
+  .cosmic-portal__rings {
+    transform-origin: center;
+    animation: cp-spin-counter 60s linear infinite;
+  }
+  @keyframes cp-spin-counter {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(-360deg); }
+  }
+
+  /* Sigil ritual central — sutil pulso */
+  .cosmic-portal__sigil {
+    transform-origin: center;
+    animation: cp-sigil 8s ease-in-out infinite;
+  }
+  @keyframes cp-sigil {
+    0%, 100% { opacity: 0.22; }
+    50%      { opacity: 0.42; }
+  }
+
+  /* Pulse onda al click */
+  .cosmic-portal__pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border: 2px solid rgba(232,193,127,0.7);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 2;
+  }
+  .cosmic-portal__pulse.is-pulsing {
+    animation: cp-pulse 1.2s ease-out;
+  }
+  @keyframes cp-pulse {
+    0% {
+      width: 60px; height: 60px;
+      opacity: 0.8;
+      border-width: 2px;
+    }
+    100% {
+      width: 720px; height: 720px;
+      opacity: 0;
+      border-width: 0.5px;
+    }
+  }
+
+  /* ── Copy overlay ─────────────────────────────────────────────── */
+  .cosmic-portal__copy {
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    color: var(--bone);
+    padding: var(--space-4) var(--gutter);
+    max-width: 720px;
+    pointer-events: none; /* deja clicks pasar al portal */
+  }
+  .cosmic-portal__copy > * { pointer-events: auto; }
+
+  .cosmic-portal__title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    font-size: clamp(2.4rem, 6vw, 5.2rem);
+    line-height: 1;
+    letter-spacing: 0.02em;
+    margin: 0 0 var(--space-3);
+    text-shadow: 0 2px 16px rgba(0,0,0,0.6);
+  }
+
+  .cosmic-portal__subtitle {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: clamp(1rem, 1.4vw, 1.4rem);
+    color: var(--ember);
+    margin: 0 0 var(--space-5);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+  }
+
+  .cosmic-portal__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: var(--space-3) var(--space-5);
+    border: 1px solid rgba(245,234,216,0.78);
+    background: rgba(245,234,216,0.92);
+    color: var(--obsidian);
+    font-family: var(--font-sans);
+    font-weight: var(--fw-medium);
+    font-size: 0.74rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background var(--t-base), color var(--t-base), border-color var(--t-base);
+  }
+  .cosmic-portal__cta:hover,
+  .cosmic-portal__cta:focus-visible {
+    background: transparent;
+    color: var(--bone);
+    border-color: var(--ember);
+  }
+
+  /* ── Reduced motion ─────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .cosmic-portal__stars,
+    .cosmic-portal__accretion,
+    .cosmic-portal__photon-ring,
+    .cosmic-portal__photon-glow,
+    .cosmic-portal__rings,
+    .cosmic-portal__sigil {
+      animation: none;
+    }
+    .cosmic-portal__svg { transition: none; }
+  }
+</style>
+
+<script>
+  /* Interactividad: parallax con mouse + pulse al click. */
+  const portals = document.querySelectorAll<HTMLElement>('[data-cosmic-portal]');
+  portals.forEach(portal => {
+    const stage = portal.querySelector<HTMLElement>('[data-cp-stage]');
+    const svg   = portal.querySelector<SVGElement>('[data-cp-svg]');
+    const pulse = portal.querySelector<HTMLElement>('[data-cp-pulse]');
+    if (!stage || !svg || !pulse) return;
+
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const MAX_TILT = prefersReduced ? 0 : 12; // grados
+
+    let raf = 0;
+    let targetX = 0, targetY = 0;
+    let currentX = 0, currentY = 0;
+
+    const updateTilt = () => {
+      currentX += (targetX - currentX) * 0.08;
+      currentY += (targetY - currentY) * 0.08;
+      svg.style.transform = `rotateY(${currentX}deg) rotateX(${-currentY}deg)`;
+      raf = requestAnimationFrame(updateTilt);
+    };
+
+    const onMove = (clientX: number, clientY: number) => {
+      const rect = portal.getBoundingClientRect();
+      const x = (clientX - rect.left) / rect.width  - 0.5;
+      const y = (clientY - rect.top)  / rect.height - 0.5;
+      targetX = x * MAX_TILT;
+      targetY = y * MAX_TILT;
+    };
+
+    portal.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+    portal.addEventListener('mouseleave', () => { targetX = 0; targetY = 0; });
+    portal.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      if (t) onMove(t.clientX, t.clientY);
+    }, { passive: true });
+
+    // Pulse al click/tap
+    const triggerPulse = () => {
+      pulse.classList.remove('is-pulsing');
+      void pulse.offsetWidth; // reflow para reiniciar
+      pulse.classList.add('is-pulsing');
+    };
+    portal.addEventListener('click', triggerPulse);
+
+    if (!prefersReduced) updateTilt();
+  });
+</script>

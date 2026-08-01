@@ -1,0 +1,151 @@
+---
+/**
+ * KODEX-∞ · RAIL DE SECCIÓN
+ *
+ * La barra que separa y numera los bloques en los boards de referencia:
+ * `001 // ABOUT` a la izquierda, glifos y barcodes repartidos, timestamp al
+ * final. Es el elemento que hace que una pantalla se lea como un instrumento
+ * y no como una página.
+ *
+ * Por qué existe: el brief pide "empaquetar bordes, esquinas y rails con
+ * barcodes, coordenadas, IDs, glifos y data strips — llenar el espacio vacío
+ * de SISTEMA". Sin esto el anchor queda flotando, que es justo la diferencia
+ * entre lo construido y los boards.
+ *
+ * Regla: los datos son REALES o derivados de la escena. Un rail con relleno
+ * inventado se nota y abarata la pieza.
+ */
+interface Props {
+  /** Número de sección. Se muestra como 001, 002… */
+  index: number | string;
+  /** Nombre de la sección, a la derecha del número. */
+  label: string;
+  /** Acento de la escena. */
+  accent?: string;
+  /** Dato de cierre: checksum, coordenada, hora. */
+  tail?: string;
+  /** Glifo japonés del sistema; en los boards ancla la lectura. */
+  glyph?: string;
+  /** Rail más bajo, para separar sub-bloques. */
+  compact?: boolean;
+  class?: string;
+}
+
+const {
+  index,
+  label,
+  accent = "var(--kdx-scene-accent, var(--kdx-red, #FF2733))",
+  tail = "",
+  glyph = "ポータル",
+  compact = false,
+  class: className = "",
+} = Astro.props;
+
+const num = String(index).padStart(3, "0");
+---
+
+<div
+  class:list={["kdx-rail", compact && "kdx-rail--compact", className]}
+  style={`--rail-accent:${accent};`}
+  role="separator"
+  aria-label={`${num} · ${label}`}
+>
+  <span class="kdx-rail__barcode" aria-hidden="true"></span>
+  <span class="kdx-rail__num">{num}</span>
+  <span class="kdx-rail__slash" aria-hidden="true">//</span>
+  <span class="kdx-rail__label">{label}</span>
+  <span class="kdx-rail__glyph" aria-hidden="true">{glyph}</span>
+  <span class="kdx-rail__line" aria-hidden="true"></span>
+  {tail && <span class="kdx-rail__tail">{tail}</span>}
+  <span class="kdx-rail__ticks" aria-hidden="true"></span>
+</div>
+
+<style>
+  .kdx-rail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 12px;
+    border: 1px solid color-mix(in srgb, var(--rail-accent) 22%, transparent);
+    background: color-mix(in srgb, var(--rail-accent) 4%, transparent);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kdx-muted, #88888a);
+    /* Esquinas cortadas: es lo que da el aire de panel técnico en los boards.
+       Con clip-path en vez de bordes falsos, así el corte respeta el fondo. */
+    clip-path: polygon(
+      0 0, calc(100% - 9px) 0, 100% 9px,
+      100% 100%, 9px 100%, 0 calc(100% - 9px)
+    );
+  }
+  .kdx-rail--compact { padding: 4px 10px; font-size: 9px; }
+
+  .kdx-rail__num {
+    color: var(--rail-accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .kdx-rail__slash { opacity: 0.4; }
+  .kdx-rail__label { color: var(--kdx-off-white, #e6e6e6); }
+
+  /* Barcode dibujado con gradientes: nada de imágenes ni SVG largos para un
+     elemento que se repite en cada rail de cada lámina. */
+  .kdx-rail__barcode {
+    flex: none;
+    width: 34px;
+    height: 11px;
+    background: repeating-linear-gradient(
+      90deg,
+      var(--kdx-muted, #88888a) 0 1px,
+      transparent 1px 2px,
+      var(--kdx-muted, #88888a) 2px 4px,
+      transparent 4px 5px,
+      var(--kdx-muted, #88888a) 5px 6px,
+      transparent 6px 8px
+    );
+    opacity: 0.55;
+  }
+
+  .kdx-rail__glyph {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    opacity: 0.6;
+  }
+
+  .kdx-rail__line {
+    flex: 1;
+    height: 1px;
+    min-width: 16px;
+    background: linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--rail-accent) 30%, transparent),
+      transparent
+    );
+  }
+
+  .kdx-rail__tail {
+    color: var(--kdx-off-white, #e6e6e6);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.75;
+  }
+
+  /* Marcas de escala del extremo, como la regla numerada de los boards. */
+  .kdx-rail__ticks {
+    flex: none;
+    width: 30px;
+    height: 7px;
+    background: repeating-linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--rail-accent) 45%, transparent) 0 1px,
+      transparent 1px 5px
+    );
+  }
+
+  @media (max-width: 620px) {
+    .kdx-rail__glyph,
+    .kdx-rail__ticks { display: none; }
+    .kdx-rail { gap: 8px; letter-spacing: 0.1em; }
+  }
+</style>

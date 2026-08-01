@@ -1,0 +1,249 @@
+---
+/**
+ * CollectionCarousel — a moving banner of the brand collections (Ocin 2026-07-05).
+ *
+ * Ocin wanted a banner that MOVES like the collection band. This auto-rotates
+ * the collection graphics (Atacama, Neo, Solar, Origin…) slowly, supports swipe
+ * and prev/next, pauses off-viewport and on hover, and freezes under
+ * prefers-reduced-motion. It carries the baked-title collection artwork, so no
+ * HTML title overlay is needed — just a small eyebrow + CTA per slide.
+ *
+ * Effects budget: only transform/opacity animated. No canvas, no rAF, no
+ * setInterval-driven layout — a single timer swaps an `is-active` class that
+ * only toggles opacity. Cheap on mobile.
+ */
+interface Slide {
+  slug: string;
+  title: string;
+  eyebrow: string;
+}
+const slides: Slide[] = [
+  { slug: 'atacama',    title: 'Atacama',    eyebrow: 'Stone that fell from the sky' },
+  { slug: 'neo',        title: 'Neo',        eyebrow: 'The forward edge' },
+  { slug: 'solar',      title: 'Solar',      eyebrow: 'Antü — the sun' },
+  { slug: 'origin',     title: 'Origin',     eyebrow: 'Where the language begins' },
+  { slug: 'organic',    title: 'Organic',    eyebrow: 'Grown, not cast' },
+  { slug: 'ornamental', title: 'Ornamental', eyebrow: 'Where detail is the rite' },
+];
+const eyebrow = 'Wichan · Collections in motion';
+const heading = 'Enter a world.';
+---
+<section class="ccar" aria-labelledby="ccar-title">
+  <div class="container ccar__head">
+    <div>
+      <p class="eyebrow">{eyebrow}</p>
+      <h2 id="ccar-title" class="ccar__title">{heading}</h2>
+    </div>
+    <a href="/collections" class="ccar__viewall">All collections <span aria-hidden="true">→</span></a>
+  </div>
+
+  <div class="ccar__stage" data-ccar aria-roledescription="carousel" aria-label="Wenu Mapu collections">
+    <div class="ccar__track">
+      {slides.map((s, i) => (
+        <a
+          href={`/collection/${s.slug}`}
+          class={`ccar__slide${i === 0 ? ' is-active' : ''}`}
+          data-ccar-slide
+          aria-hidden={i === 0 ? 'false' : 'true'}
+          tabindex={i === 0 ? undefined : -1}
+          aria-label={`${s.title} — ${s.eyebrow}`}
+        >
+          <picture>
+            <source type="image/avif" srcset={`/img/banners/collection/${s.slug}.avif`} />
+            <img
+              src={`/img/banners/collection/${s.slug}.webp`}
+              alt={`Wenu Mapu — ${s.title} collection`}
+              width="1600" height="900"
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+            />
+          </picture>
+          <span class="ccar__veil" aria-hidden="true"></span>
+          <span class="ccar__caption">
+            <span class="ccar__caption-eyebrow">{s.eyebrow}</span>
+            <span class="ccar__caption-cta">Enter {s.title} <span aria-hidden="true">→</span></span>
+          </span>
+        </a>
+      ))}
+    </div>
+
+    <button type="button" class="ccar__arrow ccar__arrow--prev" data-ccar-prev aria-label="Previous collection">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <button type="button" class="ccar__arrow ccar__arrow--next" data-ccar-next aria-label="Next collection">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <div class="ccar__dots" role="tablist" aria-label="Collection slides" data-ccar-dots>
+      {slides.map((s, i) => (
+        <button type="button" class={`ccar__dot${i === 0 ? ' is-active' : ''}`} data-ccar-dot={i}
+          role="tab" aria-selected={i === 0 ? 'true' : 'false'} aria-label={s.title}></button>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    const root = document.querySelector('[data-ccar]');
+    if (!root) return;
+    const slides = Array.from(root.querySelectorAll('[data-ccar-slide]')) as HTMLElement[];
+    const dots = Array.from(root.querySelectorAll('[data-ccar-dot]')) as HTMLElement[];
+    if (slides.length < 2) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DUR = 5200;
+    let i = 0, timer: number | null = null, visible = true, hovering = false;
+
+    function show(n: number) {
+      i = (n + slides.length) % slides.length;
+      slides.forEach((el, k) => {
+        const on = k === i;
+        el.classList.toggle('is-active', on);
+        el.setAttribute('aria-hidden', on ? 'false' : 'true');
+        if (on) el.removeAttribute('tabindex'); else el.setAttribute('tabindex', '-1');
+      });
+      dots.forEach((d, k) => {
+        d.classList.toggle('is-active', k === i);
+        d.setAttribute('aria-selected', k === i ? 'true' : 'false');
+      });
+    }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    function start() {
+      if (reduce || !visible || hovering) return;
+      stop();
+      timer = window.setInterval(() => show(i + 1), DUR);
+    }
+
+    dots.forEach((d, k) => d.addEventListener('click', () => { show(k); start(); }));
+    root.querySelector('[data-ccar-prev]')?.addEventListener('click', () => { show(i - 1); start(); });
+    root.querySelector('[data-ccar-next]')?.addEventListener('click', () => { show(i + 1); start(); });
+
+    root.addEventListener('mouseenter', () => { hovering = true; stop(); });
+    root.addEventListener('mouseleave', () => { hovering = false; start(); });
+    root.addEventListener('focusin', () => { hovering = true; stop(); });
+    root.addEventListener('focusout', () => { hovering = false; start(); });
+
+    // Swipe (touch) — horizontal only, no layout reads in a hot path.
+    let sx = 0, sy = 0, tracking = false;
+    root.addEventListener('touchstart', (e) => {
+      const t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; tracking = true;
+    }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      if (!tracking) return; tracking = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - sx, dy = t.clientY - sy;
+      if (Math.abs(dx) > 44 && Math.abs(dx) > Math.abs(dy)) {
+        show(i + (dx < 0 ? 1 : -1)); start();
+      }
+    }, { passive: true });
+
+    // Pause when the carousel scrolls out of view (no wasted timers on mobile).
+    const io = new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      visible ? start() : stop();
+    }, { threshold: 0.15 });
+    io.observe(root);
+
+    document.addEventListener('visibilitychange', () => { document.hidden ? stop() : start(); });
+    show(0);
+    start();
+  })();
+</script>
+
+<style>
+  .ccar { padding: var(--space-7) 0; }
+  .ccar__head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .ccar__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.05;
+    color: var(--bone); margin: var(--space-1) 0 0;
+  }
+  .ccar__viewall {
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--ember); text-decoration: none; white-space: nowrap;
+    transition: color var(--t-fast);
+  }
+  .ccar__viewall:hover { color: var(--bone); }
+
+  .ccar__stage {
+    position: relative;
+    width: min(100%, var(--max-w));
+    margin: 0 auto;
+    aspect-ratio: 16 / 9;
+    max-height: 72svh;
+    overflow: hidden;
+    background: var(--obsidian);
+    isolation: isolate;
+    border-block: var(--border-thin);
+  }
+  @media (max-width: 640px) { .ccar__stage { aspect-ratio: 4 / 5; } }
+  .ccar__track { position: absolute; inset: 0; }
+  .ccar__slide {
+    position: absolute; inset: 0; display: block; text-decoration: none;
+    opacity: 0; transform: scale(1.04);
+    transition: opacity 1s ease, transform 6s ease;
+    will-change: opacity;
+    pointer-events: none;
+  }
+  .ccar__slide.is-active {
+    opacity: 1; transform: scale(1);
+    pointer-events: auto;
+  }
+  .ccar__slide img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+  .ccar__veil {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, var(--scrim-0) 45%, var(--scrim-strong) 100%);
+  }
+  .ccar__caption {
+    position: absolute; left: var(--gutter); bottom: clamp(20px, 4vw, 44px);
+    display: flex; flex-direction: column; gap: var(--space-2);
+    z-index: 1; max-width: 80%;
+  }
+  .ccar__caption-eyebrow {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: clamp(1.1rem, 2.6vw, 1.9rem); line-height: 1.15;
+    color: var(--brand-bone); text-shadow: 0 2px 18px var(--scrim-strong);
+  }
+  .ccar__caption-cta {
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--ember);
+  }
+  .ccar__slide:hover .ccar__caption-cta { color: var(--brand-bone); }
+
+  .ccar__arrow {
+    position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: clamp(38px, 5vw, 50px); height: clamp(38px, 5vw, 50px);
+    background: var(--scrim-soft); color: var(--brand-bone);
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    cursor: pointer;
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+  }
+  .ccar__arrow--prev { left: clamp(8px, 2vw, 20px); }
+  .ccar__arrow--next { right: clamp(8px, 2vw, 20px); }
+  .ccar__arrow:hover { color: var(--ember); border-color: var(--ember); background: var(--scrim-mid); }
+  .ccar__arrow:focus-visible { outline: 1px solid var(--ember); outline-offset: 2px; }
+
+  .ccar__dots {
+    position: absolute; left: 0; right: 0; bottom: clamp(12px, 2.5vw, 20px);
+    display: flex; gap: 10px; justify-content: center; z-index: 3;
+  }
+  .ccar__dot {
+    width: 8px; height: 8px; border-radius: 50%; padding: 0;
+    border: 1px solid rgba(240,237,232,0.55); background: transparent; cursor: pointer;
+    transition: background var(--t-fast), border-color var(--t-fast), transform var(--t-fast);
+  }
+  .ccar__dot.is-active { background: var(--ember); border-color: var(--ember); transform: scale(1.15); }
+  .ccar__dot:hover { border-color: var(--ember); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ccar__slide { transition: opacity 0.3s ease; transform: none; }
+    .ccar__slide.is-active { transform: none; }
+  }
+</style>

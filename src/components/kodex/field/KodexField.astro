@@ -1,0 +1,119 @@
+---
+/**
+ * KODEX-∞ · FIELD
+ *
+ * El campo vivo detrás de una lámina: el portal, la estructura imposible, la
+ * órbita. Son los shaders del Open Visual Lab y los presets de KodeLife
+ * corriendo como atmósfera, no como decoración.
+ *
+ * Va SIEMPRE detrás del contenido y nunca captura eventos: es fondo. Si WebGL2
+ * falla, el elemento se apaga y queda el campo CSS que la lámina ya tenía.
+ */
+interface Props {
+  /** Nombre del shader. Ver SHADERS en kodex-field-client.ts */
+  field:
+    | "network-vortex"
+    | "wrinkled-reality"
+    | "ripple-floor"
+    | "threshold-portal"
+    | "archive-orbit"
+    | "liquid-acid"
+    | "signal-bloom"
+    | "mandelbrot-field"
+    | "impossible-structure"
+    | "split-corridor";
+  /** Brillo general. Es fondo: por encima de 0.7 empieza a pelear con el texto. */
+  intensity?: number;
+  /** Rastro temporal. Alto acumula estelas; en cero cada cuadro es limpio. */
+  feedback?: number;
+  speed?: number;
+  seed?: number;
+  /**
+   * Acento de la lámina, en #rrggbb. El preset aporta la estructura y este
+   * color la viste, para que el campo pertenezca a la lámina y no a KodeLife.
+   */
+  tint?: string;
+  /** Cuánto se fuerza ese acento. En 0 el preset conserva su paleta original. */
+  grade?: number;
+  /**
+   * Piso de luminancia: todo lo que quede debajo se va a negro. Los presets
+   * que llenan el cuadro entero necesitan un piso alto para no tapar la
+   * lámina; los que ya son casi todo negro, casi ninguno.
+   */
+  floor?: number;
+  /**
+   * Segundo tono, el de las crestas y los nodos. La referencia holográfica no
+   * es monocroma: el chispeo de otro color sobre el cuerpo del acento es lo
+   * que separa un holograma de un filtro de color.
+   */
+  spark?: string;
+  /** Cuánta hebra y cuántos nodos. En 0 el campo vuelve a ser suave. */
+  detail?: number;
+  class?: string;
+}
+
+const {
+  field,
+  intensity = 0.5,
+  feedback = 0.35,
+  speed = 1,
+  seed = 1,
+  tint = "#ff3b30",
+  grade = 0.82,
+  floor = 0.16,
+  spark = "#7fe9ff",
+  detail = 0.75,
+  class: className = "",
+} = Astro.props;
+---
+
+<div
+  class:list={["kdx-field", className]}
+  data-kdx-field
+  data-field={field}
+  data-intensity={intensity}
+  data-feedback={feedback}
+  data-speed={speed}
+  data-seed={seed}
+  data-tint={tint}
+  data-grade={grade}
+  data-floor={floor}
+  data-spark={spark}
+  data-detail={detail}
+  aria-hidden="true"
+>
+  <canvas class="kdx-field__canvas" data-kdx-field-canvas></canvas>
+</div>
+
+<script>
+  import "./kodex-field-client.ts";
+</script>
+
+<style>
+  .kdx-field {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    /* Detrás de todo y sin capturar el puntero: el campo escucha el movimiento
+       a nivel de su contenedor, pero jamás bloquea un clic. */
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .kdx-field__canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    /* Entrada larga: el campo tiene que aparecer sin llamar la atención, o
+       compite con el revelado de la obra. */
+    transition: opacity 1200ms ease;
+    /* screen suma luz sobre el negro sin apagar lo que hay debajo. */
+    mix-blend-mode: screen;
+  }
+  .kdx-field[data-kdx-field-state="ready"] .kdx-field__canvas { opacity: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-field__canvas { transition: none; }
+  }
+</style>

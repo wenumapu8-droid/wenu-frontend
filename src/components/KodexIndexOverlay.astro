@@ -1,0 +1,191 @@
+---
+// KODEX−∞ · INDEX overlay — jump between the 7 scenes from anywhere in the
+// codex (§2 arquitectura, §3 storyboard). Escape to close · focus trap on open.
+// Opened by any [data-kdx-index-open] button (KodexChrome exposes one).
+import { scenes } from '../lib/kodexScenes.js';
+const currentPath = Astro.url.pathname.replace(/\/+$/, '') + '/';
+const samePath = (href) => href.replace(/#.*$/, '').replace(/\/+$/, '') + '/' === currentPath;
+---
+<aside class="kdx-index" data-kdx-index hidden aria-hidden="true" aria-modal="true" role="dialog" aria-labelledby="kdx-index-title">
+  <div class="kdx-index__inner">
+    <header class="kdx-index__head">
+      <span class="kdx-index__eyebrow">◉ SYSTEM INDEX</span>
+      <h2 class="kdx-index__title" id="kdx-index-title">seven nodes</h2>
+      <button class="kdx-index__close" data-kdx-index-close type="button" aria-label="close index">CLOSE ✕</button>
+    </header>
+
+    <ol class="kdx-index__list" role="list">
+      {scenes.map((s) => (
+        <li class={`kdx-scene kdx-scene--${s.accent}${(samePath(s.href) && s.hash === 'threshold') || s.href === currentPath ? ' is-current' : ''}`} style={`--kdx-scene-accent:${s.accentHex}`}>
+          <a class="kdx-scene__link" href={s.href} data-kdx-scene={s.index} data-kdx-target={s.hash}>
+            <span class="kdx-scene__idx">{s.index}</span>
+            <span class="kdx-scene__body">
+              <span class="kdx-scene__code">{s.code}</span>
+              <span class="kdx-scene__sub">{s.subtitle}</span>
+            </span>
+            <span class="kdx-scene__cta">{((samePath(s.href) && s.hash === 'threshold') || s.href === currentPath) ? 'YOU ARE HERE' : 'ENTER'} →</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </div>
+</aside>
+
+<style is:global>
+  .kdx-index{
+    position:fixed; inset:0; z-index:180;
+    background:rgba(10,10,10,.965); backdrop-filter:blur(14px);
+    display:grid; place-items:center;
+    opacity:0; pointer-events:none; transition:opacity .28s ease;
+    overflow-y:auto; padding:clamp(20px,4vh,44px) clamp(16px,4vw,40px);
+    color:var(--kdx-dust-white,#EDEDED);
+    font-family:'Space Grotesk','Instrument Sans',system-ui,sans-serif;
+  }
+  .kdx-index[hidden]{ display:none; }
+  .kdx-index[data-open]{ opacity:1; pointer-events:auto; }
+  .kdx-index__inner{ width:min(1080px, 96vw); }
+  .kdx-index__head{ display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    padding:0 0 clamp(16px,3vh,28px); border-bottom:1px solid var(--kdx-line,rgba(237,237,237,.15)); }
+  .kdx-index__eyebrow{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.24em; color:var(--kdx-cyan,#00F0FF); }
+  .kdx-index__title{ font-family:'Archivo','Space Grotesk',system-ui,sans-serif; font-stretch:125%; font-weight:700;
+    letter-spacing:.02em; text-transform:uppercase; font-size:clamp(1.4rem,3.5vw,2.1rem); margin:0 auto 0 4px; }
+  .kdx-index__close{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.2em;
+    background:transparent; border:1px solid var(--kdx-line,rgba(237,237,237,.15)); color:var(--kdx-muted,#88888A);
+    padding:6px 12px; cursor:pointer; transition:color .2s,border-color .2s; }
+  .kdx-index__close:hover, .kdx-index__close:focus-visible{ color:var(--kdx-dust-white,#EDEDED); border-color:var(--kdx-dust-white,#EDEDED); outline:none; }
+
+  .kdx-index__list{ list-style:none; padding:0; margin:clamp(18px,3vh,28px) 0; display:grid; gap:1px;
+    background:var(--kdx-line,rgba(237,237,237,.15)); border:1px solid var(--kdx-line,rgba(237,237,237,.15)); }
+  .kdx-scene{ background:var(--kdx-black,#0A0A0A); }
+  .kdx-scene__link{ display:grid; grid-template-columns:64px 1fr auto; gap:clamp(12px,2vw,24px);
+    align-items:center; padding:clamp(14px,2.6vh,22px) clamp(14px,2.2vw,22px);
+    text-decoration:none; color:var(--kdx-dust-white,#EDEDED); transition:background .2s; }
+  .kdx-scene__link:hover, .kdx-scene__link:focus-visible{ background:var(--kdx-surface,#111113); outline:none; }
+  .kdx-scene__link:hover .kdx-scene__cta, .kdx-scene__link:focus-visible .kdx-scene__cta{ color:var(--kdx-scene-accent, var(--kdx-cyan,#00F0FF)); }
+  .kdx-scene__idx{ font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:500;
+    color:var(--kdx-scene-accent, var(--kdx-dust-white,#EDEDED)); letter-spacing:.06em; }
+  .kdx-scene__body{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+  .kdx-scene__code{ font-family:'Archivo','Space Grotesk',system-ui,sans-serif; font-stretch:125%; font-weight:700;
+    letter-spacing:.02em; text-transform:uppercase; font-size:clamp(1rem,2.4vw,1.5rem); }
+  .kdx-scene__sub{ font-family:'Space Grotesk',system-ui,sans-serif; font-size:12px; color:var(--kdx-muted,#88888A);
+    letter-spacing:.06em; text-transform:uppercase; margin-left:6px; display:inline; }
+  .kdx-scene__lede{ font-family:'Space Grotesk',system-ui,sans-serif; font-size:13px; line-height:1.5;
+    color:var(--kdx-muted,#88888A); margin-top:4px; max-width:60ch; }
+  .kdx-scene__cta{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.2em;
+    color:var(--kdx-muted,#88888A); transition:color .2s; white-space:nowrap; }
+  .kdx-scene.is-current .kdx-scene__link{ background:var(--kdx-surface,#111113); }
+  .kdx-scene.is-current .kdx-scene__idx{ color:var(--kdx-scene-accent, var(--kdx-cyan,#00F0FF)); }
+  .kdx-scene.is-current .kdx-scene__cta{ color:var(--kdx-scene-accent, var(--kdx-cyan,#00F0FF)); }
+
+  .kdx-index__foot{ text-align:center; padding-top:clamp(12px,2vh,20px); }
+  .kdx-index__tagline{ font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.24em;
+    color:var(--kdx-muted,#88888A); margin:0; }
+
+  @media (max-width:640px){
+    .kdx-scene__link{ grid-template-columns:44px 1fr; grid-template-rows:auto auto; }
+    .kdx-scene__cta{ grid-column:1 / -1; text-align:right; padding-top:6px; }
+    .kdx-scene__idx{ font-size:16px; }
+    .kdx-scene__code{ font-size:1.05rem; }
+    .kdx-scene__sub{ display:block; margin-left:0; margin-top:2px; }
+  }
+</style>
+
+<script is:inline>
+  (() => {
+    const overlay = document.querySelector('[data-kdx-index]');
+    if (!overlay) return;
+    const links = [...overlay.querySelectorAll('a[data-kdx-scene]')];
+    const focusable = () => overlay.querySelectorAll('a[href],button:not([disabled])');
+    const root = document.querySelector('[data-kx]');
+    const basePath = `${location.pathname}${location.search}`;
+    const normalizePath = (href) => new URL(href, location.origin).pathname.replace(/\/+$/, '') + '/';
+    let lastFocus = null;
+    let openedByHash = false;
+
+    const applyCurrentState = () => {
+      const current = location.pathname.replace(/\/+$/, '') + '/';
+      const hash = (location.hash || '').replace('#', '');
+      links.forEach((link) => {
+        const li = link.closest('.kdx-scene');
+        const target = link.dataset.kdxTarget || '';
+        const pathMatch = normalizePath(link.href) === current;
+        const isCurrent = pathMatch && ((hash && target === hash) || (!hash && (!target || target === 'threshold')));
+        li?.classList.toggle('is-current', isCurrent);
+        const cta = link.querySelector('.kdx-scene__cta');
+        if (cta) cta.textContent = `${isCurrent ? 'YOU ARE HERE' : 'ENTER'} →`;
+      });
+    };
+
+    const open = ({ fromHash = false } = {}) => {
+      if (!fromHash) openedByHash = false;
+      lastFocus = document.activeElement;
+      overlay.hidden = false;
+      requestAnimationFrame(() => overlay.setAttribute('data-open', ''));
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      document.querySelectorAll('[data-kdx-index-open]').forEach((b) => b.setAttribute('aria-expanded', 'true'));
+      const first = focusable()[0]; if (first) first.focus();
+      try { window.kdx && window.kdx('index_open'); } catch (_) {}
+    };
+
+    const close = ({ syncHash = true } = {}) => {
+      overlay.removeAttribute('data-open');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      document.querySelectorAll('[data-kdx-index-open]').forEach((b) => b.setAttribute('aria-expanded', 'false'));
+      setTimeout(() => { overlay.hidden = true; }, 300);
+      if (lastFocus && lastFocus.focus) lastFocus.focus();
+      if (!syncHash) return;
+      if (location.hash === '#index' && !openedByHash && history.length > 1) history.back();
+      else if (location.hash === '#index') history.replaceState(null, '', basePath);
+    };
+
+    document.querySelectorAll('[data-kdx-index-open]').forEach((b) => b.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (location.hash !== '#index') {
+        history.pushState(null, '', `${basePath}#index`);
+        open();
+        return;
+      }
+      open();
+    }));
+    overlay.querySelector('[data-kdx-index-close]')?.addEventListener('click', () => close());
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+    addEventListener('keydown', (e) => {
+      if (overlay.hidden) return;
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key === 'Tab') {
+        const els = [...focusable()]; if (!els.length) return;
+        const first = els[0], last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+
+    const applyHash = () => {
+      const h = (location.hash || '').replace('#', '');
+      applyCurrentState();
+      if (!h) {
+        if (!overlay.hidden) close({ syncHash: false });
+        return;
+      }
+      if (h === 'index') {
+        openedByHash = true;
+        if (overlay.hidden) open({ fromHash: true });
+        return;
+      }
+      const link = links.find((a) => (a.dataset.kdxTarget || '').toLowerCase() === h.toLowerCase())
+        || links.find((a) => a.href.toLowerCase().includes(h));
+      if (link) {
+        const samePath = normalizePath(link.href) === normalizePath(location.href);
+        const targetHash = link.dataset.kdxTarget ? `#${link.dataset.kdxTarget}` : '';
+        if (samePath && targetHash === location.hash) return;
+        window.location.href = link.getAttribute('href');
+        return;
+      }
+      if (root?.classList.contains('kx--threshold') && !overlay.hidden) close({ syncHash: false });
+    };
+    addEventListener('hashchange', applyHash);
+    applyHash();
+  })();
+</script>

@@ -1,0 +1,282 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import SearchModal from '../components/SearchModal.astro';
+import NewsletterModal from '../components/NewsletterModal.astro';
+import Cart from '../components/Cart.astro';
+import Immersive from '../components/Immersive.astro';
+import Analytics from '../components/Analytics.astro';
+import ThemeToggle from '../components/ThemeToggle.astro';
+import { STORE_ORIGIN } from '../lib/config';
+
+// Day-cycle theme feature flag. OFF by default → no [data-theme], no toggle,
+// no pre-paint script: the site is pure Nocturne, byte-identical to before.
+// Enable per-environment with PUBLIC_THEMES_ENABLED=true (set for the preview).
+const themesEnabled = import.meta.env.PUBLIC_THEMES_ENABLED === 'true';
+
+// Pre-paint resolver — runs synchronously in <head> before first paint so the
+// chosen theme is set with no flash (FOUC). Manual choice wins over the clock.
+const themeInit = `(function(){try{var hm=(location.hash.match(/theme=(solar|sunset|nocturne)/)||[])[1];if(hm){document.documentElement.setAttribute('data-theme',hm);return;}var K='wmTheme',M='wmThemeMode';var m=localStorage.getItem(M);var t='nocturne';if(m==='manual'){t=localStorage.getItem(K)||'nocturne';}else if(m==='auto'){var h=new Date().getHours();t=(h>=7&&h<17)?'solar':(h>=17&&h<20)?'sunset':'nocturne';}if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();`;
+
+interface Props {
+  title?: string;
+  description?: string;
+  robots?: string;
+  ogImage?: string;
+  /** Descriptive alt text for the OG image (improves social card a11y). */
+  ogImageAlt?: string;
+  /** OG image pixel dimensions. Default 1200×630 (standard social card). */
+  ogImageWidth?: number;
+  ogImageHeight?: number;
+  ogType?: 'website' | 'article' | 'product';
+  noNav?: boolean;
+  noFooter?: boolean;
+  /** Hide global overlays (search + newsletter modal) — for immersive/standalone pages. */
+  noOverlays?: boolean;
+  /** Hide the editorial prefooter quote (Montecino) — for checkout, /p/[slug],
+   *  /shop and other commerce pages where the rhythm shouldn't break. */
+  noQuote?: boolean;
+  /** Lock the theme to dark and hide the LIGHT CYCLE toggle — for immersive art
+   *  pages (KODEX, gallery) where the background must stay fixed. */
+  noThemes?: boolean;
+  /**
+   * Carga el sistema tipográfico del KODEX.
+   *
+   * Sólo en las páginas que lo usan: son cinco familias y no tienen por qué
+   * pesar en la tienda. Ver el comentario del <link> más abajo.
+   */
+  kodexFonts?: boolean;
+  /** Skip the Kai mascot engine entirely (kai-anim/kai-home/kai-textile) — for
+   *  worlds where no commercial companion may appear (KODEX). */
+  noKai?: boolean;
+  /** Skip the global Cart drawer — no commerce chrome in the art worlds (KODEX). */
+  noCart?: boolean;
+  /** Skip the Immersive layer, incl. the Hidden Sky UFO blip — KODEX must stay
+   *  clean of the site-wide fiction/motion (KODEX pages carry their own reveals). */
+  noImmersive?: boolean;
+  /** Optional JSON-LD object to inject as structured data */
+  jsonLd?: Record<string, unknown> | Array<Record<string, unknown>>;
+  /** Optional LCP image to preload (with AVIF/WebP source set if both provided). */
+  preloadImage?: { avif?: string; webp?: string; alt?: string } | null;
+}
+
+const SITE = 'https://wenumapuonline.com';
+const {
+  kodexFonts = false,
+  title = 'Wenu Mapu — Adornment for the sacred body',
+  description = 'Ancestral-cosmic body jewelry forged by hand in Truckee, California. Implant-grade titanium, sterling silver, 14k gold. Ships across the US · Local pickup.',
+  robots = 'index, follow',
+  ogImage = '/img/hero/hero-portrait.webp',
+  ogImageAlt,
+  ogImageWidth = 1800,
+  ogImageHeight = 900,
+  ogType = 'website',
+  noNav = false,
+  noFooter = false,
+  noOverlays = false,
+  noQuote = false,
+  noThemes = false,
+  noKai = false,
+  noCart = false,
+  noImmersive = false,
+  jsonLd,
+  preloadImage = null,
+} = Astro.props;
+const themesOn = themesEnabled && !noThemes;
+
+const path = Astro.url.pathname;
+const canonical = new URL(path, SITE).toString();
+const ogImageUrl = ogImage.startsWith('http') ? ogImage : new URL(ogImage, SITE).toString();
+const ogImageAltText = ogImageAlt || title;
+
+const ldArray = jsonLd
+  ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd])
+  : null;
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {themesOn && <script is:inline set:html={themeInit} />}
+    <meta name="google" content="notranslate" />
+    <meta name="p:domain_verify" content="70be914471c5fd09ace3af026cc3c925" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content={String(ogImageWidth)} />
+    <meta property="og:image:height" content={String(ogImageHeight)} />
+    <meta property="og:image:alt" content={ogImageAltText} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:site_name" content="Wenu Mapu" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <link rel="icon" type="image/png" href="/logos/wenu-mapu-square.png" />
+    <link rel="apple-touch-icon" href="/logos/wenu-mapu-square.png" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="robots" content={robots} />
+
+    {/* DNS prefetch + preconnect to third-party origins we always hit */}
+    <link rel="preconnect" href={STORE_ORIGIN} crossorigin />
+    <link rel="dns-prefetch" href={STORE_ORIGIN} />
+    {/* Wenu Platform API — orders + newsletter subscribe land here */}
+    <link rel="dns-prefetch" href="https://api.wenumapuonline.com" />
+
+    {/* Fonts — self-hosted via @fontsource (imported in global.css). No render-blocking CDN. */}
+
+    {/* Press Start 2P — 8-bit pixel font, ONLY for Kai's speech-bubble text
+        (.navkd__kai-line / .search__kai-line / .wmcart__kai-line). Everything
+        else on the site keeps Instrument Serif/Cormorant/Instrument Sans —
+        this is a narrow, intentional exception (2026-07-11), not a font
+        migration. Loaded via Google Fonts CDN (small single-weight file). */}
+    {/* Cargada de forma NO bloqueante (media=print → all on load): la fuente
+        solo se ve dentro del menú/buscador/carrito abiertos, así que no puede
+        costar first paint en TODAS las páginas. display=swap ya evita FOIT. */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+
+    {/*
+      Sistema tipográfico del KODEX.
+
+      Se carga acá porque hasta ahora NO se cargaba en ninguna parte: kodex.css
+      pedía JetBrains Mono, Instrument Serif, Archivo, Instrument Sans, Space
+      Grotesk y Cormorant Garamond, y ninguna existía en el proyecto -- ni
+      @font-face, ni link, ni archivos. Todo el KODEX venía dibujándose con las
+      fuentes del sistema, distintas en cada equipo, sin que nada fallara de
+      forma visible.
+
+      Las cinco de acá son las que el sistema tipográfico v2 prescribe por rol:
+      Barlow Condensed para titulares y comandos, Inter Tight para interfaz,
+      IBM Plex Mono para datos y telemetría, Oxanium para máquina y portal,
+      Libre Baskerville para el cuerpo editorial.
+
+      Mismo patrón no bloqueante que Press Start 2P: media="print" hasta que
+      carga. Un archivo tipográfico no puede retrasar el primer dibujo de una
+      lámina cuyo fondo es un shader.
+    */}
+    {kodexFonts && (
+      <>
+        <link
+          href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;1,400&family=Oxanium:wght@500;600;700&display=swap"
+          rel="stylesheet"
+          media="print"
+          onload="this.media='all'"
+        />
+        <noscript>
+          <link
+            href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;1,400&family=Oxanium:wght@500;600;700&display=swap"
+            rel="stylesheet"
+          />
+        </noscript>
+      </>
+    )}
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+    </noscript>
+
+    {preloadImage?.avif && (
+      <link rel="preload" as="image" href={preloadImage.avif} type="image/avif" fetchpriority="high" />
+    )}
+    {preloadImage?.webp && !preloadImage.avif && (
+      <link rel="preload" as="image" href={preloadImage.webp} type="image/webp" fetchpriority="high" />
+    )}
+
+    {ldArray && ldArray.map(obj => (
+      <script type="application/ld+json" set:html={JSON.stringify(obj)} />
+    ))}
+
+    <Analytics />
+    {/* Kai — motor de animación por cuadros (canvas, 12 poses pixel-art),
+        cargado como script clásico DIFERIDO (no módulo). `defer` lo saca del
+        camino del first paint (antes bloqueaba el parser en cada página) pero
+        MANTIENE el orden: los scripts defer clásicos y los módulos comparten la
+        misma cola diferida y corren en orden de documento, así que window.kaiAnim
+        existe antes que los <script> de Nav/SearchModal/Cart/gracias — que es
+        donde Kai vive (top del menú, overlay del buscador, carrito, /gracias).
+        Reemplaza al viejo motor de <img> + estirado procedural (kai-idle.js,
+        retirado 2026-07-11). Ver public/kai/kai-anim.js. */}
+    {!noKai && <script is:inline defer src="/kai/kai-anim.js"></script>}
+    {/* Kai — "Hogar de Kai" (sistema tamagotchi): medidores, acciones,
+        recompensas, rangos y progreso por eventos reales del sitio. Mismo patrón
+        que el motor de arriba (clásico + defer → corre DESPUÉS de kai-anim.js,
+        así window.kaiAnim ya existe). Vive entero en public/ (no lo compila
+        Astro) y no cuesta nada hasta que alguien abre el hogar: la hoja de
+        estilos se inyecta recién al primer intento. Se engancha solo al DOM
+        existente (Nav/Cart/PDP sin tocar). Ver public/kai/kai-home.js. */}
+    {!noKai && <script is:inline defer src="/kai/kai-home.js"></script>}
+    {/* Living mapuche-textile covers for every Kai screen — random woven pattern
+        per screen, looping weave, auto-reshuffle. Any [data-kai-textile] element. */}
+    {!noKai && <script is:inline defer src="/kai/kai-textile.js"></script>}
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Skip to main content</a>
+    {!noNav && <Nav />}
+    <main id="main">
+      <slot />
+    </main>
+    {!noFooter && <Footer />}
+    {themesOn && (
+      <div class="theme-bar">
+        <ThemeToggle />
+      </div>
+    )}
+    {!noOverlays && <SearchModal />}
+    {!noOverlays && <NewsletterModal />}
+    {!noCart && <Cart />}
+    {!noImmersive && <Immersive />}
+    <script>
+      // IntersectionObserver-driven fade-in for elements marked with
+      // data-fade-in or data-fade-in-stagger. Triggers when ANY pixel enters
+      // viewport; respects prefers-reduced-motion (handled via CSS).
+      // threshold: 0 critical for tall grids (e.g. HandmadeArchive ~7800px)
+      // where 12% would exceed viewport height and observer never fires.
+      if ('IntersectionObserver' in window) {
+        const targets = document.querySelectorAll('[data-fade-in], [data-fade-in-stagger]');
+        if (targets.length > 0) {
+          const obs = new IntersectionObserver((entries) => {
+            for (const entry of entries) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                obs.unobserve(entry.target);
+              }
+            }
+          }, { rootMargin: '0px 0px -60px 0px', threshold: 0 });
+          targets.forEach(el => obs.observe(el));
+        }
+      } else {
+        document.querySelectorAll('[data-fade-in], [data-fade-in-stagger]')
+          .forEach(el => el.classList.add('is-visible'));
+      }
+    </script>
+  </body>
+</html>
+
+<style>
+  /* Theme switcher strip — sits flush under the (always-dark) sacred footer and
+     stays dark in every theme (its core tokens are reset in themes.css). */
+  .theme-bar {
+    display: flex;
+    justify-content: center;
+    background: var(--obsidian);
+    border-top: 1px solid var(--line-soft);
+    padding: var(--space-4) var(--gutter);
+  }
+</style>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>KODEX−∞ · THRESHOLD · living prototype</title>
+<style>
+  :root{
+    --obsidian:#0a0a0a; --bone:#f0ede8; --sand:#8f8a80; --silver:#b8b4aa;
+    --ember:#c9a84c; --bronze:#6a4a28; --acid:#b7ff00;
+    --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+    --serif:"Instrument Serif", Georgia, serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;background:var(--obsidian);color:var(--bone);
+    font-family:var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased}
+  canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+
+  .hud{position:absolute;inset:0;pointer-events:none;padding:clamp(14px,2.4vw,34px);
+    display:grid;grid-template-rows:auto 1fr auto;text-transform:uppercase;
+    letter-spacing:.14em;font-size:11px;color:var(--sand)}
+  .row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .col{display:flex;flex-direction:column;gap:6px}
+  b{color:var(--bone);font-weight:500}
+  .em{color:var(--ember)}
+  .tick{color:var(--bone);font-variant-numeric:tabular-nums}
+
+  /* world-script living band (left) */
+  .scripts{position:absolute;left:clamp(14px,2.4vw,34px);top:26%;display:flex;flex-direction:column;
+    gap:10px;font-size:22px;color:var(--silver);line-height:1;pointer-events:none}
+  .scripts .s{opacity:.5;transition:opacity .5s}
+  .scripts .s small{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:var(--sand);margin-top:3px}
+
+  .mid{display:grid;grid-template-columns:120px 1fr 210px;align-items:center;gap:18px;height:100%}
+  .center{align-self:center;justify-self:center;text-align:center;max-width:760px}
+  .eyebrow{font-size:10px;letter-spacing:.5em;color:var(--ember)}
+  .title{font-family:var(--serif);text-transform:none;letter-spacing:.005em;
+    font-size:clamp(40px,7.2vw,104px);line-height:.92;color:var(--bone);
+    text-shadow:0 0 44px rgba(201,168,76,.28);margin:.1em 0 .05em}
+  .sub{font-size:11px;letter-spacing:.42em;color:var(--silver)}
+  .body{font-family:var(--serif);text-transform:none;letter-spacing:0;font-size:clamp(15px,1.5vw,19px);
+    line-height:1.5;color:var(--silver);margin:1.1em auto 0;max-width:600px}
+  .cta{pointer-events:auto;display:inline-flex;flex-direction:column;gap:2px;margin-top:1.6em;
+    border:1px solid var(--ember);color:var(--bone);background:rgba(201,168,76,.06);
+    padding:12px 26px;font-size:11px;letter-spacing:.34em;cursor:pointer;transition:.2s}
+  .cta:hover{background:rgba(201,168,76,.16)}
+  .cta small{font-size:8px;letter-spacing:.24em;color:var(--sand)}
+
+  /* right rail: live loop readouts (lámina 06) */
+  .rail{display:flex;flex-direction:column;gap:12px;text-align:right;align-items:flex-end;font-size:10px}
+  .rail .kv{display:flex;flex-direction:column;gap:3px;width:100%}
+  .rail .kv span{color:var(--sand)}
+  .rail .kv b{font-size:11.5px;letter-spacing:.16em}
+  .bar{height:3px;width:100%;background:rgba(240,237,232,.12);position:relative;overflow:hidden}
+  .bar i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--ember);box-shadow:0 0 10px var(--ember)}
+
+  .band{display:grid;grid-template-columns:1fr auto 1fr;gap:20px;align-items:end}
+  .barcode{display:flex;align-items:flex-end;gap:2px;height:30px}
+  .barcode i{display:block;width:2px;background:var(--bone);opacity:.8}
+  .log{font-size:9px;color:var(--sand);line-height:1.8;text-align:center}
+  .log .on{color:var(--ember)}
+  .chips{display:flex;gap:8px;justify-content:flex-end}
+  .chip{border:1px solid rgba(240,237,232,.2);padding:5px 9px;font-size:8.5px;letter-spacing:.18em;color:var(--sand)}
+
+  .bracket{position:absolute;width:24px;height:24px;border:1px solid rgba(240,237,232,.32)}
+  .b-tl{top:10px;left:10px;border-right:0;border-bottom:0}.b-tr{top:10px;right:10px;border-left:0;border-bottom:0}
+  .b-bl{bottom:10px;left:10px;border-right:0;border-top:0}.b-br{bottom:10px;right:10px;border-left:0;border-top:0}
+
+  #gate{position:absolute;inset:0;display:flex;flex-direction:column;gap:16px;align-items:center;
+    justify-content:center;background:rgba(10,10,10,.9);z-index:9;cursor:pointer;text-align:center}
+  #gate .m{font-family:var(--serif);font-size:clamp(40px,9vw,92px);color:var(--bone)}
+  #gate .s{font-size:11px;letter-spacing:.44em;color:var(--ember)}
+  #gate .h{font-size:10px;letter-spacing:.22em;color:var(--sand);margin-top:6px}
+  .fade{opacity:0;transition:opacity .8s;pointer-events:none!important}
+  @media(max-width:820px){.mid{grid-template-columns:1fr}.scripts,.rail{display:none}.band{grid-template-columns:1fr}.barcode{display:none}}
+</style>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <div class="hud">
+    <div class="row">
+      <div class="col"><span class="em">KODEX&nbsp;−∞ · SOUND</span><span>SIGNAL / MATTER / MEMORY</span></div>
+      <div class="col" style="text-align:right"><span>SESSION <b class="tick" id="sid">—</b></span><span>T+<b class="tick" id="elapsed">00:00:00</b></span></div>
+    </div>
+
+    <div class="mid">
+      <div></div>
+      <div class="center">
+        <div class="eyebrow">TECHNO-TRIBAL ARCHITECTURES</div>
+        <h1 class="title">THRESHOLD</h1>
+        <div class="sub">PROTO-CODES FOR A FUTURE CULTURE</div>
+        <p class="body">They are not mere drawings. They are systems of perception, portals and technologies — between chaos and geometry, between myth and code. We remember what does not yet have form.</p>
+        <div class="cta" id="ctaEnter"><span>ENTER THE SYSTEM</span><small>cross the threshold →</small></div>
+      </div>
+      <div class="rail">
+        <div class="kv"><span>NODE</span><b class="em">STRATUM 00 · UMBRAL</b></div>
+        <div class="kv"><span>BREATH</span><div class="bar"><i id="bBreath"></i></div></div>
+        <div class="kv"><span>INTENSITY</span><div class="bar"><i id="bInt"></i></div></div>
+        <div class="kv"><span>SYMMETRY</span><div class="bar"><i id="bSym"></i></div></div>
+        <div class="kv"><span>FREQUENCY</span><b id="freq">55.0 HZ</b></div>
+        <div class="kv"><span>CHECKSUM</span><b id="checksum">∞A1F0-9C</b></div>
+      </div>
+    </div>
+
+    <div class="band">
+      <div class="col"><div class="barcode" id="barcode"></div><span style="font-size:8.5px">ARCHIVE KDX−∞ / <b id="csum2">∞A1F0-9C</b> / THIS ARCHIVE EXPANDS</span></div>
+      <div class="log"><div>SYSTEM LOG</div><div id="l1" class="on">PORTAL FIELD SEALED</div><div id="l2">GEOMETRY CALIBRATED</div><div id="l3">EACH ENTRY · A NEW LAYER</div></div>
+      <div class="chips"><span class="chip">ARCHIVE SEALED</span><span class="chip">RITUAL MEMORY</span><span class="chip">LIVING ARCHIVE</span></div>
+    </div>
+  </div>
+
+  <div class="scripts" id="scripts"></div>
+  <span class="bracket b-tl"></span><span class="bracket b-tr"></span><span class="bracket b-bl"></span><span class="bracket b-br"></span>
+
+  <div id="gate"><div class="s">KODEX −∞</div><div class="m">THRESHOLD</div><div class="h">TAP TO ENTER · ENABLE SOUND</div></div>
+
+<script type="module">
+/* audio: kodexAudio port (drone + FFT energy) */
+class KodexAudio{
+  constructor(){this.energyV=0;this.started=false;this.freq=55;}
+  async start(){ if(this.started)return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC)return;
+    const ctx=new AC(); await ctx.resume(); this.ctx=ctx; this.started=true;
+    const master=ctx.createGain(); master.gain.value=0; const lim=ctx.createDynamicsCompressor();
+    lim.threshold.value=-6; lim.ratio.value=12; master.connect(lim); lim.connect(ctx.destination); this.master=master;
+    const mk=(f,t,g)=>{const o=ctx.createOscillator();o.type=t;o.frequency.value=f;const gg=ctx.createGain();gg.gain.value=g;o.connect(gg);gg.connect(master);o.start();return o;};
+    this.sub=mk(55,'sine',0.25); this.drone=mk(82.5,'triangle',0.12); this.beat=mk(110.3,'sine',0.06);
+    const nb=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),nd=nb.getChannelData(0);
+    for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*0.5;
+    const noise=ctx.createBufferSource(); noise.buffer=nb; noise.loop=true;
+    const nf=ctx.createBiquadFilter(); nf.type='lowpass'; nf.frequency.value=320; nf.Q.value=4;
+    const ng=ctx.createGain(); ng.gain.value=0.09; noise.connect(nf); nf.connect(ng); ng.connect(master); noise.start(); this.nf=nf;
+    const lfo=ctx.createOscillator(); lfo.frequency.value=0.12; const lg=ctx.createGain(); lg.gain.value=0.03; lfo.connect(lg); lg.connect(master.gain); lfo.start();
+    const an=ctx.createAnalyser(); an.fftSize=256; master.connect(an); this.an=an; this.bins=new Uint8Array(an.frequencyBinCount);
+    const now=ctx.currentTime; master.gain.setValueAtTime(0,now); master.gain.linearRampToValueAtTime(0.9,now+4);
+  }
+  setCutoff(n){ if(this.nf) this.nf.frequency.setTargetAtTime(180+n*1400,this.ctx.currentTime,0.2); }
+  energy(){ if(!this.an)return 0; this.an.getByteFrequencyData(this.bins); let s=0; for(let i=0;i<this.bins.length;i++)s+=this.bins[i]; const e=s/(this.bins.length*255); this.energyV+=(e-this.energyV)*0.2; return this.energyV; }
+}
+const audio=new KodexAudio();
+
+/* WebGL: macro-geometry portal, holographic ember treatment */
+const cv=document.getElementById('gl'); const gl=cv.getContext('webgl2',{antialias:false,alpha:false});
+const VERT=`#version 300 es
+in vec2 p; out vec2 v; void main(){ v=p*0.5+0.5; gl_Position=vec4(p,0.,1.);}`;
+const FRAG=`#version 300 es
+precision highp float; in vec2 v; out vec4 o;
+uniform vec2 R; uniform float T; uniform float SEED; uniform vec2 PTR; uniform float BASS; uniform float PX;
+float h(vec2 p){p=fract(p*vec2(234.34,435.345));p+=dot(p,p+34.23);return fract(p.x*p.y);}
+float bayer(vec2 c){int x=int(mod(c.x,4.)),y=int(mod(c.y,4.));int i=x+y*4;
+ float m[16]=float[16](0.,8.,2.,10.,12.,4.,14.,6.,3.,11.,1.,9.,15.,7.,13.,5.);return m[i]/16.-0.5;}
+float mandala(vec2 c){float r=length(c),a=atan(c.y,c.x);
+ float rings=smoothstep(.02,.0,abs(fract(r*7.-T*0.02)-0.5)-0.42);
+ float spokes=smoothstep(.5,1.,abs(sin(a*16.)))*smoothstep(.55,.1,r);
+ float petals=smoothstep(.3,.0,abs(r-0.32-0.05*sin(a*10.+T*0.1)));
+ float core=smoothstep(.09,.05,r);
+ float cross=smoothstep(.010,.0,abs(c.x))+smoothstep(.010,.0,abs(c.y));
+ return clamp(max(max(rings*.7,petals),max(spokes,core+cross*smoothstep(.45,.0,r)*.6)),0.,1.);}
+void main(){
+ vec2 frag=gl_FragCoord.xy; vec2 blk=floor(frag/PX)*PX+PX*.5; vec2 uv=blk/R;
+ vec2 c=uv-0.5; c.x*=R.x/max(1.,R.y);
+ float rad=length(c),ang=atan(c.y,c.x);
+ float breathe=sin(T*0.2)*0.05; float bass=BASS*0.16;
+ float warp=0.16*sin(ang*4.+T*0.18+SEED*6.283);
+ float wr=rad*(1.-breathe-bass)+warp*0.5; float wa=ang+dot(c,PTR)*0.12+sin(rad*11.-T*0.22)*.06;
+ float m=mandala(vec2(cos(wa),sin(wa))*wr);
+ float ring=smoothstep(.74,.16,rad); float halo=exp(-8.*abs(rad-0.22-bass*0.5));
+ float grain=(h(frag+SEED*100.)-0.5)*0.045;
+ vec3 base=mix(vec3(.02,.017,.012), vec3(.86,.72,.36), m);          // ember-bone
+ base+=vec3(1.,.82,.45)*halo*(0.5)*(0.6+BASS); base*=ring; base+=grain;
+ float lum=dot(base,vec3(.299,.587,.114)); float q=step(0.5,fract(lum*5.+bayer(frag/PX)));
+ base*=(0.72+0.42*q); base*=0.84+0.16*sin(frag.y*0.9+T*2.);       // dither + scanline
+ base.r+=m*0.05; base.b+=halo*0.04;
+ base*=smoothstep(1.15,.25,length(uv-0.5));
+ o=vec4(base,1.);}`;
+function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))console.error(gl.getShaderInfoLog(x));return x;}
+const P=gl.createProgram(); gl.attachShader(P,sh(gl.VERTEX_SHADER,VERT)); gl.attachShader(P,sh(gl.FRAGMENT_SHADER,FRAG)); gl.linkProgram(P); gl.useProgram(P);
+const bf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,bf); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+const lp=gl.getAttribLocation(P,'p'); gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp,2,gl.FLOAT,false,0,0);
+const U=n=>gl.getUniformLocation(P,n); const uR=U('R'),uT=U('T'),uS=U('SEED'),uP=U('PTR'),uB=U('BASS'),uPX=U('PX');
+const seed=Math.random(); gl.uniform1f(uS,seed);
+let DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){cv.width=cv.clientWidth*DPR;cv.height=cv.clientHeight*DPR;gl.viewport(0,0,cv.width,cv.height);}
+addEventListener('resize',resize); resize();
+let ptr=[0,0]; addEventListener('pointermove',e=>{ptr=[(e.clientX/innerWidth-0.5)*2,(0.5-e.clientY/innerHeight)*2]; if(audio.started)audio.setCutoff(e.clientY/innerHeight);});
+
+/* world scripts — universal archive texture (glyphs, not translation) */
+const SCRIPTS=[
+  {g:'ॐ अ क्ष', n:'DEVANAGARI'},{g:'ن ه ر', n:'ARABIC'},{g:'間 気 空', n:'KANJI'},
+  {g:'あ ま ん', n:'KANA'},{g:'한 기 빛', n:'HANGUL'},{g:'Ж Ф Я', n:'CYRILLIC'},{g:'Ω Φ Ψ', n:'GREEK'},
+];
+const sc=document.getElementById('scripts');
+SCRIPTS.forEach(s=>{const d=document.createElement('div');d.className='s';d.innerHTML=s.g+'<small>'+s.n+'</small>';sc.appendChild(d);});
+const sEls=[...sc.children]; let sIdx=0;
+setInterval(()=>{ sEls.forEach((e,i)=>e.style.opacity=i===sIdx?'1':'0.4'); sEls[sIdx].style.color='var(--ember)'; sEls[(sIdx+6)%7].style.color='var(--silver)'; sIdx=(sIdx+1)%sEls.length; },700);
+
+/* HUD */
+const $=id=>document.getElementById(id); const HEX='0123456789ABCDEF'; const rnd=n=>Array.from({length:n},()=>HEX[Math.random()*16|0]).join('');
+$('sid').textContent=rnd(4)+'-'+rnd(4);
+const bc=$('barcode'); for(let i=0;i<40;i++){const b=document.createElement('i');b.style.height=(7+Math.random()*23)+'px';bc.appendChild(b);}
+const t0=performance.now(); let lastHUD=0;
+function fmt(ms){const s=ms/1000|0,p=n=>String(n).padStart(2,'0');return p(s/3600|0)+':'+p(s/60%60|0)+':'+p(s%60);}
+function hud(now,e){ if(now-lastHUD<90)return; lastHUD=now;
+  $('elapsed').textContent=fmt(now-t0);
+  $('bBreath').style.width=(20+40*Math.abs(Math.sin(now*0.0009)))+'%';
+  $('bInt').style.width=(10+e*90).toFixed(0)+'%';
+  $('bSym').style.width=(45+15*Math.sin(now*0.0006))+'%';
+  $('freq').textContent=(55+e*90).toFixed(1)+' HZ';
+  if(Math.random()<0.06){const cs='∞'+rnd(4)+'-'+rnd(2);$('checksum').textContent=cs;$('csum2').textContent=cs;}
+  const logs=['PORTAL FIELD SEALED','GEOMETRY CALIBRATED','EACH ENTRY · A NEW LAYER','SIGNAL RESONANT','THIS ARCHIVE EXPANDS','SEED '+(seed*1e6|0)];
+  if(Math.random()<0.12)$('l2').textContent=logs[Math.random()*logs.length|0];
+  if(Math.random()<0.09)$('l3').textContent=logs[Math.random()*logs.length|0];
+}
+function frame(now){const t=(now-t0)/1000; const e=audio.started?audio.energy():0.15+0.1*Math.sin(t*0.6);
+  gl.uniform2f(uR,cv.width,cv.height); gl.uniform1f(uT,t); gl.uniform2f(uP,ptr[0],ptr[1]); gl.uniform1f(uB,e);
+  gl.uniform1f(uPX,5.0*DPR); gl.drawArrays(gl.TRIANGLES,0,3); hud(now,e); requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+
+const gate=document.getElementById('gate');
+async function enter(){ await audio.start(); gate.classList.add('fade'); setTimeout(()=>gate.remove(),900); }
+gate.addEventListener('click',enter);
+$('ctaEnter').addEventListener('click',e=>{e.stopPropagation(); if(!audio.started)enter();});
+</script>
+</body>
+</html>

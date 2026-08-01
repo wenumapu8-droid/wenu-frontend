@@ -1,0 +1,107 @@
+---
+/**
+ * KODEX-∞ · TIRA DE ESTRATO
+ *
+ * Lo que conecta las siete escenas con la biblioteca.
+ *
+ * Cada escena pertenece a un estrato del sistema, y cada estrato tiene sus
+ * volúmenes. La tira los muestra al pie de la lámina: no como un menú, sino
+ * como lo que hay **debajo** de esa escena. La escena es la superficie; los
+ * volúmenes son la profundidad que se abre al entrar.
+ *
+ * Eso es literal en el eje del proyecto: la lámina está arriba y el archivo
+ * abajo, y bajar es excavar. Por eso la tira no dice "ver más" — dice cuántas
+ * capas hay ahí y deja entrar.
+ *
+ * Si el estrato todavía no tiene volúmenes, la tira no se dibuja. Un carril
+ * vacío con un rótulo es peor que ningún carril: promete algo que no está.
+ */
+import type { VolumenResuelto } from "../../../lib/kodex/volumenes";
+
+interface Props {
+  volumenes: VolumenResuelto[];
+  estrato: string;
+  accent?: string;
+  class?: string;
+}
+const { volumenes, estrato, accent = "var(--acc)", class: className = "" } = Astro.props;
+---
+
+{volumenes.length > 0 && (
+  <nav class:list={["kdx-tira", className]} style={`--t:${accent}`} aria-label={`volúmenes del estrato ${estrato}`}>
+    <p class="kdx-tira__rotulo">
+      <span>DESCIENDE AL ESTRATO</span>
+      <b>{volumenes.length} {volumenes.length === 1 ? 'VOLUMEN' : 'VOLÚMENES'}</b>
+    </p>
+    <ul class="kdx-tira__lista">
+      {volumenes.map((v) => (
+        <li>
+          <a href={`/kodex/vol/${v.slug}/`} style={`--c:${v.color}`}>
+            <span class="kdx-tira__glifo" aria-hidden="true">{v.glifos.split(' ')[0]}</span>
+            <span class="kdx-tira__nombre">{v.titulo_es}</span>
+            <span class="kdx-tira__tipo">{v.tipo}</span>
+          </a>
+        </li>
+      ))}
+      <li class="kdx-tira__todos">
+        <a href="/kodex/folio/iii/">ÍNDICE COMPLETO ›</a>
+      </li>
+    </ul>
+  </nav>
+)}
+
+<style>
+  .kdx-tira {
+    display: grid;
+    gap: 6px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+
+  .kdx-tira__rotulo {
+    display: flex; gap: 10px; align-items: baseline; margin: 0;
+    font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.42);
+  }
+  .kdx-tira__rotulo b { color: var(--t); font-weight: 500; }
+
+  .kdx-tira__lista {
+    display: flex; gap: 6px; margin: 0; padding: 0; list-style: none;
+    /* Scrollea en horizontal por dentro y lleva la marca para que la rueda de
+       la escena no le robe el gesto. */
+    overflow-x: auto; scrollbar-width: thin;
+  }
+
+  .kdx-tira__lista a {
+    display: grid; gap: 2px; padding: 7px 10px;
+    min-width: 132px; max-width: 200px;
+    border: 1px solid color-mix(in srgb, var(--c, var(--t)) 26%, transparent);
+    text-decoration: none;
+    transition: border-color 180ms ease, background 180ms ease;
+  }
+  .kdx-tira__lista a:hover,
+  .kdx-tira__lista a:focus-visible {
+    border-color: var(--c, var(--t));
+    background: color-mix(in srgb, var(--c, var(--t)) 10%, transparent);
+    outline: none;
+  }
+
+  .kdx-tira__glifo { font-size: 11px; color: var(--c, var(--t)); line-height: 1; }
+  .kdx-tira__nombre {
+    font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #e8e5df;
+    /* Un nombre largo no debe estirar el carril ni partirse en dos líneas. */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .kdx-tira__tipo {
+    font-size: 8px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.4);
+  }
+
+  .kdx-tira__todos a {
+    min-width: auto; border-style: dashed; align-content: center;
+    font-size: 8.5px; letter-spacing: 0.18em; color: rgba(232, 229, 222, 0.6);
+  }
+
+  @media (max-width: 860px) {
+    .kdx-tira__lista a { min-width: 116px; }
+  }
+</style>

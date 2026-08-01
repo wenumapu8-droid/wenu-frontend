@@ -1,0 +1,159 @@
+---
+/**
+ * KODEX-∞ · SYSTEM FOOTER
+ *
+ * La franja de pie de los boards: barcode, reloj UTC, uptime y los indicadores
+ * de estado. Es el bloque que convierte la lámina en un registro de sistema --
+ * abajo siempre hay algo corriendo y algo verificable.
+ *
+ * El reloj y el uptime son de verdad. Un reloj congelado en una hora bonita se
+ * nota en dos segundos y desarma justamente lo que este bloque afirma.
+ *
+ * Los micrográficos vienen del kit (23 símbolos, sprite SVG externo) y se usan
+ * según su propia regla: uno dominante y dos o tres secundarios, cada uno
+ * representando un estado -- scan, verificación, red -- nunca de adorno.
+ */
+import KodexGlyph from "../KodexGlyph.astro";
+
+interface Props {
+  /** Identificador de la lámina. Es lo que codifica el barcode. */
+  code: string;
+  checksum: string;
+  /** Etiqueta de la izquierda: qué es esta lámina. */
+  kind?: string;
+  accent?: string;
+  class?: string;
+}
+
+const {
+  code,
+  checksum,
+  kind = "AUDIOVISUAL SYSTEM",
+  accent = "var(--kdx-red, #FF2733)",
+  class: className = "",
+} = Astro.props;
+
+/**
+ * Barras derivadas del código, no aleatorias: el mismo código dibuja siempre
+ * el mismo barcode. Si cambiaran en cada render dejaría de ser un
+ * identificador y sería una textura.
+ */
+const bars = Array.from({ length: 44 }, (_, i) => {
+  let h = 0;
+  for (let k = 0; k < code.length; k++) h = (h * 31 + code.charCodeAt(k) + i * 7) % 997;
+  return 1 + (h % 4);
+});
+---
+
+<footer class:list={["kdx-sysfoot", className]} style={`--kdx-sysfoot-accent:${accent}`}>
+  <div class="kdx-sysfoot__id">
+    <svg class="kdx-sysfoot__barcode" viewBox={`0 0 ${bars.length * 3} 18`} preserveAspectRatio="none" aria-hidden="true">
+      {bars.map((w, i) => <rect x={i * 3} y="0" width={w * 0.55} height="18" fill="currentColor" />)}
+    </svg>
+    <span class="kdx-sysfoot__code">{code}</span>
+  </div>
+
+  <div class="kdx-sysfoot__clock">
+    <span class="kdx-sysfoot__label">UTC</span>
+    <time class="kdx-sysfoot__value" data-kdx-utc>--:--:--</time>
+    <span class="kdx-sysfoot__label">UPTIME</span>
+    <span class="kdx-sysfoot__value" data-kdx-uptime>00:00:00</span>
+    <span class="kdx-sysfoot__label">ENERGY</span>
+    <span class="kdx-sysfoot__meter" aria-hidden="true"><i data-kdx-energy></i></span>
+  </div>
+
+  <div class="kdx-sysfoot__signals" aria-hidden="true">
+    <KodexGlyph name="scanBar" size={34} motion="scan" />
+    <KodexGlyph name="checksumGrid" size={22} motion="blink" />
+    <KodexGlyph name="nodeRing" size={22} motion="spin-reverse" />
+  </div>
+
+  <div class="kdx-sysfoot__meta">
+    <span>{kind}</span>
+    <span class="kdx-sysfoot__checksum">CHECKSUM <span data-kdx-checksum>{checksum}</span></span>
+  </div>
+</footer>
+
+<script>
+  /**
+   * Un solo intervalo para todos los pies de la página. Con uno por instancia,
+   * siete láminas serían siete temporizadores diciendo la misma hora.
+   */
+  const arranque = performance.now();
+  const dosDigitos = (n: number) => String(n).padStart(2, "0");
+
+  const latir = () => {
+    const ahora = new Date();
+    const utc = `${dosDigitos(ahora.getUTCHours())}:${dosDigitos(ahora.getUTCMinutes())}:${dosDigitos(ahora.getUTCSeconds())}`;
+    const t = Math.floor((performance.now() - arranque) / 1000);
+    const up = `${dosDigitos(Math.floor(t / 3600))}:${dosDigitos(Math.floor(t / 60) % 60)}:${dosDigitos(t % 60)}`;
+    for (const el of document.querySelectorAll("[data-kdx-utc]")) el.textContent = utc;
+    for (const el of document.querySelectorAll("[data-kdx-uptime]")) el.textContent = up;
+  };
+
+  latir();
+  let id = window.setInterval(latir, 1000);
+
+  // Los demas datos del HUD -- energia, hex, coordenadas, checksum, registro --
+  // los mueve un solo modulo. La Receta Madre lo pone como pregunta de
+  // aprobacion: "¿los codigos respiran?".
+  import("../../../lib/kodex/vivos").then((m) => m.montarDatosVivos());
+  // En segundo plano no hay a quién decirle la hora.
+  document.addEventListener("visibilitychange", () => {
+    window.clearInterval(id);
+    if (!document.hidden) { latir(); id = window.setInterval(latir, 1000); }
+  });
+</script>
+
+<style>
+  .kdx-sysfoot {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: clamp(14px, 3vw, 42px);
+    padding: 8px clamp(12px, 2vw, 26px);
+    border-top: 1px solid color-mix(in srgb, var(--kdx-sysfoot-accent) 22%, transparent);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--kdx-sysfoot-accent) 55%, #8b8b8b);
+  }
+
+  .kdx-sysfoot__id { display: flex; align-items: center; gap: 10px; }
+  .kdx-sysfoot__barcode { width: 96px; height: 16px; color: currentColor; opacity: 0.72; }
+  .kdx-sysfoot__code { color: var(--kdx-sysfoot-accent); }
+
+  .kdx-sysfoot__clock {
+    display: flex; align-items: baseline; gap: 8px;
+    justify-self: start;
+  }
+  .kdx-sysfoot__label { opacity: 0.55; }
+  /* Los dígitos cambian cada segundo: sin cifras de ancho fijo el bloque
+     entero se movería en cada tic. */
+  .kdx-sysfoot__value { color: #e6e6e6; font-variant-numeric: tabular-nums; }
+
+  /* El medidor de energia sigue al audio cuando suena y respira lento cuando
+     no. Plano seria "roto"; respirando es "sin señal". */
+  .kdx-sysfoot__meter {
+    position: relative; display: inline-block; width: 64px; height: 3px;
+    background: color-mix(in srgb, var(--kdx-sysfoot-accent) 18%, transparent);
+    vertical-align: middle;
+  }
+  .kdx-sysfoot__meter i {
+    position: absolute; inset: 0 auto 0 0; width: 8%;
+    background: var(--kdx-sysfoot-accent);
+    box-shadow: 0 0 8px var(--kdx-sysfoot-accent);
+    transition: width 120ms linear;
+  }
+
+  .kdx-sysfoot__signals { display: flex; align-items: center; gap: 12px; color: var(--kdx-sysfoot-accent); opacity: 0.8; }
+
+  .kdx-sysfoot__meta { display: flex; gap: clamp(10px, 2vw, 24px); }
+  .kdx-sysfoot__checksum { color: #cfcfcf; }
+
+  @media (max-width: 860px) {
+    .kdx-sysfoot { grid-template-columns: 1fr auto; gap: 10px 16px; font-size: 8px; }
+    .kdx-sysfoot__signals, .kdx-sysfoot__meta span:first-child { display: none; }
+  }
+</style>

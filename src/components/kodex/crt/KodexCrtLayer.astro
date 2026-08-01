@@ -1,0 +1,44 @@
+---
+interface Props {
+  sourceSelector: string;
+  preset?: 'neutral' | 'threshold' | 'observe' | 'descent' | 'archive' | 'machine' | 'cosmology' | 'return';
+  quality?: 'full' | 'balanced' | 'low-power';
+  class?: string;
+}
+const { sourceSelector, preset = 'observe', quality = 'balanced', class: className = '' } = Astro.props;
+const id = `kdx-crt-${crypto.randomUUID()}`;
+// El CRT es tratamiento, no contenido: nunca entra en el orden de lectura ni
+// captura el puntero. Lo que hay debajo sigue siendo la obra.
+---
+<div id={id} class={`kdx-crt-mount ${className}`} data-source-selector={sourceSelector} data-preset={preset} data-quality={quality} aria-hidden="true"></div>
+<script>
+  // El runtime vive en src/ y no en public/: asi Vite lo empaqueta, lo versiona
+  // junto al codigo y no queda un import a una ruta publica que el bundler no
+  // puede resolver. Es 14 KB y no tiene dependencias.
+  import { mountKodexCrt } from '../../../kodex/crt/kodex-crt.esm.js';
+  document.querySelectorAll<HTMLElement>('.kdx-crt-mount:not([data-mounted])').forEach((mount) => {
+    mount.dataset.mounted = '1';
+    const source = document.querySelector(mount.dataset.sourceSelector || '');
+    const container = mount.parentElement;
+    if (!source || !container) return console.warn('KODEX CRT source/container missing');
+    container.classList.add('kdx-crt-host');
+    // El kit trae sus propios perfiles y el perfil del sistema decide cual.
+    // El atributo queda como valor de respaldo si el modulo no cargo.
+    const calidad = (window as any).__kdxQuality || mount.dataset.quality;
+    const crt = mountKodexCrt({ source, container, preset: mount.dataset.preset, quality: calidad });
+    (mount as any).__kdxCrt = crt;
+    // El kit expone signal/focus y la escena ya tiene un estado: se los pasa.
+    // Un CRT que no cambia con la escena es una textura; uno que sintoniza
+    // cuando la escena se activa es un aparato.
+    import('../../../lib/kodex/estado').then(({ estadoEscena, montarEstadoEscena }) => {
+      montarEstadoEscena();
+      estadoEscena().suscribir(() => {
+        const i = estadoEscena().intensidad;
+        crt.setSignalState?.({ signal: 0.45 + i * 0.5, focus: 0.4 + i * 0.55 });
+      });
+    });
+  });
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll<HTMLElement>('.kdx-crt-mount').forEach((mount) => (mount as any).__kdxCrt?.destroy?.());
+  }, { once: true });
+</script>

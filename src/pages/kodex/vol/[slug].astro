@@ -1,0 +1,394 @@
+---
+/**
+ * KODEX-∞ · VOLUMEN
+ *
+ * Una ruta para toda la biblioteca. Agregar un volumen al manifiesto crea su
+ * página; acá no se escribe nada.
+ *
+ * El héroe es la obra real tratada — o, mientras no exista, **el organismo
+ * vivo** teñido con el color de su estrato. Esa caída no es un placeholder: un
+ * volumen sin obra igual tiene un cuerpo, porque el sistema genera. Es la
+ * diferencia entre una biblioteca que espera a estar llena y una que ya está
+ * viva y se va llenando.
+ */
+import Base from '../../../layouts/Base.astro';
+import KodexChrome from '../../../components/KodexChrome.astro';
+import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
+import KodexField from '../../../components/kodex/field/KodexField.astro';
+import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
+import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
+import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
+import KodexTransition from '../../../components/kodex/transition/KodexTransition.astro';
+import KodexDebug from '../../../components/kodex/debug/KodexDebug.astro';
+import '../../../styles/kodex.css';
+import '../../../styles/kodex-micrographics.css';
+import { leerManifiesto, resolver, razon, distribuir, type VolumenResuelto } from '../../../lib/kodex/volumenes';
+
+export async function getStaticPaths() {
+  const vols = resolver(await leerManifiesto());
+  return vols.map((v) => ({ params: { slug: v.slug }, props: { v } }));
+}
+
+const { v } = Astro.props as { v: VolumenResuelto };
+const r = razon(v.hero?.aspecto);
+// La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
+const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
+const checksum = v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
+
+/**
+ * Diagnósticos del dossier. Derivan del propio volumen, no del azar: el mismo
+ * volumen muestra siempre lo mismo. Un número que cambia en cada carga no es
+ * un dato, es ruido con forma de dato.
+ */
+const semilla = [...v.slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
+
+// La serie, dosificada: seis placas que atraviesan el conjunto de punta a
+// punta, sin las variantes del mismo original. El heroe ya se llevo la primera.
+const serie = distribuir((v.assets ?? []).slice(1) as any[], 6);
+const diag = [
+  { k: 'INTEGRIDAD', v: `${(90 + (semilla % 10))}.${semilla % 10}%` },
+  { k: 'PROFUNDIDAD', v: `−${(semilla % 900) + 100}` },
+  { k: 'ESCRITURA', v: (v.escritura ?? '—').toUpperCase() },
+  { k: 'REGISTRO', v: v.fecha ?? '—' },
+];
+---
+
+<Base
+  kodexFonts={true}
+  title={`${v.numero} · ${v.titulo_es} — KODEX−∞`}
+  description={v.curaduria_en ?? v.curaduria_es ?? v.titulo_es}
+  robots="index, follow"
+  ogImage={v.hero?.src ?? '/img/kodex/works/mandala-0cin-negativo.png'}
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <div
+    class={`kx kx--vol kx--vol-${v.tipo}`}
+    data-kx
+    data-kdx-tool="intensificar"
+    data-kdx-recipe={`VOL_${v.numero}`}
+    data-kdx-grid={v.estrato}
+    style={`--acc:${v.color};--kdx-scene-accent:${v.color}`}
+  >
+    <KodexTransition />
+    <KodexDebug />
+    <KodexChrome segs={7} />
+    <KodexRegistration accent={v.color} />
+
+    <article class="kx-vol">
+      <KodexField
+        field="network-vortex"
+        intensity={v.hero ? 0.3 : 0.42}
+        tint={v.color}
+        spark="#7FE9FF"
+        floor={0.06}
+        detail={0.62}
+        speed={0.7}
+        seed={(semilla % 97) + 1}
+        class="kx-vol__campo"
+      />
+
+      <header class="kx-vol__cab">
+        <p class="kx-vol__tipo">
+          <span>{v.tipo}</span>
+          <span class="kx-vol__glifos" aria-hidden="true">{v.glifos}</span>
+          <span>{v.capitulo ? `CAP ${v.capitulo}` : `VOL ${v.numero}`}</span>
+        </p>
+        <h1 class="kx-vol__titulo">{v.titulo_es}</h1>
+        {v.titulo_en && <p class="kx-vol__titulo-en">{v.titulo_en}</p>}
+        <p class="kx-vol__estrato">ESTRATO {v.estratoNumero} · {v.estratoTitulo}</p>
+
+        {/* EL MARCO, DIBUJADO. Es regla dura del proyecto, no un adorno: el
+            universo del Artefacto es ficcion y jamas se presenta como ciencia
+            ni como salud. Un lector que no puede distinguir mito de
+            astrofisica no esta leyendo un archivo, esta leyendo una confusion
+            -- y esa confusion seria responsabilidad del sistema. */}
+        {v.marco && (
+          <p class={`kx-vol__marco kx-vol__marco--${v.marco}`}>
+            {v.marco === 'ficcion' && 'FICCIÓN · MITO Y ESPECULACIÓN · NO ES CIENCIA'}
+            {v.marco === 'ciencia' && `CIENCIA DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
+            {v.marco === 'documentado' && `FUENTE DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
+          </p>
+        )}
+      </header>
+
+      <figure class={`kx-vol__hero kx-vol__hero--${forma}`}>
+        {v.hero ? (
+          <KodexArtifact
+            artwork={v.hero.src}
+            aspecto={v.hero.aspecto}
+            accent={v.color}
+            label={v.hero.alt ?? v.titulo_es}
+            id={checksum}
+            status={v.tipo.toUpperCase()}
+            coords={`${v.numero} · ${v.estratoTitulo}`}
+            pixelSize={3}
+            dither={0.86}
+            scanlines={0.3}
+            glow={0.46}
+            chroma={0.5}
+            flicker={0.34}
+          />
+        ) : (
+          <div class="kx-vol__organismo">
+            <KodexField
+              field="network-vortex"
+              intensity={0.72}
+              tint={v.color}
+              spark="#7FE9FF"
+              floor={0.05}
+              detail={0.78}
+              speed={0.85}
+              seed={(semilla % 53) + 1}
+            />
+            <figcaption>ORGANISMO GENERADO · OBRA PENDIENTE DE ARCHIVO</figcaption>
+          </div>
+        )}
+      </figure>
+
+      <div class="kx-vol__cuerpo" data-kdx-scrollable>
+        {v.formula && (
+          <div class="kx-vol__formula">
+            <p class="kx-vol__tex">{v.formula.tex}</p>
+            <p class="kx-vol__lee">{v.formula.lee_es}</p>
+            {v.formula.lee_en && <p class="kx-vol__lee kx-vol__lee--en">{v.formula.lee_en}</p>}
+          </div>
+        )}
+        {v.curaduria_es && (
+          <div class="kx-vol__parrafo">
+            <p>{v.curaduria_es}</p>
+            {v.curaduria_en && <p class="kx-vol__en">{v.curaduria_en}</p>}
+          </div>
+        )}
+        {v.meditacion_es && (
+          <div class="kx-vol__meditacion">
+            <p class="kx-vol__rotulo">MEDITACIÓN</p>
+            <p>{v.meditacion_es}</p>
+            {v.meditacion_en && <p class="kx-vol__en">{v.meditacion_en}</p>}
+          </div>
+        )}
+        {v.links && Object.entries(v.links).map(([k, url]) => (
+          <a class="kx-vol__enlace" href={url} rel="noopener">{k.toUpperCase()} →</a>
+        ))}
+        {v.oferta?.url && (
+          <a class="kx-vol__enlace" href={v.oferta.url} rel="noopener">
+            {v.oferta.edicion ? `${v.oferta.edicion} · ` : ''}{v.oferta.precio ?? 'VER'} →
+          </a>
+        )}
+      </div>
+
+      {v.mensaje_es && (
+          <div class="kx-vol__mensaje">
+            <p class="kx-vol__rotulo">MENSAJE PARA LA NUEVA HUMANIDAD</p>
+            <p class="kx-vol__mensaje-t">{v.mensaje_es}</p>
+          {v.mensaje_en && <p class="kx-vol__en">{v.mensaje_en}</p>}
+          </div>
+        )}
+
+      {serie.length > 0 && (
+        <div class="kx-vol__serie">
+          <p class="kx-vol__rotulo">SERIE · {(v.assets ?? []).length} PLACAS EN EL ARCHIVO</p>
+          <ul>
+            {serie.map((a: any) => (
+              <li style={`aspect-ratio:${a.aspecto}`}>
+                <img src={a.src} alt={a.alt ?? ''} loading="lazy" decoding="async" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <aside class="kx-vol__rail">
+        {diag.map((d) => (
+          <div class="kx-vol__kv"><span>{d.k}</span><b>{d.v}</b></div>
+        ))}
+        <KodexEje posicion={0.5} accent={v.color} class="kx-vol__eje" />
+        <nav class="kx-vol__nav">
+          <a href="/kodex/folio/iii/">‹ ARCHIVE</a>
+          <a href="/kodex/">THRESHOLD ›</a>
+        </nav>
+      </aside>
+
+      <KodexSystemFooter
+        code={`KDX-${v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 18)}`}
+        checksum={checksum}
+        kind={`${v.tipo} · ESTRATO ${v.estratoNumero}`}
+        accent={v.color}
+        class="kx-vol__pie"
+      />
+    </article>
+  </div>
+</Base>
+
+<style>
+  .kx--vol { position: relative; min-height: 100dvh; isolation: isolate; }
+
+  .kx-vol {
+    position: relative;
+    display: grid;
+    /* height y no min-height: la lámina es UN viewport y su contenido se
+       acomoda adentro. Con min-height el contenido la estira y la página
+       scrollea, que es regla dura del proyecto. */
+    height: 100dvh;
+    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+    grid-template-areas: "cab hero" "cuerpo hero" "mensaje hero" "rail hero" "serie serie" "pie pie";
+    /* El rail se lleva la holgura para que el pie quede pegado abajo. Con
+       align-content:start las filas se apilaban arriba y el pie flotaba a
+       media pagina, que lo hacia leer como un bloque mas y no como pie. */
+    grid-template-rows: auto auto auto 1fr auto auto;
+    gap: clamp(12px, 1.8vw, 26px);
+    /* La barra del deck es fija y se come los últimos ~73px de la ventana. */
+    padding: clamp(72px, 9vh, 100px) clamp(18px, 4vw, 56px) clamp(118px, 13vh, 146px);
+    box-sizing: border-box;
+  }
+
+  .kx-vol__campo { position: absolute; inset: 0; z-index: 0; opacity: 0.55; }
+  .kx-vol > *:not(.kx-vol__campo) { position: relative; z-index: 1; }
+
+  .kx-vol__cab { grid-area: cab; min-width: 0; }
+  .kx-vol__tipo {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--acc);
+  }
+  /* Glifos del estrato: acento de archivo universal, nunca traducción. */
+  .kx-vol__glifos { letter-spacing: 0.3em; opacity: 0.62; font-size: 12px; }
+
+  .kx-vol__titulo {
+    margin: 0; font-family: "Barlow Condensed", "Inter Tight", system-ui, sans-serif;
+    font-weight: 800; font-size: clamp(1.9rem, 4.4vw, 3.8rem); line-height: 0.94;
+    text-transform: uppercase; color: #e8e5df; text-wrap: balance;
+  }
+  .kx-vol__titulo-en, .kx-vol__estrato {
+    margin: 4px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.42);
+  }
+  .kx-vol__estrato { margin-top: 10px; color: color-mix(in srgb, var(--acc) 62%, #8b8b8b); }
+
+  .kx-vol__hero {
+    grid-area: hero; margin: 0; align-self: start;
+    width: 100%; max-height: 58vh;
+    border: 1px solid color-mix(in srgb, var(--acc) 24%, transparent);
+    overflow: hidden;
+  }
+  .kx-vol__hero--alto { justify-self: center; max-width: 70%; }
+
+  .kx-vol__organismo { position: relative; width: 100%; aspect-ratio: 1; }
+  .kx-vol__organismo figcaption {
+    position: absolute; left: 10px; bottom: 8px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8px; letter-spacing: 0.18em; color: rgba(232, 229, 222, 0.38);
+  }
+
+  .kx-vol__cuerpo {
+    grid-area: cuerpo; display: grid; gap: 14px; max-width: 56ch;
+    /* El cuerpo largo scrollea por DENTRO y la página no. Lleva
+       data-kdx-scrollable, así que la rueda no le roba el gesto. */
+    max-height: min(32vh, 280px); overflow-y: auto; padding-right: 10px;
+  }
+  .kx-vol__parrafo p {
+    margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
+  }
+  .kx-vol__en {
+    margin-top: 6px !important; font-size: 0.82rem !important;
+    color: rgba(232, 229, 222, 0.42) !important; font-style: italic;
+  }
+
+  /* El marco se lee antes que el contenido, a propósito. Ficción en el acento
+     de advertencia; ciencia en el cian del sistema. Distintos de un vistazo,
+     que es el punto: no hay que leerlos para distinguirlos. */
+  .kx-vol__marco {
+    margin: 10px 0 0; padding: 4px 8px; justify-self: start; display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase;
+    border: 1px solid currentColor;
+  }
+  .kx-vol__marco--ficcion { color: #FF8A33; }
+  .kx-vol__marco--ciencia,
+  .kx-vol__marco--documentado { color: #00D8FF; }
+
+  .kx-vol__rotulo {
+    margin: 0 0 4px; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.4);
+  }
+  .kx-vol__meditacion p:not(.kx-vol__rotulo),
+  .kx-vol__mensaje p:not(.kx-vol__rotulo) {
+    margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
+  }
+  .kx-vol__meditacion { padding-left: 12px; border-left: 1px solid rgba(232,229,222,0.14); }
+  /* El mensaje vive FUERA del cuerpo que scrollea. Es la linea de cierre del
+     capitulo -- lo unico que pide que te lleves -- y adentro del bloque con
+     altura maxima quedaba cortada justo ella. */
+  .kx-vol__mensaje { grid-area: mensaje; max-width: 52ch; }
+  /* El mensaje es el cierre del capítulo: se dice más grande y en el acento,
+     porque es lo único que el capítulo pide que te lleves. */
+  .kx-vol__mensaje-t {
+    font-size: 1.15rem !important; line-height: 1.35 !important;
+    color: var(--acc) !important; text-wrap: balance;
+  }
+
+  .kx-vol__formula { padding: 12px 14px; border-left: 2px solid var(--acc); background: rgba(255,255,255,0.02); }
+  .kx-vol__tex { margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1rem; color: #e8e5df; }
+  .kx-vol__lee { margin: 0; font-family: "Inter Tight", system-ui, sans-serif; font-size: 0.86rem; line-height: 1.5; color: rgba(232,229,222,0.72); }
+  .kx-vol__lee--en { margin-top: 6px; font-size: 0.78rem; color: rgba(232,229,222,0.4); font-style: italic; }
+
+  .kx-vol__enlace {
+    justify-self: start; padding: 8px 13px;
+    border: 1px solid color-mix(in srgb, var(--acc) 44%, transparent);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.2em; color: #e8e5df; text-decoration: none;
+  }
+  .kx-vol__enlace:hover { background: color-mix(in srgb, var(--acc) 14%, transparent); }
+
+  .kx-vol__rail { grid-area: rail; display: grid; gap: 7px; align-content: start; min-width: 0; }
+  .kx-vol__kv {
+    display: flex; justify-content: space-between; gap: 14px;
+    padding-bottom: 5px; border-bottom: 1px solid rgba(232,229,222,0.1);
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 9px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+  }
+  .kx-vol__kv span { color: rgba(232,229,222,0.44); }
+  .kx-vol__kv b { color: #e8e5df; font-weight: 500; font-variant-numeric: tabular-nums; }
+  /* El eje dibuja sus rotulos DEBAJO de la linea, asi que necesita reservar
+     ese alto o se come lo que venga despues. */
+  .kx-vol__eje { margin-top: 10px; margin-bottom: 26px; }
+  .kx-vol__nav { display: flex; gap: 16px; margin-top: 4px; }
+  .kx-vol__nav a {
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10px;
+    letter-spacing: 0.2em; color: rgba(232,229,222,0.7); text-decoration: none;
+  }
+  .kx-vol__nav a:hover { color: var(--acc); }
+
+  /* La serie: cada placa con SU proporcion. Aca hay verticales 9:16 y
+     apaisadas raiz-de-dos; forzarlas a una caja comun seria deformar la obra,
+     que es lo unico que el sistema no permite. */
+  .kx-vol__serie { grid-area: serie; display: grid; gap: 6px; align-content: end; }
+  .kx-vol__serie ul {
+    display: flex; gap: 6px; margin: 0; padding: 0; list-style: none;
+    align-items: flex-end; overflow-x: auto;
+  }
+  .kx-vol__serie li {
+    /* El alto manda y el ancho lo pone la proporcion: asi conviven una
+       vertical y una apaisada en la misma fila sin achatarse. */
+    height: clamp(64px, 9vh, 96px); flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--acc) 20%, transparent);
+    overflow: hidden;
+  }
+  .kx-vol__serie img { display: block; height: 100%; width: 100%; object-fit: cover; }
+
+  .kx-vol__pie { grid-area: pie; align-self: end; }
+
+  @media (max-width: 900px) {
+    .kx-vol {
+      height: auto; min-height: 100dvh;
+      grid-template-columns: 1fr;
+      grid-template-areas: "cab" "hero" "cuerpo" "mensaje" "rail" "serie" "pie";
+    }
+    .kx-vol__hero { max-height: 40vh; }
+    .kx-vol__hero--alto { max-width: 100%; }
+    .kx-vol__cuerpo { max-height: none; overflow: visible; }
+  }
+</style>

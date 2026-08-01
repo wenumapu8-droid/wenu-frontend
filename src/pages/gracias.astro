@@ -1,0 +1,157 @@
+---
+import Base from '../layouts/Base.astro';
+import EmbossedSeal from '../components/EmbossedSeal.astro';
+
+// Payment return page. Mercado Pago redirects here on a completed/approved
+// checkout (back_urls.success). Static page — order details are read client-side
+// from the query string (?type=shop|encargo|turno&id=...). No payment logic here.
+---
+<Base
+  title="Thank you — Wenu Mapu"
+  description="Your payment was received. Your piece is held under your name."
+  noFooter={false}
+>
+  <section class="section section--mega gracias">
+    <div class="container gracias__inner">
+      <div class="gracias__seal" aria-hidden="true">
+        <EmbossedSeal text="MARI MARI · WENU MAPU" size={150} />
+      </div>
+      <p class="eyebrow">Mari mari · thank you</p>
+      <h1 class="page-title">Your payment is in.</h1>
+      <p class="lede" data-gracias-lede>
+        We've received your payment and your piece is held under your name. You'll get a
+        confirmation by email shortly — we'll reach out with the next steps and shipping or
+        pickup details.
+      </p>
+      <p class="gracias__ref" data-gracias-ref hidden></p>
+
+      {/* Kai — big celebration for the order-complete moment. Same golden
+          "niche" (.kai-niche, global.css) as the menu/search/cart, just a
+          much bigger stage: he jumps in a continuous loop with gold confetti
+          raining (kai-anim.js 'bigCelebrate' state), no auto-revert to idle —
+          this page IS the celebration. Mounted once, immediately (this is a
+          static landing, not a modal with an open/close lifecycle). Intensity
+          B (marked) CRT retro-glow — this is the biggest moment on the site. */}
+      <div class="kai-niche kai-niche--b gracias__kai">
+        <span class="kai-niche__label" aria-hidden="true">KAI</span>
+        <p class="gracias__kai-line" id="gracias-kai-line">You did it! Thank you!</p>
+        <div class="gracias__kai-stage">
+          <span class="kai-niche__aura" aria-hidden="true"></span>
+          <canvas id="gracias-kai-canvas" class="gracias__kai-sprite" width="220" height="210" aria-hidden="true"></canvas>
+        </div>
+        <span class="kai-niche__floor" aria-hidden="true"></span>
+        <span class="kai-niche__scanlines" aria-hidden="true"></span>
+        <span class="kai-niche__vignette" aria-hidden="true"></span>
+        <span class="kai-cover" data-kai-textile data-kai-cover-reveal aria-hidden="true"></span>
+      </div>
+
+      <div class="gracias__actions">
+        <a href="/shop" class="btn btn--solid">Continue exploring →</a>
+        <a href="/contact" class="btn btn--ghost">Questions? Contact us</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const type = params.get('type');
+  if (id) {
+    const ref = document.querySelector('[data-gracias-ref]') as HTMLElement | null;
+    if (ref) {
+      const label = type === 'encargo' ? 'Commission' : type === 'turno' ? 'Booking' : 'Order';
+      ref.textContent = `${label} reference: #${id} — please keep this for your records.`;
+      ref.hidden = false;
+    }
+  }
+
+  // Kai — motor de animación por cuadros (public/kai/kai-anim.js), cargado
+  // globalmente en Base.astro <head>. Página estática (no modal), así que se
+  // monta una sola vez apenas existe el canvas — sin open()/close().
+  const kaiCanvas = document.getElementById('gracias-kai-canvas') as HTMLCanvasElement | null;
+  if (kaiCanvas && (window as any).kaiAnim) {
+    (window as any).kaiAnim(kaiCanvas, {
+      width: 220, height: 210, targetHeight: 170,
+      initial: 'bigCelebrate',
+    });
+  }
+
+  // Personality pass (2026-07-13, owner tone: cosmic/mystic). ASCII
+  // punctuation only. "Puede rotar" — a light rotation for as long as the
+  // buyer lingers on this page (the celebration itself never stops either).
+  // Respects prefers-reduced-motion: picks once and leaves it, no interval.
+  const KAI_THANKYOU_LINES = [
+    'You did it! The cosmos thanks you.',
+    'Woven into your story now. *glows*',
+    'A new star in your sky. Thank you.',
+  ];
+  const kaiThankyouLine = document.getElementById('gracias-kai-line');
+  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (kaiThankyouLine) {
+    let last: string | null = null;
+    const pick = () => {
+      if (KAI_THANKYOU_LINES.length === 1) return KAI_THANKYOU_LINES[0];
+      let choice = KAI_THANKYOU_LINES[Math.floor(Math.random() * KAI_THANKYOU_LINES.length)];
+      let guard = 0;
+      while (choice === last && guard++ < 6) choice = KAI_THANKYOU_LINES[Math.floor(Math.random() * KAI_THANKYOU_LINES.length)];
+      return choice;
+    };
+    last = pick();
+    kaiThankyouLine.textContent = last;
+    if (!reduceMotion) {
+      setInterval(() => { last = pick(); if (kaiThankyouLine) kaiThankyouLine.textContent = last; }, 4500);
+    }
+  }
+</script>
+
+<style>
+  .gracias__inner {
+    max-width: 640px; margin-inline: auto; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-4);
+  }
+  .gracias__seal { margin-bottom: var(--space-2); opacity: 0.9; }
+  .gracias .page-title { margin: 0; }
+  .gracias .lede { color: var(--fg-soft); line-height: 1.7; }
+  .gracias__ref {
+    font-family: var(--font-mono); font-size: var(--fs-small);
+    color: var(--ember); letter-spacing: 0.02em;
+  }
+
+  /* Kai's big celebration — same golden niche as menu/search/cart
+     (.kai-niche, global.css), just a much bigger stage befitting a
+     standalone thank-you page (2026-07-11). */
+  .gracias__kai {
+    /* A touch wider than the stage+aura so the CRT glow (.kai-niche__aura,
+       global.css) doesn't get clipped by the card edge (2026-07-12). */
+    width: min(340px, 100%);
+    margin: var(--space-2) 0;
+  }
+  .gracias__kai-stage {
+    position: relative;
+    width: 220px; height: 210px;
+    display: flex; align-items: flex-end; justify-content: center;
+  }
+  .gracias__kai-sprite { width: 220px; height: 210px; image-rendering: pixelated; }
+  .gracias__kai-line {
+    margin: 0;
+    padding: 0 2px;
+    max-width: 240px;
+    min-height: 3.6em;
+    font-family: "Press Start 2P", ui-monospace, monospace;
+    font-size: 12px;
+    letter-spacing: 0;
+    line-height: 1.8;
+    color: var(--ember);
+    white-space: normal;
+    overflow-wrap: break-word;
+  }
+  @media (max-width: 480px) {
+    .gracias__kai-line { font-size: 10px; }
+  }
+
+  .gracias__actions {
+    display: flex; flex-wrap: wrap; gap: var(--space-3);
+    justify-content: center; margin-top: var(--space-2);
+  }
+</style>

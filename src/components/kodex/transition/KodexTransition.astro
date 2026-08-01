@@ -1,0 +1,76 @@
+---
+/**
+ * KODEX-∞ · RITUAL DE TRANSICIÓN
+ *
+ * La fórmula universal de escena (Receta Madre §2) termina en "1 transition
+ * ritual". Hasta ahora el deck cambiaba de lámina con un desvanecido de opacidad
+ * de medio segundo: correcto como transición web, vacío como ritual. En un
+ * instrumento, pasar de una escena a otra es una operación del aparato, no un
+ * corte de página.
+ *
+ * El movimiento sale de la gramática -- MOTION_12_STATE_TRANSITION, con sus
+ * cuatro comportamientos: abrir, colapsar, recomponer, navegar. Dura entre 1.2
+ * y 2.2 segundos, tiene prioridad crítica (es el único movimiento importante
+ * mientras ocurre) y con movimiento reducido se degrada a crossfade.
+ *
+ * Se apoya en el estado de la escena: antes de colapsar, la máquina pasa a
+ * `transitionOut`, así que el portal, el campo y el CRT se abren en el mismo
+ * gesto. La imagen no se apaga: se abre y se va.
+ */
+---
+
+<div class="kdx-ritual" data-kdx-ritual aria-hidden="true">
+  <canvas class="kdx-ritual__bandas" data-kdx-ritual-canvas></canvas>
+  <span class="kdx-ritual__linea"></span>
+</div>
+
+<script>
+  import "./kodex-transition-client.ts";
+</script>
+
+<style>
+  .kdx-ritual {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    pointer-events: none;
+    opacity: 0;
+    /* Sin visibilidad oculta el lienzo sigue componiéndose en cada cuadro
+       aunque no se vea, y son 60 composiciones por segundo de pura pérdida. */
+    visibility: hidden;
+  }
+  .kdx-ritual[data-activo] { opacity: 1; visibility: visible; }
+
+  .kdx-ritual__bandas { display: block; width: 100%; height: 100%; }
+
+  /* El filo que recorre la lámina en el colapso. Es lo que da la sensación de
+     que algo se cierra en vez de que algo se apaga. */
+  .kdx-ritual__linea {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    top: 50%;
+    background: var(--kdx-scene-accent, var(--kdx-red, #FF3833));
+    box-shadow: 0 0 24px 4px color-mix(in srgb, var(--kdx-scene-accent, #FF3833) 55%, transparent);
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  .kdx-ritual[data-fase="colapso"] .kdx-ritual__linea {
+    animation: kdx-ritual-filo var(--kdx-ritual-ms, 1400ms) cubic-bezier(0.7, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes kdx-ritual-filo {
+    0%   { transform: scaleX(0); opacity: 0; }
+    28%  { transform: scaleX(1); opacity: 1; }
+    72%  { transform: scaleX(1); opacity: 1; }
+    100% { transform: scaleX(1); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    /* La gramática lo dice explícitamente: con movimiento reducido este
+       preset degrada a crossfade. Sin bandas, sin filo, sin barrido. */
+    .kdx-ritual__bandas, .kdx-ritual__linea { display: none; }
+    .kdx-ritual { background: #050507; transition: opacity 240ms linear; }
+  }
+</style>

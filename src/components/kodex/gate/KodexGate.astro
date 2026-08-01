@@ -1,0 +1,138 @@
+---
+/**
+ * KODEX-∞ · GATE
+ *
+ * El umbral antes del umbral. Del prototipo aprobado:
+ *
+ *     THRESHOLD
+ *     TAP TO ENTER — ENABLE SOUND
+ *     → ACCESS: GRANTED
+ *
+ * Cumple dos funciones a la vez y por eso funciona:
+ *
+ * **Ritual.** El archivo está sellado hasta que alguien decide cruzar. El
+ * chrome ya dice `ACCESS · UNVERIFIED` desde el primer cuadro; el gate es lo
+ * que hace que esa etiqueta signifique algo en vez de ser decorado. Cruzar lo
+ * cambia a `GRANTED`.
+ *
+ * **Técnica.** Ningún navegador deja sonar audio sin un gesto del visitante.
+ * Todo sitio con sonido necesita ese gesto en alguna parte; la mayoría lo
+ * esconde en un botoncito de altavoz. Acá el gesto obligatorio ES la puerta.
+ * La restricción del navegador se vuelve la primera escena.
+ *
+ * Sólo en THRESHOLD. Un gate por lámina convertiría un ritual en un peaje.
+ */
+interface Props {
+  /** Lo que se lee grande. */
+  titulo?: string;
+  eyebrow?: string;
+  invitacion?: string;
+  class?: string;
+}
+
+const {
+  titulo = "THRESHOLD",
+  eyebrow = "KODEX −∞",
+  invitacion = "TAP TO ENTER — ENABLE SOUND",
+  class: className = "",
+} = Astro.props;
+---
+
+<div class:list={["kdx-gate", className]} data-kdx-gate role="dialog" aria-label={`${titulo}. ${invitacion}`}>
+  <button class="kdx-gate__accion" type="button" data-kdx-gate-enter>
+    <span class="kdx-gate__eyebrow">{eyebrow}</span>
+    <span class="kdx-gate__titulo">{titulo}</span>
+    <span class="kdx-gate__hint">{invitacion}</span>
+  </button>
+  <span class="kdx-gate__omitir">
+    <button type="button" data-kdx-gate-skip>ENTER WITHOUT SOUND</button>
+  </span>
+</div>
+
+<script>
+  import "./kodex-gate-client.ts";
+</script>
+
+<style>
+  .kdx-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 8000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    background: rgba(5, 5, 7, 0.88);
+    backdrop-filter: blur(2px);
+    text-align: center;
+    /* La transición de salida es larga a propósito: el gate no desaparece, se
+       disuelve. Un corte seco haría sentir que se cerró una ventana modal. */
+    transition: opacity 800ms ease, visibility 800ms;
+  }
+  .kdx-gate[data-kdx-gate-state="open"] {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .kdx-gate__accion {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    /* Toda la zona central es el objetivo. En móvil, un botón chico en medio
+       de una pantalla negra es una trampa. */
+    padding: clamp(28px, 8vw, 90px) clamp(24px, 10vw, 120px);
+  }
+
+  .kdx-gate__eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: 0.42em;
+    color: var(--kdx-red, #FF3833);
+  }
+
+  .kdx-gate__titulo {
+    font-family: "Barlow Condensed", "Inter Tight", system-ui, sans-serif;
+    font-weight: 800;
+    font-size: clamp(44px, 9vw, 104px);
+    line-height: 0.9;
+    letter-spacing: 0.02em;
+    color: #e8e5df;
+    text-transform: uppercase;
+  }
+
+  .kdx-gate__hint {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    color: rgba(232, 229, 222, 0.62);
+  }
+  .kdx-gate__accion:hover .kdx-gate__hint,
+  .kdx-gate__accion:focus-visible .kdx-gate__hint { color: var(--kdx-red, #FF3833); }
+
+  /* Salida sin sonido. Existe porque no todo el mundo puede o quiere audio, y
+     un umbral que sólo se cruza aceptando sonido no es un umbral, es un peaje.
+     Discreta pero alcanzable con teclado. */
+  .kdx-gate__omitir button {
+    background: none;
+    border: 0;
+    cursor: pointer;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: rgba(232, 229, 222, 0.34);
+    padding: 8px 14px;
+  }
+  .kdx-gate__omitir button:hover,
+  .kdx-gate__omitir button:focus-visible { color: rgba(232, 229, 222, 0.8); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-gate { transition: none; }
+  }
+</style>

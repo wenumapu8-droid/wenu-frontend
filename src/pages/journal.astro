@@ -1,0 +1,308 @@
+---
+import Base from '../layouts/Base.astro';
+import PatternBand from '../components/PatternBand.astro';
+import { getCollection } from 'astro:content';
+import en from '../i18n/en.json';
+
+const allEntries = await getCollection('journal');
+// The Apprentice's Path lives as its own series page; keep it out of the flat list.
+// We Tripantu is FEATURED as the home almanac banner (the "Read the note →" CTA
+// links straight to it) — so we keep it out of the index list to avoid showing
+// the same piece twice (Ocin 2026-06-27). The article itself stays at its URL.
+const entries = allEntries
+  .filter(e => e.data.series !== 'apprentice' && e.id !== 'we-tripantu')
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const hasApprentice = allEntries.some(e => e.data.series === 'apprentice');
+
+// Thumbnail per entry (2026-06-24): gives the index coherent visuals instead of a
+// text wall. Mirrors the per-entry header overrides; falls back to ogImage.
+const THUMB_OVERRIDE: Record<string, string> = {
+  'four-cardinal-forces':    '/img/brand/obsidian-cardinal-textile.webp',
+  'the-witral-thread':       '/img/brand/wenu-textil-pattern-real.webp',
+  'wood-as-body-material':   '/img/banners/atmospheric/night-forest-light.webp',
+  'aftercare-first-90-days': '/img/banners/atmospheric/night-forest-water.webp',
+};
+const thumbFor = (e: typeof entries[number]) => THUMB_OVERRIDE[e.id] ?? e.data.ogImage;
+
+// End-of-journal email capture — same live endpoint as the home block and footer:
+// the Wenu Platform backend (Postgres subscriber + welcome email + Telegram).
+// The old Formspree form (mblrgwya) was dead (404) and dropped every signup.
+const API_BASE = import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com';
+const NEWSLETTER_ENDPOINT = import.meta.env.PUBLIC_NEWSLETTER_ENDPOINT?.trim() || `${API_BASE}/newsletter/subscribe`;
+const mailto = `mailto:marimari@wenumapuonline.com?subject=${encodeURIComponent(en.newsletter.fallback_subject)}`;
+---
+<Base
+  title="Journal — Wenu Mapu"
+  description="Field notes from the Wenu Mapu studio in Truckee, California. Material stories, process notes, cosmology, aftercare, curation."
+>
+  <div class="cat-masthead cat-masthead--titled">
+    <picture>
+      <source type="image/avif" srcset="/img/banners/atmospheric/journal-eclipse-valley.avif" />
+      <img src="/img/banners/atmospheric/journal-eclipse-valley.webp" alt="" width="1916" height="821" loading="eager" decoding="async" fetchpriority="high" />
+    </picture>
+    <div class="cat-masthead__label">
+      <p class="cat-masthead__title">{en.journal.title}</p>
+      <p class="cat-masthead__eyebrow">{en.journal.eyebrow}</p>
+    </div>
+  </div>
+
+  <section class="section section--mega">
+    <div class="container">
+      <p class="eyebrow">{en.journal.eyebrow}</p>
+      <h1 class="page-title">{en.journal.title}</h1>
+      <p class="lede">{en.journal.intro}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      {hasApprentice && (
+        <a href="/journal/apprentice" class="journal-series">
+          <p class="eyebrow">Diario de aprendiz</p>
+          <h2 class="journal-series__title">The Apprentice's Path</h2>
+          <p class="journal-series__line">A maker's diary — the honest record of someone still learning the metal and the body. What the fire teaches, what gets ruined, what is understood too late.</p>
+          <span class="journal-series__cta">Read the diary <span aria-hidden="true">→</span></span>
+        </a>
+      )}
+
+      {entries.length === 0 ? (
+        <p class="muted" style="margin-top: var(--space-6);">{en.journal.soon}</p>
+      ) : (
+        <ul class="journal-index">
+          {entries.map(entry => {
+            const dateLabel = entry.data.date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            return (
+              <li class="journal-index__item">
+                <a class="journal-index__link" href={`/journal/${entry.id}/`}>
+                  <div class="journal-index__thumb">
+                    <img src={thumbFor(entry)} alt="" width="600" height="400" loading="lazy" decoding="async" />
+                  </div>
+                  <div class="journal-index__body">
+                    <p class="eyebrow">{entry.data.eyebrow}</p>
+                    <h2 class="journal-index__title">{entry.data.title}</h2>
+                    <p class="journal-index__excerpt">{entry.data.excerpt}</p>
+                    <p class="journal-index__meta">{dateLabel}{entry.data.length_words ? ` · ${entry.data.length_words} words` : ''}</p>
+                  </div>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  </section>
+
+  {/* ── End-of-journal signup — captures to the same live list as home + footer ── */}
+  <section class="section journal-signup" aria-labelledby="journal-signup-title">
+    <div class="container">
+      <div class="journal-signup__card">
+        <p class="eyebrow">{en.newsletter.eyebrow}</p>
+        <h2 id="journal-signup-title" class="journal-signup__title">{en.newsletter.title}</h2>
+        <p class="journal-signup__body">{en.newsletter.body}</p>
+        <form class="journal-signup__form" method="POST" action={NEWSLETTER_ENDPOINT} data-journal-form>
+          <input type="hidden" name="_subject" value="Wenu Mapu — newsletter signup (journal)" />
+          <input type="hidden" name="list" value="subscriber" />
+          <input type="hidden" name="source" value="journal-end" />
+          {/* honeypot — bots fill this, humans never see it */}
+          <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="journal-signup__honey" aria-hidden="true" />
+          <label class="visually-hidden" for="journal-email">{en.newsletter.placeholder}</label>
+          <div class="journal-signup__row">
+            <input id="journal-email" class="journal-signup__input" type="email" name="email" required placeholder={en.newsletter.placeholder} autocomplete="email" />
+            <button type="submit" class="btn btn--solid">{en.newsletter.submit} <span aria-hidden="true">→</span></button>
+          </div>
+          <p class="journal-signup__micro">{en.newsletter.microcopy}</p>
+          <p class="journal-signup__ok" data-journal-ok hidden role="status">Welcome to the circle. Watch your inbox for the first signal.</p>
+          <p class="journal-signup__err" data-journal-err hidden role="alert">Something interrupted the signal — <a href={mailto}>email us to join</a>.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    /* End-of-journal signup — AJAX submit so the reader never leaves the page. */
+    const jform = document.querySelector<HTMLFormElement>('[data-journal-form]');
+    if (jform) {
+      jform.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const ok = jform.querySelector<HTMLElement>('[data-journal-ok]');
+        const err = jform.querySelector<HTMLElement>('[data-journal-err]');
+        const row = jform.querySelector<HTMLElement>('.journal-signup__row');
+        const micro = jform.querySelector<HTMLElement>('.journal-signup__micro');
+        if (err) err.hidden = true;
+        const honey = (jform.querySelector('input[name="_gotcha"]') as HTMLInputElement | null)?.value;
+        const email = (jform.querySelector('input[name="email"]') as HTMLInputElement | null)?.value?.trim();
+        const source = (jform.querySelector('input[name="source"]') as HTMLInputElement | null)?.value || 'journal-end';
+        try {
+          if (honey) { throw new Error('bot'); }
+          const res = await fetch(jform.action, {
+            method: 'POST',
+            body: JSON.stringify({ email, source, lang: 'en' }),
+            headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          });
+          if (res.ok) {
+            if (row) row.hidden = true;
+            if (micro) micro.hidden = true;
+            if (ok) ok.hidden = false;
+          } else if (err) {
+            err.hidden = false;
+          }
+        } catch {
+          if (err) err.hidden = false;
+        }
+      });
+    }
+  </script>
+</Base>
+
+<style>
+  .journal-index {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-6) 0 0;
+    display: grid;
+    gap: var(--space-5);
+  }
+  .journal-index__item {
+    border-top: 1px solid color-mix(in srgb, var(--silver, #a8a39a) 30%, transparent);
+    padding-top: var(--space-5);
+  }
+  .journal-index__item:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+  .journal-index__link {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: var(--space-5);
+    align-items: center;
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+  .journal-index__thumb {
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+    background: var(--obsidian);
+    border: 1px solid var(--line);
+  }
+  .journal-index__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+    transition: transform 0.5s ease;
+    filter: saturate(0.95) contrast(1.03);
+  }
+  .journal-index__link:hover .journal-index__thumb img { transform: scale(1.04); }
+  .journal-index__link:hover .journal-index__title {
+    color: var(--ember, #c4935a);
+  }
+  @media (max-width: 640px) {
+    .journal-index__link { grid-template-columns: 1fr; gap: var(--space-3); }
+    .journal-index__thumb { aspect-ratio: 16 / 9; }
+  }
+  .journal-index__title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    color: var(--bone, #f2ede4);
+    margin: var(--space-2) 0;
+    transition: color 0.2s ease;
+  }
+  .journal-index__excerpt {
+    font-family: var(--font-serif);
+    color: var(--silver, #a8a39a);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    margin-bottom: var(--space-2);
+  }
+  .journal-index__meta {
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    color: var(--silver, #a8a39a);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Featured series card — The Apprentice's Path */
+  .journal-series {
+    display: block;
+    margin: var(--space-6) 0 var(--space-5);
+    padding: var(--space-5);
+    border: var(--border-thin);
+    background: var(--charcoal);
+    text-decoration: none;
+    transition: border-color var(--t-base), transform var(--t-base);
+  }
+  .journal-series:hover { border-color: var(--ember); transform: translateY(-2px); }
+  .journal-series__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.8rem, 4vw, 2.6rem); line-height: 1.05;
+    color: var(--bone); margin: var(--space-2) 0 var(--space-3);
+  }
+  .journal-series__line {
+    font-family: var(--font-serif); font-weight: var(--fw-thin);
+    font-size: var(--fs-body); line-height: 1.6; color: var(--fg-soft);
+    max-width: 56ch; margin: 0 0 var(--space-3);
+  }
+  .journal-series__cta {
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--ember);
+  }
+
+  /* ── End-of-journal signup ── */
+  .journal-signup { padding-top: 0; }
+  .journal-signup__card {
+    border: var(--border-thin);
+    border-top: 2px solid var(--ember);
+    background: var(--charcoal);
+    padding: var(--space-6) var(--space-5);
+    max-width: 46rem;
+    margin: 0 auto;
+  }
+  .journal-signup__title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    line-height: 1.08;
+    color: var(--bone);
+    margin: var(--space-2) 0 var(--space-3);
+  }
+  .journal-signup__body {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    font-size: var(--fs-body);
+    line-height: 1.6;
+    color: var(--fg-soft);
+    max-width: 46ch;
+    margin: 0 0 var(--space-5);
+  }
+  .journal-signup__form { max-width: 32rem; }
+  .journal-signup__honey { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .journal-signup__row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+  .journal-signup__input {
+    flex: 1 1 12rem; min-width: 0;
+    background: rgba(8, 7, 6, 0.5);
+    border: 1px solid var(--line-bright);
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: var(--fs-body);
+    padding: var(--space-3) var(--space-4);
+  }
+  .journal-signup__input::placeholder { color: var(--silver); }
+  .journal-signup__input:focus-visible { outline: none; border-color: var(--ember); }
+  .journal-signup__micro {
+    margin: var(--space-3) 0 0;
+    font-size: 0.82rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(240, 237, 232, 0.72);
+  }
+  .journal-signup__ok, .journal-signup__err {
+    margin: var(--space-3) 0 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--bone);
+    font-size: var(--fs-body);
+    line-height: 1.5;
+  }
+  .journal-signup__err { color: var(--clay); }
+  .journal-signup__err a, .journal-signup__ok a { color: var(--ember); }
+</style>

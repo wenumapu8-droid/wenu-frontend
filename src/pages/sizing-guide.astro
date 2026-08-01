@@ -1,0 +1,174 @@
+---
+import Base from '../layouts/Base.astro';
+import PatternBand from '../components/PatternBand.astro';
+import SizeMeasurer from '../components/SizeMeasurer.astro';
+import JewelSilhouettes from '../components/visual/JewelSilhouettes.astro';
+import en from '../i18n/en.json';
+
+const s = en.sizing;
+
+// Ordered "size scale" sets — silhouettes grow small→large, industry-style.
+const DIA_SCALE: number[] = [6, 7, 8, 9, 10, 11, 12, 14, 16];           // inner Ø (mm)
+const LEN_SCALE: [number, string][] = [
+  [6, '1/4"'], [8, '5/16"'], [10, '3/8"'], [11, '7/16"'],
+  [13, '1/2"'], [14, '9/16"'], [16, '5/8"'], [19, '3/4"'],
+];
+const GAUGE_SCALE: [string, number][] = [
+  ['20g', 0.8], ['18g', 1.0], ['16g', 1.2], ['14g', 1.6], ['12g', 2.0],
+  ['10g', 2.4], ['8g', 3.2], ['6g', 4.0], ['4g', 5.0], ['2g', 6.0], ['0g', 8.0], ['00g', 9.5],
+];
+
+// Real jewelry FAMILY per piercing zone (APP-correct silhouettes, Ocin 2026-06-27):
+//   navel → curved barbell (banana) · septum → circular barbell (horseshoe)
+//   tongue/nipple/industrial → straight barbell · everything else (earlobe, helix,
+//   tragus, lip/labret post, nostril) → flat-back labret stud.
+const postType = (zone: string): string => {
+  const z = zone.toLowerCase();
+  if (z.includes('navel')) return 'curved';
+  if (z.includes('septum')) return 'circular';
+  if (z.includes('tongue') || z.includes('nipple') || z.includes('industrial')) return 'barbell';
+  return 'labret';
+};
+// Diameter table is all rings; daith reads as a ring/clicker → keep cbr.
+---
+<Base
+  title="Sizing Guide — Wenu Mapu"
+  description="Body jewelry sizing reference: gauge to millimeters, inner diameter recommendations, post and barbell length conventions."
+>
+  <section class="section section--mega">
+    <div class="container sizing">
+      <p class="eyebrow">{s.eyebrow}</p>
+      <h1 class="page-title">{s.title}</h1>
+      <p class="lede">{s.intro}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <div id="sm"><SizeMeasurer /></div>
+
+      <h2 class="sizing__heading">{s.gauge_heading}</h2>
+      <div class="jscale" role="img" aria-label="Gauge thickness scale, thin to thick, shown at real size">
+        {GAUGE_SCALE.map(([g, mm]) => (
+          <figure class="jscale__item">
+            <span class="jewel" data-jewel data-jtype="gauge" data-mm={mm} aria-hidden="true"></span>
+            <figcaption class="jscale__cap"><b>{g}</b> · {mm}mm</figcaption>
+          </figure>
+        ))}
+      </div>
+      <p class="jscale-note">
+        <span class="jscale-note--exact">◦ Wire thickness shown at your calibrated real size.</span>
+        <span class="jscale-note--est">◦ Thickness ≈ real size · <a href="#sm">calibrate above</a> for exact.</span>
+      </p>
+      <div class="sizing__table-wrap">
+        <table class="sizing__table">
+          <thead>
+            <tr>
+              <th>Gauge</th>
+              <th>Millimeters</th>
+              <th class="sizing__vis-h">Size</th>
+              <th>Common use</th>
+            </tr>
+          </thead>
+          <tbody>
+            {s.gauge_table.map(row => (
+              <tr>
+                <td><strong>{row.g}</strong></td>
+                <td>{row.mm}</td>
+                <td class="sizing__vis"><span class="jewel" data-jewel data-jtype="gauge" data-mm={(String(row.mm).match(/[\d.]+/) || [])[0]} aria-hidden="true"></span></td>
+                <td>{row.use}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="sizing__heading">{s.diameter_heading}</h2>
+      <p>{s.diameter_intro}</p>
+      <div class="jscale" role="img" aria-label="Inner diameter scale, small to large, captive bead rings at real size">
+        {DIA_SCALE.map(mm => (
+          <figure class="jscale__item">
+            <span class="jewel" data-jewel data-jtype="cbr" data-mm={mm} data-gauge="1.2" aria-hidden="true"></span>
+            <figcaption class="jscale__cap"><b>{mm}mm</b></figcaption>
+          </figure>
+        ))}
+      </div>
+      <p class="jscale-note">
+        <span class="jscale-note--exact">◦ Captive-bead rings at your calibrated real inner diameter (1.2mm / 16g wire).</span>
+        <span class="jscale-note--est">◦ Rings ≈ real inner diameter · <a href="#sm">calibrate above</a> for exact.</span>
+      </p>
+      <div class="sizing__table-wrap">
+        <table class="sizing__table">
+          <thead>
+            <tr>
+              <th>Zone</th>
+              <th>Inner diameter (typical)</th>
+              <th class="sizing__vis-h">Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {s.diameter_table.map(row => (
+              <tr>
+                <td><strong>{row.zone}</strong></td>
+                <td>{row.id}</td>
+                <td class="sizing__vis"><span class="jewel" data-jewel data-jtype="cbr" data-mm={(String(row.id).match(/[\d.]+/) || [])[0]} data-gauge="1.2" aria-hidden="true"></span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="sizing__heading">{s.post_heading}</h2>
+      <p>{s.post_intro}</p>
+      <div class="jscale" role="img" aria-label="Post and barbell length scale, short to long, labret silhouettes at real size">
+        {LEN_SCALE.map(([mm, frac]) => (
+          <figure class="jscale__item">
+            <span class="jewel" data-jewel data-jtype="labret" data-mm={mm} data-gauge="1.2" aria-hidden="true"></span>
+            <figcaption class="jscale__cap"><b>{mm}mm</b> · {frac}</figcaption>
+          </figure>
+        ))}
+      </div>
+      <p class="jscale-note">
+        <span class="jscale-note--exact">◦ Flat-back posts at your calibrated real length (1.2mm / 16g wire).</span>
+        <span class="jscale-note--est">◦ Posts ≈ real length · <a href="#sm">calibrate above</a> for exact.</span>
+      </p>
+      <div class="sizing__table-wrap">
+        <table class="sizing__table">
+          <thead>
+            <tr>
+              <th>Zone</th>
+              <th>Post / barbell length (typical)</th>
+              <th class="sizing__vis-h">Size</th>
+            </tr>
+          </thead>
+          <tbody>
+            {s.post_table.map(row => (
+              <tr>
+                <td><strong>{row.zone}</strong></td>
+                <td>{row.length}</td>
+                <td class="sizing__vis"><span class="jewel" data-jewel data-jtype={postType(row.zone)} data-mm={(String(row.length).match(/[\d.]+/) || [])[0]} data-gauge="1.2" aria-hidden="true"></span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p class="sizing__note">{s.note}</p>
+
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <h2 class="sizing__heading">{s.cta_heading}</h2>
+      <p>{s.cta_intro}</p>
+      <div class="landing__cta">
+        <a href="/shop" class="btn btn--solid">{s.cta_shop} →</a>
+        <a href="/custom-orders" class="btn btn--ghost">{s.cta_commission}</a>
+        <a href="/care-guide" class="btn btn--ghost">{s.cta_care}</a>
+        <a href="/contact" class="btn btn--ghost">{s.cta_contact}</a>
+      </div>
+    </div>
+  </section>
+
+  <JewelSilhouettes />
+
+  <style>
+    .sizing__vis-h { width: 1%; white-space: nowrap; }
+    .sizing__vis { vertical-align: middle; }
+  </style>
+</Base>

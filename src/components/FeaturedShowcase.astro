@@ -1,0 +1,132 @@
+---
+/**
+ * FeaturedShowcase — the home "real pieces" vitrine (Ocin 2026-07-05).
+ *
+ * The home felt empty of actual product photography. This surfaces REAL
+ * WooCommerce pieces with their real macro photos, mobile-first, tap → PDP.
+ * Lead with the curated crown jewels (FEATURED_SLUGS), then fill with the
+ * strongest-gallery pieces that have real (non-placeholder) images.
+ *
+ * Effects: only CSS transform/opacity (fade-in stagger via IntersectionObserver,
+ * honours prefers-reduced-motion). No canvas, no rAF — cheap on mobile.
+ */
+import ProductCard from './ProductCard.astro';
+import type { WooProduct } from '../lib/woo';
+
+interface Props {
+  products: WooProduct[];
+  eyebrow?: string;
+  title?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+}
+const {
+  products,
+  eyebrow = 'Wiñoltun · Available now',
+  title = 'Worn pieces, real hands',
+  ctaHref = '/shop',
+  ctaLabel = 'Shop all pieces',
+} = Astro.props;
+
+// Newest curated first gets a NEW badge; low-stock gets LIMITED.
+function deriveBadge(p: WooProduct, idx: number): string | null {
+  const q = p.stock_quantity;
+  if (typeof q === 'number' && q > 0 && q <= 3) return 'LIMITED';
+  if (idx < 2) return 'NEW';
+  return null;
+}
+const items = products.slice(0, 8).map((product, i) => ({ product, badge: deriveBadge(product, i) }));
+---
+{items.length > 0 && (
+  <section class="fshow" aria-labelledby="fshow-title">
+    <div class="container fshow__head">
+      <div>
+        <p class="eyebrow">{eyebrow}</p>
+        <h2 id="fshow-title" class="fshow__title">{title}</h2>
+      </div>
+      <a href={ctaHref} class="fshow__viewall">{ctaLabel} <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="container fshow__grid" data-fshow-stagger>
+      {items.map(({ product, badge }) => (
+        <div class="fshow__cell">
+          <ProductCard product={product} archive badge={badge} />
+        </div>
+      ))}
+    </div>
+    <div class="container fshow__foot">
+      <a href={ctaHref} class="btn btn--ghost">{ctaLabel} <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+)}
+
+<style>
+  .fshow { padding: var(--section-y) 0; border-top: var(--border-thin); }
+  .fshow__head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .fshow__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.05;
+    color: var(--bone); margin: var(--space-1) 0 0;
+  }
+  .fshow__viewall {
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--ember); text-decoration: none; white-space: nowrap;
+    transition: color var(--t-fast);
+  }
+  .fshow__viewall:hover { color: var(--bone); }
+  /* Real-product grid — mobile-first: 2-up on phones, up to 4-up on desktop. */
+  /* minmax(0, 1fr) — NOT 1fr — so tracks may shrink below the card's min-content.
+     With plain 1fr the ProductCard min-content forced each cell ~379px wide,
+     blowing the grid past the viewport (566px on a 390px phone) and giving the
+     whole page a phantom horizontal scroll + "empty space on the right". */
+  .fshow__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3);
+  }
+  @media (min-width: 640px) { .fshow__grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); } }
+  @media (min-width: 960px) { .fshow__grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .fshow__cell {
+    opacity: 1;
+  }
+  /* Fade-in stagger — only transform + opacity, one observer, one-shot. */
+  [data-fshow-stagger].is-armed .fshow__cell {
+    opacity: 0; transform: translateY(14px);
+  }
+  [data-fshow-stagger].is-armed .fshow__cell.is-in {
+    opacity: 1; transform: none;
+    transition: opacity var(--t-slow), transform var(--t-slow);
+  }
+  .fshow__foot { margin-top: var(--space-6); text-align: center; }
+  @media (prefers-reduced-motion: reduce) {
+    [data-fshow-stagger].is-armed .fshow__cell,
+    [data-fshow-stagger].is-armed .fshow__cell.is-in { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+
+<script>
+  // Cheap reveal: one IntersectionObserver per showcase, transform+opacity only,
+  // unobserves each cell after firing. Honours reduced-motion (arms nothing).
+  // querySelectorAll so multiple showcases on one page each animate.
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduce) {
+    document.querySelectorAll('[data-fshow-stagger]').forEach(stagger => {
+      stagger.classList.add('is-armed');
+      const cells = Array.from(stagger.querySelectorAll('.fshow__cell'));
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+          const idx = cells.indexOf(entry.target as Element);
+          (entry.target as HTMLElement).style.transitionDelay = `${Math.min(idx, 8) * 55}ms`;
+          entry.target.classList.add('is-in');
+          obs.unobserve(entry.target);
+        });
+      }, { threshold: 0.08, rootMargin: '0px 0px -8% 0px' });
+      cells.forEach(c => io.observe(c));
+    });
+  }
+</script>

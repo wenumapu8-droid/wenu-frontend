@@ -1,0 +1,910 @@
+---
+/* BookingBuilder — the four-step booking accordion from Ocin's mockup
+ * (brand/referencias-mockups-2026-07-10 · "BOOK A PIERCING"), built on real data.
+ *
+ * WHAT IT IS: placement → jewelry → date → time, with a live running total, that
+ * composes a fully-specified booking request. The client arrives having already
+ * chosen everything and seen the price. Ocin stops receiving "hi how much for a
+ * helix" and starts receiving a brief.
+ *
+ * WHY NOT A REAL CALENDAR: there is no booking backend, and inventing a fake
+ * "confirmed" state would be exactly the thing we promised the site would never
+ * do. The button composes a message, human confirms. Honest, and it works today.
+ * When a real calendar exists, swap the compose step — the four steps stay.
+ *
+ * IMPROVES, DOES NOT REPLACE: this slots INTO the existing #book section on
+ * /piercing. The Logistics column (ID, payment, duration, direct contact) stays
+ * exactly where it was.
+ *
+ * PRICES: mirror the `services` array in piercing.astro and the gold tiers in
+ * initial-jewelry.astro. One source of truth per number — if a price changes it
+ * changes in all three, or the site contradicts itself.
+ *
+ * GOLD GATING (matters): the 14kt ends are THREADLESS TOPS. They only fit a
+ * threadless labret post. A tongue barbell, a navel curve and a septum ring
+ * cannot take one. Offering the upgrade there would be a lie we'd have to walk
+ * back at the appointment — so those placements simply don't show it.
+ */
+
+type Placement = {
+  id: string;
+  label: string;
+  zone: string;
+  fee: number;
+  gold: boolean;   // can it take a threadless gold top?
+  heal: string;
+};
+
+const placements: Placement[] = [
+  // Ear
+  { id: 'lobe',      label: 'Lobe',                       zone: 'Ear',  fee: 80,  gold: true,  heal: '2–3 months' },
+  { id: 'helix',     label: 'Helix · Flat · Forward helix', zone: 'Ear', fee: 85, gold: true,  heal: '6–12 months' },
+  { id: 'tragus',    label: 'Tragus',                     zone: 'Ear',  fee: 85,  gold: true,  heal: '6–12 months' },
+  { id: 'conch',     label: 'Rook · Daith · Conch',       zone: 'Ear',  fee: 90,  gold: true,  heal: '6–12 months' },
+  // Nose
+  { id: 'nostril',   label: 'Nostril (one side)',         zone: 'Nose', fee: 80,  gold: true,  heal: '4–6 months' },
+  { id: 'septum',    label: 'Septum',                     zone: 'Nose', fee: 90,  gold: false, heal: '2–3 months' },
+  // Face
+  { id: 'eyebrow',   label: 'Eyebrow',                    zone: 'Face', fee: 85,  gold: false, heal: '3–4 months' },
+  { id: 'lip',       label: 'Lip · Labret · Medusa',      zone: 'Face', fee: 85,  gold: true,  heal: '2–3 months' },
+  { id: 'tongue',    label: 'Tongue — centre',            zone: 'Face', fee: 95,  gold: false, heal: '4–6 weeks' },
+  // Body
+  { id: 'navel',     label: 'Navel',                      zone: 'Body', fee: 110, gold: false, heal: '6–12 months' },
+];
+
+const zones = ['Ear', 'Nose', 'Face', 'Body'];
+
+type Jewel = { id: string; label: string; sub: string; add: number; gold: boolean };
+
+const jewels: Jewel[] = [
+  {
+    id: 'titanium',
+    label: 'Implant-grade titanium',
+    sub: 'Ti-6Al-4V ELI · ASTM F-136 · factory-sterilised. Included in the fee.',
+    add: 0,
+    gold: false,
+  },
+  {
+    id: 'gold1',
+    label: 'Solid 14kt gold · Tier I',
+    sub: 'CZ prong pin (1.5mm) or opal cabochon (2mm)',
+    add: 60,
+    gold: true,
+  },
+  {
+    id: 'gold2',
+    label: 'Solid 14kt gold · Tier II',
+    sub: 'Polished disk (2.5mm) or hammered disk (3mm)',
+    add: 80,
+    gold: true,
+  },
+  {
+    id: 'gold3',
+    label: 'Solid 14kt gold · Tier III',
+    sub: 'Ceres top (amethyst) or Trinity top (three stones)',
+    add: 120,
+    gold: true,
+  },
+];
+
+const times = [
+  { id: 'morning',   label: 'Morning',   sub: '10:00 – 12:00' },
+  { id: 'afternoon', label: 'Afternoon', sub: '12:00 – 16:00' },
+  { id: 'evening',   label: 'Evening',   sub: '16:00 – 19:00' },
+  { id: 'flexible',  label: 'Flexible',  sub: 'Any slot you have' },
+];
+
+const EMAIL = 'marimari@wenumapuonline.com';
+const WA = 'https://wa.me/14085006211';
+---
+
+<div class="bb" data-booking-builder>
+
+  <!-- Carried over from /constelaciones "Book this design". Hidden until the
+       handoff payload is found in localStorage; filled by the script below. -->
+  <aside class="bb__design" data-design-banner hidden>
+    <div class="bb__design-head">
+      <span class="bb__design-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+          <circle cx="6" cy="7" r="1.6" /><circle cx="17" cy="5.5" r="1.6" />
+          <circle cx="19" cy="15" r="1.6" /><circle cx="9" cy="18" r="1.6" />
+          <path d="M6 7l11-1.5M17 5.5L19 15M19 15L9 18M9 18L6 7" stroke-linecap="round" opacity="0.55" />
+        </svg>
+      </span>
+      <p class="bb__design-title">Your ear design</p>
+    </div>
+    <p class="bb__design-list" data-design-list></p>
+    <p class="bb__design-note">
+      A curated ear heals best in stages — max 2 placements per session. We'll start with what
+      you choose below and plan the rest together. Your full design travels with the request.
+    </p>
+  </aside>
+
+  <ol class="bb__steps" role="list">
+
+    <!-- ── 1 · PLACEMENT ─────────────────────────────── -->
+    <li class="bb__step is-open" data-step="1">
+      <button type="button" class="bb__head" aria-expanded="true" aria-controls="bb-panel-1" data-head>
+        <span class="bb__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2">
+            <path d="M11 26c0-4-3-5-3-11a8 8 0 0 1 16 0c0 5-4 5-5 9-.6 2.4-1.7 3-3 3" stroke-linecap="round" />
+            <path d="M13 13a3.5 3.5 0 1 1 6 2.5c-1 1-1.5 1.6-1.8 3" stroke-linecap="round" />
+          </svg>
+        </span>
+        <span class="bb__head-text">
+          <span class="bb__n">1 · Choose placement</span>
+          <span class="bb__val" data-val="1">Where the passage will be</span>
+        </span>
+        <span class="bb__chev" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </button>
+
+      <div class="bb__panel" id="bb-panel-1" data-panel>
+        <div class="bb__panel-in">
+          {zones.map(z => (
+            <div class="bb__zone">
+              <p class="bb__zone-t">{z}</p>
+              <div class="bb__opts">
+                {placements.filter(p => p.zone === z).map(p => (
+                  <button
+                    type="button"
+                    class="bb__opt"
+                    data-placement
+                    data-id={p.id}
+                    data-label={p.label}
+                    data-fee={p.fee}
+                    data-gold={p.gold ? '1' : '0'}
+                    data-heal={p.heal}
+                  >
+                    <span class="bb__opt-l">{p.label}</span>
+                    <span class="bb__opt-m">
+                      <span class="bb__opt-heal">{p.heal}</span>
+                      <span class="bb__opt-p">${p.fee}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <p class="bb__note">
+            Anatomy decides. If a placement will not heal on you, we say so at the
+            consultation and you pay nothing for it.
+          </p>
+        </div>
+      </div>
+    </li>
+
+    <!-- ── 2 · JEWELRY ───────────────────────────────── -->
+    <li class="bb__step is-locked" data-step="2">
+      <button type="button" class="bb__head" aria-expanded="false" aria-controls="bb-panel-2" data-head>
+        <span class="bb__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="16" cy="17" r="9" />
+            <circle cx="16" cy="8" r="3.2" />
+          </svg>
+        </span>
+        <span class="bb__head-text">
+          <span class="bb__n">2 · Choose jewelry</span>
+          <span class="bb__val" data-val="2">Titanium included · gold as an upgrade</span>
+        </span>
+        <span class="bb__chev" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </button>
+
+      <div class="bb__panel" id="bb-panel-2" data-panel>
+        <div class="bb__panel-in">
+          <div class="bb__opts bb__opts--stack">
+            {jewels.map(j => (
+              <button
+                type="button"
+                class="bb__opt bb__opt--wide"
+                data-jewel
+                data-id={j.id}
+                data-label={j.label}
+                data-add={j.add}
+                data-gold={j.gold ? '1' : '0'}
+              >
+                <span class="bb__opt-body">
+                  <span class="bb__opt-l">{j.label}</span>
+                  <span class="bb__opt-sub">{j.sub}</span>
+                </span>
+                <span class="bb__opt-p">{j.add === 0 ? 'Included' : `+$${j.add}`}</span>
+              </button>
+            ))}
+          </div>
+          <p class="bb__note" data-gold-note hidden>
+            The gold ends are threadless tops — they seat on a titanium post. This
+            placement takes a ring or a barbell, so it starts in titanium. Once it is
+            healed, everything in the shop opens to you.
+          </p>
+          <p class="bb__note">
+            <a href="/initial-jewelry">See every piece we install →</a>
+          </p>
+        </div>
+      </div>
+    </li>
+
+    <!-- ── 3 · DATE ──────────────────────────────────── -->
+    <li class="bb__step is-locked" data-step="3">
+      <button type="button" class="bb__head" aria-expanded="false" aria-controls="bb-panel-3" data-head>
+        <span class="bb__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2">
+            <rect x="6" y="8" width="20" height="18" rx="2" />
+            <path d="M6 14h20M11 5v5M21 5v5" stroke-linecap="round" />
+            <circle cx="16" cy="20" r="1.6" fill="currentColor" stroke="none" />
+          </svg>
+        </span>
+        <span class="bb__head-text">
+          <span class="bb__n">3 · Preferred date</span>
+          <span class="bb__val" data-val="3">When suits you</span>
+        </span>
+        <span class="bb__chev" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </button>
+
+      <div class="bb__panel" id="bb-panel-3" data-panel>
+        <div class="bb__panel-in">
+          <label class="bb__field">
+            <span class="bb__field-l">Your preferred day</span>
+            <input type="date" data-date class="bb__input" />
+          </label>
+          <p class="bb__note">
+            Sessions are by appointment in a private studio. We will confirm the closest
+            slot to this by hand — nothing is charged to book.
+          </p>
+        </div>
+      </div>
+    </li>
+
+    <!-- ── 4 · TIME ──────────────────────────────────── -->
+    <li class="bb__step is-locked" data-step="4">
+      <button type="button" class="bb__head" aria-expanded="false" aria-controls="bb-panel-4" data-head>
+        <span class="bb__icon" aria-hidden="true">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2">
+            <circle cx="16" cy="16" r="11" />
+            <path d="M16 10v6.5l4 2.2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+        <span class="bb__head-text">
+          <span class="bb__n">4 · Preferred time</span>
+          <span class="bb__val" data-val="4">Choose a window</span>
+        </span>
+        <span class="bb__chev" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4">
+            <path d="M4 6l4 4 4-4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </span>
+      </button>
+
+      <div class="bb__panel" id="bb-panel-4" data-panel>
+        <div class="bb__panel-in">
+          <div class="bb__opts">
+            {times.map(t => (
+              <button type="button" class="bb__opt" data-time data-id={t.id} data-label={t.label}>
+                <span class="bb__opt-l">{t.label}</span>
+                <span class="bb__opt-m"><span class="bb__opt-heal">{t.sub}</span></span>
+              </button>
+            ))}
+          </div>
+          <label class="bb__field">
+            <span class="bb__field-l">Anything we should know (optional)</span>
+            <textarea data-notes rows="3" class="bb__input bb__input--area"
+              placeholder="Existing piercings, allergies, a placement you're unsure about…"></textarea>
+          </label>
+        </div>
+      </div>
+    </li>
+
+  </ol>
+
+  <!-- ── SAFETY ─────────────────────────────────────── -->
+  <div class="bb__safety">
+    <span class="bb__safety-icon" aria-hidden="true">
+      <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.2">
+        <path d="M16 4l10 4v8c0 6-4.4 10.2-10 12-5.6-1.8-10-6-10-12V8l10-4z" stroke-linejoin="round" />
+        <path d="M11.5 16l3 3 6-6" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </span>
+    <p>
+      <strong>Your safety is not a feature of this studio. It is the studio.</strong>
+      Single-use sterile needles, one setup per person, and implant-grade titanium
+      that arrives sealed with a lot number and a date — opened in front of you.
+    </p>
+  </div>
+
+  <!-- ── TOTAL + CTA ────────────────────────────────── -->
+  <div class="bb__foot">
+    <div class="bb__total">
+      <p class="bb__total-l">Your session</p>
+      <p class="bb__total-v" data-total>—</p>
+      <p class="bb__total-b" data-breakdown>Choose a placement to begin</p>
+    </div>
+
+    <div class="bb__cta">
+      <button type="button" class="btn btn--solid bb__submit" data-send-email disabled>
+        Request this appointment
+      </button>
+      <button type="button" class="btn btn--ghost bb__submit" data-send-wa disabled>
+        Send on WhatsApp
+      </button>
+      <p class="bb__secure">
+        <span aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3">
+            <rect x="3" y="7" width="10" height="7" rx="1.5" />
+            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke-linecap="round" />
+          </svg>
+        </span>
+        Nothing is charged to book. A person replies, not a robot.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<script is:inline define:vars={{ EMAIL, WA }}>
+  (function () {
+    const root = document.querySelector('[data-booking-builder]');
+    if (!root) return;
+
+    const steps = [...root.querySelectorAll('[data-step]')];
+    const state = { placement: null, jewel: null, date: '', time: null, notes: '' };
+
+    /* design carried over from /constelaciones "Book this design" (may be null) */
+    let design = null;
+
+    /* ── accordion ─────────────────────────────────── */
+    function openStep(n) {
+      steps.forEach(s => {
+        const isTarget = s.dataset.step === String(n);
+        const head = s.querySelector('[data-head]');
+        s.classList.toggle('is-open', isTarget);
+        if (head) head.setAttribute('aria-expanded', isTarget ? 'true' : 'false');
+      });
+    }
+
+    function unlock(n) {
+      const s = steps.find(x => x.dataset.step === String(n));
+      if (s) s.classList.remove('is-locked');
+    }
+
+    steps.forEach(s => {
+      const head = s.querySelector('[data-head]');
+      if (!head) return;
+      head.addEventListener('click', () => {
+        if (s.classList.contains('is-locked')) return;
+        // clicking an open step closes it; otherwise open it
+        openStep(s.classList.contains('is-open') ? 0 : s.dataset.step);
+      });
+    });
+
+    function setVal(n, text, chosen) {
+      const el = root.querySelector(`[data-val="${n}"]`);
+      if (!el) return;
+      el.textContent = text;
+      el.classList.toggle('is-chosen', !!chosen);
+    }
+
+    function clearSelected(sel) {
+      root.querySelectorAll(sel).forEach(b => b.classList.remove('is-selected'));
+    }
+
+    /* ── 1 · placement ─────────────────────────────── */
+    root.querySelectorAll('[data-placement]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        clearSelected('[data-placement]');
+        btn.classList.add('is-selected');
+        state.placement = {
+          id: btn.dataset.id,
+          label: btn.dataset.label,
+          fee: Number(btn.dataset.fee),
+          gold: btn.dataset.gold === '1',
+          heal: btn.dataset.heal,
+        };
+
+        // A placement change can invalidate a gold choice. Reset rather than
+        // silently carry a jewel this anatomy cannot take.
+        if (state.jewel && state.jewel.gold && !state.placement.gold) {
+          state.jewel = null;
+          clearSelected('[data-jewel]');
+          setVal(2, 'Titanium included · gold as an upgrade', false);
+        }
+
+        applyGoldGate();
+        setVal(1, `${state.placement.label} · $${state.placement.fee}`, true);
+        unlock(2);
+        openStep(2);
+        render();
+      });
+    });
+
+    /* Gold ends are threadless tops. Rings and barbells cannot take one. */
+    function applyGoldGate() {
+      const allowed = !!(state.placement && state.placement.gold);
+      root.querySelectorAll('[data-jewel]').forEach(b => {
+        if (b.dataset.gold !== '1') return;
+        b.disabled = !allowed;
+        b.classList.toggle('is-disabled', !allowed);
+      });
+      const note = root.querySelector('[data-gold-note]');
+      if (note) note.hidden = allowed || !state.placement;
+    }
+
+    /* ── 2 · jewel ─────────────────────────────────── */
+    root.querySelectorAll('[data-jewel]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.disabled) return;
+        clearSelected('[data-jewel]');
+        btn.classList.add('is-selected');
+        state.jewel = {
+          id: btn.dataset.id,
+          label: btn.dataset.label,
+          add: Number(btn.dataset.add),
+          gold: btn.dataset.gold === '1',
+        };
+        setVal(2, state.jewel.add ? `${state.jewel.label} · +$${state.jewel.add}` : state.jewel.label, true);
+        unlock(3);
+        openStep(3);
+        render();
+      });
+    });
+
+    /* ── 3 · date ──────────────────────────────────── */
+    const dateEl = root.querySelector('[data-date]');
+    if (dateEl) {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      dateEl.min = t.toISOString().slice(0, 10);
+      dateEl.addEventListener('change', () => {
+        state.date = dateEl.value;
+        if (!state.date) return;
+        const d = new Date(state.date + 'T12:00:00');
+        setVal(3, d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }), true);
+        unlock(4);
+        openStep(4);
+        render();
+      });
+    }
+
+    /* ── 4 · time + notes ──────────────────────────── */
+    root.querySelectorAll('[data-time]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        clearSelected('[data-time]');
+        btn.classList.add('is-selected');
+        state.time = { id: btn.dataset.id, label: btn.dataset.label };
+        setVal(4, state.time.label, true);
+        render();
+      });
+    });
+
+    const notesEl = root.querySelector('[data-notes]');
+    if (notesEl) notesEl.addEventListener('input', () => { state.notes = notesEl.value.trim(); });
+
+    /* ── total ─────────────────────────────────────── */
+    const totalEl = root.querySelector('[data-total]');
+    const breakEl = root.querySelector('[data-breakdown]');
+    const emailBtn = root.querySelector('[data-send-email]');
+    const waBtn = root.querySelector('[data-send-wa]');
+
+    function render() {
+      if (!state.placement) {
+        totalEl.textContent = '—';
+        breakEl.textContent = 'Choose a placement to begin';
+      } else {
+        const add = state.jewel ? state.jewel.add : 0;
+        totalEl.textContent = '$' + (state.placement.fee + add);
+        const parts = [`${state.placement.label} $${state.placement.fee}`];
+        if (state.jewel && add) parts.push(`gold +$${add}`);
+        else if (state.jewel) parts.push('titanium included');
+        breakEl.textContent = parts.join('  ·  ');
+      }
+      const ready = !!(state.placement && state.jewel && state.date && state.time);
+      emailBtn.disabled = !ready;
+      waBtn.disabled = !ready;
+    }
+
+    /* ── compose ───────────────────────────────────── */
+    function message() {
+      const total = state.placement.fee + (state.jewel ? state.jewel.add : 0);
+      const d = new Date(state.date + 'T12:00:00');
+      const pretty = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      const lines = [
+        'Booking request — Wenu Mapu',
+        '',
+        `Placement:  ${state.placement.label}  ($${state.placement.fee})`,
+        `Jewelry:    ${state.jewel.label}${state.jewel.add ? `  (+$${state.jewel.add})` : '  (included)'}`,
+        `Total:      $${total}`,
+        '',
+        `Preferred:  ${pretty} — ${state.time.label}`,
+        `Healing:    ${state.placement.heal}`,
+      ];
+      if (state.notes) lines.push('', `Notes:      ${state.notes}`);
+      if (design && design.items && design.items.length) {
+        lines.push('', 'Full ear design (to plan across sessions):');
+        design.items.forEach(it => lines.push(`  · ${it.name}  ($${it.fee})`));
+        lines.push(`  Full design from $${design.total}`);
+      }
+      lines.push('', 'Sent from wenumapuonline.com');
+      return lines.join('\n');
+    }
+
+    emailBtn.addEventListener('click', () => {
+      if (emailBtn.disabled) return;
+      const subject = `Booking — ${state.placement.label} · ${state.date}`;
+      window.location.href =
+        `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message())}`;
+    });
+
+    waBtn.addEventListener('click', () => {
+      if (waBtn.disabled) return;
+      window.open(`${WA}?text=${encodeURIComponent(message())}`, '_blank', 'noopener');
+    });
+
+    /* ── handoff from /constelaciones ──────────────────
+       Map a constellation zone to a builder placement id, pre-select the first
+       planned placement, and show the design banner. The full plan rides in the
+       message. Read-once: clear the key so a later plain visit isn't polluted. */
+    const ZONE_TO_PLACEMENT = {
+      'Lobe': 'lobe',
+      'Helix': 'helix', 'Flat': 'helix', 'Forward Helix': 'helix', 'Industrial': 'helix',
+      'Tragus': 'tragus',
+      'Rook': 'conch', 'Daith': 'conch', 'Conch': 'conch', 'Snug': 'conch',
+    };
+    (function readHandoff() {
+      let payload = null;
+      try {
+        const raw = localStorage.getItem('wenu-booking-from-design-v1');
+        if (raw) payload = JSON.parse(raw);
+        localStorage.removeItem('wenu-booking-from-design-v1');
+      } catch { payload = null; }
+      if (!payload || !payload.items || !payload.items.length) return;
+      design = payload;
+
+      const banner = root.querySelector('[data-design-banner]');
+      const list = root.querySelector('[data-design-list]');
+      if (list) list.textContent = payload.items.map(it => it.name).join('  ·  ') + `  —  from $${payload.total}`;
+      if (banner) banner.hidden = false;
+
+      // pre-select the first placement the design maps to
+      const first = payload.items.map(it => ZONE_TO_PLACEMENT[it.zone]).find(Boolean);
+      if (first) {
+        const btn = root.querySelector(`[data-placement][data-id="${first}"]`);
+        if (btn) btn.click();
+      }
+    })();
+
+    render();
+  })();
+</script>
+
+<style>
+  .bb {
+    border: 1px solid rgba(184, 180, 170, 0.18);
+    background: var(--charcoal);
+  }
+
+  /* ── design handoff banner ── */
+  .bb__design {
+    border-bottom: 1px solid rgba(201, 168, 76, 0.3);
+    background:
+      radial-gradient(120% 140% at 10% 0%, rgba(201, 168, 76, 0.1), transparent 60%),
+      var(--obsidian);
+    padding: 1.15rem 1.25rem;
+  }
+  .bb__design-head {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-bottom: 0.55rem;
+  }
+  .bb__design-icon { color: var(--ember); }
+  .bb__design-icon svg { width: 1.25rem; height: 1.25rem; display: block; }
+  .bb__design-title {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin: 0;
+  }
+  .bb__design-list {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(1.1rem, 2.4vw, 1.4rem);
+    line-height: 1.3;
+    color: var(--bone);
+    margin: 0 0 0.5rem;
+  }
+  .bb__design-note {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--sand);
+    margin: 0;
+  }
+
+  /* ── steps ── */
+  .bb__steps { list-style: none; margin: 0; padding: 0; }
+  .bb__step { border-bottom: 1px solid rgba(184, 180, 170, 0.14); }
+  .bb__step.is-locked { opacity: 0.42; }
+  .bb__step.is-locked .bb__head { cursor: not-allowed; }
+
+  .bb__head {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.15rem 1.25rem;
+    background: none;
+    border: 0;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+  }
+  .bb__step:not(.is-locked) .bb__head:hover { background: rgba(201, 168, 76, 0.05); }
+
+  .bb__icon {
+    flex: 0 0 auto;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--ember);
+  }
+  .bb__icon svg { width: 1.4rem; height: 1.4rem; }
+  .bb__step.is-open .bb__icon { background: rgba(201, 168, 76, 0.1); }
+
+  .bb__head-text { flex: 1 1 auto; min-width: 0; }
+  .bb__n {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.63rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ember);
+    margin-bottom: 0.3rem;
+  }
+  .bb__val {
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.06rem;
+    line-height: 1.35;
+    color: var(--sand);
+  }
+  .bb__val.is-chosen {
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    font-size: 0.95rem;
+    color: var(--bone);
+  }
+
+  .bb__chev { flex: 0 0 auto; color: var(--bronze); }
+  .bb__chev svg { width: 1rem; height: 1rem; transition: transform 0.3s ease; }
+  .bb__step.is-open .bb__chev svg { transform: rotate(180deg); }
+
+  /* ── panel ── */
+  .bb__panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .bb__step.is-open .bb__panel { grid-template-rows: 1fr; }
+  .bb__panel > * { overflow: hidden; }
+  .bb__panel-in { padding: 0 1.25rem 1.5rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bb__panel { transition: none; }
+  }
+
+  /* ── zones + options ── */
+  .bb__zone + .bb__zone { margin-top: 1.2rem; }
+  .bb__zone-t {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--bronze);
+    margin: 0 0 0.6rem;
+  }
+  .bb__opts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+    gap: 0.5rem;
+  }
+  .bb__opts--stack { grid-template-columns: 1fr; }
+
+  .bb__opt {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.8rem 0.9rem;
+    background: var(--obsidian);
+    border: 1px solid rgba(184, 180, 170, 0.16);
+    color: var(--bone);
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    min-width: 0;
+    transition: border-color 0.25s ease, background 0.25s ease;
+  }
+  .bb__opt:hover:not(:disabled) { border-color: rgba(201, 168, 76, 0.55); }
+  .bb__opt.is-selected {
+    border-color: var(--ember);
+    background: rgba(201, 168, 76, 0.09);
+  }
+  .bb__opt.is-disabled,
+  .bb__opt:disabled { opacity: 0.3; cursor: not-allowed; }
+  .bb__opt--wide { align-items: flex-start; padding: 1rem; }
+  .bb__opt-body { display: block; min-width: 0; }
+
+  .bb__opt-l {
+    display: block;
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    font-size: 0.92rem;
+    line-height: 1.3;
+  }
+  .bb__opt-sub {
+    display: block;
+    margin-top: 0.3rem;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.98rem;
+    line-height: 1.45;
+    color: var(--sand);
+  }
+  .bb__opt-m {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.15rem;
+    flex: 0 0 auto;
+  }
+  .bb__opt-heal {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.05em;
+    color: var(--bronze);
+    white-space: nowrap;
+  }
+  .bb__opt-p {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.8rem;
+    color: var(--ember);
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+
+  /* ── fields ── */
+  .bb__field { display: block; margin-top: 1rem; }
+  .bb__field-l {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--bronze);
+    margin-bottom: 0.5rem;
+  }
+  .bb__input {
+    width: 100%;
+    padding: 0.8rem 0.9rem;
+    background: var(--obsidian);
+    border: 1px solid rgba(184, 180, 170, 0.2);
+    color: var(--bone);
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    font-size: 0.95rem;
+    border-radius: 0;
+  }
+  .bb__input:focus {
+    outline: none;
+    border-color: var(--ember);
+  }
+  .bb__input--area { resize: vertical; }
+
+  .bb__note {
+    margin: 1rem 0 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    line-height: 1.55;
+    color: var(--sand);
+  }
+  .bb__note a { color: var(--ember); text-decoration: none; }
+  .bb__note a:hover { text-decoration: underline; }
+
+  /* ── safety ── */
+  .bb__safety {
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+    padding: 1.2rem 1.25rem;
+    border-bottom: 1px solid rgba(184, 180, 170, 0.14);
+    background: rgba(201, 168, 76, 0.04);
+  }
+  .bb__safety-icon { flex: 0 0 auto; color: var(--ember); }
+  .bb__safety-icon svg { width: 1.7rem; height: 1.7rem; }
+  .bb__safety p {
+    margin: 0;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.03rem;
+    line-height: 1.55;
+    color: var(--sand);
+  }
+  .bb__safety strong {
+    display: block;
+    font-family: 'Instrument Sans', system-ui, sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--bone);
+    margin-bottom: 0.3rem;
+  }
+
+  /* ── foot ── */
+  .bb__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    padding: 1.4rem 1.25rem;
+  }
+  .bb__total { min-width: 0; }
+  .bb__total-l {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--bronze);
+    margin: 0 0 0.35rem;
+  }
+  .bb__total-v {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2rem, 5vw, 2.7rem);
+    line-height: 1;
+    color: var(--bone);
+    margin: 0 0 0.4rem;
+  }
+  .bb__total-b {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.65rem;
+    color: var(--sand);
+    margin: 0;
+  }
+
+  .bb__cta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    align-items: stretch;
+    flex: 1 1 15rem;
+    max-width: 20rem;
+  }
+  .bb__submit { width: 100%; text-align: center; }
+  .bb__submit:disabled { opacity: 0.35; cursor: not-allowed; }
+  .bb__secure {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    justify-content: center;
+    margin: 0.2rem 0 0;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+    color: var(--bronze);
+    text-align: center;
+  }
+  .bb__secure svg { flex: 0 0 auto; }
+
+  @media (max-width: 560px) {
+    .bb__foot { flex-direction: column; align-items: stretch; }
+    .bb__cta { max-width: none; }
+  }
+</style>

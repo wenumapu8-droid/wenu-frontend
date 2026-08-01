@@ -1,0 +1,179 @@
+# Wenu Mapu — frontend
+
+Astro 6.2.1 SSG. Sitio público en `wenumapuonline.com`. Lee productos de WooCommerce REST en build time.
+
+## Comandos
+
+```bash
+nvm use          # reads .nvmrc → Node 24.14.1
+npm install
+npm run dev      # dev server localhost:4321
+npm run build    # build SSG → ./dist (runs postbuild assertion)
+npm run preview  # serve build local
+```
+
+Node version: pinned to **24.14.1** via `.nvmrc`. `package.json` `engines.node = ^22.12.0 || >=24.0.0` for headroom.
+
+## Build safety
+
+- `getProducts/getProduct/getCategories` in `src/lib/woo.ts` **throw** on WC fetch errors. No silent zero-products builds.
+- `npm run postbuild` runs `scripts/verify-build.mjs` which fails the build if `dist/p/` has fewer than 20 product directories.
+- Intentional offline/dev build: `ALLOW_EMPTY_PRODUCTS=true npm run build` — logs warnings, skips the assertion.
+
+## Cloudflare Pages
+
+**ACTUALIZADO 2026-07-04:** `wenumapuonline.com` YA sirve este sitio Astro rediseñado (Cloudflare Pages, branch `redesign-v2`), NO el WordPress legacy. Lo que Ocin ve en el dominio es este repo: el banner "Geometry borrowed from the sky / TUNE IN", los PDP nuevos, `/constelaciones`, etc. Los productos siguen leyéndose de WooCommerce REST en build time (solo como fuente de datos). **Verificar siempre en `wenumapuonline.com` (lo que ve Ocin), no solo en `*.pages.dev`; forzar refresh si hay caché.** El deploy es Direct Upload vía `deploy-now.sh` (build + verify + `wrangler pages deploy`); `git push` NO despliega.
+
+| Field | Value |
+|---|---|
+| Project name | `wenu-frontend` (Direct Upload — `git push` NO despliega; subir `dist/` con `wrangler pages deploy`. Ver memoria reference_cloudflare_deploy) |
+| Production branch (in this Pages project) | `redesign-v2` |
+| Framework preset | Astro |
+| Build command | `npm run build` |
+| Output directory | `dist` |
+| Root directory | `/` |
+| Custom domain | none — use auto `*.pages.dev` URL only |
+
+### Required environment variables
+
+| Var | Where | Example | Encrypted |
+|---|---|---|---|
+| `NODE_VERSION` | Production + Preview | `24.14.1` | no |
+| `WC_URL` | Production + Preview | `https://www.wenumapuonline.com/wp-json/wc/v3` | no |
+| `WC_CONSUMER_KEY` | Production + Preview | from local `.env` | yes |
+| `WC_CONSUMER_SECRET` | Production + Preview | from local `.env` | yes |
+| `ALLOW_EMPTY_PRODUCTS` | dev only — never set in CI | unset | — |
+
+### Do NOT do (production safety)
+
+- Do not attach the apex `wenumapuonline.com` domain to this Pages project yet.
+- Do not attach `aftercare.wenumapuonline.com` here — aftercare is a separate deploy track.
+- Do not deploy `main` — only `redesign-v2`.
+
+## Route redirects (preview milestone)
+
+`public/_redirects` is reserved for future Cloudflare-edge redirects. Standalone routes for `/piercing`, `/hangers` and `/shipping` are real Astro pages now (see `src/pages/`).
+
+## Datos
+
+- Productos: WooCommerce REST API. Cliente en `src/lib/woo.ts`. Credenciales `WC_CONSUMER_KEY`/`WC_CONSUMER_SECRET` en `.env`.
+- API base: `https://www.wenumapuonline.com/wp-json/wc/v3`.
+- Fetch en build time → HTML estático. No hay runtime queries.
+
+## Identidad visual
+
+Documentación de marca en `~/Obsidian/WenuAgent/brand/`:
+- `BRAND-DNA-2026-05-03.md` — ADN de marca
+- `color-palette.md` — paleta
+- `typography.md` — tipografías
+- `voz-de-marca-real-2026-05-03.md` — voz/tono
+- `copy-frontend-2026-05-01.md` — copy de secciones
+
+## Sistema de estilos
+
+CSS puro, sin Tailwind.
+
+- `src/styles/tokens.css` — design tokens (paleta, escala tipográfica, spacing). Paleta canónica dark-first: Obsidian #0a0a0a, Charcoal #121212, Bone #f0ede8, Sand #9a948a, Silver #b8b4aa, Bronze #6a4a28, Ember #c9a84c. **No hardcodear hex en componentes — usar siempre los tokens `var(--obsidian)`, `var(--bone)`, `var(--ember)`, etc.**
+- `src/styles/global.css` — reset, typography, clases reusables (`.archive-card`, `.product-card`, `.btn`, `.btn--solid`, `.btn--ghost`, `.section--mega`, `.constellation-divider`, `.eyebrow`, `.sacred-mark`).
+
+Tipografías cargadas vía `@fontsource` (self-hosted, imports en `global.css`):
+- Instrument Serif (display / wordmark editorial)
+- Cormorant Garamond (serif ritual / manifiesto)
+- Instrument Sans (body / UI / e-commerce)
+- JetBrains Mono (mono — fallback a system mono si no se carga)
+
+**NO migrar a otras fuentes** (decisión owner 2026-05-30). El logo va como PNG/imagen, no como font.
+
+## Componentes existentes (reusables)
+
+- `Base.astro` — layout HTML + SEO metadata
+- `Nav.astro` — header (en rediseño F2)
+- `Logo.astro` — logo SVG
+- `ProductCard.astro` — 2 modos: `product` y `archive`
+- `Footer.astro` — footer (en rediseño F8)
+- `EmbossedSeal.astro` — sello SVG decorativo (props: text, size)
+
+## Páginas
+
+- `/` — home (`src/pages/index.astro`)
+- `/shop` — catálogo (`src/pages/shop.astro`)
+- `/p/[slug]` — detalle producto (`src/pages/p/[slug].astro`)
+- `/contact` — contacto
+- `/local` — pickup Truckee
+
+## i18n
+
+`src/i18n/en.json` (inglés) + `src/i18n/mapudungun.json` (frases rituales en mapudungun).
+
+## Rediseño en curso
+
+Plan completo en `~/.claude/plans/hecho-trabajamos-los-dos-frolicking-sparrow.md`.
+
+Trabajamos en branch `redesign-v2`. Producción intacta en `main` hasta merge final.
+
+Fases F0-F10. Estado actual: ver TodoWrite del agente.
+
+## Imágenes
+
+Convención y proceso documentados en `public/img/README.md`.
+
+Resumen:
+- Lowercase kebab-case, sin emojis ni espacios.
+- WebP para fotos pesadas, PNG para gráficos planos.
+- Script `scripts/clean-images.mjs` strip metadata EXIF + convierte a WebP las > 800KB.
+- Correr el script cada vez que se agreguen fotos crudas a `public/img/*`.
+
+## Catálogo — categorías y tipos de piercing
+
+Top categories (en CategoryStrip + dropdown Nav): Piercing, Hangers, Ear Weights, Amulets, Ritual Pieces.
+
+Tipos de piercing pendientes de cargar al inventario WooCommerce (mayo 2026):
+- Flat
+- Eyebrow (ceja)
+- Nipple
+- Lip (labio)
+- Tongue (lengua)
+
+Cuando estos tipos se carguen como categorías o atributos en WooCommerce, aparecen automáticamente como tabs filtro en `/shop` — el shop lee dinámicamente las categorías de WC vía `getCategories()` en `src/lib/woo.ts`. No requiere cambios en el frontend.
+
+Si más adelante hace falta un mega-menu en el Nav con sub-tipos de piercing, expandir `shopSubmenu` en `src/components/Nav.astro`.
+
+## Reglas
+
+- No tocar `src/lib/woo.ts` salvo necesidad explícita — fuente de productos estable.
+- No reescribir tokens existentes; expandirlos si hace falta.
+- Reusar clases de `global.css` antes de crear nuevas.
+- Mobile-first o paridad mobile/desktop obligatoria.
+- Cada fase debe pasar `npm run build` limpio antes de commit.
+- Toda foto cruda nueva debe pasar por `node scripts/clean-images.mjs` (strip EXIF + WebP) y `node scripts/gen-avif.mjs` (AVIF companions).
+
+## Componentes clave
+
+- `Base.astro` (layout) — props soportados: `title`, `description`, `ogImage`, `ogType`, `noNav`, `noFooter`, `jsonLd`, `preloadImage`. Acepta jsonLd como object o array. preloadImage agrega `<link rel="preload">` para LCP.
+- `PatternBand.astro` — divider textil mapuche (placeholder geométrico hasta que llegue el SVG real). Variantes: `hairline` (entre secciones) o `band` (footer/sacred).
+- `SearchModal.astro` — vive en Base. Lazy-loads `/search-index.json`. Triggers: click, `/`, `Cmd+K`. Cierra con Esc.
+- `ProductCard.astro` — props: `product`, `archive`, `fragmentIndex`, `badge`. Cards sin imagen muestran cardinal-cross placeholder en bronze.
+- `HealingTimes.astro` — prop `titleAs: 'h1' | 'h2'` (default 'h2'; care-guide passes 'h1').
+- `CardinalGrid.astro` — 4 SVGs cardinales con lang="arn" en labels mapudungun.
+
+## Endpoints
+
+- `/search-index.json` — Astro endpoint que emite todos los productos (id, slug, name, price, image, cat, cats). Consumido por SearchModal.
+- `/sitemap-index.xml` — generado por @astrojs/sitemap con priorities curadas (config en `astro.config.mjs`).
+- `/robots.txt` — manual en `public/robots.txt`.
+
+## SEO / Structured data
+
+- Home: `Organization` + `WebSite` (con `SearchAction`).
+- `/p/[slug]`: `Product` + `BreadcrumbList`.
+- `/faq`: `FAQPage` (cada Q/A es Question/acceptedAnswer).
+- `/care-guide`: `HowTo` con los 3 principios + `HowToSupply`.
+- Per-page OG images: home/heroe, custom-orders/ring, care-guide/meteorite, local/truckee, about/meteorite-final, shop/meteorite-banner.
+
+## Performance
+
+- Hero responsive: 600/900/1200/1800w en avif+webp via `<picture>` con `srcset+sizes`. Mobile baja ~15KB en vez de ~131KB.
+- Hero preloaded via `<link rel="preload" as="image" type="image/avif">` con fetchpriority=high.
+- AVIF companion para todas las imágenes >800KB (script `scripts/gen-avif.mjs`).
+- Preconnect a `wenumapuonline.com` (CDN de productos), dns-prefetch a `formspree.io`.
+- Fade-in stagger en cards de Featured / Categories / USPs / Cardinals via IntersectionObserver. Honra `prefers-reduced-motion`.

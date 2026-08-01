@@ -1,0 +1,166 @@
+---
+/**
+ * KODEX-∞ · MUSEO
+ *
+ * ARCHIVE es el índice de la biblioteca: una grilla densa, borde a borde, de
+ * todos los volúmenes. Click y se abre.
+ *
+ * El modelo es el Winamp Skin Museum: miles de skins en una grilla, cada celda
+ * un artefacto vivo, búsqueda mínima arriba, chrome mínimo sobre contenido
+ * máximo. Ahí la cantidad no abruma porque cada celda ES la cosa, no una
+ * tarjeta que habla de la cosa.
+ *
+ * Dos decisiones que hacen que funcione con muchos volúmenes:
+ *
+ *  · Cada celda muestra su ORGANISMO, no una miniatura genérica. Sin obra
+ *    staged, el organismo se genera de la semilla del volumen — así dos celdas
+ *    nunca se ven iguales aunque ninguna tenga imagen todavía.
+ *  · La búsqueda filtra en el cliente y no recarga. Un índice que navega para
+ *    filtrar deja de ser un índice y pasa a ser un catálogo paginado.
+ */
+import type { VolumenResuelto } from "../../../lib/kodex/volumenes";
+
+interface Props {
+  volumenes: VolumenResuelto[];
+  class?: string;
+}
+const { volumenes, class: className = "" } = Astro.props;
+
+/** Celda sin obra: el organismo se dibuja con canvas, barato y distinto. */
+const semillaDe = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
+---
+
+<section class:list={["kdx-museo", className]} data-kdx-museo>
+  <header class="kdx-museo__cab">
+    <p class="kdx-museo__titulo">
+      ÍNDICE DE VOLÚMENES
+      <span data-kdx-museo-cuenta>{volumenes.length}</span>
+    </p>
+    <label class="kdx-museo__buscar">
+      <span class="visually-hidden">buscar en el archivo</span>
+      <input type="search" placeholder="BUSCAR · SEARCH" data-kdx-museo-buscar autocomplete="off" />
+    </label>
+  </header>
+
+  <ol class="kdx-museo__grilla">
+    {volumenes.map((v) => (
+      <li
+        class="kdx-museo__celda"
+        style={`--c:${v.color}`}
+        data-kdx-museo-item
+        data-busca={`${v.titulo_es} ${v.titulo_en ?? ""} ${v.tipo} ${v.estratoTitulo} ${v.curaduria_es ?? ""}`.toLowerCase()}
+      >
+        <a href={`/kodex/vol/${v.slug}/`}>
+          <span class="kdx-museo__lienzo" aria-hidden="true">
+            {v.hero
+              ? <img src={v.hero.src} alt="" loading="lazy" decoding="async" />
+              : <canvas data-kdx-museo-organismo data-semilla={semillaDe(v.slug)} width="180" height="180"></canvas>}
+          </span>
+          <span class="kdx-museo__meta">
+            <b>{v.titulo_es}</b>
+            <small>{v.tipo} · {v.estratoNumero}</small>
+          </span>
+          <span class="kdx-museo__glifos" aria-hidden="true">{v.glifos}</span>
+        </a>
+      </li>
+    ))}
+  </ol>
+
+  <p class="kdx-museo__vacio" data-kdx-museo-vacio hidden>SIN COINCIDENCIAS · NO MATCHES</p>
+</section>
+
+<script>
+  import "./kodex-museo-client.ts";
+</script>
+
+<style>
+  .kdx-museo { display: grid; gap: 10px; min-height: 0; }
+
+  .kdx-museo__cab {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.5);
+  }
+  .kdx-museo__titulo { margin: 0; display: flex; gap: 10px; }
+  .kdx-museo__titulo span { color: var(--acc, #FF3833); font-variant-numeric: tabular-nums; }
+
+  .kdx-museo__buscar input {
+    background: transparent; color: #e8e5df;
+    border: 1px solid rgba(232, 229, 222, 0.18);
+    padding: 6px 10px; width: min(200px, 34vw);
+    font-family: inherit; font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase;
+  }
+  .kdx-museo__buscar input:focus-visible { outline: 1px solid var(--acc, #FF3833); border-color: var(--acc, #FF3833); }
+
+  /* Borde a borde y denso: la cantidad es el mensaje. Celdas chicas, muchas,
+     sin aire decorativo entre ellas. */
+  .kdx-museo__grilla {
+    margin: 0; padding: 0; list-style: none;
+    display: grid; gap: 1px;
+    grid-template-columns: repeat(auto-fill, minmax(clamp(96px, 11vw, 148px), 1fr));
+    background: rgba(232, 229, 222, 0.08);
+    border: 1px solid rgba(232, 229, 222, 0.08);
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  .kdx-museo__celda { background: #050507; }
+  .kdx-museo__celda[hidden] { display: none; }
+  .kdx-museo__celda a {
+    position: relative; display: grid; gap: 0;
+    text-decoration: none; color: inherit;
+    transition: background 180ms ease;
+  }
+  .kdx-museo__celda a:hover,
+  .kdx-museo__celda a:focus-visible {
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+    outline: none;
+  }
+  /* El acento sube al pasar: la celda "sintoniza", como un preset que se
+     selecciona en un visualizador. */
+  .kdx-museo__celda a:hover .kdx-museo__lienzo::after,
+  .kdx-museo__celda a:focus-visible .kdx-museo__lienzo::after { opacity: 0.34; }
+
+  .kdx-museo__lienzo { position: relative; display: block; aspect-ratio: 1; overflow: hidden; }
+  .kdx-museo__lienzo::after {
+    content: ""; position: absolute; inset: 0; background: var(--c);
+    mix-blend-mode: screen; opacity: 0.12; transition: opacity 200ms ease;
+  }
+  .kdx-museo__lienzo img,
+  .kdx-museo__lienzo canvas {
+    display: block; width: 100%; height: 100%; object-fit: cover;
+    filter: grayscale(1) contrast(1.25);
+  }
+
+  .kdx-museo__meta {
+    display: grid; gap: 2px; padding: 6px 8px 8px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  .kdx-museo__meta b {
+    font-size: 9.5px; font-weight: 500; letter-spacing: 0.08em;
+    color: #e8e5df; text-transform: uppercase;
+    /* Un título que se corta en dos líneas rompe la grilla; se recorta. */
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .kdx-museo__meta small {
+    font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: color-mix(in srgb, var(--c) 66%, #8b8b8b);
+  }
+
+  .kdx-museo__glifos {
+    position: absolute; top: 5px; right: 6px;
+    font-size: 10px; letter-spacing: 0.14em; color: rgba(232, 229, 222, 0.42);
+  }
+
+  .kdx-museo__vacio {
+    margin: 0; padding: 20px 0; text-align: center;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px; letter-spacing: 0.22em; color: rgba(232, 229, 222, 0.4);
+  }
+
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+</style>

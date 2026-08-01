@@ -1,0 +1,92 @@
+---
+interface Props {
+  scene?: "liquid" | "archive" | "threshold" | "mandelbrot" | "bloom";
+  class?: string;
+}
+
+const {
+  scene = "archive",
+  class: className = "",
+} = Astro.props;
+---
+
+<section
+  class:list={["kdx-gpu-visual", className]}
+  data-kdx-gpu-visual
+  data-scene={scene}
+>
+  <canvas aria-label="KODEX generative visual"></canvas>
+  <div class="kdx-gpu-visual__fallback" aria-hidden="true"></div>
+</section>
+
+<script>
+  import {
+    KodexPipeline,
+  } from "../src/runtime/KodexPipeline.js";
+
+  const paths = {
+    liquid: "/kodex-lab/src/shaders/liquid-acid.frag",
+    archive: "/kodex-lab/src/shaders/archive-orbit.frag",
+    threshold: "/kodex-lab/src/shaders/threshold-portal.frag",
+    mandelbrot: "/kodex-lab/src/shaders/mandelbrot-field.frag",
+    bloom: "/kodex-lab/src/shaders/signal-bloom.frag",
+  };
+
+  document.querySelectorAll("[data-kdx-gpu-visual]")
+    .forEach(async (root) => {
+      if (root.dataset.mounted === "true") return;
+
+      const canvas = root.querySelector("canvas");
+      const scene = root.dataset.scene || "archive";
+      const pipeline = new KodexPipeline(canvas, {
+        dprCap: window.innerWidth < 700 ? 1 : 1.5,
+      });
+
+      try {
+        await pipeline.initialize(paths[scene]);
+        pipeline.start();
+        root.dataset.mounted = "true";
+
+        const observer = new IntersectionObserver(
+          ([entry]) => {
+            if (entry.isIntersecting) pipeline.start();
+            else pipeline.stop();
+          },
+          { threshold: 0.02 },
+        );
+
+        observer.observe(root);
+      } catch (error) {
+        console.error(error);
+        root.dataset.error = "true";
+      }
+    });
+</script>
+
+<style>
+  .kdx-gpu-visual {
+    position: relative;
+    min-height: 100svh;
+    overflow: hidden;
+    background: #050608;
+  }
+
+  .kdx-gpu-visual canvas,
+  .kdx-gpu-visual__fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .kdx-gpu-visual__fallback {
+    z-index: -1;
+    background:
+      radial-gradient(circle, rgba(255,23,68,.16), transparent 48%),
+      #050608;
+  }
+
+  .kdx-gpu-visual[data-error="true"] canvas {
+    display: none;
+  }
+</style>

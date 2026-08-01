@@ -1,0 +1,1047 @@
+---
+/**
+ * ManifestoKultrunSection — MELI WITRAN MAPU, ritual immersive experience.
+ *
+ * From static diagram → living ceremony. The kültrún breathes, its lines draw
+ * themselves in on scroll, a slow cosmic dust drifts, and a golden halo pulses
+ * from the centre. Touching one of the four lands (Pikun / Puel / Willi / Lafken)
+ * turns the drum toward that direction, shifts the whole world (background, light,
+ * particle colour and — only if the visitor opted in — a soft ambient tone), and
+ * lets that land's pieces rise from the centre like offerings on an altar.
+ *
+ * CULTURAL CARE — Meli Witran Mapu and the kültrún are DOCUMENTED Mapuche
+ * cosmovision, not fiction. The four cardinal names and their landscapes are the
+ * canonical Wallmapu geography (Lafken = west, toward the sea; Puel = east, where
+ * the sun is born; Willi = south; Pikun = north). The elemental symbols on the
+ * drum come from brand/01-identity/kultrun-simbologia-real.md and are kept exactly
+ * where they were. We do NOT assign new sacred meanings: each "world" is an
+ * atmosphere (landscape + light) plus a curatorial mapping of Wenu Mapu pieces —
+ * stated plainly as ours, not as ancestral doctrine.
+ *
+ * PERFORMANCE — CSS/SVG + one small canvas driven by requestAnimationFrame, all
+ * GPU-friendly (transform/opacity only). No 3D/WebGL, no libraries, no added
+ * critical images (product shots are lazy + hidden until a land is chosen). All
+ * motion is gated behind an IntersectionObserver (nothing animates off-screen)
+ * and behind prefers-reduced-motion (calm static version).
+ *
+ * SOUND — always opt-in via a button, generated live with the Web Audio API
+ * (zero asset weight). Never autoplay. Silent by default.
+ */
+
+import { getProducts, getHeroImage, formatPrice, decodeEntities } from '../lib/woo';
+import { collections } from '../data/collections';
+import membershipRaw from '../data/collection-membership.json';
+
+interface Props {
+  /** Show the "Shop by element" entry point (only on /manifesto). */
+  showElementsLink?: boolean;
+}
+const { showElementsLink = false } = Astro.props;
+
+// ── The four lands ─────────────────────────────────────────────────────────
+// pos = cardinal angle (deg, 0 = North/top) used to rotate the drum toward it.
+const DIRECTIONS = [
+  {
+    key: 'pikun', label: 'Pikun Mapu', cardinal: 'North', pos: 0,
+    collection: 'atacama',
+    tagline: 'Wind over the open north',
+    landscape: 'The northern land — dry air, high wind, the clear blue distance.',
+    world: 'The sky-fallen line: stone that was once the vault above.',
+  },
+  {
+    key: 'puel', label: 'Puel Mapu', cardinal: 'East', pos: 90,
+    collection: 'solar',
+    tagline: 'Where the sun is born',
+    landscape: 'The east — first light over the mountains, copper and warm sand.',
+    world: 'Antü, the sun: radiant geometry and warm metal that holds the day.',
+  },
+  {
+    key: 'willi', label: 'Willi Mapu', cardinal: 'South', pos: 180,
+    collection: 'araucania',
+    tagline: 'The forest and the cold',
+    landscape: 'The south — dark forest, the pewen, deep green under the volcano.',
+    world: 'Rooted in the Wallmapu: the home-land the whole story rises from.',
+  },
+  {
+    key: 'lafken', label: 'Lafken Mapu', cardinal: 'West', pos: 270,
+    collection: 'fossil',
+    tagline: 'The sea and the mist',
+    landscape: 'The west, toward the sea — water, fog off the coast, slow reflection.',
+    world: 'Deep time worn close: amber and ammonite, the ocean that remembers.',
+  },
+] as const;
+
+// ── Real product offerings per land (same matching as /collection/[slug]) ────
+const byCollection: Record<string, string[]> = (membershipRaw as any).by_collection ?? {};
+const all = await getProducts();
+const searchable = (p: any) => [
+  p.name, p.slug, p.sku,
+  ...p.categories.map((c: any) => c.name),
+  ...p.categories.map((c: any) => c.slug),
+  ...p.attributes.flatMap((a: any) => [a.name, ...a.options]),
+].join(' ').toLowerCase();
+const hasImg = (p: any) => p.images?.length > 0 && p.images[0].src;
+// Accent-insensitive normaliser — membership keys are capitalised & accented
+// ("Araucanía") while collection slugs are plain ("araucania").
+const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+function offeringsFor(slug: string) {
+  const col = collections.find((c) => c.slug === slug);
+  const memberKey = Object.keys(byCollection).find((k) => norm(k) === norm(slug));
+  const skuSet = new Set(memberKey ? byCollection[memberKey] : []);
+
+  const picked: any[] = [];
+  const seen = new Set<string>();
+  const push = (p: any) => { if (p && hasImg(p) && !seen.has(p.slug)) { seen.add(p.slug); picked.push(p); } };
+
+  // 1) Real curated membership first (in catalogue order).
+  if (skuSet.size) for (const p of all) { if (picked.length >= 3) break; if (p.sku && skuSet.has(p.sku)) push(p); }
+  // 2) Top up with DISTINCTIVE keywords only — drop the generic 'mapu' token, which
+  //    matches the brand name "Wenu Mapu" on nearly every product and pollutes the land.
+  if (picked.length < 3 && col) {
+    const toks = col.keywords.filter((k) => k !== 'mapu');
+    for (const p of all) { if (picked.length >= 3) break; if (toks.some((k) => searchable(p).includes(k))) push(p); }
+  }
+  return picked.slice(0, 3);
+}
+
+const worlds = DIRECTIONS.map((d) => {
+  const products = offeringsFor(d.collection).map((p) => {
+    const hero = getHeroImage(p);
+    return {
+      slug: p.slug,
+      name: decodeEntities(p.name),
+      price: formatPrice(p.price),
+      img: hero?.src || '',
+      alt: hero?.alt || decodeEntities(p.name),
+    };
+  });
+  return { ...d, products };
+});
+---
+<section
+  class="meli"
+  data-meli-root
+  aria-labelledby="meli-title"
+>
+  <div class="meli__aura" aria-hidden="true"></div>
+  <canvas class="meli__dust" data-meli-dust aria-hidden="true"></canvas>
+
+  <div class="meli__inner">
+
+    <header class="meli__head">
+      <p class="meli__eyebrow">Meli Witran Mapu</p>
+      <h2 id="meli-title" class="meli__title">The four lands, one drum.</h2>
+      <p class="meli__lede">
+        The kültrún holds the four directions of the Wallmapu. Touch a land to turn
+        the drum toward it — the world shifts, and the pieces that belong to that
+        direction rise to meet you.
+      </p>
+    </header>
+
+    <!-- ── The living kültrún ─────────────────────────────────────────── -->
+    <div class="meli__stage">
+      <div class="meli__ring" data-meli-stage>
+
+        <svg
+          viewBox="0 0 540 540"
+          class="kultrun"
+          role="img"
+          aria-label="Kültrún — Mapuche sacred map of the four directions"
+          data-meli-svg
+        >
+          <title>Kültrún · the four lands</title>
+          <desc>A vectorial kültrún: outer sky ring, cardinal cross, and the four
+          elemental symbols — Antü (sun, east), Küruf (wind), Ko (moon/water) and
+          Mapu (earth) — around a central golden portal.</desc>
+
+          <defs>
+            <radialGradient id="meli-halo" cx="50%" cy="50%" r="60%">
+              <stop offset="0%" stop-color="rgba(198,168,106,0.22)"/>
+              <stop offset="55%" stop-color="rgba(198,168,106,0.05)"/>
+              <stop offset="100%" stop-color="transparent"/>
+            </radialGradient>
+            <radialGradient id="meli-core" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="rgba(245,234,216,0.9)"/>
+              <stop offset="40%" stop-color="rgba(232,193,127,0.75)"/>
+              <stop offset="100%" stop-color="rgba(196,147,90,0)"/>
+            </radialGradient>
+            <!-- Engraved gold: gives every symbol a struck-metal sheen (bronze→ember→bone) -->
+            <linearGradient id="meli-engrave" x1="0%" y1="0%" x2="70%" y2="100%">
+              <stop offset="0%"  stop-color="#e8d29a"/>
+              <stop offset="46%" stop-color="#c9a84c"/>
+              <stop offset="100%" stop-color="#6a4a28"/>
+            </linearGradient>
+            <!-- Soft inner shadow ring for the moon's carved hollow -->
+            <radialGradient id="meli-moon-fill" cx="38%" cy="34%" r="72%">
+              <stop offset="0%"  stop-color="rgba(240,237,232,0.30)"/>
+              <stop offset="60%" stop-color="rgba(201,168,76,0.12)"/>
+              <stop offset="100%" stop-color="rgba(106,74,40,0)"/>
+            </radialGradient>
+          </defs>
+
+          <!-- breathing halo -->
+          <circle cx="270" cy="270" r="250" fill="url(#meli-halo)" class="kultrun__halo" data-meli-breathe />
+
+          <!-- ROTOR — everything that turns when a land is chosen -->
+          <g class="kultrun__rotor" data-meli-rotor>
+            <!-- rings + cross (drawn in on scroll) -->
+            <circle cx="270" cy="270" r="232" pathLength="1" class="kultrun-line" />
+            <circle cx="270" cy="270" r="210" pathLength="1" class="kultrun-line kultrun-line--soft" />
+            <line x1="270" y1="38"  x2="270" y2="502" pathLength="1" class="kultrun-line" />
+            <line x1="38"  y1="270" x2="502" y2="270" pathLength="1" class="kultrun-line" />
+            <line x1="105" y1="105" x2="435" y2="435" pathLength="1" class="kultrun-line kultrun-line--faint" />
+            <line x1="105" y1="435" x2="435" y2="105" pathLength="1" class="kultrun-line kultrun-line--faint" />
+
+            <!-- ── NE · KÜRÜF (viento) — remolino de COMAS curvas en espiral, horario ──
+                 Como en la referencia: 4 comas/ganchos curvos saliendo del centro
+                 en espiral (molinete), trazo grueso redondeado. NO aspas rectas. -->
+            <g transform="translate(360 180)" class="kultrun-sym kultrun-kuruf">
+              <g class="kultrun-kuruf__arms">
+                <!-- cada brazo es una coma en espiral, rotada 90° -->
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" />
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" transform="rotate(90)" />
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" transform="rotate(180)" />
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" transform="rotate(270)" />
+              </g>
+              <circle r="2.6" fill="currentColor" class="kultrun-whorl-core" />
+            </g>
+
+            <!-- ── NW · KÜYEN (luna creciente) — hoz SIMPLE y limpia, como la ref ──
+                 Dos arcos, creciente gruesa, SIN cráteres ni detalles inventados.
+                 Abre hacia arriba-derecha igual que en el kültrún de referencia. -->
+            <g transform="translate(180 180)" class="kultrun-sym kultrun-moon">
+              <path class="kultrun-moon__body" d="M13 -32 A 33 33 0 1 0 13 32 A 25 25 0 1 1 13 -32 Z" pathLength="1" />
+              <path class="kultrun-line" d="M13 -32 A 33 33 0 1 0 13 32 A 25 25 0 1 1 13 -32 Z" pathLength="1" fill="none" />
+            </g>
+
+            <!-- ── SE · WÜÑELFE (lucero) — estrella de 8 puntas de DOS CUADRADOS ──
+                 Como en la referencia: dos cuadrados superpuestos rotados 45°,
+                 rellena y gruesa, con las 8 puntas afiladas. Sin rayos finos. -->
+            <g transform="translate(360 360)" class="kultrun-sym kultrun-star">
+              <polygon class="kultrun-star__body" points="0,-34 5.4,-12.9 24,-24 12.9,-5.4 34,0 12.9,5.4 24,24 5.4,12.9 0,34 -5.4,12.9 -24,24 -12.9,5.4 -34,0 -12.9,-5.4 -24,-24 -5.4,-12.9" pathLength="1" />
+              <polygon class="kultrun-line" points="0,-34 5.4,-12.9 24,-24 12.9,-5.4 34,0 12.9,5.4 24,24 5.4,12.9 0,34 -5.4,12.9 -24,24 -12.9,5.4 -34,0 -12.9,-5.4 -24,-24 -5.4,-12.9" pathLength="1" fill="none" />
+              <rect x="-4.5" y="-4.5" width="9" height="9" transform="rotate(45)" fill="currentColor" class="kultrun-star__core" />
+            </g>
+
+            <!-- ── SW · MAPU (tierra) — remolino de COMAS en espiral, espejo (antihorario) ──
+                 Mismo molinete de comas que el viento, invertido: la Tierra gira
+                 al revés del aire. Como en la referencia (cuadrante inferior izq). -->
+            <g transform="translate(180 360)" class="kultrun-sym kultrun-kuruf kultrun-kuruf--ccw">
+              <g class="kultrun-kuruf__arms">
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" />
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" transform="rotate(90)" />
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" transform="rotate(180)" />
+                <path class="kultrun-whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" pathLength="1" transform="rotate(270)" />
+              </g>
+              <circle r="2.6" fill="currentColor" class="kultrun-whorl-core" />
+            </g>
+
+            <!-- orbital stars -->
+            <g class="kultrun__stars">
+              <circle cx="270" cy="38"  r="1.6" fill="currentColor" />
+              <circle cx="502" cy="270" r="1.6" fill="currentColor" />
+              <circle cx="270" cy="502" r="1.6" fill="currentColor" />
+              <circle cx="38"  cy="270" r="1.6" fill="currentColor" />
+            </g>
+
+            <!-- selection marker — a soft arc that points to the chosen land -->
+            <path
+              d="M270 44 A 226 226 0 0 1 270 44"
+              class="kultrun__marker"
+              data-meli-marker
+              pathLength="1"
+              fill="none"
+            />
+          </g>
+
+          <!-- central portal (does NOT rotate) -->
+          <g transform="translate(270 270)" class="kultrun__portal" data-meli-portal>
+            <circle r="64" fill="url(#meli-core)" class="kultrun__portal-glow" data-meli-breathe />
+            <circle r="24" fill="none" stroke="rgba(232,193,127,0.85)" stroke-width="0.8" class="kultrun__portal-ring" />
+            <circle r="4" fill="rgba(245,234,216,0.95)" />
+          </g>
+        </svg>
+
+        <!-- Direction hit-targets (keyboard-navigable buttons) -->
+        <button class="meli-dir meli-dir--north" type="button" data-meli-dir="pikun"  aria-pressed="false" aria-label="Enter Pikun Mapu — the north"><span lang="arn">Pikun Mapu</span><small>North</small></button>
+        <button class="meli-dir meli-dir--east"  type="button" data-meli-dir="puel"   aria-pressed="false" aria-label="Enter Puel Mapu — the east"><span lang="arn">Puel Mapu</span><small>East</small></button>
+        <button class="meli-dir meli-dir--south" type="button" data-meli-dir="willi"  aria-pressed="false" aria-label="Enter Willi Mapu — the south"><span lang="arn">Willi Mapu</span><small>South</small></button>
+        <button class="meli-dir meli-dir--west"  type="button" data-meli-dir="lafken" aria-pressed="false" aria-label="Enter Lafken Mapu — the west"><span lang="arn">Lafken Mapu</span><small>West</small></button>
+      </div>
+
+      <!-- Sound: strictly opt-in -->
+      <button class="meli-sound" type="button" data-meli-sound aria-pressed="false">
+        <span class="meli-sound__icon" aria-hidden="true"></span>
+        <span class="meli-sound__label" data-meli-sound-label>Activate sound</span>
+      </button>
+    </div>
+
+    <!-- ── The offering (changes with the chosen land) ─────────────────── -->
+    <div class="meli__world" data-meli-world aria-live="polite">
+      <div class="meli__world-copy">
+        <p class="meli__world-name" data-meli-world-name lang="arn">Choose a direction</p>
+        <p class="meli__world-line" data-meli-world-line>Every direction carries a force. Every piece belongs to one.</p>
+      </div>
+
+      {worlds.map((w) => (
+        <div class="meli-offer" data-meli-offer={w.key} role="group" aria-label={`Offerings from ${w.label}`} hidden>
+          {w.products.length > 0 ? (
+            <div class="meli-offer__grid">
+              {w.products.map((p, i) => (
+                <a class="meli-offer__card" href={`/p/${p.slug}`} style={`--i:${i}`}>
+                  <span class="meli-offer__img">
+                    {p.img
+                      ? <img src={p.img} alt={p.alt} loading="lazy" decoding="async" width="300" height="300" onerror="this.onerror=null;this.src='/img/products/placeholder-cardinal-bronze.webp';" />
+                      : <span class="meli-offer__ph" aria-hidden="true"></span>}
+                  </span>
+                  <span class="meli-offer__name">{p.name}</span>
+                  <span class="meli-offer__price">{p.price}</span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <p class="meli-offer__empty">Pieces from this land are being forged. <a href={`/collection/${w.collection}`}>Enter the collection →</a></p>
+          )}
+          <a class="meli-offer__enter" href={`/collection/${w.collection}`} data-meli-enter={w.key}>Enter this land in full <span aria-hidden="true">→</span></a>
+        </div>
+      ))}
+    </div>
+
+    <!-- ── Storytelling / manifesto ────────────────────────────────────── -->
+    <div class="meli__manifesto">
+      <p class="meli__manifesto-lead">Every direction carries a force. Every piece belongs to one.</p>
+      <p class="meli__manifesto-body">
+        Wenu Mapu was born from the relationship between body, earth and cosmos.
+        The kültrún maps the four lands of the Wallmapu — Pikun, Puel, Willi, Lafken —
+        and we place each piece under the direction it answers to. Not a costume of a
+        culture, but a way of reading: choose a way, and its offerings rise from the
+        centre. Crafted with intention. Worn with purpose.
+      </p>
+      <div class="meli__manifesto-cta">
+        <a href="/manifesto" class="meli__cta">Read the manifesto <span aria-hidden="true">→</span></a>
+        {showElementsLink && (
+          <a href="/lines/antu" class="meli__cta meli__cta--ghost">Shop by element <span aria-hidden="true">→</span></a>
+        )}
+      </div>
+      <p class="meli__arn" lang="arn"><em>Küme kimün</em> — knowledge carried through the body.</p>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .meli {
+    position: relative;
+    overflow: hidden;
+    color: var(--bone);
+    border-top: 1px solid rgba(201, 192, 174, 0.14);
+    border-bottom: 1px solid rgba(201, 192, 174, 0.14);
+    /* per-land theme tokens (defaults = gold/obsidian) */
+    --world-light: rgba(198, 168, 106, 0.9);
+    --world-bg1: #0d0b09;
+    --world-bg2: #14110d;
+    --world-glow: rgba(198, 168, 106, 0.10);
+    background:
+      radial-gradient(circle at 50% 34%, var(--world-glow), transparent 46%),
+      linear-gradient(180deg, var(--world-bg1) 0%, var(--world-bg2) 100%);
+    transition: background 1.4s ease;
+  }
+
+  /* soft light wash that recolours per land */
+  .meli__aura {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 32%, var(--world-glow), transparent 40%);
+    opacity: 0.9;
+    pointer-events: none;
+    transition: background 1.4s ease;
+    z-index: 0;
+  }
+  .meli__dust {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+  .meli.is-live .meli__dust { opacity: 1; }
+
+  .meli__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: clamp(84px, 10vw, 150px) clamp(20px, 5vw, 72px);
+  }
+
+  /* ── Header ─────────────────────────────────────────────────────────── */
+  .meli__head { text-align: center; max-width: 60ch; margin: 0 auto clamp(28px, 5vw, 56px); }
+  .meli__eyebrow {
+    font-family: var(--font-sans);
+    color: var(--ember);
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    margin: 0 0 18px;
+  }
+  .meli__title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    color: var(--bone);
+    font-size: clamp(2.2rem, 5.2vw, 4rem);
+    line-height: 1.04;
+    letter-spacing: -0.018em;
+    margin: 0 0 20px;
+  }
+  .meli__lede {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    color: rgba(238, 232, 220, 0.72);
+    font-size: clamp(1rem, 1.3vw, 1.18rem);
+    line-height: 1.66;
+    margin: 0 auto;
+    max-width: 46ch;
+  }
+
+  /* ── Stage / ring ───────────────────────────────────────────────────── */
+  .meli__stage { display: flex; flex-direction: column; align-items: center; }
+  .meli__ring {
+    position: relative;
+    width: min(86vw, 480px);
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--world-light);
+    transition: color 1.4s ease;
+  }
+  .kultrun {
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 24px var(--world-glow));
+    transition: filter 1.4s ease;
+  }
+
+  .kultrun-line {
+    stroke: currentColor;
+    stroke-width: 1;
+    fill: none;
+    vector-effect: non-scaling-stroke;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    /* drawn-in state */
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 1.5s ease;
+  }
+  .kultrun-line--soft { opacity: 0.55; }
+  .kultrun-line--faint { opacity: 0.2; }
+  .kultrun-line--hair { stroke-width: 0.55; opacity: 0.6; }
+  .meli.is-live .kultrun-line { stroke-dashoffset: 0; }
+  /* stagger: symbols draw slightly after the frame */
+  .meli.is-live .kultrun-sym .kultrun-line { transition-delay: 0.5s; }
+
+  /* ── Engraved elemental symbols ─────────────────────────────────────────
+     Struck-metal feel: an ember/bronze fill sits under a bone contour so the
+     four glyphs read as ritual seals, not flat UI icons. Fills fade in with
+     the drawn lines; contours keep the existing draw-on-scroll behaviour. */
+  .kultrun-moon__body,
+  .kultrun-star__body {
+    fill: url(#meli-engrave);
+    stroke: none;
+    opacity: 0;
+    transition: opacity 1.2s ease 0.7s;
+  }
+  .kultrun-moon__body { fill: url(#meli-moon-fill); }
+  .kultrun-star__body { fill: url(#meli-engrave); }
+  .meli.is-live .kultrun-moon__body,
+  .meli.is-live .kultrun-star__body { opacity: 1; }
+
+  /* Kürüf whorl — comma-blades: struck-gold strokes that draw themselves in */
+  .kultrun-whorl {
+    fill: none;
+    stroke: url(#meli-engrave);
+    stroke-width: 4.4;
+    stroke-linecap: round;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 1.4s ease 0.5s;
+  }
+  .meli.is-live .kultrun-whorl { stroke-dashoffset: 0; }
+  .kultrun-whorl-core { opacity: 0; transition: opacity 0.9s ease 1s; }
+  .meli.is-live .kultrun-whorl-core { opacity: 0.95; }
+
+  .kultrun-star__core { opacity: 0; transition: opacity 0.9s ease 1s; }
+  .meli.is-live .kultrun-star__core { opacity: 0.95; }
+
+  /* the wind/earth whorls spin in the drum's sense (earth = mirror) */
+  .kultrun-kuruf__arms { transform-box: fill-box; transform-origin: center; }
+  .kultrun-kuruf--ccw .kultrun-kuruf__arms { transform: scaleX(-1); }
+  .meli.is-live .kultrun-kuruf__arms { animation: meliWhorl 42s linear infinite; }
+  .meli.is-live .kultrun-kuruf--ccw .kultrun-kuruf__arms { animation: meliWhorlCcw 42s linear infinite; }
+  @keyframes meliWhorl    { to { transform: rotate(360deg); } }
+  @keyframes meliWhorlCcw { to { transform: scaleX(-1) rotate(360deg); } }
+
+  .kultrun__stars circle { opacity: 0; transition: opacity 1s ease 0.9s; }
+  .meli.is-live .kultrun__stars circle { opacity: 0.8; }
+
+  /* rotor turns toward the chosen land */
+  .kultrun__rotor {
+    transform-box: fill-box;
+    transform-origin: center;
+    transition: transform 1.8s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  /* breathing (98–100%) + halo pulse */
+  .kultrun__halo, .kultrun__portal-glow {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .meli.is-live .kultrun { animation: meliBreathe 6.5s ease-in-out infinite; }
+  .meli.is-live .kultrun__halo { animation: meliHalo 6.5s ease-in-out infinite; }
+  .meli.is-live .kultrun__portal-glow { animation: meliHalo 5s ease-in-out infinite; }
+  .meli.is-live .kultrun__portal-ring {
+    transform-box: fill-box; transform-origin: center;
+    animation: meliSpin 48s linear infinite;
+  }
+  @keyframes meliBreathe {
+    0%, 100% { transform: scale(0.985); }
+    50%      { transform: scale(1); }
+  }
+  @keyframes meliHalo {
+    0%, 100% { opacity: 0.6; transform: scale(1); }
+    50%      { opacity: 1; transform: scale(1.06); }
+  }
+  @keyframes meliSpin { to { transform: rotate(360deg); } }
+
+  .kultrun__marker {
+    stroke: var(--world-light);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    opacity: 0;
+    stroke-dasharray: 0.14 1;
+    stroke-dashoffset: 0.07;
+    transition: opacity 0.8s ease, stroke 1.4s ease;
+    vector-effect: non-scaling-stroke;
+  }
+  .meli[data-mapu] .kultrun__marker { opacity: 0.9; }
+
+  .kultrun__portal { cursor: pointer; }
+
+  /* ── Direction buttons ──────────────────────────────────────────────── */
+  .meli-dir {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 12px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: rgba(238, 232, 220, 0.7);
+    font-family: var(--font-sans);
+    text-transform: uppercase;
+    transition: color 0.4s ease, transform 0.4s ease, text-shadow 0.4s ease;
+    z-index: 2;
+  }
+  .meli-dir span { font-size: 0.7rem; letter-spacing: 0.2em; }
+  .meli-dir small { font-size: 0.56rem; letter-spacing: 0.24em; opacity: 0.6; }
+  .meli-dir::after {
+    content: '';
+    width: 5px; height: 5px; margin-top: 3px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0;
+    transform: scale(0.4);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .meli-dir:hover, .meli-dir:focus-visible {
+    color: var(--world-light);
+    text-shadow: 0 0 18px var(--world-glow);
+    outline: none;
+  }
+  .meli-dir:hover::after, .meli-dir:focus-visible::after,
+  .meli-dir[aria-pressed="true"]::after { opacity: 1; transform: scale(1); }
+  .meli-dir[aria-pressed="true"] { color: var(--world-light); }
+  .meli-dir:focus-visible { outline: 1px solid var(--world-light); outline-offset: 4px; border-radius: 3px; }
+
+  .meli-dir--north { top: -6%;  left: 50%; transform: translateX(-50%); }
+  .meli-dir--south { bottom: -6%; left: 50%; transform: translateX(-50%); }
+  .meli-dir--east  { top: 50%;  right: -4%; transform: translate(0, -50%); }
+  .meli-dir--west  { top: 50%;  left: -4%;  transform: translate(0, -50%); }
+  .meli-dir--north:hover, .meli-dir--north:focus-visible { transform: translateX(-50%) translateY(-3px); }
+  .meli-dir--south:hover, .meli-dir--south:focus-visible { transform: translateX(-50%) translateY(3px); }
+
+  /* ── Sound toggle ───────────────────────────────────────────────────── */
+  .meli-sound {
+    margin-top: clamp(28px, 5vw, 52px);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid rgba(201, 192, 174, 0.28);
+    border-radius: 999px;
+    color: rgba(238, 232, 220, 0.72);
+    font-family: var(--font-sans);
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+  }
+  .meli-sound:hover, .meli-sound:focus-visible {
+    color: var(--bone); border-color: var(--ember); outline: none;
+  }
+  .meli-sound:focus-visible { outline: 1px solid var(--ember); outline-offset: 3px; }
+  .meli-sound__icon {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 1px solid currentColor; position: relative;
+  }
+  .meli-sound__icon::after {
+    content: ''; position: absolute; inset: 3px; border-radius: 50%;
+    background: currentColor; opacity: 0.25; transition: opacity 0.3s ease;
+  }
+  .meli-sound[aria-pressed="true"] { color: var(--ember); border-color: var(--ember); }
+  .meli-sound[aria-pressed="true"] .meli-sound__icon::after { opacity: 1; }
+
+  /* ── World / offerings ──────────────────────────────────────────────── */
+  .meli__world {
+    margin-top: clamp(40px, 6vw, 72px);
+    min-height: 60px;
+    text-align: center;
+  }
+  .meli__world-copy { margin-bottom: 28px; }
+  .meli__world-name {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--world-light);
+    transition: color 1.2s ease;
+    margin: 0 0 10px;
+  }
+  .meli__world-line {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: rgba(238, 232, 220, 0.7);
+    font-size: clamp(1rem, 1.5vw, 1.3rem);
+    line-height: 1.5;
+    margin: 0 auto;
+    max-width: 40ch;
+  }
+
+  .meli-offer { }
+  .meli-offer[hidden] { display: none; }
+  .meli-offer__grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(16px, 3vw, 32px);
+  }
+  .meli-offer__card { flex: 1 1 150px; max-width: 200px; }
+  .meli-offer__card {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--bone);
+    /* emergence from the centre (offered upward, then settling) */
+    opacity: 0;
+    transform: translateY(-120px) scale(0.62);
+    filter: blur(3px);
+  }
+  .meli-offer.is-offered .meli-offer__card {
+    animation: meliRise 1.15s cubic-bezier(0.16, 0.84, 0.34, 1) forwards;
+    animation-delay: calc(var(--i) * 0.22s + 0.15s);
+  }
+  @keyframes meliRise {
+    0%   { opacity: 0; transform: translateY(-120px) scale(0.62); filter: blur(3px); }
+    60%  { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  }
+  .meli-offer__img {
+    display: block;
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(201, 192, 174, 0.12);
+    overflow: hidden;
+    position: relative;
+  }
+  .meli-offer__img::after {
+    content: '';
+    position: absolute; inset: 0;
+    box-shadow: inset 0 0 40px var(--world-glow);
+    pointer-events: none;
+    transition: box-shadow 1.2s ease;
+  }
+  .meli-offer__img img {
+    width: 100%; height: 100%; object-fit: cover;
+    transition: transform 0.8s ease;
+  }
+  .meli-offer__card:hover .meli-offer__img img { transform: scale(1.05); }
+  .meli-offer__ph { display: block; width: 100%; height: 100%; background: linear-gradient(135deg, rgba(198,168,106,0.08), transparent); }
+  .meli-offer__name {
+    font-family: var(--font-serif);
+    font-size: 0.94rem;
+    line-height: 1.3;
+    margin: 12px 0 4px;
+    color: rgba(238, 232, 220, 0.92);
+  }
+  .meli-offer__price {
+    font-family: var(--font-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--ember);
+  }
+  .meli-offer__empty {
+    font-family: var(--font-serif);
+    color: rgba(238, 232, 220, 0.7);
+    font-size: 1rem;
+  }
+  .meli-offer__empty a, .meli-offer__enter {
+    color: var(--world-light);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(201, 192, 174, 0.3);
+  }
+  .meli-offer__enter {
+    display: inline-block;
+    margin-top: clamp(24px, 4vw, 40px);
+    font-family: var(--font-sans);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    transition: color 0.3s ease, border-color 0.3s ease;
+  }
+  .meli-offer__enter:hover, .meli-offer__enter:focus-visible { color: var(--bone); border-color: var(--bone); }
+
+  /* ── Manifesto ──────────────────────────────────────────────────────── */
+  .meli__manifesto {
+    margin-top: clamp(64px, 9vw, 120px);
+    max-width: 60ch;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+  .meli__manifesto-lead {
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3vw, 2.3rem);
+    line-height: 1.2;
+    color: var(--bone);
+    margin: 0 0 22px;
+  }
+  .meli__manifesto-body {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    color: rgba(238, 232, 220, 0.7);
+    font-size: clamp(1rem, 1.3vw, 1.16rem);
+    line-height: 1.7;
+    margin: 0 0 30px;
+  }
+  .meli__manifesto-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+  .meli__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    min-height: 52px;
+    padding: 0 30px;
+    border: 1px solid rgba(238, 232, 220, 0.82);
+    background: var(--warm-bone);
+    color: var(--organic);
+    font-family: var(--font-sans);
+    font-weight: var(--fw-medium);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+  }
+  .meli__cta:hover, .meli__cta:focus-visible { background: transparent; color: var(--bone); border-color: var(--ember); }
+  .meli__cta--ghost { background: transparent; color: var(--bone); border-color: rgba(201,192,174,0.4); }
+  .meli__cta--ghost:hover { border-color: var(--ember); color: var(--ember); }
+  .meli__arn { margin: 28px 0 0; font-family: var(--font-serif); font-size: 0.8rem; color: rgba(198, 168, 106, 0.7); }
+  .meli__arn em { color: var(--ember); font-style: italic; }
+
+  /* ── Per-land themes ────────────────────────────────────────────────── */
+  .meli[data-mapu="pikun"]  { --world-light: rgba(150, 190, 235, 0.95); --world-bg1: #080b12; --world-bg2: #0e1420; --world-glow: rgba(120, 165, 220, 0.16); }
+  .meli[data-mapu="puel"]   { --world-light: rgba(232, 176, 112, 0.98); --world-bg1: #120c07; --world-bg2: #1c130a; --world-glow: rgba(224, 150, 84, 0.18); }
+  .meli[data-mapu="willi"]  { --world-light: rgba(150, 200, 150, 0.95); --world-bg1: #070f0a; --world-bg2: #0d1710; --world-glow: rgba(110, 165, 110, 0.16); }
+  .meli[data-mapu="lafken"] { --world-light: rgba(130, 205, 210, 0.95); --world-bg1: #060f11; --world-bg2: #0b181b; --world-glow: rgba(100, 185, 195, 0.16); }
+
+  /* ── Responsive ─────────────────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .meli-offer__grid { gap: 10px; }
+    .meli-offer__card { flex: 1 1 96px; }
+    .meli-offer__name { font-size: 0.8rem; }
+    .meli-dir span { font-size: 0.6rem; letter-spacing: 0.12em; }
+    .meli-dir small { font-size: 0.5rem; }
+    .meli-dir--east { right: -2%; }
+    .meli-dir--west { left: -2%; }
+  }
+
+  /* ── Reduced motion — calm, static version ──────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .meli, .meli__aura, .meli__ring, .kultrun, .meli__world-name { transition: none; }
+    .meli.is-live .kultrun,
+    .meli.is-live .kultrun__halo,
+    .meli.is-live .kultrun__portal-glow,
+    .meli.is-live .kultrun__portal-ring { animation: none; }
+    .kultrun__rotor { transition: none; }
+    .kultrun-line { stroke-dashoffset: 0; transition: none; }
+    .kultrun__stars circle { opacity: 0.8; transition: none; }
+    .meli.is-live .kultrun-kuruf__arms,
+    .meli.is-live .kultrun-kuruf--ccw .kultrun-kuruf__arms { animation: none; }
+    .kultrun-moon__body, .kultrun-star__body { opacity: 1; transition: none; }
+    .kultrun-whorl { stroke-dashoffset: 0; transition: none; }
+    .kultrun-whorl-core { opacity: 0.95; transition: none; }
+    .kultrun-star__core { opacity: 0.95; transition: none; }
+    .meli__dust { display: none; }
+    .meli-offer__card { opacity: 1; transform: none; filter: none; }
+    .meli-offer.is-offered .meli-offer__card { animation: none; }
+  }
+</style>
+
+<script>
+  type WorldKey = 'pikun' | 'puel' | 'willi' | 'lafken';
+
+  const roots = document.querySelectorAll<HTMLElement>('[data-meli-root]');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // cardinal angle for rotor (deg, 0 = north up). Turning the drum so the chosen
+  // land faces the top of the ring.
+  const POS: Record<WorldKey, number> = { pikun: 0, puel: 90, willi: 180, lafken: 270 };
+  const PARTICLE: Record<WorldKey, string> = {
+    pikun: '176,206,240', puel: '236,186,120', willi: '168,208,166', lafken: '150,214,218',
+  };
+  const NAMES: Record<WorldKey, string> = {
+    pikun: 'Pikun Mapu · North', puel: 'Puel Mapu · East',
+    willi: 'Willi Mapu · South', lafken: 'Lafken Mapu · West',
+  };
+  const LINES: Record<WorldKey, string> = {
+    pikun: 'Wind over the open north — stone that was once the sky.',
+    puel: 'Where the sun is born — radiant metal that holds the day.',
+    willi: 'The forest and the cold — rooted in the Wallmapu.',
+    lafken: 'The sea and the mist — deep time, the ocean that remembers.',
+  };
+
+  roots.forEach((root) => {
+    const rotor = root.querySelector<SVGGElement>('[data-meli-rotor]');
+    const dirs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-meli-dir]'));
+    const offers = Array.from(root.querySelectorAll<HTMLElement>('[data-meli-offer]'));
+    const worldName = root.querySelector<HTMLElement>('[data-meli-world-name]');
+    const worldLine = root.querySelector<HTMLElement>('[data-meli-world-line]');
+    const portal = root.querySelector<SVGGElement>('[data-meli-portal]');
+    const canvas = root.querySelector<HTMLCanvasElement>('[data-meli-dust]');
+
+    let current: WorldKey | null = null;
+    let particleRGB = '198,168,106';
+
+    // ── Selecting a land ────────────────────────────────────────────────
+    const select = (key: WorldKey) => {
+      const same = current === key;
+      current = same ? null : key;
+
+      // buttons
+      dirs.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.meliDir === current)));
+
+      // world theme
+      if (current) root.setAttribute('data-mapu', current);
+      else root.removeAttribute('data-mapu');
+      particleRGB = current ? PARTICLE[current] : '198,168,106';
+
+      // rotor turn
+      if (rotor && !reduced) {
+        const deg = current ? POS[current] : 0;
+        rotor.style.transform = `rotate(${deg}deg)`;
+      }
+
+      // copy
+      if (worldName) worldName.textContent = current ? NAMES[current] : 'Choose a direction';
+      if (worldLine) worldLine.textContent = current ? LINES[current]
+        : 'Every direction carries a force. Every piece belongs to one.';
+
+      // offerings — reveal only the chosen land's tray, replay the rise
+      offers.forEach((tray) => {
+        const isActive = tray.dataset.meliOffer === current;
+        tray.classList.remove('is-offered');
+        if (isActive) {
+          tray.hidden = false;
+          // force reflow so the animation restarts each time
+          void tray.offsetWidth;
+          tray.classList.add('is-offered');
+        } else {
+          tray.hidden = true;
+        }
+      });
+
+      // sound follows the world
+      if (audioOn) setTone(current);
+    };
+
+    dirs.forEach((b) => b.addEventListener('click', () => select(b.dataset.meliDir as WorldKey)));
+    // portal returns to calm
+    portal?.addEventListener('click', () => { if (current) select(current); });
+
+    // hover micro-tone (only if sound is on)
+    dirs.forEach((b) => b.addEventListener('mouseenter', () => {
+      if (audioOn) pluck(b.dataset.meliDir as WorldKey);
+    }));
+
+    // ── Cosmic dust (canvas) ────────────────────────────────────────────
+    let raf = 0;
+    let particles: { x: number; y: number; r: number; vx: number; vy: number; a: number }[] = [];
+    let running = false;
+    const ctx = canvas?.getContext('2d');
+
+    const sizeCanvas = () => {
+      if (!canvas) return;
+      const rect = root.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.max(1, rect.width * dpr);
+      canvas.height = Math.max(1, rect.height * dpr);
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const count = Math.min(46, Math.round(rect.width / 26));
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * rect.width,
+        y: Math.random() * rect.height,
+        r: Math.random() * 1.4 + 0.3,
+        vx: (Math.random() - 0.5) * 0.12,
+        vy: -(Math.random() * 0.16 + 0.03),
+        a: Math.random() * 0.5 + 0.15,
+      }));
+    };
+
+    const draw = () => {
+      if (!ctx || !canvas) return;
+      const rect = { w: canvas.width, h: canvas.height };
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      ctx.clearRect(0, 0, rect.w / dpr, rect.h / dpr);
+      const h = canvas.height / dpr;
+      const w = canvas.width / dpr;
+      for (const p of particles) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.y < -4) { p.y = h + 4; p.x = Math.random() * w; }
+        if (p.x < -4) p.x = w + 4; else if (p.x > w + 4) p.x = -4;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${particleRGB},${p.a})`;
+        ctx.fill();
+      }
+      raf = requestAnimationFrame(draw);
+    };
+
+    const start = () => {
+      if (running || reduced || !ctx) return;
+      running = true; sizeCanvas(); raf = requestAnimationFrame(draw);
+    };
+    const stop = () => { running = false; cancelAnimationFrame(raf); };
+
+    // ── In-view: draw the lines, breathe, run the dust ─────────────────
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) { root.classList.add('is-live'); start(); }
+        else stop();
+      });
+    }, { threshold: 0.15 });
+    io.observe(root);
+
+    let rz = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(rz);
+      rz = window.setTimeout(() => { if (running) sizeCanvas(); }, 200);
+    });
+
+    // ── Sound — opt-in, Web Audio, zero asset weight ───────────────────
+    let audioOn = false;
+    let actx: AudioContext | null = null;
+    let masterGain: GainNode | null = null;
+    let padA: OscillatorNode | null = null;
+    let padB: OscillatorNode | null = null;
+    let padFilter: BiquadFilterNode | null = null;
+    const soundBtn = root.querySelector<HTMLButtonElement>('[data-meli-sound]');
+    const soundLabel = root.querySelector<HTMLElement>('[data-meli-sound-label]');
+
+    const BASE: Record<WorldKey, { freq: number; cutoff: number }> = {
+      pikun: { freq: 174, cutoff: 900 },   // airy, high wind
+      puel: { freq: 146, cutoff: 700 },    // warm dawn
+      willi: { freq: 110, cutoff: 520 },   // deep forest
+      lafken: { freq: 98, cutoff: 460 },   // low, oceanic
+    };
+
+    const setTone = (key: WorldKey | null) => {
+      if (!actx || !padA || !padB || !padFilter) return;
+      const now = actx.currentTime;
+      const cfg = key ? BASE[key] : { freq: 130, cutoff: 640 };
+      padA.frequency.setTargetAtTime(cfg.freq, now, 0.6);
+      padB.frequency.setTargetAtTime(cfg.freq * 1.5, now, 0.6);
+      padFilter.frequency.setTargetAtTime(cfg.cutoff, now, 0.8);
+    };
+
+    const pluck = (key: WorldKey) => {
+      if (!actx || !masterGain) return;
+      const now = actx.currentTime;
+      const o = actx.createOscillator();
+      const g = actx.createGain();
+      o.type = 'sine';
+      o.frequency.value = BASE[key].freq * 2;
+      g.gain.setValueAtTime(0, now);
+      g.gain.linearRampToValueAtTime(0.05, now + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+      o.connect(g).connect(masterGain);
+      o.start(now); o.stop(now + 0.95);
+    };
+
+    const enableSound = async () => {
+      if (audioOn) return;
+      const AC = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AC) return;
+      actx = new AC();
+      if (actx.state === 'suspended') await actx.resume();
+      masterGain = actx.createGain();
+      masterGain.gain.value = 0.0;
+      masterGain.connect(actx.destination);
+
+      padFilter = actx.createBiquadFilter();
+      padFilter.type = 'lowpass';
+      padFilter.frequency.value = 640;
+      padFilter.Q.value = 0.6;
+
+      const padGain = actx.createGain();
+      padGain.gain.value = 0.5;
+      padFilter.connect(padGain).connect(masterGain);
+
+      padA = actx.createOscillator(); padA.type = 'sine'; padA.frequency.value = 130;
+      padB = actx.createOscillator(); padB.type = 'triangle'; padB.frequency.value = 195;
+      padA.detune.value = -4; padB.detune.value = 5;
+      padA.connect(padFilter); padB.connect(padFilter);
+      padA.start(); padB.start();
+
+      audioOn = true;
+      setTone(current);
+      // gentle fade-in
+      masterGain.gain.setTargetAtTime(0.16, actx.currentTime, 1.2);
+      soundBtn?.setAttribute('aria-pressed', 'true');
+      if (soundLabel) soundLabel.textContent = 'Sound on';
+    };
+
+    const disableSound = () => {
+      if (!audioOn || !actx || !masterGain) return;
+      masterGain.gain.setTargetAtTime(0.0, actx.currentTime, 0.4);
+      const ctxRef = actx;
+      window.setTimeout(() => { ctxRef.close(); }, 700);
+      actx = null; masterGain = null; padA = null; padB = null; padFilter = null;
+      audioOn = false;
+      soundBtn?.setAttribute('aria-pressed', 'false');
+      if (soundLabel) soundLabel.textContent = 'Activate sound';
+    };
+
+    soundBtn?.addEventListener('click', () => { audioOn ? disableSound() : enableSound(); });
+    // stop audio if the user leaves the tab
+    document.addEventListener('visibilitychange', () => { if (document.hidden && audioOn) disableSound(); });
+  });
+</script>
