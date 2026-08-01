@@ -103,6 +103,18 @@ Séptima vez que aparece la fórmula *los antiguos*, y hay que separar la lista.
 
 **Egipto y los templos mayas** existieron, se estudian, y tienen descendientes vivos. Lo que este capítulo dice de ellos no es lo que dicen quienes los investigan ni quienes heredaron esas culturas. Vale el mismo cuidado que este Códex ya tuvo con Quetzalcóatl y con el copal: nombrarlos dentro de un mito propio es una cosa, explicar qué hacían realmente es otra, y no es de este libro.
 
+Y hay algo que conviene decir sobre la mezcla misma, porque se repite en todo el género y casi nunca se nombra: **poner en la misma lista dos civilizaciones inventadas y dos reales le presta a las inventadas una credibilidad que no tienen, y les quita a las reales la suya**.
+
+Egipto no necesita a la Atlántida para ser asombroso. Construyeron con una precisión que todavía se estudia, midieron el cielo con instrumentos de madera y piedra, y escribieron durante tres mil años. Los mayas calcularon ciclos astronómicos con una exactitud que tardamos siglos en igualar.
+
+Cada vez que esos logros se atribuyen a una civilización perdida o a una intervención de afuera, se está diciendo —sin querer, casi siempre— que la gente que efectivamente los hizo no pudo haberlos hecho sola.
+
+Es un movimiento viejo y tiene una historia fea. Vale saberlo aunque el mito siga siendo hermoso.
+
+**Atlántida y Lemuria** pueden quedarse donde están, en el terreno donde las cosas no necesitan haber ocurrido para significar algo.
+
+Los otros dos hay que sacarlos de esa lista y devolverlos a su gente.
+
 ### El cuarzo es el traductor
 
 **Hay cristales que contienen frecuencias estelares. Otros, memorias de tu alma. Y algunos, vibran con la Tierra misma.**
@@ -114,6 +126,20 @@ Cuatro asignaciones del sistema de este libro. Y hay que notar que ninguna de la
 **Traductor** es la palabra que el capítulo anterior le dio al corazón —*es sensor, transmisor y traductor*—. **Puente** es la del capítulo IV. **Oráculo** es quien responde y no decide. **Viajero** es quien va y vuelve.
 
 Ninguno hace nada por sí mismo. Los cuatro conectan dos cosas que ya estaban.
+
+Vale mirarlas de a una, porque cada oficio dice algo distinto sobre qué se espera de un intermediario.
+
+**El cuarzo, traductor.** Es la piedra más común de la corteza terrestre — está en cualquier playa, en cualquier camino de montaña, en la arena de cualquier río. Que el oficio más importante se le dé a la piedra más abundante es coherente con todo este Códex: *no necesitas dogma, ni templo, ni maestro externo*, y tampoco una piedra rara.
+
+Un traductor, además, es el único de los cuatro oficios que **no agrega nada**. Un buen traductor es invisible: si se nota, falló. Lo que pasa por él tiene que llegar entero y sin su firma.
+
+**La amatista, puente.** Y ya sabemos lo que este Códex piensa de los puentes desde el capítulo IV: su valor está entero en lo que conectan, y nadie construye uno para quedarse en el medio.
+
+**El lapislázuli, oráculo.** Es la única de las cuatro que fue durante milenios más cara que el oro — se molía para hacer el azul de los cuadros, y ese azul costaba más que el marco. Un oráculo, en la tradición de la que viene la palabra, no decidía: respondía, y respondía en frases que había que interpretar. Nunca daba una orden.
+
+**La labradorita, viajero dimensional.** Es la única de las cuatro cuyo nombre viene de un lugar de este planeta, y la única que hace algo verificable y raro: cambia de color según el ángulo desde el que se la mire. La misma piedra, gris desde acá y azul desde un paso a la derecha.
+
+Es una buena imagen para el oficio que se le asigna, y no necesita ninguna cosmología: **lo que ves depende de dónde estés parado**. Mover el cuerpo cambia el objeto.
 
 **Pero no te guíes solo por nombres. Escucha. Tu cuerpo sabrá cuál resuena contigo.**
 
@@ -128,6 +154,18 @@ Y devuelve el criterio al mismo lugar de siempre: al cuerpo. Igual que el Libro 
 **Cada cristal te elige como tú lo eliges a él.**
 
 Es exactamente lo de la apertura: elegiste una piedra entre cientos en menos de un segundo, sin comparar.
+
+Y conviene decir algo sobre esa costumbre, porque es más vieja y más universal de lo que parece.
+
+**Los seres humanos guardamos piedras desde antes de tener casas.** Se han encontrado en enterramientos de decenas de miles de años: piedras que no servían para cortar ni para golpear, elegidas por el color o por la forma, llevadas a veces desde muy lejos, y puestas junto a alguien que se enterraba.
+
+No eran herramientas. No alimentaban a nadie. Alguien las cargó durante días de caminata porque le parecieron algo.
+
+Y seguimos. Ahora mismo, en casi cualquier casa, hay una piedra que alguien levantó en alguna parte y no tiró. En un estante, en un cajón, en el bolsillo de un abrigo que ya no se usa. Nadie sabe muy bien por qué la guarda y a nadie le parece raro.
+
+Es de las poquísimas conductas que se han sostenido sin interrupción durante toda la historia de la especie, en todos los continentes, sin que nadie la enseñara y sin que sirva para nada.
+
+Este capítulo tiene una explicación. Puedes no aceptarla y quedarte igual con el hecho, que es lo bastante extraño por sí solo: **hay algo en una piedra elegida que a los seres humanos nos importa, y no sabemos qué es**.
 
 **Y cuando conectan, el lenguaje fluye sin palabras. Sueños. Imágenes. Pulsos. Sensaciones.**
 
@@ -149,6 +187,18 @@ Y ahí sí hay algo real. Un objeto en la mano ancla la atención. Una piedra ti
 
 Lo que no hace es curar. Si algo te duele, si algo no cede, si algo te asusta: la piedra puede acompañarte a la consulta. No puede reemplazarla.
 
+Y hay algo que suele decirse mal en las dos direcciones, y conviene decirlo bien.
+
+Cuando se dice que un efecto es *sólo placebo*, se suele entender que no pasó nada. No es así: **el efecto existe y se mide**. Gente con dolor duele menos. Gente con angustia se angustia menos. Eso ocurre de verdad, en cuerpos de verdad, y es una de las cosas más consistentes que se han observado.
+
+Lo que no ocurre es que se arregle lo que estaba roto. El placebo trabaja sobre cómo se experimenta algo, no sobre la cosa. Puede hacerte más llevadero un dolor y no puede reducir un tumor. Puede darte una noche mejor y no puede bajar una infección.
+
+Por eso la respuesta correcta no es ni *entonces sirve* ni *entonces no sirve*. Es más precisa: **sirve para acompañar, no para tratar**, y confundir las dos cosas es exactamente donde se hace el daño.
+
+Una piedra en la mano de alguien que además está haciendo su tratamiento es una compañía.
+
+La misma piedra en la mano de alguien que dejó el tratamiento es otra cosa, y no es culpa de la piedra.
+
 **Cuando un cristal entra a tu vida, pregúntale: "¿Qué estás aquí para activar en mí?" Y guarda silencio. La respuesta será vibracional.**
 
 Fíjate en la forma de la pregunta, porque es notable.
@@ -156,6 +206,26 @@ Fíjate en la forma de la pregunta, porque es notable.
 No pregunta *qué me vas a dar*. No pregunta *para qué sirves*. Pregunta **qué vas a activar en mí** — con lo cual todo lo que pueda pasar queda ubicado adentro de quien pregunta.
 
 Es la misma operación que el Códex hace desde su primera línea: nada entra, todo se activa.
+
+Y hay que quedarse un momento en la pregunta misma, porque su forma es lo mejor del capítulo y funciona fuera de él.
+
+**"¿Qué estás aquí para activar en mí?"**
+
+Compárala con las preguntas que uno hace normalmente frente a algo nuevo — un trabajo, una persona, una ciudad, un libro.
+
+*¿Qué me va a dar esto?* Es la pregunta del consumidor. Pone al otro a rendir.
+*¿Para qué me sirve?* Es la del utilitario. Ya decidió que hay una función.
+*¿Vale la pena?* Es la del que compara, y el que compara nunca está del todo presente.
+
+**¿Qué vienes a activar en mí?** hace algo distinto: **da por sentado que lo que va a pasar es mío**.
+
+No espera que el otro traiga nada. Espera que el encuentro mueva algo que ya estaba.
+
+Y eso cambia la relación con casi todo. Una persona que llega a tu vida no viene a traerte cosas: viene a activar cosas tuyas — algunas hermosas y algunas que preferirías no tener. Un trabajo difícil no te da paciencia: te activa la que tenías y no habías necesitado. Un viaje no te cambia: te muestra quién eras cuando nadie de los tuyos te miraba.
+
+**Y guarda silencio.** Ésa es la segunda mitad de la instrucción y la que casi nadie cumple. Se pregunta y se sigue hablando. Se pregunta y se contesta uno mismo, rápido, para que no quede el hueco.
+
+El hueco es la práctica entera.
 
 **En tiempos antiguos, los sabios sabían que todo conocimiento podía guardarse en piedra. En los nuevos tiempos, ese conocimiento comienza a cantar de nuevo.**
 
@@ -271,6 +341,20 @@ La justificación que da el texto —*armonizar con la frecuencia mineral*— es
 **Que sientas especial *hoy***. Esa palabra hace todo el trabajo del primer paso: no hay una piedra correcta y no hay una para siempre. Puede ser otra mañana.
 
 **Lávalo en agua y sal** — el gesto más universal que existe. No se pide una fórmula ni un consagrante: se pide limpiar algo, con lo que hay en cualquier cocina.
+
+Y vale notar por qué agua y sal aparecen juntas en tantas tradiciones que no se conocieron entre sí: son las dos sustancias que **conservan** y que **borran**. La sal impide que algo se pudra y también arruina la tierra donde cae. El agua limpia y también disuelve.
+
+Nada de eso hace nada químico sobre un cuarzo, que es una de las cosas más inertes que existen. El gesto no le hace nada a la piedra.
+
+Se lo hace a quien lava.
+
+Y ése es, otra vez, el criterio del pliegue de este capítulo: la piedra sale idéntica del agua. Lo que cambió es que dedicaste dos minutos a atender una sola cosa, con las manos mojadas, sin pensar en nada más.
+
+Eso es todo lo que hace, y no es poco.
+
+**Colócalo sobre tu pecho o entre tus cejas** — y las dos opciones son los dos lugares que este Códex ha usado en veinticuatro capítulos. El pecho, donde está el sello del Libro I y adonde vuelven todos los rituales. Y la frente, que sólo apareció una vez antes: en la *espiral dorada sobre la coronilla* del Libro I, Capítulo XI, el único ejercicio que no apuntaba al corazón.
+
+Que se te deje elegir entre los dos es coherente con este capítulo: no hay una posición correcta, hay una que resuena.
 
 Y la frase del paso 4 merece leerse sola:
 
