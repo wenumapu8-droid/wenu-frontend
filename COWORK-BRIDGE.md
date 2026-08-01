@@ -831,3 +831,22 @@ COWORK toma ese texto crudo + la biblia + el contexto (dos registros, arquetipos
 
 ## NOTA: libro infantil aun NO recibido
 El PDF que Ocin mando como 'infantil' es identico (md5) al libro OCIN — archivo traspapelado. El libro infantil real sigue pendiente de que Ocin lo mande. NO integrar como infantil el de OCIN.
+
+
+---
+## [COWORK · PRODUCCION TOMOS KODEX ESTELAR · ARRANCA (Ocin aprobo la voz)] 2026-08-01
+
+Ocin aprobo el benchmark (books/kodex-estelar/libro-I/01-la-fuente.md) y dijo 'dale con todo'. Producir los 3 tomos (~300pp c/u) a ESA vara.
+
+FLUJO:
+1. OPENCODE (prioridad): extraer TEXTO COMPLETO de cada PDF a books/kodex-estelar/source-text/libro-N/NN-slug.txt (crudo, por capitulo, en orden). Es el esqueleto real de Ocin.
+2. MINI (Claude Code, capaz): DESARROLLAR cada capitulo a books/kodex-estelar/libro-N/NN-slug.md siguiendo:
+   - BIBLIA-Y-VOZ.md (voz visionaria/iniciatica, arquitectura de capitulo: epigrafe / apertura sensorial / desarrollo mitico / el pliegue / resonancia KODEX / sello).
+   - El benchmark 01-la-fuente.md como VARA de calidad y tono (imitar el nivel, no el contenido).
+   - El TEXTO FUENTE del capitulo (source-text/): DESARROLLAR lo que Ocin escribio (su trama, sus conceptos, sus nombres), NO inventar prosa paralela ni contradecir. Expandir a ~20-25pp.
+   - Contexto del universo: dos registros (KODEX ESTELAR = mito/neon, jamas fundir con mapuche documentado), arquetipos, eje -inf/0/+inf, resonancias con escenas KODEX (sutiles).
+   - Orden sugerido: Libro I completo (12), luego II (12), luego III (12), luego IV (5).
+3. COWORK edita cada .md para voz y coherencia antes de darlo por bueno; escribe los capitulos-ancla (aperturas de tomo) al estandar.
+REGLA: NO resumir, DESARROLLAR. NO presentar como hecho (es mito de autor). Commit/push cada capitulo. Al final se compaginan en visor-libro + PDF edicion + print (modelo COLLECT, pricing ya fijado).
+
+NOTA infantil: por ahora el libro ilustrado OCIN cubre 'ilustrado'; si Ocin manda un infantil distinto (mas simple, para chicos) se integra aparte con tono luminoso. No bloquear.
