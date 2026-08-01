@@ -25,8 +25,9 @@ Un ítem que compila y no se ve NO está hecho.
 - [~] **5 · Acabados** — sello SVG (árbol + ∞) en el chrome, reloj vivo con
       horas espejo (11:11, 4:44…), micro-interacción en la acción. Falta:
       mensajes decodables, hover sobre specimens ampliado.
-- [ ] **6 · Validación** — 390/430/768/1440/1920, sin scroll, sin errores,
-      FPS móvil ≥45, un canvas, 10 ciclos sin fuga
+- [~] **6 · Validación** — los cinco anchos verificados con captura y sin
+      errores de consola. Falta medir FPS en móvil real y los 10 ciclos de
+      fuga, que necesitan un dispositivo o instrumentación de memoria.
 
 ## BLOCKERS
 
@@ -190,12 +191,36 @@ predicción exacta.
   movimiento y corto — la acción se siente como una puerta que ya está
   cediendo, no como un botón que se anima. Apagada con reduced-motion.
 
+### Validación · los cinco anchos ✅
+Medido en `/kodex/viaje/#archive`, captura por ancho:
+
+| viewport   | luz media | fondo oscuro |
+|------------|-----------|--------------|
+| 390 × 844  | 30.9      | 89.0 %       |
+| 430 × 932  | 32.6      | 88.1 %       |
+| 768 × 1024 | 25.5      | 90.3 %       |
+| 1440 × 900 | 18.0      | 94.4 %       |
+| 1920 × 1080| 16.3      | 95.3 %       |
+
+**Ninguno baja del 88 %**, sobre el canon (~85 %). Sin errores de consola en
+ninguno. Sin scroll de página: `.vj` es `position: fixed; inset: 0;
+overflow: hidden`, así que la regla se cumple por construcción y no por ajuste.
+
+Lo que se ve en cada uno: en 430 el índice colapsa a puntos y los specimens
+envuelven; en 768 el índice muestra los nombres completos; en 1920 la lámina
+respira sin que nada quede huérfano.
+
+**Falta** de este punto: FPS en un teléfono real y los 10 ciclos sin fuga de
+memoria. No los puedo medir con captura headless — necesitan dispositivo o
+instrumentación de memoria. Anotado, no disimulado.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 08:20 — **Validación de los cinco anchos.** Todos ≥88% oscuro, cero errores.
 - 07:50 — **Acabados, primera tanda**: sello, reloj con horas espejo, micro.
 - 07:22 — **Tabla de tratamientos medida** (`docs/KDX-FX-MEDICIONES.md`).
   Tercer intento en RETURN: tampoco. Paré de ajustar ese número — la escena se
