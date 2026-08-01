@@ -677,3 +677,12 @@ Escribi la curaduria autoritativa del volumen WENU MAPU en public/kodex-content/
 - Builder reproducible: public/kodex-content/tools/build_content.py (idempotente).
 - Total: 114 volumes. Validado: 0 duplicados, 0 resonancias inválidas, 0 pdfs faltantes.
 - Nada committeado aún esta tanda. NO deploy. NO toqué src/.
+
+
+---
+## [COWORK · INTEGRAR LIBRO ILUSTRADO] 2026-08-01 · OCIN — ARTE DIGITAL RITUAL (210 pag)
+
+El libro ilustrado de Ocin (monografia, firma Serpiente Espectral Roja) esta en public/kodex-content/books/ocin-arte-digital-ritual.pdf + portada ocin-cover.jpg. Curaduria e integracion en sources/ocin-arte-digital-ritual.md.
+- MINI: construir VISOR-LIBRO paginado (spread por spread, SIN scroll, flechas/teclado/swipe, progreso, transicion suave, reduced-motion) como volumen en el ARCHIVE + enlace desde RETURN. Obra LIMPIA: sin dither/glitch/FX sobre las paginas. Fallback = link al PDF. Boton descarga PDF (edicion, modelo COLLECT).
+- OPENCODE: extraer las 210 paginas a public/kodex-content/books/ocin/pages/NNN.webp (~1400px alto, q80) + index.json; registrar el volumen en el manifest, registro documentado, categoria memory layer/ritual tech, paleta propia (indigo+oro), NO neon.
+Es la camara mas profunda del ARCHIVE = corazon coleccionable. Contraparte de AUTOR del Codex Estelar (ficcion): mismo universo visual, registros distintos.
