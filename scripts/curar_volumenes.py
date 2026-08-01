@@ -82,24 +82,34 @@ CURADURIA = {
         resonancias=["sigilo generativo", "estrato Yayentru", "patrón y memoria", "proto-portal"],
         requiere_fuente_mapuche=True,
     ),
+    # CORRECCIÓN (V-06 de la auditoría, y era error mío): la primera versión de
+    # esta ficha describía la greca escalonada de `tribe-01`, pero el hero que
+    # la lámina muestra es `patrones-01`, que es la roseta. El volumen tiene DOS
+    # series y la curaduría hablaba de la que no se ve. Ahora abre por lo que
+    # efectivamente está en pantalla y nombra las dos.
     "tribu": dict(
         titulo="TRIBU / Tribe",
         marco="documentado",
+        # El largo importa: la ficha tiene que entrar en el panel `03 · CURADURÍA`
+        # sin cortarse. Una primera versión de 652 caracteres dejaba el inglés
+        # truncado a media frase en 1440×900. Techo práctico: ~440.
         curaduria_es=(
-            "Trama escalonada llevada a saturación óptica. Grecas de ángulo recto que se repiten, se "
-            "espejan y convergen en un punto de fuga central hasta producir vibración en el ojo; abajo, "
-            "una cenefa de meandro corrido en negro pleno. El vocabulario formal —escalonado, meandro, "
-            "rombo con centro— pertenece a la gramática textil andina y del sur del continente, y su "
-            "atribución precisa corresponde a la fuente del autor, no a esta ficha."
+            "Dos series en un volumen. Una roseta de trazo fino, repetida en retícula alterna sobre fondo "
+            "claro, sin costura visible. Y su reverso: trama escalonada en saturación óptica, grecas de "
+            "ángulo recto que se espejan hasta hacer vibrar el ojo, cerradas por una cenefa de meandro en "
+            "negro pleno. Una respira; la otra aprieta. El vocabulario de la segunda pertenece a la "
+            "gramática textil andina y del sur del continente; su atribución precisa es de la fuente del "
+            "autor, no de esta ficha."
         ),
         curaduria_en=(
-            "Stepped weave pushed to optical saturation. Right-angled fretwork repeats, mirrors and "
-            "converges on a central vanishing point until the eye vibrates; below, a running meander band "
-            "in solid black. The formal vocabulary —stepped fret, meander, centred lozenge— belongs to the "
-            "textile grammar of the Andes and the southern cone, and its precise attribution belongs to "
-            "the author's source, not to this record."
+            "Two series in one volume. A fine-line rosette, repeated on an alternating grid over a light "
+            "ground, with no visible seam. And its reverse: stepped weave in optical saturation, "
+            "right-angled fretwork mirroring until the eye vibrates, closed by a meander band in solid "
+            "black. One breathes; the other tightens. The second's vocabulary belongs to the textile "
+            "grammar of the Andes and the southern cone; its precise attribution is the author's source, "
+            "not this record."
         ),
-        resonancias=["gramática textil", "op-art", "simetría especular", "cenefa"],
+        resonancias=["gramática textil", "op-art", "simetría especular", "cenefa", "dos series"],
         requiere_fuente_mapuche=True,
     ),
 

@@ -23,8 +23,8 @@ método: Chrome headless contra `localhost:4327`, desktop 1440×900 y móvil 390
 |---|---|
 | 🔴 crítica | 2 |
 | 🟠 alta | 3 |
-| 🟡 media | 2 |
-| ⚪ nota | 2 |
+| 🟡 media | 1 · +1 cerrado |
+| ⚪ nota | 3 |
 
 **Desktop 1440 está bien.** Los ocho hallazgos con severidad son de móvil y de
 anchos intermedios. La lámina de `/kodex/vol/[slug]` en 1440 es, de hecho, lo
@@ -134,18 +134,24 @@ teléfonos en horizontal, y es donde V-01 se ve peor.
 
 ## 🟡 MEDIA
 
-### V-06 · La curaduría de `tribu` describe una lámina que no es la que se muestra
+### ~~V-06 · La curaduría de `tribu` describe una lámina que no es la que se muestra~~ ✅ CERRADO
 **Página:** `/kodex/vol/tribu`.
-**Y esto es un error mío, de la tanda de curaduría, no del código.**
+**Era un error mío, de la tanda de curaduría, no del código.**
 
 El volumen `tribu` contiene **dos series distintas**: `patrones-01..05` (roseta
 de trazo fino) y `tribe-01..05` (greca escalonada). Curé el volumen mirando
 `tribe-01` y describí la greca — pero el hero que se muestra es `patrones-01`,
-que es la roseta.
+que es la roseta. El texto hablaba de «grecas de ángulo recto» junto a una
+imagen de rosetas.
 
-El resultado es que el texto habla de «grecas de ángulo recto» junto a una
-imagen de rosetas. Lo corrijo en la próxima tanda de curaduría: o la ficha
-menciona las dos series, o el hero pasa a ser el que la ficha describe.
+**Arreglado.** La ficha abre ahora por lo que efectivamente está en pantalla y
+nombra las dos series: *«Una roseta de trazo fino… Y su reverso: trama
+escalonada…»*. Verificado en vivo a 1440×900, los dos idiomas completos.
+
+**Con una corrección de segundo orden que conviene registrar:** la primera
+reescritura tenía 652 caracteres y **dejaba el inglés truncado a media frase**
+en el panel `03 · CURADURÍA`. La bajé a 480 y entra. **Techo práctico de una
+ficha: ~480 caracteres por idioma.** Vale para las 36 restantes.
 
 ### V-07 · Contraste de las etiquetas del dossier
 **Página:** `/kodex/vol/[slug]`, columna `01 · DOSSIER`.
@@ -171,6 +177,35 @@ anotado para que nadie lo «arregle» subiendo el brillo.
 Verificado en `/kodex/vol/tribu` a 1440: entran los dos idiomas completos, el
 sello `REGISTRO ① · DOCUMENTADO` se dibuja, y el texto no desborda su panel.
 La tanda de curaduría no rompió nada.
+
+---
+
+### V-10 · El dev server sirve el manifiesto viejo hasta que se lo reinicia
+**Afecta a:** cualquiera que cure contenido y verifique en vivo. **Es una trampa
+de método, no un defecto del sitio** — pero hace falso todo lo que se verifique
+sin saberlo.
+
+Al editar `public/kodex-content/opencode/manifest.json` con el dev server
+levantado, la página **sigue sirviendo el texto anterior**. No hay caché en el
+código: `leerManifiesto()` hace `fs.readFile` fresco en cada llamada. La
+retención está aguas arriba, en el servidor de desarrollo.
+
+**Casi reporto V-06 como arreglado mirando una captura obsoleta.** Lo que lo
+evitó fue no confiar en la imagen y comparar las dos fuentes:
+
+```bash
+curl -s http://localhost:4327/kodex/vol/tribu/ | grep -o "Dos series en un[^<]*"
+python3 -c "import json;print([v for v in json.load(open(
+  'public/kodex-content/opencode/manifest.json'))['volumenes']
+  if v['id']=='tribu'][0]['curaduria_es'][:120])"
+```
+
+Servidor y disco decían cosas distintas. Con un `pkill -f 'astro dev'` y volver
+a levantarlo, coinciden.
+
+**Regla para la próxima:** después de tocar contenido, **reiniciar el dev server
+antes de capturar**, y confirmar con `curl` que lo servido es lo del disco. Una
+captura no prueba nada por sí sola.
 
 ---
 
