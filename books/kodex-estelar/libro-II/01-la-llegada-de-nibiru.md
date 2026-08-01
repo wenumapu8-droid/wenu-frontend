@@ -100,6 +100,24 @@ Y una **órbita elíptica** es exactamente eso llevado al cielo: algo que se ale
 
 *Mensajero*, y no *amo*. Es la primera palabra que este tomo usa para lo que llega, y es más suave de lo que va a venir después.
 
+Y vale detenerse en la idea del **regreso periódico**, porque es más antigua que este libro y aparece en casi todas partes.
+
+Prácticamente todas las culturas que miraron el cielo con atención llegaron a la misma conclusión: **lo importante vuelve**. Las estaciones, las lunas, las crecidas de los ríos, las estrellas que aparecen en la misma posición cada año. Sobre esa regularidad se construyeron los calendarios, las siembras y buena parte de las religiones.
+
+Y con ella se construyó también una idea que sigue entre nosotros: que la historia no avanza en línea recta sino en ciclos, y que lo que pasó va a volver a pasar.
+
+Es una idea que consuela y que paraliza, según cómo se use.
+
+**Consuela** porque nada de lo malo es definitivo: si esto es una vuelta, va a pasar.
+
+**Paraliza** porque si todo vuelve igual, nada de lo que hagas cambia nada. Ya lo intentó alguien la vuelta anterior.
+
+Este Códex se para en la primera y evita la segunda, y lo hace con una figura precisa que ya conocemos del Libro I: **la espiral**. Ni la recta —donde nada vuelve y todo se pierde— ni el círculo —donde todo vuelve igual y nada avanza—. Se vuelve al mismo punto, una vuelta más arriba.
+
+Por eso la órbita de Nibiru es **elíptica** y no circular, y por eso se sincroniza *con la gran espiral del tiempo*. Vuelve, y no vuelve al mismo lugar.
+
+Lo que regresa cada tres mil seiscientos años, si regresa, te encuentra distinto.
+
 ### Buscaban oro
 
 **En su superficie: los Anunnaki, una raza poderosa, mezcla de biología y divinidad, genetistas celestes, ingenieros del alma encarnada.**
@@ -206,6 +224,30 @@ Tres figuras, tres miradas sobre lo mismo, y la construcción es de una economí
 Ese tercero es el más inquietante, aunque parezca el más neutral. Enki y Enlil discuten porque a los dos les importa lo que tienen delante, aunque de maneras opuestas. Anu no discute: administra. Está de acuerdo con que haya trato.
 
 Es la forma del poder que no odia a nadie y firma igual.
+
+Y vale quedarse ahí, porque es la figura que menos aparece en los relatos y la que más se parece a cómo funcionan las cosas.
+
+Las historias necesitan un Enlil. Alguien que quiera el mal, que lo diga, que se le note. Es cómodo: se lo puede señalar, se lo puede derrotar, y mientras exista uno puede creer que el problema tiene cara.
+
+Pero casi nada de lo que sale mal en el mundo lo decide un Enlil.
+
+**Lo decide alguien que estaba de acuerdo con que hubiera trato.**
+
+Piensa en cualquier daño grande que conozcas —en una empresa, en un gobierno, en una familia—. Casi siempre hay alguien que lo quería, alguien que se opuso, y **muchos que simplemente firmaron**. Que no tenían nada contra nadie. Que ese día tenían otras cosas en la cabeza. Que consideraron que el asunto tenía sentido dentro de lo que se estaba haciendo.
+
+Esa gente rara vez se siente responsable después, y tiene un argumento: no odiaba a nadie.
+
+Es verdad, y no alcanza.
+
+Fíjate además en el verbo que eligió Ocín para Anu: **bendijo**. No *aprobó*, no *autorizó*, no *ordenó*. Bendecir es dar la aprobación **sagrada** a algo, ponerle encima una legitimidad que ya no se discute.
+
+Y ése es exactamente el trabajo de la clase de poder que Anu representa: no ejecutar, sino **volver incuestionable lo que otros van a ejecutar**.
+
+Enki y Enlil discutieron. Los dos, a su manera, se ocuparon de la criatura que tenían delante.
+
+Anu no la miró.
+
+Y de los tres, es el único cuyo papel sigue vacante en cada mesa donde se decide algo sobre alguien que no está en la sala.
 
 **Y así, la semilla fue plantada: una alianza entre reinos, pero también una distorsión en el diseño original.**
 
