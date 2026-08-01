@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>KODEX−∞ · The Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --black:#0a0a0a;--white:#e8e8e8;--dim:#6a6a6a;
+  --red:#ff2028;--orange:#ff7a00;--cyan:#00f7ff;--green:#a6ff00;--violet:#903cff;--magenta:#ff2cf0;
+  --disp:"Barlow Condensed",Impact,sans-serif; --mono:"IBM Plex Mono",monospace;
+  --accent:var(--red);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:var(--black);color:var(--white);font-family:var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased}
+canvas#gl{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+.hud{position:fixed;inset:0;z-index:2;pointer-events:none;text-transform:uppercase;letter-spacing:.1em}
+.frame{position:fixed;inset:12px;border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);z-index:1;pointer-events:none;transition:border-color .8s}
+.br{position:fixed;width:18px;height:18px;border:1.5px solid var(--accent);z-index:3;pointer-events:none;transition:border-color .8s}
+.b1{top:9px;left:9px;border-right:0;border-bottom:0}.b2{top:9px;right:9px;border-left:0;border-bottom:0}
+.b3{bottom:9px;left:9px;border-right:0;border-top:0}.b4{bottom:9px;right:9px;border-left:0;border-top:0}
+
+/* top bar */
+.top{position:absolute;top:26px;left:30px;right:30px;display:flex;justify-content:space-between;align-items:flex-start}
+.wm{font-family:var(--disp);font-weight:800;font-size:clamp(22px,2.6vw,38px);line-height:.9;color:var(--white)}
+.wm span{color:var(--accent);transition:color .8s}
+.sub{font-size:9px;color:var(--dim);letter-spacing:.28em;margin-top:6px}
+.sys{text-align:right;font-size:9px;color:var(--dim);line-height:1.7}
+.sys b{color:var(--accent);font-weight:500;transition:color .8s}
+
+/* center scene title */
+.stage{position:absolute;top:50%;left:30px;transform:translateY(-50%);max-width:min(46vw,560px)}
+.num{font-family:var(--mono);font-size:12px;color:var(--accent);letter-spacing:.3em;transition:color .8s}
+.title{font-family:var(--disp);font-weight:800;font-size:clamp(38px,6.4vw,92px);line-height:.92;margin:6px 0 14px;letter-spacing:.01em}
+.line{font-family:var(--mono);text-transform:none;font-size:clamp(13px,1.5vw,17px);line-height:1.5;color:#c8c8c8;letter-spacing:.02em;max-width:34ch}
+.cta{pointer-events:auto;display:inline-flex;align-items:center;gap:12px;margin-top:26px;border:1px solid var(--accent);
+  padding:13px 22px;font-family:var(--disp);font-weight:700;font-size:16px;letter-spacing:.1em;color:var(--white);
+  background:color-mix(in srgb, var(--accent) 8%, transparent);cursor:pointer;transition:.25s}
+.cta:hover{background:color-mix(in srgb, var(--accent) 22%, transparent)}
+.cta .ar{transition:transform .25s}.cta:hover .ar{transform:translateX(5px)}
+
+/* progress rail */
+.rail{position:absolute;bottom:34px;left:30px;right:30px;display:flex;align-items:center;gap:14px}
+.dots{display:flex;gap:10px;flex:1}
+.dot{pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;gap:5px;font-size:8px;color:var(--dim);letter-spacing:.14em;transition:.3s}
+.dot i{display:block;height:2px;width:100%;background:#2a2a2a;transition:.4s}
+.dot.on{color:var(--white)}.dot.on i{background:var(--accent)}
+.dot.done i{background:#4a4a4a}
+.nav{display:flex;gap:8px;pointer-events:auto}
+.nav button{width:38px;height:38px;border:1px solid #2a2a2a;background:transparent;color:var(--white);font-size:15px;cursor:pointer;transition:.25s;font-family:var(--mono)}
+.nav button:hover{border-color:var(--accent);color:var(--accent)}
+
+.status{position:absolute;bottom:78px;left:30px;font-size:9px;color:var(--dim);letter-spacing:.2em}
+.status b{color:var(--accent);transition:color .8s}
+
+#gate{position:fixed;inset:0;z-index:9;background:rgba(10,10,10,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;cursor:pointer;text-align:center}
+#gate .m{font-family:var(--disp);font-weight:800;font-size:clamp(46px,9vw,110px);color:var(--white)}
+#gate .m span{color:var(--red)}
+#gate .s{font-size:11px;letter-spacing:.42em;color:var(--dim)}
+.fade{opacity:0;transition:.9s;pointer-events:none!important}
+@media(max-width:820px){.stage{max-width:82vw;left:24px}.top{left:22px;right:22px}.rail{left:22px;right:22px}.dot span{display:none}}
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div class="frame" id="frame"></div>
+<span class="br b1"></span><span class="br b2"></span><span class="br b3"></span><span class="br b4"></span>
+
+<div class="hud">
+  <div class="top">
+    <div><div class="wm">KODEX<span>−∞</span></div><div class="sub" id="subtitle">A VISUAL SYSTEM FOR THE ARCHIVE OF LIVING PATTERNS</div></div>
+    <div class="sys">
+      <div>KDX CORE v1.0</div>
+      <div>STATE · <b id="state">DORMANT</b></div>
+      <div>SIGNAL · <b id="sig">00.0%</b></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="num" id="num">00 / 06</div>
+    <div class="title" id="title">THRESHOLD</div>
+    <div class="line" id="line">Access the archive beyond the surface. You do not open it — you are recognized by it.</div>
+    <div class="cta" id="cta">ENTER <span class="ar">→</span></div>
+  </div>
+
+  <div class="status">FEED · <b id="feed">ACTIVE</b> · NODE UNKNOWN · UPTIME <span id="up">00:00</span></div>
+
+  <div class="rail">
+    <div class="dots" id="dots"></div>
+    <div class="nav"><button id="prev">←</button><button id="next">→</button></div>
+  </div>
+</div>
+
+<div id="gate"><div class="s">KODEX −∞ · THE ARCHIVE OF LIVING PATTERNS</div><div class="m">KODEX<span>−∞</span></div><div class="s">TAP TO ENTER · ENABLE SOUND</div></div>
+
+<script type="module">
+const $=id=>document.getElementById(id);
+const reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+/* ---------- SCENES (data-driven) ---------- */
+const SCENES=[
+ {id:'THRESHOLD', accent:'#ff2028', hex:[1.0,0.125,0.157], mode:0, cta:'ENTER',
+  sub:'ENTRY PROTOCOL · UMBRAL DE ACCESO', state:'DORMANT',
+  line:'Access the archive beyond the surface. You do not open it — you are recognized by it.'},
+ {id:'PROLOGUE', accent:'#903cff', hex:[0.565,0.235,1.0], mode:1, cta:'BEGIN OBSERVATION',
+  sub:'SCAN PROTOCOL · OJO DE OBSERVACIÓN', state:'AWARE',
+  line:'The archive is watching. You are the signal. We watch so we won’t forget.'},
+ {id:'DESCENT', accent:'#ff7a00', hex:[1.0,0.478,0.0], mode:2, cta:'DESCEND',
+  sub:'DEPTH PROTOCOL · DESCENSO', state:'ACTIVE',
+  line:'Descend into the pattern. The deeper you go, the more you recognise. Do not forget to descend.'},
+ {id:'ARCHIVE', accent:'#a6ff00', hex:[0.65,1.0,0.0], mode:3, cta:'OPEN ARCHIVE',
+  sub:'LIVING MEMORY · ARCHIVO', state:'ACTIVE',
+  line:'The archive dreams in code. Records, echoes, variations — all connected. Every leaf is an archive.'},
+ {id:'MACHINE', accent:'#00f7ff', hex:[0.0,0.969,1.0], mode:4, cta:'GENERATE SIGNAL',
+  sub:'ARTEFACT CORE · DISPOSITIVO RITUAL', state:'ACTIVE',
+  line:'Patterns become predictions. The machine sees what we cannot. Charge · align · resonate · emit.'},
+ {id:'COSMOLOGY', accent:'#ff2cf0', hex:[1.0,0.173,0.941], mode:5, cta:'REVEAL CONNECTION',
+  sub:'ORBIT MAP · NÚCLEO COSMOLÓGICO', state:'ACTIVE',
+  line:'We are patterns in the cosmos. From code to stars, from stars to code. Everything connects.'},
+ {id:'RETURN', accent:'#e8e8e8', hex:[0.91,1.0,0.6], mode:6, cta:'RETURN',
+  sub:'THE PATTERN REMAINS · RETORNO', state:'OPEN',
+  line:'Return to carry the pattern. You leave the archive, but the pattern remains. The loop remembers.'},
+];
+let cur=0, target=0, blend=0; // blend 0..1 between cur and next during transition
+
+/* ---------- audio ---------- */
+class KodexAudio{constructor(){this.e=0;this.started=false}
+ async start(){if(this.started)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;const c=new AC();await c.resume();this.c=c;this.started=true;
+  const m=c.createGain();m.gain.value=0;const l=c.createDynamicsCompressor();l.threshold.value=-8;l.ratio.value=12;m.connect(l);l.connect(c.destination);this.m=m;
+  const mk=(f,t,g)=>{const o=c.createOscillator();o.type=t;o.frequency.value=f;const gg=c.createGain();gg.gain.value=g;o.connect(gg);gg.connect(m);o.start();return o};
+  this.o1=mk(55,'sine',.22);this.o2=mk(82.5,'triangle',.10);mk(110,'sine',.05);
+  const nb=c.createBuffer(1,c.sampleRate*2,c.sampleRate),nd=nb.getChannelData(0);for(let i=0;i<nd.length;i++)nd[i]=(Math.random()*2-1)*.5;
+  const n=c.createBufferSource();n.buffer=nb;n.loop=true;const nf=c.createBiquadFilter();nf.type='lowpass';nf.frequency.value=320;const ng=c.createGain();ng.gain.value=.07;n.connect(nf);nf.connect(ng);ng.connect(m);n.start();
+  const an=c.createAnalyser();an.fftSize=256;m.connect(an);this.an=an;this.b=new Uint8Array(an.frequencyBinCount);
+  const t=c.currentTime;m.gain.setValueAtTime(0,t);m.gain.linearRampToValueAtTime(.8,t+3.5);}
+ tune(base){if(this.o1){this.o1.frequency.setTargetAtTime(base,this.c.currentTime,1.2);this.o2.frequency.setTargetAtTime(base*1.5,this.c.currentTime,1.2);}}
+ energy(){if(!this.an)return 0;this.an.getByteFrequencyData(this.b);let s=0;for(let i=0;i<this.b.length;i++)s+=this.b[i];const e=s/(this.b.length*255);this.e+=(e-this.e)*.18;return this.e}}
+const audio=new KodexAudio();
+
+/* ---------- WebGL shared engine ---------- */
+const cv=$('gl'),gl=cv.getContext('webgl2',{antialias:false,alpha:false});
+const V=`#version 300 es
+in vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`;
+const F=`#version 300 es
+precision highp float;out vec4 o;
+uniform vec2 R;uniform float T;uniform float B;uniform vec2 PTR;
+uniform vec3 CA;uniform vec3 CB;uniform float MA;uniform float MB;uniform float MIX;
+float h(vec2 p){p=fract(p*vec2(234.34,435.345));p+=dot(p,p+34.23);return fract(p.x*p.y);}
+float hash(float n){return fract(sin(n)*43758.5453);}
+mat2 rot(float a){float c=cos(a),s=sin(a);return mat2(c,-s,s,c);}
+// scene renderers -> return intensity field (grayscale), colored later
+float scene(int m, vec2 uv, float t, float b){
+ float r=length(uv), a=atan(uv.y,uv.x);
+ if(m==0){ // THRESHOLD portal
+   float rings=0.; for(float i=1.;i<8.;i++){rings+=smoothstep(.010,0.,abs(r-(i*.052+.06)-b*.01))*(.5+.5*sin(t*.6+i));}
+   float veins=smoothstep(.35,1.,abs(sin(a*10.+sin(a*26.)*.3)))*smoothstep(.6,.06,r)*(.4+b*.7);
+   float core=exp(-13.*abs(r-.02))*(.6+b*1.);
+   return rings*.9+veins*.7+core;
+ }
+ if(m==1){ // PROLOGUE eye/iris
+   float iris=smoothstep(.34,.33,r)-smoothstep(.12,.11,r);
+   float fib=pow(max(0.,sin(a*60.+sin(r*22.-t)*2.)),2.)*iris*(.5+b);
+   float pupil=exp(-30.*abs(r-.07))*(.7+b);
+   float lid=smoothstep(.46,.34,abs(uv.y)*1.4+abs(uv.x)*.2);
+   return (fib*.9+pupil+smoothstep(.345,.335,r)*.15)*lid;
+ }
+ if(m==2){ // DESCENT tunnel (polar warp)
+   float depth=t*.35; float rr=pow(r,.6);
+   float g=abs(fract((rr*3.0 - depth))-.5); float rings=smoothstep(.06,0.,g)*smoothstep(1.,.05,r);
+   float spokes=pow(max(0.,sin(a*16.)),6.)*smoothstep(.9,.05,r)*.5;
+   float core=exp(-6.*r)*(.5+b*.8);
+   return rings*(.7+b*.5)+spokes+core;
+ }
+ if(m==3){ // ARCHIVE grid of cells
+   vec2 g=uv*6.0; vec2 id=floor(g); vec2 f=fract(g)-.5;
+   float cell=smoothstep(.46,.42,max(abs(f.x),abs(f.y)));
+   float lit=step(.62, hash(dot(id,vec2(12.9,78.2))+floor(t*1.5+hash(id.x*3.1)*6.)) );
+   float node=cell*lit*(.4+b*1.2);
+   float gridln=(smoothstep(.02,0.,abs(f.x))+smoothstep(.02,0.,abs(f.y)))*.12;
+   return node+gridln;
+ }
+ if(m==4){ // MACHINE network nodes+links
+   float acc=0.; for(float i=0.;i<9.;i++){
+     float an2=i/9.*6.2831+t*.15*(hash(i)*2.-1.); float rad=.16+hash(i+3.)*.32;
+     vec2 pos=vec2(cos(an2),sin(an2))*rad; float d=length(uv-pos);
+     acc+=exp(-40.*d)*(.6+b*1.2); acc+=smoothstep(.006,0.,abs(length(uv)*0.+ (dot(normalize(uv+1e-4),normalize(pos))) -1.)+length(uv-pos)*.0)*0.;
+     acc+=smoothstep(.004,0.,abs( (uv.x*pos.y-uv.y*pos.x) )/ (length(pos)+1e-3) )*smoothstep(rad,0.,length(uv))*.25;
+   }
+   acc+=exp(-26.*length(uv))*(.5+b); return acc;
+ }
+ if(m==5){ // COSMOLOGY orbit
+   float core=exp(-16.*abs(r-.03))*(.7+b*1.1)+exp(-4.*r)*.18;
+   float orbits=0.; for(float i=1.;i<6.;i++){float rr=i*.075+.05; orbits+=smoothstep(.004,0.,abs(r-rr))*.25;
+     float an2=t*(.5/i)+i; vec2 pos=vec2(cos(an2),sin(an2))*rr; orbits+=exp(-70.*length(uv-pos))*(.8+b);}
+   float petals=pow(max(0.,sin(a*6.+t*.2)),8.)*exp(-9.*r)*(.4+b);
+   return core+orbits+petals;
+ }
+ // m==6 RETURN tree (branch+roots+inf)
+ float trunk=exp(-90.*abs(uv.x)*(1.+abs(uv.y)))*smoothstep(.5,.0,abs(uv.y));
+ float br=0.; for(float i=0.;i<7.;i++){float s=(i-3.)/3.; float y=abs(uv.y);
+   float branch=exp(-60.*abs(uv.x - s*y*(.6) - sin(y*6.+s)*.03)); br+=branch*smoothstep(.5,0.,y)*(.5+b*.5);}
+ float inf=exp(-40.*abs(r-.02))*(.6+b);
+ return (trunk*1.2+br*.5+inf)*.9;
+}
+void main(){
+ vec2 uv=(gl_FragCoord.xy-.5*R)/R.y; uv+=PTR*.02;
+ float sa=scene(int(MA),uv,T,B);
+ float sb=scene(int(MB),uv,T,B);
+ float s=mix(sa,sb,MIX);
+ vec3 col=mix(CA,CB,MIX);
+ vec3 c=vec3(.015,.015,.018)+ col*s;
+ // subtle white hot core
+ c+= vec3(1.)*pow(max(0.,s-1.2),1.5)*.5;
+ // grain + scanline + vignette
+ c+=(h(gl_FragCoord.xy+T)-.5)*.03;
+ c*=.9+.1*sin(gl_FragCoord.y*.9+T*2.);
+ c*=smoothstep(1.25,.2,length((gl_FragCoord.xy-.5*R)/R));
+ o=vec4(c,1.);
+}`;
+function sh(t,s){const x=gl.createShader(t);gl.shaderSource(x,s);gl.compileShader(x);if(!gl.getShaderParameter(x,gl.COMPILE_STATUS))console.error('shader',gl.getShaderInfoLog(x));return x}
+const P=gl.createProgram();gl.attachShader(P,sh(gl.VERTEX_SHADER,V));gl.attachShader(P,sh(gl.FRAGMENT_SHADER,F));gl.linkProgram(P);gl.useProgram(P);
+const bf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,bf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+const lp=gl.getAttribLocation(P,'p');gl.enableVertexAttribArray(lp);gl.vertexAttribPointer(lp,2,gl.FLOAT,false,0,0);
+const U=n=>gl.getUniformLocation(P,n);
+const uR=U('R'),uT=U('T'),uB=U('B'),uP=U('PTR'),uCA=U('CA'),uCB=U('CB'),uMA=U('MA'),uMB=U('MB'),uMIX=U('MIX');
+let DPR=Math.min(devicePixelRatio||1,2);
+function rz(){cv.width=innerWidth*DPR;cv.height=innerHeight*DPR;gl.viewport(0,0,cv.width,cv.height)}addEventListener('resize',rz);rz();
+let ptr=[0,0];addEventListener('pointermove',e=>ptr=[(e.clientX/innerWidth-.5)*2,(.5-e.clientY/innerHeight)*2]);
+
+/* ---------- UI ---------- */
+const dotsEl=$('dots');
+SCENES.forEach((s,i)=>{const d=document.createElement('div');d.className='dot';d.innerHTML=`<i></i><span>${String(i).padStart(2,'0')} ${s.id}</span>`;d.onclick=()=>go(i);dotsEl.appendChild(d);});
+function applyScene(i){const s=SCENES[i];
+  document.documentElement.style.setProperty('--accent',s.accent);
+  $('num').textContent=String(i).padStart(2,'0')+' / 06';
+  $('title').textContent=s.id; $('line').textContent=s.line; $('cta').firstChild.textContent=s.cta+' ';
+  $('subtitle').textContent=s.sub; $('state').textContent=s.state;
+  [...dotsEl.children].forEach((d,j)=>{d.classList.toggle('on',j===i);d.classList.toggle('done',j<i);});
+  if(audio.started) audio.tune(44+ i*7);
+}
+let transT=0;
+function go(i){ if(i===cur) return; i=(i+SCENES.length)%SCENES.length; target=i; transT=performance.now(); applyScene(i); }
+function next(){ go((cur+1)%SCENES.length); }
+function prev(){ go((cur-1+SCENES.length)%SCENES.length); }
+$('cta').onclick=next; $('next').onclick=next; $('prev').onclick=prev;
+addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();});
+applyScene(0);
+
+/* ---------- loop ---------- */
+const t0=performance.now();let last=0;
+function frame(now){const t=(now-t0)/1000;const e=audio.started?audio.energy():.12+.06*Math.sin(t*.6);
+  // transition blend
+  if(target!==cur){ blend+=(1-blend)*(reduce?1:0.05); if(blend>0.995){cur=target;blend=0;} }
+  const A=SCENES[cur].hex, Bc=SCENES[target].hex;
+  gl.uniform2f(uR,cv.width,cv.height);gl.uniform1f(uT,t);gl.uniform1f(uB,e);gl.uniform2f(uP,ptr[0],ptr[1]);
+  gl.uniform3f(uCA,A[0],A[1],A[2]);gl.uniform3f(uCB,Bc[0],Bc[1],Bc[2]);
+  gl.uniform1f(uMA,SCENES[cur].mode);gl.uniform1f(uMB,SCENES[target].mode);gl.uniform1f(uMIX,blend);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  if(now-last>120){last=now;
+    $('sig').textContent=(20+e*78).toFixed(1)+'%';
+    const s=Math.floor(t); $('up').textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+    $('feed').textContent = e>0.3?'TRANSMITTING':(target!==cur?'PROCESSING':'ACTIVE');
+  }
+  requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+
+const gate=$('gate');gate.addEventListener('click',async()=>{await audio.start();gate.classList.add('fade');setTimeout(()=>gate.remove(),950);});
+</script>
+</body>
+</html>
