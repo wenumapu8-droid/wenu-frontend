@@ -118,6 +118,30 @@ Y eso cambia lo que el capítulo está diciendo. Ya no se trata de sentirse bien
 
 Es la diferencia entre llorar por algo tuyo y llorar por lo que una pantalla te mostró a propósito para que llores. Las dos lágrimas son iguales. Una es tuya.
 
+Y vale quedarse en **la adoración**, porque es la que rompe la lista y la que más incomoda.
+
+Uno esperaría encontrarla del otro lado. La adoración se siente como lo mejor que uno tiene: es entrega, es admiración, es amor sin cálculo. Es lo que sentimos frente a alguien que nos enseñó algo, frente a una obra que nos dio vuelta, frente a lo que consideramos sagrado.
+
+¿Por qué está entre el miedo y la desesperanza?
+
+Por lo que **hace con la atención**.
+
+Las tres tienen en común una cosa: **te sacan del centro y te ponen mirando hacia arriba**. El miedo te achica frente a algo más grande. La desesperanza te convence de que no hay nada que puedas hacer. Y la adoración —la ciega, la que este Códex nombra en su último capítulo como *adoración ciega*— hace exactamente lo mismo con mejor humor: pone todo lo valioso afuera y deja adentro a alguien que sólo puede mirar.
+
+El capítulo XII de este tomo va a dar la versión final de esto: *ya no proyectas tu luz en otros soles*. Ahí quedará dicho lo esencial —que lo que admiras en otro suele ser tu propia capacidad de reconocerlo.
+
+Y hay que separar, porque no toda admiración es esto.
+
+**Admirar** te deja con ganas de hacer algo. Sales de un concierto queriendo tocar. Terminas un libro queriendo escribir. Lo que viste te devolvió energía y va hacia tus manos.
+
+**Adorar** te deja mirando. Y suele venir con una idea que se instala sin ruido: *yo nunca podría*.
+
+La diferencia se ve en el día siguiente. Una te pone a trabajar. La otra te deja esperando la próxima ocasión de mirar.
+
+Por eso la tercera cláusula del pacto de este tomo era *culto por control*, y por eso el Libro I se pasó doce capítulos aclarando que los Ancianos de Días **no piden culto**.
+
+Lo que pide adoración quiere tu mirada. Lo que te quiere bien te la devuelve.
+
 **Así nació la verdadera minería: la extracción energética del alma.**
 
 ### La lista
@@ -161,6 +185,22 @@ Si esto te toca de cerca: hay quien sabe tratarlo, y buscarlo no es rendirse ant
 Y funciona precisamente porque es **imposible**. Un ideal alcanzable se alcanza y se termina el asunto. Uno imposible produce esfuerzo infinito y culpa permanente, que es exactamente la combinación que este capítulo describe como producción continua.
 
 Piensa cuántos llevas encima. El cuerpo que deberías tener. La clase de persona que deberías ser con los tuyos. Lo que deberías haber logrado a tu edad. Ninguno te lo impuso nadie con violencia. Los aceptaste, y los defiendes.
+
+Y hay un detalle que los delata, y sirve para reconocerlos uno por uno.
+
+**Un ideal imposible no tiene número.**
+
+Fíjate. Si te preguntaras cuánto tendrías que pesar para estar conforme, o cuánto tendrías que ganar, o cuánto tiempo tendrías que dedicarle a tus hijos para sentir que está bien — no hay respuesta. No es que la respuesta sea alta: **es que no existe**.
+
+Cualquier cifra que pongas, al llegar ahí, se corre.
+
+Ésa es la firma de un ideal imposible, y es fácil de comprobar: **prueba a ponerle una cifra a lo que te exiges**. Si puedes, es una meta, y las metas se cumplen y se acaban. Si no puedes —si al intentar poner el número sientes que estás haciendo trampa, que eso no es lo importante, que no se trata de eso— acabas de encontrar uno.
+
+Y hay una segunda marca, más fina: **un ideal imposible nunca te felicita**.
+
+Una meta cumplida da una satisfacción concreta y bastante breve. Un ideal imposible, cuando avanzas, no dice nada — mueve la línea y sigue. Si has logrado algo importante y la sensación duró tres días, y al cuarto ya estabas midiéndote contra lo siguiente, no fue que fueras desagradecido.
+
+Fue que ahí no había nadie a quien darle las gracias.
 
 **Bastaba con el miedo al abandono. Bastaba con hacerte olvidar que eras libre.**
 
