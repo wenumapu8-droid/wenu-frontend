@@ -169,6 +169,24 @@ Cualquiera que haya tenido una temporada de claridad —esos meses en que todo t
 
 Eso no es un fracaso moral. Es lo normal. Es lo que pasa. Y un libro que lo dice es un libro en el que se puede confiar más.
 
+Y conviene desarrollarlo, porque la recaída tiene una forma reconocible y casi nadie la describe.
+
+No es dramática. No hay un día en que uno renuncie a nada.
+
+**Es lenta y es razonable.** Empieza por la práctica que se saltea una mañana porque hay que salir temprano, y la mañana siguiente ya cuesta menos saltearla. Sigue por la conversación que uno deja de tener porque cansa explicarse. Sigue por las cosas que se dejan de mirar porque hay que resolver algo urgente, y siempre hay algo urgente.
+
+Y un día, meses después, uno se encuentra viviendo exactamente como vivía antes, y ni siquiera puede señalar cuándo dejó de estar despierto.
+
+Lo peor no es la vuelta. Es lo que uno se dice sobre ella: que fue una etapa, que estaba exaltado, que uno se hace ilusiones. **La recaída viene con una explicación que la vuelve definitiva** — se descalifica retroactivamente lo que se había visto, y así queda protegida contra el próximo intento.
+
+Este capítulo desactiva eso sin discutirlo. Al decir *otros despertaron, y volvieron a dormir* lo pone en la lista de lo que ocurre en una escuela, junto a los que nunca se enteraron y los que empezaron a recordar. No hay expulsados.
+
+Y hay algo que se sigue de eso y vale más que cualquier consuelo: **si esto es una escuela, la materia no se pierde por faltar**.
+
+Nadie te da de baja. Lo que viste sigue estando visto, aunque hayas pasado dos años sin mirarlo. Y el día que vuelvas —si vuelves— no vas a empezar de cero: vas a empezar exactamente donde lo dejaste, que es lo que pasa con todo lo que de verdad se aprendió alguna vez.
+
+Un idioma que no se practica durante años no se borra. Se oxida. Y vuelve más rápido de lo que se fue.
+
 **Pero algunos… han comenzado a recordar.**
 
 *Han comenzado* — en presente perfecto, que es el tiempo de lo que empezó y no terminó. No dice *recordaron*. Nadie terminó nada.

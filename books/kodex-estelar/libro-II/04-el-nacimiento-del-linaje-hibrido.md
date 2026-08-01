@@ -156,6 +156,20 @@ Es coherente con todo el Códex, que en dos tomos no le ha pedido a nadie que fu
 
 Y describe algo reconocible: hay gente cuya sola presencia cambia una habitación. No dicen nada especial. No hacen nada. Bajan la temperatura del conflicto simplemente estando.
 
+Vale desarmar eso, porque no es magia y se puede aprender.
+
+Lo que hace esa gente —y casi siempre sin saberlo— es **no agregar**.
+
+Cuando alguien llega alterado a una habitación, lo normal es responderle en su registro: si viene rápido, contestamos rápido; si viene tenso, nos tensamos. Es automático, y es lo que hace que una discusión escale sin que nadie lo haya decidido.
+
+Quien baja la temperatura hace lo contrario, y hace una sola cosa: **mantiene su propio ritmo**. No habla más lento a propósito ni pone cara de calma. Simplemente no adopta el del otro.
+
+Y como el ritmo se contagia en las dos direcciones, en un rato la habitación se le acomoda.
+
+Eso es *sostener*. No es hacer nada — es no dejar de hacer lo que uno venía haciendo. Y en un capítulo que reparte firmas genéticas interdimensionales, conviene decir que la parte verificable de este poder consiste en respirar igual que hace un minuto.
+
+Lo cual, dicho sea de paso, es exactamente lo que este Códex viene enseñando desde su segundo capítulo: *solo silencio, solo entrega, solo respiración*.
+
 ### El linaje se ramificó
 
 **No todos usaron su don con amor. Algunos lo usaron para dominar.**

@@ -250,6 +250,26 @@ Si la pirámide se sostiene con la participación cotidiana de mucha gente, ento
 
 El resto es teatro, y el teatro necesita público.
 
+Y hay una tercera parte del pliegue, más incómoda que las dos anteriores, que conviene decir porque es la que este capítulo puede hacerle a alguien.
+
+**Un texto contra la jerarquía puede producir a alguien que no acepta autoridad de ninguna clase.**
+
+Se ve seguido. La persona que no puede tener un jefe, ni un maestro, ni un editor, ni nadie que le corrija nada — y que llama a eso soberanía.
+
+No lo es. Es otra cosa, y este mismo capítulo da la herramienta para distinguirlas: **fíjate qué pasa cuando quien te corrige tiene razón**.
+
+Porque hay dos situaciones que desde afuera se parecen y no son lo mismo.
+
+Está la autoridad **posicional**: alguien manda porque le toca, y lo que dice vale por el cargo. Frente a eso, la desobediencia es lucidez, y de eso trata todo el capítulo.
+
+Y está la autoridad **de oficio**: alguien sabe hacer algo que tú no sabes, y te lo dice. Un carpintero que te explica por qué la junta no va a aguantar. Alguien que lleva veinte años haciendo lo que tú empezaste el mes pasado.
+
+Esa segunda no es una pirámide. Es una diferencia de horas, y se disuelve sola en cuanto tú acumules las tuyas.
+
+Confundirlas cuesta caro, y cuesta sobre todo tiempo: quien rechaza la autoridad de oficio se pasa años redescubriendo cosas que alguien le podía haber dicho en diez minutos, y llama a eso independencia.
+
+El capítulo no dice esto, pero su última línea lo implica. *La que no necesita que la obedezcan, porque enseña a otros a recordarse soberanos* describe a alguien que **enseña** — y no se puede enseñar nada a quien decidió de antemano que aprender es someterse.
+
 ---
 
 ## Resonancia KODEX

@@ -204,6 +204,22 @@ Y esa es la buena noticia escondida en la lista, aunque el capítulo no la subra
 
 Lo único que hay que hacer es mirar dónde está yendo.
 
+Y hay una manera práctica de mirarlo, que este capítulo no da y que se puede hacer en una semana.
+
+**Anota, durante siete días, en qué momento del día te sentiste con más energía.** No con más ánimo: con más energía. La diferencia importa — hay ratos livianos en los que uno no está haciendo nada, y hay ratos difíciles en los que uno está encendido.
+
+Lo que aparece suele sorprender.
+
+Casi nadie encuentra lo que esperaba. Mucha gente descubre que su momento más intenso del día fue una discusión que no quería tener. Otros, que fue media hora resolviendo un problema técnico que a nadie le importa. Otros, que fue una conversación de tres minutos con alguien en un pasillo.
+
+Y casi todos descubren lo mismo en la otra dirección: **que las horas donde se les fue la mayor parte del combustible no aparecen en la lista**. Estuvieron encendidos, gastaron todo, y no dejó nada — que es la definición exacta de los cuatro escondites.
+
+Eso no se corrige de un día para el otro y este capítulo no lo pide. Lo único que hace la semana de anotar es sacar el asunto de la teoría.
+
+Después de eso ya no se puede decir *no tengo energía*. Se puede decir dónde está.
+
+Y eso, dicho con precisión, es una decisión disponible.
+
 **Pero ahora… el fuego se alza. Se alza en el arte, en los que sueñan, en los que arden por dentro aunque afuera haya sombras.**
 
 **El arte** primero, otra vez, como en el Libro I.
