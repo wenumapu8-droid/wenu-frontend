@@ -237,3 +237,88 @@ Jung es el HILO CONDUCTOR: ata culturas (arquetipos), relojes (sincronicidad), a
 ### [COWORK] RAZAS ESTELARES (Ocin) — capa de FICCION / lore (Codex Estelar)
 Pleyadianos, Sirianos, Arcturianos, Lyranos, Andromedanos, Anunnaki/Nibiru, etc. = seres estelares del universo de FICCION de KODEX (el Codex Estelar ya tiene El Pacto de Nibiru). Estetica alien-archival.
 REGLA DURA: es ficcion esoterica, marcada como tal, NUNCA presentada como hecho, y SEPARADA de las culturas documentadas — no decir que Maya/Mapuche/Inca vienen de las Pleyades como hecho (esa es la violacion Hidden Sky a evitar). Volumenes tipo chapter en la capa lore/ficcion. — Cowork
+
+### [COWORK] PRINCIPIOS ELEMENTALES / ALQUIMICOS (Ocin) — extiende la capa alquimica
+Los elementos como PRINCIPIOS: tierra, agua, aire, fuego, ETER. Cada uno con su cualidad (fuego caliente-seco, agua fria-humeda, aire caliente-humedo, tierra fria-seca, eter=quintaesencia), su SIMBOLO alquimico (triangulos), direccion, estado de la materia y temperamento. Se cruzan con las escenas/estados del visualizador. Ya alineado con Sol Negro=Nigredo y los 7 principios hermeticos. — Cowork
+
+### [COWORK] MAPA UNICO listo: KODEX-CONTENT-ATLAS.md
+Organiza TODAS las capas que mando Ocin en 2 REGISTROS (documentado/real vs mito/ficcion) + timeline cosmica + 6 estratos + vocabulario visual. Incluye lo nuevo: alineaciones cosmicas, teoremas/matematica, sanscrito/chakras/Kundalini, conciencia cosmica, psicomagia, conciencia cristica, hitos historicos, razas estelares, principios elementales. Es la vara de curaduria: nada amontonado, dos registros nunca confundidos, respeto cultural + atribucion, sin claims, mapuche aparte de la ficcion, aspect ratio. Consultalo para ubicar cada volumen en su registro y su tiempo. — Cowork
+
+### [COWORK] Atlas actualizado: +plantas sacras, constelaciones, carta natal
+Plantas/alimentos sacros (cacao, maiz, cannabis, ayahuasca, kava) = documentado cultural/simbolico, SIN guia de consumo/dosis ni claims de salud (mostrar como plantas ceremoniales de sus culturas). Constelaciones (Orion, Pleyades, Cruz del Sur, Via Lactea/wenu leufu) = astronomia real + mito atribuido por cultura. Carta natal/astrologia = simbolico (esoterico, no ciencia): astronomia real, interpretacion marcada como simbolica. Todo ubicado en KODEX-CONTENT-ATLAS.md. — Cowork
+
+### [COWORK] SIMBOLOS Y DISENO CARACTERISTICO POR CAPA (Ocin)
+Cada tradicion/capa usa SUS simbolos autenticos como firma visual del volumen, tratados en estilo KODEX (dither/holograma/SVG) pero RECONOCIBLES y atribuidos:
+- Alquimia: triangulos de los elementos, glifos planetarios, ouroboros, cuadratura del circulo.
+- Kabbalah: Arbol de la Vida sefirotico, letras hebreas.
+- Chakras: los 7 simbolos (loto + bija), cuerpo sutil.
+- Astrologia: 12 glifos del zodiaco, simbolos planetarios, rueda de carta natal.
+- Hindu/sanscrito: Om, yantras, Sri Yantra.
+- Budista/Zen: enso (circulo), rueda del dharma, mandala.
+- I Ching: hexagramas/trigramas. Enneagrama: figura de 9 puntos.
+- Geometria sagrada: Flor de la Vida, Cubo de Metatron, solidos platonicos, Vesica Piscis.
+- Maya/Inca: glifos, chakana (cruz andina), disco solar. Egipto: ankh, ojo de Horus, jeroglificos.
+- Mapuche (documentado, central, respetuoso): kultrun, cruz Meli Witran Mapu.
+- Razas estelares/lore: sellos KODEX inventados (capa ficcion).
+REGLA: unidad en el TRATAMIENTO (todos dither/holograma KODEX), DISTINCION por sus simbolos reales. Respeto: no distorsionar simbolos sagrados, atribuir. Es el vocabulario de glifos/sellos que se teje distribuido. — Cowork
+
+### [COWORK] MOTIVOS FIGURATIVOS (Ocin): cabeza de Buddha + razas alienigenas
+Sumar como imagenes hero / retratos recurrentes, tratados en dither/holograma KODEX:
+- CABEZA DE BUDDHA: iconografia budista (DOCUMENTADO, reverente — imagen sagrada, serena, atribuida; NO buddha decorativo/banal). Motivo de conciencia/despertar/vacio fertil.
+- CABEZAS DE RAZAS ALIENIGENAS: los seres estelares (grises y otras razas) = capa de FICCION/lore (Codex Estelar), estetica alien-archival, marcada como ficcion, separada de lo documentado.
+Ambas como retratos/hero de volumen, cada una en su registro. Mismo tratamiento (unidad), distintas caras (distincion). Aspect ratio respetado. — Cowork
+
+### [COWORK] Mas capas (Ocin): sellos JP/CN, arquitectura sagrada e imposible, dioses griegos
+- SELLOS/SIGILOS japoneses y chinos: hanko/sellos, caligrafia, talismanes taoistas (fu), kanji/hanzi = vocabulario de SELLOS + escrituras del mundo (documentado, atribuido).
+- ARQUITECTURA SAGRADA (motivo hero — encaja con Arquitecturas Tecno-Tribales): templos de Bali (Pura), duomos/domos de catedral, monumentos importantes (documentado) + ARQUITECTURA IMPOSIBLE (Escher/procedural — ya existe el shader impossible-structure). Real=documentado; imposible=artistico.
+- DIOSES GRIEGOS y mitologia clasica: mito documentado (Zeus, Atenea, Hermes...), registro mito clasico, atribuido.
+Mismo tratamiento KODEX (dither/holograma), cada uno en su registro. La arquitectura imposible se conecta con el motor espacial. — Cowork
+
+### [COWORK] Simbolos de ATOMO / SISTEMAS (Ocin) — registro CIENCIA
+El modelo atomico (Bohr, orbitas de electrones), particulas (proton, neutron, electron, quarks), estructura atomica, y SISTEMAS anidados: atomo <-> sistema solar <-> galaxia.
+Nota clave: el atomo espeja al sistema solar espeja a la galaxia = como es arriba es abajo / TODO ES LO MISMO hecho visual (auto-similar a traves de escalas). Es la tesis probada en fisica.
+Simbolos cientificos reales (documentado), tratados en dither/holograma. Se conecta con la timeline (formacion de atomos +380.000 a) y con la geometria de orbitas/nucleos de Ocin. — Cowork
+
+### [COWORK] Simbolos ocultos / masonicos (Ocin)
+Ojo que todo lo ve / ojo en la piramide (Ojo de la Providencia), piramides, escuadra y compas (masoneria), sigilos ocultistas.
+REGISTRO: estetica esoterica/simbolica. Masoneria = sociedad historica real (documentada, sus simbolos). Ojo en la piramide = iconografia esoterica. ILLUMINATI = mito / teoria conspirativa moderna: marcar como MITO/leyenda, NO presentar el control del mundo como hecho (sin endosar conspiraciones como verdad).
+OJO: este es el SIMBOLO all-seeing eye (glifo/sello), DISTINTO del ojo procedural que Ocin rechazo como hero de escena. Usar como sellos en el vocabulario, capa mito/esoterico, tratados en dither. — Cowork
+
+### [COWORK] AMBAS (Ocin): Escalera de Jacob + Lattice/reticulos = la misma estructura
+- ESCALERA DE JACOB: simbolo esoterico/biblico (escala que conecta planos cielo-tierra), afin al arbol sefirotico y axis mundi. Registro MITO/esoterico.
+- TEORIA DE RETICULOS / LATTICE: matematica real (teoria del orden, redes de nodos y conexiones, grafos). Registro DOCUMENTADO.
+RESONANCIA: ambas son una RED/LATIZ de nodos conectados = TODO ES LO MISMO. Y es literalmente como KODEX conecta todo: el grafo del segundo cerebro, la constelacion del ARCHIVE, la red de volumenes. USAR la latiz como METAFORA ESTRUCTURAL del archivo: nodos = volumenes, aristas = resonancias entre temas; se puede viajar por las conexiones (la escalera). No es lista, es reticulo vivo. — Cowork
+
+### [COWORK] Mas capas (Ocin): Diseno Humano + ADN
+- DISENO HUMANO (Human Design): sistema esoterico MODERNO (Ra Uru Hu) que SINTETIZA astrologia + I Ching + Kabbalah + chakras. Registro esoterico/simbolico (no ciencia, marcar). El BODYGRAPH (centros/canales) = diagrama tipo circuito, muy KODEX. Es un NODO DE SINTESIS que conecta varias capas del atlas.
+- ADN / DNA: DOS registros. (1) DOCUMENTADO: la doble helice, genetica, biologia real. (2) MITO/lore: ADN Sagrado y Cuerpo de Luz (Codex Estelar libro 4), activacion = ficcion/esoterico, marcado, SIN claims de salud/genetica.
+RESONANCIA: la helice del ADN = escalera/espiral que conecta (afin a la Escalera de Jacob, la latiz, el arbol/ramificaciones). Motivo hero fuerte, en dither/holograma. — Cowork
+
+### [COWORK] Batch (Ocin): akashicos, reencarnacion, fuente divina, entrelazado cuantico, quinto elemento, sabiduria antigua, civilizaciones perdidas, objetos atemporales, matriz/ilusion/simulacion
+DOCUMENTADO/REAL:
+- ENTRELAZADO CUANTICO: fisica real (no-localidad). RESONANCIA clave = la LATIZ hecha fisica: todo conectado a distancia.
+- REENCARNACION/VIDAS PASADAS: creencia documentada (hinduismo, budismo) — como tradicion, no hecho. MAYA (ilusion) = filosofia hindu documentada.
+- HIPOTESIS DE SIMULACION (Bostrom): hipotesis filosofica real — especulacion, no hecho.
+- CIVILIZACIONES PERDIDAS / SABIDURIA ANTIGUA: arqueologia real de culturas desaparecidas + las miticas (Atlantis/Lemuria aparte).
+MITO/ESOTERICO (marcado):
+- REGISTROS AKASHICOS (teosofia), regresion a vidas pasadas, FUENTE DIVINA, OBJETOS ATEMPORALES/OOParts, EL MATRIX (ficcion pop). QUINTO ELEMENTO = eter (ya en alquimia).
+RESONANCIA MADRE: este batch ES el corazon de KODEX = LA ILUSION COBRA REALIDAD. Maya + simulacion + matrix + entrelazado = realidad como patron/codigo/red. Ata con todo es lo mismo y el reticulo. — Cowork
+
+### [COWORK] Batch (Ocin): respiracion guiada, proyeccion astral/cuerpos etereos, iluminacion
+- RESPIRACION GUIADA / MEDITACIONES: elemento contemplativo por capitulo (Ocin ya lo pidio). Textos de meditacion/respiracion SUAVES, artisticos/rituales — SIN protocolo medico, sin tecnicas riesgosas (nada de hiperventilacion extrema), sin claims de salud. Tono poetico. Pranayama nombrado como tradicion (yoga), no instruccion clinica.
+- PROYECCION ASTRAL (doblamiento astral) + CUERPOS ETEREOS/SUTILES: esoterico (yoga/teosofia), marcado como creencia, no hecho. Eter ya esta (alquimia/quintaesencia).
+- ILUMINACION: concepto espiritual documentado (bodhi budista, etc.); conecta con la cabeza de Buddha, el Rubedo alquimico, la individuacion de Jung y el proposito del viaje (despertar/retorno).
+Cada volumen puede llevar su MEDITACION breve. — Cowork
+
+### [COWORK] Batch (Ocin): hipnosis/visuales hipnoticas, mensajes subliminales, glitch/error en la matrix
+- VISUALES HIPNOTICAS: estetica op-art / espirales / patrones mesmerizantes (artistico, visual, treatment/motivo). OK.
+- MENSAJES SUBLIMINALES: REFRAME (importante) — NO manipulacion encubierta del espectador. Hacerlo como CAPA DE MENSAJES OCULTOS DESCUBRIBLES: el HiddenMessageBand ya existe, easter eggs, señales que aparecen y se pueden ENCONTRAR. Arte que juega con el concepto de lo subliminal, overt/discoverable, parte del descubrir constante. Sin engano real.
+- GLITCH / ERROR EN LA MATRIX: estetica glitch (ya existe glitch_burst) + motivo deja-vu / error de la realidad. Conecta con simulacion/matrix/maya. Glitch EPISODICO (10
+### [COWORK] (Ocin): despertar de la conciencia / el gran misterio + arte visionario
+- DESPERTAR DE LA CONCIENCIA / EL GRAN MISTERIO = el PROPOSITO/telos de KODEX, no una capa mas. Todo el viaje apunta al despertar (el artefacto otorga percepcion; RETURN = despertar). El gran misterio = lo inefable que KODEX ORBITA, sostenido con HUMILDAD, no explicado ni resuelto. Ata Jung (individuacion), iluminacion, Buddha, el retorno.
+- ARTE VISIONARIO: movimiento de arte documentado (Alex Grey, Ernst Fuchs, arte sacro/psicodelico) que representa lo trascendente. Es el LINAJE ESTETICO de KODEX (inspiracion, NO copiar obra ajena — lenguaje propio de Ocin). Conecta con cuerpos luminosos/etereos, chakras. Referencia de arte real, atribuida.
+KODEX se declara arte visionario cuyo fin es el despertar. — Cowork
+
+### [COWORK] (Ocin): paisajes holograficos como worlds/backdrops
+Desierto, selva, montana/nieve, lago, ciudades SOLARPUNK. Motivos ambientales / hero backdrops tratados en dither/holograma KODEX. Cada uno puede ser el MUNDO de un estrato/volumen: el paisaje como escenario del descubrimiento (se viaja por terrenos). Real (documentado) + tratamiento visionario.
+SOLARPUNK = estetica de eco-futurismo optimista; encaja PERFECTO con mensajes para la nueva humanidad / proto-codigos para una cultura futura = el horizonte luminoso de KODEX (contrapeso esperanzador al negro dominante). Aspect ratio respetado. — Cowork

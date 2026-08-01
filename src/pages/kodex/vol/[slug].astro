@@ -1,28 +1,39 @@
 ---
 /**
- * KODEX-∞ · VOLUMEN
+ * KODEX-∞ · VOLUMEN · lámina-collage
  *
  * Una ruta para toda la biblioteca. Agregar un volumen al manifiesto crea su
  * página; acá no se escribe nada.
  *
- * El héroe es la obra real tratada — o, mientras no exista, **el organismo
- * vivo** teñido con el color de su estrato. Esa caída no es un placeholder: un
- * volumen sin obra igual tiene un cuerpo, porque el sistema genera. Es la
- * diferencia entre una biblioteca que espera a estar llena y una que ya está
- * viva y se va llenando.
+ * **Cada volumen es una lámina**, no una ficha. El modelo son los pósters del
+ * sistema: una plancha de paneles numerados sobre negro, un solo acento, y en
+ * cada margen un fragmento del sistema — glifos, diagnósticos, tiras, reloj.
+ * Denso pero dosificado: el aire negro es parte de la composición, no lo que
+ * sobró.
+ *
+ * Dos cosas que la lámina sostiene siempre:
+ *
+ *  · **El sello del registro.** Documentado y mito nunca se confunden, y la
+ *    marca viaja pegada al contenido, no en una nota al pie que se pierde al
+ *    recomponer la página. Es la regla madre del atlas.
+ *  · **La proporción real de la obra.** Nunca se deforma una pieza para que
+ *    entre en una caja.
+ *
+ * Un volumen sin obra igual tiene cuerpo: cae al organismo vivo teñido con el
+ * color de su estrato. No es un placeholder — es la diferencia entre una
+ * biblioteca que espera a estar llena y una que ya está viva y se va llenando.
  */
 import Base from '../../../layouts/Base.astro';
 import KodexChrome from '../../../components/KodexChrome.astro';
 import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
 import KodexField from '../../../components/kodex/field/KodexField.astro';
-import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
-import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
 import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
 import KodexTransition from '../../../components/kodex/transition/KodexTransition.astro';
 import KodexDebug from '../../../components/kodex/debug/KodexDebug.astro';
 import '../../../styles/kodex.css';
 import '../../../styles/kodex-micrographics.css';
 import { leerManifiesto, resolver, razon, distribuir, type VolumenResuelto } from '../../../lib/kodex/volumenes';
+import { conjuntoDe } from '../../../lib/kodex/simbolos';
 
 export async function getStaticPaths() {
   const vols = resolver(await leerManifiesto());
@@ -31,26 +42,42 @@ export async function getStaticPaths() {
 
 const { v } = Astro.props as { v: VolumenResuelto };
 const r = razon(v.hero?.aspecto);
-// La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
-const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
 const checksum = v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
 
 /**
- * Diagnósticos del dossier. Derivan del propio volumen, no del azar: el mismo
- * volumen muestra siempre lo mismo. Un número que cambia en cada carga no es
- * un dato, es ruido con forma de dato.
+ * Los diagnósticos derivan del propio volumen, no del azar: el mismo volumen
+ * muestra siempre lo mismo. Un número que cambia en cada carga no es un dato,
+ * es ruido con forma de dato.
  */
 const semilla = [...v.slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
 
-// La serie, dosificada: seis placas que atraviesan el conjunto de punta a
-// punta, sin las variantes del mismo original. El heroe ya se llevo la primera.
-const serie = distribuir((v.assets ?? []).slice(1) as any[], 6);
+/** La serie, dosificada: el héroe ya se llevó la primera placa. */
+const serie = distribuir((v.assets ?? []).slice(1) as any[], 8);
+const totalPlacas = (v.assets ?? []).length;
+
+/** El conjunto de símbolos que le toca, con su sello y su atribución. */
+const conj = conjuntoDe(v.tema, v.estrato);
+
+/**
+ * El sello del volumen. El del conjunto es el de la tradición que se dibuja al
+ * margen; éste es el del contenido central. Cuando el volumen declara `marco`
+ * manda el volumen — es un dato curado y le gana a una inferencia por palabra.
+ */
+const selloVol = v.marco === 'ficcion' ? 'B' : v.marco ? 'A' : conj.sello;
+const selloTexto = selloVol === 'A'
+  ? 'REGISTRO ① · DOCUMENTADO'
+  : 'REGISTRO ② · SIMBÓLICO / FICCIÓN — NO ES HECHO';
+
 const diag = [
-  { k: 'INTEGRIDAD', v: `${(90 + (semilla % 10))}.${semilla % 10}%` },
-  { k: 'PROFUNDIDAD', v: `−${(semilla % 900) + 100}` },
-  { k: 'ESCRITURA', v: (v.escritura ?? '—').toUpperCase() },
+  { k: 'CLASE', v: v.tipo.toUpperCase() },
+  { k: 'ESTRATO', v: v.estratoTitulo.toUpperCase() },
+  { k: 'PLACAS', v: String(totalPlacas).padStart(3, '0') },
+  { k: 'INTEGRIDAD', v: `${90 + (semilla % 10)}.${semilla % 10}%` },
+  { k: 'PROFUNDIDAD', v: `−${(semilla % 900) + 100} M` },
   { k: 'REGISTRO', v: v.fecha ?? '—' },
 ];
+
+const enlaces = Object.entries(v.links ?? {});
 ---
 
 <Base
@@ -74,119 +101,155 @@ const diag = [
     <KodexChrome segs={7} />
     <KodexRegistration accent={v.color} />
 
-    <article class="kx-vol">
+    <div class:list={['kx-lam', serie.length === 0 && 'kx-lam--sinserie']} data-kdx-lamina>
+      {/* El sistema corriendo debajo del papel. Bajo de intensidad a
+          proposito: acá el protagonista es la obra, no el fondo. */}
       <KodexField
         field="network-vortex"
-        intensity={v.hero ? 0.3 : 0.42}
+        intensity={0.4}
         tint={v.color}
         spark="#7FE9FF"
-        floor={0.06}
-        detail={0.62}
-        speed={0.7}
+        floor={0.03}
+        detail={0.6}
+        speed={0.5}
         seed={(semilla % 97) + 1}
-        class="kx-vol__campo"
+        class="kx-lam__campo"
       />
 
-      <header class="kx-vol__cab">
-        <p class="kx-vol__tipo">
-          <span>{v.tipo}</span>
-          <span class="kx-vol__glifos" aria-hidden="true">{v.glifos}</span>
-          <span>{v.capitulo ? `CAP ${v.capitulo}` : `VOL ${v.numero}`}</span>
-        </p>
-        <h1 class="kx-vol__titulo">{v.titulo_es}</h1>
-        {v.titulo_en && <p class="kx-vol__titulo-en">{v.titulo_en}</p>}
-        <p class="kx-vol__estrato">ESTRATO {v.estratoNumero} · {v.estratoTitulo}</p>
-
-        {/* EL MARCO, DIBUJADO. Es regla dura del proyecto, no un adorno: el
-            universo del Artefacto es ficcion y jamas se presenta como ciencia
-            ni como salud. Un lector que no puede distinguir mito de
-            astrofisica no esta leyendo un archivo, esta leyendo una confusion
-            -- y esa confusion seria responsabilidad del sistema. */}
-        {v.marco && (
-          <p class={`kx-vol__marco kx-vol__marco--${v.marco}`}>
-            {v.marco === 'ficcion' && 'FICCIÓN · MITO Y ESPECULACIÓN · NO ES CIENCIA'}
-            {v.marco === 'ciencia' && `CIENCIA DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
-            {v.marco === 'documentado' && `FUENTE DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
-          </p>
-        )}
+      {/* ── CABECERA ──────────────────────────────────────────────────── */}
+      <header class="kx-lam__cab">
+        <div class="kx-lam__marca">
+          <p class="kx-lam__logo">KODEX−∞ <span>/ {v.titulo_es}</span></p>
+          <p class="kx-lam__sub">{v.titulo_en} · {v.estratoTitulo}</p>
+        </div>
+        <dl class="kx-lam__tiraDatos">
+          <div><dt>VOL</dt><dd>{v.numero}</dd></div>
+          <div><dt>CLASE</dt><dd>{v.tipo.toUpperCase()}</dd></div>
+          <div><dt>FECHA</dt><dd>{v.fecha ?? '—'}</dd></div>
+          <div><dt>SEED</dt><dd>{checksum}</dd></div>
+        </dl>
+        <p class={`kx-lam__sello kx-lam__sello--${selloVol}`}>{selloTexto}</p>
       </header>
 
-      <figure class={`kx-vol__hero kx-vol__hero--${forma}`}>
-        {v.hero ? (
-          <KodexArtifact
-            artwork={v.hero.src}
-            aspecto={v.hero.aspecto}
-            accent={v.color}
-            label={v.hero.alt ?? v.titulo_es}
-            id={checksum}
-            status={v.tipo.toUpperCase()}
-            coords={`${v.numero} · ${v.estratoTitulo}`}
-            pixelSize={3}
-            dither={0.86}
-            scanlines={0.3}
-            glow={0.46}
-            chroma={0.5}
-            flicker={0.34}
-          />
-        ) : (
-          <div class="kx-vol__organismo">
-            <KodexField
-              field="network-vortex"
-              intensity={0.72}
-              tint={v.color}
-              spark="#7FE9FF"
-              floor={0.05}
-              detail={0.78}
-              speed={0.85}
-              seed={(semilla % 53) + 1}
+      {/* ── 01 · DOSSIER ──────────────────────────────────────────────── */}
+      <section class="kx-lam__p kx-lam__p--dossier">
+        <h2 class="kx-lam__rot">01 · DOSSIER</h2>
+        <dl class="kx-lam__pares">
+          {diag.map((d) => (
+            <div><dt>{d.k}</dt><dd>{d.v}</dd></div>
+          ))}
+        </dl>
+        <p class="kx-lam__glifos" aria-hidden="true">{v.glifos}</p>
+        <p class="kx-lam__barra" aria-hidden="true"></p>
+        <p class="kx-lam__id">ID · {checksum}</p>
+      </section>
+
+      {/* ── 02 · LÁMINA CENTRAL ───────────────────────────────────────── */}
+      <section class="kx-lam__p kx-lam__p--obra">
+        <h2 class="kx-lam__rot">02 · LÁMINA // DIAGRAMA CENTRAL <b>LIVE</b></h2>
+        <div class="kx-lam__lienzo">
+          {v.hero ? (
+            <KodexArtifact
+              artwork={v.hero.src}
+              aspecto={v.hero.aspecto}
+              accent={v.color}
+              label={v.titulo_es}
+              id={checksum}
+              status={v.tipo.toUpperCase()}
+              coords={`${v.numero} · ${v.estratoTitulo}`}
+              pixelSize={3}
+              dither={0.86}
+              scanlines={0.3}
+              glow={0.46}
+              chroma={0.5}
+              flicker={0.34}
             />
-            <figcaption>ORGANISMO GENERADO · OBRA PENDIENTE DE ARCHIVO</figcaption>
-          </div>
-        )}
-      </figure>
+          ) : (
+            <div class="kx-lam__organismo">
+              <KodexField
+                field="network-vortex"
+                intensity={0.78}
+                tint={v.color}
+                spark="#7FE9FF"
+                floor={0.05}
+                detail={0.8}
+                speed={0.85}
+                seed={(semilla % 89) + 1}
+              />
+            </div>
+          )}
+        </div>
+      </section>
 
-      <div class="kx-vol__cuerpo" data-kdx-scrollable>
-        {v.formula && (
-          <div class="kx-vol__formula">
-            <p class="kx-vol__tex">{v.formula.tex}</p>
-            <p class="kx-vol__lee">{v.formula.lee_es}</p>
-            {v.formula.lee_en && <p class="kx-vol__lee kx-vol__lee--en">{v.formula.lee_en}</p>}
-          </div>
-        )}
-        {v.curaduria_es && (
-          <div class="kx-vol__parrafo">
-            <p>{v.curaduria_es}</p>
-            {v.curaduria_en && <p class="kx-vol__en">{v.curaduria_en}</p>}
-          </div>
-        )}
-        {v.meditacion_es && (
-          <div class="kx-vol__meditacion">
-            <p class="kx-vol__rotulo">MEDITACIÓN</p>
-            <p>{v.meditacion_es}</p>
-            {v.meditacion_en && <p class="kx-vol__en">{v.meditacion_en}</p>}
-          </div>
-        )}
-        {v.links && Object.entries(v.links).map(([k, url]) => (
-          <a class="kx-vol__enlace" href={url} rel="noopener">{k.toUpperCase()} →</a>
-        ))}
-        {v.oferta?.url && (
-          <a class="kx-vol__enlace" href={v.oferta.url} rel="noopener">
-            {v.oferta.edicion ? `${v.oferta.edicion} · ` : ''}{v.oferta.precio ?? 'VER'} →
-          </a>
-        )}
-      </div>
+      {/* ── 03 · CURADURÍA ────────────────────────────────────────────── */}
+      <section class="kx-lam__p kx-lam__p--texto">
+        <h2 class="kx-lam__rot">03 · CURADURÍA</h2>
+        {v.curaduria_es && <p class="kx-lam__es">{v.curaduria_es}</p>}
+        {v.curaduria_en && <p class="kx-lam__en">{v.curaduria_en}</p>}
+        {v.tema && <p class="kx-lam__tema">TEMA · {v.tema}</p>}
 
-      {v.mensaje_es && (
-          <div class="kx-vol__mensaje">
-            <p class="kx-vol__rotulo">MENSAJE PARA LA NUEVA HUMANIDAD</p>
-            <p class="kx-vol__mensaje-t">{v.mensaje_es}</p>
-          {v.mensaje_en && <p class="kx-vol__en">{v.mensaje_en}</p>}
-          </div>
+        {v.meditacion_es && <p class="kx-lam__es">{v.meditacion_es}</p>}
+        {v.mensaje_es && <p class="kx-lam__mensaje">{v.mensaje_es}</p>}
+
+        {v.documentos && v.documentos.length > 0 && (
+          <p class="kx-lam__docs">
+            <b>{v.documentos.length}</b> {v.documentos.length === 1 ? 'PIEZA' : 'PIEZAS'} SIN LÁMINA ·
+            {' '}{v.documentos.slice(0, 3).map((d) => d.replace(/\.[^.]+$/, '')).join(' · ')}
+          </p>
         )}
 
+        {enlaces.length > 0 && (
+          <ul class="kx-lam__links">
+            {enlaces.slice(0, 4).map(([n, u]) => (
+              <li><a href={u} target="_blank" rel="noopener noreferrer">{n} ↗</a></li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* ── 04 · BIBLIOTECA DE GLIFOS ─────────────────────────────────── */}
+      <section class="kx-lam__p kx-lam__p--simbolos">
+        <h2 class="kx-lam__rot">04 · BIBLIOTECA DE GLIFOS</h2>
+        <p class="kx-lam__tradicion">{conj.nombre_es}</p>
+
+        {conj.glifos.length > 0 && (
+          <ul class="kx-lam__signos" aria-label={conj.nombre_es}>
+            {conj.glifos.map((g) => <li>{g}</li>)}
+          </ul>
+        )}
+
+        {conj.terminos && (
+          <dl class="kx-lam__voces">
+            {conj.terminos.map((t) => (
+              <div><dt>{t.voz}</dt><dd>{t.lee}</dd></div>
+            ))}
+          </dl>
+        )}
+
+        {/* El sello y la atribucion van PEGADOS al conjunto: si la lamina se
+            recompone, la marca viaja con el simbolo y no se puede perder. */}
+        <p class={`kx-lam__natura kx-lam__natura--${conj.sello}`}>{conj.naturaleza}</p>
+        {conj.fuente && <p class="kx-lam__fuente">FUENTE · {conj.fuente}</p>}
+      </section>
+
+      {/* ── 05 · DIAGNÓSTICO VIVO ─────────────────────────────────────── */}
+      <section class="kx-lam__p kx-lam__p--vivo">
+        <h2 class="kx-lam__rot">05 · DIAGNÓSTICO <b data-lam-latido>●</b></h2>
+        <dl class="kx-lam__pares kx-lam__pares--vivo">
+          <div><dt>UTC</dt><dd data-lam-reloj>--:--:--</dd></div>
+          <div><dt>DERIVA</dt><dd data-lam-coord>--</dd></div>
+          <div><dt>CHECKSUM</dt><dd>{checksum}</dd></div>
+        </dl>
+        {/* Hora espejo: un hecho sobre el reloj. Se celebra, no se explica ni
+            se le atribuye poder — eso seria un claim. */}
+        <p class="kx-lam__espejo" data-lam-espejo hidden></p>
+        <p class="kx-lam__onda" aria-hidden="true"></p>
+      </section>
+
+      {/* ── 06 · SERIE ────────────────────────────────────────────────── */}
       {serie.length > 0 && (
-        <div class="kx-vol__serie">
-          <p class="kx-vol__rotulo">SERIE · {(v.assets ?? []).length} PLACAS EN EL ARCHIVO</p>
+        <section class="kx-lam__p kx-lam__p--serie">
+          <h2 class="kx-lam__rot">06 · SERIE <b>{totalPlacas} PLACAS EN EL ARCHIVO</b></h2>
           <ul>
             {serie.map((a: any) => (
               <li style={`aspect-ratio:${a.aspecto}`}>
@@ -194,201 +257,431 @@ const diag = [
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )}
 
-      <aside class="kx-vol__rail">
-        {diag.map((d) => (
-          <div class="kx-vol__kv"><span>{d.k}</span><b>{d.v}</b></div>
-        ))}
-        <KodexEje posicion={0.5} accent={v.color} class="kx-vol__eje" />
-        <nav class="kx-vol__nav">
-          <a href="/kodex/folio/iii/">‹ ARCHIVE</a>
-          <a href="/kodex/">THRESHOLD ›</a>
+      {/* ── PIE ───────────────────────────────────────────────────────── */}
+      <footer class="kx-lam__pie">
+        <p class="kx-lam__barra kx-lam__barra--larga" aria-hidden="true"></p>
+        <nav class="kx-lam__nav">
+          <a href="/kodex/folio/iii/">‹ ÍNDICE</a>
+          <a href="/kodex/">KODEX−∞</a>
         </nav>
-      </aside>
-
-      <KodexSystemFooter
-        code={`KDX-${v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 18)}`}
-        checksum={checksum}
-        kind={`${v.tipo} · ESTRATO ${v.estratoNumero}`}
-        accent={v.color}
-        class="kx-vol__pie"
-      />
-    </article>
+        <p class="kx-lam__lema">CADA GLIFO ES UNA FUNCIÓN · CADA FUNCIÓN ES UNA PROMESA</p>
+      </footer>
+    </div>
   </div>
 </Base>
 
+<script>
+  import { horaEspejo } from '../../../lib/kodex/simbolos';
+
+  /**
+   * El reloj de la lámina.
+   *
+   * Es el único dato de la plancha que NO deriva del volumen: el resto es
+   * estable a propósito, y esto tiene que moverse para que la lámina se lea
+   * viva y no impresa.
+   */
+  const montar = () => {
+    const raiz = document.querySelector<HTMLElement>('[data-kdx-lamina]');
+    if (!raiz || (raiz as any).__kdxLam) return;
+    (raiz as any).__kdxLam = true;
+
+    const reloj = raiz.querySelector<HTMLElement>('[data-lam-reloj]');
+    const coord = raiz.querySelector<HTMLElement>('[data-lam-coord]');
+    const espejo = raiz.querySelector<HTMLElement>('[data-lam-espejo]');
+    const latido = raiz.querySelector<HTMLElement>('[data-lam-latido]');
+
+    // Con movimiento reducido el reloj sigue andando — es informacion, no
+    // decoracion — pero el latido se queda quieto.
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let t = 0;
+
+    const tic = () => {
+      const d = new Date();
+      const p = (n: number) => String(n).padStart(2, '0');
+      if (reloj) reloj.textContent = `${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
+
+      // Una deriva lenta y continua: coordenadas que se mueven como las de un
+      // instrumento encendido, no numeros al azar cada segundo.
+      t += 0.0035;
+      if (coord) {
+        const ra = (Math.sin(t) * 12 + 12).toFixed(2);
+        const dec = Math.cos(t * 0.7) * 89;
+        coord.textContent = `RA ${ra}h · DEC ${dec >= 0 ? '+' : ''}${dec.toFixed(1)}°`;
+      }
+
+      const e = horaEspejo(d.getHours(), d.getMinutes());
+      if (espejo) {
+        espejo.hidden = e === null;
+        if (e) espejo.textContent = `HORA ESPEJO · ${e}`;
+      }
+
+      if (latido && !quieto) latido.style.opacity = String(0.35 + Math.abs(Math.sin(t * 8)) * 0.65);
+    };
+
+    tic();
+    setInterval(tic, 1000);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', montar, { once: true });
+  } else {
+    montar();
+  }
+  document.addEventListener('astro:page-load', montar);
+</script>
+
 <style>
-  .kx--vol { position: relative; min-height: 100dvh; isolation: isolate; }
-
-  .kx-vol {
+  /* ── La plancha ──────────────────────────────────────────────────────────
+     Una sola pantalla, borde a borde. Los paneles se colocan por AREA para que
+     la composicion sea deliberada y no el resultado de como caiga el flujo: es
+     una lamina, no un documento. */
+  .kx-lam {
     position: relative;
-    display: grid;
-    /* height y no min-height: la lámina es UN viewport y su contenido se
-       acomoda adentro. Con min-height el contenido la estira y la página
-       scrollea, que es regla dura del proyecto. */
+    /* ALTURA DEFINIDA, no `min-height`. Con minimo, el contenido estira la
+       plancha y las filas `1fr` dejan de acotar nada: la obra se iba de largo
+       y empujaba la serie y el pie fuera de la pantalla. Una lamina tiene el
+       tamano que tiene. */
     height: 100dvh;
-    grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
-    grid-template-areas: "cab hero" "cuerpo hero" "mensaje hero" "rail hero" "serie serie" "pie pie";
-    /* El rail se lleva la holgura para que el pie quede pegado abajo. Con
-       align-content:start las filas se apilaban arriba y el pie flotaba a
-       media pagina, que lo hacia leer como un bloque mas y no como pie. */
-    grid-template-rows: auto auto auto 1fr auto auto;
-    gap: clamp(12px, 1.8vw, 26px);
-    /* La barra del deck es fija y se come los últimos ~73px de la ventana. */
-    padding: clamp(72px, 9vh, 100px) clamp(18px, 4vw, 56px) clamp(118px, 13vh, 146px);
+    overflow: hidden;
+    display: grid;
+    gap: 1px;
+    /* La linea de tiempo del chrome esta FIJA al borde inferior y tapaba el
+       pie de la lamina. Se le reserva su franja en vez de esconderla: es el
+       latido del sistema y estar debajo del pie es justo donde va. */
+    padding: clamp(8px, 1.1vw, 14px) clamp(8px, 1.1vw, 14px) 30px;
     box-sizing: border-box;
+    grid-template-columns: minmax(200px, 19%) minmax(0, 1fr) minmax(200px, 21%);
+    /* La serie lleva ALTURA FIJA en vez de `auto`. Con auto, su alto dependia
+       de la placa mas alta de la fila y el pie se salia de la plancha por unos
+       pocos pixeles — un margen que hay que volver a limar cada vez que cambia
+       el contenido. Con una pista fija las filas son deterministas y el pie
+       entra siempre. */
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 0.9fr) 92px auto;
+    grid-template-areas:
+      "cab      cab   cab"
+      "dossier  obra  simbolos"
+      "texto    obra  vivo"
+      "serie    serie serie"
+      "pie      pie   pie";
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    color: #e8e5df;
+    isolation: isolate;
   }
 
-  .kx-vol__campo { position: absolute; inset: 0; z-index: 0; opacity: 0.55; }
-  .kx-vol > *:not(.kx-vol__campo) { position: relative; z-index: 1; }
-
-  .kx-vol__cab { grid-area: cab; min-width: 0; }
-  .kx-vol__tipo {
-    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
-    margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--acc);
+  /* Un volumen sin laminas — los hay: los que son documento — no debe reservar
+     la pista de la serie. Una franja vacia con borde promete algo que no esta,
+     que es peor que no tener franja. */
+  .kx-lam--sinserie {
+    grid-template-rows: auto minmax(0, 1fr) minmax(0, 0.9fr) 0 auto;
   }
-  /* Glifos del estrato: acento de archivo universal, nunca traducción. */
-  .kx-vol__glifos { letter-spacing: 0.3em; opacity: 0.62; font-size: 12px; }
 
-  .kx-vol__titulo {
-    margin: 0; font-family: "Barlow Condensed", "Inter Tight", system-ui, sans-serif;
-    font-weight: 800; font-size: clamp(1.9rem, 4.4vw, 3.8rem); line-height: 0.94;
-    text-transform: uppercase; color: #e8e5df; text-wrap: balance;
+  .kx-lam__campo { position: absolute; inset: 0; z-index: 0; opacity: 0.5; }
+
+  /* La barra de navegacion del chrome flota fija al pie y cruzaba la obra por
+     el medio. La lamina ya tiene su propio pie con indice y salida: dos
+     navegaciones encimadas no son mas accesibles, son una tapando a la otra. */
+  :global(.kx--vol .kx-deckbar) { display: none; }
+
+  /* El lector de coordenadas del chrome flota fijo en la esquina inferior
+     derecha, justo encima de la serie, y dice lo mismo que el panel 05. La
+     lamina lo trae adentro y con su rotulo: afuera solo estorbaba. */
+  :global(.kx--vol .kx-astro) { display: none; }
+
+  /* ── Paneles ─────────────────────────────────────────────────────────── */
+  .kx-lam__p {
+    /* El campo del fondo es un elemento posicionado, y eso pinta por encima de
+       cualquier hermano ESTATICO aunque venga despues en el DOM. Los paneles
+       llevan position para ganarle. Sin esto la plancha se ve vacia. */
+    position: relative;
+    z-index: 1;
+    border: 1px solid color-mix(in srgb, var(--acc) 22%, transparent);
+    background: rgba(5, 5, 7, 0.72);
+    padding: 9px 11px 11px;
+    display: grid;
+    gap: 7px;
+    align-content: start;
+    min-height: 0;
+    /* Un panel que desborda scrollea por dentro. La plancha no crece: es una
+       lamina de tamano fijo, como el poster del que sale. */
+    overflow: auto;
+    scrollbar-width: none;
   }
-  .kx-vol__titulo-en, .kx-vol__estrato {
-    margin: 4px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+  .kx-lam__p::-webkit-scrollbar { display: none; }
+
+  .kx-lam__rot {
+    margin: 0;
+    font-size: 8.5px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--acc);
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid color-mix(in srgb, var(--acc) 18%, transparent);
+    padding-bottom: 5px;
+  }
+  .kx-lam__rot b {
+    font-weight: 400;
+    color: rgba(232, 229, 222, 0.4);
+    letter-spacing: 0.16em;
+  }
+
+  /* ── Cabecera ────────────────────────────────────────────────────────── */
+  .kx-lam__cab {
+    grid-area: cab;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: clamp(10px, 2vw, 28px);
+    border: 1px solid color-mix(in srgb, var(--acc) 26%, transparent);
+    background: rgba(5, 5, 7, 0.8);
+    padding: 8px 12px;
+  }
+  .kx-lam__marca { flex: 1 1 260px; min-width: 0; }
+  .kx-lam__logo {
+    margin: 0;
+    font-family: "Archivo Black", "Anton", ui-sans-serif, sans-serif;
+    font-size: clamp(15px, 2vw, 25px);
+    line-height: 1.05;
+    /* Un titulo largo no debe partir la cabecera en dos alturas. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kx-lam__logo span { color: var(--acc); }
+  .kx-lam__sub {
+    margin: 3px 0 0;
+    font-size: 8.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
     color: rgba(232, 229, 222, 0.42);
   }
-  .kx-vol__estrato { margin-top: 10px; color: color-mix(in srgb, var(--acc) 62%, #8b8b8b); }
 
-  .kx-vol__hero {
-    grid-area: hero; margin: 0; align-self: start;
-    width: 100%; max-height: 58vh;
-    border: 1px solid color-mix(in srgb, var(--acc) 24%, transparent);
-    overflow: hidden;
-  }
-  .kx-vol__hero--alto { justify-self: center; max-width: 70%; }
-
-  .kx-vol__organismo { position: relative; width: 100%; aspect-ratio: 1; }
-  .kx-vol__organismo figcaption {
-    position: absolute; left: 10px; bottom: 8px;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 8px; letter-spacing: 0.18em; color: rgba(232, 229, 222, 0.38);
+  .kx-lam__tiraDatos { display: flex; gap: clamp(8px, 1.6vw, 22px); margin: 0; flex-wrap: wrap; }
+  .kx-lam__tiraDatos div { display: grid; gap: 1px; }
+  .kx-lam__tiraDatos dt { font-size: 7.5px; letter-spacing: 0.2em; color: rgba(232, 229, 222, 0.36); }
+  .kx-lam__tiraDatos dd {
+    margin: 0; font-size: 10px; letter-spacing: 0.1em;
+    color: var(--acc); font-variant-numeric: tabular-nums;
   }
 
-  .kx-vol__cuerpo {
-    grid-area: cuerpo; display: grid; gap: 14px; max-width: 56ch;
-    /* El cuerpo largo scrollea por DENTRO y la página no. Lleva
-       data-kdx-scrollable, así que la rueda no le roba el gesto. */
-    max-height: min(32vh, 280px); overflow-y: auto; padding-right: 10px;
+  /* El sello del registro. Los dos se leen distinto de un vistazo: ese es todo
+     el punto — un lector que no distingue hecho de mito no esta leyendo un
+     archivo, esta leyendo una confusion. */
+  .kx-lam__sello {
+    margin: 0; font-size: 8px; letter-spacing: 0.18em;
+    text-transform: uppercase; padding: 4px 9px; border: 1px solid;
+    /* El sello no se parte en dos lineas: es la marca que hay que leer de un
+       vistazo y partida pierde justamente eso. */
+    white-space: nowrap;
   }
-  .kx-vol__parrafo p {
-    margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
-    font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
+  .kx-lam__sello--A {
+    color: #9FE870; border-color: rgba(159, 232, 112, 0.5);
+    background: rgba(159, 232, 112, 0.07);
   }
-  .kx-vol__en {
-    margin-top: 6px !important; font-size: 0.82rem !important;
-    color: rgba(232, 229, 222, 0.42) !important; font-style: italic;
-  }
-
-  /* El marco se lee antes que el contenido, a propósito. Ficción en el acento
-     de advertencia; ciencia en el cian del sistema. Distintos de un vistazo,
-     que es el punto: no hay que leerlos para distinguirlos. */
-  .kx-vol__marco {
-    margin: 10px 0 0; padding: 4px 8px; justify-self: start; display: inline-block;
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase;
-    border: 1px solid currentColor;
-  }
-  .kx-vol__marco--ficcion { color: #FF8A33; }
-  .kx-vol__marco--ciencia,
-  .kx-vol__marco--documentado { color: #00D8FF; }
-
-  .kx-vol__rotulo {
-    margin: 0 0 4px; font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 8.5px; letter-spacing: 0.22em; text-transform: uppercase;
-    color: rgba(232, 229, 222, 0.4);
-  }
-  .kx-vol__meditacion p:not(.kx-vol__rotulo),
-  .kx-vol__mensaje p:not(.kx-vol__rotulo) {
-    margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
-    font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
-  }
-  .kx-vol__meditacion { padding-left: 12px; border-left: 1px solid rgba(232,229,222,0.14); }
-  /* El mensaje vive FUERA del cuerpo que scrollea. Es la linea de cierre del
-     capitulo -- lo unico que pide que te lleves -- y adentro del bloque con
-     altura maxima quedaba cortada justo ella. */
-  .kx-vol__mensaje { grid-area: mensaje; max-width: 52ch; }
-  /* El mensaje es el cierre del capítulo: se dice más grande y en el acento,
-     porque es lo único que el capítulo pide que te lleves. */
-  .kx-vol__mensaje-t {
-    font-size: 1.15rem !important; line-height: 1.35 !important;
-    color: var(--acc) !important; text-wrap: balance;
+  .kx-lam__sello--B {
+    color: #FF8A5B; border-color: rgba(255, 138, 91, 0.5);
+    /* Rayado: la ficcion se ve distinta incluso de reojo y sin leer. */
+    background-image: repeating-linear-gradient(
+      45deg, rgba(255, 138, 91, 0.12) 0 4px, transparent 4px 8px);
   }
 
-  .kx-vol__formula { padding: 12px 14px; border-left: 2px solid var(--acc); background: rgba(255,255,255,0.02); }
-  .kx-vol__tex { margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1rem; color: #e8e5df; }
-  .kx-vol__lee { margin: 0; font-family: "Inter Tight", system-ui, sans-serif; font-size: 0.86rem; line-height: 1.5; color: rgba(232,229,222,0.72); }
-  .kx-vol__lee--en { margin-top: 6px; font-size: 0.78rem; color: rgba(232,229,222,0.4); font-style: italic; }
+  /* ── 01 Dossier ──────────────────────────────────────────────────────── */
+  .kx-lam__p--dossier { grid-area: dossier; }
+  .kx-lam__pares { display: grid; gap: 1px; margin: 0; }
+  .kx-lam__pares div {
+    display: flex; justify-content: space-between; gap: 10px;
+    padding: 3px 0; border-bottom: 1px solid rgba(232, 229, 222, 0.07);
+  }
+  .kx-lam__pares dt { font-size: 8px; letter-spacing: 0.16em; color: rgba(232, 229, 222, 0.4); }
+  .kx-lam__pares dd {
+    margin: 0; font-size: 9px; letter-spacing: 0.08em; color: #e8e5df;
+    text-align: right; font-variant-numeric: tabular-nums;
+    /* Un valor largo se recorta antes que romper la columna. */
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
 
-  .kx-vol__enlace {
-    justify-self: start; padding: 8px 13px;
-    border: 1px solid color-mix(in srgb, var(--acc) 44%, transparent);
-    font-family: "IBM Plex Mono", ui-monospace, monospace;
-    font-size: 10px; letter-spacing: 0.2em; color: #e8e5df; text-decoration: none;
+  .kx-lam__glifos {
+    margin: 0; font-size: 13px; letter-spacing: 0.2em;
+    color: color-mix(in srgb, var(--acc) 70%, #8b8b8b);
   }
-  .kx-vol__enlace:hover { background: color-mix(in srgb, var(--acc) 14%, transparent); }
+  .kx-lam__id { margin: 0; font-size: 8px; letter-spacing: 0.18em; color: rgba(232, 229, 222, 0.34); }
 
-  .kx-vol__rail { grid-area: rail; display: grid; gap: 7px; align-content: start; min-width: 0; }
-  .kx-vol__kv {
-    display: flex; justify-content: space-between; gap: 14px;
-    padding-bottom: 5px; border-bottom: 1px solid rgba(232,229,222,0.1);
-    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 9px;
-    letter-spacing: 0.16em; text-transform: uppercase;
+  .kx-lam__barra {
+    margin: 0; height: 24px; opacity: 0.6; color: #e8e5df;
+    background: repeating-linear-gradient(
+      90deg, currentColor 0 2px, transparent 2px 5px,
+      currentColor 5px 6px, transparent 6px 10px);
   }
-  .kx-vol__kv span { color: rgba(232,229,222,0.44); }
-  .kx-vol__kv b { color: #e8e5df; font-weight: 500; font-variant-numeric: tabular-nums; }
-  /* El eje dibuja sus rotulos DEBAJO de la linea, asi que necesita reservar
-     ese alto o se come lo que venga despues. */
-  .kx-vol__eje { margin-top: 10px; margin-bottom: 26px; }
-  .kx-vol__nav { display: flex; gap: 16px; margin-top: 4px; }
-  .kx-vol__nav a {
-    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10px;
-    letter-spacing: 0.2em; color: rgba(232,229,222,0.7); text-decoration: none;
-  }
-  .kx-vol__nav a:hover { color: var(--acc); }
+  .kx-lam__barra--larga { height: 16px; opacity: 0.42; }
 
-  /* La serie: cada placa con SU proporcion. Aca hay verticales 9:16 y
-     apaisadas raiz-de-dos; forzarlas a una caja comun seria deformar la obra,
-     que es lo unico que el sistema no permite. */
-  .kx-vol__serie { grid-area: serie; display: grid; gap: 6px; align-content: end; }
-  .kx-vol__serie ul {
-    display: flex; gap: 6px; margin: 0; padding: 0; list-style: none;
-    align-items: flex-end; overflow-x: auto;
+  /* ── 02 Obra ─────────────────────────────────────────────────────────── */
+  .kx-lam__p--obra {
+    grid-area: obra; overflow: hidden;
+    /* Rotulo arriba y el resto para la obra. La fila `minmax(0,1fr)` es la que
+       le da al lienzo una altura DEFINIDA, sin la cual la obra no tiene contra
+       que escalar y se sale de la plancha. */
+    grid-template-rows: auto minmax(0, 1fr);
+    align-content: stretch;
   }
-  .kx-vol__serie li {
+  .kx-lam__lienzo {
+    display: grid; place-items: center; min-height: 0;
+    /* La obra manda su proporcion; esta caja solo le da sitio. Fijar aca una
+       relacion de aspecto seria deformarla, que es lo unico que el sistema no
+       permite. */
+    padding: clamp(6px, 1.2vw, 16px);
+  }
+  /* La obra se escala POR ALTURA y deja que su proporcion decida el ancho.
+     Al reves — ancho 100% y alto por proporcion — una pieza vertical se pasa
+     de largo y empuja la serie y el pie fuera de la pantalla, que es lo que
+     hacia. Escalar nunca deforma: la proporcion se respeta en los dos casos. */
+  .kx-lam__lienzo > * {
+    height: 100%; width: auto; max-width: 100%; max-height: 100%;
+  }
+  .kx-lam__organismo { position: relative; width: 100%; aspect-ratio: 1; }
+
+  /* ── 03 Texto ────────────────────────────────────────────────────────── */
+  .kx-lam__p--texto { grid-area: texto; }
+  .kx-lam__es, .kx-lam__en, .kx-lam__mensaje {
+    margin: 0; font-size: 10.5px; line-height: 1.55;
+  }
+  .kx-lam__es { color: rgba(232, 229, 222, 0.86); }
+  .kx-lam__en { color: rgba(232, 229, 222, 0.46); font-style: italic; }
+  .kx-lam__mensaje {
+    color: var(--acc);
+    border-left: 1px solid color-mix(in srgb, var(--acc) 40%, transparent);
+    padding-left: 9px;
+  }
+  .kx-lam__tema, .kx-lam__docs {
+    margin: 0; font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.38); line-height: 1.5;
+  }
+  .kx-lam__docs b { color: var(--acc); font-weight: 500; }
+
+  .kx-lam__links { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; padding: 0; list-style: none; }
+  .kx-lam__links a {
+    display: block; padding: 3px 7px;
+    border: 1px solid color-mix(in srgb, var(--acc) 26%, transparent);
+    font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.7); text-decoration: none;
+  }
+  .kx-lam__links a:hover, .kx-lam__links a:focus-visible {
+    border-color: var(--acc); color: #e8e5df; outline: none;
+  }
+
+  /* ── 04 Símbolos ─────────────────────────────────────────────────────── */
+  .kx-lam__p--simbolos { grid-area: simbolos; }
+  .kx-lam__tradicion {
+    margin: 0; font-size: 8.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: rgba(232, 229, 222, 0.66);
+  }
+  .kx-lam__signos {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(26px, 1fr));
+    gap: 1px; margin: 0; padding: 0; list-style: none;
+  }
+  .kx-lam__signos li {
+    display: grid; place-items: center; aspect-ratio: 1;
+    font-size: 15px; line-height: 1;
+    color: color-mix(in srgb, var(--acc) 76%, #e8e5df);
+    border: 1px solid rgba(232, 229, 222, 0.08);
+  }
+
+  .kx-lam__voces { display: grid; gap: 3px; margin: 0; }
+  .kx-lam__voces dt {
+    font-size: 10px; letter-spacing: 0.08em;
+    color: color-mix(in srgb, var(--acc) 70%, #e8e5df);
+  }
+  .kx-lam__voces dd {
+    margin: 0; font-size: 8px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: rgba(232, 229, 222, 0.4);
+  }
+
+  .kx-lam__natura {
+    margin: 0; font-size: 7.5px; letter-spacing: 0.14em; line-height: 1.45;
+    padding: 4px 6px; border: 1px solid;
+  }
+  .kx-lam__natura--A { color: #9FE870; border-color: rgba(159, 232, 112, 0.34); }
+  .kx-lam__natura--B { color: #FF8A5B; border-color: rgba(255, 138, 91, 0.34); }
+  .kx-lam__fuente {
+    margin: 0; font-size: 7.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: rgba(232, 229, 222, 0.34);
+  }
+
+  /* ── 05 Vivo ─────────────────────────────────────────────────────────── */
+  .kx-lam__p--vivo { grid-area: vivo; }
+  .kx-lam__pares--vivo dd { color: var(--acc); }
+  .kx-lam__espejo {
+    margin: 0; font-size: 8.5px; letter-spacing: 0.2em; color: var(--acc);
+    border: 1px solid color-mix(in srgb, var(--acc) 40%, transparent); padding: 4px 7px;
+  }
+  .kx-lam__onda {
+    margin: 0; height: 20px; opacity: 0.42; color: var(--acc);
+    background: repeating-linear-gradient(90deg, currentColor 0 1px, transparent 1px 3px);
+    mask-image: repeating-linear-gradient(
+      90deg, rgba(0, 0, 0, 0.15) 0 6px, #000 6px 9px, rgba(0, 0, 0, 0.4) 9px 17px);
+  }
+
+  /* ── 06 Serie ────────────────────────────────────────────────────────── */
+  .kx-lam__p--serie { grid-area: serie; }
+  .kx-lam__p--serie ul {
+    display: flex; gap: 4px; margin: 0; padding: 0; list-style: none;
+    align-items: flex-end; overflow-x: auto; scrollbar-width: none;
+  }
+  .kx-lam__p--serie ul::-webkit-scrollbar { display: none; }
+  .kx-lam__p--serie li {
     /* El alto manda y el ancho lo pone la proporcion: asi conviven una
-       vertical y una apaisada en la misma fila sin achatarse. */
-    height: clamp(64px, 9vh, 96px); flex: 0 0 auto;
-    border: 1px solid color-mix(in srgb, var(--acc) 20%, transparent);
+       vertical 9:16 y una apaisada raiz-de-dos en la misma fila sin que
+       ninguna se achate. */
+    /* Alto completo de la pista menos rotulo y padding. */
+    height: 46px;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--acc) 18%, transparent);
     overflow: hidden;
   }
-  .kx-vol__serie img { display: block; height: 100%; width: 100%; object-fit: cover; }
+  .kx-lam__p--serie img {
+    display: block; width: 100%; height: 100%;
+    object-fit: cover; filter: grayscale(1) contrast(1.15);
+  }
 
-  .kx-vol__pie { grid-area: pie; align-self: end; }
+  /* ── Pie ─────────────────────────────────────────────────────────────── */
+  .kx-lam__pie {
+    grid-area: pie; position: relative; z-index: 1;
+    display: flex; align-items: center; gap: clamp(10px, 2vw, 26px);
+    border: 1px solid color-mix(in srgb, var(--acc) 20%, transparent);
+    background: rgba(5, 5, 7, 0.8); padding: 4px 12px;
+  }
+  .kx-lam__pie .kx-lam__barra { flex: 0 0 clamp(90px, 12vw, 170px); }
+  .kx-lam__nav { display: flex; gap: 12px; }
+  .kx-lam__nav a {
+    font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.66); text-decoration: none;
+  }
+  .kx-lam__nav a:hover, .kx-lam__nav a:focus-visible { color: var(--acc); outline: none; }
+  .kx-lam__lema {
+    margin: 0 0 0 auto; font-size: 7.5px; letter-spacing: 0.22em;
+    color: rgba(232, 229, 222, 0.3);
+  }
 
-  @media (max-width: 900px) {
-    .kx-vol {
-      height: auto; min-height: 100dvh;
+  /* ── Angosto ─────────────────────────────────────────────────────────── */
+  @media (max-width: 1000px) {
+    /* La plancha de tres columnas no cabe: se apila y ahi si la pagina
+       scrollea, porque en un telefono una lamina fija seria ilegible. */
+    .kx-lam {
+      min-height: 0;
       grid-template-columns: 1fr;
-      grid-template-areas: "cab" "hero" "cuerpo" "mensaje" "rail" "serie" "pie";
+      grid-template-rows: none;
+      grid-template-areas:
+        "cab" "obra" "dossier" "texto" "simbolos" "vivo" "serie" "pie";
     }
-    .kx-vol__hero { max-height: 40vh; }
-    .kx-vol__hero--alto { max-width: 100%; }
-    .kx-vol__cuerpo { max-height: none; overflow: visible; }
+    .kx-lam__p { overflow: visible; }
+    .kx-lam__p--obra { min-height: 50vh; }
+    .kx-lam__lema { display: none; }
   }
 </style>
