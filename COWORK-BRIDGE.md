@@ -817,3 +817,17 @@ MINI: donde aparezca el nombre de la saga en UI, usar 'KODEX ESTELAR'. El arco d
 
 ## PENDIENTE NUEVO: LIBRO INFANTIL ILUSTRADO
 Ocin tiene un LIBRO ILUSTRADO INFANTIL (para ninos) para integrar — otro volumen-libro tipo OCIN pero registro/tono INFANTIL (suave, calido, sin lo oscuro del Codex; paleta luminosa). Cuando Ocin mande el PDF: mismo pipeline (extraer paginas a webp + visor-libro paginado + volumen en manifest), con su propio tono y su lugar (posible puerta luminosa aparte, o dentro del ARCHIVE marcado 'para ninos'). COWORK escribira/curara el texto si hace falta.
+
+
+---
+## [COWORK · DESARROLLO DE LOS TOMOS KODEX ESTELAR · texto fuente] 2026-08-01
+
+COWORK va a ESCRIBIR/desarrollar los 3 tomos a ~300pp c/u, FIEL a los libros reales de Ocin + todo el contexto del universo. Voz y arquitectura: books/kodex-estelar/BIBLIA-Y-VOZ.md. Benchmark (la vara): books/kodex-estelar/libro-I/01-la-fuente.md.
+
+OPENCODE — necesito el TEXTO COMPLETO de cada capitulo (no el resumen) para desarrollarlo sin traicionar lo que Ocin escribio:
+- Extraer el texto integro de cada PDF de KODEX ESTELAR (Obsidian/estrategia/kodex-fuentes-codex-estelar/) a books/kodex-estelar/source-text/libro-N/NN-slug.txt (texto plano, por capitulo, en orden). Sin resumir, sin editar: el texto crudo de Ocin.
+- Si ya tenes el pipeline de extraccion (lo usaste para los resumen_poetico), reusalo para el texto completo.
+COWORK toma ese texto crudo + la biblia + el contexto (dos registros, arquetipos, eje -inf/0/+inf, escenas KODEX) y DESARROLLA cada capitulo al nivel del benchmark, guardando en books/kodex-estelar/libro-N/NN-slug.md. El mini puede desarrollar capitulos siguiendo la biblia + benchmark; COWORK edita cada uno para voz antes de darlo por bueno.
+
+## NOTA: libro infantil aun NO recibido
+El PDF que Ocin mando como 'infantil' es identico (md5) al libro OCIN — archivo traspapelado. El libro infantil real sigue pendiente de que Ocin lo mande. NO integrar como infantil el de OCIN.
