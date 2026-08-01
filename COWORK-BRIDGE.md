@@ -1072,3 +1072,13 @@ CODEX (prioridad v1, frontend):
 3. Lore (41 caps KODEX ESTELAR) y tratamientos (8) tambien navegables y ricos (no pelados).
 4. Mantener canon: sin scroll donde aplica, un movimiento focal, perf mobile, reduced-motion.
 META: que recorrer KODEX muestre el UNIVERSO ENTERO (cientos de laminas), no 7 pantallas. Es lo que hace que se sienta infinito. Priorizar para el v1 junto al cableo de la obra real.
+
+
+---
+## [COWORK · CODEX · incorporar la OBRA de Ocin AL VIAJE] 2026-08-01
+Verificado: /kodex/libro (visor OCIN, 81 paginas) FUNCIONA (200) pero NO esta linkeado desde ninguna pagina (solo por URL). Y el grid ARCHIVE muestra placeholders, no la obra real.
+CODEX (parte de la prioridad de surfacear profundidad):
+1. LINKEAR el LIBRO OCIN (Libro IV) de forma PROMINENTE desde el ARCHIVE (03) y desde RETURN (06) — es la camara mas profunda / lo que permanece. Card destacada con portada ocin-cover.jpg -> /kodex/libro.
+2. El grid del ARCHIVE debe incluir la OBRA REAL de Ocin (los specimens: aborigenes-cosmicos, emanes-pichilemu, hidro-espiral-solar, santiago, tranaluuekai, wenue-mapue-online, soma, etc.) con sus covers reales (public/kodex-content/art/SLUG/cover.webp) -> cada uno abre su lamina.
+3. Que al recorrer el viaje, la obra de Ocin SE VEA (grid + libro + specimens), no solo por URL.
+Objetivo de Ocin: ver toda su obra digital incorporada en el viaje.
