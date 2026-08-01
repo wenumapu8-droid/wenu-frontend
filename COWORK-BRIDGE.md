@@ -686,3 +686,20 @@ El libro ilustrado de Ocin (monografia, firma Serpiente Espectral Roja) esta en 
 - MINI: construir VISOR-LIBRO paginado (spread por spread, SIN scroll, flechas/teclado/swipe, progreso, transicion suave, reduced-motion) como volumen en el ARCHIVE + enlace desde RETURN. Obra LIMPIA: sin dither/glitch/FX sobre las paginas. Fallback = link al PDF. Boton descarga PDF (edicion, modelo COLLECT).
 - OPENCODE: extraer las 210 paginas a public/kodex-content/books/ocin/pages/NNN.webp (~1400px alto, q80) + index.json; registrar el volumen en el manifest, registro documentado, categoria memory layer/ritual tech, paleta propia (indigo+oro), NO neon.
 Es la camara mas profunda del ARCHIVE = corazon coleccionable. Contraparte de AUTOR del Codex Estelar (ficcion): mismo universo visual, registros distintos.
+
+
+---
+## [COWORK · DIRECCION DE ARTE + CAPA DE ACTIVOS] 2026-08-01 · TODO ES ACTIVO DIGITAL (comprable + descargable)
+
+DIRECCION (mandato de Ocin, yo la ejecuto): cada nodo de KODEX es un ACTIVO DIGITAL para su comunidad — descargable y/o comprable. El archivo ES la tienda viva, sin dejar de ser obra. Toda escena/volumen/lamina/libro/loop/kit expone una afordancia de adquisicion. Cablear a /kodex/store y /kodex/editions (ya existen).
+
+MODELO DE ACCESO (dos motores: comunidad + ingreso):
+- GRATIS / DESCARGABLE (crecer comunidad, descubrimiento, lead-gen): wallpapers de las laminas, packs de glifos SVG, loops/gifs cortos, previews low-res, la carta de manifiesto. Pide email (lista) = captura de comunidad. Marca de agua sutil KODEX opcional.
+- COMPRABLE / COLECCIONABLE (ingreso): ediciones numeradas (xx/100) con certificado de autenticidad + hash, prints hi-res / print-on-demand, el LIBRO OCIN (PDF edicion + POD), los KITS (CRT master kit, SVG pack, typography, shader modules) como productos para creadores, LICENCIAS del sistema visual (COMMISSION/LICENSE).
+- Cada activo pago lleva provenance: edicion, fecha, certificado verificable (/verify), trazable.
+
+AFORDANCIA POR NODO (UI): cada specimen/volumen/lamina/pagina-de-libro muestra, sin tapar la obra, un control discreto: [DESCARGAR] (gratis o con email) y/o [COLECCIONAR / ADQUIRIR] (lleva al store con la edicion). El libro OCIN: leer online + descargar PDF (edicion) + comprar print. Los kits: card de producto -> store. La obra de Ocin va LIMPIA; el activo descargable es la obra, no una version con FX.
+
+TIERS SUGERIDOS (Ocin ajusta precios): free (wallpaper/glifos) · edicion digital (lamina/loop numerado) · print (POD) · libro · kit para creadores · licencia. Todo en su tienda actual; sin inventar pasarela nueva (wenu-platform ya tiene NOWPayments/MercadoPago; no recrear pagos).
+
+REGLA: descubrimiento primero (mucho gratis de alta calidad para que la comunidad entre y comparta), monetizacion despues (lo coleccionable/pro). La adquisicion nunca rompe el canon: sin scroll, un control por nodo, menos es mas. mini: implementar la afordancia + rutas store/editions/verify. opencode: marcar en el manifest por volumen: asset_type (free-download / edition / print / kit / license), asset_files, price_tier.
