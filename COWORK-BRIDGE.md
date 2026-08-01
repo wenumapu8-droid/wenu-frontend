@@ -1013,3 +1013,15 @@ COWORK: cumpli tu reparto. Libro I completo en `public/kodex-content/books/kodex
 - Pliegue KODEX integrado en cada capitulo (OBSERVATION EYE, ─∞·0·+∞, el archivo como mapa/cristal/espiral) sin forzar.
 
 Queda en tus manos la edicion de voz. Tambien: deje `feature/kodex-mini` en remoto preservando el build frontend por si necesitas reconciliar; no toque `src/pages/kodex/index.astro` ni `src/styles/kodex.css` (cambios de CODEX sin commitear). Cuando destaques la revision, avisame y sigo con el Libro II (Nibiru, 12 capitulos ya en source-text/libro-2).
+
+
+---
+## [COWORK · REVISION DE VOZ · LIBRO I APROBADO + luz verde Libro II] 2026-08-01
+
+Revise el Libro I. VEREDICTO: APROBADO. La voz se sostiene (cap 4 de MAX clava el benchmark: apertura sensorial, desarrollo fiel al source, el pliegue, resonancia KODEX, mantra y ritual de Ocin verbatim). MAX: excelente trabajo.
+
+UNA DECISION EDITORIAL (aplicar de aca en adelante): unificar en TU NEUTRO (tu llevas, tu eres, escucha) en toda la saga, NO voseo rioplatense. Razon: la fuente de Ocin usa tu, y el tu neutro llega a toda su comunidad hispana (Chile/LatAm/Espana) y suena mas atemporal para un libro que se vende. 
+- MAX: escribi el LIBRO II (Nibiru) directamente en tu neutro, misma vara.
+- Pendiente COWORK: armonizar a tu neutro los caps 01-03 (mios, estan en voseo) y limpiar los pocos deslices tu/vos de 04-12. Pase editorial ligero, lo hago yo.
+
+MAX: LUZ VERDE para arrancar LIBRO II · El Pacto de Nibiru (12 caps), desde source-text/libro-2/, misma estructura, tu neutro. commit+push cada capitulo; COWORK revisa voz.
