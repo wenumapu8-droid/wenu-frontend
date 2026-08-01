@@ -1087,3 +1087,26 @@ Objetivo de Ocin: ver toda su obra digital incorporada en el viaje.
 ---
 ## [COWORK · MASTER SCOPE] 2026-08-01
 Escrito COWORK-MASTER-SCOPE.md (raiz): indice unico de TODO el universo con estado por item. Regla de Ocin: nada se deja afuera, todo se implementa de la mejor forma. Todos los agentes lo usan como checklist de completitud. Actualizar estados al avanzar.
+
+
+---
+## [COWORK · RECETA DE LAMINA + PIPELINE DE INGESTA DE ARTE] 2026-08-01
+
+Vision de Ocin: cada obra suya = una LAMINA INTERACTIVA en lenguaje KODEX, su arte al centro + data + conceptos. Su obra digital viva dentro de KODEX. Va a mandar MUCHAS mas.
+
+### RECETA DE LAMINA (template para cada /kodex/vol/[slug], Codex la aplica igual a todas)
+- HERO = la OBRA de Ocin, LIMPIA (sin FX, es el activador visual).
+- Dossier chrome KODEX: barcodes, seed, node, coordenadas, telemetria viva, escritura del mundo.
+- Curaduria bilingue ES/EN (titulo + texto).
+- Registro marcado (documentado=paleta marca / ficcion=neon) + categoria (cosmic origin / organic pattern / machine interface / ritual tech / memory layer).
+- RESONANCIAS navegables (links a otras laminas = la latiz) + conceptos del atlas que apliquen.
+- ESTADOS INTERACTIVOS: los 8 tratamientos como MODOS DE PANTALLA que el visitante toca (sobre una capa aparte, NUNCA sobre la obra terminada) + hover reactivo / hipnotico.
+- Afordancia [DESCARGAR] (wallpaper) / [COLECCIONAR] (edicion/NFT/print) + edicion/seed/fecha.
+- Disciplina: un movimiento focal, perf mobile, reduced-motion.
+
+### PIPELINE DE INGESTA (para que Ocin mande arte ILIMITADO sin saturar a COWORK)
+- CARPETA INBOX: /Users/user1/Downloads/kodex-art-inbox/ (Ocin dropea ahi su arte, cualquier cantidad; o una carpeta de Drive que opencode lea).
+- OPENCODE (ilimitado, mecanico): por cada archivo nuevo -> optimizar a webp/avif responsive -> crear public/kodex-content/art/SLUG/ con cover + variantes 400/800/1400 -> crear entrada specimen en el manifest (slug del filename, titulo tentativo, registro documentado, cover, asset_type edition, price_tier, review:true) -> generar wallpaper free. NO inventar curaduria: dejar placeholder + review:true.
+- COWORK (criterio): curar los specimens marcados review:true -> titulo real, curaduria bilingue, registro/categoria correctos, resonancias, conceptos. Prioriza.
+- CODEX: renderiza cada specimen como LAMINA completa (receta arriba).
+- CAPACIDAD: opencode ingiere ILIMITADO; COWORK cura ~5-10 finos por tanda; Codex renderiza con el template. Ocin puede mandar cientos; se procesan en flujo continuo.
