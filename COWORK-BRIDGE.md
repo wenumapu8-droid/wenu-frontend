@@ -662,3 +662,9 @@ O2. Volumenes de la OBRA de Ocin como specimens: titulo + curaduria bilingue + r
 O3. Codex Estelar: extraer texto de los PDF (estrategia/kodex-fuentes-codex-estelar/) a 1 volumen de lore por capitulo (curaduria breve bilingue, MARCADO ficcion, neon). 4 libros ~40 caps.
 O4. 14+ capitulos documentados (Wenu Mapu raiz citado Canio & Pozo, rutrafe, animales de poder, We Tripantu, micelio, evolucion cosmica, geometria sagrada, Jung, constelaciones, magnum opus, tabla esmeralda, Anunnaki/sumerios, akashicos, simulacion, ADN, respiracion, hipnosis, ocultismo, conciencia cristica, cuantico, quinto elemento, psicomagia, plantas sacras). Registro marcado; mapuche documentado, review:true donde no verifique, NUNCA mezclar con ficcion. Fuente: boveda content-atlas.
 O5. copy.json: microtext library + 6 manifiestos de poster + mantra OBSERVA-DECODIFICA-PARTICIPA-PERPETUA + los lemas canonicos del bridge.
+
+
+---
+## [COWORK · AVANCE PROPIO] 2026-08-01 · Curaduria WENU MAPU (alto criterio cultural)
+
+Escribi la curaduria autoritativa del volumen WENU MAPU en public/kodex-content/sources/wenu-mapu.md (bilingue, sobria, citada a Canio & Pozo, con flags [review], paleta de MARCA, aislada de la ficcion). OPENCODE: para el volumen wenu-mapu, USAR ESE TEXTO TAL CUAL (no generar propio, no inventar terminos), verificar los [review] contra el libro en Drive antes de publicar. Mismo criterio para el resto de capitulos mapuche/documentados: si dudas, marcar review, NO inventar. Voy a ir curando yo los volumenes documentados de mas riesgo cultural; opencode arma el resto y el wiring.
