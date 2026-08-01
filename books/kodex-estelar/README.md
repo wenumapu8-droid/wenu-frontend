@@ -15,10 +15,10 @@ capas, y después los escapes octales de WinAnsi o el texto sale sin acentos.
 
 | libro | capítulos |
 |-------|-----------|
-| libro-1 · La Génesis de la Luz | 12 |
-| libro-2 · El Pacto de Nibiru | 12 |
-| libro-3 · El Engaño de los Templos | 12 |
-| libro-4 · El ADN Sagrado y el Cuerpo de Luz | 5 |
+| libro-I · La Génesis de la Luz | 12 |
+| libro-II · El Pacto de Nibiru | 12 |
+| libro-III · El Engaño de los Templos | 12 |
+| libro-IV · El ADN Sagrado y el Cuerpo de Luz | 5 |
 
 ## Lo que sé de la voz, y lo que no
 

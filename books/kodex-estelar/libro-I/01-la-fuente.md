@@ -2,7 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-1/capitulo-i-la-fuente-yo-soy-el-que-recuerda.md`).
+> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-i-la-fuente-yo-soy-el-que-recuerda.md`).
 > Sus frases van íntegras y en su orden. Lo que se agregó es respiración, escena y detalle.
 
 ---
