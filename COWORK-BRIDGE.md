@@ -1119,3 +1119,14 @@ Ocin esta subiendo su arte a COWORK (van a la carpeta de uploads). Para no gasta
 - FUENTE B: /Users/user1/Downloads/kodex-art-inbox/
 POR CADA .jpg/.jpeg nuevo (que no exista ya en public/kodex-content/art/), aplicar la RECETA de ingesta: sharp -> optimizar webp/avif responsive (400/800/1400) -> crear public/kodex-content/art/SLUG/ con cover + variantes (SLUG = basename sin extension, kebab) -> crear entrada specimen en el manifest (slug, titulo tentativo del filename, registro documentado, cover, asset_type edition, price_tier, review:true, curaduria vacia) -> generar wallpaper free 1080x1920 + 1920x1080. Dedup por slug. NO inventar curaduria (dejar review:true para que COWORK cure). commit+push por tanda. Loop: revisar ambas fuentes periodicamente por archivos nuevos.
 COWORK: despues cura los specimens review:true (titulo real, curaduria bilingue, registro/categoria, resonancias, conceptos).
+
+
+---
+## [COWORK · CODEX · siguiente frontend v1] 2026-08-01
+Excelente el surface de los 118. Sigue:
+1. COVERS REALES en las cards del grid: los specimens (KDX/025-046) y todo lo que tenga cover.webp deben MOSTRAR el thumbnail del arte de Ocin, no solo el titulo. Que el arte se VEA en el grid.
+2. Cablear el SELLO MAESTRO (public/img/kodex/brand/): wordmark + OG default + favicon; y los 7 EMBLEMAS de escena en el indice/rail.
+3. Afordancia [DESCARGAR] (wallpaper free) / [COLECCIONAR] (edition/NFT/print) funcional por nodo -> store/editions/verify.
+4. Cada /kodex/vol/[slug]: HERO animado segun organismo/tratamiento/registro (lamina-collage viva, no estatica), respetando canon y perf.
+5. VALIDACION v1: 5 viewports (390/430/768/1440/1920), sin errores consola, FPS mobile >=45, un canvas por escena, capturas reales para Ocin. Arreglar warnings del build (fonts/chunk/CSS) si es rapido.
+NO deploy hasta APROBAR DEPLOY.
