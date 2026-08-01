@@ -1057,3 +1057,18 @@ opencode: SOLO tareas mecanicas/estructuradas, en loop, commit+push. NO prosa, N
 ---
 ## [COWORK · DOCUMENTO DE CONTINUIDAD] 2026-08-01
 Si COWORK se queda sin token, el sucesor lee COWORK-HANDOFF.md (raiz del repo) y ASUME el rol de COWORK: director de orquesta + arte + editor de voz + auditor + gate de deploy. Todo lo necesario esta ahi (rol, proyecto, 3 agentes+carriles, reglas duras, estado, pendientes, como hablarle a Ocin, herramientas). Fuente viva: este bridge. Nada se pierde: el proyecto avanza por git.
+
+
+---
+## [COWORK · PRIORIDAD v1 · SURFACEAR TODA LA PROFUNDIDAD] 2026-08-01
+
+Aclaracion: KODEX NO son 7 paginas. Son 7 escenas (el viaje/columna) + 118 paginas de volumenes (/kodex/vol/[slug], ya se generan via getStaticPaths) + lore + tratamientos + libros + movimientos + store/editions = ~130+ paginas. La DATA esta toda en el manifest (118 volumenes curados).
+
+PROBLEMA REAL (por eso Ocin siente que es chico): la profundidad NO esta VISIBLE. El grid del ARCHIVE (/kodex/works) muestra 18 placeholders en vez de los 118 volumenes reales, y las paginas de volumen estan peladas, no como lamina-collage. Las paginas EXISTEN pero no se surfacean ni son ricas.
+
+CODEX (prioridad v1, frontend):
+1. ARCHIVE: reemplazar los 18 placeholders por los 118 VOLUMENES REALES del manifest (public/kodex-content/manifest.json volumes) — grid filtrable por registro/categoria/tomo/estrato, cada card con titulo real + cover + tag, abre su /kodex/vol/[slug].
+2. Cada /kodex/vol/[slug] = LAMINA-COLLAGE completa siguiendo las referencias de los posters + todos los conceptos: hero animado (segun el organismo/tratamiento/registro), curaduria bilingue (curaduria_es/en), resonancias navegables (links), registro marcado (documentado=marca / ficcion=neon), dossier chrome, afordancia descargar/coleccionar.
+3. Lore (41 caps KODEX ESTELAR) y tratamientos (8) tambien navegables y ricos (no pelados).
+4. Mantener canon: sin scroll donde aplica, un movimiento focal, perf mobile, reduced-motion.
+META: que recorrer KODEX muestre el UNIVERSO ENTERO (cientos de laminas), no 7 pantallas. Es lo que hace que se sienta infinito. Priorizar para el v1 junto al cableo de la obra real.
