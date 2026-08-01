@@ -155,8 +155,19 @@ vec2 mapScene(vec3 p, float t, float awareness, float openState) {
         0.02
     );
 
-    if (blade * bladeReveal < result.x) {
-        result = vec2(blade * bladeReveal, 3.0);
+    // FIX · una distancia con signo NO se atenúa multiplicándola.
+    //
+    // Antes: `blade * bladeReveal`. Cerca de la cámara `bladeReveal` vale 0,
+    // así que el producto da 0 — y el marcher lee 0 como "hay superficie
+    // aquí". Golpeaba en el primer paso, sobre la propia cámara, y nunca
+    // llegaba al corredor: la escena salía en color de fondo.
+    //
+    // Para ocultar geometría en un SDF hay que EMPUJARLA LEJOS, no escalarla a
+    // cero. `mix` hacia FAR_CLIP la aleja cuando el revelado es 0 y la deja
+    // intacta cuando es 1.
+    float bladeDistance = mix(FAR_CLIP, blade, bladeReveal);
+    if (bladeDistance < result.x) {
+        result = vec2(bladeDistance, 3.0);
     }
 
     // Branch pulse moves toward the horizon after a touch.
@@ -172,8 +183,11 @@ vec2 mapScene(vec3 p, float t, float awareness, float openState) {
         step(0.0, u_branchPulseAge)
         * exp(-pulseAge * 0.58);
 
-    if (pulse * pulseGate < result.x) {
-        result = vec2(pulse * pulseGate, 4.0);
+    // Mismo defecto, misma cura: el pulso se aleja cuando su compuerta está
+    // cerrada, en vez de colapsar su distancia a cero.
+    float pulseDistance = mix(FAR_CLIP, pulse, clamp(pulseGate, 0.0, 1.0));
+    if (pulseDistance < result.x) {
+        result = vec2(pulseDistance, 4.0);
     }
 
     return result;

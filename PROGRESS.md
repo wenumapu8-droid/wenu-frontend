@@ -100,7 +100,7 @@ y dibuja (antes no dibujaba nada porque yo llamaba `start()` sin el `await
 load()` que el contrato pide, y porque su obra por defecto —`bw-06-alpha.png`—
 no existe en este repo).
 
-### B4 · `split-corridor` no dibuja  ⛔ ABIERTO · ACOTADO CON MEDICIÓN
+### B4 · `split-corridor` no dibujaba  ✅ CAUSA ENCONTRADA Y CORREGIDA
 Ya NO es un problema de montaje: hizo falta traducir su `#version 330 core` a
 `#version 300 es` (el motor ahora lo hace para cualquier shader del lab), y con
 eso compila y corre — la medición se movió de 10.58 a 10.78. Pero el corredor
@@ -127,8 +127,31 @@ o detrás de la geometría; (2) el bucle de marcha termina antes de tocar nada
 por el conteo de pasos; (3) alguna constante de escena quedó atada a un uniform
 que el runtime viejo seteaba y este no.
 
-**Próximo paso concreto:** leer el bucle de marcha y la construcción de cámara
-(≈480 líneas). No más ajustes de parámetros: ya está probado que no responden.
+**CAUSA, encontrada leyendo `mapScene`:**
+
+    if (blade * bladeReveal < result.x) result = vec2(blade * bladeReveal, 3.0);
+
+Multiplica una **distancia con signo** por un factor de revelado. Cerca de la
+cámara `bladeReveal` vale 0, así que el producto da **0** — y `0 < result.x` es
+cierto siempre. El raymarcher lee 0 como *"hay superficie aquí"* y **golpeaba en
+el primer paso, sobre la propia cámara**. Nunca llegaba al corredor: lo que se
+medía era el color de fondo, `vec3(0.003, 0.004, 0.007)` ≈ los 3.73 de luz.
+
+**Cura:** para ocultar geometría en un SDF hay que EMPUJARLA LEJOS, no escalarla
+a cero. `mix(FAR_CLIP, blade, bladeReveal)`. Mismo defecto y misma cura en el
+pulso de rama.
+
+**Resultado medido:** de 3.73 / 100 % oscuro (sólo fondo) a 60–66 de luz y ~44 %
+oscuro. **El corredor dibuja.**
+
+**Lo que queda de este ítem:** ahora sí es calibración — 44 % de fondo oscuro
+está muy por debajo del canon (~85 %). Pero ahora es un problema real y no una
+suposición, porque la escena existe. Se resuelve con la tabla de tratamientos.
+
+**Nota de método:** anoche escribí "sale oscuro, hay que subirle la ganancia" y
+lo repetí tres veces. Era falso. Sólo se supo midiendo el shader AISLADO y
+viendo que era invariante al estado y a la intensidad — un shader que ignora un
+×4 no está atenuado, está apagado.
 
 **Mientras tanto DESCENT usa el organismo de gesto**, que sí se ve. Una escena
 negra es peor que un placeholder honesto.
@@ -277,12 +300,34 @@ mitad.
 Su primer uso ya sirvió: convirtió B4 de "sale oscuro, probemos números" en "no
 dibuja, y el problema está adentro del raymarch".
 
+### M1 · `addEventListener` sobre null ✅
+Reproducido en `/kodex/works`: `Cannot read properties of null (reading
+'addEventListener')`.
+
+**Causa:** `el.closest('a')` devuelve null cuando el rótulo no vive dentro de un
+enlace. Aparecía en DOS lugares —`KodexShell.astro` y `Footer.astro`—, y en el
+segundo sin variable intermedia.
+
+**Por qué importaba más de lo que parece:** un `forEach` que lanza corta el
+resto del script. En `/kodex/works` se perdían también el cursor en cruz y los
+filtros, que no tienen nada que ver con ese efecto. Y el pie va en muchas
+páginas, así que el fallo se propagaba lejos de donde se escribió.
+
+**Cura:** no sólo un guard. Si no hay enlace, el disparador correcto es el
+rótulo mismo (`link || el`), así el efecto se conserva donde antes se perdía en
+silencio. Verificado: el error desapareció de la consola.
+
+**Encontrado de paso, distinto y sin tocar:** queda un
+`Uncaught (in promise) #<Event>` propio de `works.astro`. Otro defecto, otra
+tarea.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 10:24 — **B4 RESUELTO** (bug de SDF) y **M1 corregido** en dos archivos.
 - 09:50 — **Banco extendido a cualquier organismo.** B4 reacotado con medición:
   no es falta de ganancia, no dibuja.
 - 09:20 — **Foco uno-a-la-vez** en los specimens. Punto 5 cerrado.

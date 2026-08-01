@@ -153,7 +153,16 @@ const {
         document.querySelectorAll('.kxm-t').forEach((el) => {
           const link = el.closest('a'); const t = el.textContent;
           const scr = () => { const t0 = performance.now(); clearInterval(el.__g); el.__g = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / 380); let o = ''; for (let i = 0; i < t.length; i++) o += t[i] === ' ' ? ' ' : (i / t.length < p ? t[i] : GLY[Math.random() * GLY.length | 0]); el.textContent = o; if (p >= 1) clearInterval(el.__g); }, 28); };
-          if (!reduce) link.addEventListener('mouseenter', scr);
+          // `closest('a')` devuelve NULL cuando el rotulo no vive dentro de un
+          // enlace, y ahi reventaba la pagina entera con "Cannot read
+          // properties of null". Un forEach que lanza corta el resto del
+          // script: en /kodex/works se perdian el cursor en cruz y los filtros,
+          // que no tienen nada que ver con este efecto.
+          //
+          // El guard solo no alcanza: si no hay enlace, el disparador correcto
+          // es el rotulo mismo. Asi el efecto se conserva donde antes se perdia
+          // en silencio.
+          if (!reduce) (link || el).addEventListener('mouseenter', scr);
         });
         // crosshair cursor — a cross that spans the screen and follows you
         const kxc = document.querySelector('[data-kxc]');
