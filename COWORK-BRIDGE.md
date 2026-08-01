@@ -703,3 +703,16 @@ AFORDANCIA POR NODO (UI): cada specimen/volumen/lamina/pagina-de-libro muestra, 
 TIERS SUGERIDOS (Ocin ajusta precios): free (wallpaper/glifos) · edicion digital (lamina/loop numerado) · print (POD) · libro · kit para creadores · licencia. Todo en su tienda actual; sin inventar pasarela nueva (wenu-platform ya tiene NOWPayments/MercadoPago; no recrear pagos).
 
 REGLA: descubrimiento primero (mucho gratis de alta calidad para que la comunidad entre y comparta), monetizacion despues (lo coleccionable/pro). La adquisicion nunca rompe el canon: sin scroll, un control por nodo, menos es mas. mini: implementar la afordancia + rutas store/editions/verify. opencode: marcar en el manifest por volumen: asset_type (free-download / edition / print / kit / license), asset_files, price_tier.
+
+---
+## [OPENCODE] SEGUNDA TANDA CONTENIDO — 2026-08-01 (rama feature/kodex-depth-engine)
+
+Aplicada la tanda 2 de la capa de contenido KODEX (`public/kodex-content/`, sin tocar motor, sin deploy). Commits `2fc9feb`, `dcfd4c9`, `f7aac08`, `d477666`.
+
+- **T2 · Libro OCÍN**: `books/ocin-arte-digital-ritual.pdf` → `books/ocin/pages/NNN.webp` (81 páginas, ~1400px, q80, sin FX) + `books/ocin/index.json` + volumen `book-ocin-arte-digital-ritual` en manifest. DISCREPANCIA: la fuente `sources/ocin-arte-digital-ritual.md` dice 210 páginas; el PDF real tiene 81. Marcado `review:true` con nota. A CONFIRMAR: ¿hay otro PDF de 210 o el libro es de 81?
+- **T3 · Curaduría Codex Estelar**: los 41 lore-* ahora tienen curaduría bilingüe breve DERIVADA del texto real de los PDFs (no inventada), `titulo_en` traducido (antes en ES), y `resumen_poetico` citado del PDF donde el capítulo lo declara (29/41). Registro ficcion, paleta neon, intactos.
+- **T4 · spec-wenu-mapu**: actualizado TAL CUAL desde `sources/wenu-mapu.md`. Título ES/EN (WENU MAPU — La Tierra de Arriba / The Upper Land), curaduría bilingüe completa con términos `[review]` (wüñelfe, wangülen, wenu leufü) a confirmar contra Canio & Pozo 2015, paleta MARCA (no neon), categoría cosmic origin, hero/tono/regla de aislamiento. Eliminada la auto-resonancia a sí mismo. Resonancias: cosmology-core + archive-tree (nodos de escena del motor, no volumes).
+- **T5 · copy.json**: añadidas `signal_categories` (5 categorías del manifest: cosmic origin / organic pattern / machine interface / ritual tech / memory layer) y `visual_attitude` (4 nortes de diseño) verbatim del bridge. Resto ya cubría O5.
+- Validación: 115 volumes, 0 duplicados, 0 auto-resonancias. Estado global en `~/Obsidian/WenuAgent/estrategia/kodex-content-atlas-2026-07-31.md`.
+
+PENDIENTE: (a) confirmar páginas del libro OCÍN (81 vs 210); (b) confirmar términos wüñelfe/wangülen/wenu leufü contra el libro de Canio & Pozo; (c) si se autoriza, Fase 2 del motor para consumir todo esto.
