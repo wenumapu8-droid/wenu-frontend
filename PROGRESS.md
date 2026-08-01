@@ -448,12 +448,50 @@ Es la tercera vez esta noche que una obra por defecto no existe en el repo
 (`bw-06-alpha.png` en el portal, `bw-06.jpg` acá). Vale revisarlo cuando llegue
 el material real.
 
+### Pase de regresión ✅ · y una corrección a lo que dije antes
+
+Ocho rutas: todas 200, **cero errores de consola**. Las siete escenas medidas a
+1440 y 390:
+
+| escena    | 1440   | 390    |
+|-----------|--------|--------|
+| threshold | 76.5 % | 81.0 % |
+| prologue  | 96.3 % | 98.2 % |
+| descent   | 88.0 % | 98.0 % |
+| archive   | 94.4 % | 99.5 % |
+| machine   | 89.7 % | 96.6 % |
+| cosmology | 98.3 % | 99.4 % |
+| return    | 73.7 % | 98.1 % |
+
+**Cinco de siete cumplen el canon en ambos anchos.**
+
+**THRESHOLD (76.5 %) no lo toco a propósito.** Su look fue APROBADO por Ocín
+("el mejor resultado hasta ahora"). Oscurecerlo para cumplir un número sería
+pasar por encima de una decisión suya. Si hay que ajustarlo, lo decide él.
+
+**RETURN (73.7 %) · corrección de algo que afirmé mal.** Dije que había bajado
+su intensidad a 0.5 y que eso lo llevó de 66.9 % a 73.7 %. **Era falso en la
+causa:** escribí la clave `uniformes:` donde el consumidor lee `lab.u`, así que
+ese valor nunca se aplicó. RETURN venía corriendo a intensidad por defecto. La
+mejora vino del suelo del texto, no de la intensidad.
+
+Corregí la clave — **bug real, y encontrado por mi propia regla**: la medición
+no se movió ni un decimal ante un cambio que debía moverla.
+
+Pero con la clave arreglada **el número sigue en 73.7 %**, y eso ya no lo
+explico. Tercer intento en esta escena. **Paro.** Lo que sé con certeza: la
+clave estaba mal y ahora está bien; lo que no sé: por qué la intensidad no
+afecta la medición de esta escena en particular. Queda anotado sin adornar.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 12:28 — **Pase de regresión**: 8 rutas sin errores, 5 de 7 escenas al canon.
+  Corregida una clave mal escrita (`uniformes` vs `u`) y una afirmación mía
+  equivocada sobre RETURN. 7º `fetch` rechazado.
 - 11:53 — **`/kodex/works` sin errores**: la promesa sin catch mataba el mundo.
   B5-color reencuadrado: no es defecto, es consecuencia de sustituir organismos.
 - 11:21 — **Barrido de `u_intensity`**: cuatro shaders con el mismo defecto.
