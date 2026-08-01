@@ -334,6 +334,24 @@ Y **brote** es una palabra de planta: lo que sale de una semilla enterrada, en e
 
 Es la respuesta del símbolo al epígrafe —*soy semilla sembrada en la sombra*— y es literalmente cierto de cualquier semilla: ninguna germina a la luz. Todas empiezan enterradas.
 
+Y vale desarrollarlo, porque una semilla enterrada hace algo que nadie mira y que describe bien lo que este capítulo propone.
+
+**Lo primero que sale de una semilla no es el tallo. Es la raíz.**
+
+Antes de intentar salir hacia arriba, la planta manda algo hacia abajo — hacia más oscuridad todavía, hacia donde no hay nada de lo que va a necesitar después. Y lo hace primero, siempre, en todas las especies, sin excepción.
+
+Si se apurara hacia la luz, se caería con el primer viento.
+
+Ese orden es la parte del proceso que nadie ve y que decide todo. Lo que se ve —el brote saliendo de la tierra, el momento fotogénico— ocurre después, y ocurre porque abajo ya hay algo agarrado.
+
+Aplicado a este capítulo: el tiempo que alguien pasa en la sombra no es tiempo perdido esperando a que aclare. Es donde se hace la parte que no se muestra.
+
+Y hay una consecuencia menos amable que conviene decir, porque este capítulo tiende al consuelo: **una semilla no decide cuándo germina**. Depende de la temperatura, del agua, de la estación. Puede pasar años enterrada, intacta y viva, sin que sea culpa de nadie ni mérito de nadie.
+
+Hay semillas que esperan décadas. Cuando por fin ocurre, no pasó nada adentro de ellas.
+
+Cambió afuera.
+
 ### Elemento
 
 **Luz oscura.**

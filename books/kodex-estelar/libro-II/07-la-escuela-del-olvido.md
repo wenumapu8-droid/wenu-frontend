@@ -89,6 +89,22 @@ Entras a cada vida sin rencores heredados. Sin saber quién te hizo qué. Sin la
 
 Un alma que recordara todas sus heridas no podría amar a casi nadie.
 
+Y eso no hace falta llevarlo a otras vidas para comprobarlo: pasa dentro de ésta, todos los días.
+
+**El olvido es lo que hace posible seguir queriendo a la gente.**
+
+Piensa en cualquier vínculo que lleve años. Una pareja, un hermano, una amistad de treinta años. Si en cada conversación estuviera disponible, con todo su detalle, cada vez que esa persona te falló —cada frase hiriente, cada olvido, cada momento en que no estuvo— no habría manera de sentarse a comer con ella.
+
+Y lo que ocurre no es que perdones. Es más simple y menos noble: **se te va borrando**. Queda el hecho de que pasó algo, sin la textura de cómo dolió. Y sin la textura, el agravio pierde casi todo su peso.
+
+Lo mismo hacia ti. Si tuvieras presentes, con nitidez, todas las veces que fuiste injusto, mezquino o cobarde, no podrías levantarte.
+
+Los que no pueden olvidar lo saben mejor que nadie. Hay gente cuya memoria del agravio no se desgasta —lo recuerda hoy con la misma intensidad que hace veinte años— y esa gente sufre de una manera particular, y suele estar muy sola.
+
+Así que lo que este capítulo describe como una decisión de alto orden tomada por Consejos Supremos tiene, acá abajo, una versión doméstica y verificable: **el olvido es el mecanismo que hace posible la convivencia**.
+
+No lo elegiste. Trabaja de noche, borra lo justo, y gracias a él sigues teniendo gente.
+
 **Muchos lo llaman castigo. Pero en verdad, fue una decisión de alto orden.**
 
 Cuarta vez en cuatro capítulos que la palabra *castigo* aparece para ser negada — el X y el XI del Libro I, el IV de éste, y ahora el olvido mismo.

@@ -129,6 +129,22 @@ No se pasa por sabiduría. No se pasa por pureza. No se pasa por haber leído lo
 
 Lo cual descalifica de un golpe a toda una clase de buscador: el que acumula técnicas, vocabulario y experiencias, y sigue siendo duro con la gente que tiene al lado.
 
+Y hay que decir por qué esa figura es tan común, porque no se trata de hipocresía y tratarla así no ayuda a nadie.
+
+**Es que lo interior se puede practicar sin nadie, y la compasión no.**
+
+Meditar, leer, hacer rituales, anotar sueños, trabajar la sombra — todo eso se puede hacer perfectamente bien en una habitación, a solas, y se puede mejorar de manera medible. Uno nota que avanza. Hay una sensación de progreso.
+
+La compasión no tiene esa curva. No se practica en privado, no se puede medir, y sobre todo: **se pone a prueba justo cuando uno está peor**. Nadie falla en ser compasivo un martes tranquilo. Se falla cansado, con hambre, tarde, con alguien insoportable enfrente.
+
+Por eso es tan fácil acumular lo primero y quedarse sin lo segundo. No hace falta mala fe: alcanza con dedicarle el tiempo a lo que da resultados visibles.
+
+Y por eso este capítulo pone la compasión como **umbral** y no como coronación. No es lo último que se alcanza después de mucho trabajo interior. Es lo que hay que cruzar antes de que el trabajo interior signifique algo.
+
+El Libro I ya lo había dicho de otra manera, y en su primera página: *no necesitas dogma, ni templo, ni maestro externo*. Ninguna de las tres cosas que se quitan ahí es una técnica.
+
+Lo único que este Códex no ha ofrecido nunca como opcional es la gente.
+
 **El corazón es multidimensional. Es sensor, transmisor y traductor.**
 
 Tres funciones, y la tercera es la que casi nunca se nombra.

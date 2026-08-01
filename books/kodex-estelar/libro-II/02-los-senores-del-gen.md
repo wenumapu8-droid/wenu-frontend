@@ -177,6 +177,24 @@ Y una **grieta** es lo contrario de una puerta. La puerta la puso alguien, para 
 
 Nadie te dejó esa salida. Se abrió.
 
+Y vale quedarse en la idea de los **silencios del código**, porque describe algo que cualquiera que haya vivido bajo reglas conoce por dentro.
+
+Ningún reglamento puede cubrirlo todo. Se puede escribir uno larguísimo, revisarlo durante años, cerrar cada hueco que aparezca — y al final del trabajo va a seguir habiendo situaciones que nadie previó, porque la realidad produce combinaciones más rápido de lo que nadie las puede anotar.
+
+Ahí es donde vive la gente en cualquier sistema estricto.
+
+No en la desobediencia, que se castiga. **En lo que no está dicho.**
+
+Es lo que hace un preso que encuentra una rutina que nadie prohibió. Lo que hace un empleado que cumple todo y aun así se guarda una parte del día. Lo que hace un chico en una casa muy reglamentada y descubre un rincón sobre el que nadie legisló.
+
+Ninguno está rompiendo nada. Están ocupando el intersticio.
+
+Y hay una consecuencia que este capítulo no dice y que se sigue: **cuanto más detallado es un sistema de control, más intersticios produce**. Cada regla nueva crea bordes nuevos, y cada borde es un lugar donde la regla no llega. Por eso los sistemas más obsesivos suelen ser los más burlados desde adentro, y casi nunca por rebeldía — por pura física de las esquinas.
+
+Lo que este capítulo llama *la conciencia encontró un lugar para esconderse* es exactamente eso, dicho en el vocabulario del mito.
+
+Y explica algo sobre la esperanza que este tomo va a necesitar en los diez capítulos que siguen: **no hace falta que el sistema tenga una falla de diseño**. Alcanza con que sea un sistema. Todos los tienen, todo el tiempo, y no se pueden cerrar sin hacer más.
+
 ### Enki dudó
 
 **Enki fue el primero en dudar.**

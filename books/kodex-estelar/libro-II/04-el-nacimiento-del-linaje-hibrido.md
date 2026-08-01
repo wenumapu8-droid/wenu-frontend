@@ -218,6 +218,24 @@ Y fíjate en las tres cosas que se anhelan: **quién eres, de dónde vienes, por
 
 El capítulo termina definiendo a su estirpe elegida por la capacidad de hacerse las preguntas más comunes que existen.
 
+Y vale detenerse en **memorias activas**, porque es una expresión precisa y describe algo que mucha gente carga sin nombre.
+
+Una memoria pasiva es la que se busca. Está guardada, uno va a buscarla cuando la necesita, y el resto del tiempo no molesta. Así funciona casi todo lo que recordamos.
+
+**Una memoria activa hace lo contrario: viene sola.**
+
+Aparece en el momento menos oportuno, disparada por un olor o una frase de otro, y no se va cuando uno le pide que se vaya. No espera turno.
+
+Y no todas son malas — ésa es la parte que se olvida. Hay memorias activas que son un regalo: la certeza inexplicable de saber hacer algo, la sensación de reconocer un lugar donde nunca estuviste, la frase que aparece exacta cuando alguien la necesita y uno no sabe de dónde salió.
+
+Lo que las distingue no es el contenido. Es que **no las gobiernas**.
+
+Con eso, la definición del capítulo cambia de tono. Los híbridos actuales no portan coronas: **portan algo que no controlan**. Es lo contrario de un poder — un poder se usa cuando uno quiere.
+
+Y encaja con el peso del principio del capítulo. Lo que se lleva, pesa. Una memoria que aparece sola, aparece también en velorios, en reuniones de trabajo, a las cuatro de la mañana.
+
+Nadie eligió eso, y ésa es exactamente la señal de que es de los suyos.
+
 ---
 
 ## El pliegue

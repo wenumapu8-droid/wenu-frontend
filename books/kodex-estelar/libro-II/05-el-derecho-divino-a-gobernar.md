@@ -136,6 +136,22 @@ Los pueblos sostienen **el peso del cielo**: todo lo anterior, encima.
 
 La pirámide se dibuja sola con la repetición de un verbo. Es una de las mejores construcciones del tomo, y no necesita ningún argumento: la carga se acumula hacia abajo, como en cualquier edificio.
 
+Y hay algo más en esa figura que conviene sacar, porque cambia dónde está el poder.
+
+**En un edificio, lo que sostiene es lo de abajo.**
+
+La piedra de la base no manda sobre nada y aguanta todo. La de la punta se ve desde lejos, se le sacan fotos, y no sostiene absolutamente nada — de hecho es la única que se podría quitar sin que pase nada.
+
+Eso vale como descripción y vale como pregunta: si quien sostiene está abajo, **¿qué ocurre si deja de sostener?**
+
+La respuesta la conoce cualquiera que haya visto una huelga general, o un país donde la gente dejó de creerle a sus instituciones, o simplemente una familia donde quien cargaba con todo un día se cansó.
+
+No se cae la punta. Se cae la forma.
+
+Por eso los tres verbos de Ocín están en ese orden y no en el inverso. Un sistema así **no se sostiene desde arriba con fuerza: se sostiene desde abajo con costumbre**, y la costumbre es una decisión repetida tantas veces que dejó de sentirse como decisión.
+
+Ahí está el único lugar donde este capítulo puede tocar algo, y por eso su última línea no propone derrocar nada.
+
 ### Sangre azul
 
 **La casta divina fue replicada por generaciones. Sangre azul, dijeron. Sangre dorada, otros.**

@@ -144,6 +144,24 @@ El de este capítulo es el que **cuesta**. El que dices sabiendo que sería más
 
 Ése es el que quema. Y probablemente sea la práctica más concreta que ofrece todo el Libro II: no hace falta ninguna vela.
 
+Y conviene decir algo sobre la mecánica del *no*, porque cuesta más de lo que debería por una razón que casi nadie examina.
+
+**Casi todos creemos que un *no* necesita justificación.**
+
+Por eso cuesta tanto: no basta con no querer, hay que tener un motivo, y el motivo tiene que ser lo bastante bueno como para resistir una discusión. Así que uno inventa uno —una excusa, un compromiso previo, algo que sonará aceptable— y en el momento en que lo inventa ya perdió, porque acaba de aceptar que la decisión estaba sujeta a aprobación.
+
+Un motivo inventado, además, se puede refutar. *Ah, pero eso lo puedes mover.* Y ahí uno se queda sin nada.
+
+Lo que Ocín llama un *no* desde el alma no trae motivo. Es una posición, no un argumento — y por eso no se puede discutir.
+
+Es más incómodo de decir, porque deja al otro sin nada que responder y a uno sin dónde esconderse. Y es la única versión que sostiene.
+
+Hay una prueba para saber cuál de los dos estás diciendo: **fíjate si estás explicando**.
+
+Si después del *no* viene un párrafo, ese párrafo es la parte negociable, y quien tenga enfrente lo va a encontrar. Si después del *no* no viene nada —si hay un silencio incómodo y lo aguantas— ése era.
+
+El silencio posterior es el costo del *no* verdadero, y es exactamente lo que quema.
+
 **Lo llamaron energía Kundalini, lo llamaron Espíritu Santo, lo llamaron serpiente ígnea, lo llamaron herejía.**
 
 Hay que decir de dónde salen tres de esos nombres y qué ocurre cuando se los junta.
