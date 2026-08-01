@@ -511,3 +511,73 @@ ESPACIO y todo lo demás se compone encima.
    que pide el canon. Si escriben un shader nuevo: hablen ese idioma o no se ve.
 
 Capturas actualizadas en `~/kodex-work/capturas/` (12).
+
+### [COWORK] CAMBIO DE ENFOQUE (Ocin, CLAVE): los posters SON el diseno de cada CAPITULO
+Los 18 posters KODEX NO son referencias esteticas sueltas — son el DISENO COMPLETO de cada CAPITULO/portada. Cada panel del poster = un modulo REAL de la pagina. Construir AL PIE DE LA LETRA, con profundidad, uno por uno.
+Ejemplo desarrollado a fondo (plantilla): KODEX-CAPITULO-COSMOLOGY-CORE.md (Cosmology Core / TANDA-01): navigation panel, 4 SCENE STATES (MAP/ORBIT/ALIGN/REVEAL = la interaccion), motion notes, orbit map hero con 4 SECTORES (Aeon Primus, Void Serpentis, Cradle Deeps, Echo Atrium) y 4 GATES (Zenith/Horizon/Nadir), 7 CONSTELLATION GLYPHS (Seed/Witness/Spiral/Mirror/Lattice/Void/Anchor), signal charts (core resonance 0.618=aureo), orbital logic (pseudo-codigo real), orbital data table, core telemetry, mobile tile 9:16.
+Entre portadas va el SUB-UNIVERSO: cada sector/gate = puerta a volumenes; los glyphs = arquetipos navegables. Desarrollar cada capitulo con este nivel, no a la ligera. — Cowork
+
+---
+
+## 2026-08-01 · claude-mini · CAPÍTULO 01 · COSMOLOGY CORE, animado
+
+`/kodex/capitulo/cosmology-core/` — el póster corriendo. Captura:
+`~/kodex-work/capturas/cap-cosmology-core.png`.
+
+Los **once paneles** del plano, con sus números y sus rótulos, en su grilla:
+01 NAVIGATION · 02 SCENE STATES · 03 MOTION NOTES · 04 ORBIT MAP · 05 DIAGRAM
+STUDIES · 06 CONSTELLATION GLYPHS · 07 SIGNAL CHARTS + SPECTRUM · 08 ORBITAL
+LOGIC · 09 SYSTEM DATA · 10 CORE TELEMETRY · 11 MOBILE TILE 9:16.
+
+### Lo que respira
+
+**El mapa ejecuta el panel 08 sobre los datos del panel 09.** No es "algo
+parecido al póster": el radio de KX-13 en pantalla sale de sus 2.54 AU, su
+velocidad de sus 1024.55 días, su profundidad de su inclinación. `z` entra como
+parallax, los `linked` dibujan su vector, el NODE late con `sin(time ×
+frequency)`. **El plano no ilustra la escena; la escena es el plano corriendo.**
+
+Los 4 SCENE STATES son controles reales y encadenados:
+MAP revela el campo · ORBIT nombra los cuerpos · ALIGN interpola los ángulos
+hacia un vector común ("lock the geometry") · REVEAL abre la SERPENT GATE, que
+hasta ahí dice LOCKED, y emite el pulso de transmisión.
+
+Sectores, puertas, cuerpos y los 7 arquetipos son **puertas navegables** a
+volúmenes reales del manifest.
+
+### Dosificación, con criterio explícito
+
+Se anima lo que es MEDICIÓN; se dibuja una vez lo que es ESTUDIO.
+Tickean el mapa, las cartas de señal, el espectro, la telemetría y las
+coordenadas. Los 4 estudios de diagrama, los 7 glifos y el tile móvil se
+dibujan **una sola vez** al entrar en pantalla. Quince bucles compitiendo no
+agregan información y no corren en un iMac 2015.
+
+### Canvas 2D y no WebGL para el hero — y por qué
+
+El mapa es un instrumento de líneas finas con rótulos que acepta clics en
+cuerpos, sectores y puertas. Texto nítido y hit-testing son gratis en 2D y
+caros en shaders; y ya hay un campo WebGL detrás. Dos contextos peleando por la
+GPU es exactamente el "no sobrecargar" de la ley.
+
+### Tres errores que valen para los 17 capítulos que siguen
+
+1. **`align-content: start` del panel genérico hacía colapsar la fila `1fr` del
+   mapa a cero.** El mapa montaba, corría y dibujaba en un lienzo de 0px.
+   Quinta vez en el proyecto que un contenedor sin alto explícito se traga lo
+   que lleva adentro.
+2. **Confundí dos escalas.** `esc` es *píxeles por AU* y sirve para radios de
+   órbita; el tamaño de una letra no tiene nada que ver con eso. Al escalar los
+   rótulos con `esc` quedaban de 2.6px. Ahora hay `U` = lado corto del lienzo
+   para todo lo que es tamaño de dibujo.
+3. **Até "MAP" a la fase**, que en MAP vale 0 — con lo cual las órbitas se
+   apagaban justo en la fase cuyo trabajo es *reveal the field*. MAP es la fase
+   BASE, no la primera de una rampa.
+
+Bonus: con `prefers-reduced-motion` el tiempo no avanza y **todos los cuerpos
+caían en ángulo 0**, en fila a la derecha del núcleo. Ahora cada uno tiene fase
+de arranque propia: un sistema orbital congelado sigue leyéndose como sistema.
+
+### Sigue
+
+BITMAP NOISE y GLITCH BREAK, con esta misma plantilla.
