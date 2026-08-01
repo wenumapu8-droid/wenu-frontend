@@ -251,6 +251,26 @@ Una que abre hacia adentro sólo se abre desde donde estás tú. Nadie puede hac
 
 Por eso no hace falta cerradura: **la dirección de la bisagra es toda la protección que hay**.
 
+Y esa imagen resuelve algo que el pliegue de este capítulo va a plantear, así que conviene tenerla clara.
+
+Una puerta que abre hacia adentro tiene dos consecuencias, y hay que aceptar las dos juntas.
+
+**La buena: nadie puede forzarla.** No hay manera de empujar desde afuera algo que se abre hacia uno. Por más fuerza que alguien haga, la puerta se aprieta contra su marco. Eso es lo que quiere decir que no haga falta cerradura.
+
+**La incómoda: sólo tú puedes abrirla, y eso incluye los días en que no quieres.**
+
+Nadie va a entrar a sacarte de donde estés. Ni con buena intención, ni con paciencia, ni queriéndote mucho. Si alguien te importa y está cerrado, no hay manera de pasar — y quien lo haya intentado con alguien que quiere sabe exactamente lo desesperante que es.
+
+Lo único que se puede hacer desde afuera es quedarse.
+
+No golpear, no insistir, no explicar por qué habría que abrir. Quedarse cerca, sin apuro, durante el tiempo que haga falta, de manera que si un día se abre haya alguien ahí.
+
+Es poco y es todo lo que hay. Y es, dicho sea de paso, exactamente lo que este Códex viene describiendo desde el Libro I: *la sabiduría que no interfiere*, *la paciencia que no juzga*, *sostienen el espacio*.
+
+Resulta que no era una virtud espiritual.
+
+Era la única técnica compatible con una puerta que abre hacia adentro.
+
 **Y desde allí… todo lo demás comienza a girar.**
 
 *Girar*, no *empezar*. Lo que estaba quieto se pone en movimiento; nada se crea.

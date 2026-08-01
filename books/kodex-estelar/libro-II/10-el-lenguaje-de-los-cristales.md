@@ -91,6 +91,22 @@ Y el **silicio** —el elemento del que están hechos el cuarzo y la arena— es
 
 Es una de esas coincidencias que dan que pensar. Cuando este capítulo llama a los cristales *discos duros naturales*, no está estirando la imagen: está describiendo, sin proponérselo, de qué está hecho el disco duro que tiene al lado.
 
+Y conviene entender **por qué** el cuarzo sirve para eso, porque la razón es la misma que el capítulo viene diciendo con otras palabras.
+
+Un cristal de cuarzo, apretado, produce una corriente eléctrica; y si se le aplica corriente, se deforma. Esas dos cosas son la misma propiedad, y de ella sale todo lo demás: si le das electricidad, se dobla y se endereza a un ritmo **extremadamente constante**.
+
+Extremadamente constante quiere decir que no le importa el clima, ni la hora, ni cuántos años lleve haciéndolo. Sigue igual.
+
+Eso es lo único que hace falta para guardar el tiempo: **algo que repita sin variar**. No hace falta que sepa nada. Un reloj no entiende las horas; tiene adentro una piedra que tiembla siempre igual, y alguien que contó los temblores.
+
+Y ésa es exactamente la definición de cristal que este capítulo dio dos párrafos antes: **geometría repetida sin variación**.
+
+La piedra que guarda el tiempo y la piedra que Ocín llama memoria son la misma piedra, y por la misma cualidad. No porque recuerde nada — porque **no cambia**.
+
+Con eso, la palabra *memoria* en este capítulo gana un sentido más preciso y menos místico: una memoria no es algo que sabe. Es algo que se mantiene igual mientras todo lo demás se mueve.
+
+Un cristal no recuerda. **Permanece**, y nosotros llamamos memoria a eso.
+
 Nada de eso demuestra que una amatista guarde tus vidas pasadas. Pero explica por qué la imagen se siente tan justa, y por qué esta intuición aparece en tantas culturas: la relación entre piedra ordenada, tiempo y memoria es real, y la encontramos dos veces por caminos distintos.
 
 **Cuando sostienes un cristal en tus manos, no sostienes una piedra. Sostienes un fragmento de conciencia. Un pulso que vibra con información.**

@@ -84,6 +84,26 @@ Hace falta una capa intermedia. Alguien que entienda las dos lenguas. Que esté 
 
 Es la estructura de todo poder que haya durado: virreyes, capataces, intermediarios. Nunca hubo un imperio sin una clase que tradujera.
 
+Y vale describir la posición, porque es la más incómoda que existe y muchísima gente la ocupa sin llamarla así.
+
+**Un mando medio recibe presión de los dos lados y no tiene autoridad hacia ninguno.**
+
+Desde arriba le llegan decisiones que no tomó y que tiene que defender como propias. Desde abajo le llegan reclamos legítimos que no puede resolver, porque no depende de él. Y en el medio queda alguien que pasa el día explicando lo que no eligió a gente que tiene razón.
+
+Los de arriba lo ven como uno de abajo. Los de abajo lo ven como uno de arriba.
+
+No es una queja de oficina: es la posición de un capataz, de un maestro entre el ministerio y sus alumnos, de un jefe de enfermería, del hijo mayor de una familia difícil, de cualquiera que traduzca entre dos mundos que no se hablan.
+
+Y tiene un rasgo que este capítulo describe sin nombrarlo: **el mando medio es el único que entiende los dos idiomas**.
+
+Ésa es su condena y es su única ventaja.
+
+Los de arriba no saben cómo se vive abajo. Los de abajo no saben qué restricciones hay arriba. El que está en el medio sabe las dos cosas, y eso lo vuelve el único capaz de decir la verdad completa — y el que más caro la paga si la dice.
+
+Ahí está lo que hace interesante a este capítulo. La capa que se creó para administrar es la única que tiene la información necesaria para desarmar la administración.
+
+No fue un error de diseño. Fue el precio de necesitar traductores.
+
 Y ése es el origen que este capítulo le atribuye a los suyos: **no nacieron para ser libres. Nacieron para ser el mando medio**.
 
 Retén eso, porque hace que todo lo que sigue sea más interesante. Lo que el capítulo va a contar es cómo una herramienta de administración terminó siendo la grieta.

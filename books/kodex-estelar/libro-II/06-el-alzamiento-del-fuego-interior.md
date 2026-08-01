@@ -370,6 +370,24 @@ Es la primera vez en dos tomos. Todos los ejercicios anteriores se hacían senta
 
 Coherente con el tema: no se puede trabajar el fuego sentado.
 
+Y hay una razón para eso que vale más que la coherencia poética.
+
+**Una emoción intensa que no encuentra salida por el cuerpo se queda en el cuerpo.**
+
+Cualquiera lo sabe sin que se lo expliquen: después de una discusión fuerte uno no puede quedarse quieto. Camina, ordena cosas que no hacía falta ordenar, sale a la calle sin destino. No es nerviosismo — es el cuerpo terminando de procesar algo, y si se lo impide, queda dando vueltas adentro durante horas.
+
+Todos los pueblos del mundo llegaron a la misma solución y la llamaron distinto: bailar, cantar fuerte, golpear un tambor, batir palmas, gritar en grupo. Ninguno de esos gestos comunica nada. Todos hacen lo mismo: **le dan al cuerpo por dónde**.
+
+Y todos fueron desapareciendo de la vida corriente, uno por uno, hasta quedar reducidos a espectáculo — algo que hacen otros y que uno mira sentado.
+
+Eso deja a una persona promedio sin ninguna vía física para lo que le pasa. Le queda pensarlo, que es lo único que este Códex ha pedido en veintitrés capítulos y lo único que en este no alcanza.
+
+Por eso el ejercicio pide moverse, sonar y bailar, y por eso termina sin instrucción.
+
+No es una recomendación de estilo de vida.
+
+Es la única parte del libro que no se puede hacer con la cabeza.
+
 ### Ritual · Activación del fuego interno
 
 **1. Enciende una vela dorada o roja frente a ti.**

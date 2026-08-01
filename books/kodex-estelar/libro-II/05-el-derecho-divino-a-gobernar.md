@@ -164,6 +164,22 @@ Es decir: la marca de la nobleza no era una sustancia distinta en las venas. Era
 
 Toda la idea de la casta cabe en ese malentendido: se tomó un efecto del privilegio y se lo leyó como su causa.
 
+Y ese movimiento —confundir el efecto con la causa— no se quedó en la Edad Media. Es la operación que sostiene casi toda desigualdad que se defiende a sí misma.
+
+Funciona así: alguien tiene una ventaja, la ventaja produce un resultado, y después el resultado se usa como prueba de que la ventaja era merecida.
+
+**Ejemplo antiguo:** el noble no trabaja al sol, por eso es pálido, y la palidez prueba que es de mejor sangre.
+
+**Ejemplo actual:** alguien estudia en un lugar donde se enseña bien, por eso rinde mejor, y el rendimiento prueba que valía más desde el principio.
+
+En los dos casos se está leyendo hacia atrás. Se toma el final de una cadena y se lo presenta como su comienzo.
+
+Y es difícil de discutir, porque los datos están bien: el noble efectivamente era pálido y el otro efectivamente rinde mejor. Lo que está mal no es la observación — es la flecha.
+
+Este capítulo hace exactamente ese trabajo con los reyes: **muestra la flecha**. No niega que hubiera dinastías, ni que tuvieran símbolos, ni que la gente les creyera. Muestra que las genealogías se encargaban después, y que la sangre azul era una consecuencia de no cargar peso.
+
+Y una vez que se aprende a mirar en esa dirección, no se puede dejar de hacerlo. Es de las pocas herramientas de este Códex que sirven en una discusión.
+
 **Pero el verdadero oro no estaba en la sangre, sino en el alma.**
 
 El **oro** vuelve por tercera vez en el tomo, y completa un recorrido. En el capítulo I era el metal que vinieron a buscar. En el III era *oro etérico*, la energía emocional que se extraía.

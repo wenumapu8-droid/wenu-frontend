@@ -74,6 +74,24 @@ Y sin embargo, desde acá, se hace de noche.
 
 Toda la tesis del capítulo cabe en esa desproporción: **lo que se ve puede ser oscuridad total mientras lo que hay detrás está intacto**.
 
+Y hay un detalle de los eclipses que vale traer, porque es el que más se parece a lo que este capítulo describe.
+
+**Lo que tapa al Sol es minúsculo.**
+
+La Luna es unas cuatrocientas veces más chica que el Sol. Lo único que le permite taparlo entero es que está cuatrocientas veces más cerca — una coincidencia de proporciones que no tenía por qué darse y que no se da en ningún otro planeta conocido con la misma exactitud.
+
+Es decir: **basta un objeto muy pequeño, puesto muy cerca, para borrar algo enorme**.
+
+Cualquiera puede comprobarlo con el pulgar. Estíralo hacia el sol al mediodía y lo tapas. No lo apagaste, no lo alcanzaste, no le hiciste nada — pusiste un dedo a treinta centímetros de tu cara.
+
+Ésa es la mecánica de casi todo lo que nos tapa la vida.
+
+No es una fuerza enorme la que oscurece. Casi nunca lo es. Es una frase pequeña dicha en el momento justo —*eres demasiado sensible*—, un miedo específico, una idea sobre uno mismo que se instaló a los siete años. Cosas del tamaño de un pulgar, puestas muy cerca.
+
+Y por eso se corren tan fácil comparadas con lo que ocultan.
+
+No hay que hacer nada con el Sol. Hay que mover el dedo.
+
 Es, además, lo mismo que el Códex viene diciendo desde su primera página con otras palabras. *Lo que nunca fue perdido, sino tan solo velado.* Un eclipse es un velo del tamaño de un mundo.
 
 ### Sembrados donde el Sol parecía apagado

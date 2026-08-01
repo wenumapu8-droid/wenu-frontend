@@ -218,6 +218,30 @@ Que es, dicho de otro modo, el velo del Libro I usado al revés. Allá el olvido
 
 Y **contratos invisibles** enlaza con el capítulo I: allá el pacto tenía tres cláusulas escritas. Éstos no se ven, y ésa es su fuerza. Nadie puede negarse a firmar algo que no sabe que está firmando.
 
+Y vale decir dónde se firman esos contratos, porque el capítulo no lo dice y es la parte accionable.
+
+**Casi todos se firman en la infancia, y ninguno por escrito.**
+
+Un chico aprende, sin que nadie se lo explique, qué hay que hacer para que en esa casa las cosas estén bien. Si la manera es no molestar, aprende a no molestar. Si es hacerse cargo, se hace cargo. Si es divertir a todos, divierte. Si es sacar buenas notas, saca buenas notas.
+
+Ninguno de esos acuerdos se discutió. Se dedujeron, en silencio, a los seis años, mirando qué funcionaba.
+
+Y siguen vigentes cuarenta años después, en gente que ya no vive en esa casa, con personas que no tienen nada que ver.
+
+Ahí está lo que este capítulo llama un contrato invisible: **una regla que sigues cumpliendo con gente que nunca la firmó**.
+
+Y tienen una marca que los delata, y se puede buscar: aparecen como una obligación sin origen. *Tengo que ocuparme.* *No puedo decir que no.* *Si no lo hago yo, no lo hace nadie.*
+
+Prueba a preguntarte, con cualquiera de esas frases: **¿con quién acordé esto?**
+
+Casi nunca hay respuesta. Y no haberla es exactamente el dato: los acuerdos que uno hizo de verdad se recuerdan y se pueden revisar con la otra parte.
+
+Los otros no tienen otra parte.
+
+Por eso el ritual de este capítulo dice *extraigo de mí todo contrato **no consentido***, y no *todo contrato*. Los que consentiste son tuyos y se sostienen.
+
+Los que dedujiste a los seis años nunca fueron un acuerdo.
+
 ### Lo que no pudo extraerse
 
 **Pero en lo profundo, algo no pudo ser extraído: la chispa divina inmanipulable.**
@@ -245,6 +269,24 @@ La de este capítulo es la que corresponde a su tema. No dice que no se pueda **
 Por eso no se puede minar. **Una mina se agota; un cristal no es un yacimiento.**
 
 La mina es de donde se saca. El cristal es lo que se forma, lentamente, bajo la misma presión que hizo la roca.
+
+Y esa última parte merece una vuelta más, porque dice algo que el capítulo no subraya y que le cambia el final.
+
+**El cristal no se formó a pesar de la presión. Se formó con ella.**
+
+Un cristal necesita exactamente lo que uno describiría como condiciones espantosas: peso encima, calor, tiempo largo, ninguna posibilidad de moverse. Si algo de eso faltara, no habría cristal — habría polvo suelto, o una piedra sin orden.
+
+Lo que hace la presión es obligar a los átomos a acomodarse. Sin nada que los apriete se quedan como cayeron.
+
+Con eso, la imagen del capítulo cambia de tono. La mina y el cristal no son dos cosas separadas: **están en el mismo lugar y hechos por la misma fuerza**. Lo que se extrae y lo que no se puede extraer se formaron juntos.
+
+Y hay que decir enseguida lo que esto **no** significa, porque es exactamente el error que este Códex ha rechazado tres veces: no significa que la presión fuera buena, ni que hiciera falta, ni que quien te apretó estaba ayudando.
+
+Significa algo más frío y más cierto: **que lo que se te formó adentro durante los años difíciles es tuyo**. No del que apretó.
+
+Un cristal no le debe nada a la montaña.
+
+Simplemente estuvo ahí abajo el tiempo suficiente, y salió con una forma que ya no se puede deshacer.
 
 ---
 

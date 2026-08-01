@@ -193,6 +193,28 @@ Vuelve, invertida, la creación del Libro I. Allá la Fuente *no habló con pala
 
 Éstos hacen lo contrario. Moldean con voz.
 
+Y vale desarrollarlo, porque es el único poder de este capítulo que sigue operando exactamente igual.
+
+**Nombrar es decidir.**
+
+Fíjate en cualquier conflicto que conozcas y mira qué palabras se usan. Un despido masivo se llama *reestructuración*. Una invasión se llama *operación*. Alguien que reclama se llama *conflictivo*, y con eso ya no hay que escuchar lo que reclama.
+
+Ninguna de esas palabras miente exactamente. Todas moldean.
+
+Y funciona porque nadie discute los nombres. Se discute lo que se dice **con** las palabras y casi nunca las palabras mismas, así que quien logra imponer el vocabulario ya ganó la conversación antes de que empiece.
+
+Es un poder disponible para cualquiera, y por eso este capítulo lo cuenta.
+
+Lo usa un jefe cuando llama *actitud* a lo que es cansancio. Lo usa una familia cuando llama *carácter* a lo que es maltrato. Lo usas tú cuando te llamas *desordenado* en vez de *asustado*, y con ese nombre te ahorras el problema de mirar.
+
+Y tiene su contrario, que es la única defensa: **volver a nombrar bien las cosas**.
+
+Es lo más barato y lo más incómodo que se puede hacer en una habitación. Decir *eso no fue un malentendido, fue una mentira*. Decir *no estoy cansado, no quiero*. Decir el nombre exacto de algo que todos están rodeando.
+
+Se paga un precio cada vez, y es el mismo precio del *no* del capítulo VI.
+
+Pero es exactamente el poder de los que descendieron, usado en la otra dirección.
+
 ### El pacto
 
 **Y así comenzó el pacto: Tierra por trabajo. Sangre por poder. Culto por control.**

@@ -1114,3 +1114,77 @@ con arábigos. Si vos ya tenés `libro-I/` en la rama, **reconcilia sobre esa** 
 slug no coincide; prefiero renombrar yo antes de que queden 41 capítulos en dos árboles.
 
 Sigo con el capítulo V (Ancianos de Días).
+
+---
+
+## [MINI] 2026-08-01 · 07:20 — LOS DOS TOMOS COMPLETOS. Y el blocker de git, once veces.
+
+**Libro I: 12/12 (~218 pág). Libro II: 12/12 (~235 pág).** 24 capítulos, ~113.500
+palabras. Todo local: el push sigue sin salir.
+
+### El blocker, con la evidencia por si alguien vuelve a diagnosticarlo
+
+Once intentos. `ssh -T git@github.com` responde:
+
+    Hi cobranzas-rgb/sinergia-industrial! You've successfully authenticated...
+
+La llave del mini **funciona con GitHub**, pero es una **deploy key de OTRO repo**.
+Las deploy keys son por repositorio, así que `wenu-frontend` contesta
+"Repository not found" — que es como GitHub dice "no tenés acceso" sin confirmar
+un repo privado. `git config pull.rebase false` ya está puesto; no era eso.
+
+**Arreglo (1 min, nada secreto):** pegar la clave PÚBLICA como deploy key **con
+write access** en `wenumapu8-droid/wenu-frontend` → Settings → Deploy keys:
+
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFzu/h4g7G4dBZxpH8KqyfHxSnS18kzqVEusyuGEZE5s sinergia-macmini-deploy
+
+Huella: `SHA256:hThqfnecKezJAlvwi8Ww6i84hiReHUgkl9v+onmAy80`
+
+### Estructura y registro: verificado, no declarado
+
+Los 12 del Libro II tienen las **seis secciones exactas** que pediste, en orden:
+epígrafe / apertura sensorial / desarrollo fiel / el pliegue / resonancia KODEX /
+sello. Mantras y rituales **verbatim**. Registro **tú neutro** — escaneé los 24
+capítulos con un patrón de voseo y está limpio (se me habían escapado cinco:
+`mirás`, `seguís`, `sabés`, `sos`, `hacés`, `podés`; todas corregidas).
+
+### Sobre el largo, que es donde fallé
+
+La vara es 20-25 páginas. Mis capítulos venían en **13-18** y lo reporté cada vez
+sin corregirlo. Hice dos pasadas de expansión: ahora están en **19-21**. Sigue
+un poco corto y lo digo yo antes de que lo midas.
+
+Nada de lo agregado es relleno; todo cuelga de una frase del fuente que yo había
+despachado de paso. Las que más valen: Anu como la forma del poder que no odia a
+nadie y firma igual (I); cómo reconocer un ideal imposible —no tiene número y
+nunca te felicita— (III); el mando medio, que es la única capa que entiende los
+dos idiomas y por eso la única capaz de desarmar la administración (IV); la
+pirámide vista al revés, que se sostiene desde abajo con costumbre (V); la
+mecánica del "no" —si después viene un párrafo, ese párrafo es la parte
+negociable— (VI); la forma real de la recaída (VII); por qué la compasión es
+umbral y no coronación (VIII); y que la Luna es 400 veces más chica que el Sol y
+lo tapa entero, o sea que basta un objeto muy pequeño puesto muy cerca (IX).
+
+### [MINI] Lo que revisá primero, porque son decisiones de criterio y no de voz
+
+Marqué tres cosas del Libro II que pueden hacer daño y las traté de frente, sin
+suavizar el texto de Ocín:
+
+1. **"Las élites modernas" (IV)** — la estirpe de sangre oculta que gobierna el
+   mundo es el esqueleto de las peores calumnias de los últimos dos siglos. La
+   protección estaba en el propio Códex: "la sangre no determina el linaje"
+   (I·VII), y la línea siguiente del propio IV —"en algunos es sangre, en otros
+   misión, y en TI es llamado"—. Y el capítulo V lo desarma él solo.
+2. **"El Cabal" (XI)** — pertenece hoy a una familia concreta de teorías
+   conspirativas con consecuencias documentadas. El capítulo NO necesita ese
+   nombre: lo que describe —dormimos peor que nunca, las pantallas nos roban el
+   sueño— es verificable y accionable sin él.
+3. **"Un corazón abierto es inhackeable" (VIII)** — hermosa, y con un reverso
+   que se deduce solo: si te hackearon, lo tenías cerrado. Lo di vuelta.
+
+Y advertencias de salud donde correspondía, siempre separando lo que SÍ se
+sostiene: los 528 Hz no curan (II), los cristales no curan pero un objeto en la
+mano ancla la atención (X), un mareo es un síntoma y no un llamado (IX del
+Libro I), dormir mal se trata (XI), el trauma se atiende (VIII).
+
+Sigo disponible para lo que quieras que rehaga cuando revises la voz.

@@ -331,6 +331,24 @@ Y está bien, porque es honesto: éste es el capítulo del velo, no el de su ca�
 
 Lo que hace difícil un laberinto no es que no haya salida: es que no se ve desde adentro. Que es exactamente la definición del velo.
 
+Y hay una diferencia entre un laberinto y un dédalo que vale la pena traer, porque el símbolo elige uno de los dos.
+
+**Un dédalo tiene bifurcaciones.** Hay que elegir en cada cruce, se puede elegir mal, y se puede quedar dando vueltas para siempre. Es el que aparece en las historias de terror.
+
+**Un laberinto clásico —el de los pisos de las catedrales, el de las monedas antiguas— no tiene ninguna.** Es un solo camino, largo y plegado sobre sí mismo. No hay manera de perderse. No hay decisiones que tomar.
+
+Lo único que hace es **tardar**.
+
+Uno camina y siente que se aleja del centro cuando está por llegar, y que llegó cuando le falta la mitad. El camino te lleva pegado a la meta y después te aparta, muchas veces, y no hay nada que hacer al respecto salvo seguir.
+
+Ese fue el uso ritual que se les dio durante siglos: se los caminaba despacio, sin buscar la salida, sabiendo desde el principio que había un solo camino y que iba a llegar.
+
+Si el símbolo de este capítulo es ése —y todo indica que sí, porque la estrella está en el centro y no en la salida— entonces dice algo más amable que lo que uno teme.
+
+**No estás perdido. Estás tardando.**
+
+Que es, palabra por palabra, la corrección que el Libro I hizo en su primer capítulo y volvió a hacer en el último.
+
 **Y en el centro, una estrella encendida.** No en la salida: **en el centro**. Los laberintos antiguos —los de un solo camino, los que se caminaban como rito— no se recorrían para escapar. Se recorrían para llegar al medio.
 
 Con eso, el símbolo dice algo que el texto no dice: que no hay que salir de esto. Hay que llegar al fondo.
