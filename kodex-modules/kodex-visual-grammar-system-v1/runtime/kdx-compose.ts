@@ -1,0 +1,3 @@
+import type { KdxVisualGrammarRecord } from './kdx-grammar-types';
+const pct=(v:number)=>`${(v*100).toFixed(3)}%`;
+export function compileKdxScene(record:KdxVisualGrammarRecord, reducedMotion=false){ return {id:record.id,cssVars:{'--kdx-columns':String(record.composition.columns),'--kdx-rows':String(record.composition.rows),'--kdx-margin':`${record.composition.margin_pct}%`,'--kdx-gutter':`${record.composition.gutter_pct}%`,'--kdx-density':String(record.composition.density)},zones:record.composition.zones.map(z=>({...z,style:{position:'absolute',left:pct(z.x),top:pct(z.y),width:pct(z.w),height:pct(z.h),zIndex:String(z.z),opacity:String(z.occupancy)}})),motion:reducedMotion?[]:record.motion.profile_ids}; }

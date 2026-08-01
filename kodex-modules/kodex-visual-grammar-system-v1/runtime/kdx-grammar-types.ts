@@ -1,0 +1,2 @@
+export interface KdxZone { id:string; type:string; x:number; y:number; w:number; h:number; z:number; priority:number; occupancy:number; color_role:string; motion_role:string; anchor?:string; }
+export interface KdxVisualGrammarRecord { id:string; composition:{grid_id:string; columns:number; rows:number; margin_pct:number; gutter_pct:number; density:number; negative_space_pct:number; optical_center:[number,number]; zones:KdxZone[]}; motion:{profile_ids:string[]}; derivation:{transfer_rule:string; forbidden_literal_reuse:string[]; similarity_ceiling:number}; }
