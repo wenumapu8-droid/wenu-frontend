@@ -13,12 +13,15 @@
  * escribirlos a medias acá sólo serviría para tener que borrarlos.
  */
 
-import { KdxCore } from "../../../kodex/core/kdx-core";
+import { KdxCore, type PasoFx } from "../../../kodex/core/kdx-core";
 import { KdxThresholdPortalRuntime } from "../../../kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js";
 import { VIAJE, siguiente, anterior } from "../../../lib/kodex/viaje";
 // El ojo se ENSAMBLA desde el shader que ya existe. No se reescribe.
 import OJO_FRAG from "../../../kodex/shaders/capitulo/observation-eye.frag?raw";
 import CORREDOR_FRAG from "../../../kodex/shaders/lab/split-corridor.frag?raw";
+import ESTRUCTURA_FRAG from "../../../kodex/shaders/lab/impossible-structure.frag?raw";
+import ORBITA_FRAG from "../../../kodex/shaders/lab/archive-orbit.frag?raw";
+import RIPPLE_FRAG from "../../../kodex/shaders/lab/ripple-floor.frag?raw";
 
 /**
  * Organismo de fase 1.
@@ -250,6 +253,36 @@ const montar = () => {
           u_branchBias: 0.35,
           u_branchPulseAge: 0.0,
         }),
+      });
+      return;
+    }
+
+    /**
+     * Las tres últimas, desde los shaders del lab. Sin reescribir ninguno.
+     *
+     * Cada uno lleva el tratamiento que su escena pide, no el que quede bien:
+     * MACHINE genera, así que le toca GLITCH FRACTURE — la señal se rompe al
+     * generarse. COSMOLOGY orbita: CHROMATIC SPLIT, que es lo que hace una
+     * óptica mirando lejos. RETURN cierra: MEMORY FEEDBACK, que es literalmente
+     * recordar.
+     */
+    const DESDE_LAB: Record<string, { frag: string; fx: PasoFx[]; u?: Record<string, number> }> = {
+      machine:   { frag: ESTRUCTURA_FRAG, fx: [{ id: "glitch-fracture", mix: 0.30 }], u: { u_intensity: 1.6 } },
+      cosmology: { frag: ORBITA_FRAG,     fx: [{ id: "chromatic-split", mix: 0.45 }], u: { u_intensity: 1.8 } },
+      // RETURN salía al 66% de fondo oscuro, por debajo del canon (~85%). El
+      // suelo ondulante entrega mucha luz por sí solo, así que se le baja la
+      // ganancia en vez de taparlo: apagar con un velo sería esconder el
+      // organismo, bajarle la ganancia es pedirle que hable más bajo.
+      return:    { frag: RIPPLE_FRAG,     fx: [{ id: "memory-feedback", mix: 0.40 }], u: { u_intensity: 0.62 } },
+    };
+
+    const lab = DESDE_LAB[e.id];
+    if (lab) {
+      core = new KdxCore(campo, {
+        organismo: lab.frag,
+        cadena: lab.fx,
+        seed: GESTO_N[e.gesto] ?? 1,
+        uniformes: () => ({ ...(lab.u ?? {}) }),
       });
       return;
     }

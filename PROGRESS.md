@@ -12,8 +12,10 @@ Un ítem que compila y no se ve NO está hecho.
 - [x] **2 · Shell del viaje** — 7 escenas fullscreen horizontales, sin scroll,
       una acción por escena, chrome persistente, loop ∞, responsive 1440/390.
       Verificado en `/kodex/viaje/`.
-- [~] **3 · Escenas, una por una** — 00 THRESHOLD, 01 PROLOGUE y 03 ARCHIVE
-      verificadas; 02 DESCENT con respaldo visible (B4).
+- [~] **3 · Escenas, una por una** — LAS SIETE tienen organismo y se ven.
+      00 THRESHOLD (módulo real), 01 PROLOGUE (ojo), 03 ARCHIVE (specimens),
+      04 MACHINE, 05 COSMOLOGY, 06 RETURN (los tres desde el lab).
+      02 DESCENT con respaldo visible (B4). Falta coherencia de color (B5).
       00 ensamblado desde el módulo
       real (`src/kodex/threshold-portal/`, runtime de 3 pases). NO reescribí el
       shader. Capa SVG (marco, regla graduada, barcode) montada en las siete y
@@ -124,12 +126,36 @@ Muestra DISTRIBUIDA, no las primeras doce: las primeras entradas de un
 manifiesto suelen ser de la misma serie, y una grilla con doce variaciones de lo
 mismo miente sobre lo que hay adentro.
 
+### B5 · Los organismos del lab traen su propia paleta  ⛔ ABIERTO
+04/05/06 ya montan y se leen (MACHINE como dispositivo, COSMOLOGY como mapa
+orbital, RETURN como suelo ondulante), pero **el color no coincide con el
+acento de su escena**: `archive-orbit` pinta rojo donde COSMOLOGY es magenta
+`#FF20CC`, y `ripple-floor` pinta cyan donde RETURN es blanco/verde.
+
+El chrome, el índice y la capa SVG SÍ llevan el acento correcto — la
+incoherencia es sólo del organismo.
+
+**Anexo medido:** RETURN además sale al 66.9% de fondo oscuro, por debajo del
+canon (~85%). Bajarle `u_intensity` de 1.5 a 0.62 movió la medición apenas de
+49.51 a 47.3 — o sea, **`ripple-floor` no usa ese uniform**. Otra vez el
+síntoma de "el número no se mueve": hay que leer el shader y encontrar cuál es
+su control de ganancia real, no insistir con el que uno supone.
+
+El runtime anterior resolvía esto con una etapa GRADE que teñía la salida con
+`u_kdxTint`. El motor nuevo no la tiene, y agregarla a ciegas sería reescribir
+la paleta de shaders que ya funcionan. Hay que ver, uno por uno, si aceptan un
+uniform de tinte; si no, la salida es un pase de tinte en la cadena — pero eso
+NO está entre los ocho tratamientos del plano, así que no lo invento sin
+consultar.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 06:20 — **Escenas 04, 05 y 06 montadas desde el lab y verificadas.** Las
+  siete del viaje tienen organismo. B5 abierto (coherencia de color).
 - 05:50 — **Escena 03 ARCHIVE verificada.** 94.4% oscuro, 12 specimens reales
   y limpios, responsive.
 - 05:25 — Motor: capa de compatibilidad con el contrato viejo (`u_resolution`,
