@@ -301,6 +301,289 @@ CURADURIA = {
         ),
         resonancias=["catálogo", "oficio", "fotografía de producto"],
     ),
+    # ── Segunda tanda ───────────────────────────────────────────────────────
+    # Hallazgo al mirar los raw: `tribu`, `disco-solar` y `achroma` comparten
+    # UNA MISMA gramática formal —greca escalonada, meandro, rombo con centro,
+    # trazo granulado de textil— aplicada a tres soportes distintos. No es
+    # repetición: es un vocabulario. Queda dicho en las tres fichas.
+    "achroma": dict(
+        titulo="ACHROMA — ediciones en blanco y negro",
+        marco="ficcion",
+        curaduria_es=(
+            "Corona de motivos escalonados en blanco hueso sobre negro absoluto, cerrada en anillo "
+            "alrededor de un disco vacío. El trazo tiene grano de bordado —punto contado, no línea— y el "
+            "centro no está ocupado por nada: es el fondo mismo. Un eclipse hecho con vocabulario textil. "
+            "Treinta y seis ediciones de colección; la ausencia de color es la obra, no una reducción de ella."
+        ),
+        curaduria_en=(
+            "A crown of stepped motifs in bone white on absolute black, closed into a ring around an empty "
+            "disc. The stroke has the grain of embroidery —counted stitch, not line— and the centre holds "
+            "nothing: it is the ground itself. An eclipse built from textile vocabulary. Thirty-six "
+            "collector editions; the absence of colour is the work, not a reduction of it."
+        ),
+        resonancias=["Sol Negro", "Nigredo", "eclipse", "punto contado", "vacío como centro"],
+    ),
+    "disco-solar": dict(
+        titulo="DISCO SOLAR / Solar Disc",
+        marco="ficcion",
+        curaduria_es=(
+            "Un disco de piedra partido en cuatro cuartos que giran sobre un centro encendido. Los anillos "
+            "llevan greca escalonada y rombos con centro; el núcleo es una almendra de luz magenta con un "
+            "sello romboidal adentro. Es la misma gramática de TRIBU y ACHROMA llevada al relieve y al "
+            "único color que el sistema admite sobre negro. Treinta y tres piezas: disco, órbita, eclipse."
+        ),
+        curaduria_en=(
+            "A stone disc split into four quarters turning on a lit centre. The rings carry stepped fretwork "
+            "and centred lozenges; the core is a magenta almond of light with a rhomboid seal inside. The "
+            "same grammar as TRIBU and ACHROMA, taken into relief and into the single colour the system "
+            "allows over black. Thirty-three pieces: disc, orbit, eclipse."
+        ),
+        resonancias=["disco solar", "vesica / almendra", "cuaternidad", "acento único sobre negro"],
+    ),
+    "posters": dict(
+        titulo="LÁMINAS TRANSMITIDAS / Transmitted Plates",
+        marco="ficcion",
+        curaduria_es=(
+            "Cincuenta y cinco láminas enviadas sin título, una a una, por mensajería. No son ilustraciones "
+            "del sistema: son sus planos. Entre ellas está la lámina que fija los ocho organismos visuales y "
+            "los ocho tratamientos con sus parámetros exactos, y de la que sale el motor. Se conservan sin "
+            "nombre porque así llegaron."
+        ),
+        curaduria_en=(
+            "Fifty-five plates sent untitled, one by one, over messaging. They are not illustrations of the "
+            "system: they are its blueprints. Among them is the plate that fixes the eight visual organisms "
+            "and the eight treatments with their exact parameters, from which the engine derives. They are "
+            "kept unnamed because that is how they arrived."
+        ),
+        resonancias=["plano de construcción", "transmisión", "ocho organismos", "sin título"],
+    ),
+    "pinterest": dict(
+        titulo="PIN-PLACAS / Pin Plates",
+        marco="documentado",
+        curaduria_es=(
+            "Quince placas del archivo preparadas para circular: título, descripción y texto alternativo "
+            "escritos uno por uno, en inglés y con etiquetas. Es el volumen donde la obra se traduce a la "
+            "lengua de las plataformas sin perder su nombre — cada pieza sigue apuntando al archivo."
+        ),
+        curaduria_en=(
+            "Fifteen archive plates prepared to circulate: title, description and alt text written one by "
+            "one, in English and tagged. This is the volume where the work is translated into platform "
+            "language without losing its name — each piece still points back to the archive."
+        ),
+        resonancias=["difusión", "texto alternativo", "accesibilidad"],
+    ),
+    "printful": dict(
+        titulo="APLICACIONES FÍSICAS / Physical Applications",
+        marco="documentado",
+        curaduria_es=(
+            "Nueve pruebas de la obra fuera de la pantalla: póster, sticker, remera. Es el único volumen "
+            "donde el archivo se enfrenta al soporte real —tinta, tela, escala de cuerpo— y donde el negro "
+            "deja de ser luz apagada para ser pigmento."
+        ),
+        curaduria_en=(
+            "Nine tests of the work off-screen: poster, sticker, shirt. The only volume where the archive "
+            "meets a real substrate —ink, fabric, body scale— and where black stops being unlit light and "
+            "becomes pigment."
+        ),
+        resonancias=["soporte físico", "tinta sobre papel", "escala de cuerpo"],
+    ),
+    "boveda": dict(
+        titulo="LA BÓVEDA / The Vault",
+        marco="documentado",
+        curaduria_es=(
+            "Cuarenta notas de trabajo: estrategia, fórmulas, cosmología, decisiones de contenido. No es "
+            "obra terminada — es el cuaderno donde se decide qué entra al archivo y con qué regla. Se "
+            "conserva porque el criterio también es material."
+        ),
+        curaduria_en=(
+            "Forty working notes: strategy, formulas, cosmology, content decisions. Not finished work — the "
+            "notebook where it is decided what enters the archive and under which rule. It is kept because "
+            "criteria are material too."
+        ),
+        resonancias=["cuaderno de trabajo", "criterio", "proceso"],
+    ),
+    "atlas": dict(
+        titulo="ATLAS — Cosmogonías Antiguas Vol. I · Infinito",
+        marco="documentado",
+        curaduria_es=(
+            "Dos volúmenes en PDF que ordenan el fondo del proyecto: el Atlas de Cosmogonías Antiguas y el "
+            "Atlas Físico Operativo. Es donde se separan los dos registros que el resto del archivo respeta "
+            "—lo documentado y lo mítico— y de donde sale la vara de curaduría."
+        ),
+        curaduria_en=(
+            "Two PDF volumes that organize the project's background: the Atlas of Ancient Cosmogonies and "
+            "the Operative Physical Atlas. This is where the two registers the rest of the archive honours "
+            "are separated —the documented and the mythic— and where the curatorial standard comes from."
+        ),
+        resonancias=["dos registros", "vara de curaduría", "cosmogonía comparada"],
+    ),
+    "mandalas": dict(
+        titulo="MANDALAS — obra en JSON",
+        marco="documentado",
+        curaduria_es=(
+            "Cuatro mandalas guardados no como imagen sino como instrucciones: trazos con rotación y espejo, "
+            "en JSON. Es el volumen que muestra que en este archivo la obra no es el archivo exportado — es "
+            "la regla que lo genera, y por eso se puede volver a dibujar a cualquier tamaño."
+        ),
+        curaduria_en=(
+            "Four mandalas stored not as image but as instructions: strokes with rotation and mirroring, in "
+            "JSON. The volume that shows that here the work is not the exported file — it is the rule that "
+            "generates it, and can therefore be redrawn at any size."
+        ),
+        resonancias=["obra generativa", "mandala como el Self (Jung)", "regla antes que resultado"],
+    ),
+    "prototipos": dict(
+        titulo="PROTOTIPOS — shaders y laboratorio",
+        marco="documentado",
+        curaduria_es=(
+            "Shaders, prototipos HTML y capturas del laboratorio. Es el registro de lo que todavía no "
+            "funciona: la parte del archivo que se conserva por lo que enseña y no por lo que muestra."
+        ),
+        curaduria_en=(
+            "Shaders, HTML prototypes and lab captures. The record of what does not work yet: the part of "
+            "the archive kept for what it teaches rather than for what it shows."
+        ),
+        resonancias=["laboratorio", "shader", "prueba y error"],
+    ),
+    "sistemas": dict(
+        titulo="SISTEMAS — gramática visual abierta",
+        marco="documentado",
+        curaduria_es=(
+            "Pack SVG, gramática visual, tipografía y micro-elementos. Las piezas sueltas con las que se "
+            "arma todo lo demás: márgenes, sellos, barcodes, rótulos. Nada de esto es una obra; todo esto "
+            "está adentro de cada obra."
+        ),
+        curaduria_en=(
+            "SVG pack, visual grammar, typography and micro-elements. The loose parts everything else is "
+            "assembled from: margins, seals, barcodes, labels. None of it is a work; all of it is inside "
+            "every work."
+        ),
+        resonancias=["gramática visual", "sistema de diseño", "micro-elementos"],
+    ),
+    "giphy": dict(
+        titulo="GIPHY — herramienta de curaduría",
+        marco="documentado",
+        curaduria_es=(
+            "Herramienta local para curar material en movimiento. Se conserva como volumen porque en este "
+            "archivo las herramientas también se catalogan: lo que se usa para elegir forma parte de lo elegido."
+        ),
+        curaduria_en=(
+            "Local tool for curating moving material. Kept as a volume because in this archive tools are "
+            "catalogued too: what is used to choose is part of what is chosen."
+        ),
+        resonancias=["herramienta", "imagen en movimiento", "curaduría"],
+    ),
+    "codex-estelar": dict(
+        titulo="CODEX ESTELAR — los cuatro libros",
+        marco="ficcion",
+        curaduria_es=(
+            "Cuatro tomos de lore: La Génesis de la Luz, El Pacto de Nibiru, El Engaño de los Templos y El "
+            "ADN Sagrado. Es el registro mítico del proyecto, marcado como ficción y sostenido aparte de "
+            "todo lo documentado. Ninguna de sus afirmaciones es histórica, científica ni sanitaria."
+        ),
+        curaduria_en=(
+            "Four volumes of lore: The Genesis of Light, The Pact of Nibiru, The Deception of the Temples "
+            "and The Sacred DNA. The project's mythic register, marked as fiction and held apart from "
+            "everything documented. None of its claims are historical, scientific or medical."
+        ),
+        resonancias=["registro mítico", "sello B", "cosmogonía propia"],
+    ),
+    "portafolio": dict(
+        titulo="PORTAFOLIO — book de obra",
+        marco="documentado",
+        curaduria_es=(
+            "Book de obra del autor: mandalas, rosetones y series reunidas en un solo documento. Es la "
+            "versión que existía antes de que hubiera archivo, y sirve para ver qué había ya y qué apareció "
+            "con el sistema."
+        ),
+        curaduria_en=(
+            "The author's portfolio book: mandalas, rose windows and series gathered into a single "
+            "document. The version that existed before there was an archive, useful for seeing what was "
+            "already there and what appeared with the system."
+        ),
+        resonancias=["antes del sistema", "rosetón", "compilación"],
+    ),
+    "behance-114559111": dict(
+        titulo="princesa yuyo",
+        marco="documentado",
+        curaduria_es=(
+            "Styleframing y fotografía de moda, 2021. Nueve piezas. Trabajo de dirección visual sobre cuerpo "
+            "y vestuario, anterior al sistema de blanco y negro."
+        ),
+        curaduria_en=(
+            "Styleframing and fashion photography, 2021. Nine pieces. Visual direction over body and "
+            "wardrobe, predating the black-and-white system."
+        ),
+        resonancias=["styleframe", "moda", "dirección visual"],
+    ),
+    "behance-114563539": dict(
+        titulo="render",
+        marco="documentado",
+        curaduria_es=(
+            "Diseño industrial y de mobiliario con render 3D, 2021. Treinta y tres piezas. El volumen más "
+            "técnico del portafolio: materia, medida y luz calculada."
+        ),
+        curaduria_en=(
+            "Industrial and furniture design with 3D rendering, 2021. Thirty-three pieces. The portfolio's "
+            "most technical volume: matter, measure and computed light."
+        ),
+        resonancias=["render", "mobiliario", "luz calculada"],
+    ),
+    "behance-114589235": dict(
+        titulo="paletas de colores",
+        marco="documentado",
+        curaduria_es=(
+            "Dirección de arte y estudio de color, 2021. Dieciocho piezas. Es el reverso exacto de lo que el "
+            "archivo haría después: aquí el color es el tema, y más tarde su ausencia será la obra."
+        ),
+        curaduria_en=(
+            "Art direction and colour study, 2021. Eighteen pieces. The exact reverse of what the archive "
+            "would later do: here colour is the subject; later its absence becomes the work."
+        ),
+        resonancias=["paleta", "estudio de color", "antes del blanco y negro"],
+    ),
+    "behance-116132939": dict(
+        titulo="OUTSIDE — canil de mascotas",
+        marco="documentado",
+        curaduria_es=(
+            "Diseño de producto, 2021. Treinta piezas. Encargo concreto resuelto con desarrollo completo: "
+            "un objeto para un animal, con sus medidas y su intemperie."
+        ),
+        curaduria_en=(
+            "Product design, 2021. Thirty pieces. A concrete commission solved end to end: an object for an "
+            "animal, with its measurements and its weather."
+        ),
+        resonancias=["diseño de producto", "intemperie", "encargo"],
+    ),
+    "behance-116149759": dict(
+        titulo="Santiago",
+        marco="documentado",
+        curaduria_es=(
+            "Moda, fotografía y arquitectura, 2021. Seis piezas. La ciudad como escenario y como material: "
+            "geometría construida antes de que la geometría se volviera signo."
+        ),
+        curaduria_en=(
+            "Fashion, photography and architecture, 2021. Six pieces. The city as stage and as material: "
+            "built geometry before geometry became sign."
+        ),
+        resonancias=["ciudad", "arquitectura", "geometría construida"],
+    ),
+    "behance-242737721": dict(
+        titulo="MTG cortinas roller",
+        marco="documentado",
+        curaduria_es=(
+            "Gráfica publicitaria y diseño industrial para una marca de cortinas, 2026. Doce piezas. Es el "
+            "trabajo comercial más reciente del archivo y se conserva sin jerarquía respecto del resto: el "
+            "oficio también es obra."
+        ),
+        curaduria_en=(
+            "Advertising graphics and industrial design for a blinds brand, 2026. Twelve pieces. The "
+            "archive's most recent commercial work, kept without hierarchy relative to the rest: the trade "
+            "is work too."
+        ),
+        resonancias=["encargo comercial", "gráfica aplicada"],
+    ),
+
     "behance-116133407": dict(
         titulo="Emanes (act3), Pichilemu",
         marco="documentado",
