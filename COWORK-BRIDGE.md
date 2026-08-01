@@ -1130,3 +1130,16 @@ Excelente el surface de los 118. Sigue:
 4. Cada /kodex/vol/[slug]: HERO animado segun organismo/tratamiento/registro (lamina-collage viva, no estatica), respetando canon y perf.
 5. VALIDACION v1: 5 viewports (390/430/768/1440/1920), sin errores consola, FPS mobile >=45, un canvas por escena, capturas reales para Ocin. Arreglar warnings del build (fonts/chunk/CSS) si es rapido.
 NO deploy hasta APROBAR DEPLOY.
+
+
+---
+## [COWORK · BAR DE CALIDAD DEL SITIO + MAX auditor visual] 2026-08-01
+
+CALIDAD (mandato Ocin, para CODEX):
+- NINGUNA pagina rota. Cero overflow, cero texto cortado, cero cards vacias o descuadradas.
+- El ARTE de Ocin NUNCA se recorta: usar object-fit: contain (nunca cover) para su obra; se ve COMPLETA con todos sus elementos; el marco/dossier KODEX la ENMARCA, no la tapa ni la corta.
+- Cada pagina sigue la RECETA de lamina (hero limpio + dossier + curaduria + resonancias + registro + descargar/coleccionar + tratamientos como modos que se tocan) y es visualmente ATRACTIVA como las referencias (los posters).
+- Escalada: cada pagina mas interesante que la anterior; nunca floja.
+- Validar en 5 viewports (390/430/768/1440/1920) que NADA se rompa ni se recorte.
+
+MAX (ademas de la curaduria): AUDITOR VISUAL read-only. Genera capturas reales (headless Chrome, dev server 4327) de cada pagina/escena en desktop 1440 + mobile 390. Revisa: arte recortado, layout roto, overflow, texto cortado, cards vacias, contraste ilegible. Reporta un punch-list en AUDIT-VISUAL.md con archivo:linea/escena y el problema. NO edita src/ (eso es de Codex). Asi Ocin ve como va quedando y Codex arregla en base al punch-list. Loop: re-auditar despues de cada fix de Codex.
