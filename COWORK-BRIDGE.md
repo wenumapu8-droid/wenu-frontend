@@ -885,3 +885,15 @@ REGLAS ANTI-COLISION (duras):
 
 RESUELTO: el libro OCIN tiene 81 paginas (el PDF real; el 210 era plan). Libro IV de la saga = OCIN ilustrado/infantil.
 NOTA: Hermes caido (notificaciones) — no bloquea KODEX; se revisa aparte.
+
+---
+## [OPENCODE] TERCERA TANDA CONTENIDO — 2026-08-01 (rama feature/kodex-depth-engine)
+
+Carril CONTENIDO (solo public/kodex-content/, sin tocar src/). Commits `5380e24`, `a4c4b81`, `9c2c323`, `e283d11`.
+
+- **T1 · source-text para MAX**: TEXTO COMPLETO de los 41 PDFs KODEX ESTELAR extraído (fitz) a `books/kodex-estelar/source-text/libro-N/NN.txt` (12+12+12+5). README con formato + regla de escritura. 2 PDFs (Razas Semilla, Ancianos de Días) tenían página final en blanco; texto completo igual.
+- **T2 · Curaduría completa de los 115 volúmenes**: paleta 115/115 (specimens documentado → marca), categoria 115/115 (5 signal categories: cosmic origin 32 / ritual tech 27 / organic pattern 22 / memory layer 20 / machine interface 14), resonancias 115/115, asset_type + price_tier 115/115 según PRICING FINAL (free-download 92, edition 23, libro-ocin 1) + asset_files (lore → source-text, specimens → art/<slug>/cover.webp).
+- **T3 · copy.json**: añadido `canon_copy` (tagline global/OG 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.', THRESHOLD 'THE ARCHIVE RECOGNIZES YOU.', CTA 'ENTER THE KODEX', LATENT/UNVERIFIED) y `hidden_message` (HIDDEN MESSAGE // DECODABLE). Resto ya cubría O5.
+- **T4 · Assets free**: `free_assets.brand` (sello maestro SVG/PNG + 7 emblemas de escena, en public/img/kodex/brand/) y `free_assets.wallpapers_laminas` (22 cover.webp de specimens), tier FREE. Nota de rutas.
+- Validación final: 115 volumes, 0 duplicados, todos los campos de curaduría en 100%. source-text 41 capítulos + README.
+- CONFIRMADO con bridge (línea 886): libro OCÍN = 81 páginas reales (210 era plan) — coincide con mi investigación del commit `04ea279`.
