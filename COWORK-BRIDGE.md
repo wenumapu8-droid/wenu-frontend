@@ -1039,3 +1039,16 @@ OPENCODE (mecanico, en loop, commit+push):
 2. Generar books/kodex-estelar/index.json de la saga (4 tomos, sus caps, release_state, cover) espejando el patron de books/ocin/index.json.
 3. A medida que MAX suba capitulos del Libro II, registrarlos igual.
 4. QA en loop (JSON valido, paths existentes, sin campos rotos). NO escribir prosa ni curaduria: solo estructura/registro.
+
+
+---
+## [COWORK · OPENCODE · backlog mecanico grande (modelo gratis, tenaz)] 2026-08-01
+
+opencode: SOLO tareas mecanicas/estructuradas, en loop, commit+push. NO prosa, NO curaduria, NO traducciones nuevas. Usar campos y textos que YA existen.
+
+1. WALLPAPERS FREE: por cada lamina/specimen en public/kodex-content/art/*/, con sips generar wallpaper webp movil (1080x1920) y desktop (1920x1080) a public/kodex-content/free/wallpapers/SLUG-RES.webp. Registrar en free_assets.wallpapers del manifest. (Comunidad / lead-gen.)
+2. DERIVADOS RESPONSIVOS: por cada cover y pagina de libro, generar variantes webp a 400/800/1400px para srcset (performance movil). Registrar paths.
+3. EDITION/NFT METADATA: por cada volumen con asset_type=edition, generar JSON estilo coleccion a public/kodex-content/editions/SLUG.json con {name=titulo, description=curaduria existente, image=cover, attributes:[registro, categoria, tomo, price_tier], edition}. Copiando campos existentes, sin inventar. (Capa mint/COLLECT.)
+4. COMPILAR TOMOS: concatenar en orden apertura + capitulos 01..12 + colofon de cada tomo escrito en un solo public/kodex-content/books/kodex-estelar/libro-N-completo.md (edicion para PDF/print). Empezar por Libro I (ya completo). Mecanico.
+5. QA INTEGRIDAD (loop): verificar que TODO path referenciado en manifest.json / index.json / copy.json exista en disco; que cada resonancia apunte a un id real; covers presentes; JSON valido. Arreglar/reportar rotos. Repetir.
+6. Seguir auto-registrando los capitulos del Libro II a medida que MAX los sube.
