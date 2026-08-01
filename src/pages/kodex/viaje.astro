@@ -33,6 +33,36 @@ import { VIAJE } from '../../lib/kodex/viaje';
         en un teléfono. La escena cambia el organismo, no el lienzo. */}
     <div class="vj__campo" data-vj-campo><canvas></canvas></div>
 
+    {/* ── Capa SVG ──────────────────────────────────────────────────────
+        Marcos, barcode y micrografía. Va en SVG y no en canvas ni en imagen
+        por la arquitectura del proyecto: WebGL para el campo vivo, SVG para
+        la retícula del instrumento, DOM para el texto. Un marco rasterizado
+        se pixela al escalar y no puede tomar el color de la escena; en SVG
+        hereda `currentColor` y queda nítido en cualquier pantalla. */}
+    <svg class="vj__svg" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
+      {/* Esquinas del marco: cuatro ángulos, no un rectángulo. El rectángulo
+          encierra; el ángulo indica encuadre, que es lo que hace un
+          instrumento. */}
+      <g class="vj__marco" fill="none" stroke="currentColor" stroke-width="1">
+        <path d="M24 56 V24 H56" /><path d="M1384 24 H1416 V56" />
+        <path d="M24 844 V876 H56" /><path d="M1384 876 H1416 V844" />
+      </g>
+      {/* Micrografía: la regla graduada del borde. Cada 10 marcas, una larga —
+          una regla sin jerarquía no se lee, se mira. */}
+      <g class="vj__micro" stroke="currentColor" stroke-width="1">
+        {Array.from({ length: 60 }).map((_, i) => (
+          <line x1={120 + i * 20} y1="876" x2={120 + i * 20} y2={i % 10 === 0 ? 862 : 870} />
+        ))}
+      </g>
+      {/* Barcode: el sello del archivo. Anchos irregulares y deterministas —
+          un barcode de barras iguales se lee como textura, no como código. */}
+      <g class="vj__barcode" fill="currentColor">
+        {Array.from({ length: 34 }).map((_, i) => (
+          <rect x={1180 + i * 7} y="34" width={(i * 37) % 5 < 2 ? 3 : 1.4} height="22" />
+        ))}
+      </g>
+    </svg>
+
     {/* La pista de escenas. Se desplaza en X; el documento no se mueve. */}
     <div class="vj__pista" data-vj-pista>
       {VIAJE.map((e, i) => (
@@ -89,6 +119,22 @@ import { VIAJE } from '../../lib/kodex/viaje';
   }
 
   .vj__campo { position: absolute; inset: 0; z-index: 0; }
+
+  /* La capa SVG toma el color de la escena por `currentColor`: un solo cambio
+     de color tiñe marco, regla y barcode a la vez. */
+  .vj__svg {
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    width: 100%; height: 100%;
+    color: var(--kdx-tinta);
+    transition: color var(--kdx-reveal) var(--kdx-ease);
+  }
+  .vj__marco { opacity: 0.5; }
+  .vj__micro { opacity: 0.26; }
+  .vj__barcode { opacity: 0.34; }
+  @media (max-width: 720px) {
+    /* En 375px la regla graduada es ruido: se va. Signal before noise. */
+    .vj__micro, .vj__barcode { display: none; }
+  }
   .vj__campo canvas { display: block; width: 100%; height: 100%; }
 
   /* ── Pista ──────────────────────────────────────────────────────────── */

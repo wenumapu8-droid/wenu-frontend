@@ -14,6 +14,7 @@
  */
 
 import { KdxCore } from "../../../kodex/core/kdx-core";
+import { KdxThresholdPortalRuntime } from "../../../kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js";
 import { VIAJE, siguiente, anterior } from "../../../lib/kodex/viaje";
 
 /**
@@ -93,15 +94,66 @@ const montar = () => {
 
   let i = 0;
   let core: KdxCore | null = null;
+  let portal: any = null;
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  /** Reconstruye el motor con el gesto de la escena. */
+  /**
+   * Monta el organismo de la escena.
+   *
+   * **Un pipeline por escena activa, y se destruye al salir.** No se pausan
+   * siete motores: se construye el de la escena y se libera el anterior. Siete
+   * contextos WebGL2 vivos no entran en un teléfono, y el spec pide teléfono.
+   *
+   * Donde existe el MÓDULO REAL se ensambla desde él y no se reescribe el
+   * shader. Hoy eso es THRESHOLD, con su runtime de tres pases. El resto usa
+   * el organismo de gesto hasta que lleguen sus módulos — está anotado como
+   * blocker en PROGRESS.md, no disimulado.
+   */
   const montarCampo = () => {
-    core?.dispose();
+    core?.dispose(); core = null;
+    portal?.dispose?.(); portal = null;
+    campo.innerHTML = "<canvas></canvas>";
+    const cv = campo.querySelector("canvas")!;
     const e = VIAJE[i];
+
+    if (e.id === "threshold") {
+      const p = new KdxThresholdPortalRuntime(cv, {
+        state: "DORMANT",
+        // El modo de movimiento del runtime honra la preferencia del sistema:
+        // no se apaga la pieza, se detiene.
+        motionMode: reducido ? "reduced" : "live",
+        qualityLevel: innerWidth < 720 ? "LOW" : "HIGH",
+        // La obra por defecto del módulo (`bw-06-alpha.png`) no está en este
+        // repo. Se le pasa una que sí existe en vez de dejar que falle: el
+        // portal sin textura arranca y no dibuja nada, en silencio.
+        artworkUrl: "/img/kodex/works/bw-01.jpg",
+      });
+      portal = p;
+      // El contrato del módulo es `await load()` y RECIÉN despues `start()`:
+      // `load()` es quien inicializa el contexto GL, y `start()` se sale solo
+      // si no lo encuentra. Llamar start() directo deja el lienzo negro sin
+      // ningún error — me pasó.
+      p.load().then(() => {
+        if (portal !== p) { p.dispose?.(); return; }   // la escena ya cambió
+        p.start();
+        // El runtime mide el lienzo dentro de `load()`, que corre ANTES de que
+        // el navegador haya aplicado el `width:100%` del CSS: se quedaba con
+        // los 300x150 por defecto y dibujaba el portal en una cajita de la
+        // esquina. Se le pide remedir en el siguiente cuadro, ya con layout.
+        requestAnimationFrame(() => {
+          if (portal !== p) return;
+          p._resize?.();
+          dispatchEvent(new Event("resize"));
+        });
+        if (!reducido) setTimeout(() => { if (portal === p) p.setState("AWARE"); }, 1200);
+      }).catch((err: unknown) => {
+        campo.dataset.kdxPortalError = String(err).slice(0, 160);
+      });
+      return;
+    }
+
     core = new KdxCore(campo, {
       organismo: ORGANISMO_BASE,
-      // El tratamiento por escena entra en FASE 2. Acá va la cadena mínima que
-      // le da materia al negro sin taparlo.
       cadena: [{ id: "crt-scan", mix: 0.55 }],
       seed: GESTO_N[e.gesto] ?? 1,
     });
@@ -116,6 +168,9 @@ const montar = () => {
     estado.textContent = e.estado;
     barra.style.width = `${((i + 1) / VIAJE.length) * 100}%`;
     barra.style.background = e.color;
+    // La capa SVG hereda el acento por currentColor: marco, regla y barcode
+    // cambian juntos con un solo set.
+    raiz.querySelector<SVGElement>(".vj__svg")?.style.setProperty("color", e.color);
 
     escenas.forEach((el, k) => {
       const act = k === i;
@@ -136,7 +191,16 @@ const montar = () => {
   // La acción de cada escena avanza el viaje. RETURN vuelve a THRESHOLD por
   // el módulo: el archivo no termina, se recorre.
   raiz.querySelectorAll<HTMLButtonElement>("[data-vj-accion]").forEach((b) => {
-    b.addEventListener("click", () => ir(siguiente(i)));
+    b.addEventListener("click", () => {
+      // ENTER abre el portal ANTES de avanzar: la acción tiene consecuencia
+      // visible en la escena que se deja, no sólo en la que llega.
+      if (portal?.setState) {
+        portal.setState("OPEN");
+        setTimeout(() => ir(siguiente(i)), reducido ? 0 : 620);
+        return;
+      }
+      ir(siguiente(i));
+    });
   });
   chips.forEach((c) => c.addEventListener("click", () => ir(Number(c.dataset.vjIr))));
   raiz.querySelector("[data-vj-next]")?.addEventListener("click", () => ir(siguiente(i)));
