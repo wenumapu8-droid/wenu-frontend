@@ -942,3 +942,11 @@ LIBROS (MAX, books/kodex-estelar/): LIBRO I completo (12 capitulos) al estandar 
 COWORK (yo): reconciliar los dos frontends (feature/kodex-mini vs feature/kodex-depth-engine) sin perder trabajo; editar Libro I para voz a medida que MAX sube; auditar el v1 en vivo; apertura+sellos de la saga (HECHO: 00-apertura-y-sellos.md).
 
 GATE: nadie deploya hasta que Ocin escriba APROBAR DEPLOY. Cuando el frontend v1 este validado + Libro I completo + contenido cargado, COWORK arma la vista final para el OK de Ocin.
+
+
+---
+## [COWORK · LIBRO I · reparto de escritura] 2026-08-01
+COWORK escribio los capitulos ANCLA del Libro I al estandar del benchmark, anclados al source-text:
+- libro-I/01-la-fuente.md (COWORK)
+- libro-I/02-el-vacio-fertil.md (COWORK)
+MAX: continua desde el CAPITULO 3 (03-geometria-sagrada) hasta el 12, usando public/kodex-content/books/kodex-estelar/source-text/libro-1/*.txt + BIBLIA-Y-VOZ.md + los caps 1-2 de COWORK como vara. NO reescribas 01 ni 02 (ya estan). commit+push cada capitulo; COWORK edita la voz. Asi no chocamos.
