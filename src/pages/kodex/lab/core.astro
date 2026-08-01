@@ -1,0 +1,138 @@
+---
+/**
+ * KODEX-∞ · LAB · KDX CORE v1.0
+ *
+ * Banco de pruebas del motor. No es una escena: es el instrumento con el que
+ * se verifica que el motor y los ocho tratamientos hacen lo que el plano dice.
+ *
+ * `?fx=crt-scan,dither-matrix` encadena tratamientos por id. Sin parámetro,
+ * corre el organismo crudo — que es la única forma de saber qué agrega cada
+ * pase: primero hay que ver la señal sin tratar.
+ */
+import Base from '../../../layouts/Base.astro';
+import '../../../styles/kodex-seed.css';
+import { FX } from '../../../kodex/core/fx-suite';
+---
+
+<Base
+  kodexFonts={true}
+  title="KDX CORE v1.0 — lab"
+  description="Banco de pruebas del motor KODEX−∞."
+  robots="noindex, nofollow"
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <div class="lab">
+    <header>
+      <b>KDX CORE v1.0</b>
+      <span data-lab-cadena>ORGANISMO CRUDO</span>
+      <span data-lab-estado>DORMANT</span>
+      <span data-lab-nota></span>
+    </header>
+    <div class="lab__lienzo" data-lab-core><canvas></canvas></div>
+    <nav class="lab__fx">
+      {FX.map((f) => (
+        <a href={`?fx=${f.id}`}><b>{f.n}</b> {f.nombre}</a>
+      ))}
+      <a href="?fx=" class="lab__crudo">CRUDO</a>
+      <a href="?fx=crt-scan,dither-matrix,chromatic-split">CADENA · 3</a>
+    </nav>
+  </div>
+</Base>
+
+<script>
+  import { KdxCore } from '../../../kodex/core/kdx-core';
+
+  /**
+   * Un organismo de prueba, deliberadamente simple: anillos y una retícula.
+   * Tiene que ser legible para que se note qué le hace cada tratamiento — un
+   * organismo complejo esconde el efecto del pase, que es lo contrario de lo
+   * que un banco de pruebas debe hacer.
+   */
+  const ORGANISMO = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+out vec4 out_color;
+uniform vec2  u_res;
+uniform float u_time, u_low, u_mid, u_high, u_estado, u_progreso, u_reduced, u_seed;
+uniform vec2  u_pointer;
+
+void main() {
+  vec2 uv = (gl_FragCoord.xy * 2.0 - u_res) / max(u_res.y, 1.0);
+  float t = u_time * (1.0 - clamp(u_reduced, 0.0, 1.0));
+  float r = length(uv - (u_pointer - 0.5) * 0.3);
+
+  float anillos = 1.0 - smoothstep(0.0, 0.02, abs(fract(r * 5.0 - t * 0.2) - 0.5) * 0.5);
+  float rejilla = max(
+    1.0 - smoothstep(0.0, 0.004, abs(fract(uv.x * 8.0) - 0.5) * 0.12),
+    1.0 - smoothstep(0.0, 0.004, abs(fract(uv.y * 8.0) - 0.5) * 0.12));
+  float nucleo = exp(-r * r * 9.0) * (0.6 + u_low * 0.6);
+
+  vec3 col = vec3(0.0);
+  col += vec3(0.99, 0.02, 0.04) * anillos * 0.8;
+  col += vec3(0.5, 0.9, 1.0) * rejilla * 0.25;
+  col += vec3(1.0) * nucleo;
+  col *= 0.35 + u_estado * 0.22;
+  out_color = vec4(col, 1.0);
+}`;
+
+  const raiz = document.querySelector<HTMLElement>('[data-lab-core]')!;
+  const ids = (new URLSearchParams(location.search).get('fx') || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+
+  const core = new KdxCore(raiz, {
+    organismo: ORGANISMO,
+    cadena: ids.map((id) => ({ id })),
+    seed: 7,
+  });
+
+  const rotulo = document.querySelector<HTMLElement>('[data-lab-cadena]')!;
+  rotulo.textContent = ids.length ? ids.join(' → ').toUpperCase() : 'ORGANISMO CRUDO';
+
+  // La sonda: estado, error y notas del motor, visibles sin abrir consola.
+  const est = document.querySelector<HTMLElement>('[data-lab-estado]')!;
+  const nota = document.querySelector<HTMLElement>('[data-lab-nota]')!;
+  setInterval(() => {
+    est.textContent = raiz.dataset.kdxEstado || 'DORMANT';
+    const e = raiz.dataset.kdxCoreError;
+    const n = raiz.dataset.kdxCoreNota;
+    nota.textContent = e ? `ERROR · ${e}` : (n || '');
+    nota.classList.toggle('lab--mal', !!e);
+  }, 400);
+
+  // Enlace profundo del estado, para poder fotografiar fuera del primer
+  // segundo: Chrome headless escribe la captura al cargar, no al esperar.
+  const pedido = new URLSearchParams(location.search).get('estado');
+  if (pedido) core.irA(pedido.toUpperCase() as any);
+</script>
+
+<style>
+  .lab {
+    height: 100dvh; display: grid; grid-template-rows: auto 1fr auto;
+    gap: var(--kdx-gap); padding: var(--kdx-pad); box-sizing: border-box;
+    background: var(--kdx-negro); color: var(--kdx-tinta);
+    font-family: var(--kdx-mono);
+  }
+  .lab header {
+    display: flex; gap: 16px; align-items: baseline;
+    font-size: var(--kdx-t-rotulo); letter-spacing: var(--kdx-track);
+    text-transform: uppercase; color: var(--kdx-tinta-3);
+    border: 1px solid var(--kdx-linea); padding: 6px 10px;
+  }
+  .lab header b { font-family: var(--kdx-display); font-size: 13px; color: var(--kdx-tinta); letter-spacing: 0; }
+  .lab header [data-lab-cadena] { color: var(--kdx-01-threshold); }
+  .lab header [data-lab-estado] { color: var(--kdx-senal); margin-left: auto; }
+  .lab--mal { color: var(--kdx-05-skull) !important; }
+
+  .lab__lienzo { position: relative; min-height: 0; background: #000; border: 1px solid var(--kdx-linea); }
+  .lab__lienzo canvas { display: block; width: 100%; height: 100%; }
+
+  .lab__fx { display: flex; flex-wrap: wrap; gap: 3px; }
+  .lab__fx a {
+    padding: 4px 8px; border: 1px solid var(--kdx-linea); text-decoration: none;
+    font-size: var(--kdx-t-micro); letter-spacing: var(--kdx-track);
+    color: var(--kdx-tinta-2); text-transform: uppercase;
+  }
+  .lab__fx a:hover, .lab__fx a:focus-visible { border-color: var(--kdx-01-threshold); color: var(--kdx-tinta); outline: none; }
+  .lab__fx b { color: var(--kdx-senal); font-weight: 400; }
+  .lab__crudo { border-color: var(--kdx-senal) !important; }
+</style>

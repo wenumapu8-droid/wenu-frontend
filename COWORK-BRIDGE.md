@@ -831,3 +831,88 @@ cero.
 No hay error de compilación, no hay warning, la sonda decía `ready` y el canvas
 tenía tamaño. **Si un shader compila y sale negro, revisar que ningún
 `smoothstep` tenga los bordes al revés** antes de tocar cualquier otra cosa.
+
+---
+
+## [MINI] 2026-08-01 · 03:40 — FASE 0 lista y verificada en vivo. Y dónde estaba el plan.
+
+### Primero: el plan no estaba donde se creía
+
+Ocín me mandó a `~/Sinergia-Industrial/COWORK-BRIDGE.md` por "motor, 8
+organismos, 8 tratamientos, style seed, viaje de 7 escenas, artwork habitat".
+**Ese archivo es esta bitácora y llega hasta el 31/07 20:35** — no contiene
+nada de eso. Busqué "KDX CORE", "FX SUITE", "STYLE SEED", "MOTION BIBLE",
+"artwork habitat" en Sinergia-Industrial, kodex-work, Obsidian, Downloads,
+Documents y .hermes: **cero coincidencias**. Y
+`~/Downloads/kodex-threshold-portal-live.html` — el blanco aprobado de
+THRESHOLD — tampoco existe acá.
+
+**Pero el plan SÍ existe: es un póster.** `reference/posters/70d17105-54976.png`
+(y su gemelo `b3904632-54976.png`) son la lámina maestra:
+
+    TANDA 01 / 8 ORGANISMOS VISUALES  +  TANDA 02 / 8 TRATAMIENTOS GPU
+    MOTOR CENTRAL COMPARTIDO · ENTRADAS GLOBALES · KDX CORE v1.0 · KDX FX SUITE v1.0
+
+De ahí saqué todo, al pie de la letra. **Cowork: si además hay un `.md` con el
+motion bible y el viaje de 7 escenas, no llegó al mini.** Lo que hay son los
+pósters, y con eso alcanza para FASE 0 y 2.
+
+### Lo que dice el plano, transcrito
+
+**MOTOR CENTRAL COMPARTIDO** — WebGL2 / GLSL / Multipass / Audio Reactive /
+Feedback. Estados: DORMANT → AWARE → ACTIVE → OPEN.
+**ENTRADAS GLOBALES** — Tiempo · Puntero/Touch · Audio (Low/Mid/High) ·
+Estado/Progreso · Texturas/Máscaras.
+
+**8 ORGANISMOS** (con el acento muestreado del propio plano, no elegido a ojo):
+01 THRESHOLD PORTAL `#FC060B` · 02 OBSERVATION EYE `#9932F1` ·
+03 DESCENT TUNNEL `#FD7F17` · 04 ARCHIVE TREE `#BEEB2F` ·
+05 SPECIMEN SKULL `#FB1419` · 06 RITUAL DEVICE `#32D9E8` ·
+07 COSMOLOGY CORE `#FF20CC` · 08 SIGNAL BLOOM `#FA0D8D`
+
+**8 TRATAMIENTOS GPU**, con sus parámetros exactos y su MODO:
+01 CRT SCAN (curvature .25 · vignette .40 · phosphor .65 · noise .18 · ADD/SCREEN)
+02 DITHER MATRIX (contrast 1.25 · threshold .48 · quant 6 · Bayer 8×8 · NORMAL/LUMA)
+03 BITMAP THRESHOLD (edge 1.5 · posterize 3 · crush .25 · invert OFF · NORMAL)
+04 MEMORY FEEDBACK (decay .94 · distortion .15 · rotation .20 · ADD/MAX)
+05 THERMAL MAP (steps 8 · emissive 1.35 · hue .02 · contrast 1.08 · ADD)
+06 CHROMATIC SPLIT (angle 0 · ghosting .40 · convergence 0 · SCREEN)
+07 GLITCH FRACTURE (block 64 · speed 1.80 · displacement .15 · rgb .50 · ADD/OVERLAY)
+08 PIXEL SORT (intensity .85 · seed .31 · threshold .20 · ADD/LIGHTEN)
+
+### FASE 0 — construido y VERIFICADO EN VIVO
+
+- `src/styles/kodex-seed.css` — CORE STYLE SEED.
+- `src/kodex/core/kdx-core.ts` — KDX CORE v1.0.
+- `src/kodex/core/fx-suite.ts` — KDX FX SUITE v1.0, los 8 pases encadenables.
+- `src/pages/kodex/lab/core.astro` — banco de pruebas: `?fx=id,id,id`.
+
+**Verificación:** `http://mac-mini-de-galvazinc:4321/kodex/lab/core/`
+Capturé crudo, CRT SCAN, DITHER MATRIX y una cadena de tres. Se ve la curvatura
+del tubo doblando la retícula, el Bayer cuantizando el núcleo, y la aberración
+cromática en el filo. **La cadena multipass funciona.**
+
+### Tres decisiones del motor que conviene conocer
+
+1. **Feedback con ping-pong de dos texturas.** Leer y escribir la misma
+   textura en un pase es comportamiento indefinido: se ve como parpadeo
+   aleatorio y se diagnostica pésimo.
+2. **Buffers `RGBA16F` cuando la GPU deja.** La cadena suma luz (varios pases
+   son ADD/SCREEN) y en 8 bits el blanco satura al tercer pase. Si la extensión
+   falta, cae a 8 bits y lo ANOTA en `data-kdx-core-nota` — no falla en
+   silencio.
+3. **Los parámetros van como `#define`, no como uniforms.** Son los valores del
+   plano y no cambian en runtime; así es imposible que uno quede sin setear y
+   el pase se vea "raro" sin causa visible.
+
+### Lo que necesito para seguir
+
+- **El blanco aprobado de THRESHOLD.** `~/Downloads/kodex-threshold-portal-live.html`
+  no está en el mini. Sin él, FASE 2 arranca contra mi lectura del póster 01 y
+  no contra el resultado que Ocín aprobó.
+- **El motion bible**, si existe como documento. Los timings que tengo son los
+  de los pósters de cada capítulo (BREATHE 2–4 s, PULSE 1–2 s, etc.).
+- **Qué es "preview" para el deploy.** No toco producción sin `APROBAR DEPLOY`.
+  Hoy el preview es el de Tailscale, que ya está arriba.
+
+— MINI
