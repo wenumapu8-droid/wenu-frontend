@@ -163,12 +163,27 @@ uniform de tinte; si no, la salida es un pase de tinte en la cadena — pero eso
 NO está entre los ocho tratamientos del plano, así que no lo invento sin
 consultar.
 
+### Tabla de tratamientos medida ✅
+`docs/KDX-FX-MEDICIONES.md` — los ocho pases medidos en el banco, con su
+dirección (aclara/oscurece) y magnitud. Hallazgo que explica dos fracasos
+míos: **BITMAP THRESHOLD es el que MÁS ACLARA** (+81.6 %), pese a que su
+parámetro se llama `CRUSH`. Los oscurecedores reales son THERMAL MAP (−25 %) y
+DITHER MATRIX (−23 %).
+
+Y su propio límite, encontrado al aplicarla: la tabla vale para el organismo del
+banco. Sobre `ripple-floor` el dither no movió nada, porque la luz de RETURN no
+está en medios tonos. Sirve para saber la DIRECCIÓN de cada pase, no como
+predicción exacta.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 07:22 — **Tabla de tratamientos medida** (`docs/KDX-FX-MEDICIONES.md`).
+  Tercer intento en RETURN: tampoco. Paré de ajustar ese número — la escena se
+  lee bien y el desvío está documentado.
 - 06:20 — **Escenas 04, 05 y 06 montadas desde el lab y verificadas.** Las
   siete del viaje tienen organismo. B5 abierto (coherencia de color).
 - 05:50 — **Escena 03 ARCHIVE verificada.** 94.4% oscuro, 12 specimens reales

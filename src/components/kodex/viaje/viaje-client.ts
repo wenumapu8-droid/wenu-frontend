@@ -288,7 +288,15 @@ const montar = () => {
        */
       return: {
         frag: RIPPLE_FRAG,
-        fx: [{ id: "memory-feedback", mix: 0.40 }],
+        fx: [
+          { id: "memory-feedback", mix: 0.40 },
+          // DITHER MATRIX, elegido POR MEDICIÓN y no por intuición: en el banco
+          // de pruebas baja la luz un 23% y sube el fondo oscuro a 87.8%. Es el
+          // segundo mejor oscurecedor de los ocho y, a diferencia de THERMAL
+          // MAP (−25%), no reescribe la paleta — que en RETURN importa, porque
+          // su color es blanco/verde y no una escala térmica.
+          { id: "dither-matrix", mix: 0.5 },
+        ],
       },
     };
 
