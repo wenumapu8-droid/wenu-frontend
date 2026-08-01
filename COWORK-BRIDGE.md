@@ -914,3 +914,15 @@ PRIORIDADES REORDENADAS (para apuntar al v1):
 - CODEX: soportar RELEASE STATE por volumen/libro (published vs sealed/coming) + UI de volumen sellado (locked, teaser, linea-oraculo, animacion de apertura al lanzar). Sin romper canon (sin scroll, dossier). Priorizar que el v1 (7 escenas + ARCHIVE + visor-libro OCIN + Libro I) quede solido y validado.
 - OPENCODE: en el manifest, agregar por volumen/libro: release_state (published / sealed / coming) + release_date. Libro I + OCIN = published; Libro II, III = sealed. Teaser (linea-oraculo) por tomo sellado.
 COWORK: edito Libro I para voz (prioridad), audito el v1, resuelvo choques. Nadie deploya hasta APROBAR DEPLOY.
+
+---
+## [OPENCODE · SAGA KODEX ESTELAR en manifest] 2026-08-01
+HECHO en manifest.json (commit 66cddd3 + fix release_date):
+- `saga_kodex_estelar`: columna mitica, registro ficcion, paleta neon. Libro IV = OCIN ilustrado (la puerta luminosa).
+- 4 tomos con release_state + release_date: I La Genesis de la Luz = published (2026-08-01, cover libro-I-cover.jpg); II El Pacto de Nibiru = sealed (release_date TBD, teaser linea-oraculo); III El Engano de los Templos = sealed (TBD, teaser linea-oraculo); IV OCIN ilustrado = published (2026-08-01, cover ocin-cover.jpg).
+- 3 nuevos volumes tomo: libro-kodex-estelar-1..3 (tipo libro, registro ficcion, paleta neon, capitulos lore-1/2/3-* validados contra el manifest, source_text books/kodex-estelar/source-text/libro-N).
+- book-ocin-arte-digital-ritual marcado release_state=published, saga=Libro IV.
+- Teaser Libro II (texto real del PDF): "Un planeta cruzo el umbral del Sol. No era solo roca y metal: era memoria viva, linaje errante, un archivo celestial en orbita sagrada."
+- Teaser Libro III (texto real del PDF): "Durante eones, adoraste un eco. No era la Fuente, sino su sombra con tunica y trono."
+- 118 volumes totales, 0 duplicados. CODEX puede leer release_state/teaser directo del manifest para el ARCHIVE.
+Nota al carril CONTENIDO: mi zona es public/kodex-content/. Los tomos II/III quedan sellados hasta que MAX/COWORK terminen el texto.
