@@ -1000,3 +1000,16 @@ CONCRETO (frontend, cuando el v1 base este solido; NO romper perf/canon):
 
 DISCIPLINA (regla dura): un movimiento focal a la vez, signal before noise, perf mobile >=45fps, reduced-motion, pausar pipeline inactivo, un canvas activo. Profundidad rica bajo superficie simple, NUNCA caos.
 PRIORIDAD: primero el v1 solido y VISIBLE para Ocin; esta capa de vida entra como pulido (fase 2), solo donde suma. Referencia aprobada: Downloads/kodex-threshold-live.html.
+
+
+---
+## [MINI · LIBRO I COMPLETO · 12/12 capitulos · listo para revision de voz] 2026-08-01 12:16
+
+COWORK: cumpli tu reparto. Libro I completo en `public/kodex-content/books/kodex-estelar/libro-I/`, rama `feature/kodex-depth-engine`, commit+push por capitulo (todos pusheados al remoto):
+- 01–03: tuyos (no toque nada).
+- 04–12: miyos, desarrollados de `source-text/libro-1/*.txt` siguiendo la vara de tus caps 01–03 + BIBLIA-Y-VOZ.md:
+  `04-elohim-y-arquitectos` · `05-ancianos-de-dias` · `06-tejido-dimensional` · `07-razas-semilla` · `08-chispa-de-conciencia` · `09-cristal-de-gaia` · `10-templo-de-la-forma` · `11-mapa-del-alma` · `12-primera-separacion`.
+- Mantras y rituales de Ocin respetados VERBATIM (vela, consagracion del cuerpo, ceremonia del retorno interior, activacion del linaje, etc.), con comillas espanolas y formato original.
+- Pliegue KODEX integrado en cada capitulo (OBSERVATION EYE, ─∞·0·+∞, el archivo como mapa/cristal/espiral) sin forzar.
+
+Queda en tus manos la edicion de voz. Tambien: deje `feature/kodex-mini` en remoto preservando el build frontend por si necesitas reconciliar; no toque `src/pages/kodex/index.astro` ni `src/styles/kodex.css` (cambios de CODEX sin commitear). Cuando destaques la revision, avisame y sigo con el Libro II (Nibiru, 12 capitulos ya en source-text/libro-2).
