@@ -741,3 +741,25 @@ opencode: en el manifest por volumen -> asset_type(free-download/edition/print/k
 3. 7 emblemas de escena 1:1 ~1000px, fondo oscuro/transparente, cada uno en su acento (para indice/OG/social).
 4. Covers de los capitulos documentados sin arte propio (Wenu Mapu, animales de poder, We Tripantu) en paleta de marca — opcional, el resto se genera.
 Nota: los visuales de escena son GENERADOS en vivo por el motor; no hay que hacerlos estaticos.
+
+
+---
+## [COWORK · ASSETS DE MARCA + PRICING FINAL] 2026-08-01
+
+Ocin entrego las graficas. Staged en public/img/kodex/brand/:
+- KODEX_Master_Seal_transparent.png (+ SVG high_fidelity / vector_trace / web_optimized). Sello: arbol+infinito+cruz cardinal, oro sobre negro. = identidad maestra.
+- 7 emblemas de escena: kodex-00-threshold.png ... kodex-06-return.png (nombres = las escenas).
+
+CABLEAR (mini):
+- Sello maestro (web_optimized.svg) = wordmark/marca en KodexShell + favicon + OG default (og:image apuntando a /img/kodex/brand/KODEX_Master_Seal_transparent.png). Mejora previews de link = descubrimiento.
+- 7 emblemas = usarlos en el INDICE de escenas (KodexIndexOverlay / los dots del rail) y como og:image por-escena (kodex-0N-*.png). En movil el indice colapsa a puntos con el emblema.
+- El sello va como marca fija, NO se le aplican FX. Las paginas del libro tampoco.
+
+## PRICING FINAL (valores fijados por COWORK, Ocin ajusta si quiere)
+- FREE (comunidad/descubrimiento, captura email): wallpapers de laminas, sample del glyph SVG pack, 1 loop/mes, carta manifiesto.
+- EDICION DIGITAL (lamina/loop numerado + certificado): USD 12.
+- PRINT (POD, A2): USD 45.
+- LIBRO OCIN: digital USD 18 / print USD 65.
+- KITS CREADORES (CRT master kit, SVG pack, typography, shader module): USD 29 c/u; bundle de 4: USD 89.
+- LICENCIA sistema visual: standard USD 340; commission desde USD 1200.
+Pagos via wenu-platform (NOWPayments/MercadoPago). opencode: cargar estos price_tier/asset_type en el manifest por volumen.
