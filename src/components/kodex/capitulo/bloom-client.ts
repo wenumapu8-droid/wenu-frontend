@@ -37,7 +37,34 @@ function hexAVec(hex: string): [number, number, number] {
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
+/**
+ * La energía del campo, con precedencia explícita.
+ *
+ *  1. `kodexAudio.energy()` — el motor del mundo, que es el que nombra el
+ *     plano. Devuelve una energía ya suavizada, no un pico crudo.
+ *  2. El bus `__kxAudio` por bandas, cuando corre el otro motor.
+ *  3. Respiración sintética.
+ *
+ * El tercer escalón no es decoración: un campo que se congela porque el
+ * visitante no encendió el audio se lee como roto, no como silencioso.
+ */
+function energia(): number | null {
+  const ka = (window as any).__kodexAudio;
+  if (ka && typeof ka.energy === "function") {
+    const e = ka.energy();
+    if (typeof e === "number" && e > 0) return e;
+  }
+  return null;
+}
+
 function audio(t: number): Bus {
+  const e = energia();
+  if (e !== null) {
+    // Una sola energía repartida en tres bandas: el motor del mundo entrega un
+    // escalar, y lo honesto es decir que las tres salen de ahí en vez de
+    // inventar un espectro que no midió nadie.
+    return { activo: true, low: e, mid: e * 0.85, high: e * 0.7 };
+  }
   const b = (window as any).__kxAudio as Bus | undefined;
   if (b?.activo) return b;
   return {

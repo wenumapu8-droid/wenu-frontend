@@ -646,3 +646,31 @@ energy 87.2% tickeando.
 COSMOLOGY CORE sigue en su página propia (`cosmology-core.astro`) — hay que
 migrarlo al mismo motor `[slug]`. Su plano tiene otra grilla, así que el motor
 necesita ramificar por `plano`, que ya está en el tipo pero todavía no se usa.
+
+### 2026-08-01 · auditoría de SIGNAL BLOOM contra el brief
+
+Me lo volvieron a pedir ya construido, así que en vez de rehacerlo lo audité
+punto por punto. Tres huecos reales, corregidos:
+
+1. **`kodexAudio.energy` no se leía.** El brief lo nombra explícitamente. Ese
+   método existe en `src/kodex/audio/kodexAudio.js` pero la instancia sólo se
+   creaba dentro de `world.astro` y quedaba local — nadie más la alcanzaba.
+   Ahora `world.astro` la publica (sólo lectura: quien la lee no arranca ni
+   para el motor) y los dos runtimes del capítulo leen con precedencia
+   declarada: `kodexAudio.energy()` → bus `__kxAudio` por bandas → respiración
+   sintética.
+   El motor del mundo entrega **un escalar**, así que las tres bandas salen de
+   ahí y está dicho en el código: inventar un espectro que no midió nadie sería
+   mentir con forma de dato.
+2. **Los sellos no rotaban.** Lo había comentado en el código pero nunca
+   escribí la regla. Ahora giran, cada uno a su ritmo y en sentidos alternos —
+   cuatro girando igual se leen como una sola pieza rotando, no como cuatro
+   autenticaciones. Por CSS, y apagado con `prefers-reduced-motion`.
+3. **Las anclas de identidad salían vacías.** El panel no les reservaba pista y
+   quedaban aplastadas contra el pie. Al darles su fila, la biblioteca de
+   glifos se les dibujó ENCIMA: una grilla sin `min-height: 0` desborda su
+   track en vez de encogerse. Ahora la biblioteca scrollea dentro de la suya.
+
+No verifiqué contra el **THRESHOLD PORTAL vivo aprobado**: ese archivo no está
+en el mini (`reference/kodex-threshold-live-APPROVED.html` no existe acá). Si
+lo copian, recalibro contra él.

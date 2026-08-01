@@ -429,22 +429,55 @@ const CAPAS = ['LAYER 07', 'LAYER 06', 'LAYER 05', 'LAYER 04', 'LAYER 03', 'LAYE
   .kxb__p--sellos canvas {
     width: 100%; height: auto; aspect-ratio: 1;
     border: 1px solid color-mix(in srgb, var(--c) 34%, transparent); border-radius: 50%;
+    /* Los sellos ROTAN, como pide el plano — pero por CSS y no redibujando.
+       Girar una imagen ya dibujada no cuesta nada; redibujar cuatro árboles
+       fractales por cuadro costaría más que el campo entero. */
+    animation: kxbGiro 26s linear infinite;
+  }
+  /* Cada uno a su ritmo y en sentidos alternos: cuatro sellos girando iguales
+     se leen como una sola pieza rotando, no como cuatro autenticaciones. */
+  .kxb__p--sellos li:nth-child(2) canvas { animation-duration: 34s; animation-direction: reverse; }
+  .kxb__p--sellos li:nth-child(3) canvas { animation-duration: 44s; }
+  .kxb__p--sellos li:nth-child(4) canvas { animation-duration: 30s; animation-direction: reverse; }
+
+  @keyframes kxbGiro { to { transform: rotate(360deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kxb__p--sellos canvas { animation: none; }
   }
 
   /* ── Glifos + anclas ─────────────────────────────────────────────────── */
-  .kxb__p--glifos { grid-area: glifos; }
+  .kxb__p--glifos {
+    grid-area: glifos;
+    /* Pistas declaradas: rótulo · biblioteca · rótulo · anclas. Con filas
+       automáticas la biblioteca de 22 glifos se comía el alto y las anclas
+       quedaban aplastadas contra el pie del panel — cuatro cajas vacías. El
+       alto de las anclas hay que RESERVARLO, no esperarlo. */
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    align-content: stretch;
+  }
   .kxb__glifos {
     display: grid; grid-template-columns: repeat(11, 1fr); gap: 2px;
-    margin: 0; padding: 0; list-style: none;
+    margin: 0; padding: 0; list-style: none; align-content: start;
+    /* La biblioteca scrollea DENTRO de su pista. Sin `min-height: 0` una
+       grilla desborda su track en vez de encogerse, y las dos filas de glifos
+       se dibujaban encima de las anclas de identidad. Desbordar en silencio y
+       superponerse es peor que recortar. */
+    min-height: 0; overflow: auto; scrollbar-width: none;
   }
+  .kxb__glifos::-webkit-scrollbar { display: none; }
   .kxb__glifos canvas { width: 100%; height: auto; aspect-ratio: 1; }
   .kxb__anclas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 0; padding: 0; list-style: none; }
   .kxb__anclas li {
-    display: grid; gap: 2px; align-content: center;
+    display: grid; gap: 2px; align-content: center; justify-items: center;
     border: 1px solid rgba(232, 229, 222, 0.1); padding: 4px;
+    min-height: 42px;
   }
   .kxb__ancla { font-family: "Archivo Black", "Anton", sans-serif; font-size: 11px; text-align: center; }
-  .kxb__anclas canvas { width: 100%; height: auto; aspect-ratio: 3 / 2; }
+  /* Alto mínimo: sin él la caja del ancla se encoge a nada y el canvas queda
+     de cero píxeles. Es el mismo fallo que ya apareció con el mapa orbital. */
+  .kxb__anclas canvas { width: 100%; height: auto; aspect-ratio: 3 / 2; min-height: 22px; }
+  .kxb__anclas li { min-height: 40px; }
   .kxb__anclas span { font-size: 5.5px; letter-spacing: 0.1em; color: rgba(232, 229, 222, 0.34); text-align: center; }
 
   /* ── 06 Lógica ───────────────────────────────────────────────────────── */
