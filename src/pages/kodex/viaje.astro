@@ -1,0 +1,211 @@
+---
+/**
+ * KODEX-∞ · EL VIAJE · shell (FASE 1)
+ *
+ * Siete escenas fullscreen, HORIZONTALES, sin scroll de página, con una acción
+ * cada una y un loop infinito.
+ *
+ * **Por qué horizontal y no scroll.** Un scroll vertical convierte el archivo
+ * en un documento: se hojea, se saltea, se mide por su largo. Un desplazamiento
+ * horizontal por escenas convierte el recorrido en un tránsito — se avanza de
+ * una a la siguiente, y cada una ocupa todo. El spec lo pide y la diferencia
+ * es de naturaleza, no de gusto.
+ *
+ * El chrome es persistente: logo, título, progreso, índice, prev/next y estado.
+ * Persistente significa que **no se re-monta entre escenas** — si parpadeara en
+ * cada paso, el visitante sentiría siete páginas en vez de un viaje.
+ */
+import Base from '../../layouts/Base.astro';
+import '../../styles/kodex-seed.css';
+import { VIAJE } from '../../lib/kodex/viaje';
+---
+
+<Base
+  kodexFonts={true}
+  title="KODEX−∞"
+  description="Instrumento visual audio-reactivo. Siete escenas, un archivo."
+  robots="index, follow"
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <div class="vj" data-kdx-viaje>
+    {/* El lienzo del motor. UNO solo para las siete: siete contextos WebGL2
+        con cadena multipass no corren en un teléfono, y el spec pide que corra
+        en un teléfono. La escena cambia el organismo, no el lienzo. */}
+    <div class="vj__campo" data-vj-campo><canvas></canvas></div>
+
+    {/* La pista de escenas. Se desplaza en X; el documento no se mueve. */}
+    <div class="vj__pista" data-vj-pista>
+      {VIAJE.map((e, i) => (
+        <section class="vj__escena" data-vj-escena={i} style={`--c:${e.color}`} aria-hidden={i === 0 ? 'false' : 'true'}>
+          <p class="vj__n">{e.n}</p>
+          <h1 class="vj__titulo">{e.titulo}</h1>
+          <p class="vj__frase">{e.frase}</p>
+          {/* La acción única. Es un botón real: se alcanza con teclado y dice
+              lo que hace. */}
+          <button class="vj__accion" type="button" data-vj-accion={i}>
+            <span>{e.accion}</span>
+            <i aria-hidden="true">›</i>
+          </button>
+        </section>
+      ))}
+    </div>
+
+    {/* ── Chrome persistente ─────────────────────────────────────────── */}
+    <header class="vj__cab">
+      <b class="vj__logo">KODEX−∞</b>
+      <span class="vj__ruta" data-vj-ruta>00 / THRESHOLD</span>
+      <span class="vj__estado" data-vj-estado>ACTIVE</span>
+    </header>
+
+    <div class="vj__barra" aria-hidden="true"><i data-vj-barra></i></div>
+
+    <nav class="vj__indice" aria-label="índice del viaje">
+      {VIAJE.map((e, i) => (
+        <button type="button" data-vj-ir={i} aria-label={`${e.n} ${e.titulo}`} style={`--c:${e.color}`}>
+          <b>{e.n}</b><span>{e.titulo}</span>
+        </button>
+      ))}
+    </nav>
+
+    <div class="vj__pasos">
+      <button type="button" data-vj-prev aria-label="escena anterior">‹ PREV</button>
+      <button type="button" data-vj-next aria-label="escena siguiente">NEXT ›</button>
+    </div>
+  </div>
+</Base>
+
+<script>
+  import '../../components/kodex/viaje/viaje-client.ts';
+</script>
+
+<style>
+  /* ── La plancha del viaje ───────────────────────────────────────────────
+     Alto y ancho fijos al viewport y `overflow: hidden`: la página NO
+     scrollea, que es la regla dura del proyecto. Lo que se mueve es la pista. */
+  .vj {
+    position: fixed; inset: 0; overflow: hidden;
+    background: var(--kdx-negro); color: var(--kdx-tinta);
+    font-family: var(--kdx-mono);
+  }
+
+  .vj__campo { position: absolute; inset: 0; z-index: 0; }
+  .vj__campo canvas { display: block; width: 100%; height: 100%; }
+
+  /* ── Pista ──────────────────────────────────────────────────────────── */
+  .vj__pista {
+    position: absolute; inset: 0; z-index: 1;
+    display: flex; width: 700%;
+    transform: translate3d(0, 0, 0);
+    transition: transform var(--kdx-reveal) var(--kdx-ease);
+    will-change: transform;
+  }
+  .vj__escena {
+    width: calc(100% / 7); height: 100%; flex: 0 0 auto;
+    display: grid; align-content: center; justify-items: start;
+    gap: var(--kdx-u2);
+    /* "Margins as breath": el aire es composición. Todo múltiplo de 8. */
+    padding: var(--kdx-u8) clamp(var(--kdx-u3), 8vw, 160px);
+    box-sizing: border-box;
+    /* Las escenas que no están al frente no se leen ni se tabulan. */
+    opacity: 0; transition: opacity var(--kdx-reveal) var(--kdx-ease);
+  }
+  .vj__escena[data-activa] { opacity: 1; }
+
+  .vj__n {
+    margin: 0; font-size: var(--kdx-t-rotulo); letter-spacing: var(--kdx-track-ancho);
+    color: var(--c);
+  }
+  .vj__titulo {
+    margin: 0; font-family: var(--kdx-display);
+    font-size: clamp(2.2rem, 9vw, 7rem); line-height: 0.92;
+    letter-spacing: -0.01em; text-wrap: balance;
+  }
+  .vj__frase {
+    margin: 0; max-width: 30ch;
+    font-size: clamp(11px, 1.4vw, 15px); line-height: 1.6;
+    letter-spacing: 0.04em; color: var(--kdx-tinta-2);
+  }
+  .vj__accion {
+    margin-top: var(--kdx-u2);
+    display: inline-flex; align-items: center; gap: var(--kdx-u2);
+    padding: var(--kdx-u2) var(--kdx-u3);
+    background: transparent; color: var(--kdx-tinta); cursor: pointer;
+    border: 1px solid var(--c); font-family: inherit;
+    font-size: var(--kdx-t-rotulo); letter-spacing: var(--kdx-track-ancho);
+    transition: background var(--kdx-descend) var(--kdx-ease), color 200ms;
+  }
+  .vj__accion:hover, .vj__accion:focus-visible {
+    background: var(--c); color: var(--kdx-negro); outline: none;
+  }
+  .vj__accion i { font-style: normal; }
+
+  /* ── Chrome persistente ─────────────────────────────────────────────── */
+  .vj__cab, .vj__indice, .vj__pasos, .vj__barra { position: absolute; z-index: 3; }
+
+  .vj__cab {
+    top: 0; left: 0; right: 0;
+    display: flex; align-items: center; gap: var(--kdx-u3);
+    padding: var(--kdx-u2) var(--kdx-u3);
+    font-size: var(--kdx-t-rotulo); letter-spacing: var(--kdx-track);
+    color: var(--kdx-tinta-3); text-transform: uppercase;
+  }
+  .vj__logo { font-family: var(--kdx-display); font-size: 15px; color: var(--kdx-tinta); letter-spacing: 0; }
+  .vj__ruta { color: var(--kdx-tinta-2); }
+  .vj__estado { margin-left: auto; color: var(--kdx-senal); }
+
+  .vj__barra {
+    top: 0; left: 0; right: 0; height: 2px; background: rgba(232, 232, 232, 0.08);
+  }
+  .vj__barra i {
+    display: block; height: 100%; width: 14.28%;
+    background: var(--kdx-tinta);
+    transition: width var(--kdx-reveal) var(--kdx-ease), background var(--kdx-reveal);
+  }
+
+  .vj__indice {
+    left: var(--kdx-u3); bottom: var(--kdx-u3);
+    display: flex; gap: var(--kdx-u);
+  }
+  .vj__indice button {
+    display: grid; gap: 2px; padding: var(--kdx-u) var(--kdx-u2);
+    background: transparent; color: var(--kdx-tinta-3); cursor: pointer;
+    border: 1px solid var(--kdx-linea); font-family: inherit; text-align: left;
+    transition: border-color 200ms, color 200ms;
+  }
+  .vj__indice button b { font-size: var(--kdx-t-micro); color: var(--c); font-weight: 400; }
+  .vj__indice button span {
+    font-size: var(--kdx-t-micro); letter-spacing: var(--kdx-track);
+  }
+  .vj__indice button:hover, .vj__indice button:focus-visible {
+    border-color: var(--c); color: var(--kdx-tinta); outline: none;
+  }
+  .vj__indice button[aria-current="true"] { border-color: var(--c); color: var(--kdx-tinta); }
+
+  .vj__pasos {
+    right: var(--kdx-u3); bottom: var(--kdx-u3);
+    display: flex; gap: var(--kdx-u);
+  }
+  .vj__pasos button {
+    padding: var(--kdx-u) var(--kdx-u2);
+    background: transparent; color: var(--kdx-tinta-2); cursor: pointer;
+    border: 1px solid var(--kdx-linea); font-family: inherit;
+    font-size: var(--kdx-t-micro); letter-spacing: var(--kdx-track);
+  }
+  .vj__pasos button:hover, .vj__pasos button:focus-visible {
+    border-color: var(--kdx-tinta); color: var(--kdx-tinta); outline: none;
+  }
+
+  /* ── Móvil 375 / 390 ────────────────────────────────────────────────── */
+  @media (max-width: 720px) {
+    .vj__escena { padding: var(--kdx-u6) var(--kdx-u3); align-content: center; }
+    .vj__titulo { font-size: clamp(2rem, 13vw, 3.4rem); }
+    /* El índice de siete no entra en 375px: se convierte en puntos. El nombre
+       vive en la cabecera, que ya lo dice. */
+    .vj__indice { left: var(--kdx-u2); right: var(--kdx-u2); bottom: var(--kdx-u2); gap: 4px; }
+    .vj__indice button { flex: 1; padding: var(--kdx-u) 0; place-items: center; }
+    .vj__indice button span { display: none; }
+    .vj__pasos { right: var(--kdx-u2); bottom: calc(var(--kdx-u6) + var(--kdx-u2)); }
+    .vj__cab { padding: var(--kdx-u2); gap: var(--kdx-u2); }
+    .vj__cab .vj__ruta { display: none; }
+  }
+</style>

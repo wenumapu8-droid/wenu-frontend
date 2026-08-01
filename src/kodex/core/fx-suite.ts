@@ -71,7 +71,7 @@ vec3 kdxHueShift(vec3 c, float a) {
 export const FX: Tratamiento[] = [
   {
     n: "01", id: "crt-scan", nombre: "CRT SCAN",
-    params: { CURVATURE: 0.25, VIGNETTE: 0.40, PHOSPHOR_GLOW: 0.65, NOISE: 0.18 },
+    params: { SCANLINE: 0.78, CURVATURE: 0.25, VIGNETTE: 0.40, PHOSPHOR: 0.65, NOISE: 0.18 },
     modo: "ADD", modoAlt: "SCREEN",
     glsl: /* glsl */ `
       // La curvatura del tubo deforma la LECTURA, no la imagen: se remuestrea
@@ -85,9 +85,11 @@ export const FX: Tratamiento[] = [
       col *= step(0.0, uvc.x) * step(uvc.x, 1.0) * step(0.0, uvc.y) * step(uvc.y, 1.0);
 
       // Fósforo: las líneas del tubo, y el brillo que dejan al apagarse.
-      float linea = 0.5 + 0.5 * sin(uvc.y * u_res.y * 1.5708);
-      col *= mix(1.0, 0.72 + 0.28 * linea, P_PHOSPHOR_GLOW);
-      col += col * linea * P_PHOSPHOR_GLOW * 0.22;
+      // SCANLINE es la fuerza de la línea; PHOSPHOR, el brillo que deja al
+      // apagarse. Son dos cosas y el spec las separa.
+      float linea = mix(1.0, 0.5 + 0.5 * sin(uvc.y * u_res.y * 1.5708), P_SCANLINE);
+      col *= mix(1.0, 0.72 + 0.28 * linea, P_PHOSPHOR);
+      col += col * linea * P_PHOSPHOR * 0.22;
 
       float vin = 1.0 - dot(c * 0.72, c * 0.72) * P_VIGNETTE;
       col *= clamp(vin, 0.0, 1.0);
@@ -98,14 +100,15 @@ export const FX: Tratamiento[] = [
 
   {
     n: "02", id: "dither-matrix", nombre: "DITHER MATRIX",
-    params: { CONTRAST: 1.25, THRESHOLD: 0.48, COLOR_QUANT: 6, PATTERN: 8 },
+    params: { SCALE: 4.0, CONTRAST: 1.25, THRESHOLD: 0.48, COLOR_QUANT: 6, PATTERN: 8 },
     modo: "NORMAL", modoAlt: "LUMA",
     glsl: /* glsl */ `
       vec3 col = texture(u_src, uv).rgb;
       col = (col - 0.5) * P_CONTRAST + 0.5;
       // El umbral Bayer se SUMA antes de cuantizar: así el error de
       // cuantización se reparte en el patrón en vez de acumularse en bandas.
-      float b = kdxBayer8(gl_FragCoord.xy) - 0.5;
+      // SCALE agranda la celda del patrón: el dither se ve, que es el punto.
+      float b = kdxBayer8(gl_FragCoord.xy / max(P_SCALE, 1.0)) - 0.5;
       float pasos = max(2.0, P_COLOR_QUANT);
       col = floor((col + b / pasos + (P_THRESHOLD - 0.5) * 0.2) * pasos) / (pasos - 1.0);
       return clamp(col, 0.0, 1.0);
@@ -114,10 +117,10 @@ export const FX: Tratamiento[] = [
 
   {
     n: "03", id: "bitmap-threshold", nombre: "BITMAP THRESHOLD",
-    params: { EDGE_WIDTH: 1.5, POSTERIZE: 3, CRUSH: 0.25, INVERT: 0 },
+    params: { THRESHOLD: 0.52, EDGE: 1.5, POSTERIZE: 3, CRUSH: 0.25, INVERT: 0 },
     modo: "NORMAL",
     glsl: /* glsl */ `
-      vec2 px = P_EDGE_WIDTH / u_res;
+      vec2 px = P_EDGE / u_res;
       vec3 col = texture(u_src, uv).rgb;
       // Borde por diferencia central: el contorno sale de la propia imagen,
       // no de un filtro que no la conoce.
@@ -126,6 +129,9 @@ export const FX: Tratamiento[] = [
       float ly = kdxLuma(texture(u_src, uv + vec2(0.0, px.y)).rgb) - kdxLuma(texture(u_src, uv - vec2(0.0, px.y)).rgb);
       float borde = clamp(length(vec2(lx, ly)) * 3.0, 0.0, 1.0);
 
+      // El umbral del spec decide qué es figura y qué es fondo antes de
+      // posterizar: posterizar primero borraría la decisión.
+      col = mix(col, step(vec3(P_THRESHOLD), col), 0.55);
       float pasos = max(2.0, P_POSTERIZE);
       col = floor(col * pasos) / (pasos - 1.0);
       // CRUSH aplasta las sombras contra el negro: el negro dominante del
@@ -138,7 +144,7 @@ export const FX: Tratamiento[] = [
 
   {
     n: "04", id: "memory-feedback", nombre: "MEMORY FEEDBACK",
-    params: { DECAY: 0.94, DISTORTION: 0.15, ROTATION_SPEED: 0.20 },
+    params: { FEEDBACK: 0.88, DECAY: 0.94, DISTORTION: 0.15, ROTATION: 0.20 },
     modo: "ADD", modoAlt: "MAX",
     glsl: /* glsl */ `
       vec3 col = texture(u_src, uv).rgb;
@@ -147,22 +153,24 @@ export const FX: Tratamiento[] = [
       // Sin la rotación, el feedback sólo desvanece; con ella, recuerda en
       // espiral, que es lo que el nombre del tratamiento promete.
       vec2 c = uv - 0.5;
-      float a = u_time * P_ROTATION_SPEED * 0.1;
+      float a = u_time * P_ROTATION * 0.1;
       mat2 R = mat2(cos(a), -sin(a), sin(a), cos(a));
       c = R * c * (1.0 - P_DISTORTION * 0.04);
       vec3 prev = texture(u_prev, clamp(c + 0.5, 0.0, 1.0)).rgb;
 
-      return max(col, prev * P_DECAY);
+      // FEEDBACK es cuánto del recuerdo entra; DECAY, cuánto se apaga cada
+      // cuadro. Con uno solo no se puede tener estela larga y tenue.
+      return max(col, prev * P_DECAY * P_FEEDBACK);
     `,
   },
 
   {
     n: "05", id: "thermal-map", nombre: "THERMAL MAP",
-    params: { COLOR_STEPS: 8, EMISSIVE: 1.35, HUE_SHIFT: 0.02, CONTRAST: 1.08 },
+    params: { TEMP: 1.12, COLOR_STEPS: 8, EMISSIVE: 1.35, HUE_SHIFT: 0.02 },
     modo: "ADD",
     glsl: /* glsl */ `
       vec3 src = texture(u_src, uv).rgb;
-      float l = clamp((kdxLuma(src) - 0.5) * P_CONTRAST + 0.5, 0.0, 1.0);
+      float l = clamp((kdxLuma(src) - 0.5) * P_TEMP + 0.5, 0.0, 1.0);
       // Escalonado: un mapa térmico tiene BANDAS. Un degradado continuo se lee
       // como un tinte, no como una medición.
       l = floor(l * P_COLOR_STEPS) / max(P_COLOR_STEPS - 1.0, 1.0);
@@ -177,35 +185,41 @@ export const FX: Tratamiento[] = [
 
   {
     n: "06", id: "chromatic-split", nombre: "CHROMATIC SPLIT",
-    params: { ANGLE: 0.0, GHOSTING: 0.40, CONVERGENCE: 0.0 },
+    params: { SPLIT: 0.006, GHOSTING: 0.40, ABERRATION: 0.31, INTENSITY: 0.85 },
     modo: "SCREEN",
     glsl: /* glsl */ `
       // CONVERGENCE 0.0 significa desalineado: converger es volver a juntar.
       // El desplazamiento crece hacia el borde porque una óptica converge en
       // el centro y falla en la periferia.
-      float d = (1.0 - P_CONVERGENCE) * P_GHOSTING * 0.012;
-      vec2 dir = vec2(cos(P_ANGLE * 6.2831853), sin(P_ANGLE * 6.2831853));
+      // SPLIT es la separación base; ABERRATION la hace crecer hacia el borde,
+      // que es como falla una óptica real: converge en el centro.
       float radio = length(uv - 0.5) * 2.0;
-      vec2 off = dir * d * radio;
-      return vec3(
+      vec2 off = vec2(P_SPLIT * (1.0 + radio * P_ABERRATION * 3.0), 0.0);
+      vec3 col = vec3(
         texture(u_src, uv + off).r,
         texture(u_src, uv).g,
         texture(u_src, uv - off).b
       );
+      // GHOSTING: una copia rezagada, que es lo que hace fantasma al fantasma.
+      vec3 ghost = texture(u_src, uv + off * 2.5).rgb;
+      col = mix(col, max(col, ghost), P_GHOSTING);
+      return col * P_INTENSITY;
     `,
   },
 
   {
     n: "07", id: "glitch-fracture", nombre: "GLITCH FRACTURE",
-    params: { BLOCK_SIZE: 64.0, SPEED: 1.80, DISPLACEMENT: 0.15, RGB_SHIFT: 0.50 },
+    params: { AMOUNT: 0.62, BLOCK: 64.0, SPEED: 1.80, DISPLACEMENT: 0.15, RGB_SHIFT: 0.50 },
     modo: "ADD", modoAlt: "OVERLAY",
     glsl: /* glsl */ `
       // Bloques que se corren. Sólo ALGUNOS: si se corrieran todos sería una
       // distorsión uniforme, y una distorsión uniforme se lee como efecto, no
       // como fractura.
-      float fila = floor(uv.y * u_res.y / P_BLOCK_SIZE);
+      float fila = floor(uv.y * u_res.y / P_BLOCK);
       float s = kdxHash(vec2(fila, floor(u_time * P_SPEED * 6.0)));
-      float activa = step(0.80, s);
+      // AMOUNT decide CUÁNTAS filas se rompen, no cuánto se rompen: subir la
+      // cantidad y no la fuerza es lo que separa una fractura de un temblor.
+      float activa = step(1.0 - P_AMOUNT * 0.35, s);
       vec2 off = vec2((s - 0.5) * P_DISPLACEMENT * activa, 0.0);
       vec3 col = texture(u_src, clamp(uv + off, 0.0, 1.0)).rgb;
       float rgb = P_RGB_SHIFT * 0.01 * activa;
@@ -217,7 +231,7 @@ export const FX: Tratamiento[] = [
 
   {
     n: "08", id: "pixel-sort", nombre: "PIXEL SORT",
-    params: { INTENSITY: 0.85, RANDOM_SEED: 0.31, THRESHOLD: 0.20 },
+    params: { HORIZONTAL: 1.0, INTENSITY: 0.85, SEED: 0.31, THRESHOLD: 0.20 },
     modo: "ADD", modoAlt: "LIGHTEN",
     glsl: /* glsl */ `
       // Ordenar de verdad una fila no se puede en un fragment shader: cada
@@ -228,11 +242,14 @@ export const FX: Tratamiento[] = [
       if (kdxLuma(col) < P_THRESHOLD) return col;
 
       float largo = P_INTENSITY * 0.09;
-      float sem = kdxHash(vec2(floor(uv.y * u_res.y), P_RANDOM_SEED * 100.0));
+      // HORIZONTAL 1.0 = se arrastra por filas. El eje es del spec.
+      float eje = mix(uv.x, uv.y, 1.0 - P_HORIZONTAL);
+      float sem = kdxHash(vec2(floor(mix(uv.y, uv.x, 1.0 - P_HORIZONTAL) * u_res.y), P_SEED * 100.0));
       vec3 mx = col;
       for (int i = 1; i <= 10; i++) {
         float f = float(i) / 10.0;
-        vec3 s = texture(u_src, clamp(uv - vec2(largo * f * sem, 0.0), 0.0, 1.0)).rgb;
+        vec2 paso = mix(vec2(largo * f * sem, 0.0), vec2(0.0, largo * f * sem), 1.0 - P_HORIZONTAL);
+        vec3 s = texture(u_src, clamp(uv - paso, 0.0, 1.0)).rgb;
         if (kdxLuma(s) > kdxLuma(mx)) mx = s;
       }
       return mix(col, mx, P_INTENSITY);
