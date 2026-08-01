@@ -33,7 +33,7 @@ Un ítem que compila y no se ve NO está hecho.
 ## BLOCKERS
 
 ### B1 · No puedo bajar el repo de GitHub desde el mini  ⛔ ABIERTO · 5º INTENTO
-Probado de nuevo a las 10:50 con `git remote add` + `git fetch origin
+Probado de nuevo a las 11:00 y a las 10:50 con `git remote add` + `git fetch origin
 feature/kodex-depth-engine`: **"Could not read from remote repository"**. La
 deploy key sigue sin estar agregada. Sin esto no existen para mí el backlog
 maestro M2→M8, `kodex-modules/`, el THRESHOLD aprobado ni el CRT_MASTER_KIT.
@@ -191,9 +191,20 @@ Medido, antes → después:
 | THRESHOLD | ~72 %  | **76.5 %** |
 | PROLOGUE  | 91.5 % | **93.9 %** |
 
-Las tres suben y el copy queda legible en todas. DESCENT sigue bajo el canon
-(~85 %) porque el corredor es un organismo luminoso — pero ahora es una decisión
-de dirección sobre esa escena, no un texto ilegible.
+Las tres suben y el copy queda legible en todas.
+
+**Y DESCENT llegó al canon: 88.1 %.** Lo que faltaba era poder atenuar el
+organismo — y no se podía, porque `u_intensity` estaba **declarado y nunca
+usado** en `split-corridor`, igual que en `ripple-floor`. Medido: con 0.3, 0.6 o
+1.0 daba 57.6 % idéntico.
+
+**Conectar ese uniform no es agregarle algo al shader: es cumplir el contrato
+que él mismo publica.** Un uniform declarado que no hace nada es peor que no
+tenerlo — quien lo ajusta ve que el número no responde y se pone a buscar el
+problema en otro lado. Me pasó tres veces con ese archivo.
+
+Conectado, el valor sale de medir: 0.45 da 84.6 % en el banco y 88.1 % en la
+escena. RETURN, con el mismo arreglo, sube de 66.9 % a 73.7 %.
 
 **Nota de método:** anoche escribí "sale oscuro, hay que subirle la ganancia" y
 lo repetí tres veces. Era falso. Sólo se supo midiendo el shader AISLADO y
@@ -219,7 +230,12 @@ Muestra DISTRIBUIDA, no las primeras doce: las primeras entradas de un
 manifiesto suelen ser de la misma serie, y una grilla con doce variaciones de lo
 mismo miente sobre lo que hay adentro.
 
-### B5 · Los organismos del lab traen su propia paleta  ⛔ ABIERTO
+### B5 · Organismos del lab: brillo ✅ · color ⛔ ABIERTO
+**La mitad del brillo está resuelta** conectando `u_intensity` donde estaba
+declarado y sin usar (`split-corridor`, `ripple-floor`). Queda abierta sólo la
+coherencia de color.
+
+
 04/05/06 ya montan y se leen (MACHINE como dispositivo, COSMOLOGY como mapa
 orbital, RETURN como suelo ondulante), pero **el color no coincide con el
 acento de su escena**: `archive-orbit` pinta rojo donde COSMOLOGY es magenta
@@ -374,6 +390,8 @@ tarea.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 11:03 — **DESCENT al canon (88.1 %)** conectando `u_intensity`, que estaba
+  declarado y nunca usado. 6º intento de `git fetch` rechazado.
 - 10:50 — **Suelo del texto**: velo anclado al copy y no al campo. Las tres
   escenas medidas suben y el copy queda legible. 5º intento de `git fetch`
   rechazado.

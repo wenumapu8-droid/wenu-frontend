@@ -252,7 +252,11 @@ const montar = () => {
         ],
         seed: 3,
         uniformes: () => ({
-          u_intensity: 1.0,
+          // 0.45 sale de MEDIR: con la cadena CRT+DITHER da 84.6% de fondo
+          // oscuro en el banco, que es el canon. Y sólo se pudo ajustar
+          // después de conectar `u_intensity`, que el shader declaraba y no
+          // usaba — antes cualquier valor daba idéntico.
+          u_intensity: 0.45,
           u_branchBias: 0.35,
           u_branchPulseAge: 0.0,
         }),

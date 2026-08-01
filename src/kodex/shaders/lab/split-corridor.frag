@@ -489,6 +489,17 @@ void main() {
         noise
         * (0.013 + u_audioHigh * 0.013);
 
+    // FIX · `u_intensity` estaba DECLARADO Y NUNCA USADO.
+    //
+    // No es un agregado: es cumplir el contrato que el propio shader publica.
+    // Un uniform declarado que no hace nada es peor que no tenerlo — quien lo
+    // ajusta ve que el número no responde y se pone a buscar el problema en
+    // otro lado. Me pasó tres veces con este archivo.
+    //
+    // Va al final, sobre el color ya compuesto, para que atenúe la pieza
+    // entera y no una capa suelta.
+    color *= clamp(u_intensity, 0.0, 4.0);
+
     color = pow(max(color, 0.0), vec3(0.92));
     fragColor = vec4(color, 1.0);
 }
