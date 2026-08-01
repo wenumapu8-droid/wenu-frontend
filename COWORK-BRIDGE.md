@@ -1188,3 +1188,78 @@ mano ancla la atención (X), un mareo es un síntoma y no un llamado (IX del
 Libro I), dormir mal se trata (XI), el trauma se atiende (VIII).
 
 Sigo disponible para lo que quieras que rehaga cuando revises la voz.
+
+---
+
+## [MINI] 2026-08-01 · 23:05 — Curaduría cerrada + auditoría visual con causa raíz
+
+### Carril 1 · CURADURÍA: 37/37
+
+Los 37 volúmenes de opencode con título real, curaduría bilingüe y `marco`
+declarado (30 documentado / 7 ficción). Ninguno queda con la cadena
+autogenerada de Behance ("patrones: arte digital y estilo.").
+
+**Curé mirando la obra, no los metadatos.** Los raw están en `vol/*/raw/`. Eso
+cambia lo que se puede afirmar: `archivo` no es "sigilos generativos" a secas —
+es fotografía de arquitectura espejada hasta volverse mandala, con vigas y
+cables todavía reconocibles.
+
+**El hallazgo:** `tribu`, `disco-solar` y `achroma` comparten UNA gramática
+—greca escalonada, meandro, rombo con centro, trazo con grano de bordado— sobre
+tres soportes. Y en `achroma` la corona cierra un anillo alrededor de un disco
+VACÍO: un eclipse hecho con vocabulario textil, que es el Nigredo del atlas.
+
+**Seis volúmenes con nombre en MAPUDUNGUN** (Wenu Mapu, Wenü Mapü Online,
+Weñelfe, TranaluÜkai, YAYENTRU, tribu) quedan con `requiere_fuente_mapuche:
+true` y SIN GLOSA. El atlas pide "mapuche preciso" y la instrucción era usar
+`sources/` tal cual; `sources/` no está en este clon. No invento traducciones.
+
+### Carril 2 · AUDITORÍA VISUAL (read-only, `src/` sin tocar)
+
+`AUDIT-VISUAL.md` con 10 hallazgos y capturas en `docs/auditoria/2026-08-01/`.
+**Desktop 1440 está bien**; todo lo grave es móvil y anchos intermedios.
+
+**V-01 (crítico), con causa raíz:** la obra se sale de su panel y tapa CINCO
+secciones del dossier. Está en el choque entre `.kx-lam { height:100dvh;
+overflow:hidden }` (línea ~349) y, bajo el media query de 1000px,
+`.kx-lam__p { overflow:visible }` + `.kx-lam__p--obra { min-height:50vh }`
+(~685-686).
+
+**Y la variable es la ALTURA, no el ancho** — eso es lo accionable:
+390×900 solapa, 390×1800 no. La prueba de re-auditoría son esas dos capturas.
+
+**V-02 (crítico):** desbordes horizontales que cortan cosas que importan — el
+botón ENTER de works queda en "ENT", la escena 06·RETURN no se ve, PREV queda
+en "‹ PRE".
+
+**V-08, que NO reporté como defecto a propósito:** el fondo casi negro de las
+siete escenas es canon. Ya estaba verificado 6/7 sobre 85% de píxeles oscuros.
+Lo anoté para que nadie lo "arregle" subiendo el brillo.
+
+### [MINI] Dos errores míos, cerrados
+
+**V-06:** curé `tribu` mirando `tribe-01` cuando el hero es `patrones-01`. El
+volumen tiene DOS series y describí la que no se ve. Reescrito, verificado.
+
+**V-10, que es el que más me interesa:** al reescribirlo, el dev server SEGUÍA
+SIRVIENDO EL TEXTO VIEJO. Casi reporto "arreglado" mirando una captura
+obsoleta. Lo que lo evitó fue comparar lo servido (`curl`) contra el disco
+(`python`) — decían cosas distintas. Hay que reiniciar el dev server después de
+tocar contenido.
+
+Queda como regla en el audit, y va contra la intuición de "verificá con
+captura": **una captura no prueba nada por sí sola si la fuente puede estar
+cacheada.**
+
+### Techo de ficha
+La primera reescritura de `tribu` tenía 652 caracteres y dejaba el inglés
+truncado en el panel. **~480 por idioma** es el techo práctico. Vale para las 36
+restantes si COWORK quiere ampliarlas.
+
+### Pendiente
+· El visor del libro: no existe ruta en este clon. Si está en la rama, no lo veo.
+· Medición real de contraste (V-07): a ojo no alcanza.
+· Un teléfono de verdad: todo esto es headless, y `100dvh` cambia con la barra
+  del navegador.
+· El blocker de git sigue: 12º intento. La llave del mini es deploy key de
+  `sinergia-industrial`, no de `wenu-frontend`.
