@@ -18,6 +18,7 @@ import { KdxThresholdPortalRuntime } from "../../../kodex/threshold-portal/runti
 import { VIAJE, siguiente, anterior } from "../../../lib/kodex/viaje";
 // El ojo se ENSAMBLA desde el shader que ya existe. No se reescribe.
 import OJO_FRAG from "../../../kodex/shaders/capitulo/observation-eye.frag?raw";
+import CORREDOR_FRAG from "../../../kodex/shaders/lab/split-corridor.frag?raw";
 
 /**
  * Organismo de fase 1.
@@ -225,11 +226,53 @@ const montar = () => {
       return;
     }
 
+    // DESCENT · el corredor queda DESACTIVADO a propósito, ver B4 en
+    // PROGRESS.md: `split-corridor.frag` ya compila y corre en este motor
+    // (hizo falta traducir su `#version 330 core`), pero entrega tan poca luz
+    // que la escena se lee negra. Es un problema de calibración del shader, no
+    // del hospedador, y merece tiempo propio. Mientras tanto DESCENT usa el
+    // organismo de gesto, que SÍ se ve: una escena negra es peor que un
+    // placeholder honesto.
+    if (false && e.id === "descent") {
+      core = new KdxCore(campo, {
+        organismo: CORREDOR_FRAG,
+        // CRT SCAN suave: el corredor es un tubo, y las líneas del tubo lo
+        // dicen mejor que cualquier otra cosa.
+        cadena: [{ id: "crt-scan", mix: 0.5 }],
+        seed: 3,
+        uniformes: () => ({
+          // Este shader quedó anotado hace horas como "compila pero sale
+          // demasiado oscuro". La causa no era el shader: era que corría bajo
+          // una cadena de grade que aplastaba su salida. Acá se le da su
+          // ganancia propia — que es la calibración por shader que el problema
+          // pedía, no un número al azar.
+          u_intensity: 2.2,
+          u_branchBias: 0.35,
+          u_branchPulseAge: 0.0,
+        }),
+      });
+      return;
+    }
+
     core = new KdxCore(campo, {
       organismo: ORGANISMO_BASE,
       cadena: [{ id: "crt-scan", mix: 0.55 }],
       seed: GESTO_N[e.gesto] ?? 1,
     });
+  };
+
+  /**
+   * La escena que se está mirando NO está dormida.
+   *
+   * DORMANT es el estado de una escena a la que nadie llegó. Pero el viaje
+   * monta la escena porque el visitante YA está ahí, así que arrancarla en
+   * DORMANT es mentirle al organismo — y varios shaders del lab multiplican
+   * toda su salida por la consciencia, así que en DORMANT se ven negros.
+   * Entra en AWARE y sube sola desde ahí.
+   */
+  const despertar = () => {
+    core?.irA("AWARE");
+    if (!reducido) setTimeout(() => core?.irA("ACTIVE"), 900);
   };
 
   const ir = (n: number, foco = true) => {
@@ -258,6 +301,7 @@ const montar = () => {
     // El hash deja compartir y recargar una escena concreta.
     history.replaceState(null, "", `#${e.id}`);
     montarCampo();
+    despertar();
     if (foco) raiz.querySelector<HTMLElement>(`[data-vj-escena="${i}"] button`)?.focus({ preventScroll: true });
   };
 

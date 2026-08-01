@@ -185,8 +185,37 @@ export class KdxCore {
     this.raiz.dataset.kdxCoreError = msg.slice(0, 200);
   }
 
+  /**
+   * Traduce un shader de OpenGL de escritorio a WebGL2.
+   *
+   * Los presets del lab vienen en `#version 330 core` — el dialecto de
+   * KodeLife y del OpenGL de escritorio. WebGL2 exige `#version 300 es` y una
+   * declaración de precisión explícita, que el 330 no necesita.
+   *
+   * Sin esto el shader no compila, el constructor se sale, y la escena queda
+   * negra. Y lo peor: **cualquier ajuste posterior de uniforms no cambia
+   * nada**, porque el programa nunca existió — que es exactamente el síntoma
+   * que me hizo perder tiempo acá (dos mediciones idénticas al decimal después
+   * de un cambio que debía moverlas).
+   *
+   * El runtime anterior hacía esta misma traducción; el motor nuevo tiene que
+   * hacerla también, porque la regla del encargo es no reescribir shaders.
+   */
+  private aWebGL2(src: string): string {
+    if (!/^#version\s+330/m.test(src)) return src;
+    let out = src.replace(/^#version\s+\d+\s+\w+\s*$/m, "#version 300 es");
+    if (!/precision\s+\w+p\s+float/.test(out)) {
+      out = out.replace(
+        "#version 300 es",
+        "#version 300 es\nprecision highp float;\nprecision highp int;",
+      );
+    }
+    return out;
+  }
+
   private programa(fragSrc: string): WebGLProgram | null {
     const gl = this.gl!;
+    fragSrc = this.aWebGL2(fragSrc);
     const compilar = (tipo: number, src: string) => {
       const sh = gl.createShader(tipo)!;
       gl.shaderSource(sh, src); gl.compileShader(sh);
@@ -334,6 +363,39 @@ export class KdxCore {
     gl.uniform1f(u("u_progreso"), this.progreso);
     gl.uniform1f(u("u_reduced"), this.reducido ? 1 : 0);
     gl.uniform1f(u("u_seed"), this.seed);
+
+    /**
+     * Alias del contrato ANTERIOR.
+     *
+     * El proyecto tiene dos generaciones de shaders: los del lab hablan
+     * `u_resolution` / `u_audioLow` / `u_state` / `u_reducedMotion`, los nuevos
+     * hablan `u_res` / `u_low` / `u_estado` / `u_reduced`. La regla del encargo
+     * es **no reescribir shaders**, así que el que se adapta es el motor: se
+     * publican los dos juegos de nombres y cada organismo toma los suyos.
+     *
+     * Un uniform que el programa no declara devuelve `null` y se ignora, así
+     * que esto no cuesta nada en los shaders nuevos.
+     */
+    gl.uniform2f(u("u_resolution"), this.cv.width, this.cv.height);
+    gl.uniform1f(u("u_audioLow"), a.low);
+    gl.uniform1f(u("u_audioMid"), a.mid);
+    gl.uniform1f(u("u_audioHigh"), a.high);
+    // `u_state` va en la escala VIEJA (0–2), no en la nueva (0–3).
+    //
+    // Los shaders del lab hacen `awareness = smoothstep(0, 1, u_state)` y
+    // multiplican TODA su salida por eso. Pasarles el índice 0–3 sin traducir
+    // los deja apagados en DORMANT y saturados en OPEN. Se mapea acá, una vez,
+    // en vez de parchear cada organismo.
+    gl.uniform1f(u("u_state"), ORDEN.indexOf(this.estado) * (2 / 3));
+    gl.uniform1f(u("u_progress"), this.progreso);
+    gl.uniform1f(u("u_reducedMotion"), this.reducido ? 1 : 0);
+    gl.uniform1f(u("u_delta"), 1 / 60);
+    // `u_intensity` y `u_quality` no tienen equivalente nuevo: son del runtime
+    // viejo. Se les da el neutro para que el organismo no salga apagado por un
+    // uniform que nadie seteó — que es exactamente cómo un shader "no se ve"
+    // sin dar un solo error.
+    gl.uniform1f(u("u_intensity"), 1);
+    gl.uniform1f(u("u_quality"), 1);
 
     // Los propios del organismo. Se piden al vuelo: puede que dependan del
     // reloj. Un uniform que no existe en este programa devuelve null y se

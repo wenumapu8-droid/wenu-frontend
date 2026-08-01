@@ -93,12 +93,29 @@ y dibuja (antes no dibujaba nada porque yo llamaba `start()` sin el `await
 load()` que el contrato pide, y porque su obra por defecto —`bw-06-alpha.png`—
 no existe en este repo).
 
+### B4 · `split-corridor` entrega casi nada de luz  ⛔ ABIERTO
+Ya NO es un problema de montaje: hizo falta traducir su `#version 330 core` a
+`#version 300 es` (el motor ahora lo hace para cualquier shader del lab), y con
+eso compila y corre — la medición se movió de 10.58 a 10.78. Pero el corredor
+entrega tan poca luz que la escena se lee negra (98.3% oscuro).
+
+Su salida está multiplicada por `awareness = smoothstep(0,1,u_state)` y por
+`openState = smoothstep(1,2,u_state) * u_progress`. Con el motor en ACTIVE eso
+debería abrir. Falta leer el raymarcher entero y ver dónde se pierde la luz —
+es calibración de shader y merece tiempo propio, no un número al azar.
+
+**Mientras tanto DESCENT usa el organismo de gesto**, que sí se ve. Una escena
+negra es peor que un placeholder honesto.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 05:25 — Motor: capa de compatibilidad con el contrato viejo (`u_resolution`,
+  `u_audioLow`, `u_state`…) y **traducción `#version 330 core` → `300 es`**,
+  para poder hospedar los shaders del lab sin reescribirlos. B4 abierto.
 - 04:57 — **Escena 01 PROLOGUE verificada.** 91.5% oscuro, el ojo lee y el
   titular también. Extensión `uniformes` en el motor. B1 sigue bloqueado.
 - 04:27 — **B3 cerrado.** El portal llena el campo. Y apareció un problema de
@@ -138,6 +155,10 @@ organismo es código que ya funciona, y quien se adapta es quien lo aloja.
    `medir()` salía temprano cuando el tamaño "no había cambiado" y así nunca
    creaba los framebuffers. Escena negra, sin error. Un chequeo de salida
    temprana tiene que mirar TODO lo que la función produce, no sólo su entrada.
-5. Chrome headless escribe la captura AL CARGAR, no después de esperar. Todas
+5. **Dos mediciones idénticas al decimal después de un cambio que debía
+   moverlas = el cambio no se está ejecutando.** Me pasó con el corredor: yo
+   ajustaba uniforms de un programa que nunca había compilado. Cuando el
+   número no se mueve, el problema está antes de donde estás mirando.
+6. Chrome headless escribe la captura AL CARGAR, no después de esperar. Todas
    las capturas muestran ~t=1s. Para fotografiar más tarde hay que usar enlaces
    profundos de estado.
