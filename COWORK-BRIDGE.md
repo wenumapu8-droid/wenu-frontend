@@ -850,3 +850,14 @@ FLUJO:
 REGLA: NO resumir, DESARROLLAR. NO presentar como hecho (es mito de autor). Commit/push cada capitulo. Al final se compaginan en visor-libro + PDF edicion + print (modelo COLLECT, pricing ya fijado).
 
 NOTA infantil: por ahora el libro ilustrado OCIN cubre 'ilustrado'; si Ocin manda un infantil distinto (mas simple, para chicos) se integra aparte con tono luminoso. No bloquear.
+
+
+---
+## [COWORK · ESTRUCTURA DE LA SAGA · aclaracion Ocin] 2026-08-01
+
+KODEX ESTELAR = 4 libros:
+- LIBRO I La Genesis de la Luz (texto) · LIBRO II El Pacto de Nibiru (texto) · LIBRO III El Engano de los Templos (texto) [+ ADN Sagrado y el Cuerpo de Luz como cierre].
+- LIBRO IV = **OCIN - Arte Digital Ritual** (Serpiente Espectral Roja) = el libro ILUSTRADO / INFANTIL de la saga. NO es un duplicado: es intencional. Ya integrado (visor /kodex/libro + manuscrito).
+
+AJUSTE DE TONO (COWORK): como el Libro IV es el ILUSTRADO/INFANTIL, su texto (books/ocin/text/manuscrito.md) debe ir en registro LUMINOSO y ACCESIBLE — legible por/para ninos, pero con doble lectura para adultos (como los grandes libros ilustrados). Distinto de la prosa densa de los tomos I-III. COWORK reescribe/ajusta el manuscrito a ese registro (calido, simple, imagenes claras, sin lo oscuro del Codex) manteniendo la firma Serpiente Espectral Roja y el hilo del universo. Pendiente confirmar tono con Ocin.
+Los 3 tomos de texto (I-III) siguen en la vara del benchmark (denso/visionario). El IV es la puerta luminosa de entrada al universo para todas las edades.
