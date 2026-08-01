@@ -96,7 +96,25 @@ Hay que decir algo que el capítulo no dice, y que lo mejora: **casi todo el mun
 
 No hay generación que no haya tenido su crisis, su guerra en algún lugar, su desastre económico, su enfermedad. Si el criterio fuera ése, seríamos todos hijos del eclipse.
 
-Y quizá sea exactamente eso lo que el capítulo quiere decir sin decirlo. Lo veremos en el pliegue.
+Y quizá sea exactamente eso lo que el capítulo quiere decir sin decirlo.
+
+Piénsalo de esta manera. Hay dos formas de leer una frase que le queda bien a todo el mundo.
+
+**La primera es la desconfiada**: si sirve para cualquiera, no dice nada. Es la lectura que se le hace a los horóscopos, y tiene razón cuando la frase se usa para halagar — cuando alguien te lee tu carácter con palabras que le calzan a cualquier persona y tú te reconoces, encantado.
+
+**La segunda es más interesante**: si le queda bien a todo el mundo, quizá sea porque le pasa a todo el mundo, y nadie lo estaba diciendo.
+
+Este capítulo cabe en la segunda, y hay una manera de comprobarlo: fíjate si lo que describe **te hace sentir especial** o **te hace sentir acompañado**.
+
+Si te hace sentir especial —parte de una minoría, distinto de la gente común, portador de algo que otros no tienen— estás en la primera lectura, y el pliegue de este capítulo se ocupa de adónde lleva.
+
+Si te hace sentir acompañado —si al leer *han sentido la soledad cósmica* pensaste *entonces no era sólo yo*— estás en la segunda, y ahí el capítulo hace su mejor trabajo.
+
+Porque lo que describe es real y es masivo: **muchísima gente atraviesa la vida con la sensación de estar a destiempo, de sentir más de lo que corresponde, de haber visto algo que los demás decidieron no mirar.** Casi todos creen que les pasa sólo a ellos. Y esa creencia es la parte que duele — más que la sensación misma.
+
+Un capítulo que le dice a esa gente que hay muchos así no está fabricando una élite.
+
+Está haciendo lo contrario.
 
 ### Vinieron a desmontarlos
 
@@ -111,6 +129,22 @@ Y acá: **desmontarlos**.
 No es una contradicción. Es la consecuencia. Después de nueve capítulos sacando la palabra del edificio, alguien tiene que ocuparse del edificio que quedó vacío.
 
 **A romper las formas que ya no vibran.**
+
+Y hay que decir algo sobre esa vocación, porque es la más incómoda de repartir y la que más se malinterpreta.
+
+**Desmontar no es lo mismo que romper.**
+
+Se desmonta lo que está armado con piezas, y se desmonta **sabiendo cómo estaba armado**. Quien desmonta un motor puede volver a montarlo. Quien lo rompe, no.
+
+Y hay una diferencia de temperatura que se nota enseguida en cualquiera que haga una de las dos cosas: **quien desmonta conoce la pieza que saca**. Sabe para qué servía, sabe quién la puso, y muchas veces le tiene respeto. Quien rompe no necesita saber nada.
+
+Eso separa a dos clases de persona que desde afuera se parecen.
+
+Está quien cuestiona una institución después de haberla entendido, y puede decir exactamente qué parte ya no funciona y por qué. Esa persona es peligrosa para la institución y le sirve al mundo.
+
+Y está quien la ataca sin haberla mirado nunca, porque atacar da identidad. Esa persona no está desmontando nada: está haciendo ruido en un edificio que no conoce.
+
+Este capítulo le habla a la primera, y hay que decirlo porque le va a llegar a las dos.
 
 **Que ya no vibran** es la precisión que impide que esto sea una licencia para romper cualquier cosa. No dice *las formas viejas*. No dice *lo que a ti no te gusta*.
 
@@ -149,6 +183,20 @@ Los puntos suspensivos antes de *siguen amando* son el capítulo entero.
 Porque lo que se está describiendo es lo raro: **la reacción no esperada**. Lo esperable, después de la soledad y el rechazo, es cerrarse — y el capítulo anterior explicó con detalle por qué y cómo se cierra un pecho.
 
 *Y aún así* es la conjunción de la gente que fue lastimada y no se volvió dura. Que las hay, y son las que sostienen todo.
+
+Y vale detenerse en las tres cosas que se enumeran antes, porque están en un orden que va de lo más grande a lo más específico y el tercero es el que menos se nombra.
+
+**La soledad cósmica** no es estar solo. Se puede tener gente alrededor, una familia entera, una casa llena, y sentir eso. Es la sospecha de que lo que uno es no cabe del todo en ninguna conversación disponible — de que hay una parte que no tiene con quién.
+
+**El rechazo** es más concreto y más simple: alguien no te quiso. Duele de otra manera, más limpia, y suele tener nombre y fecha.
+
+**Ser malinterpretado** es el tercero, y es el que casi nunca aparece en estas listas porque no suena grave. Y es, para mucha gente, el peor de los tres.
+
+Porque el rechazo al menos sabe a quién rechaza. Ser malinterpretado es que te quieran —o te odien— por alguien que no eres. Es que se te agradezca por un motivo equivocado, o que se te acuse de una intención que no tuviste, y no poder explicarlo sin empeorarlo.
+
+Es la soledad más específica que existe: **estar rodeado de gente que tiene una versión tuya y la trata bien**.
+
+Y explica por qué este capítulo pone el espejo en su ritual. Después de años de ser una versión ajena en la cabeza de otros, mirarse tres minutos sin nadie mirando es lo más raro y lo más necesario.
 
 **Porque ellos recuerdan que la luz más pura se enciende en la noche más negra.**
 
