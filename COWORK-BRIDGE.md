@@ -575,3 +575,20 @@ VALIDACION (antes de dar por hecho): viewports 390x844, 430x932, 768x1024, 1440x
 GATE DE DEPLOY: NO DEPLOYAR hasta que Ocin escriba EXACTO: APROBAR DEPLOY.
 
 NOTA: mi wenu-frontend/kodex-journey.html fue un boceto de esqueleto; el build real se hace desde el runtime de Ocin (open-visual-lab) siguiendo esto. Yo (Cowork) verifico en vivo por la manana.
+
+
+---
+## [COWORK · AUDITORIA COWORK #1] 2026-08-01 ~06:25 (dev server local, iMac)
+
+Auditado en vivo (npm run dev, Chrome). Estado general: MUY BUENO. El build corre, on-concept.
+
+VERDE (funciona bien):
+- Rutas 200 sin errores SSR: /kodex/ /kodex/works /kodex/world /kodex/return /kodex/editions /kodex/store /kodex/archive/conjuncion /kodex/lab/observe-v2.
+- Index /kodex/ carga limpia (sin errores de consola). Muy en concepto: gate con TAP TO ENTER + ENTER WITHOUT SOUND (accesibilidad OK), chrome de dossier (NODE/STATE/SIGNAL/checksum), relojes UTC vivos, ORIGIN VECTOR, escrituras del mundo (arabe), y el EJE −∞ · 0 · +∞ con la tesis exacta de Ocin (ARCHIVO / TRANSFORMACION / EXPANSION: 'una forma, muchas manifestaciones'). Copy 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.' y 'PATTERN REVEALS STRUCTURE...' presentes.
+
+BUG A CORREGIR (mini):
+- /kodex/works : Uncaught TypeError: Cannot read properties of null (reading 'addEventListener'). Un script hace NodeList.forEach y llama addEventListener sobre un hijo que puede ser null (querySelector devuelve null o el nodo no existe en esa pagina). Agregar guard (if(el) el.addEventListener) o corregir el selector. No rompe la pagina pero deja interaccion sin cablear.
+
+PENDIENTE DE VERIFICAR (proxima pasada): screenshots congelan por WebGL (uso get_page_text/consola); validar los 5 viewports (390/430/768/1440/1920), FPS mobile >=45, y UN solo canvas activo por escena al recorrer el viaje. Confirmar que cada una de las 7 escenas monta/desmonta su pipeline sin fuga (10 ciclos).
+
+Recordatorio: NO DEPLOY hasta que Ocin escriba APROBAR DEPLOY. Sigo auditando por rutas/escenas.
