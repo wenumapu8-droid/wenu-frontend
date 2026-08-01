@@ -342,5 +342,115 @@ export const ANCLAS = [
   { n: "SIGNAL ANCHOR", tipo: "qr" },
 ];
 
-/** El motor recorre esto. Agregar un capítulo es agregar una línea. */
-export const CAPITULOS: CapituloMotor[] = [SIGNAL_BLOOM];
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TANDA 01 · SPECIMEN SKULL · doc KX-7A19-SK01
+   ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * El espécimen.
+ *
+ * **Comparte Gate ID con THRESHOLD PORTAL: KX-7A19.** No es coincidencia de
+ * nomenclatura — es la conexión interna del archivo: el cráneo cruzó ese
+ * umbral, y las dos escenas se enlazan por ese dato. Lo mismo el ∞ y el sello
+ * del árbol, que recurren en THRESHOLD, SIGNAL BLOOM y acá: son el sello común
+ * del sistema, no un adorno repetido.
+ */
+export const SPECIMEN_SKULL: CapituloMotor = {
+  slug: "specimen-skull",
+  titulo: "SPECIMEN SKULL",
+  subtitulo_en: "BIO-VESSEL",
+  subtitulo_es: "CRÁNEO ESPECIMEN",
+  tanda: "TANDA-01",
+  archiveId: "KX-7A19-SK01",
+  fecha: "2025-05-22",
+  sysVer: "v2.0.0",
+  build: "T01A-SKULL",
+  acento: "#FF2A2A",
+  apoyo: "#00C5FF",
+  sello: "B",
+  selloTexto: "REGISTRO ② · ESPÉCIMEN DE FICCIÓN — NO ES ANATOMÍA",
+  plano: "craneo",
+  paleta: ["#FF2A2A", "#FF5C5C", "#00C5FF", "#7FFF3C", "#FFFFFF", "#8892A0"],
+  seedHash: "KX-7A19-SK01",
+  archivo: "BLACK ARCHIVE",
+  categoria: "CYBER-ORGANIC PATTERN",
+  clase: "ARCHIVE VESSEL",
+  clearance: "C-4",
+};
+
+/** El portal por el que entró. La conexión es un dato, no una nota al pie. */
+export const GATE_ID = "KX-7A19";
+
+/** Panel 03 · TREATMENT MODES. Cinco lecturas del MISMO cráneo. */
+export const TRATAMIENTOS_SK = [
+  { n: "X-RAY",    color: "#FF2A2A", lee: "ESTRUCTURA ÓSEA · CAPA BASE" },
+  { n: "LINEWORK", color: "#8892A0", lee: "TRAZO PURO · SIN RELLENO" },
+  { n: "BITMAP",   color: "#FFFFFF", lee: "UN BIT POR CELDA" },
+  { n: "THERMAL",  color: "#FF5C5C", lee: "SEÑAL COMO TEMPERATURA" },
+  { n: "GLITCH",   color: "#00C5FF", lee: "RUPTURA · CANAL SEPARADO" },
+];
+
+/** Panel 05 · SCAN PROTOCOLS. La interacción del capítulo. */
+export const PROTOCOLOS_SK = [
+  { n: "SCAN",    lineas: ["Sweep the layers.", "Map the vessel."] },
+  { n: "ISOLATE", lineas: ["Drop the field.", "Specimen alone."] },
+  { n: "REVEAL",  lineas: ["Open the matrix.", "Surface the mesh."] },
+  { n: "GLITCH",  lineas: ["Break the read.", "Signal fractures."] },
+  { n: "ARCHIVE", lineas: ["Seal the record.", "Return to ember."] },
+];
+
+/** Nodos de anatomía que el escáner mide. */
+export const ANATOMIA = [
+  { n: "FRONTAL", v: "97.6" },
+  { n: "ORBITAL", v: "94.1" },
+  { n: "NASAL",   v: "88.7" },
+  { n: "JAW",     v: "91.3" },
+];
+
+/** Panel 04 · lecturas. Las que tickean llevan `vivo`. */
+export const LECTURAS_SK = [
+  { k: "SIGNAL LOCK", v: "97.6", u: "%", vivo: true, amp: 0.5 },
+  { k: "NEURAL INTERFACE", v: "82.0", u: "%", vivo: true, amp: 1.4 },
+  { k: "SIGNAL INTEGRITY", v: "97.6", u: "%", vivo: true, amp: 0.4 },
+  { k: "CORE FREQ", v: "13.610", u: " THz", vivo: true, amp: 0.008 },
+  { k: "ANOMALY", v: "HIGH", u: "", vivo: false },
+  { k: "THREAT", v: "C-4", u: "", vivo: false },
+];
+
+/** Panel 09 · notas del expediente, transcritas del plano. */
+export const NOTAS_SK = [
+  "Subject displays bio-synthetic integration far beyond known baseline.",
+  "Cranial matrix acts as both processor and signal amplifier.",
+  "Unknown origin. Non-human.",
+  "Extreme adaptive behavior in hostile environments.",
+];
+
+/** Panel 10 · etiquetas de archivo. */
+export const TAGS_SK = [
+  "SKULL", "CYBER-ORGANIC", "CRANIAL_MATRIX", "HOSTILE",
+  "ADAPTIVE", "UNKNOWN_ORIGIN", "HIGH_SIGNAL", "BLACK_ARCHIVE",
+];
+
+/**
+ * Las escenas hermanas.
+ *
+ * El plano pide enlace explícito entre capítulos: el cráneo cruzó el umbral de
+ * KX-7A19, y su GLITCH es el mismo vocabulario que el de SIGNAL BLOOM. Enlazar
+ * es lo que convierte tres láminas sueltas en un archivo.
+ */
+export const HERMANAS_SK = [
+  { url: "/kodex/", titulo: "THRESHOLD PORTAL", razon: `MISMO GATE ID · ${GATE_ID}` },
+  { url: "/kodex/capitulo/signal-bloom/", titulo: "SIGNAL BLOOM", razon: "GLITCH · MISMO VOCABULARIO" },
+  { url: "/kodex/capitulo/cosmology-core/", titulo: "COSMOLOGY CORE", razon: "SELLO ∞ · ARCHIVO COMÚN" },
+];
+
+/**
+ * El motor recorre esto. Agregar un capítulo es agregar una línea.
+ *
+ * Va al FINAL del archivo a propósito: un `const` no se iza, así que declarar
+ * la lista antes que los capítulos que la componen revienta con un error de
+ * zona muerta al evaluar el módulo — y revienta el build entero, no sólo la
+ * página.
+ */
+export const CAPITULOS: CapituloMotor[] = [SIGNAL_BLOOM, SPECIMEN_SKULL];

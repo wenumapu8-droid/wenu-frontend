@@ -674,3 +674,61 @@ punto por punto. Tres huecos reales, corregidos:
 No verifiqué contra el **THRESHOLD PORTAL vivo aprobado**: ese archivo no está
 en el mini (`reference/kodex-threshold-live-APPROVED.html` no existe acá). Si
 lo copian, recalibro contra él.
+
+---
+
+## 2026-08-01 · claude-mini · CAPÍTULO · SPECIMEN SKULL (plano 54981)
+
+`/kodex/capitulo/specimen-skull/` · captura `~/kodex-work/capturas/cap-specimen-skull.png`
+
+**El motor ahora ramifica por plano.** `[slug].astro` dejó de dibujar: elige.
+El chrome, la transición, la sonda y el marco son comunes; cada póster tiene su
+anatomía y vive en su componente (`PlanoBloom.astro`, `PlanoCraneo.astro`).
+Meterlos a todos en un condicional gigante sería tener un motor con forma de
+switch. SIGNAL BLOOM se extrajo a componente en el mismo movimiento.
+
+### El hero
+
+`cranial-scan.frag`. **Por qué 2D y no raymarching:** el plano no muestra un
+cráneo 3D, muestra una LÁMINA DE ESCANEO frontal — wireframe de rayos X. Eso se
+construye con distancias en el plano (bóveda, pómulos, órbitas, apertura nasal,
+maxilar, mentón, arcada dentaria) atravesadas por una retícula triangular. Sale
+más fiel al póster y corre en cualquier máquina.
+
+Respira con los graves, "gira" con una inclinación que corre las capas, la línea
+de escaneo barre de arriba abajo, los nodos de anatomía (frontal/orbital/nasal/
+jaw) laten con los agudos, anillos concéntricos detrás.
+
+**Dos ejes independientes**, que es lo que el plano pide:
+- 5 TRATAMIENTOS (panel 03): X-RAY → LINEWORK → BITMAP → THERMAL → GLITCH.
+  Re-renderizan **el mismo cráneo** — `u_modo` entra al final, sobre la señal ya
+  construida. No son cinco dibujos.
+- 5 PROTOCOLOS (panel 05): SCAN → ISOLATE → REVEAL → GLITCH → ARCHIVE.
+
+Cruzarlos es la lectura que el póster propone: el mismo protocolo en cinco
+tratamientos.
+
+### La conexión interna, como dato
+
+**Gate ID KX-7A19 — el mismo que THRESHOLD PORTAL.** El cráneo cruzó ese
+umbral, y eso está en la cabecera como campo, no como nota. El panel
+CROSS-REFERENCE enlaza las tres escenas **con el motivo escrito**: sin el
+porqué, un enlace es sólo un menú.
+
+- THRESHOLD PORTAL → MISMO GATE ID · KX-7A19
+- SIGNAL BLOOM → GLITCH · MISMO VOCABULARIO
+- COSMOLOGY CORE → SELLO ∞ · ARCHIVO COMÚN
+
+El ∞ de la frente se dibuja **después** del barrido y con peso propio: es el
+sello común del archivo, y si la línea de escaneo se lo lleva por delante se
+pierde justo la marca que conecta las tres escenas.
+
+### Dos cosas que aprendí acá
+
+1. **Sin dientes no hay cráneo.** El contorno con bóveda, órbitas y nariz se
+   leía como una silueta redondeada cualquiera. La arcada dentaria es lo que
+   dice "cráneo" antes que ninguna otra parte.
+2. **`CAPITULOS` tiene que ir al final del archivo.** Un `const` no se iza, así
+   que declarar la lista antes que los capítulos que la componen revienta con
+   zona muerta al evaluar el módulo — y revienta el build entero, no sólo la
+   página. Queda anotado en el código.
