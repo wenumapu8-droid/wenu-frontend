@@ -117,6 +117,7 @@ class Ritual {
   async ir(url: string): Promise<void> {
     if (this.corriendo || !url) return;
     this.corriendo = true;
+    try { sessionStorage.setItem("kdx-ritual-pending", "1"); } catch (_) {}
 
     // Antes de colapsar, la escena se abre. Es el momento en que el portal, el
     // campo y el sonido se van juntos -- un solo estado, tres capas.
@@ -193,7 +194,12 @@ const montar = () => {
     { capture: true },
   );
 
-  void ritual.recomponer();
+  let pendiente = false;
+  try {
+    pendiente = sessionStorage.getItem("kdx-ritual-pending") === "1";
+    if (pendiente) sessionStorage.removeItem("kdx-ritual-pending");
+  } catch (_) {}
+  if (pendiente) void ritual.recomponer();
 };
 
 if (document.readyState === "loading") {
