@@ -1048,6 +1048,13 @@ void main() {
             ),
             vec3(0.92)
         );
+    // FIX · `u_intensity` estaba declarado y nunca usado. Conectarlo es cumplir
+    // el contrato que el shader publica: un uniform que no responde manda a
+    // buscar el problema donde no está. Tercer y cuarto archivo del lab con el
+    // mismo defecto.
+
+    color *= clamp(u_intensity, 0.0, 4.0);
+
 
     fragColor =
         vec4(

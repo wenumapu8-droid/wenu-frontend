@@ -274,8 +274,11 @@ const montar = () => {
      * recordar.
      */
     const DESDE_LAB: Record<string, { frag: string; fx: PasoFx[]; u?: Record<string, number> }> = {
-      machine:   { frag: ESTRUCTURA_FRAG, fx: [{ id: "glitch-fracture", mix: 0.30 }], u: { u_intensity: 1.6 } },
-      cosmology: { frag: ORBITA_FRAG,     fx: [{ id: "chromatic-split", mix: 0.45 }], u: { u_intensity: 1.8 } },
+      // Las intensidades salen de MEDIR contra el canon (~85% de fondo oscuro),
+      // no de tantear. En MACHINE hubo que conectar antes `u_intensity`, que
+      // `impossible-structure` declaraba sin usar.
+      machine:   { frag: ESTRUCTURA_FRAG, fx: [{ id: "glitch-fracture", mix: 0.30 }], u: { u_intensity: 0.55 } },
+      cosmology: { frag: ORBITA_FRAG,     fx: [{ id: "chromatic-split", mix: 0.45 }], u: { u_intensity: 0.7 } },
       /**
        * RETURN salía al 66% de fondo oscuro, por debajo del canon (~85%).
        *

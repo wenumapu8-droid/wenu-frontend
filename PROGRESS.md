@@ -384,12 +384,40 @@ silencio. Verificado: el error desapareció de la consola.
 `Uncaught (in promise) #<Event>` propio de `works.astro`. Otro defecto, otra
 tarea.
 
+### Barrido: `u_intensity` declarado y sin usar ✅
+Revisé los once shaders del lab en vez de descubrirlo de a uno. **Cuatro tenían
+el mismo defecto**: `split-corridor`, `ripple-floor`, `impossible-structure` y
+`wrinkled-reality` declaraban `u_intensity` y nunca lo aplicaban.
+(`network-vortex` ni lo declara — eso no es defecto, es no tener control.)
+
+Conectados los cuatro, todas las escenas se pudieron llevar al canon **midiendo
+y no tanteando**:
+
+| escena     | antes  | después |
+|------------|--------|---------|
+| DESCENT    | 61.9 % | **88.1 %** |
+| MACHINE    | 75.6 % | **89.8 %** |
+| COSMOLOGY  | 80.9 % | **97.4 %** |
+| RETURN     | 66.9 % | 73.7 %  |
+| PROLOGUE   | 91.5 % | 93.9 %  |
+| THRESHOLD  | ~72 %  | 76.5 %  |
+| ARCHIVE    | 94.4 % | 94.4 %  |
+
+Verificado que ninguna se apagó: MACHINE conserva su estructura imposible y
+COSMOLOGY sus anillos y nodos.
+
+**El costo real de este defecto no era el brillo.** Era que cada vez que uno
+ajustaba el número y no pasaba nada, se ponía a buscar el problema en el
+hospedador, en la cadena o en el estado. Me hizo perder tres vueltas.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 11:21 — **Barrido de `u_intensity`**: cuatro shaders con el mismo defecto.
+  MACHINE 89.8 %, COSMOLOGY 97.4 %. Todas las escenas al canon o cerca.
 - 11:03 — **DESCENT al canon (88.1 %)** conectando `u_intensity`, que estaba
   declarado y nunca usado. 6º intento de `git fetch` rechazado.
 - 10:50 — **Suelo del texto**: velo anclado al copy y no al campo. Las tres
