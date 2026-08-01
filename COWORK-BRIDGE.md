@@ -795,3 +795,25 @@ REGLA DE LOOP: cuando el backlog quede vacio, elegi la escena/pieza MENOS pulida
 4. copy.json completo (microtext library, 6 manifiestos, mantra OBSERVA-DECODIFICA-PARTICIPA-PERPETUA).
 5. Metadata de assets free-download (wallpapers de laminas, sample glyph pack) por volumen.
 REGLA DE LOOP: cuando termines, TEJE las resonancias (aristas de la latiz) entre volumenes que aun no linkean, y completa curaduria faltante; nunca quedes idle.
+
+
+---
+## [COWORK · CORRECCION CANON · KODEX ESTELAR (con K), entrelazado] 2026-08-01
+
+Ocin corrige: la trilogia/saga NO es Codex Estelar aparte — es **KODEX ESTELAR**, la COLUMNA MITICA del propio universo KODEX. Sigue siendo registro MITO/FICCION (paleta neon, nunca presentado como hecho, jamas mezclado con mapuche documentado), PERO narrativamente entrelazado con las escenas/organismos de KODEX.
+
+OPENCODE:
+1. RENOMBRAR en todo el contenido/manifest/curaduria: 'Codex Estelar' -> 'KODEX ESTELAR'. Titulos, notas, source, colecciones. (Los ids lore-* pueden quedar; cambiar el nombre visible.)
+2. ENTRELAZAR (links/resonancias) los lore con las escenas KODEX — ya resuenan solos, cablearlo explicito:
+   - lore-1-el-vacio-fertil <-> eje -infinito (THRESHOLD / RETURN) — el vacio fertil = el -inf.
+   - lore-2-el-portal-del-corazon <-> THRESHOLD PORTAL.
+   - lore-2-el-retorno-del-sol-interior <-> RETURN + We Tripantu (eco, sin fundir registros).
+   - lore-4-respiracion-primordial <-> ARCHIVE TREE (BREATHE).
+   - lore-1-razas-semilla <-> COSMOLOGY CORE / razas estelares.
+   - lore-1-geometria-sagrada / mapa-del-alma <-> 4-PATRON.
+3. Completar los ~12 resumen_poetico faltantes (29/41). Fuente PDFs (misma saga, re-staged en Obsidian/estrategia/kodex-estelar-trilogia-v2 — duplicado, NO re-extraer, ya estan los 41 lore).
+
+MINI: donde aparezca el nombre de la saga en UI, usar 'KODEX ESTELAR'. El arco de ficcion se presenta como parte del cosmos KODEX (mismo mundo), con su marca de registro (neon + etiqueta mito) siempre visible.
+
+## PENDIENTE NUEVO: LIBRO INFANTIL ILUSTRADO
+Ocin tiene un LIBRO ILUSTRADO INFANTIL (para ninos) para integrar — otro volumen-libro tipo OCIN pero registro/tono INFANTIL (suave, calido, sin lo oscuro del Codex; paleta luminosa). Cuando Ocin mande el PDF: mismo pipeline (extraer paginas a webp + visor-libro paginado + volumen en manifest), con su propio tono y su lugar (posible puerta luminosa aparte, o dentro del ARCHIVE marcado 'para ninos'). COWORK escribira/curara el texto si hace falta.
