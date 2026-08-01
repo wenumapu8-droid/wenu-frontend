@@ -23,8 +23,8 @@ Un ítem que compila y no se ve NO está hecho.
 - [ ] **4 · ARCHIVE interior** — grid de specimens, dossier, zoom, metadata,
       edition/certificate/trading-card
 - [~] **5 · Acabados** — sello SVG (árbol + ∞) en el chrome, reloj vivo con
-      horas espejo (11:11, 4:44…), micro-interacción en la acción. Falta:
-      mensajes decodables, hover sobre specimens ampliado.
+      horas espejo (11:11, 4:44…), micro-interacción en la acción y **barcode
+      decodable**. Falta: hover sobre specimens ampliado.
 - [~] **6 · Validación** — los cinco anchos verificados con captura y sin
       errores de consola. Falta medir FPS en móvil real y los 10 ciclos de
       fuga, que necesitan un dispositivo o instrumentación de memoria.
@@ -214,12 +214,25 @@ respira sin que nada quede huérfano.
 memoria. No los puedo medir con captura headless — necesitan dispositivo o
 instrumentación de memoria. Anotado, no disimulado.
 
+### Mensaje decodable ✅
+El barcode del chrome **codifica texto de verdad**: 7 bits ASCII por carácter,
+barra ancha = 1, angosta = 0. Hoy dice `KODEX`.
+
+**Verificado decodificándolo**, no afirmándolo: se extraen los `width` del HTML
+servido, se convierten a bits y se leen los caracteres. Salió `'KODEX'`.
+
+La regla va publicada en el DOM (`data-clave="7-bit ascii · ancha=1
+angosta=0"`). Es deliberado: *decodable* no es *adivinable*. Un secreto sin
+llave no es un secreto, es ruido — y un barcode de barras al azar sería
+decoración disfrazada de dato, que es justo lo que este proyecto no hace.
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 08:50 — **Barcode decodable**, verificado decodificándolo desde el HTML.
 - 08:20 — **Validación de los cinco anchos.** Todos ≥88% oscuro, cero errores.
 - 07:50 — **Acabados, primera tanda**: sello, reloj con horas espejo, micro.
 - 07:22 — **Tabla de tratamientos medida** (`docs/KDX-FX-MEDICIONES.md`).

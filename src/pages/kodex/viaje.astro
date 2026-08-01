@@ -31,6 +31,23 @@ import { leerManifiesto, resolver } from '../../lib/kodex/volumenes';
  * un manifiesto suelen ser de la misma serie, y una grilla que muestra doce
  * variaciones de lo mismo miente sobre lo que hay en el archivo.
  */
+/**
+ * El barcode del chrome CODIFICA TEXTO. No es textura.
+ *
+ * "Mensajes ocultos decodables" quiere decir que se pueden decodificar de
+ * verdad: cada carácter va en 7 bits ASCII, y cada bit es una barra —  ancha
+ * para 1, angosta para 0. Quien mida los anchos recupera la palabra.
+ *
+ * Un barcode de barras al azar sería decoración disfrazada de dato, que es
+ * exactamente lo que este proyecto no hace. La regla queda publicada en el DOM
+ * (`data-clave`) para que sea *decodable* y no *adivinable*: un secreto sin
+ * llave no es un secreto, es ruido.
+ */
+const MENSAJE = 'KODEX';
+const BITS = [...MENSAJE].flatMap((ch) =>
+  ch.charCodeAt(0).toString(2).padStart(7, '0').split('').map((b) => b === '1'),
+);
+
 const vols = resolver(await leerManifiesto()).filter((v) => v.hero);
 const paso = Math.max(1, Math.floor(vols.length / 12));
 const specimens = vols.filter((_, i) => i % paso === 0).slice(0, 12);
@@ -70,11 +87,11 @@ const specimens = vols.filter((_, i) => i % paso === 0).slice(0, 12);
           <line x1={120 + i * 20} y1="876" x2={120 + i * 20} y2={i % 10 === 0 ? 862 : 870} />
         ))}
       </g>
-      {/* Barcode: el sello del archivo. Anchos irregulares y deterministas —
-          un barcode de barras iguales se lee como textura, no como código. */}
-      <g class="vj__barcode" fill="currentColor">
-        {Array.from({ length: 34 }).map((_, i) => (
-          <rect x={1180 + i * 7} y="34" width={(i * 37) % 5 < 2 ? 3 : 1.4} height="22" />
+      {/* Barcode: el sello del archivo, y un mensaje real.
+          Ancha = 1, angosta = 0, siete bits por carácter. */}
+      <g class="vj__barcode" fill="currentColor" data-clave="7-bit ascii · ancha=1 angosta=0">
+        {BITS.map((bit, i) => (
+          <rect x={1160 + i * 7} y="34" width={bit ? 3.4 : 1.3} height="22" />
         ))}
       </g>
     </svg>
