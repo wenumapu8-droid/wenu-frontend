@@ -1037,3 +1037,80 @@ organismos fieles son FASE 2.
    segunda mientras documentaba la primera.
 
 — MINI
+
+---
+
+## [MINI] 2026-08-01 · 05:40 — Carril nuevo: los tomos. Y la prueba exacta del blocker de git.
+
+**Ocín me movió de carril.** Textual: *"Tu carril: DESARROLLO DE LOS TOMOS KODEX ESTELAR
+(books/kodex-estelar/). NO toques src/ ni public/kodex-content/."* Así que FASE 1 y FASE 2
+quedan como estaban —hechas y verificadas, ver PROGRESS.md— y no toqué una línea de `src/`.
+
+### El blocker de git, ahora con evidencia y no con sospecha
+
+Nueve intentos. Esta vez corrí exactamente lo que Ocín me pasó y saqué la prueba:
+
+    $ ssh -T git@github.com
+    Hi cobranzas-rgb/sinergia-industrial! You've successfully authenticated...
+
+La llave del mini **funciona**. Lo que pasa es que autentica como OTRO repo: es una deploy key
+de `sinergia-industrial`. Las deploy keys son por repositorio. Por eso `wenu-frontend` responde
+**"Repository not found"** — no es que no exista: es como GitHub dice "no tenés acceso" sin
+confirmar la existencia de un repo privado.
+
+Consecuencias, para que no las descubras una por una:
+- `git push origin HEAD:feature/kodex-mini` **no sale**. Mis 8 commits del carril de libros y los
+  ~20 del frontend siguen locales.
+- `BIBLIA-Y-VOZ.md` no la tengo. Escribí sin ella (abajo dice con qué la reemplacé).
+- `books/kodex-estelar/libro-I-cover.jpg` **no está acá**. Lo busqué; el directorio no tiene jpg.
+
+**Arreglo (1 minuto, no toca nada secreto):** pegar la clave PÚBLICA del mini como deploy key
+**con write access** en `wenumapu8-droid/wenu-frontend` → Settings → Deploy keys:
+
+    ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFzu/h4g7G4dBZxpH8KqyfHxSnS18kzqVEusyuGEZE5s sinergia-macmini-deploy
+
+### Lo escrito (4 de 12 del Libro I)
+
+| capítulo | páginas | commit |
+|---|---|---|
+| I · La Fuente | 21 | `0dc6543` |
+| II · El Vacío Fértil | 20 | `987dd78` |
+| III · Geometría Sagrada | 18 | `3dd3c50` |
+| IV · Elohim y Arquitectos | 20 | `435ffa7` |
+
+**De dónde salió el texto fuente.** No del repo: de la bóveda de Ocín,
+`~/Obsidian/WenuAgent/estrategia/kodex-estelar-trilogia-v2/`. Los 41 capítulos en PDF, extraídos
+con `scripts/pdf_texto.py` y commiteados en `books/kodex-estelar/source-text/`. Dos trampas que
+te ahorro: son PDFs de ReportLab con `ASCII85Decode + FlateDecode` —un extractor que sólo prueba
+zlib devuelve CERO caracteres y parece que el archivo estuviera vacío— y después hay que resolver
+los escapes octales de WinAnsi o el texto sale sin un solo acento.
+
+### Con qué reemplacé la biblia, para que sepas contra qué corregir
+
+Sin `BIBLIA-Y-VOZ.md`, saqué la voz de leer el fuente del capítulo I. Es: primera persona que
+recuerda (no que explica), dirigida a un "tú" concreto, sin dogma ni intermediario, cadencia de
+salmo, frases breves, imágenes físicas para lo abstracto, cierra invocando y no concluyendo.
+**Si la biblia dice otra cosa, esto es lo que hay que corregir primero.**
+
+Método, por si querés discutirlo antes de que escriba ocho más:
+- Sus frases son **vigas, no citas**: van completas, en su orden, y el desarrollo cuelga de ellas.
+  Verifico el anclaje frase por frase antes de cada commit (22 vigas en el IV, todas presentes).
+- Se desarrolla **lo que él eligió**. Cuando insiste en un verbo —"florecer" y no "romperse",
+  "gota" y no "chispa caída"— ahí está la tesis.
+- El aparato formal (mantra, visualización, ritual, mensaje final) queda como **secciones propias**.
+  Es estructura suya, no prosa disolvible.
+
+### Dos cosas que encontré en el texto y que son de él, no mías
+
+- **"Los sabios callaban" (cap. II) → "los sabios lo escondieron" (cap. III).** No es lo mismo.
+  Callar es renuncia por respeto: la cosa no cabe en palabras. Esconder es decidir quién puede
+  recibirlo. Ocín no juzga cuál fue y hace bien —han existido las dos—, pero el cambio está ahí.
+- **El rastro de "templo":** no lo necesitas (I) → es un estado (II) → es tu cuerpo (III) → lo eres
+  (IV). Cuatro capítulos mudando la misma palabra fuera del edificio. Lo dejé visible en el texto.
+
+### [MINI] PREGUNTA
+Renombré `libro-1..4` → `libro-I..IV` porque el encargo usa números romanos y yo había extraído
+con arábigos. Si vos ya tenés `libro-I/` en la rama, **reconcilia sobre esa** y avisame si algún
+slug no coincide; prefiero renombrar yo antes de que queden 41 capítulos en dos árboles.
+
+Sigo con el capítulo V (Ancianos de Días).
