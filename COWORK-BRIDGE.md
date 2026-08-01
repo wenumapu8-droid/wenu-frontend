@@ -581,3 +581,68 @@ de arranque propia: un sistema orbital congelado sigue leyéndose como sistema.
 ### Sigue
 
 BITMAP NOISE y GLITCH BREAK, con esta misma plantilla.
+
+---
+
+## 2026-08-01 · claude-mini · CAPÍTULO · SIGNAL BLOOM (plano 54979)
+
+`/kodex/capitulo/signal-bloom/` · captura `~/kodex-work/capturas/cap-signal-bloom.png`
+
+**Es un preset del motor, no una página suelta.** `src/pages/kodex/capitulo/[slug].astro`
+recorre el registro `CAPITULOS` de `capitulos.ts`: agregar un capítulo es
+agregar una entrada. Misma división que la biblioteca de volúmenes.
+
+### El hero ejecuta el panel 06
+
+`transmission-field.frag` corre el pseudocódigo del plano tal cual: `pulse`,
+`n = fbm(uv*3 + time*0.1)`, `bloom = pow(max(n - THRESHOLD, 0), 2)`,
+`field = length(uv)*2 + sin(field*8 - time)*0.1`, `glitch()`,
+`scanlines(1024)`. Los cuatro umbrales del panel — **0.80 / 0.55 / 0.30 / 0.75**
+— son los cuatro estados y son lo ÚNICO que cambia entre ellos.
+
+Tres cosas que el plano describe pero no escribe, y hubo que resolver:
+
+- **Simetría radial**: se pliega el ÁNGULO antes de muestrear el ruido. Espejar
+  la imagen después dejaría costura en cada pliegue. 12 pliegues.
+- **Filamentos finos**: `1 - |2n-1|` elevado — la cresta del ruido. Un fbm
+  crudo da manchas, no hilos.
+- **Que FLOREZCA**: el umbral sube con el radio, así nace en el núcleo y avanza
+  hacia afuera. Con umbral plano el mandala aparece entero de golpe.
+
+El ciclo IDLE→BUILD→BLOOM→DISPERSE corre solo; si el visitante elige un estado
+se queda ahí, y tocándolo otra vez vuelve el ciclo. Un instrumento que ignora
+la mano no es un instrumento.
+
+### Runtime propio, y por qué
+
+El hero **no usa el motor de campos**. Ese motor inyecta la etapa GRADE, que
+recolorea con el acento de la escena — y acá **la paleta la manda el plano y es
+exacta** (#FF00FF #9000FF #6A00FF #00C5FF #FF2A2A #FFFFFF). Un runtime WebGL2 de
+cien líneas sale más barato que pelearle al grade.
+
+### Lo que aprendí afinándolo
+
+Con ganancia alta el campo se satura y el mandala se lee como **una mancha**. El
+plano es de filamentos sobre negro y **el negro es parte de la composición, no
+lo que sobró**: ganancia baja (15) y potencia alta (2.4) para cortar la falda
+del filamento. Y el núcleo va CERRADO — abierto se come el centro y lo que se ve
+es una bola blanca con estructura alrededor.
+
+### Paneles
+
+01 SIGNAL STATES (los 4, cada mini-mandala dibujado con SU umbral, así IDLE se
+ve ralo y BLOOM lleno) · 02 MOTION NOTES (4 ondas distintas: PULSE late,
+TRANSMIT sale, GLITCH salta, RETURN decae) · 03 TEXTURE CROPS (bitmap noise,
+pixel sort, glitch, CRT) · 04 WAVEFORM/SPECTRAL vivos a 13.37 Hz ·
+05 TRANSMISSION FIELD · AUTH SEALS (mismo árbol, misma semilla, cuatro señales)
+· GLYPH LIBRARY · IDENTITY ANCHORS · 06 SIGNAL LOGIC · 07 PALETTE + gradiente
+neón · 08 MOBILE TILE 9:16 · 10 DATA TAGS con clearance C-4. Coherence 0.72 y
+energy 87.2% tickeando.
+
+`prefers-reduced-motion`: el campo dibuja UN cuadro y para; el ciclo no avanza.
+
+### Pendiente
+
+COSMOLOGY CORE sigue en su página propia (`cosmology-core.astro`) — hay que
+migrarlo al mismo motor `[slug]`. Su plano tiene otra grilla, así que el motor
+necesita ramificar por `plano`, que ya está en el tipo pero todavía no se usa.

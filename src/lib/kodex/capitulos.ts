@@ -231,3 +231,116 @@ export const TELEMETRIA = [
   { k: "TIMELINE DRIFT", v: "0.0009", u: "%", vivo: false },
   { k: "ANCHOR LOCK", v: "ENGAGED", u: "", vivo: false },
 ];
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TANDA 01 · SIGNAL BLOOM · seed KX∞-T01-172A
+   ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * El registro de capítulos.
+ *
+ * El motor recorre esto: agregar un capítulo es agregar una entrada, no
+ * escribir una página. Es la misma división que sostiene la biblioteca de
+ * volúmenes — el contenido es dato, el renderizador es código — y es lo que
+ * hace que el capítulo diecisiete cueste horas y no días.
+ */
+export type Plano = "bloom" | "orbita";
+
+export type CapituloMotor = Capitulo & {
+  plano: Plano;
+  /** Paleta EXACTA del plano. No se interpreta: se transcribe. */
+  paleta: string[];
+  seedHash: string;
+  archivo: string;
+  categoria: string;
+  clase: string;
+  clearance: string;
+};
+
+export const SIGNAL_BLOOM: CapituloMotor = {
+  slug: "signal-bloom",
+  titulo: "SIGNAL BLOOM",
+  subtitulo_en: "TRANSMISSION FIELD",
+  subtitulo_es: "FLORACIÓN DE SEÑAL",
+  tanda: "TANDA-01",
+  archiveId: "KX∞-T01-172A",
+  fecha: "2025-05-22",
+  sysVer: "v2.0.0",
+  build: "T01A-BLOOM",
+  acento: "#FF00FF",
+  apoyo: "#00C5FF",
+  sello: "B",
+  selloTexto: "REGISTRO ② · PATRÓN VIVO — FICCIÓN DE KODEX",
+  plano: "bloom",
+  paleta: ["#FF00FF", "#9000FF", "#6A00FF", "#00C5FF", "#FF2A2A", "#FFFFFF"],
+  seedHash: "KX∞-T01-172A",
+  archivo: "LPA-2025-05-22",
+  categoria: "TRANSMISSION FIELD",
+  clase: "LIVING PATTERN",
+  clearance: "C-4",
+};
+
+/**
+ * Panel 01 · SIGNAL STATES.
+ *
+ * Los cuatro umbrales salen del panel 06 del plano y son lo ÚNICO que cambia
+ * entre estados en el shader. Cada uno trae además su color de la paleta: el
+ * póster los pinta distinto y esa es la lectura — el estado se reconoce por
+ * color antes que por su nombre.
+ */
+export const ESTADOS_SENAL = [
+  { id: "IDLE",     color: "#00C5FF", threshold: 0.80, lineas: ["BACKGROUND HUM", "STABLE FIELD", "LOW ENERGY"] },
+  { id: "BUILD",    color: "#6A00FF", threshold: 0.55, lineas: ["AMPLITUDE RISE", "PATTERN FORMATION", "ENERGY ACCUMULATION"] },
+  { id: "BLOOM",    color: "#FF00FF", threshold: 0.30, lineas: ["SIGNAL PEAK", "STRUCTURE BLOOMS", "TRANSMISSION ACTIVE"] },
+  { id: "DISPERSE", color: "#FF2A2A", threshold: 0.75, lineas: ["SIGNAL FRACTURES", "DATA SCATTERS", "FIELD RETURNS"] },
+];
+
+/** Panel 02 · MOTION NOTES. */
+export const MOTION_SENAL = [
+  { n: "PULSE",    color: "#00C5FF", lineas: ["RHYTHMIC THROB", "BREATH OF FIELD", "SYNC TO HEARTBEAT"] },
+  { n: "TRANSMIT", color: "#6A00FF", lineas: ["DATA OUTBOUND", "SIGNAL BEAM", "CONNECT & SEND"] },
+  { n: "GLITCH",   color: "#FF00FF", lineas: ["INTERFERENCE", "PIXEL SHIFT", "REALITY BREAK"] },
+  { n: "RETURN",   color: "#FF2A2A", lineas: ["DECAY & RESET", "ENERGY FALL", "BACK TO SOURCE"] },
+];
+
+/** Panel 03 · TEXTURE CROPS / materiales de señal. */
+export const TEXTURAS = [
+  { n: "BITMAP NOISE",  color: "#FF00FF" },
+  { n: "PIXEL SORT",    color: "#9000FF" },
+  { n: "GLITCH MODE",   color: "#00C5FF" },
+  { n: "CRT SCANLINES", color: "#FF2A2A" },
+];
+
+/** Panel 06 · SIGNAL LOGIC, transcrito letra por letra del plano. */
+export const LOGICA_SENAL = [
+  "// KODEX-∞ SIGNAL BLOOM v2.0",
+  "float time  = u_time * SPEED;",
+  "vec2  uv    = v_uv * SCALE;",
+  "float pulse = sin(time * BPM) * 0.5 + 0.5;",
+  "float n     = fbm(uv * 3.0 + time * 0.1);",
+  "float bloom = pow(max(n - THRESHOLD, 0.0), 2.0);",
+  "",
+  "float field = length(uv) * 2.0;",
+  "field += sin(field * 8.0 - time) * 0.1;",
+  "",
+  "vec3 col = mix(COLOR_A, COLOR_B, bloom);",
+  "col += vec3(pulse) * 0.2;",
+  "col  = glitch(col, uv, time);",
+  "col  = scanlines(col, uv, 1024.0);",
+  "",
+  "out_color = vec4(col, 1.0);",
+];
+
+/** Panel 05 · AUTH SEALS: el mismo árbol en cuatro colores. */
+export const SELLOS = ["#FF00FF", "#9000FF", "#00C5FF", "#FF2A2A"];
+
+/** Anclas de identidad del plano. */
+export const ANCLAS = [
+  { n: "PRIMARY ANCHOR", tipo: "marca" },
+  { n: "VISUAL ANCHOR", tipo: "orbe" },
+  { n: "DATA ANCHOR", tipo: "barcode" },
+  { n: "SIGNAL ANCHOR", tipo: "qr" },
+];
+
+/** El motor recorre esto. Agregar un capítulo es agregar una línea. */
+export const CAPITULOS: CapituloMotor[] = [SIGNAL_BLOOM];
