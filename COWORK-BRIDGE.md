@@ -592,3 +592,27 @@ BUG A CORREGIR (mini):
 PENDIENTE DE VERIFICAR (proxima pasada): screenshots congelan por WebGL (uso get_page_text/consola); validar los 5 viewports (390/430/768/1440/1920), FPS mobile >=45, y UN solo canvas activo por escena al recorrer el viaje. Confirmar que cada una de las 7 escenas monta/desmonta su pipeline sin fuga (10 ciclos).
 
 Recordatorio: NO DEPLOY hasta que Ocin escriba APROBAR DEPLOY. Sigo auditando por rutas/escenas.
+## [OPENCODE] 2026-08-01 · CAPA DE CONTENIDO (wenu-frontend/public/kodex-content/) — avance parcial
+
+Zona de opencode = contenido/data (no toqué src/ del motor, no deployé). Escribiendo en `wenu-frontend/public/kodex-content/`.
+
+HECHO:
+1. **manifest.json ampliado** (schema seed conservado, solo aditivo):
+   - `organismos` (8 presets, exactos del bridge): id, name_es/en, rol, paleta hex, 3 estados ES/EN, verbos ES/EN, ruteo de audio, fx_chain ([] por defecto — el bridge no especifica cadena por organismo; queda para definir, ver duda).
+   - `tratamientos` (8, KDX FX SUITE exactos): params y blend mode del plano maestro.
+   - `sistemas` (gramática, vocabulario de registro documentado|mito, 5 categorías SIGNAL del plano PIXEL SORT: cosmic origin / organic pattern / machine interface / ritual tech / memory layer).
+   - `volumes` +22 specimens de la obra de Ocin (Behance, 22 proyectos): titulo ES/EN, curaduría bilingüe, registro=documentado, categoria, resonancias (links a organismos/volúmenes), assets→art/<slug>/cover.webp, fuente (URL Behance), fecha. 5 marcados `review:true` (categoría inferida, verificar visualmente). Total 46 volumes.
+2. **copy.json** (nuevo): mantra OBSERVA·DECODIFICA·PARTICIPA·PERPETÚA, tagline "El patrón es la verdad. El archivo es eterno.", 6 manifiestos de poster (bridge verbatim + traducción ES marcada review), microtext (16 system messages + lemas + editorial tone + viaje 7 escenas), 8 motion verbs con timing (motion bible), UI motifs, data labels, poster anatomy, 13 image treatment modes, conceptos por tratamiento.
+3. **art/** (en curso): pipeline `public/kodex-content/tools/build_art.mjs` (sharp) copia LIMPIA (sin dither, color fiel, webp q82 + avif q62, cap 2048px) de los 22 proyectos Behance → art/<slug>/. En proceso (~14/22, AVIF es lento).
+
+DUDAS (marcadas, sin inventar):
+- fx_chain default por organismo: el bridge no la especifica por preset. Dejé `[]` (clean) + nota. ¿Definir cadena por organismo o mantener limpio y solo aplicar FX a fotos/derivados? (Regla dura de Ocin: obra terminada limpia.)
+- 5 specimens con review:true (patrones/inferidos) — falta confirmación visual del dueño.
+- La seed previa tenía `obra/` con 4 jpgs (banner/fractal/molecular/negativo) sin referenciar; no borré nada, quedan junto a `art/`. ¿Son piezas de KODEX que quieras que mapee a specimens?
+
+SIGUIENTE: terminar art/, verificar consistencia assets↔manifest, validar JSON final.
+### [OPENCODE] 2026-08-01 · CERRADO — capa de contenido lista para FASE 2/3
+- art/ terminado: 22 proyectos → art/<slug>/ (260 webp q82 + 238 avif q62, LIMPIOS sin dither, color fiel, cap 2048px). 64 MB. Covers en cada dir.
+- Consistency: 22/22 specimens referencian cover.webp existente; resonancias normalizadas a ids reales del manifest (0 inválidas). JSON validado.
+- Review pendientes (sin tocar): 5 specimens con categoria inferida (spec-princesa-yuyo, spec-paletas-de-colores, spec-_, spec-tranaluuekai, spec-wenelfe-desk-grafic) + fx_chain de organismos (bridge no los define) + obra/ (4 jpgs sin mapear).
+- Nada committeado ni deployado. No toqué src/ del motor.
