@@ -244,7 +244,7 @@ export const TELEMETRIA = [
  * volúmenes — el contenido es dato, el renderizador es código — y es lo que
  * hace que el capítulo diecisiete cueste horas y no días.
  */
-export type Plano = "bloom" | "orbita";
+export type Plano = "bloom" | "orbita" | "craneo" | "arbol";
 
 export type CapituloMotor = Capitulo & {
   plano: Plano;
@@ -453,4 +453,129 @@ export const HERMANAS_SK = [
  * zona muerta al evaluar el módulo — y revienta el build entero, no sólo la
  * página.
  */
-export const CAPITULOS: CapituloMotor[] = [SIGNAL_BLOOM, SPECIMEN_SKULL];
+
+
+/* ────────────────────────────────────────────────────────────────────────────
+   TANDA 01 · ARCHIVE TREE · ID XX-AT-0001-01 · CAPÍTULO-MADRE
+   ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * El árbol es el HUB del archivo.
+ *
+ * El sello del árbol con el ∞ que aparece en THRESHOLD, en SIGNAL BLOOM y en la
+ * frente del SPECIMEN SKULL no es un logo repetido: **es una instancia de este
+ * árbol.** Todas las láminas apuntan acá.
+ *
+ * Y de ahí sale la consecuencia que ordena la navegación entera: *every leaf is
+ * an archive*. Cada hoja es un volumen, cada rama un estrato, y las demás
+ * escenas cuelgan de sus ramas. El árbol no ilustra el mapa — **es** el mapa.
+ *
+ * Verde fósforo, y es el único capítulo verde: el color marca al hub. Si todos
+ * fueran verdes no distinguiría nada.
+ */
+export const ARCHIVE_TREE: CapituloMotor = {
+  slug: "archive-tree",
+  titulo: "ARCHIVE TREE",
+  subtitulo_en: "LIVING MEMORY",
+  subtitulo_es: "ÁRBOL DE ARCHIVO",
+  tanda: "TANDA-01",
+  archiveId: "XX-AT-0001-01",
+  fecha: "2025-05-22",
+  sysVer: "01.00.00",
+  build: "TANDA-01",
+  acento: "#9DFF3C",
+  apoyo: "#4FE07A",
+  sello: "B",
+  selloTexto: "REGISTRO ② · MEMORIA VIVA — FICCIÓN DE KODEX",
+  plano: "arbol",
+  paleta: ["#9DFF3C", "#4FE07A", "#1F7A33", "#0B2E14", "#FFFFFF", "#FF2A2A"],
+  seedHash: "KX∞-TR01-17XA",
+  archivo: "LIVING MEMORY",
+  categoria: "ARCHIVAL INTELLIGENCE",
+  clase: "MEMORY ORGANISM",
+  clearance: "C-5",
+};
+
+/** Panel 03 · GROWTH STATES. Cada uno con su forma de onda. */
+export const CRECIMIENTO = [
+  { n: "01", id: "SEED",     verbo: "INITIATE", lineas: ["DORMANT", "POTENTIAL"] },
+  { n: "02", id: "ROOT",     verbo: "CONNECT",  lineas: ["SEEK", "ABSORB"] },
+  { n: "03", id: "BLOOM",    verbo: "EXPAND",   lineas: ["THRIVE", "DISTRIBUTE"] },
+  { n: "04", id: "TRANSMIT", verbo: "REMEMBER", lineas: ["TRANSMIT", "ARCHIVE"] },
+];
+
+/**
+ * Panel 07 · MOTION NOTES & BEHAVIOR.
+ *
+ * Las duraciones son del plano y **se respetan en el runtime**: respirar dura
+ * de 2 a 4 segundos porque el póster lo dice, no porque quedara bien.
+ */
+export const CONDUCTA = [
+  { n: "BREATHE", lineas: ["Rhythmic expansion.", "Intake & release."], dur: "2 – 4 SEC", nota: "NATURAL FLOW" },
+  { n: "PULSE",   lineas: ["Signal throbs.", "Sync with root."],        dur: "1 – 2 SEC", nota: "HEARTBEAT SYNC" },
+  { n: "GROW",    lineas: ["Structural adaptation."],                    dur: "3 – 8 SEC", nota: "ORGANIC GROWTH" },
+  { n: "ARCHIVE", lineas: ["Write to leaves.", "Store & seal."],         dur: "2 – 6 SEC", nota: "DATA COMMIT" },
+];
+
+/** Panel 02 · las tres capas del árbol. */
+export const CAPAS_ARBOL = [
+  { n: "LAYER 01", zona: "CANOPY", fn: "DATA DISTRIBUTION" },
+  { n: "LAYER 02", zona: "TRUNK",  fn: "SIGNAL PROCESSING" },
+  { n: "LAYER 03", zona: "ROOT",   fn: "MEMORY INGESTION" },
+];
+
+/** Panel 05 · BRANCH DETAIL // NODE CLUSTER. */
+export const NODO_RAMA = [
+  ["NODE ID", "BR-07A"],
+  ["SUB NODES", "12.842"],
+  ["DENSITY", "HIGH"],
+  ["FLOW RATE", "93.1%"],
+  ["TYPE", "DATA RELAY"],
+  ["FUNCTION", "DISTRIBUTE"],
+  ["STATUS", "STABLE"],
+];
+
+/** Panel 02/04/06 · lo que tickea. */
+export const VITALES_ARBOL = [
+  { k: "STABILITY", v: "87.6", u: "%", amp: 0.7 },
+  { k: "SYNC", v: "98.7", u: "%", amp: 0.35 },
+  { k: "FLOW RATE", v: "93.1", u: "%", amp: 0.9 },
+];
+
+/** Panel 10 · ARCHIVE STRIPS. */
+export const TIRAS_ARBOL = [
+  { n: "ARCHIVE ROOT", sub: "PRIMARY SEED", id: "KX∞-R01" },
+  { n: "BRANCH CLUSTER", sub: "DISTRIBUTE LAYER", id: "KX∞-B07A" },
+  { n: "LEAF NODE", sub: "MEMORY PACKET", id: "KX∞-L11F" },
+  { n: "TRANSMIT LOG", sub: "SIGNAL OUTBOUND", id: "KX∞-TX09" },
+];
+
+/**
+ * Las ramas del hub.
+ *
+ * Cada rama lleva a un lugar real del archivo. **Los capítulos cuelgan del
+ * árbol**, y por eso están acá y no en un menú aparte: el plano dice que las
+ * otras escenas cuelgan de sus ramas, así que cuelgan de sus ramas.
+ */
+export const RAMAS_HUB = [
+  { titulo: "SIGNAL BLOOM",    url: "/kodex/capitulo/signal-bloom/",    tipo: "capitulo" },
+  { titulo: "SPECIMEN SKULL",  url: "/kodex/capitulo/specimen-skull/",  tipo: "capitulo" },
+  { titulo: "COSMOLOGY CORE",  url: "/kodex/capitulo/cosmology-core/",  tipo: "capitulo" },
+  { titulo: "THRESHOLD",       url: "/kodex/",                          tipo: "escena" },
+  { titulo: "ARCHIVE · ÍNDICE", url: "/kodex/folio/iii/",               tipo: "escena" },
+];
+
+/** Panel 11 · el lema de la biblioteca de glifos. */
+export const LEMA_GLIFOS = "EACH GLYPH IS A FUNCTION. EACH FUNCTION IS A PROMISE.";
+
+/**
+ * El motor recorre esto. Agregar un capítulo es agregar una línea.
+ *
+ * Va al FINAL del archivo a propósito: un `const` no se iza, así que declarar
+ * la lista antes que los capítulos que la componen revienta con un error de
+ * zona muerta al evaluar el módulo — y revienta el build entero.
+ *
+ * ARCHIVE TREE va primero porque es el capítulo-madre: todo lo demás cuelga
+ * de él.
+ */
+export const CAPITULOS: CapituloMotor[] = [ARCHIVE_TREE, SIGNAL_BLOOM, SPECIMEN_SKULL];

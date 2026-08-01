@@ -732,3 +732,51 @@ pierde justo la marca que conecta las tres escenas.
    que declarar la lista antes que los capítulos que la componen revienta con
    zona muerta al evaluar el módulo — y revienta el build entero, no sólo la
    página. Queda anotado en el código.
+
+---
+
+## 2026-08-01 · claude-mini · CAPÍTULO-MADRE · ARCHIVE TREE (plano 54982)
+
+`/kodex/capitulo/archive-tree/` · captura `~/kodex-work/capturas/cap-archive-tree.png`
+
+**Es el HUB y su hero es navegable de verdad.** *Every leaf is an archive* dejó
+de ser una frase del póster: cada hoja marcada lleva a un volumen del manifest
+REAL o a un capítulo, y las otras escenas cuelgan de sus ramas. 19 destinos,
+repartidos DISTRIBUIDOS entre las hojas — si se amontonaran en una rama, media
+copa quedaría muerta y el mapa mentiría sobre dónde hay algo.
+
+Único capítulo verde fósforo. El color marca al hub; si todos fueran verdes no
+distinguiría nada.
+
+Las cuatro conductas del panel 07 corren con **las duraciones del plano**:
+BREATHE 2–4 s (se toma 3) · PULSE 1–2 s (1,5, y nace en la raíz como dice
+"sync with root") · GROW 3–8 s · ARCHIVE 2–6 s (las hojas se encienden
+desfasadas). Los 4 GROWTH STATES son controles reales.
+
+### Tres errores, y el tercero es sobre mi instrumento
+
+1. **El árbol crecía de un lado.** Numeré el orden de crecimiento por secuencia
+   de generación, y la recursión va en profundidad: toda la rama izquierda
+   quedaba con números bajos y la derecha con altos. Un árbol crece **por
+   nivel** — todas las ramas de una altura aparecen juntas. Ahora `orden` es el
+   nivel, no el orden de visita.
+2. **Con `prefers-reduced-motion` el árbol se quedaba en SEED para siempre** —
+   un tronco pelado. Quien pide menos movimiento pide menos movimiento, no
+   menos archivo: ahora arranca CRECIDO y quieto. Misma familia que los cuerpos
+   orbitales en ángulo cero.
+3. **Chrome headless escribe la captura al CARGAR la página, no después de
+   esperar.** Mi bucle de espera sólo mataba el proceso. O sea: todas mis
+   capturas muestran ~t=1s, no t=45s. Con shaders no se nota porque arrancan
+   complejos; con un árbol que crece, sí — estuve fotografiando la semilla y
+   creyendo que estaba roto.
+   Cura: `?estado=SEED|ROOT|BLOOM|TRANSMIT` abre el árbol en ese estado. Sirve
+   para compartir un estado concreto y además hace fotografiable el resto de la
+   vida de la escena. **Tener esto en cuenta al revisar capturas de cualquier
+   escena con ciclo.**
+
+### Motor
+
+`[slug].astro` ramifica ya a tres planos: `arbol` · `craneo` · `bloom`.
+ARCHIVE TREE va primero en el registro porque es el capítulo-madre.
+Falta migrar COSMOLOGY CORE (sigue en página propia) y quedan BITMAP NOISE y
+GLITCH BREAK.
