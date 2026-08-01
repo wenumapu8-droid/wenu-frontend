@@ -1,3 +1,50 @@
+# KODEX−∞ · backlog de la misión maestra
+
+Los 24 ítems. Marcado sólo lo **verificado en vivo** — no lo que compila. Un
+ítem que compila y no se ve NO está hecho: eso ya pasó tres veces acá (el lecho
+ASCII, el artefacto de MACHINE, el museo).
+
+- [x] **1 · Motor data-driven** — lee `public/kodex-content/manifest.json` y
+      genera una página por volumen. Adaptado al esquema de Cowork, no al revés.
+- [x] **2 · ARCHIVE museo** — grilla densa, buscador en cliente, tile → volumen.
+      Los ocho enlaces verificados uno por uno.
+- [x] **3 · Plantilla de volumen nivel póster** — dossier denso, héroe vivo,
+      curaduría bilingüe, diagnósticos derivados del propio volumen.
+- [~] **4–9 · Las 7 escenas como presets** — corren con organismo, tratamiento
+      y acento propios, medidos y distintos. Falta obra real y pulido.
+- [ ] **10–15 · Los 6 estratos como capítulos con su copy real**
+- [x] **16 · Los 11 capítulos de LORE del Artefacto** — volúmenes `chapter`
+      bilingües con motivo, meditación y mensaje.
+- [x] **17 · Capa de CIENCIA / cosmología** — las 5 etapas de evolución cósmica
+      como `finding`, marcadas como ciencia y **separadas del lore**.
+- [~] **18 · Dither respetando aspect ratio** — corregido el `aspect-ratio: 1`
+      fijo que aplastaba toda obra no cuadrada. Falta la obra real.
+- [x] **19 · Escrituras del mundo + copy bilingüe** — siete escrituras como
+      acento, nunca como traducción.
+- [ ] **20 · Shop + NFT sutil, siempre accesibles**
+- [ ] **21 · Affordances claras**
+- [~] **22 · Motivos vivos** — el vórtice corre en todas. Falta árbol/ramas.
+- [ ] **23 · VIEW MODE (OPTICAL / ASCII)**
+- [ ] **24 · Pulido: negro dominante, typography v2, movimiento 70/20/10, mobile**
+
+`[x]` hecho y verificado · `[~]` parcial, con lo que falta anotado · `[ ]` sin empezar.
+
+## Bloqueado por material que no llegó
+
+- **Assets reales** — los volúmenes tienen `assets: []` y sus héroes son
+  organismos generados. El motor ya los recibe: `{"src":"…","aspecto":"4/5"}`.
+- **Los 18 posters** — `reference/posters/` sigue vacío en el mini.
+- **Los tres números de la sonda** en el iMac: `webgl2`, `perfil`, `fps`.
+
+## Cómo se verifica acá
+
+Nunca contra el archivo fuente: **contra el HTML servido y con captura**. Dos
+ediciones de texto no coincidieron en silencio y el eje y la tira estaban en el
+código sin estar en la página. Y nunca `build > /dev/null`: así se ocultó un
+build roto durante horas mientras el preview servía un `dist` viejo.
+
+---
+
 # KODEX −∞ · elevation changelog
 
 Serialized stage-by-stage build log per `KODEX-BUILD.md`. Each entry: what changed, provenance (codeado / build OK / desplegado / verificado en vivo), and captures.

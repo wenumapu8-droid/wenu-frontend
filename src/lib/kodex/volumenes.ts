@@ -22,7 +22,24 @@
  */
 
 export type TipoVolumen =
-  | "gallery" | "artwork" | "finding" | "math" | "repo" | "flyer" | "product" | "nft";
+  | "gallery" | "artwork" | "finding" | "math" | "repo" | "flyer" | "product" | "nft"
+  /** Capítulo del lore del Artefacto: motivo, meditación y mensaje. */
+  | "chapter";
+
+/**
+ * De qué naturaleza es lo que el volumen afirma. **No es cosmético.**
+ *
+ * La regla Hidden Sky del proyecto es dura: el universo del Artefacto es
+ * FICCIÓN esotérica y jamás se presenta como ciencia ni como salud, y la
+ * cosmovisión mapuche documentada va aparte y con fuente. Nunca se funden en
+ * un mismo claim.
+ *
+ * Por eso el marco viaja como dato y se DIBUJA en la página. Un lector que no
+ * puede distinguir mito de astrofísica no está leyendo un archivo, está
+ * leyendo una confusión — y esa confusión sería responsabilidad del sistema,
+ * no suya.
+ */
+export type Marco = "ficcion" | "ciencia" | "documentado";
 
 /** Escrituras del mundo, una por estrato. Son ACENTO, no traducción. */
 export type Escritura =
@@ -62,6 +79,16 @@ export type Volumen = {
   formula?: { tex: string; lee_es: string; lee_en?: string };
   /** Sólo `product` / `nft`. */
   oferta?: { precio?: string; edicion?: string; url?: string };
+  /** Sólo `chapter`. */
+  capitulo?: string;
+  meditacion_es?: string;
+  meditacion_en?: string;
+  mensaje_es?: string;
+  mensaje_en?: string;
+  /** Naturaleza de lo que se afirma. Se dibuja en la página. */
+  marco?: Marco;
+  /** Fuente, cuando el marco es ciencia o documentado. */
+  fuente?: string;
 };
 
 export type Manifiesto = {

@@ -87,11 +87,24 @@ const diag = [
         <p class="kx-vol__tipo">
           <span>{v.tipo}</span>
           <span class="kx-vol__glifos" aria-hidden="true">{v.glifos}</span>
-          <span>VOL {v.numero}</span>
+          <span>{v.capitulo ? `CAP ${v.capitulo}` : `VOL ${v.numero}`}</span>
         </p>
         <h1 class="kx-vol__titulo">{v.titulo_es}</h1>
         {v.titulo_en && <p class="kx-vol__titulo-en">{v.titulo_en}</p>}
         <p class="kx-vol__estrato">ESTRATO {v.estratoNumero} · {v.estratoTitulo}</p>
+
+        {/* EL MARCO, DIBUJADO. Es regla dura del proyecto, no un adorno: el
+            universo del Artefacto es ficcion y jamas se presenta como ciencia
+            ni como salud. Un lector que no puede distinguir mito de
+            astrofisica no esta leyendo un archivo, esta leyendo una confusion
+            -- y esa confusion seria responsabilidad del sistema. */}
+        {v.marco && (
+          <p class={`kx-vol__marco kx-vol__marco--${v.marco}`}>
+            {v.marco === 'ficcion' && 'FICCIÓN · MITO Y ESPECULACIÓN · NO ES CIENCIA'}
+            {v.marco === 'ciencia' && `CIENCIA DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
+            {v.marco === 'documentado' && `FUENTE DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
+          </p>
+        )}
       </header>
 
       <figure class={`kx-vol__hero kx-vol__hero--${forma}`}>
@@ -142,6 +155,13 @@ const diag = [
             {v.curaduria_en && <p class="kx-vol__en">{v.curaduria_en}</p>}
           </div>
         )}
+        {v.meditacion_es && (
+          <div class="kx-vol__meditacion">
+            <p class="kx-vol__rotulo">MEDITACIÓN</p>
+            <p>{v.meditacion_es}</p>
+            {v.meditacion_en && <p class="kx-vol__en">{v.meditacion_en}</p>}
+          </div>
+        )}
         {v.links && Object.entries(v.links).map(([k, url]) => (
           <a class="kx-vol__enlace" href={url} rel="noopener">{k.toUpperCase()} →</a>
         ))}
@@ -151,6 +171,14 @@ const diag = [
           </a>
         )}
       </div>
+
+      {v.mensaje_es && (
+          <div class="kx-vol__mensaje">
+            <p class="kx-vol__rotulo">MENSAJE PARA LA NUEVA HUMANIDAD</p>
+            <p class="kx-vol__mensaje-t">{v.mensaje_es}</p>
+          {v.mensaje_en && <p class="kx-vol__en">{v.mensaje_en}</p>}
+          </div>
+        )}
 
       <aside class="kx-vol__rail">
         {diag.map((d) => (
@@ -185,11 +213,11 @@ const diag = [
        scrollea, que es regla dura del proyecto. */
     height: 100dvh;
     grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
-    grid-template-areas: "cab hero" "cuerpo hero" "rail hero" "pie pie";
+    grid-template-areas: "cab hero" "cuerpo hero" "mensaje hero" "rail hero" "pie pie";
     /* El rail se lleva la holgura para que el pie quede pegado abajo. Con
        align-content:start las filas se apilaban arriba y el pie flotaba a
        media pagina, que lo hacia leer como un bloque mas y no como pie. */
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-rows: auto auto auto 1fr auto;
     gap: clamp(12px, 1.8vw, 26px);
     /* La barra del deck es fija y se come los últimos ~73px de la ventana. */
     padding: clamp(72px, 9vh, 100px) clamp(18px, 4vw, 56px) clamp(118px, 13vh, 146px);
@@ -250,6 +278,41 @@ const diag = [
     color: rgba(232, 229, 222, 0.42) !important; font-style: italic;
   }
 
+  /* El marco se lee antes que el contenido, a propósito. Ficción en el acento
+     de advertencia; ciencia en el cian del sistema. Distintos de un vistazo,
+     que es el punto: no hay que leerlos para distinguirlos. */
+  .kx-vol__marco {
+    margin: 10px 0 0; padding: 4px 8px; justify-self: start; display: inline-block;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8.5px; letter-spacing: 0.2em; text-transform: uppercase;
+    border: 1px solid currentColor;
+  }
+  .kx-vol__marco--ficcion { color: #FF8A33; }
+  .kx-vol__marco--ciencia,
+  .kx-vol__marco--documentado { color: #00D8FF; }
+
+  .kx-vol__rotulo {
+    margin: 0 0 4px; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8.5px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: rgba(232, 229, 222, 0.4);
+  }
+  .kx-vol__meditacion p:not(.kx-vol__rotulo),
+  .kx-vol__mensaje p:not(.kx-vol__rotulo) {
+    margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
+    font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
+  }
+  .kx-vol__meditacion { padding-left: 12px; border-left: 1px solid rgba(232,229,222,0.14); }
+  /* El mensaje vive FUERA del cuerpo que scrollea. Es la linea de cierre del
+     capitulo -- lo unico que pide que te lleves -- y adentro del bloque con
+     altura maxima quedaba cortada justo ella. */
+  .kx-vol__mensaje { grid-area: mensaje; max-width: 52ch; }
+  /* El mensaje es el cierre del capítulo: se dice más grande y en el acento,
+     porque es lo único que el capítulo pide que te lleves. */
+  .kx-vol__mensaje-t {
+    font-size: 1.15rem !important; line-height: 1.35 !important;
+    color: var(--acc) !important; text-wrap: balance;
+  }
+
   .kx-vol__formula { padding: 12px 14px; border-left: 2px solid var(--acc); background: rgba(255,255,255,0.02); }
   .kx-vol__tex { margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1rem; color: #e8e5df; }
   .kx-vol__lee { margin: 0; font-family: "Inter Tight", system-ui, sans-serif; font-size: 0.86rem; line-height: 1.5; color: rgba(232,229,222,0.72); }
@@ -288,7 +351,7 @@ const diag = [
     .kx-vol {
       height: auto; min-height: 100dvh;
       grid-template-columns: 1fr;
-      grid-template-areas: "cab" "hero" "cuerpo" "rail" "pie";
+      grid-template-areas: "cab" "hero" "cuerpo" "mensaje" "rail" "pie";
     }
     .kx-vol__hero { max-height: 40vh; }
     .kx-vol__hero--alto { max-width: 100%; }
