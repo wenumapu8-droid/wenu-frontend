@@ -147,6 +147,22 @@ Porque uno esperaría lo contrario. Cerrarse es defenderse; debería aliviar. Y 
 
 La explicación del texto es económica: duele porque un traductor apagado deja todo sin traducir.
 
+Y vale desarrollar eso, porque describe algo que mucha gente vive y no sabe nombrar.
+
+Cuando el traductor se apaga, **las cosas siguen pasando y dejan de significar**.
+
+Sigues yendo a trabajar. Sigues viendo a la gente. Comes, duermes, contestas mensajes. Desde afuera no se nota nada, y ésa es la parte más rara: se puede sostener una vida entera así durante años, sin que nadie pregunte.
+
+Lo que falta no es la capacidad de hacer. Es que nada de lo que haces te llega adentro.
+
+La comida sabe a comida y no a nada más. La música es sonido ordenado. Un abrazo es contacto físico. Todo está ahí, completo, y no traduce.
+
+Es lo que la gente describe diciendo *estoy como anestesiado*, y suele explicarlo como falta de sensibilidad. Este capítulo propone lo contrario: no es que sientas menos. Es que se apagó lo que convierte lo que sientes en algo con sentido.
+
+Y hay que decir la parte que el capítulo no dice: **cuando eso dura, se atiende**. Tiene nombre, tiene tratamiento, y le pasa a mucha más gente de la que lo cuenta. No es un fracaso espiritual ni una falla de apertura.
+
+Es, en el vocabulario de este libro, un traductor que se apagó para protegerte de algo — y que no siempre puede volver a encenderse solo.
+
 ### Inhackeable
 
 **Los Señores del Control lo sabían. Por eso programaron miedo, trauma, rechazo, abandono. Para que el corazón no se mantuviera abierto.**
@@ -181,7 +197,23 @@ Tres pares, y cada uno descarta la manera equivocada.
 
 **No se conquista. Se entrega.** Y este es el par que le duele a cualquiera que haya llegado hasta acá por esfuerzo. Todo lo demás en la vida se consigue empujando. Esto es lo único que retrocede cuando lo empujas.
 
+Y hay que decir por qué, porque no es una regla arbitraria y se puede comprobar.
+
+Piensa en cualquier cosa que sólo llegue cuando uno deja de buscarla. El sueño es el ejemplo más limpio: **nadie se ha dormido esforzándose**. Cuanto más lo intentas, más despierto estás, y la única salida es dejar de intentarlo — lo cual no se puede intentar tampoco.
+
+La risa es igual. La erección. Recordar un nombre que se tiene en la punta de la lengua. Todos funcionan al revés que el resto: el esfuerzo los aleja, y sólo aparecen cuando la atención se distrae.
+
+Lo que tienen en común esas cosas es que **no las hace el que decide**. Las hace algo tuyo que trabaja solo, y que se detiene cuando el que decide se pone a supervisar.
+
+Abrir el pecho está en esa familia. No hay una manera de hacerlo, hay una de dejarlo.
+
 **No se teme. Se siente.** El más simple y el más difícil: en el lugar donde uno pondría una defensa, se pone atención.
+
+Y conviene notar la elección del contrario. Uno esperaría *no se teme, se confía*, que es lo que dice cualquier consejo. **Confiar** es una apuesta sobre el otro: una decisión sobre si va a portarse bien.
+
+**Sentir** no apuesta nada. No dice que el otro sea de fiar. Dice: quédate registrando lo que pasa, incluso si lo que pasa es malo.
+
+Es mucho más modesto y mucho más posible. No te pide creer en nadie. Te pide no dejar de estar presente mientras ocurre algo.
 
 **Cuando un humano habita su corazón, todo cambia. El tiempo se curva. La dualidad se disuelve. La memoria regresa.**
 
