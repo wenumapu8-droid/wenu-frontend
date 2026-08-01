@@ -75,18 +75,42 @@ void main() {
   out_color = vec4(col, 1.0);
 }`;
 
+  /**
+   * Organismos del lab, para poder medirlos AISLADOS.
+   *
+   * `?organismo=split-corridor` monta ese shader en el banco. Existe porque
+   * medir una cadena sobre el organismo de prueba no dice nada sobre cómo se
+   * comporta sobre OTRO organismo — lo aprendí perdiendo tres intentos en
+   * RETURN. Un banco que sólo prueba su propia figura sirve para la mitad.
+   */
+  const ORGANISMOS: Record<string, string> = {
+    'split-corridor': (await import('../../../kodex/shaders/lab/split-corridor.frag?raw')).default,
+    'archive-orbit': (await import('../../../kodex/shaders/lab/archive-orbit.frag?raw')).default,
+    'ripple-floor': (await import('../../../kodex/shaders/lab/ripple-floor.frag?raw')).default,
+    'impossible-structure': (await import('../../../kodex/shaders/lab/impossible-structure.frag?raw')).default,
+    'wrinkled-reality': (await import('../../../kodex/shaders/lab/wrinkled-reality.frag?raw')).default,
+    'network-vortex': (await import('../../../kodex/shaders/lab/network-vortex.frag?raw')).default,
+  };
+
   const raiz = document.querySelector<HTMLElement>('[data-lab-core]')!;
-  const ids = (new URLSearchParams(location.search).get('fx') || '')
-    .split(',').map((s) => s.trim()).filter(Boolean);
+  const q = new URLSearchParams(location.search);
+  const ids = (q.get('fx') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const orgId = q.get('organismo') || '';
+  const organismo = ORGANISMOS[orgId] ?? ORGANISMO;
 
   const core = new KdxCore(raiz, {
-    organismo: ORGANISMO,
+    organismo,
+    // Los shaders del lab esperan una intensidad; el de prueba la ignora.
+    uniformes: () => ({ u_intensity: Number(q.get('intensity') || 1) }),
     cadena: ids.map((id) => ({ id })),
     seed: 7,
   });
+  // El estado por defecto del banco es ACTIVE: varios shaders del lab
+  // multiplican su salida por la consciencia y en DORMANT se ven negros.
+  core.irA((q.get('estado')?.toUpperCase() as any) || 'ACTIVE');
 
   const rotulo = document.querySelector<HTMLElement>('[data-lab-cadena]')!;
-  rotulo.textContent = ids.length ? ids.join(' → ').toUpperCase() : 'ORGANISMO CRUDO';
+  rotulo.textContent = `${(orgId || 'test').toUpperCase()}${ids.length ? ' → ' + ids.join(' → ').toUpperCase() : ''}`;
 
   // La sonda: estado, error y notas del motor, visibles sin abrir consola.
   const est = document.querySelector<HTMLElement>('[data-lab-estado]')!;
@@ -101,8 +125,7 @@ void main() {
 
   // Enlace profundo del estado, para poder fotografiar fuera del primer
   // segundo: Chrome headless escribe la captura al cargar, no al esperar.
-  const pedido = new URLSearchParams(location.search).get('estado');
-  if (pedido) core.irA(pedido.toUpperCase() as any);
+
 </script>
 
 <style>

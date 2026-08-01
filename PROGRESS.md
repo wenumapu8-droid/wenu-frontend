@@ -100,16 +100,35 @@ y dibuja (antes no dibujaba nada porque yo llamaba `start()` sin el `await
 load()` que el contrato pide, y porque su obra por defecto —`bw-06-alpha.png`—
 no existe en este repo).
 
-### B4 · `split-corridor` entrega casi nada de luz  ⛔ ABIERTO
+### B4 · `split-corridor` no dibuja  ⛔ ABIERTO · ACOTADO CON MEDICIÓN
 Ya NO es un problema de montaje: hizo falta traducir su `#version 330 core` a
 `#version 300 es` (el motor ahora lo hace para cualquier shader del lab), y con
 eso compila y corre — la medición se movió de 10.58 a 10.78. Pero el corredor
 entrega tan poca luz que la escena se lee negra (98.3% oscuro).
 
-Su salida está multiplicada por `awareness = smoothstep(0,1,u_state)` y por
-`openState = smoothstep(1,2,u_state) * u_progress`. Con el motor en ACTIVE eso
-debería abrir. Falta leer el raymarcher entero y ver dónde se pierde la luz —
-es calibración de shader y merece tiempo propio, no un número al azar.
+**Medido aislado en el banco** (para eso extendí `/kodex/lab/core/` con
+`?organismo=`):
+
+| estado | intensidad | luz | oscuro |
+|--------|-----------|-----|--------|
+| AWARE  | 1 | 3.73 | 100.0 % |
+| ACTIVE | 1 | 3.73 | 100.0 % |
+| OPEN   | 1 | 3.73 | 100.0 % |
+| OPEN   | 4 | 3.73 | 100.0 % |
+
+**Idéntico en los cuatro.** Eso descarta lo que yo venía suponiendo: no es "sale
+oscuro y hay que subirle la ganancia". **No dibuja nada**, y es invariante al
+estado y a la intensidad.
+
+Y el banco **no reporta error de compilación** — el motor lo compila y lo corre.
+Así que el problema no está en el hospedador ni en los uniformes: está **dentro
+del raymarch**. Hipótesis a verificar en ese orden: (1) la cámara arranca dentro
+o detrás de la geometría; (2) el bucle de marcha termina antes de tocar nada
+por el conteo de pasos; (3) alguna constante de escena quedó atada a un uniform
+que el runtime viejo seteaba y este no.
+
+**Próximo paso concreto:** leer el bucle de marcha y la construcción de cámara
+(≈480 líneas). No más ajustes de parámetros: ya está probado que no responden.
 
 **Mientras tanto DESCENT usa el organismo de gesto**, que sí se ve. Una escena
 negra es peor que un placeholder honesto.
@@ -248,12 +267,24 @@ de reduced-motion está presente. **No la verifiqué visualmente**: una captura
 headless no puede simular hover. Queda para la revisión de Ocín o Cowork en un
 navegador real.
 
+### Banco de pruebas extendido ✅
+`/kodex/lab/core/?organismo=<id>` monta cualquier shader del lab aislado, con
+`?estado=` y `?intensity=`. Existe porque medir una cadena sobre el organismo de
+prueba **no dice nada sobre cómo se comporta sobre otro** — lo aprendí perdiendo
+tres intentos en RETURN. Un banco que sólo prueba su propia figura sirve para la
+mitad.
+
+Su primer uso ya sirvió: convirtió B4 de "sale oscuro, probemos números" en "no
+dibuja, y el problema está adentro del raymarch".
+
 ## Registro
 
 - 03:40 — FASE 0 lista y verificada.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 09:50 — **Banco extendido a cualquier organismo.** B4 reacotado con medición:
+  no es falta de ganancia, no dibuja.
 - 09:20 — **Foco uno-a-la-vez** en los specimens. Punto 5 cerrado.
 - 08:50 — **Barcode decodable**, verificado decodificándolo desde el HTML.
 - 08:20 — **Validación de los cinco anchos.** Todos ≥88% oscuro, cero errores.
