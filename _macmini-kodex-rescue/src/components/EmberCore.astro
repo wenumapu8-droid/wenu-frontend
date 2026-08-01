@@ -1,0 +1,841 @@
+---
+/**
+ * EmberCore — the burning centre that OPENS into the kültrún (Ocin 2026-07-06).
+ *
+ * REDESIGN (Ocin 2026-07-06 — "se ve súper cargado; la idea era que si lo TOCAS se
+ * transforma en un kültrún"). The old version showed EVERYTHING at once — full wheel
+ * + four direction labels + symbols + HUD + readouts — which read as saturated. This
+ * version follows the brief literally: a CLEAN, elegant DEFAULT (only the burning
+ * wüñelfe sigil over obsidian, a title and one CTA, generous air) that TRANSFORMS
+ * into the full kültrún WHEN TOUCHED — the four-lands wheel, the direction labels and
+ * the land-readout are hidden until the centre is revealed. Clean → touch → kültrún.
+ *
+ * Two states, one section:
+ *   · REST  → the wüñelfe sigil glowing on obsidian, title + CTA, a subtle affordance
+ *     hint ("✷ touch to reveal the kültrún"). No wheel, no labels, no readouts.
+ *   · REVEALED (tap / hold / Enter / choose a land) → the section adds `.is-revealed`:
+ *     the sigil morphs to the authentic kültrún (moon · two kürüf whorls · wüñelfe
+ *     star), the four lands (Meli Witran Mapu) fade in around the drum and the
+ *     land-readout appears. Idle / deselect → it collapses back to the clean centre.
+ *
+ * The four-lands interaction (turn the drum toward a direction, name the land) lives
+ * INSIDE the revealed state, not all the time. Tap the centre once to reveal/latch;
+ * tap again (or deselect the land) to calm back to the clean sigil.
+ *
+ * PERFORMANCE (efectos-livianos-mobile-wenu.md — canon):
+ *   · Base look is layered radial-gradients painted ONCE + CSS keyframes that move
+ *     ONLY transform / opacity (GPU compositor). Interaction adds ONE small rAF that
+ *     runs ONLY when in viewport AND (pressed OR easing OR the idle breathing cycle is
+ *     alive); it self-parks otherwise. Paused on visibilitychange + out of view.
+ *   · Glow/flare are static gradients toggled by opacity/scale — no animated blur, no
+ *     animated box-shadow, never a hard flash → far under 3 flashes/sec.
+ *   · prefers-reduced-motion → no flare/inertia; reveal shows the kültrún static
+ *     (short crossfade), nothing else.
+ */
+import WenuSigil from './WenuSigil.astro';
+import RitualGlyph from './RitualGlyph.astro';
+import MandalaPortal from './MandalaPortal.astro';
+
+interface Props {
+  eyebrow?: string;
+  arn?: string;        // mapudungun ritual line (lang="arn")
+  title?: string;
+  body?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+  /** interactive affordance hint */
+  hint?: string;
+}
+const {
+  eyebrow = 'Meli Witran Mapu · The burning drum',
+  arn = 'Meli witran mapu — the four lands, one drum',
+  title = 'The sky, still burning.',
+  body = 'A signal older than the map. Touch the centre — the ember opens into the ' +
+         'kültrún, the four directions of the Wallmapu written in fire.',
+  ctaHref = '/experience/cosmos',
+  ctaLabel = 'Enter the transmission',
+  hint = 'touch to reveal the kültrún',
+} = Astro.props;
+
+// ── The four lands of the Wallmapu (Meli Witran Mapu) ────────────────────────
+// pos = cardinal angle (deg, 0 = North/top). Selecting a land turns the burning
+// drum so that quadrant faces up, and names the direction below the flame. These
+// only become interactive once the centre is REVEALED.
+const LANDS = [
+  { key: 'pikun',  label: 'Pikun Mapu',  cardinal: 'North', pos: 0,
+    line: 'Wind over the open north — stone that was once the sky.' },
+  { key: 'puel',   label: 'Puel Mapu',   cardinal: 'East',  pos: 90,
+    line: 'Where the sun is born — radiant metal that holds the day.' },
+  { key: 'willi',  label: 'Willi Mapu',  cardinal: 'South', pos: 180,
+    line: 'The forest and the cold — rooted in the Wallmapu.' },
+  { key: 'lafken', label: 'Lafken Mapu', cardinal: 'West',  pos: 270,
+    line: 'The sea and the mist — deep time, the ocean that remembers.' },
+] as const;
+---
+<section class="ember" aria-labelledby="ember-title" data-ember-section>
+  {/* ── deep cosmic ground + ember bloom (painted once) ── */}
+  <span class="ember__ground" aria-hidden="true"></span>
+  <span class="ember__bloom" aria-hidden="true"></span>
+
+  <div class="ember__inner">
+    {/* ── copy ABOVE the flame — eyebrow + title, clean and airy ── */}
+    <div class="ember__lede">
+      <p class="ember__eyebrow eyebrow">{eyebrow}</p>
+      <p class="ember__arn" lang="arn">{arn}</p>
+      <h2 id="ember-title" class="ember__title">{title}</h2>
+    </div>
+
+    {/* ── the burning stage ── the INTERACTIVE surface.
+        REST: the wüñelfe sigil glowing on obsidian.
+        REVEALED (press/hold/tap/Enter, or choose a land): morphs to the kültrún,
+        the four lands + readout fade in. role=button + tabindex = keyboard-operable. ── */}
+    <div
+      class="ember__stage"
+      data-ember-core
+      role="button"
+      tabindex="0"
+      aria-pressed="false"
+      aria-label="The burning centre — touch to reveal the kültrún, drag to turn the drum"
+    >
+      <span class="ember__halo" aria-hidden="true"></span>
+      <span class="ember__heat" aria-hidden="true"></span>
+      <span class="ember__flare" aria-hidden="true"></span>
+      <span class="ember__ring ember__ring--a" aria-hidden="true"></span>
+      <span class="ember__ring ember__ring--b" aria-hidden="true"></span>
+
+      {/* ── the morphing centre ── sigil (rest) ↔ kültrún (revealed) ── */}
+      <span class="ember__morph" aria-hidden="true">
+        {/* STATE A — the wüñelfe sigil (rest) */}
+        <span class="ember__ember-glyph ember__state ember__state--sigil">
+          <WenuSigil size={320} label="Wüñelfe — the burning sigil of Wenu Mapu" />
+        </span>
+
+        {/* STATE B — the authentic kültrún of four symbols (revealed; turns with drag) */}
+        <span class="ember__ember-glyph ember__state ember__state--kultrun">
+          <svg viewBox="0 0 540 540" class="ember-kultrun" role="img"
+               aria-label="Kültrún — the four elemental symbols">
+            {/* outer sky ring + inner ring + cardinal cross */}
+            <g class="ember-kultrun__frame" fill="none" stroke="currentColor"
+               stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke">
+              <circle cx="270" cy="270" r="232" stroke-width="1.4" />
+              <circle cx="270" cy="270" r="210" stroke-width="1" opacity="0.55" />
+              <line x1="270" y1="38" x2="270" y2="502" stroke-width="1.2" />
+              <line x1="38" y1="270" x2="502" y2="270" stroke-width="1.2" />
+            </g>
+
+            {/* NE · KÜRÜF (wind) — spiralling comma-whorls, clockwise */}
+            <g transform="translate(360 180)" class="ember-kultrun__sym">
+              <g class="ember-kultrun__whorl-arms">
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" />
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" transform="rotate(90)" />
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" transform="rotate(180)" />
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" transform="rotate(270)" />
+              </g>
+              <circle r="2.6" fill="currentColor" />
+            </g>
+
+            {/* NW · KÜYEN (crescent moon) — clean sickle */}
+            <g transform="translate(180 180)" class="ember-kultrun__sym">
+              <path class="ember-kultrun__moon" d="M13 -32 A 33 33 0 1 0 13 32 A 25 25 0 1 1 13 -32 Z" />
+            </g>
+
+            {/* SE · WÜÑELFE (morning star) — 8-point star of two squares */}
+            <g transform="translate(360 360)" class="ember-kultrun__sym">
+              <polygon class="ember-kultrun__star" points="0,-34 5.4,-12.9 24,-24 12.9,-5.4 34,0 12.9,5.4 24,24 5.4,12.9 0,34 -5.4,12.9 -24,24 -12.9,5.4 -34,0 -12.9,-5.4 -24,-24 -5.4,-12.9" />
+              <rect x="-4.5" y="-4.5" width="9" height="9" transform="rotate(45)" fill="currentColor" />
+            </g>
+
+            {/* SW · MAPU (earth) — mirrored kürüf whorl, counter-clockwise */}
+            <g transform="translate(180 360)" class="ember-kultrun__sym ember-kultrun__sym--ccw">
+              <g class="ember-kultrun__whorl-arms">
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" />
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" transform="rotate(90)" />
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" transform="rotate(180)" />
+                <path class="ember-kultrun__whorl" d="M0 -1 C -3 -16 5 -26 21 -27 C 12 -22 8 -13 2 -4" transform="rotate(270)" />
+              </g>
+              <circle r="2.6" fill="currentColor" />
+            </g>
+
+            {/* central portal dot */}
+            <circle cx="270" cy="270" r="21" fill="none" stroke="currentColor" stroke-width="1.3" />
+            <circle cx="270" cy="270" r="3.4" fill="currentColor" />
+          </svg>
+        </span>
+      </span>
+
+      <span class="ember__spark ember__spark--1" aria-hidden="true"></span>
+      <span class="ember__spark ember__spark--2" aria-hidden="true"></span>
+      <span class="ember__spark ember__spark--3" aria-hidden="true"></span>
+      <span class="ember__spark ember__spark--4" aria-hidden="true"></span>
+      <span class="ember__spark ember__spark--5" aria-hidden="true"></span>
+
+      {/* interactive affordance — only in REST; hides once revealed */}
+      <span class="ember__hint" aria-hidden="true"><span class="ember__hint-star">✷</span> {hint}</span>
+
+      {/* ── the four lands ── ONLY interactive + visible once REVEALED.
+          Anchored to the stage so N/E/S/W frame the drum, not the whole section. ── */}
+      <div class="ember__lands" data-ember-lands aria-hidden="true">
+        {LANDS.map((l) => (
+          <button
+            type="button"
+            class={`ember__land ember__land--${l.cardinal.toLowerCase()}`}
+            data-ember-land={l.key}
+            data-ember-pos={l.pos}
+            aria-pressed="false"
+            tabindex="-1"
+            aria-label={`Turn the drum to ${l.label} — the ${l.cardinal.toLowerCase()}`}
+          >
+            <span lang="arn">{l.label}</span>
+            <small>{l.cardinal}</small>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    {/* ── revealed detail — land readout + body + CTA ──
+        The land-readout only shows in the revealed state; the body + CTA stay. ── */}
+    <div class="ember__copy">
+      <p class="ember__land-read" data-ember-land-read aria-live="polite">
+        <span class="ember__land-name" data-ember-land-name>Choose a direction</span>
+        <span class="ember__land-line" data-ember-land-line>Turn the drum — the world above, written overhead.</span>
+      </p>
+      <p class="ember__body">{body}</p>
+      <div class="ember__cta-row">
+        <a href={ctaHref} class="ember__cta">
+          {ctaLabel} <span aria-hidden="true">→</span>
+        </a>
+        <MandalaPortal variant="inline" size="48px" label={ctaLabel} class="ember__cta-mandala" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<script is:inline>
+  (function () {
+    var stage = document.querySelector('[data-ember-core]');
+    if (!stage || stage.dataset.emberReady) return;
+    stage.dataset.emberReady = '1';
+    var section = stage.closest('[data-ember-section]');
+
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // ── live state ──
+    var morph = 0;          // 0 = wüñelfe sigil, 1 = kültrún
+    var morphTarget = 0;    // where morph is easing toward
+    var revealed = false;   // is the kültrún revealed (lands visible, drum lit)
+    var spin = 0;           // wheel rotation, degrees
+    var spinVel = 0;        // deg/frame for inertia
+    var spinTarget = null;  // when a land is chosen, ease the wheel to face it up
+    var currentLand = null; // selected land key (or null)
+    var dragging = false;
+    var pressed = false;    // finger/pointer currently down
+    var moved = false;      // drag exceeded the tap threshold
+    var wasRevealed = false;// revealed-state snapshot at pointerdown (for tap toggle)
+    var lastAngle = 0;      // last pointer angle around centre (for drag rotation)
+    var inView = false;
+    var rafId = 0;
+    var lastT = 0;
+
+    function centre() {
+      var r = stage.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }
+    function angleTo(e) {
+      var c = centre();
+      return Math.atan2(e.clientY - c.y, e.clientX - c.x) * 180 / Math.PI;
+    }
+
+    function paint() {
+      stage.style.setProperty('--morph', morph.toFixed(3));
+      stage.style.setProperty('--spin', spin.toFixed(2) + 'deg');
+    }
+    paint();
+
+    function needsFrame() {
+      if (!inView) return false;
+      if (pressed || dragging) return true;
+      if (Math.abs(morph - morphTarget) > 0.002) return true;
+      if (Math.abs(spinVel) > 0.02) return true;
+      if (spinTarget !== null) return true;   // easing toward a chosen land
+      return false;                            // no idle breathing — calm at rest
+    }
+
+    function frame(t) {
+      rafId = 0;
+      if (!lastT) lastT = t;
+      var dt = Math.min(64, t - lastT);
+      lastT = t;
+
+      // ── ease morph toward its target (snappier while pressed) ──
+      var ease = pressed ? 0.24 : 0.10;
+      if (reduce) morph = morphTarget;
+      else morph += (morphTarget - morph) * ease;
+      if (Math.abs(morphTarget - morph) < 0.002) morph = morphTarget;
+
+      // ── ease the wheel toward a chosen land (overrides free inertia) ──
+      if (spinTarget !== null && !dragging) {
+        if (reduce) { spin = spinTarget; spinTarget = null; spinVel = 0; }
+        else {
+          spin += (spinTarget - spin) * 0.12;
+          spinVel = 0;
+          if (Math.abs(spinTarget - spin) < 0.15) { spin = spinTarget; spinTarget = null; }
+        }
+      } else if (!dragging && !reduce) {
+        // ── spin inertia when released after a drag ──
+        spin += spinVel;
+        spinVel *= 0.94;
+        if (Math.abs(spinVel) < 0.02) spinVel = 0;
+      }
+
+      paint();
+
+      if (needsFrame()) rafId = requestAnimationFrame(frame);
+      else lastT = 0;
+    }
+    function kick() {
+      if (!rafId && needsFrame()) { lastT = 0; rafId = requestAnimationFrame(frame); }
+    }
+    // a user interaction on the stage proves it is on-screen; force the loop live so
+    // the morph easing always completes even if the IntersectionObserver callback for
+    // inView hasn't fired yet (fast scroll-then-tap).
+    function wake() { inView = true; kick(); }
+
+    var landBtns = section ? Array.prototype.slice.call(section.querySelectorAll('[data-ember-land]')) : [];
+    var landsWrap = section ? section.querySelector('[data-ember-lands]') : null;
+    var landNameEl = section ? section.querySelector('[data-ember-land-name]') : null;
+    var landLineEl = section ? section.querySelector('[data-ember-land-line]') : null;
+    var LAND_LINES = {
+      pikun:  ['Pikun Mapu · North', 'Wind over the open north — stone that was once the sky.'],
+      puel:   ['Puel Mapu · East',   'Where the sun is born — radiant metal that holds the day.'],
+      willi:  ['Willi Mapu · South', 'The forest and the cold — rooted in the Wallmapu.'],
+      lafken: ['Lafken Mapu · West',  'The sea and the mist — deep time, the ocean that remembers.'],
+    };
+
+    // ── REVEAL / COLLAPSE — the whole point: clean ↔ kültrún ──
+    function reveal() {
+      if (revealed) return;
+      revealed = true;
+      morphTarget = 1;
+      if (section) section.classList.add('is-revealed');
+      stage.setAttribute('aria-pressed', 'true');
+      // the lands become real controls only once revealed
+      if (landsWrap) landsWrap.setAttribute('aria-hidden', 'false');
+      landBtns.forEach(function (b) { b.setAttribute('tabindex', '0'); });
+      kick();
+    }
+    function collapse() {
+      revealed = false;
+      pressed = false;
+      dragging = false;
+      morphTarget = 0;
+      currentLand = null;
+      spinTarget = reduce ? 0 : shortestTo(0);
+      if (section) section.classList.remove('is-revealed', 'is-pressing');
+      stage.setAttribute('aria-pressed', 'false');
+      if (landsWrap) landsWrap.setAttribute('aria-hidden', 'true');
+      landBtns.forEach(function (b) { b.setAttribute('tabindex', '-1'); b.setAttribute('aria-pressed', 'false'); });
+      if (landNameEl) landNameEl.textContent = 'Choose a direction';
+      if (landLineEl) landLineEl.textContent = 'Turn the drum — the world above, written overhead.';
+      kick();
+    }
+    function toggleReveal() { if (revealed) collapse(); else reveal(); }
+
+    // ── ignite look while a finger is down (a brighter flare on top of revealed) ──
+    function pressOn() {
+      pressed = true;
+      if (section) section.classList.add('is-pressing');
+    }
+    function pressOff() {
+      pressed = false;
+      if (section) section.classList.remove('is-pressing');
+    }
+
+    // ── pointer wiring (touch + mouse + pen) ──
+    stage.addEventListener('pointerdown', function (e) {
+      moved = false;
+      wasRevealed = revealed;       // remember state so a clean tap can toggle it
+      lastAngle = angleTo(e);
+      spinVel = 0;
+      spinTarget = null;
+      dragging = true;
+      pressOn();
+      // reveal WHILE the finger is down so hold-to-preview + drag-to-spin work
+      // immediately; a clean tap (no drag) is reconciled on release below.
+      if (!revealed) reveal();
+      wake();
+      try { stage.setPointerCapture(e.pointerId); } catch (x) {}
+      e.preventDefault();
+    });
+    stage.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var a = angleTo(e);
+      var da = a - lastAngle;
+      if (da > 180) da -= 360; else if (da < -180) da += 360;
+      lastAngle = a;
+      if (Math.abs(da) > 0.6) moved = true;
+      if (!reduce) {
+        spin += da;
+        spinVel = da;
+      }
+      paint();
+    });
+    function release(e) {
+      if (!pressed && !dragging) return;
+      dragging = false;
+      pressOff();
+      // a press with no meaningful drag = a TAP. pointerdown already revealed if we
+      // started from rest, so: tap-from-rest → STAY revealed; tap-while-revealed →
+      // collapse back to the clean sigil. (Toggle relative to the pre-press state.)
+      if (!moved && wasRevealed) {
+        collapse();
+      }
+      // a drag just turned the wheel; stay revealed with inertia
+      wake();
+      try { stage.releasePointerCapture(e.pointerId); } catch (x) {}
+    }
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', function () {
+      dragging = false; pressOff(); kick();
+    });
+    stage.addEventListener('pointerleave', function () {
+      if (dragging) return;         // capture keeps drag alive
+      pressOff();
+    });
+
+    // ── keyboard: Enter / Space reveal + collapse ──
+    stage.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        toggleReveal();
+        wake();
+      } else if (e.key === 'Escape' && revealed) {
+        collapse();
+        wake();
+      }
+    });
+
+    // normalise the current spin to the nearest equivalent of a target angle so the
+    // wheel takes the SHORT way round.
+    function shortestTo(targetDeg) {
+      var cur = spin % 360;
+      var t = ((targetDeg % 360) + 360) % 360;
+      var delta = t - ((cur % 360) + 360) % 360;
+      if (delta > 180) delta -= 360; else if (delta < -180) delta += 360;
+      return spin + delta;
+    }
+
+    function selectLand(key) {
+      if (!revealed) reveal();
+      var same = currentLand === key;
+      currentLand = same ? null : key;
+
+      landBtns.forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b.dataset.emberLand === currentLand));
+      });
+
+      if (currentLand) {
+        var btn = landBtns.filter(function (b) { return b.dataset.emberLand === currentLand; })[0];
+        var pos = btn ? parseFloat(btn.dataset.emberPos) : 0;
+        spinTarget = reduce ? -pos : shortestTo(-pos);
+        var meta = LAND_LINES[currentLand];
+        if (landNameEl && meta) landNameEl.textContent = meta[0];
+        if (landLineEl && meta) landLineEl.textContent = meta[1];
+      } else {
+        // deselect the land → return to the neutral revealed drum
+        spinTarget = reduce ? 0 : shortestTo(0);
+        if (landNameEl) landNameEl.textContent = 'Choose a direction';
+        if (landLineEl) landLineEl.textContent = 'Turn the drum — the world above, written overhead.';
+      }
+      wake();
+    }
+
+    landBtns.forEach(function (b) {
+      b.addEventListener('click', function (e) { e.stopPropagation(); selectLand(b.dataset.emberLand); });
+    });
+
+    // ── run the loop ONLY while in viewport ──
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (entries) {
+        inView = entries[0].isIntersecting;
+        if (inView) kick();
+        else if (rafId) { cancelAnimationFrame(rafId); rafId = 0; lastT = 0; }
+      }, { threshold: 0.08 });
+      io.observe(stage);
+    } else {
+      inView = true; kick();
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) {
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; lastT = 0; }
+      } else {
+        kick();
+      }
+    });
+  })();
+</script>
+
+<style>
+  .ember {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    border-block: var(--border-thin);
+    padding: var(--section-y-lg) var(--gutter);
+    background: #060505;
+  }
+
+  /* ── grounds (painted once, no animated blur) ── */
+  .ember__ground {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(120% 120% at 50% 44%, #17110a 0%, #0b0806 52%, #050403 100%);
+  }
+  /* the ember bloom behind the glyph — calmer at rest, swells when revealed */
+  .ember__bloom {
+    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(42% 48% at 50% 46%,
+        rgba(201, 168, 76, 0.22) 0%,
+        rgba(180, 110, 40, 0.11) 34%,
+        rgba(120, 60, 20, 0.04) 56%,
+        transparent 72%);
+    animation: ember-bloom 9s ease-in-out infinite;
+    transition: opacity var(--t-base, 0.4s) ease;
+  }
+
+  /* ── layout ── */
+  .ember__inner {
+    position: relative; z-index: 2;
+    max-width: 720px; margin: 0 auto;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    gap: clamp(28px, 5vw, 52px);
+  }
+
+  /* ── lede copy ABOVE the flame ── */
+  .ember__lede { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); max-width: 44ch; }
+  .ember__eyebrow { color: color-mix(in srgb, var(--ember) 90%, #f0ede8); margin: 0; }
+  .ember__arn {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: var(--fs-body); color: color-mix(in srgb, var(--ember) 66%, #f0ede8);
+    letter-spacing: 0.04em; margin: 0; opacity: 0.88;
+  }
+  .ember__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(2.3rem, 6.4vw, 4.4rem); line-height: 1.02; letter-spacing: 0.01em;
+    color: #f5efe4; margin: 0; text-wrap: balance; text-transform: uppercase;
+    text-shadow: 0 0 30px rgba(226, 150, 60, 0.24), 0 2px 18px rgba(0, 0, 0, 0.6);
+  }
+
+  /* ── the flame stage — the INTERACTIVE surface ── */
+  .ember__stage {
+    position: relative;
+    width: clamp(240px, 42vw, 400px);
+    aspect-ratio: 1;
+    display: grid; place-items: center;
+    cursor: pointer;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none; -webkit-user-select: none;
+    border-radius: 50%;
+    --morph: 0;
+    --spin: 0deg;
+  }
+  .ember__stage:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--ember) 70%, transparent);
+    outline-offset: 12px;
+  }
+
+  /* soft additive halo (static gradient; only opacity/scale animate) */
+  .ember__halo {
+    position: absolute; inset: -18%; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(255, 220, 150, 0.42) 0%,
+        rgba(226, 150, 60, 0.24) 26%,
+        rgba(150, 70, 24, 0.10) 46%,
+        transparent 66%);
+    mix-blend-mode: screen;
+    animation: ember-breathe 7s ease-in-out infinite;
+    transition: opacity var(--t-base, 0.4s) ease, transform var(--t-base, 0.4s) ease;
+  }
+  .ember__heat {
+    position: absolute; inset: -8%; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(closest-side at 50% 62%,
+        rgba(255, 150, 60, 0.18) 0%, transparent 70%);
+    mix-blend-mode: screen;
+    animation: ember-heat 8s ease-in-out infinite;
+  }
+
+  /* ── the IGNITION flare — off at rest, revealed on reveal/press ── */
+  .ember__flare {
+    position: absolute; inset: -26%; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 50%,
+        rgba(255, 236, 190, 0.85) 0%,
+        rgba(255, 190, 96, 0.55) 20%,
+        rgba(230, 130, 44, 0.30) 40%,
+        rgba(150, 66, 20, 0.12) 60%,
+        transparent 74%);
+    mix-blend-mode: screen;
+    opacity: 0; transform: scale(0.7);
+    transition: opacity 0.4s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: opacity, transform;
+  }
+
+  /* two faint instrument rings — hidden at rest, fade in when revealed */
+  .ember__ring {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    border: 1px solid color-mix(in srgb, var(--ember) 26%, transparent);
+    opacity: 0;
+    transition: border-color var(--t-base, 0.4s) ease, opacity var(--t-base, 0.4s) ease;
+  }
+  .ember__ring--a {
+    inset: 3%;
+    border-style: dashed;
+    animation: ember-spin 44s linear infinite;
+  }
+  .ember__ring--b {
+    inset: 14%;
+    border-color: color-mix(in srgb, var(--ember) 14%, transparent);
+    animation: ember-spin 66s linear infinite reverse;
+  }
+
+  /* ── the morphing centre ── */
+  .ember__morph {
+    position: relative; z-index: 1;
+    width: clamp(200px, 34vw, 320px); aspect-ratio: 1;
+    display: grid; place-items: center;
+    transform: rotate(var(--spin, 0deg));
+    transform-origin: center;
+    will-change: transform;
+  }
+  .ember__state {
+    grid-area: 1 / 1;
+    line-height: 0;
+    color: #f4d888;
+    filter:
+      drop-shadow(0 0 10px rgba(255, 200, 110, 0.5))
+      drop-shadow(0 0 30px rgba(226, 140, 50, 0.34))
+      drop-shadow(0 0 60px rgba(201, 120, 40, 0.18));
+    transform-origin: center;
+    will-change: opacity, transform;
+  }
+  .ember__state :global(svg) { width: clamp(200px, 34vw, 320px); height: auto; }
+
+  /* State A — wüñelfe sigil: visible at morph 0, gone at morph 1 */
+  .ember__state--sigil {
+    opacity: calc(1 - var(--morph, 0));
+    transform: scale(calc(1 - 0.12 * var(--morph, 0))) rotate(calc(-24deg * var(--morph, 0)));
+  }
+  /* State B — kültrún: hidden at morph 0, full at morph 1 */
+  .ember__state--kultrun {
+    opacity: var(--morph, 0);
+    transform: scale(calc(0.88 + 0.12 * var(--morph, 0))) rotate(calc(24deg * (1 - var(--morph, 0))));
+  }
+
+  /* ── authentic kültrún symbols ── */
+  .ember-kultrun { display: block; }
+  .ember-kultrun__moon,
+  .ember-kultrun__star { fill: currentColor; stroke: none; }
+  .ember-kultrun__whorl {
+    fill: none; stroke: currentColor; stroke-width: 4.4; stroke-linecap: round;
+  }
+  .ember-kultrun__sym--ccw .ember-kultrun__whorl-arms {
+    transform-box: fill-box; transform-origin: center; transform: scaleX(-1);
+  }
+  .ember-kultrun__sym .ember-kultrun__whorl-arms {
+    transform-box: fill-box; transform-origin: center;
+    animation: ember-whorl 46s linear infinite;
+  }
+  .ember-kultrun__sym--ccw .ember-kultrun__whorl-arms { animation: ember-whorl-ccw 46s linear infinite; }
+  @keyframes ember-whorl     { to { transform: rotate(360deg); } }
+  @keyframes ember-whorl-ccw { to { transform: scaleX(-1) rotate(360deg); } }
+
+  /* drifting embers — only rise once revealed */
+  .ember__spark {
+    position: absolute; z-index: 2; width: 3px; height: 3px; border-radius: 50%;
+    background: rgba(255, 210, 130, 0.9);
+    box-shadow: 0 0 6px rgba(255, 180, 90, 0.8);
+    opacity: 0;
+  }
+  .ember__spark--1 { left: 44%; bottom: 32%; animation: ember-rise 6.5s ease-in 0.4s infinite; }
+  .ember__spark--2 { left: 56%; bottom: 30%; animation: ember-rise 7.8s ease-in 2.1s infinite; }
+  .ember__spark--3 { left: 50%; bottom: 36%; animation: ember-rise 8.6s ease-in 4.3s infinite; }
+  .ember__spark--4 { left: 40%; bottom: 34%; animation: ember-rise 3.4s ease-in 0.2s infinite; }
+  .ember__spark--5 { left: 60%; bottom: 33%; animation: ember-rise 3.9s ease-in 1.1s infinite; }
+  .ember__spark { animation-play-state: paused; }
+
+  /* ── interactive affordance hint — only at REST ── */
+  .ember__hint {
+    position: absolute; z-index: 3; left: 50%; bottom: -11%;
+    transform: translateX(-50%);
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono, monospace); font-size: var(--fs-tiny, 0.7rem);
+    letter-spacing: 0.24em; text-transform: uppercase;
+    color: color-mix(in srgb, var(--ember) 78%, #f0ede8);
+    text-shadow: 0 0 12px rgba(201, 168, 76, 0.5);
+    pointer-events: none; white-space: nowrap;
+    animation: ember-hint 3s ease-in-out infinite;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+  }
+  .ember__hint-star { animation: ember-hint-spin 8s linear infinite; display: inline-block; }
+  @media (max-width: 560px) { .ember__hint { letter-spacing: 0.16em; } }
+
+  /* ── REVEALED state — the kültrún is open (lands + drum lit) ── */
+  .ember.is-revealed .ember__flare  { opacity: 0.86; transform: scale(1); }
+  .ember.is-revealed .ember__halo   { opacity: 1; transform: scale(1.1); }
+  .ember.is-revealed .ember__bloom  { opacity: 1; }
+  .ember.is-revealed .ember__ring   { opacity: 1; border-color: color-mix(in srgb, var(--ember) 52%, transparent); }
+  .ember.is-revealed .ember__spark  { animation-play-state: running; }
+  /* the hint pulses via an opacity keyframe, so `opacity:0` alone loses to the
+     animation — stop the animation too so it truly disappears once revealed. */
+  .ember.is-revealed .ember__hint   { opacity: 0; visibility: hidden; transform: translate(-50%, 8px); animation: none; }
+  .ember.is-revealed .ember__state {
+    filter:
+      drop-shadow(0 0 14px rgba(255, 224, 150, 0.75))
+      drop-shadow(0 0 40px rgba(255, 160, 60, 0.5))
+      drop-shadow(0 0 78px rgba(226, 120, 40, 0.28));
+    color: #ffe7a2;
+  }
+
+  /* ── PRESSING — a stronger flare while a finger is down ── */
+  .ember.is-pressing .ember__flare { opacity: 1; transform: scale(1.05); }
+  .ember.is-pressing .ember__ring--a { animation-duration: 9s; }
+  .ember.is-pressing .ember__ring--b { animation-duration: 13s; }
+  .ember.is-pressing .ember__spark--1 { animation-duration: 2.6s; }
+  .ember.is-pressing .ember__spark--2 { animation-duration: 3.0s; }
+  .ember.is-pressing .ember__spark--3 { animation-duration: 2.8s; }
+
+  /* ── the four lands ── HIDDEN at rest, fade in around the drum once revealed ── */
+  .ember__lands {
+    position: absolute; z-index: 4; inset: -18% -8%;
+    pointer-events: none;
+    opacity: 0; visibility: hidden;
+    transition: opacity var(--t-base, 0.4s) ease, visibility 0s linear var(--t-base, 0.4s);
+  }
+  .ember.is-revealed .ember__lands {
+    opacity: 1; visibility: visible;
+    transition: opacity var(--t-base, 0.4s) ease 0.12s, visibility 0s;
+  }
+  .ember__land {
+    position: absolute;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 8px 12px;
+    background: transparent; border: 0; cursor: pointer;
+    pointer-events: auto;
+    color: color-mix(in srgb, var(--ember) 58%, #f0ede8);
+    font-family: var(--font-sans); text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
+    transition: color 0.4s ease, transform 0.4s ease, text-shadow 0.4s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ember__land span { font-size: 0.72rem; letter-spacing: 0.2em; }
+  .ember__land small { font-size: 0.56rem; letter-spacing: 0.24em; opacity: 0.66; }
+  .ember__land::after {
+    content: ''; width: 5px; height: 5px; margin-top: 3px; border-radius: 50%;
+    background: currentColor; opacity: 0; transform: scale(0.4);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    box-shadow: 0 0 8px currentColor;
+  }
+  .ember__land:hover, .ember__land:focus-visible {
+    color: #ffe7a2; text-shadow: 0 0 18px rgba(201, 168, 76, 0.6); outline: none;
+  }
+  .ember__land:hover::after,
+  .ember__land:focus-visible::after,
+  .ember__land[aria-pressed="true"]::after { opacity: 1; transform: scale(1); }
+  .ember__land[aria-pressed="true"] { color: #ffe7a2; }
+  .ember__land:focus-visible { outline: 1px solid var(--ember); outline-offset: 4px; border-radius: 3px; }
+  .ember__land--north { top: clamp(-6px, 0vw, 0px); left: 50%; transform: translateX(-50%); }
+  .ember__land--south { bottom: clamp(-6px, 0vw, 0px); left: 50%; transform: translateX(-50%); }
+  .ember__land--east  { top: 50%; right: clamp(-2px, 1vw, 12px); transform: translateY(-50%); }
+  .ember__land--west  { top: 50%; left: clamp(-2px, 1vw, 12px);  transform: translateY(-50%); }
+  .ember__land--north:hover, .ember__land--north:focus-visible { transform: translateX(-50%) translateY(-2px); }
+  .ember__land--south:hover, .ember__land--south:focus-visible { transform: translateX(-50%) translateY(2px); }
+
+  /* ── revealed copy — land readout + body + CTA ── */
+  .ember__copy { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); max-width: 54ch; }
+
+  /* land readout — collapsed at rest, reveals with the kültrún */
+  .ember__land-read {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    margin: 0; max-height: 0; opacity: 0; overflow: hidden;
+    transition: max-height var(--t-base, 0.4s) ease, opacity var(--t-base, 0.4s) ease, margin var(--t-base, 0.4s) ease;
+  }
+  .ember.is-revealed .ember__land-read {
+    max-height: 8em; opacity: 1; margin-bottom: var(--space-1);
+    transition: max-height var(--t-base, 0.4s) ease 0.1s, opacity var(--t-base, 0.4s) ease 0.16s, margin var(--t-base, 0.4s) ease;
+  }
+  .ember__land-name {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.24em; text-transform: uppercase;
+    color: color-mix(in srgb, var(--ember) 88%, #f0ede8);
+  }
+  .ember__land-line {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: var(--fs-body); line-height: 1.5;
+    color: rgba(240, 237, 232, 0.72); max-width: 42ch;
+  }
+
+  .ember__body {
+    font-family: var(--font-serif); font-size: var(--fs-body-lg); line-height: 1.7;
+    color: rgba(240, 237, 232, 0.8); max-width: 50ch; margin: 0;
+  }
+  .ember__cta {
+    margin-top: var(--space-2);
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: #0a0a0a; text-decoration: none;
+    background: var(--ember); border: 1px solid var(--ember); border-radius: 999px;
+    padding: 14px 28px;
+    box-shadow: 0 0 24px -4px rgba(201, 168, 76, 0.5);
+    transition: background var(--t-base), color var(--t-base), box-shadow var(--t-base), transform var(--t-fast);
+  }
+  .ember__cta:hover {
+    background: #e8c86a; border-color: #e8c86a; transform: translateY(-1px);
+    box-shadow: 0 0 34px -2px rgba(232, 200, 106, 0.7);
+  }
+  .ember__cta:focus-visible { outline: 1px solid var(--ember); outline-offset: 4px; }
+
+  /* ── CTA row — small spinning mandala mark beside the text CTA (additive, does
+     not replace the existing text link) ── */
+  .ember__cta-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: var(--space-2, 12px); flex-wrap: wrap;
+    margin-top: var(--space-2);
+  }
+  .ember__cta-row .ember__cta { margin-top: 0; }
+
+  /* ── keyframes — transform / opacity ONLY (GPU); gentle, never to black ── */
+  @keyframes ember-bloom   { 0%,100% { opacity: 0.7; } 50% { opacity: 0.92; } }
+  @keyframes ember-breathe { 0%,100% { opacity: 0.68; transform: scale(0.98); } 50% { opacity: 0.9; transform: scale(1.05); } }
+  @keyframes ember-heat    { 0%,100% { opacity: 0.5; transform: translateY(2%) scale(1); } 50% { opacity: 0.8; transform: translateY(-3%) scale(1.05); } }
+  @keyframes ember-spin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  @keyframes ember-rise {
+    0%   { opacity: 0; transform: translate(0, 0) scale(0.8); }
+    16%  { opacity: 0.95; }
+    100% { opacity: 0; transform: translate(-6px, -120px) scale(0.4); }
+  }
+  @keyframes ember-hint { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+  @keyframes ember-hint-spin { to { transform: rotate(360deg); } }
+
+  /* honour reduced motion — calm glowing frame; reveal is an instant crossfade ── */
+  @media (prefers-reduced-motion: reduce) {
+    .ember__bloom, .ember__halo, .ember__heat, .ember__ring,
+    .ember__state, .ember__spark, .ember__hint, .ember__hint-star,
+    .ember-kultrun__sym .ember-kultrun__whorl-arms,
+    .ember-kultrun__sym--ccw .ember-kultrun__whorl-arms { animation: none !important; }
+    .ember__spark { opacity: 0 !important; }
+    .ember__halo { opacity: 0.8; }
+    .ember__flare { transition: opacity 0.2s linear; transform: scale(1); }
+    .ember__state--sigil   { transform: none; }
+    .ember__state--kultrun { transform: none; }
+    .ember-kultrun__sym--ccw .ember-kultrun__whorl-arms { transform: scaleX(-1); }
+    .ember__morph { transform: none; }
+    .ember__lands,
+    .ember.is-revealed .ember__lands { transition: opacity 0.2s linear; }
+    .ember__land-read,
+    .ember.is-revealed .ember__land-read { transition: opacity 0.2s linear, max-height 0.2s linear; }
+  }
+</style>

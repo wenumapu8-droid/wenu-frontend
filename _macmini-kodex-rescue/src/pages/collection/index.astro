@@ -1,0 +1,330 @@
+---
+import Base from '../../layouts/Base.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import PatternBand from '../../components/PatternBand.astro';
+import { getProducts } from '../../lib/woo';
+import { collections as themedCollections } from '../../data/collections';
+import en from '../../i18n/en.json';
+
+const L = en.landing.collection_hub;
+
+const collectionDefs = [
+  {
+    title: 'Ritual Ring Vacamuerta',
+    sub: 'Author series built around Atacama meteorite. One-of-a-kind, numbered.',
+    href: '/collection/ritual-ring-vacamuerta',
+    image: '/img/brand/meteorite-collection.webp',
+    keywords: ['ritual-ring', 'vacamuerta', 'meteorite', 'atacama'],
+  },
+  {
+    title: 'Mystic Series',
+    sub: 'Themed pieces — cardinal forces, volcanic line, sky world.',
+    href: '/collection/mystic-series',
+    image: '/img/categories/amulets.webp',
+    keywords: ['mystic', 'amulet', 'amethyst', 'snake', 'bee'],
+  },
+  {
+    title: 'Author Jewelry',
+    sub: 'One-of-a-kind pieces signed by the maker.',
+    href: '/collection/author-jewelry',
+    image: '/img/products/ritual-ring-950.webp',
+    keywords: ['ritual-ring', 'carved-ethnic-ring', 'author', 'one-of-a-kind', 'signed', 'numbered'],
+  },
+];
+
+const allProducts = await getProducts();
+const searchable = (product) => [
+  product.name,
+  product.slug,
+  product.sku,
+  ...product.categories.map(c => c.name),
+  ...product.categories.map(c => c.slug),
+  ...product.attributes.flatMap(a => [a.name, ...a.options]),
+].join(' ').toLowerCase();
+
+const collections = collectionDefs.map(collection => ({
+  ...collection,
+  products: allProducts
+    .filter(product => product.images[0]?.src)
+    .filter(product => collection.keywords.some(keyword => searchable(product).includes(keyword)))
+    .slice(0, 6),
+}));
+
+const themed = themedCollections.map(c => ({
+  ...c,
+  href: `/collection/${c.slug}`,
+  image: `/img/banners/collection/${c.slug}.webp`,
+  imageAvif: `/img/banners/collection/${c.slug}.avif`,
+  count: allProducts
+    .filter(product => product.images[0]?.src)
+    .filter(product => c.keywords.some(keyword => searchable(product).includes(keyword)))
+    .length,
+}));
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: L.title,
+  description: L.intro,
+  url: 'https://wenumapuonline.com/collection/',
+  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Collections', item: 'https://wenumapuonline.com/collection/' },
+  ],
+};
+---
+<Base
+  title="Collections — editorial chapters and archive lines | Wenu Mapu"
+  description="Editorial collection pages live first; archive lines from the Noco catalogue follow as assets and family logic are prepared."
+  ogImage="/img/brand/meteorite-collection.webp"
+  jsonLd={[collectionLd, breadcrumbLd]}
+>
+  <div class="cat-masthead cat-masthead--titled">
+    <picture>
+      <source
+        type="image/avif"
+        srcset="/img/banners/cosmic/collections-portal-900w.avif 900w, /img/banners/cosmic/collections-portal-1200w.avif 1200w, /img/banners/cosmic/collections-portal-1600w.avif 1600w, /img/banners/cosmic/collections-portal-1920w.avif 1920w"
+        sizes="100vw"
+      />
+      <img
+        src="/img/banners/cosmic/collections-portal-1200w.webp"
+        srcset="/img/banners/cosmic/collections-portal-900w.webp 900w, /img/banners/cosmic/collections-portal-1200w.webp 1200w, /img/banners/cosmic/collections-portal-1600w.webp 1600w, /img/banners/cosmic/collections-portal-1920w.webp 1920w"
+        sizes="100vw"
+        alt=""
+        width="1672"
+        height="941"
+        loading="eager"
+        decoding="async"
+        fetchpriority="high"
+      />
+    </picture>
+    <div class="cat-masthead__label">
+      <p class="cat-masthead__title">{L.title}</p>
+      <p class="cat-masthead__eyebrow">Portals · Chapters</p>
+    </div>
+  </div>
+
+  <section class="section section--mega">
+    <div class="container">
+      <p class="eyebrow">{L.eyebrow}</p>
+      <h1 class="page-title">{L.title}</h1>
+      <p class="lede">{L.intro}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <div class="landing__copy">
+        <p>{L.lede}</p>
+        <p>
+          The pages below are the editorial chapters already shaped for the storefront.
+          Additional lines from the Noco catalogue are being prepared more slowly — with real photos,
+          stronger family logic, and fewer generic archive pages.
+        </p>
+      </div>
+
+      <div class="archive-grid" style="margin-top: var(--space-6);">
+        {collections.map(c => (
+          <a class="archive-card" href={c.href}>
+            <div class="archive-card__img-wrap">
+              <img src={c.image} alt={c.title} loading="lazy" decoding="async" />
+            </div>
+            <div class="archive-card__body">
+              <h2 class="archive-card__title">{c.title}</h2>
+              <p class="archive-card__sub">{c.sub}</p>
+              <p class="archive-card__sub">{c.products.length} matching pieces in the current catalogue.</p>
+              <span class="archive-card__cta">Browse the collection →</span>
+            </div>
+          </a>
+        ))}
+      </div>
+
+      {collections.map(c => c.products.length > 0 && (
+        <div class="landing__rail" aria-label={`Selected pieces in ${c.title}`}>
+          <div class="landing__rail-head">
+            <p class="eyebrow">{c.title}</p>
+            <a href={c.href} class="text-accent">Open collection →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {c.products.map(product => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <section class="section" aria-labelledby="collection-themes-title" style="padding: var(--space-7) 0 0;">
+        <div class="landing__rail-head">
+          <p class="eyebrow">Themed collections</p>
+          <a href="/shop" class="text-accent">Shop everything →</a>
+        </div>
+        <h2 id="collection-themes-title" class="section-title" style="margin-top: var(--space-2);">Chapters of the world, by theme.</h2>
+        <div class="themed-grid" style="margin-top: var(--space-5);">
+          {themed.map(c => (
+            <a class="themed-card" href={c.href}>
+              <div class="themed-card__img-wrap">
+                <picture>
+                  <source type="image/avif" srcset={c.imageAvif} />
+                  <img src={c.image} alt={`${c.title} collection`} loading="lazy" decoding="async" />
+                </picture>
+                <div class="themed-card__overlay"></div>
+                {!c.bakedTitle && (
+                  <div class="themed-card__label">
+                    <h3 class="themed-card__title">{c.title}</h3>
+                    <p class="themed-card__eyebrow">{c.eyebrow}</p>
+                  </div>
+                )}
+                <span class="themed-card__cta">Enter <span aria-hidden="true">→</span></span>
+              </div>
+              <div class="themed-card__body">
+                <p class="themed-card__intro">{c.intro}</p>
+                <p class="themed-card__count">{c.count > 0 ? `${c.count} matching piece${c.count === 1 ? '' : 's'} in the current catalogue.` : 'Pieces in the forge — browse all now.'}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .themed-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-4);
+  }
+
+  .themed-card {
+    display: block;
+    background: var(--bg-alt);
+    border: var(--border-thin);
+    color: inherit;
+    text-decoration: none;
+    transition: transform var(--t-base), box-shadow var(--t-base), border-color var(--t-base);
+    overflow: hidden;
+  }
+
+  .themed-card:hover,
+  .themed-card:focus-visible {
+    transform: translateY(-3px);
+    border-color: var(--ember);
+    box-shadow: 0 12px 40px -20px rgba(201, 168, 76, 0.4);
+    outline: none;
+  }
+
+  .themed-card__img-wrap {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--obsidian);
+  }
+
+  .themed-card__img-wrap img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform var(--t-slow);
+  }
+
+  .themed-card:hover .themed-card__img-wrap img,
+  .themed-card:focus-visible .themed-card__img-wrap img {
+    transform: scale(1.04);
+  }
+
+  /* Dark gradient overlay for legible title */
+  .themed-card__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 10, 10, 0.15) 0%,
+      rgba(10, 10, 10, 0.45) 60%,
+      rgba(10, 10, 10, 0.75) 100%
+    );
+    pointer-events: none;
+  }
+
+  /* Centered title block — like cat-masthead but inside the card */
+  .themed-card__label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: var(--space-4);
+    pointer-events: none;
+  }
+
+  .themed-card__title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--bone);
+    margin: 0;
+    text-shadow: 0 2px 24px rgba(0, 0, 0, 0.7), 0 0 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .themed-card__eyebrow {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--ember);
+    margin: var(--space-2) 0 0;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  }
+
+  .themed-card__cta {
+    position: absolute;
+    bottom: var(--space-3);
+    left: var(--space-4);
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--bone);
+    pointer-events: none;
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+  }
+
+  .themed-card__body {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    border-top: var(--border-accent);
+  }
+
+  .themed-card__intro {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    font-style: italic;
+    font-size: var(--fs-small);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    margin: 0 0 var(--space-2);
+  }
+
+  .themed-card__count {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--silver);
+    margin: 0;
+  }
+
+  @media (max-width: 600px) {
+    .themed-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

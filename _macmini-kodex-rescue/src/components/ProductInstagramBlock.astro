@@ -1,0 +1,143 @@
+---
+/**
+ * ProductInstagramBlock — "On Instagram" card on the PDP (task A2, 2026-07-18).
+ *
+ * Replaces the old discreet "See it on Instagram" text link with a clean,
+ * on-brand card: the product's own macro photo (already on the PDP — no IG
+ * API call, no embed, no phone-chrome screenshot), a short caption excerpt
+ * from the real post, and a button to the real post URL.
+ *
+ * Data source: `src/data/instagram-links.ts`, itself a thin typed wrapper
+ * around `instagram-product-map.json` (repo root) — the ONE source of truth.
+ * Only `status: "CONFIRMED"` entries exist in that map, so if this component
+ * renders nothing, that's correct: the product has no confirmed pairing.
+ *
+ * Self-contained: pass a slug + the image already used as the PDP hero.
+ * Renders nothing (no wrapper markup at all) when there's no confirmed link.
+ */
+import { instagramLinks } from '../data/instagram-links';
+
+interface Props {
+  slug: string;
+  /** The PDP's own hero image — reused here, never a different/IG asset. */
+  image: { src: string; alt?: string; width?: number; height?: number };
+  productName: string;
+}
+
+const { slug, image, productName } = Astro.props;
+const entry = instagramLinks[slug];
+
+// Keep the excerpt short (1–2 lines) even if a future caption runs long.
+const MAX_CAPTION = 140;
+const captionExcerpt = entry && entry.caption.length > MAX_CAPTION
+  ? entry.caption.slice(0, MAX_CAPTION).replace(/\s+\S*$/, '') + '…'
+  : entry?.caption;
+---
+
+{entry && (
+  <section class="ig-product-block" aria-labelledby="ig-product-block-title">
+    <p class="eyebrow" id="ig-product-block-title">On Instagram</p>
+    <a
+      href={entry.igUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      class="ig-product-block__card"
+      aria-label={`${productName} on Instagram — view the post`}
+    >
+      <span class="ig-product-block__img-wrap">
+        <img
+          src={image.src}
+          alt={image.alt || productName}
+          width={image.width}
+          height={image.height}
+          loading="lazy"
+          decoding="async"
+        />
+      </span>
+      <span class="ig-product-block__body">
+        <span class="ig-product-block__caption">{captionExcerpt}</span>
+        <span class="ig-product-block__cta">
+          Ver en Instagram <span aria-hidden="true">↗</span>
+        </span>
+      </span>
+    </a>
+  </section>
+)}
+
+<style>
+  .ig-product-block {
+    margin: var(--space-5) 0;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--bronze);
+  }
+
+  .ig-product-block__card {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    text-decoration: none;
+    color: inherit;
+    padding: var(--space-3);
+    border: 1px solid color-mix(in srgb, var(--bronze) 45%, transparent);
+    background: var(--bg-alt);
+    transition: border-color var(--t-fast), background var(--t-fast);
+  }
+  .ig-product-block__card:hover,
+  .ig-product-block__card:focus-visible {
+    border-color: var(--ember);
+    background: color-mix(in srgb, var(--bg-alt) 85%, var(--ember) 15%);
+  }
+  .ig-product-block__card:focus-visible {
+    outline: 2px solid var(--ember);
+    outline-offset: 3px;
+  }
+
+  .ig-product-block__img-wrap {
+    flex: 0 0 auto;
+    width: 76px;
+    height: 76px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--bronze) 55%, transparent);
+    background: var(--product-panel, var(--charcoal));
+  }
+  .ig-product-block__img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .ig-product-block__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 0;
+  }
+
+  .ig-product-block__caption {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: var(--fw-thin, 300);
+    font-size: var(--fs-small);
+    line-height: 1.5;
+    color: var(--fg-soft);
+    /* keep the excerpt to ~2 lines even before JS truncation kicks in */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ig-product-block__cta {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--ember);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ig-product-block__card { transition: none; }
+  }
+</style>

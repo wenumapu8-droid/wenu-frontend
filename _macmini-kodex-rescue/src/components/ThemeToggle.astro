@@ -1,0 +1,127 @@
+---
+/**
+ * ThemeToggle — day-cycle theme switcher (2026-06-25).
+ * Three manual themes (Solar ☀ · Nocturne ☾ · Sunset ◗) plus Auto (by hour).
+ * MANUAL WINS over the clock: picking a theme pins it until "Auto" is chosen.
+ * Persists to localStorage (wmThemeMode + wmTheme). The pre-paint resolver lives
+ * in Base.astro <head> so there's no FOUC; this only handles interaction.
+ *
+ * Rendered ONLY when the theme flag is on (Base gates it). With the flag off the
+ * component never ships, so the site is pure Nocturne — byte-identical.
+ */
+---
+<div class="thm" role="group" aria-label="Color theme">
+  <span class="thm__label">Light cycle</span>
+  <div class="thm__set">
+    <button type="button" class="thm__btn" data-thm="solar" aria-label="Solar — daylight theme" title="Solar (daylight)">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.2"/>
+        <path d="M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>
+      </svg>
+    </button>
+    <button type="button" class="thm__btn" data-thm="nocturne" aria-label="Nocturne — night theme" title="Nocturne (night)">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 14.5A8 8 0 1 1 9.5 4a6.3 6.3 0 0 0 10.5 10.5z"/>
+      </svg>
+    </button>
+    <button type="button" class="thm__btn" data-thm="sunset" aria-label="Atardecer — dusk theme" title="Atardecer (dusk)">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 18h18"/><path d="M12 9V4M12 9a4 4 0 0 1 4 4H8a4 4 0 0 1 4-4z"/>
+        <path d="M5.5 6.5l1.4 1.4M18.5 6.5l-1.4 1.4M2 13h2M20 13h2"/>
+      </svg>
+    </button>
+    <button type="button" class="thm__btn thm__btn--auto" data-thm="auto" aria-label="Auto — follow time of day" title="Auto (by time of day)">Auto</button>
+  </div>
+</div>
+
+<script>
+  (() => {
+    const KEY = 'wmTheme', MKEY = 'wmThemeMode';
+    const root = document.documentElement;
+    const btns = Array.from(document.querySelectorAll<HTMLButtonElement>('.thm__btn'));
+    if (!btns.length) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let animTimer = 0;
+
+    const byHour = () => {
+      const h = new Date().getHours();
+      return (h >= 7 && h < 17) ? 'solar' : (h >= 17 && h < 20) ? 'sunset' : 'nocturne';
+    };
+    // `animate` = true for real user toggles → soft night↔day crossfade.
+    // The first pre-painted apply (on load) passes false → no flash, no animation.
+    const apply = (theme: string, animate = false) => {
+      // arm the temporary crossfade BEFORE swapping the theme attribute, so the
+      // transition catches the colour change. Removed after the swap settles.
+      if (animate && !reducedMotion) {
+        root.classList.add('theme-animating');
+        clearTimeout(animTimer);
+        animTimer = window.setTimeout(() => root.classList.remove('theme-animating'), 640);
+      }
+      if (theme && theme !== 'nocturne') root.setAttribute('data-theme', theme);
+      else root.removeAttribute('data-theme');
+      // keep the mobile UA chrome colour in step
+      const meta = document.querySelector('meta[name="theme-color"]');
+      const grounds: Record<string,string> = { solar: '#f4f0e8', sunset: '#0e1f24', nocturne: '#0a0a0a' };
+      if (meta) meta.setAttribute('content', grounds[theme] || '#0a0a0a');
+    };
+    const reflect = () => {
+      const mode = localStorage.getItem(MKEY);                 // default: none → Nocturne
+      const active = mode === 'manual' ? (localStorage.getItem(KEY) || 'nocturne')
+                   : mode === 'auto'   ? 'auto'
+                   : 'nocturne';
+      btns.forEach(b => {
+        const on = b.dataset.thm === active;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-pressed', String(on));
+      });
+    };
+
+    btns.forEach(b => b.addEventListener('click', () => {
+      const choice = b.dataset.thm!;
+      if (choice === 'auto') {
+        localStorage.setItem(MKEY, 'auto');
+        localStorage.removeItem(KEY);
+        apply(byHour(), true);
+      } else {
+        localStorage.setItem(MKEY, 'manual');   // manual wins over the clock
+        localStorage.setItem(KEY, choice);
+        apply(choice, true);
+      }
+      reflect();
+    }));
+
+    reflect();
+    // enable cross-theme transition only after first paint (no FOUC flash)
+    requestAnimationFrame(() => root.classList.add('theme-ready'));
+  })();
+</script>
+
+<style>
+  .thm { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+  .thm__label {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--sand);
+  }
+  .thm__set {
+    display: inline-flex; align-items: stretch;
+    border: 1px solid var(--line-bright); border-radius: 2px; overflow: hidden;
+  }
+  .thm__btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 38px; min-height: 34px; padding: 0 9px;
+    background: transparent; border: none; border-left: 1px solid var(--line-soft);
+    color: var(--silver); cursor: pointer;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    transition: color var(--t-fast), background var(--t-fast);
+  }
+  .thm__btn:first-child { border-left: none; }
+  .thm__btn:hover { color: var(--bone); background: color-mix(in srgb, var(--ember) 12%, transparent); }
+  .thm__btn.is-active { color: var(--obsidian); background: var(--ember); }
+  .thm__btn:focus-visible { outline: 1px solid var(--ember); outline-offset: 2px; }
+  .thm__btn--auto { letter-spacing: 0.14em; }
+  @media (prefers-reduced-motion: reduce) {
+    .thm__btn { transition: none; }
+  }
+</style>

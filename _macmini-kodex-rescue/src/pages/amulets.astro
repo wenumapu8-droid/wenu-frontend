@@ -1,0 +1,102 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from '../components/ProductCard.astro';
+import PatternBand from '../components/PatternBand.astro';
+import { getProducts } from '../lib/woo';
+import en from '../i18n/en.json';
+
+const L = en.landing.amulets;
+
+/**
+ * Amulets / ornaments surfacing — WC has NO "amulet/pendant" category, so the
+ * amulet-ness lives in the product NAME, not the category slug. Match by name/slug
+ * (pendants, talismans, wire-wrap pieces like the Monte Shasta wire pendant & "picoyo",
+ * necklaces, obsidian points) plus the `necklace` category. Exclude earrings — those
+ * belong to the earrings/ear-adornment section, not amulets.
+ * (Inventory agent is loading macros for wire-wrap amulets in parallel — they surface
+ *  automatically once their names land in WooCommerce.)
+ */
+const CAT_AMULET = /(necklace|amulet|pendant|talisman|collar)/i;
+const NAME_AMULET = /(pendant|amulet|talisman|charm|wire[\s-]?wrap|wrapped|picoyo|shasta|obsidian\s*point|quartz|crystal|necklace|choker|collar|moon\s*phase|sun[\s-]?ray)/i;
+const all = await getProducts();
+const matched = all.filter(p => {
+  if (!(p.images.length > 0 && p.images[0]?.src)) return false;
+  const hay = `${p.slug} ${p.name}`;
+  const isEarring = /earring/i.test(hay) || p.categories.some(c => /earring/i.test(c.slug));
+  if (isEarring) return false;
+  const inCat = p.categories.some(c => CAT_AMULET.test(c.slug));
+  return inCat || NAME_AMULET.test(hay);
+});
+const featured = matched.slice(0, 8);
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: L.title,
+  description: L.intro,
+  url: 'https://wenumapuonline.com/amulets',
+  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Amulets', item: 'https://wenumapuonline.com/amulets' },
+  ],
+};
+---
+<Base
+  title="Amulets — Cosmic-symbol pendants in silver, gold, meteorite | Wenu Mapu"
+  description="Handcrafted amulets and talismans in sterling silver, 14k gold and Atacama meteorite. Cosmic-symbol pendants for daily wear. Small editions, often one-of-a-kind."
+  ogImage="/img/categories/amulets.webp"
+  jsonLd={[collectionLd, breadcrumbLd]}
+>
+  {/* On-body lead: the Mont Shasta labradorite wire-wrap (WM-NCK-003) — a real
+      amulet worn, not a generic atmosphere. */}
+  <div class="cat-masthead cat-masthead--titled">
+    <picture>
+      <img src="/img/lifestyle/mont-shasta-onbody.webp" alt="Wenu Mapu — labradorite wire-wrapped amulet worn at the throat" width="1120" height="1400" loading="eager" decoding="async" fetchpriority="high" style="object-position: center 48%;" />
+    </picture>
+    <div class="cat-masthead__label">
+      <p class="cat-masthead__title">Amulets</p>
+      <p class="cat-masthead__eyebrow">Ancestral protection</p>
+    </div>
+  </div>
+
+  <section class="section section--mega">
+    <div class="container">
+      <p class="eyebrow">{L.eyebrow}</p>
+      <h1 class="page-title">{L.title}</h1>
+      <p class="lede">{L.intro}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <div class="landing__copy">
+        <p>{L.p1}</p>
+        <p>{L.p2}</p>
+      </div>
+
+      <div class="landing__cta">
+        <a href={L.shop_target} class="btn btn--solid">{L.cta_primary} →</a>
+        <a href="/materials" class="btn btn--ghost">{L.cta_secondary}</a>
+      </div>
+
+      {featured.length > 0 && (
+        <div class="landing__rail" aria-label="Selected amulets">
+          <div class="landing__rail-head">
+            <p class="eyebrow">Selected pieces</p>
+            <a href={L.shop_target} class="text-accent">View all →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {featured.map(product => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </section>
+</Base>

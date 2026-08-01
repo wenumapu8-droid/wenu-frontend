@@ -1,0 +1,128 @@
+---
+/**
+ * MandalaPortal — sello/mandala giratoria unificada, la firma visual de
+ * "entrar a la experiencia inmersiva" (/experience/).
+ *
+ * Extraído del .portal-seal original en src/pages/index.astro (hero) para
+ * reusarlo en todos los puntos de entrada a /experience/cosmos.
+ *
+ * Props:
+ * - variant: 'seal' | 'hero' | 'inline' — controla tamaño por defecto.
+ *     seal   -> sello grande flotante (esquina de hero/banda), clamp(96–140px)
+ *     hero   -> versión aún más grande para una banda dedicada, clamp(140–220px)
+ *     inline -> versión chica para incrustar en texto/links, clamp(48–72px)
+ * - size: override opcional del tamaño (cualquier valor CSS válido, ej. "120px" o "clamp(80px, 10vw, 120px)")
+ * - label: aria-label / title (default: "Enter the Wenu world — a map of Mapuche cosmovision")
+ * - class: passthrough de clases extra en el <a>
+ */
+interface Props {
+  variant?: 'seal' | 'hero' | 'inline';
+  size?: string;
+  label?: string;
+  class?: string;
+}
+
+const {
+  variant = 'seal',
+  size,
+  label = 'Enter the Wenu world — a map of Mapuche cosmovision',
+  class: extraClass = '',
+} = Astro.props;
+
+const sizeByVariant: Record<string, string> = {
+  seal: 'clamp(96px, 11vw, 140px)',
+  hero: 'clamp(140px, 16vw, 220px)',
+  inline: 'clamp(48px, 6vw, 72px)',
+};
+
+const resolvedSize = size || sizeByVariant[variant] || sizeByVariant.seal;
+---
+
+<a
+  href="/experience/cosmos"
+  class:list={['mandala-portal', `mandala-portal--${variant}`, extraClass]}
+  style={`--mandala-portal-size: ${resolvedSize};`}
+  aria-label={label}
+  title={label}
+>
+  <svg class="mandala-portal__text" viewBox="0 0 200 200" aria-hidden="true">
+    <defs>
+      <path id="mandala-portal-textpath" d="M 100,100 m -84,0 a 84,84 0 1,1 168,0 a 84,84 0 1,1 -168,0" fill="none"/>
+    </defs>
+    <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(245,234,216,0.5)" stroke-width="0.7"/>
+    <circle cx="100" cy="100" r="68" fill="none" stroke="rgba(245,234,216,0.25)" stroke-width="0.4"/>
+    <text font-size="9.5" letter-spacing="3.5" fill="rgba(245,234,216,0.92)" style="font-family: var(--font-sans, 'Instrument Sans', sans-serif);">
+      <textPath href="#mandala-portal-textpath" startOffset="0%">WENU · MAPU · COSMIC PORTAL · ENTER · WENU · MAPU · COSMIC PORTAL · ENTER · </textPath>
+    </text>
+  </svg>
+  <img class="mandala-portal__mandala" src="/img/portal-mandala-white.png" alt="" loading="lazy" decoding="async"/>
+</a>
+
+<style>
+  .mandala-portal {
+    position: relative;
+    display: block;
+    width: var(--mandala-portal-size, clamp(96px, 11vw, 140px));
+    height: var(--mandala-portal-size, clamp(96px, 11vw, 140px));
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: filter 0.5s ease, transform 0.5s ease;
+  }
+  .mandala-portal__text {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    animation: mandala-portal-text-spin 28s linear infinite;
+    pointer-events: none;
+  }
+  .mandala-portal__mandala {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 56%;
+    height: 56%;
+    object-fit: contain;
+    transform: translate(-50%, -50%);
+    animation: mandala-portal-mandala-spin 50s linear infinite, mandala-portal-glow 4.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .mandala-portal:hover { filter: brightness(1.12); transform: scale(1.04); }
+  .mandala-portal:hover .mandala-portal__text { animation-duration: 12s; }
+  .mandala-portal:hover .mandala-portal__mandala { animation-duration: 16s, 1.6s; }
+  .mandala-portal:focus-visible {
+    outline: 1px solid rgba(245,234,216,0.6);
+    outline-offset: 8px;
+    border-radius: 50%;
+  }
+
+  /* variant: inline — smaller footprint for embedding in text/links */
+  .mandala-portal--inline {
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  @keyframes mandala-portal-text-spin    { from { transform: rotate(0deg);                          } to { transform: rotate(360deg);                          } }
+  @keyframes mandala-portal-mandala-spin { from { transform: translate(-50%, -50%) rotate(0deg);   } to { transform: translate(-50%, -50%) rotate(360deg);   } }
+  @keyframes mandala-portal-glow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(255,255,255,0.4))  drop-shadow(0 0 12px rgba(255,255,255,0.15)); }
+    50%      { filter: drop-shadow(0 0 14px rgba(255,255,255,0.85)) drop-shadow(0 0 28px rgba(255,255,255,0.32)) drop-shadow(0 0 50px rgba(240,192,96,0.10)); }
+  }
+
+  /* Mobile: shrink a bit further so it never crowds content */
+  @media (max-width: 720px) {
+    .mandala-portal--seal,
+    .mandala-portal--hero {
+      width: min(var(--mandala-portal-size, 140px), 84px);
+      height: min(var(--mandala-portal-size, 140px), 84px);
+    }
+  }
+
+  /* Honour OS reduced motion: no spin, static mandala/text */
+  @media (prefers-reduced-motion: reduce) {
+    .mandala-portal__text,
+    .mandala-portal__mandala,
+    .mandala-portal:hover .mandala-portal__text,
+    .mandala-portal:hover .mandala-portal__mandala { animation: none !important; }
+  }
+</style>

@@ -1,0 +1,1496 @@
+---
+/**
+ * PowerAnimalsOracle — interactive Mapuche guardian oracle (CARD DECK edition).
+ *
+ * UX: el usuario saca una carta de verdad de nuestro oráculo.
+ *   1. Un abanico de cartas boca-abajo (dorso = chakana sagrada).
+ *   2. Al elegir una → las demás se desvanecen, la elegida se centra y gira (flip 3D).
+ *   3. Reveal del animal-guardián en la cara de la carta + nombre EN + Mapudungun +
+ *      significado + CTA a explorar piezas + "Draw again".
+ *
+ * Datos en `en.power_animals.items`.
+ * Assets: dorso /logos/wenu-chakana.png · guardianes /img/power-animals/<slug>-560w.{avif,webp}
+ */
+import en from '../i18n/en.json';
+import { getProducts, formatPrice, decodeEntities } from '../lib/woo';
+import type { WooProduct } from '../lib/woo';
+
+const ANIMALS = ['puma', 'condor', 'serpiente', 'zorro', 'ballena', 'pudu'] as const;
+const items = en.power_animals.items as Record<string, { name: string; arn: string; meaning: string }>;
+
+/**
+ * Guardian → product mapping (heuristic, server-side, build-time).
+ * Sin tags WC todavía → matcheamos por palabras clave en slug + name + description +
+ * categorías + atributos (material). Cada animal lleva un set de keywords que reflejan
+ * su "energía" según la dirección visual ritual:
+ *   - puma:      poder/peso/titanio → hangers gruesos, ear weights
+ *   - condor:    altura/silver/plata → plumas, ear weights livianos en plata
+ *   - serpiente: bronze/snake/ouroboros/spiral → bronce, espirales, serpientes
+ *   - zorro:     intricate/small/septum → piezas pequeñas detalladas
+ *   - ballena:   onyx/lapis/depth/azul/oscuro → piedras azules/profundas
+ *   - pudu:      wood/madera/small/soft/horn → piezas pequeñas en madera/asta
+ */
+const GUARDIAN_KEYWORDS: Record<string, RegExp> = {
+  puma:      /titanium|titanio|heavy|hanger|weight|peso|grande|large|black/i,
+  condor:    /silver|plata|feather|pluma|condor|sterling|light|earring/i,
+  serpiente: /bronze|bronce|brass|serpent|snake|serpiente|spiral|espiral|ouroboros|cobre|copper/i,
+  zorro:     /intricate|ornament|carved|nose|septum|small|fine|delicate|filigree|filigrana/i,
+  ballena:   /onyx|lapis|blue|azul|depth|deep|stone|piedra|amethyst|amatista|dark|obsidian/i,
+  pudu:      /wood|madera|horn|asta|bone|hueso|organic|natural|small|pequeñ/i,
+};
+
+const PLACEHOLDER_IMG_RE = /chatgpt-image|sin-?titulo|sin-?t[íi]tulo|placeholder|untitled/i;
+
+let allProducts: WooProduct[] = [];
+try {
+  allProducts = await getProducts();
+} catch (err) {
+  console.warn('[PowerAnimalsOracle] getProducts failed, oracle will render without suggestions:', err);
+}
+
+function scoreProduct(p: WooProduct, re: RegExp): number {
+  const hay =
+    p.slug + ' ' +
+    p.name + ' ' +
+    (p.short_description || '') + ' ' +
+    (p.description || '') + ' ' +
+    p.categories.map(c => c.slug + ' ' + c.name).join(' ') + ' ' +
+    p.attributes.flatMap(a => a.options).join(' ');
+  const matches = hay.match(new RegExp(re, 'gi'));
+  return matches ? matches.length : 0;
+}
+
+function pickGuardianProducts(animal: string): Array<{
+  slug: string;
+  name: string;
+  price: string;
+  img: string | null;
+  imgAlt: string;
+}> {
+  if (allProducts.length === 0) return [];
+  const re = GUARDIAN_KEYWORDS[animal];
+  if (!re) return [];
+
+  const eligible = allProducts.filter(p =>
+    p.images.length > 0 &&
+    p.images[0]?.src &&
+    !PLACEHOLDER_IMG_RE.test(p.images[0].src) &&
+    p.status === 'publish'
+  );
+
+  const ranked = eligible
+    .map(p => ({ p, score: scoreProduct(p, re) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(x => ({
+      slug: x.p.slug,
+      name: decodeEntities(x.p.name),
+      price: formatPrice(x.p.price),
+      img: x.p.images[0]?.src ?? null,
+      imgAlt: x.p.images[0]?.alt || decodeEntities(x.p.name),
+    }));
+
+  return ranked;
+}
+
+const guardianProducts: Record<string, ReturnType<typeof pickGuardianProducts>> = Object.fromEntries(
+  ANIMALS.map(slug => [slug, pickGuardianProducts(slug)])
+);
+
+/**
+ * Oracle readings — 2 líneas en voz dark-luxury ritual, una por guardián.
+ * No académicas, no decorativas: cada lectura le da al usuario un espejo breve.
+ * (Si Ocin valida los textos en Mapudungun con un kimche, mover lectures a i18n.)
+ */
+const READINGS: Record<string, string> = {
+  puma:      'The Puma appears when your presence must become your statement. Stand in your territory without asking for permission.',
+  condor:    'The Condor circles above what you cannot yet see. Trust the height — the wider view is waiting for your patience.',
+  serpiente: 'The Serpent moves between what was and what becomes. Shed what no longer fits. The body remembers, the body renews.',
+  zorro:     'The Fox walks the threshold others miss. Listen for the path that doesn\'t announce itself — yours is the doubled trail.',
+  ballena:   'The Whale carries the long memory. Slow down. The deep current already knows the way you are searching for.',
+  pudu:      'The Pudú appears when softness is the medicine. The smallest body still casts its shadow — move quietly, but move.',
+};
+
+const oracleData = ANIMALS.map(slug => ({
+  slug,
+  name: items[slug].name,
+  arn: items[slug].arn,
+  meaning: items[slug].meaning,
+  reading: READINGS[slug],
+  avif: `/img/power-animals/${slug}-560w.avif`,
+  webp: `/img/power-animals/${slug}-560w.webp`,
+  alt: `Wenu Mapu — ${items[slug].name} (${items[slug].arn}) power-animal edition`,
+  pieces: guardianProducts[slug] ?? [],
+}));
+
+// Fanned deck — 5 cards. Pre-compute the arc so each card sits in the spread.
+const CARD_COUNT = 5;
+const mid = (CARD_COUNT - 1) / 2;
+const cards = Array.from({ length: CARD_COUNT }, (_, i) => ({
+  i,
+  rot: (i - mid) * 7,                 // -14° … +14°
+  lift: Math.abs(i - mid) * 16,       // outer cards drop, center rides high
+  z: CARD_COUNT - Math.abs(i - mid),  // center card on top
+  // deal order: cards leave the stack from the top of the pile downward
+  // (top card = highest --z deals first), so the fan builds outward-in.
+  deal: CARD_COUNT - (CARD_COUNT - Math.abs(i - mid)),
+}));
+---
+
+<section class="oracle" aria-labelledby="oracle-title" data-oracle-root>
+  <div class="container oracle__inner">
+    <p class="eyebrow">{en.power_animals.eyebrow}</p>
+    <h2 id="oracle-title" class="oracle__title">{en.power_animals.title}</h2>
+    <p class="oracle__lede">{en.power_animals.lede}</p>
+
+    <div class="oracle__stage is-stacked" data-oracle-stage>
+      <p class="oracle__prompt" data-oracle-prompt>
+        <span class="oracle__prompt-en">Tap the deck to shuffle</span>
+        <span class="oracle__prompt-arn" lang="arn">Witrañpüramün ñi pewma — draw your dream</span>
+      </p>
+
+      <div class="oracle__fan is-stacked" data-oracle-fan role="button" tabindex="0"
+           aria-label="Open the oracle deck — tap to fan out the guardian cards"
+           aria-expanded="false">
+        {cards.map(card => (
+          <button
+            type="button"
+            class="oracle-card"
+            data-oracle-card
+            style={`--rot:${card.rot}deg; --lift:${card.lift}px; --z:${card.z}; --i:${card.i}; --deal:${card.deal};`}
+            aria-label="Draw a guardian card from the oracle"
+          >
+            <span class="oracle-card__flip">
+              {/* Dorso — chakana sagrada con filigrana */}
+              <span class="oracle-card__face oracle-card__back" aria-hidden="true">
+                <span class="oracle-card__edge"></span>
+                <span class="oracle-card__edge-inner"></span>
+                {/* Filigree corners — 1 SVG · 4 rotaciones via CSS */}
+                <svg class="oracle-card__corner oracle-card__corner--tl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                <svg class="oracle-card__corner oracle-card__corner--tr" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                <svg class="oracle-card__corner oracle-card__corner--bl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                <svg class="oracle-card__corner oracle-card__corner--br" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+
+                <img class="oracle-card__chakana" src="/logos/wenu-chakana.png" alt="" loading="lazy" decoding="async" />
+                <span class="oracle-card__wordmark">Wenu Mapu</span>
+                <span class="oracle-card__sub">Oracle</span>
+
+                <span class="oracle-card__sparkle oracle-card__sparkle--1" aria-hidden="true"></span>
+                <span class="oracle-card__sparkle oracle-card__sparkle--2" aria-hidden="true"></span>
+                <span class="oracle-card__sparkle oracle-card__sparkle--3" aria-hidden="true"></span>
+                <span class="oracle-card__star oracle-card__star--tl">✦</span>
+                <span class="oracle-card__star oracle-card__star--br">✦</span>
+              </span>
+
+              {/* Cara — guardián (rellenado al sacar la carta) */}
+              <span class="oracle-card__face oracle-card__front">
+                <picture>
+                  <source type="image/avif" data-card-avif />
+                  <img data-card-img alt="" loading="lazy" decoding="async" />
+                </picture>
+                <span class="oracle-card__glow" aria-hidden="true"></span>
+                <span class="oracle-card__foil-aura" aria-hidden="true"></span>
+                <span class="oracle-card__foil-frame" aria-hidden="true"></span>
+                <span class="oracle-card__foil-grain" aria-hidden="true"></span>
+                <span class="oracle-card__glare" aria-hidden="true"></span>
+                <span class="oracle-card__sweep" aria-hidden="true"></span>
+                <span class="oracle-card__edge"></span>
+                <span class="oracle-card__edge-inner"></span>
+                <svg class="oracle-card__corner oracle-card__corner--tl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                <svg class="oracle-card__corner oracle-card__corner--tr" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                <svg class="oracle-card__corner oracle-card__corner--bl" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                <svg class="oracle-card__corner oracle-card__corner--br" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="0.55" stroke-linecap="round"><path d="M2 12 V4 a2 2 0 0 1 2 -2 H12"/><path d="M6 8 q3 -2 6 0"/><path d="M5 12 q1 -3 4 -4"/><circle cx="9" cy="9" r="0.9" fill="currentColor"/></svg>
+                {/* Mapudungun nameplate strip — filled by JS al revelar */}
+                <span class="oracle-card__nameplate">
+                  <span class="oracle-card__nameplate-rule" aria-hidden="true"></span>
+                  <span class="oracle-card__nameplate-arn" data-card-arn-mini lang="arn"></span>
+                </span>
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Deck hint — visible only while the deck is stacked (collapsed). */}
+      <p class="oracle__deck-hint" data-oracle-deck-hint aria-hidden="true">
+        <span class="oracle__deck-hint-pulse"></span>
+        Tap the deck to shuffle
+      </p>
+
+      {/* Confirm step — appears once a card is selected (stage 1). Second tap reveals. */}
+      <button type="button" class="oracle__reveal" data-oracle-reveal hidden>
+        Reveal this guardian <span aria-hidden="true">→</span>
+      </button>
+
+      {/* Reveal caption — appears once a card is drawn. Order ritual:
+          native · display → display title → keywords → reading → pieces preview → CTA → again */}
+      <div class="oracle__caption" data-oracle-caption hidden aria-live="polite">
+        <p class="oracle__arn" data-oracle-arn></p>
+        <h3 class="oracle__name" data-oracle-name></h3>
+        <p class="oracle__meaning" data-oracle-meaning></p>
+        <p class="oracle__reading" data-oracle-reading></p>
+
+        {/* Pieces aligned with the guardian — 3 mini product previews.
+            Filled by JS using the chosen animal's `pieces` payload.
+            Hidden when no pieces match — fallback to elegant forge-placeholder. */}
+        <div class="oracle__pieces" data-oracle-pieces hidden>
+          <p class="oracle__pieces-label" data-oracle-pieces-label>Pieces aligned with this energy</p>
+          <ul class="oracle__pieces-list" data-oracle-pieces-list role="list">
+            {/* JS injects 3 <li class="oracle-piece">…</li> entries */}
+          </ul>
+        </div>
+        <p class="oracle__pieces-empty" data-oracle-pieces-empty hidden>
+          No piece is aligned to this guardian yet. <a href="/custom-orders">Start a commission →</a>
+        </p>
+
+        <div class="oracle__actions">
+          <a href="/shop" class="btn btn--solid oracle__shop" data-oracle-shop>
+            Shop pieces aligned with this guardian <span aria-hidden="true">→</span>
+          </a>
+          <button type="button" class="oracle__again" data-oracle-again>
+            <span aria-hidden="true">↻</span> Draw again
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="application/json" data-oracle-payload set:html={JSON.stringify(oracleData)}></script>
+</section>
+
+<style>
+  .oracle {
+    position: relative;
+    padding: var(--space-8) 0;
+    background: var(--obsidian);
+    border-top: var(--border-thin);
+    border-bottom: var(--border-thin);
+    overflow: hidden;
+  }
+
+  /* subtle starfield background */
+  .oracle::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle 1px at 12% 18%, rgba(255, 240, 220, 0.35) 50%, transparent 51%),
+      radial-gradient(circle 1px at 78% 32%, rgba(255, 240, 220, 0.3) 50%, transparent 51%),
+      radial-gradient(circle 1px at 38% 72%, rgba(255, 240, 220, 0.25) 50%, transparent 51%),
+      radial-gradient(circle 1px at 88% 82%, rgba(255, 240, 220, 0.3) 50%, transparent 51%),
+      radial-gradient(circle 1px at 22% 88%, rgba(255, 240, 220, 0.2) 50%, transparent 51%);
+    background-size: 800px 800px;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  .oracle__inner {
+    position: relative;
+    text-align: center;
+    z-index: 1;
+  }
+
+  .oracle__title {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    color: var(--bone);
+    margin: var(--space-3) 0 var(--space-3);
+    line-height: 1.05;
+  }
+
+  .oracle__lede {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    font-style: italic;
+    font-size: clamp(1rem, 1.3vw, 1.2rem);
+    line-height: 1.55;
+    color: var(--fg-soft);
+    max-width: 56ch;
+    margin: 0 auto var(--space-5);
+  }
+
+  .oracle__stage {
+    position: relative;
+    min-height: clamp(440px, 62vh, 640px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-5);
+    padding: var(--space-4) 0;
+  }
+
+  /* ── Prompt ── */
+  .oracle__prompt {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: opacity var(--t-base), transform var(--t-base);
+  }
+  .oracle__prompt-en {
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--bone);
+  }
+  .oracle__prompt-arn {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.04em;
+    color: var(--bronze);
+  }
+  .oracle__stage.is-drawing .oracle__prompt {
+    opacity: 0;
+    transform: translateY(-10px);
+    pointer-events: none;
+  }
+
+  /* ── The fan ── */
+  .oracle__fan {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding-top: var(--space-5);
+  }
+
+  .oracle-card {
+    --rot: 0deg;
+    --lift: 0px;
+    --z: 1;
+    --tilt-x: 0deg;
+    --tilt-y: 0deg;
+    --glare-x: 50%;
+    --glare-y: 42%;
+    --shadow-x: 0px;
+    --shadow-y: 28px;
+    flex: 0 0 auto;
+    width: clamp(118px, 15vw, 172px);
+    aspect-ratio: 3 / 5;
+    margin: 0 -16px;          /* overlap into a fan */
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    perspective: 1200px;
+    transform: translateY(var(--lift)) rotate(var(--rot));
+    transform-origin: bottom center;
+    transition:
+      transform 0.55s cubic-bezier(0.65, 0, 0.2, 1),
+      opacity 0.5s ease,
+      filter 0.45s ease;
+    z-index: var(--z);
+  }
+  /* ══ Dealing the fan — each card travels from the pile to its slot ══
+     Instead of every card sliding at once, each one is DEALT individually:
+     it starts stacked at the deck centre (tight, slightly rotated), then flies
+     out to its fan position with a staggered delay so you SEE the cards land
+     one after another. GPU-only (transform/opacity). The card's resting
+     transform (translateY(--lift) rotate(--rot)) is the animation's end state,
+     so it settles exactly where the static fan expects it. */
+  .oracle__fan.is-opening .oracle-card {
+    /* deal strictly left → right (--i is 0…4) so each of the five cards lands
+       distinctly, one after another. 0.15s between cards → a calm, readable
+       reparto that ends ~1.5s in. */
+    animation: oracle-card-deal 0.9s cubic-bezier(0.22, 0.68, 0.16, 1) both;
+    animation-delay: calc(var(--i, 0) * 0.15s);
+  }
+  @keyframes oracle-card-deal {
+    0% {
+      /* still on the pile: pulled toward the deck centre (each card slides in by
+         its distance from the middle slot, index 2), tight rotation, sitting low
+         and faint — reads as lifting off the stack. */
+      transform:
+        translateX(calc((2 - var(--i)) * 46px))
+        translateY(calc((5 - var(--z)) * 4px + 16px))
+        rotate(calc((var(--z) - 5) * 1.2deg))
+        scale(0.92);
+      opacity: 0;
+    }
+    16% { opacity: 1; }
+    40% {
+      /* mid-flight — still travelling toward the slot */
+      transform:
+        translateX(calc((2 - var(--i)) * 14px))
+        translateY(calc(var(--lift) - 18px))
+        rotate(calc(var(--rot) * 0.7))
+        scale(1.02);
+      opacity: 1;
+    }
+    /* a gentle overshoot past the slot, then it eases back — a card being tossed
+       into place and settling. */
+    68% {
+      transform:
+        translateY(calc(var(--lift) - 12px))
+        rotate(calc(var(--rot) * 1.08))
+        scale(1.03);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(var(--lift)) rotate(var(--rot)) scale(1);
+      opacity: 1;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__fan.is-opening .oracle-card { animation: none; }
+  }
+  .oracle-card:hover,
+  .oracle-card:focus-visible {
+    transform: translateY(calc(var(--lift) - 26px)) rotate(calc(var(--rot) * 0.35)) scale(1.05);
+    z-index: 25;
+    outline: none;
+  }
+  .oracle-card:focus-visible .oracle-card__back {
+    box-shadow: 0 0 0 2px var(--ember), 0 20px 48px -16px rgba(0, 0, 0, 0.7);
+  }
+
+  /* ══ Shuffling — the deliberate riffle/mix before the fan opens ══
+     A calm, ceremonial gesture: the deck rocks and the cards riffle in place
+     (staggered up/down + slight rotation) a couple of times, THEN they spread.
+     No card is selected during or after — the spread is a clean, open fan. */
+  .oracle__fan.is-shuffling {
+    cursor: default;
+    animation: oracle-deck-rock 2.2s ease-in-out both;
+  }
+  .oracle__fan.is-shuffling .oracle-card {
+    /* each card lifts/drops on its own beat → a slow riffle, not a snap */
+    animation: oracle-card-riffle 2.2s ease-in-out both;
+    animation-delay: calc((5 - var(--z)) * 0.09s);
+  }
+  @keyframes oracle-deck-rock {
+    0%   { transform: translateY(0) rotate(0deg); }
+    22%  { transform: translateY(-4px) rotate(-1.4deg); }
+    50%  { transform: translateY(-2px) rotate(1.2deg); }
+    74%  { transform: translateY(-5px) rotate(-0.8deg); }
+    100% { transform: translateY(0) rotate(0deg); }
+  }
+  @keyframes oracle-card-riffle {
+    0% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 3px))
+        translateY(calc((5 - var(--z)) * 4px))
+        rotate(calc((var(--z) - 5) * 1.4deg));
+    }
+    /* riffle out — cards fan up and apart, then settle back into a tighter stack */
+    30% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 15px))
+        translateY(calc((5 - var(--z)) * 3px - 26px))
+        rotate(calc((var(--z) - 5) * 6deg));
+    }
+    55% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 5px))
+        translateY(calc((5 - var(--z)) * 4px - 4px))
+        rotate(calc((var(--z) - 5) * 2deg));
+    }
+    78% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 12px))
+        translateY(calc((5 - var(--z)) * 3px - 16px))
+        rotate(calc((var(--z) - 5) * 4.5deg));
+    }
+    100% {
+      transform:
+        translateX(calc(-50% + (var(--z) - 5) * 3px))
+        translateY(calc((5 - var(--z)) * 4px))
+        rotate(calc((var(--z) - 5) * 1.4deg));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__fan.is-shuffling,
+    .oracle__fan.is-shuffling .oracle-card { animation: none; }
+  }
+
+  /* ══ Stacked deck (collapsed default) ══
+     Cards pile up: cancel the fan arc, overlap tightly, tiny offset/rotation so
+     it reads as a real deck. Only the top card sits fully lit; the deck is one
+     tap target (the fan wrapper carries role=button). */
+  .oracle__fan.is-stacked {
+    cursor: pointer;
+    padding-top: var(--space-4);
+    transition: transform var(--t-fast);
+    /* CRITICAL: with every card position:absolute, the flex wrapper would
+       collapse to width:0 and its tap target (role=button) would be an
+       invisible zero-width strip — a tap on the visible deck would miss it
+       entirely (the bug: deck never opened on touch). Give the stacked deck
+       a real, card-sized hit box so a tap anywhere on it reaches the handler. */
+    width: clamp(150px, 46vw, 210px);
+    aspect-ratio: 3 / 5;
+    max-width: 210px;
+    margin: 0 auto;
+    /* the whole box is the tap target */
+    touch-action: manipulation;
+  }
+  .oracle__fan.is-stacked .oracle-card {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    margin: 0;
+    /* Cards stay tappable so a touch on a visible card ALSO opens the deck
+       (their click handler calls openDeck first). Belt-and-suspenders with
+       the sized wrapper above. */
+    pointer-events: auto;
+    /* stack: each deeper card nudged down/right + faint rotation */
+    transform:
+      translateX(calc(-50% + (var(--z) - 5) * 3px))
+      translateY(calc((5 - var(--z)) * 4px))
+      rotate(calc((var(--z) - 5) * 1.4deg))
+      scale(1);
+    transition: transform 0.55s cubic-bezier(0.65, 0, 0.2, 1), opacity 0.4s ease;
+  }
+  /* only the top card (highest --z == CARD_COUNT) is crisp; lower ones recede */
+  .oracle__fan.is-stacked .oracle-card:not([style*="--z:5"]) {
+    opacity: 0.9;
+    filter: brightness(0.82);
+  }
+  /* gentle breathing pulse on the whole deck — affordance that it's tappable */
+  .oracle__fan.is-stacked {
+    animation: oracle-deck-pulse 3.4s ease-in-out infinite;
+  }
+  /* while shuffling, the rock animation takes over the wrapper (beats the pulse) */
+  .oracle__fan.is-stacked.is-shuffling {
+    animation: oracle-deck-rock 2.2s ease-in-out both;
+  }
+  .oracle__fan.is-stacked:hover,
+  .oracle__fan.is-stacked:focus-visible {
+    animation: none;
+    outline: none;
+    transform: translateY(-4px);
+  }
+  .oracle__fan.is-stacked:focus-visible .oracle-card[style*="--z:5"] .oracle-card__back,
+  .oracle__fan.is-stacked:hover .oracle-card[style*="--z:5"] .oracle-card__back {
+    box-shadow:
+      0 0 0 1px var(--ember),
+      0 0 34px rgba(201, 168, 76, 0.4),
+      0 20px 48px -16px rgba(0, 0, 0, 0.7);
+  }
+  @keyframes oracle-deck-pulse {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__fan.is-stacked { animation: none; }
+    .oracle__fan.is-stacked .oracle-card { transition: none; }
+  }
+
+  /* ── Deck hint (only while stacked) ── */
+  .oracle__deck-hint {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6em;
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--silver);
+    margin: 0;
+  }
+  .oracle__stage.is-stacked .oracle__deck-hint {
+    display: flex;
+  }
+  .oracle__deck-hint-pulse {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ember);
+    box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.55);
+    animation: oracle-hint-pulse 2.2s ease-out infinite;
+  }
+  @keyframes oracle-hint-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0.55); opacity: 1; }
+    70%  { box-shadow: 0 0 0 10px rgba(201, 168, 76, 0); opacity: 0.7; }
+    100% { box-shadow: 0 0 0 0 rgba(201, 168, 76, 0); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__deck-hint-pulse { animation: none; }
+  }
+  /* While stacked, hide the arn/en prompt (deck-hint carries the affordance) */
+  .oracle__stage.is-stacked .oracle__prompt {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+  }
+
+  /* fade the cards not chosen */
+  .oracle__fan.is-drawing .oracle-card:not(.is-chosen) {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(48px) rotate(var(--rot)) scale(0.9);
+  }
+
+  /* ── Stage 1: a card is selected (lifted + glowing, awaiting reveal) ── */
+  .oracle__fan.is-selecting .oracle-card:not(.is-selected) {
+    opacity: 0.38;
+    filter: grayscale(0.45) brightness(0.7);
+    /* stay tappable so the user can change their mind before revealing */
+  }
+  .oracle-card.is-selected {
+    transform: translateY(calc(var(--lift) - 52px)) rotate(0deg) scale(1.15);
+    z-index: 30;
+  }
+  .oracle-card.is-selected .oracle-card__back {
+    box-shadow:
+      0 0 0 1px var(--ember),
+      0 0 38px rgba(201, 168, 76, 0.42),
+      0 26px 54px -18px rgba(0, 0, 0, 0.72);
+    animation: oracle-sel-glow 2.6s ease-in-out infinite;
+  }
+  /* The lifted card breathes — reads as "alive", chosen, waiting to be revealed. */
+  @keyframes oracle-sel-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 1px var(--ember), 0 0 30px rgba(201, 168, 76, 0.32), 0 26px 54px -18px rgba(0, 0, 0, 0.72);
+    }
+    50% {
+      box-shadow: 0 0 0 1px var(--ember), 0 0 52px rgba(201, 168, 76, 0.6), 0 30px 60px -18px rgba(0, 0, 0, 0.75);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle-card.is-selected .oracle-card__back { animation: none; }
+  }
+
+  /* ── Reveal confirm button (appears in stage 1) ── */
+  .oracle__reveal {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: var(--border-accent);
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: var(--fs-eyebrow);
+    font-weight: var(--fw-medium);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    padding: var(--space-3) var(--space-5);
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity var(--t-base), transform var(--t-base),
+                border-color var(--t-base), color var(--t-base);
+  }
+  .oracle__reveal[hidden] { display: none; }
+  .oracle__reveal.is-shown { opacity: 1; transform: none; }
+  .oracle__reveal:hover,
+  .oracle__reveal:focus-visible { border-color: var(--ember); color: var(--ember); outline: none; }
+  .oracle__reveal > span { margin-left: 0.5em; }
+
+  /* the drawn card — centered (via --draw-shift), lifted, flipped */
+  .oracle-card.is-chosen {
+    transform:
+      translateX(var(--draw-shift, 0px))
+      translateY(-12px)
+      rotate(0deg)
+      rotateX(var(--tilt-x))
+      rotateY(var(--tilt-y))
+      scale(1.16);
+    z-index: 40;
+    cursor: default;
+    pointer-events: auto;
+    touch-action: pan-y;
+    filter: drop-shadow(var(--shadow-x) var(--shadow-y) 30px rgba(0, 0, 0, 0.46));
+  }
+
+  .oracle-card__flip {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transition: transform 0.9s cubic-bezier(0.7, 0, 0.18, 1);
+  }
+  .oracle-card.is-chosen .oracle-card__flip {
+    transform: rotateY(180deg);
+  }
+
+  .oracle-card__face {
+    position: absolute;
+    inset: 0;
+    border: 1px solid var(--bronze);
+    overflow: hidden;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    isolation: isolate;
+  }
+
+  /* dorso */
+  .oracle-card__back {
+    background:
+      radial-gradient(ellipse at 50% 42%, rgba(196, 147, 90, 0.18) 0%, transparent 62%),
+      linear-gradient(160deg, #14110d 0%, #080706 100%);
+    box-shadow: 0 14px 34px -18px rgba(0, 0, 0, 0.7);
+  }
+  .oracle-card__edge {
+    position: absolute;
+    inset: 7px;
+    border: 1px solid rgba(196, 147, 90, 0.42);
+    pointer-events: none;
+  }
+  .oracle-card__edge-inner {
+    position: absolute;
+    inset: 11px;
+    border: 1px solid rgba(196, 147, 90, 0.18);
+    pointer-events: none;
+  }
+
+  /* ── Filigree corners ── one SVG path, rotated to each corner */
+  .oracle-card__corner {
+    position: absolute;
+    width: 26px;
+    height: 26px;
+    color: rgba(196, 147, 90, 0.85);
+    pointer-events: none;
+  }
+  .oracle-card__corner--tl { top: 6px;    left: 6px;   transform: rotate(0deg); }
+  .oracle-card__corner--tr { top: 6px;    right: 6px;  transform: scaleX(-1); }
+  .oracle-card__corner--bl { bottom: 6px; left: 6px;   transform: scaleY(-1); }
+  .oracle-card__corner--br { bottom: 6px; right: 6px;  transform: rotate(180deg); }
+
+  /* ── Wordmark on the back ── */
+  .oracle-card__wordmark {
+    position: absolute;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: rgba(245, 234, 216, 0.78);
+    text-transform: uppercase;
+    text-align: center;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.45);
+  }
+  .oracle-card__sub {
+    position: absolute;
+    bottom: 22px;
+    left: 0;
+    right: 0;
+    font-family: var(--font-sans);
+    font-size: 0.55rem;
+    letter-spacing: 0.4em;
+    color: rgba(196, 147, 90, 0.85);
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* ── Floating sparkles inside back ── */
+  .oracle-card__sparkle {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(245, 234, 216, 0.9);
+    box-shadow: 0 0 6px rgba(245, 234, 216, 0.55);
+    opacity: 0.6;
+    pointer-events: none;
+  }
+  .oracle-card__sparkle--1 { top: 18%; left: 30%; animation: oracle-twinkle 4.2s ease-in-out infinite;       }
+  .oracle-card__sparkle--2 { top: 36%; right: 22%; animation: oracle-twinkle 5.1s ease-in-out infinite 0.7s; }
+  .oracle-card__sparkle--3 { top: 72%; left: 22%; animation: oracle-twinkle 4.6s ease-in-out infinite 1.4s;  }
+  @keyframes oracle-twinkle {
+    0%, 100% { opacity: 0.15; transform: scale(0.8); }
+    50%      { opacity: 0.95; transform: scale(1.2); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .oracle-card__sparkle { animation: none; opacity: 0.45; }
+  }
+
+  /* ── Mapudungun nameplate on the front (revealed) ── */
+  .oracle-card__nameplate {
+    position: absolute;
+    bottom: 22px;
+    left: 14px;
+    right: 14px;
+    display: none; /* nombre va en el caption de abajo — mantener la imagen de la carta limpia */
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.55s ease 0.3s, transform 0.55s ease 0.3s;
+  }
+  .oracle-card.is-chosen .oracle-card__nameplate {
+    opacity: 1;
+    transform: none;
+  }
+  .oracle-card__nameplate-rule {
+    width: 60%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(196, 147, 90, 0.7) 50%, transparent 100%);
+  }
+  .oracle-card__nameplate-arn {
+    font-family: var(--font-display);
+    font-size: clamp(0.78rem, 1.2vw, 0.96rem);
+    letter-spacing: 0.18em;
+    color: rgba(245, 234, 216, 0.94);
+    text-transform: uppercase;
+    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6), 0 0 8px rgba(196, 147, 90, 0.3);
+  }
+  .oracle-card__chakana {
+    width: 58%;
+    height: auto;
+    opacity: 0.92;
+    filter: drop-shadow(0 0 10px rgba(196, 147, 90, 0.35));
+  }
+  .oracle-card__star {
+    position: absolute;
+    color: rgba(245, 234, 216, 0.55);
+    font-size: 0.7rem;
+  }
+  .oracle-card__star--tl { top: 12px; left: 12px; }
+  .oracle-card__star--br { bottom: 12px; right: 12px; }
+
+  /* cara (guardián) */
+  .oracle-card__front {
+    transform: rotateY(180deg);
+    background: var(--obsidian);
+  }
+  .oracle-card__front picture,
+  .oracle-card__front img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .oracle-card__glow {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 30%, rgba(196, 147, 90, 0.22) 0%, transparent 60%),
+      linear-gradient(180deg, transparent 55%, rgba(8, 7, 6, 0.55) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .oracle-card__foil-aura,
+  .oracle-card__foil-frame,
+  .oracle-card__foil-grain,
+  .oracle-card__glare,
+  .oracle-card__sweep {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 2;
+  }
+  .oracle-card__foil-aura {
+    background:
+      radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(245, 234, 216, 0.22) 0 6%, transparent 24%),
+      radial-gradient(ellipse at 24% 18%, rgba(190, 176, 213, 0.16), transparent 38%),
+      radial-gradient(ellipse at 80% 82%, rgba(196, 147, 90, 0.16), transparent 36%),
+      conic-gradient(from 210deg at 50% 50%,
+        transparent 0deg,
+        rgba(178, 171, 160, 0.14) 46deg,
+        rgba(118, 96, 142, 0.12) 94deg,
+        rgba(196, 147, 90, 0.1) 136deg,
+        transparent 190deg,
+        rgba(245, 234, 216, 0.12) 248deg,
+        transparent 312deg);
+    mix-blend-mode: screen;
+  }
+  .oracle-card__foil-frame {
+    inset: 8px;
+    border: 1px solid rgba(245, 234, 216, 0.22);
+    background:
+      linear-gradient(90deg, rgba(245, 234, 216, 0.38), rgba(196, 147, 90, 0.16), rgba(160, 150, 190, 0.2), rgba(245, 234, 216, 0.34)) top / 100% 1px no-repeat,
+      linear-gradient(90deg, rgba(120, 98, 78, 0.24), rgba(245, 234, 216, 0.3), rgba(196, 147, 90, 0.22)) bottom / 100% 1px no-repeat,
+      linear-gradient(180deg, rgba(245, 234, 216, 0.34), rgba(196, 147, 90, 0.14), rgba(160, 150, 190, 0.18)) left / 1px 100% no-repeat,
+      linear-gradient(180deg, rgba(160, 150, 190, 0.18), rgba(196, 147, 90, 0.18), rgba(245, 234, 216, 0.32)) right / 1px 100% no-repeat;
+    box-shadow:
+      inset 0 0 18px rgba(245, 234, 216, 0.08),
+      inset 0 0 0 6px rgba(8, 7, 6, 0.18);
+    mix-blend-mode: screen;
+  }
+  .oracle-card__foil-grain {
+    background:
+      repeating-linear-gradient(116deg, rgba(245, 234, 216, 0.08) 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(31deg, rgba(196, 147, 90, 0.05) 0 1px, transparent 1px 7px);
+    mix-blend-mode: overlay;
+  }
+  .oracle-card__glare {
+    background:
+      radial-gradient(circle at var(--glare-x) var(--glare-y), rgba(255, 252, 240, 0.5) 0 5%, rgba(245, 234, 216, 0.16) 12%, transparent 34%),
+      linear-gradient(115deg, transparent 28%, rgba(245, 234, 216, 0.18) 46%, transparent 62%);
+    mix-blend-mode: screen;
+  }
+  .oracle-card__sweep {
+    inset: -20%;
+    background: linear-gradient(112deg, transparent 36%, rgba(255, 248, 224, 0.44) 48%, rgba(190, 176, 213, 0.16) 52%, transparent 64%);
+    transform: translateX(-82%) rotate(0.001deg);
+    mix-blend-mode: screen;
+  }
+  .oracle-card.is-chosen .oracle-card__front {
+    box-shadow:
+      var(--shadow-x) var(--shadow-y) 68px -18px rgba(0, 0, 0, 0.78),
+      0 0 0 1px rgba(196, 147, 90, 0.45),
+      0 0 36px rgba(196, 147, 90, 0.24),
+      inset 0 0 28px rgba(245, 234, 216, 0.07);
+  }
+  .oracle-card.is-chosen .oracle-card__foil-aura { opacity: 0.52; }
+  .oracle-card.is-chosen .oracle-card__foil-frame { opacity: 0.88; }
+  .oracle-card.is-chosen .oracle-card__foil-grain { opacity: 0.36; }
+  .oracle-card.is-chosen .oracle-card__glare { opacity: 0.72; }
+  .oracle-card.is-chosen .oracle-card__corner {
+    z-index: 4;
+    color: rgba(245, 234, 216, 0.78);
+    filter: drop-shadow(0 0 6px rgba(196, 147, 90, 0.28));
+  }
+  .oracle-card.is-chosen .oracle-card__edge,
+  .oracle-card.is-chosen .oracle-card__edge-inner,
+  .oracle-card.is-chosen .oracle-card__nameplate {
+    z-index: 4;
+  }
+  .oracle-card.is-chosen .oracle-card__sweep {
+    animation: oracle-reveal-sweep 0.9s cubic-bezier(0.22, 0.68, 0.16, 1) 0.78s both;
+  }
+  @keyframes oracle-reveal-sweep {
+    0%   { opacity: 0; transform: translateX(-82%) rotate(0.001deg); }
+    28%  { opacity: 0.58; }
+    100% { opacity: 0; transform: translateX(82%) rotate(0.001deg); }
+  }
+
+  /* ── Reveal caption ── */
+  .oracle__caption {
+    max-width: 46ch;
+    opacity: 0;
+    transform: translateY(14px);
+    transition: opacity var(--t-slow), transform var(--t-slow);
+  }
+  .oracle__caption.is-shown {
+    opacity: 1;
+    transform: none;
+  }
+  .oracle__arn {
+    font-family: var(--font-sans);
+    font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--ember);
+    margin: 0 0 var(--space-2);
+  }
+  .oracle__name {
+    font-family: var(--font-display);
+    font-weight: var(--fw-regular);
+    font-size: clamp(2.2rem, 4.5vw, 3.2rem);
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--bone);
+    margin: 0 0 var(--space-3);
+  }
+  .oracle__meaning {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    font-style: italic;
+    color: rgba(232, 224, 210, 0.75);
+    font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+    line-height: 1.55;
+    margin: 0 auto var(--space-4);
+  }
+  .oracle__reading {
+    font-family: var(--font-serif);
+    font-weight: var(--fw-thin);
+    color: rgba(232, 224, 210, 0.82);
+    font-size: clamp(0.98rem, 1.2vw, 1.1rem);
+    line-height: 1.65;
+    max-width: 38ch;
+    margin: 0 auto var(--space-5);
+  }
+  /* ── Pieces aligned with the guardian ── mini product preview row
+     (UX audit P1 — connect oracle to real catalog, 2026-05-30 - Tigo) */
+  .oracle__pieces {
+    margin: 0 auto var(--space-5);
+    max-width: 720px;
+    width: 100%;
+    text-align: center;
+  }
+  .oracle__pieces-label {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--bronze);
+    margin: 0 0 var(--space-3);
+  }
+  .oracle__pieces-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-3);
+  }
+  .oracle-piece {
+    display: block;
+  }
+  .oracle-piece a {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    border: 1px solid rgba(138, 106, 67, 0.32);
+    background: rgba(8, 7, 6, 0.55);
+    padding: var(--space-3);
+    transition: border-color var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
+  }
+  .oracle-piece a:hover,
+  .oracle-piece a:focus-visible {
+    border-color: var(--ember);
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px -18px rgba(196, 147, 90, 0.45);
+    outline: none;
+  }
+  .oracle-piece__media {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--bg-alt);
+    margin-bottom: var(--space-2);
+  }
+  .oracle-piece__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .oracle-piece a:hover .oracle-piece__media img {
+    transform: scale(1.04);
+  }
+  .oracle-piece__name {
+    font-family: var(--font-serif);
+    font-size: var(--fs-small);
+    line-height: 1.3;
+    color: var(--bone);
+    margin: 0 0 4px;
+    /* clamp to 2 lines */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .oracle-piece__price {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.04em;
+    color: var(--ember);
+    margin: 0;
+  }
+  .oracle__pieces-empty {
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--fg-soft);
+    font-size: var(--fs-small);
+    max-width: 42ch;
+    margin: 0 auto var(--space-5);
+  }
+  .oracle__pieces-empty a {
+    color: var(--ember);
+  }
+  @media (max-width: 600px) {
+    /* Mobile: horizontal scroll-snap row */
+    .oracle__pieces-list {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: 62vw;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 var(--gutter) var(--space-2);
+      margin: 0 calc(var(--gutter) * -1);
+      scrollbar-width: none;
+    }
+    .oracle__pieces-list::-webkit-scrollbar { display: none; }
+    .oracle-piece { scroll-snap-align: center; }
+  }
+
+  .oracle__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3) var(--space-4);
+  }
+  .oracle__shop {
+    white-space: nowrap;
+    /* .btn is display:inline-flex, so the label's text runs ("See" / name /
+       "pieces" / arrow) become separate flex items and the inter-word
+       whitespace is dropped. Restore word spacing with a flex gap. */
+    gap: 0.34em;
+  }
+  .oracle__shop [data-oracle-name-inline] {
+    text-transform: capitalize;
+  }
+  .oracle__again {
+    background: transparent;
+    border: 0;
+    color: var(--silver);
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    padding: var(--space-2) 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color var(--t-fast);
+  }
+  .oracle__again:hover,
+  .oracle__again:focus-visible {
+    color: var(--ember);
+  }
+
+  @media (max-width: 600px) {
+    /* Mobile fan — laterals breathe, central rides taller (per oracle critique) */
+    .oracle__fan { padding-top: var(--space-4); }
+    .oracle-card { margin: 0 -28px; width: clamp(108px, 32vw, 152px); }
+    /* Side cards (rotation ≠ 0) drop opacity so they feel like backup; central stays full.
+       Only in the open fan — the stacked deck manages its own opacity. */
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:7deg"],
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:14deg"],
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:-7deg"],
+    .oracle__fan:not(.is-stacked) .oracle-card[style*="--rot:-14deg"] {
+      opacity: 0.68;
+    }
+    .oracle-card[style*="--rot:0deg"] {
+      width: clamp(132px, 38vw, 184px);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .oracle-card,
+    .oracle-card__flip,
+    .oracle__caption,
+    .oracle__prompt { transition: opacity 0.2s ease; }
+    .oracle-card.is-chosen {
+      --tilt-x: 0deg;
+      --tilt-y: 0deg;
+      --shadow-x: 0px;
+      --shadow-y: 28px;
+      filter: none;
+    }
+    .oracle-card.is-chosen .oracle-card__sweep { animation: none; }
+    .oracle-card.is-chosen .oracle-card__glare { opacity: 0.32; }
+  }
+</style>
+
+<script>
+  /* PowerAnimalsOracle — card-draw deck, vanilla JS, sin frameworks. */
+  type AnimalPiece = {
+    slug: string;
+    name: string;
+    price: string;
+    img: string | null;
+    imgAlt: string;
+  };
+
+  type AnimalData = {
+    slug: string;
+    name: string;
+    arn: string;
+    meaning: string;
+    reading: string;
+    avif: string;
+    webp: string;
+    alt: string;
+    pieces: AnimalPiece[];
+  };
+
+  const root = document.querySelector<HTMLElement>('[data-oracle-root]');
+  if (root) {
+    const payloadEl = root.querySelector<HTMLScriptElement>('[data-oracle-payload]');
+    const data: AnimalData[] = payloadEl ? JSON.parse(payloadEl.textContent || '[]') : [];
+
+    const stage   = root.querySelector<HTMLElement>('[data-oracle-stage]');
+    const fan      = root.querySelector<HTMLElement>('[data-oracle-fan]');
+    const caption  = root.querySelector<HTMLElement>('[data-oracle-caption]');
+    const cards    = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-oracle-card]'));
+    const againBtn = root.querySelector<HTMLButtonElement>('[data-oracle-again]');
+
+    const arnEl      = root.querySelector<HTMLElement>('[data-oracle-arn]');
+    const nameEl     = root.querySelector<HTMLElement>('[data-oracle-name]');
+    const meaningEl  = root.querySelector<HTMLElement>('[data-oracle-meaning]');
+    const readingEl  = root.querySelector<HTMLElement>('[data-oracle-reading]');
+    const shopLink   = root.querySelector<HTMLAnchorElement>('[data-oracle-shop]');
+    const piecesWrap   = root.querySelector<HTMLElement>('[data-oracle-pieces]');
+    const piecesList   = root.querySelector<HTMLElement>('[data-oracle-pieces-list]');
+    const piecesLabel  = root.querySelector<HTMLElement>('[data-oracle-pieces-label]');
+    const piecesEmpty  = root.querySelector<HTMLElement>('[data-oracle-pieces-empty]');
+
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const revealBtn = root.querySelector<HTMLButtonElement>('[data-oracle-reveal]');
+    const promptEn  = root.querySelector<HTMLElement>('.oracle__prompt-en');
+    const PROMPT_IDLE    = 'Tap the deck to shuffle';
+    const PROMPT_SHUFFLE = 'Shuffling the deck…';
+    const PROMPT_CHOOSE  = 'Choose the card that calls you';
+    const PROMPT_PICK    = 'Tap the card again to reveal · or choose another';
+
+    const deckHint = root.querySelector<HTMLElement>('[data-oracle-deck-hint]');
+
+    let selectedCard: HTMLButtonElement | null = null;
+    let revealed = false;
+    let deckOpen = false;
+    let shuffling = false;
+    let shuffleTimer = 0;
+    let tiltFrame = 0;
+
+    const resetCardFoil = (card: HTMLElement) => {
+      card.style.removeProperty('--tilt-x');
+      card.style.removeProperty('--tilt-y');
+      card.style.removeProperty('--glare-x');
+      card.style.removeProperty('--glare-y');
+      card.style.removeProperty('--shadow-x');
+      card.style.removeProperty('--shadow-y');
+    };
+
+    const updateCardFoil = (card: HTMLElement, event: PointerEvent) => {
+      if (prefersReduced || !card.classList.contains('is-chosen')) return;
+      const rect = card.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return;
+
+      const x = (event.clientX - rect.left) / rect.width;
+      const y = (event.clientY - rect.top) / rect.height;
+      const clampedX = Math.max(0, Math.min(1, x));
+      const clampedY = Math.max(0, Math.min(1, y));
+      const tiltY = (clampedX - 0.5) * 10;
+      const tiltX = (0.5 - clampedY) * 12;
+      const shadowX = (0.5 - clampedX) * 18;
+      const shadowY = 24 + clampedY * 12;
+
+      if (tiltFrame) window.cancelAnimationFrame(tiltFrame);
+      tiltFrame = window.requestAnimationFrame(() => {
+        card.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+        card.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+        card.style.setProperty('--glare-x', `${(clampedX * 100).toFixed(1)}%`);
+        card.style.setProperty('--glare-y', `${(clampedY * 100).toFixed(1)}%`);
+        card.style.setProperty('--shadow-x', `${shadowX.toFixed(1)}px`);
+        card.style.setProperty('--shadow-y', `${shadowY.toFixed(1)}px`);
+      });
+    };
+
+    /* Stage 0 — the deck starts stacked (collapsed). First tap SHUFFLES the deck
+       (a slow, calm riffle) and THEN fans it open. No card is auto-selected — the
+       user chooses one afterwards. reduced-motion → spread instantly, no shuffle. */
+    const SHUFFLE_MS = 2200;   // must match the shuffle CSS animation duration
+    const openDeck = () => {
+      if (deckOpen || shuffling) return;
+
+      const finishOpen = () => {
+        shuffling = false;
+        deckOpen = true;
+        stage?.classList.remove('is-stacked');
+        fan?.classList.remove('is-stacked', 'is-shuffling');
+        fan?.classList.add('is-opening');
+        fan?.setAttribute('aria-expanded', 'true');
+        // Once open the wrapper is no longer the tap target; cards take over.
+        fan?.removeAttribute('role');
+        fan?.setAttribute('tabindex', '-1');
+        if (promptEn) promptEn.textContent = PROMPT_CHOOSE;
+        // Drop the deal-animation class only AFTER every card has landed, so no
+        // card snaps mid-flight. Last card: delay (4·0.16s) + duration (0.92s)
+        // ≈ 1.56s; give it a little headroom.
+        window.setTimeout(() => fan?.classList.remove('is-opening'), 1750);
+      };
+
+      if (prefersReduced) { finishOpen(); return; }
+
+      // Ceremonial phase: rock + riffle the stacked deck in place, then spread.
+      shuffling = true;
+      if (promptEn) promptEn.textContent = PROMPT_SHUFFLE;
+      if (deckHint) deckHint.style.display = 'none';
+      fan?.classList.add('is-shuffling');
+      shuffleTimer = window.setTimeout(finishOpen, SHUFFLE_MS);
+    };
+
+    /* Return to the stacked deck (used by "Draw again"). */
+    const closeDeck = () => {
+      deckOpen = false;
+      shuffling = false;
+      if (shuffleTimer) { window.clearTimeout(shuffleTimer); shuffleTimer = 0; }
+      stage?.classList.add('is-stacked');
+      fan?.classList.add('is-stacked');
+      fan?.classList.remove('is-shuffling', 'is-opening');
+      fan?.setAttribute('role', 'button');
+      fan?.setAttribute('tabindex', '0');
+      fan?.setAttribute('aria-expanded', 'false');
+      if (deckHint) deckHint.style.display = '';
+      if (promptEn) promptEn.textContent = PROMPT_IDLE;
+    };
+
+    /* prefers-reduced-motion → skip the ritual open, present the fan directly. */
+    if (prefersReduced) {
+      openDeck();
+      if (deckHint) deckHint.style.display = 'none';
+    }
+
+    /* Stage 1 — a tap selects a card (lifts + glows, others dim). */
+    const select = (card: HTMLButtonElement) => {
+      if (!deckOpen) return;   // ignore until the deck is fanned open
+      if (revealed) return;
+      if (selectedCard === card) { reveal(); return; }  // second tap on same card reveals
+      selectedCard = card;
+      cards.forEach(c => c.classList.toggle('is-selected', c === card));
+      stage?.classList.add('is-selecting');
+      fan?.classList.add('is-selecting');
+      if (promptEn) promptEn.textContent = PROMPT_PICK;
+      if (revealBtn) {
+        revealBtn.hidden = false;
+        void revealBtn.offsetWidth;
+        revealBtn.classList.add('is-shown');
+      }
+    };
+
+    /* Stage 2 — the chosen card flips and the guardian is revealed. */
+    const reveal = () => {
+      if (revealed || !selectedCard || !fan || !caption || data.length === 0) return;
+      revealed = true;
+      const card = selectedCard;
+
+      if (revealBtn) { revealBtn.classList.remove('is-shown'); revealBtn.hidden = true; }
+      stage?.classList.remove('is-selecting');
+      fan.classList.remove('is-selecting');
+      card.classList.remove('is-selected');
+
+      const chosen = data[Math.floor(Math.random() * data.length)];
+
+      // Fill the chosen card's front face with the guardian
+      const avifSrc = card.querySelector<HTMLSourceElement>('[data-card-avif]');
+      const imgEl   = card.querySelector<HTMLImageElement>('[data-card-img]');
+      const arnMini = card.querySelector<HTMLElement>('[data-card-arn-mini]');
+      if (avifSrc) avifSrc.setAttribute('srcset', chosen.avif);
+      if (imgEl)   { imgEl.src = chosen.webp; imgEl.alt = chosen.alt; }
+      if (arnMini) arnMini.textContent = chosen.arn;
+
+      // Centre the drawn card within the fan (layout-space, transform-agnostic)
+      if (fan) {
+        const shift = fan.clientWidth / 2 - (card.offsetLeft + card.offsetWidth / 2);
+        card.style.setProperty('--draw-shift', `${shift}px`);
+      }
+
+      stage?.classList.add('is-drawing');
+      fan.classList.add('is-drawing');
+      card.classList.add('is-chosen');
+
+      // Caption content
+      if (arnEl)     arnEl.textContent = `${chosen.arn} · ${chosen.name}`;
+      if (nameEl)    nameEl.textContent = chosen.name;
+      if (meaningEl) meaningEl.textContent = chosen.meaning;
+      if (readingEl) readingEl.textContent = chosen.reading;
+      if (shopLink)  shopLink.href = `/shop?guardian=${chosen.slug}`;
+
+      // Pieces aligned with the guardian — populate or fall back
+      if (piecesWrap && piecesList && piecesEmpty) {
+        piecesList.innerHTML = '';
+        const pieces = Array.isArray(chosen.pieces) ? chosen.pieces : [];
+        if (pieces.length > 0) {
+          if (piecesLabel) {
+            piecesLabel.textContent = `Pieces aligned with ${chosen.name}`;
+          }
+          pieces.forEach(piece => {
+            const li = document.createElement('li');
+            li.className = 'oracle-piece';
+            const safeName = piece.name.replace(/</g, '&lt;');
+            const safeAlt  = (piece.imgAlt || piece.name).replace(/"/g, '&quot;');
+            const media = piece.img
+              ? `<span class="oracle-piece__media"><img src="${piece.img}" alt="${safeAlt}" loading="lazy" decoding="async" /></span>`
+              : `<span class="oracle-piece__media" aria-hidden="true"></span>`;
+            li.innerHTML = `
+              <a href="/p/${piece.slug}">
+                ${media}
+                <p class="oracle-piece__name">${safeName}</p>
+                <p class="oracle-piece__price">${piece.price}</p>
+              </a>
+            `;
+            piecesList.appendChild(li);
+          });
+          piecesWrap.hidden = false;
+          piecesEmpty.hidden = true;
+        } else {
+          piecesWrap.hidden = true;
+          piecesEmpty.hidden = false;
+        }
+      }
+
+      const delay = prefersReduced ? 200 : 900;
+      window.setTimeout(() => {
+        caption.hidden = false;
+        void caption.offsetWidth;
+        caption.classList.add('is-shown');
+      }, delay);
+    };
+
+    const reset = () => {
+      if (!fan || !caption) return;
+      caption.classList.remove('is-shown');
+      window.setTimeout(() => {
+        caption.hidden = true;
+        stage?.classList.remove('is-drawing');
+        fan.classList.remove('is-drawing');
+        stage?.classList.remove('is-selecting');
+        fan.classList.remove('is-selecting');
+        cards.forEach(c => {
+          c.classList.remove('is-chosen');
+          c.classList.remove('is-selected');
+          c.style.removeProperty('--draw-shift');
+          resetCardFoil(c);
+        });
+        // Reset guardian-pieces preview between draws
+        if (piecesWrap)  piecesWrap.hidden  = true;
+        if (piecesEmpty) piecesEmpty.hidden = true;
+        if (piecesList)  piecesList.innerHTML = '';
+        if (revealBtn) { revealBtn.classList.remove('is-shown'); revealBtn.hidden = true; }
+        if (promptEn) promptEn.textContent = PROMPT_IDLE;
+        selectedCard = null;
+        revealed = false;
+        // Re-stack the deck for a fresh draw (unless reduced-motion keeps it open).
+        if (!prefersReduced) closeDeck();
+      }, prefersReduced ? 120 : 320);
+    };
+
+    // Open the deck. On mobile the stacked wrapper collapses oddly and touch
+    // events can be swallowed, so we listen for BOTH pointerup and click and
+    // guard against double-firing. A single confirmed tap opens the fan.
+    let openingLock = false;
+    const tryOpenDeck = (e?: Event) => {
+      if (deckOpen || shuffling) return;
+      // pointerup fires before the synthetic click; lock so click doesn't re-run.
+      if (openingLock) return;
+      openingLock = true;
+      window.setTimeout(() => { openingLock = false; }, 400);
+      e?.preventDefault?.();
+      openDeck();
+    };
+    // pointerup covers touch + mouse + pen reliably; click is the fallback.
+    fan?.addEventListener('pointerup', tryOpenDeck);
+    fan?.addEventListener('click', tryOpenDeck);
+    fan?.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (deckOpen || shuffling) return;
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+        e.preventDefault();
+        openDeck();
+      }
+    });
+
+    // Each card: if the deck is still stacked, a tap opens it (belt-and-
+    // suspenders with the wrapper handler above, since the sized wrapper and
+    // the cards both sit under the finger). Once open, a tap selects.
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        if (!deckOpen) { tryOpenDeck(); return; }
+        select(card);
+      });
+      card.addEventListener('pointermove', (e: PointerEvent) => updateCardFoil(card, e));
+      card.addEventListener('pointerleave', () => resetCardFoil(card));
+      card.addEventListener('blur', () => resetCardFoil(card));
+    });
+    revealBtn?.addEventListener('click', reveal);
+    againBtn?.addEventListener('click', reset);
+  }
+</script>

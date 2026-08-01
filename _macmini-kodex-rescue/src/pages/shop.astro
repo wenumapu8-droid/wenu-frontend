@@ -1,0 +1,376 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from '../components/ProductCard.astro';
+import CategoryStrip from '../components/CategoryStrip.astro';
+import { getProducts, getCategories, localizeCategory } from '../lib/woo';
+import { STORE_BASE_URL } from '../lib/config';
+import en from '../i18n/en.json';
+
+const [products, categories] = await Promise.all([
+  getProducts(),
+  getCategories(),
+]);
+
+const ritualCatPrefix: Record<string, string> = {
+  'tunnel': 'KÜRÜF',
+  'stone': 'TROMÜ',
+  'steel': 'PAÑILWE',
+  'labret': 'WÜN',
+};
+
+// Localize and de-duplicate categories: many Spanish slugs map to the same
+// English label (e.g. "anillos" + "rings" → "Rings"), keep only one tab.
+const localizedCategories = (() => {
+  const seen = new Set<string>();
+  const out: Array<{ slug: string; name: string }> = [];
+  for (const c of categories) {
+    const en = localizeCategory(c);
+    const key = en.toLowerCase();
+    if (/uncategorized|sin-categorizar/i.test(c.slug) || /uncategorized/i.test(key)) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ slug: c.slug, name: en });
+  }
+  return out;
+})();
+
+const shopDescription = 'Curated catalogue of handcrafted body jewelry in titanium, silver, wood, stone and bronze. Real pieces, photographed and released from Truckee.';
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Shop — Wenu Mapu',
+  description: shopDescription,
+  url: 'https://wenumapuonline.com/shop',
+  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+};
+
+const itemListLd = {
+  '@context': 'https://schema.org',
+  '@type': 'ItemList',
+  name: 'Wenu Mapu catalogue',
+  numberOfItems: products.length,
+  itemListElement: products.map((p, i) => ({
+    '@type': 'ListItem',
+    position: i + 1,
+    name: p.name,
+    url: `https://wenumapuonline.com/p/${p.slug}`,
+  })),
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Shop', item: 'https://wenumapuonline.com/shop' },
+  ],
+};
+---
+
+<Base
+  title="Shop — Ritual body jewelry, plugs, septums & hangers | Wenu Mapu"
+  description={shopDescription}
+  ogImage="/img/brand/shop-ritual-septum-hero.webp"
+  jsonLd={[collectionLd, itemListLd, breadcrumbLd]}
+  noQuote
+>
+  {/* Plain masthead — the title lives once, in the section <h1> below (no echo). */}
+  <div class="cat-masthead">
+    <picture>
+      <source type="image/avif" srcset="/img/banners/atmospheric/mountain-starfield.avif" />
+      <img src="/img/banners/atmospheric/mountain-starfield.webp" alt="" width="1600" height="686" loading="eager" decoding="async" fetchpriority="high" />
+    </picture>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      {/* Guardian banner — visible when /shop?guardian=<slug>. Continúa la narrativa del oráculo del home. */}
+      <aside class="guardian-banner" data-guardian-banner hidden aria-live="polite">
+        <div class="guardian-banner__inner">
+          <picture class="guardian-banner__img">
+            <source type="image/avif" data-guardian-avif/>
+            <img data-guardian-img alt="" width="120" height="160" decoding="async"/>
+          </picture>
+          <div class="guardian-banner__copy">
+            <p class="eyebrow guardian-banner__eyebrow">The oracle chose for you</p>
+            <p class="guardian-banner__name">
+              <span data-guardian-arn></span> · <span data-guardian-name></span>
+            </p>
+            <p class="guardian-banner__meaning" data-guardian-meaning></p>
+          </div>
+          <a href="/#oracle-title" class="guardian-banner__again" data-guardian-again>
+            <span aria-hidden="true">↻</span> Ask again
+          </a>
+        </div>
+      </aside>
+
+      <p class="eyebrow">{en.shop.eyebrow}</p>
+      <h1 style="margin: var(--space-3) 0 var(--space-4); max-width: 16ch;">{en.shop.title}</h1>
+      <div class="divider-h"></div>
+      <p class="italic text-soft" style="max-width: 60ch; margin-bottom: var(--space-6);">
+        {en.shop.intro}
+      </p>
+
+      <picture class="shop-visual-band">
+        <source srcset="/img/brand/shop-ritual-septum-hero.avif" type="image/avif" />
+        <img
+          src="/img/brand/shop-ritual-septum-hero.webp"
+          alt="Golden Metatron's Cube sacred geometry over a cosmic altar — winged guardians, candles and stars"
+          width="1600"
+          height="1000"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+        />
+      </picture>
+    </div>
+  </section>
+
+  {/* Shop by collection — banda de tarjetas de categoría (horizontal-scroll rail).
+      Cada tile linkea a /shop?cat=<slug> y filtra el archivo. Los banners cat-* son
+      placeholder optimizado; se swapean por el arte premium (chakana + starfield). */}
+  <CategoryStrip />
+
+  <section class="section">
+    <div class="container">
+      <div class="shop-archive-note">
+        <p class="eyebrow" style="margin: 0 0 var(--space-2);">CURATED ARCHIVE</p>
+        <p style="margin: 0; max-width: 58ch; color: var(--fg-soft);">
+          Released pieces only. Real product photos first. If you're comparing materials, sizing, or placement, write to us and we'll curate the shortlist with you.
+        </p>
+      </div>
+
+      <div class="filter-bar" id="filter-bar">
+        <div class="filter-bar__tabs">
+          <span class="filter-bar__label">Product type</span>
+          <button class="filter-tab active" data-cat="all">{en.shop.all}</button>
+          {localizedCategories.map(cat => {
+            const slug = cat.slug.toLowerCase();
+            const ritual = Object.keys(ritualCatPrefix).find(k => slug.includes(k));
+            return (
+              <button class="filter-tab" data-cat={cat.slug}>
+                {ritual ? `${ritualCatPrefix[ritual]} · ` : ''}{cat.name}
+              </button>
+            );
+          })}
+        </div>
+        <label class="filter-sort">
+          <span class="filter-bar__label">Sort</span>
+          <select data-sort aria-label="Sort products">
+            <option value="featured">Curated</option>
+            <option value="price-asc">Price · low to high</option>
+            <option value="price-desc">Price · high to low</option>
+            <option value="name">Name · A–Z</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="archive-grid" id="product-grid">
+        {products.length === 0
+          ? (
+            <div style="grid-column: 1/-1; text-align: center; padding: var(--space-7) 0;">
+              <p class="text-soft">{en.shop.no_products}</p>
+              <a href={STORE_BASE_URL} target="_blank" rel="noopener noreferrer" class="btn" style="margin-top: var(--space-4);">
+                {en.shop.to_store}
+              </a>
+            </div>
+          )
+          : products.map(p => <ProductCard product={p} archive />)
+        }
+      </div>
+
+      <div style="margin-top: var(--space-6); padding-top: var(--space-4); border-top: var(--border-thin); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3);">
+        <p class="text-soft italic" style="margin: 0;">{en.shop.not_found}</p>
+        <a href="/contact" class="btn">{en.shop.contact_us}</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Explore by material — internal linking for SEO + discovery -->
+  <section class="section" style="background: var(--bg-alt); padding-top: var(--space-6); padding-bottom: var(--space-6);">
+    <div class="container">
+      <p class="eyebrow">EXPLORE BY MATERIAL</p>
+      <h2 style="margin: var(--space-3) 0 var(--space-4); font-size: var(--fs-h3); max-width: 28ch;">
+        Each material carries a lineage.
+      </h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-4);">
+        <a href="/material/sterling-silver" class="material-tile">
+          <p class="eyebrow" style="margin: 0;">01</p>
+          <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">Sterling silver</h3>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">950 alloy — pure, durable, alive with light.</p>
+        </a>
+        <a href="/material/14k-gold" class="material-tile">
+          <p class="eyebrow" style="margin: 0;">02</p>
+          <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">14k gold</h3>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">Alloyed in workshop. Yellow, rose, white.</p>
+        </a>
+        <a href="/material/titanium" class="material-tile">
+          <p class="eyebrow" style="margin: 0;">03</p>
+          <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">Titanium</h3>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">ASTM F-136 implant-grade. Lifetime body-safe.</p>
+        </a>
+        <a href="/material/vacamuerta" class="material-tile">
+          <p class="eyebrow" style="margin: 0;">04</p>
+          <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">Vacamuerta</h3>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">Atacama meteorite — 4.5 billion years old.</p>
+        </a>
+        <a href="/material/walnut-wood" class="material-tile">
+          <p class="eyebrow" style="margin: 0;">05</p>
+          <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">Walnut & wood</h3>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">Sustainably sourced. Each grain unique.</p>
+        </a>
+        <a href="/material/brass-bronze" class="material-tile">
+          <p class="eyebrow" style="margin: 0;">06</p>
+          <h3 style="margin: var(--space-2) 0 var(--space-1); font-family: var(--font-display); font-weight: normal;">Brass & bronze</h3>
+          <p class="text-soft" style="margin: 0; font-size: var(--fs-small);">Ceremonial metals chosen for weight, patina and presence.</p>
+        </a>
+      </div>
+      <p style="margin-top: var(--space-5); font-size: var(--fs-small);">
+        <a href="/materials" class="text-accent">All materials, in detail →</a>
+      </p>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* Borderless — a top hairline gives structure; type + space order the rest. */
+  .material-tile {
+    display: block;
+    padding: var(--space-4) var(--space-4) var(--space-4) 0;
+    border-top: var(--border-thin);
+    text-decoration: none;
+    color: inherit;
+    transition: transform 200ms ease;
+  }
+  .material-tile:hover { transform: translateY(-2px); }
+  .material-tile:hover h3 { color: var(--ember); }
+
+  .shop-visual-band {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 7;
+    overflow: hidden;
+    margin: calc(var(--space-5) * -1) 0 var(--space-5);
+    background: var(--bg-alt);
+  }
+
+  .shop-visual-band img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .shop-archive-note {
+    margin: 0 0 var(--space-6);
+  }
+
+  @media (max-width: 700px) {
+    .shop-visual-band {
+      aspect-ratio: 4 / 5;
+      margin-top: 0;
+    }
+  }
+</style>
+
+<script>
+  const bar = document.getElementById('filter-bar');
+  const grid = document.getElementById('product-grid');
+
+  function applyFilter(cat: string) {
+    if (!bar || !grid) return;
+    bar.querySelectorAll<HTMLButtonElement>('.filter-tab').forEach(b => {
+      b.classList.toggle('active', (b.dataset.cat || 'all') === cat);
+    });
+    grid.querySelectorAll<HTMLElement>('.product-card, .archive-card').forEach(card => {
+      if (cat === 'all') {
+        card.style.display = '';
+        return;
+      }
+      // Exact slug match — split the list so "ring" no longer matches "earrings".
+      const cats = (card.dataset.cats || '').toLowerCase().split(/[\s,]+/).filter(Boolean);
+      card.style.display = cats.includes(cat.toLowerCase()) ? '' : 'none';
+    });
+  }
+
+  function findMatchingTab(query: string): string {
+    if (!bar) return 'all';
+    const q = query.toLowerCase();
+    const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>('.filter-tab'));
+    const exact = tabs.find(t => (t.dataset.cat || '') === q);
+    if (exact) return exact.dataset.cat || 'all';
+    const fuzzy = tabs.find(t => {
+      const c = (t.dataset.cat || '').toLowerCase();
+      return c.includes(q) || q.includes(c);
+    });
+    return fuzzy?.dataset.cat || 'all';
+  }
+
+  if (bar && grid) {
+    bar.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.filter-tab');
+      if (!btn) return;
+      const cat = btn.dataset.cat || 'all';
+      applyFilter(cat);
+      const url = new URL(window.location.href);
+      if (cat === 'all') url.searchParams.delete('cat');
+      else url.searchParams.set('cat', cat);
+      history.replaceState(null, '', url.toString());
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const initial = params.get('cat');
+    if (initial) {
+      applyFilter(findMatchingTab(initial));
+    }
+
+    // ── Sort (client-side reorder of the grid cells) ──────────────────────────
+    const sortSel = bar.querySelector<HTMLSelectElement>('[data-sort]');
+    const original = Array.from(grid.querySelectorAll<HTMLElement>('.archive-card, .product-card'));
+    function applySort(mode: string) {
+      const cards = Array.from(grid.querySelectorAll<HTMLElement>('.archive-card, .product-card'));
+      let sorted = cards;
+      const price = (c: HTMLElement) => parseFloat(c.dataset.price || '0') || 0;
+      const name = (c: HTMLElement) => (c.dataset.name || '').toLowerCase();
+      if (mode === 'price-asc') sorted = [...cards].sort((a, b) => price(a) - price(b));
+      else if (mode === 'price-desc') sorted = [...cards].sort((a, b) => price(b) - price(a));
+      else if (mode === 'name') sorted = [...cards].sort((a, b) => name(a).localeCompare(name(b)));
+      else sorted = original.slice(); // 'featured' → original curated order
+      sorted.forEach(c => grid.appendChild(c));
+    }
+    if (sortSel) sortSel.addEventListener('change', () => applySort(sortSel.value));
+  }
+</script>
+
+<script>
+  /* Guardian banner — continúa la narrativa del oráculo cuando llegan con ?guardian=<slug>. */
+  const GUARDIANS: Record<string, { name: string; arn: string; meaning: string }> = {
+    puma:      { name: 'Puma',      arn: 'Trapial',  meaning: 'Strength · guardian of the earth' },
+    condor:    { name: 'Cóndor',    arn: 'Mañke',    meaning: 'Vision · messenger of the sky' },
+    serpiente: { name: 'Serpiente', arn: 'Filu',     meaning: 'Water · transformation · memory' },
+    zorro:     { name: 'Zorro',     arn: 'Ngürü',    meaning: 'Cunning · the path between' },
+    ballena:   { name: 'Ballena',   arn: 'Yene',     meaning: 'Depth · the ocean that remembers' },
+    pudu:      { name: 'Pudú',      arn: 'Püdü',     meaning: 'Gentleness · the quiet of the forest' },
+  };
+
+  const url = new URL(window.location.href);
+  const guardianSlug = url.searchParams.get('guardian');
+  const data = guardianSlug ? GUARDIANS[guardianSlug] : null;
+  const banner = document.querySelector<HTMLElement>('[data-guardian-banner]');
+
+  if (data && banner) {
+    const avif    = banner.querySelector<HTMLSourceElement>('[data-guardian-avif]');
+    const img     = banner.querySelector<HTMLImageElement>('[data-guardian-img]');
+    const arn     = banner.querySelector<HTMLElement>('[data-guardian-arn]');
+    const name    = banner.querySelector<HTMLElement>('[data-guardian-name]');
+    const meaning = banner.querySelector<HTMLElement>('[data-guardian-meaning]');
+
+    if (avif)    avif.setAttribute('srcset', `/img/power-animals/${guardianSlug}-560w.avif`);
+    if (img)     { img.src = `/img/power-animals/${guardianSlug}-560w.webp`; img.alt = `${data.arn} · ${data.name}`; }
+    if (arn)     arn.textContent = data.arn;
+    if (name)    name.textContent = data.name;
+    if (meaning) meaning.textContent = data.meaning;
+    banner.hidden = false;
+  }
+</script>

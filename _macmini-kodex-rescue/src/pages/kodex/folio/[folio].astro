@@ -1,0 +1,554 @@
+---
+// KODEX−∞ · fullscreen scene system.
+// One route = one 100dvh scene. Depth lives in local states and overlays.
+import Base from '../../../layouts/Base.astro';
+import KodexChrome from '../../../components/KodexChrome.astro';
+import KodexOverlays from '../../../components/KodexOverlays.astro';
+import CosmologyMap from '../../../components/kodex/CosmologyMap.astro';
+import KodexObserveScene from '../../../components/kodex/observe/KodexObserveScene.astro';
+import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
+import KodexRail from '../../../components/kodex/density/KodexRail.astro';
+import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.astro';
+import KodexField from '../../../components/kodex/field/KodexField.astro';
+import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
+import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
+import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
+import '../../../styles/kodex-micrographics.css';
+import '../../../styles/kodex.css';
+import { fieldParams, motionVars, recipeFor, gridFor } from '../../../lib/kodex/grammar';
+import { specimens, families, discoWorks, folios, organs } from '../../../lib/kodexBook.js';
+
+export function getStaticPaths() {
+  return [
+    { params: { folio: 'i' } }, { params: { folio: 'ii' } }, { params: { folio: 'iii' } },
+    { params: { folio: 'iv' } }, { params: { folio: 'v' } }, { params: { folio: 'vi' } },
+  ];
+}
+
+const { folio } = Astro.params;
+const idx = folios.findIndex((f) => f.slug === folio);
+const F = folios[idx];
+const prev = idx > 0 ? folios[idx - 1] : null;
+const next = idx < folios.length - 1 ? folios[idx + 1] : null;
+const prevUrl = prev ? `/kodex/folio/${prev.slug}/` : '/kodex/';
+const nextUrl = next ? `/kodex/folio/${next.slug}/` : '/kodex/';
+const nextLabel = next ? `NEXT · ${next.stage}` : 'RETURN TO THRESHOLD';
+
+const sceneByFolio = {
+  i: {
+    number: '01', slug: 'prologue', accent: 'var(--kdx-violet,#785CFF)', motif: 'archive-eye',
+    kicker: 'PROLOGUE · OBSERVATION PROTOCOL',
+    title: 'THE ARCHIVE IS WATCHING.',
+    copy: ['YOU ARE NOT ALONE.', 'A SIGNAL.', 'A SYSTEM.', 'A CHOICE.'],
+    cta: 'BEGIN OBSERVATION',
+    meta: ['NODE · KDX_01', 'STATUS · OBSERVING', 'ACCESS · RECORDED', 'PROTOCOL · EYE/CRT/WAVE'],
+    image: '/img/kodex/works/bw-02.jpg',
+  },
+  ii: {
+    number: '02', slug: 'descent', accent: 'var(--kdx-orange,#FF6A00)', motif: 'descent-tunnel',
+    kicker: 'DESCENT · STRATA ENGINE',
+    title: 'THE TREE DESCENDS TO HOLD WHAT RISES.',
+    cta: 'DESCEND',
+    meta: ['NODE · KDX_02', 'MODE · STEPWISE', 'STRATA · 11', 'SKIP · INDEX'],
+    image: '/img/kodex/works/bw-01.jpg',
+  },
+  iii: {
+    number: '03', slug: 'archive', accent: 'var(--kdx-acid,#A6FF00)', motif: 'specimen-dossier',
+    kicker: 'ARCHIVE · CLASSIFIED SPECIMEN',
+    title: 'EVERY SIGNAL HAS A GENEALOGY.',
+    cta: 'OPEN SPECIMEN',
+    meta: ['NODE · KDX_03', 'CLASS · ARCHIVE WORK', 'WORKS · 18', 'STATUS · PRESERVED'],
+    image: '/img/kodex/archive/arch-01.jpg',
+  },
+  iv: {
+    number: '04', slug: 'machine', accent: 'var(--kdx-cyan,#00EFFF)', motif: 'signal-core',
+    kicker: 'MACHINE · KDX_CORE v2.0',
+    title: 'THE SYSTEM MAKES FROM MEMORY.',
+    cta: 'GENERATE SIGNAL',
+    meta: ['ENGINE · READY', 'SOURCE · ACHROMA_006', 'METHOD · MIRROR/DITHER/FLOW', 'INTEGRITY · 98.7%'],
+    image: '/img/kodex/works/bw-07.jpg',
+  },
+  v: {
+    number: '05', slug: 'cosmology', accent: 'var(--kdx-magenta,#FF00CF)', motif: 'orbital-map',
+    kicker: 'COSMOLOGY · LIVING CARTOGRAPHY',
+    title: 'NOTHING HERE STANDS ALONE.',
+    cta: 'REVEAL CONNECTION',
+    meta: ['NODE · KDX_05', 'STATE · LINKED', 'DOMAIN · SIGNAL/MATTER/MEMORY', 'RELATION · +∞'],
+    image: '/img/kodex/disco/disco-01.jpg',
+  },
+  vi: {
+    number: '06', slug: 'return', accent: 'var(--kdx-acid,#A6FF00)', motif: 'return-seal',
+    kicker: 'RETURN · PATTERN RESTORED',
+    title: 'THE SIGNAL RETURNS. THE PATTERN REMAINS.',
+    cta: 'COLLECT A FRAGMENT',
+    meta: ['NODE · KDX_06', 'STATE · RETURNED', 'PATTERN · ACTIVE', 'NEXT · CARRY FORWARD'],
+    image: '/img/kodex/works/bw-11.jpg',
+  },
+}[folio];
+
+const archiveItems = [...families.slice(0, 13), ...discoWorks.slice(0, 5)].map((w, i) => ({
+  code: `KDX_A_${String(i + 1).padStart(3, '0')}`,
+  title: w.t || w.name || `Specimen ${w.n}`,
+  year: '2026',
+  method: w.fx || w.ops?.join(' / ') || 'mirror / signal fold',
+  type: w.dir === 'disco' ? 'generative output' : 'archive work',
+  source: `/img/kodex/${w.dir}/${w.rep}.jpg`,
+  status: i < 3 ? 'edition available' : 'preserved',
+  relation: w.insp || 'signal / matter / memory',
+}));
+
+const selectedArchive = archiveItems[0];
+const selectedStratum = specimens[0];
+// Glifo por escena. En los boards el kana ancla la lectura del panel; se
+// elige uno que diga algo de la lamina, no un adorno al azar.
+const glyphByFolio = {
+  i: '観測',      // observacion
+  ii: '降下',     // descenso
+  iii: '記録',    // registro
+  iv: '機械',     // maquina
+  v: '宇宙',      // cosmos
+  vi: '回帰',     // retorno
+};
+const sceneGlyph = glyphByFolio[folio] ?? 'ポータル';
+
+// La tira lateral se arma con los metadatos que la escena ya declara: se parte
+// cada entrada 'CLAVE · VALOR' del rail existente. Asi no hay dos fuentes de
+// verdad que puedan desincronizarse.
+const stripRows = sceneByFolio.meta.map((row) => {
+  const [k, ...rest] = row.split('·');
+  return { k: k.trim(), v: rest.join('·').trim() || '—' };
+});
+
+const figureByFolio = { i: 'rings', ii: 'triangles', iii: 'squares', iv: 'rings', v: 'rings', vi: 'triangles' };
+
+/**
+ * El campo vivo de cada lámina.
+ *
+ * Todas corren la MISMA red -- el vórtice de la referencia -- porque es el
+ * lenguaje de la experiencia, no un efecto de una escena: "así debe sentirse
+ * esta red viva para cada pantallazo".
+ *
+ * Cómo se comporta cada una ya no se elige a ojo: sale de la receta de la
+ * gramática visual, que es quien decide "cómo se comporta". DESCENT resulta la
+ * más rápida porque su receta declara mutación de secuencia; COSMOLOGY la más
+ * lenta y la más tejida porque es la receta más densa del set (0.96).
+ *
+ * Lo único que se sigue eligiendo a mano es el color, y a propósito: las
+ * recetas dicen `palette_mode: original_kodex_palette` y nada más. La paleta
+ * es de KODEX, no de las referencias.
+ */
+const tintByFolio = {
+  i:   { tint: '#785CFF', spark: '#7FE9FF' },
+  ii:  { tint: '#FF6A00', spark: '#8FD4FF' },
+  iii: { tint: '#A6FF00', spark: '#7FE9FF' },
+  iv:  { tint: '#00EFFF', spark: '#FFC46B' },
+  v:   { tint: '#FF00CF', spark: '#7FE9FF' },
+  vi:  { tint: '#A6FF00', spark: '#FFB25E' },
+};
+const sceneRecipe = recipeFor(folio);
+const sceneGrid = gridFor(folio);
+const sceneMotion = motionVars(folio);
+const sceneField = {
+  field: 'network-vortex',
+  // La intensidad acompaña a la densidad de la receta: una lámina que la
+  // gramática marca densa tiene derecho a un campo más presente.
+  intensity: Math.round((0.34 + sceneRecipe.density * 0.26) * 100) / 100,
+  floor: 0.05,
+  ...tintByFolio[folio],
+  ...fieldParams(folio),
+};
+
+/**
+ * El motor ASCII, sólo donde la escena lo pide.
+ *
+ * El kit trae cuatro escenas generativas con los mismos CTA que las láminas
+ * ("BEGIN OBSERVATION" en observe, "GENERATE SIGNAL" en signal): se escribió
+ * contra esta misma especificación. Pero sólo dos láminas lo justifican --
+ * PROLOGUE, donde el archivo observa, y MACHINE, que genera. En las demás
+ * sería un tercer sistema encendido sin nada que decir.
+ *
+ * Va DEBAJO de la obra, como lecho de glifos dentro de la placa, no en su
+ * lugar: el ojo procedural de PROLOGUE ya se retiró una vez por protagonista
+ * ("horrible, no era lo esperado" -- KODEX-POLISH.md). La pieza es la obra.
+ */
+const asciiByFolio = {
+  i: { scene: 'observe', glyphs: 'kodex' },
+  // La escena de señal del kit venía en verde agua; MACHINE es cian.
+  iv: {
+    scene: 'signal',
+    glyphs: 'petscii',
+    palette: ['#03080c', '#062231', '#0a4f6b', '#0f93bd', '#5fe4ff', '#e9fbff'],
+  },
+};
+const sceneAscii = asciiByFolio[folio] ?? null;
+
+const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent', 'Body', 'Matter', 'Memory', 'Territory', 'Signal', 'Machine'];
+---
+
+<Base
+  title={`${sceneByFolio.number} · ${sceneByFolio.slug.toUpperCase()} — KODEX−∞`}
+  description={`KODEX−∞ scene ${sceneByFolio.number}: ${sceneByFolio.title}`}
+  robots="noindex, nofollow"
+  ogImage={sceneByFolio.image}
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <div
+    class={`kx kx--deck kx-os-scene kx-os-scene--${sceneByFolio.slug}`}
+    data-kx
+    data-stage-idx={idx + 1}
+    data-stage-name={sceneByFolio.slug.toUpperCase()}
+    data-stage-col={F.col}
+    data-prev-url={prevUrl}
+    data-next-url={nextUrl}
+    data-next-label={nextLabel}
+    data-kdx-recipe={sceneRecipe.id}
+    data-kdx-grid={sceneGrid.id}
+    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}`}
+  >
+    <KodexChrome segs={7} />
+
+    <div class="kx-deck" data-deck>
+      <section class="kx-slide kx-slide--os" id={sceneByFolio.slug}>
+        {/* PROLOGUE usaba KodexObserveScene, la escena del ojo procedural. Ocin
+            la descarto sin ambiguedad: "horrible, no era lo esperado" -- rework
+            total del anchor (KODEX-POLISH.md, 2026-07-29). Ahora entra por el
+            mismo layout que las demas laminas, con su obra tratada como
+            ARTIFACT. La densidad la aportan el rail y la metadata, no un
+            organismo generado. */}
+        {(
+        <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug}>
+          <KodexRegistration accent={sceneByFolio.accent} />
+
+          <KodexField
+            field={sceneField.field}
+            intensity={sceneField.intensity}
+            feedback={sceneField.feedback}
+            tint={sceneField.tint}
+            floor={sceneField.floor}
+            spark={sceneField.spark}
+            detail={sceneField.detail}
+            speed={sceneField.speed}
+            seed={idx + 1}
+            class="kx-os-stage__livefield"
+          />
+
+          <div class="kx-os-stage__field" aria-hidden="true">
+            <span class="kx-os-stage__grid"></span>
+            <span class="kx-os-stage__halo"></span>
+            <span class="kx-os-stage__scan"></span>
+          </div>
+
+          {/* La metadata era una columna de texto suelto. En los boards de
+              referencia ese costado es un panel: marco con esquinas cortadas,
+              pares clave/valor alineados, un medidor y una figura concentrica.
+              Mismos datos, leidos como instrumento. */}
+          <KodexDataStrip
+            title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
+            rows={stripRows}
+            accent={sceneByFolio.accent}
+            meter={(idx + 1) / 7}
+            meterLabel="DEPTH"
+            figure={figureByFolio[folio] ?? 'rings'}
+            class="kx-os-stage__strip"
+          />
+
+          <main class="kx-os-stage__copy">
+            <p class="kx-os-stage__kicker">{sceneByFolio.kicker}</p>
+            <h1>{sceneByFolio.title}</h1>
+
+            {folio === 'i' && (
+              <>
+                <div class="kx-protocol-lines">
+                  {sceneByFolio.copy.map((line) => <p>{line}</p>)}
+                </div>
+                <div class="kx-os-stage__actions">
+                  <a class="kx-os-primary" href={nextUrl}>{sceneByFolio.cta}</a>
+                  <button class="kx-os-ghost" type="button" data-kdx-drawer-open="protocol">READ THE PROTOCOL</button>
+                </div>
+              </>
+            )}
+
+            {folio === 'ii' && (
+              <div class="kx-descent-panel" data-kdx-descent>
+                <p class="kx-os-stage__sub" data-stratum-count>STRATUM · 01 / 11</p>
+                <p class="kx-descent-panel__depth" data-stratum-depth>DEPTH · -137 M</p>
+                <h2 data-stratum-title>{selectedStratum.name}</h2>
+                <p data-stratum-read>{selectedStratum.read}</p>
+                <button class="kx-os-primary" type="button" data-stratum-next>{sceneByFolio.cta}</button>
+              </div>
+            )}
+
+            {folio === 'iii' && (
+              <div class="kx-specimen-readout" data-kdx-archive>
+                <p class="kx-os-stage__sub">SPECIMEN · {selectedArchive.code}</p>
+                <h2>{selectedArchive.title}</h2>
+                <dl>
+                  <div><dt>CLASS</dt><dd>{selectedArchive.type.toUpperCase()}</dd></div>
+                  <div><dt>YEAR</dt><dd>{selectedArchive.year}</dd></div>
+                  <div><dt>METHOD</dt><dd>{selectedArchive.method}</dd></div>
+                  <div><dt>STATUS</dt><dd>{selectedArchive.status.toUpperCase()}</dd></div>
+                </dl>
+                <button class="kx-os-primary" type="button" data-kdx-drawer-open="specimen">{sceneByFolio.cta}</button>
+              </div>
+            )}
+
+            {folio === 'iv' && (
+              <div class="kx-machine-readout" data-kdx-machine>
+                <p class="kx-os-stage__sub">KDX_CORE v2.0</p>
+                <dl>
+                  <div><dt>ENGINE</dt><dd data-machine-state>READY</dd></div>
+                  <div><dt>SOURCE</dt><dd data-machine-source>ACHROMA_006</dd></div>
+                  <div><dt>METHOD</dt><dd data-machine-method>MIRROR / DITHER / FLOW</dd></div>
+                  <div><dt>SEED</dt><dd data-machine-seed>A90C-73F1</dd></div>
+                  <div><dt>INTEGRITY</dt><dd>98.7%</dd></div>
+                </dl>
+                <button class="kx-os-primary" type="button" data-machine-generate>{sceneByFolio.cta}</button>
+                <button class="kx-os-ghost" type="button" data-kdx-drawer-open="machine">VIEW OUTPUT</button>
+              </div>
+            )}
+
+            {folio === 'v' && (
+              <div class="kx-cosmo-readout" data-kdx-cosmos>
+                <p class="kx-os-stage__sub" data-cosmo-node>NODE · WENU MAPU</p>
+                <h2 data-cosmo-state>STATE · MANIFESTED</h2>
+                <p data-cosmo-relation>DOMAIN · BODY / MATTER / RITUAL<br />RELATION · +∞</p>
+                <button class="kx-os-primary" type="button" data-cosmo-next>{sceneByFolio.cta}</button>
+              </div>
+            )}
+
+            {folio === 'vi' && (
+              <div class="kx-return-actions">
+                <p>YOU CROSSED THE ARCHIVE.<br />NOW CARRY SOMETHING FORWARD.</p>
+                <a class="kx-os-primary" href="/kodex/store/">{sceneByFolio.cta}</a>
+                <button class="kx-os-ghost" type="button" data-kdx-commission-open>COMMISSION A SYSTEM</button>
+                <button class="kx-os-ghost" type="button" data-kdx-drawer-open="return">EXPLORE THE ECOSYSTEM</button>
+              </div>
+            )}
+          </main>
+
+          <figure class="kx-os-stage__art" data-kdx-art>
+            <span class="kx-corner kx-corner--tl"></span><span class="kx-corner kx-corner--tr"></span>
+            <span class="kx-corner kx-corner--bl"></span><span class="kx-corner kx-corner--br"></span>
+
+            {/* El rail va DENTRO de la figura, no como hijo del escenario: el
+                grid del stage tiene columnas fijas y meterle una fila nueva
+                empujaba la obra fuera de la pantalla. La numeracion pertenece
+                a la pieza, no al escenario. */}
+            <KodexRail
+              index={sceneByFolio.number}
+              label={sceneByFolio.slug}
+              accent={sceneByFolio.accent}
+              tail={sceneByFolio.motif.toUpperCase()}
+              glyph={sceneGlyph}
+              compact={true}
+              class="kx-os-stage__rail-top"
+            />
+            {/* El OJO procedural de PROLOGUE se retiro: "horrible, no era lo
+                esperado" (KODEX-POLISH.md, correccion de Ocin 2026-07-29). En
+                su lugar queda la obra tratada, igual que en las demas laminas. */}
+            {sceneAscii && (
+              <KodexAscii
+                scene={sceneAscii.scene}
+                glyphs={sceneAscii.glyphs}
+                palette={sceneAscii.palette}
+                bed={true}
+                class="kx-os-stage__ascii"
+              />
+            )}
+            {folio === 'iv' && <canvas class="kx-machine-canvas" data-machine-canvas width="720" height="720"></canvas>}
+            {folio === 'v'
+              ? <div class="kx-os-stage__cosmo"><CosmologyMap /></div>
+              : (
+                /* La obra como ARTIFACT, no como <img> plana: pixelada, con
+                   dither Bayer, scanlines y glow del color de la escena. Cada
+                   folio trae su pieza y su acento; el tratamiento es el mismo
+                   para que las siete laminas se lean como un solo sistema. */
+                <KodexArtifact
+                  artwork={sceneByFolio.image}
+                  accent={sceneByFolio.accent}
+                  label="ARTIFACT"
+                  id={`KDX-${sceneByFolio.number}`}
+                  status={sceneByFolio.slug === 'archive' ? 'PRESERVED' : 'ARCHIVED'}
+                  coords={`${sceneByFolio.number} · ${sceneByFolio.slug.toUpperCase()} · ${sceneByFolio.motif}`}
+                  pixelSize={3}
+                  dither={0.86}
+                  scanlines={0.32}
+                  glow={0.5}
+                  chroma={0.55}
+                  flicker={0.42}
+                  class="kx-os-stage__artifact"
+                />
+              )}
+            {/* El pie de la placa sólo cuando la placa no trae obra. El
+                artefacto se rotula solo -- ARTIFACT / KDX-0n / ARCHIVED -- y
+                mantener los dos dejaba dos leyendas encimadas diciendo lo
+                mismo en la misma esquina. */}
+            {folio === 'v' && (
+              <figcaption>{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · {sceneByFolio.motif}</figcaption>
+            )}
+          </figure>
+
+          <div class="kx-os-barcode" aria-hidden="true"><span>KDX-{sceneByFolio.number}-{sceneByFolio.slug.toUpperCase()}</span></div>
+        </div>
+        )}
+      </section>
+    </div>
+
+    <aside class="kx-os-drawer" data-kdx-drawer hidden aria-hidden="true" role="dialog" aria-modal="true">
+      <div class="kx-os-drawer__panel">
+        <button class="kx-os-drawer__close" type="button" data-kdx-drawer-close>CLOSE</button>
+
+        <section data-kdx-drawer-section="protocol">
+          <p class="kx-os-stage__kicker">PROTOCOL · OBSERVATION</p>
+          <h2>The archive observes relation, not identity.</h2>
+          <p>KODEX records sequence, choice, state and attention. Audio is opt-in. Motion respects reduced mode. The visitor remains a signal, never a target.</p>
+        </section>
+
+        <section data-kdx-drawer-section="specimen">
+          <p class="kx-os-stage__kicker">SPECIMEN DOSSIER</p>
+          <img src={selectedArchive.source} alt={`${selectedArchive.title} complete specimen`} />
+          <dl>
+            <div><dt>TITLE</dt><dd>{selectedArchive.title}</dd></div>
+            <div><dt>YEAR</dt><dd>{selectedArchive.year}</dd></div>
+            <div><dt>TECHNIQUE</dt><dd>{selectedArchive.method}</dd></div>
+            <div><dt>TYPE</dt><dd>{selectedArchive.type}</dd></div>
+            <div><dt>GENEALOGY</dt><dd>{selectedArchive.relation}</dd></div>
+            <div><dt>PROVENANCE</dt><dd>Ocin / Wenu Mapu</dd></div>
+            <div><dt>CODE</dt><dd>{selectedArchive.code}</dd></div>
+            <div><dt>EDITION</dt><dd>{selectedArchive.status}</dd></div>
+          </dl>
+          <a class="kx-os-primary" href="/kodex/store/">COLLECT A FRAGMENT</a>
+        </section>
+
+        <section data-kdx-drawer-section="machine">
+          <p class="kx-os-stage__kicker">MACHINE OUTPUT</p>
+          <div class="kx-machine-output" data-machine-output>
+            <p>KDX-GEN-0000 · SEED A90C-73F1 · SOURCE ACHROMA_006 · METHOD MIRROR/DITHER/FLOW · STATUS READY</p>
+          </div>
+          <a class="kx-os-primary" href="mailto:marimari@wenumapuonline.com?subject=KODEX%20Signal%20Request">REQUEST THIS PIECE</a>
+        </section>
+
+        <section data-kdx-drawer-section="return">
+          <p class="kx-os-stage__kicker">RETURN ROUTES</p>
+          <nav class="kx-return-routes">
+            <a href="/kodex/store/">License a Signal</a>
+            <a href="/">Explore Wenu Mapu</a>
+            <a href="mailto:marimari@wenumapuonline.com?subject=Soma%20route">Explore Soma</a>
+            <a href="mailto:marimari@wenumapuonline.com?subject=Cosmic%20Serpent%20route">Explore Cosmic Serpent</a>
+            <a href="/kodex/" data-kdx-restart>Restart Journey</a>
+          </nav>
+        </section>
+      </div>
+    </aside>
+
+    <script type="application/json" id="kdx-strata-data" set:html={JSON.stringify(specimens)}></script>
+    <script type="application/json" id="kdx-cosmos-data" set:html={JSON.stringify(cosmoNodes)}></script>
+    <KodexOverlays gallery={false} />
+  </div>
+
+  <script>
+    import { initKx } from '../../../scripts/kodex-engine.js';
+    initKx();
+
+    const drawer = document.querySelector('[data-kdx-drawer]');
+    const drawerSections = [...document.querySelectorAll('[data-kdx-drawer-section]')];
+    const openDrawer = (name) => {
+      drawerSections.forEach((s) => { s.hidden = s.getAttribute('data-kdx-drawer-section') !== name; });
+      drawer.hidden = false;
+      drawer.setAttribute('data-open', '');
+      drawer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    };
+    const closeDrawer = () => {
+      drawer?.removeAttribute('data-open');
+      drawer?.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      setTimeout(() => { if (drawer) drawer.hidden = true; }, 220);
+    };
+    document.querySelectorAll('[data-kdx-drawer-open]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const name = btn.getAttribute('data-kdx-drawer-open');
+        openDrawer(name);
+        try { window.kdx && window.kdx('artwork_open', { section: name }); } catch (_) {}
+      });
+    });
+    document.querySelector('[data-kdx-drawer-close]')?.addEventListener('click', closeDrawer);
+    drawer?.addEventListener('click', (e) => { if (e.target === drawer) closeDrawer(); });
+    addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer(); });
+
+    const strata = JSON.parse(document.getElementById('kdx-strata-data')?.textContent || '[]');
+    let stratumIndex = 0;
+    const paintStratum = () => {
+      const s = strata[stratumIndex]; if (!s) return;
+      const pad = String(stratumIndex + 1).padStart(2, '0');
+      document.querySelector('[data-stratum-count]')?.replaceChildren(`STRATUM · ${pad} / ${String(strata.length).padStart(2, '0')}`);
+      document.querySelector('[data-stratum-depth]')?.replaceChildren(`DEPTH · -${137 + stratumIndex * 89} M`);
+      document.querySelector('[data-stratum-title]')?.replaceChildren(s.name);
+      document.querySelector('[data-stratum-read]')?.replaceChildren(s.read);
+      const art = document.querySelector('[data-kdx-art] img');
+      if (art) art.src = `/img/kodex/works/${s.file}.jpg`;
+    };
+    document.querySelector('[data-stratum-next]')?.addEventListener('click', () => {
+      stratumIndex = (stratumIndex + 1) % strata.length;
+      paintStratum();
+      try { window.kdx && window.kdx('next_scene', { kind: 'stratum', index: stratumIndex }); } catch (_) {}
+    });
+    paintStratum();
+
+    const canvas = document.querySelector('[data-machine-canvas]');
+    const ctx = canvas?.getContext?.('2d');
+    let gen = 0;
+    const drawMachine = (seed = 'A90C-73F1') => {
+      if (!ctx || !canvas) return;
+      const w = canvas.width, h = canvas.height, cx = w / 2, cy = h / 2;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#080808'; ctx.fillRect(0, 0, w, h);
+      ctx.strokeStyle = 'rgba(0,239,255,.55)'; ctx.lineWidth = 1;
+      for (let r = 72; r < 310; r += 38) {
+        ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(230,230,230,.72)';
+      for (let i = 0; i < 32; i++) {
+        const a = i / 32 * Math.PI * 2 + gen * .08;
+        const r1 = 68 + (i % 5) * 12;
+        const r2 = 292 - (i % 7) * 10;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+        ctx.lineTo(cx + Math.cos(a + Math.sin(i + gen) * .28) * r2, cy + Math.sin(a + Math.cos(i + gen) * .22) * r2);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#00EFFF'; ctx.fillRect(cx - 5, cy - 5, 10, 10);
+      ctx.fillStyle = '#E6E6E6'; ctx.font = '18px monospace'; ctx.fillText(seed, 28, h - 34);
+    };
+    const nextSeed = () => Array.from({ length: 2 }, () => Math.floor(Math.random() * 65535).toString(16).toUpperCase().padStart(4, '0')).join('-');
+    document.querySelector('[data-machine-generate]')?.addEventListener('click', () => {
+      gen += 1;
+      const seed = nextSeed();
+      const id = `KDX-GEN-${String(1000 + gen).padStart(4, '0')}`;
+      const state = document.querySelector('[data-machine-state]');
+      const seedEl = document.querySelector('[data-machine-seed]');
+      const output = document.querySelector('[data-machine-output]');
+      state?.replaceChildren('GENERATING');
+      try { window.kdx && window.kdx('generator_start', { id }); } catch (_) {}
+      setTimeout(() => {
+        state?.replaceChildren('COMPLETE');
+        seedEl?.replaceChildren(seed);
+        drawMachine(seed);
+        output?.replaceChildren(`${id} · SEED ${seed} · SOURCE ACHROMA_006 · METHOD MIRROR/DITHER/FLOW · STATUS COMPLETE`);
+        try { window.kdx && window.kdx('generator_complete', { id, seed }); } catch (_) {}
+      }, 620);
+    });
+    drawMachine();
+
+    const nodes = JSON.parse(document.getElementById('kdx-cosmos-data')?.textContent || '[]');
+    let nodeIndex = 1;
+    document.querySelector('[data-cosmo-next]')?.addEventListener('click', () => {
+      nodeIndex = (nodeIndex + 1) % nodes.length;
+      const node = nodes[nodeIndex];
+      document.querySelector('[data-cosmo-node]')?.replaceChildren(`NODE · ${node.toUpperCase()}`);
+      document.querySelector('[data-cosmo-state]')?.replaceChildren(node === 'KODEX' ? 'STATE · SOURCE' : 'STATE · LINKED');
+      document.querySelector('[data-cosmo-relation]')?.replaceChildren(`DOMAIN · BODY / MATTER / MEMORY`, document.createElement('br'), `RELATION · ${node === 'Machine' ? 'PROCESSING' : '+∞'}`);
+      try { window.kdx && window.kdx('outbound_cosmo', { node }); } catch (_) {}
+    });
+  </script>
+</Base>

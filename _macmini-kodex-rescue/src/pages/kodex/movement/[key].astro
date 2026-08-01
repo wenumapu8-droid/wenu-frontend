@@ -1,0 +1,267 @@
+---
+// KODEX −∞ · MOVEMENT — a collection given the FULL journey: a presentation,
+// then its works one by one, each as a dense cyberpunk SPECIMEN SHEET
+// (art + HUD: multilingual glyphs, gauges, formulas, coordinates, all the data).
+// Isolated via KodexShell. Uses the book's curated data (kodexBook.js).
+import KodexShell from '../../../layouts/KodexShell.astro';
+import { archThemes, opName, sigilSvg } from '../../../lib/kodexBook.js';
+
+export function getStaticPaths() {
+  return archThemes.map((m) => ({ params: { key: m.key }, props: { m } }));
+}
+const { m } = Astro.props;
+
+// ── machine language: multilingual glyph pools (real + numeric + sacred) ──
+const POOLS = [
+  'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン',
+  '無極道天地玄宇宙洪荒日月盈昃辰宿列張寒来暑往秋収冬蔵閏餘成歳律呂調陽雲騰致雨',
+  'कखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसह',
+  'ابتثجحخدذرزسشصضطظعغفقكلمنهوي',
+  '𓀀𓁀𓂀𓃀𓄿𓅓𓆑𓇋𓈖𓉔𓊪𓋴𓌳𓍢𓎡𓏏',
+  '0123456789∞ΩΔΓΨΦΣΛ·+−×÷=φπλµ',
+];
+const FORMULAS = [
+  'A = S × B × M × T',
+  'K(n+1) = (R∘M∘T∘E)(K(n))',
+  'r(θ) = r₀ · e^(bθ)',
+  'v(x,y) = α(−y,x)/(x²+y²+ε) − β',
+  'Ω′ = R[W(Γ(O(Δ(Ω))))]',
+  '−∞ → 0 → +∞ → 0 → −∞′',
+  'φ = 137.5077° · 1:1.618',
+  'E00 → T01 → M11 → R10 → 00',
+];
+const GAUGES = ['SIGNAL FLUX', 'RADIATION', 'DENSITY', 'DIMENSION', 'ENTROPY', 'VORTEX', 'RESONANCE'];
+
+// deterministic pseudo-random per work
+const rng = (s) => () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+const glyphs = (seed, n) => { const r = rng(seed); let o = ''; for (let i = 0; i < n; i++) { const p = POOLS[(r() * POOLS.length) | 0]; o += p[(r() * p.length) | 0]; } return o; };
+
+const specimens = m.fams.map((w, i) => {
+  const r = rng(w.seed + i * 17);
+  const hex = '0x' + (((w.seed * 2654435761) >>> 8) & 0xffffff).toString(16).toUpperCase().padStart(6, '0');
+  const raH = String((w.seed + i) % 24).padStart(2, '0'), raM = String((w.seed * 7) % 60).padStart(2, '0');
+  const dec = (i * 11 - 84);
+  const g = [0, 1, 2].map((k) => ({ label: GAUGES[(w.seed + k) % GAUGES.length], val: 22 + ((r() * 74) | 0) }));
+  const isbn = 'KDX-' + m.roman.toUpperCase() + '-' + String(w.n).replace(/\D/g, '').padStart(3, '0') + '-' + (((w.seed * 31) % 9000) + 1000);
+  return {
+    ...w, hex, raH, raM, dec, g, isbn,
+    url: `/img/kodex/${w.dir}/${w.rep}.jpg`,
+    num: String(i + 1).padStart(2, '0'),
+    formula: FORMULAS[(w.seed + i) % FORMULAS.length],
+    vstrip: glyphs(w.seed + 3, 40),
+    hstrip: glyphs(w.seed + 9, 30),
+    opsN: w.ops.map((c) => `${c} ${opName(c)}`),
+    sigil: sigilSvg(w.seed + 5),
+  };
+});
+
+const total = String(specimens.length).padStart(2, '0');
+---
+
+<KodexShell title={`KODEX −∞ · ${m.name}`}>
+  <main class="mv" data-mv style={`--acc:${m.acc}`}>
+    <canvas id="kodex-world" data-world></canvas>
+
+    <header class="mv-top">
+      <a class="mv-home" href="/kodex/works/">◈ KODEX</a>
+      <span class="mv-count">MOVEMENT {m.roman.toUpperCase()} · {specimens.length} WORKS</span>
+      <a class="mv-back" href="/kodex/works/">← ARCHIVE</a>
+    </header>
+
+    <!-- PRESENTATION -->
+    <section class="mv-intro">
+      <p class="mv-over" data-glitch>MOVEMENT {m.roman.toUpperCase()} · {m.tag}</p>
+      <h1 class="mv-title-h">{m.name}</h1>
+      <p class="mv-lede">{m.desc}</p>
+      <div class="mv-scan"><span>{glyphs(m.name.length * 13, 46)}</span></div>
+      <p class="mv-cue" aria-hidden="true">↓ DESCEND · {total} SPECIMENS</p>
+    </section>
+
+    <!-- SPECIMENS — one by one -->
+    {specimens.map((s) => (
+      <section class="mv-spec" data-reveal>
+        <span class="mv-spec__vglyph" aria-hidden="true">{s.vstrip}</span>
+
+        <figure class="mv-art" data-work>
+          <span class="mv-br mv-br--tl"></span><span class="mv-br mv-br--tr"></span>
+          <span class="mv-br mv-br--bl"></span><span class="mv-br mv-br--br"></span>
+          <img src={s.url} loading="lazy" alt={`KODEX−∞ — ${s.t || s.n}`} data-work-img />
+          <span class="mv-art__tag">SPEC {s.num}/{total} · {s.hex}</span>
+          <span class="mv-art__hint" data-fx-label>◈ TAP · READING</span>
+        </figure>
+
+        <div class="mv-hud">
+          <div class="mv-hud__head">
+            <span class="mv-plate">PLATE {s.n}</span>
+            <span class="mv-sig" set:html={s.sigil}></span>
+          </div>
+          <h2 class="mv-name">{s.t || s.n}</h2>
+          <p class="mv-read">{s.read || ''}</p>
+
+          <div class="mv-gauges">
+            {s.g.map((gg) => (
+              <div class="mv-gauge">
+                <span class="mv-gauge__l">{gg.label}</span>
+                <span class="mv-gauge__bar"><i style={`width:${gg.val}%`}></i></span>
+                <span class="mv-gauge__v">{gg.val}%</span>
+              </div>
+            ))}
+          </div>
+
+          <dl class="mv-data">
+            <div><dt>OPERATIONS</dt><dd>{s.opsN.join('  ·  ')}</dd></div>
+            <div><dt>TECHNIQUE</dt><dd>{s.fx || '—'}</dd></div>
+            <div><dt>SOURCE</dt><dd>{s.insp || '—'}</dd></div>
+            <div><dt>FORMULA</dt><dd class="mv-mono">{s.formula}</dd></div>
+            <div><dt>COORD</dt><dd class="mv-mono">RA {s.raH}h{s.raM}m · DEC {s.dec >= 0 ? '+' : ''}{s.dec}° · φ 137.5°</dd></div>
+            <div><dt>SEED</dt><dd class="mv-mono">{s.hex} · {s.isbn}</dd></div>
+          </dl>
+
+          <div class="mv-glyphrow" aria-hidden="true">{s.hstrip}</div>
+        </div>
+      </section>
+    ))}
+
+    <footer class="mv-foot">
+      <p>{m.name} · KODEX −∞ · a possibility given form · belongs to no one, and to all.</p>
+      <a class="mv-foot__a" href="/kodex/works/">← RETURN TO THE ARCHIVE</a>
+    </footer>
+  </main>
+
+  <style>
+    .mv{ position:relative; min-height:100vh; background:#000; color:#f0ede8; font-family:'JetBrains Mono',ui-monospace,monospace; overflow-x:hidden; }
+    #kodex-world{ position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; opacity:.32; }
+    .mv :where(a){ color:inherit; text-decoration:none; }
+    .mv > :not(#kodex-world){ position:relative; z-index:2; }
+
+    .mv-top{ position:sticky; top:0; z-index:6; display:flex; align-items:center; justify-content:space-between;
+      padding:15px clamp(14px,4vw,40px); font-size:10.5px; letter-spacing:.15em; background:linear-gradient(#000 60%,transparent); }
+    .mv-home{ font-family:'Instrument Serif',serif; font-size:18px; }
+    .mv-count{ color:var(--acc); }
+    .mv-back{ color:#8f8f8f; } .mv-back:hover{ color:#f0ede8; }
+
+    .mv-intro{ text-align:center; padding:clamp(46px,11vh,120px) 20px clamp(30px,6vh,60px); max-width:760px; margin:0 auto; }
+    .mv-over{ font-size:10.5px; letter-spacing:.28em; color:var(--acc); margin:0; }
+    .mv-title-h{ font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(2.6rem,10vw,6rem); margin:14px 0 0; text-transform:uppercase; letter-spacing:-.01em; }
+    .mv-lede{ max-width:52ch; margin:18px auto 0; font-family:'Cormorant Garamond',serif; font-size:clamp(1.05rem,2.3vw,1.45rem); line-height:1.55; color:#c8c2b6; }
+    .mv-scan{ overflow:hidden; max-width:80vw; margin:26px auto 0; opacity:.5; }
+    .mv-scan span{ display:inline-block; white-space:nowrap; font-size:13px; letter-spacing:.3em; color:var(--acc);
+      animation:mv-slide 22s linear infinite; }
+    @keyframes mv-slide{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+    .mv-cue{ margin-top:26px; font-size:10px; letter-spacing:.24em; color:#585858; }
+
+    /* SPECIMEN — art + dense HUD */
+    .mv-spec{ display:grid; grid-template-columns:22px minmax(0,1fr) minmax(0,1.05fr); gap:clamp(16px,3vw,40px);
+      align-items:center; max-width:1180px; margin:0 auto; padding:clamp(40px,8vh,90px) clamp(16px,4vw,44px);
+      border-top:1px solid #141414; }
+    .mv-spec__vglyph{ writing-mode:vertical-rl; font-size:11px; letter-spacing:.14em; color:var(--acc); opacity:.5;
+      line-height:1.1; max-height:60vh; overflow:hidden; text-shadow:0 0 8px color-mix(in srgb,var(--acc) 40%,transparent); }
+
+    .mv-art{ position:relative; margin:0; aspect-ratio:1/1; display:grid; place-items:center; background:#040405;
+      border:1px solid #161616; cursor:pointer; }
+    .mv-art::after{ content:''; position:absolute; inset:-8%; z-index:-1;
+      background:radial-gradient(closest-side, color-mix(in srgb,var(--acc) 20%,transparent), transparent 72%); filter:blur(10px); }
+    .mv-art img{ max-width:92%; max-height:92%; width:auto; height:auto; object-fit:contain; display:block; }
+    .mv-br{ position:absolute; width:16px; height:16px; border:1px solid var(--acc); opacity:.75; }
+    .mv-br--tl{ top:6px; left:6px; border-right:0; border-bottom:0; }
+    .mv-br--tr{ top:6px; right:6px; border-left:0; border-bottom:0; }
+    .mv-br--bl{ bottom:6px; left:6px; border-right:0; border-top:0; }
+    .mv-br--br{ bottom:6px; right:6px; border-left:0; border-top:0; }
+    .mv-art__tag{ position:absolute; top:10px; left:12px; font-size:8px; letter-spacing:.14em; color:#7a7a7a; }
+    .mv-art__hint{ position:absolute; bottom:10px; left:12px; font-size:8.5px; letter-spacing:.14em; color:#00f0ff;
+      text-shadow:0 0 8px rgba(0,240,255,.5); opacity:.85; }
+
+    .mv-hud{ display:flex; flex-direction:column; gap:12px; }
+    .mv-hud__head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .mv-plate{ font-size:10px; letter-spacing:.2em; color:var(--acc); }
+    .mv-sig{ width:26px; color:var(--acc); opacity:.7; flex:none; }
+    .mv-sig svg{ width:100%; height:auto; }
+    .mv-name{ font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(1.5rem,4vw,2.3rem); line-height:1.05; margin:0; }
+    .mv-read{ font-family:'Cormorant Garamond',serif; font-size:clamp(1rem,2.2vw,1.25rem); line-height:1.5; color:#c8c2b6; margin:0; }
+
+    .mv-gauges{ display:flex; flex-direction:column; gap:5px; margin:4px 0; }
+    .mv-gauge{ display:grid; grid-template-columns:96px 1fr 34px; align-items:center; gap:8px; font-size:8.5px; letter-spacing:.1em; }
+    .mv-gauge__l{ color:#8f8f8f; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mv-gauge__bar{ height:5px; background:#141414; position:relative; }
+    .mv-gauge__bar i{ position:absolute; inset:0 auto 0 0; background:var(--acc); box-shadow:0 0 8px color-mix(in srgb,var(--acc) 60%,transparent); }
+    .mv-gauge__v{ color:var(--acc); text-align:right; }
+
+    .mv-data{ margin:0; display:flex; flex-direction:column; gap:5px; border-top:1px solid #161616; padding-top:10px; }
+    .mv-data div{ display:grid; grid-template-columns:88px 1fr; gap:10px; }
+    .mv-data dt{ font-size:8px; letter-spacing:.16em; color:#585858; }
+    .mv-data dd{ margin:0; font-size:10px; line-height:1.5; color:#c8c2b6; }
+    .mv-mono{ color:#a6ff00 !important; text-shadow:0 0 6px rgba(166,255,0,.3); }
+
+    .mv-glyphrow{ font-size:11px; letter-spacing:.16em; color:var(--acc); opacity:.42; overflow:hidden; white-space:nowrap; margin-top:4px; }
+
+    .mv-foot{ text-align:center; padding:clamp(60px,12vh,130px) 20px clamp(80px,15vh,160px); }
+    .mv-foot p{ font-size:9.5px; letter-spacing:.14em; color:#3a3a3a; margin:0; }
+    .mv-foot__a{ display:inline-block; margin-top:18px; font-size:10px; letter-spacing:.2em; color:var(--acc); }
+
+    [data-reveal]{ opacity:0; transform:translateY(24px); transition:opacity 1s ease, transform 1s ease; }
+    [data-reveal].mv-in{ opacity:1; transform:none; }
+    @media (prefers-reduced-motion:reduce){ .mv-scan span{ animation:none; } [data-reveal]{ transition:none; transform:none; opacity:1; } }
+
+    @media (max-width:820px){
+      .mv-spec{ grid-template-columns:1fr; gap:16px; text-align:left; }
+      .mv-spec__vglyph{ display:none; }
+      .mv-art{ max-width:min(78vw,420px); margin:0 auto; width:100%; }
+      .mv-gauge{ grid-template-columns:84px 1fr 32px; }
+      .mv-data div{ grid-template-columns:78px 1fr; }
+    }
+  </style>
+
+  <script>
+    import { KodexWorld } from '../../../kodex/engine/kodexWorld.js';
+    const canvas = document.getElementById('kodex-world');
+    const acc = getComputedStyle(document.querySelector('[data-mv]')).getPropertyValue('--acc').trim();
+    const hexRgb = (h) => { const n = parseInt(h.replace('#',''),16); return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255]; };
+    const world = new KodexWorld(canvas, { seed: Math.random() });
+    try { world.setTint(hexRgb(acc || '#e0559b')); } catch(e){}
+    (async () => { try { await world.loadArtwork(document.querySelector('[data-work-img]')?.src || '/img/kodex/works/bw-06.jpg'); } catch(e){} world.start(); })();
+    document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else world.start(); });
+
+    // reveal
+    const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('mv-in'); io.unobserve(e.target); } }), { threshold: 0.12 });
+    document.querySelectorAll('[data-reveal]').forEach((el) => io.observe(el));
+
+    // eyebrow glitch
+    const GLY = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789∞ΩΔアカ漢·';
+    const gEl = document.querySelector('[data-glitch]');
+    if (gEl && !matchMedia('(prefers-reduced-motion: reduce)').matches) { const t = gEl.textContent; const scr = () => { const t0 = performance.now(); clearInterval(gEl.__g); gEl.__g = setInterval(() => { const p = Math.min(1,(performance.now()-t0)/700); let o=''; for (let i=0;i<t.length;i++) o += t[i]===' '?' ':(i/t.length<p?t[i]:GLY[Math.random()*GLY.length|0]); gEl.textContent=o; if (p>=1) clearInterval(gEl.__g); }, 40); }; setTimeout(scr, 300); setInterval(() => { if (Math.random()<0.5) scr(); }, 8000); }
+
+    // ── TAP a specimen → random effect ON the art + code/data terminal ──
+    const IP = ['DITHER','GLITCH','CHROMA','PIXEL SORT','SCANLINES','MIRROR'];
+    const B8 = [[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],[3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]];
+    const paint = (cx, base, W, H, name) => {
+      cx.clearRect(0,0,W,H); cx.drawImage(base,0,0,W,H); let d; try{ d=cx.getImageData(0,0,W,H);}catch(e){return;} const p=d.data;
+      if(name==='DITHER'){for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4;const l=(0.299*p[i]+0.587*p[i+1]+0.114*p[i+2])/255;const v=l>(B8[y&7][x&7]+.5)/64?240:10;p[i]=v;p[i+1]=v;p[i+2]=v;}cx.putImageData(d,0,0);}
+      else if(name==='CHROMA'){const o=Math.max(2,W*0.01|0);const out=cx.createImageData(W,H),q=out.data;for(let y=0;y<H;y++)for(let x=0;x<W;x++){const i=(y*W+x)*4;q[i]=p[(y*W+Math.min(W-1,x+o))*4];q[i+1]=p[i+1];q[i+2]=p[(y*W+Math.max(0,x-o))*4+2];q[i+3]=255;}cx.putImageData(out,0,0);}
+      else if(name==='GLITCH'){for(let b=0;b<22;b++){const y=Math.random()*H|0,h=2+(Math.random()*H*0.05|0),dx=(Math.random()-.5)*W*0.16|0;cx.putImageData(cx.getImageData(0,y,W,Math.min(H,y+h)-y),dx,y);}}
+      else if(name==='PIXEL SORT'){for(let y=0;y<H;y++){let x=0;while(x<W){while(x<W){const i=(y*W+x)*4;if((0.299*p[i]+0.587*p[i+1]+0.114*p[i+2])/255<.5)break;x++;}const st=x;while(x<W){const i=(y*W+x)*4;if((0.299*p[i]+0.587*p[i+1]+0.114*p[i+2])/255>=.5)break;x++;}const en=x;if(en-st>1){const a=[];for(let k=st;k<en;k++){const i=(y*W+k)*4;a.push([p[i],p[i+1],p[i+2],p[i]+p[i+1]+p[i+2]]);}a.sort((u,v)=>u[3]-v[3]);for(let k=st;k<en;k++){const i=(y*W+k)*4,c=a[k-st];p[i]=c[0];p[i+1]=c[1];p[i+2]=c[2];}}}}cx.putImageData(d,0,0);}
+      else if(name==='SCANLINES'){for(let y=0;y<H;y++){const dk=y%3===0?.5:1;for(let x=0;x<W;x++){const i=(y*W+x)*4;p[i]*=dk;p[i+1]*=dk;p[i+2]*=dk;}}cx.putImageData(d,0,0);}
+      else if(name==='MIRROR'){const hw=W/2|0,hh=H/2|0,t=document.createElement('canvas');t.width=hw;t.height=hh;t.getContext('2d').drawImage(base,0,0,hw,hh);cx.clearRect(0,0,W,H);cx.drawImage(t,0,0);cx.save();cx.translate(W,0);cx.scale(-1,1);cx.drawImage(t,0,0);cx.restore();cx.save();cx.translate(0,H);cx.scale(1,-1);cx.drawImage(t,0,0);cx.restore();cx.save();cx.translate(W,H);cx.scale(-1,-1);cx.drawImage(t,0,0);cx.restore();}
+    };
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('.mv-art[data-work]').forEach((fig) => {
+      const img = fig.querySelector('img'); if (!img) return;
+      let cv = null, term = null, last = -1;
+      const POOL = ['GLITCH','CHROMA','MIRROR','PIXEL SORT','GLITCH','CHROMA','MIRROR','DITHER','SCANLINES','ORIGINAL'];
+      fig.addEventListener('click', () => {
+        if (!cv) {
+          cv = document.createElement('canvas'); cv.style.cssText='position:absolute;inset:0;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity .4s ease;z-index:3;'; fig.appendChild(cv);
+          term = document.createElement('pre'); term.style.cssText='position:absolute;left:8px;right:8px;bottom:8px;z-index:4;margin:0;pointer-events:none;opacity:0;transition:opacity .35s ease;white-space:pre-wrap;font:9px/1.5 "JetBrains Mono",monospace;color:#a6ff00;background:linear-gradient(rgba(0,0,0,.3),rgba(0,4,6,.8));border-left:2px solid #00f0ff;padding:7px 9px;text-shadow:0 0 6px rgba(166,255,0,.4);box-shadow:0 0 20px rgba(0,240,255,.14);'; fig.appendChild(term);
+        }
+        let n; do { n = Math.random()*POOL.length|0; } while (n===last && POOL.length>1); last=n;
+        const name = POOL[n];
+        if (name==='ORIGINAL'){ cv.style.opacity='0'; term.style.opacity='0'; return; }
+        const iw=img.naturalWidth||img.width, ih=img.naturalHeight||img.height; if(!iw) return;
+        const s=Math.min(1,900/iw), W=Math.round(iw*s), H=Math.round(ih*s); cv.width=W; cv.height=H;
+        paint(cv.getContext('2d',{willReadFrequently:true}), img, W, H, name);
+        term.textContent = '◈ ' + name + ' · READING\\n// effect applied over the specimen';
+        if (reduce){ cv.style.opacity='1'; term.style.opacity='1'; }
+        else { cv.style.opacity='0'; term.style.opacity='0'; requestAnimationFrame(()=>requestAnimationFrame(()=>{ cv.style.opacity='1'; term.style.opacity='1'; })); }
+      });
+    });
+  </script>
+</KodexShell>

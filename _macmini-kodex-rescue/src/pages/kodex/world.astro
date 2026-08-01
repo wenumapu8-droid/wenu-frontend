@@ -1,0 +1,219 @@
+---
+// KODEX −∞ · WORLD — Phase 1 + 2.
+// Signal Gate → global WebGL2 engine → spiral → effect chain (mirror/distort/color)
+// → feedback → composite. A real lab controls the chain live. Isolated from commerce.
+import KodexShell from '../../layouts/KodexShell.astro';
+import { families, discoWorks } from '../../lib/kodex.js';
+
+const works = [
+  ...families.map((f) => ({ id: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, fam: f.th.k })),
+  ...discoWorks.map((f) => ({ id: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, fam: 'disco' })),
+];
+const DEFAULT_ARTWORK = '/img/kodex/works/bw-06.jpg';
+---
+
+<KodexShell>
+  <main class="kw" data-kw>
+    <canvas id="kodex-world" data-world></canvas>
+
+    <section class="kw-gate" data-gate>
+      <div class="kw-gate__inner">
+        <h1 class="kw-gate__title">KODEX<span>−∞</span></h1>
+        <p class="kw-gate__sub">A LIVING AUDIOVISUAL SYSTEM</p>
+        <div class="kw-gate__btns">
+          <button class="kw-btn" data-enter="sound">ENTER WITH SOUND</button>
+          <button class="kw-btn kw-btn--ghost" data-enter="silent">ENTER SILENT</button>
+        </div>
+        <p class="kw-gate__note">Sound and graphics respond to your movement.<br />Headphones recommended.</p>
+      </div>
+    </section>
+
+    <aside class="kw-hud" data-hud hidden>
+      <span>FPS <b data-t-fps>—</b></span>
+      <span>STATE <b data-t-state>—</b></span>
+      <span>CHAIN <b data-t-chain>—</b></span>
+      <span>PASSES <b data-t-passes>—</b></span>
+      <span>SEED <b data-t-seed>—</b></span>
+      <span>AUDIO <b data-t-audio>—</b></span>
+    </aside>
+
+    <!-- LAB — modular instrument -->
+    <div class="kw-lab" data-lab hidden>
+      <div class="kw-panel" data-panel hidden></div>
+      <nav class="kw-dock" data-dock>
+        <button class="kw-dbtn" data-mod="state">STATE</button>
+        <button class="kw-dbtn" data-mod="blacksun">BLACK SUN</button>
+        <button class="kw-dbtn" data-mod="input">INPUT</button>
+        <button class="kw-dbtn" data-mod="mirror">MIRROR</button>
+        <button class="kw-dbtn" data-mod="distort">DISTORT</button>
+        <button class="kw-dbtn" data-mod="color">COLOR</button>
+        <button class="kw-dbtn" data-mod="feedback">FEEDBACK</button>
+        <button class="kw-dbtn" data-mod="signal">SIGNAL</button>
+        <button class="kw-dbtn" data-mod="audio">AUDIO</button>
+        <button class="kw-dbtn" data-mod="export">EXPORT</button>
+      </nav>
+    </div>
+
+    <p class="kw-reduced" data-reduced hidden>Reduced-motion is on — showing a still frame.</p>
+    <script type="application/json" data-works set:html={JSON.stringify(works)}></script>
+  </main>
+
+  <style>
+    .kw{ position:fixed; inset:0; overflow:hidden; background:#000; color:#f0ede8; font-family:'JetBrains Mono',ui-monospace,monospace; }
+    #kodex-world{ position:fixed; inset:0; display:block; width:100%; height:100%; }
+    .kw :where(button){ cursor:pointer; }
+
+    .kw-gate{ position:fixed; inset:0; z-index:10; display:grid; place-items:center; text-align:center; background:radial-gradient(circle at 50% 45%, rgba(10,10,10,.6), #000 70%); transition:opacity .8s ease; }
+    .kw-gate.kw-out{ opacity:0; pointer-events:none; }
+    .kw-gate__title{ font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(3.5rem,12vw,8rem); margin:0; }
+    .kw-gate__title span{ color:#8f8f8f; }
+    .kw-gate__sub{ font-size:clamp(10px,2.4vw,13px); letter-spacing:.4em; color:#9a948a; margin:6px 0 0; }
+    .kw-gate__btns{ display:flex; gap:16px; justify-content:center; flex-wrap:wrap; margin:clamp(30px,6vh,54px) 0 0; }
+    .kw-btn{ font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:.24em; color:#0a0a0a; background:#f0ede8; border:1px solid #f0ede8; padding:16px 26px; transition:.3s; }
+    .kw-btn:hover{ background:#c9a84c; border-color:#c9a84c; }
+    .kw-btn--ghost{ color:#f0ede8; background:none; }
+    .kw-btn--ghost:hover{ background:rgba(255,255,255,.06); }
+    .kw-gate__note{ font-size:11px; letter-spacing:.1em; color:#585858; line-height:1.9; margin:clamp(26px,5vh,44px) 0 0; }
+
+    .kw-hud{ position:fixed; right:14px; top:14px; z-index:8; display:flex; flex-direction:column; gap:3px; text-align:right; font-size:10px; letter-spacing:.1em; color:#585858; pointer-events:none; }
+    .kw-hud b{ color:#f0ede8; font-weight:400; }
+
+    .kw-lab{ position:fixed; left:0; right:0; bottom:0; z-index:9; display:flex; flex-direction:column; }
+    .kw-dock{ display:flex; gap:2px; overflow-x:auto; padding:8px; background:linear-gradient(transparent,#000 40%); scrollbar-width:none; }
+    .kw-dock::-webkit-scrollbar{ display:none; }
+    .kw-dbtn{ flex:0 0 auto; font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:#9a948a; background:rgba(0,0,0,.5); border:1px solid #1c1c1c; padding:11px 15px; transition:.25s; }
+    .kw-dbtn:hover{ color:#f0ede8; border-color:#3a3a3a; }
+    .kw-dbtn[aria-expanded="true"]{ color:#0a0a0a; background:#c9a84c; border-color:#c9a84c; }
+    .kw-dbtn[data-active="true"]::after{ content:'·'; color:#c9a84c; margin-left:5px; }
+
+    .kw-panel{ background:rgba(6,6,6,.94); border-top:1px solid #1c1c1c; padding:16px clamp(12px,3vw,28px); backdrop-filter:blur(6px); max-height:46vh; overflow:auto; }
+    .kw-panel__title{ font-size:10px; letter-spacing:.24em; color:#c9a84c; margin:0 0 14px; }
+    .kw-row{ display:flex; align-items:center; gap:12px; margin:0 0 12px; font-size:10px; letter-spacing:.1em; color:#9a948a; }
+    .kw-row label{ flex:0 0 92px; color:#8f8f8f; }
+    .kw-row input[type=range]{ flex:1; accent-color:#c9a84c; height:2px; }
+    .kw-row output{ flex:0 0 46px; text-align:right; color:#f0ede8; }
+    .kw-seg{ display:flex; gap:6px; flex-wrap:wrap; }
+    .kw-seg button{ font-family:inherit; font-size:9.5px; letter-spacing:.1em; color:#9a948a; background:none; border:1px solid #1c1c1c; padding:7px 11px; transition:.2s; }
+    .kw-seg button[aria-pressed="true"]{ color:#0a0a0a; background:#c9a84c; border-color:#c9a84c; }
+    .kw-toggle{ font-family:inherit; font-size:10px; letter-spacing:.16em; color:#9a948a; background:none; border:1px solid #1c1c1c; padding:9px 16px; }
+    .kw-toggle[aria-pressed="true"]{ color:#0a0a0a; background:#8bd450; border-color:#8bd450; }
+    .kw-thumbs{ display:grid; grid-template-columns:repeat(auto-fill,minmax(58px,1fr)); gap:6px; }
+    .kw-thumb{ aspect-ratio:1; background-size:cover; background-position:center; border:1px solid #1c1c1c; padding:0; filter:grayscale(.3); transition:.2s; }
+    .kw-thumb:hover{ border-color:#c9a84c; filter:none; }
+    .kw-thumb[aria-pressed="true"]{ border-color:#c9a84c; outline:1px solid #c9a84c; }
+    .kw-primary{ font-family:inherit; font-size:11px; letter-spacing:.2em; color:#0a0a0a; background:#f0ede8; border:0; padding:13px 22px; }
+    .kw-primary:hover{ background:#c9a84c; }
+    .kw-note{ font-size:9.5px; letter-spacing:.08em; color:#585858; margin:10px 0 0; line-height:1.7; }
+    .kw-reduced{ position:fixed; left:50%; bottom:70px; transform:translateX(-50%); z-index:8; font-size:10px; color:#585858; }
+    @media (max-width:640px){ .kw-row label{ flex-basis:74px; } .kw-panel{ max-height:52vh; } }
+  </style>
+
+  <script>
+    import { KodexWorld } from '../../kodex/engine/kodexWorld.js';
+    import { KodexAudio } from '../../kodex/audio/kodexAudio.js';
+
+    const works = JSON.parse(document.querySelector('[data-works]').textContent || '[]');
+    const gate = document.querySelector('[data-gate]');
+    const hud = document.querySelector('[data-hud]');
+    const lab = document.querySelector('[data-lab]');
+    const dock = document.querySelector('[data-dock]');
+    const panel = document.querySelector('[data-panel]');
+    const reducedMsg = document.querySelector('[data-reduced]');
+    const canvas = document.getElementById('kodex-world');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const DEFAULT_ARTWORK = '/img/kodex/works/bw-06.jpg';
+
+    const audio = new KodexAudio();
+    let seed = Number(localStorage.getItem('kodex.seed')) || Math.random();
+    const world = new KodexWorld(canvas, {
+      seed,
+      getAudio: () => audio.energy(),
+      onTelemetry: (t) => {
+        if (t.error) { const f = document.querySelector('[data-t-chain]'); if (f) f.textContent = t.error; return; }
+        const set = (k, v) => { const el = document.querySelector('[data-t-' + k + ']'); if (el) el.textContent = v; };
+        set('fps', t.fps); set('state', t.state); set('chain', t.chain);
+        set('passes', t.passes); set('seed', t.seed); set('audio', (t.audio * 100 | 0) + '%');
+      },
+    });
+
+    addEventListener('mousemove', (e) => audio.setCutoff(1 - e.clientY / innerHeight), { passive: true });
+    addEventListener('touchmove', (e) => { if (e.touches[0]) audio.setCutoff(1 - e.touches[0].clientY / innerHeight); }, { passive: true });
+
+    // ---- LAB UI ----
+    let sig = false, activeMod = null, cycleIv = 0;
+    const H = (s) => { const d = document.createElement('div'); d.innerHTML = s; return d; };
+    const slider = (label, min, max, step, val, oninput) => {
+      const row = H(`<div class="kw-row"><label>${label}</label><input type="range" min="${min}" max="${max}" step="${step}" value="${val}"><output>${(+val).toFixed(2)}</output></div>`).firstChild;
+      const inp = row.querySelector('input'), out = row.querySelector('output');
+      inp.addEventListener('input', () => { out.textContent = (+inp.value).toFixed(2); oninput(+inp.value); });
+      return row;
+    };
+    const segs = (opts, active, onpick) => {
+      const wrap = H(`<div class="kw-seg"></div>`).firstChild;
+      opts.forEach((o, i) => { const b = document.createElement('button'); b.textContent = o; b.setAttribute('aria-pressed', String(i === active)); b.addEventListener('click', () => { [...wrap.children].forEach((c) => c.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); onpick(i); }); wrap.appendChild(b); });
+      return wrap;
+    };
+    const effToggle = (name) => {
+      const e = world.getEffect(name);
+      const b = H(`<button class="kw-toggle" aria-pressed="${e.on}">${e.on ? 'ON' : 'OFF'}</button>`).firstChild;
+      b.addEventListener('click', () => { world.toggle(name); b.setAttribute('aria-pressed', String(e.on)); b.textContent = e.on ? 'ON' : 'OFF'; markActive(name, e.on); });
+      return b;
+    };
+    const markActive = (name, on) => { const d = dock.querySelector(`[data-mod="${name}"]`); if (d) d.setAttribute('data-active', String(on)); };
+
+    const panels = {
+      blacksun: () => {
+        const w = H(`<div><p class="kw-panel__title">BLACK SUN · COSMIC ENGINE</p></div>`).firstChild;
+        const b = H(`<button class="kw-toggle" aria-pressed="${world.sourceMode === 'blacksun'}">${world.sourceMode === 'blacksun' ? 'ON' : 'OFF'}</button>`).firstChild;
+        b.addEventListener('click', () => { const on = world.sourceMode !== 'blacksun'; world.setSourceMode(on ? 'blacksun' : 'flow'); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'ON' : 'OFF'; dock.querySelector('[data-mod=blacksun]').setAttribute('data-active', String(on)); });
+        w.appendChild(b);
+        w.appendChild(H(`<p class="kw-note">Event horizon · accretion ring · corona · gravitational lensing of the work. A real lensing shader — a symbol, not a claim about astronomy. Move to shift the sun; the signal turns the corona rosa.</p>`).firstChild);
+        return w;
+      },
+      state: () => {
+        const w = H(`<div><p class="kw-panel__title">STATE · THE RETURN CYCLE</p></div>`).firstChild;
+        const seq = [['E00', 'EXCAVATION'], ['T01', 'TRANSMUTATION'], ['M11', 'MANIFESTATION'], ['R10', 'RETURN']];
+        const row = H(`<div class="kw-seg"></div>`).firstChild;
+        const apply = (ph) => { world.setState(ph); audio.setState(ph); [...row.children].forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.ph === ph))); dock.querySelectorAll('[data-mod]').forEach((d) => { const e = world.getEffect(d.dataset.mod); if (e) d.setAttribute('data-active', String(e.on)); }); };
+        seq.forEach(([ph, label]) => { const b = document.createElement('button'); b.dataset.ph = ph; b.textContent = ph + ' ' + label; b.setAttribute('aria-pressed', String((world.phase || 'E00') === ph)); b.addEventListener('click', () => apply(ph)); row.appendChild(b); });
+        w.appendChild(row);
+        const auto = H(`<button class="kw-toggle" style="margin-top:12px" aria-pressed="${!!cycleIv}">${cycleIv ? 'AUTO-CYCLE ON' : 'AUTO-CYCLE OFF'}</button>`).firstChild;
+        auto.addEventListener('click', () => { if (cycleIv) { clearInterval(cycleIv); cycleIv = 0; auto.textContent = 'AUTO-CYCLE OFF'; auto.setAttribute('aria-pressed', 'false'); } else { let i = seq.findIndex((s) => s[0] === (world.phase || 'E00')); cycleIv = setInterval(() => { i = (i + 1) % 4; apply(seq[i][0]); }, 9000); auto.textContent = 'AUTO-CYCLE ON'; auto.setAttribute('aria-pressed', 'true'); } });
+        w.appendChild(auto);
+        w.appendChild(H(`<p class="kw-note">One state drives sound and image together — synchrony. Excavation → Transmutation → Manifestation → Return. Gray code 00→01→11→10.</p>`).firstChild);
+        return w;
+      },
+      input: () => { const w = H(`<div><p class="kw-panel__title">INPUT · CHOOSE MATTER</p><div class="kw-thumbs"></div><p class="kw-note">Every work becomes material for the field.</p></div>`).firstChild; const g = w.querySelector('.kw-thumbs'); works.forEach((wk) => { const b = document.createElement('button'); b.className = 'kw-thumb'; b.style.backgroundImage = `url(${wk.url})`; b.title = wk.id; b.addEventListener('click', () => { [...g.children].forEach((c) => c.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); world.setArtwork(wk.url); }); g.appendChild(b); }); return w; },
+      mirror: () => { const e = world.getEffect('mirror'); const w = H(`<div><p class="kw-panel__title">MIRROR · POLAR KALEIDOSCOPE</p></div>`).firstChild; w.appendChild(effToggle('mirror')); w.appendChild(slider('SEGMENTS', 1, 16, 1, e.params.u_seg, (v) => world.setParam('mirror', 'u_seg', v))); w.appendChild(slider('ANGLE', 0, 6.28, 0.01, e.params.u_angle, (v) => world.setParam('mirror', 'u_angle', v))); w.appendChild(slider('MIX', 0, 1, 0.01, e.params.u_mix, (v) => world.setParam('mirror', 'u_mix', v))); return w; },
+      distort: () => { const e = world.getEffect('distort'); const w = H(`<div><p class="kw-panel__title">DISTORT · DISPLACEMENT</p></div>`).firstChild; w.appendChild(effToggle('distort')); w.appendChild(H(`<div class="kw-row"><label>MODE</label></div>`).firstChild); w.appendChild(segs(['RIPPLE', 'LENS', 'VORTEX'], e.params.u_mode, (i) => world.setParam('distort', 'u_mode', i))); w.appendChild(slider('AMOUNT', 0, 0.6, 0.005, e.params.u_amt, (v) => world.setParam('distort', 'u_amt', v))); return w; },
+      color: () => { const e = world.getEffect('color'); const w = H(`<div><p class="kw-panel__title">COLOR · SIGNAL MAPPING</p></div>`).firstChild; w.appendChild(effToggle('color')); w.appendChild(H(`<div class="kw-row"><label>PALETTE</label></div>`).firstChild); w.appendChild(segs(['GOLD', 'ROSA', 'SPECTRAL', 'THERMAL'], e.params.u_mode, (i) => world.setParam('color', 'u_mode', i))); w.appendChild(slider('AMOUNT', 0, 1, 0.01, e.params.u_amt, (v) => world.setParam('color', 'u_amt', v))); return w; },
+      feedback: () => { const w = H(`<div><p class="kw-panel__title">FEEDBACK · TRAILS</p></div>`).firstChild; w.appendChild(slider('DECAY', 0.7, 0.98, 0.005, world.decay, (v) => { world.decay = v; })); w.appendChild(H(`<p class="kw-note">Real ping-pong render targets. Higher decay = longer memory.</p>`).firstChild); return w; },
+      signal: () => { const w = H(`<div><p class="kw-panel__title">SIGNAL · THE KEY</p></div>`).firstChild; const b = H(`<button class="kw-toggle" aria-pressed="${sig}">${sig ? 'ACTIVE' : 'LATENT'}</button>`).firstChild; b.addEventListener('click', () => { sig = !sig; world.setSignal(sig); b.setAttribute('aria-pressed', String(sig)); b.textContent = sig ? 'ACTIVE' : 'LATENT'; }); w.appendChild(b); w.appendChild(H(`<p class="kw-note">The signal reveals the radiation dimension — colour blooms from the bright regions.</p>`).firstChild); return w; },
+      audio: () => { const w = H(`<div><p class="kw-panel__title">AUDIO · E00 EXCAVATION</p></div>`).firstChild; const b = H(`<button class="kw-toggle" aria-pressed="${!audio.muted}">${audio.muted ? 'MUTED' : 'SOUND ON'}</button>`).firstChild; b.addEventListener('click', () => { audio.toggleMute(); b.setAttribute('aria-pressed', String(!audio.muted)); b.textContent = audio.muted ? 'MUTED' : 'SOUND ON'; }); w.appendChild(b); w.appendChild(H(`<p class="kw-note">Generated drone (~55Hz) + filtered noise. Pointer Y moves the filter. FFT drives the bloom — sound and image share one pulse.</p>`).firstChild); return w; },
+      export: () => { const w = H(`<div><p class="kw-panel__title">EXPORT · SPECIMEN</p></div>`).firstChild; const save = H(`<button class="kw-primary">SAVE PNG</button>`).firstChild; save.addEventListener('click', () => { const url = world.exportPNG(); const a = document.createElement('a'); a.href = url; a.download = 'KDX-' + world.seedHex() + '.png'; a.click(); }); w.appendChild(save); const seedRow = H(`<div class="kw-row" style="margin-top:14px"><label>SEED</label><output style="flex:1;text-align:left">${world.seedHex()}</output></div>`).firstChild; w.appendChild(seedRow); const nw = H(`<button class="kw-toggle" style="margin-top:6px">NEW SEED</button>`).firstChild; nw.addEventListener('click', () => { const s = Math.random(); world.setSeed(s); localStorage.setItem('kodex.seed', String(s)); seedRow.querySelector('output').textContent = world.seedHex(); }); w.appendChild(nw); w.appendChild(H(`<p class="kw-note">The image is captured from the live canvas — no fake thumbnail.</p>`).firstChild); return w; },
+    };
+
+    dock.querySelectorAll('[data-mod]').forEach((b) => {
+      b.addEventListener('click', () => {
+        const mod = b.getAttribute('data-mod');
+        if (activeMod === mod) { panel.hidden = true; b.setAttribute('aria-expanded', 'false'); activeMod = null; return; }
+        dock.querySelectorAll('[data-mod]').forEach((x) => x.setAttribute('aria-expanded', 'false'));
+        b.setAttribute('aria-expanded', 'true'); activeMod = mod;
+        panel.innerHTML = ''; panel.appendChild(panels[mod]()); panel.hidden = false;
+      });
+    });
+
+    let entered = false;
+    const enter = async (withSound) => {
+      if (entered) return; entered = true;
+      gate.classList.add('kw-out'); setTimeout(() => { gate.hidden = true; }, 800);
+      hud.hidden = false; lab.hidden = false;
+      await world.loadArtwork(DEFAULT_ARTWORK);
+      world.start();
+      if (reduce) reducedMsg.hidden = false;
+      await audio.start({ muted: !(withSound && !reduce) });
+    };
+    document.querySelectorAll('[data-enter]').forEach((b) => b.addEventListener('click', () => enter(b.getAttribute('data-enter') === 'sound')));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else if (entered) world.start(); });
+  </script>
+</KodexShell>

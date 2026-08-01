@@ -1,0 +1,268 @@
+---
+/**
+ * Immersive motion layer (Ocin 2026) — futuristic but LIGHT (GPU-only, lazy).
+ *  1. Site-wide scroll reveals ([data-reveal] → .is-revealed)
+ *  2. Portal starfield (canvas + rAF, inits on IntersectionObserver, pauses off-screen)
+ *  3. Portal 3D tilt — pointer + device-orientation rotate the vortex stage (--tx/--ty)
+ *  4. Hidden Sky — a rare UFO that blips into RANDOM spots across the site with glitch.
+ *     WM FICTION / SIGNAL only: never factual, never mixed with documented cosmovision.
+ * Everything is disabled/frozen under prefers-reduced-motion.
+ */
+---
+<script>
+  (() => {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ---- 1. Scroll reveals ---- */
+    const revealEls = Array.from(document.querySelectorAll('[data-reveal]'));
+    if (revealEls.length) {
+      document.documentElement.classList.add('reveal-ready');
+      if (reduce) {
+        revealEls.forEach((el) => el.classList.add('is-revealed'));
+      } else {
+        const io = new IntersectionObserver(
+          (entries) => entries.forEach((e) => {
+            if (e.isIntersecting) { e.target.classList.add('is-revealed'); io.unobserve(e.target); }
+          }),
+          { rootMargin: '0px 0px -8% 0px', threshold: 0.08 }
+        );
+        revealEls.forEach((el) => io.observe(el));
+      }
+    }
+
+    const portal = document.querySelector('.threshold--portal');
+
+    if (portal && !reduce) {
+      /* ---- 2. Portal starfield ---- */
+      const canvas = portal.querySelector('[data-portal-stars]');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        let W = 0, H = 0, stars = [], raf = 0, running = false;
+        const build = () => {
+          const r = portal.getBoundingClientRect();
+          W = canvas.width = Math.round(r.width * dpr);
+          H = canvas.height = Math.round(r.height * dpr);
+          canvas.style.width = r.width + 'px'; canvas.style.height = r.height + 'px';
+          const n = Math.min(60, Math.round((r.width * r.height) / 16000));
+          stars = Array.from({ length: n }, () => ({
+            x: Math.random() * W, y: Math.random() * H,
+            r: (Math.random() * 1.1 + 0.3) * dpr,
+            vx: (Math.random() - 0.5) * 0.05 * dpr, vy: (Math.random() * 0.05 + 0.015) * dpr,
+            p: Math.random() * 6.283, s: Math.random() * 0.02 + 0.005,
+          }));
+        };
+        const frame = () => {
+          ctx.clearRect(0, 0, W, H);
+          for (const st of stars) {
+            st.x += st.vx; st.y += st.vy; st.p += st.s;
+            if (st.y > H) st.y = 0; if (st.x < 0) st.x = W; if (st.x > W) st.x = 0;
+            const a = 0.32 + Math.sin(st.p) * 0.32;
+            ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, 6.283);
+            ctx.fillStyle = 'rgba(245,234,216,' + (a > 0 ? a : 0).toFixed(3) + ')'; ctx.fill();
+          }
+          raf = requestAnimationFrame(frame);
+        };
+        const start = () => { if (!running) { running = true; build(); frame(); } };
+        const stop = () => { running = false; cancelAnimationFrame(raf); };
+        new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? start() : stop())), { threshold: 0.02 }).observe(portal);
+        window.addEventListener('resize', () => { if (running) build(); }, { passive: true });
+      }
+
+      /* ---- 3. Portal 3D tilt (pointer + device orientation) ---- */
+      let tx = 0, ty = 0, cx = 0, cy = 0, pr = 0;
+      const MAX = 8; // degrees
+      const apply = () => {
+        cx += (tx - cx) * 0.09; cy += (ty - cy) * 0.09;
+        portal.style.setProperty('--tx', cx.toFixed(2) + 'deg');
+        portal.style.setProperty('--ty', (-cy).toFixed(2) + 'deg');
+        pr = (Math.abs(tx - cx) > 0.05 || Math.abs(ty - cy) > 0.05) ? requestAnimationFrame(apply) : 0;
+      };
+      const kick = () => { if (!pr) pr = requestAnimationFrame(apply); };
+      portal.addEventListener('pointermove', (ev) => {
+        const r = portal.getBoundingClientRect();
+        tx = ((ev.clientX - r.left) / r.width - 0.5) * 2 * MAX;
+        ty = ((ev.clientY - r.top) / r.height - 0.5) * 2 * MAX;
+        kick();
+      }, { passive: true });
+      portal.addEventListener('pointerleave', () => { tx = 0; ty = 0; kick(); });
+      // device tilt (mobile) — only reacts while the portal is on screen
+      let onScreen = false;
+      new IntersectionObserver((es) => es.forEach((e) => (onScreen = e.isIntersecting)), { threshold: 0.2 }).observe(portal);
+      window.addEventListener('deviceorientation', (ev) => {
+        if (!onScreen || ev.gamma == null) return;
+        tx = Math.max(-MAX, Math.min(MAX, (ev.gamma / 45) * MAX));
+        ty = Math.max(-MAX, Math.min(MAX, ((ev.beta - 45) / 45) * MAX));
+        kick();
+      }, { passive: true });
+    }
+
+    /* ---- 4. Hidden Sky v2 — rare "real-flight" UFO (WM FICTION / SIGNAL) ----
+       Small, fast, uncanny: punches through an ember rift, hard-darts between random
+       upper-field points with impossible turns + a near-subliminal RGB re-lock, and is
+       catchable (click → an on-brand "signal received" transmission). Seizure-safe:
+       every flicker is ≤3 shallow transitions/sec, opacity never strobes to black.
+       Reduced-motion → a single faint, opacity-only sighting, still catchable. */
+    {
+      const rand = (a, b) => a + Math.random() * (b - a);
+      const vw = () => window.innerWidth / 100, vh = () => window.innerHeight / 100;
+      const CLEAN = (n: number) => `/img/hidden-sky/ufo-0${n}-clean.png`;
+      const RITUAL = ['kümey — the sky answered.', 'pewma — a vision passed over.', 'küme rakiduam — it saw you first.'];
+      const MAX_SIGHTINGS = 8;
+      // "menu / modal open" signal: the nav drawer locks body scroll while open.
+      const uiBlocked = () => getComputedStyle(document.body).overflow === 'hidden';
+
+      let wrap: HTMLDivElement, craft: HTMLImageElement, gW: HTMLImageElement, gC: HTMLImageElement, rift: HTMLSpanElement;
+      let timer: number | undefined, hopTimer: number | undefined, sightings = 0;
+
+      const build = () => {
+        wrap = document.createElement('div');
+        wrap.className = 'hidden-sky'; wrap.setAttribute('aria-hidden', 'true');
+        rift = document.createElement('span'); rift.className = 'hs-rift';
+        const mk = (cls: string) => { const i = document.createElement('img'); i.className = cls; i.alt = ''; i.decoding = 'async'; i.loading = 'lazy'; return i; };
+        gW = mk('hs-ghost hs-ghost--warm'); gC = mk('hs-ghost hs-ghost--cool'); craft = mk('hs-craft');
+        craft.title = 'Signal · Unclassified · WM Fiction';
+        wrap.append(rift, gW, gC, craft);
+        document.body.appendChild(wrap);
+        craft.addEventListener('pointerdown', onCatch);
+      };
+      const pickSrc = () => { const s = CLEAN(1 + Math.floor(Math.random() * 5)); craft.src = s; gW.src = s; gC.src = s; };
+
+      const reducedSighting = () => {
+        if (document.hidden || sightings >= MAX_SIGHTINGS) return schedule();
+        sightings++;
+        craft.src = '/img/hidden-sky/ufo-03-faint.png';
+        wrap.style.transform = 'translate(0,0)';
+        wrap.style.left = (rand(12, 72) * vw()) + 'px';
+        wrap.style.top = (rand(10, 40) * vh()) + 'px';
+        wrap.classList.add('is-active');
+        craft.style.transition = 'opacity 1.2s ease'; craft.style.opacity = '.28';
+        window.setTimeout(() => { craft.style.opacity = '0'; }, 6200);
+        window.setTimeout(() => { wrap.classList.remove('is-active'); schedule(); }, 7600);
+      };
+
+      const sighting = () => {
+        if (document.hidden || uiBlocked()) return schedule();
+        if (wrap.classList.contains('is-active') || sightings >= MAX_SIGHTINGS) return;
+        sightings++;
+        pickSrc();
+        const scale = rand(0.74, 1.06);
+        const peak = (0.38 + (scale - 0.74) * 0.26).toFixed(2);
+        wrap.style.setProperty('--peak', peak); craft.style.opacity = peak;
+
+        let x = rand(10, 76) * vw(), y = rand(8, 44) * vh();
+        wrap.style.left = '0px'; wrap.style.top = '0px';
+        wrap.style.transform = `translate(${x}px,${y}px)`;
+        wrap.classList.remove('is-leaving', 'is-hover', 'is-cloaking', 'is-locking');
+        void wrap.offsetWidth;
+        wrap.classList.add('is-entering', 'is-active');
+
+        const hops = Math.round(rand(4, 6));
+        let px = 0, py = 0, i = 0, cloaked = Math.random() >= 0.35; // ~35% get one cloak-flicker
+        const clampX = (v: number) => Math.max(4 * vw(), Math.min(84 * vw(), v));
+        const clampY = (v: number) => Math.max(4 * vh(), Math.min(58 * vh(), v));
+
+        const nextHop = () => {
+          if (!wrap.classList.contains('is-active')) return; // caught → aborted
+          if (i >= hops) return leave();
+          i++;
+          const roll = Math.random();
+          if (roll < 0.30) {                       // HOVER — dead-still, wobble + pulse
+            wrap.classList.add('is-hover');
+            if (!cloaked) { cloaked = true; wrap.classList.add('is-cloaking'); window.setTimeout(() => wrap.classList.remove('is-cloaking'), 300); }
+            hopTimer = window.setTimeout(() => { wrap.classList.remove('is-hover'); nextHop(); }, rand(260, 520));
+          } else if (roll < 0.44) {                // SLIP — tiny stutter adjust
+            x = clampX(x + rand(-6, 6) * vw()); y = clampY(y + rand(-4, 4) * vh());
+            craft.style.transition = 'transform 90ms steps(3)';
+            wrap.style.transform = `translate(${x}px,${y}px)`;
+            hopTimer = window.setTimeout(nextHop, 90 + rand(70, 150));
+          } else {                                 // DART — fast, hard-stop, impossible turn
+            let dx = rand(8, 24) * vw() * (Math.random() < 0.5 ? -1 : 1);
+            let dy = rand(6, 16) * vh() * (Math.random() < 0.5 ? -1 : 1);
+            if (dx * px + dy * py > 0 && Math.random() < 0.6) { dx = -dx; dy = -dy; }
+            x = clampX(x + dx); y = clampY(y + dy); px = dx; py = dy;
+            if (Math.random() < 0.20) {             // one-frame teleport-blink
+              craft.style.transition = 'none';
+              wrap.classList.add('is-cloaking');
+              wrap.style.transform = `translate(${x}px,${y}px)`;
+              window.setTimeout(() => wrap.classList.remove('is-cloaking'), 120);
+              hopTimer = window.setTimeout(nextHop, 160 + rand(120, 300));
+            } else {
+              craft.style.transition = `transform ${Math.round(rand(140, 210))}ms cubic-bezier(.7,0,.2,1)`;
+              wrap.style.transform = `translate(${x}px,${y}px)`;
+              wrap.classList.add('is-locking'); // near-subliminal RGB re-lock
+              window.setTimeout(() => wrap.classList.remove('is-locking'), 170);
+              hopTimer = window.setTimeout(nextHop, 210 + rand(120, 320));
+            }
+          }
+        };
+        hopTimer = window.setTimeout(nextHop, 480); // after the 460ms entry
+      };
+
+      const leave = () => {
+        window.clearTimeout(hopTimer);
+        wrap.classList.remove('is-hover', 'is-cloaking', 'is-locking', 'is-entering');
+        wrap.classList.add('is-leaving');
+        window.setTimeout(() => {
+          wrap.classList.remove('is-leaving', 'is-active');
+          wrap.style.transform = 'translate(0,0)';
+          schedule();
+        }, 380);
+      };
+
+      const schedule = () => {
+        window.clearTimeout(timer);
+        if (sightings >= MAX_SIGHTINGS) return; // session cap
+        const wait = sightings === 0 ? rand(20000, 40000) : rand(90000, 160000);
+        timer = window.setTimeout(reduce ? reducedSighting : sighting, wait);
+      };
+
+      const onCatch = (e: PointerEvent) => {
+        e.preventDefault();
+        if (!wrap.classList.contains('is-active')) return;
+        window.clearTimeout(hopTimer);
+        const ping = document.createElement('span');
+        ping.className = 'hs-ping';
+        ping.style.left = e.clientX + 'px'; ping.style.top = e.clientY + 'px';
+        document.body.appendChild(ping); void ping.offsetWidth; ping.classList.add('go');
+        window.setTimeout(() => ping.remove(), 560);
+        showToast();
+        leave();
+      };
+
+      const showToast = () => {
+        let seen = 0; try { seen = parseInt(localStorage.getItem('wm-signal-seen') || '0', 10) || 0; } catch {}
+        try { localStorage.setItem('wm-signal-seen', String(seen + 1)); } catch {}
+        const t = document.createElement('div');
+        t.className = 'hs-toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite');
+        const coord = `${rand(38, 48).toFixed(2)}°N · unclassified`;
+        if (seen === 0) {
+          t.innerHTML =
+            `<span class="hs-eyebrow">◦ Signal Received</span>` +
+            `<span class="hs-coord">${coord}</span>` +
+            `<span class="hs-ritual">${RITUAL[Math.floor(Math.random() * RITUAL.length)]}</span>` +
+            `<a class="hs-trace" href="/experience/cosmos">trace signal →</a>` +
+            `<button class="hs-close" aria-label="Dismiss">×</button>`;
+        } else {
+          t.innerHTML =
+            `<span class="hs-eyebrow">◦ Signal Re-acquired · ${seen + 1}</span>` +
+            `<button class="hs-close" aria-label="Dismiss">×</button>`;
+        }
+        document.body.appendChild(t); void t.offsetWidth; t.classList.add('go');
+        const kill = () => { t.classList.remove('go'); window.setTimeout(() => t.remove(), 300); };
+        t.querySelector('.hs-close')!.addEventListener('click', kill);
+        const esc = (ev: KeyboardEvent) => { if (ev.key === 'Escape') { kill(); window.removeEventListener('keydown', esc); } };
+        window.addEventListener('keydown', esc);
+        window.setTimeout(kill, seen === 0 ? 4200 : 2800);
+      };
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { window.clearTimeout(timer); window.clearTimeout(hopTimer); }
+        else schedule();
+      });
+
+      build();
+      schedule();
+    }
+  })();
+</script>

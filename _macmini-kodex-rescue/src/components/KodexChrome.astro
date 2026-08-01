@@ -1,0 +1,97 @@
+---
+// KODEX−∞ · cockpit chrome shared by the cover and every folio of the book:
+// tunnel canvas, CRT/grain overlays, reticle cursor, astronomy HUD,
+// progress timeline and top status bar. Engine: src/scripts/kodex-engine.js.
+import KodexIndexOverlay from './KodexIndexOverlay.astro';
+import { findSceneByPath, scenes as kdxScenes } from '../lib/kodexScenes.js';
+const { segs = 7 } = Astro.props;
+const scene = findSceneByPath(Astro.url.pathname);
+const total = String(kdxScenes.length).padStart(2, '0');
+const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '/kodex';
+---
+<!-- TUNNEL — flight through the −∞ → 0 → +∞ corridor, behind everything -->
+<canvas class="kx-tunnel" data-tunnel aria-hidden="true"></canvas>
+
+<!-- global CRT / cockpit overlays -->
+<div class="kx-crt" aria-hidden="true"></div>
+<div class="kx-grain" aria-hidden="true"></div>
+<div class="kx-cursor" data-cursor aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+<!-- astronomy / navigation HUD — which folio of the codex you're crossing -->
+{!isThreshold && (
+  <aside class="kx-astro" data-astro data-kx-scene={scene.index} aria-hidden="true" style={`--kdx-scene-accent:${scene.accentHex}`}>
+    <span class="kx-astro__stage"><b data-astro-stage>{scene.index} / {total}</b> <em data-astro-name>{scene.code}</em></span>
+    <span class="kx-astro__row">RA <span data-astro-ra>00h00m</span> · DEC <span data-astro-dec>+00°</span></span>
+    <span class="kx-astro__row">φ <span data-astro-phi>0.000</span> · <span data-astro-code>0x000</span></span>
+  </aside>
+)}
+
+<!-- reading-progress timeline -->
+{!isThreshold && (
+  <div class="kx-timeline" aria-hidden="true">
+    {Array.from({ length: segs }).map(() => <span class="kx-seg"><i></i></span>)}
+  </div>
+)}
+
+<!-- deck control bar — the UX: clear buttons to dive deeper into KODEX -->
+<nav class="kx-deckbar" aria-label="codex controls">
+  {isThreshold ? (
+    <>
+      <button type="button" data-deck-prev aria-label="previous scene">‹ PREVIOUS</button>
+      <span class="kx-deckbar__count"><b data-deck-idx>{scene.index}</b> / <span data-deck-total>{total}</span></span>
+      <span class="kx-deckbar__nodes" aria-hidden="true">
+        {Array.from({ length: segs }).map((_, idx) => <i class={idx === 0 ? 'is-active' : undefined}></i>)}
+      </span>
+      <button type="button" data-deck-next aria-label="next scene">NEXT ›</button>
+      <button type="button" class="kx-deckbar__index" data-kdx-index-open aria-label="open codex index">INDEX</button>
+    </>
+  ) : (
+    <>
+      <button type="button" data-deck-prev aria-label="previous scene">‹ PREVIOUS</button>
+      <span class="kx-deckbar__count"><b data-deck-idx>{scene.index}</b> / <span data-deck-total>{total}</span></span>
+      <button type="button" data-deck-next aria-label="next scene">NEXT ›</button>
+      <button type="button" class="kx-deckbar__index" data-kdx-index-open aria-label="open codex index">◉ INDEX</button>
+    </>
+  )}
+</nav>
+
+<KodexIndexOverlay />
+
+<!-- KODEX analytics — window.kdx() forwards to gtag if loaded (§8) -->
+<script is:inline define:vars={{ sceneCode: scene.code, sceneIndex: scene.index }}>
+  (() => {
+    if (window.__kdxBooted) return; window.__kdxBooted = true;
+    window.kdx = function (name, params) {
+      const payload = Object.assign({ event_category: 'kodex', page_path: location.pathname, scene: sceneCode }, params || {});
+      try { if (window.gtag) window.gtag('event', name, payload); } catch (_) {}
+      try { window.dispatchEvent(new CustomEvent('kdx:' + name, { detail: payload })); } catch (_) {}
+    };
+    window.kdx('kdx_enter', { landing: !document.referrer, scene_index: sceneIndex });
+    window.kdx('scene_view', { scene_index: sceneIndex });
+    document.addEventListener('click', (e) => {
+      if (e.target.closest?.('[data-kdx-restart]')) {
+        try { window.kdx('restart_journey', { from_scene: sceneCode }); } catch (_) {}
+      }
+    });
+  })();
+</script>
+
+<!-- top status bar -->
+<header class={`kx-status${isThreshold ? ' kx-status--threshold' : ''}`}>
+  <a class="kx-word" href="/kodex/" aria-label="KODEX −∞">
+    <svg class="kx-word__svg" viewBox="0 0 680 100" aria-hidden="true" focusable="false"><use href="/assets/kodex/kodex-sprite.svg#kdx-logo" /></svg>
+    <span class="kx-word__sr">KODEX −∞</span>
+  </a>
+  {!isThreshold && <div class="kx-readout" data-clock>SYSTEM · <b>ACTIVE</b> · <span data-coord>00.00</span><span class="kx-decode" data-decode></span></div>}
+  <span class="kx-status__keys">
+    {!isThreshold && (
+      <button class="kx-sound" data-sound aria-pressed="false">
+        <span class="kx-sound__ic" aria-hidden="true">♪</span><span data-sound-label>SOUND · OFF</span>
+      </button>
+    )}
+    <button class="kx-signal" data-signal aria-pressed="false">
+      <span class="kx-signal__dot"></span><span data-signal-label>SIGNAL · LATENT</span>
+    </button>
+    {isThreshold && <button type="button" class="kx-status__index" data-kdx-index-open aria-label="open codex index">INDEX</button>}
+  </span>
+</header>

@@ -1,0 +1,352 @@
+---
+// KODEX −∞ · WORK — one page per work. The luminous thread field is the living skin;
+// the work floats within it, with its codes, its sigil, and its story (EN/ES).
+// A layered digital book / art laboratory. Isolated from commerce (KodexShell).
+import KodexShell from '../../../layouts/KodexShell.astro';
+import { families, discoWorks, opName, portalSigil, UNIVERSE } from '../../../lib/kodex.js';
+
+export function getStaticPaths() {
+  const list = [
+    ...families.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, th: f.th.k, acc: f.th.c })),
+    ...discoWorks.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, th: 'disco', acc: f.th.c })),
+  ];
+  return list.map((w, i) => ({
+    params: { id: w.n },
+    props: { work: w, index: i, total: list.length, prev: list[(i - 1 + list.length) % list.length].n, next: list[(i + 1) % list.length].n },
+  }));
+}
+
+const { work, index, total, prev, next } = Astro.props;
+
+// Poetic story fragments per cosmogonic operation (from the Atlas). EN / ES.
+const STORY = {
+  C01: { en: 'the void before all form', es: 'el vacío antes de toda forma' },
+  C02: { en: 'the primordial waters', es: 'las aguas primordiales' },
+  C03: { en: 'the fertile darkness', es: 'la oscuridad fértil' },
+  C04: { en: 'a unity that holds all that will come', es: 'una unidad que contiene todo lo que vendrá' },
+  C05: { en: 'the sky torn from the earth', es: 'el cielo separado de la tierra' },
+  C06: { en: 'the word that makes a thing real', es: 'la palabra que vuelve real una cosa' },
+  C07: { en: 'a body undone to become the world', es: 'un cuerpo deshecho para volverse mundo' },
+  C08: { en: 'matter shaped by a patient hand', es: 'la materia moldeada por una mano paciente' },
+  C09: { en: 'a world reached by crossing levels', es: 'un mundo alcanzado atravesando niveles' },
+  C10: { en: 'earth drawn up from the deep', es: 'tierra extraída de la profundidad' },
+  C11: { en: 'the many descending from the one', es: 'los muchos que descienden del uno' },
+  C12: { en: 'the tension that holds the order', es: 'la tensión que sostiene el orden' },
+  C13: { en: 'ages that begin again and again', es: 'edades que comienzan una y otra vez' },
+  C14: { en: 'the axis that joins the regions of the cosmos', es: 'el eje que une las regiones del cosmos' },
+  C15: { en: 'a universe with no maker, eternal', es: 'un universo sin creador, eterno' },
+  C16: { en: 'the origin inscribed in song and place', es: 'el origen inscrito en canto y lugar' },
+};
+const seed = 100 + index * 37 + Number(work.n.replace(/\D/g, '')); // unique per work (index avoids D01/001 collision)
+const sigil = portalSigil(seed, index % 8);
+const num = String(index + 1).padStart(2, '0');
+// cyberpunk activation readout — code + data (the work's coordinates in the system)
+const hexSeed = '0x' + ((seed * 2654435761) & 0xffffff).toString(16).toUpperCase().padStart(6, '0');
+const raH = String(index % 24).padStart(2, '0'), decD = (index * 7 - 89);
+const fxData = `PLATE ${work.n}   SEED ${hexSeed}\nOPS ${work.ops.join(' · ')}   φ 137.5°\nRA ${raH}h${String(seed % 60).padStart(2, '0')}m   DEC ${decD >= 0 ? '+' : ''}${decD}°`;
+
+// story — varied, evocative; derived from the work's two operations (EN / ES)
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const a0 = STORY[work.ops[0]], a1 = STORY[work.ops[1]];
+const TPL = [
+  { en: `It carries ${a0.en} into ${a1.en}. Not a beginning — a return.`, es: `Lleva ${a0.es} hacia ${a1.es}. No un comienzo — un retorno.` },
+  { en: `Where ${a0.en} meets ${a1.en}, a form remembers how it was made.`, es: `Donde ${a0.es} se encuentra con ${a1.es}, una forma recuerda cómo fue hecha.` },
+  { en: `${cap(a0.en)} folds into ${a1.en}. The pattern speaks, then dissolves.`, es: `${cap(a0.es)} se pliega en ${a1.es}. El patrón habla, y se disuelve.` },
+];
+const story = TPL[index % TPL.length];
+
+// Each work carries its OWN effect. Clicking runs it — and shows the code that
+// makes it happen. The machine language over the image. (interaction)
+const EFFECTS = [
+  { name: 'MIRROR', code: '// MIRROR · reflect the left half onto the right\nfor each (y, x):\n  out[y][x] = src[y][W - 1 - x]   // bilateral symmetry' },
+  { name: 'GLITCH', code: '// GLITCH · displace row-bands, shift channels\nfor band in bands:\n  offset(row[band], dx = rand())\n  R.x += 3 ; B.x -= 3' },
+  { name: 'CHROMA', code: '// CHROMA · split colour channels in space\nout.R = src(x + d).R\nout.B = src(x - d).B     // ionised aberration' },
+  { name: 'DITHER', code: '// DITHER · Bayer 8x8 ordered threshold -> 1-bit\nv = luminance(px)\nout = v > bayer[y%8][x%8] ? 255 : 0' },
+  { name: 'PIXEL SORT', code: '// PIXEL SORT · order each row span by light\nfor row in image:\n  sort(span, key = luminance)' },
+  { name: 'SCANLINES', code: '// SCANLINES · phosphor CRT persistence\nfor y in image:\n  px *= 0.7 + 0.3 * sin(y * PI)' },
+];
+const fx = EFFECTS[index % EFFECTS.length];
+---
+
+<KodexShell title={`KODEX −∞ · PLATE ${work.n}`}>
+  <main class="wk" data-wk data-acc={work.acc} data-url={work.url} data-th={work.th}>
+    <canvas id="kodex-world" data-world></canvas>
+
+    <!-- layered content over the living field -->
+    <header class="wk-top">
+      <a class="wk-home" href="/kodex/works/">◈ KODEX</a>
+      <span class="wk-idx">{num} / {String(total).padStart(2, '0')}</span>
+      <div class="wk-tools">
+        <button class="wk-chip" data-signal aria-pressed="false">SIGNAL</button>
+        <button class="wk-chip" data-lang>ES</button>
+        <button class="wk-chip" data-about-open>ABOUT</button>
+      </div>
+    </header>
+
+    <section class="wk-stage">
+      <figure class="wk-work" data-reveal data-fx={fx.name}>
+        <img src={work.url} alt={`KODEX−∞ — plate ${work.n}`} data-work-img />
+        <canvas class="wk-fx-canvas" data-fx-canvas hidden></canvas>
+        <span class="wk-fx-label" data-fx-label>◈ {fx.name} · tap to activate</span>
+        <div class="wk-fx-hud" data-fx-hud hidden aria-hidden="true">
+          <pre class="wk-fx-data" data-fx-data data-src={fxData}></pre>
+          <pre class="wk-fx-code" data-fx-code data-src={fx.code}></pre>
+          <span class="wk-fx-cursor">▊</span>
+        </div>
+      </figure>
+    </section>
+
+    <aside class="wk-meta">
+      <span class="wk-plate" data-glitch>PLATE {work.n}</span>
+      <span class="wk-sigil" set:html={sigil}></span>
+      <p class="wk-ops">
+        {work.ops.map((c) => (<span class="wk-op"><b>{c}</b> {opName(c)}</span>))}
+      </p>
+      <p class="wk-story" data-en={story.en} data-es={story.es}>{story.en}</p>
+    </aside>
+
+    <nav class="wk-nav">
+      <a class="wk-arrow" href={`/kodex/work/${prev}/`} aria-label="previous">←</a>
+      <a class="wk-gallery" href="/kodex/works/">GALLERY</a>
+      <a class="wk-arrow" href={`/kodex/work/${next}/`} aria-label="next">→</a>
+    </nav>
+
+    <p class="wk-hint" data-hint>move — the field answers · press SIGNAL</p>
+
+    <!-- ABOUT / CREDITS — bilingual, always reachable -->
+    <div class="wk-about" data-about hidden>
+      <div class="wk-about__panel">
+        <button class="wk-about__x" data-about-close>✕</button>
+        <p class="wk-about__k">KODEX −∞</p>
+        <p class="wk-about__en">A living archive of matter, symbol and technology by Nicolás Ortega (Wenu Mapu). Each work is read through 16 cosmogonic operations drawn from a comparative atlas of ancient origins. The universe does not appear once — it keeps originating whenever a possibility takes form, relation and memory. Black and white is the true form; colour is the radiation the signal reveals.</p>
+        <p class="wk-about__es">Un archivo vivo de materia, símbolo y tecnología de Nicolás Ortega (Wenu Mapu). Cada obra se lee a través de 16 operaciones cosmogónicas de un atlas comparado de orígenes antiguos. El universo no aparece una sola vez — continúa originándose cada vez que una posibilidad adquiere forma, relación y memoria. El blanco y negro es la forma verdadera; el color es la radiación que revela la señal.</p>
+        <div class="wk-about__actions">
+          <button class="wk-act" data-download>⤓ DOWNLOAD · FREE</button>
+          <a class="wk-act" data-pin href="#" target="_blank" rel="noopener">⤴ PIN TO PINTEREST</a>
+          <a class="wk-act" href="/kodex/store/">◈ STORE · DOWNLOAD FREE · PRINT / STICKER / TEE / NFT</a>
+          <a class="wk-act" href="mailto:marimari@wenumapuonline.com?subject=KODEX%20%E2%88%92%E2%88%9E%20%C2%B7%20support">♡ SUPPORT · DONATE</a>
+        </div>
+        <button class="wk-about__srcbtn" data-src-toggle>⟨ ⟩ SOURCE CODE OF THE UNIVERSE</button>
+        <pre class="wk-about__src" data-src hidden>{UNIVERSE}</pre>
+        <p class="wk-about__links"><a href="/kodex/">The Codex</a> · <a href="/kodex/works/">Gallery</a> · <a href="/kodex/editions/">Editions</a></p>
+        <p class="wk-about__cr">© Nicolás Ortega · KODEX −∞ · a possibility given form · belongs to no one, and to all.</p>
+      </div>
+    </div>
+  </main>
+
+  <style>
+    .wk{ position:fixed; inset:0; overflow:hidden; background:#000; color:#f0ede8; font-family:'JetBrains Mono',ui-monospace,monospace; }
+    #kodex-world{ position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; }
+    .wk :where(a,button){ color:inherit; text-decoration:none; cursor:pointer; }
+    /* every structural child sets its own position:fixed + z-index below; the
+       canvas is z-index:0. No blanket reset — it clobbered fixed positioning
+       and pushed the nav off-screen under overflow:hidden. */
+
+    .wk-top{ position:fixed; top:0; left:0; right:0; z-index:5; display:flex; align-items:center; justify-content:space-between;
+      padding:16px clamp(14px,4vw,40px); font-size:11px; letter-spacing:.16em; }
+    .wk-home{ font-family:'Instrument Serif',serif; font-size:17px; letter-spacing:.04em; }
+    .wk-idx{ color:#8f8f8f; }
+    .wk-tools{ display:flex; gap:8px; }
+    .wk-chip{ font-family:inherit; font-size:9.5px; letter-spacing:.16em; color:#9a948a; background:rgba(0,0,0,.35); border:1px solid #1c1c1c; padding:8px 11px; transition:.25s; }
+    .wk-chip:hover{ color:#f0ede8; border-color:#3a3a3a; }
+    .wk-chip[aria-pressed="true"]{ color:#0a0a0a; background:var(--acc,#c9a84c); border-color:var(--acc,#c9a84c); }
+
+    .wk-stage{ position:fixed; inset:0; display:grid; place-items:center; z-index:2; pointer-events:none; }
+    .wk-work{ margin:0; max-width:min(52vw,440px); max-height:60vh; position:relative; }
+    .wk-work::after{ content:''; position:absolute; inset:-14%; z-index:-1;
+      background:radial-gradient(closest-side, color-mix(in srgb, var(--acc) 26%, transparent), transparent 72%); filter:blur(8px); }
+    .wk-work img{ max-width:min(52vw,440px); max-height:60vh; width:auto; height:auto; display:block;
+      box-shadow:0 30px 90px rgba(0,0,0,.7); }
+    .wk-work{ pointer-events:auto; cursor:pointer; }
+    .wk-fx-canvas{ position:absolute; top:0; left:0; z-index:2; box-shadow:0 30px 90px rgba(0,0,0,.7); }
+    .wk-fx-label{ position:absolute; top:8px; left:8px; z-index:4; font-family:'JetBrains Mono',monospace; font-size:9px;
+      letter-spacing:.14em; color:#00f0ff; background:rgba(0,0,0,.5); padding:6px 9px; opacity:.9; transition:opacity .3s;
+      text-shadow:0 0 8px rgba(0,240,255,.6); }
+    .wk-work:hover .wk-fx-label{ opacity:1; }
+    /* cyberpunk activation HUD — code + data light up over the work */
+    .wk-fx-hud{ position:absolute; left:8px; right:8px; bottom:8px; z-index:3; display:flex; flex-direction:column; gap:4px;
+      padding:11px 13px; background:linear-gradient(rgba(0,0,0,.55), rgba(0,4,6,.82)); backdrop-filter:blur(2px);
+      border-left:2px solid #00f0ff; box-shadow:inset 0 0 0 1px rgba(0,240,255,.12), 0 0 26px rgba(0,240,255,.14);
+      animation:wkHudIn .5s ease both; }
+    .wk-fx-hud[hidden]{ display:none; }   /* force-hide over display:flex (only visible while active) */
+    @keyframes wkHudIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:none; } }
+    .wk-fx-data,.wk-fx-code{ margin:0; font-family:'JetBrains Mono',monospace; white-space:pre-wrap; }
+    .wk-fx-data{ font-size:9px; line-height:1.55; letter-spacing:.06em; color:#00f0ff; text-shadow:0 0 7px rgba(0,240,255,.45); }
+    .wk-fx-code{ font-size:9.5px; line-height:1.55; color:#a6ff00; text-shadow:0 0 7px rgba(166,255,0,.35); }
+    .wk-fx-cursor{ align-self:flex-start; font-family:'JetBrains Mono',monospace; font-size:10px; color:#a6ff00;
+      text-shadow:0 0 8px rgba(166,255,0,.6); animation:wkBlink 1s steps(2) infinite; }
+    @keyframes wkBlink{ 50%{ opacity:0; } }
+
+    .wk-meta{ position:fixed; left:clamp(14px,4vw,40px); bottom:78px; z-index:5; max-width:min(74vw,340px); display:flex; flex-direction:column; gap:8px; }
+    .wk-plate{ font-family:'Instrument Serif',serif; font-size:clamp(1.4rem,3.4vw,2.1rem); color:#f0ede8; }
+    .wk-sigil{ width:44px; color:var(--acc,#c9a84c); opacity:.85; }
+    .wk-sigil svg{ width:100%; height:auto; }
+    .wk-ops{ display:flex; flex-wrap:wrap; gap:4px 14px; margin:2px 0 0; font-size:9.5px; letter-spacing:.1em; color:#8f8f8f; }
+    .wk-op b{ color:var(--acc,#c9a84c); font-weight:400; }
+    .wk-story{ font-family:'Cormorant Garamond','Instrument Serif',serif; font-size:clamp(1rem,2.2vw,1.35rem); line-height:1.55; color:#c8c2b6; margin:6px 0 0; }
+
+    .wk-nav{ position:fixed; bottom:0; left:0; right:0; z-index:5; display:flex; align-items:center; justify-content:center; gap:26px; padding:20px; }
+    .wk-arrow{ font-size:20px; color:#9a948a; transition:.25s; }
+    .wk-arrow:hover{ color:var(--acc,#c9a84c); transform:scale(1.15); }
+    .wk-gallery{ font-size:10px; letter-spacing:.24em; color:#8f8f8f; border:1px solid #1c1c1c; padding:9px 16px; transition:.25s; }
+    .wk-gallery:hover{ color:#f0ede8; border-color:var(--acc,#c9a84c); }
+    .wk-hint{ position:fixed; right:clamp(14px,4vw,40px); bottom:26px; z-index:4; font-size:9.5px; letter-spacing:.14em; color:#4a4a4a; }
+
+    .wk-about{ position:fixed; inset:0; z-index:130; overflow-y:auto; background:rgba(0,0,0,.92); backdrop-filter:blur(8px); }
+    .wk-about__panel{ max-width:640px; margin:6vh auto; padding:clamp(24px,5vw,48px); position:relative; }
+    .wk-about__x{ position:absolute; top:14px; right:14px; font-size:14px; color:#9a948a; background:none; border:0; }
+    .wk-about__k{ font-family:'Instrument Serif',serif; font-size:2rem; margin:0 0 18px; }
+    .wk-about__en,.wk-about__es{ font-family:'Cormorant Garamond',serif; font-size:1.15rem; line-height:1.6; color:#c8c2b6; margin:0 0 14px; }
+    .wk-about__es{ color:#8f8f8f; }
+    .wk-about__links{ font-size:11px; letter-spacing:.14em; margin:18px 0 0; }
+    .wk-about__links a{ color:var(--acc,#c9a84c); }
+    .wk-about__cr{ font-size:10px; letter-spacing:.1em; color:#585858; margin:16px 0 0; }
+    .wk-about__srcbtn{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.16em; color:var(--acc,#c9a84c); background:none; border:1px solid #1c1c1c; padding:9px 14px; margin:18px 0 0; transition:.25s; }
+    .wk-about__srcbtn:hover{ border-color:var(--acc,#c9a84c); box-shadow:0 0 22px color-mix(in srgb, var(--acc) 22%, transparent); }
+    .wk-about__src{ font-family:'JetBrains Mono',monospace; font-size:10.5px; line-height:1.75; color:#8fbfae; margin:14px 0 0;
+      padding:16px; border:1px solid #1c1c1c; background:rgba(0,0,0,.55); white-space:pre-wrap; word-break:break-word;
+      text-shadow:0 0 8px rgba(140,220,180,.25); max-height:46vh; overflow:auto; }
+    .wk-about__actions{ display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 0; }
+    .wk-act{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.13em; color:#c8c2b6; background:none;
+      border:1px solid #1c1c1c; padding:10px 14px; transition:.25s; cursor:pointer; }
+    .wk-act:hover{ color:#0a0a0a; background:var(--acc,#c9a84c); border-color:var(--acc,#c9a84c); }
+
+    [data-reveal]{ opacity:0; transform:scale(.97); transition:opacity 1.2s ease, transform 1.2s ease; }
+    [data-reveal].wk-in{ opacity:1; transform:none; }
+    @media (max-width:640px){
+      /* mobile: artwork up top, text in a clear band below, nav clean — no overlap */
+      .wk-stage{ align-items:start; padding-top:clamp(58px,9vh,84px); }
+      .wk-work{ max-width:82vw; max-height:42vh; }
+      .wk-work img{ max-width:82vw; max-height:42vh; }
+      .wk-meta{ bottom:66px; max-width:86vw; gap:6px; }
+      .wk-story{ font-size:1.02rem; line-height:1.45; }
+      .wk-hint{ display:none; }            /* avoids colliding with the nav bar */
+      .wk-nav{ padding:14px; }
+    }
+  </style>
+
+  <script>
+    import { KodexWorld } from '../../../kodex/engine/kodexWorld.js';
+    const root = document.querySelector('[data-wk]');
+    const canvas = document.getElementById('kodex-world');
+    const acc = root.getAttribute('data-acc');
+    const url = root.getAttribute('data-url');
+    const world = new KodexWorld(canvas, { seed: Math.random() });
+    // Palette law: B/W works → achromatic field · grays → gray · pink-neon → pink.
+    // Colour only emerges through interference (signal / touching the work).
+    const FIELD = { achroma: [0.90, 0.90, 0.93], tribe: [0.64, 0.61, 0.57], disco: [0.90, 0.42, 0.63] };
+    world.setTint(FIELD[root.getAttribute('data-th')] || [0.9, 0.9, 0.9]);
+    root.style.setProperty('--acc', acc);
+    (async () => { await world.loadArtwork(url); world.start(); })();
+    // reveal the work
+    requestAnimationFrame(() => document.querySelector('[data-reveal]')?.classList.add('wk-in'));
+
+    // GLITCH THE WRITING — decode the title from matrix noise, then flicker
+    const GLY = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789∞ΩΔ/#·';
+    const scramble = (el, final, dur) => {
+      const len = final.length, t0 = performance.now();
+      clearInterval(el.__g);
+      el.__g = setInterval(() => {
+        const p = Math.min(1, (performance.now() - t0) / dur);
+        let out = '';
+        for (let i = 0; i < len; i++) out += final[i] === ' ' ? ' ' : (i / len < p ? final[i] : GLY[Math.random() * GLY.length | 0]);
+        el.textContent = out;
+        if (p >= 1) clearInterval(el.__g);
+      }, 40);
+    };
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('[data-glitch]').forEach((el) => {
+      const t = el.textContent;
+      if (reduceMotion) return;               // accessibility — no flicker
+      setTimeout(() => scramble(el, t, 900), 250);
+      setInterval(() => { if (Math.random() < 0.5) scramble(el, t, 450); }, 6500);
+    });
+
+    // signal
+    let sig = false;
+    const sb = document.querySelector('[data-signal]');
+    sb.addEventListener('click', () => { sig = !sig; world.setSignal(sig); sb.setAttribute('aria-pressed', String(sig)); });
+    // language toggle
+    let es = false;
+    const lb = document.querySelector('[data-lang]');
+    lb.addEventListener('click', () => {
+      es = !es; lb.textContent = es ? 'EN' : 'ES';
+      const s = document.querySelector('.wk-story'); if (s) s.textContent = es ? s.getAttribute('data-es') : s.getAttribute('data-en');
+      document.querySelectorAll('.wk-about__en').forEach((e) => e.style.display = es ? 'none' : '');
+      document.querySelectorAll('.wk-about__es').forEach((e) => e.style.display = es ? '' : 'none');
+    });
+    // about
+    const about = document.querySelector('[data-about]');
+    document.querySelector('[data-about-open]').addEventListener('click', () => { about.hidden = false; });
+    document.querySelector('[data-about-close]').addEventListener('click', () => { about.hidden = true; });
+    // the source code of the universe
+    const srcBtn = document.querySelector('[data-src-toggle]'), srcBlock = document.querySelector('[data-src]');
+    srcBtn.addEventListener('click', () => { srcBlock.hidden = !srcBlock.hidden; });
+
+    // free download + pinterest share (discovery) + support
+    const plate = location.pathname.split('/').filter(Boolean).pop();
+    document.querySelector('[data-download]')?.addEventListener('click', () => {
+      const a = document.createElement('a'); a.href = url; a.download = 'KODEX-plate-' + plate + '.jpg'; document.body.appendChild(a); a.click(); a.remove();
+    });
+    const pin = document.querySelector('[data-pin]');
+    if (pin) {
+      const media = encodeURIComponent(location.origin + url);
+      const pageUrl = encodeURIComponent(location.href);
+      const desc = encodeURIComponent('KODEX −∞ · plate ' + plate + ' — a living archive of matter, symbol and technology by Nicolás Ortega (Wenu Mapu)');
+      pin.href = 'https://www.pinterest.com/pin/create/button/?url=' + pageUrl + '&media=' + media + '&description=' + desc;
+    }
+
+    // ── PER-WORK EFFECT ON CLICK — the work's own effect + its code ──
+    const workFig = document.querySelector('.wk-work');
+    const wimg = document.querySelector('[data-work-img]');
+    const fxCanvas = document.querySelector('[data-fx-canvas]');
+    const fxCode = document.querySelector('[data-fx-code]');
+    const fxData = document.querySelector('[data-fx-data]');
+    const fxHud = document.querySelector('[data-fx-hud]');
+    const fxLabel = document.querySelector('[data-fx-label]');
+    const fxName = workFig.getAttribute('data-fx');
+    const reduceMo = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // terminal typing — code + data come online like a system waking (cyberpunk)
+    const typeInto = (el, delay) => {
+      const full = el.getAttribute('data-src') || ''; el.textContent = '';
+      if (reduceMo) { el.textContent = full; return; }
+      let i = 0; const t0 = performance.now();
+      const step = () => { const n = Math.max(0, Math.min(full.length, ((performance.now() - t0 - delay) / 9) | 0)); if (n > i) { el.textContent = full.slice(0, n); i = n; } if (i < full.length) el.__tm = requestAnimationFrame(step); };
+      el.__tm = requestAnimationFrame(step);
+    };
+    const stopTypers = () => { [fxData, fxCode].forEach((el) => { if (el && el.__tm) cancelAnimationFrame(el.__tm); if (el) el.textContent = ''; }); };
+    const tmp = document.createElement('canvas'), tc = tmp.getContext('2d');
+    const FX = {
+      MIRROR: (cx, w, h) => { tmp.width = w; tmp.height = h; tc.drawImage(fxCanvas, 0, 0); cx.save(); cx.translate(w, 0); cx.scale(-1, 1); cx.drawImage(tmp, 0, 0, w / 2, h, 0, 0, w / 2, h); cx.restore(); },
+      CHROMA: (cx, w, h) => { const s = cx.getImageData(0, 0, w, h), o = cx.createImageData(w, h), sd = s.data, od = o.data, sh = Math.max(2, w * 0.02 | 0); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4, r = (y * w + Math.min(w - 1, x + sh)) * 4, b = (y * w + Math.max(0, x - sh)) * 4; od[i] = sd[r]; od[i + 1] = sd[i + 1]; od[i + 2] = sd[b + 2]; od[i + 3] = 255; } cx.putImageData(o, 0, 0); },
+      'PIXEL SORT': (cx, w, h) => { const s = cx.getImageData(0, 0, w, h), d = s.data; for (let y = 0; y < h; y++) { if (Math.random() < 0.35) continue; const x0 = Math.random() * w * 0.5 | 0, x1 = Math.min(w, x0 + (Math.random() * w * 0.45 + w * 0.1 | 0)), row = []; for (let x = x0; x < x1; x++) { const i = (y * w + x) * 4; row.push([d[i], d[i + 1], d[i + 2]]); } row.sort((a, b) => (a[0] + a[1] + a[2]) - (b[0] + b[1] + b[2])); for (let x = x0; x < x1; x++) { const i = (y * w + x) * 4, c = row[x - x0]; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; } } cx.putImageData(s, 0, 0); },
+      GLITCH: (cx, w, h) => { tmp.width = w; tmp.height = h; tc.drawImage(fxCanvas, 0, 0); const n = 8 + (Math.random() * 8 | 0); for (let k = 0; k < n; k++) { const by = Math.random() * h | 0, bh = (Math.random() * h * 0.08 + 4) | 0, dx = ((Math.random() - 0.5) * w * 0.16) | 0; cx.drawImage(tmp, 0, by, w, bh, dx, by, w, bh); } },
+      DITHER: (cx, w, h) => { const s = cx.getImageData(0, 0, w, h), d = s.data, B = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4, g = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11, t = B[y & 3][x & 3] / 16 * 255, v = g > t ? 255 : 0; d[i] = d[i + 1] = d[i + 2] = v; } cx.putImageData(s, 0, 0); },
+      SCANLINES: (cx, w, h) => { cx.fillStyle = 'rgba(0,0,0,0.32)'; for (let y = 0; y < h; y += 3) cx.fillRect(0, y, w, 1); },
+    };
+    let fxOn = false;
+    const runFx = () => {
+      const w = wimg.clientWidth | 0, h = wimg.clientHeight | 0; if (!w) return;
+      fxCanvas.width = w; fxCanvas.height = h; fxCanvas.style.width = w + 'px'; fxCanvas.style.height = h + 'px';
+      const cx = fxCanvas.getContext('2d', { willReadFrequently: true });
+      cx.clearRect(0, 0, w, h); cx.drawImage(wimg, 0, 0, w, h);
+      (FX[fxName] || (() => {}))(cx, w, h);
+      // interference brings colour — the touch transforms the palette
+      cx.globalAlpha = 0.42; cx.globalCompositeOperation = 'overlay';
+      cx.fillStyle = acc; cx.fillRect(0, 0, w, h);
+      cx.globalAlpha = 1; cx.globalCompositeOperation = 'source-over';
+      fxCanvas.hidden = false; wimg.style.visibility = 'hidden';
+      fxHud.hidden = false; stopTypers(); typeInto(fxData, 0); typeInto(fxCode, 280);
+      fxLabel.textContent = '◈ ' + fxName + ' · SIGNAL ACTIVE'; fxOn = true;
+    };
+    const resetFx = () => { fxCanvas.hidden = true; wimg.style.visibility = ''; fxHud.hidden = true; stopTypers(); fxLabel.textContent = '◈ ' + fxName + ' · tap to activate'; fxOn = false; };
+    workFig.addEventListener('click', () => { fxOn ? resetFx() : runFx(); });
+    // keyboard nav
+    addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') location.href = document.querySelector('.wk-arrow[aria-label=next]').getAttribute('href');
+      else if (e.key === 'ArrowLeft') location.href = document.querySelector('.wk-arrow[aria-label=previous]').getAttribute('href');
+      else if (e.key === 'Escape') about.hidden = true;
+    });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else world.start(); });
+  </script>
+</KodexShell>

@@ -1,0 +1,457 @@
+---
+/**
+ * ReserveModal — the INQUIRE form (reframed 2026-07-13, Ocin).
+ *
+ * Was: a "Reserve / Claim" button shown on anything over $200. Now it is the
+ * white-glove channel behind `sales_mode` (see src/lib/sales-mode.ts):
+ *   · 'inquire'        → this form IS the CTA (Art & Objects, coming soon,
+ *                        sold out, hand-forged with no cart).
+ *   · 'cart_concierge' → a small secondary link under the cart opens it for
+ *                        sizing, provenance or a private consultation.
+ * Ocin reads every one of these and answers BY EMAIL, by hand.
+ *
+ * The COMPONENT NAME, the ENDPOINT and the PAYLOAD are deliberately unchanged —
+ * only the copy/framing moved. The submit handler still POSTs the same JSON to
+ * `${API_BASE}/shop/order` (`method: 'reserve'`), the backend that persists the
+ * request and emails Ocin. The dead Formspree form (mblrgwya, 404) was removed
+ * 2026-07-05; the <form action> points at the same backend as a no-JS net.
+ */
+// Backend de pedidos/reservas. Solo una URL pública — no es secreto.
+const API_BASE =
+  import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com';
+// No-JS fallback target for the native form (JS intercepts submit and POSTs JSON).
+const RESERVE_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
+---
+<div class="rsv" data-rsv data-api={API_BASE} hidden>
+  <div class="rsv__backdrop" data-rsv-close></div>
+  <div class="rsv__panel" role="dialog" aria-modal="true" aria-labelledby="rsv-title">
+    <button type="button" class="rsv__x" data-rsv-close aria-label="Close">×</button>
+    <p class="eyebrow rsv__eyebrow">Inquire · Wenu Mapu</p>
+    <h2 id="rsv-title" class="rsv__title" data-rsv-heading>Inquire about this piece</h2>
+    <p class="rsv__piece"><span data-rsv-piece></span> <span class="rsv__price" data-rsv-price></span></p>
+    <p class="rsv__intro">Sizing, provenance or a private consultation — write to us and the maker answers you by email, personally.</p>
+
+    <form class="rsv__form" method="POST" action={RESERVE_ENDPOINT} data-rsv-form>
+      <input type="hidden" name="_subject" value="Wenu Mapu — NEW reservation (buyer)" />
+      <input type="hidden" name="list" value="buyer" />
+      <input type="hidden" name="source" value="pdp-reserve" />
+      <input type="hidden" name="piece" data-rsv-f-piece value="" />
+      <input type="hidden" name="sku" data-rsv-f-sku value="" />
+      <input type="hidden" name="price" data-rsv-f-price value="" />
+      <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="rsv__honey" aria-hidden="true" />
+
+      <label class="rsv__field"><span>Your name</span>
+        <input type="text" name="name" required autocomplete="name" />
+      </label>
+      <label class="rsv__field"><span>Email</span>
+        <input type="email" name="email" required autocomplete="email" />
+      </label>
+      <label class="rsv__field"><span>Size / gauge — if applicable</span>
+        <input type="text" name="size" placeholder="e.g. US 7 · 16g · 8mm inner Ø" />
+      </label>
+      <label class="rsv__field"><span>Your question — optional</span>
+        <textarea name="message" rows="3" placeholder="Sizing, provenance, a private consultation — anything you want to ask."></textarea>
+      </label>
+
+      <button type="submit" class="btn btn--solid rsv__submit">Send my inquiry →</button>
+      <p class="rsv__fine">No payment now, and no obligation. Ocin reads this himself and replies by email within 24 hours. If you decide to take the piece, we hold it for you and send the exact amount.</p>
+    </form>
+
+    <div class="rsv__ok" data-rsv-ok hidden role="status">
+      <p class="rsv__ok-title">Your inquiry is with the maker.</p>
+      <p class="rsv__ok-body">We've noted it under your name and emailed you a copy. Ocin replies personally by email — usually within 24 hours — with sizing, provenance and anything else you asked. The piece is noted for you in the meantime.</p>
+
+      <div class="rsv__pay">
+        <p class="rsv__pay-h">Ready to take it? How to pay</p>
+
+        {/* PAYMENT REFERENCE (Ocin 2026-07-13) — the constancia that lets the maker
+            match a deposit to this reservation. Autofilled with the piece's SKU. */}
+        <div class="rsv__ref">
+          <p class="rsv__ref-h">Include this code in your payment note:</p>
+          <div class="rsv__ref-row">
+            <code class="rsv__ref-code" data-rsv-ref-code>—</code>
+            <button type="button" class="rsv__copy" data-rsv-copy>Copy</button>
+          </div>
+          <p class="rsv__ref-note">We match it to your order and confirm by email within 24 hours.</p>
+        </div>
+
+        {/* Venmo first — the maker's preferred, fastest route. */}
+        <div class="rsv__pay-card">
+          <span class="rsv__pay-label">Venmo</span>
+          <img class="rsv__pay-qr" src="/img/pay/venmo.png" alt="Venmo QR code — Wenu Mapu, handle @Wenu_mapu8" loading="lazy" width="897" height="725" />
+          <span class="rsv__pay-handle">@Wenu_mapu8</span>
+        </div>
+
+        {/* Everything else folded away: the Zelle QR, crypto, and card. */}
+        <details class="rsv__other">
+          <summary class="rsv__other-sum">Other payment methods</summary>
+          <div class="rsv__other-body">
+            <div class="rsv__pay-card">
+              <span class="rsv__pay-label">Zelle</span>
+              <img class="rsv__pay-qr" src="/img/pay/zelle.png" alt="Zelle QR code — Wenu Mapu" loading="lazy" width="783" height="1069" />
+              <span class="rsv__other-cap">Scan with your bank's Zelle app.</span>
+            </div>
+            <p class="rsv__other-row">
+              <strong>Crypto</strong> — USDT accepted.
+              <a href="mailto:wenu.mapu8@gmail.com?subject=Crypto%20payment%20-%20Wenu%20Mapu">Write to us</a>
+              and we send the address + network.
+            </p>
+            <div class="rsv__pay-card rsv__pay-card--mp">
+              <span class="rsv__pay-label">Pay by card</span>
+              <span class="rsv__pay-mp-desc">Credit / debit &amp; international · secure page hosted by Mercado Pago</span>
+              <button type="button" class="btn btn--solid rsv__pay-mp-btn" data-rsv-mp>Pay with Mercado Pago →</button>
+              <span class="rsv__pay-mp-status" data-rsv-mp-status role="status" hidden></span>
+            </div>
+          </div>
+        </details>
+
+        <p class="rsv__pay-note">Complete payment by whichever method you prefer. Paste the code above into the payment note so we can match it to your reservation.</p>
+        <p class="rsv__pay-secure">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke-linecap="round"/>
+          </svg>
+          <span>No card details are stored on this site.</span>
+        </p>
+      </div>
+
+      <button type="button" class="btn btn--ghost" data-rsv-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const modal = document.querySelector<HTMLElement>('[data-rsv]');
+  if (modal) {
+    const form = modal.querySelector<HTMLFormElement>('[data-rsv-form]')!;
+    const okBox = modal.querySelector<HTMLElement>('[data-rsv-ok]')!;
+    const heading = modal.querySelector<HTMLElement>('[data-rsv-heading]')!;
+    const pieceEl = modal.querySelector<HTMLElement>('[data-rsv-piece]')!;
+    const priceEl = modal.querySelector<HTMLElement>('[data-rsv-price]')!;
+    const fPiece = modal.querySelector<HTMLInputElement>('[data-rsv-f-piece]')!;
+    const fSku = modal.querySelector<HTMLInputElement>('[data-rsv-f-sku]')!;
+    const fPrice = modal.querySelector<HTMLInputElement>('[data-rsv-f-price]')!;
+    const refCodeEl = modal.querySelector<HTMLElement>('[data-rsv-ref-code]');
+    const copyBtn = modal.querySelector<HTMLButtonElement>('[data-rsv-copy]');
+    let justOpened = false;
+
+    // Payment reference — the SKU the buyer pastes into the Venmo/Zelle note so the
+    // deposit can be matched to this reservation.
+    function syncRef() {
+      if (refCodeEl) refCodeEl.textContent = (fSku.value || '').trim() || 'WENU-RESERVATION';
+    }
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const txt = (refCodeEl?.textContent || '').trim();
+        if (!txt || txt === '—') return;
+        let done = false;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(txt);
+            done = true;
+          }
+        } catch { done = false; }
+        if (!done) {
+          const ta = document.createElement('textarea');
+          ta.value = txt;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.top = '-1000px';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } catch {}
+          document.body.removeChild(ta);
+        }
+        copyBtn.textContent = 'Copied ✓';
+        setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function open(btn: HTMLElement) {
+      const piece = btn.dataset.piece || 'This piece';
+      const sku = btn.dataset.sku || '';
+      const price = btn.dataset.price || '';
+      // data-verb: 'consult' → the concierge link under the cart (cart_concierge).
+      // Anything else (default 'inquire') → the piece has no cart; this form is
+      // the only CTA. Two headings, one form, one backend.
+      const verb = btn.dataset.verb || 'inquire';
+      heading.textContent = verb === 'consult' ? 'Private consultation' : 'Inquire about this piece';
+      pieceEl.textContent = piece;
+      priceEl.textContent = price;
+      fPiece.value = piece;
+      fSku.value = sku;
+      fPrice.value = price;
+      syncRef();
+      form.hidden = false;
+      okBox.hidden = true;
+      modal.hidden = false;
+      document.body.style.overflow = 'hidden';
+      // Guard against the same tap "ghost-clicking" the backdrop closed.
+      justOpened = true;
+      setTimeout(() => { justOpened = false; }, 400);
+    }
+    function close() {
+      modal.hidden = true;
+      document.body.style.overflow = '';
+    }
+
+    // Bind the opener directly to each CTA so the first tap always registers.
+    document.querySelectorAll<HTMLElement>('[data-rsv-open]').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.preventDefault(); open(btn); });
+    });
+    document.addEventListener('click', (e) => {
+      if (justOpened) return;
+      if ((e.target as HTMLElement).closest('[data-rsv-close]')) close();
+    });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) close(); });
+
+    // Dev aid: open the modal straight to the confirmation/pay step for QA
+    // screenshots without sending a real reservation. Only on this exact hash.
+    if (location.hash === '#rsv-pay-demo') {
+      const firstBtn = document.querySelector<HTMLElement>('[data-rsv-open]');
+      if (firstBtn) { open(firstBtn); form.hidden = true; okBox.hidden = false; }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const apiBase = (modal.dataset.api || '').replace(/\/$/, '');
+      const p = {
+        email: (form.querySelector<HTMLInputElement>('[name="email"]')?.value || '').trim(),
+        name: (form.querySelector<HTMLInputElement>('[name="name"]')?.value || '').trim(),
+      };
+      if (!p.email) return;
+      const submitBtn = form.querySelector<HTMLButtonElement>('.rsv__submit');
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const res = await fetch(`${apiBase}/shop/order`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: p.email, name: p.name, method: 'reserve',
+            items: [{ sku: fSku.value, name: fPiece.value, price: fPrice.value, qty: 1, max: 1 }],
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data && data.ok) { form.hidden = true; okBox.hidden = false; }
+        else if (submitBtn) submitBtn.disabled = false;
+      } catch { if (submitBtn) submitBtn.disabled = false; }
+    });
+
+    // ── Mercado Pago: generate a real checkout link from the backend, then redirect.
+    // No card data is handled here — Mercado Pago hosts the payment page.
+    const apiBase = (modal.dataset.api || '').replace(/\/$/, '');
+    const mpBtn = modal.querySelector<HTMLButtonElement>('[data-rsv-mp]');
+    const mpStatus = modal.querySelector<HTMLElement>('[data-rsv-mp-status]');
+    function buildPayload() {
+      const get = (n: string) => (form.querySelector<HTMLInputElement>(`[name="${n}"]`)?.value || '').trim();
+      return { email: get('email'), name: get('name'), piece: fPiece.value, sku: fSku.value, price: fPrice.value };
+    }
+    if (mpBtn) {
+      mpBtn.addEventListener('click', async () => {
+        const payload = buildPayload();
+        if (!payload.email) {
+          if (mpStatus) { mpStatus.hidden = false; mpStatus.textContent = 'Add your email above first.'; }
+          return;
+        }
+        mpBtn.disabled = true;
+        if (mpStatus) { mpStatus.hidden = false; mpStatus.textContent = 'Creating secure payment link…'; }
+        try {
+          const r = await fetch(`${apiBase}/shop/checkout-link`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          const data = await r.json();
+          if (data && data.ok && data.url) {
+            window.location.href = data.url;
+          } else {
+            if (mpStatus) mpStatus.textContent = (data && data.error) ? data.error : 'Could not create the link — please use Venmo or Zelle below.';
+            mpBtn.disabled = false;
+          }
+        } catch {
+          if (mpStatus) mpStatus.textContent = 'Network error — please use Venmo or Zelle below.';
+          mpBtn.disabled = false;
+        }
+      });
+    }
+  }
+</script>
+
+<style>
+  .rsv { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: var(--space-4); }
+  .rsv[hidden] { display: none; }
+  .rsv__backdrop { position: absolute; inset: 0; background: rgba(6, 5, 4, 0.78); backdrop-filter: blur(3px); }
+  .rsv__panel {
+    position: relative; z-index: 1; width: min(440px, 100%);
+    max-height: 92vh; overflow-y: auto;
+    background: var(--charcoal); border: 1px solid rgba(201, 168, 76, 0.34);
+    padding: var(--space-6) var(--space-5);
+    box-shadow: 0 24px 80px -20px rgba(0, 0, 0, 0.8);
+  }
+  .rsv__x {
+    position: absolute; top: var(--space-3); right: var(--space-3);
+    background: none; border: none; color: var(--silver); font-size: 1.6rem; line-height: 1;
+    cursor: pointer; padding: 4px 8px; transition: color var(--t-fast);
+  }
+  .rsv__x:hover { color: var(--bone); }
+  .rsv__eyebrow { color: var(--ember); }
+  .rsv__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.5rem, 4vw, 2rem); line-height: 1.1; color: var(--bone);
+    margin: var(--space-2) 0 var(--space-2);
+  }
+  .rsv__piece { font-family: var(--font-serif); color: var(--fg-soft); margin: 0 0 var(--space-3); }
+  .rsv__price { color: var(--ember); }
+  /* Framing line — says out loud what this form is for and who answers it. */
+  .rsv__intro {
+    font-family: var(--font-serif); font-style: italic; font-weight: var(--fw-thin, 300);
+    font-size: var(--fs-small); line-height: 1.55; color: var(--silver);
+    margin: 0 0 var(--space-5);
+  }
+  .rsv__form { display: grid; gap: var(--space-3); }
+  /* `.rsv__form{display:grid}` would otherwise override the [hidden] attribute,
+     leaving the form visible on top of the pay step after a reservation. */
+  .rsv__form[hidden] { display: none; }
+  .rsv__field { display: grid; gap: var(--space-1); }
+  .rsv__field > span {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--sand);
+  }
+  .rsv__field input, .rsv__field textarea {
+    background: var(--obsidian); border: 1px solid var(--line-bright); color: var(--bone);
+    font-family: var(--font-sans); font-size: var(--fs-body); padding: var(--space-3); width: 100%;
+  }
+  .rsv__field input:focus-visible, .rsv__field textarea:focus-visible { outline: none; border-color: var(--ember); }
+  .rsv__honey { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .rsv__submit { margin-top: var(--space-2); }
+  .rsv__fine { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); line-height: 1.5; margin: var(--space-2) 0 0; }
+  .rsv__ok { text-align: center; padding: var(--space-4) 0; }
+  .rsv__ok-title { font-family: var(--font-display); font-size: 1.6rem; color: var(--ember); margin: 0 0 var(--space-3); }
+  .rsv__ok-body { font-family: var(--font-serif); font-weight: var(--fw-thin); color: var(--fg-soft); line-height: 1.6; margin: 0 0 var(--space-4); }
+
+  /* ── How to pay — real receiving identifiers (public). USDT + Mercado Pago
+       slots are ready to fill when Ocin sends them. No private keys, ever. */
+  .rsv__pay {
+    border-top: 1px solid var(--line);
+    padding-top: var(--space-4);
+    margin: 0 0 var(--space-4);
+  }
+  .rsv__pay-h {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--sand); margin: 0 0 var(--space-3);
+  }
+  .rsv__pay-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+  .rsv__pay-card {
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+    padding: var(--space-3); background: var(--obsidian);
+    border: 1px solid var(--line-bright);
+  }
+  .rsv__pay-label {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: 0.18em; text-transform: uppercase; color: var(--ember);
+  }
+  .rsv__pay-qr {
+    width: 100%; height: auto; display: block; border-radius: 6px;
+    background: var(--bone); /* keeps QR scannable if its own margin is thin */
+  }
+  .rsv__pay-handle { font-family: var(--font-sans); font-size: var(--fs-small); color: var(--bone); }
+  .rsv__pay-card--soon {
+    grid-column: 1 / -1;
+    justify-content: center; min-height: 96px; gap: var(--space-2);
+    border-style: dashed; opacity: 0.62;
+  }
+  .rsv__pay-soon {
+    font-family: var(--font-serif); font-style: italic;
+    font-size: var(--fs-small); color: var(--silver); text-align: center; line-height: 1.4;
+  }
+  /* "or pay directly" divider between the card CTA and the manual methods. */
+  .rsv__pay-or {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: var(--space-2);
+    margin: var(--space-1) 0;
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--sand);
+  }
+  .rsv__pay-or::before, .rsv__pay-or::after { content: ''; flex: 1; height: 1px; background: var(--line-soft); }
+  .rsv__pay-note {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    line-height: 1.5; margin: var(--space-3) 0 0;
+  }
+  .rsv__pay-secure {
+    display: flex; align-items: center; justify-content: center; gap: var(--space-2);
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    letter-spacing: 0.02em; line-height: 1.4; margin: var(--space-2) 0 0;
+  }
+  .rsv__pay-secure svg { flex-shrink: 0; color: var(--ember); }
+  /* Mercado Pago — primary card method (spans the full grid width, gold-leaning). */
+  .rsv__pay-card--mp {
+    grid-column: 1 / -1; gap: var(--space-2);
+    border-color: var(--ember); background: rgba(201, 168, 76, 0.08);
+  }
+  .rsv__pay-card--mp .rsv__pay-label { color: var(--ember); }
+  .rsv__pay-mp-desc {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    color: var(--silver); text-align: center; line-height: 1.4;
+  }
+  .rsv__pay-mp-btn { width: 100%; margin-top: var(--space-1); }
+  .rsv__pay-mp-status {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    color: var(--silver); text-align: center; line-height: 1.4;
+  }
+
+  /* ── "Other payment methods" — folded away by default (Ocin 2026-07-13).
+       Holds the Zelle QR (whose image carries an identity we keep off screen),
+       crypto and the card route. Venmo stays first and in the open. ── */
+  .rsv__other { margin-top: var(--space-3); border-top: 1px solid var(--line-soft); }
+  .rsv__other-sum {
+    list-style: none; cursor: pointer; padding: var(--space-3) 0;
+    display: flex; align-items: center; justify-content: space-between;
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--sand);
+  }
+  .rsv__other-sum::-webkit-details-marker { display: none; }
+  .rsv__other-sum::after { content: '+'; color: var(--bronze); font-size: 1.1rem; line-height: 1; }
+  .rsv__other[open] > .rsv__other-sum::after { content: '−'; color: var(--ember); }
+  .rsv__other-sum:hover { color: var(--ember); }
+  .rsv__other-body { display: flex; flex-direction: column; gap: var(--space-3); padding-bottom: var(--space-3); }
+  .rsv__other-cap {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    color: var(--silver); text-align: center; line-height: 1.4;
+  }
+  .rsv__other-row {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    line-height: 1.55; margin: 0; text-align: left;
+  }
+  .rsv__other-row strong { color: var(--bone); font-weight: var(--fw-regular); }
+  .rsv__other-row a { color: var(--ember); }
+
+  /* ── Payment reference — the code that ties a deposit to this reservation. ── */
+  .rsv__ref {
+    border: 1px solid var(--ember); background: rgba(201, 168, 76, 0.08);
+    padding: var(--space-3); margin: 0 0 var(--space-4); text-align: left;
+  }
+  .rsv__ref-h {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--sand); margin: 0 0 var(--space-2);
+  }
+  .rsv__ref-row { display: flex; align-items: center; gap: var(--space-2); }
+  .rsv__ref-code {
+    flex: 1 1 auto; min-width: 0; word-break: break-all;
+    font-family: var(--font-mono); font-size: var(--fs-small); color: var(--ember);
+    background: var(--obsidian); border: 1px solid var(--line-bright);
+    padding: var(--space-2); line-height: 1.4;
+  }
+  .rsv__copy {
+    flex: 0 0 auto; cursor: pointer;
+    font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--obsidian); background: var(--ember);
+    border: 1px solid var(--ember); padding: var(--space-2) var(--space-3); min-height: 38px;
+    transition: opacity var(--t-fast);
+  }
+  .rsv__copy:hover { opacity: 0.85; }
+  .rsv__ref-note {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    line-height: 1.5; margin: var(--space-2) 0 0;
+  }
+</style>

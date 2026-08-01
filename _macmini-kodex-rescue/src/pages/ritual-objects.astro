@@ -1,0 +1,97 @@
+---
+import Base from '../layouts/Base.astro';
+import ProductCard from '../components/ProductCard.astro';
+import PatternBand from '../components/PatternBand.astro';
+import { getProducts } from '../lib/woo';
+import en from '../i18n/en.json';
+
+const L = en.landing.ritual_objects;
+
+const KEYWORDS = ['ritual', 'rituales', 'objeto-ritual', 'ritual-objects', 'ritual-pieces', 'ceremony', 'ceremonia'];
+const all = await getProducts();
+const matched = all.filter(p =>
+  p.images.length > 0 && p.images[0].src &&
+  p.categories.some(c => KEYWORDS.some(k => c.slug.toLowerCase().includes(k)))
+);
+const featured = matched.slice(0, 6);
+
+const collectionLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: L.title,
+  description: L.intro,
+  url: 'https://wenumapuonline.com/ritual-objects',
+  isPartOf: { '@type': 'WebSite', name: 'Wenu Mapu', url: 'https://wenumapuonline.com' },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Ritual Objects', item: 'https://wenumapuonline.com/ritual-objects' },
+  ],
+};
+---
+<Base
+  title="Ritual Objects — Vessels, talismans and ceremonial pieces | Wenu Mapu"
+  description="Hand-forged ritual objects for the body and the ceremony. Vessels, talismans, hand pieces in silver, bronze, stone and wood. Made for presence, not display."
+  ogImage="/img/categories/ritual-pieces.png"
+  jsonLd={[collectionLd, breadcrumbLd]}
+>
+  {/* Ocin's designed titled banner (was unused) — RITUAL OBJECTS · Beyond adornment.
+      Title is baked → plain masthead, no HTML overlay (one voice). */}
+  <div class="cat-masthead cat-masthead--art">
+    <picture>
+      <source type="image/avif" srcset="/img/categories/banner-ritual.avif" />
+      <img src="/img/categories/banner-ritual.webp" alt="Wenu Mapu — Ritual Objects" width="1600" height="730" loading="eager" decoding="async" fetchpriority="high" />
+    </picture>
+  </div>
+
+  <section class="section section--mega">
+    <div class="container">
+      <p class="eyebrow">{L.eyebrow}</p>
+      <h1 class="page-title">{L.title}</h1>
+      <p class="lede">{L.intro}</p>
+      <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+      <div class="landing__copy">
+        <p>{L.p1}</p>
+        <p>{L.p2}</p>
+      </div>
+
+      <div class="landing__cta">
+        <a href={L.shop_target} class="btn btn--solid">{L.cta_primary} →</a>
+        <a href="/artistry" class="btn btn--ghost">{L.cta_secondary}</a>
+      </div>
+
+      {featured.length > 0 && (
+        <div class="landing__rail" aria-label="Selected ritual objects">
+          <div class="landing__rail-head">
+            <p class="eyebrow">Selected pieces</p>
+            <a href={L.shop_target} class="text-accent">View all →</a>
+          </div>
+          <div class="featured-v2__rail">
+            {featured.map(product => (
+              <div class="featured-v2__cell">
+                <ProductCard product={product} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {featured.length === 0 && (
+        <div class="landing__rail" aria-label="Ritual object availability">
+          <div class="landing__rail-head">
+            <p class="eyebrow">One-of-one commissions</p>
+            <a href="/custom-orders" class="text-accent">Commission a ritual piece →</a>
+          </div>
+          <p class="text-soft italic" style="max-width: 58ch;">
+            Ritual objects are released slowly and usually as one-of-one work. For now, this line is available by commission rather than ready-to-ship inventory.
+          </p>
+        </div>
+      )}
+    </div>
+  </section>
+</Base>

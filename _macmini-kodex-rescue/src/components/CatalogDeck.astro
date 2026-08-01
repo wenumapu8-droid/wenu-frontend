@@ -1,0 +1,548 @@
+---
+/**
+ * CatalogDeck — VERTICAL REVEAL deck of real catalogue pieces (Ocin 2026-07-05,
+ * reworked to a vertical gesture 2026-07-06).
+ *
+ * Ocin's mental model: the pieces should RISE UP one by one — the top card lifts
+ * away toward the top and fades, and the next piece (peeking from BELOW) elevates
+ * into its place. A calm, comfortable way to discover each piece. The old horizontal
+ * swipe never worked on his phone (Brave/Android), so this rework:
+ *   1. Makes the gesture VERTICAL (fly up + fade; next rises from below).
+ *   2. NEVER depends only on the finicky drag — there are always clear TAP/ARROW
+ *      affordances: a ceremonial ↑ "next piece" button, a large tap zone at the
+ *      bottom of the stage ("descubrir siguiente"), keyboard ↑/↓, dots, and a
+ *      counter (1/12). The flick/drag UP still advances for those it works for.
+ *
+ * Each card = one real WooCommerce product: a big macro photo (the protagonist),
+ * name, price and a "Ver pieza →" CTA/tap to its PDP (/p/[slug]). 2-3 cards behind
+ * peek out BELOW (offset + scale + fading opacity). It's a CATALOGUE, not a to-do —
+ * so the top card, when lifted, loops to the BACK of the deck and the next surfaces.
+ *
+ * Interaction: TAP the card body → PDP (distinguished from a drag by a movement
+ * threshold). TAP the next-zone / ↑ button, drag/flick UP, arrows, dots, or ↑/↓ keys
+ * → advance. A "See the whole catalogue →" CTA leads to /shop.
+ *
+ * Effects budget: transform/opacity only (GPU), pointer events with setPointerCapture
+ * on the top card, no rAF loop. Honours prefers-reduced-motion (no fly animation —
+ * cards change instantly via the buttons; drag disabled, keyboard/buttons still work).
+ * Theme-coherent via tokens (see themes.css block ".cdeck" for Solar tuning).
+ */
+import { formatPrice, decodeEntities, getHeroImage } from '../lib/woo';
+import type { WooProduct } from '../lib/woo';
+
+interface Props {
+  products: WooProduct[];
+  eyebrow?: string;
+  title?: string;
+  ctaHref?: string;
+  ctaLabel?: string;
+}
+const {
+  products,
+  eyebrow = 'Ngen · From the catalogue',
+  title = 'The deck of pieces',
+  ctaHref = '/shop',
+  ctaLabel = 'See the whole catalogue',
+} = Astro.props;
+
+// Only real macro photos in the deck — no placeholders in the shop window.
+const items = products
+  .map(p => ({ p, img: getHeroImage(p) }))
+  .filter(x => x.img)
+  .slice(0, 12);
+---
+{items.length > 0 && (
+  <section class="cdeck" aria-labelledby="cdeck-title">
+    <div class="container cdeck__head">
+      <div>
+        <p class="eyebrow">{eyebrow}</p>
+        <h2 id="cdeck-title" class="cdeck__title">{title}</h2>
+      </div>
+      <a href={ctaHref} class="cdeck__viewall">{ctaLabel} <span aria-hidden="true">→</span></a>
+    </div>
+
+    <div class="cdeck__stage-wrap container">
+      {/* Ceremonial "previous piece" — pulls the last card back down to the front. */}
+      <button type="button" class="cdeck__arrow cdeck__arrow--prev" data-cdeck-prev aria-label="Previous piece">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      <div
+        class="cdeck__stage"
+        data-cdeck
+        role="group"
+        aria-roledescription="carousel"
+        aria-label="Catalogue pieces — lift a card up, tap the arrow, or use the arrow keys to reveal the next piece"
+        tabindex="0"
+      >
+        {items.map(({ p, img }, i) => (
+          <article
+            class="cdeck__card"
+            data-cdeck-card
+            data-index={i}
+            aria-label={`${decodeEntities(p.name)} — ${formatPrice(p.price)}`}
+          >
+            <a href={`/p/${p.slug}`} class="cdeck__link" tabindex="-1">
+              <span class="cdeck__media">
+                <img
+                  src={img!.src}
+                  alt={img!.alt || decodeEntities(p.name)}
+                  width={img!.width}
+                  height={img!.height}
+                  loading={i < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  draggable="false"
+                  onerror="this.onerror=null; this.src='/img/products/placeholder-cardinal-bronze.webp';"
+                />
+                <span class="cdeck__media-veil" aria-hidden="true"></span>
+              </span>
+              <span class="cdeck__meta">
+                <span class="cdeck__name">{decodeEntities(p.name)}</span>
+                <span class="cdeck__row">
+                  <span class="cdeck__price">{formatPrice(p.price)}</span>
+                  <span class="cdeck__cta">See piece <span aria-hidden="true">→</span></span>
+                </span>
+              </span>
+            </a>
+          </article>
+        ))}
+
+        {/* NEXT-PIECE affordance — a large, always-tappable zone pinned to the bottom
+            of the stage. This is the guaranteed-working advance (the drag can be finicky
+            on some Android browsers), and it reads as "lift the next piece up". */}
+        <button type="button" class="cdeck__next" data-cdeck-next aria-label="Reveal the next piece">
+          <svg class="cdeck__next-arrow" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+          <span class="cdeck__next-label">Next piece</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="cdeck__foot container">
+      <div class="cdeck__dots" data-cdeck-dots role="tablist" aria-label="Piece indicator">
+        {items.map((_, i) => (
+          <button type="button" class="cdeck__dot" data-cdeck-dot={i} aria-label={`Go to piece ${i + 1} of ${items.length}`}></button>
+        ))}
+      </div>
+      <p class="cdeck__count"><span data-cdeck-current>1</span> / {items.length}</p>
+      <a href={ctaHref} class="btn btn--ghost cdeck__all">{ctaLabel} <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+)}
+
+<style>
+  .cdeck { padding: var(--section-y) 0; border-top: var(--border-thin); }
+
+  .cdeck__head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    flex-wrap: wrap; gap: var(--space-2) var(--space-4);
+    margin-bottom: var(--space-5);
+  }
+  .cdeck__title {
+    font-family: var(--font-display); font-weight: var(--fw-regular);
+    font-size: clamp(1.8rem, 4vw, 2.8rem); line-height: 1.05;
+    color: var(--bone); margin: var(--space-1) 0 0;
+  }
+  .cdeck__viewall {
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--ember); text-decoration: none; white-space: nowrap;
+    transition: color var(--t-fast);
+  }
+  .cdeck__viewall:hover { color: var(--bone); }
+
+  /* ── STAGE ── holds the stacked deck; the ↑/↓ arrows flank it on desktop. ── */
+  .cdeck__stage-wrap {
+    display: flex; align-items: center; justify-content: center;
+    gap: clamp(8px, 2vw, 20px);
+  }
+  .cdeck__stage {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    /* Reserve the deck height + the peeked cards (which now peek DOWNWARD) + the
+       bottom next-zone. Extra bottom room so the peeking cards + tap zone show. */
+    height: clamp(468px, 96vw, 600px);
+    padding-bottom: 54px;                /* room for the peek + next-zone below */
+    perspective: 1200px;
+    /* The gesture is vertical, so we OWN vertical panning on the stage. The page can
+       still be scrolled from outside the stage; inside, an up-flick advances. */
+    touch-action: pan-x;
+    outline: none;
+  }
+  .cdeck__stage:focus-visible { outline: 1px solid var(--ember); outline-offset: 10px; border-radius: 20px; }
+
+  /* ── CARD ── absolutely stacked; JS sets --i (depth); next peeks DOWNWARD. ── */
+  .cdeck__card {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    margin: 0 auto;
+    width: 100%;
+    /* leave the bottom padding of the stage free for the peek + next-zone */
+    height: calc(100% - 54px);
+    border-radius: 18px;
+    overflow: hidden;
+    background: var(--charcoal);
+    border: 1px solid color-mix(in srgb, var(--bronze) 55%, transparent);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.03) inset,
+      0 18px 40px -18px rgba(0, 0, 0, 0.7),
+      0 6px 16px -8px rgba(0, 0, 0, 0.55);
+    /* Depth transform: deeper cards sit LOWER (peek from below) + slightly smaller,
+       so lifting the top card reveals the next one rising into place. */
+    transform:
+      translateY(calc(var(--i, 0) * 18px))
+      scale(calc(1 - var(--i, 0) * 0.05));
+    opacity: 1;
+    transform-origin: center top;
+    transition:
+      transform var(--t-base),
+      opacity var(--t-base),
+      box-shadow var(--t-base);
+    will-change: transform, opacity;
+    z-index: 1;
+  }
+  /* cards deeper than 2 fade out under the stack */
+  .cdeck__card[data-depth="0"] { z-index: 40; }
+  .cdeck__card[data-depth="1"] { z-index: 30; opacity: 0.9; }
+  .cdeck__card[data-depth="2"] { z-index: 20; opacity: 0.66; }
+  .cdeck__card[data-depth="3"] { z-index: 10; opacity: 0.32; }
+  .cdeck__card[data-depth="hidden"] { opacity: 0; pointer-events: none; z-index: 0; }
+
+  /* top card is the drag/lift target on touch/mouse */
+  .cdeck__card[data-depth="0"] { cursor: grab; touch-action: pan-x; }
+  .cdeck__card[data-depth="0"].is-dragging { cursor: grabbing; transition: none; }
+
+  .cdeck__link {
+    display: flex; flex-direction: column; height: 100%;
+    text-decoration: none; color: inherit;
+  }
+  .cdeck__media {
+    position: relative; display: block;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--bg-alt);
+  }
+  .cdeck__media img {
+    width: 100%; height: 100%; object-fit: cover;
+    filter: saturate(0.96) contrast(1.03);
+    -webkit-user-drag: none; user-select: none;
+  }
+  .cdeck__media-veil {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, var(--scrim-0) 55%, rgba(8,7,6,0.35) 100%);
+  }
+  .cdeck__meta {
+    flex: 0 0 auto;
+    padding: var(--space-3) var(--space-4) var(--space-4);
+    background: var(--charcoal);
+    border-top: 1px solid color-mix(in srgb, var(--bronze) 30%, transparent);
+    display: flex; flex-direction: column; gap: var(--space-2);
+  }
+  .cdeck__name {
+    font-family: var(--font-serif); font-size: var(--fs-body); line-height: 1.25;
+    color: var(--bone);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .cdeck__row {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--space-3);
+  }
+  .cdeck__price {
+    font-family: var(--font-sans); font-size: var(--fs-small);
+    letter-spacing: 0.02em; color: var(--sand);
+  }
+  .cdeck__cta {
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--ember); white-space: nowrap;
+  }
+  .cdeck__card[data-depth="0"] .cdeck__link:hover .cdeck__cta { color: var(--bone); }
+
+  /* ── PREV ARROW (↓) ── pulls the last piece back down to the front. Shown on
+     hover-capable/wider screens; on touch the next-zone + flick cover navigation. ── */
+  .cdeck__arrow {
+    flex: 0 0 auto;
+    display: none; align-items: center; justify-content: center;
+    width: 46px; height: 46px; border-radius: 999px;
+    background: var(--scrim-soft); color: var(--brand-bone);
+    border: 1px solid color-mix(in srgb, var(--ember) 40%, transparent);
+    cursor: pointer;
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+  }
+  .cdeck__arrow:hover { color: var(--ember); border-color: var(--ember); background: var(--scrim-mid); transform: scale(1.06); }
+  .cdeck__arrow:active { transform: scale(0.96); }
+  .cdeck__arrow:focus-visible { outline: 1px solid var(--ember); outline-offset: 3px; }
+  @media (hover: hover) and (min-width: 820px) {
+    .cdeck__arrow { display: inline-flex; }
+  }
+
+  /* ── NEXT-PIECE ZONE ── the guaranteed advance affordance, pinned to the bottom
+     of the stage over the peeking cards. Always tappable (never depends on the drag).
+     A ceremonial ↑ + "Next piece" — tapping lifts the top card away and raises the
+     next. Sits ABOVE every card (z above data-depth=0). ── */
+  .cdeck__next {
+    position: absolute;
+    left: 50%; bottom: 0;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 18px 9px 15px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--obsidian) 78%, transparent);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid color-mix(in srgb, var(--ember) 55%, transparent);
+    color: var(--brand-bone); cursor: pointer;
+    font-family: var(--font-sans); font-size: var(--fs-eyebrow);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    box-shadow: 0 8px 22px -10px rgba(0,0,0,0.7);
+    transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+    touch-action: manipulation;
+  }
+  .cdeck__next:hover { color: var(--ember); border-color: var(--ember); background: color-mix(in srgb, var(--obsidian) 62%, transparent); }
+  .cdeck__next:active { transform: translateX(-50%) scale(0.96); }
+  .cdeck__next:focus-visible { outline: 1px solid var(--ember); outline-offset: 3px; }
+  .cdeck__next-arrow {
+    animation: cdeck-next-bob 2.6s ease-in-out infinite;
+  }
+  @keyframes cdeck-next-bob {
+    0%, 100% { transform: translateY(1px); }
+    50%      { transform: translateY(-2px); }
+  }
+
+  /* ── FOOT ── dots + counter + full-catalogue CTA ── */
+  .cdeck__foot {
+    margin-top: var(--space-5);
+    display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+  }
+  .cdeck__dots {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 7px;
+    max-width: 320px;
+  }
+  .cdeck__dot {
+    width: 7px; height: 7px; padding: 0; border-radius: 999px;
+    background: color-mix(in srgb, var(--sand) 45%, transparent);
+    border: 0; cursor: pointer;
+    transition: background var(--t-fast), transform var(--t-fast), width var(--t-fast);
+  }
+  .cdeck__dot:hover { background: var(--sand); }
+  .cdeck__dot.is-active { background: var(--ember); width: 20px; }
+  .cdeck__dot:focus-visible { outline: 1px solid var(--ember); outline-offset: 3px; }
+  .cdeck__count {
+    font-family: var(--font-sans); font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;
+    color: var(--sand); margin: 0;
+  }
+  .cdeck__all { margin-top: var(--space-2); }
+
+  /* Reduced motion — no swipe animation; arrows/dots change instantly.
+     The peeked-stack still reads (static), but transitions are killed and drag
+     is disabled by the script (it reads this media query). */
+  @media (prefers-reduced-motion: reduce) {
+    .cdeck__card { transition: none; }
+    .cdeck__arrow { transition: none; }
+    .cdeck__next-arrow { animation: none; }
+  }
+</style>
+
+<script>
+  // VERTICAL-REVEAL deck controller. One instance per .cdeck on the page.
+  // - Cards are ordered by a rotating "order" array; index 0 = top of the deck.
+  // - advance(): the top card LIFTS UP + fades, loops to the BACK, and the next
+  //   card (peeking from below) rises into place. retreat(): pulls the last card
+  //   back down to the front. Depth (0..3) drives the CSS downward-peek + z-index.
+  // - The top card is lift/drag-enabled (pointer events, vertical) unless reduced-
+  //   motion. But navigation NEVER depends on the drag: the always-tappable
+  //   next-zone button, the ↓ prev arrow, the dots and the ↑/↓ keys all advance/
+  //   retreat directly. Tap (no move) on the card falls through to the <a> → PDP.
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.querySelectorAll<HTMLElement>('.cdeck').forEach(root => {
+    const stage = root.querySelector<HTMLElement>('[data-cdeck]');
+    if (!stage) return;
+    const cards = Array.from(stage.querySelectorAll<HTMLElement>('[data-cdeck-card]'));
+    const dots = Array.from(root.querySelectorAll<HTMLElement>('[data-cdeck-dot]'));
+    const currentEl = root.querySelector<HTMLElement>('[data-cdeck-current]');
+    const nextBtn = root.querySelector<HTMLElement>('[data-cdeck-next]');
+    const prevBtn = root.querySelector<HTMLElement>('[data-cdeck-prev]');
+    const n = cards.length;
+    if (n === 0) return;
+
+    // order[0] is the card currently on top; rotate this array to navigate.
+    let order = cards.map((_, i) => i);
+    let animating = false;      // guard so rapid taps don't desync the lift anim
+
+    function render() {
+      order.forEach((cardIdx, pos) => {
+        const card = cards[cardIdx];
+        // depth: 0 = front, then 1,2,3 peeking below; the rest hidden under the stack.
+        const depth = pos <= 3 ? String(pos) : 'hidden';
+        card.style.setProperty('--i', String(Math.min(pos, 3)));
+        card.dataset.depth = depth;
+        // only the top card is focusable/interactive for the link
+        const link = card.querySelector('a');
+        if (link) link.tabIndex = pos === 0 ? 0 : -1;
+        card.setAttribute('aria-hidden', pos === 0 ? 'false' : 'true');
+      });
+      const topIdx = order[0];
+      dots.forEach((d, i) => d.classList.toggle('is-active', i === topIdx));
+      if (currentEl) currentEl.textContent = String(topIdx + 1);
+    }
+
+    function rotateForward() { order.push(order.shift()!); render(); }
+    function rotateBack()    { order.unshift(order.pop()!); render(); }
+
+    // advance(): animate the top card FLYING UP + fading, then loop it to the back
+    // and reveal the next. With reduced motion (or when animate=false), rotate at once.
+    function advance(animate = true) {
+      if (animating) return;
+      if (reduceMotion || !animate) { rotateForward(); return; }
+      const card = cards[order[0]];
+      animating = true;
+      card.style.transition = 'transform 300ms cubic-bezier(.4,0,.2,1), opacity 300ms ease';
+      card.style.transform = 'translateY(-115%) scale(0.96)';
+      card.style.opacity = '0';
+      const done = () => {
+        card.removeEventListener('transitionend', done);
+        card.style.transition = '';
+        card.style.transform = '';
+        card.style.opacity = '';
+        rotateForward();
+        animating = false;
+      };
+      card.addEventListener('transitionend', done);
+      setTimeout(done, 380);   // safety in case transitionend doesn't fire
+    }
+
+    function retreat() {
+      if (animating) return;
+      rotateBack();
+    }
+
+    function goTo(target: number) {
+      if (animating) return;
+      let guard = 0;
+      while (order[0] !== target && guard++ < n) order.push(order.shift()!);
+      render();
+    }
+
+    // Always-working affordances (independent of the drag).
+    nextBtn?.addEventListener('click', () => advance());
+    prevBtn?.addEventListener('click', retreat);
+    dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+
+    // Keyboard on the stage — ↑ / ↓ (and ←/→ as an alias) reveal / go back.
+    stage.addEventListener('keydown', (e: KeyboardEvent) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowRight') { e.preventDefault(); advance(); }
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowLeft') { e.preventDefault(); retreat(); }
+    });
+
+    // ── Vertical lift / drag on the top card (skipped under reduced motion) ──
+    if (!reduceMotion) {
+      let startX = 0, startY = 0, dx = 0, dy = 0, dragging = false, moved = false;
+      let activeCard: HTMLElement | null = null;
+      const THRESH = 70;          // px of vertical travel to commit a lift
+      const LOCK = 8;             // px before we decide vertical vs horizontal
+
+      function topCard(): HTMLElement { return cards[order[0]]; }
+
+      let activePointerId = -1;
+
+      function onDown(e: PointerEvent) {
+        if (animating) return;
+        if (e.button && e.button !== 0) return;
+        // the next-zone button handles its own taps — don't start a drag on it
+        if ((e.target as HTMLElement).closest('[data-cdeck-next]')) return;
+        const card = topCard();
+        // must start on the top card
+        const onCard = (e.target as HTMLElement).closest('[data-cdeck-card]');
+        if (!onCard || onCard !== card) return;
+        activeCard = card;
+        activePointerId = e.pointerId;
+        dragging = true; moved = false;
+        startX = e.clientX; startY = e.clientY; dx = 0; dy = 0;
+        card.classList.add('is-dragging');
+        // CRITICAL for touch: capture the pointer on DOWN (not mid-move) so the
+        // whole pointermove/pointerup stream keeps flowing to THIS element even
+        // once the browser's gesture detector engages. Without this, on a real
+        // phone the swipe never reached the handler and the top card never advanced
+        // (the bug Ocin hit). Capture on the card itself; listeners stay on the stage.
+        try { card.setPointerCapture(e.pointerId); } catch {}
+      }
+      function onMove(e: PointerEvent) {
+        if (!dragging || !activeCard || e.pointerId !== activePointerId) return;
+        dx = e.clientX - startX; dy = e.clientY - startY;
+        // horizontal intent → not our gesture, abort (let anything horizontal be)
+        if (!moved && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > LOCK) {
+          cancel();
+          return;
+        }
+        if (Math.abs(dy) > LOCK) moved = true;
+        if (!moved) return;
+        // once we're vertically dragging, stop the browser from also scrolling.
+        if (e.cancelable) e.preventDefault();
+        // Lifting up (dy < 0) tracks 1:1 and fades; dragging down is dampened.
+        const shown = dy < 0 ? dy : dy * 0.35;
+        const rot = dx * 0.02;
+        const fade = Math.max(0, 1 - Math.abs(dy) / 300);
+        activeCard.style.transform = `translateY(${shown}px) rotate(${rot}deg)`;
+        activeCard.style.opacity = String(fade);
+      }
+      function commitUp() {
+        // fly the rest of the way up, then rotate deck forward + reset.
+        const card = activeCard!;
+        card.style.transition = 'transform 240ms ease, opacity 240ms ease';
+        card.style.transform = 'translateY(-115%) scale(0.96)';
+        card.style.opacity = '0';
+        const clear = () => {
+          card.removeEventListener('transitionend', clear);
+          card.style.transition = '';
+          card.style.transform = '';
+          card.style.opacity = '';
+          rotateForward();
+        };
+        card.addEventListener('transitionend', clear);
+        setTimeout(clear, 320);
+      }
+      function springBack() {
+        const card = activeCard!;
+        card.style.transition = 'transform var(--t-base), opacity var(--t-base)';
+        card.style.transform = '';
+        card.style.opacity = '';
+        setTimeout(() => { card.style.transition = ''; }, 240);
+      }
+      function onUp(e: PointerEvent) {
+        if (!dragging || !activeCard || e.pointerId !== activePointerId) return;
+        try { activeCard.releasePointerCapture(e.pointerId); } catch {}
+        activeCard.classList.remove('is-dragging');
+        if (moved && dy < -THRESH)      commitUp();      // lifted up → next piece
+        else if (moved && dy > THRESH)  { springBack(); retreat(); } // pulled down → previous
+        else if (moved)                 springBack();
+        // if not moved → it was a tap; let the click/link fire naturally → PDP
+        dragging = false; activeCard = null; activePointerId = -1;
+      }
+      function cancel() {
+        if (activeCard) {
+          try { activeCard.releasePointerCapture(activePointerId); } catch {}
+          activeCard.classList.remove('is-dragging');
+          activeCard.style.transform = '';
+          activeCard.style.opacity = '';
+        }
+        dragging = false; moved = false; activeCard = null; activePointerId = -1;
+      }
+
+      // pointermove must be non-passive so preventDefault() can suppress the
+      // browser's own vertical panning once we take over the gesture.
+      stage.addEventListener('pointerdown', onDown);
+      stage.addEventListener('pointermove', onMove, { passive: false });
+      stage.addEventListener('pointerup', onUp);
+      stage.addEventListener('pointercancel', cancel);
+      // Suppress the click that follows a real drag so it doesn't open the PDP.
+      stage.addEventListener('click', (e) => {
+        if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
+      }, true);
+    }
+
+    render();
+  });
+</script>

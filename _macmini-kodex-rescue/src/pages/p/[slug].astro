@@ -1,0 +1,1346 @@
+---
+import Base from '../../layouts/Base.astro';
+import Spec from '../../components/visual/Spec.astro';
+import RelatedPieces from '../../components/visual/RelatedPieces.astro';
+import RitualProductHero from '../../components/visual/RitualProductHero.astro';
+import ArtistCredit from '../../components/visual/ArtistCredit.astro';
+import ReserveModal from '../../components/ReserveModal.astro';
+import ProductInstagramBlock from '../../components/ProductInstagramBlock.astro';
+import { getProducts, formatPrice, cleanDescription, localizeCategory, decodeEntities, truncateForMeta } from '../../lib/woo';
+import { resolveSpecs } from '../../lib/specs';
+import { salesMode, CONCIERGE_LINE } from '../../lib/sales-mode';
+import type { WooProduct } from '../../lib/woo';
+import en from '../../i18n/en.json';
+import membershipRaw from '../../data/collection-membership.json';
+import { collections } from '../../data/collections';
+
+// ── SALES MODE ───────────────────────────────────────────────────────────────
+// (Ocin 2026-07-13) The old `RESERVE_MIN_PRICE = 200` gate is GONE: a price tag
+// was never a reason to talk to a human. How a piece is sold now comes from
+// `salesMode()` — 'cart' (default, cart only), 'cart_concierge' (cart first +
+// one small white-glove line) or 'inquire' (form only, no cart). Rules and the
+// per-SKU override map live in `src/lib/sales-mode.ts`.
+
+export async function getStaticPaths() {
+  const products = await getProducts();
+  return products.map((p: WooProduct) => {
+    return {
+      params: { slug: p.slug },
+      props: { product: p, allProducts: products },
+    };
+  });
+}
+
+const { product, allProducts } = Astro.props as { product: WooProduct; allProducts: WooProduct[] };
+
+// PDP masthead = the banner of THIS product's collection (2026-06-24, per Ocin).
+// SKU → collection name (NocoDB membership) → lowercase slug. Only render when the
+// slug is a real themed collection with a banner; otherwise no masthead (fallback,
+// never break). Uses the --art variant so the baked title isn't cropped on mobile.
+const _collMembership: Record<string, string> = (membershipRaw as any).membership ?? {};
+const _validCollSlugs = new Set(collections.map(c => c.slug));
+const _rawColl = product.sku ? _collMembership[product.sku] : undefined;
+const collectionSlug = _rawColl && _validCollSlugs.has(_rawColl.toLowerCase()) ? _rawColl.toLowerCase() : null;
+const collectionTitle = collectionSlug ? (collections.find(c => c.slug === collectionSlug)?.title ?? collectionSlug) : null;
+
+// "On Instagram" rich block (task A2, 2026-07-18) — resolved and rendered
+// entirely inside <ProductInstagramBlock>, which reads instagram-links.ts
+// (single source of truth: instagram-product-map.json) and renders nothing
+// when the slug has no CONFIRMED pairing. See that component for details.
+
+const desc = cleanDescription(product.description || product.short_description || '');
+const mainImg = product.images[0];
+const gallery = product.images.slice(1);
+const attrs = product.attributes || [];
+const gauge = attrs.find(a => a.name.toLowerCase().includes('gauge') || a.name.toLowerCase().includes('size'));
+const material = attrs.find(a => a.name.toLowerCase().includes('material'));
+// The WC catalog ships empty attributes, so the structured fields above are
+// almost always undefined. deriveSpecs() parses the real per-piece data out of
+// the name / weight / description — used to fill the hero caption, the quick
+// spec box and the ritual-context grid (which otherwise rendered "—").
+const specs = resolveSpecs(product);
+const materialLabel = specs.materialShort || material?.options?.join(', ') || null;
+const sizeLabel = specs.size || gauge?.options?.join(' · ') || null;
+// Origin attribute drives "Materials & Origin" copy + visibility of
+// "Custom commission" CTA. Imported pieces (Ali/China) are curated, NOT
+// hand-forged in Truckee — per canonical rule [[regla-handmade-vs-sourced]].
+const originAttr = attrs.find(a => /origen|origin|made by|fabricaci/i.test(a.name));
+const originRaw = (originAttr?.options?.[0] || '').toLowerCase().trim();
+
+// Named-maker credit. When a piece comes from a real artisan with a name
+// (artisan-sourced / named-maker), we credit them explicitly instead of
+// hardcoding a single partner. Falls back to the historical Alai Wakan
+// credit for curated-independent pieces that carry no Maker attribute.
+const makerAttr = attrs.find(a => /^\s*maker\s*$|artesano|artisan/i.test(a.name));
+const makerName = (makerAttr?.options?.[0] || '').trim();
+const makerIgAttr = attrs.find(a => /maker\s*ig|ig\s*maker|instagram/i.test(a.name));
+const makerIgRaw = (makerIgAttr?.options?.[0] || '').trim();
+const makerIg = makerIgRaw ? (makerIgRaw.startsWith('@') ? makerIgRaw : `@${makerIgRaw}`) : '';
+const makerIgUrl = makerIg ? `https://www.instagram.com/${makerIg.replace(/^@/, '')}` : '';
+
+// Smart fallback when Origen attribute isn't set in WC. Honest categories:
+// - collab-jimmy: Atacama meteorite (Vaca Muerta) rings crafted by the artisan
+//   Jimmy, a Wenu Mapu collaborator — NOT forged by the studio. Neutral verb
+//   ("crafted") until Ocin confirms forged vs. cast. [2026-06-24 coherence fix]
+// - hand-forged: forged from raw material in studio (studio metalwork)
+// - handmade: made entirely by Nico (picoyo wire-wrap, Author Jewelry, collabs)
+// - hand-assembled: Nico assembles imported parts into unique pieces (serpent
+//   hangers, colgante earrings — sold in branded carton)
+// - curated-independent: made by other independent artists Wenu Mapu curates
+//   (Alai Wakan / @alaiwakan — Spanish silversmith)
+// - imported-curated: curated selection from international suppliers, sold as-is
+type Origin = 'collab-jimmy' | 'handmade' | 'hand-forged' | 'hand-assembled' | 'curated-independent' | 'imported-curated';
+
+const productSignals = [
+  product.name,
+  product.slug,
+  product.sku || '',
+  ...product.categories.map(c => `${c.slug} ${c.name}`),
+  ...attrs.flatMap(a => [a.name, ...(a.options || [])]),
+].join(' ').toLowerCase();
+
+// Provenance pass 2026-07-10 (Ocin's handmade-vs-sourced rule, conservative):
+// only assert "handmade in Truckee" for signals that DOCUMENT Ocin's own hands
+// (wire-wrapped pendants — "wrapped by Ocin"). Dropped the loose picoyo /
+// author-jewelry / tipichill / cami / one-of-a-kind triggers: a piece being
+// one-of-a-kind or a named-artist collaboration (Tipichill × Camí) does NOT make
+// it hand-forged by Wenu Mapu. Those now fall through to imported-curated /
+// curated-independent so we never over-claim handmade. Genuine A pieces get their
+// label from an explicit WC Origin attribute, not fuzzy inference.
+const inferredOrigin: Origin =
+  /vacamuerta|meteorite|meteorito|atacama/.test(productSignals) ? 'collab-jimmy' :
+  /wire-wrap|wirewrap/.test(productSignals)                     ? 'handmade' :
+  /alai|alaiwakan|wakan/.test(productSignals)                   ? 'curated-independent' :
+  /serpent|serpiente|filu|colgante|treng/.test(productSignals) && /hanger|earring|pendant/.test(productSignals) ? 'hand-assembled' :
+  'imported-curated';
+
+// Normalize to one of: 5 origin types
+const origin: Origin =
+  /imported|ali|china|sourced|import/.test(originRaw) ? 'imported-curated' :
+  /assembled|ensambl/.test(originRaw)                 ? 'hand-assembled' :
+  /independent|curat/.test(originRaw)                 ? 'curated-independent' :
+  /handmade|hecho/.test(originRaw)                    ? 'handmade' :
+  /forged|forjad/.test(originRaw)                     ? 'hand-forged' :
+  inferredOrigin;
+const isImported = origin === 'imported-curated';
+const isCurated  = origin === 'curated-independent' || origin === 'imported-curated';
+const isForged   = origin === 'handmade' || origin === 'hand-forged';
+
+// ── Scarcity truth ──────────────────────────────────────────────────────────
+// "One of one" / "Last one" are STOCK claims, not copy. They require REAL tracked
+// stock of exactly 1, the piece still in stock, and NOT a piece sold as a Pair
+// (a pair is two pieces — it can never be one-of-one). `specs.isPair` reads the
+// NocoDB `soldAs` field (src/data/specs-by-sku.json) first, name-derivation second.
+const isPairPiece = specs.isPair || /pair/i.test(specs.soldAs || '');
+const isOneOfOne =
+  Boolean(product.manage_stock) &&
+  product.stock_quantity === 1 &&
+  product.stock_status === 'instock' &&
+  !isPairPiece;
+
+const primaryCategory = product.categories[0];
+const primaryCategorySlug = primaryCategory?.slug?.toLowerCase() ?? '';
+const isSupportProduct = /wm-care/i.test(product.sku || '') || /aftercare|saline/.test(product.slug) || primaryCategorySlug.includes('uncategorized');
+const shouldUseRitualHero = Boolean(mainImg) && !isSupportProduct;
+
+// Stock badge (2026-06-26): SOLD = outofstock; COMING SOON = onbackorder.
+const stockState = product.stock_status === 'outofstock' ? 'sold'
+  : (product.stock_status === 'onbackorder' || !mainImg) ? 'soon' : null;
+const stockLabel = stockState === 'sold' ? 'Sold' : stockState === 'soon' ? 'Coming soon' : null;
+
+// ── Sales mode (see src/lib/sales-mode.ts) ───────────────────────────────────
+// 'cart'           → cart only. No other CTA. The default for all jewelry.
+// 'cart_concierge' → cart is ALWAYS the primary CTA; below it, a small secondary
+//                    line (a text link, never a button of equal weight) opens the
+//                    Inquire form. Solid 10k/14k gold, Atacama meteorite, forged.
+// 'inquire'        → no cart at all; the Inquire form is the single primary CTA.
+//                    Art & Objects (WM-ART / WM-OTH), coming soon, unpriced,
+//                    sold out, hand-forged without a cart.
+const mode = salesMode(product, specs, { origin });
+const showCart = mode === 'cart' || mode === 'cart_concierge';
+const showConcierge = mode === 'cart_concierge';
+const showInquire = mode === 'inquire';
+// The modal only mounts on pages that actually have a trigger for it.
+const usesInquiryForm = product.stock_status === 'instock' && (showInquire || showConcierge);
+
+// Size selector for VARIABLE products (multi-size hangers, tunnels, etc.).
+const variants = product.variants ?? [];
+
+// ── Colour / metal / finish SWATCH axis (image + price + stock swap) ──────────
+const SWATCH_MAP: Record<string, string> = {
+  // metals / finishes
+  silver: '#c8c8cc', sterling: '#c8c8cc', '925': '#c8c8cc', '950': '#c8c8cc', plata: '#c8c8cc',
+  gold: '#c9a84c', oro: '#c9a84c', '14k': '#c9a84c', '18k': '#e3c66a', yellow: '#c9a84c',
+  rose: '#d8a48f', white: '#e9e6df', brass: '#b08d57', laton: '#b08d57', bronze: '#8a6a43', bronce: '#8a6a43',
+  copper: '#b87333', cobre: '#b87333', titanium: '#9298a0', titanio: '#9298a0', steel: '#9298a0',
+  // gemstones / piedras 💎 (Ocin 2026-06-28 — elegir por color de gema)
+  amethyst: '#9966cc', amatista: '#9966cc', onyx: '#1a1a1a', onix: '#1a1a1a', obsidian: '#1a1a1a', obsidiana: '#1a1a1a',
+  turquoise: '#40c0c0', turquesa: '#40c0c0', opal: '#cfe6e6', opalo: '#cfe6e6', moonstone: '#dde6ee', piedraluna: '#dde6ee',
+  garnet: '#7a2030', granate: '#7a2030', ruby: '#9b111e', rubi: '#9b111e', citrine: '#e0a420', citrino: '#e0a420',
+  quartz: '#e8e0e0', cuarzo: '#e8e0e0', jade: '#4a8a5a', labradorite: '#5a6a7a', labradorita: '#5a6a7a',
+  lapis: '#26619c', lapislazuli: '#26619c', malachite: '#2f7a52', malaquita: '#2f7a52', tiger: '#b8860b', ojodetigre: '#b8860b',
+  agate: '#9a6a5a', agata: '#9a6a5a', sapphire: '#0f52ba', zafiro: '#0f52ba', emerald: '#2a8a5a', esmeralda: '#2a8a5a',
+  topaz: '#7ad0e0', topacio: '#7ad0e0', pearl: '#f0ead6', perla: '#f0ead6', coral: '#ff7050', carnelian: '#b03a2e',
+  cornalina: '#b03a2e', fluorite: '#7a5aa0', fluorita: '#7a5aa0', peridot: '#9abe3a', aquamarine: '#7fd0d0', aguamarina: '#7fd0d0',
+  // generic colours
+  black: '#1a1a1a', negro: '#1a1a1a', blue: '#3a5a8a', azul: '#3a5a8a', clear: '#e8e8ec', transparent: '#e8e8ec',
+  green: '#4a6a4a', verde: '#4a6a4a', red: '#9a3a3a', rojo: '#9a3a3a', purple: '#6a4a8a', violet: '#6a4a8a', pink: '#d98aa8', rosa: '#d98aa8',
+  champagne: '#e6c9a0', aurora: '#dfe3f5', ab: '#dfe3f5', iridescent: '#dfe3f5',
+};
+const swColor = (s: string) => { const k = (s || '').toLowerCase().replace(/[\s\-_]/g, ''); const hit = Object.keys(SWATCH_MAP).find(x => k.includes(x)); return hit ? SWATCH_MAP[hit] : '#6a4a28'; };
+// Swatch axis = Colour / Gem / Stone / Metal / Finish (anything but a size axis).
+const COLOR_ATTR = /colou?r|gem|gema|stone|piedra|cristal|crystal|metal|finish|tono|acabado|material/i;
+const SIZE_ATTR = /size|talla|gauge|medida|tama|largo|length|di[aá]met/i;
+const swatchAttrName = (() => {
+  for (const v of variants) { const k = v.attributes && Object.keys(v.attributes).find(k => COLOR_ATTR.test(k) && !SIZE_ATTR.test(k)); if (k) return k; }
+  return 'Finish';
+})();
+const swatchVariants = variants
+  .filter(v => v.attributes && Object.keys(v.attributes).some(k => COLOR_ATTR.test(k) && !SIZE_ATTR.test(k)))
+  .map(v => {
+    const key = Object.keys(v.attributes!).find(k => COLOR_ATTR.test(k) && !SIZE_ATTR.test(k))!;
+    const label = v.attributes![key];
+    return { label, color: swColor(label), price: formatPrice(v.price), sku: v.sku, stock: v.stock_status, image: v.image || mainImg?.src || '' };
+  })
+  .filter((s, i, arr) => arr.findIndex(x => x.label === s.label) === i); // dedupe by label
+const hasSwatches = swatchVariants.length > 1;
+const defaultSwatchIdx = Math.max(0, swatchVariants.findIndex(s => s.stock !== 'outofstock'));
+
+// Size pills only when there's a genuine size axis (not when the only axis is colour).
+const sizeVariants = variants.filter(v => v.size);
+const hasSizes = sizeVariants.length > 1 && !hasSwatches;
+const defaultVarIdx = (() => { const i = variants.findIndex(v => v.stock_status === 'instock'); return i >= 0 ? i : 0; })();
+
+// Canonical product URL — no trailing slash to match Astro's default
+// `trailingSlash: 'ignore'` and keep breadcrumb / offer URLs consistent.
+const productUrl = `https://wenumapuonline.com/p/${product.slug}`;
+
+// priceValidUntil — recommended for Product rich results. ~1 year ahead.
+const priceValidUntil = (() => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() + 1);
+  return d.toISOString().slice(0, 10);
+})();
+
+// Map product attributes → schema fields.
+const materialValue = material?.options?.length ? material.options.join(', ') : undefined;
+const additionalProperty = [
+  gauge?.options?.length
+    ? { '@type': 'PropertyValue', name: 'Gauge / Size', value: gauge.options.join(', ') }
+    : null,
+  materialValue
+    ? { '@type': 'PropertyValue', name: 'Material', value: materialValue }
+    : null,
+].filter(Boolean);
+
+const productLd: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': 'Product',
+  name: decodeEntities(product.name),
+  sku: product.sku || undefined,
+  description: truncateForMeta(desc, 500) || `${decodeEntities(product.name)} — handcrafted body jewelry by Wenu Mapu.`,
+  image: product.images.map(i => i.src),
+  brand: { '@type': 'Brand', name: 'Wenu Mapu' },
+  ...(materialValue ? { material: materialValue } : {}),
+  ...(additionalProperty.length ? { additionalProperty } : {}),
+  offers: {
+    '@type': 'Offer',
+    priceCurrency: 'USD',
+    price: parseFloat(product.price || '0').toFixed(2),
+    priceValidUntil,
+    itemCondition: 'https://schema.org/NewCondition',
+    availability: product.stock_status === 'instock'
+      ? 'https://schema.org/InStock'
+      : 'https://schema.org/OutOfStock',
+    url: productUrl,
+    hasMerchantReturnPolicy: {
+      '@type': 'MerchantReturnPolicy',
+      applicableCountry: 'US',
+      returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+      merchantReturnDays: 30,
+      returnMethod: 'https://schema.org/ReturnByMail',
+      returnFees: 'https://schema.org/FreeReturn',
+    },
+    shippingDetails: {
+      '@type': 'OfferShippingDetails',
+      shippingDestination: {
+        '@type': 'DefinedRegion',
+        addressCountry: 'US',
+      },
+      shippingRate: {
+        '@type': 'MonetaryAmount',
+        value: '0',
+        currency: 'USD',
+      },
+      deliveryTime: {
+        '@type': 'ShippingDeliveryTime',
+        handlingTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 1,
+          maxValue: 3,
+          unitCode: 'DAY',
+        },
+        transitTime: {
+          '@type': 'QuantitativeValue',
+          minValue: 2,
+          maxValue: 7,
+          unitCode: 'DAY',
+        },
+      },
+    },
+  },
+};
+
+const breadcrumbLd = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home',  item: 'https://wenumapuonline.com/' },
+    { '@type': 'ListItem', position: 2, name: 'Shop',  item: 'https://wenumapuonline.com/shop' },
+    { '@type': 'ListItem', position: 3, name: product.name, item: productUrl },
+  ],
+};
+---
+
+<Base
+  title={truncateForMeta(`${decodeEntities(product.name)} — Wenu Mapu`, 60)}
+  description={truncateForMeta(desc, 160) || `${decodeEntities(product.name)}. Handcrafted body jewelry. ${formatPrice(product.price)}.`}
+  ogImage={mainImg?.src}
+  ogType="product"
+  jsonLd={[productLd, breadcrumbLd]}
+  noQuote
+>
+  {/* ── COLLECTION MASTHEAD ── the banner of this piece's collection sits above
+       the product, as wayfinding + context. --art = full banner, no mobile crop.
+       Only shows when the SKU maps to a real collection with a banner. */}
+  {collectionSlug && (
+    <a href={`/collection/${collectionSlug}`} class="cat-masthead cat-masthead--art pdp-collection-masthead" aria-label={`Part of the ${collectionTitle} collection`}>
+      <picture>
+        <source type="image/avif" srcset={`/img/banners/collection/${collectionSlug}.avif`} />
+        <img src={`/img/banners/collection/${collectionSlug}.webp`} alt={`Wenu Mapu — ${collectionTitle} collection`} width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
+      </picture>
+    </a>
+  )}
+
+  {/* ── RITUAL PRODUCT HERO ── product macro wrapped in obsidian atmosphere
+       (textil pattern + ember halo + smoke + vignette). Caption is symmetric.
+       The header wordmark already lives in <Nav>; we do NOT repeat it here. */}
+  {shouldUseRitualHero && mainImg && (
+    <RitualProductHero
+      imgSrc={mainImg.src}
+      imgAlt={mainImg.alt || decodeEntities(product.name)}
+      imgWidth={mainImg.width}
+      imgHeight={mainImg.height}
+      eyebrow={primaryCategory ? localizeCategory(primaryCategory) : en.product.category_default}
+      title={decodeEntities(product.name)}
+      material={materialLabel ?? undefined}
+      badge={stockLabel ? stockLabel.toUpperCase() : (product.stock_quantity != null && product.stock_quantity > 0 && 3 >= product.stock_quantity ? 'LIMITED STOCK' : undefined)}
+    />
+  )}
+
+  <article class="section">
+    <div class="container">
+      <nav style="font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--fg-soft); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; margin-bottom: var(--space-5);">
+        <a href="/">Home</a>
+        <span style="margin: 0 var(--space-2);">·</span>
+        <a href="/shop">Shop</a>
+        <span style="margin: 0 var(--space-2);">·</span>
+        <span style="color: var(--fg);">{decodeEntities(product.name)}</span>
+      </nav>
+
+      <div class="grid-asym-2" style="align-items: start;">
+        <div>
+          {mainImg
+            ? (
+              <div class="pdp-main-figure" data-stock={stockState}>
+                {stockLabel && <span class:list={['stock-badge', `stock-badge--${stockState}`]}>{stockLabel}</span>}
+                <img id="pdp-stage-img" src={mainImg.src} alt={mainImg.alt || product.name} width={mainImg.width} height={mainImg.height} loading="eager" fetchpriority="high" />
+              </div>
+            )
+            : (
+              <div style="aspect-ratio: 4/5; background: var(--bg-alt); display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--accent); border: var(--border-thin); padding: var(--space-5); text-align: center;">
+                <svg viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="currentColor" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="32" cy="32" r="22"/>
+                  <line x1="32" y1="10" x2="32" y2="54"/>
+                  <line x1="10" y1="32" x2="54" y2="32"/>
+                  <circle cx="32" cy="32" r="3" fill="currentColor"/>
+                </svg>
+                <p style="font-family: var(--font-sans); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; color: var(--accent); margin: var(--space-4) 0 var(--space-2);">
+                  Photography in progress
+                </p>
+                <p style="font-family: var(--font-serif); font-size: var(--fs-small); color: var(--fg-soft); font-style: italic; max-width: 32ch; margin: 0;">
+                  Each piece is photographed in studio light before its release. Write for details or to commission a similar one.
+                </p>
+                <a href="/custom-orders" class="btn btn--ghost" style="margin-top: var(--space-4); font-size: var(--fs-tiny);">
+                  Inquire about this piece →
+                </a>
+              </div>
+            )
+          }
+          {mainImg && product.images.length > 1 && (
+            <div class="pdp-thumbs" role="list" aria-label="Other angles">
+              {product.images.map((img, i) => (
+                <button
+                  type="button"
+                  role="listitem"
+                  class:list={['pdp-thumb', { 'is-active': i === 0 }]}
+                  aria-label={`View angle ${i + 1} of ${product.images.length}`}
+                  data-src={img.src}
+                  data-alt={img.alt || product.name}
+                  data-w={String(img.width ?? '')}
+                  data-h={String(img.height ?? '')}
+                >
+                  <img src={img.src} alt="" width={img.width} height={img.height} loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          {/* When the Ritual hero is shown it already carries the page H1
+              (eyebrow + name). Repeating it here created a second H1 and a
+              visual echo — so the buy column only owns the heading when there
+              is no hero (support products). One H1 per page, always. */}
+          {!shouldUseRitualHero && (
+            <>
+              <p class="eyebrow">{product.categories[0] ? localizeCategory(product.categories[0]) : en.product.category_default}</p>
+              <h1 style="font-size: clamp(1.8rem, 3.5vw, 3rem); margin: var(--space-3) 0 var(--space-2); line-height: 0.95;">
+                {decodeEntities(product.name)}
+              </h1>
+            </>
+          )}
+          {product.sku && (
+            <p style="font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--fg-soft); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase; margin-bottom: var(--space-4);">
+              SKU · {product.sku}
+            </p>
+          )}
+          <div class="divider-h"></div>
+          <p id="pdp-price" class="display" style="font-size: clamp(1.6rem, 2.5vw, 2.2rem); color: var(--accent); margin: var(--space-3) 0 var(--space-4);">
+            {hasSwatches ? swatchVariants[defaultSwatchIdx]?.price : hasSizes ? formatPrice(variants[defaultVarIdx]?.price || product.price) : formatPrice(product.price)}
+          </p>
+          <p id="pdp-stock" class="eyebrow" style={`color: ${product.stock_status === 'instock' ? 'var(--moss)' : stockState === 'soon' ? 'var(--ember)' : 'var(--clay)'};`}>
+            ● {product.stock_status === 'instock' ? en.product.in_stock : stockState === 'soon' ? 'Coming soon' : en.product.out_of_stock}
+          </p>
+
+          {hasSwatches && (
+            <div class="variant-swatches" data-variant-swatches data-default={String(defaultSwatchIdx)}>
+              <p class="eyebrow size-select__label">{swatchAttrName} · <span data-variant-current>{swatchVariants[defaultSwatchIdx]?.label}</span></p>
+              <div class="variant-swatches__row" role="radiogroup" aria-label="Choose a finish">
+                {swatchVariants.map((s, i) => (
+                  <button
+                    type="button"
+                    class:list={['variant-swatch', { 'is-sold': s.stock === 'outofstock', 'is-active': i === defaultSwatchIdx }]}
+                    role="radio"
+                    aria-checked={i === defaultSwatchIdx ? 'true' : 'false'}
+                    aria-label={s.label}
+                    title={s.stock === 'outofstock' ? `${s.label} — sold out` : s.label}
+                    style={`--sw:${s.color}`}
+                    data-variant
+                    data-label={s.label}
+                    data-price={s.price}
+                    data-sku={s.sku}
+                    data-stock={s.stock}
+                    data-img={s.image}
+                    disabled={s.stock === 'outofstock'}
+                  ></button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hasSizes && (
+            <div class="size-select" data-size-select data-default={String(defaultVarIdx)}>
+              <p class="eyebrow size-select__label">Size · choose one</p>
+              <div class="size-select__pills" role="radiogroup" aria-label="Choose a size">
+                {variants.map((v, i) => (
+                  <button
+                    type="button"
+                    class:list={['size-pill', { 'is-sold': v.stock_status === 'outofstock', 'is-active': i === defaultVarIdx }]}
+                    role="radio"
+                    aria-checked={i === defaultVarIdx ? 'true' : 'false'}
+                    data-size-pill
+                    data-size={v.size}
+                    data-price={formatPrice(v.price)}
+                    data-sku={v.sku}
+                    data-stock={v.stock_status}
+                    disabled={v.stock_status === 'outofstock'}
+                  >
+                    <span class="size-pill__label">{v.size}</span>
+                    {v.stock_status === 'outofstock' && <span class="size-pill__sold">Sold</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick-spec box above the CTA — gauge + material only. "Made in"
+              lives in the <Spec> table + Materials accordion below, so we no
+              longer repeat it here (was the same line three times). The box
+              only renders when there is something to show — no empty frame. */}
+          {(sizeLabel || materialLabel) && (
+            <div style="border-left: 2px solid var(--ember); padding: var(--space-2) 0 var(--space-2) var(--space-4); margin: var(--space-4) 0;">
+              {sizeLabel && (
+                <p style={`font-size: var(--fs-small);${materialLabel ? ' margin-bottom: var(--space-1);' : ''}`}>
+                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.size_gauge}</span>
+                  {sizeLabel}
+                  <a href="/sizing-guide" style="margin-left: var(--space-2); color: var(--ember); font-size: var(--fs-tiny); letter-spacing: var(--letter-spacing-ritual); text-transform: uppercase;">Sizing guide →</a>
+                </p>
+              )}
+              {materialLabel && (
+                <p style="font-size: var(--fs-small);">
+                  <span class="eyebrow" style="margin-right: var(--space-2);">{en.product.material}</span>
+                  {materialLabel}
+                </p>
+              )}
+            </div>
+          )}
+
+          {product.stock_status === 'instock' ? (
+            <>
+              {/* CTA by SALES MODE (Ocin 2026-07-13) — see src/lib/sales-mode.ts.
+                 - 'cart'           → Add to cart. Nothing else.
+                 - 'cart_concierge' → Add to cart (primary, always) + one small
+                                      secondary text link to the Inquire form.
+                 - 'inquire'        → no cart; the Inquire form is the only CTA. */}
+              {showCart && (
+                <button
+                  type="button"
+                  class="btn btn--solid"
+                  data-add-cart
+                  data-sku={product.sku || product.slug}
+                  data-slug={product.slug}
+                  data-name={decodeEntities(product.name)}
+                  data-price={product.price}
+                  data-img={mainImg?.src || ''}
+                  data-max={product.manage_stock && product.stock_quantity ? product.stock_quantity : 99}
+                  data-stock={stockState || ''}
+                  data-pair={isPairPiece ? '1' : ''}
+                  style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+                >
+                  Add to cart →
+                </button>
+              )}
+              {showConcierge && (
+                <p class="pdp-concierge">
+                  <button
+                    type="button"
+                    class="pdp-concierge__link"
+                    data-rsv-open
+                    data-piece={decodeEntities(product.name)}
+                    data-sku={product.sku || ''}
+                    data-price={formatPrice(product.price)}
+                    data-verb="consult"
+                  >
+                    {CONCIERGE_LINE}
+                  </button>
+                </p>
+              )}
+              {showInquire && (
+                <button
+                  type="button"
+                  class="btn btn--solid"
+                  data-rsv-open
+                  data-piece={decodeEntities(product.name)}
+                  data-sku={product.sku || ''}
+                  data-price={formatPrice(product.price)}
+                  data-verb="inquire"
+                  style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+                >
+                  Inquire about this piece →
+                </button>
+              )}
+              <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
+                {en.product.pickup_truckee}
+              </a>
+              {/* Trust block — visible at the moment of decision, not buried
+                 deep in accordions. Body jewelry buyers want to know:
+                 origin of shipping, speed, freight threshold, hygiene policy. */}
+              <ul class="pdp-trust" aria-label="Shipping &amp; trust">
+                <li>Secure checkout · encrypted payment</li>
+                <li>Handmade &amp; curated · one by one</li>
+                <li>Ships from Truckee · USPS Priority 2–3 days</li>
+                <li>Free US shipping over $150</li>
+                <li>Body jewelry is final sale (hygiene)</li>
+                <li>Free local pickup in Truckee</li>
+              </ul>
+            </>
+          ) : (
+            <>
+              {/* SOLD OUT → re-frame depending on origin.
+                 - Forged / handmade → commission opportunity (we can make another).
+                 - Imported / curated → notify when restocked OR commission a similar piece. */}
+              <a
+                href={isForged
+                  ? `/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`
+                  : '/contact'}
+                class="btn btn--solid"
+                style="width: 100%; margin-bottom: var(--space-2); padding: var(--space-4) var(--space-5);"
+              >
+                {isForged
+                  ? 'Reserve a custom commission →'
+                  : origin === 'curated-independent'
+                    ? 'Notify me when restocked →'
+                    : 'Notify me when restocked →'}
+              </a>
+              <p style="font-family: var(--font-serif); font-style: italic; font-size: var(--fs-small); color: var(--fg-soft); margin: var(--space-2) 0 var(--space-3); line-height: 1.55; text-align: center;">
+                {isForged
+                  ? 'This piece is forged one at a time. Open a private commission and we’ll begin yours.'
+                  : origin === 'hand-assembled'
+                    ? 'This piece is hand-assembled in studio. We may compose another with similar components — write to us.'
+                    : origin === 'curated-independent'
+                      ? 'Curated piece by an independent silversmith partner. Tell us your interest and we’ll let you know when more arrive.'
+                      : 'Curated selection — sold as found. Tell us your interest and we’ll let you know when more arrive.'}
+              </p>
+              <a href="/local" class="btn" style="width: 100%; padding: var(--space-3) var(--space-5);">
+                {en.product.pickup_truckee}
+              </a>
+              <ul class="pdp-trust" aria-label="Shipping &amp; trust">
+                <li>Secure checkout · encrypted payment</li>
+                <li>Handmade &amp; curated · one by one</li>
+                <li>Ships from Truckee · USPS Priority 2–3 days</li>
+                <li>Free US shipping over $150</li>
+                <li>Body jewelry is final sale (hygiene)</li>
+                <li>Free local pickup in Truckee</li>
+              </ul>
+            </>
+          )}
+
+          {/* Reveal-anchor for the desktop sticky buy bar: once the primary CTA
+              above scrolls out of view, the slim bottom bar appears so price +
+              action stay one tap away through the whole page (SSENSE / Aesop). */}
+          <div id="pdp-buy-anchor" aria-hidden="true" style="height: 1px;"></div>
+
+          <Spec product={product} />
+
+          {/* ── ACCORDIONS (UX Audit F2026-05-29 - Tigo)
+               Reemplaza el "wall of text" anterior (About / Shipping / Care / Custom)
+               por 4 details/summary nativos — accesibles, sin JS, plegables.
+               Cada bloque: borde dorado fino arriba, chevron, padding generoso. */}
+          <div class="product-accordions">
+            {desc && (
+              <details class="product-accordion" open>
+                <summary class="product-accordion__summary">
+                  <span class="product-accordion__label">{en.product.about_piece}</span>
+                  <span class="product-accordion__chev" aria-hidden="true">+</span>
+                </summary>
+                <div class="product-accordion__body">
+                  <p>{desc}</p>
+                </div>
+              </details>
+            )}
+
+            <details class="product-accordion">
+              <summary class="product-accordion__summary">
+                <span class="product-accordion__label">Materials &amp; Origin</span>
+                <span class="product-accordion__chev" aria-hidden="true">+</span>
+              </summary>
+              <div class="product-accordion__body">
+                {material && (
+                  <p><strong>Material:</strong> {material.options.join(', ')}.</p>
+                )}
+                {origin === 'collab-jimmy' && (
+                  <>
+                    <p><strong>Origin:</strong> crafted by the artisan Jimmy — a Wenu Mapu collaborator — set with Vaca Muerta mesosiderite from Chile's Atacama Desert.</p>
+                    <p>
+                      A rare stony-iron meteorite, over four billion years old, worked one piece at a time.
+                      Finished and shipped from Truckee, California. Material provenance documented on our
+                      <a href="/material/vacamuerta" class="text-accent"> Vacamuerta page</a>.
+                    </p>
+                  </>
+                )}
+                {origin === 'hand-forged' && (
+                  <>
+                    <p><strong>Origin:</strong> hand-forged in our Truckee studio.</p>
+                    <p>
+                      Shaped from raw material with hammer, file and anvil. Signed by the maker.
+                      Material provenance documented in our <a href="/material" class="text-accent">materials page</a>.
+                    </p>
+                  </>
+                )}
+                {origin === 'handmade' && (
+                  <>
+                    <p><strong>Origin:</strong> handmade in our Truckee studio.</p>
+                    <p>
+                      Made entirely by hand — no CNC, no mold, no shortcut. Each piece signed
+                      by the maker before it leaves the studio.
+                    </p>
+                  </>
+                )}
+                {origin === 'hand-assembled' && (
+                  <>
+                    <p><strong>Origin:</strong> hand-assembled by Wenu Mapu in Truckee, California.</p>
+                    <p>
+                      Individual components sourced from suppliers, then composed by hand into a
+                      unique piece in our studio. Each one designed, finished and packaged in branded
+                      carton by the maker. <em>The composition is ours; the raw components are not
+                      forged by us.</em>
+                    </p>
+                  </>
+                )}
+                {origin === 'curated-independent' && (
+                  <>
+                    <p><strong>Origin:</strong> curated piece — handmade by an independent artisan partner.</p>
+                    <p>
+                      Selected for design, materials and craftsmanship before joining the catalogue.
+                      Inspected, finished and shipped from Truckee, California.
+                    </p>
+                  </>
+                )}
+                {isImported && (
+                  <>
+                    <p><strong>Origin:</strong> curated selection — sourced from international suppliers.</p>
+                    <p>
+                      Each piece chosen for design, material and finish. Quality-checked and shipped
+                      from Truckee, California. <em>Not made by hand in our studio.</em>
+                    </p>
+                  </>
+                )}
+
+                {/* ── Mini-banners de crédito ──
+                     Artist credit  → piezas curadas de Alai Wakan (curated-independent).
+                     Material origin → piezas con meteorito Vaca Muerta / Atacama. */}
+                <ArtistCredit
+                  artist={makerName || (origin === 'curated-independent' ? 'Alai Wakan' : undefined)}
+                  igHandle={makerName ? (makerIg || undefined) : (origin === 'curated-independent' ? '@alaiwakan' : undefined)}
+                  igUrl={makerName ? (makerIgUrl || undefined) : (origin === 'curated-independent' ? 'https://www.instagram.com/alaiwakan' : undefined)}
+                  materialOrigin={/vacamuerta|meteorite|atacama/.test(productSignals) ? 'Atacama meteorite · Vaca Muerta mesosiderite' : undefined}
+                  materialOriginUrl={/vacamuerta|meteorite|atacama/.test(productSignals) ? '/material/vacamuerta' : undefined}
+                />
+              </div>
+            </details>
+
+            <details class="product-accordion">
+              <summary class="product-accordion__summary">
+                <span class="product-accordion__label">{en.product.shipping_pickup}</span>
+                <span class="product-accordion__chev" aria-hidden="true">+</span>
+              </summary>
+              <div class="product-accordion__body">
+                <p>{en.product.shipping_body}</p>
+                <p>{en.product.pickup_body} <a href="/local" class="text-accent">/local</a>.</p>
+                <p class="product-accordion__note">{en.product.returns_note}</p>
+                <p>
+                  <a href="/shipping-returns" class="text-accent">Shipping &amp; returns →</a>
+                </p>
+              </div>
+            </details>
+
+            <details class="product-accordion">
+              <summary class="product-accordion__summary">
+                <span class="product-accordion__label">Care &amp; Sizing</span>
+                <span class="product-accordion__chev" aria-hidden="true">+</span>
+              </summary>
+              <div class="product-accordion__body">
+                <p>
+                  Healing times and aftercare protocol live in our
+                  <a href="/care-guide" class="text-accent"> care guide</a>.
+                </p>
+                <p>
+                  For gauge ↔ mm conversion and inner diameter recommendations,
+                  see the <a href="/sizing-guide" class="text-accent">sizing guide</a>.
+                </p>
+                {isForged && (
+                  <p>
+                    Want this piece in a different size, material or stone?
+                    <a href="/custom-orders" class="text-accent"> Open a commission →</a>
+                  </p>
+                )}
+                {!isForged && (
+                  <p>
+                    Looking for a custom hand-forged piece instead?
+                    <a href="/custom-orders" class="text-accent"> Start a commission →</a>
+                  </p>
+                )}
+              </div>
+            </details>
+          </div>
+
+          {mainImg && (
+            <ProductInstagramBlock
+              slug={product.slug}
+              image={{ src: mainImg.src, alt: mainImg.alt, width: mainImg.width, height: mainImg.height }}
+              productName={decodeEntities(product.name)}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* ── EDITORIAL CONTEXT MODULE (UX Audit F2026-05-29 - Tigo)
+           Wide image + ritual-context typography + 3-col specs grid.
+           Inspired by "WORN AS A THRESHOLD" reference. Dark obsidian, museum tone. */}
+      {mainImg && (
+        <section class="ritual-context" aria-label="Ritual context">
+          <div class="ritual-context__image">
+            <img
+              src={(gallery[0] || mainImg).src}
+              alt={(gallery[0] || mainImg).alt || decodeEntities(product.name)}
+              width={(gallery[0] || mainImg).width}
+              height={(gallery[0] || mainImg).height}
+              loading="lazy"
+            />
+          </div>
+          <div class="ritual-context__copy">
+            <p class="eyebrow">RITUAL CONTEXT</p>
+            <h2 class="ritual-context__title">
+              {decodeEntities(product.name).toUpperCase()}.
+            </h2>
+            {(product.short_description || desc) && (
+              <div class="ritual-context__body">
+                <p>{cleanDescription(product.short_description || '') || desc}</p>
+              </div>
+            )}
+            {/* Ritual-context status strip — at-a-glance "Use" + "Availability"
+                ONLY. The full, piece-specific spec sheet (material, gauge, stone,
+                weight, origin, sold-as…) lives once in the <Spec> table near the
+                CTA; repeating it here produced a second, half-empty table
+                (Tigo feedback 2026-06-20). This keeps the editorial module clean
+                and non-redundant — every row always carries real data. */}
+            <dl class="ritual-context__specs">
+              <div class="ritual-context__spec">
+                <dt>Use</dt>
+                <dd>{primaryCategory ? localizeCategory(primaryCategory) : 'Body adornment'}</dd>
+              </div>
+              <div class="ritual-context__spec">
+                <dt>Availability</dt>
+                {/* Availability = REAL stock, never a template flourish.
+                    "Last one · one of one" requires tracked stock === 1, in stock,
+                    and NOT sold as a Pair (see isOneOfOne at the top of this file). */}
+                <dd>{
+                  product.stock_status !== 'instock' ? 'Sold out · commission only' :
+                  isOneOfOne ? 'Last one · one of one' :
+                  product.manage_stock && (product.stock_quantity || 0) > 0 && 3 >= (product.stock_quantity || 0) ? `Limited · ${product.stock_quantity} left` :
+                  'Ready to ship'
+                }</dd>
+              </div>
+            </dl>
+          </div>
+        </section>
+      )}
+
+      {/* Design Your Ear — the signature curation tool. Onward path from every
+          product (audit 2026-07-22: the PDP had no link to /constelaciones). */}
+      <aside style="text-align:center; margin: var(--space-6) 0 var(--space-2);">
+        <p class="eyebrow" style="margin-bottom: var(--space-2);">Not sure what fits your ear?</p>
+        <a href="/constelaciones" class="btn btn--ghost">Design your ear →</a>
+      </aside>
+
+      <RelatedPieces product={product} allProducts={allProducts} />
+    </div>
+  </article>
+
+  {/* ── Sticky buy bar — fixed bottom on mobile (always) and on desktop it
+       reveals on scroll once the main CTA leaves the viewport. Price + action
+       stay one tap away through the whole page. ── */}
+  <div class="sticky-cta" aria-hidden="false">
+    <div class="sticky-cta__inner">
+      <div class="sticky-cta__price">
+        <span class="sticky-cta__name">{decodeEntities(product.name)}</span>
+        <span class="sticky-cta__amount">{formatPrice(product.price)}</span>
+      </div>
+      {/* The sticky bar mirrors the PRIMARY CTA only. In 'cart_concierge' the cart
+          is always primary, so the bar carries Add to cart — never the concierge
+          line (that stays a small secondary link up in the buy column). */}
+      {product.stock_status === 'instock' && showCart ? (
+        <button
+          type="button"
+          class="btn btn--solid sticky-cta__btn"
+          data-add-cart
+          data-sku={product.sku || product.slug}
+          data-slug={product.slug}
+          data-name={decodeEntities(product.name)}
+          data-price={product.price}
+          data-img={mainImg?.src || ''}
+          data-max={product.manage_stock && product.stock_quantity ? product.stock_quantity : 99}
+          data-stock={stockState || ''}
+          data-pair={isPairPiece ? '1' : ''}
+        >
+          Add to cart →
+        </button>
+      ) : product.stock_status === 'instock' && showInquire ? (
+        <button
+          type="button"
+          class="btn btn--solid sticky-cta__btn"
+          data-rsv-open
+          data-piece={decodeEntities(product.name)}
+          data-sku={product.sku || ''}
+          data-price={formatPrice(product.price)}
+          data-verb="inquire"
+        >
+          Inquire →
+        </button>
+      ) : (
+        <a
+          href={stockState === 'soon' ? '/contact' : `/custom-orders?piece=${encodeURIComponent(product.slug)}&name=${encodeURIComponent(product.name)}`}
+          class="btn btn--solid sticky-cta__btn"
+        >
+          {stockState === 'soon' ? 'Coming soon →' : isForged ? 'Sold · commission →' : 'Sold · notify me →'}
+        </a>
+      )}
+    </div>
+  </div>
+
+  {/* Desktop reveal-on-scroll for the sticky buy bar. On mobile the bar is
+      always shown via CSS, so toggling the class is harmless there. */}
+  <script>
+    const bar = document.querySelector('.sticky-cta');
+    const anchor = document.getElementById('pdp-buy-anchor');
+    if (bar && anchor) {
+      // Show the bar once the primary CTA has scrolled above the viewport.
+      // Called directly (not rAF-deferred) so it stays correct even on
+      // synthetic scrolls and in tabs where rAF is throttled. A single
+      // getBoundingClientRect read per scroll is negligible for one element.
+      const update = () => {
+        bar.classList.toggle('is-visible', anchor.getBoundingClientRect().top < 0);
+      };
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update, { passive: true });
+      update();
+    }
+  </script>
+
+  {/* Gallery angle swap: clicking a thumbnail repaints the main "stage" image.
+      Pure progressive enhancement — without JS the thumbs still show every
+      angle, they just don't drive the stage. */}
+  <script>
+    const stage = document.getElementById('pdp-stage-img');
+    const thumbs = document.querySelectorAll('.pdp-thumb');
+    if (stage && thumbs.length) {
+      thumbs.forEach((thumb) => {
+        thumb.addEventListener('click', () => {
+          const { src, alt, w, h } = thumb.dataset;
+          if (!src) return;
+          stage.src = src;
+          stage.alt = alt || '';
+          if (w) stage.setAttribute('width', w);
+          if (h) stage.setAttribute('height', h);
+          thumbs.forEach((t) => t.classList.remove('is-active'));
+          thumb.classList.add('is-active');
+        });
+      });
+    }
+  </script>
+
+  <style>
+    /* ─── MAIN PRODUCT FIGURE ─── obsidian "luminous orb" treatment, matching
+       RitualProductHero. Replaces the old white-bg 4/5 cover crop that clashed
+       with the dark hero. The radial mask feathers the photo's square edges
+       into the obsidian so a white studio background dissolves to a glowing
+       body of light; a dark background simply fades into the theme. */
+    .pdp-main-figure {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: var(--space-1);
+      /* warm shell panel — white-studio photos blend in; object-fit:contain. */
+      background:
+        radial-gradient(circle at 50% 44%, #f1ece2 0%, var(--product-panel) 70%);
+    }
+    .pdp-main-figure img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      /* 2026-06-24 (Ocin): radial edge-mask removed — it was clipping the piece.
+         Whole macro shows on the dark panel; glow/shadow give depth, no crop. */
+      filter: drop-shadow(0 14px 40px rgba(8, 7, 6, 0.8)) drop-shadow(0 0 32px rgba(196, 147, 90, 0.14));
+    }
+
+    /* ─── GALLERY ANGLE THUMBNAILS ─── same luminous-orb language as the stage,
+       at small scale. Each thumb is a button that repaints the main image.
+       Wraps so 5+ angles flow to a second row; the active one carries an ember
+       ring + glow so the current angle is always legible. */
+    .pdp-thumbs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      margin-top: var(--space-2);
+    }
+    .pdp-thumb {
+      flex: 0 0 auto;
+      width: 72px;
+      height: 72px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      cursor: pointer;
+      /* warm shell panel — white-bg thumbs blend (matches main figure). */
+      background: var(--product-panel);
+      border: 1px solid color-mix(in srgb, var(--bronze) 45%, transparent);
+      border-radius: 2px;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+    }
+    .pdp-thumb img {
+      max-width: 100%;
+      max-height: 100%;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      -webkit-mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000 52%, transparent 88%);
+      mask-image: radial-gradient(ellipse 78% 78% at 50% 50%, #000 52%, transparent 88%);
+    }
+    .pdp-thumb:hover {
+      border-color: color-mix(in srgb, var(--ember) 60%, transparent);
+      transform: translateY(-1px);
+    }
+    .pdp-thumb:focus-visible {
+      outline: 2px solid var(--ember);
+      outline-offset: 2px;
+    }
+    .pdp-thumb.is-active {
+      border-color: var(--ember);
+      box-shadow: 0 0 0 1px var(--ember), 0 0 18px rgba(196, 147, 90, 0.28);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pdp-thumb { transition: none; }
+      .pdp-thumb:hover { transform: none; }
+    }
+
+    /* ─── CONCIERGE LINE ─── 'cart_concierge' only (Ocin 2026-07-13).
+       Sits UNDER the Add-to-cart button. It is a text link, never a button:
+       serif, italic, small, no border, no fill — so the cart always reads as
+       the one primary action and this stays a quiet aside. */
+    .pdp-concierge {
+      margin: 0 0 var(--space-3);
+      text-align: center;
+    }
+    .pdp-concierge__link {
+      display: inline;
+      background: none;
+      border: 0;
+      margin: 0;
+      padding: var(--space-2) 0;
+      cursor: pointer;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: var(--fw-thin, 300);
+      font-size: var(--fs-small);
+      line-height: 1.55;
+      color: var(--fg-soft);
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--ember) 45%, transparent);
+      text-underline-offset: 3px;
+      transition: color var(--t-fast), text-decoration-color var(--t-fast);
+    }
+    .pdp-concierge__link:hover {
+      color: var(--ember);
+      text-decoration-color: var(--ember);
+    }
+    .pdp-concierge__link:focus-visible {
+      outline: 2px solid var(--ember);
+      outline-offset: 3px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .pdp-concierge__link { transition: none; }
+    }
+
+    /* ─── PRODUCT ACCORDIONS ─── 2026-05-29 (Tigo)
+       Reemplaza el bloque secuencial About/Shipping/Care/Custom por details/summary
+       nativos. Cero JS. Borde dorado fino arriba, chevron derecha, padding generoso. */
+    .product-accordions {
+      margin-top: var(--space-5);
+    }
+    .product-accordion {
+      border-top: 1px solid var(--bronze);
+      padding: 0;
+    }
+    .product-accordion:last-of-type {
+      border-bottom: 1px solid var(--bronze);
+    }
+    .product-accordion__summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) 0;
+      font-family: var(--font-sans);
+      font-size: var(--fs-eyebrow);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      color: var(--bone);
+      transition: color var(--t-fast);
+    }
+    .product-accordion__summary::-webkit-details-marker { display: none; }
+    .product-accordion__summary:hover,
+    .product-accordion__summary:focus-visible {
+      color: var(--ember);
+      outline: none;
+    }
+    .product-accordion__chev {
+      font-family: var(--font-sans);
+      font-size: 1.4rem;
+      line-height: 1;
+      color: var(--bronze);
+      transition: transform var(--t-fast), color var(--t-fast);
+      width: 1.4rem;
+      text-align: center;
+    }
+    .product-accordion[open] > .product-accordion__summary .product-accordion__chev {
+      transform: rotate(45deg);
+      color: var(--ember);
+    }
+    .product-accordion__body {
+      padding: 0 0 var(--space-5);
+      color: var(--fg-soft);
+      font-family: var(--font-serif);
+      font-size: var(--fs-small);
+      line-height: 1.7;
+    }
+    .product-accordion__body p { margin: 0 0 var(--space-3); }
+    .product-accordion__body p:last-child { margin-bottom: 0; }
+    .product-accordion__body strong {
+      color: var(--bone);
+      font-weight: var(--fw-regular);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      font-size: var(--fs-tiny);
+      font-family: var(--font-sans);
+    }
+    .product-accordion__body a { color: var(--ember); }
+    .product-accordion__body a:hover { color: var(--bronze); }
+    .product-accordion__note {
+      font-style: italic;
+      color: var(--fg-mute);
+      font-size: var(--fs-tiny);
+      padding-top: var(--space-2);
+      border-top: 1px solid var(--line-soft);
+      margin-top: var(--space-3) !important;
+    }
+
+    /* ─── RITUAL CONTEXT EDITORIAL MODULE ─── 2026-05-29 (Tigo)
+       Wide image + título poético + body + 3-col specs. Museum / threshold tone. */
+    .ritual-context {
+      margin: var(--space-7) calc(var(--gutter) * -1) 0;
+      padding: var(--space-7) var(--gutter);
+      background: var(--obsidian, #080706);
+      border-top: 1px solid var(--bronze);
+      border-bottom: 1px solid var(--bronze);
+      display: grid;
+      gap: var(--space-6);
+      grid-template-columns: 1fr;
+    }
+    .ritual-context__image {
+      width: 100%;
+      max-height: 70vh;
+      overflow: hidden;
+      background: var(--bg-alt);
+    }
+    .ritual-context__image img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      max-height: 70vh;
+    }
+    .ritual-context__copy {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .ritual-context__title {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 3rem);
+      line-height: 1;
+      letter-spacing: 0.01em;
+      margin: var(--space-3) 0 var(--space-5);
+      color: var(--bone);
+    }
+    .ritual-context__body p {
+      font-family: var(--font-serif);
+      font-weight: var(--fw-thin, 300);
+      font-size: var(--fs-body);
+      line-height: 1.65;
+      color: var(--fg-soft);
+      max-width: 64ch;
+      margin: 0 0 var(--space-5);
+    }
+    .ritual-context__specs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-3) var(--space-5);
+      margin: var(--space-5) 0 0;
+      padding-top: var(--space-4);
+      border-top: 1px solid var(--line-soft);
+    }
+    .ritual-context__spec dt {
+      font-family: var(--font-sans);
+      font-size: var(--fs-tiny);
+      letter-spacing: var(--letter-spacing-ritual);
+      text-transform: uppercase;
+      color: var(--bronze);
+      margin-bottom: var(--space-2);
+    }
+    .ritual-context__spec dd {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: var(--fs-small);
+      line-height: 1.4;
+      color: var(--bone);
+    }
+    @media (min-width: 900px) {
+      .ritual-context {
+        grid-template-columns: 1.1fr 1fr;
+        align-items: center;
+        gap: var(--space-7);
+      }
+      .ritual-context__copy {
+        margin: 0;
+      }
+    }
+    @media (max-width: 600px) {
+      .ritual-context {
+        padding: var(--space-5) var(--gutter);
+        margin-top: var(--space-6);
+      }
+      .ritual-context__specs {
+        grid-template-columns: 1fr;
+        gap: var(--space-3);
+      }
+      .ritual-context__spec {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding-bottom: var(--space-2);
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .ritual-context__spec dt { margin: 0; }
+    }
+  </style>
+
+  {/* The Inquire modal only mounts where a trigger for it actually exists:
+      'inquire' pages (it IS the CTA) and 'cart_concierge' pages (the small
+      white-glove link under the cart). Plain 'cart' pages ship without it —
+      one road: add to cart. Component kept, never deleted. */}
+  {usesInquiryForm && <ReserveModal />}
+
+  <script>
+    // Size selector for variable products: switch price / stock / CTA per variant.
+    (function () {
+      const wrap = document.querySelector<HTMLElement>('[data-size-select]');
+      if (!wrap) return;
+      const pills = Array.from(wrap.querySelectorAll<HTMLButtonElement>('[data-size-pill]'));
+      const priceEl = document.getElementById('pdp-price');
+      const stockEl = document.getElementById('pdp-stock');
+      const rsvBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-rsv-open]'));
+      function select(pill: HTMLButtonElement) {
+        pills.forEach(p => {
+          const on = p === pill;
+          p.classList.toggle('is-active', on);
+          p.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+        const { size = '', price = '', sku = '', stock = 'instock' } = pill.dataset;
+        if (priceEl && price) priceEl.textContent = price;
+        if (stockEl) {
+          const inStock = stock === 'instock';
+          stockEl.textContent = '● ' + (inStock ? 'In stock' : stock === 'onbackorder' ? 'Coming soon' : 'Sold out');
+          stockEl.style.color = inStock ? 'var(--moss)' : stock === 'onbackorder' ? 'var(--ember)' : 'var(--clay)';
+        }
+        rsvBtns.forEach(b => {
+          if (price) b.dataset.price = price;
+          if (sku) b.dataset.sku = sku;
+          b.dataset.size = size;
+        });
+      }
+      pills.forEach(p => p.addEventListener('click', () => { if (!p.disabled) select(p); }));
+      const def = pills[Number(wrap.dataset.default || 0)] || pills.find(p => !p.disabled) || pills[0];
+      if (def) select(def);
+    })();
+  </script>
+
+  <script>
+    // Colour / metal SWATCH selector for variable products: swap image + price +
+    // stock + the add-to-cart / reserve buttons per finish (Ocin 2026-06-27).
+    (function () {
+      const wrap = document.querySelector<HTMLElement>('[data-variant-swatches]');
+      if (!wrap) return;
+      const sw = Array.from(wrap.querySelectorAll<HTMLButtonElement>('[data-variant]'));
+      const priceEl = document.getElementById('pdp-price');
+      const stockEl = document.getElementById('pdp-stock');
+      const stage = document.getElementById('pdp-stage-img') as HTMLImageElement | null;
+      const curLabel = wrap.querySelector<HTMLElement>('[data-variant-current]');
+      const rsvBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-rsv-open]'));
+      const addBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-add-cart]'));
+      const baseName = (addBtns[0]?.dataset.name) || (rsvBtns[0]?.dataset.piece) || document.title;
+      function select(b: HTMLButtonElement) {
+        sw.forEach(x => { const on = x === b; x.classList.toggle('is-active', on); x.setAttribute('aria-checked', on ? 'true' : 'false'); });
+        const { label = '', price = '', sku = '', stock = 'instock', img = '' } = b.dataset;
+        if (priceEl && price) priceEl.textContent = price;
+        if (curLabel) curLabel.textContent = label;
+        if (stockEl) {
+          const inStock = stock === 'instock';
+          stockEl.textContent = '● ' + (inStock ? 'In stock' : stock === 'onbackorder' ? 'Coming soon' : 'Sold out');
+          stockEl.style.color = inStock ? 'var(--moss)' : stock === 'onbackorder' ? 'var(--ember)' : 'var(--clay)';
+        }
+        if (stage && img) stage.src = img;
+        rsvBtns.forEach(x => { if (price) x.dataset.price = price; if (sku) x.dataset.sku = sku; x.dataset.piece = baseName + ' · ' + label; });
+        addBtns.forEach(x => {
+          if (price) x.dataset.price = price.replace(/[^0-9.]/g, '');
+          if (sku) x.dataset.sku = sku;
+          if (img) x.dataset.img = img;
+          x.dataset.name = baseName + ' · ' + label;
+          x.dataset.stock = stock === 'outofstock' ? 'sold' : '';
+        });
+      }
+      sw.forEach(b => b.addEventListener('click', () => { if (!b.disabled) select(b); }));
+      const def = sw[Number(wrap.dataset.default || 0)] || sw.find(b => !b.disabled) || sw[0];
+      if (def) select(def);
+    })();
+  </script>
+
+  <style>
+    /* Colour / metal finish swatches (variable products) */
+    .variant-swatches { margin: var(--space-3) 0 var(--space-5); }
+    .variant-swatches__row { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-2); }
+    .variant-swatch {
+      width: 34px; height: 34px; padding: 0; cursor: pointer;
+      background:
+        radial-gradient(120% 120% at 30% 25%, rgba(255, 255, 255, 0.45), transparent 55%),
+        var(--sw, var(--bronze));
+      border: 1px solid color-mix(in srgb, var(--bone) 30%, transparent);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+      transition: transform var(--t-fast), box-shadow var(--t-fast), outline-color var(--t-fast);
+      outline: 2px solid transparent; outline-offset: 2px;
+    }
+    .variant-swatch:hover { transform: translateY(-1px); }
+    .variant-swatch.is-active { outline-color: var(--ember); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), 0 0 0 1px var(--ember); }
+    .variant-swatch.is-sold { cursor: not-allowed; opacity: 0.4; position: relative; }
+    .variant-swatch.is-sold::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(45deg, transparent 44%, color-mix(in srgb, var(--bone) 70%, transparent) 46%, color-mix(in srgb, var(--bone) 70%, transparent) 54%, transparent 56%);
+    }
+    .size-select { margin: var(--space-3) 0 var(--space-5); }
+    .size-select__label { color: var(--sand); margin: 0 0 var(--space-2); }
+    .size-select__pills { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .size-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-width: 56px; justify-content: center;
+      padding: var(--space-2) var(--space-3);
+      background: transparent;
+      border: 1px solid var(--line-bright);
+      color: var(--fg);
+      font-family: var(--font-sans); font-size: var(--fs-small);
+      letter-spacing: 0.08em; cursor: pointer;
+      transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+    }
+    .size-pill:hover { border-color: var(--ember); color: var(--ember); }
+    .size-pill.is-active {
+      background: var(--ember); color: var(--obsidian); border-color: var(--ember);
+    }
+    .size-pill.is-sold {
+      opacity: 0.5; cursor: not-allowed; text-decoration: line-through;
+      border-style: dashed;
+    }
+    .size-pill.is-sold:hover { border-color: var(--line-bright); color: var(--fg); }
+    .size-pill__sold {
+      font-size: var(--fs-tiny); letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--clay); text-decoration: none;
+    }
+    .size-pill:focus-visible { outline: 1px solid var(--ember); outline-offset: 2px; }
+  </style>
+</Base>

@@ -1,0 +1,255 @@
+---
+/**
+ * JewelSilhouettes — shared client renderer (2026-06-25, per Ocin).
+ * Replaces loose circles/lines with REAL jewelry silhouettes drawn at real size.
+ * Scans `[data-jewel]` nodes and injects a minimalist gold line/solid SVG:
+ *   data-jtype="ring"    → seamless ring at inner-Ø (data-mm) + wire (data-gauge)
+ *   data-jtype="cbr"     → captive-bead ring (ring + bead)
+ *   data-jtype="labret"  → flat-back post: disc + post(length=data-mm) + gem
+ *   data-jtype="barbell" → bar with a ball on each end (length=data-mm)
+ *   data-jtype="gauge"   → wire-thickness sample (height = data-mm)
+ * Sizes from localStorage `wmPxPerMm` (set by the calibrator); else ~96dpi est.
+ * Re-renders live on calibration (`wm-calibrated` event) and cross-tab storage.
+ * Include ONCE per page that uses [data-jewel]. Colour = currentColor (gold).
+ */
+---
+<script>
+  (function () {
+    const DEFAULT_PXMM = 96 / 25.4; // ~3.78px per mm at 96dpi
+    const NS = 'http://www.w3.org/2000/svg';
+
+    function calib() {
+      try {
+        const v = parseFloat(localStorage.getItem('wmPxPerMm') || '');
+        if (v > 0.5 && v < 40) return { px: v, cal: true };
+      } catch (e) { /* ignore */ }
+      return { px: DEFAULT_PXMM, cal: false };
+    }
+    function mk(tag, attrs) {
+      const e = document.createElementNS(NS, tag);
+      for (const k in attrs) e.setAttribute(k, String(attrs[k]));
+      return e;
+    }
+
+    function build(node, px) {
+      const type = node.dataset.jtype || 'ring';
+      const mm = parseFloat(node.dataset.mm || '0');
+      const g = Math.max(0.6, parseFloat(node.dataset.gauge || '1.2'));
+      const wire = Math.max(1.4, g * px); // wire thickness in px (kept visible)
+      let svg;
+
+      if (type === 'ring' || type === 'cbr') {
+        const innerR = Math.max(2.2, (mm * px) / 2);
+        const clR = innerR + wire / 2;            // centreline radius
+        const pad = Math.max(wire, 5);
+        const size = 2 * (clR + wire / 2) + pad * 2;
+        const c = size / 2;
+        svg = mk('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'jewel__svg' });
+        svg.appendChild(mk('circle', { cx: c, cy: c, r: clR, fill: 'none', stroke: 'currentColor', 'stroke-width': wire }));
+        if (type === 'cbr') {
+          const bR = Math.max(wire * 0.92, 2.4);
+          svg.appendChild(mk('circle', { cx: c, cy: c - clR, r: bR, fill: 'currentColor' }));
+        }
+      } else if (type === 'plug') {
+        // solid plug — filled disc at the real diameter
+        const r = Math.max(3, (mm * px) / 2);
+        const pad = 5; const size = 2 * r + pad * 2; const c = size / 2;
+        svg = mk('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'jewel__svg' });
+        svg.appendChild(mk('circle', { cx: c, cy: c, r, fill: 'currentColor' }));
+      } else if (type === 'tunnel' || type === 'eyelet') {
+        // hollow tunnel/eyelet — an annulus at the real OUTER diameter, with a
+        // visible wall and an open bore so it reads as a tube, not a solid blob.
+        const outerR = Math.max(4, (mm * px) / 2);
+        const wall = Math.max(2, outerR * 0.17);
+        const pad = 5; const size = 2 * outerR + pad * 2; const c = size / 2;
+        svg = mk('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'jewel__svg' });
+        // wall ring
+        svg.appendChild(mk('circle', { cx: c, cy: c, r: outerR - wall / 2, fill: 'none', stroke: 'currentColor', 'stroke-width': wall }));
+        // faint inner bore outline
+        svg.appendChild(mk('circle', { cx: c, cy: c, r: Math.max(1, outerR - wall), fill: 'none', stroke: 'currentColor', 'stroke-width': 0.6, opacity: 0.5 }));
+      } else if (type === 'curved') {
+        // curved barbell (banana) — navel/eyebrow/rook. Shallow arc, ball each
+        // end; the END-TO-END span is the measured length (mm).
+        const span = Math.max(8, mm * px);
+        const ballR = Math.max(wire * 1.35, 2.8);
+        const depth = Math.max(span * 0.42, ballR * 2);
+        const pad = 4 + ballR;
+        const W = span + pad * 2;
+        const H = depth + ballR + pad * 2;
+        const x0 = pad, x1 = pad + span;
+        const yEnd = pad + ballR;
+        const yCtrl = yEnd + depth * 1.7;
+        svg = mk('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'jewel__svg' });
+        svg.appendChild(mk('path', { d: `M ${x0} ${yEnd} Q ${(x0 + x1) / 2} ${yCtrl} ${x1} ${yEnd}`, fill: 'none', stroke: 'currentColor', 'stroke-width': wire, 'stroke-linecap': 'round' }));
+        svg.appendChild(mk('circle', { cx: x0, cy: yEnd, r: ballR, fill: 'currentColor' }));
+        svg.appendChild(mk('circle', { cx: x1, cy: yEnd, r: ballR, fill: 'currentColor' }));
+      } else if (type === 'circular' || type === 'horseshoe') {
+        // circular barbell / horseshoe — septum. Ring open at the bottom with a
+        // ball on each end; the inner Ø is the measure (mm).
+        const innerR = Math.max(3, (mm * px) / 2);
+        const clR = innerR + wire / 2;
+        const ballR = Math.max(wire * 1.05, 2.6);
+        const pad = Math.max(wire, ballR) + 4;
+        const size = 2 * (clR + ballR) + pad * 2;
+        const c = size / 2;
+        const gap = 0.5; // half-angle of the bottom opening (radians)
+        const aL = Math.PI / 2 + gap;   // bottom-left end
+        const aR = Math.PI / 2 - gap;   // bottom-right end
+        const sx = c + clR * Math.cos(aL), sy = c + clR * Math.sin(aL);
+        const ex = c + clR * Math.cos(aR), ey = c + clR * Math.sin(aR);
+        svg = mk('svg', { width: size, height: size, viewBox: `0 0 ${size} ${size}`, class: 'jewel__svg' });
+        // long arc over the top (large-arc-flag=1), leaving the bottom open
+        svg.appendChild(mk('path', { d: `M ${sx} ${sy} A ${clR} ${clR} 0 1 1 ${ex} ${ey}`, fill: 'none', stroke: 'currentColor', 'stroke-width': wire }));
+        svg.appendChild(mk('circle', { cx: sx, cy: sy, r: ballR, fill: 'currentColor' }));
+        svg.appendChild(mk('circle', { cx: ex, cy: ey, r: ballR, fill: 'currentColor' }));
+      } else if (type === 'gauge' && !(node.dataset.glabel || '').trim() && mm < 3) {
+        // Bare thin-wire thickness swatch (scale strips / table cells / thin
+        // posts). Kept as a clean rounded bar so the small→large scale reads.
+        const h = Math.max(1.6, mm * px);          // real wire thickness
+        const len = Math.max(h * 3, 9 * px);       // ~9mm sample length
+        const pad = 4;
+        const W = len + pad * 2, H = Math.max(h, 7) + pad * 2;
+        svg = mk('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'jewel__svg' });
+        svg.appendChild(mk('rect', { x: pad, y: (H - h) / 2, width: len, height: h, rx: h / 2, fill: 'currentColor' }));
+      } else if (type === 'gauge') {
+        // Thickness reference (Ocin 2026-07-04): communicate the WIRE THICKNESS
+        // of the piece at a glance, at true scale. Instead of a featureless
+        // solid bar (which read as a "gold blob" at large gauges), draw:
+        //   · a filled circle = the wire cross-section, end-on, at real Ø
+        //   · a caliper bracket spanning that diameter
+        //   · the gauge/mm label beside it
+        // so the viewer instantly sees how thick the wire really is.
+        const glabel = (node.dataset.glabel || '').trim();
+        const dia = Math.max(1.6, mm * px);        // real wire thickness (Ø)
+        const r = dia / 2;
+        const capGap = 6;                          // gap between circle & caliper
+        const tick = 5;                            // caliper end-tick length
+        const labelH = 13;
+        const pad = 6;
+        const contentW = dia + capGap + tick + 2;
+        const W = pad * 2 + contentW + 46;         // room for the text label
+        const H = pad * 2 + Math.max(dia, labelH + tick * 2);
+        const cx = pad + r;
+        const cy = H / 2;
+        svg = mk('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'jewel__svg jewel__svg--gauge' });
+        // wire cross-section (end-on circle) at true diameter
+        svg.appendChild(mk('circle', { cx, cy, r, fill: 'currentColor', opacity: 0.92 }));
+        // faint highlight so it reads as a round section, not a flat disc
+        svg.appendChild(mk('circle', { cx: cx - r * 0.3, cy: cy - r * 0.3, r: Math.max(0.8, r * 0.42), fill: '#fff', opacity: 0.18 }));
+        // caliper bracket to the right, spanning the diameter (top→bottom)
+        const bx = pad + dia + capGap;
+        svg.appendChild(mk('line', { x1: bx, y1: cy - r, x2: bx, y2: cy + r, stroke: 'currentColor', 'stroke-width': 0.9, opacity: 0.85 }));
+        svg.appendChild(mk('line', { x1: bx, y1: cy - r, x2: bx + tick, y2: cy - r, stroke: 'currentColor', 'stroke-width': 0.9, opacity: 0.85 }));
+        svg.appendChild(mk('line', { x1: bx, y1: cy + r, x2: bx + tick, y2: cy + r, stroke: 'currentColor', 'stroke-width': 0.9, opacity: 0.85 }));
+        // measurement label — "00G · 9.5mm" or just the mm when no gauge token
+        const mmTxt = `${Number(mm.toFixed(mm < 10 ? 1 : 0))}mm`;
+        const txt = mk('text', {
+          x: bx + tick + 4, y: cy,
+          fill: 'currentColor',
+          'dominant-baseline': 'central',
+          'font-size': 10,
+          'font-family': 'var(--font-mono, monospace)',
+          'letter-spacing': '0.02em',
+          class: 'jewel__mm',
+        });
+        txt.textContent = glabel ? `${glabel} · ${mmTxt}` : mmTxt;
+        svg.appendChild(txt);
+      } else {
+        // labret / barbell — horizontal post; the LENGTH (mm) is the measure
+        const postLen = Math.max(6, mm * px);
+        const ballR = Math.max(wire * 1.35, 2.7);
+        const discW = Math.max(wire * 1.15, 2.2);
+        const discH = Math.max(ballR * 2.1, wire * 3.2);
+        const pad = 4;
+        const leftCap = type === 'barbell' ? ballR * 2 : discW;
+        const W = pad + leftCap + postLen + ballR * 2 + pad;
+        const H = Math.max(discH, ballR * 2) + pad * 2;
+        const cy = H / 2;
+        svg = mk('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, class: 'jewel__svg' });
+        let x = pad;
+        if (type === 'barbell') {
+          svg.appendChild(mk('circle', { cx: x + ballR, cy, r: ballR, fill: 'currentColor' }));
+          x += ballR * 2;
+        } else {
+          svg.appendChild(mk('rect', { x, y: cy - discH / 2, width: discW, height: discH, rx: discW / 2, fill: 'currentColor' }));
+          x += discW;
+        }
+        svg.appendChild(mk('rect', { x, y: cy - wire / 2, width: postLen, height: wire, rx: wire / 2, fill: 'currentColor' }));
+        x += postLen;
+        svg.appendChild(mk('circle', { cx: x + ballR, cy, r: ballR, fill: 'currentColor' }));
+      }
+      node.innerHTML = '';
+      node.appendChild(svg);
+    }
+
+    function run() {
+      const { px, cal } = calib();
+      document.querySelectorAll('[data-jewel]').forEach(n => { try { build(n, px); } catch (e) { /* skip */ } });
+      document.documentElement.setAttribute('data-wm-cal', cal ? '1' : '0');
+    }
+
+    run();
+    window.addEventListener('wm-calibrated', run);
+    window.addEventListener('storage', e => { if (e.key === 'wmPxPerMm') run(); });
+  })();
+</script>
+
+<style is:global>
+  /* Jewelry silhouette host — gold line/solid on the dark page. */
+  .jewel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ember);
+    line-height: 0;
+    filter: drop-shadow(0 0 4px rgba(201, 168, 76, 0.35));
+  }
+  .jewel__svg { display: block; overflow: visible; }
+  /* gauge/thickness reference — the mm label sits inline with the caliper. */
+  .jewel__svg--gauge { color: var(--ember); }
+  .jewel__mm { fill: var(--bone); opacity: 0.92; }
+
+  /* Ordered "size scale" strip — silhouettes small→large in an even row. */
+  .jscale {
+    display: flex;
+    align-items: center;
+    gap: clamp(10px, 2.4vw, 22px);
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: var(--space-4) var(--space-2) var(--space-3);
+    margin: 0 0 var(--space-4);
+    border: 1px solid var(--line-soft);
+    background:
+      radial-gradient(120% 100% at 50% 0%, rgba(201, 168, 76, 0.05), transparent 70%),
+      var(--charcoal);
+    scrollbar-width: thin;
+  }
+  .jscale__item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-2);
+    margin: 0;
+    flex: 0 0 auto;
+  }
+  .jscale__cap {
+    font-family: var(--font-mono);
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.04em;
+    color: var(--sand);
+    white-space: nowrap;
+  }
+  .jscale__cap b { color: var(--bone); font-weight: var(--fw-medium); }
+  .jscale-note {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    letter-spacing: 0.03em; margin: 0 0 var(--space-5);
+  }
+  .jscale-note a { color: var(--ember); }
+  /* exact vs estimated caption (toggled by the renderer on <html data-wm-cal>).
+     Default = estimated; only show "exact" once a real calibration exists. This
+     is robust even before/without JS. */
+  .jscale-note--exact { display: none; }
+  .jscale-note--est   { display: inline; }
+  html[data-wm-cal="1"] .jscale-note--exact { display: inline; }
+  html[data-wm-cal="1"] .jscale-note--est   { display: none; }
+</style>

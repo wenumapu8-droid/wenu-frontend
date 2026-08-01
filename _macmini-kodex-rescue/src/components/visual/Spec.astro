@@ -1,0 +1,348 @@
+---
+import { decodeEntities } from '../../lib/woo';
+import type { WooProduct } from '../../lib/woo';
+import { resolveSpecs } from '../../lib/specs';
+import JewelSilhouettes from './JewelSilhouettes.astro';
+import en from '../../i18n/en.json';
+
+interface Props {
+  product: WooProduct;
+}
+
+const { product } = Astro.props;
+
+// resolveSpecs() merges the REAL structured data from NocoDB (material, size,
+// weight, type, placement, threading, color, packaging — frozen to
+// src/data/specs-by-sku.json) over the name-derived fallback. NocoDB wins;
+// derivation only fills stone/finish/technique/dimensions. Each field is null
+// when absent, so the table only renders rows that carry real data.
+const specs = resolveSpecs(product);
+
+const sourceText = [
+  decodeEntities(product.name),
+  product.slug,               // slug often carries the true type (e.g. "…captive-bead-ring…")
+  product.sku,
+  ...product.categories.flatMap(category => [category.slug, category.name]),
+  ...product.attributes.flatMap(attribute => [attribute.name, ...attribute.options]),
+].join(' ').toLowerCase();
+
+// Origin detection (mirrors logic in src/pages/p/[slug].astro)
+// Honest labeling: never claim "hand-forged" for imported pieces.
+const originAttr = product.attributes.find(a => /origen|origin|made by|fabricaci/i.test(a.name));
+const originRaw = (originAttr?.options?.[0] || '').toLowerCase().trim();
+
+// Smart fallback by keywords when Origen attribute not set in WC.
+// 5 honest categories:
+// - hand-forged: forged from raw material in studio (meteorite rings, Vacamuerta)
+// - handmade: made entirely by Nico (picoyo wire-wrap, Author Jewelry, collabs)
+// - hand-assembled: Nico assembles imported parts into unique pieces (serpent hangers,
+//   colgante earrings — sold in branded carton)
+// - curated-independent: made by other independent artists Wenu Mapu curates
+//   (Alai Wakan / @alaiwakan — Spanish silversmith, handmade hangers)
+// - imported-curated: curated selection from international suppliers, sold as-is
+// collab-jimmy: Atacama meteorite (Vaca Muerta) pieces crafted by the artisan
+// Jimmy, a Wenu Mapu collaborator — neutral verb, not "hand-forged in studio".
+type Origin = 'collab-jimmy' | 'handmade' | 'hand-forged' | 'hand-assembled' | 'curated-independent' | 'imported-curated';
+
+const inferredOrigin: Origin =
+  /vacamuerta|meteorite|meteorito|atacama/.test(sourceText) ? 'collab-jimmy' :
+  /picoyo|wire-wrap|wirewrap/.test(sourceText)              ? 'handmade' :
+  /author-jewelry|author jewelry|one-of-a-kind|custom-forged|tipichill|cami/.test(sourceText) ? 'handmade' :
+  /alai|alaiwakan|wakan/.test(sourceText)                   ? 'curated-independent' :
+  /serpent|serpiente|filu|colgante|treng/.test(sourceText) && /hanger|earring|pendant/.test(sourceText) ? 'hand-assembled' :
+  'imported-curated';
+
+const origin: Origin =
+  /imported|ali|china|sourced|import/.test(originRaw) ? 'imported-curated' :
+  /assembled|ensambl/.test(originRaw)                 ? 'hand-assembled' :
+  /independent|curat/.test(originRaw)                 ? 'curated-independent' :
+  /handmade|hecho/.test(originRaw)                    ? 'handmade' :
+  /forged|forjad/.test(originRaw)                     ? 'hand-forged' :
+  inferredOrigin;
+
+const originRow =
+  origin === 'collab-jimmy'        ? { label: 'Origin', value: 'Crafted by artisan Jimmy · Wenu Mapu collaborator · Vaca Muerta mesosiderite (Atacama, Chile)' } :
+  origin === 'hand-forged'        ? { label: en.spec.label_made_in, value: 'Truckee, CA — hand-forged in studio' } :
+  origin === 'handmade'           ? { label: en.spec.label_made_in, value: 'Truckee, CA — handmade in studio' } :
+  origin === 'hand-assembled'     ? { label: en.spec.label_made_in, value: 'Truckee, CA — hand-assembled by the maker · components sourced, composition is ours' } :
+  origin === 'curated-independent' ? { label: 'Origin', value: 'Curated · handmade by an independent silversmith partner' } :
+                                    { label: 'Origin', value: 'Curated · international suppliers · not made in our studio' };
+
+// Fine-jewelry spec layout (2026-06-24, per Ocin): progressive disclosure.
+// KEY rows (material, stone, size/gauge, weight, origin) read inline — the 4-5
+// facts a buyer scans first. Everything else (color, dimensions, threading,
+// finish, technique, type, placement, sold-as, packaging) folds into a
+// "Full specifications" accordion so the block stays compact, not a wall.
+// Real-size visual: pull the first "<n>mm" from a value so the PDP can draw the
+// measure at estimated real size (circle for a diameter/gauge, line for a length).
+// Real-size JEWELRY SILHOUETTES (2026-06-25, per Ocin): the silhouette IS the
+// measure. Pick the shape that matches the piece TYPE so it "makes sense":
+//   ring/CBR → a captive-bead ring at real inner Ø (+ real wire gauge)
+//   barbell  → a bar with a ball each end at real length (+ gauge)
+//   labret   → a flat-back post at real length (+ gauge)
+//   gauge    → wire thickness sample at the real gauge
+const firstMm = (t: any) => {
+  const m = String(t ?? '').match(/(\d+(?:\.\d+)?)\s*mm/i);
+  return m ? parseFloat(m[1]) : null;
+};
+const hasGaugeToken = (t: any) => /\b(00g|\d{1,2}g)\b/i.test(String(t ?? ''));
+
+// Standard AWG piercing gauge → wire thickness in mm (matches /sizing-guide &
+// SizeMeasurer). Used to draw the thickness reference at the piece's REAL wire
+// gauge instead of a featureless gold bar sized to the wearing diameter.
+const GAUGE_MM: Record<string, number> = {
+  '20g': 0.8, '18g': 1.0, '16g': 1.2, '14g': 1.6, '12g': 2.0,
+  '10g': 2.4, '8g': 3.2, '6g': 4.0, '4g': 5.0, '2g': 6.0, '0g': 8.0, '00g': 9.5,
+};
+// Pull the gauge token out of a size string and resolve it to real mm thickness.
+const gaugeTokenMm = (t: any): { mm: number; label: string } | null => {
+  const m = String(t ?? '').match(/\b(00g|\d{1,2}g)\b/i);
+  if (!m) return null;
+  const key = m[1].toLowerCase();
+  const mm = GAUGE_MM[key];
+  return mm ? { mm, label: m[1].toUpperCase() } : null;
+};
+
+const pieceKind: 'cbr' | 'barbell' | 'labret' | 'tunnel' | 'plug' | null =
+  /barbell/.test(sourceText) ? 'barbell' :
+  /\b(tunnel|eyelet)\b/.test(sourceText) ? 'tunnel' :          // hollow → ring/annulus
+  /\bplug\b/.test(sourceText) ? 'plug' :                       // solid → filled disc
+  /\b(ring|cbr|hoop|clicker|seamless|segment|circular|captive|septum)\b/.test(sourceText)
+    && !/labret|flat ?back|flatback|\bstud\b/.test(sourceText) ? 'cbr' :
+  /labret|flat ?back|flatback|threadless|\bstud\b|nostril|monroe|nose ?screw/.test(sourceText) ? 'labret' :
+  null;
+
+const sizeMm = firstMm(specs.size);
+const dimMm  = firstMm(specs.dimensions);
+// Resolve the piece's wire thickness (gauge) to real mm. Prefer an explicit
+// gauge token ("00G", "16G"); else use a thin standalone mm (<=3.5mm reads as
+// wire, not a bore); else the piercing-standard default 1.2mm (16G).
+const gaugeInfo = gaugeTokenMm(specs.size);
+const gaugeMm =
+  gaugeInfo ? gaugeInfo.mm :
+  (sizeMm != null && sizeMm <= 3.5) ? sizeMm :
+  1.2;
+const gaugeLabel = gaugeInfo?.label ?? null;
+
+// size row → geometry by TYPE. Key fix (Ocin 2026-07-04): the old code drew a
+// solid gold BAR whose height = the *wearing diameter* (e.g. 10mm) whenever a
+// gauge token was present → a big featureless "blob". A gauge silhouette must
+// only ever show WIRE THICKNESS. So:
+//   · tunnel/eyelet → annulus at the wearing Ø
+//   · plug          → filled disc at the wearing Ø
+//   · ring/cbr      → captive ring at inner Ø + real wire gauge
+//   · a thin wire value (no diameter) → thickness reference at that mm
+//   · a hanger/expansion with a gauge token (e.g. "00G · 10mm") → thickness
+//     reference drawn at the REAL gauge mm (00G ≈ 9.5mm), never at the bore.
+const hasGauge = !!gaugeInfo;
+// A wearing diameter (>=4mm) with no gauge token reads as a HOLE/inner Ø the
+// piece is worn in (hangers, expansions, stretchers) → draw it as a ring at
+// that real Ø, not a wire-thickness bar. Only a genuine thin/gauge value falls
+// through to the thickness reference.
+const isWornDiameter = sizeMm != null && sizeMm >= 4 && !gaugeInfo;
+const sizeJewel =
+  sizeMm == null && !gaugeInfo ? null :
+  pieceKind === 'tunnel' ? { jtype: 'tunnel', mm: sizeMm } :
+  pieceKind === 'plug'   ? { jtype: 'plug',   mm: sizeMm } :
+  pieceKind === 'cbr'    ? { jtype: 'cbr',    mm: sizeMm ?? 8, gauge: gaugeMm } :
+  isWornDiameter         ? { jtype: 'cbr',    mm: sizeMm,      gauge: gaugeMm } :
+  // bare gauge / thin wire → wire-thickness reference at real gauge mm
+  { jtype: 'gauge', mm: gaugeMm, gauge: gaugeMm, glabel: gaugeLabel };
+
+// dimensions row → the piece itself at real size (Ø for rings/plugs/tunnels, length for posts)
+const dimJewel =
+  dimMm == null ? null :
+  pieceKind === 'tunnel'  ? { jtype: 'tunnel',  mm: dimMm } :
+  pieceKind === 'plug'    ? { jtype: 'plug',    mm: dimMm } :
+  pieceKind === 'cbr'     ? { jtype: 'cbr',     mm: dimMm, gauge: gaugeMm } :
+  pieceKind === 'barbell' ? { jtype: 'barbell', mm: dimMm, gauge: gaugeMm } :
+  { jtype: 'labret', mm: dimMm, gauge: gaugeMm };
+
+const keyRows = [
+  specs.material   && { label: en.spec.label_material,   value: specs.material },
+  specs.stone      && { label: en.spec.label_stone,      value: specs.stone },
+  specs.size       && { label: en.spec.label_gauge,      value: specs.size, rs: sizeJewel },
+  specs.weight     && { label: en.spec.label_weight,     value: specs.weight },
+  originRow,
+].filter(Boolean);
+
+const restRows = [
+  specs.color      && { label: en.spec.label_color,      value: specs.color },
+  specs.dimensions && { label: en.spec.label_dimensions, value: specs.dimensions, rs: dimJewel },
+  specs.threading  && { label: 'Threading',              value: specs.threading },
+  specs.finish     && { label: en.spec.label_finish,     value: specs.finish },
+  specs.technique  && { label: en.spec.label_technique,  value: specs.technique },
+  specs.type       && { label: 'Type',                   value: specs.type },
+  specs.placement  && { label: 'Placement',              value: specs.placement },
+  { label: en.spec.label_sold_as, value: specs.soldAs },
+  specs.packaging  && { label: 'Packaging',              value: specs.packaging },
+].filter(Boolean);
+
+// Generic reference links — kept, but moved into a smaller, muted block below
+// the real specs so they stop competing with the piece-specific data.
+const linkRows = [
+  { label: en.spec.label_sizing,    href: '/sizing-guide',  value: en.spec.sizing_cta },
+  { label: en.spec.label_aftercare, href: '/care-guide',    value: en.spec.aftercare_cta },
+  { label: en.spec.label_returns,   href: '/shipping',      value: en.spec.returns_cta },
+  { label: en.spec.label_custom,    href: '/custom-orders', value: en.spec.custom_cta },
+];
+---
+
+<section class="spec" aria-label="Product details">
+  <dl class="spec__list">
+    {keyRows.map(row => (
+      <div class="spec__row">
+        <dt class="spec__label">{row.label}</dt>
+        <dd class="spec__value">{row.value}{row.rs && (<span class="jewel spec-jewel" data-jewel data-jtype={row.rs.jtype} data-mm={row.rs.mm} data-gauge={row.rs.gauge} data-glabel={(row.rs as any).glabel ?? ''} aria-hidden="true"></span>)}</dd>
+      </div>
+    ))}
+  </dl>
+
+  {restRows.length > 0 && (
+    <details class="spec__more">
+      <summary class="spec__summary">
+        <span class="spec__summary-label">Full specifications</span>
+        <span class="spec__plus" aria-hidden="true"></span>
+      </summary>
+      <dl class="spec__list spec__list--rest">
+        {restRows.map(row => (
+          <div class="spec__row">
+            <dt class="spec__label">{row.label}</dt>
+            <dd class="spec__value">{row.value}{row.rs && (<span class="jewel spec-jewel" data-jewel data-jtype={row.rs.jtype} data-mm={row.rs.mm} data-gauge={row.rs.gauge} data-glabel={(row.rs as any).glabel ?? ''} aria-hidden="true"></span>)}</dd>
+          </div>
+        ))}
+      </dl>
+    </details>
+  )}
+
+  <dl class="spec__list spec__links">
+    {linkRows.map(row => (
+      <div class="spec__row">
+        <dt class="spec__label">{row.label}</dt>
+        <dd class="spec__value"><a href={row.href}>{row.value}</a></dd>
+      </div>
+    ))}
+  </dl>
+
+  {(sizeJewel || dimJewel) && (
+    <p class="spec-rs-note jscale-note">
+      <span class="jscale-note--exact">◦ Silhouettes at your calibrated real size.</span>
+      <span class="jscale-note--est">◦ Silhouettes ≈ real size · <a href="/sizing-guide">calibrate for exact</a>.</span>
+    </p>
+  )}
+</section>
+
+<JewelSilhouettes />
+
+<style>
+  /* Fine-jewelry spec list — dark, hairline-ruled, no boxes. Reads like a
+     BVLA / Mejuri spec sheet: micro uppercase labels, clean values, one gold
+     accent (the accordion toggle). Sits directly on the obsidian PDP. */
+  /* Real-size jewelry silhouette next to the value (drawn by JewelSilhouettes). */
+  .spec-jewel { margin-left: 12px; vertical-align: middle; }
+  .spec-rs-note {
+    font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver);
+    letter-spacing: 0.03em; margin: var(--space-3) 0 0;
+  }
+  .spec-rs-note a { color: var(--ember); }
+
+  .spec {
+    margin: var(--space-4) 0 var(--space-5);
+    max-width: 40rem;
+  }
+
+  .spec__list { margin: 0; }
+
+  .spec__row {
+    display: grid;
+    grid-template-columns: minmax(7rem, 0.34fr) 1fr;
+    gap: var(--space-4);
+    align-items: baseline;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .spec__list .spec__row:last-child { border-bottom: 0; }
+
+  .spec__label {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    font-weight: var(--fw-regular);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--sand);
+    line-height: 1.5;
+  }
+
+  .spec__value {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    line-height: 1.55;
+    color: var(--bone);
+  }
+
+  /* Accordion — the single gold accent lives in the + toggle. */
+  .spec__more {
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .spec__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) 0;
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: var(--letter-spacing-ritual);
+    text-transform: uppercase;
+    color: var(--silver);
+    transition: color var(--t-fast, 0.25s) ease;
+  }
+  .spec__summary::-webkit-details-marker { display: none; }
+  .spec__summary:hover { color: var(--bone); }
+
+  .spec__plus {
+    position: relative;
+    width: 11px;
+    height: 11px;
+    flex: none;
+  }
+  .spec__plus::before,
+  .spec__plus::after {
+    content: "";
+    position: absolute;
+    background: var(--ember);
+    transition: transform var(--t-fast, 0.25s) ease, opacity var(--t-fast, 0.25s) ease;
+  }
+  .spec__plus::before { top: 5px; left: 0; width: 11px; height: 1px; }
+  .spec__plus::after  { left: 5px; top: 0; width: 1px; height: 11px; }
+  .spec__more[open] .spec__plus::after { transform: scaleY(0); opacity: 0; }
+
+  .spec__list--rest {
+    padding-bottom: var(--space-3);
+  }
+  .spec__list--rest .spec__row:first-child { border-top: 0; }
+
+  /* Reference links — demoted: muted, gold links, sits last. */
+  .spec__links {
+    margin-top: var(--space-3);
+  }
+  .spec__links .spec__row { border-bottom: 1px solid var(--line-soft); }
+  .spec__links .spec__row:last-child { border-bottom: 0; }
+  .spec__links .spec__value { font-size: var(--fs-tiny); }
+  .spec__links a {
+    color: var(--ember);
+    text-decoration: none;
+    transition: color var(--t-fast, 0.25s) ease;
+  }
+  .spec__links a:hover { color: var(--bone); }
+
+  @media (max-width: 600px) {
+    .spec__row {
+      grid-template-columns: minmax(6rem, 0.4fr) 1fr;
+      gap: var(--space-3);
+    }
+  }
+</style>

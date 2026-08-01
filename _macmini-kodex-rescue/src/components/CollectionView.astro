@@ -1,0 +1,109 @@
+---
+import ProductCard from './ProductCard.astro';
+import PatternBand from './PatternBand.astro';
+import { getProducts } from '../lib/woo';
+import type { EditorialCollection } from '../data/editorial-collections';
+
+interface Props { collection: EditorialCollection; }
+const { collection } = Astro.props;
+
+const all = await getProducts();
+const bySlug = new Map(all.map(p => [p.slug, p]));
+
+// Resolve each curated pick → live product or a reserved "pending" slot.
+const resolved = collection.picks.map(pick => {
+  const product = pick.slug ? bySlug.get(pick.slug) : undefined;
+  return { pick, product };
+});
+const liveCount = resolved.filter(r => r.product).length;
+---
+<div class="cat-masthead cat-masthead--titled">
+  <picture>
+    <source type="image/avif" srcset={collection.avif} />
+    <img src={collection.webp} alt={`Wenu Mapu — ${collection.title}`} width="1600" height="900" loading="eager" decoding="async" fetchpriority="high" />
+  </picture>
+  <div class="cat-masthead__label">
+    <p class="cat-masthead__title">{collection.title}</p>
+    <p class="cat-masthead__eyebrow">{collection.eyebrow}</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="container">
+    <p class="eyebrow">{collection.eyebrow}</p>
+    <h1 class="page-title">{collection.title}</h1>
+    <p class="lede coll__intro">{collection.intro}</p>
+    <div class="page-divider"><PatternBand variant="hairline" tone="bronze" /></div>
+
+    <div class="coll__grid">
+      {resolved.map(({ pick, product }) => (
+        product ? (
+          <div class="coll__cell"><ProductCard product={product} /></div>
+        ) : (
+          <div class="coll__cell coll__cell--pending" aria-label={`${pick.name} — coming soon`}>
+            <div class="coll__pending">
+              <span class="coll__pending-mark" aria-hidden="true">✦</span>
+              <p class="coll__pending-name">{pick.name}</p>
+              <p class="coll__pending-note">{pick.note || 'Coming to the catalogue'}</p>
+            </div>
+          </div>
+        )
+      ))}
+    </div>
+
+    <div class="landing__cta coll__cta">
+      <a href={collection.ctaHref} class="btn btn--solid">{collection.ctaLabel} <span aria-hidden="true">→</span></a>
+      <a href="/collections" class="btn btn--ghost">All collections</a>
+    </div>
+    {liveCount === 0 && (
+      <p class="coll__empty">Pieces for this collection are being prepared — <a href="/shop" class="text-accent">see the full catalogue →</a></p>
+    )}
+  </div>
+</section>
+
+<style>
+  .coll__intro { max-width: 60ch; }
+  .coll__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: var(--space-4);
+    margin-top: var(--space-5);
+  }
+  .coll__cell--pending { display: flex; }
+  .coll__pending {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 100%;
+    padding: var(--space-5) var(--space-4);
+    border: 1px dashed var(--line-bright);
+    background: var(--charcoal);
+  }
+  .coll__pending-mark { color: var(--ember); font-size: 1.1rem; }
+  .coll__pending-name {
+    font-family: var(--font-serif);
+    font-size: var(--fs-small);
+    line-height: 1.3;
+    color: var(--bone);
+    margin: 0;
+  }
+  .coll__pending-note {
+    font-family: var(--font-sans);
+    font-size: var(--fs-tiny);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--bronze);
+    margin: 0;
+  }
+  .coll__cta { margin-top: var(--space-6); }
+  .coll__empty {
+    margin-top: var(--space-5);
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--fg-soft);
+  }
+</style>
