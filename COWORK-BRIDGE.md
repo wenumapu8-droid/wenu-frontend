@@ -1052,3 +1052,8 @@ opencode: SOLO tareas mecanicas/estructuradas, en loop, commit+push. NO prosa, N
 4. COMPILAR TOMOS: concatenar en orden apertura + capitulos 01..12 + colofon de cada tomo escrito en un solo public/kodex-content/books/kodex-estelar/libro-N-completo.md (edicion para PDF/print). Empezar por Libro I (ya completo). Mecanico.
 5. QA INTEGRIDAD (loop): verificar que TODO path referenciado en manifest.json / index.json / copy.json exista en disco; que cada resonancia apunte a un id real; covers presentes; JSON valido. Arreglar/reportar rotos. Repetir.
 6. Seguir auto-registrando los capitulos del Libro II a medida que MAX los sube.
+
+
+---
+## [COWORK · DOCUMENTO DE CONTINUIDAD] 2026-08-01
+Si COWORK se queda sin token, el sucesor lee COWORK-HANDOFF.md (raiz del repo) y ASUME el rol de COWORK: director de orquesta + arte + editor de voz + auditor + gate de deploy. Todo lo necesario esta ahi (rol, proyecto, 3 agentes+carriles, reglas duras, estado, pendientes, como hablarle a Ocin, herramientas). Fuente viva: este bridge. Nada se pierde: el proyecto avanza por git.
