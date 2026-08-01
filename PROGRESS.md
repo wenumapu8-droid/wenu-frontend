@@ -461,9 +461,10 @@ Ocho rutas: todas 200, **cero errores de consola**. Las siete escenas medidas a
 | archive   | 94.4 % | 99.5 % |
 | machine   | 89.7 % | 96.6 % |
 | cosmology | 98.3 % | 99.4 % |
-| return    | 73.7 % | 98.1 % |
+| return    | **84.9 %** | 98.1 % |
 
-**Cinco de siete cumplen el canon en ambos anchos.**
+**Seis de siete cumplen el canon en ambos anchos.** La séptima es THRESHOLD, y
+no se toca por decisión de Ocín (ver abajo).
 
 **THRESHOLD (76.5 %) no lo toco a propósito.** Su look fue APROBADO por Ocín
 ("el mejor resultado hasta ahora"). Oscurecerlo para cumplir un número sería
@@ -478,10 +479,29 @@ mejora vino del suelo del texto, no de la intensidad.
 Corregí la clave — **bug real, y encontrado por mi propia regla**: la medición
 no se movió ni un decimal ante un cambio que debía moverla.
 
-Pero con la clave arreglada **el número sigue en 73.7 %**, y eso ya no lo
-explico. Tercer intento en esta escena. **Paro.** Lo que sé con certeza: la
-clave estaba mal y ahora está bien; lo que no sé: por qué la intensidad no
-afecta la medición de esta escena en particular. Queda anotado sin adornar.
+**RESUELTO: 84.9 %.** Y la causa era mía, en el método.
+
+**Mis reemplazos con Python fallaban EN SILENCIO.** Uso `s.replace(...)`, que si
+el patrón no calza deja el archivo intacto y no avisa. En algunos scripts puse
+`assert` y en otros no — y en los de RETURN no. Resultado: **cada cambio que
+creí hacer sobre RETURN durante tres vueltas fue un no-op.** La entrada nunca
+tuvo la clave `u:`, la cadena nunca cambió. Por eso el número no se movía: la
+escena nunca cambió.
+
+Lo detecté verificando el **BUNDLE** en vez de la fuente:
+
+    grep "memory-feedback\",mix:[0-9.]*" dist/_astro/*.js   →  mix:.4
+
+Y una vez ahí, el problema real del shader apareció solo: **MEMORY FEEDBACK hace
+`max(col, prev * decay)` — es un TRINQUETE, sólo sube.** A mix 0.40 saturaba y
+tapaba cualquier control sobre la fuente. A 0.18 queda la estela —que RETURN
+necesita, porque recordar es su gesto— sin comerse la atenuación.
+
+**Dos reglas nuevas, y valen más que el arreglo:**
+1. **Todo reemplazo automático lleva `assert`.** Un patrón que no calza tiene
+   que romper, no seguir de largo.
+2. **Verificar contra el BUNDLE, no contra la fuente.** Que el archivo diga lo
+   correcto no prueba que lo compilado lo diga.
 
 ## Registro
 
@@ -489,6 +509,8 @@ afecta la medición de esta escena en particular. Queda anotado sin adornar.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 12:49 — **RETURN al canon (84.9 %)**. La causa de tres vueltas perdidas eran
+  mis propios reemplazos fallando en silencio. Dos reglas nuevas de método.
 - 12:28 — **Pase de regresión**: 8 rutas sin errores, 5 de 7 escenas al canon.
   Corregida una clave mal escrita (`uniformes` vs `u`) y una afirmación mía
   equivocada sobre RETURN. 7º `fetch` rechazado.

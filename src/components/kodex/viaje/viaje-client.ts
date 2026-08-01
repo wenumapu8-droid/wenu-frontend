@@ -298,8 +298,16 @@ const montar = () => {
        */
       return: {
         frag: RIPPLE_FRAG,
+        // 0.34 medido: `ripple-floor` responde de verdad desde que su
+        // `u_intensity` está conectado.
+        u: { u_intensity: 0.34 },
         fx: [
-          { id: "memory-feedback", mix: 0.40 },
+          // MEMORY FEEDBACK hace `max(col, prev * decay)`: lee el cuadro
+          // anterior y conserva lo más brillante. Es un TRINQUETE — sólo sube.
+          // A 0.40 saturaba y tapaba cualquier control sobre la fuente.
+          // A 0.18 queda la estela, que es lo que RETURN necesita porque
+          // recordar es su gesto, sin comerse la atenuación.
+          { id: "memory-feedback", mix: 0.18 },
           // DITHER MATRIX, elegido POR MEDICIÓN y no por intuición: en el banco
           // de pruebas baja la luz un 23% y sube el fondo oscuro a 87.8%. Es el
           // segundo mejor oscurecedor de los ocho y, a diferencia de THERMAL
