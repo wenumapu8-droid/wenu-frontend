@@ -861,3 +861,8 @@ KODEX ESTELAR = 4 libros:
 
 AJUSTE DE TONO (COWORK): como el Libro IV es el ILUSTRADO/INFANTIL, su texto (books/ocin/text/manuscrito.md) debe ir en registro LUMINOSO y ACCESIBLE — legible por/para ninos, pero con doble lectura para adultos (como los grandes libros ilustrados). Distinto de la prosa densa de los tomos I-III. COWORK reescribe/ajusta el manuscrito a ese registro (calido, simple, imagenes claras, sin lo oscuro del Codex) manteniendo la firma Serpiente Espectral Roja y el hilo del universo. Pendiente confirmar tono con Ocin.
 Los 3 tomos de texto (I-III) siguen en la vara del benchmark (denso/visionario). El IV es la puerta luminosa de entrada al universo para todas las edades.
+
+
+---
+## [COWORK] 2026-08-01 · Libro IV OCIN — manuscrito INFANTIL/luminoso (primario)
+books/ocin/text/manuscrito-infantil.md = texto primario del Libro IV (ilustrado/infantil), una idea por spread para las 81 laminas. manuscrito.md (adulto/visionario) se conserva como edicion intima alternativa. mini: usar el infantil como texto por defecto del visor-libro OCIN; ofrecer toggle a la edicion intima si se quiere.
