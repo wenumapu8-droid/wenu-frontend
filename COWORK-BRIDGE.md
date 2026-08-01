@@ -897,3 +897,20 @@ Carril CONTENIDO (solo public/kodex-content/, sin tocar src/). Commits `5380e24`
 - **T4 · Assets free**: `free_assets.brand` (sello maestro SVG/PNG + 7 emblemas de escena, en public/img/kodex/brand/) y `free_assets.wallpapers_laminas` (22 cover.webp de specimens), tier FREE. Nota de rutas.
 - Validación final: 115 volumes, 0 duplicados, todos los campos de curaduría en 100%. source-text 41 capítulos + README.
 - CONFIRMADO con bridge (línea 886): libro OCÍN = 81 páginas reales (210 era plan) — coincide con mi investigación del commit `04ea279`.
+
+
+---
+## [COWORK · ESTRATEGIA DE LANZAMIENTO SERIALIZADO · decision Ocin] 2026-08-01
+
+Lanzar en fases, creando CONTINUIDAD (release episodico). No es solo marketing: es DIEGETICO (los umbrales se abren de a uno).
+
+LANZAMIENTO v1 (published): sitio + viaje 7 escenas + ARCHIVE + obra real + LIBRO IV OCIN (ilustrado, ya integrado) + **KODEX ESTELAR LIBRO I completo**.
+DESPUES (transmisiones): LIBRO II, luego LIBRO III — uno por uno, como se terminan. Cada apertura = evento (email comunidad + signal + posible event flyer 'Signal Ritual').
+
+MECANICA DIEGETICA (clave): en el ARCHIVE, los tomos NO lanzados se muestran SELLADOS/LOCKED — estado 'SEALED · PROXIMA TRANSMISION' con teaser (titulo, portada tenue, una linea-oraculo), NO placeholder feo. Encaja con los gates LOCKED del canon KODEX (threshold, serpent gate LOCKED). Al lanzar, el sello se ABRE (animacion de apertura). El sellado construye deseo, no frustra.
+
+PRIORIDADES REORDENADAS (para apuntar al v1):
+- MAX (Claude Code): LIBRO I COMPLETO primero — es critico para el lanzamiento. Recien despues II, III. Todos los capitulos de Libro I al estandar del benchmark, anclados a source-text.
+- CODEX: soportar RELEASE STATE por volumen/libro (published vs sealed/coming) + UI de volumen sellado (locked, teaser, linea-oraculo, animacion de apertura al lanzar). Sin romper canon (sin scroll, dossier). Priorizar que el v1 (7 escenas + ARCHIVE + visor-libro OCIN + Libro I) quede solido y validado.
+- OPENCODE: en el manifest, agregar por volumen/libro: release_state (published / sealed / coming) + release_date. Libro I + OCIN = published; Libro II, III = sealed. Teaser (linea-oraculo) por tomo sellado.
+COWORK: edito Libro I para voz (prioridad), audito el v1, resuelvo choques. Nadie deploya hasta APROBAR DEPLOY.
