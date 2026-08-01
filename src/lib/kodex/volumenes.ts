@@ -166,6 +166,46 @@ export async function leerManifiesto(): Promise<Manifiesto> {
  * y no objeto, y `escritura` es una descripción libre y no un identificador de
  * alfabeto.
  */
+/**
+ * De qué estrato es un volumen que no lo declara.
+ *
+ * El manifiesto de opencode no trae `estrato`, pero su `tema` lo dice casi
+ * siempre con todas las letras — "disco, órbita, eclipse, **sol negro**". Sin
+ * esta lectura los 37 volúmenes caen todos en el mismo cajón y las siete
+ * escenas quedan desconectadas de la obra real, que es justo lo que el motor
+ * tiene que resolver.
+ *
+ * Es un RESPALDO, no una autoridad: si el manifiesto declara `estrato`, ese
+ * gana. Corregir una asignación cuesta un campo, no un cambio de código —
+ * que es la división de siempre: el contenido es de ellos.
+ *
+ * El orden importa y es la parte delicada. Un mismo tema roza varias reglas
+ * — "sigilos generativos, geometría sagrada, joyería tribal" toca sigilo Y
+ * tribal — así que gana la que nombra el asunto principal, no la que aparece
+ * antes en la lista por casualidad. Ese volumen es de sigilos; lo tribal es
+ * un adjetivo del material.
+ */
+const POR_TEMA: [RegExp, string][] = [
+  [/yayentru/i, "yayentru"],
+  [/sol negro|eclipse|órbita|orbita|disco/i, "sol-negro"],
+
+  [/portal|umbral|transmitid|l[aá]mina/i, "portales"],
+  [/shader|prototipo|sistema|herramienta|ascii|petscii|tipograf|svg|grammar/i, "laboratorio"],
+  [/cosmogon|cosmolog|c[oó]smic|estelar|nibiru|cet[aá]ceo/i, "cosmos"],
+  [/lore|esot[eé]rico|artefacto|g[eé]nesis|pacto|templo|adn/i, "artefacto"],
+  [/sigilo|geometr[ií]a sagrada|mandala|macro/i, "macro-geometrias"],
+  [/tribal|patr[oó]n|textura|repetici[oó]n|respirante/i, "geometrias-respirantes"],
+];
+
+function estratoDe(v: any): string {
+  if (v.estrato) return v.estrato;
+  const texto = `${v.tema ?? ""} ${v.titulo ?? ""}`;
+  for (const [re, id] of POR_TEMA) if (re.test(texto)) return id;
+  // Sin señal: al archivo vivo, que es donde vive lo que todavía no se
+  // clasificó. Aparece igual en ARCHIVE; sólo no se ancla a una escena.
+  return "archivo-vivo";
+}
+
 function deOpencode(v: any, medidas: Record<string, { aspecto: string }>): Volumen {
   // "EL ARCHIVO / The Archive" → dos títulos. Si no hay barra, el mismo para
   // los dos: inventar una traducción sería peor que repetir.
@@ -207,7 +247,7 @@ function deOpencode(v: any, medidas: Record<string, { aspecto: string }>): Volum
   return {
     id: v.id,
     tipo: (v.tipo === "book" ? "finding" : v.tipo) ?? "gallery",
-    estrato: v.estrato ?? "archivo-vivo",
+    estrato: estratoDe(v),
     titulo_es: (es ?? v.id).trim(),
     titulo_en: (en ?? es ?? v.id).trim(),
     curaduria_es: v.curaduria_es,

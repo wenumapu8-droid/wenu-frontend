@@ -332,6 +332,23 @@ const volumenesDelEstrato = folio === 'iii'
   : todosLosVolumenes.filter((v) => v.estrato === estratoByFolio[folio]);
 
 /**
+ * La obra de la escena sale de la BIBLIOTECA, no de una ruta fija.
+ *
+ * Antes cada lámina traía su imagen escrita a mano: cuatro archivos locales
+ * para siete escenas, de la misma serie, y con el tratamiento encima dos
+ * escenas se veían iguales. Ahora la lámina muestra una pieza real del
+ * estrato al que pertenece — que es lo que significa que las escenas sean
+ * presets del mismo sistema y no siete páginas sueltas.
+ *
+ * Se toma el primer volumen del estrato que tenga obra; si el estrato todavía
+ * no tiene ninguna, cae a la imagen de siempre. El fallback importa: sin él,
+ * agregar una escena antes que su contenido dejaría la lámina en blanco.
+ */
+const obraDelEstrato = volumenesDelEstrato.find((v) => v.hero)?.hero ?? null;
+const obraDeEscena = obraDelEstrato?.src ?? sceneByFolio.image;
+const aspectoDeEscena = obraDelEstrato?.aspecto ?? '1/1';
+
+/**
  * Dónde cae cada lámina en el eje −∞ · 0 · +∞.
  *
  * No es decorativo: es el recorrido de la fórmula maestra. PROLOGUE todavía
@@ -411,17 +428,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
               referencia ese costado es un panel: marco con esquinas cortadas,
               pares clave/valor alineados, un medidor y una figura concentrica.
               Mismos datos, leidos como instrumento. */}
-          <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />
-
-          {/* Lo que hay DEBAJO de esta escena. La lamina es la superficie;
-              los volumenes son la profundidad que se abre al entrar. */}
-          <KodexTira
-            volumenes={volumenesDelEstrato}
-            estrato={estratoByFolio[folio] ?? ""}
-            accent={sceneByFolio.accent}
-            class="kx-os-stage__tira"
-          />
-
           <KodexDataStrip
             title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
             rows={stripRows}
@@ -432,7 +438,10 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             class="kx-os-stage__strip"
           />
 
-          <main class="kx-os-stage__copy">
+          {/* `data-kdx-scrollable`: esta columna scrollea por dentro y la rueda
+              NO debe robarle el gesto para girar el mandala. Sin la marca, el
+              visitante intenta leer y la escena se mueve. */}
+          <main class="kx-os-stage__copy" data-kdx-scrollable>
             <p class="kx-os-stage__kicker">{sceneByFolio.kicker}</p>
             <h1>{sceneByFolio.title}</h1>
 
@@ -504,6 +513,27 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 <button class="kx-os-ghost" type="button" data-kdx-drawer-open="return">EXPLORE THE ECOSYSTEM</button>
               </div>
             )}
+
+            {/* Donde cae esta lamina en el eje del sistema. Tambien en flujo:
+                mide 290px porque sus tres nombres tienen que caber sin
+                tocarse, y la columna del margen da 172px — no entraba, y se
+                montaba sobre el titular. */}
+            <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />
+
+            {/* Lo que hay DEBAJO de esta escena. La lamina es la superficie;
+                los volumenes son la profundidad que se abre al entrar.
+
+                Va DENTRO de la columna de texto y en flujo normal, no como
+                capa absoluta al pie. Flotandola habia que esquivar a mano lo
+                que cada una de las siete escenas pone abajo — y en RETURN,
+                que tiene tres botones de accion, no habia hueco: se los
+                comia. En flujo se ordena sola en las siete. */}
+            <KodexTira
+              volumenes={volumenesDelEstrato}
+              estrato={estratoByFolio[folio] ?? ""}
+              accent={sceneByFolio.accent}
+              class="kx-os-stage__tira"
+            />
           </main>
 
           <figure class="kx-os-stage__art" data-kdx-art>
@@ -542,7 +572,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             {sceneCrt && folio !== 'iii' && (
               <img
                 class="kx-os-stage__crt-source"
-                src={sceneByFolio.image}
+                src={obraDeEscena}
                 alt=""
                 aria-hidden="true"
                 decoding="async"
@@ -558,7 +588,8 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                    folio trae su pieza y su acento; el tratamiento es el mismo
                    para que las siete laminas se lean como un solo sistema. */
                 <KodexArtifact
-                  artwork={sceneByFolio.image}
+                  artwork={obraDeEscena}
+                  aspecto={aspectoDeEscena}
                   accent={sceneByFolio.accent}
                   label="ARTIFACT"
                   id={`KDX-${sceneByFolio.number}`}

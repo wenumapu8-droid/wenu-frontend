@@ -895,7 +895,26 @@
   font-family:'IBM Plex Mono',ui-monospace,monospace; color:var(--gray);
   font-size:10px; letter-spacing:.2em; text-transform:uppercase;
 }
-.kx-os-stage__copy{ max-width:760px; min-width:0; }
+.kx-os-stage__copy{
+  max-width:760px; min-width:0;
+  /* El campo vivo del fondo es absoluto con z-index:0, y un elemento
+     POSICIONADO pinta por encima de uno estatico aunque el estatico venga
+     despues en el DOM. La columna de texto no tenia position, asi que el
+     fondo le pasaba por encima: en DESCENT y MACHINE el titular y los
+     controles estaban tapados por su propio campo. Con el campo apagado se
+     veian bien, que es lo que hacia el fallo tan dificil de ver. */
+  position:relative; z-index:1;
+  /* La pagina no scrollea: es regla del proyecto. Cuando la escena trae mucho
+     — MACHINE lleva titular, lectura de cinco filas, dos botones, eje y tira —
+     lo que cede es esta columna, por dentro. Antes el sobrante se salia por
+     abajo y quedaba detras de la navegacion, invisible y sin manera de
+     llegar. */
+  max-height:100%; min-height:0; overflow-y:auto;
+  /* Sin barra visible: el chrome del sistema es minimo y una barra nativa
+     rompe la lamina. El contenido igual se alcanza con rueda y teclado. */
+  scrollbar-width:none;
+}
+.kx-os-stage__copy::-webkit-scrollbar{ display:none; }
 .kx-os-stage__kicker{
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:clamp(10px,1vw,12px);
   letter-spacing:.24em; color:var(--gold); text-transform:uppercase; margin:0 0 clamp(16px,3vh,28px);
@@ -3100,18 +3119,56 @@
 /* El eje −∞ · 0 · +∞ es una marca del margen, no un item de la grilla: iba
    a parar a la columna 1 y se apilaba sobre el rotulo del estrato. */
 .kx-os-stage__eje{
-  position:absolute; left:clamp(18px,4vw,56px); top:50%;
-  transform:translateY(-50%); z-index:3; pointer-events:none;
+  pointer-events:none;
+  margin-top:clamp(12px,2vh,22px);
   /* ANCHO EXPLICITO, obligatorio: las tres marcas del eje se colocan en % de
      esta caja. Sin ancho, un elemento absoluto se encoge al contenido y las
      marcas de −∞, 0 y +∞ caen todas en el mismo punto — que es exactamente
      como se veian, tres rotulos encimados. */
-  width:clamp(150px,15vw,220px);
+  /* Suficiente para que los tres nombres (ARCHIVO / TRANSFORMACION /
+     EXPANSION) quepan sin tocarse: el del medio va centrado y el de la
+     derecha alineado al borde, asi que el ancho lo fija el caso peor. */
+  width:clamp(200px,19vw,290px);
 }
 /* En la lamina el eje es una marca de margen: la nota larga de cada extremo
    la convertiria en una leyenda y volveria a chocar. El signo alcanza. */
 .kx-os-stage__eje .kdx-eje__marcas small{ display:none; }
-.kx-os-stage__eje .kdx-eje__marcas{ height:20px; }
+/* Sin las notas cada marca son DOS lineas (signo y nombre). Con 20px la fase
+   de abajo se dibujaba sobre el nombre: las marcas son absolutas y no empujan
+   a su contenedor, asi que el alto hay que declararlo a la medida real. */
+.kx-os-stage__eje .kdx-eje__marcas{ height:30px; }
+
+/* La tira de volumenes tampoco tenia colocacion y caia en la columna angosta:
+   sus fichas quedaban cortadas a media palabra ("INDI COMP"). Va al pie de la
+   columna central, que es donde se lee como "esto hay debajo de esta escena"
+   y no como un menu apretado contra el margen. */
+.kx-os-stage__tira{
+  /* Por encima del codigo de barras, que ocupa la esquina inferior izquierda
+     hasta unos 136px de alto. */
+  /* En flujo dentro de la columna de texto: sin position, sin bottom, sin
+     esquivar. Se separa de lo de arriba y nada mas. */
+  margin-top:clamp(10px,1.8vh,18px);
+  max-width:min(620px,100%);
+}
+/* Compacta en la lamina: la columna de texto tiene que caber entera entre la
+   barra de estado y la navegacion, porque la pagina NO scrollea. El tipo de
+   volumen ya se lee en el indice; aca sobra una linea que cuesta 14px por
+   ficha y empujaba la tira debajo de la navegacion. */
+.kx-os-stage__tira .kdx-tira__tipo{ display:none; }
+.kx-os-stage__tira .kdx-tira__lista a{ padding:5px 9px; min-width:112px; }
+
+/* RETURN invierte la lamina a blanco. El eje y la tira heredaban tinta clara
+   y quedaban ilegibles sobre el fondo. Sobre papel se escribe en negro. */
+.kx-os-scene--return .kx-os-stage__eje,
+.kx-os-scene--return .kx-os-stage__tira{ color:rgba(10,10,12,.62); }
+.kx-os-scene--return .kx-os-stage__eje :is(b,span,small),
+.kx-os-scene--return .kx-os-stage__tira :is(b,span,small,a){ color:rgba(10,10,12,.78); }
+.kx-os-scene--return .kx-os-stage__tira a{ border-color:rgba(10,10,12,.28); }
+/* En ARCHIVE el museo ya muestra todos los volumenes: la tira seria decir dos
+   veces lo mismo, y encima tapando la grilla. */
+.kx-os-scene--archive .kx-os-stage__tira{ display:none; }
+
+@media (max-width:1100px){ .kx-os-stage__tira{ display:none; } }
 
 /* El rail superior repetia numero de lamina y titulo justo donde ahora va la
    cabecera del museo, y quedaban encimados. En ARCHIVE el museo ya dice que

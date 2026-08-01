@@ -177,3 +177,59 @@ mío**. Agreguen la entrada al manifiesto y aparecen solos, sin tocar código.
 inicialicé. Se versiona el código y los manifiestos (797 archivos, 20 MB); la
 obra (1.9 GB) y las fotos RAW de cámara quedan fuera del historial, viven en
 su carpeta.
+
+### [COWORK] TIMELINE parte 2 — RELOJ DE LA HUMANIDAD Y EL MITO (expansion de Ocin)
+Suma a la linea de tiempo, separando SIEMPRE naturaleza/ciencia (fechas reales) de MITO (leyenda, no hecho):
+NATURALEZA (real):
+- ~4.600 Ma: la Tierra se forma.
+- ~3.800 Ma: primera vida.
+- ~470 Ma: las plantas colonizan la tierra.
+- ~385 Ma: los primeros ARBOLES (Devonico) — el arbol de la vida aparece (ancla del motivo arbol/ramas/holograma).
+HUMANIDAD (real):
+- ~300.000 anios: Homo sapiens, la conciencia.
+- ~12.000 anios: agricultura, primeras aldeas.
+MITO (leyenda, marcado como ficcion, estilo/sello aparte):
+- Lemuria / Mu: continente legendario, tiempo profundo.
+- Atlantis: ~9.600 a.C. segun el relato de Platon — civilizacion mitica de la energia y el cristal.
+- Egipto / los templos: conocimiento oculto.
+DIRECTIVA: en la timeline, los marcadores de MITO van con estilo distinto (etiqueta LEYENDA/MITO, color/sello aparte) para no confundir con fechas reales. El arbol (~385 Ma) conecta con el motivo vivo de KODEX. — Cowork
+
+### [COWORK] TESIS RECTORA de Ocin: TODO ES LO MISMO
+El Big Bang, el arbol, la geometria de Ocin, el mito, la conciencia = UN MISMO PATRON, muchas manifestaciones (ya esta en THRESHOLD: una forma, muchas manifestaciones). KODEX proclama esa unidad: el MISMO codigo/motivo/gramatica recorre TODO — por eso es UN solo instrumento, no muchas paginas sueltas.
+DISCIPLINA (clave): unidad en ESENCIA, DISTINCION en FORMA — mismo ADN, distintas especies. Todo es lo mismo NO es todo se ve igual. Que la unidad se SIENTA (motivo recurrente, treatment/grammar compartido, el patron que reaparece en cada escala) pero que cada escena/volumen sea una CARA UNICA del mismo patron. Ese es el sentido brutal. — Cowork
+
+### [COWORK] RELOJES VIVOS + HORAS DIVINAS / SINCRONICIDAD (Ocin)
+Sumar RELOJES REALES en el chrome: hora local actual, ticking de verdad (no contadores falsos). Que sean relojes de verdad, vivos.
+Sistema de HORAS ESPEJO / DIVINAS: detectar cuando la hora actual es una secuencia sagrada — 11:11, 4:44, 3:33, 2:22, 5:55, 1:11, 22:22, 00:00, 12:12, 13:13, 10:10, 20:20, 23:23, etc. Cuando cae una, CELEBRARLA en vivo: pulso del visualizador, sello SYNC DETECTED con la hora (ej SYNC 11:11), glow, y opcional un MENSAJE que se revela para esa hora.
+Tono: sincronicidad/mistico, poetico, no literal ni claim. Es parte del descubrir constante: si el visitante esta mirando a las 11:11, KODEX lo SABE y responde. Los relojes tambien anclan el eje cronologico (hora real vs tiempo cosmico/mito). — Cowork
+
+### [COWORK] CAPA ALQUIMICA / HERMETICA / ETER (Ocin)
+Sumar el conocimiento alquimico-hermetico como capa de KODEX. Esoterico/simbolico, NO ciencia (el eter no es fisica real; marcar como saber hermetico/creativo, tono ritual, sin claim).
+Elementos a tejer:
+- Los 5 elementos: tierra, agua, aire, fuego + ETER/QUINTAESENCIA (el campo, el medio del visualizador).
+- MAGNUM OPUS mapeado a escenas/colores: NIGREDO (negro) = SOL NEGRO (ya existe), ALBEDO (blanco), CITRINITAS (amarillo/oro), RUBEDO (rojo). Los estados de transmutacion.
+- TRIA PRIMA: Azufre, Mercurio, Sal.
+- TABLA ESMERALDA / como es arriba es abajo = ata con la tesis TODO ES LO MISMO y con pattern reveals structure.
+- Transmutacion, la Piedra Filosofal.
+- Principios hermeticos (mentalismo, correspondencia, vibracion, polaridad, ritmo, causa-efecto, genero).
+Alineaciones ya existentes: Sol Negro = Nigredo; el color por escena = las fases alquimicas; el eter = el campo del shader. Volumenes tipo chapter/finding, bilingue, con sellos alquimicos. — Cowork
+
+### [COWORK] CAPA DE COSMOVISIONES DEL MUNDO + GEOGRAFIA SAGRADA (Ocin) — CON CUIDADO ETICO
+Incorporar simbolos/cosmovisiones: hindu, budista, cristica (esoterismo cristiano), Kabbalah, Zen, y pueblos ancestrales (Maya, Inca, Bali y otros) + geografia sagrada (coordenadas reales de templos) + chakras del cuerpo (yoga), Kundalini, y chakras de la Tierra (Monte Shasta, etc.).
+REGLAS DURAS (no negociables):
+1. RESPETO + ATRIBUCION: cada tradicion se nombra con SU termino y fuente, NO diluida. Nada de sopa New Age donde todo es intercambiable.
+2. TODO ES LO MISMO = la RESONANCIA de la humanidad buscando el mismo misterio, puesta en DIALOGO — no afirmar que son identicas ni apropiarse. Unidad en la pregunta, DISTINCION en cada voz.
+3. SEPARAR lo DOCUMENTADO (chakras yoga, cosmologia Maya, Kabbalah, Zen = tradiciones reales, citar/respetar) de lo ESOTERICO MODERNO (chakras de la Tierra, grillas de ley, Monte Shasta = creencia contemporanea, marcar como tal, no como hecho antiguo).
+4. NO apropiar conocimiento sagrado/cerrado; usar lo compartido publicamente con marco respetuoso.
+5. Mapuche (cultura de Ocin) siempre precisa y central, separada de la ficcion.
+Formato: volumenes chapter/finding, cada uno con su tradicion nombrada, coordenadas reales (Chichen Itza, Machu Picchu, Borobudur, Uluru, etc.), sus propios simbolos/sellos, bilingue. Tono reverente, comparativo, honesto. — Cowork
+
+### [COWORK] CAPA FILOSOFIA + PSICOLOGIA DE JUNG (Ocin) — el hilo que UNIFICA todo
+Carl Jung (psicologia profunda, escuela real — presentar con precision, no woo):
+- ARQUETIPOS + INCONSCIENTE COLECTIVO = base de TODO ES LO MISMO (patrones universales en todas las culturas).
+- SINCRONICIDAD (termino acuniado por Jung) = las horas divinas 11:11, la coincidencia significativa.
+- JUNG Y LA ALQUIMIA (Psicologia y Alquimia): Nigredo/Albedo/Rubedo = etapas de la INDIVIDUACION = la capa alquimica ya puesta.
+- EL MANDALA (Jung lo uso como simbolo del Self) = las mandalas/geometria de Ocin.
+- INDIVIDUACION / el Self / la Sombra / anima-animus = el VIAJE del visitante (descenso, integracion, retorno).
+- FILOSOFIA PERENNE (philosophia perennis): tesis academica de que todas las tradiciones comparten un nucleo = el marco RIGUROSO de todo es lo mismo. Nombrarla.
+Jung es el HILO CONDUCTOR: ata culturas (arquetipos), relojes (sincronicidad), alquimia (individuacion), obra (mandala) y viaje. Volumenes chapter/finding, bilingue, tono intelectual + ritual. — Cowork
