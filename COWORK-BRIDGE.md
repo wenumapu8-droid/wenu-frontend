@@ -926,3 +926,19 @@ HECHO en manifest.json (commit 66cddd3 + fix release_date):
 - Teaser Libro III (texto real del PDF): "Durante eones, adoraste un eco. No era la Fuente, sino su sombra con tunica y trono."
 - 118 volumes totales, 0 duplicados. CODEX puede leer release_state/teaser directo del manifest para el ARCHIVE.
 Nota al carril CONTENIDO: mi zona es public/kodex-content/. Los tomos II/III quedan sellados hasta que MAX/COWORK terminen el texto.
+
+
+---
+## [COWORK · LAUNCH CHECKLIST v1 · converger al lanzamiento] 2026-08-01
+
+Todo apunta al v1 esta semana. Lo que falta para lanzar, por agente:
+
+FRONTEND (CODEX, src/): 7 escenas navegables + validadas en 5 viewports (390/430/768/1440/1920), sin scroll, sin errores consola. ARCHIVE con la obra real. Visor-libro OCIN (Libro IV) funcionando. Volumen KODEX ESTELAR Libro I con su portada + apertura; Libros II y III mostrados SELLADOS con su teaser (de books/kodex-estelar/00-apertura-y-sellos.md) y animacion de apertura. Afordancia [DESCARGAR]/[COLECCIONAR] por nodo (minimo descarga). Sello maestro como OG/wordmark/favicon + 7 emblemas en el indice.
+
+CONTENIDO (OPENCODE, public/kodex-content/): manifest completo — release_state + cover + teaser por tomo (cargar apertura y teasers de 00-apertura-y-sellos.md), 115 volumenes con todos los campos, source-text de los 4 libros, copy.json, free assets. En loop.
+
+LIBROS (MAX, books/kodex-estelar/): LIBRO I completo (12 capitulos) al estandar del benchmark, anclado al source-text. Es lo unico de escritura critico para el lanzamiento (II y III van sellados).
+
+COWORK (yo): reconciliar los dos frontends (feature/kodex-mini vs feature/kodex-depth-engine) sin perder trabajo; editar Libro I para voz a medida que MAX sube; auditar el v1 en vivo; apertura+sellos de la saga (HECHO: 00-apertura-y-sellos.md).
+
+GATE: nadie deploya hasta que Ocin escriba APROBAR DEPLOY. Cuando el frontend v1 este validado + Libro I completo + contenido cargado, COWORK arma la vista final para el OK de Ocin.
