@@ -322,3 +322,78 @@ KODEX se declara arte visionario cuyo fin es el despertar. — Cowork
 ### [COWORK] (Ocin): paisajes holograficos como worlds/backdrops
 Desierto, selva, montana/nieve, lago, ciudades SOLARPUNK. Motivos ambientales / hero backdrops tratados en dither/holograma KODEX. Cada uno puede ser el MUNDO de un estrato/volumen: el paisaje como escenario del descubrimiento (se viaja por terrenos). Real (documentado) + tratamiento visionario.
 SOLARPUNK = estetica de eco-futurismo optimista; encaja PERFECTO con mensajes para la nueva humanidad / proto-codigos para una cultura futura = el horizonte luminoso de KODEX (contrapeso esperanzador al negro dominante). Aspect ratio respetado. — Cowork
+
+---
+
+## 2026-08-01 · claude-mini · la lámina-collage
+
+Leído: `KODEX-CONTENT-ATLAS.md` (llegó a las 23:04), los **55 pósters** que ya
+están en `reference/posters/` — antes esa carpeta estaba vacía en el mini.
+
+**Capturas: `~/kodex-work/capturas/`** — 12 PNG del build actual: threshold,
+folios i–vi, y cinco láminas (`archivo`, `boveda`, `posters`, `codex-estelar`,
+`disco-solar`). Se regeneran en cada avance.
+
+### Cada volumen es una LÁMINA, no una ficha
+
+Plancha de paneles numerados sobre negro, un acento, un fragmento del sistema
+en cada margen — el modelo es el póster `ARCHIVE TREE`:
+
+    01 DOSSIER · 02 LÁMINA // DIAGRAMA CENTRAL · 03 CURADURÍA (ES/EN)
+    04 BIBLIOTECA DE GLIFOS · 05 DIAGNÓSTICO VIVO · 06 SERIE
+
+### Los dos registros, implementados
+
+`src/lib/kodex/simbolos.ts`. Diez conjuntos con su cultura, su naturaleza y su
+fuente. **El sello y la atribución viajan pegados al símbolo**, no en una nota
+al pie que se pierde al recomponer la página: ese es el punto de que exista el
+módulo.
+
+- ① documentado → verde
+- ② simbólico / ficción → naranja **rayado en diagonal**
+
+Se distinguen de un vistazo y sin leer, que es lo que la regla madre pide.
+Verificado: `codex-estelar` sale ② con "FICCIÓN · NARRATIVA DE KODEX — NO ES
+HISTORIA NI CIENCIA"; `atlas` y `mandalas` salen ①.
+
+El reparto sale del tema y el atlas lo dicta literal: "disco, órbita, eclipse,
+**sol negro**" → Magnum Opus, donde **Nigredo ES Sol Negro**.
+
+**Tres cosas que el módulo no hace, a propósito:**
+
+1. No afirma efectos. Ninguna tradición aparece con promesa de salud, energía
+   ni resultado. Se nombra el símbolo y su cultura; ahí termina.
+2. **No inventa grafía para culturas que no la escribieron así.** El registro
+   mapuche va con sus palabras documentadas (WENU MAPU, WENU LEUFÜ, GAU,
+   WÜNELFE) y su fuente. Fabricar "glifos mapuche" sería decorar con una
+   cultura viva.
+3. No mezcla. El lore del Artefacto y la cosmovisión documentada nunca
+   comparten conjunto.
+
+Datos vivos: reloj UTC real, deriva de coordenadas continua, y **hora espejo**
+(11:11, 4:44, 3:33). Se celebra como hecho sobre el reloj — no se explica ni se
+le atribuye poder, que sería un claim.
+
+### Errores de layout que costaron varias vueltas
+
+Los anoto porque son del mismo tipo que ya nos comió horas antes:
+
+- La plancha llevaba `min-height` y el contenido la estiraba: con eso las filas
+  `1fr` dejan de acotar, y la obra empujaba serie y pie fuera de pantalla.
+  **Una lámina tiene el tamaño que tiene** — altura definida.
+- La obra escala **por altura** y su proporción decide el ancho. Al revés, una
+  pieza vertical se pasa de largo. Escalar nunca deforma.
+- Al insertar el modificador `--sinserie` partí el bloque CSS en el lugar
+  equivocado y `grid-template-areas` quedó dentro del modificador: la plancha
+  se quedó sin áreas y el pie desapareció. Se ve idéntico a "el pie no cabe" y
+  se arregla en otro lado.
+- Tres elementos flotantes del chrome (deckbar, lector de coordenadas, línea de
+  tiempo) cruzaban la lámina. Los dos primeros la lámina ya los trae adentro;
+  a la línea de tiempo se le reserva su franja, porque estar debajo del pie es
+  justo donde va.
+
+### Sigue pendiente para ustedes
+
+Los **6 volúmenes con material y sin curar** (~896 imágenes): `book-0cin`,
+`cetaceo-estelar`, `portafolio-duoc`, `live-art`, `piercing-portafolio`, `nft`.
+Con que agreguen la entrada al manifiesto aparecen solos, sin tocar código.
