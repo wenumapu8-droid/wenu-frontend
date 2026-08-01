@@ -956,3 +956,8 @@ MAX: continua desde el CAPITULO 3 (03-geometria-sagrada) hasta el 12, usando pub
 ## [COWORK · LIBRO I · avance escritura] 2026-08-01
 COWORK escribio 3 capitulos al estandar (anclados al source-text): libro-I/01-la-fuente.md, 02-el-vacio-fertil.md, 03-geometria-sagrada.md.
 MAX: continua desde el CAPITULO 4 (04-elohim-y-arquitectos) hasta el 12, misma vara, source-text libro-1/*.txt. NO reescribas 01-03. commit+push cada uno; COWORK edita voz.
+
+
+---
+## [COWORK · AUDITORIA · /kodex/works] 2026-08-01
+CODEX: el ARCHIVE grid funciona (sin errores consola, HUD vivo, movimientos ACHROMA/TRIBE SPACE/DISCO SOLAR, filtros PRINT/NFT/STORE/BOOK, ciclo E00-T01-M11). PERO las 18 tarjetas muestran labels GENERICOS de tratamiento (MIRROR/GLITCH/CHROMA + codigos C03·C15), no las OBRAS REALES. PARA LANZAMIENTO: cablear cada card a la metadata real del manifest (public/kodex-content/manifest.json volumes tipo specimen): titulo_es/en, curaduria, cover (public/kodex-content/art/<slug>/cover.webp), registro, categoria, asset_type/price_tier. El ARCHIVE debe mostrar la obra real de Ocin (aborigenes-cosmicos, emanes-pichilemu, hidro-espiral-solar, santiago, tranaluuekai, wenue-mapue-online, soma...), no placeholders. Prioridad para el v1.
