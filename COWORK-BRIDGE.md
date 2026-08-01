@@ -639,3 +639,26 @@ O2. Volumenes de la OBRA de Ocin como specimens: por pieza, titulo + curaduria b
 O3. Codex Estelar: extraer texto de los PDF (estrategia/kodex-fuentes-codex-estelar/) -> 1 volumen de lore por capitulo (curaduria breve bilingue, MARCADO ficcion, neon). 4 libros / ~40 caps.
 O4. 14 capitulos documentados (Wenu Mapu raiz, rutrafe, animales de poder, We Tripantu, micelio, evolucion cosmica, geometria sagrada, Jung, constelaciones, magnum opus, tabla esmeralda, + Anunnaki/sumerios, akashicos, simulacion, ADN, respiracion, hipnosis, ocultismo, conciencia cristica, cuantico, quinto elemento, psicomagia, plantas sacras). Registro marcado; mapuche=documentado citado (Canio & Pozo), review:true donde no verifique; NUNCA mezclar con ficcion. Fuente: boveda WenuAgent content-atlas.
 O5. copy.json: microtext library + 6 manifiestos de poster + mantra OBSERVA/DECODIFICA/PARTICIPA/PERPETUA + 'El patron es la verdad. El archivo es eterno.' + 'No es una interfaz. No es una simulacion. Es un espejo codificado del orden profundo.'
+
+
+---
+## [COWORK · BACKLOG MAESTRO — TODO LO QUE FALTA] 2026-08-01
+
+Dividido: MINI = codigo (src/, escenas, motor, deploy). OPENCODE = contenido (public/kodex-content/). Ambos por git (feature/kodex-depth-engine). Coordinacion: MINI escribe PROGRESS.md; COWORK escribe este bridge. NO DEPLOY hasta APROBAR DEPLOY.
+
+### MINI — codigo (en orden)
+M1. FIX bug: /kodex/works TypeError addEventListener sobre null. Guard if(el) o corregir selector. Barrer todas las paginas por el mismo patron.
+M2. Escenas fieles desde kodex-modules/ (no reescribir shaders): PROLOGUE=observe-prototype ; DESCENT=split-corridor(+perspective-flip) ; MACHINE=impossible-structure(+spatial-engine) ; COSMOLOGY=spatial-engine orbit(+ripple-floor) ; RETURN=ripple/wrinkled(+arbol) ; THRESHOLD=usar kodex-threshold-portal-live-APPROVED.html como blanco exacto. ARCHIVE=grid biblioteca+micrografia SVG, ASCII como estado.
+M3. KDX FX SUITE: 8 pases chainable (CRT/dither/bitmap/memory-feedback/thermal/chromatic/glitch/pixel-sort) con params del spec; usar KODEX_CRT_MASTER_KIT (dist listo) + world-state-bridge. Efectos solo sobre foto/derivados, NO sobre obra terminada de Ocin.
+M4. ARCHIVE interior (product pipeline): specimen dossier, full-screen view, zoom 800%, metadata tabs, MACHINE DERIVATIVES por obra, edition/product card xx/100, certificate of authenticity (verify), trading card, installation mockup.
+M5. Volumenes vol/[slug] como LAMINA-COLLAGE: hero animado + curaduria bilingue + registro marcado + resonancias. Documentado=paleta marca; ficcion=neon. Leer del manifest.
+M6. Acabados premium: hover, sellos SVG, mensajes ocultos decodables (Hidden Sky), relojes de horas divinas (11:11/4:44/3:33), micro-interacciones, transiciones entre escenas. Menos es mas.
+M7. VALIDACION: 5 viewports (390/430/768/1440/1920), sin scroll, sin errores consola, FPS mobile mayor-igual 45, UN canvas por escena, 10 ciclos sin fuga, reduced-motion. Registrar PROGRESS.md.
+M8. Build limpio (npm run build pasa verify-build >=20 productos) pero NO deployar. Esperar APROBAR DEPLOY.
+
+### OPENCODE — contenido (public/kodex-content/)
+O1. manifest.json completo: 8 organismos (id, name ES/EN, paleta, 3 estados, verbos, audio, cadena FX) + 8 tratamientos (params) + TODOS los volumenes.
+O2. Volumenes de la OBRA de Ocin como specimens: titulo + curaduria bilingue + registro + categoria (cosmic origin/organic pattern/machine interface/ritual tech/memory layer) + resonancias. Assets limpios webp/avif SIN FX. Fuente: portafolio/Behance/Drive.
+O3. Codex Estelar: extraer texto de los PDF (estrategia/kodex-fuentes-codex-estelar/) a 1 volumen de lore por capitulo (curaduria breve bilingue, MARCADO ficcion, neon). 4 libros ~40 caps.
+O4. 14+ capitulos documentados (Wenu Mapu raiz citado Canio & Pozo, rutrafe, animales de poder, We Tripantu, micelio, evolucion cosmica, geometria sagrada, Jung, constelaciones, magnum opus, tabla esmeralda, Anunnaki/sumerios, akashicos, simulacion, ADN, respiracion, hipnosis, ocultismo, conciencia cristica, cuantico, quinto elemento, psicomagia, plantas sacras). Registro marcado; mapuche documentado, review:true donde no verifique, NUNCA mezclar con ficcion. Fuente: boveda content-atlas.
+O5. copy.json: microtext library + 6 manifiestos de poster + mantra OBSERVA-DECODIFICA-PARTICIPA-PERPETUA + los lemas canonicos del bridge.
