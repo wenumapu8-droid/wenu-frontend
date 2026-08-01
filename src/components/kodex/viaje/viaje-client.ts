@@ -269,11 +269,27 @@ const montar = () => {
     const DESDE_LAB: Record<string, { frag: string; fx: PasoFx[]; u?: Record<string, number> }> = {
       machine:   { frag: ESTRUCTURA_FRAG, fx: [{ id: "glitch-fracture", mix: 0.30 }], u: { u_intensity: 1.6 } },
       cosmology: { frag: ORBITA_FRAG,     fx: [{ id: "chromatic-split", mix: 0.45 }], u: { u_intensity: 1.8 } },
-      // RETURN salía al 66% de fondo oscuro, por debajo del canon (~85%). El
-      // suelo ondulante entrega mucha luz por sí solo, así que se le baja la
-      // ganancia en vez de taparlo: apagar con un velo sería esconder el
-      // organismo, bajarle la ganancia es pedirle que hable más bajo.
-      return:    { frag: RIPPLE_FRAG,     fx: [{ id: "memory-feedback", mix: 0.40 }], u: { u_intensity: 0.62 } },
+      /**
+       * RETURN salía al 66% de fondo oscuro, por debajo del canon (~85%).
+       *
+       * Bajarle `u_intensity` no hizo nada: **ese uniform está declarado y
+       * jamás usado en `ripple-floor`**. Lo confirmé leyendo el shader, después
+       * de que la medición se moviera 2 puntos ante un cambio que debía
+       * moverla mucho.
+       *
+       * Probé encadenar BITMAP THRESHOLD con `CRUSH` alto, pensando que
+       * aplastaría las sombras. Tampoco: con la posterización desactivada y su
+       * término de borde, ese pase ACLARA en vez de oscurecer. Medido: 67.5%.
+       *
+       * Segunda vez en esta tanda que encadeno a ciegas teniendo un banco de
+       * pruebas — `/kodex/lab/core/?fx=<id>` existe justamente para medir un
+       * pase aislado antes de meterlo en una escena. Queda revertido a la
+       * cadena que sí se ve bien, y B5 anotado con lo aprendido.
+       */
+      return: {
+        frag: RIPPLE_FRAG,
+        fx: [{ id: "memory-feedback", mix: 0.40 }],
+      },
     };
 
     const lab = DESDE_LAB[e.id];

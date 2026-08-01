@@ -135,11 +135,26 @@ acento de su escena**: `archive-orbit` pinta rojo donde COSMOLOGY es magenta
 El chrome, el índice y la capa SVG SÍ llevan el acento correcto — la
 incoherencia es sólo del organismo.
 
-**Anexo medido:** RETURN además sale al 66.9% de fondo oscuro, por debajo del
-canon (~85%). Bajarle `u_intensity` de 1.5 a 0.62 movió la medición apenas de
-49.51 a 47.3 — o sea, **`ripple-floor` no usa ese uniform**. Otra vez el
-síntoma de "el número no se mueve": hay que leer el shader y encontrar cuál es
-su control de ganancia real, no insistir con el que uno supone.
+**Anexo medido, con dos intentos fallidos y lo que enseñaron:**
+
+RETURN sale al ~67% de fondo oscuro, por debajo del canon (~85%).
+
+1. Bajé `u_intensity` de 1.5 a 0.62 → la medición se movió de 49.51 a 47.3.
+   Leí el shader: **`u_intensity` está DECLARADO y jamás usado en
+   `ripple-floor`**. Por eso no hacía nada.
+2. Encadené BITMAP THRESHOLD con `CRUSH` alto, esperando que aplastara las
+   sombras → 67.5%, sin cambio. Con la posterización desactivada y su término
+   de borde, **ese pase ACLARA en vez de oscurecer**.
+
+**La lección, y es sobre mi método:** encadené a ciegas dos veces teniendo un
+banco de pruebas hecho para esto. `/kodex/lab/core/?fx=<id>` mide un pase
+aislado sobre un organismo legible. Antes de meter un tratamiento en una escena
+hay que medirlo ahí.
+
+Queda revertido a la cadena que se ve bien. **No es una escena rota**: RETURN se
+lee correctamente y es, además, la escena del regreso a la luz — que sea la más
+clara de las siete puede ser lo correcto. Lo dejo medido y anotado para que Ocín
+o Cowork decidan, en vez de forzarlo.
 
 El runtime anterior resolvía esto con una etapa GRADE que teñía la salida con
 `u_kdxTint`. El motor nuevo no la tiene, y agregarla a ciegas sería reescribir
