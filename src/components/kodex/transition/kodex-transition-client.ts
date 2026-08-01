@@ -127,8 +127,14 @@ class Ritual {
     this.raiz.dataset.activo = "";
     this.raiz.dataset.fase = "colapso";
 
-    await this.animar(0, 1, ms * 0.62);
-    location.href = url;
+    // La navegación va en `finally`: si el dibujo del colapso lanza -- un
+    // contexto perdido, un canvas de cero -- el visitante igual llega. El
+    // ritual es la forma; llegar es la función.
+    try {
+      await this.animar(0, 1, ms * 0.62);
+    } finally {
+      location.href = url;
+    }
   }
 
   /** Al llegar: el mismo gesto al revés, para que se lea como continuación. */
@@ -173,8 +179,16 @@ const montar = () => {
       if (url.origin !== location.origin) return;
       if (!url.pathname.startsWith("/kodex/")) return;
       if (url.pathname === location.pathname) return;
+
+      // Sólo se toma el control si hay ritual que ejecutarlo. Antes se llamaba
+      // a preventDefault() y después se intentaba `ritual?.ir(...)`: si el
+      // ritual no había montado -- root ausente, módulo que no cargó, error
+      // temprano -- el enlace quedaba MUERTO. El museo entero depende de estos
+      // clics, y un enlace que no navega es infinitamente peor que un enlace
+      // sin transición.
+      if (!ritual) return;
       e.preventDefault();
-      void ritual?.ir(url.href);
+      void ritual.ir(url.href);
     },
     { capture: true },
   );
