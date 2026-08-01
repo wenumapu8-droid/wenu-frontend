@@ -616,3 +616,26 @@ SIGUIENTE: terminar art/, verificar consistencia assets↔manifest, validar JSON
 - Consistency: 22/22 specimens referencian cover.webp existente; resonancias normalizadas a ids reales del manifest (0 inválidas). JSON validado.
 - Review pendientes (sin tocar): 5 specimens con categoria inferida (spec-princesa-yuyo, spec-paletas-de-colores, spec-_, spec-tranaluuekai, spec-wenelfe-desk-grafic) + fx_chain de organismos (bridge no los define) + obra/ (4 jpgs sin mapear).
 - Nada committeado ni deployado. No toqué src/ del motor.
+
+
+---
+## [COWORK · BACKLOG MAESTRO — TODO LO QUE FALTA] 2026-08-01
+
+Dividido: MINI = codigo (src/, escenas, motor, deploy). OPENCODE = contenido (public/kodex-content/). Ambos por git (feature/kodex-depth-engine). Coordinacion: MINI escribe PROGRESS.md; COWORK/yo escribo este bridge. NO DEPLOY hasta APROBAR DEPLOY.
+
+### MINI — codigo (en orden de prioridad)
+M1. FIX bug: /kodex/works TypeError addEventListener sobre null. Guard (if(el)) o corregir selector. Barrer todas las paginas por el mismo patron.
+M2. Escenas fieles desde kodex-modules/ (no reescribir shaders): PROLOGUE=observe-prototype ; DESCENT=split-corridor(+perspective-flip) ; MACHINE=impossible-structure(+spatial-engine) ; COSMOLOGY=spatial-engine orbit(+ripple-floor) ; RETURN=ripple/wrinkled(+arbol) ; THRESHOLD=usar kodex-threshold-portal-live-APPROVED.html como blanco exacto. ARCHIVE=grid biblioteca+micrografia SVG, ASCII como estado.
+M3. KDX FX SUITE: 8 pases chainable (CRT/dither/bitmap/memory-feedback/thermal/chromatic/glitch/pixel-sort) con params del spec; usar KODEX_CRT_MASTER_KIT (dist listo) y crt world-state-bridge. Aplicables por escena; efectos solo sobre foto/derivados, NO sobre obra terminada de Ocin.
+M4. ARCHIVE interior (product pipeline): specimen dossier, full-screen view, zoom 800%, metadata tabs (info/tech/history/related), MACHINE DERIVATIVES (variantes por obra), edition/product card (xx/100), certificate of authenticity (verify), trading card, installation mockup.
+M5. Volumenes vol/[slug] como LAMINA-COLLAGE: hero animado + curaduria bilingue + registro marcado + resonancias (links). Documentado=paleta marca; ficcion=neon. Leer del manifest.
+M6. Acabados premium: hover states, sellos SVG, mensajes ocultos decodables (Hidden Sky), relojes de horas divinas (11:11/4:44/3:33), micro-interacciones, transiciones entre escenas. Menos es mas.
+M7. VALIDACION: 5 viewports (390/430/768/1440/1920), sin scroll vertical, sin errores consola, FPS mobile >=45, UN canvas activo por escena, 10 ciclos sin fuga de memoria, reduced-motion. Registrar en PROGRESS.md.
+M8. Build limpio (npm run build pasa verify-build >=20 productos) pero NO deployar. Esperar APROBAR DEPLOY.
+
+### OPENCODE — contenido (public/kodex-content/)
+O1. manifest.json completo: 8 organismos (id, name ES/EN, paleta, 3 estados, verbos, ruteo audio, cadena FX) + 8 tratamientos (params) + TODOS los volumenes.
+O2. Volumenes de la OBRA de Ocin como specimens: por pieza, titulo + curaduria bilingue + registro + categoria (cosmic origin/organic pattern/machine interface/ritual tech/memory layer) + resonancias. Assets limpios webp/avif (sin FX). Fuente: portafolio/Behance/Drive.
+O3. Codex Estelar: extraer texto de los PDF (estrategia/kodex-fuentes-codex-estelar/) -> 1 volumen de lore por capitulo (curaduria breve bilingue, MARCADO ficcion, neon). 4 libros / ~40 caps.
+O4. 14 capitulos documentados (Wenu Mapu raiz, rutrafe, animales de poder, We Tripantu, micelio, evolucion cosmica, geometria sagrada, Jung, constelaciones, magnum opus, tabla esmeralda, + Anunnaki/sumerios, akashicos, simulacion, ADN, respiracion, hipnosis, ocultismo, conciencia cristica, cuantico, quinto elemento, psicomagia, plantas sacras). Registro marcado; mapuche=documentado citado (Canio & Pozo), review:true donde no verifique; NUNCA mezclar con ficcion. Fuente: boveda WenuAgent content-atlas.
+O5. copy.json: microtext library + 6 manifiestos de poster + mantra OBSERVA/DECODIFICA/PARTICIPA/PERPETUA + 'El patron es la verdad. El archivo es eterno.' + 'No es una interfaz. No es una simulacion. Es un espejo codificado del orden profundo.'
