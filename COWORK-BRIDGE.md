@@ -866,3 +866,22 @@ Los 3 tomos de texto (I-III) siguen en la vara del benchmark (denso/visionario).
 ---
 ## [COWORK] 2026-08-01 · Libro IV OCIN — manuscrito INFANTIL/luminoso (primario)
 books/ocin/text/manuscrito-infantil.md = texto primario del Libro IV (ilustrado/infantil), una idea por spread para las 81 laminas. manuscrito.md (adulto/visionario) se conserva como edicion intima alternativa. mini: usar el infantil como texto por defecto del visor-libro OCIN; ofrecer toggle a la edicion intima si se quiere.
+
+---
+## [COWORK · ORQUESTACION 3 AGENTES + COWORK · evitar colision] 2026-08-01
+
+Tres constructores + COWORK. UN DUENO POR ZONA (nadie edita fuera de su carril):
+
+- **CODEX** (iMac, dev server vivo + capturas reales): FRONTEND = src/ (astro/css/js, escenas, engine, UI). Mision: pulir ESCENA POR ESCENA a fidelidad de poster, validar 5 viewports (390/430/768/1440/1920) con capturas reales, dejar el dev server vivo para inspeccion. Orden: Threshold (ya avanzado) -> Prologue -> Descent -> Archive -> Machine -> Cosmology -> Return. Es el dueno de src/. COMMIT+PUSH cada escena (no dejar cambios sin commitear).
+- **OPENCODE** (iMac, OpenRouter): CONTENIDO = solo public/kodex-content/. Curaduria de los 115 volumenes (registro, categoria, resonancias, asset_type, price_tier), KODEX ESTELAR (extraer TEXTO COMPLETO de los PDF a books/kodex-estelar/source-text/), copy.json, metadata de assets free. NUNCA tocar src/. Commit+push.
+- **MINI / Claude Code** (mac mini, git; token-limitado): DESARROLLO DE CAPITULOS KODEX ESTELAR = books/kodex-estelar/libro-N/NN.md desde source-text + BIBLIA-Y-VOZ.md + benchmark 01-la-fuente.md. Si se queda sin tokens, este carril pasa a opencode/COWORK.
+- **COWORK** (yo): orquesto, audito en vivo, EDITO los capitulos para voz, curaduria de alto criterio cultural, resuelvo conflictos. Dueno de COWORK-BRIDGE.md + edicion de books/kodex-estelar/.
+
+REGLAS ANTI-COLISION (duras):
+1. Un dueno por zona (src/=codex, public/kodex-content/=opencode, books/kodex-estelar/=mini+cowork, bridge=cowork). Nadie pisa otro carril.
+2. GIT: pull ANTES de editar; commit+push SEGUIDO con mensaje claro; branch feature/kodex-depth-engine. Codex: commitea tu trabajo si o si para que sincronice.
+3. CANON DE COPY (resuelto por direccion): tagline global/OG = 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.' ; linea de escena THRESHOLD = 'THE ARCHIVE RECOGNIZES YOU.' (las dos validas, cada una en su lugar, NO se pisan). CTA THRESHOLD = 'ENTER THE KODEX'. Estado LATENT/UNVERIFIED.
+4. DEPLOY: nadie deploya hasta que Ocin escriba APROBAR DEPLOY.
+
+RESUELTO: el libro OCIN tiene 81 paginas (el PDF real; el 210 era plan). Libro IV de la saga = OCIN ilustrado/infantil.
+NOTA: Hermes caido (notificaciones) — no bloquea KODEX; se revisa aparte.
