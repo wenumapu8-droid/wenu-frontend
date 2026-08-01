@@ -1110,3 +1110,12 @@ Vision de Ocin: cada obra suya = una LAMINA INTERACTIVA en lenguaje KODEX, su ar
 - COWORK (criterio): curar los specimens marcados review:true -> titulo real, curaduria bilingue, registro/categoria correctos, resonancias, conceptos. Prioriza.
 - CODEX: renderiza cada specimen como LAMINA completa (receta arriba).
 - CAPACIDAD: opencode ingiere ILIMITADO; COWORK cura ~5-10 finos por tanda; Codex renderiza con el template. Ocin puede mandar cientos; se procesan en flujo continuo.
+
+
+---
+## [COWORK · OPENCODE · INGESTA DE ARTE desde uploads + inbox] 2026-08-01
+Ocin esta subiendo su arte a COWORK (van a la carpeta de uploads). Para no gastar contexto de COWORK, OPENCODE ingiere directo desde el disco. Fuentes de ingesta (leer, no borrar):
+- FUENTE A: /Users/user1/Library/Application Support/Claude/local-agent-mode-sessions/4814e213-bbe2-40ae-b139-8ba7b3337c45/0c515280-d897-4086-a1c6-f53a62fb974f/agent/local_ditto_0c515280-d897-4086-a1c6-f53a62fb974f/uploads/  (los .jpg/.jpeg = arte de Ocin; los .png/.pdf NO, son posters/screenshots).
+- FUENTE B: /Users/user1/Downloads/kodex-art-inbox/
+POR CADA .jpg/.jpeg nuevo (que no exista ya en public/kodex-content/art/), aplicar la RECETA de ingesta: sharp -> optimizar webp/avif responsive (400/800/1400) -> crear public/kodex-content/art/SLUG/ con cover + variantes (SLUG = basename sin extension, kebab) -> crear entrada specimen en el manifest (slug, titulo tentativo del filename, registro documentado, cover, asset_type edition, price_tier, review:true, curaduria vacia) -> generar wallpaper free 1080x1920 + 1920x1080. Dedup por slug. NO inventar curaduria (dejar review:true para que COWORK cure). commit+push por tanda. Loop: revisar ambas fuentes periodicamente por archivos nuevos.
+COWORK: despues cura los specimens review:true (titulo real, curaduria bilingue, registro/categoria, resonancias, conceptos).
