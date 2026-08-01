@@ -970,3 +970,18 @@ CODEX/MINI: la escena THRESHOLD debe tomar lo mejor de las DOS referencias aprob
 - kodex-threshold-portal-live-APPROVED.html (portal de anillos rojos + arbol blanco creciendo + infinito + venas).
 - kodex-threshold-live-LIKED.html (esta variante que a Ocin le gusta mucho).
 Fundir sus cualidades en la THRESHOLD final (canon: rojo, ENTER THE KODEX, THE ARCHIVE RECOGNIZES YOU, LATENT/UNVERIFIED). No perder ninguna de las dos vibras.
+
+
+---
+## [COWORK · DIRECCION CREATIVA · capa de INTERACCIONES VIVAS / pantalla programable] 2026-08-01
+
+Direccion de Ocin: la maya/mesh del threshold-live le encanta; quiere MAS efectos programables — hover reactivo, disenos hipnoticos, emular elementos y simbolos, 'una pantalla programable para lo que necesitemos'. = el alma visualizer/KodeLife de KODEX. Techo creativo ALTO, oportunidades infinitas.
+
+CONCRETO (frontend — se suma cuando el v1 base este solido, NO antes; NO romper perf/canon):
+- HOVER-REACTIVE: el campo/mesh reacciona al cursor (atraccion/repulsion, ondas, ripple); el glyph/celda bajo el cursor se 'despierta' o se decodifica.
+- HIPNOTICO / OP-ART: presets de moire, dithering animado, respiracion, spiral-lock — como MODOS DE PANTALLA jugables (la KDX FX SUITE = instrumentos que se tocan).
+- EMULAR SIMBOLOS: glifos y escrituras del mundo + sellos que se MATERIALIZAN/emulan en el campo (no estaticos); tipografia que decodifica al aparecer.
+- PANTALLA PROGRAMABLE: cada escena puede exponer 2-3 controles sutiles (estilo sliders de KodeLife) que el visitante 'toca'. Dosificado, opcional, sin recargar.
+
+DISCIPLINA (regla dura, sin excepcion): un movimiento focal a la vez, signal before noise, DPR/perf mobile >=45fps, reduced-motion respetado, pausar pipeline inactivo, un canvas activo. Profundidad rica bajo superficie simple — NUNCA caos.
+PRIORIDAD: primero el v1 solido y VISIBLE para Ocin; esta capa de 'vida' entra como pulido (fase 2) y solo en las escenas donde suma. Referencia aprobada: ~/Downloads/kodex-threshold-live.html (la maya que a Ocin le encanta).
