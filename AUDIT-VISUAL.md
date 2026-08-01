@@ -3,7 +3,7 @@ tipo: auditoría visual
 proyecto: KODEX −∞
 fecha: 2026-08-01
 auditor: Mac Mini (read-only — no se tocó `src/`)
-método: Chrome headless contra `localhost:4327`, desktop 1440×900 y móvil 390×844
+método: Chrome headless · dev `localhost:4327` **y build estático `dist/` en 4399** · 1440×900 y 390×844
 ---
 
 # AUDIT-VISUAL · punch-list
@@ -24,7 +24,7 @@ método: Chrome headless contra `localhost:4327`, desktop 1440×900 y móvil 390
 | 🔴 crítica | 2 |
 | 🟠 alta | 3 |
 | 🟡 media | 1 · +1 cerrado |
-| ⚪ nota | 3 |
+| ⚪ nota | 4 |
 
 **Desktop 1440 está bien.** Los ocho hallazgos con severidad son de móvil y de
 anchos intermedios. La lámina de `/kodex/vol/[slug]` en 1440 es, de hecho, lo
@@ -74,6 +74,11 @@ descarta que sea un problema de grilla o de ancho.
 
 **Capturas:** `tribu-390x900.png` (mal) · `tribu-390x1800.png` (bien) ·
 `tribu-w420.png`, `tribu-w500.png`, `tribu-w768.png` (mal) · `vol-tribu-d.png` (bien).
+
+**✅ CONFIRMADO CONTRA EL BUILD DE PRODUCCIÓN.** Volví a tomar la evidencia
+sirviendo `dist/` estático en el puerto 4399, no el dev server. El solapamiento
+se reproduce **idéntico** en `dist-tribu-390x900.png`, y desaparece en
+`dist-tribu-390x1800.png`. No es un artefacto de desarrollo: es el sitio.
 
 ---
 
@@ -206,6 +211,64 @@ a levantarlo, coinciden.
 **Regla para la próxima:** después de tocar contenido, **reiniciar el dev server
 antes de capturar**, y confirmar con `curl` que lo servido es lo del disco. Una
 captura no prueba nada por sí sola.
+
+---
+
+### V-11 · Dos páginas no se pueden capturar desde el dev server (y sí desde el build)
+**Páginas:** `/kodex/` y `/kodex/folio/[folio]`.
+**Es un problema de método, no del sitio.** Pero bloquea auditarlas.
+
+Contra `localhost:4327` (dev), esas dos páginas **nunca llegan a un estado
+pintable**: Chrome headless se queda esperando y hay que matarlo. Reproducible
+con la máquina limpia —cero procesos Chrome vivos— en desktop y en móvil, y
+**también con JavaScript desactivado**.
+
+Contra `dist/` servido estático, **las dos renderizan sin problema**, en las
+cuatro variantes que probé: `headless=new`, `headless=old`, con y sin
+`--virtual-time-budget`, y con JS apagado.
+
+**Lo que correlaciona.** El dev server inyecta el CSS sin extraer:
+
+| página | dev (4327) | build (dist) |
+|---|---|---|
+| `/kodex/` | 474 KB CSS inline · 20 bloques `<style>` | **7 KB · 2 bloques** |
+| `/kodex/folio/i/` | 479 KB · 22 bloques | **8 KB · 2 bloques** |
+| `/kodex/vol/tribu/` | 475 KB · 16 bloques | 4 KB · 2 bloques |
+
+Las dos que cuelgan son las de **más bloques `<style>`** (20 y 22). Pero `tribu`
+tiene el mismo volumen de CSS con 16 bloques y renderiza, así que **la
+correlación no prueba la causa** y no la voy a presentar como si lo hiciera.
+
+**Para auditar esas dos páginas hay que usar el build**, no el dev server:
+
+```bash
+ALLOW_EMPTY_PRODUCTS=true npx astro build
+cd dist && python3 -m http.server 4399
+```
+
+---
+
+## Correcciones a esta misma auditoría
+
+Dos cosas que estuve a punto de reportar mal. Las dejo escritas porque el error
+es más útil que el hallazgo.
+
+**① Casi reporto 474 KB de CSS inline como problema de producción.** Lo medí en
+el dev server, donde es real, y es el 80–88 % del peso de cada página. **En el
+build son 7 KB.** Astro no extrae los estilos en desarrollo. Si no hubiera
+medido también `dist/`, habría mandado a alguien a optimizar algo que ya está
+optimizado.
+
+**② Mi primer diagnóstico del cuelgue estaba contaminado por mi propia
+herramienta.** Una tanda de capturas sin guarda de tiempo dejó **50 procesos
+Chrome huérfanos** compitiendo por la máquina. Con eso corriendo, *todo* colgaba
+—incluidas páginas que están perfectas—. Tuve que matarlos, verificar con
+`pgrep` que quedaban en cero, y repetir la medición entera.
+
+**La lección para la próxima:** toda captura headless va con guarda de tiempo y
+`kill -9`, y antes de creerle a un «cuelga» hay que confirmar
+`pgrep -f 'Google Chrome' | wc -l` en cero. Un resultado negativo sin ese
+control no significa nada.
 
 ---
 
