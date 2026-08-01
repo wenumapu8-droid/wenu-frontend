@@ -1,0 +1,151 @@
+---
+// KODEX −∞ · LIBRO — visor paginado de "OCÍN · Arte Digital Ritual"
+// (Serpiente Espectral Roja). La cámara más profunda del ARCHIVE.
+// Páginas limpias (sin FX). Sin scroll. Nav flechas/teclado/swipe.
+// Construido por COWORK (director de arte). Fallback = link al PDF.
+import KodexShell from '../../layouts/KodexShell.astro';
+
+const TOTAL = 81;
+const BASE = '/kodex-content/books/ocin';
+const PDF = '/kodex-content/books/ocin-arte-digital-ritual.pdf';
+const COVER = '/kodex-content/books/ocin-cover.jpg';
+const pages = Array.from({ length: TOTAL }, (_, i) => {
+  const n = String(i + 1).padStart(3, '0');
+  return { n: i + 1, src: `${BASE}/pages/${n}.webp` };
+});
+---
+<KodexShell title="KODEX −∞ · OCÍN — Arte Digital Ritual">
+  <main class="bk" data-bk>
+    <!-- CHROME superior -->
+    <header class="bk-top">
+      <a class="bk-back" href="/kodex/archive" aria-label="Volver al archivo">‹ ARCHIVE</a>
+      <div class="bk-id">
+        <span class="bk-title">OCÍN · ARTE DIGITAL RITUAL</span>
+        <span class="bk-author">SERPIENTE ESPECTRAL ROJA</span>
+      </div>
+      <div class="bk-mark">KODEX<span>−∞</span></div>
+    </header>
+
+    <!-- VISOR -->
+    <section class="bk-stage" data-stage>
+      <button class="bk-nav bk-prev" data-prev aria-label="Página anterior">‹</button>
+
+      <figure class="bk-page">
+        <img class="bk-img" data-img src={pages[0].src} alt="OCÍN — página 1" fetchpriority="high" />
+      </figure>
+
+      <button class="bk-nav bk-next" data-next aria-label="Página siguiente">›</button>
+    </section>
+
+    <!-- CHROME inferior -->
+    <footer class="bk-bottom">
+      <div class="bk-progress"><span class="bk-bar" data-bar></span></div>
+      <div class="bk-meta">
+        <span class="bk-count"><b data-cur>1</b> / {TOTAL}</span>
+        <a class="bk-dl" href={PDF} download>DESCARGAR EDICIÓN (PDF)</a>
+      </div>
+    </footer>
+
+    <!-- Fallback sin JS -->
+    <noscript>
+      <div style="padding:2rem;text-align:center">
+        <a href={PDF}>Descargar el libro completo (PDF)</a>
+      </div>
+    </noscript>
+  </main>
+
+  <script is:inline define:vars={{ TOTAL, BASE }}>
+    const root = document.querySelector('[data-bk]');
+    const img = root.querySelector('[data-img]');
+    const cur = root.querySelector('[data-cur]');
+    const bar = root.querySelector('[data-bar]');
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let i = 1;
+    const pad = (n) => String(n).padStart(3, '0');
+    const url = (n) => `${BASE}/pages/${pad(n)}.webp`;
+
+    // preload neighbours
+    const pre = {};
+    const preload = (n) => { if (n < 1 || n > TOTAL || pre[n]) return; const im = new Image(); im.src = url(n); pre[n] = im; };
+
+    function go(n) {
+      n = Math.max(1, Math.min(TOTAL, n));
+      if (n === i) return;
+      i = n;
+      if (!reduce) { img.style.opacity = '0'; }
+      const swap = () => {
+        img.src = url(i);
+        img.alt = 'OCÍN — página ' + i;
+        img.onload = () => { img.style.opacity = '1'; };
+      };
+      reduce ? swap() : setTimeout(swap, 120);
+      cur.textContent = i;
+      bar.style.transform = `scaleX(${i / TOTAL})`;
+      preload(i + 1); preload(i - 1);
+    }
+    const next = () => go(i + 1);
+    const prev = () => go(i - 1);
+
+    root.querySelector('[data-next]').addEventListener('click', next);
+    root.querySelector('[data-prev]').addEventListener('click', prev);
+    root.querySelector('[data-stage]').addEventListener('click', (e) => {
+      if (e.target.closest('.bk-nav')) return;
+      const r = root.querySelector('[data-stage]').getBoundingClientRect();
+      (e.clientX - r.left > r.width / 2) ? next() : prev();
+    });
+    addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); next(); }
+      else if (e.key === 'ArrowLeft') prev();
+    });
+    // swipe
+    let x0 = null;
+    root.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0;
+      if (Math.abs(dx) > 40) (dx < 0 ? next() : prev());
+      x0 = null;
+    });
+    bar.style.transform = `scaleX(${1 / TOTAL})`;
+    preload(2);
+  </script>
+
+  <style>
+    .bk { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto;
+      background: #0a0a0a; color: #e8e8e8; font-family: 'IBM Plex Mono', ui-monospace, monospace;
+      text-transform: uppercase; letter-spacing: .1em; overflow: hidden; }
+    .bk-top, .bk-bottom { display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px; gap: 16px; }
+    .bk-back { color: #9a6a60; text-decoration: none; font-size: 10px; letter-spacing: .18em; }
+    .bk-back:hover { color: #c9a84c; }
+    .bk-id { text-align: center; display: flex; flex-direction: column; gap: 2px; }
+    .bk-title { font-size: 11px; color: #e8e8e8; letter-spacing: .16em; }
+    .bk-author { font-size: 8px; color: #6a4a28; letter-spacing: .3em; }
+    .bk-mark { font-family: 'Barlow Condensed', Impact, sans-serif; font-weight: 800; font-size: 20px; }
+    .bk-mark span { color: #c9a84c; }
+    .bk-stage { position: relative; display: flex; align-items: center; justify-content: center;
+      min-height: 0; padding: 8px 64px; cursor: pointer; }
+    .bk-page { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center; }
+    .bk-img { max-height: 100%; max-width: 100%; object-fit: contain; transition: opacity .18s ease;
+      box-shadow: 0 12px 60px rgba(0,0,0,.7), 0 0 0 1px rgba(201,168,76,.12); }
+    .bk-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
+      width: 46px; height: 46px; border: 1px solid #3a1512; background: rgba(20,8,6,.4);
+      color: #c9a84c; font-size: 22px; cursor: pointer; transition: .2s; font-family: inherit; }
+    .bk-nav:hover { border-color: #c9a84c; background: rgba(201,168,76,.12); }
+    .bk-prev { left: 12px; } .bk-next { right: 12px; }
+    .bk-progress { flex: 1; height: 2px; background: #241014; overflow: hidden; }
+    .bk-bar { display: block; height: 100%; width: 100%; background: #c9a84c; transform-origin: left;
+      transition: transform .25s ease; }
+    .bk-meta { display: flex; align-items: center; gap: 20px; }
+    .bk-count { font-size: 10px; color: #9a6a60; } .bk-count b { color: #e8e8e8; }
+    .bk-dl { color: #c9a84c; text-decoration: none; font-size: 9px; letter-spacing: .16em;
+      border: 1px solid #6a4a28; padding: 8px 12px; transition: .2s; }
+    .bk-dl:hover { background: rgba(201,168,76,.14); }
+    @media (max-width: 720px) {
+      .bk-stage { padding: 6px 44px; } .bk-nav { width: 38px; height: 38px; }
+      .bk-author, .bk-back { display: none; } .bk-meta { gap: 12px; }
+      .bk-dl { font-size: 8px; padding: 7px 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .bk-img, .bk-bar { transition: none; } }
+  </style>
+</KodexShell>
