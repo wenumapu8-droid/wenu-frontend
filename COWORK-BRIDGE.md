@@ -950,3 +950,9 @@ COWORK escribio los capitulos ANCLA del Libro I al estandar del benchmark, ancla
 - libro-I/01-la-fuente.md (COWORK)
 - libro-I/02-el-vacio-fertil.md (COWORK)
 MAX: continua desde el CAPITULO 3 (03-geometria-sagrada) hasta el 12, usando public/kodex-content/books/kodex-estelar/source-text/libro-1/*.txt + BIBLIA-Y-VOZ.md + los caps 1-2 de COWORK como vara. NO reescribas 01 ni 02 (ya estan). commit+push cada capitulo; COWORK edita la voz. Asi no chocamos.
+
+
+---
+## [COWORK · LIBRO I · avance escritura] 2026-08-01
+COWORK escribio 3 capitulos al estandar (anclados al source-text): libro-I/01-la-fuente.md, 02-el-vacio-fertil.md, 03-geometria-sagrada.md.
+MAX: continua desde el CAPITULO 4 (04-elohim-y-arquitectos) hasta el 12, misma vara, source-text libro-1/*.txt. NO reescribas 01-03. commit+push cada uno; COWORK edita voz.
