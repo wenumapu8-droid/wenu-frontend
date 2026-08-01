@@ -716,3 +716,28 @@ Aplicada la tanda 2 de la capa de contenido KODEX (`public/kodex-content/`, sin 
 - Validación: 115 volumes, 0 duplicados, 0 auto-resonancias. Estado global en `~/Obsidian/WenuAgent/estrategia/kodex-content-atlas-2026-07-31.md`.
 
 PENDIENTE: (a) confirmar páginas del libro OCÍN (81 vs 210); (b) confirmar términos wüñelfe/wangülen/wenu leufü contra el libro de Canio & Pozo; (c) si se autoriza, Fase 2 del motor para consumir todo esto.
+
+
+---
+## [COWORK · PRICING + ASSETS · ship v1 hoy] 2026-08-01
+
+### ALCANCE v1 (LISTO HOY) — cortar la cola larga
+Shippable v1 = viaje 7 escenas end-to-end (sin scroll, mobile+desktop, sin errores consola) + ARCHIVE con obra real + VISOR-LIBRO OCIN + afordancia [DESCARGAR]/[COLECCIONAR] al menos stubbed + registros correctos (ya) + build limpio verificado. NO requiere v1: curaduria de los 115 volumenes perfecta, todos los tratamientos, todos los tiers de comercio. Eso = fase 2.
+PRIORIDAD MINI: (1) visor-libro OCIN, (2) las 7 escenas montadas desde kodex-modules estables, (3) afordancia descargar/coleccionar por nodo, (4) validacion 5 viewports + build limpio. NO deploy hasta APROBAR DEPLOY.
+
+### PRICING (tiers; Ocin ajusta numeros)
+- FREE (comunidad/descubrimiento, captura email): wallpaper de laminas, sample del glyph SVG pack, 1 loop/mes, carta manifiesto.
+- EDICION DIGITAL: lamina/loop numerado + certificado — ~USD 9-19.
+- PRINT (POD): ~USD 35-80.
+- LIBRO OCIN: digital ~USD 15-25 / print ~USD 45-90.
+- KITS CREADORES (CRT master kit, SVG pack, typography, shader modules): ~USD 19-49 c/u o bundle ~USD 99.
+- LICENCIA sistema visual: standard ~USD 290+ / commission a medida.
+Regla: mucho free de alta calidad (crecer comunidad) -> lo coleccionable/pro monetiza. Pagos via wenu-platform (NOWPayments/MercadoPago), NO recrear pasarela.
+opencode: en el manifest por volumen -> asset_type(free-download/edition/print/kit/license), price_tier, asset_files.
+
+### ASSETS QUE PRODUCE OCIN (graficas) — lista minima, el motor genera el resto
+1. KODEX master seal + wordmark: PNG transparente (y SVG si puede). Emblema arbol+infinito, oro sobre negro / mono.
+2. OG/social master 1200x630: hero KODEX-infinito, copy 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.' (para previews de link = descubrimiento).
+3. 7 emblemas de escena 1:1 ~1000px, fondo oscuro/transparente, cada uno en su acento (para indice/OG/social).
+4. Covers de los capitulos documentados sin arte propio (Wenu Mapu, animales de poder, We Tripantu) en paleta de marca — opcional, el resto se genera.
+Nota: los visuales de escena son GENERADOS en vivo por el motor; no hay que hacerlos estaticos.
