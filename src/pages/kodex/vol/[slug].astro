@@ -22,14 +22,31 @@ import KodexTransition from '../../../components/kodex/transition/KodexTransitio
 import KodexDebug from '../../../components/kodex/debug/KodexDebug.astro';
 import '../../../styles/kodex.css';
 import '../../../styles/kodex-micrographics.css';
-import { leerManifiesto, resolver, razon, type VolumenResuelto } from '../../../lib/kodex/volumenes';
+import { leerManifiesto, resolver, razon, assetUrl, type VolumenResuelto } from '../../../lib/kodex/volumenes';
 
 export async function getStaticPaths() {
   const vols = resolver(await leerManifiesto());
-  return vols.map((v) => ({ params: { slug: v.slug }, props: { v } }));
+  return vols.map((v, index) => {
+    const related = vols
+      .filter((item) => item.slug !== v.slug && (item.estrato === v.estrato || item.tipo === v.tipo || item.marco === v.marco))
+      .slice(0, 6);
+    return { params: { slug: v.slug }, props: { v, related, prev: vols[index - 1] ?? null, next: vols[index + 1] ?? null } };
+  });
 }
 
-const { v } = Astro.props as { v: VolumenResuelto };
+const { v, related, prev, next } = Astro.props as {
+  v: VolumenResuelto;
+  related: VolumenResuelto[];
+  prev: VolumenResuelto | null;
+  next: VolumenResuelto | null;
+};
+const coverFor = (vol: VolumenResuelto) => {
+  if (vol.slug === 'book-ocin-arte-digital-ritual') return '/kodex-content/books/ocin-cover-800.webp';
+  const src = vol.hero?.src;
+  if (!src || src.endsWith('.json')) return '';
+  return assetUrl(src);
+};
+const heroSrc = coverFor(v);
 const r = razon(v.hero?.aspecto);
 // La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
 const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
@@ -45,8 +62,17 @@ const diag = [
   { k: 'INTEGRIDAD', v: `${(90 + (semilla % 10))}.${semilla % 10}%` },
   { k: 'PROFUNDIDAD', v: `−${(semilla % 900) + 100}` },
   { k: 'ESCRITURA', v: (v.escritura ?? '—').toUpperCase() },
-  { k: 'REGISTRO', v: v.fecha ?? '—' },
+  { k: 'REGISTRO', v: (v.marco ?? 'estructura').toUpperCase() },
+  { k: 'TOMO', v: v.tomo.toUpperCase() },
 ];
+
+const marcoTexto = {
+  ficcion: 'FICCIÓN · MITO Y ESPECULACIÓN · NO ES CIENCIA',
+  ciencia: `CIENCIA DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`,
+  documentado: `FUENTE DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`,
+  estructura: 'ESTRUCTURA DEL ARCHIVO · SISTEMA VISUAL',
+  esoterico: 'REGISTRO ESOTÉRICO · LECTURA SIMBÓLICA',
+}[v.marco ?? 'estructura'];
 ---
 
 <Base
@@ -54,7 +80,7 @@ const diag = [
   title={`${v.numero} · ${v.titulo_es} — KODEX−∞`}
   description={v.curaduria_en ?? v.curaduria_es ?? v.titulo_es}
   robots="index, follow"
-  ogImage={v.hero?.src ?? '/img/kodex/works/mandala-0cin-negativo.png'}
+  ogImage={heroSrc || '/img/kodex/works/mandala-0cin-negativo.png'}
   noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
 >
   <div
@@ -100,22 +126,20 @@ const diag = [
             -- y esa confusion seria responsabilidad del sistema. */}
         {v.marco && (
           <p class={`kx-vol__marco kx-vol__marco--${v.marco}`}>
-            {v.marco === 'ficcion' && 'FICCIÓN · MITO Y ESPECULACIÓN · NO ES CIENCIA'}
-            {v.marco === 'ciencia' && `CIENCIA DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
-            {v.marco === 'documentado' && `FUENTE DOCUMENTADA${v.fuente ? ` · ${v.fuente}` : ''}`}
+            {marcoTexto}
           </p>
         )}
       </header>
 
       <figure class={`kx-vol__hero kx-vol__hero--${forma}`}>
-        {v.hero ? (
+        {heroSrc ? (
           <KodexArtifact
-            artwork={v.hero.src}
+            artwork={heroSrc}
             aspecto={v.hero.aspecto}
             accent={v.color}
             label={v.hero.alt ?? v.titulo_es}
             id={checksum}
-            status={v.tipo.toUpperCase()}
+            status={`${(v.marco ?? 'estructura').toUpperCase()} · ${v.tipo.toUpperCase()}`}
             coords={`${v.numero} · ${v.estratoTitulo}`}
             pixelSize={3}
             dither={0.86}
@@ -142,6 +166,12 @@ const diag = [
       </figure>
 
       <div class="kx-vol__cuerpo" data-kdx-scrollable>
+        <div class="kx-vol__dossier">
+          <span>REGISTRY · {(v.marco ?? 'estructura').toUpperCase()}</span>
+          <span>CATEGORY · {v.tipo.toUpperCase()}</span>
+          <span>TOME · {v.tomo.toUpperCase()}</span>
+          <span>SLUG · {v.slug.toUpperCase()}</span>
+        </div>
         {v.formula && (
           <div class="kx-vol__formula">
             <p class="kx-vol__tex">{v.formula.tex}</p>
@@ -162,14 +192,18 @@ const diag = [
             {v.meditacion_en && <p class="kx-vol__en">{v.meditacion_en}</p>}
           </div>
         )}
-        {v.links && Object.entries(v.links).map(([k, url]) => (
-          <a class="kx-vol__enlace" href={url} rel="noopener">{k.toUpperCase()} →</a>
-        ))}
+        {v.links && Object.entries(v.links).map(([k, url]) => {
+          const external = /^(https?:|mailto:)/.test(url);
+          return <a class="kx-vol__enlace" href={external ? url : assetUrl(url)} rel="noopener">{k.toUpperCase()} →</a>;
+        })}
         {v.oferta?.url && (
           <a class="kx-vol__enlace" href={v.oferta.url} rel="noopener">
             {v.oferta.edicion ? `${v.oferta.edicion} · ` : ''}{v.oferta.precio ?? 'VER'} →
           </a>
         )}
+        {v.slug === 'book-ocin-arte-digital-ritual' && <a class="kx-vol__enlace" href="/kodex/libro/">OPEN 81-PAGE VIEWER →</a>}
+        {v.tipo === 'libro' && <a class="kx-vol__enlace" href="/kodex/libro/">READ BOOK SURFACE →</a>}
+        <a class="kx-vol__enlace" href="/kodex/store/">COLLECT A FRAGMENT →</a>
       </div>
 
       {v.mensaje_es && (
@@ -184,10 +218,22 @@ const diag = [
         {diag.map((d) => (
           <div class="kx-vol__kv"><span>{d.k}</span><b>{d.v}</b></div>
         ))}
+        {related.length > 0 && (
+          <nav class="kx-vol__resonancias" aria-label="resonancias">
+            <p>RESONANCIAS</p>
+            {related.map((item) => (
+              <a href={`/kodex/vol/${item.slug}/`} style={`--acc:${item.color}`}>
+                <span>{item.numero}</span>
+                <b>{item.titulo_es}</b>
+              </a>
+            ))}
+          </nav>
+        )}
         <KodexEje posicion={0.5} accent={v.color} class="kx-vol__eje" />
         <nav class="kx-vol__nav">
-          <a href="/kodex/folio/iii/">‹ ARCHIVE</a>
-          <a href="/kodex/">THRESHOLD ›</a>
+          <a href={prev ? `/kodex/vol/${prev.slug}/` : '/kodex/works/'}>‹ {prev ? 'PREV' : 'ARCHIVE'}</a>
+          <a href="/kodex/works/">INDEX</a>
+          <a href={next ? `/kodex/vol/${next.slug}/` : '/kodex/'}>{next ? 'NEXT' : 'THRESHOLD'} ›</a>
         </nav>
       </aside>
 
@@ -220,7 +266,7 @@ const diag = [
     grid-template-rows: auto auto auto 1fr auto;
     gap: clamp(12px, 1.8vw, 26px);
     /* La barra del deck es fija y se come los últimos ~73px de la ventana. */
-    padding: clamp(72px, 9vh, 100px) clamp(18px, 4vw, 56px) clamp(118px, 13vh, 146px);
+    padding: clamp(68px, 8vh, 92px) clamp(18px, 4vw, 56px) clamp(84px, 10vh, 112px);
     box-sizing: border-box;
   }
 
@@ -249,10 +295,29 @@ const diag = [
   .kx-vol__estrato { margin-top: 10px; color: color-mix(in srgb, var(--acc) 62%, #8b8b8b); }
 
   .kx-vol__hero {
-    grid-area: hero; margin: 0; align-self: start;
-    width: 100%; max-height: 58vh;
+    grid-area: hero; position: relative; margin: 0; align-self: start;
+    width: 100%; max-height: 54vh;
     border: 1px solid color-mix(in srgb, var(--acc) 24%, transparent);
     overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--acc) 13%, transparent), transparent 54%),
+      #050505;
+    box-shadow: 0 0 0 1px rgba(230,230,230,.04), 22px 22px 0 color-mix(in srgb, var(--acc) 8%, transparent);
+  }
+  .kx-vol__hero::before {
+    content: "LAMINA · COLLAGE";
+    position: absolute; top: 10px; left: 10px; z-index: 5;
+    padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--acc) 48%, transparent);
+    background: rgba(5,5,5,.72); color: var(--acc);
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8px;
+    letter-spacing: .22em; text-transform: uppercase;
+  }
+  .kx-vol__hero::after {
+    content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 4px),
+      linear-gradient(90deg, color-mix(in srgb, var(--acc) 10%, transparent), transparent 20%, transparent 80%, color-mix(in srgb, var(--acc) 10%, transparent));
+    mix-blend-mode: screen; opacity: .68;
   }
   .kx-vol__hero--alto { justify-self: center; max-width: 70%; }
 
@@ -268,6 +333,17 @@ const diag = [
     /* El cuerpo largo scrollea por DENTRO y la página no. Lleva
        data-kdx-scrollable, así que la rueda no le roba el gesto. */
     max-height: min(32vh, 280px); overflow-y: auto; padding-right: 10px;
+  }
+  .kx-vol__dossier {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px;
+    border: 1px solid color-mix(in srgb, var(--acc) 24%, transparent);
+    background: color-mix(in srgb, var(--acc) 20%, transparent);
+  }
+  .kx-vol__dossier span {
+    min-height: 28px; display: flex; align-items: center; padding: 0 8px;
+    background: rgba(5,5,5,.86); color: rgba(232,229,222,.68);
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8px;
+    letter-spacing: .16em; text-transform: uppercase;
   }
   .kx-vol__parrafo p {
     margin: 0; font-family: "Inter Tight", system-ui, sans-serif;
@@ -288,6 +364,8 @@ const diag = [
     border: 1px solid currentColor;
   }
   .kx-vol__marco--ficcion { color: #FF8A33; }
+  .kx-vol__marco--esoterico { color: #FF00C8; }
+  .kx-vol__marco--estructura { color: var(--acc); }
   .kx-vol__marco--ciencia,
   .kx-vol__marco--documentado { color: #00D8FF; }
 
@@ -338,6 +416,24 @@ const diag = [
   /* El eje dibuja sus rotulos DEBAJO de la linea, asi que necesita reservar
      ese alto o se come lo que venga despues. */
   .kx-vol__eje { margin-top: 10px; margin-bottom: 26px; }
+  .kx-vol__resonancias {
+    display: grid; gap: 1px; margin-top: 10px;
+    border: 1px solid rgba(232,229,222,.1); background: rgba(232,229,222,.1);
+  }
+  .kx-vol__resonancias p {
+    margin: 0; padding: 8px 9px; background: rgba(5,5,5,.9);
+    color: var(--acc); font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 8px; letter-spacing: .22em; text-transform: uppercase;
+  }
+  .kx-vol__resonancias a {
+    display: grid; grid-template-columns: 38px 1fr; gap: 8px; align-items: center;
+    min-height: 34px; padding: 0 9px; background: rgba(5,5,5,.82); text-decoration: none;
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8.5px;
+    letter-spacing: .12em; text-transform: uppercase;
+  }
+  .kx-vol__resonancias a span { color: var(--acc); }
+  .kx-vol__resonancias a b { color: rgba(232,229,222,.72); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kx-vol__resonancias a:hover b { color: #e8e5df; }
   .kx-vol__nav { display: flex; gap: 16px; margin-top: 4px; }
   .kx-vol__nav a {
     font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 10px;
@@ -356,5 +452,6 @@ const diag = [
     .kx-vol__hero { max-height: 40vh; }
     .kx-vol__hero--alto { max-width: 100%; }
     .kx-vol__cuerpo { max-height: none; overflow: visible; }
+    .kx-vol__dossier { grid-template-columns: 1fr; }
   }
 </style>

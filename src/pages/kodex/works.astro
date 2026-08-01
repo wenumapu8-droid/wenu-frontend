@@ -1,207 +1,243 @@
 ---
-// KODEX −∞ · THE ARCHIVE — gallery index of the 18 living work-pages.
-// A constellation of works over the luminous field; each opens its own page.
+// KODEX −∞ · ARCHIVE — 118 real volumes from the manifest.
 import KodexShell from '../../layouts/KodexShell.astro';
-import { families, discoWorks, opName } from '../../lib/kodex.js';
+import { leerManifiesto, resolver, assetUrl } from '../../lib/kodex/volumenes';
 
-const EFFECTS = ['MIRROR', 'GLITCH', 'CHROMA', 'DITHER', 'PIXEL SORT', 'SCANLINES'];
-const works = [
-  ...families.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, acc: f.th.c, lane: f.dir === 'works' ? 'achroma' : f.dir })),
-  ...discoWorks.map((f) => ({ n: f.n, url: `/img/kodex/${f.dir}/${f.rep}.jpg`, ops: f.ops, acc: f.th.c, lane: 'disco' })),
-].map((w, i) => ({ ...w, fx: EFFECTS[i % EFFECTS.length], index: String(i + 1).padStart(2, '0') }));
+const manifest = await leerManifiesto();
+const volumes = resolver(manifest);
+
+const coverFor = (v) => {
+  if (v.slug === 'book-ocin-arte-digital-ritual') return '/kodex-content/books/ocin-cover-800.webp';
+  const src = v.hero?.src;
+  if (!src || src.endsWith('.json')) return '';
+  return assetUrl(src);
+};
+
+const marcoLabel = (marco = 'estructura') => ({
+  documentado: 'DOCUMENTED',
+  ficcion: 'FICTION',
+  esoterico: 'ESOTERIC',
+  estructura: 'STRUCTURE',
+  ciencia: 'SCIENCE',
+})[marco] ?? marco.toUpperCase();
+
+const tomoLabel = (v) => v.tomo || 'ARCHIVO';
+const tipos = [...new Set(volumes.map((v) => v.tipo))].sort();
+const marcos = [...new Set(volumes.map((v) => v.marco ?? 'estructura'))].sort();
+const tomos = [...new Set(volumes.map(tomoLabel))].sort();
+const estratos = [...new Set(volumes.map((v) => v.estrato || 'sin-estrato'))].sort();
+const featured = volumes.find((v) => v.slug === 'book-ocin-arte-digital-ritual') ?? volumes.find((v) => v.tipo === 'libro') ?? volumes[0];
 ---
 
 <KodexShell title="KODEX −∞ · The Archive">
-  <main class="ar" data-ar>
+  <main class="ar ar--volumes" data-ar>
     <canvas id="kodex-world" data-world></canvas>
 
     <header class="ar-top">
-      <a class="ar-home" href="/kodex/">◈ KODEX</a>
-      <span class="ar-count">{works.length} WORKS</span>
-      <a class="ar-about" href="/kodex/work/001/">ENTER →</a>
+      <a class="ar-home" href="/kodex/">KODEX-∞</a>
+      <span class="ar-count">{volumes.length} REAL VOLUMES</span>
+      <a class="ar-about" href="/kodex/folio/iii/">SCENE 03 →</a>
     </header>
 
     <section class="ar-intro">
-      <div class="ar-sun" aria-hidden="true">
-        <span class="ar-sun__core"></span>
-        <span class="ar-sun__ring"></span>
-        <span class="ar-sun__glyphs">ARCHIVE ARCHIVE ARCHIVE ARCHIVE</span>
-      </div>
-      <p class="ar-over" data-glitch>KODEX OS · VISUAL DATABASE</p>
-      <h1 class="ar-title">Archive Grid</h1>
-      <p class="ar-lede">A live index of real plates, movements, effects and collectible states. Filter the signal, enter a specimen, or move toward store and mint layers.</p>
+      <p class="ar-over" data-glitch>KODEX OS · TOTAL ARCHIVE</p>
+      <h1 class="ar-title">118 Volumes</h1>
+      <p class="ar-lede">
+        The seven scenes are the corridor. This is the depth: specimens, lore, documented sources,
+        treatments, books, habitats and living dossiers from the KODEX manifest.
+      </p>
+
+      <a class="ar-feature" href={`/kodex/vol/${featured.slug}/`} style={`--acc:${featured.color}`}>
+        <span class="ar-feature__cover">
+          {coverFor(featured)
+            ? <img src={coverFor(featured)} alt={`${featured.titulo_es} cover`} loading="eager" />
+            : <span>{featured.glifos}</span>}
+        </span>
+        <span class="ar-feature__body">
+          <b>DEEP CHAMBER</b>
+          <strong>{featured.titulo_es}</strong>
+          <em>{featured.curaduria_es ?? featured.titulo_en ?? 'Open the complete dossier.'}</em>
+        </span>
+      </a>
+
       <div class="ar-console" aria-label="archive status">
-        <span><b>{works.length}</b> WORKS</span>
-        <span><b>3</b> PRINT DRAFTS</span>
-        <span><b>3</b> NFT FILES</span>
-        <span><b>174</b> JEWELRY PRODUCTS ISOLATED</span>
+        <span><b>{volumes.length}</b> VOLUMES</span>
+        <span><b>{volumes.filter((v) => v.tipo === 'lore').length}</b> LORE</span>
+        <span><b>{volumes.filter((v) => v.tipo === 'specimen').length}</b> SPECIMENS</span>
+        <span><b>{volumes.filter((v) => v.hero).length}</b> COVERS</span>
       </div>
-      <aside class="ar-hud" aria-label="archive telemetry">
-        <span><b>FPS</b>VISUAL</span>
-        <span><b>STATE</b>INDEX</span>
-        <span><b>CHAIN</b>LOCAL</span>
-        <span><b>SEED</b>OCIN</span>
-      </aside>
-      <nav class="ar-mv" aria-label="movements">
-        <span class="ar-mv__l">THE JOURNEY ·</span>
-        <a href="/kodex/movement/achroma/">I · ACHROMA</a>
-        <a href="/kodex/movement/tribe/">II · TRIBE SPACE</a>
-        <a href="/kodex/movement/disco/">III · DISCO SOLAR</a>
-      </nav>
-      <div class="ar-filters" aria-label="archive filters">
-        <button type="button" data-filter="all" aria-pressed="true">ALL</button>
-        <button type="button" data-filter="achroma">ACHROMA</button>
-        <button type="button" data-filter="disco">DISCO</button>
-        <button type="button" data-filter="print">PRINT READY</button>
+
+      <div class="ar-filterbar" aria-label="archive filters">
+        <label>
+          <span>REGISTRY</span>
+          <select data-filter-select="marco">
+            <option value="all">ALL</option>
+            {marcos.map((m) => <option value={m}>{marcoLabel(m)}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>CATEGORY</span>
+          <select data-filter-select="tipo">
+            <option value="all">ALL</option>
+            {tipos.map((t) => <option value={t}>{t.toUpperCase()}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>TOME</span>
+          <select data-filter-select="tomo">
+            <option value="all">ALL</option>
+            {tomos.map((t) => <option value={t}>{t.toUpperCase()}</option>)}
+          </select>
+        </label>
+        <label>
+          <span>STRATUM</span>
+          <select data-filter-select="estrato">
+            <option value="all">ALL</option>
+            {estratos.map((e) => <option value={e}>{e.toUpperCase()}</option>)}
+          </select>
+        </label>
+        <button type="button" data-reset-filters>RESET</button>
       </div>
+
       <nav class="ar-command" aria-label="archive commands">
-        <a href="/kodex/world/">SOL NEGRO</a>
-        <a href="/kodex/store/#print-drops">PRINT</a>
-        <a href="/kodex/store/#nft-draft">NFT</a>
-        <a href="/kodex/store/">STORE</a>
-        <a href="/kodex/">BOOK</a>
+        <a href="/kodex/libro/">OCIN BOOK</a>
+        <a href="/kodex/folio/iii/">ARCHIVE SCENE</a>
+        <a href="/kodex/folio/iv/">MACHINE</a>
+        <a href="/kodex/store/">COLLECT</a>
+        <a href="/kodex/">THRESHOLD</a>
       </nav>
-      <div class="ar-state" aria-label="archive cycle">
-        <span>ESTADO · EL CICLO DE RETORNO</span>
-        <b>E00 EXCAVATION</b>
-        <b>T01 TRANSMUTATION</b>
-        <b>M11 DEVOLUTION</b>
-        <p>Automatic cycle: source plate → movement → effect → edition lane → return to the mother system.</p>
-      </div>
     </section>
 
-    <div class="ar-grid">
-      {works.map((w) => (
-        <a class="ar-cell" href={`/kodex/work/${w.n}/`} style={`--acc:${w.acc}`} data-lane={w.lane} data-print={['001','D01','D02'].includes(w.n) ? 'yes' : 'no'}>
-          <span class="ar-cell__frame"><img src={w.url} loading="lazy" alt={`KODEX−∞ — plate ${w.n}`} /></span>
-          <span class="ar-cell__idx">KDX/{w.index}</span>
-          <span class="ar-cell__n">{w.n}</span>
-          <span class="ar-cell__fx">◈ {w.fx} · {w.lane.toUpperCase()}</span>
-          <span class="ar-cell__ops">{w.ops.join(' · ')}</span>
-        </a>
-      ))}
+    <section class="ar-depth-head">
+      <p><span data-visible-count>{volumes.length}</span> / {volumes.length} SURFACED</p>
+      <h2>Manifest Index</h2>
+    </section>
+
+    <div class="ar-grid" data-volume-grid>
+      {volumes.map((v) => {
+        const cover = coverFor(v);
+        return (
+          <a
+            class={`ar-cell ar-cell--${v.marco ?? 'estructura'} ar-cell--${v.tipo}`}
+            href={`/kodex/vol/${v.slug}/`}
+            style={`--acc:${v.color}`}
+            data-marco={v.marco ?? 'estructura'}
+            data-tipo={v.tipo}
+            data-tomo={tomoLabel(v)}
+            data-estrato={v.estrato || 'sin-estrato'}
+          >
+            <span class="ar-cell__frame">
+              {cover ? <img src={cover} loading="lazy" alt={`${v.titulo_es} cover`} /> : <span class="ar-cell__glyphs">{v.glifos}</span>}
+            </span>
+            <span class="ar-cell__idx">KDX/{v.numero}</span>
+            <span class="ar-cell__tag">{marcoLabel(v.marco)} · {v.tipo.toUpperCase()}</span>
+            <span class="ar-cell__n">{v.titulo_es}</span>
+            <span class="ar-cell__fx">{tomoLabel(v)} · {v.estratoTitulo}</span>
+          </a>
+        );
+      })}
     </div>
 
-    <footer class="ar-foot"><p>KODEX −∞ · a possibility given form · belongs to no one, and to all.</p></footer>
+    <footer class="ar-foot"><p>KODEX −∞ · every leaf is an archive.</p></footer>
   </main>
 
   <style>
-    .ar{ position:relative; min-height:100vh; background:#000; color:#f0ede8; font-family:'JetBrains Mono',ui-monospace,monospace; overflow-x:hidden; }
-    .ar::before{ content:''; position:fixed; inset:-16vw; z-index:1; pointer-events:none;
-      background:
-        radial-gradient(circle at 50% 22%, #000 0 8.2vw, rgba(250,212,105,.85) 8.5vw 8.95vw, rgba(201,168,76,.32) 9.2vw 14vw, transparent 24vw),
-        radial-gradient(ellipse at 50% 22%, rgba(201,168,76,.18), transparent 36vw),
-        linear-gradient(90deg, transparent 0 49.8%, rgba(255,255,255,.08) 50%, transparent 50.2%),
-        linear-gradient(0deg, transparent 0 38%, rgba(0,240,255,.04) 38.1%, transparent 38.35%);
-      opacity:.55; mix-blend-mode:screen; }
-    .ar::after{ content:''; position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.28;
-      background:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 4px),
-        radial-gradient(110% 82% at 50% 35%, transparent 52%, rgba(0,0,0,.78) 100%); }
-    #kodex-world{ position:fixed; inset:0; width:100%; height:100%; display:block; z-index:0; opacity:.5; }
-    .ar :where(a){ color:inherit; text-decoration:none; }
-    .ar > :not(#kodex-world){ position:relative; z-index:2; }
-
-    .ar-top{ position:sticky; top:0; z-index:5; display:flex; align-items:center; justify-content:space-between;
-      padding:16px clamp(14px,4vw,40px); font-size:11px; letter-spacing:.16em; background:linear-gradient(#000 55%,transparent);
-      border-top:1px solid rgba(201,168,76,.34); box-shadow:0 0 38px rgba(201,168,76,.18); }
-    .ar-home{ font-family:'Instrument Serif',serif; font-size:18px; }
-    .ar-count{ color:#8f8f8f; }
-    .ar-about{ font-size:10px; letter-spacing:.2em; color:#c9a84c; border:1px solid #1c1c1c; padding:8px 14px; transition:.25s; }
-    .ar-about:hover{ border-color:#c9a84c; }
-
-    .ar-intro{ position:relative; text-align:center; min-height:min(900px,96vh);
-      padding:clamp(42px,8vh,96px) 20px clamp(24px,5vh,50px); overflow:hidden;
-      background:
-        linear-gradient(180deg,rgba(0,0,0,.08),rgba(0,0,0,.18) 42%,rgba(0,0,0,.9) 88%),
-        radial-gradient(80% 62% at 50% 32%,transparent 0 42%,rgba(0,0,0,.74) 86%),
-        url('/img/kodex/ui/kodex-black-sun-os.png') center top / min(1420px,112vw) auto no-repeat; }
-    .ar-intro::after{ content:''; position:absolute; inset:0; pointer-events:none;
-      background:linear-gradient(90deg,rgba(0,0,0,.76),transparent 28%,transparent 72%,rgba(0,0,0,.82)),
-        repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 4px);
-      opacity:.8; }
-    .ar-intro > *{ position:relative; z-index:1; }
-    .ar-intro::before{ content:''; position:absolute; left:50%; top:42%; width:min(82vw,760px); aspect-ratio:1/1; transform:translate(-50%,-50%);
-      border:1px solid rgba(201,168,76,.12); border-radius:50%; pointer-events:none; box-shadow:inset 0 0 76px rgba(201,168,76,.035); }
-    .ar-sun{ position:absolute; left:50%; top:42%; width:min(94vw,1120px); aspect-ratio:16/9; transform:translate(-50%,-50%);
-      pointer-events:none; opacity:.14; mix-blend-mode:screen; z-index:0; }
-    .ar-sun__core{ position:absolute; left:50%; top:48%; width:min(34vw,350px); aspect-ratio:1/1; transform:translate(-50%,-50%); border-radius:50%;
-      background:#000; box-shadow:0 0 0 8px rgba(255,214,85,.86),0 0 34px 16px rgba(255,190,56,.7),0 0 92px 48px rgba(201,113,45,.26); }
-    .ar-sun__ring{ position:absolute; inset:8% 4%; border:1px solid rgba(255,255,255,.08); border-radius:50%;
-      box-shadow:inset 0 0 80px rgba(255,255,255,.045),0 0 70px rgba(201,168,76,.12); }
-    .ar-sun__glyphs{ position:absolute; left:2%; right:2%; top:18%; font-family:'Instrument Serif',serif; font-size:clamp(4rem,10vw,9rem);
-      letter-spacing:.04em; color:rgba(240,237,232,.1); filter:blur(2px); transform:perspective(500px) rotateX(26deg); }
-    .ar-over{ font-size:11px; letter-spacing:.3em; color:#9a948a; margin:0; }
-    .ar-title{ font-family:'Instrument Serif',serif; font-weight:400; font-size:clamp(3rem,9vw,6rem); margin:12px 0 0; text-shadow:0 2px 26px rgba(0,0,0,.9); }
-    .ar-lede{ max-width:46ch; margin:18px auto 0; font-family:'Cormorant Garamond',serif; font-size:clamp(1.05rem,2.2vw,1.4rem); line-height:1.5; color:#c8c2b6; }
-    .ar-console{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1px; max-width:900px; margin:24px auto 0; background:#161616; border:1px solid #161616; }
-    .ar-console span{ background:rgba(5,5,6,.88); padding:12px 10px; font-size:9px; letter-spacing:.14em; color:#777; }
-    .ar-console b{ color:#00f0ff; font-weight:400; }
-    .ar-hud{ position:absolute; right:clamp(16px,4vw,54px); top:clamp(70px,13vh,130px); display:flex; flex-direction:column; gap:7px; min-width:150px; text-align:left; }
-    .ar-hud span{ display:flex; justify-content:space-between; gap:16px; padding:8px 0; border-top:1px solid rgba(255,255,255,.11);
-      font-size:8.5px; letter-spacing:.13em; color:#8f8f8f; }
-    .ar-hud b{ color:#c9a84c; font-weight:400; }
-    .ar-mv{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px 14px; margin:24px auto 0; font-size:10px; letter-spacing:.16em; }
-    .ar-mv__l{ color:#585858; }
-    .ar-mv a{ color:#9a948a; border:1px solid #1c1c1c; padding:7px 12px; transition:.25s; }
-    .ar-mv a:hover{ color:#f0ede8; border-color:#c9a84c; box-shadow:0 0 16px rgba(201,168,76,.18); }
-    .ar-filters{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin:18px auto 0; }
-    .ar-filters button{ background:#050506; border:1px solid #1c1c1c; color:#6a6a6a; padding:8px 12px; cursor:pointer;
-      font:10px/1 'JetBrains Mono',monospace; letter-spacing:.16em; transition:.25s; }
-    .ar-filters button:hover,.ar-filters button[aria-pressed="true"]{ color:#050506; background:#00f0ff; border-color:#00f0ff; box-shadow:0 0 18px rgba(0,240,255,.22); }
-    .ar-command{ width:min(840px,100%); margin:24px auto 0; display:grid; grid-template-columns:repeat(5,minmax(0,1fr));
-      border:1px solid #171717; background:rgba(0,0,0,.72); box-shadow:0 18px 60px rgba(0,0,0,.68),0 0 46px rgba(201,168,76,.16); backdrop-filter:blur(10px); }
-    .ar-command a{ min-height:40px; display:grid; place-items:center; border-right:1px solid #171717; font-size:8.5px; letter-spacing:.16em; color:#8f8f8f; transition:.25s; }
-    .ar-command a:last-child{ border-right:0; }
-    .ar-command a:hover{ background:#c9a84c; color:#050506; }
-    .ar-state{ width:min(840px,100%); margin:0 auto; border:1px solid #171717; border-top:0; background:rgba(0,0,0,.78);
-      padding:18px 20px 20px; text-align:left; box-shadow:0 20px 70px rgba(0,0,0,.62); }
-    .ar-state span{ display:block; font-family:'Cormorant Garamond',serif; font-size:15px; letter-spacing:.12em; color:#c8c2b6; margin-bottom:8px; }
-    .ar-state b{ display:inline-block; margin:0 14px 8px 0; font-size:12px; letter-spacing:.1em; color:#f0ede8; font-weight:400; }
-    .ar-state p{ margin:4px 0 0; max-width:68ch; font-family:'Cormorant Garamond',serif; font-size:14px; line-height:1.5; color:#8f8f8f; }
-
-    .ar-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(clamp(140px,20vw,220px),1fr));
-      gap:clamp(12px,2vw,26px); max-width:1300px; margin:0 auto; padding:clamp(20px,4vh,50px) clamp(14px,4vw,44px) 80px; }
-    .ar-cell{ position:relative; display:flex; flex-direction:column; gap:8px; padding:12px; border:1px solid #141414; background:rgba(4,4,6,.72);
-      transition:border-color .4s, transform .4s, box-shadow .4s; }
-    .ar-cell[hidden]{ display:none; }
-    .ar-cell:hover{ border-color:var(--acc,#c9a84c); transform:translateY(-3px); box-shadow:0 14px 40px rgba(0,0,0,.6), 0 0 30px color-mix(in srgb, var(--acc) 16%, transparent); }
-    .ar-cell::before{ content:''; position:absolute; inset:12px; z-index:2; pointer-events:none; border:1px solid rgba(255,255,255,.05); opacity:0; transition:opacity .35s; }
-    .ar-cell:hover::before{ opacity:1; }
-    .ar-cell__frame{ position:relative; aspect-ratio:1/1; display:grid; place-items:center; overflow:hidden; background:#050505; }
-    .ar-cell__frame::after{ content:''; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 50% 50%,transparent 42%,rgba(0,0,0,.62)),repeating-linear-gradient(0deg,rgba(255,255,255,.025) 0 1px,transparent 1px 4px); opacity:.68; }
-    .ar-cell__frame img{ max-width:96%; max-height:96%; width:auto; height:auto; object-fit:contain; object-position:center; opacity:.9; transition:opacity .4s, transform .5s; }
-    .ar-cell:hover .ar-cell__frame img{ opacity:1; transform:scale(1.03); }
-    .ar-cell__idx{ position:absolute; top:20px; left:20px; z-index:3; background:rgba(0,0,0,.62); border:1px solid rgba(255,255,255,.08);
-      padding:5px 7px; font-size:8px; letter-spacing:.13em; color:#c8c2b6; }
-    .ar-cell__n{ font-family:'Instrument Serif',serif; font-size:1.1rem; color:#f0ede8; }
-    .ar-cell__fx{ font-size:9px; letter-spacing:.14em; color:var(--acc,#c9a84c); }
-    .ar-cell__ops{ font-size:8.5px; letter-spacing:.1em; color:#585858; }
-
-    .ar-foot{ text-align:center; padding:40px 20px; font-size:9.5px; letter-spacing:.14em; color:#3a3a3a; }
-    @media (max-width:980px){ .ar-hud{ position:static; max-width:520px; margin:20px auto 0; } .ar-sun{ top:28%; width:120vw; } }
-    @media (max-width:760px){ .ar-console{ grid-template-columns:repeat(2,minmax(0,1fr)); } .ar-command{ grid-template-columns:1fr; } .ar-command a{ border-right:0; border-bottom:1px solid #171717; } }
+    .ar{position:relative;min-height:100vh;background:#050505;color:#f0ede8;font-family:'IBM Plex Mono',ui-monospace,monospace;overflow-x:hidden;}
+    .ar::before{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:linear-gradient(rgba(230,230,230,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(230,230,230,.035) 1px,transparent 1px),radial-gradient(circle at 50% 18%,rgba(166,255,0,.16),transparent 34%);background-size:48px 48px,48px 48px,auto;opacity:.72;}
+    .ar::after{content:'';position:fixed;inset:0;z-index:1;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px),radial-gradient(110% 82% at 50% 35%,transparent 48%,rgba(0,0,0,.82) 100%);opacity:.42;}
+    #kodex-world{position:fixed;inset:0;width:100%;height:100%;display:block;z-index:0;opacity:.32;}
+    .ar :where(a){color:inherit;text-decoration:none;}
+    .ar > :not(#kodex-world){position:relative;z-index:2;}
+    .ar-top{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:16px clamp(14px,4vw,40px);font-size:11px;letter-spacing:.18em;background:rgba(5,5,5,.86);border-top:1px solid rgba(166,255,0,.34);border-bottom:1px solid rgba(230,230,230,.08);backdrop-filter:blur(12px);}
+    .ar-home{font-family:'Oxanium','Barlow Condensed',system-ui,sans-serif;font-size:20px;font-weight:800;}
+    .ar-count{color:#A6FF00;}
+    .ar-about{font-size:10px;color:#c9c9c9;border:1px solid rgba(166,255,0,.34);padding:8px 14px;}
+    .ar-intro{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,420px);grid-template-areas:'over feature' 'title feature' 'lede feature' 'console feature' 'filters filters' 'commands commands';gap:18px clamp(24px,5vw,70px);min-height:min(860px,92vh);padding:clamp(60px,9vh,100px) clamp(18px,5vw,72px) clamp(30px,5vh,58px);box-sizing:border-box;align-content:center;}
+    .ar-over{grid-area:over;margin:0;color:#A6FF00;font-size:11px;letter-spacing:.34em;}
+    .ar-title{grid-area:title;margin:0;max-width:7.2ch;font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;font-size:clamp(5rem,10vw,11rem);line-height:.78;text-transform:uppercase;letter-spacing:0;}
+    .ar-lede{grid-area:lede;max-width:54ch;margin:0;font-family:'Inter Tight',system-ui,sans-serif;font-size:clamp(1rem,1.5vw,1.3rem);line-height:1.45;color:rgba(240,237,232,.72);}
+    .ar-feature{grid-area:feature;align-self:center;display:grid;gap:14px;padding:14px;border:1px solid color-mix(in srgb,var(--acc) 62%,transparent);background:rgba(8,8,8,.72);box-shadow:18px 18px 0 color-mix(in srgb,var(--acc) 10%,transparent);}
+    .ar-feature__cover{aspect-ratio:1;display:grid;place-items:center;overflow:hidden;background:#050505;border:1px solid rgba(230,230,230,.08);}
+    .ar-feature__cover img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.18);}
+    .ar-feature__cover span{font-size:3rem;letter-spacing:.25em;color:var(--acc);}
+    .ar-feature__body{display:grid;gap:8px;}
+    .ar-feature__body b{color:var(--acc);font-size:10px;letter-spacing:.28em;}
+    .ar-feature__body strong{font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;font-size:clamp(2rem,3.4vw,3.4rem);line-height:.88;text-transform:uppercase;}
+    .ar-feature__body em{font-family:'Inter Tight',system-ui,sans-serif;font-size:.95rem;line-height:1.35;color:rgba(240,237,232,.58);font-style:normal;}
+    .ar-console{grid-area:console;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;max-width:860px;background:rgba(166,255,0,.24);border:1px solid rgba(166,255,0,.24);}
+    .ar-console span{background:rgba(5,5,6,.88);padding:12px 10px;font-size:9px;letter-spacing:.14em;color:#777;}
+    .ar-console b{color:#A6FF00;font-weight:800;}
+    .ar-filterbar{grid-area:filters;display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:8px;margin-top:18px;}
+    .ar-filterbar label{display:grid;gap:6px;}
+    .ar-filterbar span{font-size:8px;letter-spacing:.22em;color:rgba(240,237,232,.42);}
+    .ar-filterbar select,.ar-filterbar button{min-height:42px;background:#050506;border:1px solid rgba(166,255,0,.28);color:#e8e5df;padding:0 10px;font:10px/1 'IBM Plex Mono',monospace;letter-spacing:.12em;text-transform:uppercase;}
+    .ar-filterbar button{align-self:end;color:#080808;background:#A6FF00;border-color:#A6FF00;cursor:pointer;font-weight:800;}
+    .ar-command{grid-area:commands;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:1px solid rgba(230,230,230,.1);background:rgba(0,0,0,.72);}
+    .ar-command a{min-height:42px;display:grid;place-items:center;border-right:1px solid rgba(230,230,230,.1);font-size:9px;letter-spacing:.16em;color:rgba(240,237,232,.68);}
+    .ar-command a:last-child{border-right:0;}
+    .ar-command a:hover{background:#A6FF00;color:#050505;}
+    .ar-depth-head{display:flex;align-items:end;justify-content:space-between;gap:20px;padding:0 clamp(18px,5vw,72px) 18px;}
+    .ar-depth-head p{margin:0;color:#A6FF00;font-size:10px;letter-spacing:.24em;}
+    .ar-depth-head h2{margin:0;font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;font-size:clamp(2.2rem,5vw,5rem);line-height:.82;text-transform:uppercase;}
+    .ar-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(170px,18vw,260px),1fr));gap:clamp(12px,1.8vw,24px);padding:0 clamp(14px,4vw,54px) 90px;}
+    .ar-cell{position:relative;display:grid;grid-template-rows:auto auto auto 1fr auto;gap:8px;min-height:330px;padding:12px;border:1px solid rgba(230,230,230,.12);background:rgba(4,4,6,.76);transition:border-color .3s,transform .3s,box-shadow .3s;}
+    .ar-cell[hidden]{display:none;}
+    .ar-cell:hover{border-color:var(--acc);transform:translateY(-3px);box-shadow:0 18px 50px rgba(0,0,0,.68),0 0 30px color-mix(in srgb,var(--acc) 14%,transparent);}
+    .ar-cell--ficcion{box-shadow:inset 0 0 0 1px rgba(255,106,0,.12);}
+    .ar-cell--documentado{box-shadow:inset 0 0 0 1px rgba(0,239,255,.1);}
+    .ar-cell__frame{position:relative;aspect-ratio:1;display:grid;place-items:center;overflow:hidden;background:radial-gradient(circle at 50% 50%,color-mix(in srgb,var(--acc) 16%,transparent),transparent 58%),#050505;}
+    .ar-cell__frame::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 4px),radial-gradient(circle at 50% 50%,transparent 42%,rgba(0,0,0,.62));}
+    .ar-cell__frame img{width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.14);opacity:.94;transition:transform .45s,filter .45s;}
+    .ar-cell:hover .ar-cell__frame img{transform:scale(1.04);filter:grayscale(.65) contrast(1.2);}
+    .ar-cell__glyphs{font-size:clamp(1.8rem,4vw,3.8rem);letter-spacing:.22em;color:var(--acc);opacity:.8;}
+    .ar-cell__idx{position:absolute;top:20px;left:20px;z-index:3;background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.08);padding:5px 7px;font-size:8px;letter-spacing:.13em;color:#e8e5df;}
+    .ar-cell__tag{font-size:8px;letter-spacing:.2em;color:var(--acc);}
+    .ar-cell__n{font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;font-size:clamp(1.5rem,2.1vw,2.2rem);line-height:.9;color:#f0ede8;text-transform:uppercase;}
+    .ar-cell__fx{align-self:end;font-size:8.5px;letter-spacing:.13em;color:rgba(240,237,232,.45);}
+    .ar-foot{text-align:center;padding:40px 20px;font-size:9.5px;letter-spacing:.14em;color:#555;}
+    @media (max-width:900px){
+      .ar-intro{grid-template-columns:1fr;grid-template-areas:'over' 'title' 'lede' 'feature' 'console' 'filters' 'commands';min-height:auto;padding-top:72px;}
+      .ar-title{max-width:6.2ch;font-size:clamp(3rem,12vw,4.6rem);}
+      .ar-feature{grid-template-columns:96px 1fr;align-items:stretch;}
+      .ar-feature__cover{aspect-ratio:auto;min-height:124px;}
+      .ar-feature__body strong{font-size:1.8rem;}
+      .ar-feature__body em{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
+      .ar-console{grid-template-columns:repeat(2,minmax(0,1fr));}
+      .ar-filterbar{grid-template-columns:1fr 1fr;}
+      .ar-filterbar button{grid-column:1/-1;}
+      .ar-command{grid-template-columns:1fr;}
+      .ar-command a{border-right:0;border-bottom:1px solid rgba(230,230,230,.1);}
+      .ar-depth-head{align-items:start;flex-direction:column;}
+    }
   </style>
 
   <script>
     import { KodexWorld } from '../../kodex/engine/kodexWorld.js';
     const canvas = document.getElementById('kodex-world');
-    const world = new KodexWorld(canvas, { seed: Math.random() });
-    world.setTint([0.90, 0.90, 0.93]); // archive overview — achromatic (B/W first)
-    (async () => { await world.loadArtwork('/img/kodex/works/bw-06.jpg'); world.start(); })();
-    document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else world.start(); });
-    // glitch the eyebrow
-    const GLY = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789∞ΩΔ·';
-    const el = document.querySelector('[data-glitch]');
-    if (el && !matchMedia('(prefers-reduced-motion: reduce)').matches) { const t = el.textContent; const scr = () => { const t0 = performance.now(); clearInterval(el.__g); el.__g = setInterval(() => { const p = Math.min(1, (performance.now() - t0) / 800); let o = ''; for (let i = 0; i < t.length; i++) o += t[i] === ' ' ? ' ' : (i / t.length < p ? t[i] : GLY[Math.random() * GLY.length | 0]); el.textContent = o; if (p >= 1) clearInterval(el.__g); }, 40); }; setTimeout(scr, 250); setInterval(() => { if (Math.random() < 0.5) scr(); }, 7000); }
-    document.querySelectorAll('[data-filter]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const filter = button.dataset.filter;
-        document.querySelectorAll('[data-filter]').forEach((b) => b.setAttribute('aria-pressed', String(b === button)));
-        document.querySelectorAll('.ar-cell').forEach((cell) => {
-          const show = filter === 'all' || cell.dataset.lane === filter || (filter === 'print' && cell.dataset.print === 'yes');
-          cell.hidden = !show;
-        });
+    if (canvas) {
+      const world = new KodexWorld(canvas, { seed: 118 });
+      world.setTint([0.66, 1.0, 0.0]);
+      (async () => { await world.loadArtwork('/img/kodex/works/bw-06.jpg'); world.start(); })();
+      document.addEventListener('visibilitychange', () => { if (document.hidden) world.stop(); else world.start(); });
+    }
+
+    const selects = [...document.querySelectorAll('[data-filter-select]')];
+    const cells = [...document.querySelectorAll('.ar-cell')];
+    const count = document.querySelector('[data-visible-count]');
+    const applyFilters = () => {
+      const filters = Object.fromEntries(selects.map((s) => [s.dataset.filterSelect, s.value]));
+      let visible = 0;
+      cells.forEach((cell) => {
+        const show = Object.entries(filters).every(([key, value]) => value === 'all' || cell.dataset[key] === value);
+        cell.hidden = !show;
+        if (show) visible += 1;
       });
+      if (count) count.textContent = String(visible);
+    };
+    selects.forEach((select) => select.addEventListener('change', applyFilters));
+    document.querySelector('[data-reset-filters]')?.addEventListener('click', () => {
+      selects.forEach((select) => { select.value = 'all'; });
+      applyFilters();
     });
   </script>
 </KodexShell>

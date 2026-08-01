@@ -24,7 +24,8 @@
 export type TipoVolumen =
   | "gallery" | "artwork" | "finding" | "math" | "repo" | "flyer" | "product" | "nft"
   /** Capítulo del lore del Artefacto: motivo, meditación y mensaje. */
-  | "chapter";
+  | "chapter"
+  | "specimen" | "lore" | "habitat" | "libro";
 
 /**
  * De qué naturaleza es lo que el volumen afirma. **No es cosmético.**
@@ -39,7 +40,7 @@ export type TipoVolumen =
  * leyendo una confusión — y esa confusión sería responsabilidad del sistema,
  * no suya.
  */
-export type Marco = "ficcion" | "ciencia" | "documentado";
+export type Marco = "ficcion" | "ciencia" | "documentado" | "estructura" | "esoterico";
 
 /** Escrituras del mundo, una por estrato. Son ACENTO, no traducción. */
 export type Escritura =
@@ -139,6 +140,7 @@ export async function leerManifiesto(): Promise<Manifiesto> {
 export type VolumenResuelto = Volumen & {
   slug: string;
   numero: string;
+  tomo: string;
   color: string;
   estratoTitulo: string;
   estratoNumero: string;
@@ -171,6 +173,7 @@ export function resolver(m: Manifiesto): VolumenResuelto[] {
         ...v,
         slug: v.id,
         numero: String(i + 1).padStart(3, "0"),
+        tomo: resolverTomo(v),
         color: e?.color ?? "#FF3833",
         estratoTitulo: e?.titulo_es ?? v.estrato,
         estratoNumero: e?.n ?? "—",
@@ -178,6 +181,23 @@ export function resolver(m: Manifiesto): VolumenResuelto[] {
         glifos: GLIFOS[escritura] ?? GLIFOS.greek,
       };
     });
+}
+
+function resolverTomo(v: Volumen): string {
+  const lore = v.id.match(/^lore-(\d+)/);
+  if (lore) return `LIBRO ${lore[1]}`;
+  const libro = v.id.match(/^libro-([^-]+)/);
+  if (libro) return libro[1].toUpperCase();
+  if (v.capitulo && /^[IVX]+$/i.test(v.capitulo)) return `TOMO ${v.capitulo}`;
+  if (v.estrato) return v.estrato;
+  return "ARCHIVO";
+}
+
+/** Convierte paths relativos del manifest a rutas servibles desde public/. */
+export function assetUrl(src: string | undefined): string {
+  if (!src) return "";
+  if (/^(https?:|mailto:|\/)/.test(src)) return src;
+  return `/kodex-content/${src.replace(/^\.?\//, "")}`;
 }
 
 /** Texto en el idioma pedido, cayendo al español si no hay traducción. */
