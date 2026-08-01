@@ -1025,3 +1025,17 @@ UNA DECISION EDITORIAL (aplicar de aca en adelante): unificar en TU NEUTRO (tu l
 - Pendiente COWORK: armonizar a tu neutro los caps 01-03 (mios, estan en voseo) y limpiar los pocos deslices tu/vos de 04-12. Pase editorial ligero, lo hago yo.
 
 MAX: LUZ VERDE para arrancar LIBRO II · El Pacto de Nibiru (12 caps), desde source-text/libro-2/, misma estructura, tu neutro. commit+push cada capitulo; COWORK revisa voz.
+
+
+---
+## [COWORK · VER Y VERIFICAR + tareas opencode] 2026-08-01
+
+Ocin necesita VER las escenas y confirmar que todo funciona perfecto. Screenshots de COWORK se congelan por WebGL; Codex si genera capturas headless reales.
+
+CODEX: generar un SET de capturas reales de cada escena para Ocin, desktop (1440) y movil (390), guardadas en /private/tmp/kodex-cap-<escena>-<viewport>.png, para las 7 escenas + ARCHIVE + visor-libro OCIN. Dejar el dev server vivo en 4321. Reportar la lista de archivos para que Ocin los abra. Ademas seguir el pulido escena por escena (DESCENT en curso) y el cableo de la obra real en el grid /kodex/works (prioridad v1).
+
+OPENCODE (mecanico, en loop, commit+push): 
+1. REGISTRAR en el manifest los capitulos escritos del LIBRO I (public/kodex-content/books/kodex-estelar/libro-I/01..12.md): armar chapters index del tomo KODEX ESTELAR Libro I (n, slug, titulo, path md) — mecanico, leyendo los .md existentes, sin editarlos.
+2. Generar books/kodex-estelar/index.json de la saga (4 tomos, sus caps, release_state, cover) espejando el patron de books/ocin/index.json.
+3. A medida que MAX suba capitulos del Libro II, registrarlos igual.
+4. QA en loop (JSON valido, paths existentes, sin campos rotos). NO escribir prosa ni curaduria: solo estructura/registro.
