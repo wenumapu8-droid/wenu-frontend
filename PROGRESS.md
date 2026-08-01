@@ -32,7 +32,12 @@ Un ítem que compila y no se ve NO está hecho.
 
 ## BLOCKERS
 
-### B1 · No puedo bajar el repo de GitHub desde el mini  ⛔ ABIERTO
+### B1 · No puedo bajar el repo de GitHub desde el mini  ⛔ ABIERTO · 5º INTENTO
+Probado de nuevo a las 10:50 con `git remote add` + `git fetch origin
+feature/kodex-depth-engine`: **"Could not read from remote repository"**. La
+deploy key sigue sin estar agregada. Sin esto no existen para mí el backlog
+maestro M2→M8, `kodex-modules/`, el THRESHOLD aprobado ni el CRT_MASTER_KIT.
+
 `wenumapu8-droid/wenu-frontend` es privado.
 
 Diagnóstico fino: **el mini SÍ tiene una llave SSH que GitHub acepta**, pero es
@@ -169,8 +174,26 @@ dicen mejor que nada.
   no lo cubre. No es un número: es que el velo asume una composición que este
   organismo no tiene.
 
-Ninguna de las dos se arregla subiendo un parámetro. La segunda pide un velo
-que responda a dónde está la luz del organismo, no a una posición fija.
+**RESUELTO con el suelo del texto.** El velo direccional del campo asumía la
+luz a la derecha; el corredor la tiene al centro. La cura no fue oscurecer más
+sino cambiar el ancla: un velo elíptico **anclado al bloque de copy**, no al
+campo. Así funciona con cualquier organismo, tenga la luz donde la tenga.
+
+Elíptico y muy difuso a propósito: un rectángulo oscuro detrás del texto se lee
+como una caja pegada encima; una elipse sin borde se lee como que ahí el campo
+simplemente es más profundo.
+
+Medido, antes → después:
+
+| escena    | antes  | después |
+|-----------|--------|---------|
+| DESCENT   | 61.9 % | **71.3 %** |
+| THRESHOLD | ~72 %  | **76.5 %** |
+| PROLOGUE  | 91.5 % | **93.9 %** |
+
+Las tres suben y el copy queda legible en todas. DESCENT sigue bajo el canon
+(~85 %) porque el corredor es un organismo luminoso — pero ahora es una decisión
+de dirección sobre esa escena, no un texto ilegible.
 
 **Nota de método:** anoche escribí "sale oscuro, hay que subirle la ganancia" y
 lo repetí tres veces. Era falso. Sólo se supo midiendo el shader AISLADO y
@@ -351,6 +374,9 @@ tarea.
 - 03:56 — FASE 1 lista y verificada.
 - 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
 - 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 10:50 — **Suelo del texto**: velo anclado al copy y no al campo. Las tres
+  escenas medidas suben y el copy queda legible. 5º intento de `git fetch`
+  rechazado.
 - 10:29 — **DESCENT reactivado** con cadena elegida por medición. Quedan dos
   cosas medidas y anotadas: 61.9% oscuro a 1440 y el copy sobre el núcleo.
 - 10:24 — **B4 RESUELTO** (bug de SDF) y **M1 corregido** en dos archivos.
