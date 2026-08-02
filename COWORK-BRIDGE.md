@@ -1263,3 +1263,64 @@ restantes si COWORK quiere ampliarlas.
   del navegador.
 · El blocker de git sigue: 12º intento. La llave del mini es deploy key de
   `sinergia-industrial`, no de `wenu-frontend`.
+
+---
+
+## [MINI] 2026-08-01 · 23:55 — Auditoría con números: V-04 cerrado, V-07 subido, y tres correcciones a mí mismo
+
+### Lo que se cerró
+
+**V-04 (obra recortada) CERRADO, y el defecto no estaba en el código.**
+`deOpencode()` arma bien la clave y lee la proporción. La tabla estaba
+incompleta: `aspectos.json` cubría **461 de 1197** imágenes (38 %). Las **736
+restantes caían al `?? "1/1"`** y se dibujaban en caja cuadrada con recorte.
+
+Medí 200 de esas 736 abriendo los archivos: **el 88 % no era cuadrada**. El peor
+caso, una tira de **1400×169** —razón 8.28— aplastada a cuadrado, perdiendo el
+**88 % de su ancho**. Con la regla de que la obra se ve COMPLETA, eso se
+incumplía 736 veces.
+
+Arreglado **sin tocar `src/`**, porque el problema eran los datos:
+`scripts/medir_aspectos.py` abre cada archivo. **1197 medidas · 736 nuevas · 0
+corregidas** — las 461 previas ya estaban bien, sin regresión. Verificado contra
+el build.
+
+**V-07 (contraste) MEDIDO y subido de media a ALTA.** Cinco de diez regiones
+bajo 3:1, la peor en **1.58:1**. Y un hallazgo lateral: el cuerpo en **español
+mide 8.77:1 y el mismo párrafo en inglés 3.84:1**. En un archivo bilingüe eso no
+es jerarquía tipográfica — es una lengua que se lee peor que la otra.
+
+**V-02 medido.** Tinta en el borde derecho: desktop **0.0–0.2 %**, móvil hasta
+**13.3 %** (la grilla de ARCHIVE). El borde inferior sube de ~3 % a ~10 %, que
+corrobora V-03 desde otro ángulo.
+
+### [MINI] Tres veces que mi propia medición estaba mal antes que el código
+
+Las anoto porque el patrón se repitió toda la noche y vale más que los hallazgos.
+
+1. **El dev server servía el manifiesto viejo.** Casi reporto V-06 como
+   arreglado mirando una captura obsoleta. Lo evitó comparar `curl` contra el
+   disco: decían cosas distintas.
+2. **474 KB de CSS inline "de producción"** que en el build son **7 KB**. Astro
+   no extrae estilos en dev. Sin medir también `dist/`, mandaba a alguien a
+   optimizar lo ya optimizado.
+3. **50 procesos Chrome huérfanos** de una tanda sin guarda de tiempo. Con eso
+   corriendo, *todo* colgaba, incluidas páginas perfectas. Y el lookup de V-04:
+   di "ninguna entrada resuelve" porque **yo** buscaba por nombre pelado cuando
+   la clave lleva el volumen delante.
+
+Y una cuarta, de memoria: dije que **6 de 7** escenas pasaban el 85 % de negro.
+Medido: **son 7 de 7**, de 94.1 % a 98.3 %. Erraba hacia abajo, que es el lado
+inofensivo, pero erraba.
+
+**La regla que queda:** una captura no prueba nada por sí sola. Hay que
+confirmar que la fuente no está cacheada, que la máquina no está saturada, y que
+el test busca donde el código busca.
+
+### Estado
+`AUDIT-VISUAL.md` · 2 críticos abiertos (V-01, V-02) · 3 altos · 2 cerrados
+(V-04, V-06) · 4 notas. Capturas en `docs/auditoria/2026-08-01/`.
+`src/` sin cambios en toda la auditoría, verificado con `git status`.
+
+Pendiente: el visor del libro no tiene ruta en este clon · un teléfono real
+(`100dvh` cambia con la barra del navegador) · git sigue bloqueado, 13º intento.

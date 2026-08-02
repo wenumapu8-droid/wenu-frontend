@@ -101,6 +101,32 @@ Contenido que queda **fuera de la pantalla y sin manera de alcanzarlo**:
 **Capturas:** `works-m.png`, `vj-threshold-m.png`, `vj-archive-m.png`,
 `tribu-m-tall.png`.
 
+**Medido.** `scripts/medir_recorte.py` cuenta qué porcentaje de la franja de
+3 px del borde tiene tinta en vez de fondo. Un margen sano deja ~0 %; contenido
+cortado al ras deja tinta.
+
+| captura | borde izq | **borde DER** | borde abajo |
+|---|---|---|---|
+| `vj-threshold-d` (1440) | 0.2 % | **0.0 %** | 2.6 % |
+| `works-d` (1440) | 0.2 % | **0.2 %** | 2.9 % |
+| `vol-tribu-d` (1440) | 0.5 % | **0.2 %** | 5.8 % |
+| `vj-threshold-m` (390) | 0.2 % | **0.8 %** | 9.7 % |
+| `works-m` (390) | 0.2 % | **2.0 %** | 10.6 % |
+| `vj-archive-m` (390) | 0.2 % | **13.3 %** | 9.7 % |
+
+Desktop deja el borde derecho limpio; móvil no. **La grilla de specimens de
+ARCHIVE es la peor con 13.3 %**, que es exactamente lo que se ve: las miniaturas
+siguen más allá del ancho de la pantalla.
+
+Y el **borde inferior sube de ~3 % en desktop a ~10 % en móvil**, que corrobora
+V-03 desde otro ángulo.
+
+*Límite del método, dicho para que nadie lo sobreinterprete:* un elemento que
+llega al borde **por diseño** —una regla, un degradado a sangre— da el mismo
+positivo que uno cortado. Esto señala dónde mirar; no reemplaza mirar. Por eso
+`tribu-390x900` da 62.9 % y no lo cito: ahí el número lo domina la lámina blanca
+desbordada de V-01, no un recorte de texto.
+
 ---
 
 ## 🟠 ALTA
@@ -228,10 +254,28 @@ una decisión legítima; que cinco regiones queden bajo el mínimo, no.
 ## ⚪ NOTAS (no son defectos)
 
 ### V-08 · El fondo casi negro de las escenas es canon, no un bug
-Las siete escenas se ven prácticamente negras. **No lo reporto como defecto:** la
-regla del sistema es negro dominante y un solo acento por organismo, y ya estaba
-verificado que seis de las siete superan el 85 % de píxeles oscuros. Lo dejo
-anotado para que nadie lo «arregle» subiendo el brillo.
+Las siete escenas se ven prácticamente negras. **No es un defecto:** la regla del
+sistema es negro dominante y un solo acento por organismo. Lo dejo anotado para
+que nadie lo «arregle» subiendo el brillo.
+
+**Corrección: había citado esto de memoria y lo dije mal.** Escribí que «seis de
+las siete» superaban el 85 % de píxeles oscuros. Lo medí:
+
+| escena | % oscuro |
+|---|---|
+| ARCHIVE | 94.1 % |
+| COSMOLOGY | 97.8 % |
+| MACHINE | 98.0 % |
+| THRESHOLD | 98.1 % |
+| RETURN | 98.2 % |
+| PROLOGUE | 98.2 % |
+| DESCENT | 98.3 % |
+
+**Son las siete, no seis.** La más clara es ARCHIVE con 94.1 %, y se entiende:
+es la única escena que muestra obra, y la obra tiene blanco. El rango real va de
+94.1 % a 98.3 %.
+
+Mi memoria erraba hacia abajo, que es el lado inofensivo — pero erraba.
 
 ### V-09 · La curaduría nueva llega bien a la lámina
 Verificado en `/kodex/vol/tribu` a 1440: entran los dos idiomas completos, el
