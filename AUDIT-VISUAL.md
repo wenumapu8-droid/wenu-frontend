@@ -1111,3 +1111,71 @@ la obra, que es exactamente lo que debe pasar.
 ### Alcance
 
 Todo esto es `src/`. Lo que queda del lado de datos ya está hecho.
+
+---
+
+## V-22 · `prefers-reduced-motion` re-verificado con el método que sí funciona
+
+V-12 dio la regla por cumplida, pero se midió **contra el build de producción y
+con `--virtual-time-budget`** — el método que en V-21 resultó colgarse en
+`/kodex/`. Convenía repetirlo contra el estado actual y con los flags correctos,
+y agregar una prueba que allá no estaba.
+
+La regla del pliego tiene tres partes: con movimiento reducido la pieza se
+muestra **completa**, **quieta** y **nunca vacía**.
+
+### ① Quieta — la prueba que faltaba
+
+**Dos capturas de la misma escena, separadas 2 segundos.** Si la pieza está
+quieta, tienen que ser idénticas.
+
+| escena | con movimiento | movimiento reducido | |
+|---|---|---|---|
+| `#threshold` | 0.23 % | **0.00 %** | quieta |
+| `#prologue` | 0.00 % | **0.00 %** | quieta |
+| `#art` | 0.00 % | **0.00 %** | quieta |
+| `#archive` | 0.19 % | **0.00 %** | quieta |
+
+**Cero píxeles de diferencia en las cuatro.** La pieza no se mueve.
+
+**Y hay que decir el límite de la columna izquierda.** Sin
+`--virtual-time-budget`, la captura se toma al cargar, así que las dos tomas
+«con movimiento» caen en el mismo punto de la carga. Que `#prologue` y `#art`
+den 0.00 % **no prueba que no animen** — prueba que la captura es determinista
+ahí. Lo que sí significa algo es el 0.19 % y 0.23 % de `#threshold` y
+`#archive`: ésos **no** son deterministas, y con movimiento reducido bajan a
+cero. Esa comparación es válida; la de las otras dos no.
+
+### ② Nunca vacía
+
+| escena | píxeles casi negros, con mov. | con movimiento reducido |
+|---|---|---|
+| `#threshold` | 90.2 % | 90.0 % |
+| `#prologue` | 95.0 % | 95.9 % |
+| `#art` | 89.7 % | 89.7 % |
+| `#archive` | 41.6 % | **30.0 %** |
+
+Ninguna se acerca al 100 % que indicaría una pantalla en blanco. Y `#archive`
+**se aclara**: con movimiento reducido muestra **más** contenido, no menos —
+30 % de negro contra 41.6 %. Es exactamente lo que la regla pide: lo que las
+animaciones irían revelando, ya está revelado.
+
+### ③ Completa
+
+Diferencia entre la versión con movimiento y la reducida:
+
+| escena | píxeles distintos |
+|---|---|
+| `#art` | 0.00 % |
+| `#archive` | 0.19 % |
+| `#threshold` | 0.23 % |
+| `#prologue` | 0.52 % |
+
+**No se cae contenido.** El máximo es medio punto porcentual, y en `#archive` el
+cambio es hacia mostrar más.
+
+### Veredicto
+
+**La regla dura se cumple en sus tres partes**, ahora sí con el método correcto
+y con la prueba de quietud que V-12 no incluía. 16 capturas, cero timeouts, cero
+procesos huérfanos.
