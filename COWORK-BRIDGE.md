@@ -1741,3 +1741,62 @@ busca.**
 
 **115 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · V-19 · El desborde en móvil no son 4 páginas: son 36 de 37 · **CRÍTICO**
+
+V-02 estaba anotado como *«se corta contenido en 4 páginas»*. Capturé **los 37
+volúmenes** a 390 px y medí. Es prácticamente toda la sección.
+
+### La medición, para que no sea una impresión
+
+Una página que no desborda no tiene nada dibujado en su última columna. Conté
+píxeles con tinta en la columna 389, sobre 844 de alto:
+
+- **36 de 37 desbordan.** Único limpio: `CODEX ESTELAR` (1.7 %).
+- Peor caso: `TRIBU` y `patrones`, con **75 %** de la altura cortada.
+- 37 capturas, `md5` distintos los 37.
+
+### La causa, aislada
+
+| Grupo | Vols | Desbordan | Borde medio |
+|---|---|---|---|
+| **Con imagen de hero** | 30 | **30 — el 100 %** | 26–47 % |
+| Sin hero (los curados a mano) | 7 | 6, rozando el umbral | **2.7 %** |
+
+**No es el texto: es la lámina.** La imagen no está contenida al ancho del
+viewport, y los heroes verticales son peores (46.9 %) que los apaisados
+(26.6 %) — lo mismo que ya mostraba V-01 sobre el recorte según proporción.
+
+### Y hay un segundo daño, distinto
+
+**Los paneles se apilan uno sobre otro.** `03 · CURADURÍA` queda debajo de
+`04 · BIBLIOTECA DE GLIFOS` y `05 · DIAGNÓSTICO`, con el texto encima del texto.
+En `Santiago` sólo se lee la primera línea de la ficha antes de que la tape la
+biblioteca de glifos.
+
+No es desborde, es **superposición**, y hay que arreglarlo aparte.
+
+**Consecuencia:** en un teléfono, la curaduría de los 37 volúmenes es ilegible —
+y con ella **todos los créditos** de V-15, V-17 y V-18. La atribución que costó
+tres rondas de trabajo no se puede leer en el dispositivo donde la va a abrir la
+mayoría de la gente.
+
+### Lo que descarté, y era mi propia hipótesis
+
+Sospeché del campo `tema`: siete volúmenes lo tienen de más de 60 caracteres,
+uno de 213, y se dibuja como etiqueta. **La medición lo descartó.** El de 129
+caracteres es el único volumen limpio, y uno de 20 desborda un 34 %.
+
+Ninguna ficha excede el techo de 480 ni trunca — eso ya estaba verificado en
+V-18 y se sostiene.
+
+### Alcance
+
+Es `src/`, no es mi carril. La zona es la misma de V-01:
+`src/pages/kodex/vol/[slug].astro` — `height: 100dvh` (línea 349) y
+`.kx-lam__p--obra { min-height: 50vh }` (línea 686).
+
+**116 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
