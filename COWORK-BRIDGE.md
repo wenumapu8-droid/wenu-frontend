@@ -1588,3 +1588,79 @@ Se terminó el material de libros. Lo que queda en mi carril: los ocho volúmene
 sin revisar por créditos de terceros (`quinto fuego`, `render`, `paletas de
 colores`, `princesa yuyo`, `Catálogo 2019`, `Emanes`, `Santiago`, `TranaluÜkai`)
 y mantener AUDIT-VISUAL, que no puede avanzar hasta que baje código.
+
+---
+
+## [MINI] · Curaduría cerrada: los 8 volúmenes que faltaban, y un error mío en 17 fichas
+
+Se abrieron las **49 láminas originales** de los ocho volúmenes que quedaban sin
+revisar. Como en V-15: **los metadatos de Behance no traen ningún crédito**. Hay
+que mirar la imagen.
+
+### Lo urgente, si alguien va a publicar esto
+
+**`Emanes (act3), Pichilemu` estaba descrito como otra obra.** La ficha decía
+*«serie fotográfica en Pichilemu, trabajo de locación: luz de costa y territorio
+concreto»*. Las láminas llevan **«NO +»** y **«SENAME»** sobre el cuerpo de una
+artista aérea: es **obra de protesta sobre el servicio estatal de menores**.
+Publicarla como paisaje costero no es un matiz — es publicar otra cosa.
+
+**Y hay dos personas reconocibles sin acreditar:** la artista aérea de Emanes, y
+la persona retratada en `Princesa Yuyo`, que aparece **parcialmente desnuda** y
+no está identificada. Ahí no falta sólo un crédito: **conviene verificar el
+consentimiento de publicación antes de que eso quede en un sitio público.**
+
+### Créditos encontrados
+
+| Volumen | En la lámina |
+|---|---|
+| **Santiago** | «NICOLAS ORTEGA · **Claudio Pino — Fotografía Digital**» al pie. Trabajo de curso, con docente. |
+| **Catálogo 2019** | **Tres** fotógrafos: Nicolás Ortega, Alejandro Martín, Jesús Alejandro. Transcritos como figuran; no resuelvo si los dos últimos son la misma persona. |
+| **Quinto fuego** | Junto a Wenü Mapü: **Almenara, Uará, De lo Absurdo, Pey-Tech** y uno ilegible. Plataforma **NaciónStream**. |
+
+### Encuadres corregidos
+
+`Catálogo 2019` no es «el oficio antes del sistema»: es un **catálogo comercial**
+con precios y condiciones de venta, y **el origen de la marca Wenü Mapü que da
+nombre al sitio**. · `Quinto fuego` es un **encargo fechado** — escenografía
+virtual 3D para *Rave Virtual*, **28.08.2020**, y la ficha decía 2021. ·
+`Santiago` es **callejera**, no moda. · `TranaluÜkai` son **planos técnicos con
+cotas**, no ilustraciones. · `Render` es sobre todo **arquitectura**.
+
+`Catálogo 2019` y `TranaluÜkai` quedaron marcados **`requiere_fuente_mapuche`**:
+nombran desde el mapudungun y desde el pueblo **selk'nam**, y reproducen
+iconografía textil mapuche. Son siete volúmenes con esa marca.
+
+### El error mío que apareció revisando, y es el hallazgo más grande
+
+**Escribí «Nueve piezas» para un volumen que tiene tres láminas.** Y «Treinta y
+tres» para uno que tiene once. **Diecisiete veces.**
+
+Conté las entradas de `assets`, que traen **tres derivados tratados por cada
+original**. Al contar tres veces la misma lámina, **cada ficha declaraba el
+triple de obra de la que existe**.
+
+`dicho == raw×3` en **17 de 17**, sin una excepción, y **ninguna ficha daba el
+número real**. Eso no es un descuido de redacción: es haber medido la cosa
+equivocada y no haberlo comprobado nunca contra el disco.
+
+**El archivo tiene 396 láminas originales**, no las 1657 entradas de `assets`. Y
+ese 396 coincide exactamente con los derivados limpios de V-13 — confirmado por
+dos caminos independientes.
+
+**Mi primer barrido de este error también estuvo mal, dos veces.** Conté 14 y
+eran 17: la expresión regular pedía un punto antes del numeral y se perdió
+«2023: sesenta y nueve piezas», y matcheaba subcadenas, así que leyó «cinco» en
+«cincuenta y cinco» y dio por roto un volumen que estaba bien. **Lo que lo
+salvó fue el ensayo previo, no la primera lectura.**
+
+De paso: una ficha decía que un motivo *«cruza trece años»* entre 2021 y 2024.
+
+### Estado
+
+18 conteos cuadran con el disco, **cero descuadran**. `obras_reales` en 29 de 37
+volúmenes (los otros ocho no tienen `raw/`). `manifest.json` válido. Script
+reversible: `scripts/corregir_creditos_y_conteos.py`.
+
+**113 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
