@@ -622,3 +622,41 @@ falta es el control.
 distintas y no cuatro variantes de la misma. `distribuir()` deduplica por nombre
 base y, al ir las limpias primero, es la limpia la que queda en la tira. La
 coherencia se mantiene.
+
+---
+
+## V-15 · Créditos de terceros que la curaduría atribuía sólo a Ocín
+
+**No es un defecto del sitio: es un defecto de mis propias fichas**, y lo
+registro acá porque un archivo que se equivoca en la autoría deja de ser un
+archivo.
+
+Curé los volúmenes de Behance desde los metadatos: título, fecha, categoría,
+cantidad de piezas. Cuando volví a mirar **las láminas**, aparecieron créditos al
+pie que los metadatos no traen. Tres, hasta ahora:
+
+| volumen | lo que dice la lámina |
+|---|---|
+| **Aborígenes Cósmicos** | Duoc UC · Taller de Diseño de Servicios · Docente Luis Elizondo O. · **Alumnos: Nicolás Silva; Nicolás Ortega G.** |
+| **SONORA** | Duoc UC Plaza Oeste · Taller de Producto Centrado en el Usuario · Profesor Iván Orrego Salcedo · **Alumno: Rodrigo Nicolás Ortega** |
+| **OUTSIDE** | «PROYECTO COLABORATIVO / GEORODER» · TSD5011 · Docente Luis Elizondo O. · **Co-creación con GeoRoder**, concurso Turismo con Diseño 2019 |
+
+Las tres fichas los daban por obra individual. Quedaron corregidas, con el
+crédito en el texto y en un campo aparte del manifiesto —`coautoria` o
+`credito_en_lamina`— **transcrito tal como figura**, sin resolver la diferencia
+entre «Rodrigo Nicolás Ortega» y «Nicolás Ortega García»: eso no me toca.
+
+**Y las fichas estaban mal por más que el crédito.** OUTSIDE no era «un canil de
+mascotas, encargo concreto de 2021»: es una **carpa plegable acoplada a un
+tráiler teardrop**, presentada a un concurso de **2019**, y la lámina no muestra
+un producto sino un sistema —persona usuaria, matriz de requisitos, mapa con
+quince entidades y un customer journey de quince fases—. SONORA no era sólo «un
+proyecto premiado»: es una **mesa de centro concebida como caja de resonancia**,
+con parlante integrado.
+
+**El patrón, para quien siga curando:** las láminas de la época Duoc llevan
+docente y alumnos al pie; los renders sueltos, no. **Los metadatos de Behance
+nunca traen el crédito.** Hay que abrir la lámina.
+
+Quedan sin revisar con este criterio: `quinto fuego`, `render`, `paletas de
+colores`, `princesa yuyo`, `Catálogo 2019`, `Emanes`, `Santiago`, `TranaluÜkai`.

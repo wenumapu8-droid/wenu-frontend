@@ -318,14 +318,17 @@ CURADURIA = {
         titulo="ballena jorobada",
         marco="documentado",
         curaduria_es=(
-            "Arquitectura y diseño de exhibición, 2021. Treinta y tres piezas en torno a una estructura de "
-            "gran escala: el cuerpo del animal como problema constructivo."
+            "El cuerpo del animal como problema constructivo, y resuelto en fierro: una armadura "
+            "triangulada de acero soldado, del largo de un remolque, fotografiada en terreno el día que se "
+            "trasladó. No es una maqueta ni un render — se construyó. Treinta y tres piezas entre "
+            "estructura, montaje y exhibición."
         ),
         curaduria_en=(
-            "Architecture and exhibition design, 2021. Thirty-three pieces around a large-scale structure: "
-            "the animal's body as a construction problem."
+            "The animal's body as a construction problem, solved in steel: a welded triangulated armature "
+            "the length of a trailer, photographed on site the day it was moved. Not a model and not a "
+            "render — it was built. Thirty-three pieces across structure, assembly and exhibition."
         ),
-        resonancias=["gran escala", "exhibición", "estructura"],
+        resonancias=["gran escala", "estructura triangulada", "obra construida", "exhibición"],
     ),
     "behance-114620487": dict(
         titulo="Catálogo 2019",
@@ -581,18 +584,28 @@ CURADURIA = {
         ),
         resonancias=["paleta", "estudio de color", "antes del blanco y negro"],
     ),
+    # CORREGIDA. Mi ficha decía "canil de mascotas, encargo concreto, 2021".
+    # La lámina se titula PROYECTO COLABORATIVO / GEORODER y el objeto es otra
+    # cosa: una carpa plegable para mascotas acoplada a un tráiler teardrop.
     "behance-116132939": dict(
-        titulo="OUTSIDE — canil de mascotas",
+        titulo="OUTSIDE — proyecto colaborativo con GeoRoder",
         marco="documentado",
         curaduria_es=(
-            "Diseño de producto, 2021. Treinta piezas. Encargo concreto resuelto con desarrollo completo: "
-            "un objeto para un animal, con sus medidas y su intemperie."
+            "Carpa plegable para mascotas acoplada a un tráiler teardrop, desarrollada en co-creación con "
+            "GeoRoder para el concurso Turismo con Diseño 2019. La lámina no es un producto: es un sistema "
+            "—persona usuaria, matriz de requisitos, mapa de sistema con quince entidades y un customer "
+            "journey de quince fases con su curva emocional—. Taller de Sistema Producto TSD5011, Duoc UC "
+            "Plaza Oeste, docente Luis Elizondo O. Treinta piezas."
         ),
         curaduria_en=(
-            "Product design, 2021. Thirty pieces. A concrete commission solved end to end: an object for an "
-            "animal, with its measurements and its weather."
+            "A folding pet tent that attaches to a teardrop trailer, co-created with GeoRoder for the 2019 "
+            "Turismo con Diseño competition. The board is not a product: it is a system —user persona, "
+            "requirements matrix, a system map with fifteen entities, and a fifteen-stage customer journey "
+            "with its emotional curve. Product System studio TSD5011, Duoc UC Plaza Oeste, tutor Luis "
+            "Elizondo O. Thirty pieces."
         ),
-        resonancias=["diseño de producto", "intemperie", "encargo"],
+        resonancias=["co-creación", "mapa de sistema", "customer journey", "obra académica"],
+        credito_en_lamina="Docente: Luis Elizondo O. · Alumno: Nicolás Ortega G. · Co-creación: GeoRoder (Duoc UC)",
     ),
     "behance-116149759": dict(
         titulo="Santiago",
