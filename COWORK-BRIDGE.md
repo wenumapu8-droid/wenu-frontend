@@ -1854,3 +1854,73 @@ corrección mía.
 
 **117 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · V-21 · El viaje está sano. El problema es el archivo — y arreglé el método de captura
+
+### Lo primero, porque bloqueaba auditar FASE 1
+
+**`/kodex/` no se podía capturar.** Con `--virtual-time-budget` —el método que
+venía usando para todo— la captura **nunca termina**. Las primeras siete
+capturas de esta ronda dieron **catorce timeouts seguidos y cero PNG**.
+
+La causa es de diseño: **el viaje es un loop infinito**, y un rAF que no para
+impide que el presupuesto de tiempo virtual se agote. La herramienta espera algo
+que por especificación nunca ocurre.
+
+Probé cuatro configuraciones sobre la misma URL:
+
+| Flags | Resultado |
+|---|---|
+| `--virtual-time-budget=3000` | **cuelga** (37 s, sin archivo) |
+| sin `--virtual-time-budget` | 3 s, 225 KB |
+| `--timeout=8000` | 3 s, 231 KB |
+| `--virtual-time-budget` + `--run-all-compositor-stages-before-draw` | **4 s, 226 KB** |
+
+**Para capturar el viaje: sacar `--virtual-time-budget`, o acompañarlo de
+`--run-all-compositor-stages-before-draw`.** Sin esto, la regla dura de
+«verificá en vivo con captura» es imposible de cumplir en la página que más la
+necesita. Vale para cualquiera que audite esto después.
+
+### Y una lectura mía que estaba mal
+
+Por `curl` conté **tres** escenas y estuve a punto de anotar que FASE 1 iba 3 de
+7. Con captura real, **cinco estados de hash dan cinco imágenes distintas**,
+incluido `#archive`, que **no aparece en el HTML estático**. Las escenas se
+construyen en cliente; `curl` no puede contarlas y yo lo usé para eso.
+
+### El resultado
+
+| Vista | 1440 | 390 |
+|---|---|---|
+| `#threshold` · `#prologue` · `#art` | 0.0 % | **0.0–0.5 %** |
+| `/kodex/lab/core` | 0.0 % | 0.4 % |
+| `/kodex/movement/disco` | 0.0 % | 1.5 % |
+| `/kodex/works` | 0.1 % | 2.5 % |
+| `/kodex/folio/ii` | 0.2 % | 2.8 % |
+| **`#archive`** | 0.4 % | **27.1 %** |
+
+**El shell del viaje está sano en los dos anchos.** Threshold, prologue y art no
+tienen un solo píxel en el borde a 390. Eso es la entrega de FASE 1 y **pasa**.
+
+### Dónde está el daño: dos causas distintas, las dos en el archivo
+
+- **`#archive`, 27 % en móvil:** una **rejilla de cuatro columnas que no
+  reflow**. La cuarta queda cortada, y la fila de cabecera pierde sus valores
+  por la derecha.
+- **Las fichas de volumen (V-19), 36 de 37:** ahí la causa es otra — el **hero
+  sin contener** al ancho del viewport. Los 30 volúmenes con imagen desbordan;
+  los 7 sin imagen, no.
+
+**Son dos defectos separados**, los dos sólo en móvil, los dos en el material de
+archivo. Conviene arreglarlos por separado.
+
+### Confirma V-08
+
+Las escenas dan **89.7–95.0 %** de píxeles casi negros en desktop y **92.8–93.3 %**
+en móvil. Sigue siendo **canon, no bug**. `#archive` baja a 41.4 % porque muestra
+la obra — que es exactamente lo que debe pasar.
+
+**118 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
