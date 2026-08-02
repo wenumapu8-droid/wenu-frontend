@@ -1179,3 +1179,75 @@ cambio es hacia mostrar más.
 **La regla dura se cumple en sus tres partes**, ahora sí con el método correcto
 y con la prueba de quietud que V-12 no incluía. 16 capturas, cero timeouts, cero
 procesos huérfanos.
+
+---
+
+## V-23 · El último volumen que servía obra tratada por defecto
+
+La regla dura dice que **la obra de Ocín va fiel, sin dither por defecto, y el
+tratamiento sólo al click**. V-13 dejó el hero limpio en 29 de 37 y di los ocho
+restantes por inevitables. No lo eran.
+
+### Al mirarlos, siete no eran incumplimientos
+
+De los ocho, **siete no tienen obra que servir**. Su primer asset no es una
+imagen:
+
+| Volumen | Lo que figura como hero |
+|---|---|
+| `giphy` | `README.md` |
+| `sistemas` | `kodex_ascii_petscii_kit_v1` |
+| `atlas` | un PDF |
+| `mandalas` | `Mandala 2.mandala` |
+| `boveda` | un `.md` |
+| `codex-estelar` | **`PENDIENTE.md`** |
+| `portafolio` | **`PENDIENTE.md`** |
+
+No hay dither que quitar: no hay lámina. Son volúmenes documentales, y dos son
+literalmente marcadores de pendiente.
+
+### Y uno sí incumplía, y tenía arreglo
+
+**`prototipos` servía `kodex-blacksun.dither.webp` como hero** — obra tratada por
+defecto, que es exactamente lo que la regla prohíbe.
+
+**Y era arreglable.** Sus originales existen: `kodex-blacksun.png`,
+`kodex-menu.png` y `kodex-work.png`, de 2.6 MB, 885 KB y 1.5 MB. Sólo que viven
+en `vol/prototipos/**capturas/**`, no en `raw/`.
+
+Mi script de V-13 buscaba **únicamente en `raw/`**, así que saltó este volumen
+**en silencio** — sin error, sin aviso, sin aparecer en el resumen. Es la misma
+clase de fallo que el de los stems partidos en el primer dot, que allá dejó 241
+láminas afuera: **el script no falla, simplemente no encuentra, y el resultado
+parece completo**.
+
+### Arreglé la causa, no el caso
+
+`generar_limpias.py` ahora recorre `raw/`, `capturas/` y `originales/`. Tres
+láminas limpias generadas.
+
+| | antes | después |
+|---|---|---|
+| Hero limpio | 29 | **30 de 30** volúmenes con obra fotográfica |
+| Hero tratado | 1 | **0** |
+| Sin obra que servir | 7 | 7 (no aplican) |
+
+**Y pesa menos, otra vez:** `kodex-blacksun` limpia son **130 KB** contra
+**952 KB** de la dithered. **7.3× más liviana.** La regla y el rendimiento van
+del mismo lado, igual que en V-13.
+
+**Verificado en vivo.** El HTML servido de `/kodex/vol/prototipos` referencia
+`kodex-blacksun.limpio.webp` cuatro veces, y la captura muestra la pieza a
+color, sin trama, con los tratamientos disponibles abajo en la tira de serie —
+que es literalmente lo que la regla pide.
+
+### Y una cosa que queda anotada, no resuelta
+
+**`codex-estelar` tiene `PENDIENTE.md` como único asset**, y es el volumen que
+representa **los cuatro libros de Ocín** — los mismos cuyos 42 capítulos están
+escritos y en el repositorio. El archivo dice «volumen pendiente» y lista los
+cuatro títulos.
+
+No lo toco: qué obra visual le corresponde a ese volumen es decisión de quien
+cura el archivo, no una corrección. Pero conviene saber que el contenido ya
+existe y el volumen sigue marcado como pendiente.
