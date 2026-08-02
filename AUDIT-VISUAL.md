@@ -1315,3 +1315,78 @@ La precisión no protege de eso. **Una auditoría vale lo que vale la copia sobr
 la que corre**, y yo no podía comprobar la mía desde el 1 de agosto — lo sabía,
 lo anoté en V-16, y aun así seguí sacando conclusiones sobre `src/` como si
 fueran de todos.
+
+---
+
+## V-26 · FASE 1 está construida y verificada — y lleva dos días varada
+
+El pliego nocturno pide, cada vez, *«SEGUÍ POR: FASE 1 = shell del viaje, 7
+escenas fullscreen»*. **Está hecha.** La construí el 1 de agosto y quedó en la
+rama que nunca se pudo pushear, así que quien escribe el pliego no lo sabe.
+
+En mi rama hay **31 commits sobre `src/`** y entre ellos:
+
+    2fa228e  FASE 0: CORE STYLE SEED + KDX CORE v1.0 + KDX FX SUITE v1.0
+    805266d  FASE 0 al spec + FASE 1: el viaje de 7 escenas, verificado en vivo
+    830c337  FASE 2 · escena 00 THRESHOLD ensamblada desde el módulo real
+    09e2fcf  Escena 01 PROLOGUE + el motor hospeda organismos ajenos
+    d8254b1  Escena 03 ARCHIVE: los specimens reales, y limpios
+    48584ed  Escenas 04, 05 y 06 — las siete del viaje tienen organismo
+    1f893fc  Tabla medida de los 8 tratamientos
+
+### Y en V-21 lo audité en la ruta equivocada
+
+Medí `/kodex/`, que tiene tres escenas. **El viaje vive en `/kodex/viaje/`** y
+lo declara `src/lib/kodex/viaje.ts`. Las siete son **THRESHOLD · PROLOGUE ·
+DESCENT · ARCHIVE · MACHINE · COSMOLOGY · RETURN**.
+
+### Lo verificado, con capturas
+
+14 capturas, 7 por ancho, **7 md5 distintos en cada uno**. Cero timeouts, cero
+huérfanos.
+
+| escena | borde 1440 | borde 390 |
+|---|---|---|
+| threshold | 0.0 % | 0.5 % |
+| prologue | 0.0 % | 2.4 % |
+| descent | 3.9 % | 0.8 % |
+| archive · machine · cosmology · return | 0.0 % | 0.5–1.1 % |
+
+**El shell cumple el spec**, y se ve en la captura de THRESHOLD: escena
+fullscreen sin scroll de página, **UI persistente** —cabecera con reloj, barra
+de progreso, código de barras teñido del color de la escena—, **siete chips de
+navegación** más PREV/NEXT, y **una sola acción por escena** (`ENTER ›`).
+
+### Y una trampa que casi reporto como fallo
+
+`COSMOLOGY` da **99.0 %** de negro y su captura muestra el chrome **sin
+contenido**: ni título, ni copy, ni botón. Estuve por anotarlo como escena
+vacía.
+
+**No lo está.** El HTML servido trae las siete con cuerpo:
+
+| | escena | copy |
+|---|---|---|
+| 00 | THRESHOLD | *access the archive beyond the surface* |
+| 01 | PROLOGUE | *the archive is watching. you are…* |
+| 02 | DESCENT | *descend into the pattern* |
+| 03 | ARCHIVE | *the archive dreams in code* — **11 KB**, embebe la rejilla |
+| 04 | MACHINE | *patterns become predictions* |
+| 05 | COSMOLOGY | *we are patterns in the cosmos* |
+| 06 | RETURN | *return to carry the pattern* |
+
+El vacío era **artefacto de capturar al cargar**: el cliente revela la escena
+activa y el enlace de hash no había corrido todavía. Es exactamente lo que el
+pliego advierte —*«Chrome headless escribe la captura AL CARGAR»*— y aun así
+casi me come.
+
+### Lo que NO puedo confirmar
+
+**Si los organismos de FASE 2 dibujan.** Todas las escenas dan 96.5–99.0 % de
+negro, y eso es compatible tanto con el canon oscuro de V-08 como con un shader
+que no alcanzó a pintar antes de la captura. **Sin `--virtual-time-budget` no
+hay manera de fotografiar fuera del primer segundo**, y con él la página se
+cuelga (V-21).
+
+Queda como la única pregunta abierta de FASE 1/2, y necesita un método que no
+tengo.
