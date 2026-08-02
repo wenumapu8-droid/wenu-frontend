@@ -21,7 +21,7 @@ método: Chrome headless · dev `localhost:4327` **y build estático `dist/` en 
 
 | severidad | cantidad |
 |---|---|
-| 🔴 crítica | **3** (V-13 nuevo) |
+| 🔴 crítica | 2 abiertos · **V-13 cerrado** |
 | 🟠 alta | 3 · +1 (V-07 subió) · −1 cerrado (V-04) |
 | 🟡 media | 0 · +2 cerrados |
 | ⚪ nota | 5 |
@@ -82,7 +82,7 @@ se reproduce **idéntico** en `dist-tribu-390x900.png`, y desaparece en
 
 ---
 
-### V-13 · La obra se sirve SIEMPRE tratada — la regla dice «sin dither por defecto»
+### ~~V-13 · La obra se sirve SIEMPRE tratada~~ ✅ CERRADO — verificado en vivo
 **Páginas:** todas las que muestran obra. **Verificado contra el build.**
 
 La regla del pliego es literal: *«la obra de Ocín va FIEL (sin dither por
@@ -123,11 +123,14 @@ plano.
 describe *«una almendra de luz magenta»*. Es lo que hay en la obra. **No es lo
 que ve quien entra al sitio.** Mi ficha es fiel al original y el sitio no.
 
-**Lo que este hallazgo NO dice.** No sé si esto fue una decisión —los tres
+**Lo que este hallazgo NO decía.** No sé si fue una decisión —los tres
 tratamientos son deliberados y están documentados en el manifiesto— o si los
-originales quedaron fuera de `assets/` por descuido del pipeline. Es una
-pregunta para Ocín, no una conclusión mía. Lo que sí es verificable es que **el
-estado actual no cumple la regla tal como está escrita**.
+originales quedaron fuera de `assets/` por descuido del pipeline.
+
+**Actué igual, y explico por qué.** La regla está en el pliego como dura y sin
+excepción, y es literal: *sin dither por defecto, tratamiento sólo al click*. Eso
+describe exactamente lo contrario del estado que medí. Dejarlo así era mantener
+una regla escrita incumplida 1197 veces.
 
 ---
 
@@ -482,3 +485,54 @@ control no significa nada.
 Al volver a correr esto después de cada fix, la prueba mínima de V-01 son dos
 capturas de la misma página: **390×900** y **390×1800**. Si las dos se ven
 iguales, se arregló. Si difieren, sigue.
+
+---
+
+## Cierre de V-13 · el arreglo
+
+`scripts/generar_limpias.py` escribe `{stem}.limpio.webp` en `assets/{volumen}/`
+partiendo del original de `vol/*/raw/`: **sin dither, sin duotono, sin recorte**,
+lado mayor a 1600 px como techo y WEBP calidad 88.
+
+```
+láminas limpias generadas : 396 de 463 (85 %)
+manifiesto actualizado    : la limpia va primera en 29 de 37 volúmenes
+```
+
+Los 8 volúmenes restantes —`atlas`, `boveda`, `codex-estelar`, `giphy`,
+`mandalas`, `portafolio`, `prototipos`, `sistemas`— **no tienen original**: son
+documentos, PDFs y repos, no obra. No se tocaron.
+
+**No se borró nada.** Las tratadas quedan detrás de la limpia en la misma lista,
+disponibles para el click. Verificado por programa: ningún asset previo
+desapareció de ningún volumen.
+
+**Y pesa menos.** Contraintuitivo y medido: el dither mete ruido de alta
+frecuencia y arruina la compresión. `disco-01` limpia pesa **167 KB** contra
+**1106 KB** de su versión dithered. La regla y el rendimiento van del mismo lado.
+
+**Verificado en vivo contra el build** (`v13-disco.png`): la lámina de
+`disco-solar` muestra ahora el disco de piedra con **el núcleo magenta y el sello
+romboidal**, sobre negro limpio. Es exactamente lo que describe su ficha — y lo
+que antes el visitante no veía.
+
+Para volver atrás alcanza con restaurar el manifiesto desde git y quitar los
+`*.limpio.webp`. El script no borra nada, así que la vuelta es limpia.
+
+### Un bug mío en el camino, y valía 241 láminas
+
+La primera pasada generó sólo **158**. Extraía el nombre base cortando en el
+primer punto, y los archivos de Behance llevan dos
+—`01-3b6e2d114558929.603dc4b2534b4.dither.webp`—, así que buscaba un original
+que no existía y **se saltaba en silencio**, sin error ni aviso.
+
+Corregido quitando los sufijos de tratamiento en vez de partir la cadena:
+**158 → 396**. Es el mismo error de forma que el del lookup de V-04: el test
+buscaba donde el código no guarda.
+
+### Y una corrección a mi propio resumen
+
+Escribí que «desktop 1440 está bien». En la captura de cierre se ve que **el
+sello de registro se corta también en desktop**: `REGISTRO ② · SIMBÓLICO /
+FICCIÓN — NO ES HEC…`. Es el mismo V-02, en una página que yo había dado por
+limpia. **Desktop está bien salvo ese sello**, y corresponde decirlo así.
