@@ -21,7 +21,7 @@ método: Chrome headless · dev `localhost:4327` **y build estático `dist/` en 
 
 | severidad | cantidad |
 |---|---|
-| 🔴 crítica | 2 |
+| 🔴 crítica | **3** (V-13 nuevo) |
 | 🟠 alta | 3 · +1 (V-07 subió) · −1 cerrado (V-04) |
 | 🟡 media | 0 · +2 cerrados |
 | ⚪ nota | 5 |
@@ -79,6 +79,55 @@ descarta que sea un problema de grilla o de ancho.
 sirviendo `dist/` estático en el puerto 4399, no el dev server. El solapamiento
 se reproduce **idéntico** en `dist-tribu-390x900.png`, y desaparece en
 `dist-tribu-390x1800.png`. No es un artefacto de desarrollo: es el sitio.
+
+---
+
+### V-13 · La obra se sirve SIEMPRE tratada — la regla dice «sin dither por defecto»
+**Páginas:** todas las que muestran obra. **Verificado contra el build.**
+
+La regla del pliego es literal: *«la obra de Ocín va FIEL (sin dither por
+defecto; tratamiento sólo al click)»*. No la había auditado.
+
+**El 100 % de lo que se sirve está tratado.**
+
+| | |
+|---|---|
+| imágenes que el manifiesto declara | **1197** |
+| con tratamiento aplicado | **1197 (100 %)** — 399 `dither` · 399 `duo-bone` · 399 `duo-signal` |
+| **sin tratar** | **0** |
+
+No hay una sola versión limpia en `assets/`, que es de donde el sitio sirve. El
+primer asset de cada volumen —el que se usa de hero— es el `.dither.webp`.
+
+**Y los originales existen.** Hay **1298 archivos sin tratar** en
+`vol/*/raw/`, repartidos en 35 volúmenes: 624 en `portafolio-duoc`, 137 en
+`book-0cin`, 108 en `cetaceo-estelar`, 55 en `posters`, 52 en `archivo`…
+
+**Ninguno está en `assets/`.** El sitio no puede mostrarlos aunque quiera.
+
+**Qué se pierde, medido.** En las piezas que ya eran de línea en blanco y negro
+el tratamiento casi no se nota. Donde sí:
+
+| pieza | colores únicos, original → servido |
+|---|---|
+| `arch-01` | 256 → 481 *(el dither añade ruido, no quita)* |
+| `patrones-01` | 435 → 431 |
+| **`disco-01`** | **6885 → 391** |
+
+`disco-01` es la pieza con color. El original tiene fondo negro limpio, relieve
+de piedra y **un núcleo de luz magenta con un sello romboidal**. Lo que se sirve
+es gris, con el magenta **eliminado** y ruido de dither sobre lo que era negro
+plano.
+
+**Y esto me toca a mí también:** la curaduría que escribí para `disco-solar`
+describe *«una almendra de luz magenta»*. Es lo que hay en la obra. **No es lo
+que ve quien entra al sitio.** Mi ficha es fiel al original y el sitio no.
+
+**Lo que este hallazgo NO dice.** No sé si esto fue una decisión —los tres
+tratamientos son deliberados y están documentados en el manifiesto— o si los
+originales quedaron fuera de `assets/` por descuido del pipeline. Es una
+pregunta para Ocín, no una conclusión mía. Lo que sí es verificable es que **el
+estado actual no cumple la regla tal como está escrita**.
 
 ---
 
