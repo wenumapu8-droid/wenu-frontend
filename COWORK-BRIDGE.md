@@ -2031,3 +2031,69 @@ corrección mía. Pero conviene saber que el contenido ya existe.
 
 **121 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · V-24 · El bloqueo de git no era configuración, y encontré una colisión seria
+
+Después de 121 commits reportando «falta permiso de la llave», ataqué el bloqueo
+en vez de volver a anotarlo. Tres hallazgos, en orden de gravedad.
+
+### 1. La credencial no existe en esta máquina
+
+Las **dos** llaves SSH del Mac mini —`macmini_a_imac` y `sinergia_github`—
+responden lo mismo a GitHub: *«Hi cobranzas-rgb/sinergia-industrial»*. Las dos
+son deploy keys **del mismo repo, que no es éste**. No hay nada que configurar:
+`wenumapu8-droid/wenu-frontend` no tiene credencial acá.
+
+### 2. Y hay una colisión en `feature/kodex-mini` que hay que resolver a mano
+
+El iMac sí tiene acceso, así que pude mirar el remoto. Y lo que hay cambia el
+cuadro:
+
+- `origin/feature/kodex-mini` tiene **260 commits**. La mía, **128**.
+- **No comparten historia.** Ninguno de los últimos cinco commits del remoto
+  existe en mi rama.
+- Sus commits recientes son **COWORK escribiendo el Libro I**: *«cap 3 Geometría
+  Sagrada (COWORK, del source-text) + **reparto MAX desde cap 4**»*.
+
+**Ese reparto nunca me llegó** — mi clon quedó sin `fetch` desde el 1 de agosto.
+Así que **hay dos versiones de los capítulos 1, 2 y 3 del Libro I**: las de
+COWORK en el remoto y las mías. Los caps 4 al 12 son sólo míos.
+
+**Un `push --force` habría borrado esos 260 commits, incluido el Libro I de
+COWORK. No lo hice.** Esto lo resuelve una persona, no un merge automático.
+
+### 3. Estuve escribiendo el puente donde no llega
+
+`~/COWORK-BRIDGE.md` **en el iMac** es el archivo que COWORK usa de verdad —
+tiene entradas de `[OPENCODE]` del 1 de agosto. Mis entradas iban a dos copias
+que no viajan.
+
+Y ahí apareció algo que vale: **OPENCODE dejó cinco `spec-*` con `review:true`**
+por categoría inferida —`princesa-yuyo`, `paletas-de-colores`, `tranaluuekai`,
+`wenelfe-desk-grafic`—, que son **exactamente los volúmenes que abrí y curé en
+V-17**. Llegamos por caminos distintos al mismo lugar, sin saberlo.
+
+### Qué hice
+
+**Un bundle, no un push.**
+
+    ~/_kodex-max-hold/kodex-mini-max.bundle   (37.6 MB, en el iMac, verificado,
+                                               «records a complete history»)
+
+Y escribí en el puente del iMac —con respaldo previo, `COWORK-BRIDGE.md.bak-antes-de-max`—
+la nota completa: la colisión, el comando para inspeccionar el bundle **sin tocar
+ninguna rama**, y los seis hallazgos que importan aunque el merge se resuelva de
+cualquier manera.
+
+**No pusheé, no forcé, no toqué `src/`, no deployé, no borré nada.**
+
+### Lo que queda pendiente de una persona
+
+1. **Decidir qué versión del Libro I caps 1–3 queda** — la de COWORK o la mía.
+2. Merge del resto: Libro III (12), Libro IV (5), curaduría de 37 volúmenes,
+   auditoría V-16 a V-23.
+3. **Verificar el consentimiento de publicación** de las dos personas
+   reconocibles sin acreditar (`Emanes`, `Princesa Yuyo`).
+4. Los defectos de móvil, que son de `src/`.
