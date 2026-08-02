@@ -1486,3 +1486,67 @@ de movimiento reducido con la pieza **quieta, sí, pero al 16 %**.
 La regla pide **completa** y quieta. **Al 16 % es discutible que esté completa**,
 y quien decida eso no soy yo: es una decisión de diseño, y el shader es mío pero
 la regla es de Ocín.
+
+---
+
+## V-28 · La medición refuta mi hipótesis, y el estado ya estaba escrito hace dos días
+
+### La compuerta de audio no era la causa
+
+Repetí la prueba de V-27 como corresponde: **dos builds de producción** —uno
+tal cual, otro con `senal *= 0.35 + u_low*0.5` reemplazado por `1.0`— servidos
+por separado, y capturados igual.
+
+| escena | control | compuerta abierta | píxeles distintos |
+|---|---|---|---|
+| threshold | var 251.3 | var 251.3 | **0.00 %** |
+| cosmology | var 274.5 | var 274.5 | **0.00 %** |
+| descent | var 1.1 | var 1.1 | **0.00 %** |
+| machine | var 1.1 | var 1.1 | **0.00 %** |
+
+**Cero diferencia.** Mi hipótesis de V-27 era falsa y la medición la mató.
+Fuente restaurada de inmediato: `md5` idéntico al original, `git status` sobre
+`src/` en **0 archivos**.
+
+### La causa real está escrita en mi propio código
+
+    El organismo de esta fase es un PLACEHOLDER declarado: dibuja el gesto y el
+    color de cada escena, nada más. Los ocho organismos fieles son FASE 2.
+
+    Donde existe el MÓDULO REAL se ensambla desde él. Hoy eso es THRESHOLD, con
+    su runtime de tres pases. El resto usa el organismo de gesto hasta que
+    lleguen sus módulos — está anotado como blocker en PROGRESS.md.
+
+Eso explica exactamente lo medido: **threshold dibuja** (módulo real, y con
+movimiento reducido congela en **t = 3 s**, no en t = 0 — lo cual **refuta
+también la duda que planteé en V-27**); `cosmology` dibuja el gesto; `descent`
+queda plano, que es **B4**, ya registrado.
+
+### Y lo incómodo: todo esto ya estaba escrito
+
+`PROGRESS.md`, 31 KB, en la raíz de este repo, del 1 de agosto:
+
+- **FASE 0 — `[x]`** verificado en `/kodex/lab/core/`
+- **FASE 1 — `[x]`** *«7 escenas fullscreen horizontales, sin scroll, una acción
+  por escena, chrome persistente, loop ∞, responsive 1440/390. Verificado en
+  `/kodex/viaje/`»*
+- **FASE 2 — `[~]`** parcial: 00 THRESHOLD desde el módulo real; 01, 03, 04, 05
+  y 06 desde el lab; **02 DESCENT con respaldo visible (B4)**; falta coherencia
+  de color (B5)
+- **B1** — el bloqueo de git, en su **quinto intento**, con el diagnóstico exacto
+  («el mini tiene una llave que GitHub acepta, pero es deploy key de otro repo»)
+  y la ruta de la pública: `~/.ssh/sinergia_github.pub`
+
+**Nunca lo leí.** Pasé la noche redescubriendo mis propias notas con capturas y
+píxeles: el diagnóstico de git, el estado de las fases, el placeholder. Todo
+estaba ahí, a un `cat` de distancia.
+
+### Corrección a V-26
+
+Dije *«FASE 1 y FASE 2 están construidas»*. **FASE 2 no está construida: está
+empezada**, exactamente donde el pliego pide empezarla —THRESHOLD— y con los
+otros seis organismos pendientes de sus módulos. `PROGRESS.md` lo marca `[~]`,
+no `[x]`, y tenía razón.
+
+Copié `PROGRESS.md` al iMac (`~/_kodex-max-hold/PROGRESS-max.md`): es mejor
+documento de estado que cualquier cosa que escribí en los puentes.
