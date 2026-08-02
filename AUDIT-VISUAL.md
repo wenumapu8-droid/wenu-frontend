@@ -1390,3 +1390,99 @@ cuelga (V-21).
 
 Queda como la única pregunta abierta de FASE 1/2, y necesita un método que no
 tengo.
+
+---
+
+## V-27 · Encontré el método para auditar el viaje, y el organismo está atenuado por el audio
+
+Cierra —a medias, y digo cuál mitad— la pregunta que dejé abierta en V-26: **¿los
+organismos de FASE 2 dibujan?**
+
+### El método que sí funciona
+
+El pliego recomienda `?estado=` para fotografiar fuera del primer segundo. **Ese
+parámetro no existe en el viaje**: comprobado con `grep`, no hay `searchParams`
+ni `location.search` en ninguno de los tres archivos. Los enlaces profundos son
+por **hash**.
+
+Lo que sí funciona es otra cosa, y sale de la propia regla dura:
+
+    --run-all-compositor-stages-before-draw --force-prefers-reduced-motion
+    http://localhost:4327/kodex/viaje/#<escena>
+
+Con movimiento reducido el shader congela el tiempo —`t = u_time * (1 -
+u_reduced)`— y **la escena se puebla**. Medido contra la captura al cargar:
+
+| escena | al cargar | mov. reducido |
+|---|---|---|
+| archive | 99.0 % negro | **92.7 %** |
+| cosmology | 99.0 % | 97.2 % |
+| return | 99.0 % | 97.8 % |
+| machine | 99.0 % | 97.6 % |
+
+Y se ve: `MACHINE` con movimiento reducido muestra título, copy *«patterns become
+predictions»*, y **su propia acción — «GENERATE SIGNAL»**, distinta del «ENTER»
+de THRESHOLD. Estado «PROCESSING», color cian, barra de progreso al 70 %.
+
+**Eso confirma «una acción por escena» con verbo propio**, que era parte del spec
+de FASE 1 y no había podido verificar.
+
+### Y no era la GPU
+
+Sospeché de `--disable-gpu`, que vengo pasando en cada captura de una página de
+shaders. **No es eso.** Tres configuraciones sobre la misma escena:
+
+| | negro | zona del organismo |
+|---|---|---|
+| `--disable-gpu` | 97.6 % | media 13.7 · varianza 1.1 |
+| `--use-gl=swiftshader` | 97.6 % | media 13.7 · varianza 1.1 |
+| GPU por defecto | 97.6 % | media 4.4 · varianza 2.8 |
+
+Varianza de 1 a 3 es una superficie **uniforme**. Con GPU real queda **más
+oscuro**, no menos.
+
+### La causa probable, leída en el shader
+
+    senal *= 0.35 + u_low * 0.5;      // u_low = banda grave del audio
+    senal *= 0.4 + u_estado * 0.2;
+
+**El organismo está multiplicado por el audio.** Con el sonido apagado —que es
+como arranca la interfaz— `u_low = 0`, así que el primer factor deja la señal en
+**0.35**; con `u_estado ≈ 0.35`, el segundo la deja en **0.47**. Combinados:
+**≈ 16 % de su valor**.
+
+En una captura sin audio, un organismo al 16 % sobre negro es indistinguible del
+fondo. **Y eso también explica el 89–99 % de negro que vengo midiendo desde
+V-08** y que atribuí sólo al canon oscuro: hay canon, y hay además una compuerta
+de audio.
+
+### Lo que NO pude probar, y por qué
+
+Abrí la compuerta en una copia temporal del shader para medir con y sin ella.
+**Dio exactamente lo mismo** —misma media, misma varianza, hasta el decimal—, lo
+cual significa que el dev server sirvió el JS anterior y **la prueba no midió
+nada**. No la repetí.
+
+**Restauré el archivo de inmediato.** `git status` sobre `src/` da **0 archivos
+modificados**, el gate original está en su lugar y no quedó rastro de la edición.
+
+### Lo que sí quedó establecido
+
+- Hay una escena que **sí muestra estructura**: `cosmology`, con varianza **283.7**
+  en la zona del organismo, contra 1.1 de `machine` y `descent`. **No todas las
+  escenas se comportan igual**, y eso descarta que sea un fallo global de
+  renderizado.
+- El organismo **está atenuado por diseño** cuando no hay audio, y eso es
+  verificable leyendo dos líneas del shader.
+
+### Y una duda sobre la regla dura que conviene dejar planteada
+
+Con `prefers-reduced-motion` el tiempo queda en **t = 0**, no en un estado
+representativo. Mirando el shader, a t=0 las seis figuras tienen estructura
+—PULSE vale 0.5, SCAN es una cuña, REVEAL ni usa el tiempo—, así que **no es
+degenerado**. Pero combinar t=0 con la compuerta de audio cerrada deja al usuario
+de movimiento reducido con la pieza **quieta, sí, pero al 16 %**.
+
+La regla pide **completa** y quieta. **Al 16 % es discutible que esté completa**,
+y quien decida eso no soy yo: es una decisión de diseño, y el shader es mío pero
+la regla es de Ocín.
