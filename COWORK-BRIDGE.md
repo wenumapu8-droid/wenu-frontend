@@ -1496,3 +1496,95 @@ hay que mirar la estructura, no suponerla.
 **107 commits sin pushear.** Sin novedad: `Repository not found`. Falta que la
 llave pública tenga permiso de escritura sobre `wenumapu8-droid/wenu-frontend`.
 Es lo único que bloquea, y bloquea todo.
+
+---
+
+## [MINI] · LIBRO IV desarrollado — se acabó el material de origen
+
+**41 capítulos, ~725 páginas, 181.315 palabras.** Los cuatro tomos de KODEX
+ESTELAR, hasta donde llega la fuente.
+
+| Tomo | Capítulos | Páginas |
+|---|---|---|
+| I | 12/12 | ~218 |
+| II | 12/12 | ~235 |
+| III | 12/12 | ~197 |
+| IV | **5 de 5 que existen** | ~72 |
+
+**El Libro IV está incompleto en origen, no en el trabajo.** `source-text/`
+tiene cinco archivos. No hay capítulos VI a XII, y no los invento. Quien tenga
+el material original tiene que decir si se escribieron y no se extrajeron, o si
+nunca existieron.
+
+Cero voseo en la obra completa, verificado de una pasada sobre los 41 archivos.
+
+### Dos recuperaciones de fuente que valen más que un capítulo
+
+**El capítulo V estaba ilegible.** UTF-16 leído como de un byte —un espacio
+entre cada letra— y un bloque de binario de fuentes del PDF pegado después del
+texto. **Se recuperó entero**, en
+`source-text/libro-IV/capitulo-v-llama-del-corazon.RECUPERADO.md`, con el
+detalle exacto de lo que se tocó: espaciado, corte del binario y **una sola
+conjetura de puntuación**, señalada ahí para que se pueda revisar. **El original
+no se modificó.**
+
+**El capítulo IV viene sin tildes** (el archivo se llama `CLEAN`; todas las demás
+fuentes las traen). Es artefacto de extracción, no la escritura de Ocín. Las
+citas van con las tildes repuestas y se declara que se tocó eso y nada más.
+
+**Y el capítulo II sigue roto y no lo pude arreglar:** su ritual se corta en el
+paso 1 y le falta la Palabra Clave. Busqué el PDF en el repo — **no está**, sólo
+hay dos del Atlas. Hay que recuperarlo de `Capitulo_II_La_Geometria_del_Alma.pdf`.
+
+### Lo que hay que saber antes de publicar este tomo
+
+**Este tomo habla en vocabulario de laboratorio y casi nada de lo que afirma con
+él es ciencia.** Es la diferencia real con los tres anteriores: nadie va a un
+hospital por un contrato del alma, pero *ADN*, *células* y *cuerpo de luz* son
+el idioma con el que se le dice a la gente que su enfermedad es un bloqueo.
+
+Cada capítulo lleva la advertencia en la cabecera. **No las editen afuera.** Y
+una va primero, antes que cualquier otra nota:
+
+> **Capítulo IV.** El texto llama al prana *«nuestro alimento energético»* y
+> pide visualizar cómo *«nutre cada célula»*. **Respirar no alimenta**, y hay
+> muertes documentadas de gente que siguió esa idea. El capítulo **no** dice que
+> se deje de comer —hay que ser justo— pero está escrito con las palabras con
+> que se dice. Está **a una palabra** de no tener el problema, y la palabra es
+> *alimento*.
+
+**Nombres tomados de tradiciones vivas, tercera y cuarta vez.** *Merkabah* es
+hebreo, significa carro, y nombra una corriente mística judía continua y con
+textos; la figura de dos tetraedros y los dieciocho metros vienen de una
+enseñanza del siglo XX que tomó el nombre. Igual el *cubo de Metatrón*. Mismo
+trato que el Maguén David en el III·XI: **se nombra de dónde viene y no se
+funde**.
+
+### El hallazgo, y no es mío
+
+**Es la tercera vez que este Códex declara perdido lo que está siendo
+practicado**: el Nombre (III·IX), el templo en el cuerpo (III·X), el carro
+(IV·III). Importa porque un conocimiento perdido no tiene quien lo corrija —
+declarar perdido lo vivo saca de la conversación a los que podrían decir que no
+es así. El remedio lo escribió el propio Códex en el III·V: *un préstamo
+declarado es una cita*.
+
+**Y el Libro IV se corrige solo, en su última página.** *El ADN Sagrado* termina
+diciendo que el motor no es la mente *«ni siquiera el ADN»*, y desarma sus
+propios capítulos: el Merkabah es *geometría dormida*, el ADN *un puente sin
+corriente*, la ascensión *una idea sin alas*. Es exactamente lo que el trabajo
+sobre cada capítulo había encontrado por separado — que el vocabulario prestado
+no sostenía nada y que lo que quedaba en pie era siempre lo que no usaba
+palabras de laboratorio.
+
+Ocín llegó ahí solo. Es lo mejor que tiene el tomo, y hay que dejarlo visible.
+
+### Estado
+
+**112 commits sin pushear.** `Repository not found`, sin cambios. Falta permiso
+de escritura de la llave pública sobre `wenumapu8-droid/wenu-frontend`.
+
+Se terminó el material de libros. Lo que queda en mi carril: los ocho volúmenes
+sin revisar por créditos de terceros (`quinto fuego`, `render`, `paletas de
+colores`, `princesa yuyo`, `Catálogo 2019`, `Emanes`, `Santiago`, `TranaluÜkai`)
+y mantener AUDIT-VISUAL, que no puede avanzar hasta que baje código.
