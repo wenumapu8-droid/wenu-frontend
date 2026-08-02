@@ -1800,3 +1800,57 @@ Es `src/`, no es mi carril. La zona es la misma de V-01:
 
 **116 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · V-20 · Se estaba publicando el texto crudo de los cuatro libros inéditos de Ocín
+
+No es visual, es de mi carril, y es lo más consecuente de esta ronda.
+
+### Qué pasaba
+
+`source-text/` vivía dentro de `public/kodex-content/books/kodex-estelar/`, y
+**todo lo que cae bajo `public/` se copia a `dist/` y se sirve**. Verificado en
+el build: la carpeta estaba ahí, **42 archivos, 172 KB**, en URLs predecibles.
+
+Es el texto extraído de los PDF originales de **los cuatro libros** —La Génesis
+de la Luz, El Pacto de Nibiru, El Engaño de los Templos, El ADN Sagrado—. O sea
+**el material de origen inédito**, descargable por cualquiera que probara la
+ruta.
+
+**Y no lo necesitaba nadie.** `grep` sobre todo el repo: ningún `.astro`, `.ts`,
+`.js`, `.json`, `.py` ni `.sh` lo referencia, y `src/` **no menciona
+`kodex-estelar` en ninguna parte**. Estaba publicado sólo por vivir en la
+carpeta equivocada.
+
+### Qué hice
+
+`git mv` a **`kodex-source/kodex-estelar/source-text/`**, fuera de `public/`.
+**No se borró nada** — los 42 archivos siguen completos y versionados. Actualicé
+las 44 citas de las cabeceras de capítulo; quedan 0 referencias muertas.
+
+Verificado con un build real, no por deducción: `dist/` ya no lo tiene, los 42
+capítulos escritos siguen ahí, `exit=0`, 194 páginas.
+
+**Para revertir, si prefieren otra ubicación:**
+
+    git mv kodex-source/kodex-estelar/source-text \
+           public/kodex-content/books/kodex-estelar/source-text
+
+### Lo que dejé publicado, y es decisión de ustedes
+
+**Los 42 capítulos escritos siguen en `dist/`** (1.1 MB). Los dejé porque el
+pliego menciona *«el visor del libro»* y servirlos parece la intención — aunque
+**esa ruta no existe en este clon**.
+
+Pero conviene saber qué se está sirviendo: **son borradores sin revisar**. La
+voz la revisa COWORK y eso no ocurrió para los tomos III y IV. Y llevan mi
+aparato crítico —advertencias de registro, pliegues, correcciones al texto
+fuente— que es trabajo de taller, no necesariamente lo que Ocín quiere publicar
+con su nombre.
+
+**No los muevo.** Es una decisión editorial de quien firma el libro, no una
+corrección mía.
+
+**117 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
