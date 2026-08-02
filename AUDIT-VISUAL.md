@@ -898,3 +898,71 @@ No es que la lámina recorte siempre: recorta **según la proporción**. Eso es 
 
 `md5` de las capturas: **12 de 12 distintas** una vez arreglado el entorno.
 Cero procesos Chrome huérfanos al terminar.
+
+---
+
+## V-19 · No son 4 páginas rotas en móvil: son 36 de 37 · **CRÍTICO**
+
+V-02 quedó registrado como *«desbordes horizontales en móvil: se corta contenido
+en 4 páginas»*. Capturé **los 37 volúmenes** a 390 px y medí el borde. Es
+prácticamente toda la sección.
+
+### La medición
+
+Una página que no desborda **no tiene nada dibujado en su última columna de
+píxeles**. Conté píxeles con tinta en la columna 389 de cada captura, sobre 844
+de alto:
+
+| | |
+|---|---|
+| Volúmenes capturados | 37 (`md5`: 37 capturas distintas) |
+| **Desbordan** | **36** |
+| Limpios | 1 — `CODEX ESTELAR`, 1.7 % |
+| Peor caso | `TRIBU` y `patrones`, **75 %** de la altura con contenido cortado |
+
+### La causa está aislada: es la lámina, no el texto
+
+| Grupo | Volúmenes | Desbordan | Borde medio |
+|---|---|---|---|
+| **Con imagen de hero** | 30 | **30 — el 100 %** | 26–47 % |
+| Sin hero (los curados a mano) | 7 | 6, todos rozando el umbral | **2.7 %** |
+
+Y dentro de los que tienen hero, **los verticales son peores** (46.9 % de media)
+que los apaisados (26.6 %). Es coherente con V-01, que ya había mostrado que el
+recorte depende de la proporción: **la imagen no está contenida al ancho del
+viewport**, y cuanto más se aleja de apaisada, más se sale.
+
+Los siete sin hero apenas cruzan el 2 %, o sea que **el texto de curaduría no es
+el problema** — ninguna ficha excede el techo de 480 caracteres y ninguna
+trunca, como quedó verificado en V-18.
+
+### Y hay un segundo daño, distinto y también crítico
+
+En las capturas se ve que **los paneles se apilan unos sobre otros**: el bloque
+`03 · CURADURÍA` queda debajo de `04 · BIBLIOTECA DE GLIFOS` y `05 ·
+DIAGNÓSTICO`, con el texto de uno encima del otro. En `Santiago` sólo se lee la
+primera línea de la ficha antes de que la tape la biblioteca de glifos; en
+`YAYENTRU` y en `EL ARCHIVO`, lo mismo.
+
+No es desborde: es **superposición**. Los dos ocurren a la vez y hay que
+arreglarlos por separado.
+
+Consecuencia práctica: **en un teléfono, la curaduría de estos 37 volúmenes es
+ilegible**. Todo el trabajo de V-15, V-17 y V-18 —créditos incluidos— no se
+puede leer ahí.
+
+### Qué NO es
+
+No es el `tema` largo. Lo sospeché porque siete volúmenes lo tienen de más de 60
+caracteres, uno de 213. Pero `CODEX ESTELAR`, con 129, es **el único limpio**, y
+`Santiago`, con 20, desborda un 34 %. **La hipótesis era mía y la medición la
+descartó.**
+
+### Alcance
+
+Es `src/` y no es mi carril. Queda el dato para quien lo arregle: la regla que
+importa está en el contenedor de la lámina, la misma zona que V-01
+(`src/pages/kodex/vol/[slug].astro`, `height: 100dvh` en la línea 349 y
+`.kx-lam__p--obra { min-height: 50vh }` en la 686).
+
+Capturas: `all390/`, una por volumen. Cero procesos Chrome huérfanos al terminar.
