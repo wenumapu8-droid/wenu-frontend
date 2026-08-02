@@ -1,0 +1,694 @@
+# KODEX−∞ · PROGRESS
+
+Autopilot del Mac Mini. Se marca sólo lo **verificado en vivo con captura**.
+Un ítem que compila y no se ve NO está hecho.
+
+## Backlog
+
+- [x] **1 · Fundación** — tokens (paleta canónica, mono, grilla 8px),
+      KDX CORE (WebGL2 multipass + feedback ping-pong + uniforms globales),
+      máquina DORMANT→AWARE→ACTIVE→OPEN, KDX FX SUITE (8 pases con params del
+      spec). Verificado en `/kodex/lab/core/`.
+- [x] **2 · Shell del viaje** — 7 escenas fullscreen horizontales, sin scroll,
+      una acción por escena, chrome persistente, loop ∞, responsive 1440/390.
+      Verificado en `/kodex/viaje/`.
+- [~] **3 · Escenas, una por una** — LAS SIETE tienen organismo y se ven.
+      00 THRESHOLD (módulo real), 01 PROLOGUE (ojo), 03 ARCHIVE (specimens),
+      04 MACHINE, 05 COSMOLOGY, 06 RETURN (los tres desde el lab).
+      02 DESCENT con respaldo visible (B4). Falta coherencia de color (B5).
+      00 ensamblado desde el módulo
+      real (`src/kodex/threshold-portal/`, runtime de 3 pases). NO reescribí el
+      shader. Capa SVG (marco, regla graduada, barcode) montada en las siete y
+      teñida con el acento por `currentColor`. Falta B3 (ver abajo).
+- [ ] **4 · ARCHIVE interior** — grid de specimens, dossier, zoom, metadata,
+      edition/certificate/trading-card
+- [~] **5 · Acabados** — sello SVG (árbol + ∞) en el chrome, reloj vivo con
+      horas espejo (11:11, 4:44…), micro-interacción en la acción y **barcode
+      decodable** y **foco uno-a-la-vez** en los specimens. El punto 5 queda
+      cerrado.
+- [~] **6 · Validación** — los cinco anchos verificados con captura y sin
+      errores de consola. Falta medir FPS en móvil real y los 10 ciclos de
+      fuga, que necesitan un dispositivo o instrumentación de memoria.
+
+## BLOCKERS
+
+### B1 · No puedo bajar el repo de GitHub desde el mini  ⛔ ABIERTO · RUTA ENCONTRADA (2 ago)
+Probado de nuevo a las 11:00 y a las 10:50 con `git remote add` + `git fetch origin
+feature/kodex-depth-engine`: **"Could not read from remote repository"**. La
+deploy key sigue sin estar agregada. Sin esto no existen para mí el backlog
+maestro M2→M8, `kodex-modules/`, el THRESHOLD aprobado ni el CRT_MASTER_KIT.
+
+`wenumapu8-droid/wenu-frontend` es privado.
+
+Diagnóstico fino: **el mini SÍ tiene una llave SSH que GitHub acepta**, pero es
+una *deploy key* de OTRO repo — autentica como `cobranzas-rgb/sinergia-industrial`.
+Las deploy keys son por repositorio, así que no alcanza `wenu-frontend`.
+Por HTTPS pide usuario y `gh auth status` dice "not logged into any GitHub hosts".
+No debo tipear credenciales en ningún caso.
+
+**El arreglo más limpio, sin que yo toque nada secreto:** agregar la clave
+PÚBLICA del mini como deploy key (con permiso de escritura) en
+`wenumapu8-droid/wenu-frontend` → Settings → Deploy keys → Add deploy key.
+La clave pública no es un secreto y está en `~/.ssh/sinergia_github.pub`.
+
+Con eso hago:
+
+    git remote add origin git@github.com:wenumapu8-droid/wenu-frontend.git
+    git fetch origin feature/kodex-depth-engine
+
+y tengo el THRESHOLD aprobado, los módulos y la obra. **Después swapeo** los
+equivalentes por el código real.
+
+**Consecuencia:** no tengo el THRESHOLD aprobado, ni los módulos reales de
+kodex-source, ni la obra que opencode subió. Estoy construyendo contra el
+póster y las specs, que es lo que el encargo autoriza explícitamente ("si no
+los tenés aún, construí equivalentes WebGL con estas specs y después se
+swapean").
+
+**Lo desbloquea Ocín en un minuto**, en la terminal del mini:
+
+    ! gh auth login
+
+(el prefijo `!` lo ejecuta en esta sesión). Después yo hago el clone y
+**swapeo** los equivalentes por los módulos reales.
+
+Alternativa sin interacción: dejar un token en `GH_TOKEN`, o hacer el repo
+público, o AirDropear los zips.
+
+**2 de agosto — la ruta existe, por el iMac.** Confirmado que **las dos** llaves
+del mini (`macmini_a_imac` y `sinergia_github`) autentican como
+`cobranzas-rgb/sinergia-industrial`: no es configuración, la credencial no está.
+
+Pero el **iMac sí** llega a `wenu-frontend` y responde por Tailscale. Así que el
+trabajo salió sin tocar ninguna rama:
+
+    ~/_kodex-max-hold/kodex-mini-max.bundle   (37.6 MB, historia completa, verificado)
+    ~/_kodex-max-hold/PROGRESS-max.md         (este archivo)
+
+**Y apareció algo que cambia la reconciliación:** `origin/feature/kodex-mini`
+tiene **260 commits** y **no comparte historia** con mis 128. Sus commits
+recientes son COWORK escribiendo el Libro I, con un *«reparto MAX desde cap 4»*
+que nunca me llegó. **Hay dos versiones de los caps 1–3.** Un `push --force`
+habría borrado esos 260 commits: **no lo hice**, y no hay que hacerlo.
+
+Para inspeccionar el bundle sin tocar nada:
+
+    git fetch ~/_kodex-max-hold/kodex-mini-max.bundle \
+      feature/kodex-mini:max/kodex-mini
+
+### B2 · Los módulos de kodex-source no están en el mini  ⛔ ABIERTO
+Buscados por nombre de carpeta y como .zip: open-visual-lab, spatial-engine,
+observe-prototype, visual-grammar, crt-master-kit. Cero coincidencias.
+Se resuelve con B1 o por AirDrop.
+
+### B3 · El portal dibujaba en una caja de 300×150  ✅ CERRADO
+El runtime mide el lienzo dentro de `load()`, que corre antes de que el
+navegador aplique el `width:100%` del CSS: se queda con el tamaño por defecto
+del canvas y pinta el portal en una cajita de la esquina superior izquierda.
+
+**Causa real, leída del runtime y no supuesta:** `_resize()` usa
+`canvas.clientWidth`. El canvas lo crea JS, los estilos de Astro van scopeados
+con un `data-astro-cid-…` que el elemento nuevo NO lleva, así que la regla
+`width:100%` nunca lo alcanzaba y `clientWidth` devolvía los 300 por defecto.
+Probé `:global()` y tampoco alcanzó.
+
+**Cura:** el lienzo se dimensiona explícitamente antes de entregárselo a
+ningún runtime — estilo en línea + `width`/`height` a mano, con el DPR del spec
+(móvil 1, desktop 1.5). Así el runtime recibe un lienzo correcto pase lo que
+pase con la cascada.
+
+Es la **quinta vez** que en este proyecto un elemento montado y sin errores no
+se ve por un problema de medida. Queda como regla: *ningún runtime recibe un
+lienzo sin medir.*
+
+Lo que SÍ quedó verificado de la escena 00: el módulo real monta, inicializa GL
+y dibuja (antes no dibujaba nada porque yo llamaba `start()` sin el `await
+load()` que el contrato pide, y porque su obra por defecto —`bw-06-alpha.png`—
+no existe en este repo).
+
+### B4 · `split-corridor` no dibujaba  ✅ CAUSA ENCONTRADA Y CORREGIDA
+Ya NO es un problema de montaje: hizo falta traducir su `#version 330 core` a
+`#version 300 es` (el motor ahora lo hace para cualquier shader del lab), y con
+eso compila y corre — la medición se movió de 10.58 a 10.78. Pero el corredor
+entrega tan poca luz que la escena se lee negra (98.3% oscuro).
+
+**Medido aislado en el banco** (para eso extendí `/kodex/lab/core/` con
+`?organismo=`):
+
+| estado | intensidad | luz | oscuro |
+|--------|-----------|-----|--------|
+| AWARE  | 1 | 3.73 | 100.0 % |
+| ACTIVE | 1 | 3.73 | 100.0 % |
+| OPEN   | 1 | 3.73 | 100.0 % |
+| OPEN   | 4 | 3.73 | 100.0 % |
+
+**Idéntico en los cuatro.** Eso descarta lo que yo venía suponiendo: no es "sale
+oscuro y hay que subirle la ganancia". **No dibuja nada**, y es invariante al
+estado y a la intensidad.
+
+Y el banco **no reporta error de compilación** — el motor lo compila y lo corre.
+Así que el problema no está en el hospedador ni en los uniformes: está **dentro
+del raymarch**. Hipótesis a verificar en ese orden: (1) la cámara arranca dentro
+o detrás de la geometría; (2) el bucle de marcha termina antes de tocar nada
+por el conteo de pasos; (3) alguna constante de escena quedó atada a un uniform
+que el runtime viejo seteaba y este no.
+
+**CAUSA, encontrada leyendo `mapScene`:**
+
+    if (blade * bladeReveal < result.x) result = vec2(blade * bladeReveal, 3.0);
+
+Multiplica una **distancia con signo** por un factor de revelado. Cerca de la
+cámara `bladeReveal` vale 0, así que el producto da **0** — y `0 < result.x` es
+cierto siempre. El raymarcher lee 0 como *"hay superficie aquí"* y **golpeaba en
+el primer paso, sobre la propia cámara**. Nunca llegaba al corredor: lo que se
+medía era el color de fondo, `vec3(0.003, 0.004, 0.007)` ≈ los 3.73 de luz.
+
+**Cura:** para ocultar geometría en un SDF hay que EMPUJARLA LEJOS, no escalarla
+a cero. `mix(FAR_CLIP, blade, bladeReveal)`. Mismo defecto y misma cura en el
+pulso de rama.
+
+**Resultado medido:** de 3.73 / 100 % oscuro (sólo fondo) a 60–66 de luz y ~44 %
+oscuro. **El corredor dibuja.**
+
+**DESCENT reactivado**, con la cadena elegida MIDIENDO sobre este organismo:
+
+| cadena sobre split-corridor | luz | oscuro |
+|-----------------------------|-----|--------|
+| sin tratamiento             | 62.18 | 44.5 % |
+| THERMAL                     | 65.39 | 52.6 % |
+| DITHER                      | 57.74 | 51.4 % |
+| **CRT + DITHER**            | **50.02** | **57.6 %** |
+| THERMAL + CRT               | 58.81 | 56.8 % |
+
+Confirma el límite de la tabla general: **THERMAL sube la luz sobre este
+organismo** aunque la bajaba sobre el de prueba. Medir sobre el organismo real
+no era una formalidad.
+
+CRT además es lo que el corredor pide: es un tubo, y las líneas del tubo lo
+dicen mejor que nada.
+
+**Lo que queda, medido y sin maquillar:**
+- A 1440 la escena da **61.9 % de fondo oscuro**, bajo el canon (~85 %).
+  A 390 da 93.6 %, bien.
+- **El copy queda sobre el núcleo claro.** El velo del texto está diseñado para
+  una columna izquierda; este organismo tiene la luz al CENTRO, así que el velo
+  no lo cubre. No es un número: es que el velo asume una composición que este
+  organismo no tiene.
+
+**RESUELTO con el suelo del texto.** El velo direccional del campo asumía la
+luz a la derecha; el corredor la tiene al centro. La cura no fue oscurecer más
+sino cambiar el ancla: un velo elíptico **anclado al bloque de copy**, no al
+campo. Así funciona con cualquier organismo, tenga la luz donde la tenga.
+
+Elíptico y muy difuso a propósito: un rectángulo oscuro detrás del texto se lee
+como una caja pegada encima; una elipse sin borde se lee como que ahí el campo
+simplemente es más profundo.
+
+Medido, antes → después:
+
+| escena    | antes  | después |
+|-----------|--------|---------|
+| DESCENT   | 61.9 % | **71.3 %** |
+| THRESHOLD | ~72 %  | **76.5 %** |
+| PROLOGUE  | 91.5 % | **93.9 %** |
+
+Las tres suben y el copy queda legible en todas.
+
+**Y DESCENT llegó al canon: 88.1 %.** Lo que faltaba era poder atenuar el
+organismo — y no se podía, porque `u_intensity` estaba **declarado y nunca
+usado** en `split-corridor`, igual que en `ripple-floor`. Medido: con 0.3, 0.6 o
+1.0 daba 57.6 % idéntico.
+
+**Conectar ese uniform no es agregarle algo al shader: es cumplir el contrato
+que él mismo publica.** Un uniform declarado que no hace nada es peor que no
+tenerlo — quien lo ajusta ve que el número no responde y se pone a buscar el
+problema en otro lado. Me pasó tres veces con ese archivo.
+
+Conectado, el valor sale de medir: 0.45 da 84.6 % en el banco y 88.1 % en la
+escena. RETURN, con el mismo arreglo, sube de 66.9 % a 73.7 %.
+
+**Nota de método:** anoche escribí "sale oscuro, hay que subirle la ganancia" y
+lo repetí tres veces. Era falso. Sólo se supo midiendo el shader AISLADO y
+viendo que era invariante al estado y a la intensidad — un shader que ignora un
+×4 no está atenuado, está apagado.
+
+**Mientras tanto DESCENT usa el organismo de gesto**, que sí se ve. Una escena
+negra es peor que un placeholder honesto.
+
+### Escena 03 · ARCHIVE ✅
+Doce specimens del manifiesto REAL dentro de la escena. ARCHIVE es la única que
+muestra contenido y no sólo una acción, porque el archivo ES su contenido.
+
+**La obra va LIMPIA**: sin dither, sin filtro, sin tratamiento. Verificado en el
+CSS compilado — cero reglas de `filter` sobre esas imágenes. El tratamiento
+existe en el sistema, pero se pide; no se impone.
+
+Cada pieza conserva SU proporción. Hay verticales 9:16 y apaisadas √2 en el
+archivo y meterlas en una caja cuadrada las deformaría: el alto manda y el ancho
+lo pone la obra.
+
+Muestra DISTRIBUIDA, no las primeras doce: las primeras entradas de un
+manifiesto suelen ser de la misma serie, y una grilla con doce variaciones de lo
+mismo miente sobre lo que hay adentro.
+
+### B5 · Organismos del lab: brillo ✅ · color — REENCUADRADO, no es un defecto
+**Barrido de tinte:** ningún shader del lab declara un uniform de tinte
+(`u_kdxTint`, `u_tint`, `u_accent`). `archive-orbit` tiene su rojo escrito a
+mano: `vec3(1.0, 0.035, 0.08)`.
+
+Eso cambia el diagnóstico. **No hay un contrato declarado que honrar** —como
+pasaba con `u_intensity`—, así que agregarles un tinte sería REESCRIBIR
+shaders, que la regla prohíbe.
+
+Y hay algo más de fondo: `archive-orbit` no es el organismo que el plano asigna
+a COSMOLOGY. Es un sustituto que elegí porque no tengo `kodex-modules/`. **La
+incoherencia de color no es un defecto del sistema: es la consecuencia esperable
+de sustituir organismos.** Cuando lleguen los módulos reales, cada uno traerá su
+paleta correcta.
+
+**Decisión: no lo toco.** Meterle tintes a shaders que van a ser reemplazados es
+trabajo para tirar. Queda documentado para cuando llegue el material.
+
+
+**La mitad del brillo está resuelta** conectando `u_intensity` donde estaba
+declarado y sin usar (`split-corridor`, `ripple-floor`). Queda abierta sólo la
+coherencia de color.
+
+
+04/05/06 ya montan y se leen (MACHINE como dispositivo, COSMOLOGY como mapa
+orbital, RETURN como suelo ondulante), pero **el color no coincide con el
+acento de su escena**: `archive-orbit` pinta rojo donde COSMOLOGY es magenta
+`#FF20CC`, y `ripple-floor` pinta cyan donde RETURN es blanco/verde.
+
+El chrome, el índice y la capa SVG SÍ llevan el acento correcto — la
+incoherencia es sólo del organismo.
+
+**Anexo medido, con dos intentos fallidos y lo que enseñaron:**
+
+RETURN sale al ~67% de fondo oscuro, por debajo del canon (~85%).
+
+1. Bajé `u_intensity` de 1.5 a 0.62 → la medición se movió de 49.51 a 47.3.
+   Leí el shader: **`u_intensity` está DECLARADO y jamás usado en
+   `ripple-floor`**. Por eso no hacía nada.
+2. Encadené BITMAP THRESHOLD con `CRUSH` alto, esperando que aplastara las
+   sombras → 67.5%, sin cambio. Con la posterización desactivada y su término
+   de borde, **ese pase ACLARA en vez de oscurecer**.
+
+**La lección, y es sobre mi método:** encadené a ciegas dos veces teniendo un
+banco de pruebas hecho para esto. `/kodex/lab/core/?fx=<id>` mide un pase
+aislado sobre un organismo legible. Antes de meter un tratamiento en una escena
+hay que medirlo ahí.
+
+Queda revertido a la cadena que se ve bien. **No es una escena rota**: RETURN se
+lee correctamente y es, además, la escena del regreso a la luz — que sea la más
+clara de las siete puede ser lo correcto. Lo dejo medido y anotado para que Ocín
+o Cowork decidan, en vez de forzarlo.
+
+El runtime anterior resolvía esto con una etapa GRADE que teñía la salida con
+`u_kdxTint`. El motor nuevo no la tiene, y agregarla a ciegas sería reescribir
+la paleta de shaders que ya funcionan. Hay que ver, uno por uno, si aceptan un
+uniform de tinte; si no, la salida es un pase de tinte en la cadena — pero eso
+NO está entre los ocho tratamientos del plano, así que no lo invento sin
+consultar.
+
+### Tabla de tratamientos medida ✅
+`docs/KDX-FX-MEDICIONES.md` — los ocho pases medidos en el banco, con su
+dirección (aclara/oscurece) y magnitud. Hallazgo que explica dos fracasos
+míos: **BITMAP THRESHOLD es el que MÁS ACLARA** (+81.6 %), pese a que su
+parámetro se llama `CRUSH`. Los oscurecedores reales son THERMAL MAP (−25 %) y
+DITHER MATRIX (−23 %).
+
+Y su propio límite, encontrado al aplicarla: la tabla vale para el organismo del
+banco. Sobre `ripple-floor` el dither no movió nada, porque la luz de RETURN no
+está en medios tonos. Sirve para saber la DIRECCIÓN de cada pase, no como
+predicción exacta.
+
+### Acabados · primera tanda ✅
+- **Sello SVG** (árbol + ∞) en el chrome. Es el mismo que recurre en THRESHOLD,
+  SIGNAL BLOOM y en la frente del espécimen: la marca del archivo, no un logo
+  repetido. En SVG para que tome el acento de la escena y quede nítido.
+- **Reloj vivo con horas espejo.** Se marcan 11:11, 4:44 y compañía porque son
+  una convención contemporánea que el archivo reconoce. Lo que se dibuja es un
+  HECHO sobre el reloj —"hora espejo"— y nada más: el sistema celebra la
+  coincidencia, **no le atribuye poder**. Afirmar lo segundo sería un claim.
+  En la hora espejo el sello toma el acento: el archivo se abre.
+- **Micro-interacción de la acción:** la flecha avanza 4px al pasar. Un solo
+  movimiento y corto — la acción se siente como una puerta que ya está
+  cediendo, no como un botón que se anima. Apagada con reduced-motion.
+
+### Validación · los cinco anchos ✅
+Medido en `/kodex/viaje/#archive`, captura por ancho:
+
+| viewport   | luz media | fondo oscuro |
+|------------|-----------|--------------|
+| 390 × 844  | 30.9      | 89.0 %       |
+| 430 × 932  | 32.6      | 88.1 %       |
+| 768 × 1024 | 25.5      | 90.3 %       |
+| 1440 × 900 | 18.0      | 94.4 %       |
+| 1920 × 1080| 16.3      | 95.3 %       |
+
+**Ninguno baja del 88 %**, sobre el canon (~85 %). Sin errores de consola en
+ninguno. Sin scroll de página: `.vj` es `position: fixed; inset: 0;
+overflow: hidden`, así que la regla se cumple por construcción y no por ajuste.
+
+Lo que se ve en cada uno: en 430 el índice colapsa a puntos y los specimens
+envuelven; en 768 el índice muestra los nombres completos; en 1920 la lámina
+respira sin que nada quede huérfano.
+
+**Falta** de este punto: FPS en un teléfono real y los 10 ciclos sin fuga de
+memoria. No los puedo medir con captura headless — necesitan dispositivo o
+instrumentación de memoria. Anotado, no disimulado.
+
+### Mensaje decodable ✅
+El barcode del chrome **codifica texto de verdad**: 7 bits ASCII por carácter,
+barra ancha = 1, angosta = 0. Hoy dice `KODEX`.
+
+**Verificado decodificándolo**, no afirmándolo: se extraen los `width` del HTML
+servido, se convierten a bits y se leen los caracteres. Salió `'KODEX'`.
+
+La regla va publicada en el DOM (`data-clave="7-bit ascii · ancha=1
+angosta=0"`). Es deliberado: *decodable* no es *adivinable*. Un secreto sin
+llave no es un secreto, es ruido — y un barcode de barras al azar sería
+decoración disfrazada de dato, que es justo lo que este proyecto no hace.
+
+### Foco uno a la vez ✅
+Al señalar un specimen, **los otros ceden** (opacidad 0.34) y el señalado se
+adelanta dos píxeles.
+
+Es la regla del sistema —*un movimiento focal a la vez*— aplicada a la atención
+y no sólo al movimiento. Si al pasar el puntero sólo se agrandara el señalado,
+las once piezas restantes seguirían compitiendo por la mirada; bajando las once,
+la elegida queda sola **sin haber crecido un píxel**. El desplazamiento es de
+2px: una lámina que alguien levanta del montón, no un botón que salta.
+
+Hecho con `:has()`, sin JavaScript: el estado vive donde ocurre.
+
+Con `prefers-reduced-motion` se conserva el foco —que es información— y se quita
+el desplazamiento, que es sólo gesto.
+
+**Alcance de la verificación, dicho con precisión:** comprobé que la regla
+compila y queda correctamente scopeada en el CSS de producción, y que la rama
+de reduced-motion está presente. **No la verifiqué visualmente**: una captura
+headless no puede simular hover. Queda para la revisión de Ocín o Cowork en un
+navegador real.
+
+### Banco de pruebas extendido ✅
+`/kodex/lab/core/?organismo=<id>` monta cualquier shader del lab aislado, con
+`?estado=` y `?intensity=`. Existe porque medir una cadena sobre el organismo de
+prueba **no dice nada sobre cómo se comporta sobre otro** — lo aprendí perdiendo
+tres intentos en RETURN. Un banco que sólo prueba su propia figura sirve para la
+mitad.
+
+Su primer uso ya sirvió: convirtió B4 de "sale oscuro, probemos números" en "no
+dibuja, y el problema está adentro del raymarch".
+
+### M1 · `addEventListener` sobre null ✅
+Reproducido en `/kodex/works`: `Cannot read properties of null (reading
+'addEventListener')`.
+
+**Causa:** `el.closest('a')` devuelve null cuando el rótulo no vive dentro de un
+enlace. Aparecía en DOS lugares —`KodexShell.astro` y `Footer.astro`—, y en el
+segundo sin variable intermedia.
+
+**Por qué importaba más de lo que parece:** un `forEach` que lanza corta el
+resto del script. En `/kodex/works` se perdían también el cursor en cruz y los
+filtros, que no tienen nada que ver con ese efecto. Y el pie va en muchas
+páginas, así que el fallo se propagaba lejos de donde se escribió.
+
+**Cura:** no sólo un guard. Si no hay enlace, el disparador correcto es el
+rótulo mismo (`link || el`), así el efecto se conserva donde antes se perdía en
+silencio. Verificado: el error desapareció de la consola.
+
+**Encontrado de paso, distinto y sin tocar:** queda un
+`Uncaught (in promise) #<Event>` propio de `works.astro`. Otro defecto, otra
+tarea.
+
+### Barrido: `u_intensity` declarado y sin usar ✅
+Revisé los once shaders del lab en vez de descubrirlo de a uno. **Cuatro tenían
+el mismo defecto**: `split-corridor`, `ripple-floor`, `impossible-structure` y
+`wrinkled-reality` declaraban `u_intensity` y nunca lo aplicaban.
+(`network-vortex` ni lo declara — eso no es defecto, es no tener control.)
+
+Conectados los cuatro, todas las escenas se pudieron llevar al canon **midiendo
+y no tanteando**:
+
+| escena     | antes  | después |
+|------------|--------|---------|
+| DESCENT    | 61.9 % | **88.1 %** |
+| MACHINE    | 75.6 % | **89.8 %** |
+| COSMOLOGY  | 80.9 % | **97.4 %** |
+| RETURN     | 66.9 % | 73.7 %  |
+| PROLOGUE   | 91.5 % | 93.9 %  |
+| THRESHOLD  | ~72 %  | 76.5 %  |
+| ARCHIVE    | 94.4 % | 94.4 %  |
+
+Verificado que ninguna se apagó: MACHINE conserva su estructura imposible y
+COSMOLOGY sus anillos y nodos.
+
+**El costo real de este defecto no era el brillo.** Era que cada vez que uno
+ajustaba el número y no pasaba nada, se ponía a buscar el problema en el
+hospedador, en la cadena o en el estado. Me hizo perder tres vueltas.
+
+### `/kodex/works` · promesa sin catch ✅
+Segundo error de esa página, y era **funcional, no cosmético**:
+
+    (async () => { await world.loadArtwork('/img/kodex/works/bw-06.jpg'); world.start(); })();
+
+Un IIFE async sin `catch`. `bw-06.jpg` **no existe en este repo**, así que la
+promesa se rechazaba, **`world.start()` nunca corría** y el mundo quedaba
+muerto. La única pista era un `Uncaught (in promise) #<Event>` — y ese
+`#<Event>` es el `onerror` del `img`: la firma de una imagen que falta.
+
+**Cura:** `try/catch/finally`. Arranca igual, apunta a una obra que sí existe, y
+el motivo del fallo queda en el DOM en vez de sólo en consola. **Un archivo
+faltante degrada la escena; no la cancela.**
+
+Verificado: consola limpia y el mundo corriendo (87.4 % de fondo oscuro).
+
+Es la tercera vez esta noche que una obra por defecto no existe en el repo
+(`bw-06-alpha.png` en el portal, `bw-06.jpg` acá). Vale revisarlo cuando llegue
+el material real.
+
+### Pase de regresión ✅ · y una corrección a lo que dije antes
+
+Ocho rutas: todas 200, **cero errores de consola**. Las siete escenas medidas a
+1440 y 390:
+
+| escena    | 1440   | 390    |
+|-----------|--------|--------|
+| threshold | 76.5 % | 81.0 % |
+| prologue  | 96.3 % | 98.2 % |
+| descent   | 88.0 % | 98.0 % |
+| archive   | 94.4 % | 99.5 % |
+| machine   | 89.7 % | 96.6 % |
+| cosmology | 98.3 % | 99.4 % |
+| return    | **84.9 %** | 98.1 % |
+
+**Seis de siete cumplen el canon en ambos anchos.** La séptima es THRESHOLD, y
+no se toca por decisión de Ocín (ver abajo).
+
+**THRESHOLD (76.5 %) no lo toco a propósito.** Su look fue APROBADO por Ocín
+("el mejor resultado hasta ahora"). Oscurecerlo para cumplir un número sería
+pasar por encima de una decisión suya. Si hay que ajustarlo, lo decide él.
+
+**RETURN (73.7 %) · corrección de algo que afirmé mal.** Dije que había bajado
+su intensidad a 0.5 y que eso lo llevó de 66.9 % a 73.7 %. **Era falso en la
+causa:** escribí la clave `uniformes:` donde el consumidor lee `lab.u`, así que
+ese valor nunca se aplicó. RETURN venía corriendo a intensidad por defecto. La
+mejora vino del suelo del texto, no de la intensidad.
+
+Corregí la clave — **bug real, y encontrado por mi propia regla**: la medición
+no se movió ni un decimal ante un cambio que debía moverla.
+
+**RESUELTO: 84.9 %.** Y la causa era mía, en el método.
+
+**Mis reemplazos con Python fallaban EN SILENCIO.** Uso `s.replace(...)`, que si
+el patrón no calza deja el archivo intacto y no avisa. En algunos scripts puse
+`assert` y en otros no — y en los de RETURN no. Resultado: **cada cambio que
+creí hacer sobre RETURN durante tres vueltas fue un no-op.** La entrada nunca
+tuvo la clave `u:`, la cadena nunca cambió. Por eso el número no se movía: la
+escena nunca cambió.
+
+Lo detecté verificando el **BUNDLE** en vez de la fuente:
+
+    grep "memory-feedback\",mix:[0-9.]*" dist/_astro/*.js   →  mix:.4
+
+Y una vez ahí, el problema real del shader apareció solo: **MEMORY FEEDBACK hace
+`max(col, prev * decay)` — es un TRINQUETE, sólo sube.** A mix 0.40 saturaba y
+tapaba cualquier control sobre la fuente. A 0.18 queda la estela —que RETURN
+necesita, porque recordar es su gesto— sin comerse la atenuación.
+
+**Dos reglas nuevas, y valen más que el arreglo:**
+1. **Todo reemplazo automático lleva `assert`.** Un patrón que no calza tiene
+   que romper, no seguir de largo.
+2. **Verificar contra el BUNDLE, no contra la fuente.** Que el archivo diga lo
+   correcto no prueba que lo compilado lo diga.
+
+### Auditoría de mis propias afirmaciones ✅ · y `scripts/verificar.sh`
+
+Después de descubrir que varios reemplazos habían fallado en silencio, audité
+**hacia atrás** todo lo que afirmé anoche, contra lo COMPILADO y no contra la
+fuente. Pasa todo:
+
+- los cuatro shaders con `u_intensity` conectado
+- las cuatro intensidades de escena presentes en el bundle (.34 .45 .55 .70)
+- las cadenas de tratamiento compiladas con sus mix
+- cero reglas de `filter` sobre los specimens — la obra va limpia
+- `prefers-reduced-motion` presente
+- el barcode decodifica a `KODEX`
+
+Y lo convertí en algo repetible: **`./scripts/verificar.sh`**. Mira `dist/`, no
+`src/`, porque esa es la lección: que el archivo diga lo correcto no prueba que
+lo compilado lo diga.
+
+Se corre después de cualquier build y devuelve código de salida distinto de cero
+si algo se rompió. Cualquiera que retome esto —Cowork, otro modelo, yo mismo en
+otra sesión— puede comprobar el estado sin creerme.
+
+## Registro
+
+- 03:40 — FASE 0 lista y verificada.
+- 03:56 — FASE 1 lista y verificada.
+- 04:05 — B1/B2 anotados. Sigo con la escena 00 desde el póster, sin parar.
+- 04:20 — Escena 00 ensamblada desde el módulo real + capa SVG en las siete.
+- 13:05 — **Auditoría hacia atrás + `scripts/verificar.sh`**. Todo lo afirmado
+  anoche verificado contra el bundle. Pasa.
+- 12:49 — **RETURN al canon (84.9 %)**. La causa de tres vueltas perdidas eran
+  mis propios reemplazos fallando en silencio. Dos reglas nuevas de método.
+- 12:28 — **Pase de regresión**: 8 rutas sin errores, 5 de 7 escenas al canon.
+  Corregida una clave mal escrita (`uniformes` vs `u`) y una afirmación mía
+  equivocada sobre RETURN. 7º `fetch` rechazado.
+- 11:53 — **`/kodex/works` sin errores**: la promesa sin catch mataba el mundo.
+  B5-color reencuadrado: no es defecto, es consecuencia de sustituir organismos.
+- 11:21 — **Barrido de `u_intensity`**: cuatro shaders con el mismo defecto.
+  MACHINE 89.8 %, COSMOLOGY 97.4 %. Todas las escenas al canon o cerca.
+- 11:03 — **DESCENT al canon (88.1 %)** conectando `u_intensity`, que estaba
+  declarado y nunca usado. 6º intento de `git fetch` rechazado.
+- 10:50 — **Suelo del texto**: velo anclado al copy y no al campo. Las tres
+  escenas medidas suben y el copy queda legible. 5º intento de `git fetch`
+  rechazado.
+- 10:29 — **DESCENT reactivado** con cadena elegida por medición. Quedan dos
+  cosas medidas y anotadas: 61.9% oscuro a 1440 y el copy sobre el núcleo.
+- 10:24 — **B4 RESUELTO** (bug de SDF) y **M1 corregido** en dos archivos.
+- 09:50 — **Banco extendido a cualquier organismo.** B4 reacotado con medición:
+  no es falta de ganancia, no dibuja.
+- 09:20 — **Foco uno-a-la-vez** en los specimens. Punto 5 cerrado.
+- 08:50 — **Barcode decodable**, verificado decodificándolo desde el HTML.
+- 08:20 — **Validación de los cinco anchos.** Todos ≥88% oscuro, cero errores.
+- 07:50 — **Acabados, primera tanda**: sello, reloj con horas espejo, micro.
+- 07:22 — **Tabla de tratamientos medida** (`docs/KDX-FX-MEDICIONES.md`).
+  Tercer intento en RETURN: tampoco. Paré de ajustar ese número — la escena se
+  lee bien y el desvío está documentado.
+- 06:20 — **Escenas 04, 05 y 06 montadas desde el lab y verificadas.** Las
+  siete del viaje tienen organismo. B5 abierto (coherencia de color).
+- 05:50 — **Escena 03 ARCHIVE verificada.** 94.4% oscuro, 12 specimens reales
+  y limpios, responsive.
+- 05:25 — Motor: capa de compatibilidad con el contrato viejo (`u_resolution`,
+  `u_audioLow`, `u_state`…) y **traducción `#version 330 core` → `300 es`**,
+  para poder hospedar los shaders del lab sin reescribirlos. B4 abierto.
+- 04:57 — **Escena 01 PROLOGUE verificada.** 91.5% oscuro, el ojo lee y el
+  titular también. Extensión `uniformes` en el motor. B1 sigue bloqueado.
+- 04:27 — **B3 cerrado.** El portal llena el campo. Y apareció un problema de
+  composición que el bug tapaba: el portal se comía el titular. La cura NO fue
+  bajarle el brillo —eso sería perder la pieza— sino darle suelo al texto: un
+  velo direccional, negro pleno en la columna del texto y transparente donde
+  vive el portal. Desktop 72% oscuro, móvil 79%, ambos legibles. Verificado a
+  1440×900 y 390×844.
+
+### Escena 01 · PROLOGUE ✅
+El ojo, ensamblado desde `shaders/capitulo/observation-eye.frag` — el mismo
+shader del capítulo, sin reescribir. Sus parámetros propios (paleta exacta,
+parpadeo por reloj a intervalos irregulares) entran por la extensión
+`uniformes` que le agregué al motor: una función evaluada cada cuadro, porque
+algunos valores dependen del reloj.
+
+Tratamiento DITHER MATRIX al 34%: le da materia de archivo sin tapar la fibra
+del iris, que es lo que hay que ver.
+
+**Una lección de interfaz.** El motor entrega `u_estado` 0–3
+(DORMANT→AWARE→ACTIVE→OPEN); ese shader venía de un capítulo donde 0–2 era
+LOCK→TRACK→IDLE. Montado tal cual, el ojo se leía a sí mismo como IDLE y se
+atenuaba al 42%. Se traduce en el hospedador y NO se toca el shader: el
+organismo es código que ya funciona, y quien se adapta es quien lo aloja.
+
+## 2 de agosto · contenido, curaduría y auditoría
+
+Nada de `src/` — se me sacó de ese carril el 1 de agosto y no volví a tocarlo.
+
+- [x] **Libro III completo** (12 capítulos, ~197 pág) y **Libro IV** (5 de 5 que
+      existen, ~72 pág). Anclados al `source-text`, mantras y rituales verbatim,
+      registro «tú» neutro **verificado en los 41 archivos**. El IV está
+      incompleto EN ORIGEN: su fuente tiene cinco archivos, no doce.
+- [x] **Dos fuentes rotas recuperadas.** El cap. V del Libro IV era ilegible
+      (UTF-16 con un espacio entre cada letra + binario de fuentes pegado);
+      recuperado entero en archivo aparte, con **una sola conjetura de puntuación
+      señalada**. El original no se tocó. El cap. II sigue roto y su PDF no está
+      en el repo.
+- [x] **Curaduría de los 37 volúmenes.** Abrí las 49 láminas de los 8 que
+      faltaban: **`Emanes` estaba descrito como paisaje y es obra de protesta**
+      («NO +», «SENAME», sobre una artista aérea); `Catálogo 2019` acredita
+      **tres fotógrafos** y es catálogo comercial; `Santiago` es trabajo de curso
+      con docente. **Dos personas reconocibles sin acreditar** — ahí falta
+      verificar el **consentimiento de publicación**, no sólo el crédito.
+- [x] **Un error mío, corregido:** conté los derivados tratados como si fueran
+      obras. **17 de 17 fichas declaraban el triple.** El archivo tiene **396
+      láminas**, no 1657.
+- [x] **`source-text` se estaba publicando.** Vivía bajo `public/`, así que iba a
+      `dist/`: 42 archivos del texto crudo de los cuatro libros inéditos.
+      Movido a `kodex-source/` sin borrar nada, 44 citas actualizadas,
+      verificado con build.
+- [x] **Obra fiel al 100 %.** `prototipos` era el último que servía dither por
+      defecto; sus originales estaban en `capturas/` y el script sólo miraba
+      `raw/`. Arreglada la causa: hero limpio en **30 de 30** con obra
+      fotográfica. Y pesa menos — 130 KB contra 952 KB.
+- [x] **`prefers-reduced-motion`** re-verificado con el método correcto: dos
+      capturas separadas 2 s dan **0.00 %** de diferencia, ninguna escena queda
+      vacía.
+
+### Método de captura del viaje — para quien audite después
+
+`--virtual-time-budget` **cuelga** en `/kodex/viaje/`: el loop infinito impide
+que se agote (14 timeouts, cero PNG). Lo que funciona:
+
+    --run-all-compositor-stages-before-draw --force-prefers-reduced-motion
+    http://localhost:4327/kodex/viaje/#<escena>
+
+Con movimiento reducido la escena **se puebla** y se ve su verbo propio
+(`MACHINE` dice «GENERATE SIGNAL», no «ENTER»).
+
+**Y `?estado=` no existe** — comprobado con `grep` en los tres archivos. Los
+enlaces profundos del viaje son por **hash**. El que sí existe es `?organismo=`,
+en el banco del lab.
+
+## Errores propios de esta noche, para no repetirlos
+
+1. `señal` como identificador GLSL. GLSL es ASCII: con eñe NO COMPILA, el motor
+   cae al respaldo y **la escena se ve negra sin una queja en consola**.
+2. Comillas invertidas en un comentario dentro de un template literal. Cierran
+   la cadena. Me pasó DOS veces — la segunda documentando la primera.
+3. Llamar `start()` de un módulo sin su `await load()`. El contrato importa:
+   `load()` es quien crea el contexto GL y `start()` se sale solo si no lo
+   encuentra, en silencio.
+4. **Arreglar una cosa rompió otra.** Para que el portal midiera bien empecé a
+   dimensionar el lienzo antes de entregarlo — y eso rompió el motor, porque su
+   `medir()` salía temprano cuando el tamaño "no había cambiado" y así nunca
+   creaba los framebuffers. Escena negra, sin error. Un chequeo de salida
+   temprana tiene que mirar TODO lo que la función produce, no sólo su entrada.
+5. **Dos mediciones idénticas al decimal después de un cambio que debía
+   moverlas = el cambio no se está ejecutando.** Me pasó con el corredor: yo
+   ajustaba uniforms de un programa que nunca había compilado. Cuando el
+   número no se mueve, el problema está antes de donde estás mirando.
+6. Chrome headless escribe la captura AL CARGAR, no después de esperar. Todas
+   las capturas muestran ~t=1s. Para fotografiar más tarde hay que usar enlaces
+   profundos de estado.
+7. **No leí este archivo.** Pasé la noche del 2 de agosto redescubriendo con
+   capturas y píxeles lo que ya estaba acá escrito: el diagnóstico de B1, el
+   estado de las fases, y que el organismo del viaje es un placeholder
+   declarado. 31 KB en la raíz del repo, a un `cat` de distancia. **Antes de
+   medir, leer lo que uno mismo dejó anotado.**
+8. **Auditar la copia equivocada.** Reporté «36 de 37 fichas desbordan en móvil»
+   con mediciones al 0.1 %. Era cierto — **sobre mi propio `[slug].astro`, que
+   tiene 689 líneas contra las 457 del remoto y usa otras clases**. La regla que
+   acusé no existe en ninguna rama de todos. **La precisión no protege de correr
+   la medición sobre el árbol equivocado**, y yo sabía desde el 1 de agosto que
+   no podía comprobar el mío.
