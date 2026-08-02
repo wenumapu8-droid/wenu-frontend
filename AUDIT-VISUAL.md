@@ -536,3 +536,40 @@ Escribí que «desktop 1440 está bien». En la captura de cierre se ve que **el
 sello de registro se corta también en desktop**: `REGISTRO ② · SIMBÓLICO /
 FICCIÓN — NO ES HEC…`. Es el mismo V-02, en una página que yo había dado por
 limpia. **Desktop está bien salvo ese sello**, y corresponde decirlo así.
+
+---
+
+## Re-auditoría tras el arreglo de V-13
+
+Cambié el hero de 29 volúmenes. Corresponde auditar mi propio cambio antes de
+darlo por bueno.
+
+**Integridad de los datos — sin agujeros:**
+
+```
+volúmenes con hero limpio        : 29 de 37   (los otros 8 no tienen original)
+assets declarados y NO en disco  : 0
+assets sin aspecto medido        : 0
+```
+
+**Sin regresión en las reglas del sistema:**
+
+| | antes | ahora |
+|---|---|---|
+| ARCHIVE · píxeles oscuros | 94.1 % | **93.6 %** — sigue sobre el canon de 85 % |
+| ARCHIVE · píxeles con color | 1.0 % | **1.6 %** |
+| ARCHIVE · tinta en borde derecho | — | **0.0 %** |
+
+**Y una consecuencia que hay que mirar, no celebrar.** Las miniaturas del
+archivo **ahora tienen color**: el disco magenta, la lámina de «Aborígenes
+Cósmicos» en azul y rojo, una foto a color. Antes eran todas monocromas.
+
+Medido, el impacto sobre el canon de página es chico —el negro baja medio punto
+y el color sube seis décimas, y el tono dominante sigue siendo el verde ácido
+del chrome—. Pero **el carácter de la grilla cambió**, y esa es una decisión
+estética que le corresponde a Ocín, no a una medición. Queda dicho para que la
+mire.
+
+**Lo que sigue igual de roto:** `re-tribu-m.png` a 390×900 mantiene el
+solapamiento de V-01 intacto. El arreglo de V-13 no lo toca ni pretendía
+tocarlo.
