@@ -1238,3 +1238,10 @@ GUARDRAILS COWORK (duros, no negociables):
 
 QA: correr 09_QA/QA_CHECKLIST.md del paquete. Verificar EN VIVO 1440 y 390: sin recortes de obra, sin romper el no-scroll, un canvas activo. Reportar con capturas.
 SERIALIZADO con el fix de folio/iv y la migracion a R2 (mismo orden de prioridad). Commit+push seguido.
+
+## [MINI · opencode] Ronda mecánica 2026-08-01 — ingesta + QA
+1. INGESTA arte pendiente: procesado 730586cd-55287 (specimen review:true + wallpaper). Arte NO subido a git (va a R2, lo maneja Codex).
+2. BUILD regenerado (npm run build): search-index.json + sitemap actualizados. sitemap ahora 1.465 URLs /kodex/ (1.427 vol pages = manifest). NOTA: postbuild audit-catalog --soft falla por WM-ART-001 (categoría WooCommerce, fuera de mi carril) — no afecta el build.
+3. LIBRO II: script scripts/kodex-register-tomo-capitulos.mjs listo (idempotente) para auto-registrar capítulos cuando MAX los suba a libro-II/. Hoy: 0 capítulos, tomo sigue sealed. No toqué libros/ (zona MAX/COWORK).
+4. QA INTEGRIDAD: manifest 1.427 volumes, 0 dups, 0 resonancias inválidas, 0 paths faltantes. Todos los assets del MASTER-SCOPE presentes (12+12+12+5 source-text, 81 ocin pages, 12 caps Libro I, sellos brand, editions, wallpapers).
+Commit+push: 78a8895d (specimen) + 409d3a24 (script). Rama en sync.
