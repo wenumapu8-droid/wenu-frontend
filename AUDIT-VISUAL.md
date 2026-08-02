@@ -22,8 +22,8 @@ método: Chrome headless · dev `localhost:4327` **y build estático `dist/` en 
 | severidad | cantidad |
 |---|---|
 | 🔴 crítica | 2 |
-| 🟠 alta | 3 |
-| 🟡 media | 1 · +1 cerrado |
+| 🟠 alta | 3 · +1 (V-07 subió) · −1 cerrado (V-04) |
+| 🟡 media | 0 · +2 cerrados |
 | ⚪ nota | 4 |
 
 **Desktop 1440 está bien.** Los ocho hallazgos con severidad son de móvil y de
@@ -115,18 +115,47 @@ problema de responsive sino de posición.
 
 **Capturas:** cualquiera. Se ve claro en `vj-archive-d.png` y `works-m.png`.
 
-### V-04 · La obra no se ve completa en la grilla de specimens
-**Página:** `/kodex/viaje#archive`.
+### ~~V-04 · La obra no se ve completa en la grilla de specimens~~ ✅ CERRADO
+**Página:** `/kodex/viaje#archive` — y afectaba a todo el archivo, no sólo ahí.
 
-Los specimens se muestran con recorte al cuadrado. En el archivo hay piezas
-verticales 9:16 y apaisadas, y al forzarlas a una caja casi cuadrada **se les
-corta contenido**. La regla del proyecto es que la obra de Ocín se ve completa.
+**El diagnóstico, con números.** El código estaba bien: `deOpencode()` arma la
+clave correcta (`${v.id}/${f}`) y lee la proporción de `aspectos.json`. El
+problema era **la tabla**, que estaba incompleta:
 
-Conviene revisar si el `aspect-ratio` que se le pasa a cada `li` coincide con el
-real de la pieza, porque el efecto es exactamente el de un `object-fit: cover`
-sobre una caja de proporción equivocada.
+| | |
+|---|---|
+| assets de imagen en el manifiesto | **1197** |
+| medidos en `aspectos.json` | 461 (38 %) |
+| **que caían al `?? "1/1"` por defecto** | **736 (62 %)** |
 
-**Captura:** `vj-archive-d.png` (miniaturas 6, 7 y 8).
+Y esas 736 no eran cuadradas. Medí una muestra de 200 abriendo los archivos:
+**el 88 % tenía otra proporción.** El peor caso era una tira de **1400 × 169**
+—razón 8.28— metida en una caja cuadrada: **perdía el 88 % de su ancho**.
+
+Con la regla del proyecto —la obra de Ocín se ve completa— eso se incumplía 736
+veces.
+
+**Arreglado sin tocar `src/`**, porque el defecto no estaba en el código sino en
+los datos. `scripts/medir_aspectos.py` abre **cada archivo** y lee sus
+dimensiones reales:
+
+```
+medidas escritas : 1197
+  antes había    : 461
+  nuevas         : 736
+  corregidas     : 0     ← las 461 previas ya estaban bien: sin regresión
+de las 1197: 213 cuadradas · 984 NO cuadradas
+```
+
+**Verificado en vivo contra el build de producción.** En
+`v04-despues-d.png` cada pieza aparece en su proporción: una apaisada ancha,
+una vertical angosta, un panorama. Antes (`vj-archive-d.png`) eran todas
+cuadradas.
+
+**Nota de método:** mi primera medición dio «ninguna entrada resuelve» y estuve
+a punto de reportar que el código buscaba mal. Buscaba yo: probé con el nombre
+de archivo pelado y la clave real lleva el volumen delante. **El código estaba
+bien y mi test estaba mal.**
 
 ### V-05 · Anchos intermedios sin tratamiento
 **Páginas:** todas las que usan el media query de 1000 px.
@@ -165,8 +194,34 @@ Las etiquetas (`CLASE`, `ESTRATO`, `PLACAS`, `INTEGRIDAD`, `PROFUNDIDAD`,
 `REGISTRO`) están en un gris muy bajo sobre negro. Se leen en desktop mirando de
 cerca; en móvil, y con la lámina encima por V-01, no se leen.
 
-No lo marco más alto porque es deliberado —el chrome no compite con la obra— pero
-conviene medir el contraste real contra el fondo antes de darlo por bueno.
+**Medido, ya no es una impresión.** `scripts/medir_contraste.py` calcula la razón
+WCAG 2.x sobre la captura: separa fondo y tinta por luminancia y toma el extremo,
+no el promedio —promediar mete el antialiasing y hace pasar por legible lo que no
+lo es.
+
+| región | razón | veredicto |
+|---|---|---|
+| `04·GLIFOS` — fuente al pie | **1.58:1** | falla todo |
+| `05·DIAGNÓSTICO` — etiqueta UTC | **2.13:1** | falla todo |
+| `01·DOSSIER` — etiqueta CLASE | **2.61:1** | falla todo |
+| `01·DOSSIER` — etiqueta ESTRATO | **2.62:1** | falla todo |
+| `01·DOSSIER` — etiqueta INTEGRIDAD | **2.97:1** | falla todo |
+| `03·CURADURÍA` — cuerpo **inglés** | 3.84:1 | sólo como texto grande |
+| `04·GLIFOS` — CONSTANTES Y RAZONES | 4.06:1 | sólo como texto grande |
+| título de panel `01·DOSSIER` | 5.71:1 | pasa |
+| `03·CURADURÍA` — cuerpo **español** | 8.77:1 | pasa |
+| `01·DOSSIER` — valor `GALLERY` | 11.26:1 | pasa |
+
+**Cinco de diez por debajo de 3:1**, que es el piso de cualquier caso de uso. La
+peor está en 1.58:1 — a efectos prácticos, invisible.
+
+**Y un hallazgo que no esperaba:** el cuerpo en **español mide 8.77:1 y el mismo
+párrafo en inglés, 3.84:1**. El inglés va en un gris más bajo y en cursiva. En un
+archivo bilingüe eso no es una decisión de jerarquía: es una lengua que se lee
+peor que la otra.
+
+Por eso **subo esto de media a alta**. Que el chrome no compita con la obra es
+una decisión legítima; que cinco regiones queden bajo el mínimo, no.
 
 ---
 
