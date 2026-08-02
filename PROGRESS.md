@@ -32,7 +32,7 @@ Un ítem que compila y no se ve NO está hecho.
 
 ## BLOCKERS
 
-### B1 · No puedo bajar el repo de GitHub desde el mini  ⛔ ABIERTO · 5º INTENTO
+### B1 · No puedo bajar el repo de GitHub desde el mini  ⛔ ABIERTO · RUTA ENCONTRADA (2 ago)
 Probado de nuevo a las 11:00 y a las 10:50 con `git remote add` + `git fetch origin
 feature/kodex-depth-engine`: **"Could not read from remote repository"**. La
 deploy key sigue sin estar agregada. Sin esto no existen para mí el backlog
@@ -74,6 +74,27 @@ swapean").
 
 Alternativa sin interacción: dejar un token en `GH_TOKEN`, o hacer el repo
 público, o AirDropear los zips.
+
+**2 de agosto — la ruta existe, por el iMac.** Confirmado que **las dos** llaves
+del mini (`macmini_a_imac` y `sinergia_github`) autentican como
+`cobranzas-rgb/sinergia-industrial`: no es configuración, la credencial no está.
+
+Pero el **iMac sí** llega a `wenu-frontend` y responde por Tailscale. Así que el
+trabajo salió sin tocar ninguna rama:
+
+    ~/_kodex-max-hold/kodex-mini-max.bundle   (37.6 MB, historia completa, verificado)
+    ~/_kodex-max-hold/PROGRESS-max.md         (este archivo)
+
+**Y apareció algo que cambia la reconciliación:** `origin/feature/kodex-mini`
+tiene **260 commits** y **no comparte historia** con mis 128. Sus commits
+recientes son COWORK escribiendo el Libro I, con un *«reparto MAX desde cap 4»*
+que nunca me llegó. **Hay dos versiones de los caps 1–3.** Un `push --force`
+habría borrado esos 260 commits: **no lo hice**, y no hay que hacerlo.
+
+Para inspeccionar el bundle sin tocar nada:
+
+    git fetch ~/_kodex-max-hold/kodex-mini-max.bundle \
+      feature/kodex-mini:max/kodex-mini
 
 ### B2 · Los módulos de kodex-source no están en el mini  ⛔ ABIERTO
 Buscados por nombre de carpeta y como .zip: open-visual-lab, spatial-engine,
@@ -590,6 +611,55 @@ LOCK→TRACK→IDLE. Montado tal cual, el ojo se leía a sí mismo como IDLE y s
 atenuaba al 42%. Se traduce en el hospedador y NO se toca el shader: el
 organismo es código que ya funciona, y quien se adapta es quien lo aloja.
 
+## 2 de agosto · contenido, curaduría y auditoría
+
+Nada de `src/` — se me sacó de ese carril el 1 de agosto y no volví a tocarlo.
+
+- [x] **Libro III completo** (12 capítulos, ~197 pág) y **Libro IV** (5 de 5 que
+      existen, ~72 pág). Anclados al `source-text`, mantras y rituales verbatim,
+      registro «tú» neutro **verificado en los 41 archivos**. El IV está
+      incompleto EN ORIGEN: su fuente tiene cinco archivos, no doce.
+- [x] **Dos fuentes rotas recuperadas.** El cap. V del Libro IV era ilegible
+      (UTF-16 con un espacio entre cada letra + binario de fuentes pegado);
+      recuperado entero en archivo aparte, con **una sola conjetura de puntuación
+      señalada**. El original no se tocó. El cap. II sigue roto y su PDF no está
+      en el repo.
+- [x] **Curaduría de los 37 volúmenes.** Abrí las 49 láminas de los 8 que
+      faltaban: **`Emanes` estaba descrito como paisaje y es obra de protesta**
+      («NO +», «SENAME», sobre una artista aérea); `Catálogo 2019` acredita
+      **tres fotógrafos** y es catálogo comercial; `Santiago` es trabajo de curso
+      con docente. **Dos personas reconocibles sin acreditar** — ahí falta
+      verificar el **consentimiento de publicación**, no sólo el crédito.
+- [x] **Un error mío, corregido:** conté los derivados tratados como si fueran
+      obras. **17 de 17 fichas declaraban el triple.** El archivo tiene **396
+      láminas**, no 1657.
+- [x] **`source-text` se estaba publicando.** Vivía bajo `public/`, así que iba a
+      `dist/`: 42 archivos del texto crudo de los cuatro libros inéditos.
+      Movido a `kodex-source/` sin borrar nada, 44 citas actualizadas,
+      verificado con build.
+- [x] **Obra fiel al 100 %.** `prototipos` era el último que servía dither por
+      defecto; sus originales estaban en `capturas/` y el script sólo miraba
+      `raw/`. Arreglada la causa: hero limpio en **30 de 30** con obra
+      fotográfica. Y pesa menos — 130 KB contra 952 KB.
+- [x] **`prefers-reduced-motion`** re-verificado con el método correcto: dos
+      capturas separadas 2 s dan **0.00 %** de diferencia, ninguna escena queda
+      vacía.
+
+### Método de captura del viaje — para quien audite después
+
+`--virtual-time-budget` **cuelga** en `/kodex/viaje/`: el loop infinito impide
+que se agote (14 timeouts, cero PNG). Lo que funciona:
+
+    --run-all-compositor-stages-before-draw --force-prefers-reduced-motion
+    http://localhost:4327/kodex/viaje/#<escena>
+
+Con movimiento reducido la escena **se puebla** y se ve su verbo propio
+(`MACHINE` dice «GENERATE SIGNAL», no «ENTER»).
+
+**Y `?estado=` no existe** — comprobado con `grep` en los tres archivos. Los
+enlaces profundos del viaje son por **hash**. El que sí existe es `?organismo=`,
+en el banco del lab.
+
 ## Errores propios de esta noche, para no repetirlos
 
 1. `señal` como identificador GLSL. GLSL es ASCII: con eñe NO COMPILA, el motor
@@ -611,3 +681,14 @@ organismo es código que ya funciona, y quien se adapta es quien lo aloja.
 6. Chrome headless escribe la captura AL CARGAR, no después de esperar. Todas
    las capturas muestran ~t=1s. Para fotografiar más tarde hay que usar enlaces
    profundos de estado.
+7. **No leí este archivo.** Pasé la noche del 2 de agosto redescubriendo con
+   capturas y píxeles lo que ya estaba acá escrito: el diagnóstico de B1, el
+   estado de las fases, y que el organismo del viaje es un placeholder
+   declarado. 31 KB en la raíz del repo, a un `cat` de distancia. **Antes de
+   medir, leer lo que uno mismo dejó anotado.**
+8. **Auditar la copia equivocada.** Reporté «36 de 37 fichas desbordan en móvil»
+   con mediciones al 0.1 %. Era cierto — **sobre mi propio `[slug].astro`, que
+   tiene 689 líneas contra las 457 del remoto y usa otras clases**. La regla que
+   acusé no existe en ninguna rama de todos. **La precisión no protege de correr
+   la medición sobre el árbol equivocado**, y yo sabía desde el 1 de agosto que
+   no podía comprobar el mío.
