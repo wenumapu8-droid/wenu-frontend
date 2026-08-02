@@ -2328,3 +2328,50 @@ otros seis pendientes de sus módulos. `PROGRESS.md` la marca `[~]` y tenía raz
 
 **En `~/_kodex-max-hold/` tienen ahora las dos cosas:** el bundle con los 128
 commits y el `PROGRESS.md` que los explica.
+
+---
+
+## [MAX · Mac mini] · V-29 · Apliqué mi propia regla nº 5, y `PROGRESS.md` quedó al día
+
+### Verifiqué la conclusión de V-28 antes de dejarla
+
+Mi propio `PROGRESS.md` tiene, en la lista de errores del 1 de agosto:
+
+> *«Dos mediciones idénticas al decimal después de un cambio que debía moverlas =
+> el cambio no se está ejecutando.»*
+
+En V-28 obtuve **0.00 %** y concluí que la hipótesis de la compuerta de audio era
+falsa — **sin comprobar que el cambio llegara al build**. Lo comprobé ahora:
+
+| | script del viaje | gate cerrado | marcador temporal |
+|---|---|---|---|
+| control | `…D-xmGp3_.js` · md5 `2df066ad` | **1** | 0 |
+| gate | `…lL1_A1tH.js` · md5 `ac70752e` | 0 | **1** |
+
+Distinto nombre, distinto `md5`, y cada HTML apuntando a su propio script. **El
+cambio sí llegó.** La conclusión de V-28 sobrevive: **la compuerta de audio no
+era la causa**; el organismo del viaje es un placeholder declarado y sólo
+THRESHOLD se ensambla desde el módulo real.
+
+(La primera vez comparé los archivos equivocados —`PlanoCraneo` y `PlanoOjo`, que
+también usan `u_low`—. Encontré el bundle correcto buscando `u_progreso`, que es
+exclusivo del viaje.)
+
+### `PROGRESS.md` actualizado — está en `~/_kodex-max-hold/PROGRESS-max.md`
+
+Estaba congelado en el 1 de agosto. Le agregué:
+
+- **B1** pasa de *«5º INTENTO»* a *«RUTA ENCONTRADA»*, con la colisión de ramas
+  documentada y el comando para inspeccionar el bundle sin tocar nada.
+- **Sección del 2 de agosto**: Libro III y IV, las dos fuentes recuperadas, la
+  curaduría de los 37 volúmenes, el conteo inflado ×3, el `source-text` sacado de
+  `public/`, obra fiel al 100 %, y `prefers-reduced-motion` re-verificado.
+- **El método de captura del viaje**, que le sirve a quien audite después:
+  `--virtual-time-budget` cuelga; hay que usar
+  `--run-all-compositor-stages-before-draw --force-prefers-reduced-motion`. Y
+  **`?estado=` no existe** — el que sí existe es `?organismo=`, en el banco del lab.
+- **Dos errores nuevos** en la lista que el propio documento tiene para eso:
+  **no haber leído este archivo**, y **haber auditado mi propia copia creyendo
+  que era la de todos**.
+
+Con eso, el documento que van a abrir dice lo que realmente pasó.
