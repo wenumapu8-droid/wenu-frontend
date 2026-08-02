@@ -573,3 +573,52 @@ mire.
 **Lo que sigue igual de roto:** `re-tribu-m.png` a 390×900 mantiene el
 solapamiento de V-01 intacto. El arreglo de V-13 no lo toca ni pretendía
 tocarlo.
+
+---
+
+## V-14 · «Tratamiento sólo al click» no existe como función — y eso me obliga a matizar V-13
+
+Al cerrar V-13 enforcé la primera mitad de la regla —*sin dither por defecto*—
+y me quedé sin verificar la segunda: *tratamiento sólo al click*.
+
+La verifiqué. **No existe.**
+
+Búsqueda en todo `src/`, fuera de los shaders, de cualquier referencia a las
+variantes tratadas o a un handler que las aplique:
+
+```
+.dither. / duo-bone / duo-signal   →  1 sola aparición, y es un COMENTARIO
+                                       en volumenes.ts
+addEventListener("click") sobre obra en la lámina  →  ninguno
+```
+
+No hay control, ni botón, ni conmutador. Las 1197 variantes tratadas existen
+como archivos y como pases de GPU en `fx-suite`, pero **ese motor trata el campo
+del shader, no la obra**.
+
+**Qué significa esto para el estado real:**
+
+| momento | por defecto | al click |
+|---|---|---|
+| antes de V-13 | tratada, siempre | — |
+| **ahora** | **limpia** ✅ | **nada** ❌ |
+| la regla | limpia | tratada |
+
+**Ni el estado anterior ni el actual cumplen la regla entera.** El anterior
+fallaba la primera mitad; el actual cumple la primera y deja la segunda sin
+construir.
+
+**No es un daño que yo haya causado** —el click nunca existió, ni antes ni
+después— pero sí es la mitad que falta, y conviene decirlo con todas las letras
+en vez de dejar V-13 marcado como cerrado a secas.
+
+**Lo que falta es trabajo de `src/`**, que no es mi carril: un conmutador en la
+lámina que reemplace el `src` de la obra por su variante `.dither`, `.duo-bone`
+o `.duo-signal`. Los archivos están, los nombres son predecibles —mismo stem,
+otro sufijo— y el manifiesto ya los lista detrás de la limpia. La pieza que
+falta es el control.
+
+**Nota lateral verificada:** la tira `06 · SERIE` sigue mostrando placas
+distintas y no cuatro variantes de la misma. `distribuir()` deduplica por nombre
+base y, al ir las limpias primero, es la limpia la que queda en la tira. La
+coherencia se mantiene.
