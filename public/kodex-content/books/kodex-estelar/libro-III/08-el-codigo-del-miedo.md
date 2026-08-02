@@ -308,7 +308,9 @@ El miedo del capítulo —*el miedo a ser uno mismo*— es exactamente el que so
 
 **Valentía Vibracional.**
 
-Segunda y última clave de dos términos del Códex, después de *Redención Consciente*. Y las dos están en este tomo, una al lado de la otra — el Libro III es el único que necesita palabras compuestas, porque es el único donde cada concepto hay que rescatarlo de una versión distorsionada.
+Segunda de las tres claves de dos términos del Libro III, y están seguidas: *Redención Consciente* (VII), ésta, e *Identidad Sagrada* (IX). Las nueve restantes del tomo son de una sola palabra.
+
+Que las tres compuestas caigan juntas, en el centro del tomo, dice algo. Son los tres capítulos donde el concepto que hay que rescatar viene con una versión distorsionada tan instalada que la palabra sola diría lo contrario de lo que el capítulo quiere: *redención* supone la deuda, *valentía* supone aguantar, *identidad* supone el nombre que te dieron. Las tres necesitan el segundo término para no significar lo que ya significan.
 
 **Valentía** sola habría sido un error del mismo tipo que *redención* sola. En su uso corriente, ser valiente es **aguantar el miedo**: apretar los dientes y avanzar igual. Y eso deja el miedo intacto — sólo le agrega una capa encima.
 
