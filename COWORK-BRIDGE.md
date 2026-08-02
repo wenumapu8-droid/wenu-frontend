@@ -1213,3 +1213,28 @@ GUARDRAILS COWORK (duros, no negociables):
 
 QA: correr 09_QA/QA_CHECKLIST.md del paquete. Verificar EN VIVO 1440 y 390: sin recortes de obra, sin romper el no-scroll, un canvas activo. Reportar con capturas.
 SERIALIZADO con el fix de folio/iv y la migracion a R2 (mismo orden de prioridad). Commit+push seguido.
+
+
+## DIRECTIVA COWORK — INTERLUDIOS / Quiet Frames + Sigil Type (aprobado por Ocin)
+
+CONTEXTO: Ocin aprobo las paginas pulmon (interludios editoriales, silenciosos, entre escenas densas). Mando DOS paquetes de implementacion listos, ya desempacados en la boveda:
+- QUIET FRAMES: /Users/user1/Obsidian/WenuAgent/estrategia/kodex-quiet-frames-context/KODEX_QUIET_FRAMES_CONTEXT_v1/
+  (componente 03_COMPONENTS/astro/KodexQuietFrame.astro + styles/kodex-quiet-frames.css + scripts/mountQuietFrames.js + 04_PRESETS/quiet-frames-presets.json + 02_DESIGN_SYSTEM/QUIET_FRAMES_DESIGN_SYSTEM.md + 05_AGENT_PROMPTS/MASTER_IMPLEMENTATION_PROMPT.md + 08_DATA schemas + 09_QA/QA_CHECKLIST.md + 07_REFERENCE)
+- SIGIL / TYPE: /Users/user1/Obsidian/WenuAgent/estrategia/kodex-sigil-type-context/KODEX_MODULAR_SIGIL_TYPE_SYSTEM_v1/
+  (03_SIGIL_ENGINE/astro/KdxSigilText.astro + kdx-type-system.css + kdx-sigil-renderer.js + glyph-map.ts + kdx-symbols.svg + 04_PRESETS 8-core/12-expanded/4-mood + 07_INTEGRATION/quiet-frame-type-map.md que CONECTA ambos sistemas + 05_AGENT_PROMPTS/MASTER_TYPE_IMPLEMENTATION_PROMPT.md)
+
+CODEX (ejecutar, es tuyo — src/):
+1. Leer los dos MASTER prompts + el DESIGN SYSTEM + quiet-frame-type-map.md.
+2. Integrar KodexQuietFrame + KdxSigilText como componentes reales en src/components/kodex/, con sus presets. Adaptar tokens a los de KODEX (no duplicar paleta).
+3. Cablear 2-3 interludios entre los BLOQUES densos del viaje. NO uno tras cada escena (seria relleno y alarga el viaje). Ubicacion sugerida: despues de ARCHIVE antes de MACHINE; entre COSMOLOGY y RETURN; portada silenciosa antes de un capitulo del libro.
+
+GUARDRAILS COWORK (duros, no negociables):
+- Balance del layout: 70% vacio / 20% imagen-masa / 8% geometria / 2% microcodigo. Ese vacio ES el diseno.
+- DOS REGISTROS: imagen + microtexto NUNCA mezclan mapuche documentado con ficcion. Frases del manifiesto/mantra VERBATIM, nada inventado.
+- Paleta KODEX: obsidiana + hueso + UN acento tenue (cyan o violeta, 5-10% max). NO el verde del reproductor de la referencia.
+- TIPOGRAFIA: reusar PRIMERO las fuentes que KODEX ya carga (IBM Plex Mono, Barlow Condensed, Oxanium, Inter Tight). Si el paquete pide una display nueva (Space Grotesk u otra), evaluar peso/perf antes de sumarla; preferir 1 sans display + 1 mono, nada mas. NO tocar las fuentes del sitio Wenu Mapu principal (lock del owner 2026-05-30).
+- La IMAGEN del interludio sale de R2 (mismo esquema del art), NO de git.
+- Canon: no-scroll, reduced-motion, UN movimiento sutil a la vez, mobile >=45fps. Motion permitido: grain suave, fade lento, drift 1px, mask reveal vertical, blink microtipografico. PROHIBIDO: glitch constante, zoom dramatico, orbits, telemetria activa. Que parezcan quietas pero vivas.
+
+QA: correr 09_QA/QA_CHECKLIST.md del paquete. Verificar EN VIVO 1440 y 390: sin recortes de obra, sin romper el no-scroll, un canvas activo. Reportar con capturas.
+SERIALIZADO con el fix de folio/iv y la migracion a R2 (mismo orden de prioridad). Commit+push seguido.
