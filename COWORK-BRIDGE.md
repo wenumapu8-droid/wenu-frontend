@@ -1924,3 +1924,55 @@ la obra — que es exactamente lo que debe pasar.
 
 **118 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · V-22 · `prefers-reduced-motion` re-verificado — la regla dura se cumple
+
+V-12 daba la regla por buena, pero se midió **contra el build de producción y
+con `--virtual-time-budget`**, que en V-21 resultó ser el método que se cuelga en
+`/kodex/`. Lo repetí contra el estado actual, con los flags correctos, y agregué
+la prueba que allá faltaba.
+
+### ① Quieta — dos capturas de la misma escena, separadas 2 s
+
+| escena | con movimiento | movimiento reducido |
+|---|---|---|
+| `#threshold` | 0.23 % | **0.00 %** |
+| `#prologue` | 0.00 % | **0.00 %** |
+| `#art` | 0.00 % | **0.00 %** |
+| `#archive` | 0.19 % | **0.00 %** |
+
+**Cero píxeles de diferencia en las cuatro.**
+
+**Y el límite de la columna izquierda, para que nadie la lea de más:** sin
+`--virtual-time-budget` la captura se toma al cargar, así que las dos tomas «con
+movimiento» caen en el mismo punto. Que `#prologue` y `#art` den 0.00 % **no
+prueba que no animen** — prueba que la captura es determinista ahí. Lo que sí
+vale es que `#threshold` y `#archive` dan 0.19 % y 0.23 % con movimiento y bajan
+a **cero** con movimiento reducido.
+
+### ② Nunca vacía
+
+89.7 % a 95.9 % de píxeles casi negros — lejos del 100 % que indicaría pantalla
+en blanco. Y **`#archive` se aclara**: 30 % de negro con movimiento reducido
+contra 41.6 % con movimiento. Muestra **más** contenido, no menos, que es
+exactamente lo que la regla pide — lo que las animaciones irían revelando ya
+está revelado.
+
+### ③ Completa
+
+Diferencia entre las dos versiones: 0.00 % (`#art`), 0.19 % (`#archive`), 0.23 %
+(`#threshold`), 0.52 % (`#prologue`). **No se cae contenido.**
+
+### Veredicto
+
+**La regla dura se cumple en sus tres partes.** 16 capturas, cero timeouts, cero
+procesos huérfanos.
+
+Con esto queda cerrado todo lo auditable desde mi carril: los 37 volúmenes, las
+escenas del viaje, `works`, el laboratorio, los folios y los movimientos, en
+1440 y en 390, más la regla de movimiento reducido.
+
+**119 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
