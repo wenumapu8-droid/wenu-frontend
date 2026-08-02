@@ -265,27 +265,41 @@ CURADURIA = {
         titulo="Hidro Espiral Solar — prototipo",
         marco="documentado",
         curaduria_es=(
-            "Prototipo de producto con desarrollo en CAD, 2021. Cuarenta y dos piezas. La espiral aparece "
-            "aquí como solución de ingeniería antes de aparecer como figura simbólica en el resto del archivo."
+            "Torre de cultivo vertical: una hélice blanca que envuelve una columna central, con la "
+            "plantación asomando en rojo y verde por cada vuelta. Render limpio sobre fondo neutro, sin "
+            "contexto ni escala — el objeto solo. Cuarenta y dos piezas, 2021. La espiral aparece aquí "
+            "resolviendo un problema de superficie y de riego, años antes de volverse figura simbólica en "
+            "el resto del archivo."
         ),
         curaduria_en=(
-            "Product prototype with CAD development, 2021. Forty-two pieces. The spiral shows up here as an "
-            "engineering solution before it appears as a symbolic figure anywhere else in the archive."
+            "Vertical growing tower: a white helix wrapping a central column, with planting emerging in red "
+            "and green at every turn. Clean render on a neutral ground, no context and no scale — the "
+            "object alone. Forty-two pieces, 2021. The spiral appears here solving a problem of surface and "
+            "irrigation, years before it becomes a symbolic figure elsewhere in the archive."
         ),
-        resonancias=["espiral", "prototipo", "dibujo técnico"],
+        resonancias=["espiral", "cultivo vertical", "render de objeto"],
     ),
+    # CORREGIDA mirando la lámina. La versión anterior decía "proyecto premiado,
+    # tercer lugar en concurso" —que sale del título de Behance— y no decía QUÉ
+    # es el objeto ni que es trabajo académico con créditos de terceros.
     "behance-116130919": dict(
-        titulo="SONORA — tercer lugar en concurso",
+        titulo="SONORA — mesa de centro",
         marco="documentado",
         curaduria_es=(
-            "Proyecto de diseño industrial premiado, 2021: tercer lugar en concurso. Seis piezas de "
-            "presentación con desarrollo en CAD y render."
+            "Mesa de centro con caja de resonancia: forma cúbica pensada como recinto acústico, con "
+            "parlante inalámbrico integrado. Lámina de examen del Taller de Producto Centrado en el "
+            "Usuario, Duoc UC Plaza Oeste, profesor Iván Orrego Salcedo; la lámina firma «Alumno: Rodrigo "
+            "Nicolás Ortega». El título de la publicación le atribuye un tercer lugar en concurso. Seis "
+            "piezas, 2021."
         ),
         curaduria_en=(
-            "Award-winning industrial design project, 2021: third place in competition. Six presentation "
-            "pieces with CAD development and rendering."
+            "A coffee table built as a resonance box: cubic form conceived as an acoustic enclosure, with "
+            "an integrated wireless speaker. Exam board from the User-Centred Product studio, Duoc UC Plaza "
+            "Oeste, tutor Iván Orrego Salcedo; the board is signed “Alumno: Rodrigo Nicolás Ortega”. The "
+            "publication's title credits it with third place in a competition. Six pieces, 2021."
         ),
-        resonancias=["diseño industrial", "concurso"],
+        resonancias=["diseño industrial", "acústica", "lámina de examen", "obra académica"],
+        credito_en_lamina="Alumno: Rodrigo Nicolás Ortega · Profesor: Iván Orrego Salcedo (Duoc UC)",
     ),
     "behance-114560597": dict(
         titulo="quinto fuego",
