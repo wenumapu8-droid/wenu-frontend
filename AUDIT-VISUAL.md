@@ -1251,3 +1251,67 @@ cuatro títulos.
 No lo toco: qué obra visual le corresponde a ese volumen es decisión de quien
 cura el archivo, no una corrección. Pero conviene saber que el contenido ya
 existe y el volumen sigue marcado como pendiente.
+
+---
+
+## V-25 · Estuve auditando mi propio código, no el de todos · **CORRIGE V-18, V-19 y V-21**
+
+Al poder leer el remoto por primera vez en 128 commits, descubrí que **mi clon no
+está atrasado: está bifurcado**. Mi rama tiene **31 commits que tocan `src/`**,
+del 31 de julio y 1 de agosto, que nunca llegaron al remoto.
+
+Y `src/pages/kodex/vol/[slug].astro` —el archivo sobre el que corrí toda la
+auditoría de móvil— es uno de ellos.
+
+| | líneas |
+|---|---|
+| **mi clon** | **689** |
+| `origin/feature/kodex-depth-engine` | 457 |
+| `origin/feature/kodex-mini` | 360 |
+
+**La regla que acusé en V-01 y V-19 —`.kx-lam__p--obra { min-height: 50vh }`,
+línea 686— no existe en ninguna rama del remoto.** Ni la clase: allá es
+`.kx-vol__*`, acá `.kx-lam__*`. Son dos páginas distintas.
+
+### Y su versión ya trata lo que la mía no
+
+    @media (max-width: 900px) {
+      .kx-vol { height: auto; min-height: 100dvh; grid-template-columns: 1fr; }
+      .kx-vol__hero { max-height: 40vh; }
+      .kx-vol__hero--alto { max-width: 100%; }
+    }
+
+Acota el hero a `40vh` de alto y los verticales a `100%` de ancho. **El mío sólo
+le pone un `min-height`.** Coincide con lo que medí —desbordaban los 30
+volúmenes con imagen y ninguno de los 7 sin ella—: **el hero era la causa, y allá
+ya está tratado.**
+
+### Qué queda en pie y qué no
+
+**No transfiere** (medido sobre mi versión):
+V-19 entero («36 de 37 a 390 px»), la superposición de paneles de V-18, las
+líneas 349 y 686, y «PLACAS 008» — `totalPlacas` **ya no existe** en su versión.
+
+**Sigue en pie** (datos, no esa página):
+V-17 completo (créditos, encuadres, el ×3 en 17 fichas), V-20 (`source-text`
+publicándose), V-22 (movimiento reducido, medido sobre el viaje, que sí
+comparto), V-23 (obra fiel).
+
+**Y una corrección de V-18 verificada contra la punta de `depth-engine`:**
+`titulo_real`, `credito_en_lamina`, `coautoria` y `obras_reales` **siguen sin
+leerse**. Pero **`resonancias` SÍ se lee** —7 referencias—. Lo había dado por no
+leído: era cierto en mi copia, falso en la suya.
+
+**Sin verificar:** si la versión de `depth-engine` desborda a 390 px. **No la
+medí y no lo afirmo.**
+
+### Lo que aprendí, y es lo único que vale de esto
+
+Seguí auditando dos días creyendo que miraba el código de todos. **Estaba
+mirando el mío**, y lo repetí en cinco entradas de este documento con
+mediciones al 0.1 %.
+
+La precisión no protege de eso. **Una auditoría vale lo que vale la copia sobre
+la que corre**, y yo no podía comprobar la mía desde el 1 de agosto — lo sabía,
+lo anoté en V-16, y aun así seguí sacando conclusiones sobre `src/` como si
+fueran de todos.
