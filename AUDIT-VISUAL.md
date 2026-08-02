@@ -701,3 +701,90 @@ carril.
 llave pública no tenga permiso de escritura sobre `wenumapu8-droid/wenu-frontend`,
 ni los fixes bajan ni el trabajo de este equipo sube. Todo lo demás que diga este
 documento se está escribiendo sobre una foto vieja.
+
+---
+
+## V-17 · Los ocho volúmenes que faltaban, y un error mío en las 17 fichas con conteo
+
+Cierra el pendiente de V-15. Se abrieron las **49 láminas originales** de los
+ocho volúmenes sin revisar. Como allá: **los metadatos de Behance no traen nada
+de esto.** Hay que mirar la imagen.
+
+### Lo más grave no era un crédito: era una ficha que describía otra obra
+
+**`Emanes (act3), Pichilemu`** figuraba como *«serie fotográfica en Pichilemu,
+2021. Trabajo de locación: luz de costa y territorio concreto»*.
+
+Las láminas llevan **«NO +»** y **«SENAME»** sobre el cuerpo de una artista
+aérea. Es una **obra de protesta** sobre el servicio estatal de menores, y
+«NO +» es la fórmula del arte de protesta chileno.
+
+Eso no es un matiz de curaduría. Una ficha que la presenta como paisaje costero
+no describe la obra: describe otra.
+
+### Créditos de terceros encontrados en la lámina
+
+| Volumen | Lo que dice la lámina |
+|---|---|
+| **Santiago** | «NICOLAS ORTEGA · **Claudio Pino — Fotografía Digital**», impreso al pie de las dos. Es trabajo de curso, con docente. |
+| **Catálogo 2019** | Tres fotógrafos distintos: **Nicolás Ortega**, **Alejandro Martín**, **Jesús Alejandro**. Transcritos como figuran, sin resolver si los dos últimos son la misma persona. |
+| **Quinto fuego** | El afiche acredita, junto a Wenü Mapü: **Almenara, Uará, De lo Absurdo, Pey-Tech** y un nombre más, ilegible a esta resolución. Plataforma **NaciónStream**. |
+| **Emanes** | Artista aérea en escena, **sin identificar y sin crédito**. |
+| **Princesa yuyo** | Persona retratada reconocible y parcialmente desnuda, **sin identificar**. Conviene verificar el consentimiento de publicación. |
+
+### Encuadres que estaban mal, además del de Emanes
+
+- **Catálogo 2019** no es «el oficio antes del sistema»: es un **catálogo
+  comercial** con condiciones de venta y precios, y es **el origen de la marca
+  Wenü Mapü** que da nombre al sitio. Nombra piezas desde el mapudungun y desde
+  el pueblo **selk'nam** — marcado `requiere_fuente_mapuche`.
+- **Quinto fuego** no es «escenografía y paisaje, 2021»: es un **encargo
+  fechado**, escenografía virtual 3D para *Rave Virtual*, **28 de agosto de
+  2020**. La fecha de la ficha también estaba mal.
+- **Santiago** no es «moda»: es **fotografía callejera**.
+- **Princesa yuyo** no es «fotografía de moda»: no hay vestuario ni producto.
+- **TranaluÜkai** no son ilustraciones: son **planos técnicos de producción**
+  con cotas en milímetros, y las cenefas reproducen **iconografía textil
+  mapuche** — marcado `requiere_fuente_mapuche`.
+- **Render** es sobre todo **arquitectura**, no mobiliario.
+- **Paletas de colores** es una **pieza de método**: su material viene de otros
+  volúmenes del archivo, y una lámina muestra la escenografía de Quinto Fuego
+  ya montada e iluminada.
+
+### Y el error que encontré revisando: tripliqué la obra en cada ficha
+
+**Escribí «Nueve piezas» para un volumen que tiene tres láminas.** Y «Treinta y
+tres» para uno que tiene once. Y así **diecisiete veces**.
+
+La causa es una sola y es mía: **conté las entradas de `assets`**, que incluyen
+**tres derivados tratados por cada original** —dither, duo-bone, duo-signal—. Al
+contar tres veces la misma lámina, cada ficha declaraba el triple de obra de la
+que existe.
+
+Verificación: `dicho == raw×3` en **17 de 17**. Ni una excepción, y **ninguna
+ficha daba el número real**. Un error uniforme no es un descuido de redacción:
+es haber medido la cosa equivocada y no haberlo comprobado nunca contra el
+disco.
+
+**El archivo tiene 396 láminas originales**, no las 1657 entradas de `assets`.
+Ese 396 coincide exactamente con el número de derivados limpios que se generaron
+en V-13, lo cual lo confirma por un segundo camino.
+
+**Mi primer barrido de este error también estuvo mal, dos veces.** Encontré 14 y
+eran 17: la expresión regular pedía un punto antes del numeral, y se perdió
+«2023: sesenta y nueve piezas»; y matcheaba subcadenas, así que leyó «cinco» en
+«cincuenta y cinco» y dio por roto un volumen que estaba bien. **Lo que sirvió
+fue el ensayo previo**, no la primera lectura.
+
+**Corregido además:** una ficha decía que un motivo *«cruza trece años»* entre
+2021 y 2024. Son tres.
+
+### Estado
+
+`obras_reales` escrito en **29 de 37** volúmenes —los ocho restantes no tienen
+`raw/`—. **18 conteos cuadran con el disco, cero descuadran.** Ocho volúmenes
+con crédito de terceros registrado, siete marcados `requiere_fuente_mapuche`.
+`manifest.json` válido.
+
+Script: `scripts/corregir_creditos_y_conteos.py`, reversible con `git checkout`
+del manifiesto.
