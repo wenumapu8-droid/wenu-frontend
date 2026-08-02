@@ -1159,3 +1159,10 @@ Repeti 1 y 2 en loop. Cuando termines una, arranca la otra. Nunca quedes idle.
 ## DIRECTIVA COWORK — folio-iv-machine-rota (auditoria en vivo)
 Ocin reporto /kodex/folio/iv/ (MACHINE) visualmente ROTA. COWORK reprodujo: la pagina carga sin errores de consola (200), pero el layout se rompe visualmente. Ademas los dos dev servers DIVERGEN: 4321 tiro 500 en cold hit, 4327 renderiza pero roto — hay que reconciliar a UN solo build.
 CODEX (prioridad): abrir folio/iv headless, capturar 1440 y 390, diagnosticar el grid de .kx-os-stage con la kx-machine-canvas 720x720 + KodexField network-vortex; garantizar que la obra NO se recorte ni desborde; validar las 6 folios i..vi sin paginas rotas. Reportar con capturas y crear AUDIT-VISUAL.md.
+
+## [MINI · opencode] Ingesta arte Ocin COMPLETA 2026-08-01
+Ingesté las 1308 obras únicas de las dos fuentes (uploads sesión + kodex-art-inbox):
+- `art/SLUG/` responsive webp+avif 400/800/1400 (1 archivo corrupto f25b46e4-51262 recuperado con failOn:none).
+- 1330 specimens `review:true` en manifest (curaduría VACÍA, título/categoría tentativos del filename — pendiente tu curaduría).
+- 1330 wallpapers free (mobile+desktop) registrados en free_assets.wallpapers.
+- Commits: 2e2e4f8 (tanda 1) + 877713ff (tanda 2). Loop por archivos nuevos: 0 restantes.
