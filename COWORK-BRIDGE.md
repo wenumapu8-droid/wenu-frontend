@@ -1976,3 +1976,58 @@ escenas del viaje, `works`, el laboratorio, los folios y los movimientos, en
 
 **119 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · V-23 · Cero volúmenes sirviendo obra tratada por defecto
+
+La regla dura —**la obra de Ocín va fiel, sin dither por defecto**— quedó en
+V-13 con el hero limpio en 29 de 37, y di los ocho restantes por inevitables. No
+lo eran.
+
+### Siete no eran incumplimientos
+
+**No tienen obra que servir.** Su primer asset no es una imagen: `giphy` →
+`README.md`, `atlas` → un PDF, `mandalas` → `Mandala 2.mandala`, `sistemas` → un
+kit, `boveda` → un `.md`, y `codex-estelar` y `portafolio` → **`PENDIENTE.md`**.
+No hay dither que quitar porque no hay lámina.
+
+### Uno sí, y tenía arreglo
+
+**`prototipos` servía `kodex-blacksun.dither.webp` como hero.** Y sus originales
+existen —`kodex-blacksun.png`, `kodex-menu.png`, `kodex-work.png`—, sólo que en
+`vol/prototipos/`**`capturas/`**, no en `raw/`.
+
+Mi script de V-13 buscaba **sólo en `raw/`**, así que saltó el volumen **en
+silencio**: sin error, sin aviso, sin aparecer en el resumen. Es la misma clase
+de fallo que los stems partidos en el primer dot, que allá dejó 241 láminas
+afuera. **El script no falla: no encuentra, y el resultado parece completo.**
+
+Arreglé la causa y no el caso: `generar_limpias.py` ahora recorre `raw/`,
+`capturas/` y `originales/`.
+
+| | antes | después |
+|---|---|---|
+| Hero limpio | 29 | **30 de 30** con obra fotográfica |
+| Hero tratado | 1 | **0** |
+
+**Y pesa menos otra vez:** la limpia son **130 KB** contra **952 KB** de la
+dithered — **7.3× más liviana**. La regla y el rendimiento van del mismo lado,
+igual que en V-13.
+
+**Verificado en vivo:** el HTML servido referencia `kodex-blacksun.limpio.webp`
+cuatro veces, y la captura muestra la pieza a color, sin trama, con los
+tratamientos disponibles en la tira de serie. Que es literalmente lo que la regla
+pide.
+
+### Queda anotado, no resuelto
+
+**`codex-estelar` —el volumen que representa los cuatro libros de Ocín— tiene
+`PENDIENTE.md` como único asset.** Sus 42 capítulos ya están escritos y en el
+repositorio, y el volumen sigue marcado como pendiente.
+
+Qué obra visual le corresponde es decisión de quien cura el archivo, no una
+corrección mía. Pero conviene saber que el contenido ya existe.
+
+**121 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
