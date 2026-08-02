@@ -1550,3 +1550,106 @@ no `[x]`, y tenía razón.
 
 Copié `PROGRESS.md` al iMac (`~/_kodex-max-hold/PROGRESS-max.md`): es mejor
 documento de estado que cualquier cosa que escribí en los puentes.
+
+---
+
+# Auditoría del 2 de agosto · segunda pasada (post-rescate)
+
+40 capturas: 7 escenas del viaje, 6 folios, `/kodex/works` y 6 fichas de volumen,
+en **1440 y 390**. Método de V-27 —`--run-all-compositor-stages-before-draw
+--force-prefers-reduced-motion`, enlaces por hash—, cero timeouts, cero
+huérfanos, **40 `md5` distintos**.
+
+## V-30 · Mi detector de desborde daba falsos positivos · **CORRIGE V-19 y V-21**
+
+Vengo midiendo desborde como **«píxeles con tinta en la última columna»**. Sobre
+`folio-vi` eso dio **96.2 %** y lo marqué como la página más rota del sitio.
+
+**Miré la captura y está impecable**: tema claro, tipografía display, dossier,
+tres llamadas a la acción, panel de artefacto, navegación al pie. Nada cortado.
+
+El error es de método y tiene dos capas:
+
+1. **En página clara, el fondo ES tinta** para un umbral pensado para fondo
+   negro. Lo corregí detectando el fondo como el valor **más frecuente** de cada
+   imagen.
+2. **Y aun corregido sigue estando mal**, porque un diseño puede llegar al borde
+   a propósito — `folio-vi` tiene su panel de artefacto contra el margen derecho.
+   **Tinta en el borde no es desborde.**
+
+**Desborde es `scrollWidth > clientWidth`**, que es una medición del DOM y no de
+píxeles. No tengo cómo hacerla con `--screenshot` a secas.
+
+**Consecuencia, y hay que decirla:** el número «36 de 37 fichas desbordan» de
+V-19 **está inflado por este defecto**. Lo que sí sobrevive es lo que confirmé
+mirando, y va abajo.
+
+**La regla que queda:** la medición sirve para **ordenar por dónde mirar**. No
+sirve para afirmar. Cada hallazgo de acá abajo tiene una captura mirada.
+
+## V-31 · Fichas de volumen en móvil · **CRÍTICO** · confirmado a ojo
+
+Verificado en `vol/tribu` a 390 px, y la medición apunta a otras cinco.
+
+**Dos daños distintos, a la vez:**
+
+**① La obra se corta.** La lámina de `tribu` —una retícula de rosetas— **pierde
+su columna derecha**. La obra no se ve completa, que es lo que la receta prohíbe.
+
+**② Los paneles se apilan.** `03 · CURADURÍA`, `04 · BIBLIOTECA DE GLIFOS`,
+`05 · DIAGNÓSTICO` y `06 · SERIE` quedan **uno encima de otro y encima de la
+lámina**, con el arte transparentándose detrás del texto. **Ilegible.**
+
+En un teléfono, entonces, **la curaduría de estos volúmenes no se puede leer** —
+y con ella los créditos de terceros que costó tres rondas levantar.
+
+| ficha (390 px) | borde apartado del fondo |
+|---|---|
+| `tribu` | **68.1 %** ← mirado |
+| `behance-116133407` (Emanes) | 53.0 % |
+| `behance-116149759` (Santiago) | 34.5 % |
+| `behance-114620487` (Catálogo) | 20.1 % |
+| `prototipos` | 13.0 % |
+| `disco-solar` | 11.8 % |
+
+## V-32 · La rejilla de volúmenes no reflow a 390 · **ALTO** · confirmado a ojo
+
+Verificado en `folio/iii`. **La rejilla es de cuatro columnas y la cuarta queda
+cortada** — se ven dos fichas partidas al ras del borde. La fila de cabecera
+(`CLASS / WORKS / STATUS / DEPTH`) también pierde sus valores por la derecha.
+
+Es **el mismo componente** que aparece en la escena `#archive` del viaje, y da
+5.7 % ahí. Un solo arreglo cubre los dos.
+
+| página (390 px) | |
+|---|---|
+| `folio/iii` | **26.7 %** ← mirado |
+| `folio/iv` | 4.0 % |
+| `folio/v` | 3.8 % |
+| `viaje #archive` | 5.7 % |
+
+## V-33 · El viaje pasa en los dos anchos ✅
+
+Las siete escenas, con el fondo detectado correctamente:
+
+| | 1440 | 390 |
+|---|---|---|
+| threshold · prologue · descent · machine · cosmology · return | **0.0–0.2 %** | **0.5–0.9 %** |
+| archive | 0.0 % | 5.7 % (es la rejilla, V-32) |
+
+**Seis de siete limpias en ambos anchos.** La única que corta es la que embebe la
+rejilla, y ya está contada aparte.
+
+`/kodex/works` también pasa: 0.1 % y 2.8 %.
+
+## V-34 · `folio/vi` en desktop ✅ · era mi medición
+
+Lo dejo escrito aparte porque lo había marcado como el peor hallazgo del sitio.
+**No lo es. Está bien.** Ver V-30.
+
+## Estado de los fixes de Codex
+
+**No llegó nada todavía.** `git status` sobre `src/` da **0 archivos
+modificados** y `grep -rn "interludio" src/` no devuelve nada. `folio/iv` existe
+como ruta y se renderiza —lo capturé—, pero es la versión de este árbol, no un
+fix nuevo. **Re-auditaré en cuanto aparezcan.**
