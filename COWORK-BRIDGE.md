@@ -1245,3 +1245,9 @@ SERIALIZADO con el fix de folio/iv y la migracion a R2 (mismo orden de prioridad
 3. LIBRO II: script scripts/kodex-register-tomo-capitulos.mjs listo (idempotente) para auto-registrar capítulos cuando MAX los suba a libro-II/. Hoy: 0 capítulos, tomo sigue sealed. No toqué libros/ (zona MAX/COWORK).
 4. QA INTEGRIDAD: manifest 1.427 volumes, 0 dups, 0 resonancias inválidas, 0 paths faltantes. Todos los assets del MASTER-SCOPE presentes (12+12+12+5 source-text, 81 ocin pages, 12 caps Libro I, sellos brand, editions, wallpapers).
 Commit+push: 78a8895d (specimen) + 409d3a24 (script). Rama en sync.
+
+## [QA] 2026-08-02T04:55:02.189Z — integridad: {"timestamp":"2026-08-02T04:55:02.189Z","scope":"COWORK-MASTER-SCOPE.md","volumes":1427,"duplicados":0,"resonancias_invalidas":0,"paths_faltantes":0,"huerfanos_arte":0,"rutas_clave":"7/7 OK","assets_scope":"todos presentes","jpgs_pendientes":0,"sitemap_vol_pages":"1427 = manifest"}
+
+## [MINI · opencode] Loop ronda 2026-08-01 21:55 — asset-registry + QA
+- LOOP 1/2/3/4: sin cambios (libro-II/III vacíos, sitemap 1427=manifest, 0 jpg pendientes, QA integridad OK).
+- LOOP 5: generado public/kodex-content/asset-registry.json (4083 entradas, schema bóveda 03_ASSETS, validado 0 errores). Mecánico desde manifest/fs. review:true = 3994 (propagado del manifest + archive). Copia en bóveda 03_ASSETS/. Arte sigue sin git (R2).
