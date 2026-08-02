@@ -13,7 +13,7 @@
 > reverso: leída al pie de la letra, convierte la enfermedad, la discapacidad y
 > la vejez en profanación. No es lo que dice el capítulo y el pliegue se ocupa
 > de eso. Este libro no es salud.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-x-el-templo-invertido-libro-iii-el-engano-de-lo.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-x-el-templo-invertido-libro-iii-el-engano-de-lo.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

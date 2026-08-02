@@ -2,7 +2,7 @@
 
 ## De dónde salió el texto fuente
 
-`source-text/` **no vino del repo** — el mini no tiene acceso a GitHub (ver B1
+`kodex-source/kodex-estelar/source-text/` **no vino del repo** — el mini no tiene acceso a GitHub (ver B1
 en `PROGRESS.md`, ocho intentos). Lo extraje de la bóveda de Ocín:
 
     ~/Obsidian/WenuAgent/estrategia/kodex-estelar-trilogia-v2/Codex estelar/

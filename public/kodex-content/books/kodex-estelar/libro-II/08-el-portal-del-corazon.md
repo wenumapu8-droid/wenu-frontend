@@ -14,7 +14,7 @@
 >   sostienen.
 > · "Un corazón abierto es inhackeable" es la mejor frase del capítulo y la más
 >   peligrosa. El pliegue se ocupa de ella.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-viii-el-portal-del-corazon-libro-ii-el-pacto-de-nibi.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-viii-el-portal-del-corazon-libro-ii-el-pacto-de-nibi.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

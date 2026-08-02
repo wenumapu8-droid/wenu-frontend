@@ -13,7 +13,7 @@
 > · La lectura de que el sufrimiento humano fue **diseñado para ser cosechado**
 >   es la mitología de este libro. Los mecanismos que describe existen; la
 >   atribución no está probada ni es comprobable.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-iii-la-mineria-del-alma-libro-ii-el-pacto-de-nibiru.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-iii-la-mineria-del-alma-libro-ii-el-pacto-de-nibiru.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

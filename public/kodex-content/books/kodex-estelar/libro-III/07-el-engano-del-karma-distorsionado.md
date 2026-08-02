@@ -13,7 +13,7 @@
 > hindú o budista.
 > **Cuidado.** Las «culpas silenciosas» del ritual describen también cosas que
 > se tratan. Este libro no es tratamiento y no reemplaza a nadie.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-vii-el-engano-del-karma-distorsionado-libro-iii-e.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-vii-el-engano-del-karma-distorsionado-libro-iii-e.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

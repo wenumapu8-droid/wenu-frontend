@@ -11,7 +11,7 @@
 > · Dice que el Sol Interior **"no es metafórico, es literal"**. No hay ningún
 >   órgano así. Es literal dentro del relato de este Códex y en ningún otro
 >   sentido.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-xii-el-retorno-del-sol-interior-libro-ii-el-pacto-d.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-xii-el-retorno-del-sol-interior-libro-ii-el-pacto-d.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

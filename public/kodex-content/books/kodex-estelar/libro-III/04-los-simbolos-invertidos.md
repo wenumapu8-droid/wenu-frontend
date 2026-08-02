@@ -9,7 +9,7 @@
 > que termina señalando a instituciones y a personas reales. El pliegue se ocupa
 > de eso — y lo hace, sobre todo, con historia comprobable, que en este caso le
 > da la razón a Ocín por un camino que él no toma.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-iv-los-simbolos-invertidos-libro-iii-el-engano-d.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-iv-los-simbolos-invertidos-libro-iii-el-engano-d.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

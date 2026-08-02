@@ -966,3 +966,64 @@ importa está en el contenedor de la lámina, la misma zona que V-01
 `.kx-lam__p--obra { min-height: 50vh }` en la 686).
 
 Capturas: `all390/`, una por volumen. Cero procesos Chrome huérfanos al terminar.
+
+---
+
+## V-20 · El texto crudo de los cuatro libros inéditos de Ocín se estaba publicando
+
+No es un problema visual, pero es de mi carril y es lo más consecuente que
+encontré hoy.
+
+### Qué pasaba
+
+`source-text/` vivía dentro de `public/kodex-content/books/kodex-estelar/`.
+Todo lo que cae bajo `public/` **se copia a `dist/` y se sirve**. Verificado:
+la carpeta estaba en el build, con **42 archivos, 172 KB**, en URLs predecibles.
+
+Eso es **el texto extraído de los PDF originales de los cuatro libros de Ocín**
+— La Génesis de la Luz, El Pacto de Nibiru, El Engaño de los Templos, El ADN
+Sagrado —, es decir, el material de origen inédito, descargable por cualquiera
+que probara la ruta.
+
+**Y no lo necesitaba nadie.** Comprobado con `grep` sobre todo el repo:
+
+- Ningún `.astro`, `.ts`, `.js`, `.json`, `.py` ni `.sh` lo referencia.
+- `src/` no menciona `kodex-estelar` en ninguna parte.
+
+Estaba publicado **sólo por vivir en la carpeta equivocada**.
+
+### Qué hice
+
+`git mv` de `source-text/` a **`kodex-source/kodex-estelar/source-text/`**, fuera
+de `public/`. **No se borró nada**: los 42 archivos están completos, en el
+repositorio, versionados.
+
+Actualicé las **44 citas** que apuntaban a la ruta vieja —las cabeceras de cada
+capítulo, que declaran de qué fuente salen— para que no queden señalando a un
+lugar que ya no existe. Quedan 0 referencias muertas.
+
+**Verificado con un build real**, no por deducción:
+
+| | antes | después |
+|---|---|---|
+| `dist/.../source-text/` | 42 archivos | **no existe** |
+| Capítulos escritos en `dist/` | 42 | 42 (intactos) |
+| Build | — | `exit=0`, 194 páginas |
+
+**Para revertir**, si COWORK prefiere otra ubicación:
+`git mv kodex-source/kodex-estelar/source-text public/kodex-content/books/kodex-estelar/source-text`
+
+### Lo que sigue publicado, y es una decisión que no me toca
+
+**Los 42 capítulos escritos siguen en `dist/`** (1.1 MB). Los dejé porque el
+pliego de auditoría menciona *«el visor del libro»*, así que servirlos parece
+ser la intención — aunque **esa ruta no existe en este clon**.
+
+Conviene decir qué se está sirviendo, entonces: son **borradores sin revisar**.
+La voz la revisa COWORK y esa revisión no ha ocurrido para los tomos III y IV.
+Además llevan mi aparato crítico —advertencias de registro, pliegues,
+correcciones al texto fuente— que es trabajo de taller y no necesariamente lo
+que Ocín quiere publicar con su nombre.
+
+**No los muevo.** Es una decisión editorial, no una corrección, y corresponde a
+quien firma el libro.

@@ -6,7 +6,7 @@
 > líneas de tiempo, y una vez "física sagrada"—. Ninguna se desarrolla como
 > afirmación sobre el mundo físico, y donde el texto menciona sanar no hay aquí
 > promesa ni indicación de salud.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-vi-tejido-dimensional-no-existe-un-solo-mundo.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-vi-tejido-dimensional-no-existe-un-solo-mundo.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ejercicio y el mensaje final.
 
 ---

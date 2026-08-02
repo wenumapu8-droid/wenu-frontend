@@ -13,7 +13,7 @@
 > **Cuidado.** Los «bloqueos más grandes que tú» del ritual describen también
 > cosas que se tratan: duelo, trauma, depresión. Este libro no es tratamiento y
 > no reemplaza a nadie.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-vi-los-contratos-del-alma-olvidados-libro-iii-el.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-vi-los-contratos-del-alma-olvidados-libro-iii-el.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

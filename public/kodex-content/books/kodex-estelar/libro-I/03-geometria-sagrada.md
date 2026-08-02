@@ -5,7 +5,7 @@
 > Donde el texto nombra la hélice del ADN, los cristales o el latido, lo hace
 > como imagen y no como afirmación científica ni indicación médica. Así va
 > desarrollado.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-iii-geometria-sagrada-cuando-la-fuente-deseo-verse-no.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-iii-geometria-sagrada-cuando-la-fuente-deseo-verse-no.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ritual y el mensaje final.
 
 ---

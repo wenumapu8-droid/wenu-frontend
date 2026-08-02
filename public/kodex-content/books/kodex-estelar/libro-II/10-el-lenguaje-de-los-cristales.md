@@ -13,7 +13,7 @@
 > · Atlántida y Lemuria pertenecen a la mitología de este libro. Egipto y los
 >   templos mayas existieron, y lo que este capítulo dice de ellos no es lo que
 >   dicen quienes los estudian ni quienes descienden de ellos.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-x-el-lenguaje-de-los-cristales-libro-ii-el-pacto.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-x-el-lenguaje-de-los-cristales-libro-ii-el-pacto.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

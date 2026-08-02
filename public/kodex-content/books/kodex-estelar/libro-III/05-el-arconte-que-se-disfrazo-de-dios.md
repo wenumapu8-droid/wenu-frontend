@@ -11,7 +11,7 @@
 > se teme. Es **la posición de este Códex**, no un hallazgo. Miles de millones
 > de personas sostienen lo contrario dentro de tradiciones vivas, y en varias de
 > ellas «temor de Dios» no significa miedo — eso se desarrolla abajo.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-v-el-arconte-que-se-disfrazo-de-dios-libro-iii.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-v-el-arconte-que-se-disfrazo-de-dios-libro-iii.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

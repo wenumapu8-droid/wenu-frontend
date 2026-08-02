@@ -12,7 +12,7 @@
 > **Advertencia de registro.** El capítulo entrega un disolvente universal: lo
 > que no consentiste no te obliga. El pliegue muestra dónde eso falla, porque
 > casi todo lo que sostiene una vida es algo que nadie eligió.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-xi-el-contrato-no-firmado-libro-iii-el-engano-de.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-xi-el-contrato-no-firmado-libro-iii-el-engano-de.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

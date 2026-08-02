@@ -6,7 +6,7 @@
 > hay aquí ninguna afirmación biológica ni ninguna indicación de salud, y
 > "cuidar el cuerpo" no se desarrolla como régimen, dieta ni prescripción de
 > ninguna clase.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-x-templo-de-la-forma-la-forma-no-es-prision.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-x-templo-de-la-forma-la-forma-no-es-prision.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ritual y el mensaje final.
 
 ---

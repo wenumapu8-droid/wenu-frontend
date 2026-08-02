@@ -13,7 +13,7 @@
 >   solo, y con más razón si hay antecedentes psiquiátricos.
 > · "Ciclos de 8" y respiración conectada: si te mareas, para. No es una prueba
 >   de nada.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-vi-el-alzamiento-del-fuego-interior-libro-ii-el-pa.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-vi-el-alzamiento-del-fuego-interior-libro-ii-el-pa.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

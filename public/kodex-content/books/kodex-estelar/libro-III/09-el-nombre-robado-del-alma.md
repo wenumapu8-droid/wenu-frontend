@@ -16,7 +16,7 @@
 > **Sobre los tonos binaurales** del estado sugerido: el efecto auditivo existe;
 > lo que se les atribuye sobre estados cerebrales no está establecido. Este
 > libro no es salud.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-ix-el-nombre-robado-del-alma-libro-iii-el-engano.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-ix-el-nombre-robado-del-alma-libro-iii-el-engano.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

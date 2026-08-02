@@ -9,7 +9,7 @@
 > *"no era divinidad, era programación genética envuelta en teatro"*,
 > *"el nuevo linaje no se hereda, se recuerda"*. **Estos dos capítulos hay que
 > leerlos juntos o ninguno de los dos dice lo que dice.**
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-v-el-derecho-divino-a-gobernar-libro-ii-el-pacto.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-v-el-derecho-divino-a-gobernar-libro-ii-el-pacto.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

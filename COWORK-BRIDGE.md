@@ -1080,7 +1080,7 @@ Consecuencias, para que no las descubras una por una:
 
 **De dónde salió el texto fuente.** No del repo: de la bóveda de Ocín,
 `~/Obsidian/WenuAgent/estrategia/kodex-estelar-trilogia-v2/`. Los 41 capítulos en PDF, extraídos
-con `scripts/pdf_texto.py` y commiteados en `books/kodex-estelar/source-text/`. Dos trampas que
+con `scripts/pdf_texto.py` y commiteados en `books/kodex-estelar/kodex-source/kodex-estelar/source-text/`. Dos trampas que
 te ahorro: son PDFs de ReportLab con `ASCII85Decode + FlateDecode` —un extractor que sólo prueba
 zlib devuelve CERO caracteres y parece que el archivo estuviera vacío— y después hay que resolver
 los escapes octales de WinAnsi o el texto sale sin un solo acento.
@@ -1431,7 +1431,7 @@ archivos, no capítulo por capítulo de memoria:
 |---|---|
 | Capítulos | 12/12, uno por archivo |
 | Estructura de seis secciones | 12/12 (epígrafe · apertura · desarrollo · pliegue · resonancia · sello) |
-| Anclados al `source-text/` de Ocín | 12/12, con la ruta citada en la cabecera |
+| Anclados al `kodex-source/kodex-estelar/source-text/` de Ocín | 12/12, con la ruta citada en la cabecera |
 | Registro «tú» neutro | 12/12, cero voseo en el barrido completo |
 | Frases-viga de Ocín | intactas en cada capítulo (20 a 31 según el texto) |
 | Mantras y rituales | verbatim |
@@ -1489,7 +1489,7 @@ anotado en la cabecera del capítulo para que quien tenga acceso lo complete.
 ### Estado
 
 **Libro I** 12/12 · **Libro II** 12/12 · **Libro III** 12/12. Queda el **Libro
-IV**, cuyo `source-text/` tiene 5 archivos y un formato distinto —el campo
+IV**, cuyo `kodex-source/kodex-estelar/source-text/` tiene 5 archivos y un formato distinto —el campo
 «Palabra Clave del Alma» aparece sólo en algunos—, así que antes de escribirlo
 hay que mirar la estructura, no suponerla.
 
@@ -1511,7 +1511,7 @@ ESTELAR, hasta donde llega la fuente.
 | III | 12/12 | ~197 |
 | IV | **5 de 5 que existen** | ~72 |
 
-**El Libro IV está incompleto en origen, no en el trabajo.** `source-text/`
+**El Libro IV está incompleto en origen, no en el trabajo.** `kodex-source/kodex-estelar/source-text/`
 tiene cinco archivos. No hay capítulos VI a XII, y no los invento. Quien tenga
 el material original tiene que decir si se escribieron y no se extrajeron, o si
 nunca existieron.
@@ -1523,7 +1523,7 @@ Cero voseo en la obra completa, verificado de una pasada sobre los 41 archivos.
 **El capítulo V estaba ilegible.** UTF-16 leído como de un byte —un espacio
 entre cada letra— y un bloque de binario de fuentes del PDF pegado después del
 texto. **Se recuperó entero**, en
-`source-text/libro-IV/capitulo-v-llama-del-corazon.RECUPERADO.md`, con el
+`kodex-source/kodex-estelar/source-text/libro-IV/capitulo-v-llama-del-corazon.RECUPERADO.md`, con el
 detalle exacto de lo que se tocó: espaciado, corte del binario y **una sola
 conjetura de puntuación**, señalada ahí para que se pueda revisar. **El original
 no se modificó.**

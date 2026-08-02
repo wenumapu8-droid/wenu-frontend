@@ -8,7 +8,7 @@
 > intolerable: si todo enseña, nada hay que cambiar. El pliegue de este
 > capítulo trata precisamente de eso, porque es el riesgo más serio de todo el
 > tomo.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-vii-la-escuela-del-olvido-libro-ii-el-pacto-de-nibi.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-vii-la-escuela-del-olvido-libro-ii-el-pacto-de-nibi.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

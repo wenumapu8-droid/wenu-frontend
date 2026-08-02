@@ -6,7 +6,7 @@
 
 ## 1. El tomo está incompleto: son cinco capítulos, no doce
 
-`source-text/libro-IV/` tiene **cinco** archivos. Los Libros I, II y III tienen
+`kodex-source/kodex-estelar/source-text/libro-IV/` tiene **cinco** archivos. Los Libros I, II y III tienen
 doce cada uno.
 
 | | Capítulo | Palabras de la fuente |

@@ -14,7 +14,7 @@
 > Se lee abajo como lo que es: un número de un libro.
 > **Fuente incompleta.** Este capítulo no trae *Frase Final de Activación*, que
 > el capítulo I sí tiene. Ver `libro-IV/00-NOTA-DE-FUENTE.md`.
-> Desarrollo del texto fuente (`source-text/libro-IV/capitulo-iii-el-vehiculo-de-luz-merkabah-verso-de-activacion.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-IV/capitulo-iii-el-vehiculo-de-luz-merkabah-verso-de-activacion.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

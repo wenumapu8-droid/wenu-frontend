@@ -7,7 +7,7 @@
 > texto no dice: un síntoma del cuerpo se consulta con un médico. Este libro no
 > diagnostica nada, no reemplaza ninguna atención y no le pide a nadie que
 > postergue una consulta.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-ix-cristal-de-gaia-no-estas-caminando-sobre-una-roca.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-ix-cristal-de-gaia-no-estas-caminando-sobre-una-roca.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ritual y el mensaje final.
 
 ---

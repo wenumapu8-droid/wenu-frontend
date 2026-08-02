@@ -6,7 +6,7 @@
 > marcando lo que el texto no dice: un miedo que te achica la vida se consulta
 > con alguien que sepa atenderlo. Este libro no diagnostica y la regresión y la
 > canalización se tratan como parte de su relato, no como técnicas verificables.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-xi-mapa-del-alma-tu-alma-no-comenzo-en-esta-vida.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-xi-mapa-del-alma-tu-alma-no-comenzo-en-esta-vida.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, la práctica y el mensaje final.
 
 ---

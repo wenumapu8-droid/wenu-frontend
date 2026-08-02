@@ -2,7 +2,7 @@
 
 > **Libro I — La Génesis de la Luz** · capítulo final
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-xii-primera-separacion-en-el-principio-todo-era-uno.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-xii-primera-separacion-en-el-principio-todo-era-uno.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ritual y el mensaje final.
 
 ---

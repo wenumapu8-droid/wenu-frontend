@@ -13,7 +13,7 @@
 > · *Todo esto es solo un teatro holográfico* es una figura. Para quien
 >   atraviesa un estado en que lo real se afloja, no lo es, y ahí hace falta
 >   ayuda profesional.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-III/capitulo-iii-la-matriz-de-control-mental-libro-iii-el-enga.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-iii-la-matriz-de-control-mental-libro-iii-el-enga.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

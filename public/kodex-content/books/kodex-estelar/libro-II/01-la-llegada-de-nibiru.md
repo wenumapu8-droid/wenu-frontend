@@ -11,7 +11,7 @@
 > los lea en su idioma**. Es una mitología moderna, de mediados del siglo XX,
 > construida sobre esos nombres. Se desarrolla aquí como lo que es: el relato
 > de este Códex. No como historia antigua, ni como astronomía.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-i-la-llegada-de-nibiru-libro-ii-el-pacto-de-nibir.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-i-la-llegada-de-nibiru-libro-ii-el-pacto-de-nibir.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

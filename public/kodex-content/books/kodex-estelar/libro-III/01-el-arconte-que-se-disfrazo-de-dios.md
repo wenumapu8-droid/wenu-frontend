@@ -14,7 +14,7 @@
 > **Nota de fuente:** los capítulos I y V de este tomo llevan el mismo título
 > con textos distintos. Se desarrollan como dos capítulos separados; si es un
 > error del original, conviene revisarlo.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-III/capitulo-i-el-arconte-que-se-disfrazo-de-dios-libro-iii.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-i-el-arconte-que-se-disfrazo-de-dios-libro-iii.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

@@ -12,7 +12,7 @@
 > para quien está en peligro real, y el pliegue se ocupa de eso.
 > **Cuidado.** Un miedo que no cede, que impide dormir o salir, es algo que se
 > trata. Este libro no es tratamiento y no reemplaza a nadie.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-viii-el-codigo-del-miedo-libro-iii-el-engano-de-lo.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-viii-el-codigo-del-miedo-libro-iii-el-engano-de-lo.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

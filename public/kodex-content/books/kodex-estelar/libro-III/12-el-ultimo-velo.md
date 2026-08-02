@@ -8,7 +8,7 @@
 > **Advertencia de registro.** El pliegue de este capítulo se ocupa del riesgo
 > que el propio texto nombra —*tu máscara espiritual*— y lo aplica a este libro.
 > Es el único lugar donde eso corresponde hacerlo.
-> Desarrollo del texto fuente (`source-text/libro-III/capitulo-xii-el-ultimo-velo-libro-iii-el-engano-de-los-tem.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-xii-el-ultimo-velo-libro-iii-el-engano-de-los-tem.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

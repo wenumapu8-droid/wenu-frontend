@@ -14,7 +14,7 @@
 >   marco cósmico.
 > · **Dormir mal no es un fenómeno espiritual.** El insomnio persistente se
 >   atiende. Es de las cosas que más deterioran una vida y de las más tratables.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-xi-la-rebelion-de-los-suenos-libro-ii-el-pacto-de.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-xi-la-rebelion-de-los-suenos-libro-ii-el-pacto-de.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

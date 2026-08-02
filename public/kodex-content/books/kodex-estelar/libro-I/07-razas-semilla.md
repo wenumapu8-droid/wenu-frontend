@@ -6,7 +6,7 @@
 > afirmaciones sobre la historia ni sobre el origen de ningún pueblo. Donde el
 > texto nombra "medicina vibracional", va desarrollado como parte de su relato
 > y no como medicina: este libro no da ninguna indicación de salud.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-vii-razas-semilla-en-el-silencio-del-vacio-cuando-la.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-vii-razas-semilla-en-el-silencio-del-vacio-cuando-la.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ritual y el mensaje final.
 
 ---

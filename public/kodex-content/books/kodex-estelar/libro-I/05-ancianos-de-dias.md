@@ -5,7 +5,7 @@
 > El capítulo habla de vidas anteriores, del intervalo entre vidas y de
 > regresiones. Va desarrollado como lo que es —el relato que este libro cuenta
 > sobre el alma— y no como afirmación comprobable ni como práctica terapéutica.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-v-ancianos-de-dias-y-cuando-el-alma-fue-sembrada-cu.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-v-ancianos-de-dias-y-cuando-el-alma-fue-sembrada-cu.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, la práctica y el mensaje final.
 
 ---

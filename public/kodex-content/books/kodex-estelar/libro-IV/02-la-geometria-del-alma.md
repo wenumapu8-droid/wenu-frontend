@@ -15,7 +15,7 @@
 > leen abajo como imágenes. En cambio, buena parte de lo que este capítulo
 > observa sobre las formas naturales **es cierto y tiene explicación**, y esa
 > explicación resulta ser más interesante que la mitología. Eso es el pliegue.
-> Desarrollo del texto fuente (`source-text/libro-IV/capitulo-ii-la-geometria-del-alma.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-IV/capitulo-ii-la-geometria-del-alma.md`).
 > Mantras van **verbatim**.
 
 ---

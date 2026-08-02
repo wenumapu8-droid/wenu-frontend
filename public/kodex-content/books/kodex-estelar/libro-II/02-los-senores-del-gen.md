@@ -14,7 +14,7 @@
 >   gesto simbólico, que es lo único que es.
 > Quien tenga un problema de salud necesita un médico. Nada de este capítulo
 > sustituye eso ni debe demorarlo.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-ii-los-senores-del-gen-libro-ii-el-pacto-de-nibiru.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-ii-los-senores-del-gen-libro-ii-el-pacto-de-nibiru.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

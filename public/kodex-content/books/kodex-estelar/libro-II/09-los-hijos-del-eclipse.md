@@ -12,7 +12,7 @@
 >   quien sabe atenderlos. Un marco heroico no reemplaza eso.
 > · Nacer durante un eclipse no está asociado a ninguna cualidad verificable.
 >   Es la mitología de este libro.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-ix-los-hijos-del-eclipse-libro-ii-el-pacto-de-nibi.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-ix-los-hijos-del-eclipse-libro-ii-el-pacto-de-nibi.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

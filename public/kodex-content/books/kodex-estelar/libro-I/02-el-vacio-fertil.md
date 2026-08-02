@@ -2,7 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-ii-el-vacio-fertil-y-cuando-la-fuente-deseo-experimen.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-ii-el-vacio-fertil-y-cuando-la-fuente-deseo-experimen.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, la visualización y el mensaje final, que son suyos.
 
 ---

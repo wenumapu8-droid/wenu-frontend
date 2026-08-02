@@ -2,7 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-viii-chispa-de-conciencia-antes-del-cuerpo-antes-del-n.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-viii-chispa-de-conciencia-antes-del-cuerpo-antes-del-n.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, la práctica y el mensaje final.
 
 ---

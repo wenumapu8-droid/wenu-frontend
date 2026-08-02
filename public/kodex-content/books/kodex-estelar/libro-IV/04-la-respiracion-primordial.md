@@ -20,7 +20,7 @@
 > **Advertencia de registro.** *En la antigüedad no sólo respirábamos oxígeno,
 > sino también prana* no describe nada que haya ocurrido. Se lee abajo como
 > imagen.
-> Desarrollo del texto fuente (`source-text/libro-IV/libro-iv-capitulo-iv-respiracion-primordial-clean.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-IV/libro-iv-capitulo-iv-respiracion-primordial-clean.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

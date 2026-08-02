@@ -9,7 +9,7 @@
 > a quien hizo el daño y se lo cobra a quien lo recibió. El propio Ocín deja la
 > salida —*no todas las elecciones fueron nuestras*, *muchos contratos fueron
 > firmados en miedo, en confusión, o bajo engaño*— y aquí se usa.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-III/capitulo-ii-los-contratos-de-limitacion-libro-iii-el-enga.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-ii-los-contratos-de-limitacion-libro-iii-el-enga.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

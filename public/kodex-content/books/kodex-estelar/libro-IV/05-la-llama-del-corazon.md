@@ -7,7 +7,7 @@
 > **Fuente recuperada.** El archivo original de este capítulo estaba ilegible:
 > el texto salió con un espacio entre cada letra y con un bloque de binario de
 > fuentes pegado al final. **El texto se recuperó entero** y está en
-> `source-text/libro-IV/capitulo-v-llama-del-corazon.RECUPERADO.md`, con el
+> `kodex-source/kodex-estelar/source-text/libro-IV/capitulo-v-llama-del-corazon.RECUPERADO.md`, con el
 > detalle exacto de lo que se tocó —espaciado, binario, y **una sola conjetura
 > de puntuación**, señalada ahí—. El original no se modificó.
 >

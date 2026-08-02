@@ -5,7 +5,7 @@
 > Donde el texto nombra el ADN, el campo magnético o la frecuencia, lo hace
 > como imagen dentro de su propio relato, no como afirmación científica ni
 > indicación médica. Así va desarrollado.
-> Desarrollo del texto fuente de Ocín (`source-text/libro-I/capitulo-iv-elohim-y-arquitectos-y-cuando-la-fuente-sono-con-f.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-iv-elohim-y-arquitectos-y-cuando-la-fuente-sono-con-f.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ejercicio y el mensaje final.
 
 ---

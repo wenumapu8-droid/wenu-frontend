@@ -14,7 +14,7 @@
 >   costado vidas. Aquí se desarrolla nombrando ese peligro, y usando la
 >   refutación que el propio Ocín dejó escrita en el Libro I. **El capítulo V
 >   es la respuesta que él mismo le da; los dos hay que leerlos juntos.**
-> Desarrollo del texto fuente de Ocín (`source-text/libro-II/capitulo-iv-el-nacimiento-del-linaje-hibrido-libro-ii-el-pa.md`).
+> Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-II/capitulo-iv-el-nacimiento-del-linaje-hibrido-libro-ii-el-pa.md`).
 > Mantras y rituales van **verbatim**.
 
 ---

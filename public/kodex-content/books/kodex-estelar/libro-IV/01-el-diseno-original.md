@@ -13,7 +13,7 @@
 > capítulos, no doce.
 > **Campo extra.** Éste es el único capítulo del Códex con **dos** frases
 > rituales: el verso de apertura y una *Frase Final de Activación*. Van las dos.
-> Desarrollo del texto fuente (`source-text/libro-IV/capitulo-i-el-diseno-original-verso-de-activacion-soy-un-co.md`).
+> Desarrollo del texto fuente (`kodex-source/kodex-estelar/source-text/libro-IV/capitulo-i-el-diseno-original-verso-de-activacion-soy-un-co.md`).
 > Mantras y rituales van **verbatim**.
 
 ---
