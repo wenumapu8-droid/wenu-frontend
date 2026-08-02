@@ -1027,3 +1027,87 @@ que Ocín quiere publicar con su nombre.
 
 **No los muevo.** Es una decisión editorial, no una corrección, y corresponde a
 quien firma el libro.
+
+---
+
+## V-21 · El resto del sitio: el viaje está sano, el problema es el archivo
+
+Completa el pliego (las escenas, `/kodex/works`, el laboratorio) y **localiza**
+lo que V-19 había medido sólo en las fichas.
+
+### Primero, un problema de método que impedía auditar el viaje
+
+**`/kodex/` no se podía capturar.** Con `--virtual-time-budget` —el método que
+venía usando para todo— la captura **nunca termina**: 60 segundos y ningún
+archivo. Las siete primeras capturas de esta ronda dieron catorce timeouts
+seguidos y cero PNG.
+
+La causa es de diseño: **el viaje es un loop infinito**, y un rAF que no para
+impide que el presupuesto de tiempo virtual se agote. La herramienta espera algo
+que por especificación nunca va a ocurrir.
+
+Medido, probando cuatro configuraciones sobre la misma URL:
+
+| Flags | Resultado |
+|---|---|
+| `--virtual-time-budget=3000` | **cuelga** (37 s, sin archivo) |
+| sin `--virtual-time-budget` | 3 s, 225 KB |
+| `--timeout=8000` | 3 s, 231 KB |
+| `--virtual-time-budget` + `--run-all-compositor-stages-before-draw` | **4 s, 226 KB** |
+
+**Para capturar el viaje hay que sacar `--virtual-time-budget` o acompañarlo de
+`--run-all-compositor-stages-before-draw`.** Queda anotado porque sin esto la
+regla dura de «verificá en vivo con captura» es imposible de cumplir en la única
+página que la regla más necesita.
+
+### Y una lectura mía que estaba mal
+
+Por `curl` conté **tres** escenas en `/kodex/` y estuve a punto de anotar que
+FASE 1 estaba a 3 de 7. Con captura real, **cinco estados de hash dan cinco
+imágenes distintas** (`md5`), incluido `#archive`, que **no aparece en el HTML
+estático**.
+
+Las escenas se construyen en el cliente. **`curl` no puede contarlas**, y yo lo
+usé para eso.
+
+### La medición
+
+| Vista | 1440 | 390 |
+|---|---|---|
+| `#threshold` | 0.0 % | 0.0 % |
+| `#prologue` | 0.0 % | 0.0 % |
+| `#art` / raíz | 0.0 % | 0.5 % |
+| `/kodex/lab/core` | 0.0 % | 0.4 % |
+| `/kodex/movement/disco` | 0.0 % | 1.5 % |
+| `/kodex/works` | 0.1 % | **2.5 %** |
+| `/kodex/folio/ii` | 0.2 % | **2.8 %** |
+| **`#archive`** | 0.4 % | **27.1 %** |
+
+**El shell del viaje está sano en los dos anchos.** Threshold, prologue y art no
+tienen un solo píxel en el borde a 390. Eso es la entrega de FASE 1 y pasa.
+
+### Dónde está el daño, y son dos causas distintas
+
+**`#archive` desborda un 27 % en móvil.** La captura muestra por qué: una
+**rejilla de cuatro columnas de fichas que no reflow** a 390 px — la cuarta queda
+cortada, y la fila de cabecera (`CLASS / WORKS / STATUS / DEPTH`) también pierde
+sus valores por la derecha.
+
+**Eso no es lo mismo que V-19.** Allí la causa era el **hero sin contener** —los
+30 volúmenes con imagen desbordan, los 7 sin imagen no—. Acá es una **rejilla
+rígida**. Dos defectos separados, los dos en el material de archivo, los dos
+sólo en móvil.
+
+`works` y `folio/ii` rozan el umbral (2.5 % y 2.8 %): son casos leves, no la
+catástrofe de las fichas.
+
+### Y una confirmación de V-08
+
+Las escenas dan **89.7 % a 95.0 % de píxeles casi negros** en desktop y 92.8 % a
+93.3 % en móvil. Coincide con lo medido antes y sigue siendo **canon, no un
+bug**: el viaje es oscuro a propósito. `#archive` baja a 41.4 % porque muestra
+la obra, que es exactamente lo que debe pasar.
+
+### Alcance
+
+Todo esto es `src/`. Lo que queda del lado de datos ya está hecho.
