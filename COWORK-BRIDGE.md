@@ -1419,3 +1419,80 @@ compartió— tenga permiso de **escritura** sobre `wenumapu8-droid/wenu-fronten
 Hasta entonces esta copia está congelada en el 1 de agosto, y todo lo que diga
 AUDIT-VISUAL se está escribiendo sobre una foto vieja. Sigue el Libro III, que
 es lo único que no depende de la red.
+
+---
+
+## [MINI] · LIBRO III COMPLETO — 12 de 12
+
+**197 páginas, 49.496 palabras.** Verificado de una pasada sobre los doce
+archivos, no capítulo por capítulo de memoria:
+
+| | |
+|---|---|
+| Capítulos | 12/12, uno por archivo |
+| Estructura de seis secciones | 12/12 (epígrafe · apertura · desarrollo · pliegue · resonancia · sello) |
+| Anclados al `source-text/` de Ocín | 12/12, con la ruta citada en la cabecera |
+| Registro «tú» neutro | 12/12, cero voseo en el barrido completo |
+| Frases-viga de Ocín | intactas en cada capítulo (20 a 31 según el texto) |
+| Mantras y rituales | verbatim |
+
+**Sigo bajo la vara en extensión.** Se pidieron 20–25 páginas por capítulo y el
+promedio es 16. Los primeros cuatro rozan la banda (15–19); del V al XII se
+quedan en 14–15. Es el dato, no una estimación.
+
+### Lo que este tomo obligó a corregir
+
+**Tres afirmaciones del texto fuente** que no se desarrollaron como ciertas, cada
+una marcada en la cabecera de su capítulo:
+
+- **VIII — «el miedo fragmenta el ADN».** No ocurre. Importaba más allá de la
+  exactitud: un libro que lo afirma está agregando miedo, o sea hace lo que
+  denuncia. Terminó siendo el mejor pliegue del capítulo.
+- **IX — «se prohibió invocar el nombre de Dios».** En el judaísmo el Nombre no
+  se prohibió desde afuera: la propia tradición lo resguarda, por reverencia. Y
+  tomada en serio la premisa del capítulo —que el nombre verdadero es una
+  llave—, guardarlo es exactamente lo que correspondía. La acusación cae y queda
+  algo mejor.
+- **X — «sacaron el templo del cuerpo».** Los textos centrales de las
+  tradiciones acusadas dicen lo contrario, y están en el canon. Pero el capítulo
+  acierta en lo que importa: la doctrina se quedó en el texto y la práctica se
+  fue al edificio. **No hizo falta que nadie borrara nada.**
+
+**Y dos errores míos**, corregidos en los archivos donde estaban:
+
+- Afirmé en el VII que *Redención Consciente* era la única palabra clave de dos
+  términos, y en el VIII que eran dos. **Son tres** —VII, VIII y IX, seguidas— y
+  el campo sólo existe en el Libro III, así que la escala «del Códex» nunca fue
+  verificable. Comprobado sobre las doce fuentes.
+- En el X dejé fuera *«una religión de piedra»*, que es texto de Ocín. Repuesta
+  con su desarrollo.
+
+### Lo que hay que saber para curar o publicar este tomo
+
+**El símbolo del XI incluye una estrella de seis puntas.** Hoy esa figura es el
+Maguén David: emblema vivo de un pueblo y la marca que el nazismo obligó a
+llevar a quienes iba a asesinar. El cap. IV había tratado el caso inverso —la
+esvástica, que no se puede ni debe reconsagrar—. Acá va la otra mitad: **se
+nombra correctamente y no se usa**. Si alguien ilustra este capítulo, que no la
+dibuje.
+
+**El VI y el VII tocan terreno que hace daño mal manejado.** El VI, la idea de
+que uno eligió antes de nacer lo que le hicieron; el VII, el karma usado para
+explicar la posición social de alguien. Los dos van con advertencia de registro
+y con atribución donde corresponde (Ambedkar, el canon pali). No los editen
+sacando las advertencias: son la mitad del trabajo.
+
+**El IX no entra en el caso mapuche** aunque el tema lo pedía, porque `sources/`
+no está accesible en esta copia y ese registro va con fuente o no va. Queda
+anotado en la cabecera del capítulo para que quien tenga acceso lo complete.
+
+### Estado
+
+**Libro I** 12/12 · **Libro II** 12/12 · **Libro III** 12/12. Queda el **Libro
+IV**, cuyo `source-text/` tiene 5 archivos y un formato distinto —el campo
+«Palabra Clave del Alma» aparece sólo en algunos—, así que antes de escribirlo
+hay que mirar la estructura, no suponerla.
+
+**107 commits sin pushear.** Sin novedad: `Repository not found`. Falta que la
+llave pública tenga permiso de escritura sobre `wenumapu8-droid/wenu-frontend`.
+Es lo único que bloquea, y bloquea todo.
