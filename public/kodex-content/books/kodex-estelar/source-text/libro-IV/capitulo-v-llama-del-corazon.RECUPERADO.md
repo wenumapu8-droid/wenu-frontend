@@ -1,0 +1,46 @@
+# Capítulo V — La Llama del Corazón · texto recuperado
+
+> **Qué es este archivo.** El original
+> (`libro-iv-capitulo-v-llama-del-corazon-utf8.md`) quedó ilegible en la
+> extracción: el texto salió con **un espacio entre cada letra** —típico de leer
+> UTF-16 como si fuera de un byte— y con **un bloque de binario de fuentes del
+> PDF pegado después** de la última línea.
+>
+> **El original NO se tocó.** Sigue donde estaba, tal cual.
+>
+> **Qué se hizo acá, exactamente y nada más:**
+> 1. Se quitó el espaciado entre caracteres.
+> 2. Se cortó el binario, que empieza justo después de `Palabra Clave del Alma:
+>    Corazón` y no contiene texto.
+> 3. Se repuso la puntuación en un solo lugar: el original trae `ni siquiera el
+>    ADN&`, donde el `&` es un carácter mal extraído. Va como `;`. **Es la única
+>    conjetura de este archivo** y queda señalada para que se pueda revisar.
+>
+> No se agregó, quitó ni reordenó ninguna palabra. Verificable contra el
+> original leyéndolo de a un carácter.
+
+---
+
+Capítulo V — La Llama del Corazón
+
+**Verso de Activación:** "Abro mi corazón a la luz del amor incondicional."
+
+**Resumen Poético:** En el centro de tu pecho no arde solo un órgano, sino un sol olvidado. La luz que buscas fuera, nace allí. Y cuando esa llama despierta, el universo entero comienza a recordar.
+
+**Texto Canalizado:** Mucho antes de que el alma tomara forma humana, ya existía el código oculto en el corazón. El verdadero motor del cuerpo de luz, no es la mente, ni siquiera el ADN; es la llama sutil del amor incondicional. Este fuego no quema. Purifica. No domina. Transforma. Los antiguos sabían que sin esta llama encendida, el Merkabah es solo geometría dormida, el ADN es un puente sin corriente, la ascensión es una idea sin alas. Los seres de luz de Sirio y Venus, los sabios de los registros solares, nos recordaron: la expansión comienza desde el pecho abierto. El corazón es un templo multidimensional. Sus cámaras resguardan el código de la compasión, la frecuencia más alta, la única capaz de activar la octava superior del ser. Por eso, muchos buscan fuera, pero el verdadero portal es interior. Y está guardado por la ternura que no juzga, la fuerza que no se defiende, el amor que no necesita ser devuelto. Al abrir este fuego interno, la biología responde: las células se armonizan, los campos áuricos se expanden, y el ADN comienza a entonar su canto original. No hay técnica más poderosa que amar sin condiciones. Esa es la ciencia olvidada. La tecnología del alma. Y es tan simple como cerrar los ojos y decir: Estoy dispuesto a sentir.
+
+**Elemento Asociado:** Amor Incondicional
+
+**Símbolo Visual:** Una llama rosa-dorada emergiendo desde el centro del pecho, envolviendo suavemente el campo áurico.
+
+**Estado de Conciencia Recomendado:** Meditación del corazón. Respiración profunda en el centro del pecho. Estado de gratitud o contemplación amorosa.
+
+**Ritual Sugerido — Activación de la Llama del Corazón:**
+1. Enciende una vela rosa o blanca.
+2. Lleva tus manos al pecho.
+3. Respira suave y profundo durante 3 minutos.
+4. Visualiza una llama dorada creciendo en tu pecho.
+5. Di en voz baja o mentalmente: "Activo la llama del amor incondicional en mí."
+6. Permanece en silencio, dejando que la energía se expanda.
+
+**Palabra Clave del Alma:** Corazón
