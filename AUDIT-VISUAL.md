@@ -660,3 +660,44 @@ nunca traen el crédito.** Hay que abrir la lámina.
 
 Quedan sin revisar con este criterio: `quinto fuego`, `render`, `paletas de
 colores`, `princesa yuyo`, `Catálogo 2019`, `Emanes`, `Santiago`, `TranaluÜkai`.
+
+---
+
+## V-16 · Re-auditoría del 2 de agosto: nada cambió, y por una razón que no es buena
+
+**Severidad: nota de estado.** La consigna es re-auditar después de cada fix de
+Codex. No hubo ninguno que auditar, y conviene dejar dicho por qué.
+
+**No llegó código nuevo.** El último commit que tocó `src/` es `434772d`
+(1 de agosto), anterior a la última entrada de este documento. Entre esa entrada
+y hoy, `git log -- src/` está vacío y el árbol de trabajo limpio.
+
+No es que Codex no haya trabajado: es que **su trabajo no puede llegar hasta
+acá**. `git push` y `git pull` fallan con `Repository not found` desde hace 99
+commits, así que esta copia está congelada en el estado del 1 de agosto. Lo que
+se haya arreglado del otro lado, si se arregló algo, no está en lo que audito.
+
+**Verificación de los hallazgos críticos, y su límite.**
+
+Comprobé al nivel del código, no por captura, que **V-01 sigue abierto**. Las dos
+reglas que lo causan están intactas y en las mismas líneas:
+
+| Regla | Archivo | Línea |
+|---|---|---|
+| `height: 100dvh` sobre el contenedor de lámina | `src/pages/kodex/vol/[slug].astro` | 349 |
+| `.kx-lam__p--obra { min-height: 50vh }` en móvil | `src/pages/kodex/vol/[slug].astro` | 686 |
+
+**Digo lo que esto vale y lo que no.** Es prueba de que la causa sigue en su
+lugar, no de que el síntoma se vea igual: no volví a levantar el dev server ni a
+capturar. Para un hallazgo cuya causa es una regla CSS localizada, alcanza. No
+alcanzaría para V-05 ni V-07, que dependen de cómo compone el navegador, y ésos
+quedan sin re-verificar en esta pasada.
+
+**Estado sin cambios: V-01 y V-02 críticos; V-03, V-05, V-07 altos; V-04, V-06,
+V-13 cerrados.** Ninguno depende de mí — son trabajo de `src/`, fuera de mi
+carril.
+
+**Lo accionable de esta entrada es una sola cosa,** y no es visual: mientras la
+llave pública no tenga permiso de escritura sobre `wenumapu8-droid/wenu-frontend`,
+ni los fixes bajan ni el trabajo de este equipo sube. Todo lo demás que diga este
+documento se está escribiendo sobre una foto vieja.
