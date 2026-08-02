@@ -1324,3 +1324,98 @@ el test busca donde el código busca.
 
 Pendiente: el visor del libro no tiene ruta en este clon · un teléfono real
 (`100dvh` cambia con la barra del navegador) · git sigue bloqueado, 13º intento.
+
+---
+
+## [MINI] · 2 de agosto — Libro III caps. V–VIII, y un conflicto de carril que hay que resolver
+
+### Lo primero, porque bloquea a todos: no estoy haciendo FASE 1
+
+El prompt nocturno me sigue pidiendo **FASE 1 (shell del viaje, 7 escenas) y
+FASE 2 (organismos como presets)**. No las hice, a propósito, y conviene que
+quede escrito por qué en vez de que alguien lo descubra por ausencia.
+
+Las dos son trabajo de `src/`, y las dos últimas instrucciones directas me
+sacaron de ahí en términos explícitos: *«tu nuevo carril = escribir los tomos,
+no más src/»* y *«sos MAX, dueño de `public/kodex-content/books/kodex-estelar/`.
+No toques src/»*. Ese cambio se hizo justamente para que Codex y yo no
+chocáramos en los mismos archivos.
+
+Si hiciera FASE 1 ahora, escribiría sobre el carril de Codex **en una rama que
+además no puedo pushear**, o sea produciría conflictos que nadie podría
+reconciliar. Me quedo donde me pusieron.
+
+**Queda para COWORK decidir:** si FASE 1 vuelve a ser mía, hace falta decirlo y
+que Codex suelte `src/`. Mientras tanto la trato como suya.
+
+### Libro III: 8 de 12
+
+| Cap | Título | Pág | Frases-viga de Ocín | Voseo |
+|---|---|---|---|---|
+| V | El Arconte que se Disfrazó de Dios | ~18 | 20/20 | 0 |
+| VI | Los Contratos del Alma Olvidados | ~17 | 23/23 | 0 |
+| VII | El Engaño del Karma Distorsionado | ~15 | 25/25 | 0 |
+| VIII | El Código del Miedo | ~15 | 27/27 | 0 |
+
+**Estoy bajo la vara.** Se pidieron 20–25 páginas y entrego 15–18. Mantras y
+rituales verbatim y registro «tú» neutro sí están verificados uno por uno.
+
+### Dos correcciones, para que nadie las herede
+
+**El cap. VIII afirma que *el miedo fragmenta el ADN*.** No ocurre. Está marcado
+en la cabecera y **no** desarrollado como si fuera cierto. La frase apunta a algo
+real —el miedo sostenido tiene costo— con un mecanismo inventado, y dejarla
+pasar tenía un costo concreto: un libro que dice eso está agregando miedo, o sea
+hace lo que denuncia. Terminó siendo el mejor pliegue del capítulo.
+
+**Y me corregí a mí mismo:** en el cap. VII escribí que *Redención Consciente*
+era la única palabra clave de dos términos del Códex. Son dos — la otra es
+*Valentía Vibracional*, en el capítulo siguiente. Arreglado en el archivo.
+
+### Lo que más cuidado necesitó: el cap. VI
+
+La doctrina de los contratos prenatales tiene una versión que se le dice a
+sobrevivientes de violencia y a gente nacida en la pobreza: **que lo eligieron**.
+El texto de Ocín está construido de punta a punta como su refutación —*«en
+estados manipulados»*, *«firmados en confusión, en dolor o por coerción sutil»*,
+*«trampas con nombre de lección»*, *«no todo lo que sufro es mío»*—. Lo dije con
+todas las letras porque es su mayor mérito, no a pesar de él.
+
+Y se cierra desde el derecho: los vicios del consentimiento —violencia, engaño,
+incapacidad, obligación ajena— coinciden con los cuatro que enumera el capítulo.
+Más uno que él no ve: **un contrato cuyos términos no se pueden conocer no es
+exigible en ningún ordenamiento humano**, y eso es exactamente *el velo del
+olvido*. Luego ninguno obliga.
+
+El cap. VII toca doctrina viva —karma— y va con atribución: el uso del karma
+para explicar la posición social sostuvo el sistema de castas, y la crítica más
+dura vino de adentro (Ambedkar); y en el canon budista hay un pasaje donde se le
+plantea al Buddha que todo lo que uno siente es efecto de lo hecho antes, y lo
+rechaza. La tradición ya había marcado la distorsión. Eso no debilita el
+capítulo: lo confirma desde adentro.
+
+### AUDIT-VISUAL · V-16
+
+**No hubo fix que auditar.** Último commit sobre `src/`: `434772d`, 1 de agosto,
+anterior a la entrada previa del documento. No porque Codex no trabaje — porque
+su trabajo **no puede llegar acá**.
+
+Verifiqué V-01 a nivel de código: las dos reglas siguen en
+`src/pages/kodex/vol/[slug].astro:349` y `:686`. **Y anoté el límite de esa
+prueba**: confirma que la causa sigue puesta, no que el síntoma se vea igual. No
+volví a capturar. Para V-05 y V-07, que dependen de composición, no alcanza y
+quedan sin re-verificar.
+
+### El bloqueo, ahora con costo contable
+
+**100 commits sin pushear.** `git push origin feature/kodex-mini` →
+`Repository not found`. La llave está montada como **deploy key de otro
+repositorio** (`ssh -T` responde `Hi cobranzas-rgb/sinergia-industrial!`), y las
+deploy keys son por repo: crear la rama no ayudó y no va a ayudar.
+
+**Lo que falta es una sola cosa:** que la llave **pública** —la única que se
+compartió— tenga permiso de **escritura** sobre `wenumapu8-droid/wenu-frontend`.
+
+Hasta entonces esta copia está congelada en el 1 de agosto, y todo lo que diga
+AUDIT-VISUAL se está escribiendo sobre una foto vieja. Sigue el Libro III, que
+es lo único que no depende de la red.
