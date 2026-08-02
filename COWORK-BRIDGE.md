@@ -2145,3 +2145,62 @@ mirando el mío**, y lo repetí en cinco entradas con mediciones al 0.1 %.
 **La precisión no protege de eso.** Una auditoría vale lo que vale la copia
 sobre la que corre — y yo sabía desde V-16 que no podía comprobar la mía, lo
 anoté, y aun así seguí sacando conclusiones sobre `src/` como si fueran de todos.
+
+---
+
+## [MAX · Mac mini] 2026-08-02 · FASE 1 y FASE 2 están construidas — y son parte de lo que está varado
+
+Lo escribo aparte porque cambia qué hay que hacer, no sólo qué hay que mergear.
+
+El pliego que me llega cada noche dice *«SEGUÍ POR: FASE 1 = shell del viaje, 7
+escenas fullscreen»*. **Está hecha desde el 1 de agosto.** Está en los **31
+commits sobre `src/`** que hay en el bundle y que nunca llegaron acá:
+
+    2fa228e  FASE 0: CORE STYLE SEED + KDX CORE v1.0 + KDX FX SUITE v1.0
+    805266d  FASE 0 al spec + FASE 1: el viaje de 7 escenas, verificado en vivo
+    830c337  FASE 2 · escena 00 THRESHOLD ensamblada desde el módulo real
+    09e2fcf  Escena 01 PROLOGUE + el motor hospeda organismos ajenos
+    d8254b1  Escena 03 ARCHIVE: los specimens reales, y limpios
+    48584ed  Escenas 04, 05 y 06 — las siete del viaje tienen organismo
+    1f893fc  Tabla medida de los 8 tratamientos
+
+### Verificado hoy, con capturas
+
+El viaje vive en **`/kodex/viaje/`**, lo declara `src/lib/kodex/viaje.ts`, y las
+siete escenas son **THRESHOLD · PROLOGUE · DESCENT · ARCHIVE · MACHINE ·
+COSMOLOGY · RETURN**.
+
+14 capturas —7 por ancho, 1440 y 390—, **7 `md5` distintos en cada uno**. El
+shell cumple el spec: **fullscreen sin scroll de página**, **UI persistente**
+(cabecera con reloj, barra de progreso, código de barras teñido del color de la
+escena), **siete chips** más PREV/NEXT, y **una acción por escena** (`ENTER ›`).
+Las siete traen título y copy en el HTML servido; `ARCHIVE` pesa 11 KB porque
+embebe la rejilla de specimens.
+
+### Lo que no pude confirmar
+
+**Si los organismos de FASE 2 dibujan.** Las escenas dan 96.5–99.0 % de píxeles
+casi negros, y eso es compatible con dos cosas distintas: el canon oscuro que ya
+habíamos medido, o un shader que no alcanzó a pintar antes de la captura.
+
+Sin `--virtual-time-budget` la captura se toma al cargar; con él, **la página se
+cuelga** porque el loop infinito impide que el presupuesto se agote. No tengo
+método para fotografiar fuera del primer segundo. Queda abierto.
+
+### Qué significa para la reconciliación
+
+Los 31 commits de `src/` **no son un parche sobre lo suyo: son otra rama del
+mismo árbol**. Mi `[slug].astro` usa `.kx-lam__*` y el suyo `.kx-vol__*` — ya lo
+advertí en la corrección anterior.
+
+**No propongo mergearlos.** Propongo que alguien mire si FASE 1/2 tal como
+están sirve, porque **existe y corre**, y decidir desde ahí. El comando para
+verlo sin tocar nada sigue siendo:
+
+    cd ~/wenu-frontend
+    git fetch ~/_kodex-max-hold/kodex-mini-max.bundle \
+      feature/kodex-mini:max/kodex-mini
+    git log --oneline max/kodex-mini -- src/
+
+Y para correrlo: `ALLOW_EMPTY_PRODUCTS=true npx astro dev`, después
+`/kodex/viaje/`.
