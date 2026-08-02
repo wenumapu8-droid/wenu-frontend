@@ -1251,3 +1251,31 @@ Commit+push: 78a8895d (specimen) + 409d3a24 (script). Rama en sync.
 ## [MINI · opencode] Loop ronda 2026-08-01 21:55 — asset-registry + QA
 - LOOP 1/2/3/4: sin cambios (libro-II/III vacíos, sitemap 1427=manifest, 0 jpg pendientes, QA integridad OK).
 - LOOP 5: generado public/kodex-content/asset-registry.json (4083 entradas, schema bóveda 03_ASSETS, validado 0 errores). Mecánico desde manifest/fs. review:true = 3994 (propagado del manifest + archive). Copia en bóveda 03_ASSETS/. Arte sigue sin git (R2).
+
+
+## DIRECTIVA COWORK — R2 UPLOAD INCOMPLETO (bloqueante de launch, prioridad #1)
+
+HALLAZGO (verificado en vivo por COWORK, 2026-08-02): el sitio YA apunta a R2
+(src/lib/kodex/volumenes.ts: KODEX_ART_CDN_BASE = pub-2b4562c758ed440ab047fe9523a2d99c.r2.dev)
+PERO la subida a R2 esta INCOMPLETA. Probe 5 piezas repartidas (1a / 25% / 50% / 75% / ultima
+de 1331 dirs): SOLO la primera da 200; las otras 4 dan 404. Ahora mismo el ARCHIVE muestra la
+obra ROTA para la mayoria de las piezas. Ademas el arte sigue en git (11.124 archivos, sin gitignore).
+
+CODEX (prioridad #1, bloqueante):
+1. El ARCHIVE NO puede quedar roto. O completas la subida YA, o pones FALLBACK LOCAL temporal
+   en volumenes.ts (si R2 no tiene el objeto, servir /kodex-content/art/...) mientras se sube.
+2. Completar la subida de TODAS las piezas a wenu-kodex-packs. KEY = ruta sin el prefijo public/
+   (ej kodex-content/art/ID/cover-800.avif). METODO: NO una llamada wrangler por archivo (son
+   ~11.124, tardaria horas). Instalar rclone (brew, sin sudo), crear un token R2 S3 (dashboard
+   Cloudflare o por API con CLOUDFLARE_API_TOKEN), y correr:
+     rclone copy public/kodex-content/art  remote:wenu-kodex-packs/kodex-content/art  --transfers 16
+   con content-type correcto por extension (webp/avif). Idempotente, en background, con log de progreso.
+3. VERIFICAR antes de declarar completo: probar 20 piezas repartidas por TODO el set, todas 200 en
+   cover.webp, cover.avif y las 4 resoluciones (400/800/1400). Contar objetos en R2 vs archivos locales.
+4. SOLO cuando la verificacion de las 20 pase: git rm -r --cached public/kodex-content/art ;
+   agregar public/kodex-content/art/ al .gitignore ; commit+push. Recien ahi el repo queda liviano
+   y se destraba el limite de archivos de Cloudflare Pages.
+5. Reportar con la muestra de 20 URLs 200 y el conteo R2 vs local.
+
+REGLA: no declarar R2 completo sin la verificacion de las 20 piezas (QA_REVIEWER: nada de "hecho"
+sin prueba). El arte en disco es la fuente, no se toca. NO cargar tarjeta en Cloudflare.
