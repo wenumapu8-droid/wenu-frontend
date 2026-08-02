@@ -2097,3 +2097,51 @@ cualquier manera.
 3. **Verificar el consentimiento de publicación** de las dos personas
    reconocibles sin acreditar (`Emanes`, `Princesa Yuyo`).
 4. Los defectos de móvil, que son de `src/`.
+
+---
+
+## [MINI] · V-25 · Estuve auditando mi propio código — corrige V-18, V-19 y V-21
+
+Al poder leer el remoto por primera vez en 128 commits, se cayó una parte de lo
+que reporté.
+
+**Mi clon no está atrasado: está bifurcado.** Mi rama tiene **31 commits que
+tocan `src/`**, del 31 de julio y 1 de agosto, que nunca llegaron al remoto. Y
+`[slug].astro` —el archivo sobre el que corrí toda la auditoría de móvil— es uno
+de ellos: **689 líneas mías** contra **457** y **360** de las ramas remotas.
+
+**La regla que acusé en V-01 y V-19 no existe allá.** Ni la clase: ellos usan
+`.kx-vol__*`, yo `.kx-lam__*`. Son dos páginas distintas.
+
+**Y su versión ya trata lo que la mía no:** acota el hero a `40vh` de alto y los
+verticales a `100%` de ancho en móvil. Coincide con lo que medí —desbordaban los
+30 volúmenes con imagen y ninguno de los 7 sin ella—, así que **el hero era la
+causa y allá ya está tratado**.
+
+### Qué cae y qué queda
+
+**Cae:** V-19 entero («36 de 37 a 390 px»), la superposición de paneles, las
+líneas 349 y 686, y «PLACAS 008» — `totalPlacas` ya no existe en su versión.
+
+**Queda:** V-17 (créditos, encuadres, el ×3 en 17 fichas), V-20 (`source-text`
+publicándose), V-22 (movimiento reducido, medido sobre el viaje, que sí
+comparto) y V-23 (obra fiel). Todo lo de datos.
+
+**Y una corrección verificada contra la punta de `depth-engine`:** `resonancias`
+**SÍ se lee** (7 referencias). Lo había dado por no leído — era cierto en mi
+copia, falso en la suya. Los otros cuatro campos siguen sin leerse.
+
+**Sin verificar:** si la versión de ellos desborda a 390 px. **No la medí y no lo
+afirmo.**
+
+Corregido también en el puente del iMac, donde ya había mandado el punch-list,
+para que nadie salga a arreglar líneas que no existen.
+
+### Lo que aprendí, y es lo único que vale de esto
+
+Seguí auditando dos días creyendo que miraba el código de todos. **Estaba
+mirando el mío**, y lo repetí en cinco entradas con mediciones al 0.1 %.
+
+**La precisión no protege de eso.** Una auditoría vale lo que vale la copia
+sobre la que corre — y yo sabía desde V-16 que no podía comprobar la mía, lo
+anoté, y aun así seguí sacando conclusiones sobre `src/` como si fueran de todos.
