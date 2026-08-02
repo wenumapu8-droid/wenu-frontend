@@ -1664,3 +1664,80 @@ reversible: `scripts/corregir_creditos_y_conteos.py`.
 
 **113 commits sin pushear.** Sigue faltando permiso de escritura de la llave
 sobre `wenumapu8-droid/wenu-frontend`.
+
+---
+
+## [MINI] · Capturé la curaduría y descubrí que la mitad no se veía
+
+Cambié dieciocho fichas y las di por hechas **sin abrir una sola página**. Al
+capturarlas aparecieron cuatro cosas. Tres eran mías.
+
+### Lo que importa para Codex (es de `src/`, no lo toco)
+
+**Cinco campos del manifiesto que nadie lee.** Verificado con `grep` sobre
+`src/pages/kodex/vol/[slug].astro` y el resolver:
+
+| Campo | ¿lo dibuja la lámina? |
+|---|---|
+| `curaduria_es` / `curaduria_en` · `marco` | **sí** |
+| `titulo_real` · `credito_en_lamina` · `coautoria` · `resonancias` · `obras_reales` | **no** |
+
+Consecuencia visible: la página sigue titulando **«Emanes (act3), Pichilemu»**
+aunque el manifiesto ya diga otra cosa. **Todo el trabajo de `titulo_real` y
+`resonancias`, en 37 volúmenes, hoy es invisible.** No es un bug — nunca se
+conectó.
+
+**Y el error de conteo de V-17 vive también en la interfaz.**
+`[slug].astro:56` hace `totalPlacas = (v.assets ?? []).length`, y `assets` trae
+los derivados tratados. Por eso el dossier de `Santiago` dice **PLACAS 008**
+cuando el volumen tiene **dos** originales, y la tira anuncia «8 placas en el
+archivo» mostrando siete miniaturas de las mismas dos fotos. El campo
+`obras_reales` ya está en el manifiesto con el número bueno.
+
+### Lo mío, y es lo más serio del lote
+
+**Registré los créditos en un campo que nadie muestra.** Medido sobre el HTML
+servido, antes de arreglarlo:
+
+    "Claudio Pino"      → 0 apariciones
+    "Alejandro Martín"  → 0 apariciones
+    "Jesús Alejandro"   → 0 apariciones
+
+O sea: para quien visitaba el sitio, **esas personas seguían sin crédito**.
+Guardar un dato no es publicarlo. Ahora los nombres están dentro del texto de
+curaduría —que sí se dibuja— y dan 5 apariciones cada uno. Es lo que en V-15
+había funcionado sin que yo entendiera por qué.
+
+**Y dejé una contradicción en pantalla.** La captura de `Santiago` mostraba la
+ficha diciendo «No es moda» y tres líneas más abajo el sistema imprimiendo
+**`TEMA · FASHION`**. El campo `tema` guardaba **la categoría que puso
+Behance** —la misma fuente que ya sabíamos que no trae créditos— y contradecía
+la ficha en **6 de 8**. Siete corregidos con lo verificado abriendo la lámina;
+lo que decía Behance queda en `tema_behance`.
+
+### Lo que sí salió bien
+
+**Ninguna ficha se trunca**, en los dos idiomas y en los dos anchos. El techo de
+~480 caracteres se sostiene: la más larga quedó en 392.
+
+**V-01 se refina con prueba visual, no con `grep`:** la lámina recorta **según
+la proporción**. `Emanes` (vertical) se corta abajo; `Santiago` (apaisada) se ve
+entera. Eso es más útil para quien lo arregle que la regla CSS que anoté en V-16.
+
+### Tres errores de método, para que no se repitan
+
+1. Levanté el dev server **sin `ALLOW_EMPTY_PRODUCTS=true`**; todo devolvió 500.
+   Capturé cuatro volúmenes y salieron **byte a byte idénticos** — cuatro fotos
+   de la misma pantalla de error. Casi lo reporto como fallo de ruteo.
+2. Edité el manifiesto y volví a medir **sin reiniciar el server** (V-10, otra
+   vez). Los nombres seguían dando cero. No era el arreglo: era el caché.
+3. Busqué «Iván Orrego» en el volumen equivocado, dio 0, y estuve a punto de
+   anotar que el crédito de V-15 se había perdido. Estaba en su página, cinco
+   veces. **El test estaba mal, no el dato** — igual que en V-04.
+
+La regla se confirma una vez más: **una captura no prueba nada si no se
+comprueba antes que el entorno está sano y que el test busca donde el código
+busca.**
+
+**115 commits sin pushear.** Sigue faltando permiso de escritura de la llave
+sobre `wenumapu8-droid/wenu-frontend`.
