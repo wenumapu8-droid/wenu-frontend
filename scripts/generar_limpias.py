@@ -54,16 +54,25 @@ CALIDAD = 88
 EXT = {".webp", ".png", ".jpg", ".jpeg", ".gif", ".avif"}
 
 
+# Los originales no siempre viven en `raw/`. `prototipos` los tiene en
+# `capturas/`, y por buscar sólo en `raw/` la primera pasada lo saltó en
+# silencio: quedó sirviendo `kodex-blacksun.dither.webp` como hero, o sea
+# **obra tratada por defecto**, que es exactamente lo que la regla dura
+# prohíbe. Un único volumen, pero la regla no admite excepciones.
+CARPETAS_ORIGEN = ("raw", "capturas", "originales")
+
+
 def originales_de(vid: str) -> dict[str, pathlib.Path]:
     """{stem: ruta} de los originales sin tratar del volumen."""
-    d = VOL / vid / "raw"
-    if not d.exists():
-        return {}
-    return {
-        f.stem: f
-        for f in sorted(d.iterdir())
-        if f.suffix.lower() in EXT and f.is_file()
-    }
+    out: dict[str, pathlib.Path] = {}
+    for nombre in CARPETAS_ORIGEN:
+        d = VOL / vid / nombre
+        if not d.exists():
+            continue
+        for f in sorted(d.iterdir()):
+            if f.suffix.lower() in EXT and f.is_file():
+                out.setdefault(f.stem, f)
+    return out
 
 
 def generar(origen: pathlib.Path, destino: pathlib.Path) -> tuple[int, str]:
