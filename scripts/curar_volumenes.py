@@ -192,17 +192,23 @@ CURADURIA = {
     "behance-212025419": dict(
         titulo="Soma mushroom elixir",
         marco="documentado",
+        # Ampliada tras mirar la obra: el hallazgo es que la roseta del logo es
+        # LA MISMA de `patrones` (2021) y de los sigilos del archivo.
         curaduria_es=(
-            "Ciento veintitrés piezas de un proyecto integral, 2024: identidad, fotografía, packaging y "
-            "diseño editorial para una marca de elixir. Es el volumen más extenso del portafolio y el que "
-            "muestra el sistema visual completo aplicado a un producto real."
+            "Identidad, packaging y fotografía para una marca de elixires, 2024. Lata con degradado de "
+            "verde a rojo sobre fondo rosa, hongos secos y roca volcánica en el set: bodegón de producto "
+            "con puesta de escena. **El sello de la marca es la misma roseta de trazo fino que aparece en "
+            "«patrones» en 2021 y en los sigilos del archivo — el motivo cruza trece años y cambia de "
+            "función: de patrón textil a marca comercial. Ciento veintitrés piezas, el volumen más extenso."
         ),
         curaduria_en=(
-            "One hundred and twenty-three pieces from an integrated project, 2024: identity, photography, "
-            "packaging and editorial design for an elixir brand. The portfolio's largest volume, and the "
-            "one showing the full visual system applied to a real product."
+            "Identity, packaging and photography for an elixir brand, 2024. A can graded from green to red "
+            "against pink, with dried mushrooms and volcanic rock in the set: product still life with "
+            "staging. **The brand mark is the same fine-line rosette that appears in “patrones” in 2021 "
+            "and in the archive sigils — the motif crosses thirteen years and changes function: from "
+            "textile pattern to commercial mark. One hundred and twenty-three pieces, the largest volume."
         ),
-        resonancias=["identidad de marca", "packaging", "editorial", "fotografía de producto"],
+        resonancias=["roseta", "continuidad del motivo", "packaging", "bodegón de producto"],
     ),
     "behance-212026161": dict(
         titulo="Ascensión a la Visión Solar",
@@ -231,20 +237,29 @@ CURADURIA = {
         ),
         resonancias=["styleframing", "serie en partes", "gramática textil"],
     ),
+    # CORREGIDA tras mirar la lámina. La versión anterior salía de los metadatos
+    # y decía "metodología y no imagen" — es las dos cosas. Y omitía lo que la
+    # propia lámina declara al pie: es un trabajo ACADÉMICO y va CO-FIRMADO.
+    # Atribuirlo entero a Ocín habría sido un error de crédito.
     "behance-116131849": dict(
-        titulo="Aborígenes Cósmicos — diseño de servicios",
+        titulo="Aborígenes Cósmicos — intervenciones",
         marco="documentado",
         curaduria_es=(
-            "Cuarenta y ocho piezas de diseño de servicios, 2021. El título nombra el cruce que después "
-            "organiza todo KODEX —lo ancestral y lo cósmico en una sola expresión— y aquí aparece por "
-            "primera vez, aplicado a un trabajo de metodología y no de imagen."
+            "Axonometría isométrica de una intervención nocturna: barra, pista, cabina, cola de entrada y "
+            "cincuenta y tantas figuras en movimiento, resueltas en naranja, magenta y azul plenos. Un "
+            "plano de servicio dibujado como escena. Trabajo de taller en Duoc UC —Diseño de Servicios y "
+            "Experiencias, docente Luis Elizondo O.— **firmado junto a Nicolás Silva**. El título nombra "
+            "el cruce que años después organiza todo KODEX, y aquí aparece por primera vez."
         ),
         curaduria_en=(
-            "Forty-eight service-design pieces, 2021. The title names the crossing that later organizes all "
-            "of KODEX —the ancestral and the cosmic in a single phrase— and here it appears for the first "
-            "time, applied to methodology rather than to image."
+            "Isometric axonometry of a nightlife intervention: bar, dance floor, booth, entrance queue and "
+            "some fifty figures in motion, resolved in flat orange, magenta and blue. A service blueprint "
+            "drawn as a scene. Studio work at Duoc UC —Service and Experience Design, tutor Luis Elizondo "
+            "O.— co-signed with Nicolás Silva. The title names the crossing that years later organizes "
+            "all of KODEX, and here it appears for the first time."
         ),
-        resonancias=["diseño de servicios", "neo-ancestral", "metodología"],
+        resonancias=["axonometría", "diseño de servicios", "neo-ancestral", "obra en coautoría"],
+        coautoria="Nicolás Silva · Nicolás Ortega G. (Duoc UC)",
     ),
     "behance-116132027": dict(
         titulo="Hidro Espiral Solar — prototipo",
@@ -610,6 +625,23 @@ CURADURIA = {
 }
 
 
+def limpiar(texto: str) -> str:
+    """Quita el énfasis de markdown de una ficha.
+
+    La lámina dibuja `curaduria_*` como TEXTO PLANO. Un `**así**` no se ve en
+    negrita: se ve con los asteriscos. Me pasó al escribir la ficha de
+    `behance-116131849` y quedó `**firmado junto a Nicolás Silva**` a la vista
+    en la página.
+
+    Se sanea acá y no en cada string porque el error es fácil de repetir —uno
+    escribe en markdown por costumbre— y una regla que se aplica sola no se
+    olvida.
+    """
+    if not isinstance(texto, str):
+        return texto
+    return texto.replace("**", "").replace("__", "")
+
+
 def main() -> int:
     if not MANIFIESTO.exists():
         print(f"no está {MANIFIESTO}", file=sys.stderr)
@@ -627,7 +659,8 @@ def main() -> int:
     for vid, campos in CURADURIA.items():
         vol = por_id[vid]
         antes = json.dumps(vol, ensure_ascii=False, sort_keys=True)
-        vol.update(campos)
+        vol.update({k: limpiar(v) if k.startswith("curaduria") else v
+                    for k, v in campos.items()})
         if json.dumps(vol, ensure_ascii=False, sort_keys=True) != antes:
             tocados += 1
 
