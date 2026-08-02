@@ -1166,3 +1166,25 @@ Ingesté las 1308 obras únicas de las dos fuentes (uploads sesión + kodex-art-
 - 1330 specimens `review:true` en manifest (curaduría VACÍA, título/categoría tentativos del filename — pendiente tu curaduría).
 - 1330 wallpapers free (mobile+desktop) registrados en free_assets.wallpapers.
 - Commits: 2e2e4f8 (tanda 1) + 877713ff (tanda 2). Loop por archivos nuevos: 0 restantes.
+
+
+## DIRECTIVA COWORK — migrar arte KODEX a R2 (pipeline validado en vivo)
+
+CONTEXTO: Ocin ya activo R2 (10GB free, sin tarjeta) para alojar TODO su arte KODEX. El arte NO debe vivir en git. COWORK lo commiteo a git por error (730MB, 10.597 archivos, commit blindar-arte-opencode-covers-responsivos). Hay que MOVERLO a R2 y sacarlo de git.
+
+VALIDADO por COWORK (probado, no teoria):
+- Bucket: wenu-kodex-packs (publico, acceso managed habilitado).
+- Base URL publica: https://pub-2b4562c758ed440ab047fe9523a2d99c.r2.dev
+- Pipeline probado con wrangler 4.93.1 (instalado en el nvm):
+  wrangler r2 object put wenu-kodex-packs/KEY --file=F --content-type=CT --remote
+  donde KEY = ruta del archivo SIN el prefijo public/ (ej: kodex-content/art/ID/cover.webp).
+- Verificado: GET a la base + KEY devolvio HTTP 200, content-type image/webp, 72KB. Sirve perfecto.
+- Aviso: macOS 12.6 esta por debajo del minimo de wrangler (13.5) pero funciona igual.
+
+CODEX (ejecutar, es tuyo):
+1. Subir TODOS los archivos de public/kodex-content/art (10.597, 730MB) a R2 con ese esquema de KEY. Elegi la herramienta mas rapida y fiable: rclone (instalable por brew sin sudo, con un token R2 S3) es mucho mas rapido que wrangler en loop para 10k archivos; si no, wrangler con paralelismo. Content-type correcto por extension (image/webp, image/avif). Idempotente, con log de progreso, en background.
+2. Cablear el frontend: donde el sitio referencia /kodex-content/art/... para el arte, anteponer la base R2 via UNA constante de config (ej ART_CDN_BASE en un solo lugar). Dejar fallback local para dev si conviene.
+3. Cuando el arte este servido desde R2 y verificado (varias URLs 200 image/webp y avif): SACAR el arte de git -> git rm -r --cached public/kodex-content/art ; agregar public/kodex-content/art/ al .gitignore ; commit. Repo liviano otra vez.
+4. Verificar EN VIVO que /kodex/works y las vol pages cargan el arte desde R2 (dominio r2.dev), no local. Reportar con URLs de muestra y capturas.
+
+REGLAS: no tocar el arte en disco (es fuente + copia LaCie). NO cargar tarjeta en Cloudflare. No romper el resto del sitio. Serializado con el fix de folio/iv.
