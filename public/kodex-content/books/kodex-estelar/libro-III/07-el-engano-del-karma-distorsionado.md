@@ -328,7 +328,7 @@ Y conviene decirlo por lo práctico: quemar una pluma sobre una vela huele muy m
 
 **Redención Consciente.**
 
-La única palabra clave de dos términos en todo el Códex, y hay que ver por qué necesita las dos.
+Una de las dos palabras clave de dos términos que tiene el Códex —la otra es *Valentía Vibracional*, en el capítulo siguiente—, y hay que ver por qué necesita las dos.
 
 **Redención** sola sería una rendición del capítulo entero. Es una palabra de contabilidad: *redimir* es rescatar algo que estaba empeñado, pagando. Un capítulo que niega la deuda no puede terminar en una palabra que la supone.
 
