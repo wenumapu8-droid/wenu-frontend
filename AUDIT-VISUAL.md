@@ -788,3 +788,113 @@ con crédito de terceros registrado, siete marcados `requiere_fuente_mapuche`.
 
 Script: `scripts/corregir_creditos_y_conteos.py`, reversible con `git checkout`
 del manifiesto.
+
+---
+
+## V-18 · Miré en pantalla lo que había escrito, y la mitad no se veía
+
+Cambié dieciocho fichas en V-17 y las di por hechas **sin abrir una sola página**.
+Al capturarlas aparecieron cuatro cosas, y tres son mías.
+
+### 1. Registré los créditos en un campo que nadie lee
+
+En V-17 puse los nombres en `credito_en_lamina`. Ese campo **no se lee en
+ninguna parte** de `src/pages/kodex/vol/[slug].astro`. Medido sobre el HTML
+servido:
+
+| | antes | después |
+|---|---|---|
+| «Claudio Pino» en `Santiago` | **0** | 5 |
+| «Alejandro Martín» en `Catálogo 2019` | **0** | 5 |
+| «Jesús Alejandro» en `Catálogo 2019` | **0** | 5 |
+| «De lo Absurdo» en `Quinto fuego` | **0** | 5 |
+
+Para quien visitaba el sitio, **esas personas seguían sin crédito**. Guardar un
+dato no es publicarlo.
+
+Lo que sí funcionaba era lo que hice en V-15 sin saber por qué: allí los nombres
+quedaron dentro de `curaduria_es`, que la lámina sí dibuja. Por eso «GeoRoder»
+aparece 21 veces en su página y «Iván Orrego» 5 en la suya.
+
+Corregido: los nombres van ahora en el texto que se muestra (`scripts/creditos_visibles.py`).
+`credito_en_lamina` se conserva para el día que la lámina lo lea.
+
+### 2. Cinco campos escritos que el sitio no lee
+
+Verificado con `grep` sobre la plantilla y el resolver:
+
+| Campo | ¿lo lee la lámina? |
+|---|---|
+| `curaduria_es` / `curaduria_en` | **sí** |
+| `marco` | **sí** |
+| `titulo_real` | no |
+| `credito_en_lamina` | no |
+| `coautoria` | no |
+| `resonancias` | no |
+| `obras_reales` | no |
+
+O sea: la página sigue titulando **«Emanes (act3), Pichilemu»** aunque el
+manifiesto ya diga «Emanes (acto 3)». Todo el trabajo de `titulo_real` y
+`resonancias`, en 37 volúmenes, **hoy es invisible**. No es un bug: nunca se
+conectó. Queda para `src/`, que no es mi carril.
+
+### 3. «PLACAS 008» donde hay 2 láminas — el mismo error mío, pero en la interfaz
+
+`[slug].astro:56` hace `const totalPlacas = (v.assets ?? []).length`, y `assets`
+trae **los derivados tratados**. Por eso el dossier de `Santiago` dice **008**
+cuando el volumen tiene **dos** originales, y la tira inferior anuncia «8 PLACAS
+EN EL ARCHIVO» mostrando siete miniaturas de las mismas dos fotos.
+
+Es exactamente el error que corregí en las fichas en V-17, viviendo también en
+el chrome de la página. El campo `obras_reales` ya está en el manifiesto con el
+número bueno. Cambiar la línea es de `src/`.
+
+### 4. Y una contradicción que dejé en pantalla
+
+La captura de `Santiago` mostraba la curaduría diciendo **«No es moda»** y tres
+líneas más abajo el sistema imprimiendo **`TEMA · FASHION`**.
+
+El campo `tema`, en los volúmenes importados, guarda **la categoría que puso
+Behance** — la misma fuente que en V-15 ya se había mostrado poco fiable, porque
+nunca trae los créditos. Aquí además clasifica mal: contradecía la ficha en
+**6 de 8**.
+
+Corregidos siete, con lo verificado abriendo la lámina. Lo que decía Behance se
+conserva en `tema_behance`.
+
+| Volumen | Behance decía | Dice ahora |
+|---|---|---|
+| Santiago | Fashion | Fotografía callejera |
+| Emanes | Photography | Obra de protesta |
+| Catálogo 2019 | Photography | Catálogo comercial |
+| Quinto fuego | Set Design | Escenografía virtual |
+| Princesa yuyo | Styleframing | Composición en espejo |
+| TranaluÜkai | Product Design | Planos técnicos |
+| Render | Industrial Design | Render de arquitectura |
+
+### Lo que sí salió bien
+
+**Ninguna ficha se trunca.** Las dieciocho entran completas en los dos idiomas,
+desktop y móvil. El techo de ~480 caracteres se sostiene: la más larga quedó en
+392.
+
+**Y V-01 se refina con prueba visual, no con `grep`.** En `Emanes` (lámina
+vertical) la obra **se corta abajo**. En `Santiago` (apaisada) **se ve entera**.
+No es que la lámina recorte siempre: recorta **según la proporción**. Eso es más
+útil para quien lo arregle que lo que anoté en V-16, que era sólo la regla CSS.
+
+### Y dos errores míos de método, otra vez
+
+- Levanté el dev server **sin `ALLOW_EMPTY_PRODUCTS=true`** y las páginas
+  devolvieron 500. Capturé cuatro volúmenes y salieron **byte a byte idénticos**:
+  eran cuatro fotos de la misma pantalla de error. Casi lo reporto como fallo de
+  ruteo.
+- Después edité el manifiesto y volví a medir **sin reiniciar el server** —
+  V-10, otra vez— y los nombres seguían dando cero. No era el arreglo: era el
+  caché.
+- Y busqué «Iván Orrego» en el volumen equivocado, di 0, y estuve a punto de
+  anotar que el crédito de V-15 se había perdido. Estaba en su página, cinco
+  veces. **El test estaba mal, no el dato** — igual que en V-04.
+
+`md5` de las capturas: **12 de 12 distintas** una vez arreglado el entorno.
+Cero procesos Chrome huérfanos al terminar.
