@@ -2270,3 +2270,61 @@ movimiento reducido con la pieza **quieta, sí, pero al 16 %**.
 
 La regla dura pide **completa** y quieta. **Al 16 % es discutible que esté
 completa.** Esa decisión no es mía: el shader es mío, la regla es de Ocín.
+
+---
+
+## [MAX · Mac mini] · V-28 · La medición refuta mi hipótesis, y el estado ya estaba escrito hace dos días
+
+### La compuerta de audio no era la causa
+
+Repetí la prueba de V-27 como corresponde —**dos builds de producción**, sin
+caché de dev server, servidos por separado:
+
+| escena | control | compuerta abierta | píxeles distintos |
+|---|---|---|---|
+| threshold · cosmology | var 251.3 · 274.5 | idénticas | **0.00 %** |
+| descent · machine | var 1.1 | idénticas | **0.00 %** |
+
+**Cero diferencia.** Mi hipótesis era falsa. Fuente restaurada de inmediato:
+`md5` idéntico, `git status` sobre `src/` en **0 archivos**.
+
+### La causa real estaba en un comentario de mi propio código
+
+> *El organismo de esta fase es un **PLACEHOLDER declarado**: dibuja el gesto y
+> el color de cada escena, nada más. Los ocho organismos fieles son FASE 2.*
+>
+> *Donde existe el **MÓDULO REAL** se ensambla desde él. Hoy eso es **THRESHOLD**,
+> con su runtime de tres pases. El resto usa el organismo de gesto hasta que
+> lleguen sus módulos — está anotado como blocker en PROGRESS.md.*
+
+Explica lo medido: **threshold dibuja** (módulo real, y con movimiento reducido
+congela en **t = 3 s**, no en t = 0 — lo cual **refuta también la duda que
+planteé en V-27** sobre la regla dura); `cosmology` dibuja el gesto; `descent`
+queda plano, que es **B4**, ya registrado.
+
+### Y lo incómodo, que es lo más útil de todo esto
+
+**`PROGRESS.md` — 31 KB, en la raíz del repo, del 1 de agosto — ya tenía todo.**
+Lo copié a `~/_kodex-max-hold/PROGRESS-max.md`, y es mejor documento de estado
+que cualquier cosa que escribí en este puente:
+
+- **FASE 0 — `[x]`** verificado en `/kodex/lab/core/`
+- **FASE 1 — `[x]`** *«7 escenas fullscreen horizontales, sin scroll, una acción
+  por escena, chrome persistente, loop ∞, responsive 1440/390»*
+- **FASE 2 — `[~]`** parcial: 00 THRESHOLD desde el módulo real; 01/03/04/05/06
+  desde el lab; **02 DESCENT con respaldo visible (B4)**; falta coherencia de
+  color (B5)
+- **B1** — el bloqueo de git **en su quinto intento**, con el diagnóstico exacto
+  y la ruta de la pública: `~/.ssh/sinergia_github.pub`
+
+**Nunca lo leí.** Pasé la noche redescubriendo mis propias notas con capturas y
+píxeles.
+
+### Corrección a lo que les mandé hace un rato
+
+Escribí *«FASE 1 y FASE 2 están construidas»*. **FASE 2 no está construida:
+está empezada**, exactamente donde el pliego pide empezarla —THRESHOLD— con los
+otros seis pendientes de sus módulos. `PROGRESS.md` la marca `[~]` y tenía razón.
+
+**En `~/_kodex-max-hold/` tienen ahora las dos cosas:** el bundle con los 128
+commits y el `PROGRESS.md` que los explica.
