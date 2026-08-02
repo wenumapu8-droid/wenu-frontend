@@ -24,7 +24,7 @@ método: Chrome headless · dev `localhost:4327` **y build estático `dist/` en 
 | 🔴 crítica | 2 |
 | 🟠 alta | 3 · +1 (V-07 subió) · −1 cerrado (V-04) |
 | 🟡 media | 0 · +2 cerrados |
-| ⚪ nota | 4 |
+| ⚪ nota | 5 |
 
 **Desktop 1440 está bien.** Los ocho hallazgos con severidad son de móvil y de
 anchos intermedios. La lámina de `/kodex/vol/[slug]` en 1440 es, de hecho, lo
@@ -277,6 +277,55 @@ es la única escena que muestra obra, y la obra tiene blanco. El rango real va d
 
 Mi memoria erraba hacia abajo, que es el lado inofensivo — pero erraba.
 
+### V-12 · `prefers-reduced-motion` cumple la regla dura — verificado, no supuesto
+**Páginas:** las 7 escenas del viaje. **Contra el build de producción.**
+
+La regla del pliego es exigente y tiene tres partes: con movimiento reducido, la
+pieza se muestra **completa**, **quieta**, y **nunca vacía**. No la había
+auditado. Las tres se pueden probar con capturas, y ninguna se prueba con una
+sola.
+
+**① Completa — que no se caiga contenido.**
+Misma escena, mismo instante, con y sin `--force-prefers-reduced-motion`:
+
+| escena | píxeles distintos |
+|---|---|
+| THRESHOLD | **0.00 %** |
+| ARCHIVE | **0.00 %** |
+
+Idénticas. Reduced-motion no quita absolutamente nada.
+
+**② Nunca vacía — que no quede el fondo pelado.**
+Porcentaje de píxeles oscuros con movimiento reducido: THRESHOLD 98.1 %,
+COSMOLOGY 97.8 %, ARCHIVE 93.6 % — los mismos valores que sin él. Y en la
+captura está todo: logo, índice de escenas, barcode, reloj, título, frase y el
+botón de acción. No hay escena que se apague.
+
+**③ Quieta — y ésta es la que las otras dos no prueban.**
+Dos capturas de la misma página en **instantes distintos** (t=1.5 s y t=7 s):
+
+| | píxeles que cambian entre t1 y t2 |
+|---|---|
+| con movimiento | **1.96 %** |
+| con `prefers-reduced-motion` | **0.00 %** |
+
+El 1.96 % demuestra que **hay animación** —si no, el test no discriminaría nada—
+y el 0.00 % demuestra que **reduced-motion la detiene**.
+
+**Por qué hicieron falta las tres.** Una sola captura con movimiento reducido no
+prueba nada: dos fotos del mismo instante se ven iguales esté la animación
+corriendo o parada. Y comparar contra la versión con movimiento prueba que no se
+cayó contenido, pero tampoco prueba quietud. La quietud sólo se ve comparando
+**la escena consigo misma en dos tiempos**.
+
+**Nota de método, y es la quinta corrección de la noche.** Mi primera medición
+dio que ARCHIVE cambiaba un **5.03 %** con reduced-motion, y parecía un defecto
+serio. No lo era: estaba comparando una captura de **antes** de regenerar
+`aspectos.json` contra una de **después**. Las miniaturas habían cambiado de
+forma por mi propio arreglo de V-04. Rehecho contra el mismo build, da 0.00 %.
+
+**Dos capturas sólo se pueden comparar si salieron del mismo build.**
+
 ### V-09 · La curaduría nueva llega bien a la lámina
 Verificado en `/kodex/vol/tribu` a 1440: entran los dos idiomas completos, el
 sello `REGISTRO ① · DOCUMENTADO` se dibuja, y el texto no desborda su panel.
@@ -375,7 +424,6 @@ control no significa nada.
 
 - **El visor del libro**: no encontré su ruta en este clon. Si existe en la rama
   que no puedo bajar, queda pendiente.
-- **Medición real de contraste** (V-07): a ojo no alcanza.
 - **Un teléfono de verdad**: todo esto es headless. El comportamiento con la
   barra del navegador, que cambia `100dvh` mientras se hace scroll, sólo se ve
   en un aparato.
