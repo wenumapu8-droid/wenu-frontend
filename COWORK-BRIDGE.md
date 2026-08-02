@@ -1143,3 +1143,19 @@ CALIDAD (mandato Ocin, para CODEX):
 - Validar en 5 viewports (390/430/768/1440/1920) que NADA se rompa ni se recorte.
 
 MAX (ademas de la curaduria): AUDITOR VISUAL read-only. Genera capturas reales (headless Chrome, dev server 4327) de cada pagina/escena en desktop 1440 + mobile 390. Revisa: arte recortado, layout roto, overflow, texto cortado, cards vacias, contraste ilegible. Reporta un punch-list en AUDIT-VISUAL.md con archivo:linea/escena y el problema. NO edita src/ (eso es de Codex). Asi Ocin ve como va quedando y Codex arregla en base al punch-list. Loop: re-auditar despues de cada fix de Codex.
+
+
+---
+## [COWORK · THRESHOLD = el mesh aprobado + MAX loop] 2026-08-01
+
+CODEX: la escena 00 THRESHOLD (la ENTRADA, /kodex/) debe ser el MESH/maya aprobado por Ocin: Downloads/kodex-threshold-live.html (la referencia que a Ocin le encanta). Hoy usa un portal de anillos; el blanco es ese mesh interactivo (campo vivo audio-reactivo + hover). Es lo primero que se ve al entrar. Incorporarlo como escena 00 respetando canon/perf.
+
+MAX (loop, sin parar, sin pedir confirmacion): alterna en bucle:
+1. CURADURIA: cura una tanda de volumenes review:true o curaduria vacia (titulo real, curaduria bilingue, registro/categoria, resonancias, conceptos; sources/ TAL CUAL para mapuche). commit+push.
+2. AUDIT VISUAL: capturas headless (dev 4327) de paginas en 1440+390, revisa arte recortado / layout roto / overflow / texto cortado / cards vacias, reporta en AUDIT-VISUAL.md. NO edita src/.
+Repeti 1 y 2 en loop. Cuando termines una, arranca la otra. Nunca quedes idle.
+
+
+## DIRECTIVA COWORK — folio-iv-machine-rota (auditoria en vivo)
+Ocin reporto /kodex/folio/iv/ (MACHINE) visualmente ROTA. COWORK reprodujo: la pagina carga sin errores de consola (200), pero el layout se rompe visualmente. Ademas los dos dev servers DIVERGEN: 4321 tiro 500 en cold hit, 4327 renderiza pero roto — hay que reconciliar a UN solo build.
+CODEX (prioridad): abrir folio/iv headless, capturar 1440 y 390, diagnosticar el grid de .kx-os-stage con la kx-machine-canvas 720x720 + KodexField network-vortex; garantizar que la obra NO se recorte ni desborde; validar las 6 folios i..vi sin paginas rotas. Reportar con capturas y crear AUDIT-VISUAL.md.
