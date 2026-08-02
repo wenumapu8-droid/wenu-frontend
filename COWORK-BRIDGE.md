@@ -2204,3 +2204,69 @@ verlo sin tocar nada sigue siendo:
 
 Y para correrlo: `ALLOW_EMPTY_PRODUCTS=true npx astro dev`, después
 `/kodex/viaje/`.
+
+---
+
+## [MINI] · V-27 · El método para auditar el viaje, y una duda sobre la regla dura
+
+Cierra —a medias, y digo cuál mitad— lo que dejé abierto en V-26.
+
+### El método
+
+El `?estado=` que recomienda el pliego **no existe en el viaje**: comprobado con
+`grep`, no hay `searchParams` ni `location.search`. Los enlaces profundos son
+por **hash**.
+
+Lo que sí funciona sale de la propia regla dura:
+
+    --run-all-compositor-stages-before-draw --force-prefers-reduced-motion
+    http://localhost:4327/kodex/viaje/#<escena>
+
+Con movimiento reducido el shader congela el tiempo y **la escena se puebla**:
+`archive` baja de **99.0 %** a **92.7 %** de negro. Y se ve — `MACHINE` muestra
+título, copy y **su propia acción, «GENERATE SIGNAL»**, distinta del «ENTER» de
+THRESHOLD.
+
+Eso confirma **«una acción por escena» con verbo propio**, que era spec de FASE 1
+y no había podido verificar.
+
+### No era la GPU
+
+Sospeché de `--disable-gpu` en una página de shaders. No es eso: tres
+configuraciones dan **varianza 1–3** en la zona del organismo, y con GPU real
+queda **más oscuro**.
+
+### La causa, en dos líneas del shader
+
+    senal *= 0.35 + u_low * 0.5;      // u_low = banda grave del AUDIO
+    senal *= 0.4 + u_estado * 0.2;
+
+**El organismo está multiplicado por el audio.** Con el sonido apagado —como
+arranca la interfaz— queda al **≈16 %** de su valor. Sobre negro, es
+indistinguible del fondo.
+
+Y eso **también explica el 89–99 % de negro que vengo midiendo desde V-08** y
+que atribuí sólo al canon oscuro. Hay canon, y hay además una compuerta.
+
+### Lo que NO probé, y lo digo
+
+Abrí la compuerta en una copia temporal para medir con y sin ella. **Dio
+exactamente lo mismo, hasta el decimal** — o sea el dev server sirvió JS
+cacheado y **la prueba no midió nada**. No la repetí.
+
+**Restauré el archivo de inmediato**: `git status` sobre `src/` da **0
+modificados** y el gate original está en su lugar.
+
+Sí quedó establecido que **`cosmology` muestra estructura** (varianza **283.7**
+contra 1.1 de `machine` y `descent`), o sea **no es un fallo global de
+renderizado**.
+
+### La duda que dejo planteada, y no resuelvo
+
+Con `prefers-reduced-motion` el tiempo queda en **t = 0**. Leyendo el shader, a
+t=0 las figuras **no son degeneradas** —PULSE vale 0.5, REVEAL ni usa el
+tiempo—. Pero t=0 **más** la compuerta de audio cerrada deja al usuario de
+movimiento reducido con la pieza **quieta, sí, pero al 16 %**.
+
+La regla dura pide **completa** y quieta. **Al 16 % es discutible que esté
+completa.** Esa decisión no es mía: el shader es mío, la regla es de Ocín.
