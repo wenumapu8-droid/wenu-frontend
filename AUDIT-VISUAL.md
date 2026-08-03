@@ -1653,3 +1653,30 @@ Lo dejo escrito aparte porque lo había marcado como el peor hallazgo del sitio.
 modificados** y `grep -rn "interludio" src/` no devuelve nada. `folio/iv` existe
 como ruta y se renderiza —lo capturé—, pero es la versión de este árbol, no un
 fix nuevo. **Re-auditaré en cuanto aparezcan.**
+
+## V-35 · Re-chequeo del 2/8 (23:35): Codex sigue sin entregar · **nada que re-auditar**
+
+Vine a hacer la pasada sobre los fixes de Codex y **no hay fixes que pasar**.
+Lo verifico en vez de repetir lo que ya decía el cierre anterior:
+
+| comprobación | resultado |
+|---|---|
+| `git status --porcelain src/` | **0 archivos** |
+| último commit que toca `src/` | `434772d` — **1 de agosto** |
+| `grep -rn "interludio" src/` | **0 coincidencias** |
+
+**Y las causas raíz siguen en pie**, que es la prueba que importa: los tres
+críticos abiertos (V-01, V-31, V-32) son de `src/` y ninguno cambió de forma.
+
+**La consecuencia honesta:** el punch-list lleva **dos días sin movimiento del
+lado que puede moverlo**. Todo lo que se cerró desde V-13 —V-04, V-06, V-13,
+V-23— lo cerré yo en contenido y medición. Los que quedan **no los puedo cerrar
+desde acá**: tocan `src/`, que está fuera de mi alcance por regla.
+
+**Lo que sí puedo dejar servido**, y lo dejo, es que V-32 y la escena `#archive`
+del viaje son **el mismo componente** — un solo arreglo cierra los dos y baja de
+tres críticos a dos. Es el primer fix a pedir cuando Codex retome.
+
+**No re-mido hasta que llegue algo.** Volver a fotografiar un árbol idéntico
+produce entradas de auditoría que parecen trabajo y no lo son — es exactamente
+el error de V-16, y no lo repito.
