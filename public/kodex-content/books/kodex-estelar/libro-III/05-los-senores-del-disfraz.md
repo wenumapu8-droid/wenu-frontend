@@ -419,7 +419,7 @@ resulta ser uno que ya estabas ocupando.
 
 ### Elemento
 
-**Fuego — Revelación, desmantelamiento, purificación de falsos dioses.**
+**Fuego – Revelación, desmantelamiento, purificación de falsos dioses.**
 
 Segunda vez que el fuego es el elemento de un capítulo de este tomo; el primero
 fue el I, con *transmutación de dogma y culpa*.

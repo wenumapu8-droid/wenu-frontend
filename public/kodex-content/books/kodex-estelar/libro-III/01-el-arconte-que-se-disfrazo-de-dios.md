@@ -11,9 +11,12 @@
 > dentro de tradiciones vivas, pensadas durante siglos por gente seria. Este
 > libro tiene derecho a su posición. No tiene derecho a tratar de ingenuos a
 > quienes no la comparten, y aquí no se lo va a tratar así.
-> **Nota de fuente:** los capítulos I y V de este tomo llevan el mismo título
-> con textos distintos. Se desarrollan como dos capítulos separados; si es un
-> error del original, conviene revisarlo.
+> **Nota de fuente:** los PDF de origen de los capítulos I y V de este tomo
+> traen la misma cabecera, pero son textos distintos —verso, palabra clave y
+> tema propios—. El V lleva acá el título con que **el propio texto de Ocín se
+> nombra**: *Los Señores del Disfraz*. Este capítulo trata del **hechizo**
+> (llave: Soberanía); el V, de **qué son los imitadores** (llave:
+> Discernimiento).
 > Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-III/capitulo-i-el-arconte-que-se-disfrazo-de-dios-libro-iii.md`).
 > Mantras y rituales van **verbatim**.
 
