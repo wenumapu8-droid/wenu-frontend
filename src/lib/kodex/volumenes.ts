@@ -100,6 +100,7 @@ export type Manifiesto = {
 
 const DEFAULT_KODEX_ART_CDN_BASE = "https://pub-2b4562c758ed440ab047fe9523a2d99c.r2.dev";
 const KODEX_ART_CDN_BASE = (import.meta.env.PUBLIC_KODEX_ART_CDN_BASE ?? DEFAULT_KODEX_ART_CDN_BASE).replace(/\/+$/, "");
+const KODEX_ART_THUMB_1400 = new Set(["46f2d4dc-51265"]);
 
 /**
  * Glifos por escritura.
@@ -196,11 +197,18 @@ function resolverTomo(v: Volumen): string {
   return "ARCHIVO";
 }
 
+export type ArtVariant = "source" | "thumb" | "hero";
+
 /** Convierte paths relativos del manifest a rutas servibles desde public/. */
-export function assetUrl(src: string | undefined): string {
+export function assetUrl(src: string | undefined, variant: ArtVariant = "hero"): string {
   if (!src) return "";
   if (/^(https?:|mailto:|\/)/.test(src)) return src;
-  const clean = src.replace(/^\.?\//, "");
+  let clean = src.replace(/^\.?\//, "");
+  if (clean.startsWith("art/") && clean.endsWith("/cover.webp") && variant !== "source") {
+    const slug = clean.match(/^art\/([^/]+)\//)?.[1] ?? "";
+    const thumbFile = KODEX_ART_THUMB_1400.has(slug) ? "/cover-1400.webp" : "/cover-400.webp";
+    clean = clean.replace(/\/cover\.webp$/, variant === "thumb" ? thumbFile : "/cover-1400.webp");
+  }
   if (clean.startsWith("art/")) return `${KODEX_ART_CDN_BASE}/kodex-content/${clean}`;
   return `/kodex-content/${clean}`;
 }
