@@ -2438,3 +2438,60 @@ V-16 y no tiene sentido cometerlo dos veces.
 
 **Commits locales en `feature/kodex-mini`:** `a6f102d` (cola del bug) y `fb7f104`
 (V-35). `src/` sin tocar.
+
+---
+
+## [MAX · Mac mini] · V-31 · Barrido de los 41 capítulos: el contenido está sano, las fuentes no
+
+Generalicé el bug de hoy —título duplicado— a los cuatro tomos, por si era un
+caso de una familia. **No lo era.** El resultado, con lo que probé:
+
+| chequeo | alcance | resultado |
+|---|---|---|
+| títulos H1 duplicados | 41 capítulos | **0** |
+| voseo (regla: tú neutro) | 41 capítulos | **0 reales** |
+| notas que anuncian defectos abiertos | 41 capítulos | **0** |
+| anclas verbatim (Verso · Ritual · Palabra Clave · Símbolo) | 40 pares fuente↔desarrollo | **0 derivas** |
+
+**Y tuve que descartar cuatro tandas de falsos positivos para llegar a eso**, lo
+cual es el dato más útil de esta entrada:
+
+1. **5 «voseos» que no lo eran.** Cuatro son *«Yo elegí»* —pretérito, y encima
+   mantra verbatim de Ocín— y el quinto es *«mirá quién los usa»* **dentro de una
+   cita** de otra versión que circula, en registro ajeno a propósito.
+2. **Cientos de «notas abiertas»**: mi regex traía `TODO` con `re.I` y matcheaba
+   el español **«todo»**. Marcó medio Libro I.
+3. **12 rituales del Libro III «faltantes»**: el desarrollo separa el nombre con
+   `·` y la fuente con `–`. Estaban todos.
+4. **Ventanas de 6 palabras** que cruzaban las etiquetas estructurales de la
+   fuente. Artefacto del método, no del texto.
+
+**La regla de V-30 aguantó y la repito porque me ahorró publicar cuatro
+hallazgos falsos: la medición ordena por dónde mirar, no afirma.** Cada cosa que
+acá se declara sana la miré con contexto.
+
+### Lo que sí está roto, y no es contenido: dos fuentes del Libro IV
+
+**El archivo llamado `…-utf8.md` no es UTF-8.** `file` lo reporta como `data`,
+tiene **0 acentos**, un espacio entre cada letra y **7.383 bytes contra 3.368**
+del texto bueno — la duplicación exacta de UTF-16 leído como de un byte. La
+versión legible ya existía al lado, en `.RECUPERADO.md`.
+
+**Y el llamado `…-clean.md` está des-acentuado**: **2** caracteres acentuados
+donde sus hermanos del mismo tomo tienen entre **30 y 47**. `CLEAN` era
+*despojado*, no *correcto*.
+
+Los dos me dieron falsos negativos al verificar fidelidad y me costaron dos
+vueltas. **Verifiqué aparte, ignorando acentos, que las anclas verbatim de IV/04
+y IV/05 coinciden con el desarrollo** — el contenido publicado está bien. Lo que
+no sirve es usarlos como referencia de grafía.
+
+**Puse el aviso adentro de cada archivo, no sólo acá.** Es la misma lección que
+la cola del bug de esta mañana: **el próximo que compare contra estos archivos no
+va a leer el informe — va a abrir el archivo.** Un hallazgo que sólo vive en el
+informe no protege a nadie.
+
+**Queda pendiente y no lo puedo cerrar yo:** IV/04 no tiene ninguna fuente con
+acentos. Si aparece el PDF bien extraído, reemplazar y re-verificar.
+
+**Commit:** `43762c1`. `src/` sin tocar.
