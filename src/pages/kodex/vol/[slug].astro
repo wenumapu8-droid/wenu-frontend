@@ -51,6 +51,31 @@ const r = razon(v.hero?.aspecto);
 // La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
 const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
 const checksum = v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
+const assetKey = (v.hero?.src?.match(/^art\/([^/]+)\//)?.[1] ?? v.slug).replace(/[^a-z0-9-]/gi, '-').toLowerCase();
+const wallpaperDesktop = `/kodex-content/free/wallpapers/${assetKey}-desktop.webp`;
+const wallpaperMobile = `/kodex-content/free/wallpapers/${assetKey}-mobile.webp`;
+const collectUrl = `/kodex/store/?signal=${encodeURIComponent(v.slug)}#editions`;
+const verifyUrl = `/kodex/verify/?code=KDX-${v.numero}-${encodeURIComponent(v.slug)}`;
+const treatmentByType = {
+  specimen: 'dither',
+  lore: 'linework',
+  chapter: 'linework',
+  habitat: 'crt',
+  libro: 'halftone',
+  math: 'linework',
+  finding: 'thermal',
+  nft: 'signal-corruption',
+  artwork: 'duotone',
+  gallery: 'duotone',
+};
+const liveTreatment = treatmentByType[v.tipo] ?? 'duotone';
+const livePreset = {
+  documentado: { field: 'network-vortex', dither: 0.64, scanlines: 0.24, glow: 0.34, chroma: 0.18, flicker: 0.16, speed: 0.48, spark: '#00EFFF' },
+  ciencia: { field: 'network-vortex', dither: 0.58, scanlines: 0.28, glow: 0.36, chroma: 0.22, flicker: 0.12, speed: 0.52, spark: '#00EFFF' },
+  ficcion: { field: 'network-vortex', dither: 0.88, scanlines: 0.34, glow: 0.5, chroma: 0.56, flicker: 0.34, speed: 0.72, spark: '#FF6A00' },
+  esoterico: { field: 'network-vortex', dither: 0.72, scanlines: 0.3, glow: 0.48, chroma: 0.42, flicker: 0.22, speed: 0.62, spark: '#FF00CF' },
+  estructura: { field: 'network-vortex', dither: 0.7, scanlines: 0.26, glow: 0.42, chroma: 0.34, flicker: 0.2, speed: 0.58, spark: '#A6FF00' },
+}[v.marco ?? 'estructura'];
 
 /**
  * Diagnósticos del dossier. Derivan del propio volumen, no del azar: el mismo
@@ -98,13 +123,13 @@ const marcoTexto = {
 
     <article class="kx-vol">
       <KodexField
-        field="network-vortex"
+        field={livePreset.field}
         intensity={v.hero ? 0.3 : 0.42}
         tint={v.color}
-        spark="#7FE9FF"
+        spark={livePreset.spark}
         floor={0.06}
         detail={0.62}
-        speed={0.7}
+        speed={livePreset.speed}
         seed={(semilla % 97) + 1}
         class="kx-vol__campo"
       />
@@ -131,7 +156,7 @@ const marcoTexto = {
         )}
       </header>
 
-      <figure class={`kx-vol__hero kx-vol__hero--${forma}`}>
+      <figure class={`kx-vol__hero kx-vol__hero--${forma}`} data-treatment={liveTreatment} data-registry={v.marco ?? 'estructura'}>
         {heroSrc ? (
           <KodexArtifact
             artwork={heroSrc}
@@ -141,13 +166,14 @@ const marcoTexto = {
             id={checksum}
             status={`${(v.marco ?? 'estructura').toUpperCase()} · ${v.tipo.toUpperCase()}`}
             coords={`${v.numero} · ${v.estratoTitulo}`}
-            pixelSize={3}
-            dither={0.86}
-            scanlines={0.3}
-            glow={0.46}
-            chroma={0.5}
-            flicker={0.34}
+            pixelSize={liveTreatment === 'bitmap' ? 5 : 3}
+            dither={livePreset.dither}
+            scanlines={livePreset.scanlines}
+            glow={livePreset.glow}
+            chroma={livePreset.chroma}
+            flicker={livePreset.flicker}
           />
+          <img class="kx-vol__hero-clean" src={heroSrc} alt="" loading="eager" aria-hidden="true" />
         ) : (
           <div class="kx-vol__organismo">
             <KodexField
@@ -203,7 +229,12 @@ const marcoTexto = {
         )}
         {v.slug === 'book-ocin-arte-digital-ritual' && <a class="kx-vol__enlace" href="/kodex/libro/">OPEN 81-PAGE VIEWER →</a>}
         {v.tipo === 'libro' && <a class="kx-vol__enlace" href="/kodex/libro/">READ BOOK SURFACE →</a>}
-        <a class="kx-vol__enlace" href="/kodex/store/">COLLECT A FRAGMENT →</a>
+        <nav class="kx-vol__actions" aria-label="volume actions">
+          <a href={wallpaperDesktop} download data-kdx-action="download">DESCARGAR DESKTOP</a>
+          <a href={wallpaperMobile} download data-kdx-action="download">DESCARGAR MOBILE</a>
+          <a href={collectUrl} data-kdx-action="collect">COLECCIONAR</a>
+          <a href={verifyUrl} data-kdx-action="verify">VERIFY</a>
+        </nav>
       </div>
 
       {v.mensaje_es && (
@@ -306,18 +337,44 @@ const marcoTexto = {
   }
   .kx-vol__hero::before {
     content: "LAMINA · COLLAGE";
-    position: absolute; top: 10px; left: 10px; z-index: 5;
+    position: absolute; top: 10px; left: 10px; z-index: 8;
     padding: 6px 8px; border: 1px solid color-mix(in srgb, var(--acc) 48%, transparent);
     background: rgba(5,5,5,.72); color: var(--acc);
     font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8px;
     letter-spacing: .22em; text-transform: uppercase;
   }
   .kx-vol__hero::after {
-    content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
     background:
       repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 4px),
       linear-gradient(90deg, color-mix(in srgb, var(--acc) 10%, transparent), transparent 20%, transparent 80%, color-mix(in srgb, var(--acc) 10%, transparent));
-    mix-blend-mode: screen; opacity: .68;
+    mix-blend-mode: screen; opacity: .38;
+    animation: kx-vol-scan 6.5s linear infinite;
+  }
+  .kx-vol__hero-clean {
+    position: absolute; inset: clamp(16px, 2.4vw, 30px); z-index: 6;
+    width: calc(100% - clamp(16px, 2.4vw, 30px) * 2);
+    height: calc(100% - clamp(16px, 2.4vw, 30px) * 2);
+    object-fit: contain; pointer-events: none;
+    filter: grayscale(.1) contrast(1.05) saturate(.95);
+    mix-blend-mode: normal; opacity: .74;
+  }
+  .kx-vol__hero[data-registry="documentado"]::before,
+  .kx-vol__hero[data-registry="ciencia"]::before { content: "LAMINA · DOCUMENTED"; }
+  .kx-vol__hero[data-registry="ficcion"]::before { content: "LAMINA · FICTION"; }
+  .kx-vol__hero[data-registry="esoterico"]::before { content: "LAMINA · ESOTERIC"; }
+  .kx-vol__hero[data-treatment="linework"] { filter: contrast(1.08); }
+  .kx-vol__hero[data-treatment="halftone"]::after { background-size: 6px 6px, auto; opacity: .58; }
+  .kx-vol__hero[data-treatment="thermal"]::after { mix-blend-mode: color-dodge; opacity: .5; }
+  .kx-vol__hero[data-treatment="signal-corruption"] { animation: kx-vol-corrupt 5.8s steps(1,end) infinite; }
+  @keyframes kx-vol-scan {
+    0% { background-position: 0 -80px, 0 0; }
+    100% { background-position: 0 120px, 0 0; }
+  }
+  @keyframes kx-vol-corrupt {
+    0%, 86%, 100% { transform: none; }
+    88% { transform: translateX(2px); }
+    90% { transform: translateX(-1px); }
   }
   .kx-vol__hero--alto { justify-self: center; max-width: 70%; }
 
@@ -403,6 +460,19 @@ const marcoTexto = {
     font-size: 10px; letter-spacing: 0.2em; color: #e8e5df; text-decoration: none;
   }
   .kx-vol__enlace:hover { background: color-mix(in srgb, var(--acc) 14%, transparent); }
+  .kx-vol__actions {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px;
+    border: 1px solid color-mix(in srgb, var(--acc) 28%, transparent);
+    background: color-mix(in srgb, var(--acc) 18%, transparent);
+  }
+  .kx-vol__actions a {
+    min-height: 34px; display: grid; place-items: center; padding: 0 8px;
+    background: rgba(5,5,5,.9); color: rgba(232,229,222,.76); text-decoration: none;
+    font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 8px;
+    letter-spacing: .16em; text-transform: uppercase;
+  }
+  .kx-vol__actions a[data-kdx-action="collect"] { color: var(--acc); }
+  .kx-vol__actions a:hover { background: var(--acc); color: #050505; }
 
   .kx-vol__rail { grid-area: rail; display: grid; gap: 7px; align-content: start; min-width: 0; }
   .kx-vol__kv {
@@ -453,5 +523,9 @@ const marcoTexto = {
     .kx-vol__hero--alto { max-width: 100%; }
     .kx-vol__cuerpo { max-height: none; overflow: visible; }
     .kx-vol__dossier { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kx-vol__hero,
+    .kx-vol__hero::after { animation: none !important; }
   }
 </style>

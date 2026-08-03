@@ -1,0 +1,66 @@
+---
+interface Props {
+  text: string;
+  style?: "block" | "ritual" | "signal" | "outline";
+  cell?: number;
+  gap?: number;
+  letterGap?: number;
+  label?: string;
+  class?: string;
+}
+
+const {
+  text,
+  style = "ritual",
+  cell = 9,
+  gap = 1.6,
+  letterGap = cell * 0.9,
+  label = text,
+  class: className = "",
+} = Astro.props;
+
+const rowsFor = (char: string) => {
+  if (char === " ") return ["00000", "00000", "00000", "00000", "00000", "00000", "00000"];
+  const code = char.charCodeAt(0);
+  return Array.from({ length: 7 }, (_, y) => {
+    const band = ((code * (y + 3)) ^ (code >> (y % 4))) & 31;
+    const row = (band | (y === 0 || y === 6 ? 17 : 0)).toString(2).padStart(5, "0").slice(-5);
+    return row === "00000" ? "00100" : row;
+  });
+};
+
+const chars = [...text.toUpperCase()];
+const glyphWidth = cell * 5;
+const glyphHeight = cell * 7;
+const totalWidth = Math.max(1, chars.length * (glyphWidth + letterGap) - letterGap);
+const cells: { x: number; y: number; key: string }[] = [];
+
+chars.forEach((ch, ci) => {
+  rowsFor(ch).forEach((row, ry) => [...row].forEach((on, rx) => {
+    if (on === "1") cells.push({ x: ci * (glyphWidth + letterGap) + rx * cell, y: ry * cell, key: `${ci}-${ry}-${rx}` });
+  }));
+});
+
+const cellPoints = (x: number, y: number) => {
+  const a = x + gap;
+  const b = y + gap;
+  const w = cell - gap * 2;
+  if (style === "ritual") {
+    const c = Math.min(w * 0.23, 2.4);
+    return `${a + c},${b} ${a + w - c},${b} ${a + w},${b + c} ${a + w},${b + w - c} ${a + w - c},${b + w} ${a + c},${b + w} ${a},${b + w - c} ${a},${b + c}`;
+  }
+  if (style === "signal") {
+    const h = w * 0.42;
+    const yy = b + (w - h) / 2;
+    return `${a},${yy} ${a + w},${yy} ${a + w},${yy + h} ${a},${yy + h}`;
+  }
+  return `${a},${b} ${a + w},${b} ${a + w},${b + w} ${a},${b + w}`;
+};
+---
+
+<svg class={`kdx-sigil-text kdx-sigil-text--${style} ${className}`} viewBox={`0 0 ${totalWidth} ${glyphHeight}`} role="img" aria-label={label}>
+  {cells.map(({ x, y, key }) => style === "outline"
+    ? <polygon points={cellPoints(x, y)} fill="none" stroke="currentColor" stroke-width="1.2" vector-effect="non-scaling-stroke" data-cell={key} />
+    : <polygon points={cellPoints(x, y)} fill="currentColor" data-cell={key} />
+  )}
+</svg>

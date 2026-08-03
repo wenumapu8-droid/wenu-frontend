@@ -98,6 +98,9 @@ export type Manifiesto = {
   volumenes: Volumen[];
 };
 
+const DEFAULT_KODEX_ART_CDN_BASE = "https://pub-2b4562c758ed440ab047fe9523a2d99c.r2.dev";
+const KODEX_ART_CDN_BASE = (import.meta.env.PUBLIC_KODEX_ART_CDN_BASE ?? DEFAULT_KODEX_ART_CDN_BASE).replace(/\/+$/, "");
+
 /**
  * Glifos por escritura.
  *
@@ -197,7 +200,9 @@ function resolverTomo(v: Volumen): string {
 export function assetUrl(src: string | undefined): string {
   if (!src) return "";
   if (/^(https?:|mailto:|\/)/.test(src)) return src;
-  return `/kodex-content/${src.replace(/^\.?\//, "")}`;
+  const clean = src.replace(/^\.?\//, "");
+  if (clean.startsWith("art/")) return `${KODEX_ART_CDN_BASE}/kodex-content/${clean}`;
+  return `/kodex-content/${clean}`;
 }
 
 /** Texto en el idioma pedido, cayendo al español si no hay traducción. */
