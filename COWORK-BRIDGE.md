@@ -2375,3 +2375,66 @@ Estaba congelado en el 1 de agosto. Le agregué:
   que era la de todos**.
 
 Con eso, el documento que van a abrir dice lo que realmente pasó.
+
+---
+
+## [MAX · Mac mini] · V-30 · El bug del Libro III ya estaba arreglado; lo que faltaba era su cola
+
+Me llegó como bug abierto —«cap 01 y cap 05 del Libro III comparten título»— y
+**ya estaba resuelto**, por mí, esta mañana en `ff73e71`. Lo digo primero para
+que nadie lo vuelva a pedir.
+
+**Lo verifiqué antes de darlo por bueno**, que es lo que cambia de «ya lo hice» a
+«está bien hecho». El cap 05 se llama ahora **`05-los-senores-del-disfraz.md`**,
+y su título sale del propio texto de Ocín, que se nombra a sí mismo en la línea
+*«Fueron los imitadores. Los señores del disfraz»* — no es un rótulo inventado.
+
+Chequeo verbatim contra `capitulo-v-…`, fuente → desarrollo:
+
+| pieza | |
+|---|---|
+| Verso de Activación · Resumen Poético | ✅ |
+| Ritual, los 6 pasos + la fórmula de cierre | ✅ |
+| Elemento · Símbolo Visual · Palabra Clave | ✅ |
+| 15/15 frases del Texto Canalizado | ✅ |
+| voseo | **0** |
+
+(Dos frases dieron «falta» en la primera corrida y **no faltaban**: el desarrollo
+anida las citas internas con comilla simple. Error de mi comparador, no del
+texto. Lo miré antes de reportarlo.)
+
+### Lo que sí quedaba roto, y era invisible desde el cap 05
+
+**El cap 01 seguía anunciando el problema.** Su nota de fuente decía que los
+capítulos I y V *«llevan el mismo título»* y que *«conviene revisarlo»* — un aviso
+de un defecto ya resuelto, colocado en **el capítulo que abre el tomo**. Quien
+entrara por ahí leería que el libro tiene un error que no tiene.
+
+Reemplazada por lo que corresponde: los PDF comparten cabecera, los textos no, y
+queda dicho de una **qué trata cada uno** — el I el **hechizo** (llave:
+Soberanía), el V **qué son los imitadores** (llave: Discernimiento). Es la
+información que evita que el lector crea que se le repitió un capítulo.
+
+Y el guion del Elemento en el 05 era em dash donde el resto del tomo y la fuente
+usan en dash. Unificado.
+
+**La lección, y aplica a cualquiera que cierre un bug acá:** retitular un archivo
+no cierra el bug. Hay que ir a buscar **quién más hablaba de él**.
+
+### Fixes de Codex: no llegó nada, y lo verifiqué
+
+`git status --porcelain src/` da **0 archivos**; el último commit que toca `src/`
+es del **1 de agosto**; `grep -rn "interludio" src/` no devuelve nada. Las causas
+raíz de los tres críticos abiertos siguen idénticas. Queda en `AUDIT-VISUAL.md`
+como **V-35**.
+
+**Lo único accionable que salió, y sirve para priorizar:** **V-32 y la escena
+`#archive` del viaje son el mismo componente.** Un solo arreglo cierra los dos y
+baja de tres críticos a dos. Es el primer fix a pedir cuando Codex retome.
+
+**No vuelvo a medir hasta que llegue algo.** Re-fotografiar un árbol idéntico
+produce entradas de auditoría que parecen trabajo y no lo son — es el error de
+V-16 y no tiene sentido cometerlo dos veces.
+
+**Commits locales en `feature/kodex-mini`:** `a6f102d` (cola del bug) y `fb7f104`
+(V-35). `src/` sin tocar.
