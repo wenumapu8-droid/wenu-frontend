@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Donde el texto nombra el ADN, el campo magnético o la frecuencia, lo hace
 > como imagen dentro de su propio relato, no como afirmación científica ni
 > indicación médica. Así va desarrollado.
@@ -10,7 +11,34 @@
 
 ---
 
-## I · Formas que pudieran albergar alma
+## Epígrafe
+
+> **"Soy portador de los planos de la luz.**
+> **Camino dentro del templo que soy."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Cruzas un puente todos los días y no piensas en él.
+
+Vas manejando o vas a pie, y el puente hace lo suyo: te sostiene sobre algo que no podrías cruzar de otro modo. No cruje, no se mueve, no pide nada. **Y precisamente por eso no existe para ti** — no lo miras, no lo agradeces, no sabrías decir de qué material es.
+
+Alguien calculó ese puente. Alguien decidió cuántas toneladas tenía que aguantar un martes de lluvia con el tránsito parado encima, y agregó un margen por si acaso, y ese margen es la razón por la que hoy no te pasó nada.
+
+No sabes su nombre. **No hay una placa, y si la hay, no la leíste.**
+
+Y hay algo casi injusto en el oficio: **el arquitecto que trabaja bien desaparece.** Sólo se vuelve visible cuando algo se cae. La obra bien hecha no señala a su autor — señala hacia adelante, hacia el que la va a usar.
+
+Este capítulo trata de constructores así. Y de por qué **no piden culto**: no porque sean humildes, sino porque pedirlo sería confesar que la obra no alcanza.
+
+---
+
+## Desarrollo
+
+### I · Formas que pudieran albergar alma
 
 **Y cuando la Fuente soñó con formas que pudieran albergar alma, nacieron los Arquitectos.**
 
@@ -34,7 +62,7 @@ Para eso hacen falta arquitectos.
 
 ---
 
-## II · No eran dioses
+### II · No eran dioses
 
 **No eran dioses. Eran extensiones conscientes de la Voluntad Primordial: los Elohim.**
 
@@ -56,7 +84,7 @@ Si te sirve una imagen del oficio: el que sueña la casa y el que calcula la vig
 
 ---
 
-## III · Un coro
+### III · Un coro
 
 **Los Elohim no son uno, ni muchos. Son un coro.**
 
@@ -84,7 +112,7 @@ Los Elohim, entonces, no son un grupo de seres que además cantan. Son el canto 
 
 ---
 
-## IV · Intención matemática
+### IV · Intención matemática
 
 **Ellos no crean con manos, sino con intención matemática, con luz organizadora, con patrones que respiran.**
 
@@ -110,7 +138,7 @@ Por eso los Arquitectos no construyen: **crían**.
 
 ---
 
-## V · No trabajan solos
+### V · No trabajan solos
 
 **No trabajan solos. Los Elohim dialogan con otras inteligencias: con los Ancianos de Días, con los genetistas estelares, con las Almas Maestras de cada sistema solar.**
 
@@ -146,7 +174,7 @@ Es, dicho sea de paso, la mejor descripción que existe de lo que hace un buen m
 
 ---
 
-## V bis · Un universo que consulta
+### V bis · Un universo que consulta
 
 Quiero volver un momento sobre *dialogan*, porque es una palabra pequeña en medio de un párrafo largo y decide qué clase de universo es éste.
 
@@ -178,7 +206,7 @@ Igual, si te fijas, que tú: un montón de partes que no se conocen entre sí y 
 
 ---
 
-## VI · No piden culto
+### VI · No piden culto
 
 **Los antiguos los conocían: los llamaban Hijos del Altísimo, los Nueve, los Portadores de Luz, los Formadores.**
 
@@ -214,7 +242,7 @@ Los Arquitectos no son leales a un ser. Son leales a que ese equilibrio se mante
 
 ---
 
-## VII · En la Tierra
+### VII · En la Tierra
 
 **En la Tierra, su intervención fue esencial. Fueron ellos quienes trazaron la primera red cristalina. Los que definieron las coordenadas del campo magnético. Los que plantaron los códigos de evolución en el cuerpo etérico del planeta y lo conectaron con otras realidades.**
 
@@ -240,7 +268,7 @@ Y esa lectura no la estoy poniendo yo: está en la línea siguiente, que es la q
 
 ---
 
-## VIII · Sembrar potencial
+### VIII · Sembrar potencial
 
 **Pero su tarea no es interferir. Es sembrar potencial. Nosotros somos quienes lo activamos.**
 
@@ -268,7 +296,7 @@ La parte que falta es tuya. Y si no la haces, no se hace.
 
 ---
 
-## IX · Los planos del cosmos
+### IX · Los planos del cosmos
 
 **Y he aquí el misterio: tú llevas dentro los planos del cosmos.**
 
@@ -312,7 +340,7 @@ Tú puedes traicionarlo. Puedes vivir años enteros en contra de tu propia propo
 
 ---
 
-## X · Cuando uno recuerda
+### X · Cuando uno recuerda
 
 **Por eso, cuando elevas tu frecuencia, los planos originales se reactivan. Las memorias dormidas se alinean. El cuerpo, el alma y la mente recuerdan su proporción.**
 
@@ -346,62 +374,7 @@ Lo que estás recordando no lo recuerdas para ti.
 
 ---
 
-## XI · Mantra
-
-> **"Soy portador de los planos de la luz.**
-> **Camino dentro del templo que soy."**
-
-**Portador**, no dueño, no autor. El que porta lleva algo que es de otro y que va hacia alguna parte. Un portador no puede quedarse con lo que lleva; su dignidad entera está en el traslado.
-
-Y **camino dentro del templo que soy** dice, en siete palabras, lo que el capítulo tardó diez movimientos en armar: que no hay que ir a ningún lado, que el lugar sagrado es el que se va moviendo contigo, y que sin embargo hay que **caminar** —el templo no te lleva; adentro de él, se anda.
-
----
-
-## XII · Activación arquitectónica interna
-
-**1. Siéntate en calma.**
-
-Antes de todo lo demás. La calma no es el resultado del ejercicio: es su condición.
-
-**2. Visualiza un cubo de luz girando lentamente en tu pecho.**
-
-Un **cubo**, y no es un capricho: es la contención pura. Seis caras iguales, ángulos rectos, la más estable de las figuras. Es lo que sostiene, lo que no se vuelca, lo que se puede apilar. En el equilibrio del capítulo —expansión y contención— el cubo es el segundo término.
-
-**Girando lentamente**, porque un cubo quieto es un ladrillo. El giro le devuelve vida a la estabilidad.
-
-**3. Dentro del cubo, ve una espiral ascendente.**
-
-Y ahí entra el primer término. La **espiral** es la expansión pura: crece sin cerrarse nunca, cada vuelta más ancha que la anterior.
-
-Mira lo que acaba de armarse: la expansión **adentro** de la contención. La espiral que crece dentro del cubo que la sostiene. No son enemigos y no están en tregua —uno es el continente del otro.
-
-Ese es el Orden Divino del capítulo, puesto en tu pecho en dos pasos.
-
-**4. En el centro de la espiral, un punto de luz pulsa suavemente.**
-
-Y el pulso vuelve, desde el Capítulo I. Aquel primer latido que atravesó el silencio del no-ser late ahora en el centro de esta figura pequeña, adentro de ti.
-
-**Suavemente**, siempre. Nada en este libro llega fuerte.
-
-**5. Ese punto eres tú.**
-
-Cinco palabras, y son la línea que justifica todo el ejercicio.
-
-No eres el cubo —no eres la estructura que te contiene. No eres la espiral —no eres tu crecimiento ni tus logros. Eres el punto: lo más pequeño, lo que no tiene partes, lo que estaba en el centro sin hacer nada más que pulsar.
-
-Todo lo demás es arquitectura alrededor de eso.
-
-**6. Permite que esa arquitectura interna se active, sin expectativa. Solo siente que estás siendo alineado.**
-
-**Permite** —no fuerces, no logres, no consigas.
-
-**Sin expectativa**, y es la instrucción más difícil del ejercicio, porque la expectativa es justamente lo que uno lleva puesto cuando se sienta a hacer algo así. Y ya sabemos por qué arruina: la expectativa vuelve a poner al que se mira hacerlo, y ese es el que tiene que caerse para que ocurra cualquier cosa.
-
-**Estás siendo alineado.** En pasiva, a propósito. No te alineas: te alinean. Y quien lo hace no es nadie de afuera: es la proporción, que ya estaba, acomodando lo que estaba torcido.
-
----
-
-## XIII · Mensaje final
+## El pliegue
 
 **La creación no es caos. Es música.**
 
@@ -444,6 +417,89 @@ Y ahí está lo único que se te pide en todo el capítulo, y es una manera de v
 Tres palabras solas, después de haberte dado permiso para no creer.
 
 No es una contradicción. Es alguien que te suelta la mano y, ya sin ninguna autoridad sobre ti, dice lo que piensa igual.
+
+---
+
+## Resonancia KODEX
+
+**La figura del ejercicio vuelve como la forma del poder legítimo.**
+
+*Una espiral ascendente dentro de una estructura que la contiene.* El Libro II la retoma para hablar del derecho a gobernar (II·V) — y ahí la figura hace un trabajo político: **algo que sube, pero adentro de algo que lo limita.**
+
+Es la respuesta exacta a un tomo entero sobre gente que se declaró sin límite.
+
+**«Antena» se convierte en la palabra más repetida del Códex, y termina secuestrada.**
+
+*Eres una antena* (acá) → *tu cuerpo es una antena* (I·VI) → *cada célula es una antena* → y el Libro III cierra la serie: *la matriz la convirtió en **antena cautiva*** (III·III).
+
+Cuatro apariciones y una inversión final. Lo que empezó siendo tu órgano de recepción termina siendo lo que te capturan. **La imagen no cambió; cambió quién transmite.**
+
+**El equilibrio que este capítulo nombra es el que el Libro II tiene que romper.**
+
+*Un equilibrio entre expansión y contención*, y acá las dos hacían falta. El Libro II lo cita en el capítulo del fuego (II·VI) para explicar por qué esa mitad, mantenida demasiado tiempo, deja de ser equilibrio y pasa a ser encierro.
+
+**Y el templo, otra vez, sin edificio.**
+
+*Eres un templo* — el Libro II lo enumera junto a los otros tres del Libro I. Cada vez que estos libros nombran un lugar sagrado, resulta ser uno que ya estabas ocupando.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Soy portador de los planos de la luz.**
+> **Camino dentro del templo que soy."**
+
+**Portador**, no dueño, no autor. El que porta lleva algo que es de otro y que va hacia alguna parte. Un portador no puede quedarse con lo que lleva; su dignidad entera está en el traslado.
+
+Y **camino dentro del templo que soy** dice, en siete palabras, lo que el capítulo tardó diez movimientos en armar: que no hay que ir a ningún lado, que el lugar sagrado es el que se va moviendo contigo, y que sin embargo hay que **caminar** —el templo no te lleva; adentro de él, se anda.
+
+---
+
+### Activación arquitectónica interna
+
+**1. Siéntate en calma.**
+
+Antes de todo lo demás. La calma no es el resultado del ejercicio: es su condición.
+
+**2. Visualiza un cubo de luz girando lentamente en tu pecho.**
+
+Un **cubo**, y no es un capricho: es la contención pura. Seis caras iguales, ángulos rectos, la más estable de las figuras. Es lo que sostiene, lo que no se vuelca, lo que se puede apilar. En el equilibrio del capítulo —expansión y contención— el cubo es el segundo término.
+
+**Girando lentamente**, porque un cubo quieto es un ladrillo. El giro le devuelve vida a la estabilidad.
+
+**3. Dentro del cubo, ve una espiral ascendente.**
+
+Y ahí entra el primer término. La **espiral** es la expansión pura: crece sin cerrarse nunca, cada vuelta más ancha que la anterior.
+
+Mira lo que acaba de armarse: la expansión **adentro** de la contención. La espiral que crece dentro del cubo que la sostiene. No son enemigos y no están en tregua —uno es el continente del otro.
+
+Ese es el Orden Divino del capítulo, puesto en tu pecho en dos pasos.
+
+**4. En el centro de la espiral, un punto de luz pulsa suavemente.**
+
+Y el pulso vuelve, desde el Capítulo I. Aquel primer latido que atravesó el silencio del no-ser late ahora en el centro de esta figura pequeña, adentro de ti.
+
+**Suavemente**, siempre. Nada en este libro llega fuerte.
+
+**5. Ese punto eres tú.**
+
+Cinco palabras, y son la línea que justifica todo el ejercicio.
+
+No eres el cubo —no eres la estructura que te contiene. No eres la espiral —no eres tu crecimiento ni tus logros. Eres el punto: lo más pequeño, lo que no tiene partes, lo que estaba en el centro sin hacer nada más que pulsar.
+
+Todo lo demás es arquitectura alrededor de eso.
+
+**6. Permite que esa arquitectura interna se active, sin expectativa. Solo siente que estás siendo alineado.**
+
+**Permite** —no fuerces, no logres, no consigas.
+
+**Sin expectativa**, y es la instrucción más difícil del ejercicio, porque la expectativa es justamente lo que uno lleva puesto cuando se sienta a hacer algo así. Y ya sabemos por qué arruina: la expectativa vuelve a poner al que se mira hacerlo, y ese es el que tiene que caerse para que ocurra cualquier cosa.
+
+**Estás siendo alineado.** En pasiva, a propósito. No te alineas: te alinean. Y quien lo hace no es nadie de afuera: es la proporción, que ya estaba, acomodando lo que estaba torcido.
+
+---
 
 ---
 

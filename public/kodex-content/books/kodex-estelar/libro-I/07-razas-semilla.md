@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Los linajes estelares de este capítulo son mitología del Códex, no
 > afirmaciones sobre la historia ni sobre el origen de ningún pueblo. Donde el
 > texto nombra "medicina vibracional", va desarrollado como parte de su relato
@@ -11,7 +12,37 @@
 
 ---
 
-## I · Soñarse en muchas formas
+## Epígrafe
+
+> **"Soy semilla de las estrellas.**
+> **Mi linaje es la luz.**
+> **Mi misión es recordar y florecer."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+En un patio cualquiera crece un árbol que no es de ahí.
+
+Lo trajo un pájaro, o vino en la tierra de una maceta, o alguien lo plantó hace treinta años y se mudó. Nadie lo cuida especialmente. **Y está bien** — tiene hojas, da sombra, aguanta el invierno.
+
+Pero hace una cosa rara, y quien lo tenga en el patio la conoce: **florece en el mes equivocado.**
+
+Cuando todo el barrio está pelado, él se llena. Cuando los demás explotan en primavera, él ya pasó. No está enfermo y no está confundido: **está en hora, pero en la hora de otro lado.** Adentro suyo sigue corriendo el calendario del lugar donde su especie se hizo, y ese calendario no se entera de que lo mudaron.
+
+Nadie que pase por la vereda ve un problema. Ven un árbol lindo, fuera de tiempo.
+
+El único que lo nota de verdad es el árbol, si es que un árbol nota algo: **la sensación permanente de estar haciendo lo correcto en el momento en que a nadie le sirve.**
+
+Este capítulo trata de esa sensación, y dice de dónde viene.
+
+---
+
+## Desarrollo
+
+### I · Soñarse en muchas formas
 
 **En el silencio del Vacío, cuando la Fuente decidió soñarse en muchas formas, emergieron las Razas Semilla.**
 
@@ -45,7 +76,7 @@ Es la manera en que este capítulo va a tratar toda diferencia de aquí en adela
 
 ---
 
-## II · Los cinco linajes
+### II · Los cinco linajes
 
 Ocín nombra cinco con detalle y deja el resto en una lista abierta. Vale mirarlos de a uno, porque cada uno trae un don distinto y el conjunto dice algo que ninguno dice solo.
 
@@ -107,7 +138,7 @@ Y fíjate en una palabra que se cuela sin ruido: **Orionitas de luz**. La aclara
 
 ---
 
-## III · Vinieron a sembrar
+### III · Vinieron a sembrar
 
 **Estas razas no vinieron a conquistar. Vinieron a sembrar.**
 
@@ -141,7 +172,7 @@ Y hay una consecuencia que conviene decir, porque cambia a quién estás mirando
 
 ---
 
-## III bis · La sombra del que llega
+### III bis · La sombra del que llega
 
 Quiero quedarme un momento más en *no vinieron a conquistar*, porque una negación tan tajante sólo se escribe cuando lo negado está muy cerca.
 
@@ -165,7 +196,7 @@ El capítulo da la única respuesta posible, aunque no la formule así: **por lo
 
 ---
 
-## IV · Lo sabrás por el anhelo
+### IV · Lo sabrás por el anhelo
 
 **Las Semillas Estelares son esas almas. Tú puedes ser una.**
 
@@ -209,7 +240,7 @@ Sólo queda lo que hagas con eso, que es exactamente lo que el capítulo pedirá
 
 ---
 
-## V · No pertenecen al viejo mundo
+### V · No pertenecen al viejo mundo
 
 **Estas almas no vienen a huir del mundo. Vienen a transformarlo desde dentro.**
 
@@ -253,53 +284,7 @@ Séptima vez que este libro dice *cuando estés listo* en siete capítulos. Nadi
 
 ---
 
-## VI · Mantra
-
-> **"Soy semilla de las estrellas.**
-> **Mi linaje es la luz.**
-> **Mi misión es recordar y florecer."**
-
-**Semilla**, no fruto, no árbol: lo que todavía no se desplegó. Es el estado, no el logro.
-
-**Mi linaje es la luz** — y esa línea, leída después de la frase sobre la sangre, es una declaración política además de espiritual. Si el linaje es la luz, entonces no es la familia, no es el pueblo, no es la nación, no es el apellido. Ninguna de las cosas por las que los humanos se han matado.
-
-**Recordar y florecer**, y los dos verbos son los dos extremos del Libro I. **Recordar** es el del Capítulo I, el primero de todos. **Florecer** es lo que hizo la Fuente al conocerse.
-
-La misión, entonces, es repetir en pequeño lo que Ella hizo en grande: saberse, y abrirse.
-
----
-
-## VII · Activación del linaje estelar dormido
-
-**1. En un lugar tranquilo, coloca tus manos sobre tu corazón.**
-
-Las manos sobre el pecho. Es el mismo lugar del Capítulo I —donde está el sello, *un círculo perfecto grabado en tu pecho*— y del cubo del Capítulo IV. Tercer ejercicio del libro y los tres apuntan al mismo punto.
-
-**2. Respira profundamente.**
-
-Toda la técnica que este libro ha dado en siete capítulos: *solo silencio, solo entrega, solo respiración*.
-
-**3. Visualiza una estrella dentro de ti.**
-
-**Dentro**, siempre. Séptima vez que lo enorme se pone adentro.
-
-**4. Siente que pulsa al ritmo de un recuerdo antiguo.**
-
-Y ahí el ejercicio se separa de los anteriores. No dice que pulse: dice que pulse **al ritmo de un recuerdo**.
-
-Un recuerdo tiene ritmo. Cualquiera que haya recordado algo viejo de golpe lo sabe: no llega como un dato, llega como una ola, con su tiempo propio, y uno queda quieto mientras pasa.
-
-**5. Repite el mantra lentamente.**
-
-**6. No forces. Solo permite. Cada célula escuchará.**
-
-**No forces** es la instrucción que aparece en todos los ejercicios de este libro y hay que entender por qué se repite: porque forzar es lo que uno hace cuando quiere resultados, y querer resultados devuelve a escena al que se mira hacerlo. Ese, otra vez, es el que tiene que caerse.
-
-**Solo permite.** Verbo pasivo, como el *estás siendo alineado* del Capítulo IV. Nada de lo que este libro propone se logra: se deja ocurrir.
-
----
-
-## VIII · Mensaje final
+## El pliegue
 
 **Tú no estás aquí por casualidad. Viniste porque fuiste llamado.**
 
@@ -342,6 +327,78 @@ No dice *no están afuera, están adentro*, que sería una negación fácil y un
 Es exactamente el fractal del capítulo anterior: la misma forma en toda escala.
 
 Lo de arriba, adentro. Sin quitarle nada a lo de arriba.
+
+---
+
+## Resonancia KODEX
+
+**El criterio de este capítulo es el que el Libro II hereda entero.**
+
+*Lo sabrás por el anhelo.* El Libro II lo retoma para el linaje híbrido (II·IV) y ahí queda dicho lo que acá estaba implícito: **el anhelo no prueba nada hacia afuera, y es lo único que sirve hacia adentro.** No se puede mostrar, no se puede certificar, y no se puede fingir ante uno mismo.
+
+**Y la frase que impide que todo esto se vuelva racismo cósmico está acá.**
+
+*La sangre no determina el linaje. Lo hace el alma.* El Libro II la cita en el capítulo del derecho divino a gobernar (II·V), que es exactamente donde hace falta: un tomo que habla de linajes, castas y descendencias **queda desarmado por una línea escrita cinco capítulos antes.**
+
+Este Códex se defiende de sus propias ideas peligrosas con anticipación. Es su costumbre más seria.
+
+**La trampa lógica, nombrada por el propio libro.**
+
+*Si estás leyendo esto…* — el Libro II la marca como fórmula tramposa (II·V): **siempre resulta verdadera, porque quien no es el destinatario no está leyendo.** Que el Códex denuncie su propio recurso retórico es lo que le permite seguir usándolo sin engañar.
+
+**La alquimia como oficio, no como magia.**
+
+*Maestros de la alquimia sagrada*, en los Sirianos. El Libro II lo levanta (II·II) para insistir en que alquimia acá significa **transformar con método y con años**, no obtener por deseo.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Soy semilla de las estrellas.**
+> **Mi linaje es la luz.**
+> **Mi misión es recordar y florecer."**
+
+**Semilla**, no fruto, no árbol: lo que todavía no se desplegó. Es el estado, no el logro.
+
+**Mi linaje es la luz** — y esa línea, leída después de la frase sobre la sangre, es una declaración política además de espiritual. Si el linaje es la luz, entonces no es la familia, no es el pueblo, no es la nación, no es el apellido. Ninguna de las cosas por las que los humanos se han matado.
+
+**Recordar y florecer**, y los dos verbos son los dos extremos del Libro I. **Recordar** es el del Capítulo I, el primero de todos. **Florecer** es lo que hizo la Fuente al conocerse.
+
+La misión, entonces, es repetir en pequeño lo que Ella hizo en grande: saberse, y abrirse.
+
+---
+
+### Activación del linaje estelar dormido
+
+**1. En un lugar tranquilo, coloca tus manos sobre tu corazón.**
+
+Las manos sobre el pecho. Es el mismo lugar del Capítulo I —donde está el sello, *un círculo perfecto grabado en tu pecho*— y del cubo del Capítulo IV. Tercer ejercicio del libro y los tres apuntan al mismo punto.
+
+**2. Respira profundamente.**
+
+Toda la técnica que este libro ha dado en siete capítulos: *solo silencio, solo entrega, solo respiración*.
+
+**3. Visualiza una estrella dentro de ti.**
+
+**Dentro**, siempre. Séptima vez que lo enorme se pone adentro.
+
+**4. Siente que pulsa al ritmo de un recuerdo antiguo.**
+
+Y ahí el ejercicio se separa de los anteriores. No dice que pulse: dice que pulse **al ritmo de un recuerdo**.
+
+Un recuerdo tiene ritmo. Cualquiera que haya recordado algo viejo de golpe lo sabe: no llega como un dato, llega como una ola, con su tiempo propio, y uno queda quieto mientras pasa.
+
+**5. Repite el mantra lentamente.**
+
+**6. No forces. Solo permite. Cada célula escuchará.**
+
+**No forces** es la instrucción que aparece en todos los ejercicios de este libro y hay que entender por qué se repite: porque forzar es lo que uno hace cuando quiere resultados, y querer resultados devuelve a escena al que se mira hacerlo. Ese, otra vez, es el que tiene que caerse.
+
+**Solo permite.** Verbo pasivo, como el *estás siendo alineado* del Capítulo IV. Nada de lo que este libro propone se logra: se deja ocurrir.
+
+---
 
 ---
 

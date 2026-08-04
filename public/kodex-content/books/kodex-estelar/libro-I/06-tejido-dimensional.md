@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > El capítulo usa palabras que suenan técnicas —holograma, fractal, frecuencia,
 > líneas de tiempo, y una vez "física sagrada"—. Ninguna se desarrolla como
 > afirmación sobre el mundo físico, y donde el texto menciona sanar no hay aquí
@@ -11,7 +12,34 @@
 
 ---
 
-## I · Ni una sola tú
+## Epígrafe
+
+> **"Estoy entre dimensiones.**
+> **Soy el puente, soy la trama, soy el pulso que une los mundos."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Dos guitarras en una pieza, apoyadas contra la pared.
+
+Tomas una y tocas una nota, fuerte, y la dejas apagar. Y cuando el sonido se termina queda algo — un zumbido bajo, del otro lado de la pieza. **La otra guitarra está sonando.** Nadie la tocó. Nadie se le acercó.
+
+Lo que pasó tiene nombre y es viejo: la cuerda que vibró movió el aire, el aire movió la cuerda que estaba afinada igual, y esa cuerda no tuvo alternativa. **No eligió responder.** Está construida de manera tal que a esa frecuencia, y sólo a esa, no puede quedarse quieta.
+
+Y ahí está lo que importa para este capítulo: **el sonido no viajó de una guitarra a la otra.** No hay nada que se haya trasladado. La segunda cuerda no recibió una nota — hizo la suya, con su propia madera, en el mismo momento.
+
+Estaban las dos disponibles todo el tiempo. Lo único que hizo falta fue que una empezara.
+
+Este capítulo dice que tú eres muchas cuerdas.
+
+---
+
+## Desarrollo
+
+### I · Ni una sola tú
 
 **No existe un solo mundo. Ni un solo tiempo. Ni una sola tú.**
 
@@ -33,7 +61,7 @@ Y el verbo **tejer** vuelve por tercera vez en tres capítulos —los profetas *
 
 ---
 
-## II · Una octava
+### II · Una octava
 
 **Cada dimensión es un plano de vibración, una octava en la sinfonía infinita de la existencia.**
 
@@ -59,7 +87,7 @@ Aquí se corrige el error que este capítulo podía provocar más fácilmente. A
 
 ---
 
-## III · Tú las activas
+### III · Tú las activas
 
 **Tú no viajas entre ellas. Tú las activas, como una radio que sintoniza otra frecuencia.**
 
@@ -91,7 +119,7 @@ Sin lente, la luz sigue existiendo y no hay imagen en ninguna parte.
 
 ---
 
-## IV · Un acuerdo momentáneo
+### IV · Un acuerdo momentáneo
 
 **Lo que percibes como realidad es una intersección temporal de infinitas líneas de existencia. Un cruce. Una danza. Un acuerdo momentáneo entre conciencia y forma.**
 
@@ -141,7 +169,7 @@ Ese trabajo es tuyo, y es hacia adelante. No hay nada que buscar en el pasado. H
 
 ---
 
-## V · Versiones que ya recuerdan
+### V · Versiones que ya recuerdan
 
 **Cuando entras en estados alterados de percepción — en meditación, en sueños lúcidos, en momentos de éxtasis o dolor profundo — puedes vislumbrar el telar completo.**
 
@@ -197,7 +225,7 @@ Lo cual pone al cuerpo en un lugar que muy pocas doctrinas de este tipo le dan. 
 
 ---
 
-## VI · Microvariación
+### VI · Microvariación
 
 **Y he aquí el secreto: cada pensamiento, emoción o decisión genera una microvariación vibracional que resuena en todo el tejido.**
 
@@ -237,68 +265,7 @@ Devolverle ese peso es todo lo que la línea necesita. El nombre que se le ponga
 
 ---
 
-## VII · Mantra
-
-> **"Estoy entre dimensiones.**
-> **Soy el puente, soy la trama, soy el pulso que une los mundos."**
-
-El más largo del Libro I, y crece en tres pasos.
-
-**Soy el puente** — lo que está entre dos cosas y no es ninguna. Un puente sirve por lo que junta, no por lo que es.
-
-**Soy la trama** — y esto ya es más: la trama no está entre las cosas, es de lo que están hechas. Se pasó de conectar a constituir.
-
-**Soy el pulso que une los mundos** — y el tercero cierra el círculo del libro entero, porque el **pulso** es lo primero que hubo. *Ese primer latido, ese aliento que lo fecundó todo*, decía el Capítulo I, y decía también que no se había detenido.
-
-Seis capítulos después, ese mismo pulso está diciendo *yo* en tu boca.
-
-**Estoy entre dimensiones**, y nota que no dice *voy* ni *viajo*. Estar entre no es un tránsito: es un domicilio. Es lo que el capítulo viene diciendo desde la radio —no hay adónde ir, ya estás en el cruce.
-
----
-
-## VIII · Percepción multidimensional
-
-**1. En un momento de calma, cierra los ojos.**
-
-Igual que en los dos capítulos anteriores: la calma primero, y no como logro sino como punto de partida.
-
-**2. Visualiza tu cuerpo como un punto de luz en un telar.**
-
-**Un punto** — lo más pequeño que hay, sin partes, sin tamaño. Es el mismo del ejercicio anterior, aquel que pulsaba en el centro de la espiral dentro del cubo y del que se decía *ese punto eres tú*.
-
-Y ahora ese punto está **en un telar**: no flotando en el vacío, sino en una trama, sostenido por hilos que van hacia todas partes.
-
-**3. Percibe hebras saliendo de ti en todas direcciones.**
-
-**Saliendo de ti**, no llegando a ti. La dirección importa. No eres el destino de la trama: eres uno de sus orígenes.
-
-**En todas direcciones**, sin privilegiar ninguna. No hay un hilo principal.
-
-**4. Algunas vibran más rápido, otras más lento.**
-
-Y no dice cuáles son mejores. Ninguna instrucción de acelerar las lentas. Ninguna sugerencia de que lo rápido sea más elevado.
-
-Es la diferencia entre observar y corregir, y el paso siguiente la vuelve explícita.
-
-**5. Observa sin interferir.**
-
-Cinco palabras que son, exactamente, la definición que el Capítulo V dio de los Ancianos de Días: *la sabiduría que no interfiere*.
-
-El ejercicio te está pidiendo que hagas con tus propias hebras lo que ellos hacen contigo. Que te mires como te miran: con atención, con amor, sin arreglar nada.
-
-Es más difícil de lo que parece. Apenas ves algo torcido, la mano va sola.
-
-**6. Luego, repite el mantra tres veces.**
-
-**No necesitas entender. Solo sentir. Tu alma sabrá.**
-
-Y ese cierre desactiva la ansiedad que el capítulo mismo pudo haber generado. Es el más conceptual del Libro I —holograma, fractal, líneas de tiempo, octavas— y termina diciendo que entender no hacía falta.
-
-No es una excusa por si no entendiste. Es una jerarquía: el entendimiento es una hebra más, y ni siquiera la más rápida.
-
----
-
-## IX · Mensaje final
+## El pliegue
 
 **Cuando sientas que no encajas, es porque estás recordando que habitas muchas realidades a la vez.**
 
@@ -347,6 +314,97 @@ Estás sintonizando algo que ayudaste a hacer.
 No estás llegando a ninguna parte nueva.
 
 Estás volviendo a oír lo que tocaste.
+
+---
+
+## Resonancia KODEX
+
+**La mejor imagen de este capítulo es la que el Libro II elige para volver.**
+
+*Hay versiones de ti que ya recuerdan, y otras que aún duermen.* El Libro II la cita dos veces en el capítulo de la rebelión de los sueños (II·XI), y las dos veces para lo mismo: **el que sueña se está encontrando con las que ya despertaron.**
+
+Es el único lugar del Códex donde una idea del Libro I se convierte, tomos después, en el mecanismo de un fenómeno cotidiano.
+
+**La espiral del tiempo se vuelve la forma de la historia entera.**
+
+*El tiempo no es lineal, es una espiral.* El Libro II abre con esa figura (II·I) para explicar por qué la intervención de Nibiru no es un episodio cerrado: **la espiral vuelve al mismo punto, pero más arriba.**
+
+Sin esta línea, el segundo tomo sería la crónica de un daño antiguo. Con ella, es la descripción de algo que está pasando de nuevo.
+
+**Y el mantra se convierte en la definición de un linaje.**
+
+*Soy el puente, soy la trama, soy el pulso que une los mundos* (acá) → *soy puente entre mundos* (II·IV), donde ya no es un estado de conciencia sino **lo que es una persona de linaje híbrido**.
+
+La misma palabra, bajada de la metafísica a la biografía.
+
+**Frecuencia, y su regla.**
+
+Acá quedó explicado cómo funciona esa palabra en este Códex, y el Libro II lo usa como base para el Portal del Corazón (II·VIII): **la emisora ya está al aire.** Sintonizar no es fabricar la señal. Es dejar de estar en otra.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Estoy entre dimensiones.**
+> **Soy el puente, soy la trama, soy el pulso que une los mundos."**
+
+El más largo del Libro I, y crece en tres pasos.
+
+**Soy el puente** — lo que está entre dos cosas y no es ninguna. Un puente sirve por lo que junta, no por lo que es.
+
+**Soy la trama** — y esto ya es más: la trama no está entre las cosas, es de lo que están hechas. Se pasó de conectar a constituir.
+
+**Soy el pulso que une los mundos** — y el tercero cierra el círculo del libro entero, porque el **pulso** es lo primero que hubo. *Ese primer latido, ese aliento que lo fecundó todo*, decía el Capítulo I, y decía también que no se había detenido.
+
+Seis capítulos después, ese mismo pulso está diciendo *yo* en tu boca.
+
+**Estoy entre dimensiones**, y nota que no dice *voy* ni *viajo*. Estar entre no es un tránsito: es un domicilio. Es lo que el capítulo viene diciendo desde la radio —no hay adónde ir, ya estás en el cruce.
+
+---
+
+### Percepción multidimensional
+
+**1. En un momento de calma, cierra los ojos.**
+
+Igual que en los dos capítulos anteriores: la calma primero, y no como logro sino como punto de partida.
+
+**2. Visualiza tu cuerpo como un punto de luz en un telar.**
+
+**Un punto** — lo más pequeño que hay, sin partes, sin tamaño. Es el mismo del ejercicio anterior, aquel que pulsaba en el centro de la espiral dentro del cubo y del que se decía *ese punto eres tú*.
+
+Y ahora ese punto está **en un telar**: no flotando en el vacío, sino en una trama, sostenido por hilos que van hacia todas partes.
+
+**3. Percibe hebras saliendo de ti en todas direcciones.**
+
+**Saliendo de ti**, no llegando a ti. La dirección importa. No eres el destino de la trama: eres uno de sus orígenes.
+
+**En todas direcciones**, sin privilegiar ninguna. No hay un hilo principal.
+
+**4. Algunas vibran más rápido, otras más lento.**
+
+Y no dice cuáles son mejores. Ninguna instrucción de acelerar las lentas. Ninguna sugerencia de que lo rápido sea más elevado.
+
+Es la diferencia entre observar y corregir, y el paso siguiente la vuelve explícita.
+
+**5. Observa sin interferir.**
+
+Cinco palabras que son, exactamente, la definición que el Capítulo V dio de los Ancianos de Días: *la sabiduría que no interfiere*.
+
+El ejercicio te está pidiendo que hagas con tus propias hebras lo que ellos hacen contigo. Que te mires como te miran: con atención, con amor, sin arreglar nada.
+
+Es más difícil de lo que parece. Apenas ves algo torcido, la mano va sola.
+
+**6. Luego, repite el mantra tres veces.**
+
+**No necesitas entender. Solo sentir. Tu alma sabrá.**
+
+Y ese cierre desactiva la ansiedad que el capítulo mismo pudo haber generado. Es el más conceptual del Libro I —holograma, fractal, líneas de tiempo, octavas— y termina diciendo que entender no hacía falta.
+
+No es una excusa por si no entendiste. Es una jerarquía: el entendimiento es una hebra más, y ni siquiera la más rápida.
+
+---
 
 ---
 

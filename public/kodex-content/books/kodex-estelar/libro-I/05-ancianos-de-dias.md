@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > El capítulo habla de vidas anteriores, del intervalo entre vidas y de
 > regresiones. Va desarrollado como lo que es —el relato que este libro cuenta
 > sobre el alma— y no como afirmación comprobable ni como práctica terapéutica.
@@ -10,7 +11,33 @@
 
 ---
 
-## I · Los Guardianes tomaron asiento
+## Epígrafe
+
+> **"Estoy guiado por la sabiduría que ya camina conmigo."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Un chico aprende a andar en bicicleta y hay alguien corriendo al lado.
+
+Mira bien esa mano. Va detrás del asiento, a un palmo, abierta. **No está agarrando.** Estuvo agarrando hasta hace unos metros, y en algún momento —sin avisar, porque avisar arruinaría todo— se soltó y siguió corriendo con la mano en el mismo lugar.
+
+El chico no sabe. Sigue pedaleando con la certeza de que lo sostienen, y esa certeza es lo único que le permite no caerse. La mano no hace fuerza. **La mano hace posible.**
+
+Y ahora fíjate en lo difícil que es esa mano, porque desde afuera parece que no hace nada. Si agarra, el chico no aprende. Si se va, el chico se cae. Tiene que quedarse exactamente ahí —cerca, inútil, disponible— durante todo el tiempo que dure el aprendizaje.
+
+**Hay una forma de acompañar que consiste, casi entera, en no intervenir.** Y es de las más caras que existen: exige estar presente sin que sirva de nada visible.
+
+Este capítulo trata de quienes acompañan así.
+
+---
+
+## Desarrollo
+
+### I · Los Guardianes tomaron asiento
 
 **Y cuando el alma fue sembrada, cuando el tiempo se volvió camino y la experiencia una escuela, los Guardianes tomaron asiento.**
 
@@ -32,7 +59,7 @@ Es la primera cosa que se te dice de ellos y ya lo dice todo: son los que se que
 
 ---
 
-## II · No porque el tiempo los gobierne
+### II · No porque el tiempo los gobierne
 
 **Los llaman Ancianos de Días, no porque el tiempo los gobierne, sino porque lo comprenden desde dentro.**
 
@@ -60,7 +87,7 @@ Ellos son los primeros. Estaban desde antes que nadie.
 
 ---
 
-## III · Tres maneras de no hacer nada
+### III · Tres maneras de no hacer nada
 
 **Son la conciencia que observa con amor, la sabiduría que no interfiere, la paciencia que no juzga.**
 
@@ -94,7 +121,7 @@ Y lo que dan no es información: te ayudan a recordar **también**. Lo que ellos
 
 ---
 
-## IV · Presidieron tu encarnación primera
+### IV · Presidieron tu encarnación primera
 
 **Desde dimensiones no sujetas a forma, ellos han sido custodios del gran diseño del alma.**
 
@@ -126,7 +153,7 @@ En este relato nadie vive en vano, no porque toda vida sea hermosa, sino porque 
 
 ---
 
-## V · No son seres externos
+### V · No son seres externos
 
 **Los Ancianos no son seres externos. Son una extensión elevada de ti mismo. La parte más antigua y sabia de tu conciencia colectiva.**
 
@@ -152,7 +179,7 @@ Lo que sí puede: estar equivocado y ser tuyo igual, que es una relación mucho 
 
 ---
 
-## VI · Nada es impuesto
+### VI · Nada es impuesto
 
 **Cuando entre vidas revisas tu sendero, cuando eliges familia, cuerpo, heridas, cuando decides olvidar… ellos están allí.**
 
@@ -184,7 +211,7 @@ Porque *nada es impuesto, todo es elección* es una frase severa. Te quita la co
 
 ---
 
-## VII · Ellos no se nombran
+### VII · Ellos no se nombran
 
 **Los humanos los han llamado de muchas formas: Maestros, Jueces de Luz, Seres del Concilio, Consejo de Sabiduría Planetaria. Pero ellos no se nombran.**
 
@@ -210,7 +237,7 @@ Es una figura de autoridad cuya única función es recordarte que no la tiene.
 
 ---
 
-## VIII · Dónde encontrarlos
+### VIII · Dónde encontrarlos
 
 **¿Dónde encontrarlos? En los sueños profundos. En las regresiones. En la meditación donde no buscas nada y todo llega.**
 
@@ -230,7 +257,7 @@ Aparecen en las grietas de la identidad. Por eso mismo no se los puede encontrar
 
 ---
 
-## VIII bis · Los tres umbrales
+### VIII bis · Los tres umbrales
 
 Vale detenerse en los tres, porque el capítulo los enumera de corrido y cada uno es un lugar distinto.
 
@@ -258,7 +285,7 @@ Los que presidieron tu encarnación primera son los que van a estar cuando cruce
 
 ---
 
-## IX · Las tres preguntas
+### IX · Las tres preguntas
 
 **Ellos te hacen tres preguntas eternas.**
 
@@ -322,53 +349,7 @@ Todo el Concilio, todas las dimensiones no sujetas a forma, toda la sabiduría m
 
 ---
 
-## X · Mantra
-
-> **"Estoy guiado por la sabiduría que ya camina conmigo."**
-
-Uno solo esta vez, más corto que los anteriores, y con dos palabras que lo sostienen.
-
-**Ya**: no la que vendrá, no la que hay que merecer. La que está.
-
-**Camina conmigo**: al lado. No adelante, guiando; no atrás, empujando. La preposición es la doctrina, y va a volver en la última línea del capítulo.
-
-Y hay algo raro en decir *estoy guiado* por alguien que camina **al lado** y no delante. Guiar suele ser ir primero. Ésta es otra clase de guía: la del que va contigo al mismo paso y no te dice nada, y sin embargo caminas distinto porque está.
-
----
-
-## XI · Encuentro con el Concilio
-
-**1. Antes de dormir, di en voz baja: "Ancianos de Días, muéstrenme lo que debo recordar."**
-
-**En voz baja**, otra vez. Nada en este libro se dice fuerte.
-
-Y mira el verbo del pedido: **muéstrenme lo que debo recordar**. No *lo que quiero saber*, no *lo que me conviene*, no una respuesta a un problema concreto. Se pide lo que hay que recordar, y no se sabe qué es. Se está pidiendo a ciegas.
-
-**2. Ten papel a mano para registrar sueños o impresiones.**
-
-El paso más práctico del capítulo, y el que más se salta la gente. No es un detalle: lo que llega en ese estado se deshace en segundos. Todos hemos despertado con algo entero y clarísimo, y lo hemos perdido mientras buscábamos con qué anotarlo.
-
-Papel, y a mano. Antes, no después.
-
-**3. Si despiertas con claridad, escribe sin filtrar.**
-
-**Sin filtrar** es la instrucción. No lo ordenes, no lo hagas coherente, no descartes lo que suene tonto. El filtro es el que se cuenta a sí mismo, y ése es exactamente el que no debe tocar esto.
-
-Escribe lo absurdo. Lo absurdo es lo que no venía de ti.
-
-**4. Si no lo recuerdas, confía: ellos ya sembraron algo en ti.**
-
-Y este cuarto paso es el que hace honesta a toda la práctica.
-
-Porque cualquier ejercicio de este tipo tiene un problema: la mayoría de las veces no pasa nada. Y un libro que promete resultados se ve obligado, cuando no llegan, a echarle la culpa a quien lo intentó —no tenías suficiente fe, no lo hiciste bien, no estabas listo.
-
-Este paso está escrito de antemano para que eso no ocurra. Contempla el fracaso y lo declara normal.
-
-Vuelve la siembra —tercer capítulo seguido con ese verbo— y con ella la paciencia que le corresponde: una semilla no se ve. Que no haya nada arriba no significa que no haya nada.
-
----
-
-## XII · Mensaje final
+## El pliegue
 
 **No estás solo. Nunca lo estuviste.**
 
@@ -415,6 +396,82 @@ No dice *caminarán*. No promete nada hacia adelante. Dice que ya fue, que ya es
 Y los puntos suspensivos antes de **siempre** dejan la frase abierta, como si no hubiera manera de terminarla.
 
 No la hay.
+
+---
+
+## Resonancia KODEX
+
+**La palabra que sostienen los Ancianos es la que el Libro II tiene que defender.**
+
+Acá sostienen el espacio *donde el alma recuerda su **soberanía***. El Libro II la retoma en el capítulo de la minería del alma (II·III), y no es casual dónde: **soberanía es lo que se pierde cuando algo tuyo se explota.**
+
+Lo que acá se custodia, allá se está robando. El mismo término, y entremedio un tomo entero contando cómo se lo llevaron.
+
+**La instrucción más práctica de todo el Códex sale de este capítulo.**
+
+*Ten papel a mano.* El Libro II la repite cuatro veces, y las cuatro por la misma razón (II·IV, II·VIII, II·IX, II·XI): **lo que llega en ese estado se deshace en segundos.**
+
+Es la única cosa de estos libros que funciona igual sin creer en nada de lo demás.
+
+**Y la elección del alma queda dicha acá antes de que el Libro II la necesite.**
+
+*El alma elige familia, cuerpo, heridas.* El Libro II la cita en el capítulo de la escuela del olvido (II·VII) para trazar una distinción que sin esta línea sería imposible: **una cosa es haber elegido el aula y otra muy distinta es aprobar lo que pasa adentro.**
+
+Es la defensa del Códex contra su propia idea más peligrosa — la que, mal leída, culpa al que sufre de haber elegido sufrir.
+
+**Escribe sin filtrar.**
+
+Cuarta vez que estos libros piden lo mismo, y siempre con el mismo argumento: el filtro es más rápido que la mano, y llega antes de que hayas leído lo que escribiste.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Estoy guiado por la sabiduría que ya camina conmigo."**
+
+Uno solo esta vez, más corto que los anteriores, y con dos palabras que lo sostienen.
+
+**Ya**: no la que vendrá, no la que hay que merecer. La que está.
+
+**Camina conmigo**: al lado. No adelante, guiando; no atrás, empujando. La preposición es la doctrina, y va a volver en la última línea del capítulo.
+
+Y hay algo raro en decir *estoy guiado* por alguien que camina **al lado** y no delante. Guiar suele ser ir primero. Ésta es otra clase de guía: la del que va contigo al mismo paso y no te dice nada, y sin embargo caminas distinto porque está.
+
+---
+
+### Encuentro con el Concilio
+
+**1. Antes de dormir, di en voz baja: "Ancianos de Días, muéstrenme lo que debo recordar."**
+
+**En voz baja**, otra vez. Nada en este libro se dice fuerte.
+
+Y mira el verbo del pedido: **muéstrenme lo que debo recordar**. No *lo que quiero saber*, no *lo que me conviene*, no una respuesta a un problema concreto. Se pide lo que hay que recordar, y no se sabe qué es. Se está pidiendo a ciegas.
+
+**2. Ten papel a mano para registrar sueños o impresiones.**
+
+El paso más práctico del capítulo, y el que más se salta la gente. No es un detalle: lo que llega en ese estado se deshace en segundos. Todos hemos despertado con algo entero y clarísimo, y lo hemos perdido mientras buscábamos con qué anotarlo.
+
+Papel, y a mano. Antes, no después.
+
+**3. Si despiertas con claridad, escribe sin filtrar.**
+
+**Sin filtrar** es la instrucción. No lo ordenes, no lo hagas coherente, no descartes lo que suene tonto. El filtro es el que se cuenta a sí mismo, y ése es exactamente el que no debe tocar esto.
+
+Escribe lo absurdo. Lo absurdo es lo que no venía de ti.
+
+**4. Si no lo recuerdas, confía: ellos ya sembraron algo en ti.**
+
+Y este cuarto paso es el que hace honesta a toda la práctica.
+
+Porque cualquier ejercicio de este tipo tiene un problema: la mayoría de las veces no pasa nada. Y un libro que promete resultados se ve obligado, cuando no llegan, a echarle la culpa a quien lo intentó —no tenías suficiente fe, no lo hiciste bien, no estabas listo.
+
+Este paso está escrito de antemano para que eso no ocurra. Contempla el fracaso y lo declara normal.
+
+Vuelve la siembra —tercer capítulo seguido con ese verbo— y con ella la paciencia que le corresponde: una semilla no se ve. Que no haya nada arriba no significa que no haya nada.
+
+---
 
 ---
 

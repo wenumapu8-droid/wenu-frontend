@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Donde el texto nombra la hélice del ADN, los cristales o el latido, lo hace
 > como imagen y no como afirmación científica ni indicación médica. Así va
 > desarrollado.
@@ -10,7 +11,36 @@
 
 ---
 
-## I · No habló con palabras
+## Epígrafe
+
+> **"Recuerdo mi patrón divino.**
+> **La forma en mí es luz que canta."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Una noche de helada, el vidrio de una ventana amanece dibujado.
+
+Lo que hay ahí son helechos. Nervadura, tallo, ramitas que se abren en ángulos que se repiten — y no hay ningún helecho a kilómetros, ni nadie que haya pasado un pincel por el vidrio en la madrugada.
+
+**Y si esa mañana miras una foto de un río visto desde arriba, es lo mismo.** El cauce principal, los brazos que se abren, los brazos de los brazos. Y si te miras el dorso de la mano contra la luz, también: la vena gruesa, las que salen de ella, las que salen de ésas.
+
+Tres cosas que no tienen nada que ver entre sí. Agua congelada en un vidrio, agua corriendo por una llanura, sangre adentro de un cuerpo. Ninguna copió a la otra. **Ninguna sabe que la otra existe.**
+
+Y las tres resolvieron el mismo problema —cómo repartir algo por una superficie— con la misma figura.
+
+Fíjate en lo que eso obliga a pensar, porque no hay muchas salidas. O es una coincidencia repetida hasta el absurdo, o **la figura estaba disponible antes que las tres**, esperando a que algo la necesitara.
+
+Este capítulo dice la segunda.
+
+---
+
+## Desarrollo
+
+### I · No habló con palabras
 
 **Cuando la Fuente deseó verse, no habló con palabras, sino con formas.**
 
@@ -36,7 +66,7 @@ La forma es eso. Es vibración a la que se le puso dónde.
 
 ---
 
-## II · Antes del oído
+### II · Antes del oído
 
 **Eran la música antes del oído, la danza antes del cuerpo, el lenguaje antes del tiempo.**
 
@@ -62,7 +92,7 @@ Eso es lo que se te está proponiendo: que las formas básicas —el círculo, e
 
 ---
 
-## III · La cadena
+### III · La cadena
 
 **Todo lo que existe tiene forma. Y toda forma es resonancia. Y toda resonancia es frecuencia que responde a un pulso original.**
 
@@ -92,7 +122,7 @@ La belleza llega antes que la explicación. Ese es todo el argumento del capítu
 
 ---
 
-## IV · Yo soy la forma del Uno
+### IV · Yo soy la forma del Uno
 
 **Así, la Fuente se fragmenta en espirales, en círculos, en triángulos, en esferas, en cuerpos vivos que repiten un solo canto: "Yo soy la forma del Uno."**
 
@@ -116,7 +146,7 @@ Ese es el sentido preciso de *sin fractura* que traía el sello del primer capí
 
 ---
 
-## V · No es invención humana
+### V · No es invención humana
 
 **La geometría sagrada no es invención humana. Es memoria cósmica impresa en la materia.**
 
@@ -150,7 +180,7 @@ Y sobre *lo que el mundo moderno ha olvidado*: no es una queja contra el present
 
 ---
 
-## VI · Los sabios lo escondieron
+### VI · Los sabios lo escondieron
 
 **Los antiguos sabían. Los sabios lo escondieron. Los profetas lo tejieron en templos, en códices, en visiones alucinadas en cuevas y desiertos.**
 
@@ -175,7 +205,7 @@ Por eso lo pusieron en templos, en códices, en visiones —en objetos que duran
 
 ---
 
-## VII · Las ruedas del recuerdo
+### VII · Las ruedas del recuerdo
 
 **Cuando repites un mandala, cuando dibujas una espiral, cuando danzas en círculos bajo el cielo, estás repitiendo las fórmulas del origen.**
 
@@ -197,7 +227,7 @@ Y toda la práctica que este capítulo propone cabe en esa distinción. No hay n
 
 ---
 
-## VIII · Por qué sagrada
+### VIII · Por qué sagrada
 
 **¿Por qué la geometría es sagrada? Porque no fue hecha por el hombre, sino revelada a través del alma.**
 
@@ -241,7 +271,7 @@ A esa otra le habla el capítulo, y le dice: mira tu forma. Mira la proporción 
 
 ---
 
-## VIII bis · Las tres que se nombran
+### VIII bis · Las tres que se nombran
 
 El capítulo nombra tres figuras con nombre propio y no se detiene en ninguna. Vale detenerse, porque cada una dice algo distinto y el texto las eligió a ellas.
 
@@ -275,50 +305,7 @@ Cada uno es el centro. Ninguno es el dueño.
 
 ---
 
-## IX · Mantra
-
-> **"Recuerdo mi patrón divino.**
-> **La forma en mí es luz que canta."**
-
-**Recuerdo** —no *adquiero*, no *construyo*. Es el verbo de todo el libro.
-
-**Mi patrón** —no *el* patrón. Hay uno general y hay uno tuyo. Un patrón no es un molde que aplasta las diferencias: es una regla que genera variedad. Todos los copos tienen seis lados y no hay dos iguales. El patrón no te uniforma; es lo que hace que tu forma sea *una* forma y no un montón.
-
-**La forma en mí es luz que canta** —y ahí se juntan las tres cosas que el capítulo viene tejiendo desde la primera línea. La **forma**, que es lo que se ve. La **luz**, que es de lo que está hecha. El **canto**, que es la vibración contenida del principio.
-
-Tres palabras para una sola cosa, mirada por sus tres caras.
-
----
-
-## X · Ritual de integración
-
-**Dibuja con tu propia mano un símbolo que resuene contigo: una estrella, una espiral, un triángulo, un mandala.**
-
-**Con tu propia mano.** No impreso, no elegido de una pantalla, no descargado. Y la razón no es la nostalgia del papel: es que la mano tarda. El trazo lento es el punto entero del ejercicio.
-
-**Que resuene contigo.** No el correcto, no el más poderoso, no el que corresponda a tu signo o a tu fecha. El que resuene. Nadie puede decirte cuál es y por eso no hay autoridad que consultar: otra vez, sin dogma, sin templo, sin maestro externo.
-
-**Mientras lo haces, repite el mantra en voz baja.**
-
-En voz baja: para ti, no para nadie. Un mantra dicho fuerte empieza a ser una actuación, y en cuanto hay público vuelve el que se mira hacerlo —justo lo que el Capítulo I decía que se cae cuando algo verdadero ocurre.
-
-**Siente que al trazar líneas estás recordando caminos.**
-
-Ésa es la frase del ritual. Un trazo es un camino que quedó dibujado; un camino es un trazo que alguien caminó. La misma cosa en dos escalas.
-
-**Siente que estás tocando el orden desde dentro.**
-
-*Desde dentro*, y esta es la única instrucción real: no lo estás mirando, estás adentro haciéndolo. Es la diferencia entre estudiar una música y cantarla.
-
-**Y luego guarda ese dibujo como un sello de activación. Tu alma lo reconocerá como su espejo.**
-
-Vuelve el **sello** del Capítulo I —*un círculo perfecto grabado en tu pecho*—, y ahora hay uno de papel. No lo reemplaza: lo señala. Es una nota que te dejas a ti mismo sobre algo que ya llevas puesto.
-
-Guárdalo. Vas a encontrarlo en unos años, en un cajón, sin acordarte de haberlo hecho. Ese día vas a entender por qué el capítulo pidió que lo guardaras.
-
----
-
-## XI · Mensaje final
+## El pliegue
 
 **Cuando todo se olvida, la forma aún permanece.**
 
@@ -357,6 +344,81 @@ No eres el que busca la puerta. No eres el que tiene que merecer que se la abran
 Y hay algo severo en eso, además de honroso: una puerta puede estar cerrada. Nadie puede abrirla desde afuera. La llave existe, la forma la trae, el capítulo entero te la puso en la mano.
 
 Falta que gires.
+
+---
+
+## Resonancia KODEX
+
+**Lo que acá es un consuelo, el Libro II lo convierte en una defensa.**
+
+*No eres un accidente. Eres arquitectura de luz.* Este capítulo lo dice contra la sensación de estar de más en el mundo. El Libro II lo cita en pleno relato de la manipulación genética (II·II) — y ahí la misma frase ya no consuela: **discute con quien dice haberte diseñado.**
+
+Es el movimiento típico de este Códex. Una frase escrita como abrazo reaparece, tomos después, como argumento.
+
+**La contención cambia de signo y el Códex lo admite.**
+
+*Esas formas eran vibración contenida*, y acá contener es **bueno**: es lo que permite que algo tenga forma en vez de disolverse. El Libro II lo retoma en el capítulo del fuego interior (II·VI) para decir que la misma contención, sostenida de más, es lo que hay que romper.
+
+No es una contradicción: **es una dosis**. Y que el propio libro marque dónde cambia el signo es lo que lo separa de un manual de autoayuda.
+
+**El cuerpo como templo empieza acá y termina caminando.**
+
+*Tu cuerpo, que es un templo* (acá) → *eres un templo* (I·IV) → *el suelo bajo tus pies es un altar* (I·IX) → *eres el templo que camina* (I·X).
+
+El Libro II reúne los cuatro en una sola línea (II·VI), y leídos juntos se ve el recorrido completo: **el templo deja de ser un lugar, después deja de ser una cosa, y al final es alguien que se mueve.**
+
+**Y la geometría vuelve como gesto, no como figura.**
+
+*Dibuja con tu propia mano.* El Libro II repite la instrucción en su primer capítulo, con un cambio que vale (II·I): allá no dibujas la figura de tu origen — dibujas **la intersección**, el punto donde tu linaje se cruzó con otro.
+
+La mano hace lo mismo. Lo que cambió es qué hay para trazar.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Recuerdo mi patrón divino.**
+> **La forma en mí es luz que canta."**
+
+**Recuerdo** —no *adquiero*, no *construyo*. Es el verbo de todo el libro.
+
+**Mi patrón** —no *el* patrón. Hay uno general y hay uno tuyo. Un patrón no es un molde que aplasta las diferencias: es una regla que genera variedad. Todos los copos tienen seis lados y no hay dos iguales. El patrón no te uniforma; es lo que hace que tu forma sea *una* forma y no un montón.
+
+**La forma en mí es luz que canta** —y ahí se juntan las tres cosas que el capítulo viene tejiendo desde la primera línea. La **forma**, que es lo que se ve. La **luz**, que es de lo que está hecha. El **canto**, que es la vibración contenida del principio.
+
+Tres palabras para una sola cosa, mirada por sus tres caras.
+
+---
+
+### Ritual de integración
+
+**Dibuja con tu propia mano un símbolo que resuene contigo: una estrella, una espiral, un triángulo, un mandala.**
+
+**Con tu propia mano.** No impreso, no elegido de una pantalla, no descargado. Y la razón no es la nostalgia del papel: es que la mano tarda. El trazo lento es el punto entero del ejercicio.
+
+**Que resuene contigo.** No el correcto, no el más poderoso, no el que corresponda a tu signo o a tu fecha. El que resuene. Nadie puede decirte cuál es y por eso no hay autoridad que consultar: otra vez, sin dogma, sin templo, sin maestro externo.
+
+**Mientras lo haces, repite el mantra en voz baja.**
+
+En voz baja: para ti, no para nadie. Un mantra dicho fuerte empieza a ser una actuación, y en cuanto hay público vuelve el que se mira hacerlo —justo lo que el Capítulo I decía que se cae cuando algo verdadero ocurre.
+
+**Siente que al trazar líneas estás recordando caminos.**
+
+Ésa es la frase del ritual. Un trazo es un camino que quedó dibujado; un camino es un trazo que alguien caminó. La misma cosa en dos escalas.
+
+**Siente que estás tocando el orden desde dentro.**
+
+*Desde dentro*, y esta es la única instrucción real: no lo estás mirando, estás adentro haciéndolo. Es la diferencia entre estudiar una música y cantarla.
+
+**Y luego guarda ese dibujo como un sello de activación. Tu alma lo reconocerá como su espejo.**
+
+Vuelve el **sello** del Capítulo I —*un círculo perfecto grabado en tu pecho*—, y ahora hay uno de papel. No lo reemplaza: lo señala. Es una nota que te dejas a ti mismo sobre algo que ya llevas puesto.
+
+Guárdalo. Vas a encontrarlo en unos años, en un cajón, sin acordarte de haberlo hecho. Ese día vas a entender por qué el capítulo pidió que lo guardaras.
+
+---
 
 ---
 
