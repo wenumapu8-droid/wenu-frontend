@@ -63,6 +63,7 @@ for (const libro of libros) {
     idx.capitulos = libro.capitulos;
     idx.total_capitulos = libro.total_capitulos;
     idx.release_state = libro.release_state;
+    idx.release_date = libro.release_date;
   }
 }
 
