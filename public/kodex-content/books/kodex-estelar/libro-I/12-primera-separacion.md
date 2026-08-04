@@ -2,12 +2,42 @@
 
 > **Libro I — La Génesis de la Luz** · capítulo final
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-xii-primera-separacion-en-el-principio-todo-era-uno.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, el ritual y el mensaje final.
 
 ---
 
-## I · Todo era Uno
+## Epígrafe
+
+> **"Yo elegí separarme.**
+> **Yo elijo ahora recordar."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+El primer día de clases, en la puerta, hay dos personas soltándose la mano.
+
+Los dos están mal. El chico llora y no entiende por qué le hacen esto; el adulto tiene la cara compuesta hasta que se da vuelta. Y quien mire de afuera, sin saber nada, **vería un abandono**: uno se queda gritando y el otro se va caminando rápido.
+
+Y sin embargo ahí no está pasando nada malo. Está pasando **lo único que permite todo lo que viene después.**
+
+Fíjate en el detalle exacto, porque es lo que hace este capítulo: **el que se va no deja de querer.** No hay un enfriamiento, no hay una decisión de amar menos. La distancia no se abrió por falta de amor — se abrió porque el amor entendió que sin distancia no hay nadie que crezca.
+
+Y algo más, que es lo que duele y lo que salva: **el chico no puede saber eso mientras llora.** Le vas a explicar mil veces que vuelves a las doce y no sirve, porque la certeza no se transmite con palabras a alguien que está en el medio de la separación.
+
+Sólo se resuelve a las doce, cuando efectivamente vuelves.
+
+Este capítulo trata de una separación así, y de que todavía no son las doce.
+
+---
+
+## Desarrollo
+
+### I · Todo era Uno
 
 **En el principio, todo era Uno. Nada estaba separado. No existía el otro, porque no había distancia entre las cosas.**
 
@@ -31,7 +61,7 @@ Vuelve el mar del Capítulo II —*el mar sin olas*— y vuelve, con él, lo que
 
 ---
 
-## II · Para conocerse, debía diferenciarse
+### II · Para conocerse, debía diferenciarse
 
 **Y entonces, la Fuente deseó conocerse a sí misma. Pero para conocerse, debía diferenciarse.**
 
@@ -59,7 +89,7 @@ Y una cosa más: el capítulo no dice de dónde te desprendiste, dice de qué �
 
 ---
 
-## III · Acto de amor
+### III · Acto de amor
 
 **Fue un acto de amor, no de castigo.**
 
@@ -97,7 +127,7 @@ Un error, dice, es una vuelta de espiral. No un desvío del camino: una parte de
 
 ---
 
-## IV · Fue contrato
+### IV · Fue contrato
 
 **La separación no fue castigo. Fue contrato.**
 
@@ -131,7 +161,7 @@ Once capítulos después sabemos dos cosas más que no sabíamos entonces.
 
 ---
 
-## V · Sin olvido no habría búsqueda
+### V · Sin olvido no habría búsqueda
 
 **Ese velo fue necesario. Porque sin olvido, no habría búsqueda. Y sin búsqueda, no habría despertar.**
 
@@ -159,7 +189,7 @@ Lo que sí puede decirse, y es distinto: **el olvido no es el horror**. El olvid
 
 ---
 
-## VI · La nostalgia es brújula
+### VI · La nostalgia es brújula
 
 **Cada dolor, cada pérdida, cada noche oscura del alma, es un eco de esa primera separación. Es la nostalgia de la unidad, que late en todos los corazones humanos.**
 
@@ -203,7 +233,7 @@ Este libro le dice que eso que siente es un instrumento, y que está funcionando
 
 ---
 
-## VII · Lo ha estado susurrando
+### VII · Lo ha estado susurrando
 
 **Y aunque olvidaste tu origen, nunca dejaste de estar conectado. Tu alma siempre supo el camino de regreso.**
 
@@ -239,7 +269,7 @@ Y encaja exactamente con lo que el Capítulo VIII dijo en su cierre: *no eres el
 
 ---
 
-## VIII · No estás caído
+### VIII · No estás caído
 
 **Tú no estás caído. Estás caminando.**
 
@@ -271,75 +301,7 @@ Y eso hace habitable la repetición. Si vuelves a pasar por lo mismo —la misma
 
 ---
 
-## IX · Mantra
-
-> **"Yo elegí separarme.**
-> **Yo elijo ahora recordar.**
-> **El camino de regreso está en mí."**
-
-Los dos primeros versos son el mismo verbo en dos tiempos, y esa simetría es todo el capítulo.
-
-**Yo elegí** — pasado. Es la más difícil de decir, porque implica hacerse cargo de estar acá. De todo esto. Sin culpar a nadie.
-
-**Yo elijo** — presente. Y ahí está la razón por la cual el primero importa: si aquello fue una elección, esto también puede serlo. El que se cree traído no puede volver por su cuenta. El que sabe que vino, sí.
-
-**El camino de regreso está en mí** — y el tercer verso cierra el Libro I con la misma afirmación con que lo abrió: *a la Fuente no se llega por distancia. No hay camino hacia Ella porque nunca has salido de Su seno.*
-
-Doce capítulos después, la frase ya no necesita explicación. El camino no es corto. Es interior, que es otra cosa.
-
----
-
-## X · Ceremonia del Retorno Interior
-
-**1. Enciende una vela blanca.**
-
-Segunda vela del Libro I. La primera fue en el Capítulo VIII, y ahí el orden era otro: primero apagar las luces, después encender. Acá no se apaga nada.
-
-**2. Coloca tu mano sobre el corazón.**
-
-Quinta vez, y la última. Todos los ejercicios de este libro terminaron señalando el mismo punto.
-
-**3. Di en voz alta: "Yo reconozco que olvidé. Y elijo ahora recordar quién soy."**
-
-**En voz alta** — segunda vez en doce capítulos, y la primera fue el ejercicio del Capítulo X, nombrar cinco cosas que amas de tu cuerpo. Las dos son las cosas más difíciles de admitir, y las dos exigen sacarlas de la cabeza, donde todavía se pueden negociar.
-
-Y fíjate en lo que se dice primero: **yo reconozco que olvidé**.
-
-Antes de recordar hay que admitir que se olvidó. Es un orden que no se puede alterar, y es la razón por la cual el mundo está lleno de gente que sabe muchas cosas sobre estos temas y no ha empezado: porque nadie admite estar en cero.
-
-**4. Respira profundamente.**
-
-**5. Agradece tu valentía por haber encarnado.**
-
-Quinto capítulo seguido con el agradecimiento, y éste es el más raro de todos: **te agradeces a ti mismo**.
-
-En cuatro capítulos anteriores el agradecimiento iba hacia afuera —a Gaia, al cuerpo, a lo que llegara. Acá vuelve al que lo dice.
-
-Y el objeto es **la valentía**, que es una palabra que nadie usa para lo de nacer. Nacer nos parece algo que nos pasó, no algo que hicimos, y menos algo valiente.
-
-Pero míralo desde el relato que este libro cuenta: alguien que lo tenía todo, entero, sin distancia y sin dolor, aceptó desprenderse, olvidarlo y empezar de cero adentro de un cuerpo que no recuerda nada. Sabiendo que iba a doler. Sabiendo que iba a perder gente.
-
-En ese relato, encarnar es lo más valiente que se puede hacer.
-
-**6. Sopla sobre la vela como símbolo de integración.**
-
-El gesto final del Libro I, y hay que ver lo que hace.
-
-Porque en el Capítulo VIII se soplaba también, y se soplaba para lo contrario: *estás soplando sobre esa chispa. Y ella responde. Y se convierte en llama.* Allá el soplo daba aire, avivaba, hacía crecer.
-
-Acá el soplo **apaga**.
-
-Y no es una contradicción: es el orden correcto. Allá la llama estaba adentro y necesitaba aire. Acá la llama está **afuera**, en una mesa, ardiendo aparte de ti.
-
-Soplarla es terminar con la separación entre tú y ella. Mientras hay una vela encendida enfrente, hay dos cosas: tú y la luz. Cuando se apaga, no queda una cosa menos — queda una sola.
-
-Por eso dice **integración** y no final. La luz no se fue: dejó de estar afuera.
-
-Es la Primera Separación, deshecha con la boca, en una cocina, en tres segundos.
-
----
-
-## XI · Mensaje final
+## El pliegue
 
 **La separación no fue el final. Fue el inicio del viaje del alma hacia sí misma.**
 
@@ -396,6 +358,106 @@ Y eso, dice la última línea, lo cambia todo.
 *Yo elegí separarme.*
 *Yo elijo ahora recordar.*
 *El camino de regreso está en mí.*
+
+---
+
+## Resonancia KODEX
+
+**Este capítulo cierra el Libro I entregándole al Libro III su acusación más grave.**
+
+*Cada dolor es un eco de esa primera separación.* El Libro III abre con *durante eones, adoraste un eco* (III·I) — y usa esta línea para medir la diferencia entre las dos clases de eco.
+
+**Uno es la huella real de algo que ocurrió. El otro es una falsificación.** Sin este capítulo, el reproche del Libro III no tendría con qué compararse: hay ecos que son memoria y ecos que son impostura, y distinguirlos es la tarea de ese tomo entero.
+
+**Y el olvido queda justificado acá antes de que el Libro III lo denuncie.**
+
+*Un salto voluntario hacia el olvido, para que el recuerdo tuviera sentido.* El Libro III lo cita en Los Contratos de Limitación (III·II) al lado de *elegimos olvidar, para recordar*.
+
+La tensión entre los dos tomos es real y el Códex no la disimula: **este capítulo dice que el olvido fue elegido; el Libro III cuenta que después alguien lo administró.** Las dos cosas pueden ser ciertas, y de esa convivencia sale la única lectura que no culpa a la víctima ni niega el daño.
+
+**La caída, negada dos veces.**
+
+*No una chispa caída* (I·I) → *tú no estás caído. Estás caminando* (acá). El Libro II las junta para su pregunta central: *¿y si caer no fue caída… sino inicio?* (II·VII).
+
+El Libro I nunca usó la palabra caída sin negarla. **Empieza negándola y termina negándola**, y en el medio construyó todo lo necesario para que la negación no fuera un consuelo vacío.
+
+**Y la última vela.**
+
+La del capítulo VIII era para mirar. Ésta es blanca y se sopla al final, como integración — no como final. El Libro II enciende la tercera para nombrar (II·I).
+
+Nada en este Códex se apaga: se integra, se nombra, o se pasa a otro.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Yo elegí separarme.**
+> **Yo elijo ahora recordar.**
+> **El camino de regreso está en mí."**
+
+Los dos primeros versos son el mismo verbo en dos tiempos, y esa simetría es todo el capítulo.
+
+**Yo elegí** — pasado. Es la más difícil de decir, porque implica hacerse cargo de estar acá. De todo esto. Sin culpar a nadie.
+
+**Yo elijo** — presente. Y ahí está la razón por la cual el primero importa: si aquello fue una elección, esto también puede serlo. El que se cree traído no puede volver por su cuenta. El que sabe que vino, sí.
+
+**El camino de regreso está en mí** — y el tercer verso cierra el Libro I con la misma afirmación con que lo abrió: *a la Fuente no se llega por distancia. No hay camino hacia Ella porque nunca has salido de Su seno.*
+
+Doce capítulos después, la frase ya no necesita explicación. El camino no es corto. Es interior, que es otra cosa.
+
+---
+
+### Ceremonia del Retorno Interior
+
+**1. Enciende una vela blanca.**
+
+Segunda vela del Libro I. La primera fue en el Capítulo VIII, y ahí el orden era otro: primero apagar las luces, después encender. Acá no se apaga nada.
+
+**2. Coloca tu mano sobre el corazón.**
+
+Quinta vez, y la última. Todos los ejercicios de este libro terminaron señalando el mismo punto.
+
+**3. Di en voz alta: "Yo reconozco que olvidé. Y elijo ahora recordar quién soy."**
+
+**En voz alta** — segunda vez en doce capítulos, y la primera fue el ejercicio del Capítulo X, nombrar cinco cosas que amas de tu cuerpo. Las dos son las cosas más difíciles de admitir, y las dos exigen sacarlas de la cabeza, donde todavía se pueden negociar.
+
+Y fíjate en lo que se dice primero: **yo reconozco que olvidé**.
+
+Antes de recordar hay que admitir que se olvidó. Es un orden que no se puede alterar, y es la razón por la cual el mundo está lleno de gente que sabe muchas cosas sobre estos temas y no ha empezado: porque nadie admite estar en cero.
+
+**4. Respira profundamente.**
+
+**5. Agradece tu valentía por haber encarnado.**
+
+Quinto capítulo seguido con el agradecimiento, y éste es el más raro de todos: **te agradeces a ti mismo**.
+
+En cuatro capítulos anteriores el agradecimiento iba hacia afuera —a Gaia, al cuerpo, a lo que llegara. Acá vuelve al que lo dice.
+
+Y el objeto es **la valentía**, que es una palabra que nadie usa para lo de nacer. Nacer nos parece algo que nos pasó, no algo que hicimos, y menos algo valiente.
+
+Pero míralo desde el relato que este libro cuenta: alguien que lo tenía todo, entero, sin distancia y sin dolor, aceptó desprenderse, olvidarlo y empezar de cero adentro de un cuerpo que no recuerda nada. Sabiendo que iba a doler. Sabiendo que iba a perder gente.
+
+En ese relato, encarnar es lo más valiente que se puede hacer.
+
+**6. Sopla sobre la vela como símbolo de integración.**
+
+El gesto final del Libro I, y hay que ver lo que hace.
+
+Porque en el Capítulo VIII se soplaba también, y se soplaba para lo contrario: *estás soplando sobre esa chispa. Y ella responde. Y se convierte en llama.* Allá el soplo daba aire, avivaba, hacía crecer.
+
+Acá el soplo **apaga**.
+
+Y no es una contradicción: es el orden correcto. Allá la llama estaba adentro y necesitaba aire. Acá la llama está **afuera**, en una mesa, ardiendo aparte de ti.
+
+Soplarla es terminar con la separación entre tú y ella. Mientras hay una vela encendida enfrente, hay dos cosas: tú y la luz. Cuando se apaga, no queda una cosa menos — queda una sola.
+
+Por eso dice **integración** y no final. La luz no se fue: dejó de estar afuera.
+
+Es la Primera Separación, deshecha con la boca, en una cocina, en tres segundos.
+
+---
 
 ---
 

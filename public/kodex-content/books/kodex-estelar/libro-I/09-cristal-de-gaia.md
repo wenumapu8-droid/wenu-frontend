@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > **Advertencia necesaria:** este capítulo enumera sensaciones físicas —mareos,
 > temblores— y las lee como llamados. Aquí se desarrolla marcando lo que el
 > texto no dice: un síntoma del cuerpo se consulta con un médico. Este libro no
@@ -12,7 +13,37 @@
 
 ---
 
-## I · No estás caminando sobre una roca muerta
+## Epígrafe
+
+> **"Mi corazón late al ritmo de la Tierra.**
+> **Soy parte del cristal.**
+> **Soy guardián del pulso de Gaia."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Acuéstate en el piso de tu casa, de espaldas, y quédate quieto un minuto.
+
+Al principio no hay nada. Es un piso: duro, quieto, mudo — la cosa más obviamente inerte de toda la casa, lo único en lo que nunca pensaste.
+
+Y después empieza a llegar.
+
+Un caño que se llena en algún lado de la pared. La heladera que arranca y hace vibrar toda la losa. Pasos arriba, y sabes en qué dirección van. Un auto en la calle que no oyes con los oídos: **lo sientes en la espalda**, un segundo antes de escucharlo.
+
+Nada de eso empezó cuando te acostaste. Estaba pasando toda la tarde, mientras tú caminabas por encima **usando el piso como una superficie para no caerte**.
+
+Y hay algo que sólo se entiende ahí abajo: no es que el piso transmita el ruido de otras cosas. **El piso es lo que las conecta.** Sin él, la heladera y tu espalda y los pasos de arriba serían sucesos separados. Con él, son un solo cuerpo que se avisa a sí mismo.
+
+Este capítulo dice que la Tierra hace eso, y a otra escala.
+
+---
+
+## Desarrollo
+
+### I · No estás caminando sobre una roca muerta
 
 **No estás caminando sobre una roca muerta. Estás danzando sobre una conciencia.**
 
@@ -63,7 +94,7 @@ Si este planeta es una escuela en ese sentido, entonces tu torpeza no es una fal
 
 ---
 
-## II · Gaia ya respiraba
+### II · Gaia ya respiraba
 
 **Antes de que llegaran los humanos, antes de que el lenguaje fuera palabra, Gaia ya respiraba.**
 
@@ -109,7 +140,7 @@ Lo cual quiere decir que en este capítulo la sintonía no es un logro. Es el es
 
 ---
 
-## II bis · Los últimos de la lista
+### II bis · Los últimos de la lista
 
 Vale detenerse en ese orden, porque es la clase de cosa que se lee de corrido y decide el tono de todo el capítulo.
 
@@ -137,7 +168,7 @@ Un capítulo que pusiera a los humanos primeros no podría decir eso. Éste sí,
 
 ---
 
-## III · Escuchaban
+### III · Escuchaban
 
 **Los antiguos lo sabían. Por eso construían templos donde se cruzaban sus líneas de fuerza. Por eso honraban a las piedras, a las cuevas, al trueno. Porque escuchaban.**
 
@@ -159,7 +190,7 @@ Cada vez que este libro nombra un lugar sagrado, resulta ser uno que ya estabas 
 
 ---
 
-## IV · Porque confía
+### IV · Porque confía
 
 **Gaia no es solo la Tierra. Es la conciencia que eligió sostener esta experiencia.**
 
@@ -187,7 +218,7 @@ Y también hay que decir lo que **no** se sigue de esto: nada de esto vuelve ace
 
 ---
 
-## V · El cristal está despertando
+### V · El cristal está despertando
 
 **En su centro vibra un cristal vivo. Y ese cristal está despertando. Está pulsando nuevos códigos. Está enviando ondas de activación que resuenan con los corazones alineados.**
 
@@ -237,62 +268,7 @@ Tiene sentido que aparezca justamente en el capítulo de la Tierra. Todo lo dem�
 
 ---
 
-## VI · Mantra
-
-> **"Mi corazón late al ritmo de la Tierra.**
-> **Soy parte del cristal.**
-> **Soy guardián del pulso de Gaia."**
-
-Tres frases que van de recibir a dar.
-
-**Mi corazón late al ritmo de la Tierra** — sincronía. Todavía pasivo: lo único que se afirma es que coincides.
-
-**Soy parte del cristal** — pertenencia. Ya no coincides desde afuera: estás adentro.
-
-**Soy guardián del pulso de Gaia** — y ahí aparece un cargo, el único que este libro le ha dado al lector en nueve capítulos.
-
-Y hay que ver qué clase de cargo es. Un guardián no manda sobre lo que guarda. No lo posee, no lo usa, no decide sobre él. Su único trabajo es que siga estando.
-
-Vuelve el **pulso** por enésima vez —aquel primer latido del Capítulo I, que no se detuvo—, y ahora se te encarga cuidarlo.
-
----
-
-## VII · Ritual de conexión
-
-**1. Si puedes, siéntate sobre la tierra.**
-
-**Si puedes.** Dos palabras que valen mucho y que casi ningún libro de este género escribe.
-
-Porque la mayoría de la gente que va a leer esto vive en una ciudad, en un piso alto, sobre concreto. Un ritual que exija tierra desnuda deja afuera a casi todos y les deja además la sensación de estar haciéndolo mal.
-
-*Si puedes* dice: y si no, hazlo igual.
-
-**2. Cierra los ojos.**
-**3. Visualiza un cristal gigantesco en el centro del planeta.**
-**4. Siente que un hilo de luz conecta tu corazón con ese centro.**
-
-**Un hilo**, y no un cable, no una columna, no un rayo. Lo más fino que puede sostener algo.
-
-Es coherente con todo el libro: el susurro en vez del grito, la microvariación en vez del terremoto, la certeza suave que no necesita explicación. Nada acá llega con fuerza.
-
-Y fíjate que el hilo va de **tu corazón** al **centro**: los dos son centros. No es una conexión de arriba abajo, ni de lo pequeño a lo grande. Es centro con centro.
-
-**5. Respira lento.**
-**6. Agradece.**
-
-Segunda aparición del agradecimiento, ahora como paso del ritual y sin objeto. No dice por qué ni a quién. Sólo agradece.
-
-**No busques señales. La señal es tu recuerdo.**
-
-Y este cierre es el que hace honesto al ritual, igual que el cuarto paso del Capítulo V —*si no lo recuerdas, confía*.
-
-**No busques señales** desactiva de antemano el juego que arruina estas prácticas: salir a interpretarlo todo, ver mensajes en cada pájaro, quedarse esperando una confirmación que nunca es suficiente. El que busca señales siempre encuentra, y por eso mismo lo que encuentra no vale nada.
-
-**La señal es tu recuerdo.** Lo que ocurrió, si ocurrió, ya está adentro. No hay que verificarlo afuera.
-
----
-
-## VIII · Mensaje final
+## El pliegue
 
 **Gaia no te necesita como salvador. Te necesita como aliado.**
 
@@ -343,6 +319,91 @@ Y no es un tribunal el que se acuerda: no lleva un registro para cobrarte. Es lo
 Y con esa palabra se cierra el sistema musical del libro entero. En el Capítulo III las formas eran música antes del oído. En el VI cada dimensión era una octava. En el VIII eras una nota en la sinfonía. Ahora tienes un canto propio, y es lo que te identifica.
 
 No lo que hiciste. Cómo sonabas.
+
+---
+
+## Resonancia KODEX
+
+**El Cristal de Gaia es la figura que el Libro II necesita para poder acusar.**
+
+*Una red de luz inteligente, una frecuencia viviente que conecta todo.* El Libro II la cita en el capítulo de la minería del alma (II·III) — y ahí queda claro para qué servía: **si el cristal es una red y no un yacimiento, entonces no se puede minar.**
+
+*Una mina se agota; un cristal no es un yacimiento.* Todo ese capítulo se apoya en una definición escrita acá, en tono contemplativo, sin saber contra qué iba a servir.
+
+**Y el suelo se vuelve altar, con una consecuencia práctica.**
+
+*El suelo bajo tus pies es un altar.* El Libro II la retoma dos veces, y la segunda es la que importa (II·V): en el ritual se pide estar **descalzo**. No es estética. Es la única manera de que la frase anterior deje de ser una metáfora.
+
+**La escuela, y su degradación.**
+
+*Gaia eligió convertirse en escuela* (acá) → *ya no sería una escuela libre, se convertiría en un laboratorio* (II·I) → y de ahí sale el Libro II entero.
+
+Es el eco más grave del Códex: **una sola palabra cambiada —escuela por laboratorio— y cambia quién se lleva lo aprendido.**
+
+**Y la frase que impide el complejo de salvador.**
+
+*Gaia no te necesita como salvador.* El Libro II la pone junto a *tu alma no necesita ser salvada* (I·XI) al enumerar lo que hay que soltar (II·XII).
+
+Dos veces el Libro I sacó del camino la misma tentación, y el Libro II las cobra juntas.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Mi corazón late al ritmo de la Tierra.**
+> **Soy parte del cristal.**
+> **Soy guardián del pulso de Gaia."**
+
+Tres frases que van de recibir a dar.
+
+**Mi corazón late al ritmo de la Tierra** — sincronía. Todavía pasivo: lo único que se afirma es que coincides.
+
+**Soy parte del cristal** — pertenencia. Ya no coincides desde afuera: estás adentro.
+
+**Soy guardián del pulso de Gaia** — y ahí aparece un cargo, el único que este libro le ha dado al lector en nueve capítulos.
+
+Y hay que ver qué clase de cargo es. Un guardián no manda sobre lo que guarda. No lo posee, no lo usa, no decide sobre él. Su único trabajo es que siga estando.
+
+Vuelve el **pulso** por enésima vez —aquel primer latido del Capítulo I, que no se detuvo—, y ahora se te encarga cuidarlo.
+
+---
+
+### Ritual de conexión
+
+**1. Si puedes, siéntate sobre la tierra.**
+
+**Si puedes.** Dos palabras que valen mucho y que casi ningún libro de este género escribe.
+
+Porque la mayoría de la gente que va a leer esto vive en una ciudad, en un piso alto, sobre concreto. Un ritual que exija tierra desnuda deja afuera a casi todos y les deja además la sensación de estar haciéndolo mal.
+
+*Si puedes* dice: y si no, hazlo igual.
+
+**2. Cierra los ojos.**
+**3. Visualiza un cristal gigantesco en el centro del planeta.**
+**4. Siente que un hilo de luz conecta tu corazón con ese centro.**
+
+**Un hilo**, y no un cable, no una columna, no un rayo. Lo más fino que puede sostener algo.
+
+Es coherente con todo el libro: el susurro en vez del grito, la microvariación en vez del terremoto, la certeza suave que no necesita explicación. Nada acá llega con fuerza.
+
+Y fíjate que el hilo va de **tu corazón** al **centro**: los dos son centros. No es una conexión de arriba abajo, ni de lo pequeño a lo grande. Es centro con centro.
+
+**5. Respira lento.**
+**6. Agradece.**
+
+Segunda aparición del agradecimiento, ahora como paso del ritual y sin objeto. No dice por qué ni a quién. Sólo agradece.
+
+**No busques señales. La señal es tu recuerdo.**
+
+Y este cierre es el que hace honesto al ritual, igual que el cuarto paso del Capítulo V —*si no lo recuerdas, confía*.
+
+**No busques señales** desactiva de antemano el juego que arruina estas prácticas: salir a interpretarlo todo, ver mensajes en cada pájaro, quedarse esperando una confirmación que nunca es suficiente. El que busca señales siempre encuentra, y por eso mismo lo que encuentra no vale nada.
+
+**La señal es tu recuerdo.** Lo que ocurrió, si ocurrió, ya está adentro. No hay que verificarlo afuera.
+
+---
 
 ---
 

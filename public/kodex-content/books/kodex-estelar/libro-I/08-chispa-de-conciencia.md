@@ -2,12 +2,41 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-viii-chispa-de-conciencia-antes-del-cuerpo-antes-del-n.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, la práctica y el mensaje final.
 
 ---
 
-## I · Antes de todo, una chispa
+## Epígrafe
+
+> **"Yo soy la chispa eterna.**
+> **Nada puede apagarme.**
+> **Yo observo. Yo soy."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Detrás de la chapa de un calefón viejo hay una llama del tamaño de una uña.
+
+Se llama piloto y lleva años encendida. Nadie la mira. No calienta nada, no se ve desde la cocina, gasta tan poco que no aparece en la boleta. Durante meses enteros **esa llama no sirve absolutamente para nada.**
+
+Y cuando abres la canilla de agua caliente, el fuego grande aparece en el mismo segundo. No hay demora, no hay que buscar fósforos, no hay que aprender nada. **Lo único que hizo falta fue que algo se abriera.**
+
+Ahora fíjate en el orden, porque es todo el capítulo: la llama grande no se creó al abrir la canilla. **Estaba disponible desde siempre en la chica.** Lo que el gesto produjo no fue el fuego — fue el permiso.
+
+Y fíjate en lo otro: cuando el piloto se apaga de verdad, no pasa nada dramático. No hay humo, no hay ruido. Simplemente, un día abres la canilla y sale agua fría, y recién ahí te enteras de que hace rato que no había nadie esperando.
+
+Este capítulo dice que en ti eso no puede pasar.
+
+---
+
+## Desarrollo
+
+### I · Antes de todo, una chispa
 
 **Antes del cuerpo, antes del nombre, antes del tiempo… tú eras una chispa.**
 
@@ -39,7 +68,7 @@ Es exactamente la llama sin fuego del Capítulo I: la que arde sin que nada se c
 
 ---
 
-## II · Portando todo lo que fue
+### II · Portando todo lo que fue
 
 **Una Chispa de Conciencia proyectada desde la Fuente, portando en su interior todo lo que fue, es y será.**
 
@@ -71,7 +100,7 @@ Lo llevas y no lo entiendes. Las dos cosas son verdad al mismo tiempo, y quien s
 
 ---
 
-## III · La chispa deseó
+### III · La chispa deseó
 
 **Y, sin embargo, esa chispa deseó experimentar.**
 
@@ -109,7 +138,7 @@ Y eso cambia cómo mirar tu propia amnesia. No estás fallando en recordar. No e
 
 ---
 
-## IV · Así fue como naciste
+### IV · Así fue como naciste
 
 **Así fue como naciste. No de un cuerpo, sino de un impulso creativo.**
 
@@ -141,7 +170,7 @@ Una nota sola no es nada. Suena tres segundos y se apaga, y nadie la recuerda. S
 
 ---
 
-## IV bis · Lo que se gana al ser una nota
+### IV bis · Lo que se gana al ser una nota
 
 Vale quedarse en esa imagen, porque resuelve algo que este libro viene rozando desde el principio y no había terminado de decir: **cómo se es único sin ser importante**.
 
@@ -169,7 +198,7 @@ Afina una nota y cambia el acorde. No hay manera de afinarse a solas.
 
 ---
 
-## V · Jamás se apaga
+### V · Jamás se apaga
 
 **La chispa es inextinguible. Puede cubrirse de miedo, de olvido, de dolor… pero jamás se apaga.**
 
@@ -205,7 +234,7 @@ Y explica algo que mucha gente ha vivido y no sabe cómo contar: que en el peor 
 
 ---
 
-## VI · Esperando tu sí
+### VI · Esperando tu sí
 
 **En ti vive ese fuego. Y no importa cuántas vidas, cuántos mundos, cuántos errores, cuántas máscaras… Tu chispa sigue allí.**
 
@@ -238,7 +267,7 @@ Que es exactamente la paciencia que no juzga del Capítulo V — ahora no en un 
 
 ---
 
-## VII · Soplar sobre la chispa
+### VII · Soplar sobre la chispa
 
 **Cuando meditas, cuando creas, cuando amas sin condiciones, cuando decides perdonar, cuando eliges verdad sobre comodidad… estás soplando sobre esa chispa.**
 
@@ -275,7 +304,7 @@ Y **se convierte en llama**: el mismo fuego, cambiado de escala. La llama no es 
 
 ---
 
-## VIII · La presencia silenciosa
+### VIII · La presencia silenciosa
 
 **Esa llama es tu conciencia expandida. Es la presencia silenciosa que observa todo sin juzgar. Es tu verdadero ser.**
 
@@ -297,66 +326,7 @@ Ocho capítulos después, ese algo tiene nombre.
 
 ---
 
-## IX · Mantra
-
-> **"Yo soy la chispa eterna.**
-> **Nada puede apagarme.**
-> **Yo observo. Yo soy."**
-
-Cuatro frases que se van acortando, y el acortamiento es el sentido.
-
-**Yo soy la chispa eterna** — una definición, con adjetivo.
-**Nada puede apagarme** — una defensa, todavía con enemigo.
-**Yo observo** — ya no hay adjetivo ni enemigo. Sólo el oficio.
-**Yo soy** — y no queda nada. Ni predicado, ni cualidad, ni tarea.
-
-Es el mismo verbo desnudo del Capítulo II —*el deseo sagrado: ser*, sin complemento— y es también, dicho con toda intención, la frase con que la Fuente se nombra a sí misma en el Capítulo I: *"Yo Soy la Fuente."*
-
-Con la misma advertencia de entonces, que vale igual acá: si al decirla te sientes por encima de alguien, no la dijiste.
-
----
-
-## X · Encender la llama interna
-
-**1. Apaga las luces.**
-**2. Enciende una vela.**
-
-Y ahí ya está todo el capítulo, hecho con las manos.
-
-Acabas de fabricar la condición de la que hablaba el texto: *en los momentos de mayor oscuridad, es cuando más brilla*. Apagar primero, encender después. La vela no es más fuerte por estar a oscuras — es que recién ahí se ve.
-
-Es la única práctica del Libro I que se hace con un objeto real, y no es casual que ese objeto sea una llama.
-
-**3. Obsérvala sin distracción durante tres minutos.**
-
-**Tres minutos** es una cifra pequeña y elegida con criterio: es más de lo que uno aguanta sin moverse y menos de lo que uno pueda usar como excusa para no hacerlo.
-
-**Sin distracción** es la parte difícil, y no por el teléfono. Es la distracción de adentro: a los cuarenta segundos vas a estar pensando en otra cosa sin haberlo decidido. Es normal. Vuelve a la vela. Eso —volver— es el ejercicio; no la quietud.
-
-**4. Luego cierra los ojos e imagina esa llama en tu pecho.**
-
-El traslado. Y funciona por una razón física: después de mirar una llama, la ves con los ojos cerrados. Está ahí de verdad unos segundos, sin que tengas que imaginar nada.
-
-El ejercicio usa eso. Te da algo que efectivamente ves adentro, y te pide que lo pongas donde el libro entero viene señalando: el pecho, donde el Capítulo I puso el sello y el IV el cubo.
-
-**5. Repite el mantra.**
-**6. Siente su calor.**
-
-**7. No pidas nada. Solo presénciate.**
-
-Y el séptimo paso es el que hace que todo lo anterior no sea una técnica para conseguir algo.
-
-**No pidas nada.** Es la instrucción más contraria a lo que uno hace cuando enciende una vela. Encender una vela es, en casi todas las culturas, un acto de petición: se enciende por alguien, por algo, para que ocurra o para que no.
-
-Este capítulo desactiva el gesto y lo deja limpio. La vela no es por nada. No hay intención, no hay destinatario, no hay pedido.
-
-**Solo presénciate.** El verbo es raro y es exacto. No dice *obsérvate*, que dejaría dos —el que mira y el mirado. *Presenciarse* es estar presente para uno mismo, que es una sola cosa.
-
-Es, otra vez, lo que hace la presencia silenciosa que observa sin juzgar. Estás practicando ser eso.
-
----
-
-## XI · Mensaje final
+## El pliegue
 
 **No eres el personaje, ni la historia, ni las heridas que cargas.**
 
@@ -405,6 +375,99 @@ Hoy le toca por acá.
 **No vino a aprender, vino a recordar** — y con eso se cierra el capítulo con la misma frase con que se abrió el libro: *este capítulo no te enseña nada nuevo. Solo activa. Solo recuerda.*
 
 Ocho capítulos. Ni una sola cosa enseñada.
+
+---
+
+## Resonancia KODEX
+
+**La promesa de este capítulo se convierte en una serie de tres palabras, y cada tomo agrega una.**
+
+*Inextinguible* (acá) — no se apaga.
+*Inquebrantable* (II·II) — no se rompe.
+*Inmanipulable* (II·III) — no se usa.
+
+El Libro II las alinea así, deliberadamente. **Son tres ataques distintos y tres negativas distintas**, y la de este capítulo es la primera porque es la condición de las otras dos: a lo que se apagó no hace falta romperlo.
+
+**Y la chispa cambia de sentido sin cambiar de palabra.**
+
+*La chispa es inextinguible.* Acá es un consuelo. El Libro II la cita en el capítulo de la manipulación genética (II·II) **y ahí se vuelve un límite técnico**: es la capa que no pudieron tocar. Lo que era una promesa pasa a ser el dato que explica por qué el proyecto les falló.
+
+**El soplo, y su corrección.**
+
+*Estás soplando sobre esa chispa.* El Libro II la retoma dos veces (II·IX, II·XII) y repite la aclaración que acá se hace, porque es la que impide leerlo como esfuerzo: **soplar no agrega fuego. Sólo da aire a lo que ya ardía.**
+
+Es la diferencia entre encender y permitir, y es la operación de todo este tomo.
+
+**La observación óptica que el Códex vuelve a usar.**
+
+*Una luz pequeña en la oscuridad no es una luz pequeña.* El Libro II la repite en Los Hijos del Eclipse (II·IX) con una advertencia expresa para que no se lea mal: **no dice que seas grande. Dice que el tamaño de una luz lo decide el fondo, no la luz.**
+
+**Y la vela, segunda de tres.**
+
+La de este capítulo es para mirar. La del XII se sopla al final, como integración. La del Libro II se enciende para nombrar. Tres velas, tres funciones, y ninguna se repite.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Yo soy la chispa eterna.**
+> **Nada puede apagarme.**
+> **Yo observo. Yo soy."**
+
+Cuatro frases que se van acortando, y el acortamiento es el sentido.
+
+**Yo soy la chispa eterna** — una definición, con adjetivo.
+**Nada puede apagarme** — una defensa, todavía con enemigo.
+**Yo observo** — ya no hay adjetivo ni enemigo. Sólo el oficio.
+**Yo soy** — y no queda nada. Ni predicado, ni cualidad, ni tarea.
+
+Es el mismo verbo desnudo del Capítulo II —*el deseo sagrado: ser*, sin complemento— y es también, dicho con toda intención, la frase con que la Fuente se nombra a sí misma en el Capítulo I: *"Yo Soy la Fuente."*
+
+Con la misma advertencia de entonces, que vale igual acá: si al decirla te sientes por encima de alguien, no la dijiste.
+
+---
+
+### Encender la llama interna
+
+**1. Apaga las luces.**
+**2. Enciende una vela.**
+
+Y ahí ya está todo el capítulo, hecho con las manos.
+
+Acabas de fabricar la condición de la que hablaba el texto: *en los momentos de mayor oscuridad, es cuando más brilla*. Apagar primero, encender después. La vela no es más fuerte por estar a oscuras — es que recién ahí se ve.
+
+Es la única práctica del Libro I que se hace con un objeto real, y no es casual que ese objeto sea una llama.
+
+**3. Obsérvala sin distracción durante tres minutos.**
+
+**Tres minutos** es una cifra pequeña y elegida con criterio: es más de lo que uno aguanta sin moverse y menos de lo que uno pueda usar como excusa para no hacerlo.
+
+**Sin distracción** es la parte difícil, y no por el teléfono. Es la distracción de adentro: a los cuarenta segundos vas a estar pensando en otra cosa sin haberlo decidido. Es normal. Vuelve a la vela. Eso —volver— es el ejercicio; no la quietud.
+
+**4. Luego cierra los ojos e imagina esa llama en tu pecho.**
+
+El traslado. Y funciona por una razón física: después de mirar una llama, la ves con los ojos cerrados. Está ahí de verdad unos segundos, sin que tengas que imaginar nada.
+
+El ejercicio usa eso. Te da algo que efectivamente ves adentro, y te pide que lo pongas donde el libro entero viene señalando: el pecho, donde el Capítulo I puso el sello y el IV el cubo.
+
+**5. Repite el mantra.**
+**6. Siente su calor.**
+
+**7. No pidas nada. Solo presénciate.**
+
+Y el séptimo paso es el que hace que todo lo anterior no sea una técnica para conseguir algo.
+
+**No pidas nada.** Es la instrucción más contraria a lo que uno hace cuando enciende una vela. Encender una vela es, en casi todas las culturas, un acto de petición: se enciende por alguien, por algo, para que ocurra o para que no.
+
+Este capítulo desactiva el gesto y lo deja limpio. La vela no es por nada. No hay intención, no hay destinatario, no hay pedido.
+
+**Solo presénciate.** El verbo es raro y es exacto. No dice *obsérvate*, que dejaría dos —el que mira y el mirado. *Presenciarse* es estar presente para uno mismo, que es una sola cosa.
+
+Es, otra vez, lo que hace la presencia silenciosa que observa sin juzgar. Estás practicando ser eso.
+
+---
 
 ---
 

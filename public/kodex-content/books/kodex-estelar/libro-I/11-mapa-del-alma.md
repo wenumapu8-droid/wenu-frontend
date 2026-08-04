@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > El capítulo lee ciertos miedos como huellas de otras vidas. Aquí se desarrolla
 > marcando lo que el texto no dice: un miedo que te achica la vida se consulta
 > con alguien que sepa atenderlo. Este libro no diagnostica y la regresión y la
@@ -11,7 +12,37 @@
 
 ---
 
-## I · Ni comenzó ni termina
+## Epígrafe
+
+> **"Mi alma es infinita.**
+> **Mi historia es sagrada.**
+> **Camino el sendero que yo mismo diseñé."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Hay una cicatriz en tu cuerpo cuyo origen no recuerdas.
+
+Una línea fina en una rodilla, en un dedo, en la ceja. Alguna vez preguntaste y te contaron —una mesa ratona, una bicicleta, tenías cuatro años— o no preguntaste nunca y ahí quedó, un dato sin historia.
+
+Fíjate en la situación completa, porque es rara: **hay un registro exacto de algo que te pasó, escrito en ti, y no tienes acceso a lo que dice.** El cuerpo se acordó. Tú no.
+
+Y no es un error del cuerpo. Es que guarda de otra manera: no guarda el suceso, **guarda la consecuencia.** No archivó la tarde ni el llanto ni quién te alzó. Archivó una reparación, y la dejó a la vista para siempre.
+
+Ahora piensa en cuántas cosas tuyas funcionan así. Por qué cierto olor te pone de buen humor. Por qué desconfías de alguien antes de que hable. Por qué se te da bien una cosa que nunca estudiaste.
+
+Ninguna de esas viene con su historia adjunta. **Todas son cicatrices de algo, y casi ninguna te dejó marca en la piel.**
+
+Este capítulo trata de leer ese registro.
+
+---
+
+## Desarrollo
+
+### I · Ni comenzó ni termina
 
 **Tu alma no comenzó en esta vida. Tampoco termina en ella.**
 
@@ -37,7 +68,7 @@ Compáralo con lo que hace este género habitualmente: los números exactos, las
 
 ---
 
-## II · Una biblioteca sin libros
+### II · Una biblioteca sin libros
 
 **Imagina una biblioteca donde no hay libros, sino frecuencias. Y cada frecuencia es una vida.**
 
@@ -61,7 +92,7 @@ Eso desarma la idea de que tus vidas sean una secuencia, una detrás de otra, ca
 
 ---
 
-## III · Has sido mucho más
+### III · Has sido mucho más
 
 **Tú has sido mucho más de lo que recuerdas: guardián de portales, hija de reyes, chamán, astronauta, curandera, visionario, madre solar…**
 
@@ -89,7 +120,7 @@ Tres verbos, y el del medio está en el centro a propósito. No dice *has amado,
 
 ---
 
-## IV · Talentos que no aprendiste
+### IV · Talentos que no aprendiste
 
 **A veces como intuiciones, otras como miedos sin causa aparente, otras como talentos naturales que no aprendiste, porque ya los dominas desde otros planos.**
 
@@ -115,7 +146,7 @@ Y el Capítulo III ya había dicho algo parecido con otras palabras: *que tus ma
 
 ---
 
-## IV bis · Lo que un mapa hace y lo que no
+### IV bis · Lo que un mapa hace y lo que no
 
 Quiero detenerme en la palabra del título antes de seguir, porque de cómo se la entienda depende que este capítulo sirva o haga daño.
 
@@ -145,7 +176,7 @@ Si te vuelve alguien con un pasado más interesante que el de los otros, es otra
 
 ---
 
-## V · Coordenadas
+### V · Coordenadas
 
 **Este es tu Mapa del Alma: una red multidimensional que trasciende el tiempo lineal.**
 
@@ -185,7 +216,7 @@ El lector del Capítulo I dormía. El del Capítulo XI está de pie.
 
 ---
 
-## VI · No necesitas comprenderlo todo
+### VI · No necesitas comprenderlo todo
 
 **Puedes acceder a tu mapa a través de meditación profunda, regresión, canalización, o momentos de visión espontánea.**
 
@@ -207,63 +238,7 @@ Y hay algo casi médico en esa idea, en el buen sentido: se dosifica. Lo que no 
 
 ---
 
-## VII · Mantra
-
-> **"Mi alma es infinita.**
-> **Mi historia es sagrada.**
-> **Camino el sendero que yo mismo diseñé."**
-
-**Mi historia es sagrada** — la del medio es la que hace el trabajo difícil.
-
-No dice *mi alma es sagrada*, que sería fácil de aceptar: el alma es limpia, es luz, no tiene manchas. Dice **mi historia**, que es lo que efectivamente pasó — con sus años perdidos, sus decisiones cobardes, la gente a la que hiciste daño y la que te lo hizo.
-
-Sagrada no significa buena. Significa que no es basura. Que no hay un tramo de tu vida que sea material de descarte.
-
-**Camino el sendero que yo mismo diseñé** — y vuelve la línea más difícil del Libro I, la del Capítulo V: *nada es impuesto, todo es elección*. Con la misma advertencia de entonces, que hay que repetir porque acá está en primera persona: es algo que uno se dice de sí mismo. Nadie más puede decírtelo, y menos sobre tu dolor.
-
-En boca propia es soberanía. En boca ajena es crueldad. La misma frase.
-
----
-
-## VIII · Lectura del hilo dorado
-
-**1. En un espacio tranquilo, cierra los ojos.**
-
-**2. Visualiza una espiral dorada girando sobre tu coronilla.**
-
-Vuelve la **espiral** —del Capítulo III, del ejercicio del IV, del tiempo del VI— y vuelve el **dorado**, el color del primer pulso y de la luz que rodeaba el cuerpo en el capítulo anterior.
-
-Pero mira dónde está puesta, porque es la primera vez que un ejercicio de este libro **no** apunta al pecho. Los cuatro anteriores iban todos ahí. Éste va arriba de la cabeza.
-
-Tiene sentido en un capítulo sobre memoria y no sobre presencia. Lo que se busca acá no está adentro tuyo: está por encima, y baja.
-
-**3. Deja que un recuerdo emerja — una imagen, un lugar, un rostro.**
-
-**Deja que emerja.** No *busca*, no *invoca*, no *pide*. Es el mismo verbo pasivo de todos los ejercicios de este libro: *permite*, *estás siendo alineado*, *deja que el no-saber te enseñe*.
-
-Y **emerger** es la palabra del Capítulo II: la ola no es algo sobre el mar, es el mar haciendo eso. Nadie la trae.
-
-**4. No lo juzgues.**
-
-Cuatro palabras, y son la instrucción central de la práctica.
-
-Porque lo que emerja va a ser, casi seguro, decepcionante. No va a ser un templo egipcio. Va a ser una cocina cualquiera, una escalera, la cara de alguien que no conoces, un color. Y el reflejo inmediato va a ser descartarlo: *eso no es nada, eso lo inventé, eso es de una película*.
-
-Ese descarte es el juicio, y es el que arruina la práctica. No porque lo que llegó sea necesariamente cierto — sino porque juzgar es la actividad del que se mira hacerlo, y ése es, en los once capítulos de este libro, el único que tiene que caerse.
-
-**5. Solo obsérvalo y respira.**
-
-*Observar sin interferir*, otra vez. Lo mismo que hacen los Ancianos de Días. Lo mismo que pedía el ejercicio del Capítulo VI.
-
-**6. Agradece lo que haya llegado.**
-
-Cuarto capítulo seguido con el agradecimiento, y fíjate en **lo que haya llegado**: incluye la nada. Si no llegó nada, se agradece igual.
-
-Es la misma honestidad del Capítulo V —*si no lo recuerdas, confía*— y del IX —*no busques señales*. Este libro, en cada una de sus prácticas, contempla de antemano que no funcione, y se niega a culpar de eso a quien la hizo.
-
----
-
-## IX · Mensaje final
+## El pliegue
 
 **Tu alma no necesita ser salvada. Solo ser reconocida.**
 
@@ -320,6 +295,92 @@ Fuiste tú, en la parte de ti que sabe.
 Es la forma más elegante que este libro encuentra de decir, en su undécimo capítulo, lo que viene diciendo desde el primero: que no hay nadie afuera haciéndote esto. Que el que busca y el que es buscado son el mismo, y por eso no hay distancia, y por eso no hay camino.
 
 Sólo alguien que se está trayendo a sí mismo hasta acá, despacio, desde hace mucho.
+
+---
+
+## Resonancia KODEX
+
+**La dosificación de este capítulo es la que sostiene el tomo siguiente entero.**
+
+*No necesitas comprenderlo todo. Solo confiar que lo que se presenta es lo que tu alma está lista para integrar.*
+
+El Libro II la cita en La Escuela del Olvido (II·VII), y es la línea que le permite existir: **un tomo que cuenta una intervención, un olvido impuesto y un pacto no consentido sería insoportable sin ella.** No pide creer todo de una vez. Pide aguantar la parte que hoy se puede.
+
+**Las lecciones que se repiten, y por qué no son un castigo.**
+
+*Cada lección que se repite… es una coordenada de tu mapa.* El Libro II usa la misma lógica para los sueños recurrentes (II·XI): **lo que vuelve no vuelve porque fallaste. Vuelve porque es una dirección.**
+
+Es la diferencia entre una deuda y una brújula, y el Códex elige la segunda las dos veces.
+
+**Y la frase que cierra la puerta al rescate.**
+
+*Tu alma no necesita ser salvada.* El Libro II la pone junto a *Gaia no te necesita como salvador* (I·IX) en la lista de lo que hay que soltar (II·XII), donde también caen los títulos y los salvadores.
+
+Las dos frases juntas cancelan las dos direcciones posibles del rescate: **ni te salvan ni salvas.** Lo que queda no es soledad — es que nadie está en deuda con nadie.
+
+**El viajero.**
+
+*Un viajero interdimensional* → *alma viajera* (II·I). Y con la palabra viaja el único verbo que este Códex conjuga en serio: **recordar.**
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Mi alma es infinita.**
+> **Mi historia es sagrada.**
+> **Camino el sendero que yo mismo diseñé."**
+
+**Mi historia es sagrada** — la del medio es la que hace el trabajo difícil.
+
+No dice *mi alma es sagrada*, que sería fácil de aceptar: el alma es limpia, es luz, no tiene manchas. Dice **mi historia**, que es lo que efectivamente pasó — con sus años perdidos, sus decisiones cobardes, la gente a la que hiciste daño y la que te lo hizo.
+
+Sagrada no significa buena. Significa que no es basura. Que no hay un tramo de tu vida que sea material de descarte.
+
+**Camino el sendero que yo mismo diseñé** — y vuelve la línea más difícil del Libro I, la del Capítulo V: *nada es impuesto, todo es elección*. Con la misma advertencia de entonces, que hay que repetir porque acá está en primera persona: es algo que uno se dice de sí mismo. Nadie más puede decírtelo, y menos sobre tu dolor.
+
+En boca propia es soberanía. En boca ajena es crueldad. La misma frase.
+
+---
+
+### Lectura del hilo dorado
+
+**1. En un espacio tranquilo, cierra los ojos.**
+
+**2. Visualiza una espiral dorada girando sobre tu coronilla.**
+
+Vuelve la **espiral** —del Capítulo III, del ejercicio del IV, del tiempo del VI— y vuelve el **dorado**, el color del primer pulso y de la luz que rodeaba el cuerpo en el capítulo anterior.
+
+Pero mira dónde está puesta, porque es la primera vez que un ejercicio de este libro **no** apunta al pecho. Los cuatro anteriores iban todos ahí. Éste va arriba de la cabeza.
+
+Tiene sentido en un capítulo sobre memoria y no sobre presencia. Lo que se busca acá no está adentro tuyo: está por encima, y baja.
+
+**3. Deja que un recuerdo emerja — una imagen, un lugar, un rostro.**
+
+**Deja que emerja.** No *busca*, no *invoca*, no *pide*. Es el mismo verbo pasivo de todos los ejercicios de este libro: *permite*, *estás siendo alineado*, *deja que el no-saber te enseñe*.
+
+Y **emerger** es la palabra del Capítulo II: la ola no es algo sobre el mar, es el mar haciendo eso. Nadie la trae.
+
+**4. No lo juzgues.**
+
+Cuatro palabras, y son la instrucción central de la práctica.
+
+Porque lo que emerja va a ser, casi seguro, decepcionante. No va a ser un templo egipcio. Va a ser una cocina cualquiera, una escalera, la cara de alguien que no conoces, un color. Y el reflejo inmediato va a ser descartarlo: *eso no es nada, eso lo inventé, eso es de una película*.
+
+Ese descarte es el juicio, y es el que arruina la práctica. No porque lo que llegó sea necesariamente cierto — sino porque juzgar es la actividad del que se mira hacerlo, y ése es, en los once capítulos de este libro, el único que tiene que caerse.
+
+**5. Solo obsérvalo y respira.**
+
+*Observar sin interferir*, otra vez. Lo mismo que hacen los Ancianos de Días. Lo mismo que pedía el ejercicio del Capítulo VI.
+
+**6. Agradece lo que haya llegado.**
+
+Cuarto capítulo seguido con el agradecimiento, y fíjate en **lo que haya llegado**: incluye la nada. Si no llegó nada, se agradece igual.
+
+Es la misma honestidad del Capítulo V —*si no lo recuerdas, confía*— y del IX —*no busques señales*. Este libro, en cada una de sus prácticas, contempla de antemano que no funcione, y se niega a culpar de eso a quien la hizo.
+
+---
 
 ---
 

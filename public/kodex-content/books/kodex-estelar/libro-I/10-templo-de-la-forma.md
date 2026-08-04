@@ -2,6 +2,7 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > El capítulo habla del cuerpo y del ADN como imágenes de su propio relato. No
 > hay aquí ninguna afirmación biológica ni ninguna indicación de salud, y
 > "cuidar el cuerpo" no se desarrolla como régimen, dieta ni prescripción de
@@ -11,7 +12,35 @@
 
 ---
 
-## I · La Forma no es prisión
+## Epígrafe
+
+> **"Mi cuerpo es el Templo.**
+> **En él habita la Fuente.**
+> **Todo en mí es sagrado."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Piensa en tu rodilla izquierda.
+
+Salvo que te duela ahora mismo, acabas de traerla a la conciencia por primera vez en semanas. Estuvo trabajando todo este tiempo —cada escalón, cada vez que te sentaste, cada vez que te agachaste a levantar algo del piso— **y no te pidió nada, y por eso no existía.**
+
+Y ahí está la trampa de cómo hablamos del cuerpo: **decimos "mi cuerpo" casi siempre para nombrar lo que falla.** El cuerpo aparece cuando duele, cuando engorda, cuando se cansa, cuando el médico dice un número. Es una palabra que usamos casi entera en tono de queja.
+
+Lo que funciona es invisible. El hígado que llevó cincuenta años sin un solo día libre no tiene nombre en tu vocabulario diario. **Nadie agradece un páncreas.**
+
+Y entonces vale darlo vuelta: si sólo notas lo que se rompe, tu idea del cuerpo está armada **con la lista de sus fracasos**. Es como juzgar una casa por las goteras.
+
+Este capítulo propone lo contrario, y no como consuelo: propone mirar lo que no se queja.
+
+---
+
+## Desarrollo
+
+### I · La Forma no es prisión
 
 **La Forma no es prisión. Es portal. Es Templo.**
 
@@ -32,7 +61,7 @@ Diez capítulos mudando una sola palabra fuera del edificio, y acá se le da un 
 
 ---
 
-## II · Muchos han maldecido la materia
+### II · Muchos han maldecido la materia
 
 **Muchos han maldecido la materia, llamándola densa, impura, sufriente.**
 
@@ -62,7 +91,7 @@ Ahí se planteaba como un problema de ingeniería: una forma que aloja tiene que
 
 ---
 
-## III · Un cáliz
+### III · Un cáliz
 
 **Cuando la Fuente decidió experimentarse, necesitó un vehículo. No uno cualquiera, sino un cáliz: una estructura capaz de traducir la conciencia en percepción, el amor en movimiento, la luz en vida.**
 
@@ -90,7 +119,7 @@ Y **arquitectos cósmicos** devuelve al Capítulo IV. El plano que dejaron aquel
 
 ---
 
-## IV · Cada órgano, un altar
+### IV · Cada órgano, un altar
 
 **Cada célula es una antena. Cada órgano, un altar. Cada latido, un canto de agradecimiento por estar aquí y ahora.**
 
@@ -130,7 +159,7 @@ Tu cuerpo, en ese sentido, se parece bastante a una piedra: no te va a dar las g
 
 ---
 
-## V · La forma revela
+### V · La forma revela
 
 **La forma no limita. La forma revela.**
 
@@ -164,7 +193,7 @@ El cuerpo, entonces, no es donde caíste. Es lo que pediste para poder abrazar.
 
 ---
 
-## V bis · El cuerpo que falla
+### V bis · El cuerpo que falla
 
 Hay algo que este capítulo no dice y que hay que decir, porque si no, todo lo anterior le sirve sólo a quien está sano.
 
@@ -190,7 +219,7 @@ Y eso vale igual para el que corre maratones y para el que hoy no se pudo levant
 
 ---
 
-## VI · El arte no imita, activa
+### VI · El arte no imita, activa
 
 **Las civilizaciones antiguas lo sabían. Por eso esculpían, pintaban, bailaban.**
 
@@ -238,62 +267,7 @@ Lo que el texto sí dice está en la distinción que hace, y es toda la enseñan
 
 ---
 
-## VII · Mantra
-
-> **"Mi cuerpo es el Templo.**
-> **En él habita la Fuente.**
-> **Todo en mí es sagrado."**
-
-**Mi cuerpo es el Templo**, con artículo definido: no *un* templo entre otros. El destino final de la palabra, después de diez capítulos.
-
-**En él habita la Fuente** — y *habita* es un verbo doméstico, casi modesto. No dice que la Fuente lo visite ni que se manifieste. Habita: vive ahí, todos los días, incluidos los días malos.
-
-**Todo en mí es sagrado.** Y hay que quedarse en **todo**, porque es la palabra que hace difícil el mantra.
-
-Todo incluye lo que no te gusta. La parte que escondes en las fotos. Lo que te falla. Lo que te avergüenza. Lo que el médico te señaló. Lo que cambió con los años y no volvió.
-
-Decir *todo* es fácil hasta que uno se detiene en la lista.
-
----
-
-## VIII · Consagración del cuerpo como templo
-
-**1. Coloca tus manos sobre tu pecho.**
-
-Cuarta vez que un ejercicio de este libro empieza igual. Es siempre el mismo punto: donde el Capítulo I puso el sello, el IV el cubo, el VII la estrella.
-
-**2. Nombra en voz alta cinco cosas que amas de tu cuerpo.**
-
-Éste es el paso más difícil de todos los ejercicios del Libro I, y probablemente el más útil.
-
-**Cinco** es un número elegido con crueldad amable. Una o dos salen rápido. La tercera cuesta. La cuarta y la quinta obligan a mirar en serio, y ahí es donde uno descubre que tiene un inventario detallado de lo que no le gusta y casi ninguno de lo contrario.
-
-**En voz alta**, y es la única vez en todo el libro que algo se dice fuerte. Todo lo demás va en susurro: el mantra en voz baja, la certeza suave, el pedido a los Ancianos apenas dicho. Esto no.
-
-Porque decirlo en voz alta lo saca del terreno donde uno puede seguir negociando consigo mismo. Pensado, admite matices. Dicho, ya está dicho.
-
-Y nota que no dice *cosas que te gustan*. Dice **que amas**, que es otra cosa: se puede amar algo que no es lindo. Las manos de la madre de uno no son lindas y son irremplazables.
-
-Puedes nombrar lo que hace tu cuerpo, no sólo cómo se ve. Que te sostiene. Que se cura solo. Que ha aguantado cosas.
-
-**3. Respira profundamente.**
-**4. Visualiza tu cuerpo rodeado por luz dorada.**
-
-**Dorada** — el color del primer pulso del Capítulo I, *una vibración dorada que atravesó el silencio del no-ser*. El mismo color, al principio de todo y ahora alrededor de ti.
-
-**5. Di el mantra tres veces.**
-
-**6. Agradece a cada parte que te ha sostenido.**
-
-Tercer capítulo seguido con el agradecimiento, y esta vez tiene destinatarios concretos.
-
-**Cada parte que te ha sostenido**, en pasado. No las que están bien: las que te sostuvieron. Ahí entran las que ya no funcionan igual, las que quedaron marcadas, las que hicieron el trabajo durante años en silencio y ahora fallan.
-
-Es un agradecimiento por servicio prestado, no por rendimiento actual. Y es probablemente lo más generoso que este libro le pide a nadie: darle las gracias a una parte tuya que hoy te da problemas, por todos los años en que no te dio ninguno.
-
----
-
-## IX · Mensaje final
+## El pliegue
 
 **No busques lo divino fuera de ti. Está en tus huesos, en tu voz, en la curva de tu espalda, en la lágrima que cae, en el gozo que te habita.**
 
@@ -358,6 +332,89 @@ Y la condición es minúscula: **caminar con conciencia**. No hacer una obra, no
 El templo que camina, caminando sobre el altar que es el suelo.
 
 Y el suelo, que no era una roca muerta, contestando.
+
+---
+
+## Resonancia KODEX
+
+**Este capítulo es la refutación anticipada del Libro III, escrita dos tomos antes.**
+
+*El cuerpo no es castigo. Es un regalo de precisión cósmica.*
+
+El Libro III enumera lo que hicieron los templos —*el gozo fue llamado pecado, **la carne, castigo**, la divinidad, externa*— y cita esta línea al lado (III·I). No responde con teología ni con argumentos nuevos: **responde con su propia página.**
+
+Y es el uso más limpio de esta técnica en todo el Códex. Contra una acusación de dos mil años, el libro no improvisa una defensa: **ya la tenía escrita, en un capítulo que en su momento parecía sólo celebratorio.**
+
+**El templo termina de moverse acá.**
+
+*Eres el templo que camina.* Es la cuarta y última estación de una serie que empezó en el capítulo III —*tu cuerpo es un templo*—, siguió en el IV —*eres un templo*— y pasó por el IX —*el suelo bajo tus pies es un altar*—. El Libro II las reúne en una línea (II·VI).
+
+Leídas en orden, se ve el movimiento completo: **el templo deja de ser un lugar, después deja de ser una cosa, y al final es alguien que se mueve.** No queda ningún edificio en pie, y ésa era la idea.
+
+**Y el arte, que vuelve con un verbo distinto.**
+
+*El arte no imita: activa.* Es la segunda vez que el Códex pone el arte a la altura de lo demás — la primera fue el capítulo I, donde estaba en la lista junto a las estrellas y al dolor.
+
+Acá se le agrega la función. Allá era **una de las maneras en que la Fuente se experimenta**; acá es lo que le hace algo a quien lo mira.
+
+---
+
+## Sello
+
+### Mantra
+
+> **"Mi cuerpo es el Templo.**
+> **En él habita la Fuente.**
+> **Todo en mí es sagrado."**
+
+**Mi cuerpo es el Templo**, con artículo definido: no *un* templo entre otros. El destino final de la palabra, después de diez capítulos.
+
+**En él habita la Fuente** — y *habita* es un verbo doméstico, casi modesto. No dice que la Fuente lo visite ni que se manifieste. Habita: vive ahí, todos los días, incluidos los días malos.
+
+**Todo en mí es sagrado.** Y hay que quedarse en **todo**, porque es la palabra que hace difícil el mantra.
+
+Todo incluye lo que no te gusta. La parte que escondes en las fotos. Lo que te falla. Lo que te avergüenza. Lo que el médico te señaló. Lo que cambió con los años y no volvió.
+
+Decir *todo* es fácil hasta que uno se detiene en la lista.
+
+---
+
+### Consagración del cuerpo como templo
+
+**1. Coloca tus manos sobre tu pecho.**
+
+Cuarta vez que un ejercicio de este libro empieza igual. Es siempre el mismo punto: donde el Capítulo I puso el sello, el IV el cubo, el VII la estrella.
+
+**2. Nombra en voz alta cinco cosas que amas de tu cuerpo.**
+
+Éste es el paso más difícil de todos los ejercicios del Libro I, y probablemente el más útil.
+
+**Cinco** es un número elegido con crueldad amable. Una o dos salen rápido. La tercera cuesta. La cuarta y la quinta obligan a mirar en serio, y ahí es donde uno descubre que tiene un inventario detallado de lo que no le gusta y casi ninguno de lo contrario.
+
+**En voz alta**, y es la única vez en todo el libro que algo se dice fuerte. Todo lo demás va en susurro: el mantra en voz baja, la certeza suave, el pedido a los Ancianos apenas dicho. Esto no.
+
+Porque decirlo en voz alta lo saca del terreno donde uno puede seguir negociando consigo mismo. Pensado, admite matices. Dicho, ya está dicho.
+
+Y nota que no dice *cosas que te gustan*. Dice **que amas**, que es otra cosa: se puede amar algo que no es lindo. Las manos de la madre de uno no son lindas y son irremplazables.
+
+Puedes nombrar lo que hace tu cuerpo, no sólo cómo se ve. Que te sostiene. Que se cura solo. Que ha aguantado cosas.
+
+**3. Respira profundamente.**
+**4. Visualiza tu cuerpo rodeado por luz dorada.**
+
+**Dorada** — el color del primer pulso del Capítulo I, *una vibración dorada que atravesó el silencio del no-ser*. El mismo color, al principio de todo y ahora alrededor de ti.
+
+**5. Di el mantra tres veces.**
+
+**6. Agradece a cada parte que te ha sostenido.**
+
+Tercer capítulo seguido con el agradecimiento, y esta vez tiene destinatarios concretos.
+
+**Cada parte que te ha sostenido**, en pasado. No las que están bien: las que te sostuvieron. Ahí entran las que ya no funcionan igual, las que quedaron marcadas, las que hicieron el trabajo durante años en silencio y ahora fallan.
+
+Es un agradecimiento por servicio prestado, no por rendimiento actual. Y es probablemente lo más generoso que este libro le pide a nadie: darle las gracias a una parte tuya que hoy te da problemas, por todos los años en que no te dio ninguno.
+
+---
 
 ---
 
