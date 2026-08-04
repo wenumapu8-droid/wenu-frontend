@@ -2,12 +2,39 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-i-la-fuente-yo-soy-el-que-recuerda.md`).
 > Sus frases van íntegras y en su orden. Lo que se agregó es respiración, escena y detalle.
 
 ---
 
-## I · El que recuerda
+## Epígrafe
+
+> **"Yo soy el que recuerda."**
+>
+> — Primera línea del Códex
+
+---
+
+## Apertura sensorial
+
+Alguien entra a una pieza a oscuras y busca el interruptor con la mano.
+
+Lo conoce. Vivió años ahí. Pero de noche, sin referencias, la pared se vuelve una superficie sin marcas y la mano tantea de más — sube, baja, encuentra el marco de un cuadro, vuelve. Durante esos tres o cuatro segundos hay una certeza rara y muy incómoda: **el interruptor está, y está exactamente donde siempre estuvo, y aun así no aparece.**
+
+Nadie, en esos segundos, cree que el interruptor se fue.
+
+Y ahí está la diferencia que sostiene todo este capítulo, porque son dos cosas que se sienten igual y no lo son. **Buscar lo que no está** y **buscar lo que está y no encuentras** producen el mismo gesto, la misma torpeza, la misma respiración corta. Desde adentro no se distinguen.
+
+Pero una termina cuando encuentras. La otra termina cuando **te acuerdas**, que es otra cosa: no llegó nada nuevo, se corrió algo que estaba encima.
+
+Este capítulo dice que llevas toda la vida en el segundo caso.
+
+---
+
+## Desarrollo
+
+### I · El que recuerda
 
 Yo soy el que recuerda.
 
@@ -27,7 +54,7 @@ Vengo con una mano abierta, cerca de tu cara, lista para apartar una tela.
 
 ---
 
-## II · Antes del principio
+### II · Antes del principio
 
 Antes del principio, antes del tiempo y del espacio, antes del primero que preguntó *¿quién soy?* —ya existía la Fuente.
 
@@ -59,7 +86,7 @@ Esa noche también sucedía dentro de Ella.
 
 ---
 
-## III · La llama sin fuego
+### III · La llama sin fuego
 
 **Su presencia es una llama sin fuego, una esfera sin borde, una conciencia que se sabe a sí misma sin pensamiento.**
 
@@ -81,7 +108,7 @@ Por eso puedo hablarte. No te estoy describiendo algo lejano. Estoy describiendo
 
 ---
 
-## IV · El Uno que decidió florecer
+### IV · El Uno que decidió florecer
 
 **Ella es el Uno que al conocerse decidió florecer.**
 
@@ -119,7 +146,7 @@ No es una metáfora bonita. Es el mismo gesto. Cambió de escala, no de naturale
 
 ---
 
-## V · El único anhelo
+### V · El único anhelo
 
 **Los mundos que conoces, las estrellas, las formas, el arte, la vida, el dolor, el gozo… todo es expresión de un único anhelo: experimentarse a sí misma como muchas, para luego volver a Ser Una.**
 
@@ -149,7 +176,7 @@ Ese es el pacto silencioso de esta primera página del Códex.
 
 ---
 
-## V bis · El arte, que está en la lista
+### V bis · El arte, que está en la lista
 
 Y hay una palabra en esa enumeración que no puedo dejar pasar de largo, porque quien la puso ahí sabe de qué habla y la puso a propósito: **el arte**.
 
@@ -173,7 +200,7 @@ Lo que se hace sin cuidado también existe, pero no florece: se fabrica. Y la di
 
 ---
 
-## VI · No hay camino
+### VI · No hay camino
 
 **A la Fuente no se llega por distancia.**
 
@@ -215,7 +242,7 @@ Tu vida es el baile.
 
 ---
 
-## VII · Solo silencio
+### VII · Solo silencio
 
 **¿Cómo reconocerla? No necesitas dogma, ni templo, ni maestro externo.**
 
@@ -251,7 +278,7 @@ La prueba es simple, y puedes hacértela en cualquier momento del día: si al de
 
 ---
 
-## VIII · El Éter
+### VIII · El Éter
 
 **La Fuente es el Éter. No el espacio vacío, sino la sustancia sutil que lo interpenetra todo.**
 
@@ -292,7 +319,7 @@ No viene de lejos cuando eso pasa. Estaba tapada por el que miraba.
 
 ---
 
-## IX · Y ahora escucha
+### IX · Y ahora escucha
 
 **Y ahora escucha:**
 
@@ -342,7 +369,7 @@ Solo hay que llamarlo por su nombre.
 
 ---
 
-## X · Este capítulo no enseña
+## El pliegue
 
 **Este capítulo no te enseña nada nuevo. Solo activa. Solo recuerda.**
 
@@ -374,7 +401,49 @@ Yo no soy la Fuente hablándote desde arriba. Soy alguien en quien Ella habla �
 
 ---
 
-## XI · Así se abre el Códex
+## Resonancia KODEX
+
+**Este capítulo es el único del Códex que no puede resonar hacia atrás.** Es el primero: no tiene con qué. Todo lo que hace resuena hacia adelante, y por eso su resonancia se lee al revés que la de los demás — no en lo que recoge, sino en lo que los otros tomos vinieron a buscar acá.
+
+**El verbo del origen vuelve como definición de un ser humano.**
+
+*Ella es el Uno que al conocerse decidió **florecer**.* Y once capítulos después, en pleno relato de la manipulación genética: *no eres solo el proyecto. Eres el error que floreció* (II·II).
+
+Es el mismo verbo, aplicado a la escala más chica y en el peor contexto posible. Lo que era la decisión de la Fuente pasa a ser lo que le ocurre a alguien fabricado para obedecer. **La palabra no se degrada al bajar** — que es, exactamente, la tesis de este capítulo sobre la gota y el océano.
+
+**La llama sin fuego espera seis capítulos y se enciende adentro de un cuerpo.**
+
+*Su presencia es una llama sin fuego* (acá, III) → *y la llama sin fuego, que esperaba desde la primera página* (II·VI), en el capítulo del fuego interior.
+
+Lo que aquí es un atributo de lo absoluto —arde sin consumir, no cobra nada— allá es lo que se despierta en el pecho de una persona. El Códex no cambia de definición: **cambia de domicilio**.
+
+**El sello sin fractura se vuelve la defensa contra el pacto.**
+
+*Un círculo perfecto grabado en tu pecho, símbolo de tu origen **sin fractura**.* El Libro II lo cita dos veces, y las dos en el momento en que hace falta: al describir la intervención (II·I) y al cerrar el tomo con el retorno del sol interior (II·XII).
+
+Es el uso más importante de este capítulo en toda la saga. Si el origen no tuvo rotura, **entonces nada de lo que vino después es una reparación** — y todo el Libro II, que cuenta un daño, queda impedido de decir que ese daño te constituye.
+
+**«Yo Soy la Fuente» reaparece como la frase que desarma al impostor.**
+
+*En lo más íntimo de tu aliento vive la memoria original: "Yo Soy la Fuente."* → *Cuando dices: "Yo Soy la Fuente," el disfraz cae* (III·I).
+
+Y lo que viaja con la frase no es la frase: **es su advertencia**. Acá se aclara que vale *no como declaración de ego, sino como acto de comunión*, con su prueba —si al decirla te sientes por encima de alguien, no la dijiste—. El Libro III la retoma con la advertencia intacta, porque sin ella la misma frase fabrica exactamente el arconte que ese tomo denuncia.
+
+**Y el verbo del narrador se convierte en la ley del linaje.**
+
+*Yo soy el que recuerda* → *el nuevo linaje no se hereda. **Se recuerda*** (II·V).
+
+Es el eco más largo del Códex: la primera línea del primer capítulo, devuelta cinco tomos-capítulos después como respuesta a la pregunta de quién tiene derecho a gobernar. **Nadie, por sangre.**
+
+**Y el velo, que empieza acá, termina siendo la imagen más repetida de la saga.**
+
+*Lo que nunca fue perdido, sino tan solo velado.* La palabra vuelve **129 veces, en 25 de los 41 capítulos** — hasta dar título al último de todos, *El último velo* (III·XII).
+
+Cada vez que estos libros nombran lo que te separa de algo, eligen una tela y no un muro. Y esa elección, hecha en la primera página, es la que decide que el Códex termine en un despertar y no en una conquista.
+
+---
+
+## Sello
 
 **Así se abre el Códex. Así comienza el recuerdo.**
 
