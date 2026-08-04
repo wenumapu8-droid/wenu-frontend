@@ -2,12 +2,40 @@
 
 > **Libro I — La Génesis de la Luz**
 > Registro: relato iniciático. No es ciencia ni es salud: es cosmogonía.
+> Tratamiento del lector: **tú neutro**.
 > Desarrollo del texto fuente de Ocín (`kodex-source/kodex-estelar/source-text/libro-I/capitulo-ii-el-vacio-fertil-y-cuando-la-fuente-deseo-experimen.md`).
 > Sus frases van íntegras y en su orden, incluidos el mantra, la visualización y el mensaje final, que son suyos.
 
 ---
 
-## I · No creó la luz
+## Epígrafe
+
+> **"Me vacío para ser lleno de la Fuente.**
+> **Me disuelvo para recordar quién soy."**
+>
+> — Mantra del capítulo
+
+---
+
+## Apertura sensorial
+
+Hay un campo, al costado del camino, que este año nadie sembró.
+
+Si pasas en auto lo lees en un segundo y lo lees mal: tierra pelada, unos yuyos, una tranquera que nadie abrió en meses. Al lado hay otro campo verde, parejo, con las hileras marcadas. La comparación es automática y el juicio también — **uno está produciendo y el otro está abandonado.**
+
+Pero el que lo dejó así no se olvidó de él. Lo dejó así **a propósito**, y sabe exactamente cuántas temporadas va a durar. Se llama barbecho, y es de las técnicas más viejas que existen: la tierra que da todos los años se agota, y la que descansa recompone lo que no se ve — la humedad que se guarda abajo, la vida que vuelve a la primera cuarta de suelo.
+
+Fíjate en lo que esto tiene de incómodo: **desde el camino, el campo en descanso y el campo abandonado son idénticos.** No hay nada en la superficie que los distinga. Un vecino puede pasar todo el invierno pensando que al otro se le vino la vida encima.
+
+Y sin embargo son opuestos. Uno no tiene nada porque perdió. El otro no tiene nada **porque está juntando**.
+
+Este capítulo trata de esa diferencia, y de que también existe adentro de ti.
+
+---
+
+## Desarrollo
+
+### I · No creó la luz
 
 **Y cuando la Fuente deseó experimentarse… no creó la luz.**
 
@@ -29,7 +57,7 @@ La luz vino después, y vino porque antes hubo dónde.
 
 ---
 
-## II · No un vacío muerto
+### II · No un vacío muerto
 
 **Pero no un vacío muerto, sino un seno sin forma, un silencio lleno de todo lo que aún no es, pero ya vibra.**
 
@@ -51,7 +79,7 @@ Lo has vivido: esa mañana en que despertaste sabiendo que algo iba a cambiar, s
 
 ---
 
-## III · Presencia no manifestada
+### III · Presencia no manifestada
 
 **El Vacío Fértil no es ausencia. Es presencia no manifestada.**
 
@@ -75,7 +103,7 @@ Esa pausa, dice el texto, duró lo que dura una eternidad, y adentro estaban tod
 
 ---
 
-## IV · Tres nombres para lo mismo
+### IV · Tres nombres para lo mismo
 
 **Es el útero de lo eterno. El mar sin olas. La respiración que aún no ha exhalado.**
 
@@ -103,7 +131,7 @@ Eso que acaba de pasar, ese aire tuyo entrando al cuarto y mezclándose con todo
 
 ---
 
-## V · Donde no hay yo
+### V · Donde no hay yo
 
 **En este vacío no hay tiempo. No hay "yo", ni "tú", ni "nosotros". Solo un campo sin bordes donde todo es posible.**
 
@@ -129,7 +157,7 @@ Toda posibilidad es hija de un vacío. Toda página en blanco te da miedo por la
 
 ---
 
-## VI · El deseo sagrado
+### VI · El deseo sagrado
 
 **Es allí donde se gesta el deseo sagrado: ser. No por necesidad, sino por gozo. No por falta, sino por plenitud rebalsante.**
 
@@ -157,7 +185,7 @@ Cuando no puedas más con lo que se te colgó, vuelve al verbo desnudo. Está in
 
 ---
 
-## VII · Dos preguntas que no se responden
+### VII · Dos preguntas que no se responden
 
 **¿Puedes imaginar lo que no tiene forma? ¿Percibir lo que no vibra pero sostiene la vibración?**
 
@@ -194,7 +222,7 @@ No te estoy diciendo que esa nostalgia sea falsa. Te estoy diciendo que no es el
 
 ---
 
-## VIII · La contemplación
+### VIII · La contemplación
 
 **En ese lugar sin lugar, la Fuente se contempla, y en su contemplación se vuelve muchas.**
 
@@ -224,7 +252,7 @@ Así estaba el universo. Sin decir. Ardiendo.
 
 ---
 
-## VIII bis · Lo que arde sin haber sido dicho
+### VIII bis · Lo que arde sin haber sido dicho
 
 Quiero quedarme un poco más en esa imagen, porque es la que vas a poder usar mañana.
 
@@ -254,7 +282,7 @@ Todo lo que arde termina diciéndose.
 
 ---
 
-## IX · Los antiguos, los sabios, los místicos
+### IX · Los antiguos, los sabios, los místicos
 
 **Los antiguos sabían. Los sabios callaban. Los místicos se disolvían.**
 
@@ -276,7 +304,7 @@ Esa es la única forma de saber que este capítulo reconoce del todo, y tiene un
 
 ---
 
-## X · Se entra como un cuenco
+### X · Se entra como un cuenco
 
 **Y tú, lector de luz, si buscas la verdad, debes pasar por el Vacío. Vaciar tus creencias, tus etiquetas, tus pretensiones de saber.**
 
@@ -310,7 +338,7 @@ Un templo al que se accede vaciándose no es un edificio. Es una manera de estar
 
 ---
 
-## XI · Nada. Y en ese nada, Todo.
+### XI · Nada. Y en ese nada, Todo.
 
 **¿Y qué encuentras allí? Nada.**
 
@@ -332,7 +360,75 @@ Y ahí, sin aviso, se ve lo que había estado ahí todo el tiempo: que no estaba
 
 ---
 
-## XII · Mantra
+## El pliegue
+
+**El Vacío Fértil no es algo que temer, sino un lugar que debes volver a habitar si deseas recordar tu origen más puro.**
+
+**Volver a habitar.** Las dos palabras hacen trabajo.
+
+**Volver**, porque ya estuviste —lo dijo antes: *y tú estuviste allí, antes de tomar un cuerpo*. No vas a un lugar nuevo. Vuelves a uno que conoces y olvidaste.
+
+**Habitar**, que es lo contrario de visitar. No dice que lo cruces, ni que lo atravieses como un trámite hacia algo mejor. Dice que vivas ahí. Que el vacío sea domicilio y no túnel.
+
+Y eso cambia la relación con las épocas sin olas. Deja de haber vidas útiles y vidas perdidas: hay tiempos de derrame y tiempos de seno, y los segundos no son la espera de los primeros.
+
+**Es allí donde la Fuente se reconoce como posibilidad infinita.**
+
+No como poder infinito. Como **posibilidad**. Vuelve la palabra bisagra, y ahora se entiende del todo por qué el vacío es fértil: porque lo que no tiene forma puede tomar cualquiera. La forma es riqueza y es límite al mismo tiempo. Todo lo que ya es, dejó de poder ser otra cosa.
+
+**Y tú, como su reflejo, vuelves a crear tu mundo desde cero —esta vez, con conciencia.**
+
+Última línea, y la única del capítulo que te encarga algo.
+
+**Como su reflejo**: lo que haces no es una imitación menor. Es el mismo gesto, en tu escala.
+
+**Desde cero**: y esto asusta hasta que se lee bien. No dice que pierdas lo vivido ni que taches tu historia. Dice que puedes volver a la condición del cuenco cuantas veces haga falta. El cero no es la pérdida de todo: es el estado en que todo vuelve a ser posible.
+
+**Esta vez, con conciencia.**
+
+Ahí está la diferencia entre este vacío y aquel primero, y es la única cosa que el universo no tenía al empezar.
+
+La primera vez no había nadie mirando. La Fuente se contempló y en esa contemplación se hizo muchas, y las muchas tardaron eras en abrir los ojos.
+
+Ahora hay alguien mirando.
+
+Eres tú, y estás despierto, y eso es todo lo que hacía falta que fuera distinto.
+
+---
+
+## Resonancia KODEX
+
+**La distinción de este capítulo es la que el Códex más vuelve a usar, y siempre para lo mismo: impedir que algo se lea como pérdida.**
+
+*El Vacío Fértil no es ausencia. Es presencia no manifestada.* El Libro II la cita textual dos veces —al describir el inconsciente colectivo como *tierra fértil* (II·XI), y otra vez al cerrar ese mismo capítulo—. Y en las dos, lo que la frase hace es idéntico: **hay un lugar que parece vacío y está lleno de cosas que todavía no ocurrieron.**
+
+**El motivo de la creación viaja entero, y termina siendo la defensa contra el pecado.**
+
+*No por necesidad, sino por gozo. No por falta, sino por plenitud rebalsante.* El Libro II lo cita al contar la fabricación de un cuerpo obediente (II·II), donde la comparación es brutal: **los que fabricaron crearon por falta; la Fuente creó por sobra.**
+
+Y el Libro III lo levanta como refutación directa. Cuando enumera lo que hicieron los templos —*el gozo fue llamado pecado*— pone al lado esta frase (III·I). No discute con teología: **discute con su propio capítulo II**.
+
+**El verbo del vacío se convierte en la instrucción del corazón.**
+
+*Un lugar que debes volver a **habitar***. El Libro II retoma exactamente ese verbo para el Portal del Corazón (II·VIII) — no visitar, no cruzar: vivir ahí.
+
+Es la misma corrección en dos escalas. El vacío no es un túnel hacia algo mejor, y el corazón tampoco es una estación de paso.
+
+**Y la incomodidad que este capítulo asume, el Códex la vuelve a asumir.**
+
+*Los sabios callaban.* El Libro II lo cita para admitir algo que un libro no debería poder decir de sí mismo: que todo esto es un rodeo alrededor de lo que no se puede transmitir con palabras (II·VIII).
+
+La honestidad no cambia de posición entre tomos. Lo que se agrega allá es la salida: **la presencia no se puede mandar por correo, pero sí se puede describir dónde nace.**
+
+**El cuenco, otra vez.**
+
+*Se entra como un cuenco.* Cada vez que estos libros piden algo al lector, piden que saque, no que ponga.
+
+---
+
+## Sello
+
+### Mantra
 
 > **"Me vacío para ser lleno de la Fuente.**
 > **Me disuelvo para recordar quién soy."**
@@ -347,7 +443,7 @@ Dilo despacio, no muchas veces. Un mantra repetido con prisa se vuelve ruido, y 
 
 ---
 
-## XIII · Visualización
+### Visualización
 
 **Cierra los ojos.**
 
@@ -382,40 +478,6 @@ Mira las tres precisiones de esa última línea.
 **Desde dentro de ti** —y ahí se cierra todo. No vas a ver nacer un universo enfrente, como quien mira un espectáculo. Va a nacer adentro, porque no hay adentro y afuera: eso también fue de las cosas que se cayeron.
 
 ---
-
-## XIV · Mensaje final
-
-**El Vacío Fértil no es algo que temer, sino un lugar que debes volver a habitar si deseas recordar tu origen más puro.**
-
-**Volver a habitar.** Las dos palabras hacen trabajo.
-
-**Volver**, porque ya estuviste —lo dijo antes: *y tú estuviste allí, antes de tomar un cuerpo*. No vas a un lugar nuevo. Vuelves a uno que conoces y olvidaste.
-
-**Habitar**, que es lo contrario de visitar. No dice que lo cruces, ni que lo atravieses como un trámite hacia algo mejor. Dice que vivas ahí. Que el vacío sea domicilio y no túnel.
-
-Y eso cambia la relación con las épocas sin olas. Deja de haber vidas útiles y vidas perdidas: hay tiempos de derrame y tiempos de seno, y los segundos no son la espera de los primeros.
-
-**Es allí donde la Fuente se reconoce como posibilidad infinita.**
-
-No como poder infinito. Como **posibilidad**. Vuelve la palabra bisagra, y ahora se entiende del todo por qué el vacío es fértil: porque lo que no tiene forma puede tomar cualquiera. La forma es riqueza y es límite al mismo tiempo. Todo lo que ya es, dejó de poder ser otra cosa.
-
-**Y tú, como su reflejo, vuelves a crear tu mundo desde cero —esta vez, con conciencia.**
-
-Última línea, y la única del capítulo que te encarga algo.
-
-**Como su reflejo**: lo que haces no es una imitación menor. Es el mismo gesto, en tu escala.
-
-**Desde cero**: y esto asusta hasta que se lee bien. No dice que pierdas lo vivido ni que taches tu historia. Dice que puedes volver a la condición del cuenco cuantas veces haga falta. El cero no es la pérdida de todo: es el estado en que todo vuelve a ser posible.
-
-**Esta vez, con conciencia.**
-
-Ahí está la diferencia entre este vacío y aquel primero, y es la única cosa que el universo no tenía al empezar.
-
-La primera vez no había nadie mirando. La Fuente se contempló y en esa contemplación se hizo muchas, y las muchas tardaron eras en abrir los ojos.
-
-Ahora hay alguien mirando.
-
-Eres tú, y estás despierto, y eso es todo lo que hacía falta que fuera distinto.
 
 ---
 
