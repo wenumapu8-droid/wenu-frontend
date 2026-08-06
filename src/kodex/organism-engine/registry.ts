@@ -1,4 +1,6 @@
 import { thresholdPortalAdapter } from "./adapters/ThresholdPortalAdapter";
+import { signalVortexAdapter } from "./adapters/vortex/SignalVortexAdapter";
+import { signalVortexPreset } from "./preset-library/signal-vortex";
 import { thresholdPortalPreset } from "./presets";
 import type {
   OrganismAdapterFactory,
@@ -61,6 +63,8 @@ class OrganismRegistry {
 
 export const organismRegistry = new OrganismRegistry()
   .registerAdapter(thresholdPortalAdapter)
-  .registerPreset(thresholdPortalPreset);
+  .registerAdapter(signalVortexAdapter)
+  .registerPreset(thresholdPortalPreset)
+  .registerPreset(signalVortexPreset);
 
 export { OrganismRegistry };
