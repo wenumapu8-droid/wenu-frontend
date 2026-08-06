@@ -23,11 +23,11 @@ const STATE_MAP: Record<OrganismLifecycle, "DORMANT" | "AWARE" | "OPEN"> = {
   COMPLETE: "DORMANT",
 };
 
-const QUALITY_MAP: Record<OrganismQuality, "HIGH" | "MEDIUM" | "LOW" | "FALLBACK"> = {
+const QUALITY_MAP: Record<OrganismQuality, "HIGH" | "MEDIUM" | "LOW"> = {
   HIGH: "HIGH",
   MEDIUM: "MEDIUM",
   LOW: "LOW",
-  FALLBACK: "FALLBACK",
+  FALLBACK: "LOW",
 };
 
 class ThresholdPortalOrganismRuntime implements OrganismRuntime {
@@ -160,7 +160,7 @@ class ThresholdPortalOrganismRuntime implements OrganismRuntime {
       return;
     }
 
-    this.runtime.setMotionMode(THRESHOLD_PORTAL_MOTION.FULL);
+    this.runtime.setMotionMode(THRESHOLD_PORTAL_MOTION.LIVE);
   }
 }
 
