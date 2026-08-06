@@ -6,7 +6,13 @@ export interface PresetValidationResult {
   warnings: string[];
 }
 
-const WEBGL_MODES = new Set(["SHADER", "IMAGE_FIELD", "DEPTH_STACK", "PARTICLES", "GLB", "LAYERED_PLANES"]);
+const ASSET_DEPENDENT_MODES = new Set([
+  "IMAGE_FIELD",
+  "DEPTH_STACK",
+  "PARTICLES",
+  "GLB",
+  "LAYERED_PLANES",
+]);
 
 export function validateOrganismPreset(preset: OrganismPreset): PresetValidationResult {
   const errors: string[] = [];
@@ -20,8 +26,13 @@ export function validateOrganismPreset(preset: OrganismPreset): PresetValidation
     errors.push("assets.fallback is required");
   }
 
-  if (WEBGL_MODES.has(preset.renderMode) && !preset.assets.source && !preset.assets.model) {
-    errors.push(`${preset.renderMode} requires assets.source or assets.model`);
+  if (
+    ASSET_DEPENDENT_MODES.has(preset.renderMode) &&
+    !preset.assets.source &&
+    !preset.assets.model &&
+    !preset.assets.spriteSequence?.length
+  ) {
+    errors.push(`${preset.renderMode} requires assets.source, assets.model or a sprite sequence`);
   }
 
   if (preset.behaviors.length === 0) {
@@ -59,8 +70,8 @@ export function validateOrganismPreset(preset: OrganismPreset): PresetValidation
   }
 
   if (preset.status === "IMPLEMENTED" || preset.status === "TESTED") {
-    if (!preset.assets.sourceId) {
-      errors.push(`${preset.status} presets require assets.sourceId for provenance`);
+    if (!preset.assets.sourceId && preset.renderMode !== "SHADER") {
+      errors.push(`${preset.status} asset-driven presets require assets.sourceId for provenance`);
     }
   }
 
