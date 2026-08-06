@@ -1,6 +1,6 @@
 # KODEX Universal Organism Engine — Implementation Guide
 
-Status: `FOUNDATION PROTOTYPE`
+Status: `FOUNDATION PROTOTYPE / TWO ADAPTERS`
 
 Branch: `feature/kodex-organism-engine-foundation`
 
@@ -18,21 +18,23 @@ Implemented foundation:
 - normalized pointer, touch/click, keyboard and audio input feed;
 - visibility suspension;
 - one-active-WebGL-organism coordination;
-- reduced-motion detection;
+- target-FPS and reduced-motion throttling;
 - fallback handling;
 - WebGL context-loss handling;
 - debug metrics surface;
-- first adapter wrapping the existing Threshold Portal runtime.
+- `FIELD` adapter wrapping the existing three-pass Threshold Portal runtime;
+- procedural `VORTEX` adapter with complete GPU disposal;
+- static SVG fallback for Signal Vortex;
+- noindex comparison laboratory.
 
 Not implemented yet:
 
-- dedicated Vortex renderer;
 - orbital renderer;
 - staged SVG/Canvas growth renderer;
 - specimen GLB/depth-sprite renderer;
 - terrain/layered-plane renderer;
 - cross-adapter transition compositor;
-- complete GPU resource disposal in the recovered portal runtime;
+- complete GPU resource disposal in the recovered Threshold Portal runtime;
 - device performance validation.
 
 Documentation and typed factories do not count as implemented renderers.
@@ -46,15 +48,39 @@ src/kodex/organism-engine/
 ├── presets.ts
 ├── registry.ts
 ├── validation.ts
+├── preset-library/
+│   └── signal-vortex.ts
 └── adapters/
-    └── ThresholdPortalAdapter.ts
+    ├── ThresholdPortalAdapter.ts
+    └── vortex/
+        ├── SignalVortexAdapter.ts
+        ├── SignalVortexRuntime.ts
+        └── shaders/
+            ├── screen.vert
+            └── signal-vortex.frag
 
 src/components/kodex/organism/
 ├── KodexOrganism.astro
 └── kodex-organism-client.ts
+
+public/img/kodex/organisms/
+└── signal-vortex-fallback.svg
 ```
 
-## Use the existing Threshold Portal through the universal host
+## Internal laboratory
+
+```text
+/kodex/lab/organism-engine/
+```
+
+The lab compares:
+
+- `threshold-portal` — artwork-driven `FIELD`;
+- `signal-vortex` — procedural `VORTEX`.
+
+Only the visible organism should run. The route is `noindex` and does not replace a public KODEX scene.
+
+## Use the universal host
 
 ```astro
 ---
@@ -67,6 +93,17 @@ import KodexOrganism from "../../../components/kodex/organism/KodexOrganism.astr
   label="THRESHOLD · portal vivo sobre la obra"
   description="A radial image field generated from an authored KODEX source image."
   eager={true}
+/>
+```
+
+Procedural vortex:
+
+```astro
+<KodexOrganism
+  preset="signal-vortex"
+  fallback="/img/kodex/organisms/signal-vortex-fallback.svg"
+  label="SIGNAL VORTEX · rotating convergence field"
+  description="A procedural spiral organized around a movable attractor."
 />
 ```
 
@@ -123,18 +160,19 @@ The debug API is for laboratories and QA. It is not a public product contract.
 Prefer a factory instead of writing an untyped object.
 
 ```ts
-import { createVortexPreset } from "./presets";
+import { createVortexPreset } from "../presets";
 
 export const signalVortexPreset = createVortexPreset({
   id: "signal-vortex",
-  source: "/img/kodex/organisms/signal-vortex/source.webp",
-  fallback: "/img/kodex/organisms/signal-vortex/fallback.avif",
+  fallback: "/img/kodex/organisms/signal-vortex-fallback.svg",
   label: "SIGNAL VORTEX · rotating convergence field",
-  sourceId: "KDX-ASSET-SIGNAL-VORTEX-001",
+  sourceId: "KDX-PROCEDURAL-SIGNAL-VORTEX-001",
 });
 ```
 
-Register it only after its adapter exists:
+A procedural `SHADER` preset does not require a source texture. Asset-driven render modes do require a source, model or sprite sequence.
+
+Register only when its adapter exists:
 
 ```ts
 organismRegistry
@@ -176,6 +214,24 @@ destroy();
 ```
 
 Use `BaseOrganismRuntime` for new renderers that own their animation loop. Do not use it to wrap a legacy renderer that already owns a loop.
+
+## Signal Vortex controls
+
+The prototype maps semantic controls as follows:
+
+| Control | Visual effect |
+|---|---|
+| `signal` | luminosity, point density and audio response |
+| `memory` | cyan trace contribution |
+| `entropy` | turbulence and grain |
+| `cohesion` | spiral-arm sharpness |
+| `depth` | field envelope |
+| `convergence` | twist, radial falloff and event-horizon tension |
+| lifecycle | attractor size and structural activation |
+| primary action | temporary convergence increase |
+| pointer | attractor displacement |
+
+These are synthetic visual controls, not scientific measurements.
 
 ## Asset packets
 
@@ -254,7 +310,9 @@ HIGH
 → FALLBACK
 ```
 
-The current Threshold adapter maps `FALLBACK` to a stopped low-quality runtime while the host reveals the fallback image. New adapters must avoid creating WebGL resources when the selected quality is `FALLBACK`.
+The base runtime honors the preset target FPS. Reduced motion is capped at 12 FPS and the Vortex shader receives a minimal motion amplitude. New adapters must avoid creating WebGL resources when the selected quality is `FALLBACK`.
+
+The current Threshold adapter maps `FALLBACK` to a stopped low-quality runtime while the host reveals the fallback image. The recovered Threshold runtime still needs complete explicit GPU deletion.
 
 ## Preset status discipline
 
@@ -269,7 +327,7 @@ Never label a preset `TESTED` without recorded evidence.
 ## Adapter development order
 
 1. `FIELD` — extract and harden Threshold Portal;
-2. `VORTEX` — procedural shader and feedback;
+2. `VORTEX` — procedural single-pass prototype implemented; feedback extension remains optional;
 3. `ORBITAL` — nested transform rig;
 4. `GROWTH` — staged SVG/Canvas graph reveal;
 5. `SPECIMEN` — choose GLB, depth map or sprite sequence after asset review;
@@ -302,9 +360,10 @@ Performance:
 
 - DPR capped;
 - one active WebGL organism;
+- target FPS honored;
 - frame-time recorded;
 - no accumulating animation loops;
-- texture and framebuffer disposal verified;
+- texture, buffer, program and framebuffer disposal verified;
 - mobile LOW/FALLBACK behavior tested.
 
 Visual:
@@ -318,6 +377,8 @@ Visual:
 ## Production boundary
 
 Do not replace `KodexPortal` on the public route until the universal host reproduces its current behavior and passes regression testing.
+
+The Vortex adapter remains a lab prototype until visual and device QA are recorded.
 
 ```text
 DEPLOYMENT STATUS: BLOCKED
