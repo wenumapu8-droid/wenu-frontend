@@ -9,19 +9,19 @@ import type {
   OrganismRuntime,
 } from "./types";
 
-const EMPTY_INPUT: OrganismInput = {
+const createEmptyInput = (): OrganismInput => ({
   pointer: { x: 0, y: 0, active: false },
   primaryAction: 0,
   secondaryAction: 0,
   navigationAxis: { x: 0, y: 0 },
   audio: { low: 0, mid: 0, high: 0, active: false },
-};
+});
 
 export abstract class BaseOrganismRuntime implements OrganismRuntime {
   readonly preset: OrganismPreset;
 
   protected readonly canvas: HTMLCanvasElement;
-  protected input: OrganismInput = structuredClone(EMPTY_INPUT);
+  protected input: OrganismInput = createEmptyInput();
   protected lifecycle: OrganismLifecycle = "DORMANT";
   protected quality: OrganismQuality;
   protected motion: OrganismMotion = "FULL";
@@ -29,7 +29,7 @@ export abstract class BaseOrganismRuntime implements OrganismRuntime {
   private raf = 0;
   private running = false;
   private startedAt = 0;
-  private previousAt = 0;
+  private previousRenderedAt = 0;
   private frameCount = 0;
   private accumulatedFrameMs = 0;
   private droppedFrameEstimate = 0;
@@ -61,7 +61,7 @@ export abstract class BaseOrganismRuntime implements OrganismRuntime {
 
     this.running = true;
     this.startedAt ||= performance.now();
-    this.previousAt = performance.now();
+    this.previousRenderedAt = performance.now();
     this.raf = requestAnimationFrame(this.tick);
   }
 
@@ -126,9 +126,19 @@ export abstract class BaseOrganismRuntime implements OrganismRuntime {
   private tick = (now: number): void => {
     if (!this.running) return;
 
-    const frameMs = Math.min(100, now - this.previousAt);
-    const targetFrameMs = 1000 / this.preset.performance.targetFps;
-    this.previousAt = now;
+    const targetFps = this.motion === "REDUCED"
+      ? Math.min(12, this.preset.performance.targetFps)
+      : this.preset.performance.targetFps;
+    const targetFrameMs = 1000 / targetFps;
+    const sinceLastRender = now - this.previousRenderedAt;
+
+    if (sinceLastRender < targetFrameMs * 0.92) {
+      this.raf = requestAnimationFrame(this.tick);
+      return;
+    }
+
+    const frameMs = Math.min(100, sinceLastRender);
+    this.previousRenderedAt = now;
 
     if (frameMs >= targetFrameMs * 1.8) {
       this.droppedFrameEstimate += Math.max(1, Math.round(frameMs / targetFrameMs) - 1);
