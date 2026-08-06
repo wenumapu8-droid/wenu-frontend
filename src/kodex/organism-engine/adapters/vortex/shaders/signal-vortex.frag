@@ -17,8 +17,6 @@ uniform float u_state;
 uniform float u_motion;
 uniform float u_quality;
 
-#define PI 3.141592653589793
-
 float hash21(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);
@@ -66,14 +64,13 @@ void main() {
 
   float radius = max(length(p), 0.0001);
   float angle = atan(p.y, p.x);
-  float motionTime = u_time * mix(0.0, 1.0, u_motion);
+  float motionTime = u_time * u_motion;
 
   float turbulence = fbm(p * mix(2.4, 6.0, u_entropy) + motionTime * 0.08);
   float twist = mix(2.0, 8.5, u_convergence);
   float spiralCoordinate = angle + log(radius + 0.06) * twist;
 
-  float arms = 5.0;
-  float armWave = sin(spiralCoordinate * arms - motionTime * (0.45 + u_signal * 0.8));
+  float armWave = sin(spiralCoordinate * 5.0 - motionTime * (0.45 + u_signal * 0.8));
   float secondaryWave = sin(spiralCoordinate * 11.0 + motionTime * 0.23 + turbulence * 4.0);
 
   float armWidth = mix(0.18, 0.055, u_cohesion);
@@ -81,7 +78,7 @@ void main() {
   armField *= 0.55 + secondaryWave * 0.20 + turbulence * 0.45;
 
   float radialFalloff = exp(-radius * mix(1.25, 3.7, u_convergence));
-  float outerEnvelope = smoothstep(0.78 + u_depth * 0.25, 0.03, radius);
+  float outerEnvelope = 1.0 - smoothstep(0.03, 0.78 + u_depth * 0.25, radius);
   float core = exp(-radius * mix(24.0, 62.0, u_convergence));
   float eventHorizon = lineBand(radius - mix(0.055, 0.135, u_state), 0.012 + armWidth * 0.05);
 
@@ -124,7 +121,7 @@ void main() {
   color = mix(color, whiteCore, clamp(core + eventHorizon * 0.35, 0.0, 1.0));
   color *= density * (0.7 + u_signal * 1.25);
 
-  float vignette = smoothstep(1.05, 0.18, length(uv));
+  float vignette = 1.0 - smoothstep(0.18, 1.05, length(uv));
   color = mix(deep, color, vignette);
 
   float grain = hash21(gl_FragCoord.xy + floor(motionTime * 24.0));
