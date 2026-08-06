@@ -1,4 +1,5 @@
 import { VerticalSliceRuntime } from "../../../kodex/experience/VerticalSliceRuntime";
+import { runVerticalSliceScenarioSuite } from "../../../kodex/experience/verticalSliceScenarios";
 import type { RuntimeSnapshot, SliceCoordinate } from "../../../kodex/experience/types";
 
 const STORAGE_KEY = "kodex:m1:vertical-slice:memory:v0.1.0";
@@ -25,9 +26,11 @@ function mount(): void {
   const memory = required<HTMLElement>(root, "[data-memory]");
   const artifact = required<HTMLElement>(root, "[data-artifact]");
   const events = required<HTMLElement>(root, "[data-events]");
+  const qaResults = required<HTMLElement>(root, "[data-qa-results]");
   const reset = required<HTMLButtonElement>(root, "[data-reset]");
   const clearStorage = required<HTMLButtonElement>(root, "[data-clear-storage]");
   const exportButton = required<HTMLButtonElement>(root, "[data-export]");
+  const runQaButton = required<HTMLButtonElement>(root, "[data-run-qa]");
 
   function render(): void {
     const snapshot = runtime.getSnapshot();
@@ -147,6 +150,8 @@ function mount(): void {
   clearStorage.addEventListener("click", () => {
     localStorage.removeItem(STORAGE_KEY);
     runtime = new VerticalSliceRuntime();
+    qaResults.textContent = "Scenario suite has not been run in this page session.";
+    root.dataset.qa = "idle";
     render();
   });
 
@@ -170,9 +175,18 @@ function mount(): void {
     }, 1200);
   });
 
+  runQaButton.addEventListener("click", () => {
+    const results = runVerticalSliceScenarioSuite();
+    const passed = results.filter((result) => result.passed).length;
+    root.dataset.qa = passed === results.length ? "pass" : "fail";
+    runQaButton.textContent = `${passed}/${results.length} SIGNATURES PASS`;
+    qaResults.textContent = JSON.stringify(results, null, 2);
+  });
+
   (window as typeof window & { __kdxM1?: unknown }).__kdxM1 = {
     snapshot: () => runtime.getSnapshot(),
     serialize: () => runtime.serialize(),
+    runQa: () => runVerticalSliceScenarioSuite(),
     reset: () => {
       runtime = new VerticalSliceRuntime();
       render();
