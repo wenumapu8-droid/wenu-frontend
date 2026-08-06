@@ -1,6 +1,5 @@
 // Existing verified implementation lineage. This adapter deliberately wraps it
 // instead of duplicating the three-pass WebGL runtime.
-// @ts-expect-error The recovered runtime is JavaScript and has no declaration file yet.
 import { KdxThresholdPortalRuntime, THRESHOLD_PORTAL_MOTION } from "../../threshold-portal/index.js";
 import type {
   OrganismAdapterFactory,
@@ -33,7 +32,7 @@ const QUALITY_MAP: Record<OrganismQuality, "HIGH" | "MEDIUM" | "LOW"> = {
 class ThresholdPortalOrganismRuntime implements OrganismRuntime {
   readonly preset: OrganismPreset;
 
-  private readonly runtime: any;
+  private readonly runtime: KdxThresholdPortalRuntime;
   private lifecycle: OrganismLifecycle = "DORMANT";
   private quality: OrganismQuality;
   private motion: OrganismMotion = "FULL";
