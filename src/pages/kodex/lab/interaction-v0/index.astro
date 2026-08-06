@@ -1,0 +1,229 @@
+---
+import '../../../../styles/kodex-interaction-v0.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>KODEX−∞ Interaction V0 Lab</title>
+    <meta
+      name="description"
+      content="Non-production KODEX semantic interaction laboratory."
+    />
+  </head>
+  <body>
+    <main
+      class="kdx-lab"
+      data-kdx-interaction-lab
+      data-state="threshold"
+      data-motion="full"
+      aria-labelledby="kdx-lab-title"
+    >
+      <section class="kdx-lab__stage" aria-label="Interactive KODEX field">
+        <header class="kdx-lab__header">
+          <p>KODEX−∞ / LAB / INTERACTION V0</p>
+          <p>STATE <strong data-state-label>THRESHOLD</strong></p>
+        </header>
+
+        <div class="kdx-lab__artifact" aria-hidden="true" data-artifact>
+          <span class="kdx-lab__halo"></span>
+          <span class="kdx-lab__axis kdx-lab__axis--x"></span>
+          <span class="kdx-lab__axis kdx-lab__axis--y"></span>
+          <span class="kdx-lab__ring kdx-lab__ring--a"></span>
+          <span class="kdx-lab__ring kdx-lab__ring--b"></span>
+          <span class="kdx-lab__ring kdx-lab__ring--c"></span>
+          <span class="kdx-lab__core"></span>
+        </div>
+
+        <div class="kdx-lab__title">
+          <h1 id="kdx-lab-title">Select a relation.</h1>
+          <p data-transmission>
+            The field reacts to proximity, but only a committed choice changes the system.
+          </p>
+        </div>
+      </section>
+
+      <aside class="kdx-lab__panel" aria-label="Semantic interaction controls">
+        <h2>Interaction passport</h2>
+        <p>
+          Pointer movement remains atmospheric. Buttons below create explicit, accessible
+          and later-readable state changes.
+        </p>
+
+        <div class="kdx-lab__actions" role="group" aria-label="Choose a semantic action">
+          <button
+            class="kdx-hotspot"
+            type="button"
+            data-kdx-interaction-id="observe-field"
+            data-role="REVEAL"
+            data-next-state="observe"
+            aria-pressed="false"
+          >
+            <span class="kdx-hotspot__index">01</span>
+            <span>
+              <strong>OBSERVE</strong>
+              <small>Reveal current relations and source context.</small>
+            </span>
+          </button>
+
+          <button
+            class="kdx-hotspot"
+            type="button"
+            data-kdx-interaction-id="remember-field"
+            data-role="TRACE"
+            data-next-state="remember"
+            aria-pressed="false"
+          >
+            <span class="kdx-hotspot__index">02</span>
+            <span>
+              <strong>REMEMBER</strong>
+              <small>Recompose the field through sequence and carried memory.</small>
+            </span>
+          </button>
+
+          <button
+            class="kdx-hotspot"
+            type="button"
+            data-kdx-interaction-id="open-source"
+            data-role="REVEAL"
+            data-next-state="source"
+            aria-pressed="false"
+          >
+            <span class="kdx-hotspot__index">03</span>
+            <span>
+              <strong>OPEN SOURCE</strong>
+              <small>Expose the method and limitations behind the visual.</small>
+            </span>
+          </button>
+        </div>
+
+        <div class="kdx-lab__readout" aria-live="polite">
+          <div><span>INPUT</span><output data-input-type>NONE</output></div>
+          <div><span>POINTER X</span><output data-pointer-x>0.00</output></div>
+          <div><span>POINTER Y</span><output data-pointer-y>0.00</output></div>
+          <div><span>COMMITTED</span><output data-committed>NONE</output></div>
+          <div><span>MEMORY WRITE</span><output data-memory-write>NO</output></div>
+        </div>
+
+        <button class="kdx-motion-toggle" type="button" data-motion-toggle>
+          MOTION: FULL
+        </button>
+      </aside>
+    </main>
+
+    <script>
+      import {
+        createKodexInputController,
+        type KodexMotionMode,
+      } from '../../../../lib/kodex/runtime/normalized-input';
+      import {
+        createKodexInteractionEvent,
+        KODEX_INTERACTION_EVENT,
+      } from '../../../../lib/kodex/runtime/interaction-events';
+
+      const root = document.querySelector<HTMLElement>('[data-kdx-interaction-lab]');
+
+      if (root) {
+        const stateLabel = root.querySelector<HTMLElement>('[data-state-label]');
+        const transmission = root.querySelector<HTMLElement>('[data-transmission]');
+        const inputType = root.querySelector<HTMLOutputElement>('[data-input-type]');
+        const pointerX = root.querySelector<HTMLOutputElement>('[data-pointer-x]');
+        const pointerY = root.querySelector<HTMLOutputElement>('[data-pointer-y]');
+        const committed = root.querySelector<HTMLOutputElement>('[data-committed]');
+        const memoryWrite = root.querySelector<HTMLOutputElement>('[data-memory-write]');
+        const motionToggle = root.querySelector<HTMLButtonElement>('[data-motion-toggle]');
+        const hotspots = [...root.querySelectorAll<HTMLButtonElement>('[data-kdx-interaction-id]')];
+
+        const messages: Record<string, string> = {
+          threshold: 'The field reacts to proximity, but only a committed choice changes the system.',
+          observe: 'Look again. Context becomes visible when a relation is selected.',
+          remember: 'The same elements return in a different order because the path now carries memory.',
+          source: 'This laboratory uses normalized input, declared state and no biometric interpretation.',
+        };
+
+        let currentState = root.dataset.state ?? 'threshold';
+        let motionMode: KodexMotionMode = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+          ? 'reduced'
+          : 'full';
+
+        const renderState = (nextState: string) => {
+          currentState = nextState;
+          root.dataset.state = nextState;
+          if (stateLabel) stateLabel.textContent = nextState.toUpperCase();
+          if (transmission) transmission.textContent = messages[nextState] ?? messages.threshold;
+
+          hotspots.forEach((hotspot) => {
+            hotspot.setAttribute(
+              'aria-pressed',
+              String(hotspot.dataset.nextState === nextState),
+            );
+          });
+        };
+
+        const input = createKodexInputController(root, {
+          damping: 0.1,
+          onFrame: (snapshot) => {
+            const x = snapshot.motion === 'off' ? 0 : snapshot.pointer.x;
+            const y = snapshot.motion === 'off' ? 0 : snapshot.pointer.y;
+
+            root.style.setProperty('--kdx-x', x.toFixed(4));
+            root.style.setProperty('--kdx-y', y.toFixed(4));
+            if (inputType) inputType.value = snapshot.pointer.type.toUpperCase();
+            if (pointerX) pointerX.value = x.toFixed(2);
+            if (pointerY) pointerY.value = y.toFixed(2);
+          },
+        });
+
+        hotspots.forEach((hotspot) => {
+          hotspot.addEventListener('click', () => {
+            const nextState = hotspot.dataset.nextState ?? currentState;
+            const interactionId = hotspot.dataset.kdxInteractionId ?? 'unknown';
+            const role = hotspot.dataset.role ?? 'REVEAL';
+            const previousState = currentState;
+
+            renderState(nextState);
+
+            root.dispatchEvent(createKodexInteractionEvent({
+              interactionId,
+              nodeId: 'interaction-v0',
+              role: role as 'REVEAL' | 'TRACE',
+              semanticTarget: nextState,
+              stateBefore: previousState,
+              stateAfter: nextState,
+              writesToMemory: previousState !== nextState,
+              sourceIds: nextState === 'source' ? ['SRC-KODEX-INTERACTION-V0'] : [],
+              claimIds: [],
+            }));
+          });
+        });
+
+        root.addEventListener(KODEX_INTERACTION_EVENT, (event) => {
+          const interactionEvent = event as CustomEvent<{
+            interactionId: string;
+            writesToMemory: boolean;
+          }>;
+          if (committed) committed.value = interactionEvent.detail.interactionId.toUpperCase();
+          if (memoryWrite) {
+            memoryWrite.value = interactionEvent.detail.writesToMemory ? 'YES' : 'NO';
+          }
+        });
+
+        motionToggle?.addEventListener('click', () => {
+          const modes: KodexMotionMode[] = ['full', 'reduced', 'off'];
+          const currentIndex = modes.indexOf(motionMode);
+          motionMode = modes[(currentIndex + 1) % modes.length] ?? 'full';
+          root.dataset.motion = motionMode;
+          input.setMotionMode(motionMode);
+          motionToggle.textContent = `MOTION: ${motionMode.toUpperCase()}`;
+        });
+
+        renderState(currentState);
+
+        window.addEventListener('pagehide', () => input.destroy(), { once: true });
+      }
+    </script>
+  </body>
+</html>
