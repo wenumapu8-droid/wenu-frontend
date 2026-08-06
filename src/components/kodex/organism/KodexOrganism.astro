@@ -1,0 +1,144 @@
+---
+interface Props {
+  preset: string;
+  fallback: string;
+  label: string;
+  description?: string;
+  class?: string;
+  eager?: boolean;
+}
+
+const {
+  preset,
+  fallback,
+  label,
+  description,
+  class: className = "",
+  eager = false,
+} = Astro.props;
+---
+
+<figure
+  class:list={["kdx-organism", className]}
+  data-kdx-organism
+  data-preset={preset}
+  data-eager={String(eager)}
+  data-kdx-organism-state="loading"
+  role="group"
+  aria-label={label}
+  aria-describedby={description ? `${preset}-description` : undefined}
+  tabindex="0"
+>
+  <canvas class="kdx-organism__canvas" data-kdx-organism-canvas aria-hidden="true"></canvas>
+
+  <img
+    class="kdx-organism__fallback"
+    data-kdx-organism-fallback
+    src={fallback}
+    alt=""
+    loading={eager ? "eager" : "lazy"}
+    decoding="async"
+  />
+
+  {description && (
+    <figcaption id={`${preset}-description`} class="kdx-organism__description">
+      {description}
+    </figcaption>
+  )}
+
+  <span class="kdx-organism__status" data-kdx-organism-status aria-live="polite">
+    VISUAL SYSTEM LOADING
+  </span>
+</figure>
+
+<script>
+  import "./kodex-organism-client";
+</script>
+
+<style>
+  .kdx-organism {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-height: 16rem;
+    margin: 0;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .kdx-organism__canvas,
+  .kdx-organism__fallback {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .kdx-organism__canvas {
+    display: block;
+    opacity: 0;
+    transition: opacity 900ms ease;
+  }
+
+  .kdx-organism__fallback {
+    opacity: 1;
+    transition: opacity 600ms ease;
+    pointer-events: none;
+  }
+
+  .kdx-organism[data-kdx-organism-state="ready"] .kdx-organism__canvas {
+    opacity: 1;
+  }
+
+  .kdx-organism[data-kdx-organism-state="ready"] .kdx-organism__fallback {
+    opacity: 0;
+  }
+
+  .kdx-organism[data-kdx-organism-state="fallback"] .kdx-organism__canvas,
+  .kdx-organism[data-kdx-organism-state="error"] .kdx-organism__canvas {
+    display: none;
+  }
+
+  .kdx-organism__description {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .kdx-organism__status {
+    position: absolute;
+    inset-inline-start: 0.75rem;
+    inset-block-end: 0.75rem;
+    z-index: 2;
+    padding: 0.3rem 0.45rem;
+    border: 1px solid currentColor;
+    background: rgb(0 0 0 / 0.74);
+    color: currentColor;
+    font: 500 0.62rem/1.2 monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .kdx-organism[data-kdx-organism-state="error"] .kdx-organism__status,
+  .kdx-organism[data-kdx-debug="true"] .kdx-organism__status {
+    opacity: 1;
+  }
+
+  .kdx-organism:focus-visible {
+    outline: 1px solid currentColor;
+    outline-offset: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-organism__canvas,
+    .kdx-organism__fallback {
+      transition: none;
+    }
+  }
+</style>
