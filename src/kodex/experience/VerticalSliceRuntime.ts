@@ -59,10 +59,8 @@ export class VerticalSliceRuntime {
   getAvailableActions(): ActionDefinition[] {
     const recipe = verticalSliceRecipes[this.memory.currentCoordinate];
     return recipe.actions.filter((action) => {
-      if (action.repeatable) {
-        if (action.id === "ADVANCE_GROWTH") return this.memory.growthStage !== "CROWN";
-        return true;
-      }
+      if (!this.actionEnabled(action.id)) return false;
+      if (action.repeatable) return true;
 
       return !this.memory.committedActions.some(
         (entry) =>
@@ -126,6 +124,13 @@ export class VerticalSliceRuntime {
 
     this.recordIgnoredSignalsBeforeExit();
 
+    const leavingReturnForReentry = this.memory.currentCoordinate === "Y";
+    if (leavingReturnForReentry) {
+      this.addFlag("Y_REENTRY_SELECTED");
+      this.removeFlag("Y_RETURN_GENERATED");
+      this.memory.completed = false;
+    }
+
     if (target === "M") {
       this.memory.returnAnchor = this.memory.currentCoordinate;
       this.memory.mVisits.push({
@@ -135,7 +140,7 @@ export class VerticalSliceRuntime {
       });
     }
 
-    const eventType = this.memory.currentCoordinate === "Y" ? "REENTRY" : "ENTER";
+    const eventType = leavingReturnForReentry ? "REENTRY" : "ENTER";
     this.enterCoordinate(target, `${edge.relationId}: ${edge.consequence}`, eventType);
     return this.getSnapshot();
   }
@@ -147,6 +152,37 @@ export class VerticalSliceRuntime {
   static restore(serialized: string): VerticalSliceRuntime {
     const parsed = JSON.parse(serialized) as VerticalSliceMemory;
     return new VerticalSliceRuntime(parsed);
+  }
+
+  private actionEnabled(actionId: string): boolean {
+    switch (actionId) {
+      case "ORIENT_SIGNAL":
+      case "OPEN_TRACE":
+      case "MAP_RELATION":
+        return !this.hasAnyOrientation();
+      case "PLANT_SEED":
+        return !this.hasFlag("K_SEED_PLANTED") && this.memory.growthStage === "NONE";
+      case "ADVANCE_GROWTH":
+        return this.hasFlag("K_SEED_PLANTED") && this.memory.growthStage !== "CROWN";
+      case "SELECT_BRANCH":
+        return growthRank(this.memory.growthStage) >= growthRank("BRANCHING");
+      case "RETURN_TO_ANCHOR":
+        return this.memory.currentCoordinate === "M" && this.memory.returnAnchor !== null;
+      case "GENERATE_RETURN":
+        return (
+          this.memory.currentCoordinate === "Y" &&
+          this.isYEligible() &&
+          !this.hasFlag("Y_RETURN_GENERATED")
+        );
+      case "BEGIN_NEW_CYCLE":
+        return (
+          this.memory.currentCoordinate === "Y" &&
+          this.hasFlag("Y_RETURN_GENERATED") &&
+          this.memory.artifacts.length > 0
+        );
+      default:
+        return true;
+    }
   }
 
   private writeAction(actionId: string, writes: MemoryFlag[]): void {
@@ -401,6 +437,14 @@ export class VerticalSliceRuntime {
 
   private meaningfulActionCount(): number {
     return this.memory.committedActions.filter((entry) => entry.coordinate !== "A").length;
+  }
+
+  private hasAnyOrientation(): boolean {
+    return (
+      this.hasFlag("A_ORIENTATION_SIGNAL") ||
+      this.hasFlag("A_ORIENTATION_TRACE") ||
+      this.hasFlag("A_ORIENTATION_RELATION")
+    );
   }
 
   private hasFlag(flag: MemoryFlag): boolean {
