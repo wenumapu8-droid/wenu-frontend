@@ -5,12 +5,14 @@ import type {
   OrganismPreset,
   OrganismRuntime,
 } from "./types";
+import { assertOrganismPreset } from "./validation";
 
 class OrganismRegistry {
   private readonly presets = new Map<string, OrganismPreset>();
   private readonly adapters = new Map<string, OrganismAdapterFactory>();
 
   registerPreset(preset: OrganismPreset): this {
+    assertOrganismPreset(preset);
     if (this.presets.has(preset.id)) {
       throw new Error(`KODEX organism preset already registered: ${preset.id}`);
     }
