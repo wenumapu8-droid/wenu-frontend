@@ -47,7 +47,6 @@ class OrganismController {
       throw new Error("KODEX organism requires a canvas and data-preset.");
     }
 
-    const eager = this.root.dataset.eager === "true";
     const hasWebGL2 = Boolean(document.createElement("canvas").getContext("webgl2"));
 
     if (!hasWebGL2) {
@@ -71,12 +70,10 @@ class OrganismController {
 
     this.observe();
     this.bindLocalEvents();
-
-    if (eager) this.activate();
   }
 
   activate(): void {
-    if (!this.runtime || this.destroyed || !this.visible && this.root.dataset.eager !== "true") return;
+    if (!this.runtime || this.destroyed || !this.visible || document.hidden) return;
 
     if (activeController && activeController !== this) {
       activeController.deactivate();
@@ -93,6 +90,10 @@ class OrganismController {
     this.inputRaf = 0;
     this.runtime?.stop();
     if (activeController === this) activeController = null;
+  }
+
+  resumeIfVisible(): void {
+    if (this.visible) this.activate();
   }
 
   commitPrimaryAction(): void {
@@ -121,7 +122,7 @@ class OrganismController {
     this.motion = mode;
     this.runtime?.setMotion(mode);
     if (mode === "OFF") this.deactivate();
-    else if (this.visible) this.activate();
+    else this.resumeIfVisible();
   }
 
   debug(): Record<string, unknown> {
@@ -163,7 +164,7 @@ class OrganismController {
   private bindLocalEvents(): void {
     this.root.addEventListener("pointerenter", () => {
       this.runtime?.setLifecycle("AWARE");
-      if (this.visible) this.activate();
+      this.resumeIfVisible();
     });
 
     this.root.addEventListener("click", () => this.commitPrimaryAction());
@@ -270,8 +271,11 @@ function mountGlobalEvents(): void {
   });
 
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) activeController?.deactivate();
-    else activeController?.activate();
+    if (document.hidden) {
+      controllers.forEach((controller) => controller.deactivate());
+      return;
+    }
+    controllers.forEach((controller) => controller.resumeIfVisible());
   });
 
   const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
