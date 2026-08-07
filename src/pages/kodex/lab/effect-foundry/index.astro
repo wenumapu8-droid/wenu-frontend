@@ -1,0 +1,305 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import {
+  EFFECT_FOUNDRY_VERSION,
+  KODEX_EFFECTS,
+  RUNTIME_PARAMETER_MAP,
+} from '../../../../lib/kodex/effectFoundry.js';
+import '../../../../styles/kodex-effect-foundry.css';
+---
+
+<Base
+  title="KODEX−∞ Effect Foundry — Sprint 0"
+  description="Zero-cost local generative effect laboratory for the KODEX living archive."
+  robots="noindex, nofollow"
+  kodexFonts={true}
+  noNav={true}
+  noFooter={true}
+  noOverlays={true}
+  noQuote={true}
+  noThemes={true}
+  noKai={true}
+  noCart={true}
+  noImmersive={true}
+>
+  <main class="kfx" data-kfx>
+    <header class="kfx__top">
+      <div>
+        <p class="kfx__eyebrow">KODEX−∞ / INTERNAL LAB / ZERO-COST RUNTIME</p>
+        <h1>KDX EFFECT FOUNDRY</h1>
+      </div>
+      <div class="kfx__status" aria-label="system status">
+        <span class="kfx__chip">SPRINT_0</span>
+        <span class="kfx__chip">V{EFFECT_FOUNDRY_VERSION}</span>
+        <span class="kfx__chip kfx__chip--live">LOCAL / NO API / NO CREDITS</span>
+      </div>
+    </header>
+
+    <div class="kfx__grid">
+      <aside class="kfx__rail">
+        <section class="kfx__panel">
+          <p class="kfx__label">EFFECT REGISTRY</p>
+          <nav class="kfx__effects" aria-label="Effect registry">
+            {KODEX_EFFECTS.map((effect, index) => (
+              <button
+                class:list={['kfx__effect', { 'is-active': index === 0 }]}
+                type="button"
+                data-effect-id={effect.id}
+                aria-pressed={index === 0 ? 'true' : 'false'}
+              >
+                <span>{effect.id}</span>
+                <strong>{effect.name}</strong>
+                <small>{effect.family} / {effect.status}</small>
+              </button>
+            ))}
+          </nav>
+        </section>
+
+        <section class="kfx__panel">
+          <p class="kfx__label">SOURCE MATERIAL</p>
+          <label class="kfx__upload">
+            <span>LOAD LOCAL IMAGE</span>
+            <input type="file" accept="image/*" data-source-input />
+          </label>
+          <button class="kfx__button kfx__button--wide" type="button" data-reset-source>RESET SEED ORGANISM</button>
+          <p class="kfx__micro">Browser-only processing. Uploaded source images are not sent to a server.</p>
+        </section>
+      </aside>
+
+      <section class="kfx__stage" aria-label="effect preview">
+        <header class="kfx__stage-head">
+          <div class="kfx__stage-title">
+            <span data-current-id>{KODEX_EFFECTS[0].id}</span>
+            <strong data-current-name>{KODEX_EFFECTS[0].name}</strong>
+          </div>
+          <div class="kfx__stage-flags">
+            <span class="kfx__chip" data-current-family>{KODEX_EFFECTS[0].family}</span>
+            <span class="kfx__chip" data-render-size>900×900</span>
+          </div>
+        </header>
+
+        <div class="kfx__viewport">
+          <canvas data-output-canvas width="900" height="900" aria-label="Generated effect preview"></canvas>
+          <div class="kfx__scan" aria-hidden="true"></div>
+        </div>
+
+        <div class="kfx__transport">
+          <button class="kfx__button" type="button" data-randomize>RANDOMIZE</button>
+          <button class="kfx__button" type="button" data-animate aria-pressed="false">ANIMATE: OFF</button>
+          <button class="kfx__button" type="button" data-export>EXPORT PNG</button>
+          <span class="kfx__render" data-render-ms>READY</span>
+        </div>
+      </section>
+
+      <aside class="kfx__controls">
+        <section class="kfx__panel">
+          <p class="kfx__label">PARAMETER RECIPE</p>
+          <div data-control-list></div>
+        </section>
+
+        <section class="kfx__panel kfx__readout">
+          <p class="kfx__label">ROLE</p>
+          <p data-purpose>{KODEX_EFFECTS[0].purpose}</p>
+          <p class="kfx__label">SCENE FIT</p>
+          <p data-scenes>{KODEX_EFFECTS[0].scenes.join(' / ')}</p>
+          <p class="kfx__label">IMPLEMENTATION</p>
+          <p data-implementation>{KODEX_EFFECTS[0].implementation}</p>
+          <p class="kfx__label">FALLBACK</p>
+          <p data-fallback>{KODEX_EFFECTS[0].fallback}</p>
+        </section>
+
+        <details class="kfx__panel kfx__runtime">
+          <summary>RUNTIME INPUT MAP</summary>
+          <dl>
+            {Object.entries(RUNTIME_PARAMETER_MAP).map(([input, output]) => (
+              <div><dt>{input}</dt><dd>{output}</dd></div>
+            ))}
+          </dl>
+        </details>
+      </aside>
+    </div>
+
+    <footer class="kfx__foot">
+      <span>CONCEPT ≠ GENERATED ≠ TRANSLATED ≠ TESTED ≠ IMPLEMENTED</span>
+      <span>SPRINT 0 / 06 EFFECTS / CANVAS2D PROTOTYPES</span>
+    </footer>
+  </main>
+
+  <script type="application/json" id="kdx-effect-registry" set:html={JSON.stringify(KODEX_EFFECTS)}></script>
+
+  <script>
+    import {
+      defaultValues,
+      drawSeedOrganism,
+      loadImageIntoCanvas,
+      renderKodexEffect,
+    } from '../../../../lib/kodex/effectFoundryRuntime.js';
+
+    const root = document.querySelector('[data-kfx]');
+    const registryNode = document.getElementById('kdx-effect-registry');
+    const registry = registryNode ? JSON.parse(registryNode.textContent || '[]') : [];
+
+    if (root && registry.length) {
+      const canvas = root.querySelector('[data-output-canvas]');
+      const sourceCanvas = document.createElement('canvas');
+      const sourceInput = root.querySelector('[data-source-input]');
+      const buttons = [...root.querySelectorAll('[data-effect-id]')];
+      const controls = root.querySelector('[data-control-list]');
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const ui = {
+        id: root.querySelector('[data-current-id]'),
+        name: root.querySelector('[data-current-name]'),
+        family: root.querySelector('[data-current-family]'),
+        size: root.querySelector('[data-render-size]'),
+        renderMs: root.querySelector('[data-render-ms]'),
+        purpose: root.querySelector('[data-purpose]'),
+        scenes: root.querySelector('[data-scenes]'),
+        implementation: root.querySelector('[data-implementation]'),
+        fallback: root.querySelector('[data-fallback]'),
+        animate: root.querySelector('[data-animate]'),
+      };
+
+      let current = registry[0];
+      let values = defaultValues(current);
+      let sourceUrl = '';
+      let animation = false;
+      let raf = 0;
+      let last = 0;
+      let time = 0;
+
+      const paint = () => {
+        const started = performance.now();
+        renderKodexEffect({ effectId: current.id, canvas, sourceCanvas, values, time });
+        ui.renderMs.textContent = `${Math.round(performance.now() - started)} MS`;
+      };
+
+      const setSeed = () => {
+        drawSeedOrganism(sourceCanvas, 900, 900);
+        canvas.width = sourceCanvas.width;
+        canvas.height = sourceCanvas.height;
+        ui.size.textContent = `${canvas.width}×${canvas.height}`;
+        paint();
+      };
+
+      const buildControls = () => {
+        controls.replaceChildren();
+        current.parameters.forEach((param) => {
+          const label = document.createElement('label');
+          label.className = 'kfx__control';
+          const head = document.createElement('span');
+          head.className = 'kfx__control-head';
+          const name = document.createElement('b');
+          name.textContent = param.label;
+          const value = document.createElement('output');
+          value.value = String(values[param.key]);
+          const range = document.createElement('input');
+          range.type = 'range';
+          range.min = String(param.min);
+          range.max = String(param.max);
+          range.step = String(param.step);
+          range.value = String(values[param.key]);
+          range.addEventListener('input', () => {
+            values[param.key] = Number(range.value);
+            value.value = range.value;
+            paint();
+          });
+          head.append(name, value);
+          label.append(head, range);
+          controls.append(label);
+        });
+      };
+
+      const selectEffect = (id) => {
+        const next = registry.find((effect) => effect.id === id);
+        if (!next) return;
+        current = next;
+        values = defaultValues(current);
+        time = 0;
+        buttons.forEach((button) => {
+          const active = button.dataset.effectId === id;
+          button.classList.toggle('is-active', active);
+          button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        ui.id.textContent = current.id;
+        ui.name.textContent = current.name;
+        ui.family.textContent = current.family;
+        ui.purpose.textContent = current.purpose;
+        ui.scenes.textContent = current.scenes.join(' / ');
+        ui.implementation.textContent = current.implementation;
+        ui.fallback.textContent = current.fallback;
+        buildControls();
+        paint();
+      };
+
+      const tick = (now) => {
+        if (!animation || reducedMotion.matches) return;
+        if (now - last >= 80) {
+          time = (time + 0.012) % 1;
+          paint();
+          last = now;
+        }
+        raf = requestAnimationFrame(tick);
+      };
+
+      buttons.forEach((button) => button.addEventListener('click', () => selectEffect(button.dataset.effectId)));
+
+      sourceInput.addEventListener('change', async () => {
+        const file = sourceInput.files?.[0];
+        if (!file) return;
+        if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+        sourceUrl = URL.createObjectURL(file);
+        try {
+          const size = await loadImageIntoCanvas(sourceUrl, sourceCanvas, { maxDimension: 1200 });
+          canvas.width = size.width;
+          canvas.height = size.height;
+          ui.size.textContent = `${size.width}×${size.height}`;
+          paint();
+        } catch (error) {
+          console.error('[KODEX Effect Foundry] source load failed', error);
+          setSeed();
+        }
+      });
+
+      root.querySelector('[data-reset-source]').addEventListener('click', () => {
+        if (sourceUrl) URL.revokeObjectURL(sourceUrl);
+        sourceUrl = '';
+        sourceInput.value = '';
+        setSeed();
+      });
+
+      root.querySelector('[data-randomize]').addEventListener('click', () => {
+        current.parameters.forEach((param) => {
+          const steps = Math.max(1, Math.round((param.max - param.min) / param.step));
+          const randomStep = Math.floor(Math.random() * (steps + 1));
+          values[param.key] = Number((param.min + randomStep * param.step).toFixed(5));
+        });
+        buildControls();
+        paint();
+      });
+
+      ui.animate.addEventListener('click', () => {
+        animation = !animation;
+        ui.animate.textContent = `ANIMATE: ${animation ? 'ON' : 'OFF'}`;
+        ui.animate.setAttribute('aria-pressed', animation ? 'true' : 'false');
+        cancelAnimationFrame(raf);
+        if (animation && !reducedMotion.matches) raf = requestAnimationFrame(tick);
+      });
+
+      reducedMotion.addEventListener?.('change', () => {
+        cancelAnimationFrame(raf);
+        if (animation && !reducedMotion.matches) raf = requestAnimationFrame(tick);
+        else paint();
+      });
+
+      root.querySelector('[data-export]').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = `${current.id}_${current.slug}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      });
+
+      setSeed();
+      selectEffect(current.id);
+    }
+  </script>
+</Base>
