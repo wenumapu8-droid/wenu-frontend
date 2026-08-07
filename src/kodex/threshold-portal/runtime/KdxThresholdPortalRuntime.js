@@ -94,8 +94,8 @@ export class KdxThresholdPortalRuntime {
       return;
     }
 
-    // Unbind owned state before deletion. The runtime never forces context loss:
-    // the browser/host may legitimately share the WebGL context lifecycle.
+    // Unbind owned state before deletion. Never force context loss here: the
+    // universal host owns context policy when this runtime is used as FIELD.
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.activeTexture(gl.TEXTURE1);
@@ -197,8 +197,6 @@ export class KdxThresholdPortalRuntime {
   }
 
   _bindEvents() {
-    // Universal-host remounts can call load more than once during Astro
-    // transitions; keep global listeners strictly one-per-runtime.
     this._unbindEvents();
 
     this._onResize = () => {
@@ -206,42 +204,55 @@ export class KdxThresholdPortalRuntime {
       this._resize();
       this.renderOnce();
     };
-    this._onPointerMove = (event) => {
-      if (this.disposed || this.contextLost) return;
-      const x = (event.clientX / window.innerWidth) * 2 - 1;
-      const y = -((event.clientY / window.innerHeight) * 2 - 1);
-      this.setPointer(x, y);
-    };
-    this._onContextLost = (event) => {
-      event.preventDefault();
-      this.resumeAfterContextRestore = this.running;
-      this.contextLost = true;
-      this.metrics.contextLost = true;
-      this.stop();
-      this.options.onContextLost?.();
-    };
-    this._onContextRestored = () => {
-      // WebGL resources are invalid after restoration. Recreate the runtime
-      // from the same semantic state rather than attempting to reuse handles.
-      if (this.disposed) return;
-      this.contextLost = false;
-      this.metrics.contextLost = false;
-      this.options.onContextRestored?.();
-      this._restoreContext().catch((error) => {
+
+    if (typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(this._onResize);
+      this._resizeObserver.observe(this.canvas);
+    } else {
+      addEventListener('resize', this._onResize, { passive: true });
+      this._usesWindowResize = true;
+    }
+
+    if (this.options.bindGlobalPointer !== false) {
+      this._onPointerMove = (event) => {
+        if (this.disposed || this.contextLost) return;
+        const x = (event.clientX / window.innerWidth) * 2 - 1;
+        const y = -((event.clientY / window.innerHeight) * 2 - 1);
+        this.setPointer(x, y);
+      };
+      addEventListener('pointermove', this._onPointerMove, { passive: true });
+    }
+
+    if (this.options.manageContextLifecycle !== false) {
+      this._onContextLost = (event) => {
+        event.preventDefault();
+        this.resumeAfterContextRestore = this.running;
         this.contextLost = true;
         this.metrics.contextLost = true;
-        this.options.onError?.(error);
-      });
-    };
-
-    addEventListener('resize', this._onResize, { passive: true });
-    addEventListener('pointermove', this._onPointerMove, { passive: true });
-    this.canvas.addEventListener('webglcontextlost', this._onContextLost, false);
-    this.canvas.addEventListener('webglcontextrestored', this._onContextRestored, false);
+        this.stop();
+        this.options.onContextLost?.();
+      };
+      this._onContextRestored = () => {
+        if (this.disposed) return;
+        this.contextLost = false;
+        this.metrics.contextLost = false;
+        this.options.onContextRestored?.();
+        this._restoreContext().catch((error) => {
+          this.contextLost = true;
+          this.metrics.contextLost = true;
+          this.options.onError?.(error);
+        });
+      };
+      this.canvas.addEventListener('webglcontextlost', this._onContextLost, false);
+      this.canvas.addEventListener('webglcontextrestored', this._onContextRestored, false);
+    }
   }
 
   _unbindEvents() {
-    if (this._onResize) removeEventListener('resize', this._onResize);
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
+    if (this._usesWindowResize && this._onResize) removeEventListener('resize', this._onResize);
+    this._usesWindowResize = false;
     if (this._onPointerMove) removeEventListener('pointermove', this._onPointerMove);
     if (this._onContextLost) this.canvas.removeEventListener('webglcontextlost', this._onContextLost, false);
     if (this._onContextRestored) this.canvas.removeEventListener('webglcontextrestored', this._onContextRestored, false);
@@ -333,15 +344,9 @@ export class KdxThresholdPortalRuntime {
       gl.uniform1f(u.u_seed, this.state.seed);
       gl.uniform2f(u.u_pointer, this.state.pointer[0], this.state.pointer[1]);
       gl.uniform1f(u.u_bass, this.state.bass);
-      // La fase del archivo manda sobre u_state cuando existe. Es el eje que
-      // el visitante mueve a proposito; la fase interna del portal
-      // (DORMANT/AWARE/OPEN) queda de respaldo.
       const arch = window.__kdxArchivoValor;
       gl.uniform1f(u.u_state, typeof arch === 'number' ? arch : this.state.phaseValue / 2);
       gl.uniform1f(u.u_quality, qualityValue);
-      // Giro de la rueda. Se lee del bus global y no de un setter porque la
-      // rueda ya corre su propio bucle con inercia: pasarlo por eventos
-      // agregaria una capa de retraso sobre algo que se siente en la mano.
       gl.uniform1f(u.u_wheel, (window.__kdxRueda && window.__kdxRueda.valor) || 0);
       gl.uniform1f(u.u_motion, motionValue);
     });
@@ -419,9 +424,8 @@ export class KdxThresholdPortalRuntime {
       throw new Error(message);
     }
 
-    // Linked programs retain compiled shader binaries; the standalone shader
-    // objects can be detached and deleted immediately instead of leaking until
-    // context teardown.
+    // Programs retain the linked binary; standalone shader objects can be
+    // detached/deleted immediately instead of leaking until context teardown.
     gl.detachShader(program, vertex);
     gl.detachShader(program, fragment);
     gl.deleteShader(vertex);
