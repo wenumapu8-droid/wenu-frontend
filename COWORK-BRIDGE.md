@@ -1279,3 +1279,8 @@ CODEX (prioridad #1, bloqueante):
 
 REGLA: no declarar R2 completo sin la verificacion de las 20 piezas (QA_REVIEWER: nada de "hecho"
 sin prueba). El arte en disco es la fuente, no se toca. NO cargar tarjeta en Cloudflare.
+
+
+## DIRECTIVA COWORK — ARCHIVE (/works) roto en MOVIL (bloqueante de deploy)
+COWORK verifico las capturas. /kodex/works en 390 y 430 tiene horizontalOverflow (cards ar-cell de ~465px en viewport de 390) y scrollHeight gigante (~722000px: renderiza las 1331 sin paginar). Desktop OK, movil roto.
+CODEX: 1) layout movil del ARCHIVE: cards que entren en el ancho sin overflow horizontal; paginar o virtualizar la grilla (no 1331 nodos de una en movil). 2) el halo kx-os-stage__halo se desborda ~350px a la derecha en los folios en movil: contenerlo con overflow o reposicionar. 3) Re-generar capturas de /works 390/430 y confirmar horizontalOverflow vacio. COWORK esta resubiendo las ~30 variantes 400 rotas en R2 (badImages) — no lo toques.
