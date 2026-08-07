@@ -11,8 +11,10 @@
 > capítulo desde el lado contrario al que él cree.
 > **Nota de alcance.** El capítulo toca el terreno de los nombres tomados por la
 > fuerza. Lo desarrollo con hechos históricos documentados y **sin entrar en el
-> caso mapuche**, porque el material de referencia (`sources/`) no está
-> accesible en esta copia y ese registro va con fuente o no va.
+> caso mapuche**. No es una omisión por falta de material: es la regla de los dos
+> registros. Lo mapuche documentado vive en su propio volumen, citado a Canio &
+> Pozo (2015), y **no se absorbe dentro de esta ficción** —ni siquiera para
+> ilustrarla.
 > **Sobre los tonos binaurales** del estado sugerido: el efecto auditivo existe;
 > lo que se les atribuye sobre estados cerebrales no está establecido. Este
 > libro no es salud.

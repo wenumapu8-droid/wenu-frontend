@@ -254,7 +254,7 @@ Los tres ejemplos lo demuestran mejor de lo que él los usa. **Ninguno de los tr
 
 Y eso es mejor noticia, porque una lectura se puede corregir. Un secuestro antiguo, no.
 
-**El riesgo que hay que nombrar.** La versión de este capítulo que circula por ahí no termina en «reconsagra los símbolos». Termina en «mirá quién los usa» — y de ahí a señalar instituciones, y de ahí a señalar personas, hay dos pasos que mucha gente da.
+**El riesgo que hay que nombrar.** La versión de este capítulo que circula por ahí no termina en «reconsagra los símbolos». Termina en «mira quién los usa» — y de ahí a señalar instituciones, y de ahí a señalar personas, hay dos pasos que mucha gente da.
 
 Este texto no los da: dice que los símbolos **no son de nadie** y que la tarea es cuidarlos, no recuperarlos de un enemigo. Pero conviene decir en voz alta dónde está el borde, porque está cerca.
 
