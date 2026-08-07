@@ -27,6 +27,7 @@ export class KdxThresholdPortalRuntime {
     this.running = false;
     this.disposed = false;
     this.contextLost = false;
+    this.resumeAfterContextRestore = false;
     this.raf = 0;
     this.lastNow = 0;
     this.metrics = {
@@ -83,11 +84,15 @@ export class KdxThresholdPortalRuntime {
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    this.resumeAfterContextRestore = false;
     this.stop();
     this._unbindEvents();
 
     const gl = this.gl;
-    if (!gl) return;
+    if (!gl) {
+      this.metrics.resourceCount = 0;
+      return;
+    }
 
     // Unbind owned state before deletion. The runtime never forces context loss:
     // the browser/host may legitimately share the WebGL context lifecycle.
@@ -99,28 +104,7 @@ export class KdxThresholdPortalRuntime {
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.useProgram(null);
 
-    if (this.artworkTexture) gl.deleteTexture(this.artworkTexture);
-    this.artworkTexture = null;
-
-    this._deleteFbo(this.fbScene);
-    this._deleteFbo(this.fbPrev);
-    this._deleteFbo(this.fbNext);
-    this.fbScene = null;
-    this.fbPrev = null;
-    this.fbNext = null;
-
-    if (this.programs) {
-      Object.values(this.programs).forEach((entry) => {
-        if (entry?.program) gl.deleteProgram(entry.program);
-      });
-    }
-    this.programs = null;
-
-    if (this.buffer) gl.deleteBuffer(this.buffer);
-    this.buffer = null;
-
-    this.metrics.resourceCount = 0;
-    this.gl = null;
+    this._releaseGpuHandles(true);
   }
 
   setSeed(seed) { this.state.seed = seed; this.renderOnce(); }
@@ -230,6 +214,7 @@ export class KdxThresholdPortalRuntime {
     };
     this._onContextLost = (event) => {
       event.preventDefault();
+      this.resumeAfterContextRestore = this.running;
       this.contextLost = true;
       this.metrics.contextLost = true;
       this.stop();
@@ -267,7 +252,8 @@ export class KdxThresholdPortalRuntime {
   }
 
   async _restoreContext() {
-    const shouldRestart = this.options.autoStartOnRestore === true || this.running;
+    const shouldRestart = this.resumeAfterContextRestore;
+    this.resumeAfterContextRestore = false;
     this._releaseGpuHandles(false);
     this._initGL();
     await this._loadArtwork(this.options.artworkUrl || this.config.artworkUrl);
