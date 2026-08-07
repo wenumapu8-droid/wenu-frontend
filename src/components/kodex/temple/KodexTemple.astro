@@ -1,0 +1,174 @@
+---
+import KodexOrganism from "../organism/KodexOrganism.astro";
+import type { KodexTempleRecipe } from "../../../kodex/temple/types";
+import "./kodex-temple.css";
+
+interface Props {
+  recipe: KodexTempleRecipe;
+  debugControls?: boolean;
+  class?: string;
+}
+
+const { recipe, debugControls = false, class: className = "" } = Astro.props;
+const initial = recipe.stateProfiles.DORMANT;
+const archLayers = Array.from({ length: recipe.architecture.archLayers }, (_, index) => index);
+const domeLayers = Array.from({ length: recipe.architecture.domeLayers }, (_, index) => index);
+const candles = Array.from({ length: recipe.architecture.candleCount }, (_, index) => {
+  const side = index % 2 === 0 ? -1 : 1;
+  const lane = (index * 37) % 31;
+  const depth = (index * 53) % 100;
+  const x = 50 + side * (18 + lane);
+  const y = 58 + depth * 0.37;
+  const size = 0.42 + ((index * 29) % 55) / 100;
+  const delay = ((index * 17) % 90) / 10;
+  return { index, x, y, size, delay };
+});
+const memoryLights = Array.from({ length: recipe.architecture.memoryLights }, (_, index) => {
+  const angle = (index / recipe.architecture.memoryLights) * Math.PI * 2;
+  const radius = 24 + ((index * 19) % 20);
+  return {
+    index,
+    x: 50 + Math.cos(angle) * radius,
+    y: 42 + Math.sin(angle) * radius * 0.42,
+    delay: ((index * 11) % 45) / 10,
+  };
+});
+
+const templeStyle = [
+  `--kdx-void:${recipe.palette.void}`,
+  `--kdx-shadow:${recipe.palette.shadow}`,
+  `--kdx-structure:${recipe.palette.structure}`,
+  `--kdx-signal:${recipe.palette.signal}`,
+  `--kdx-spectral:${recipe.palette.spectral}`,
+  `--kdx-memory:${recipe.palette.memory}`,
+  `--kdx-white:${recipe.palette.white}`,
+  `--kdx-architecture-energy:${initial.architectureEnergy}`,
+  `--kdx-candle-energy:${initial.candleEnergy}`,
+  `--kdx-spectral-energy:${initial.spectralEnergy}`,
+  `--kdx-depth:${initial.depth}`,
+  `--kdx-organism-scale:${initial.organismScale}`,
+  `--kdx-memory-visibility:${initial.memoryVisibility}`,
+].join(";");
+---
+
+<section
+  class:list={["kdx-temple", className]}
+  data-kdx-temple
+  data-temple-id={recipe.id}
+  data-node-coordinate={recipe.nodeCoordinate}
+  data-temple-state="DORMANT"
+  style={templeStyle}
+  aria-labelledby={`${recipe.id}-title`}
+>
+  <div class="kdx-temple__atmosphere" aria-hidden="true"></div>
+  <div class="kdx-temple__spectral-field" aria-hidden="true"></div>
+
+  <div class="kdx-temple__dome" aria-hidden="true">
+    {domeLayers.map((index) => (
+      <span class="kdx-temple__dome-layer" style={`--i:${index};--n:${domeLayers.length};`}></span>
+    ))}
+  </div>
+
+  <div class="kdx-temple__architecture" aria-hidden="true">
+    {archLayers.map((index) => (
+      <div class="kdx-temple__arch-layer" style={`--i:${index};--n:${archLayers.length};`}>
+        <span class="kdx-temple__column kdx-temple__column--left"></span>
+        <span class="kdx-temple__arch"></span>
+        <span class="kdx-temple__column kdx-temple__column--right"></span>
+      </div>
+    ))}
+  </div>
+
+  <div class="kdx-temple__memory-constellation" aria-hidden="true">
+    {memoryLights.map((light) => (
+      <i
+        class="kdx-temple__memory-light"
+        style={`--x:${light.x}%;--y:${light.y}%;--delay:${light.delay}s;`}
+      ></i>
+    ))}
+  </div>
+
+  <div class="kdx-temple__candles" aria-hidden="true">
+    {candles.map((candle) => (
+      <i
+        class="kdx-temple__candle"
+        style={`--x:${candle.x}%;--y:${candle.y}%;--s:${candle.size};--delay:${candle.delay}s;`}
+      ></i>
+    ))}
+  </div>
+
+  <header class="kdx-temple__hud">
+    <div>
+      <p class="kdx-temple__eyebrow">KODEX−∞ // TEMPLE SYSTEM</p>
+      <h1 id={`${recipe.id}-title`}>{recipe.title}</h1>
+      <p>{recipe.subtitle}</p>
+    </div>
+    <dl class="kdx-temple__status-grid">
+      <div><dt>NODE</dt><dd>{recipe.nodeCoordinate}</dd></div>
+      <div><dt>STATE</dt><dd data-kdx-temple-state-label>DORMANT</dd></div>
+      <div><dt>MEMORY</dt><dd data-kdx-temple-memory-label>LATENT</dd></div>
+    </dl>
+  </header>
+
+  <div class="kdx-temple__axis" aria-hidden="true">
+    <span></span><span></span><span></span>
+  </div>
+
+  <div class="kdx-temple__altar-zone">
+    <div class="kdx-temple__altar-halo" aria-hidden="true"></div>
+    <div class="kdx-temple__organism-shell">
+      <KodexOrganism
+        preset={recipe.organismPreset}
+        fallback={recipe.organismFallback}
+        label={recipe.organismLabel}
+        description={recipe.organismDescription}
+        eager={true}
+      />
+    </div>
+
+    <div class="kdx-temple__pedestal" aria-hidden="true">
+      <span class="kdx-temple__pedestal-ring kdx-temple__pedestal-ring--outer"></span>
+      <span class="kdx-temple__pedestal-ring kdx-temple__pedestal-ring--middle"></span>
+      <span class="kdx-temple__pedestal-ring kdx-temple__pedestal-ring--inner"></span>
+      <strong>∞</strong>
+    </div>
+  </div>
+
+  <div class="kdx-temple__route-trace" aria-label="Temple route trace">
+    <span>A</span><i></i><span class="is-current">{recipe.nodeCoordinate}</span><i></i><span>B′</span><i></i><span>M</span><i></i><span>Y</span>
+  </div>
+
+  <nav class="kdx-temple__actions" aria-label="Temple actions">
+    {recipe.actions.map((action) => (
+      <button
+        type="button"
+        data-kdx-temple-action={action.id}
+        data-next-state={action.nextState}
+        data-emits={action.emits}
+        title={action.description}
+      >
+        <span>{action.label}</span>
+        <small>{action.description}</small>
+      </button>
+    ))}
+  </nav>
+
+  <aside class="kdx-temple__state-note" aria-live="polite">
+    <span data-kdx-temple-state-label>DORMANT</span>
+    <p data-kdx-temple-description>{initial.description}</p>
+  </aside>
+
+  {debugControls && (
+    <div class="kdx-temple__debug" aria-label="Internal temple QA controls">
+      <span>INTERNAL QA</span>
+      <button type="button" data-kdx-temple-toggle-motion>TOGGLE MOTION</button>
+      <button type="button" data-kdx-temple-reset>RESET</button>
+    </div>
+  )}
+
+  <script type="application/json" data-kdx-temple-recipe set:html={JSON.stringify(recipe)}></script>
+</section>
+
+<script>
+  import "./kodex-temple-client";
+</script>
