@@ -1680,3 +1680,77 @@ tres críticos a dos. Es el primer fix a pedir cuando Codex retome.
 **No re-mido hasta que llegue algo.** Volver a fotografiar un árbol idéntico
 produce entradas de auditoría que parecen trabajo y no lo son — es exactamente
 el error de V-16, y no lo repito.
+
+## V-36 · Estado de los libros y de la curaduría (7/8)
+
+Pasada de contenido, no de píxeles. Nada de esto toca `src/`.
+
+### Los tres libros: pasan
+
+41 capítulos (12 + 12 + 12, más los 5 del Libro IV) contra el benchmark
+`libro-I/01-la-fuente.md` y contra `BIBLIA-Y-VOZ.md`.
+
+| comprobación | resultado |
+|---|---|
+| las 6 secciones (epígrafe / apertura / desarrollo / pliegue / resonancia KODEX / sello) | **41 de 41** |
+| cabecera con `Tratamiento del lector: **tú neutro**` | **41 de 41** |
+| nota de que mantras y rituales van verbatim | **41 de 41** |
+| voseo | **1 caso**, corregido |
+| `usted` / `vosotros` | 0 |
+| clichés vetados por la biblia («vibraciones altas», «el universo quiere») | 0 |
+| bloques de mantra / ritual / práctica | 40 archivos, sin tocar |
+
+El único voseo era `«mirá quién los usa»` en `libro-III/04`, dentro de una
+paráfrasis de un discurso ajeno — igual iba en tú. Corregido.
+
+Aparte: `libro-III/09` justificaba dejar fuera el caso mapuche diciendo que
+`sources/` no estaba accesible. Sí está. El motivo real es la regla de los dos
+registros, y ahora la nota lo dice así.
+
+### La curaduría: 1318 marcados, y el número no va a bajar solo
+
+**1427 volúmenes. `review:true` pasó de 1321 a 1318.** Parece poco movimiento y
+conviene explicar por qué, porque el número engaña:
+
+| grupo | cuántos | estado |
+|---|---|---|
+| ingesta mecánica (`spec-<hash>`) | **1309** | título hash, curaduría **vacía**, ninguna fuente los cubre |
+| curados en esta pasada, aún marcados | **9** | falta un dato concreto, anotado en cada `review_nota` |
+| curados y desmarcados | **3** | verificados contra `sources/` |
+| resto | 106 | ya estaban sin marca |
+
+**Los 1309 son el número real de la deuda.** No son volúmenes mal curados: son
+volúmenes **sin curar**, con `curaduria_es` y `curaduria_en` en blanco y un hash
+por título. `sources/` tiene tres archivos y ninguno los menciona. No se pueden
+escribir sin ver las piezas, y verlas es el pase del autor —de ahí que su nota
+diga «pendientes de COWORK» desde la ingesta. **Bajar ese número no es trabajo
+de agente, es una sesión con Ocín delante de las imágenes.**
+
+De los 12 que sí se pudieron trabajar:
+
+- **Salen de review (3):** `doc-wenu-mapu` —los tres términos mapudungun ya
+  estaban verificados contra Canio & Pozo 2015 desde el 1/8, en un campo del
+  manifest que la fuente nunca recogió; ahora están en las dos curadurías con la
+  grafía del libro anotada al lado, porque no coincide con la de uso—, más
+  `fic-anunnaki-sumerios` y `fic-razas-estelares-iconografia`, donde lo único
+  verificable era que la ficción estuviera marcada como ficción, y lo está.
+- **Siguen marcados (9):** los 4 capítulos documentados (`doc-constelaciones`,
+  `doc-rutrafe`, `doc-animales-de-poder`, `doc-plantas-sacras`) usan lo que la
+  fuente confirma y **retiran de la curaduría lo que no** —los nombres en
+  mapudungun sin verificar salieron del texto publicado, no se quedaron con una
+  marca encima. Los 5 specimens de Behance tienen autoría, firma y año escritos
+  y verificados; lo que falta es la lectura visual, que necesita al autor.
+
+### Dos registros: 5 enlaces más
+
+`doc-constelaciones` nombra *wenu leufü* y es registro documentado. Tenía un
+enlace saliente a `lore-2-la-llegada-de-nibiru` y **cuatro entrantes** desde la
+ficción que la pasada anterior no vio, porque miró en una sola dirección. Los
+cinco fuera. Los que buscaban el ancla astronómica ya tenían `cos-03-estrellas`,
+que es ciencia y sí puede resonar con el mito con su registro a la vista.
+
+Re-auditado en las dos direcciones: **0 cruces** entre los 7 volúmenes
+documentados de raíz mapuche y la ficción.
+
+La curaduría quedó como script (`scripts/curar-manifest.py`), no como edición a
+mano de 1.5 MB de JSON: se puede releer, discutir y volver a correr.
