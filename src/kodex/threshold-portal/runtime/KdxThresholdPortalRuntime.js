@@ -25,6 +25,8 @@ export class KdxThresholdPortalRuntime {
       phaseValue: getThresholdPortalStateValue(options.state ?? this.config.defaultState),
     };
     this.running = false;
+    this.disposed = false;
+    this.contextLost = false;
     this.raf = 0;
     this.lastNow = 0;
     this.metrics = {
@@ -34,12 +36,15 @@ export class KdxThresholdPortalRuntime {
       drawCalls: 0,
       activeLoops: 0,
       canvasSize: '0x0',
+      resourceCount: 0,
+      contextLost: false,
     };
     this.telemetryFrames = 0;
     this.telemetryStart = 0;
   }
 
   async load() {
+    if (this.disposed) throw new Error('KDX_THRESHOLD_PORTAL_001 runtime is disposed');
     this._initGL();
     await this._loadArtwork(this.options.artworkUrl || this.config.artworkUrl);
     this._resize();
@@ -49,11 +54,11 @@ export class KdxThresholdPortalRuntime {
   }
 
   start() {
-    if (this.running || !this.gl) return;
+    if (this.running || !this.gl || this.disposed || this.contextLost) return;
     this.running = true;
     this.metrics.activeLoops = 1;
     const loop = (now) => {
-      if (!this.running) return;
+      if (!this.running || this.disposed || this.contextLost) return;
       if (this.state.motionMode !== THRESHOLD_PORTAL_MOTION.PAUSED) {
         const delta = this.lastNow ? now - this.lastNow : 16.6667;
         this.state.elapsedMs += delta;
@@ -72,12 +77,50 @@ export class KdxThresholdPortalRuntime {
     this.metrics.activeLoops = 0;
     cancelAnimationFrame(this.raf);
     this.raf = 0;
+    this.lastNow = 0;
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
     this.stop();
-    if (this._onResize) removeEventListener('resize', this._onResize);
-    if (this._onPointerMove) removeEventListener('pointermove', this._onPointerMove);
+    this._unbindEvents();
+
+    const gl = this.gl;
+    if (!gl) return;
+
+    // Unbind owned state before deletion. The runtime never forces context loss:
+    // the browser/host may legitimately share the WebGL context lifecycle.
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.useProgram(null);
+
+    if (this.artworkTexture) gl.deleteTexture(this.artworkTexture);
+    this.artworkTexture = null;
+
+    this._deleteFbo(this.fbScene);
+    this._deleteFbo(this.fbPrev);
+    this._deleteFbo(this.fbNext);
+    this.fbScene = null;
+    this.fbPrev = null;
+    this.fbNext = null;
+
+    if (this.programs) {
+      Object.values(this.programs).forEach((entry) => {
+        if (entry?.program) gl.deleteProgram(entry.program);
+      });
+    }
+    this.programs = null;
+
+    if (this.buffer) gl.deleteBuffer(this.buffer);
+    this.buffer = null;
+
+    this.metrics.resourceCount = 0;
+    this.gl = null;
   }
 
   setSeed(seed) { this.state.seed = seed; this.renderOnce(); }
@@ -96,7 +139,7 @@ export class KdxThresholdPortalRuntime {
   }
 
   renderOnce() {
-    if (!this.gl) return;
+    if (!this.gl || this.disposed || this.contextLost) return;
     this._render();
   }
 
@@ -113,6 +156,7 @@ export class KdxThresholdPortalRuntime {
       elapsedMs: this.state.elapsedMs,
       motionMode: this.state.motionMode,
       qualityLevel: this.state.qualityLevel,
+      disposed: this.disposed,
     };
   }
 
@@ -127,6 +171,7 @@ export class KdxThresholdPortalRuntime {
     this.gl = gl;
 
     const buffer = gl.createBuffer();
+    if (!buffer) throw new Error('Unable to allocate KDX threshold portal vertex buffer');
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
     this.buffer = buffer;
@@ -140,6 +185,7 @@ export class KdxThresholdPortalRuntime {
     this.fbScene = this._createFbo();
     this.fbPrev = this._createFbo();
     this.fbNext = this._createFbo();
+    this._refreshResourceCount();
   }
 
   async _loadArtwork(url) {
@@ -151,8 +197,10 @@ export class KdxThresholdPortalRuntime {
       img.src = url;
     });
 
+    if (this.disposed || !this.gl) return;
     const gl = this.gl;
     const tex = gl.createTexture();
+    if (!tex) throw new Error('Unable to allocate KDX threshold portal artwork texture');
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -161,23 +209,111 @@ export class KdxThresholdPortalRuntime {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
     this.artworkTexture = tex;
+    this._refreshResourceCount();
   }
 
   _bindEvents() {
+    // Universal-host remounts can call load more than once during Astro
+    // transitions; keep global listeners strictly one-per-runtime.
+    this._unbindEvents();
+
     this._onResize = () => {
+      if (this.disposed || this.contextLost) return;
       this._resize();
       this.renderOnce();
     };
     this._onPointerMove = (event) => {
+      if (this.disposed || this.contextLost) return;
       const x = (event.clientX / window.innerWidth) * 2 - 1;
       const y = -((event.clientY / window.innerHeight) * 2 - 1);
       this.setPointer(x, y);
     };
+    this._onContextLost = (event) => {
+      event.preventDefault();
+      this.contextLost = true;
+      this.metrics.contextLost = true;
+      this.stop();
+      this.options.onContextLost?.();
+    };
+    this._onContextRestored = () => {
+      // WebGL resources are invalid after restoration. Recreate the runtime
+      // from the same semantic state rather than attempting to reuse handles.
+      if (this.disposed) return;
+      this.contextLost = false;
+      this.metrics.contextLost = false;
+      this.options.onContextRestored?.();
+      this._restoreContext().catch((error) => {
+        this.contextLost = true;
+        this.metrics.contextLost = true;
+        this.options.onError?.(error);
+      });
+    };
+
     addEventListener('resize', this._onResize, { passive: true });
     addEventListener('pointermove', this._onPointerMove, { passive: true });
+    this.canvas.addEventListener('webglcontextlost', this._onContextLost, false);
+    this.canvas.addEventListener('webglcontextrestored', this._onContextRestored, false);
+  }
+
+  _unbindEvents() {
+    if (this._onResize) removeEventListener('resize', this._onResize);
+    if (this._onPointerMove) removeEventListener('pointermove', this._onPointerMove);
+    if (this._onContextLost) this.canvas.removeEventListener('webglcontextlost', this._onContextLost, false);
+    if (this._onContextRestored) this.canvas.removeEventListener('webglcontextrestored', this._onContextRestored, false);
+    this._onResize = null;
+    this._onPointerMove = null;
+    this._onContextLost = null;
+    this._onContextRestored = null;
+  }
+
+  async _restoreContext() {
+    const shouldRestart = this.options.autoStartOnRestore === true || this.running;
+    this._releaseGpuHandles(false);
+    this._initGL();
+    await this._loadArtwork(this.options.artworkUrl || this.config.artworkUrl);
+    this._resize();
+    this.renderOnce();
+    if (shouldRestart) this.start();
+  }
+
+  _releaseGpuHandles(markDisposed = false) {
+    const gl = this.gl;
+    if (gl) {
+      if (this.artworkTexture) gl.deleteTexture(this.artworkTexture);
+      this._deleteFbo(this.fbScene);
+      this._deleteFbo(this.fbPrev);
+      this._deleteFbo(this.fbNext);
+      if (this.programs) {
+        Object.values(this.programs).forEach((entry) => {
+          if (entry?.program) gl.deleteProgram(entry.program);
+        });
+      }
+      if (this.buffer) gl.deleteBuffer(this.buffer);
+    }
+    this.artworkTexture = null;
+    this.fbScene = null;
+    this.fbPrev = null;
+    this.fbNext = null;
+    this.programs = null;
+    this.buffer = null;
+    this.metrics.resourceCount = 0;
+    if (markDisposed) this.gl = null;
+  }
+
+  _refreshResourceCount() {
+    let count = 0;
+    if (this.buffer) count += 1;
+    if (this.artworkTexture) count += 1;
+    if (this.programs) count += Object.values(this.programs).filter((entry) => entry?.program).length;
+    [this.fbScene, this.fbPrev, this.fbNext].forEach((target) => {
+      if (target?.fb) count += 1;
+      if (target?.tex) count += 1;
+    });
+    this.metrics.resourceCount = count;
   }
 
   _resize() {
+    if (!this.gl || this.disposed || this.contextLost) return;
     const dprBase = window.devicePixelRatio || 1;
     const scale = getThresholdPortalQualityValue(this.state.qualityLevel);
     const dpr = Math.min(2, dprBase * scale);
@@ -193,6 +329,7 @@ export class KdxThresholdPortalRuntime {
 
   _render() {
     const gl = this.gl;
+    if (!gl || this.disposed || this.contextLost || !this.programs || !this.fbScene || !this.fbPrev || !this.fbNext) return;
     const width = this.canvas.width;
     const height = this.canvas.height;
     const timeSeconds = this.state.elapsedMs / 1000;
@@ -279,18 +416,36 @@ export class KdxThresholdPortalRuntime {
     const vertex = this._compile(gl.VERTEX_SHADER, vertexSource);
     const fragment = this._compile(gl.FRAGMENT_SHADER, fragmentSource);
     const program = gl.createProgram();
+    if (!program) {
+      gl.deleteShader(vertex);
+      gl.deleteShader(fragment);
+      throw new Error('Unable to allocate KDX threshold portal shader program');
+    }
     gl.attachShader(program, vertex);
     gl.attachShader(program, fragment);
     gl.bindAttribLocation(program, 0, 'p');
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      throw new Error(gl.getProgramInfoLog(program) || 'Shader link failed');
+      const message = gl.getProgramInfoLog(program) || 'Shader link failed';
+      gl.deleteProgram(program);
+      gl.deleteShader(vertex);
+      gl.deleteShader(fragment);
+      throw new Error(message);
     }
+
+    // Linked programs retain compiled shader binaries; the standalone shader
+    // objects can be detached and deleted immediately instead of leaking until
+    // context teardown.
+    gl.detachShader(program, vertex);
+    gl.detachShader(program, fragment);
+    gl.deleteShader(vertex);
+    gl.deleteShader(fragment);
+
     const uniforms = {};
     const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
     for (let index = 0; index < count; index += 1) {
       const info = gl.getActiveUniform(program, index);
-      uniforms[info.name] = gl.getUniformLocation(program, info.name);
+      if (info) uniforms[info.name] = gl.getUniformLocation(program, info.name);
     }
     return { program, uniforms };
   }
@@ -298,10 +453,13 @@ export class KdxThresholdPortalRuntime {
   _compile(type, source) {
     const gl = this.gl;
     const shader = gl.createShader(type);
+    if (!shader) throw new Error('Unable to allocate KDX threshold portal shader');
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      throw new Error(gl.getShaderInfoLog(shader) || 'Shader compile failed');
+      const message = gl.getShaderInfoLog(shader) || 'Shader compile failed';
+      gl.deleteShader(shader);
+      throw new Error(message);
     }
     return shader;
   }
@@ -309,19 +467,31 @@ export class KdxThresholdPortalRuntime {
   _createFbo() {
     const gl = this.gl;
     const tex = gl.createTexture();
+    const fb = gl.createFramebuffer();
+    if (!tex || !fb) {
+      if (tex) gl.deleteTexture(tex);
+      if (fb) gl.deleteFramebuffer(fb);
+      throw new Error('Unable to allocate KDX threshold portal framebuffer');
+    }
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
     return { fb, tex };
   }
 
+  _deleteFbo(target) {
+    if (!target || !this.gl) return;
+    if (target.fb) this.gl.deleteFramebuffer(target.fb);
+    if (target.tex) this.gl.deleteTexture(target.tex);
+  }
+
   _sizeFbo(target, width, height) {
     const gl = this.gl;
+    if (!target) return;
     gl.bindTexture(gl.TEXTURE_2D, target.tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
   }
