@@ -5,8 +5,57 @@
 // and its own sigil) and GALLERY WALK (journey through curated rooms).
 // Bound by kodex-engine.js only when present.
 import { families, opName } from '../lib/kodexBook.js';
+import KodexEffectCanvas from './kodex/effects/KodexEffectCanvas.astro';
+
 const { gallery = true } = Astro.props;
+const pathname = Astro.url.pathname;
+
+// First production-line integrations from KODEX Effect Foundry.
+// These are route-bound and mounted into the scene artwork region client-side
+// so the scene files keep their existing composition and rendering contract.
+// Status remains TRANSLATED until the CI/browser QA gate passes.
+const foundryScene = pathname === '/kodex/folio/iii/'
+  ? {
+      scene: 'archive',
+      effectId: 'KDX-FX-005',
+      src: '/img/kodex/archive/arch-01.jpg',
+      alt: 'ARCHIVE memory-decay field derived from the selected specimen',
+      params: { density: 11, threshold: 0.42, glitchAmount: 0.31, smear: 0.34 },
+    }
+  : pathname === '/kodex/folio/vi/'
+    ? {
+        scene: 'return',
+        effectId: 'KDX-FX-006',
+        src: '/img/kodex/works/bw-11.jpg',
+        alt: 'RETURN minus-infinity dissolution field',
+        params: { phase: 0.27, distortion: 0.19, bloom: 0.56, glitchAmount: 0.23 },
+      }
+    : null;
 ---
+
+{foundryScene && (
+  <div
+    class:list={['kdx-foundry-scene-integration', `kdx-foundry-scene-integration--${foundryScene.scene}`]}
+    data-kdx-foundry-scene={foundryScene.scene}
+    data-kdx-foundry-target=".kx-os-stage__art"
+    data-kdx-foundry-effect={foundryScene.effectId}
+    hidden
+    aria-hidden="true"
+  >
+    <KodexEffectCanvas
+      effectId={foundryScene.effectId}
+      src={foundryScene.src}
+      alt={foundryScene.alt}
+      class="kdx-foundry-scene-canvas"
+      width={900}
+      height={900}
+      animate={true}
+      interactive={false}
+      params={foundryScene.params}
+    />
+  </div>
+)}
+
 <!-- ARTWORK VIEWER — open a work, read it through live effects + curation -->
 <div class="kx-viewer" data-viewer hidden aria-hidden="true">
   <div class="kx-viewer__bar">
@@ -54,3 +103,72 @@ const { gallery = true } = Astro.props;
     <button class="kx-gallery__exit" data-gallery-exit aria-label="leave the gallery">LEAVE ✕</button>
   </div>
 )}
+
+<script is:inline>
+  (() => {
+    const mountFoundryScene = () => {
+      const host = document.querySelector('[data-kdx-foundry-scene]');
+      if (!host || host.dataset.kdxFoundryMounted === '1') return;
+      const selector = host.dataset.kdxFoundryTarget || '.kx-os-stage__art';
+      const target = document.querySelector(selector);
+      if (!target) return;
+      target.appendChild(host);
+      host.hidden = false;
+      host.dataset.kdxFoundryMounted = '1';
+      target.dataset.kdxFoundryActive = host.dataset.kdxFoundryEffect || '';
+    };
+
+    mountFoundryScene();
+    document.addEventListener('astro:page-load', mountFoundryScene);
+  })();
+</script>
+
+<style is:global>
+  .kdx-foundry-scene-integration {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .kdx-foundry-scene-integration .kdx-effect-canvas {
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+    background: transparent;
+  }
+
+  .kdx-foundry-scene-integration .kdx-effect-canvas canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .kdx-foundry-scene-integration--archive {
+    opacity: .72;
+    mix-blend-mode: screen;
+  }
+
+  .kdx-foundry-scene-integration--return {
+    opacity: .62;
+    mix-blend-mode: screen;
+  }
+
+  .kx-os-stage__art[data-kdx-foundry-active='KDX-FX-005'] .kx-archive-hero-specimen {
+    opacity: .38;
+    filter: grayscale(1) contrast(1.12);
+  }
+
+  @media (max-width: 900px) {
+    .kdx-foundry-scene-integration--archive { opacity: .62; }
+    .kdx-foundry-scene-integration--return { opacity: .54; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-foundry-scene-integration {
+      mix-blend-mode: normal;
+      opacity: .48;
+    }
+  }
+</style>
