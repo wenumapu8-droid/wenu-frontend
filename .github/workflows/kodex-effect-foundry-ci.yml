@@ -1,0 +1,99 @@
+name: KODEX Effect Foundry CI
+
+on:
+  push:
+    branches:
+      - "feature/kodex-effect-foundry-sprint0"
+    paths:
+      - "src/lib/kodex/effectFoundry.js"
+      - "src/lib/kodex/effectFoundryRuntime.js"
+      - "src/components/kodex/effects/**"
+      - "src/components/KodexOverlays.astro"
+      - "src/pages/kodex/lab/effect-foundry/**"
+      - "src/styles/kodex-effect-foundry.css"
+      - "docs/kodex/KODEX_EFFECT_FOUNDRY.md"
+      - "agent-control/KODEX_EFFECT_FOUNDRY_HANDOFF.md"
+      - ".github/workflows/kodex-effect-foundry-ci.yml"
+  pull_request:
+    paths:
+      - "src/lib/kodex/effectFoundry.js"
+      - "src/lib/kodex/effectFoundryRuntime.js"
+      - "src/components/kodex/effects/**"
+      - "src/components/KodexOverlays.astro"
+      - "src/pages/kodex/lab/effect-foundry/**"
+      - "src/styles/kodex-effect-foundry.css"
+      - "docs/kodex/KODEX_EFFECT_FOUNDRY.md"
+      - "agent-control/KODEX_EFFECT_FOUNDRY_HANDOFF.md"
+      - ".github/workflows/kodex-effect-foundry-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-visual-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLOW_EMPTY_PRODUCTS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro project
+        run: npm run build
+
+      - name: Verify Foundry and canonical scene output
+        run: |
+          test -f dist/kodex/lab/effect-foundry/index.html
+          test -f dist/kodex/folio/iii/index.html
+          test -f dist/kodex/folio/vi/index.html
+          grep -q "KDX EFFECT FOUNDRY" dist/kodex/lab/effect-foundry/index.html
+          grep -q "KDX-FX-005" dist/kodex/folio/iii/index.html
+          grep -q "KDX-FX-006" dist/kodex/folio/vi/index.html
+          grep -q "data-kdx-foundry-scene" dist/kodex/folio/iii/index.html
+          grep -q "data-kdx-foundry-scene" dist/kodex/folio/vi/index.html
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-preview.log 2>&1 &
+          echo $! > /tmp/kodex-preview.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/effect-foundry/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-preview.log
+          exit 1
+
+      - name: Install Chromium for visual smoke
+        run: npx --yes playwright@1.54.2 install --with-deps chromium
+
+      - name: Capture mobile and scene smoke screenshots
+        run: |
+          mkdir -p qa-artifacts
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="390,844" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/lab/effect-foundry/ qa-artifacts/foundry-390x844.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="412,915" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/lab/effect-foundry/ qa-artifacts/foundry-412x915.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="1440,1000" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/folio/iii/ qa-artifacts/archive-desktop.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="390,844" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/folio/iii/ qa-artifacts/archive-mobile.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="1440,1000" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/folio/vi/ qa-artifacts/return-desktop.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="412,915" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/folio/vi/ qa-artifacts/return-mobile.png
+
+      - name: Upload QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-effect-foundry-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
