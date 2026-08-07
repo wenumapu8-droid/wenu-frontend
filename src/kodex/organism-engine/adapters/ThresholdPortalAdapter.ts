@@ -55,6 +55,11 @@ class ThresholdPortalOrganismRuntime implements OrganismRuntime {
       artworkUrl: preset.assets.source,
       seed: seedFromId(preset.id),
       qualityLevel: QUALITY_MAP[this.quality],
+      // The universal host already normalizes pointer input and owns WebGL
+      // loss/restoration. Disable the legacy global/context listeners here so
+      // FIELD has one lifecycle owner instead of two competing handlers.
+      bindGlobalPointer: false,
+      manageContextLifecycle: false,
     });
   }
 
