@@ -1288,3 +1288,18 @@ Mapeo candidato (no canon hasta verlo vivo): THRESHOLD -> organismo material (sh
 REGLA DURA: Visual Impact y Native suben JUNTOS. Prohibido inflar Visual con una lamina-skin dejando Native en ~50 (trampa del scaffold). El scaffold es puente temporal, se reemplaza por el motor nativo. Medir ambos porcentajes por escena.
 EJECUCION: mini + Codex (musculo). Frontier re-audit (COWORK) sobre cada render. Deploy: gate APROBAR DEPLOY intacto.
 PRIMER PASO: conectar UN motor a UNA escena end-to-end como prueba (sugerido ARCHIVE -> KDX-FX-005) y medir Visual/Native antes y despues.
+
+
+## DECISION DE ARQUITECTURA COWORK - encender los motores (no reinventar)
+
+CONTEXTO: el salto Visual 58 -> 90 NO se logra por codegen desde cero (agentes inventando arte generativo). Los motores nivel-referencia YA existen y estan APAGADOS: (1) Effect Foundry KDX-FX-001..006 (Draft PR #17), (2) kodex-modules (open-visual-lab, spatial-engine, observe-prototype...), (3) shaders KodeLife portables a WebGL.
+
+DECISION: en vez de reinventar, CONECTAR esos motores al recorrido escena por escena via el componente KodexEffectCanvas (ya existe en el Foundry).
+
+Mapeo candidato (no canon hasta verlo vivo): THRESHOLD -> organismo material (shell asimetrico + FX); ARCHIVE -> KDX-FX-005 Memory Decay; RETURN -> KDX-FX-006 Dissolution; MACHINE -> Liquid Mercury; DESCENT -> Halftone; PROLOGUE/OBSERVE -> ASCII Signal.
+
+REGLA DURA: Visual Impact y Native suben JUNTOS. Prohibido inflar Visual con una lamina-skin dejando Native en ~50 (trampa del scaffold). El scaffold es puente temporal, se reemplaza por el motor nativo. Medir ambos porcentajes por escena.
+
+EJECUCION: mini + Codex (musculo). Frontier re-audit (COWORK) sobre cada render. Deploy: gate APROBAR DEPLOY intacto.
+
+PRIMER PASO: conectar UN motor a UNA escena end-to-end como prueba (sugerido ARCHIVE -> KDX-FX-005) y medir Visual/Native antes y despues.
