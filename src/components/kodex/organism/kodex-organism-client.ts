@@ -4,6 +4,11 @@ import type {
   OrganismMotion,
   OrganismRuntime,
 } from "../../../kodex/organism-engine/types";
+import {
+  KODEX_ORGANISM_ACTION_EVENT,
+  mountKodexJourneyMemoryBridge,
+  type KodexOrganismActionEventDetail,
+} from "../../../lib/kodex/runtime/journey-memory-bridge";
 
 type AudioBus = {
   activo?: boolean;
@@ -20,6 +25,7 @@ type OrganismElement = HTMLElement & {
 const controllers = new Set<OrganismController>();
 let activeController: OrganismController | null = null;
 let globalEventsMounted = false;
+let organismActionSequence = 0;
 
 class OrganismController {
   readonly root: OrganismElement;
@@ -103,15 +109,22 @@ class OrganismController {
     if (!this.runtime) return;
     this.runtime.setLifecycle("ENGAGED");
     this.runtime.setInput({ primaryAction: 1 });
+
+    const createdAt = Date.now();
+    const detail: KodexOrganismActionEventDetail = {
+      id: `${this.runtime.preset.id}:${this.runtime.preset.interaction.primaryAction}:${createdAt}:${++organismActionSequence}`,
+      createdAt,
+      presetId: this.runtime.preset.id,
+      family: this.runtime.preset.family,
+      action: this.runtime.preset.interaction.primaryAction,
+      memoryWrites: this.runtime.preset.memory.writes,
+    };
+
     this.root.dispatchEvent(
-      new CustomEvent("kodex:organism-action", {
+      new CustomEvent<KodexOrganismActionEventDetail>(KODEX_ORGANISM_ACTION_EVENT, {
         bubbles: true,
-        detail: {
-          presetId: this.runtime.preset.id,
-          family: this.runtime.preset.family,
-          action: this.runtime.preset.interaction.primaryAction,
-          memoryWrites: this.runtime.preset.memory.writes,
-        },
+        composed: true,
+        detail,
       }),
     );
 
@@ -270,6 +283,7 @@ function readGlobalInput(): Partial<OrganismInput> {
 function mountGlobalEvents(): void {
   if (globalEventsMounted) return;
   globalEventsMounted = true;
+  mountKodexJourneyMemoryBridge();
 
   addEventListener(
     "pointermove",
