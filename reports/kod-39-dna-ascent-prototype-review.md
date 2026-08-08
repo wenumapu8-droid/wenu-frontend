@@ -65,11 +65,11 @@ Reviewed via PR patch for:
 - event/observer cleanup on Astro navigation;
 - Canvas fallback retention.
 
-## CI evidence
+## Final CI evidence for the last code-changing commit
 
-GitHub Actions for commit `8c120883879edb38a338b0a6d10b53b7ea340e1c` completed successfully:
+GitHub Actions for commit `e690a74cd288efb4c9fe938c13388e4c61d187a4` completed successfully:
 
-- `KODEX DNA Ascent CI` run `31229500323`: `SUCCESS`.
+- `KODEX DNA Ascent CI` run `31229799191`: `SUCCESS`.
   - checkout: success
   - Node setup: success
   - `npm ci`: success
@@ -79,19 +79,19 @@ GitHub Actions for commit `8c120883879edb38a338b0a6d10b53b7ea340e1c` completed s
   - static server boot: success
   - browser/viewport QA: success
   - evidence artifact upload: success
-- `KODEX Organism Engine CI` run `31229500303`: `SUCCESS`.
-- `KODEX Vertical Slice` run `31229500298`: `SUCCESS`.
+- `KODEX Organism Engine CI` run `31229799194`: `SUCCESS`.
+- `KODEX Vertical Slice` run `31229799176`: `SUCCESS`.
 
-QA artifact:
+Final QA artifact:
 
 - name: `kodex-dna-ascent-qa`
-- artifact id: `9013282168`
-- size: `1,079,544 bytes`
-- digest: `sha256:dd2b00063d8fc8c1cf862aac99cc4af7d577971907215b56d02d0cf3f9be6c3a`
+- artifact id: `9013389529`
+- size: `1,122,843 bytes`
+- digest: `sha256:933579551103685c22932ef7a62163371c7c49595ec808ad6520ca605bbdffb7`
 
 ## Browser QA measurements
 
-The Playwright report contains zero failures, zero collected console errors and zero page errors.
+The final Playwright report contains zero failures, zero collected console errors and zero page errors.
 
 | Viewport | Canvas | Root | Horizontal overflow | Keyboard state after Enter |
 |---|---:|---:|---|---|
@@ -111,7 +111,7 @@ The internal documentation lab itself scrolls vertically on small screens becaus
 
 ## Screenshot review
 
-Four workflow screenshots were downloaded and inspected:
+Workflow screenshots were downloaded and inspected at:
 
 - 1440×1000 full-motion / engaged;
 - 390×844 full-motion / engaged;
