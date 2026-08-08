@@ -8,6 +8,7 @@ on:
       - "src/components/kodex/organism/prototypes/**"
       - "src/pages/kodex/lab/dna-ascent.astro"
       - "public/img/kodex/organisms/dna-ascent-fallback.svg"
+      - "scripts/ci/dna-ascent-visual-qa.mjs"
       - ".github/workflows/kodex-dna-ascent-ci.yml"
       - "package.json"
       - "package-lock.json"
@@ -16,6 +17,7 @@ on:
       - "src/components/kodex/organism/prototypes/**"
       - "src/pages/kodex/lab/dna-ascent.astro"
       - "public/img/kodex/organisms/dna-ascent-fallback.svg"
+      - "scripts/ci/dna-ascent-visual-qa.mjs"
       - ".github/workflows/kodex-dna-ascent-ci.yml"
       - "package.json"
       - "package-lock.json"
@@ -25,9 +27,9 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build-and-visual-qa:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       ALLOW_EMPTY_PRODUCTS: "true"
 
@@ -52,3 +54,35 @@ jobs:
           test -f dist/kodex/lab/dna-ascent/index.html
           grep -q "DNA ASCENT" dist/kodex/lab/dna-ascent/index.html
           grep -q "STATUS: PROTOTYPE" dist/kodex/lab/dna-ascent/index.html
+
+      - name: Install ephemeral Playwright QA dependency
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start static build server
+        run: |
+          python3 -m http.server 4173 --directory dist > /tmp/kdx-dna-http.log 2>&1 &
+          echo $! > /tmp/kdx-dna-http.pid
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/kodex/lab/dna-ascent/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kdx-dna-http.log
+          exit 1
+
+      - name: Run browser and viewport QA
+        env:
+          KDX_DNA_BASE_URL: "http://127.0.0.1:4173"
+        run: node scripts/ci/dna-ascent-visual-qa.mjs
+
+      - name: Upload DNA Ascent QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-dna-ascent-qa
+          path: artifacts/dna-ascent-qa/
+          if-no-files-found: warn
+          retention-days: 14
