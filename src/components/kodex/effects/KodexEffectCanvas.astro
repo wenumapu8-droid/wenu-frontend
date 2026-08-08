@@ -1,0 +1,160 @@
+---
+import { effectById, RUNTIME_PARAMETER_MAP } from '../../../lib/kodex/effectFoundry.js';
+
+interface Props {
+  effectId?: string;
+  src?: string | null;
+  alt?: string;
+  class?: string;
+  width?: number;
+  height?: number;
+  animate?: boolean;
+  interactive?: boolean;
+  params?: Record<string, number>;
+  runtimeMap?: Partial<Record<keyof typeof RUNTIME_PARAMETER_MAP, string>>;
+}
+
+const {
+  effectId = 'KDX-FX-001',
+  src = null,
+  alt = '',
+  class: className = '',
+  width = 900,
+  height = 900,
+  animate = false,
+  interactive = false,
+  params = {},
+} = Astro.props;
+
+const effect = effectById(effectId) ?? effectById('KDX-FX-001');
+const resolvedParams = Object.fromEntries(
+  effect.parameters.map((param) => [param.key, params[param.key] ?? param.value]),
+);
+---
+
+<figure
+  class:list={['kdx-effect-canvas', className]}
+  data-kdx-effect-canvas
+  data-effect-id={effect.id}
+  data-source={src || ''}
+  data-animate={animate ? '1' : '0'}
+  data-interactive={interactive ? '1' : '0'}
+  data-width={width}
+  data-height={height}
+  data-params={JSON.stringify(resolvedParams)}
+  aria-label={alt || `${effect.name} generative effect`}
+>
+  <canvas width={width} height={height} aria-hidden="true"></canvas>
+  {alt && <figcaption class="sr-only">{alt}</figcaption>}
+</figure>
+
+<script>
+  import {
+    defaultValues,
+    drawSeedOrganism,
+    loadImageIntoCanvas,
+    renderKodexEffect,
+  } from '../../../lib/kodex/effectFoundryRuntime.js';
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function initEffectCanvas(root) {
+    if (root.dataset.ready === '1') return;
+    root.dataset.ready = '1';
+
+    const canvas = root.querySelector('canvas');
+    const sourceCanvas = document.createElement('canvas');
+    const effectId = root.dataset.effectId || 'KDX-FX-001';
+    let values;
+    try { values = { ...defaultValues(effectId), ...JSON.parse(root.dataset.params || '{}') }; }
+    catch { values = defaultValues(effectId); }
+
+    const fallbackWidth = Number(root.dataset.width || canvas.width || 900);
+    const fallbackHeight = Number(root.dataset.height || canvas.height || 900);
+    const sourceUrl = root.dataset.source || '';
+    const wantsAnimation = root.dataset.animate === '1';
+    const interactive = root.dataset.interactive === '1';
+    let time = 0;
+    let raf = 0;
+    let last = 0;
+
+    const render = () => renderKodexEffect({ effectId, canvas, sourceCanvas, values, time });
+
+    const tick = (now) => {
+      if (!wantsAnimation || reduceMotion.matches) return;
+      if (now - last >= 66) {
+        time = (time + 0.012) % 1;
+        render();
+        last = now;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+
+    const start = async () => {
+      if (sourceUrl) {
+        try { await loadImageIntoCanvas(sourceUrl, sourceCanvas); }
+        catch { drawSeedOrganism(sourceCanvas, fallbackWidth, fallbackHeight); }
+      } else {
+        drawSeedOrganism(sourceCanvas, fallbackWidth, fallbackHeight);
+      }
+      canvas.width = sourceCanvas.width;
+      canvas.height = sourceCanvas.height;
+      render();
+      if (wantsAnimation && !reduceMotion.matches) raf = requestAnimationFrame(tick);
+    };
+
+    if (interactive) {
+      root.addEventListener('pointermove', (event) => {
+        const rect = root.getBoundingClientRect();
+        const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+        const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
+        if ('distortion' in values) values.distortion = x;
+        if ('density' in values) values.density = Math.max(5, Math.round(5 + y * 23));
+        if ('phase' in values) values.phase = x;
+        render();
+      }, { passive: true });
+    }
+
+    const onMotionChange = () => {
+      cancelAnimationFrame(raf);
+      if (wantsAnimation && !reduceMotion.matches) raf = requestAnimationFrame(tick);
+      else render();
+    };
+    reduceMotion.addEventListener?.('change', onMotionChange);
+    start();
+  }
+
+  document.querySelectorAll('[data-kdx-effect-canvas]').forEach(initEffectCanvas);
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll('[data-kdx-effect-canvas]').forEach(initEffectCanvas);
+  });
+</script>
+
+<style>
+  .kdx-effect-canvas {
+    position: relative;
+    display: grid;
+    place-items: center;
+    margin: 0;
+    overflow: hidden;
+    background: #020304;
+    contain: layout paint style;
+  }
+  .kdx-effect-canvas canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>

@@ -5,8 +5,105 @@
 // and its own sigil) and GALLERY WALK (journey through curated rooms).
 // Bound by kodex-engine.js only when present.
 import { families, opName } from '../lib/kodexBook.js';
+import KodexEffectCanvas from './kodex/effects/KodexEffectCanvas.astro';
+
 const { gallery = true } = Astro.props;
+const pathname = Astro.url.pathname;
+
+// KODEX Effect Foundry production assignment.
+// One reusable renderer per canonical folio: same factory, different recipe.
+// THRESHOLD keeps its dedicated portal engine; the six folios consume the six
+// Sprint 0 effects. Status is promoted only after scene-specific browser QA.
+const FOUNDRY_SCENES = {
+  '/kodex/folio/i/': {
+    scene: 'prologue',
+    effectId: 'KDX-FX-002',
+    src: '/img/kodex/works/bw-02.jpg',
+    alt: 'PROLOGUE computational cross-stitch observation field',
+    animate: true,
+    opacity: 0.46,
+    blend: 'screen',
+    params: { density: 12, threshold: 0.24, bloom: 0.58, phase: 0.16 },
+  },
+  '/kodex/folio/ii/': {
+    scene: 'descent',
+    effectId: 'KDX-FX-003',
+    src: '/img/kodex/works/bw-01.jpg',
+    alt: 'DESCENT halftone mutation field',
+    animate: true,
+    opacity: 0.48,
+    blend: 'screen',
+    params: { density: 9, threshold: 0.14, distortion: 0.22, phase: 0.12 },
+  },
+  '/kodex/folio/iii/': {
+    scene: 'archive',
+    effectId: 'KDX-FX-005',
+    src: '/img/kodex/archive/arch-01.jpg',
+    alt: 'ARCHIVE memory-decay field derived from the selected specimen',
+    animate: true,
+    opacity: 0.72,
+    blend: 'screen',
+    params: { density: 11, threshold: 0.42, glitchAmount: 0.31, smear: 0.34 },
+  },
+  '/kodex/folio/iv/': {
+    scene: 'machine',
+    effectId: 'KDX-FX-004',
+    src: '/img/kodex/works/bw-07.jpg',
+    alt: 'MACHINE liquid mercury material field',
+    animate: false,
+    opacity: 0.52,
+    blend: 'screen',
+    params: { threshold: 0.41, bloom: 0.76, distortion: 0.16, smear: 0.18 },
+  },
+  '/kodex/folio/v/': {
+    scene: 'cosmology',
+    effectId: 'KDX-FX-001',
+    src: '/img/kodex/disco/disco-01.jpg',
+    alt: 'COSMOLOGY ASCII signal bloom field',
+    animate: false,
+    opacity: 0.42,
+    blend: 'screen',
+    params: { density: 14, threshold: 0.29, bloom: 0.9, glitchAmount: 0.14 },
+  },
+  '/kodex/folio/vi/': {
+    scene: 'return',
+    effectId: 'KDX-FX-006',
+    src: '/img/kodex/works/bw-11.jpg',
+    alt: 'RETURN minus-infinity dissolution field',
+    animate: true,
+    opacity: 0.62,
+    blend: 'screen',
+    params: { phase: 0.27, distortion: 0.19, bloom: 0.56, glitchAmount: 0.23 },
+  },
+};
+
+const foundryScene = FOUNDRY_SCENES[pathname] ?? null;
 ---
+
+{foundryScene && (
+  <div
+    class:list={['kdx-foundry-scene-integration', `kdx-foundry-scene-integration--${foundryScene.scene}`]}
+    data-kdx-foundry-scene={foundryScene.scene}
+    data-kdx-foundry-target=".kx-os-stage__art"
+    data-kdx-foundry-effect={foundryScene.effectId}
+    style={`--kdx-foundry-opacity:${foundryScene.opacity};--kdx-foundry-blend:${foundryScene.blend};`}
+    hidden
+    aria-hidden="true"
+  >
+    <KodexEffectCanvas
+      effectId={foundryScene.effectId}
+      src={foundryScene.src}
+      alt={foundryScene.alt}
+      class="kdx-foundry-scene-canvas"
+      width={900}
+      height={900}
+      animate={foundryScene.animate}
+      interactive={false}
+      params={foundryScene.params}
+    />
+  </div>
+)}
+
 <!-- ARTWORK VIEWER — open a work, read it through live effects + curation -->
 <div class="kx-viewer" data-viewer hidden aria-hidden="true">
   <div class="kx-viewer__bar">
@@ -54,3 +151,65 @@ const { gallery = true } = Astro.props;
     <button class="kx-gallery__exit" data-gallery-exit aria-label="leave the gallery">LEAVE ✕</button>
   </div>
 )}
+
+<script is:inline>
+  (() => {
+    const mountFoundryScene = () => {
+      const host = document.querySelector('[data-kdx-foundry-scene]');
+      if (!host || host.dataset.kdxFoundryMounted === '1') return;
+      const selector = host.dataset.kdxFoundryTarget || '.kx-os-stage__art';
+      const target = document.querySelector(selector);
+      if (!target) return;
+      target.appendChild(host);
+      host.hidden = false;
+      host.dataset.kdxFoundryMounted = '1';
+      target.dataset.kdxFoundryActive = host.dataset.kdxFoundryEffect || '';
+    };
+
+    mountFoundryScene();
+    document.addEventListener('astro:page-load', mountFoundryScene);
+  })();
+</script>
+
+<style is:global>
+  .kdx-foundry-scene-integration {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    pointer-events: none;
+    overflow: hidden;
+    isolation: isolate;
+    opacity: var(--kdx-foundry-opacity, .56);
+    mix-blend-mode: var(--kdx-foundry-blend, screen);
+  }
+
+  .kdx-foundry-scene-integration .kdx-effect-canvas {
+    width: 100%;
+    height: 100%;
+    opacity: 1;
+    background: transparent;
+  }
+
+  .kdx-foundry-scene-integration .kdx-effect-canvas canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  .kx-os-stage__art[data-kdx-foundry-active='KDX-FX-005'] .kx-archive-hero-specimen {
+    opacity: .38;
+    filter: grayscale(1) contrast(1.12);
+  }
+
+  @media (max-width: 900px) {
+    .kdx-foundry-scene-integration {
+      opacity: calc(var(--kdx-foundry-opacity, .56) * .86);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-foundry-scene-integration {
+      mix-blend-mode: normal;
+      opacity: .42;
+    }
+  }
+</style>
