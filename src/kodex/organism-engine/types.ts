@@ -1,3 +1,5 @@
+// Integration boundary: journey memory/state lives under src/lib/kodex/runtime.
+// The Organism Engine consumes semantic input/lifecycle state but does not own JourneyState.
 export type OrganismFamily =
   | "FIELD"
   | "VORTEX"
