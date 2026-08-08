@@ -25,10 +25,12 @@ class OrganismController {
   readonly root: OrganismElement;
 
   private runtime: OrganismRuntime | null = null;
+  private canvas: HTMLCanvasElement | null = null;
   private observer: IntersectionObserver | null = null;
   private visible = false;
   private destroyed = false;
   private inputRaf = 0;
+  private localEventsBound = false;
   private motion: OrganismMotion = matchMedia("(prefers-reduced-motion: reduce)").matches
     ? "REDUCED"
     : "FULL";
@@ -47,6 +49,7 @@ class OrganismController {
       throw new Error("KODEX organism requires a canvas and data-preset.");
     }
 
+    this.canvas = canvas;
     const hasWebGL2 = Boolean(document.createElement("canvas").getContext("webgl2"));
 
     if (!hasWebGL2) {
@@ -141,8 +144,14 @@ class OrganismController {
     this.deactivate();
     this.observer?.disconnect();
     this.observer = null;
+    this.unbindLocalEvents();
+    if (this.canvas) {
+      this.canvas.removeEventListener("webglcontextlost", this.onContextLost, false);
+      this.canvas.removeEventListener("webglcontextrestored", this.onContextRestored, false);
+    }
     await this.runtime?.destroy();
     this.runtime = null;
+    this.canvas = null;
     controllers.delete(this);
     delete this.root.__kdxOrganismController;
   }
@@ -162,19 +171,35 @@ class OrganismController {
   }
 
   private bindLocalEvents(): void {
-    this.root.addEventListener("pointerenter", () => {
-      this.runtime?.setLifecycle("AWARE");
-      this.resumeIfVisible();
-    });
-
-    this.root.addEventListener("click", () => this.commitPrimaryAction());
-
-    this.root.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      this.commitPrimaryAction();
-    });
+    if (this.localEventsBound) return;
+    this.localEventsBound = true;
+    this.root.addEventListener("pointerenter", this.onPointerEnter);
+    this.root.addEventListener("click", this.onClick);
+    this.root.addEventListener("keydown", this.onKeyDown);
   }
+
+  private unbindLocalEvents(): void {
+    if (!this.localEventsBound) return;
+    this.localEventsBound = false;
+    this.root.removeEventListener("pointerenter", this.onPointerEnter);
+    this.root.removeEventListener("click", this.onClick);
+    this.root.removeEventListener("keydown", this.onKeyDown);
+  }
+
+  private onPointerEnter = (): void => {
+    this.runtime?.setLifecycle("AWARE");
+    this.resumeIfVisible();
+  };
+
+  private onClick = (): void => {
+    this.commitPrimaryAction();
+  };
+
+  private onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    this.commitPrimaryAction();
+  };
 
   private feedInput(): void {
     cancelAnimationFrame(this.inputRaf);
