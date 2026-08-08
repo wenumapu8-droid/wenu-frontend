@@ -1,0 +1,54 @@
+name: KODEX DNA Ascent CI
+
+on:
+  push:
+    branches:
+      - "feature/kodex-dna-ascent-prototype"
+    paths:
+      - "src/components/kodex/organism/prototypes/**"
+      - "src/pages/kodex/lab/dna-ascent.astro"
+      - "public/img/kodex/organisms/dna-ascent-fallback.svg"
+      - ".github/workflows/kodex-dna-ascent-ci.yml"
+      - "package.json"
+      - "package-lock.json"
+  pull_request:
+    paths:
+      - "src/components/kodex/organism/prototypes/**"
+      - "src/pages/kodex/lab/dna-ascent.astro"
+      - "public/img/kodex/organisms/dna-ascent-fallback.svg"
+      - ".github/workflows/kodex-dna-ascent-ci.yml"
+      - "package.json"
+      - "package-lock.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      ALLOW_EMPTY_PRODUCTS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro project
+        run: npm run build
+
+      - name: Verify DNA Ascent lab output
+        run: |
+          test -f dist/kodex/lab/dna-ascent/index.html
+          grep -q "DNA ASCENT" dist/kodex/lab/dna-ascent/index.html
+          grep -q "STATUS: PROTOTYPE" dist/kodex/lab/dna-ascent/index.html
