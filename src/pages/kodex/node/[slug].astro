@@ -13,7 +13,13 @@
  * Placa técnica, no escena. La escena vendrá cuando el nodo tenga runtime.
  */
 import KodexShell from '../../../layouts/KodexShell.astro';
+import UnresolvedSignal from '../../../components/kodex/UnresolvedSignal.astro';
 import { getKodexNodes, type KodexNode } from '../../../lib/kodex/nodes';
+import {
+  AUTHOR_READING_NOTE,
+  hasUnresolvedClaims,
+  isAuthorReading,
+} from '../../../lib/kodex/cultural-signal';
 import '../../../styles/kodex.css';
 
 export async function getStaticPaths() {
@@ -27,9 +33,32 @@ const { node } = Astro.props;
 const epistemic = (node as any).epistemic ?? null;
 const cultural = epistemic?.culturalStatus ?? 'STANDARD';
 const needsAttribution = cultural !== 'STANDARD';
+
+/**
+ * Un nodo de raíz cultural sin fuente citada no puede afirmar qué significa lo que nombra.
+ * Esa afirmación —FUNCTION, la proposición y el cuerpo editorial— se muestra como señal
+ * sin resolver. Ver `lib/kodex/cultural-signal.js` para por qué se marca y no se esconde.
+ *
+ * El nodo sigue publicando: título, id, símbolos, relaciones, capa epistémica y fuentes
+ * quedan enteros. Se retiene la afirmación, no la presencia.
+ *
+ * El texto retenido no se pasa a la plantilla en ninguna forma: no hay atributo, ni
+ * `title`, ni nodo oculto donde pueda sobrevivir debajo del tratamiento.
+ */
+const claimsUnresolved = hasUnresolvedClaims(node);
 ---
 
-<KodexShell title={`KODEX −∞ · ${node.title}`} description={node.summary}>
+{/*
+  La descripción también es DOM. Si la afirmación está retenida, el `summary` tampoco
+  puede salir por el <meta>: ahí sobreviviría entero, invisible en la página pero legible
+  para buscadores, previsualizaciones y lectores de pantalla.
+*/}
+<KodexShell
+  title={`KODEX −∞ · ${node.title}`}
+  description={claimsUnresolved
+    ? 'Señal no resuelta: contenido retenido hasta que haya fuente citada.'
+    : node.summary}
+>
   <main class={`kx-node kx-node--${node.accent}`} data-status={node.status}>
 
     <header class="kx-node__head">
@@ -46,11 +75,17 @@ const needsAttribution = cultural !== 'STANDARD';
 
     <section class="kx-node__block">
       <h2>FUNCTION</h2>
-      <p class="kx-node__summary">{node.summary}</p>
-      {node.proposition && <p class="kx-node__prop">{node.proposition}</p>}
+      {claimsUnresolved ? (
+        <UnresolvedSignal reason="Esta afirmación sobre lo que el nodo significa todavía no tiene fuente citada." />
+      ) : (
+        <>
+          <p class="kx-node__summary">{node.summary}</p>
+          {node.proposition && <p class="kx-node__prop">{node.proposition}</p>}
+        </>
+      )}
     </section>
 
-    {node.editorial?.body && (
+    {node.editorial?.body && !claimsUnresolved && (
       <section class="kx-node__block" lang={node.editorial.language}>
         <h2>EDITORIAL</h2>
         <p class="kx-node__editorial">{node.editorial.body}</p>
@@ -71,13 +106,24 @@ const needsAttribution = cultural !== 'STANDARD';
         <h2>RELATIONS <span class="kx-node__count">{node.relationships.length}</span></h2>
         <ul class="kx-node__rels">
           {node.relationships.map((r) => (
-            <li>
+            <li class:list={['kx-node__rel', isAuthorReading(r) && 'kx-node__rel--reading']}>
               <span class="kx-node__rel-type">{r.type}</span>
               <span class="kx-node__rel-target">{r.label}</span>
               {(r as any).validity && (
                 <span class="kx-node__rel-val" data-v={(r as any).validity}>
                   {(r as any).validity}
                 </span>
+              )}
+              {/*
+                La marca va en la página, no solo en el JSON. Una arista que cruza del
+                registro documentado al de ficción se muestra como lo que es: la lectura
+                del autor. El descriptor no se toca y `validity` tampoco.
+              */}
+              {isAuthorReading(r) && (
+                <>
+                  <span class="kx-node__rel-break" aria-hidden="true"></span>
+                  <p class="kx-node__rel-reading">{AUTHOR_READING_NOTE}</p>
+                </>
               )}
             </li>
           ))}
@@ -189,6 +235,24 @@ const needsAttribution = cultural !== 'STANDARD';
   .kx-node__rel-val[data-v="CANONICAL"] { color: var(--ember, #c9a84c); }
   .kx-node__rel-val[data-v="HYPOTHESIS"] { opacity: 0.6; }
   .kx-node__rel-val[data-v="NEEDS_CULTURAL_REVIEW"] { color: #c96a4c; }
+
+  /*
+    La marca de lectura del autor baja a su propia línea. `flex: 0 0 100%` no alcanza por
+    sí solo: su `max-width` recorta el tamaño hipotético del ítem, vuelve a caber junto a
+    la arista y flexbox no rompe la línea. El separador no lleva max-width, así que sí la
+    rompe, y la marca conserva su medida de lectura.
+  */
+  .kx-node__rel-break { flex: 0 0 100%; height: 0; }
+  .kx-node__rel-reading {
+    flex: 0 0 100%;
+    margin: 0.35rem 0 0.1rem;
+    padding-left: 0.9rem;
+    border-left: 2px solid #c96a4c;
+    color: var(--silver, #b8b4aa);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    max-width: 62ch;
+  }
 
   .kx-node__notice {
     border-left: 2px solid #c96a4c; padding-left: 0.9rem;

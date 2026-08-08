@@ -1,0 +1,153 @@
+---
+/**
+ * KODEX-∞ · SEÑAL NO RESUELTA
+ *
+ * Ocupa el lugar de una afirmación que todavía no se puede sostener. No la esconde:
+ * deja ver que ahí hay algo y que no está resuelto.
+ *
+ * ES LA CONDUCTA QUE EL CANON YA PRESCRIBE
+ * ----------------------------------------
+ * `canon/KODEX_EPISTEMIC_STANDARD.md` (kodex-minus-infinity), sección «Failure behavior»:
+ *
+ *     status: UNKNOWN
+ *     reason: insufficient_evidence
+ *     visual_behavior: preserve_empty_or_unresolved_state
+ *     next_action: identify_primary_source_or_human_review
+ *
+ *     «Absence is a valid informational state. It must not be filled for aesthetic balance.»
+ *
+ * Y la tabla de clases de claim, para UNKNOWN: «visible absence, never silently filled».
+ * Esto no bloquea ni borra: preserva el estado sin resolver y lo hace visible. El canon
+ * reserva BLOCKED para otra cosa —privacidad no pública, derechos sin despejar,
+ * `culturalStatus: AUTHORIZATION_REQUIRED`— y no para una cita que falta.
+ *
+ * EL TRATAMIENTO NO ES CONTENIDO
+ * ------------------------------
+ * Misma regla que `crt/KodexCrtLayer.astro`: la capa de ruido va `aria-hidden`, no entra
+ * en el orden de lectura y no se puede seleccionar. Lo que un lector de pantalla recibe
+ * es la frase en claro, no un glitch transcrito — un texto corrupto como nombre accesible
+ * sería a la vez inútil e irrespetuoso.
+ *
+ * El ruido es puro CSS: ni un glifo de relleno en el DOM. Así no hay manera de que algo
+ * sin verificar sobreviva debajo del tratamiento, porque debajo no hay nada.
+ *
+ * SE RESUELVE CON DATO, NO CON CÓDIGO
+ * -----------------------------------
+ * Quien la enciende es `hasUnresolvedClaims()` en `lib/kodex/cultural-signal.js`. Cuando
+ * el nodo reciba su fuente citada, la señal se apaga sola. Nadie toca esta plantilla.
+ */
+interface Props {
+  /** Qué falta, en la lengua de la página. Frase corta y llana. */
+  reason?: string;
+  class?: string;
+}
+
+const {
+  reason = 'Esta afirmación todavía no tiene fuente citada.',
+  class: className = '',
+} = Astro.props;
+---
+
+<div class={`kdx-unresolved ${className}`.trim()}>
+  <span class="kdx-unresolved__noise" aria-hidden="true"></span>
+  <p class="kdx-unresolved__text">
+    <span class="kdx-unresolved__tag">SEÑAL NO RESUELTA</span>
+    <span class="kdx-unresolved__body">
+      Contenido retenido. {reason} La ausencia se muestra; no se rellena.
+      Próximo paso: identificar la fuente primaria o revisión humana.
+    </span>
+  </p>
+</div>
+
+<style>
+  .kdx-unresolved {
+    --kdx-unresolved-ink: #c96a4c;
+    position: relative;
+    border-left: 2px solid var(--kdx-unresolved-ink);
+    padding: 0.7rem 0 0.7rem 0.9rem;
+    max-width: 62ch;
+  }
+
+  /*
+    La barra corrupta. Tres capas en un solo elemento:
+      · bloques de ancho irregular  → el dato ilegible
+      · separación cromática        → el error de registro del archivo
+      · barrido                     → el aparato intentando sintonizar
+    Nada de esto es texto, así que nada de esto se lee ni se copia.
+  */
+  .kdx-unresolved__noise {
+    display: block;
+    height: 0.85rem;
+    margin-bottom: 0.55rem;
+    user-select: none;
+    pointer-events: none;
+    opacity: 0.75;
+    background-image:
+      repeating-linear-gradient(90deg,
+        rgba(201,106,76,0.85) 0 7px, transparent 7px 11px,
+        rgba(201,106,76,0.55) 11px 15px, transparent 15px 18px,
+        rgba(201,168,76,0.75) 18px 27px, transparent 27px 33px,
+        rgba(201,106,76,0.65) 33px 39px, transparent 39px 47px,
+        rgba(184,180,170,0.5) 47px 52px, transparent 52px 61px),
+      repeating-linear-gradient(90deg,
+        rgba(255,39,51,0.45) 0 3px, transparent 3px 9px,
+        rgba(255,39,51,0.3) 9px 13px, transparent 13px 29px);
+    background-position: 0 0, 2px 0;
+    animation: kdx-unresolved-shift 3.1s steps(4) infinite;
+  }
+
+  /* El barrido. Va aparte para poder detenerlo sin tocar el ruido de fondo. */
+  .kdx-unresolved__noise::after {
+    content: '';
+    position: absolute;
+    left: 0.9rem;
+    right: 0;
+    top: 0.7rem;
+    height: 0.85rem;
+    background: linear-gradient(90deg, transparent, rgba(240,237,232,0.28), transparent);
+    animation: kdx-unresolved-scan 4.7s ease-in-out infinite;
+  }
+
+  @keyframes kdx-unresolved-shift {
+    0%   { background-position: 0 0, 2px 0; }
+    25%  { background-position: -9px 0, 5px 0; }
+    50%  { background-position: 4px 0, -3px 0; }
+    75%  { background-position: -5px 0, 7px 0; }
+    100% { background-position: 0 0, 2px 0; }
+  }
+  @keyframes kdx-unresolved-scan {
+    0%, 100% { transform: translateX(-100%); opacity: 0; }
+    45%      { opacity: 1; }
+    85%      { transform: translateX(100%); opacity: 0; }
+  }
+
+  .kdx-unresolved__text {
+    margin: 0;
+    color: var(--silver, #b8b4aa);
+    font-size: 0.74rem;
+    line-height: 1.55;
+  }
+  .kdx-unresolved__tag {
+    display: block;
+    color: var(--kdx-unresolved-ink);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    margin-bottom: 0.25rem;
+  }
+  .kdx-unresolved__body { display: block; }
+
+  /*
+    Movimiento reducido: el aparato deja de intentar sintonizar, pero la señal sigue sin
+    resolverse. Se congela el ruido y se retira el barrido; no se rellena nada.
+  */
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-unresolved__noise { animation: none; }
+    .kdx-unresolved__noise::after { animation: none; opacity: 0; }
+  }
+
+  /* Sin color disponible, el borde y la etiqueta siguen marcando el estado. */
+  @media (forced-colors: active) {
+    .kdx-unresolved { border-left-color: CanvasText; }
+    .kdx-unresolved__noise { forced-color-adjust: none; opacity: 0.4; }
+  }
+</style>
