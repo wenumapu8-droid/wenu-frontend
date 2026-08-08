@@ -88,7 +88,11 @@ export function assertOrganismPreset(preset: OrganismPreset): void {
     throw new Error(`Invalid organism preset ${preset.id}: ${result.errors.join("; ")}`);
   }
 
-  if (import.meta.env.DEV && result.warnings.length) {
+  // `import.meta.env` only exists under Vite/Astro. Optional-chain it so the
+  // module stays importable from a plain Node test runner, where reading
+  // `.DEV` off an undefined `env` would throw a TypeError for every *valid*
+  // preset (the invalid path throws earlier and hid this).
+  if (import.meta.env?.DEV && result.warnings.length) {
     console.warn(`[kodex-organism:${preset.id}]`, ...result.warnings);
   }
 }
