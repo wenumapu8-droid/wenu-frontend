@@ -1,0 +1,316 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<figure
+  class:list={['kdx-threshold-membrane', className]}
+  data-kdx-threshold-membrane
+  aria-label="Abstract KODEX Threshold membrane. Pointer or touch proximity changes only the visual field; entry remains an explicit semantic action."
+>
+  <canvas aria-hidden="true"></canvas>
+  <div class="kdx-threshold-membrane__grain" aria-hidden="true"></div>
+  <div class="kdx-threshold-membrane__vignette" aria-hidden="true"></div>
+</figure>
+
+<script>
+  const clamp = (value: number, min = 0, max = 1) => Math.max(min, Math.min(max, value));
+  const lerp = (a: number, b: number, amount: number) => a + (b - a) * amount;
+
+  function initThresholdMembrane(root: HTMLElement) {
+    if (root.dataset.ready === '1') return;
+    root.dataset.ready = '1';
+
+    const canvas = root.querySelector<HTMLCanvasElement>('canvas');
+    if (!canvas) return;
+    const context = canvas.getContext('2d', { alpha: false });
+    if (!context) return;
+
+    const sceneRoot = root.closest<HTMLElement>('[data-kdx-visible-assembly]');
+    const reducedQuery = matchMedia('(prefers-reduced-motion: reduce)');
+
+    let width = 1;
+    let height = 1;
+    let dpr = 1;
+    let pointerX = 0.5;
+    let pointerY = 0.5;
+    let targetX = 0.5;
+    let targetY = 0.5;
+    let proximity = 0;
+    let dwell = 0;
+    let time = 0;
+    let frame = 0;
+    let lastFrame = 0;
+    let disposed = false;
+
+    const mode = () => {
+      const requested = sceneRoot?.dataset.motion?.toUpperCase();
+      if (requested === 'OFF') return 'OFF';
+      if (requested === 'REDUCED' || reducedQuery.matches) return 'REDUCED';
+      return 'FULL';
+    };
+
+    const resize = () => {
+      const rect = root.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      dpr = Math.min(devicePixelRatio || 1, 1.6);
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(dpr, 0, 0, dpr, 0, 0);
+      draw();
+    };
+
+    const focalPoint = () => {
+      const compact = width < 900;
+      return {
+        x: width * (compact ? 0.5 : 0.64),
+        y: height * (compact ? 0.39 : 0.5),
+      };
+    };
+
+    const traceOrganicLoop = (
+      cx: number,
+      cy: number,
+      radius: number,
+      phase: number,
+      layer: number,
+      inner = false,
+    ) => {
+      const steps = 128;
+      for (let index = 0; index <= steps; index += 1) {
+        const direction = inner ? steps - index : index;
+        const angle = (direction / steps) * Math.PI * 2;
+        const waveA = Math.sin(angle * 3 + phase * 0.72 + layer * 0.83) * 0.07;
+        const waveB = Math.sin(angle * 7 - phase * 0.39 + layer * 1.37) * 0.033;
+        const waveC = Math.sin(angle * 13 + phase * 0.17 + layer) * 0.016;
+        const pointerAngle = Math.atan2((pointerY - 0.5) * height, (pointerX - 0.5) * width);
+        const localPull = Math.cos(angle - pointerAngle) * proximity * 0.052;
+        const localRadius = radius * (1 + waveA + waveB + waveC + localPull);
+        const x = cx + Math.cos(angle) * localRadius * (1 + 0.055 * Math.sin(phase * 0.21 + layer));
+        const y = cy + Math.sin(angle) * localRadius * (0.925 + 0.03 * Math.cos(phase * 0.27 + layer));
+        if (index === 0) context.moveTo(x, y);
+        else context.lineTo(x, y);
+      }
+    };
+
+    const drawRing = (
+      cx: number,
+      cy: number,
+      outer: number,
+      inner: number,
+      layer: number,
+      alpha: number,
+      blur: number,
+    ) => {
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.beginPath();
+      traceOrganicLoop(cx, cy, outer, time, layer, false);
+      traceOrganicLoop(cx, cy, inner, time * 0.91, layer + 0.4, true);
+      context.closePath();
+      context.fillStyle = layer % 2 === 0 ? 'rgb(140 100 236)' : 'rgb(207 198 220)';
+      context.globalAlpha = alpha;
+      context.shadowColor = layer % 2 === 0 ? 'rgb(139 96 236)' : 'rgb(187 170 214)';
+      context.shadowBlur = blur;
+      context.fill('evenodd');
+      context.restore();
+    };
+
+    const drawCellularCavities = (cx: number, cy: number, scale: number) => {
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      for (let index = 0; index < 28; index += 1) {
+        const angle = index * 2.399963 + time * (0.012 + (index % 3) * 0.004);
+        const radial = scale * (0.34 + ((index * 37) % 53) / 100);
+        const radius = scale * (0.011 + ((index * 17) % 11) / 700);
+        const x = cx + Math.cos(angle) * radial * 1.08;
+        const y = cy + Math.sin(angle) * radial * 0.86;
+        const gradient = context.createRadialGradient(x, y, 0, x, y, radius * 4.5);
+        gradient.addColorStop(0, `rgb(226 218 238 / ${0.18 + proximity * 0.14})`);
+        gradient.addColorStop(0.35, `rgb(143 96 225 / ${0.12 + dwell * 0.16})`);
+        gradient.addColorStop(1, 'rgb(80 47 146 / 0)');
+        context.fillStyle = gradient;
+        context.beginPath();
+        context.arc(x, y, radius * 4.5, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.restore();
+    };
+
+    function draw() {
+      const { x: cx, y: cy } = focalPoint();
+      const shortSide = Math.min(width, height);
+      const base = shortSide * (width < 900 ? 0.31 : 0.34);
+      const opening = clamp(0.22 + proximity * 0.36 + dwell * 0.24, 0.18, 0.8);
+
+      context.save();
+      context.globalCompositeOperation = 'source-over';
+      context.fillStyle = '#020203';
+      context.fillRect(0, 0, width, height);
+
+      const atmosphere = context.createRadialGradient(cx, cy, base * 0.06, cx, cy, base * 1.85);
+      atmosphere.addColorStop(0, `rgb(180 144 255 / ${0.08 + opening * 0.08})`);
+      atmosphere.addColorStop(0.35, `rgb(99 57 175 / ${0.08 + proximity * 0.06})`);
+      atmosphere.addColorStop(1, 'rgb(0 0 0 / 0)');
+      context.fillStyle = atmosphere;
+      context.fillRect(0, 0, width, height);
+      context.restore();
+
+      const outer = base * (1.01 + opening * 0.1);
+      drawRing(cx, cy, outer, base * (0.76 - opening * 0.09), 0, 0.24 + proximity * 0.12, 28);
+      drawRing(cx, cy, base * 0.82, base * (0.60 - opening * 0.13), 1, 0.32 + dwell * 0.15, 20);
+      drawRing(cx, cy, base * 0.65, base * (0.42 - opening * 0.14), 2, 0.44 + opening * 0.16, 14);
+      drawRing(cx, cy, base * 0.49, base * (0.25 - opening * 0.11), 3, 0.52 + opening * 0.18, 10);
+
+      drawCellularCavities(cx, cy, base);
+
+      context.save();
+      context.globalCompositeOperation = 'source-over';
+      const apertureRadius = base * (0.15 + opening * 0.23);
+      const aperture = context.createRadialGradient(cx, cy, 0, cx, cy, apertureRadius);
+      aperture.addColorStop(0, 'rgb(0 0 0 / 1)');
+      aperture.addColorStop(0.62, 'rgb(1 1 3 / 0.98)');
+      aperture.addColorStop(0.84, `rgb(41 20 69 / ${0.54 - dwell * 0.14})`);
+      aperture.addColorStop(1, 'rgb(124 84 194 / 0)');
+      context.fillStyle = aperture;
+      context.beginPath();
+      context.arc(cx, cy, apertureRadius * 1.5, 0, Math.PI * 2);
+      context.fill();
+      context.restore();
+
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.strokeStyle = `rgb(214 202 232 / ${0.14 + dwell * 0.22})`;
+      context.lineWidth = 0.8;
+      context.setLineDash([2, 8]);
+      context.beginPath();
+      context.arc(cx, cy, base * (0.28 + opening * 0.18), 0, Math.PI * 2);
+      context.stroke();
+      context.restore();
+    }
+
+    const updatePointer = (clientX: number, clientY: number) => {
+      const rect = root.getBoundingClientRect();
+      targetX = clamp((clientX - rect.left) / Math.max(1, rect.width));
+      targetY = clamp((clientY - rect.top) / Math.max(1, rect.height));
+      const focal = focalPoint();
+      const dx = clientX - rect.left - focal.x;
+      const dy = clientY - rect.top - focal.y;
+      const distance = Math.hypot(dx, dy);
+      const influenceRadius = Math.min(width, height) * 0.52;
+      proximity = clamp(1 - distance / influenceRadius);
+      if (mode() !== 'FULL') draw();
+    };
+
+    const onPointerMove = (event: PointerEvent) => updatePointer(event.clientX, event.clientY);
+    const onPointerLeave = () => {
+      targetX = 0.5;
+      targetY = 0.5;
+      proximity *= 0.55;
+      if (mode() !== 'FULL') draw();
+    };
+
+    const tick = (now: number) => {
+      if (disposed) return;
+      const currentMode = mode();
+      if (!document.hidden && currentMode === 'FULL' && now - lastFrame >= 32) {
+        pointerX = lerp(pointerX, targetX, 0.075);
+        pointerY = lerp(pointerY, targetY, 0.075);
+        dwell = proximity > 0.58 ? clamp(dwell + 0.008) : clamp(dwell - 0.014);
+        time += 0.018;
+        draw();
+        lastFrame = now;
+      }
+      frame = requestAnimationFrame(tick);
+    };
+
+    const onVisibility = () => {
+      if (!document.hidden) draw();
+    };
+    const onMotionChange = () => draw();
+
+    root.addEventListener('pointermove', onPointerMove, { passive: true });
+    root.addEventListener('pointerleave', onPointerLeave, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility);
+    reducedQuery.addEventListener?.('change', onMotionChange);
+
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(root);
+    resize();
+    frame = requestAnimationFrame(tick);
+
+    const destroy = () => {
+      disposed = true;
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      root.removeEventListener('pointermove', onPointerMove);
+      root.removeEventListener('pointerleave', onPointerLeave);
+      document.removeEventListener('visibilitychange', onVisibility);
+      reducedQuery.removeEventListener?.('change', onMotionChange);
+    };
+
+    addEventListener('pagehide', destroy, { once: true });
+  }
+
+  const initAll = () => {
+    document.querySelectorAll<HTMLElement>('[data-kdx-threshold-membrane]').forEach(initThresholdMembrane);
+  };
+
+  initAll();
+  document.addEventListener('astro:page-load', initAll);
+</script>
+
+<style>
+  .kdx-threshold-membrane {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #020203;
+    contain: layout paint style;
+  }
+
+  .kdx-threshold-membrane canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .kdx-threshold-membrane__grain,
+  .kdx-threshold-membrane__vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .kdx-threshold-membrane__grain {
+    opacity: 0.055;
+    mix-blend-mode: soft-light;
+    background-image:
+      repeating-linear-gradient(0deg, transparent 0 2px, rgb(255 255 255 / 0.14) 3px, transparent 4px),
+      radial-gradient(circle at 20% 30%, rgb(255 255 255 / 0.08) 0 1px, transparent 1px);
+    background-size: auto, 5px 5px;
+  }
+
+  .kdx-threshold-membrane__vignette {
+    background: radial-gradient(circle at 64% 50%, transparent 0 22%, rgb(0 0 0 / 0.12) 43%, rgb(0 0 0 / 0.78) 100%);
+  }
+
+  @media (max-width: 900px) {
+    .kdx-threshold-membrane__vignette {
+      background: radial-gradient(circle at 50% 39%, transparent 0 18%, rgb(0 0 0 / 0.12) 42%, rgb(0 0 0 / 0.8) 100%);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-threshold-membrane__grain { opacity: 0.04; }
+  }
+</style>
