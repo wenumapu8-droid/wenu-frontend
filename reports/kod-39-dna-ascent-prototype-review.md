@@ -10,7 +10,10 @@ Issue: #23
 - Visual concept translation: `PROTOTYPED`
 - Code written: `IMPLEMENTED_IN_ISOLATED_LAB`
 - Exact KOD-39 contract comparison: `BLOCKED_ON_LOCAL_PACKET_SYNC`
-- Build: `NOT VERIFIED`
+- Build: `VERIFIED_BY_GITHUB_ACTIONS`
+- Lab output existence/content gate: `VERIFIED_BY_GITHUB_ACTIONS`
+- Organism Engine regression build: `PASSED`
+- Vertical Slice regression build: `PASSED`
 - Browser visual QA: `NOT VERIFIED`
 - Device QA: `NOT VERIFIED`
 - Deployment: `BLOCKED`
@@ -61,19 +64,31 @@ Reviewed via PR patch for:
 - event/observer cleanup on Astro navigation;
 - Canvas fallback retention.
 
-This is a source review only, not runtime evidence.
+## CI evidence
+
+GitHub Actions completed successfully for PR #24 head after the prototype/report commits:
+
+- `KODEX DNA Ascent CI` run `31229349181`: success.
+  - checkout: success
+  - Node setup: success
+  - `npm ci`: success
+  - `npm run build`: success
+  - `dist/kodex/lab/dna-ascent/index.html` existence + content checks: success
+- `KODEX Organism Engine CI` run `31229349149`: success, including existing organism lab output verification.
+- `KODEX Vertical Slice` run `31229349166`: success.
+
+This verifies compilation/static generation and the route-output gate. It does **not** substitute for browser/device visual QA.
 
 ## Required next evidence
 
 1. Synchronize exact non-secret fields from local `~/.gemini/antigravity/KOD-39.yaml` into the repository work-packet mirror.
-2. Run `npm ci` and `npm run build`.
-3. Confirm generated `/kodex/lab/dna-ascent/` output.
-4. Open the lab in a real browser and check console.
-5. Capture 390×844, 412×915, 1440 desktop.
-6. Test reduced motion.
-7. Test background-tab and offscreen suspension.
-8. Record approximate frame cost on mobile and desktop.
-9. Decide whether this prototype should be adapted into an existing organism family, remain standalone, or be discarded.
+2. Open `/kodex/lab/dna-ascent/` in a real browser and check console.
+3. Capture 390×844, 412×915, 1440 desktop.
+4. Test reduced motion in-browser.
+5. Test background-tab and offscreen suspension.
+6. Record approximate frame cost on mobile and desktop.
+7. Compare the prototype against exact KOD-39 requirements.
+8. Decide whether this prototype should be adapted into an existing organism family, remain standalone, or be discarded.
 
 ## Known uncertainty
 
