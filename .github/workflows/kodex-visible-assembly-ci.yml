@@ -1,0 +1,190 @@
+name: KODEX Visible Assembly CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/visible-assembly/**'
+      - 'src/lib/kodex/runtime/visible-assembly.ts'
+      - 'src/lib/kodex/runtime/visible-assembly.test.ts'
+      - 'src/lib/kodex/runtime/journey-state.ts'
+      - 'src/lib/kodex/runtime/journeyGraph/**'
+      - 'src/lib/kodex/runtime/edge-resolver.ts'
+      - 'src/components/kodex/effects/**'
+      - '.github/workflows/kodex-visible-assembly-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodex-visible-assembly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-visible-assembly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Test KODEX runtime + Visible Assembly
+        run: >-
+          npx --yes tsx@4.23.1 --test
+          src/lib/kodex/runtime/journey-state.test.ts
+          src/lib/kodex/runtime/journeyGraph/canonical-graph.test.ts
+          src/lib/kodex/runtime/edge-resolver.test.ts
+          src/lib/kodex/runtime/visible-assembly.test.ts
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify noindex route output
+        run: |
+          test -f dist/kodex/lab/visible-assembly/index.html
+          grep -q 'VISIBLE ASSEMBLY 01' dist/kodex/lab/visible-assembly/index.html
+          grep -q 'noindex, nofollow' dist/kodex/lab/visible-assembly/index.html
+          grep -q 'PROTO-OBSERVE-001' dist/kodex/lab/visible-assembly/index.html
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-visible-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/visible-assembly/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-visible-preview.log
+          exit 1
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Run browser acceptance paths and capture evidence
+        run: |
+          mkdir -p qa-artifacts
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const url = 'http://127.0.0.1:4321/kodex/lab/visible-assembly/';
+          const browser = await chromium.launch({ headless: true });
+
+          const assert = (condition, message) => {
+            if (!condition) throw new Error(message);
+          };
+
+          const stage = async (page, expected) => {
+            await page.waitForFunction((value) => document.querySelector('[data-kdx-visible-assembly]')?.getAttribute('data-stage') === value, expected);
+          };
+
+          const clear = async (page) => {
+            await page.goto(url);
+            await page.evaluate(() => localStorage.clear());
+            await page.reload();
+            await stage(page, 'THRESHOLD');
+          };
+
+          // Desktop / keyboard / route without Heart / History replay.
+          {
+            const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+            const page = await context.newPage();
+            await clear(page);
+            await page.locator('[data-choice="OBSERVE"]').focus();
+            await page.keyboard.press('Enter');
+            await stage(page, 'ARCHIVE');
+            await page.locator('[data-open-evidence]').focus();
+            await page.keyboard.press('Enter');
+            await page.locator('[data-after-evidence]').waitFor({ state: 'visible' });
+            await page.locator('[data-enter-return]').focus();
+            await page.keyboard.press('Enter');
+            await stage(page, 'RETURN');
+            const sig = await page.locator('[data-return-signature]').inputValue();
+            assert(/^KDX-R-[0-9A-F]{8}$/.test(sig), `invalid Return signature: ${sig}`);
+            assert((await page.locator('[data-heart-visits]').textContent()) === '0', 'no-Heart route recorded a Heart visit');
+            const before = await page.locator('[data-trace-count]').textContent();
+            await page.goBack();
+            await stage(page, 'ARCHIVE');
+            await page.goForward();
+            await stage(page, 'RETURN');
+            const after = await page.locator('[data-trace-count]').textContent();
+            assert(before === after, `Back/Forward changed trace count: ${before} -> ${after}`);
+            await page.screenshot({ path: 'qa-artifacts/visible-assembly-desktop-return.png', fullPage: true });
+            await context.close();
+          }
+
+          // 390×844 touch path with optional Heart, exact anchor restoration and Return.
+          {
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+            const page = await context.newPage();
+            await clear(page);
+            await page.locator('[data-choice="REMEMBER"]').tap();
+            await stage(page, 'ARCHIVE');
+            await page.locator('[data-open-evidence]').tap();
+            await page.locator('[data-enter-heart]').tap();
+            await stage(page, 'HEART');
+            assert((await page.locator('[data-anchor-focus]').textContent())?.includes('SRC-KDX-CORPUS-002'), 'Heart anchor lost Archive source focus');
+            await page.locator('[data-leave-heart]').tap();
+            await stage(page, 'ARCHIVE');
+            await page.locator('[data-enter-return]').tap();
+            await stage(page, 'RETURN');
+            assert((await page.locator('[data-heart-visits]').textContent()) === '1', 'Heart route did not record exactly one Heart visit');
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            assert(overflow <= 1, `390x844 horizontal overflow: ${overflow}`);
+            await page.screenshot({ path: 'qa-artifacts/visible-assembly-390x844-heart-return.png', fullPage: true });
+            await context.close();
+          }
+
+          // 412×915, explicit OFF motion and no-WebGL capability. Canvas2D remains available.
+          {
+            const context = await browser.newContext({ viewport: { width: 412, height: 915 }, hasTouch: true, isMobile: true });
+            const page = await context.newPage();
+            await page.addInitScript(() => {
+              const original = HTMLCanvasElement.prototype.getContext;
+              HTMLCanvasElement.prototype.getContext = function(type, ...args) {
+                if (type === 'webgl' || type === 'webgl2') return null;
+                return original.call(this, type, ...args);
+              };
+            });
+            await clear(page);
+            await page.locator('[data-motion-toggle]').tap();
+            await page.locator('[data-motion-toggle]').tap();
+            assert((await page.locator('[data-kdx-visible-assembly]').getAttribute('data-motion')) === 'off', 'motion OFF state not applied');
+            await page.locator('[data-choice="OBSERVE"]').tap();
+            await page.locator('[data-open-evidence]').tap();
+            await page.locator('[data-enter-return]').tap();
+            await stage(page, 'RETURN');
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            assert(overflow <= 1, `412x915 horizontal overflow: ${overflow}`);
+            await page.screenshot({ path: 'qa-artifacts/visible-assembly-412x915-no-webgl-off.png', fullPage: true });
+            await context.close();
+          }
+
+          await browser.close();
+          fs.writeFileSync('qa-artifacts/browser-acceptance.txt', 'PASS\nkeyboard:no-heart\ntouch:heart\nback-forward:idempotent\nmotion:off\nno-webgl:usable\n390x844:no-overflow\n412x915:no-overflow\n');
+          NODE
+
+      - name: Upload KOD-47 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-visible-assembly-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
