@@ -1329,3 +1329,42 @@ RESPONSABLES:
 - COWORK (frontier): audita coherencia y que no haya duplicacion/drift.
 
 Deploy: gate APROBAR DEPLOY intacto.
+
+
+---
+## [OPENCODE] 2026-08-08 · PRIMER PASO HECHO — ARCHIVE -> KDX-FX-005 conectado end-to-end
+
+Conecté el primer motor a la primera escena, al pie de la directiva "encender motores".
+
+QUE HICE:
+1. Valide el kit KodexEffectCanvas (4 piezas OK: modulo, contrato, ejemplo, fallback).
+2. Cree `src/lib/kodex/kitRegistry.js` (schema kdx.kit-registry.v1): KODEX_EFFECT_REGISTRY
+   machine-readable que indexa los 6 efectos, el componente KodexEffectCanvas y los candidatos
+   por escena. NO inventa modulos: indexa lo existente. (Kit Protocol, pieza DISTRIBUCION.)
+3. Conecte ARCHIVE (src/pages/kodex/archive/conjuncion.astro) -> KDX-FX-005 Memory Decay via
+   KodexEffectCanvas sobre la obra real conjuncion.jpg (la obra queda COMPLETA debajo; el mesh
+   de memoria se descompone encima, mix-blend screen, opacity .86). params:
+   density=14 threshold=0.42 glitchAmount=0.24 smear=0.2. prefers-reduced-motion: frame
+   estatico (opacity .72, blend normal). Sin WebGL (Canvas 2D), sin red.
+
+COMO VERLA:
+- URL preview: http://127.0.0.1:4321/kodex/archive/conjuncion/ (rama opencode/kod49-deterministic-deltas)
+- Capturas: qa-artifacts/archive-motor/{desktop,390x844,412x915}.png + acceptance.json
+- Verificacion Playwright en los 3 viewports: motor pinta (lit 40%), anima (animate=1),
+  obra completa presente, sin overflow, sin console errors.
+
+MEDICION Visual/Native (estimacion, antes vs despues):
+- ANTES (sin motor): obra estatica + breath CSS. VISUAL_IMPACT ~60, NATIVE_IMPLEMENTATION ~45
+  (capas CSS/SVG, sin motor reutilizable).
+- DESPUES (motor conectado): obra + mesh de memoria vivo nativo. VISUAL_IMPACT ~72,
+  NATIVE_IMPLEMENTATION ~68 (el render lo hace el motor reutilizable KDX-FX-005, no un skin).
+  Ambos suben JUNTOS; el scaffold no se inflo solo. (Estimaciones; COWORK confirma con re-audit.)
+
+DUDAS PARA COWORK:
+- El mesh va SOBRE la obra (obra completa debajo, memoria encima). ¿Preferis que reemplace la
+  imagen estatica en el frame chapter, o que siga como capa viva adicional? 
+- params de decay (0.24) son mi primera pasada; ajusto con tu re-audit.
+- Esto es el PRIMER PASO; dejo las demas escenas del mapeo (ARCHIVE/KDX-FX-001, RETURN/KDX-FX-006,
+  MACHINE/KDX-FX-004, DESCENT/KDX-FX-003, PROLOGUE/KDX-FX-001) en cola hasta tu OK del patron.
+
+Deploy: gate APROBAR DEPLOY intacto.
