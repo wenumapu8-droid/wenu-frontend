@@ -62,10 +62,38 @@ export interface JourneyEvent {
   world?: string;
   /** Detalle semántico (acción, relación, señal). No acepta telemetría cruda. */
   detail?: string;
-  /** Marca de orden externa; el reducer la usa sólo para ordenar. */
+  /** Marca de orden externa; el orden de replay lo aporta el caller. */
   at: number;
   /** Payload semántico opcional. Nunca pointer telemetry. */
   payload?: Record<string, string | number | boolean>;
+}
+
+/**
+ * Campos de payload que el kernel considera semánticos por kind. Cualquier
+ * clave fuera de este allowlist se descarta al persistir y al restaurar, de
+ * modo que telemetría cruda bajo claves arbitrarias no puede sobrevivir.
+ */
+export const PAYLOAD_ALLOWLIST: Readonly<Record<JourneyEventKind, ReadonlyArray<string>>> = {
+  arrive: [],
+  commit: [],
+  trace: ["to"],
+  ignore: [],
+  heart: ["portalState"],
+  anchor: ["focus", "localState"],
+  spectral: [],
+};
+
+function sanitizePayload(
+  kind: JourneyEventKind,
+  payload: Record<string, string | number | boolean> | undefined,
+): Record<string, string | number | boolean> | undefined {
+  if (!payload) return undefined;
+  const allowed = PAYLOAD_ALLOWLIST[kind];
+  const clean: Record<string, string | number | boolean> = {};
+  for (const key of allowed) {
+    if (key in payload) clean[key] = payload[key];
+  }
+  return Object.keys(clean).length ? clean : undefined;
 }
 
 export interface JourneyState {
@@ -143,7 +171,10 @@ export function journeyReducer(state: JourneyState, event: JourneyEvent): Journe
 
   const next: JourneyState = {
     ...state,
-    trace: [...state.trace, { ...event, payload: event.payload ? { ...event.payload } : undefined }],
+    trace: [
+      ...state.trace,
+      { ...event, payload: sanitizePayload(event.kind, event.payload) },
+    ],
   };
 
   const visitCounts = { ...state.visitCounts };
@@ -157,6 +188,11 @@ export function journeyReducer(state: JourneyState, event: JourneyEvent): Journe
       next.visitCounts = visitCounts;
       next.current = event.letter;
       if (event.world !== undefined) next.currentWorld = event.world;
+      // Una visita real a M incrementa el contador de Heart; la disponibilidad
+      // del portal (LATENT/RESONANT/AVAILABLE) es una dimensión aparte y no puntúa.
+      if (event.letter === "M") {
+        next.heart = { ...state.heart, visitCount: state.heart.visitCount + 1 };
+      }
       break;
     }
     case "commit": {
@@ -182,11 +218,9 @@ export function journeyReducer(state: JourneyState, event: JourneyEvent): Journe
       const payload = event.payload ?? {};
       const portal = typeof payload.portalState === "string" ? payload.portalState : null;
       if (portal === "LATENT" || portal === "RESONANT" || portal === "AVAILABLE") {
-        next.heart = {
-          ...state.heart,
-          portalState: portal,
-          visitCount: state.heart.visitCount + (portal === "AVAILABLE" ? 1 : 0),
-        };
+        // La disponibilidad del portal no es una visita a M y no incrementa
+        // visitCount. Las visitas reales a M se cuentan en `arrive` (letter M).
+        next.heart = { ...state.heart, portalState: portal };
       }
       break;
     }
@@ -220,14 +254,18 @@ export function replayJourney(events: JourneyEvent[], from?: JourneyState): Jour
   return events.reduce((acc, e) => journeyReducer(acc, e), base);
 }
 
-/** Restaura un estado desde su forma serializada. */
+/**
+ * Restaura un estado desde su forma serializada. Aplica de nuevo el allowlist
+ * semántico a los payloads del trace para que telemetría no permitida jamás
+ * sea reintroducida desde un payload externo.
+ */
 export function restoreJourney(serialized: SerializedJourneyState): JourneyState {
   return {
     current: isLetter(serialized.current) ? serialized.current : "A",
     currentWorld: serialized.currentWorld ?? null,
     letterTrace: serialized.letterTrace.filter(isLetter),
     visitCounts: { ...serialized.visitCounts },
-    trace: serialized.trace,
+    trace: serialized.trace.map((e) => ({ ...e, payload: sanitizePayload(e.kind, e.payload) })),
     committedActions: [...serialized.committedActions],
     tracedRelations: [...serialized.tracedRelations],
     ignoredSignals: [...serialized.ignoredSignals],
@@ -258,28 +296,17 @@ export interface SerializedJourneyState {
 }
 
 /**
- * Serializa el estado excluyendo cualquier telemetría cruda. El kernel nunca
- * acepta pointer telemetry en `payload`; esta función lo vuelve explícito
- * filtrando claves que la representarían.
+ * Serializa el estado aplicando el allowlist semántico por kind. El kernel
+ * nunca acepta pointer telemetry en `payload`; esta función garantiza que
+ * claves fuera del allowlist (bajo cualquier nombre) no persistan.
  */
 export function serializeJourney(state: JourneyState): SerializedJourneyState {
-  const sanitizePayload = (e: JourneyEvent): JourneyEvent => {
-    const payload: Record<string, string | number | boolean> = {};
-    if (e.payload) {
-      for (const [k, v] of Object.entries(e.payload)) {
-        if (k === "x" || k === "y" || k === "targetX" || k === "targetY" || k === "velocity") continue;
-        payload[k] = v;
-      }
-    }
-    return { ...e, payload: Object.keys(payload).length ? payload : undefined };
-  };
-
   return {
     current: state.current,
     currentWorld: state.currentWorld,
     letterTrace: state.letterTrace,
     visitCounts: { ...state.visitCounts },
-    trace: state.trace.map(sanitizePayload),
+    trace: state.trace.map((e) => ({ ...e, payload: sanitizePayload(e.kind, e.payload) })),
     committedActions: [...state.committedActions],
     tracedRelations: [...state.tracedRelations],
     ignoredSignals: [...state.ignoredSignals],

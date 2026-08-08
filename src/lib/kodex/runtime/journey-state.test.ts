@@ -68,7 +68,27 @@ describe("JourneyState kernel (KOD-28)", () => {
       payload: { portalState: "AVAILABLE" },
     });
     const state = journeyReducer(createInitialJourneyState(), available);
+    // La disponibilidad del portal NO es una visita a M: no incrementa el contador.
+    assert.equal(state.heart.portalState, "AVAILABLE");
+    assert.equal(state.heart.visitCount, 0);
+  });
+
+  it("heart availability and real M visit are separate dimensions", () => {
+    const available = ev({
+      id: "m1",
+      kind: "heart",
+      letter: "M",
+      payload: { portalState: "AVAILABLE" },
+    });
+    const arriveM = ev({ id: "m2", kind: "arrive", letter: "M" });
+    const state = journeyReducer(
+      journeyReducer(createInitialJourneyState(), available),
+      arriveM,
+    );
+    assert.equal(state.heart.portalState, "AVAILABLE");
     assert.equal(state.heart.visitCount, 1);
+    // La visita real a M también se refleja en los conteos de letras.
+    assert.equal(state.visitCounts["M"], 1);
   });
 
   it("return anchor round-trips exactly through serialize/restore", () => {
@@ -85,7 +105,7 @@ describe("JourneyState kernel (KOD-28)", () => {
     assert.deepEqual(restored.returnAnchor, state.returnAnchor);
   });
 
-  it("serialization excludes raw/private pointer telemetry", () => {
+  it("serialization applies a semantic allowlist, not a pointer blacklist", () => {
     const withPointer = ev({
       id: "p1",
       kind: "commit",
@@ -94,10 +114,40 @@ describe("JourneyState kernel (KOD-28)", () => {
     });
     const serialized = serializeJourney(journeyReducer(createInitialJourneyState(), withPointer));
     const payload = serialized.trace[0].payload ?? {};
-    assert.equal(payload.x, undefined);
-    assert.equal(payload.y, undefined);
-    assert.equal(payload.velocity, undefined);
-    assert.equal(payload.action, "INITIATE");
+    // commit no tiene campos de payload permitidos: toda la telemetría (y claves
+    // arbitrarias) se descarta, incluyendo `action`.
+    assert.deepEqual(payload, {});
+  });
+
+  it("restore cannot reintroduce disallowed telemetry payloads", () => {
+    const withPointer = ev({
+      id: "p1",
+      kind: "commit",
+      letter: "A",
+      payload: { x: 0.5, action: "INITIATE" },
+    });
+    const state = journeyReducer(createInitialJourneyState(), withPointer);
+    const serialized = serializeJourney(state);
+    // Inyectar telemetría cruda de vuelta al payload serializado.
+    (serialized.trace[0] as { payload: Record<string, unknown> }).payload = {
+      x: 99,
+      y: 88,
+      velocity: 1,
+    };
+    const restored = restoreJourney(serialized);
+    assert.deepEqual(restored.trace[0].payload, undefined);
+  });
+
+  it("trace keeps only the semantic `to` field in payload", () => {
+    const trace = ev({
+      id: "t1",
+      kind: "trace",
+      letter: "C",
+      detail: "PRIMARY_CONCEPT",
+      payload: { to: "H", x: 0.5, rawSensor: "unused" },
+    });
+    const serialized = serializeJourney(journeyReducer(createInitialJourneyState(), trace));
+    assert.deepEqual(serialized.trace[0].payload, { to: "H" });
   });
 
   it("ignored signal is recorded as a delayed-consequence placeholder", () => {
