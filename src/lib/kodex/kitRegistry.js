@@ -56,6 +56,42 @@ export function kitIndex() {
   };
 }
 
+// KIT MANIFEST por escena: qué módulo usa cada lámina del recorrido, con su
+// contrato (params), su referencia y las capturas de aceptación. Fuente de
+// verdad para el Kit Protocol (COWORK): "cada escena declara su kit".
+export const KIT_MANIFESTS = Object.freeze({
+  PROLOGUE: {
+    scene: 'kodex/folio/i',
+    motor: { id: 'KDX-FX-001', role: 'ascii signal bloom over the artwork', params: { density: 16, threshold: 0.22, bloom: 0.9, glitchAmount: 0.16 }, status: 'WIRED_PENDING_FRONTIER' },
+    existing: ['KodexAscii bed', 'KodexCrtLayer observe', 'network-vortex'],
+    acceptance: ['qa-artifacts/folio-motor/prologue-*.png'],
+  },
+  DESCENT: {
+    scene: 'kodex/folio/ii',
+    motor: { id: 'KDX-FX-003', role: 'halftone mutation over the artwork', params: { density: 11, threshold: 0.16, distortion: 0.28, phase: 0.14 }, status: 'WIRED_PENDING_FRONTIER' },
+    existing: ['network-vortex', 'KodexCrtLayer descent'],
+    acceptance: ['qa-artifacts/folio-motor/descent-*.png'],
+  },
+  MACHINE: {
+    scene: 'kodex/folio/iv',
+    motor: { id: 'KDX-FX-004', role: 'liquid mercury skin over the artwork', params: { threshold: 0.34, bloom: 0.85, distortion: 0.2, smear: 0.2 }, status: 'WIRED_PENDING_FRONTIER' },
+    existing: ['machine-canvas', 'KodexAscii signal', 'KodexCrtLayer machine', 'network-vortex'],
+    acceptance: ['qa-artifacts/folio-motor/machine-*.png'],
+  },
+  RETURN: {
+    scene: 'kodex/folio/vi',
+    motor: { id: 'KDX-FX-006', role: 'dissolution over the artwork', params: { phase: 0.28, distortion: 0.22, bloom: 0.6, glitchAmount: 0.2 }, status: 'WIRED_PENDING_FRONTIER' },
+    existing: ['KodexCrtLayer return'],
+    acceptance: ['qa-artifacts/folio-motor/return-*.png'],
+  },
+  ARCHIVE: {
+    scene: 'kodex/archive/conjuncion',
+    motor: { id: 'KDX-FX-005', role: 'memory decay mesh over the artwork', params: { density: 14, threshold: 0.42, glitchAmount: 0.24, smear: 0.2 }, status: 'WIRED_PENDING_FRONTIER' },
+    existing: ['kx-frame chapter (obra completa)'],
+    acceptance: ['qa-artifacts/archive-motor/*.png'],
+  },
+});
+
 // Validación del Kit Protocol: un efecto es usable si tiene módulo, contrato y fallback.
 export function kitIsUsable(effectId) {
   const effect = effectById(effectId);
@@ -69,5 +105,19 @@ export function kitIsUsable(effectId) {
     example: canvasKit.pieces.example,
     fallback: effect.fallback || canvasKit.pieces.fallbackAcceptance,
     via: 'kodex-effect-canvas',
+  };
+}
+
+// Valida el Kit Protocol de una escena: el motor del manifest existe y tiene sus 4 piezas.
+export function sceneKitUsable(sceneKey) {
+  const manifest = KIT_MANIFESTS[sceneKey];
+  if (!manifest) return { ok: false, reason: 'unknown scene', sceneKey };
+  const usable = kitIsUsable(manifest.motor.id);
+  return {
+    ok: usable.ok,
+    sceneKey,
+    manifest,
+    kit: usable,
+    acceptance: manifest.acceptance,
   };
 }

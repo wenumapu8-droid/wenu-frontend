@@ -13,6 +13,7 @@ import KodexField from '../../../components/kodex/field/KodexField.astro';
 import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
 import KodexCrtLayer from '../../../components/kodex/crt/KodexCrtLayer.astro';
 import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
+import KodexEffectCanvas from '../../../components/kodex/effects/KodexEffectCanvas.astro';
 import KodexMuseo from '../../../components/kodex/museo/KodexMuseo.astro';
 import KodexTira from '../../../components/kodex/museo/KodexTira.astro';
 import { leerManifiesto, resolver } from '../../../lib/kodex/volumenes';
@@ -291,6 +292,27 @@ const asciiByFolio = {
 const sceneAscii = asciiByFolio[folio] ?? null;
 
 /**
+ * Motor del Effect Foundry por lámina (mapeo COWORK, no canon hasta re-audit).
+ * El motor se monta como capa viva SOBRE la obra, igual que en ARCHIVE
+ * (KodexEffectCanvas), sin reemplazar el organismo/tratamiento existentes.
+ * La coexistencia organismo+motor es candidata; COWORK decide en re-audit.
+ */
+const motorByFolio = {
+  i:   'KDX-FX-001', // PROLOGUE/OBSERVE → ASCII Signal Bloom
+  ii:  'KDX-FX-003', // DESCENT → Halftone Mutation
+  iv:  'KDX-FX-004', // MACHINE → Liquid Mercury Skin
+  vi:  'KDX-FX-006', // RETURN → −∞ Dissolution
+};
+const motorParamsByFolio = {
+  i:   { density: 16, threshold: 0.22, bloom: 0.9, glitchAmount: 0.16 },
+  ii:  { density: 11, threshold: 0.16, distortion: 0.28, phase: 0.14 },
+  iv:  { threshold: 0.34, bloom: 0.85, distortion: 0.2, smear: 0.2 },
+  vi:  { phase: 0.28, distortion: 0.22, bloom: 0.6, glitchAmount: 0.2 },
+};
+const sceneMotor = motorByFolio[folio] ?? null;
+const sceneMotorParams = motorParamsByFolio[folio] ?? {};
+
+/**
  * La HERRAMIENTA de scroll de cada lámina.
  *
  * Regla dura de la misión: cero scroll de página. La rueda no baja el
@@ -566,6 +588,22 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 alt=""
                 aria-hidden="true"
                 decoding="async"
+              />
+            )}
+            {/* MOTOR DEL FOUNDRY — capa viva sobre la obra (mapeo COWORK).
+                Mismo patrón que ARCHIVE/KDX-FX-005. El motor es nativo
+                (Canvas 2D), respeta prefers-reduced-motion y tiene fallback. */}
+            {sceneMotor && (
+              <KodexEffectCanvas
+                effectId={sceneMotor}
+                src={sceneByFolio.image}
+                alt=""
+                class="kx-os-stage__motor"
+                width={1123}
+                height={842}
+                animate={true}
+                interactive={false}
+                params={sceneMotorParams}
               />
             )}
             {folio === 'v'

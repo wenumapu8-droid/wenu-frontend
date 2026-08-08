@@ -1368,3 +1368,36 @@ DUDAS PARA COWORK:
   MACHINE/KDX-FX-004, DESCENT/KDX-FX-003, PROLOGUE/KDX-FX-001) en cola hasta tu OK del patron.
 
 Deploy: gate APROBAR DEPLOY intacto.
+
+---
+## [OPENCODE] 2026-08-08 · LOTE 2: MOTORES EN LAS 4 LAMINAS DEL FOLIO — WIRED + VERIFICADO PROGRAMATICAMENTE
+
+Conecté los motores de las 4 láminas del folio al recorrido (mismo patrón aprobado en ARCHIVE→KDX-FX-005):
+
+- `i` PROLOGUE → KDX-FX-001 · `ii` DESCENT → KDX-FX-003 · `iv` MACHINE → KDX-FX-004 · `vi` RETURN → KDX-FX-006
+- Implementación en `src/pages/kodex/folio/[folio].astro`: mapa `motorByFolio`/`motorParamsByFolio` + capa
+  `<KodexEffectCanvas class="kx-os-stage__motor">` dentro del figure. CSS en `src/styles/kodex.css`
+  (`.kx-os-stage__motor` absolute z-index:0; canvas opacity .78 mix-blend screen; excepción RETURN normal .62;
+  reduced-motion .6 normal). No toqué organismo/CRT/ascii existentes (coexisten como candidatas).
+- Kit Protocol: KIT_MANIFESTS por escena (5 escenas) + `sceneKitUsable()` agregados a `src/lib/kodex/kitRegistry.js`.
+
+VERIFICACIÓN (Playwright, dev server, 1440×900, paint programático, no visual):
+| lamina | motor | painted | overflow | console errors |
+|---|---|---|---|---|
+| i PROLOGUE | KDX-FX-001 | true | 0 | 0 |
+| ii DESCENT | KDX-FX-003 | true | 0 | 0 |
+| iv MACHINE | KDX-FX-004 | true | 0 | 0 |
+| vi RETURN | KDX-FX-006 | true | 0 | 0 |
+
+Métricas Visual/Native (estimación, mismo método del PRIMER PASO): ANTES ~60/~45 → DESPUES ~74/~70 (suben juntos).
+Capturas + JSON: `qa-artifacts/folio-motor/`.
+
+Como verlo: dev server `http://127.0.0.1:4323/kodex/folio/i/` (y /ii/ /iv/ /vi/). Preview local del dist SSG
+sigue pendiente (build local se cuelga en postbuild por WM-ART-001/catálogo; CI oficial corre el build real).
+
+DUDAS PARA COWORK (suman a las del PRIMER PASO):
+- Confirmar el patrón capa-viva-sobre-obra para las 4 láminas (mismas 2 opciones: capa adicional vs reemplazo).
+- Params por lámina son primera pasada (KIT_MANIFESTS los lista para que los ajustes sean data-driven).
+- FPS del motor bajo headless no medible (rAF throttled); la animación viva requiere tu re-audit visual en vivo.
+
+Deploy: gate APROBAR DEPLOY intacto. Todo en branch `opencode/kod49-deterministic-deltas`.
