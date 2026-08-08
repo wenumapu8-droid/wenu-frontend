@@ -1,5 +1,7 @@
 // Integration boundary: journey memory/state lives under src/lib/kodex/runtime.
 // The Organism Engine consumes semantic input/lifecycle state but does not own JourneyState.
+import type { QualitySource } from "../../lib/kodex/quality";
+
 export type OrganismFamily =
   | "FIELD"
   | "VORTEX"
@@ -168,6 +170,14 @@ export interface OrganismMetrics {
   frames: number;
   averageFrameMs: number;
   droppedFrameEstimate: number;
+  /**
+   * De dónde sale `quality`: `"measured"` si la decidió el tiempo de cuadro
+   * medido, `"guess"` si todavía manda la adivinanza del preset,
+   * `"reduced-motion"` si la fija accesibilidad, `"forced"` si la fijó un
+   * control. Un nivel adivinado y uno medido no son el mismo dato y no se
+   * pueden mostrar como si lo fueran.
+   */
+  qualitySource: QualitySource;
 }
 
 export interface OrganismRuntime {

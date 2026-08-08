@@ -11,6 +11,7 @@ import type {
   OrganismQuality,
   OrganismRuntime,
 } from "../types";
+import { guessTierFromPreset } from "../../../lib/kodex/quality";
 
 const STATE_MAP: Record<OrganismLifecycle, "DORMANT" | "AWARE" | "OPEN"> = {
   DORMANT: "DORMANT",
@@ -47,9 +48,11 @@ class ThresholdPortalOrganismRuntime implements OrganismRuntime {
 
   constructor(canvas: HTMLCanvasElement, preset: OrganismPreset) {
     this.preset = preset;
-    this.quality = matchMedia("(max-width: 767px)").matches
-      ? preset.performance.mobileTier
-      : preset.performance.desktopTier;
+    // Misma adivinanza de arranque que el resto del motor, ahora con nombre.
+    // Este adaptador NO adapta por medición: el bucle vive dentro de
+    // `KdxThresholdPortalRuntime` (JS) y no expone un punto por cuadro desde
+    // acá. Ver la nota en `src/lib/kodex/quality.ts`.
+    this.quality = guessTierFromPreset(preset.performance, matchMedia("(max-width: 767px)").matches);
 
     this.runtime = new KdxThresholdPortalRuntime(canvas, {
       artworkUrl: preset.assets.source,
@@ -138,6 +141,8 @@ class ThresholdPortalOrganismRuntime implements OrganismRuntime {
       frames: 0,
       averageFrameMs: Number(legacy.frameTime ?? 0),
       droppedFrameEstimate: Number(legacy.longFrames ?? 0),
+      // Este adaptador no adapta: el nivel sigue siendo el del preset.
+      qualitySource: "guess",
     };
   }
 

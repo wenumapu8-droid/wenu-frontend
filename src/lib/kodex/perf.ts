@@ -15,132 +15,150 @@
  * cada cuadro en este equipo, con esta lámina, ahora. Un equipo potente con
  * cuarenta pestañas abiertas rinde como uno viejo, y ningún dato de fábrica lo
  * sabe.
+ *
+ * Qué cambió (MP-11)
+ * ------------------
+ * La política dejó de vivir acá: ahora está en `./quality`, compartida con el
+ * motor de organismos y con OBSERVE V2, que hasta hoy decidían lo mismo por su
+ * cuenta y con criterios distintos. Este archivo quedó como lo que siempre
+ * debió ser: el puente entre el navegador y el gobernador — leer medios,
+ * bombear `requestAnimationFrame`, publicar en el `<html>`.
+ *
+ * Y se corrigió un defecto: el bucle de medición se apagaba después de la
+ * PRIMERA evaluación (~70 cuadros). Medía una vez y no volvía a mirar. Ahora
+ * mide mientras la pestaña esté visible, con amortiguamiento para que eso no
+ * se convierta en un nivel que parpadea.
  */
 
-export type Perfil = "full" | "balanced" | "low-power";
+import {
+  QualityGovernor,
+  guessTierFromDevice,
+  perfilToTier,
+  tierToPerfil,
+  type Perfil,
+  type QualityReading,
+} from "./quality";
 
-const ORDEN: Perfil[] = ["full", "balanced", "low-power"];
+export type { Perfil };
 
-/** Presupuesto de cuadro, en milisegundos, antes de bajar un escalón. */
-const TECHO_MS = 22; // ~45 fps
-/** Por debajo de esto no hay negociación: se va directo al perfil mínimo. */
-const PISO_MS = 40; // ~25 fps
+const ES_PERFIL = (v: string): v is Perfil =>
+  v === "full" || v === "balanced" || v === "low-power";
 
 type Escucha = (perfil: Perfil) => void;
 
 class PerfilKodex {
-  private actual: Perfil;
+  private readonly gobernador: QualityGovernor;
   private readonly escuchas = new Set<Escucha>();
-  private muestras: number[] = [];
+  private publicado: Perfil;
   private ultimo = 0;
   private raf = 0;
-  private fijado = false;
 
   constructor() {
-    this.actual = this.adivinar();
+    const forzadoRaw = new URLSearchParams(location.search).get("quality");
+    const forzado = forzadoRaw && ES_PERFIL(forzadoRaw) ? forzadoRaw : null;
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    this.gobernador = new QualityGovernor({
+      initialTier: guessTierFromDevice({
+        reducedMotion: reducido,
+        cores: navigator.hardwareConcurrency ?? undefined,
+        memoryGb: (navigator as Navigator & { deviceMemory?: number }).deviceMemory,
+        narrow: matchMedia("(max-width: 900px)").matches,
+      }),
+      reducedMotion: reducido,
+      forcedTier: forzado ? perfilToTier(forzado) : null,
+    });
+
+    this.publicado = tierToPerfil(this.gobernador.tier);
     this.publicar();
-    if (!this.fijado) this.medir();
+    this.escucharMovimientoReducido();
+    this.medir();
   }
 
   /**
-   * Punto de partida. Deliberadamente conservador: es preferible arrancar en
-   * BALANCED y subir tras medir, que arrancar en FULL y que los primeros
-   * segundos -- justo la primera impresión de la lámina -- se arrastren.
+   * `prefers-reduced-motion` puede cambiar con la pestaña abierta -- en macOS
+   * es un interruptor del sistema. Antes esto se leía una sola vez al arrancar.
    */
-  private adivinar(): Perfil {
-    const forzado = new URLSearchParams(location.search).get("quality");
-    if (forzado && (ORDEN as string[]).includes(forzado)) {
-      this.fijado = true;
-      return forzado as Perfil;
-    }
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return "low-power";
-
-    const nucleos = navigator.hardwareConcurrency ?? 4;
-    const memoria = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 4;
-    // Una pantalla chica casi siempre es un equipo chico, y además hay menos
-    // píxeles que llenar: el mismo shader cuesta bastante menos.
-    const angosto = matchMedia("(max-width: 900px)").matches;
-
-    if (nucleos <= 4 || memoria <= 4) return angosto ? "low-power" : "balanced";
-    if (nucleos >= 8 && memoria >= 8) return "full";
-    return "balanced";
+  private escucharMovimientoReducido(): void {
+    const mq = matchMedia("(prefers-reduced-motion: reduce)");
+    const alCambiar = () => {
+      this.gobernador.setReducedMotion(mq.matches);
+      this.sincronizar();
+    };
+    if (typeof mq.addEventListener === "function") mq.addEventListener("change", alCambiar);
   }
 
   /**
-   * Mide los primeros cuadros y ajusta. Se toma la MEDIANA y no el promedio:
-   * el arranque siempre trae dos o tres cuadros lentos por compilación de
-   * shaders y carga de texturas, y un promedio los deja pesando de más.
+   * Un `requestAnimationFrame` sin estrangular: el delta entre cuadros ES el
+   * costo del cuadro. El gobernador se encarga del calentamiento, de la
+   * mediana y de la histéresis; acá no se decide nada.
    */
   private medir(): void {
     const paso = (t: number) => {
-      if (this.ultimo) this.muestras.push(t - this.ultimo);
-      this.ultimo = t;
-
-      if (this.muestras.length < 70) {
-        this.raf = requestAnimationFrame(paso);
-        return;
+      if (this.ultimo) {
+        // Un salto grande casi nunca es la lámina: es la pestaña que estuvo
+        // oculta. Se descarta en vez de contaminar la ventana.
+        const delta = t - this.ultimo;
+        if (delta < 400) this.gobernador.sample(delta);
       }
-      // Se descartan los primeros: son el costo de encender, no el de correr.
-      const utiles = this.muestras.slice(20).sort((a, b) => a - b);
-      const mediana = utiles[Math.floor(utiles.length / 2)];
-
-      if (mediana > PISO_MS) this.mover("low-power");
-      else if (mediana > TECHO_MS) this.bajar();
-      // Subir sólo si sobra margen de verdad. Ir y venir entre perfiles se ve
-      // peor que quedarse un escalón abajo.
-      else if (mediana < TECHO_MS * 0.55) this.subir();
-
-      this.muestras = [];
-      this.ultimo = 0;
+      this.ultimo = t;
+      this.sincronizar();
+      this.raf = requestAnimationFrame(paso);
     };
     this.raf = requestAnimationFrame(paso);
   }
 
-  private bajar(): void {
-    const i = ORDEN.indexOf(this.actual);
-    if (i < ORDEN.length - 1) this.mover(ORDEN[i + 1]);
-  }
-
-  private subir(): void {
-    const i = ORDEN.indexOf(this.actual);
-    if (i > 0) this.mover(ORDEN[i - 1]);
-  }
-
-  private mover(p: Perfil): void {
-    if (p === this.actual || this.fijado) return;
-    this.actual = p;
+  private sincronizar(): void {
+    const perfil = tierToPerfil(this.gobernador.tier);
+    if (perfil === this.publicado) return;
+    this.publicado = perfil;
     this.publicar();
-    for (const f of this.escuchas) f(p);
+    for (const f of this.escuchas) f(perfil);
   }
 
   private publicar(): void {
     // En el <html> para que el CSS también pueda reaccionar sin JS de por
     // medio: apagar un blur o una sombra cara es una regla, no un componente.
-    document.documentElement.dataset.kdxQuality = this.actual;
-    (window as unknown as { __kdxQuality?: Perfil }).__kdxQuality = this.actual;
+    document.documentElement.dataset.kdxQuality = this.publicado;
+    (window as unknown as { __kdxQuality?: Perfil }).__kdxQuality = this.publicado;
   }
 
   get perfil(): Perfil {
-    return this.actual;
+    return this.publicado;
+  }
+
+  /**
+   * Lectura cruda del gobernador: incluye `source`, que dice si el nivel viene
+   * de una medición, de una adivinanza o de accesibilidad. Cualquier panel que
+   * muestre el perfil debe mostrar también eso -- un valor medido y un valor
+   * adivinado no son la misma clase de dato y no se presentan igual.
+   */
+  get lectura(): QualityReading {
+    return this.gobernador.read();
   }
 
   /** Se notifica al suscribirse con el valor vigente, no sólo en los cambios. */
   suscribir(f: Escucha): () => void {
     this.escuchas.add(f);
-    f(this.actual);
+    f(this.publicado);
     return () => this.escuchas.delete(f);
+  }
+
+  detener(): void {
+    cancelAnimationFrame(this.raf);
+    this.raf = 0;
   }
 
   /** Escala del lienzo. En equipos lentos el costo está en los píxeles. */
   get escala(): number {
-    if (this.actual === "low-power") return 0.6;
-    if (this.actual === "balanced") return 0.85;
+    if (this.publicado === "low-power") return 0.6;
+    if (this.publicado === "balanced") return 0.85;
     return 1;
   }
 
   /** El rastro temporal cuesta una pasada y un par de texturas más. */
   get feedback(): boolean {
-    return this.actual !== "low-power";
+    return this.publicado !== "low-power";
   }
 }
 
