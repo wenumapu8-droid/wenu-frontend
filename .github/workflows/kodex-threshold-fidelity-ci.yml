@@ -1,0 +1,121 @@
+name: KODEX Threshold Fidelity CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/threshold-fidelity/**'
+      - 'src/components/kodex/threshold/**'
+      - '.github/workflows/kodex-threshold-fidelity-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodex-threshold-fidelity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-threshold-fidelity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify noindex Threshold lab output
+        run: |
+          test -f dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'THRESHOLD Fidelity Lab' dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'noindex, nofollow, noarchive' dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'THE GATE IS A LIVING AGREEMENT' dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'ENTER VOLUNTARILY' dist/kodex/lab/threshold-fidelity/index.html
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-threshold-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/threshold-fidelity/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-threshold-preview.log
+          exit 1
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Browser QA and evidence
+        run: |
+          mkdir -p qa-artifacts
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const url = 'http://127.0.0.1:4321/kodex/lab/threshold-fidelity/';
+          const browser = await chromium.launch({ headless: true });
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+
+          for (const spec of [
+            { name: 'desktop', width: 1440, height: 1000, mobile: false },
+            { name: '390x844', width: 390, height: 844, mobile: true },
+            { name: '412x915', width: 412, height: 915, mobile: true },
+          ]) {
+            const context = await browser.newContext({
+              viewport: { width: spec.width, height: spec.height },
+              hasTouch: spec.mobile,
+              isMobile: spec.mobile,
+            });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+            page.on('pageerror', (error) => errors.push(error.message));
+            await page.goto(url, { waitUntil: 'networkidle' });
+
+            assert(await page.locator('[data-kdx-threshold-membrane] canvas').count() === 1, 'native membrane canvas missing');
+            assert(await page.locator('a.threshold-lab__enter').getAttribute('href') === '/kodex/lab/visible-assembly/', 'explicit entry does not lead to functional assembly');
+
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+            assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
+
+            await page.locator('[data-motion-toggle]').focus();
+            await page.keyboard.press('Enter');
+            const motion = await page.locator('.threshold-lab').getAttribute('data-motion');
+            assert(motion === 'reduced', `keyboard motion toggle failed: ${motion}`);
+
+            await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}.png`, fullPage: true });
+            assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
+            await context.close();
+          }
+
+          await browser.close();
+          fs.writeFileSync('qa-artifacts/browser-acceptance.txt', 'PASS\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nnative-canvas:present\nentry:explicit\n');
+          NODE
+
+      - name: Upload KOD-49 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-threshold-fidelity-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
