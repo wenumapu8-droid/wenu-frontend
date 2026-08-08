@@ -108,6 +108,28 @@ jobs:
               await page.screenshot({ path: 'qa-artifacts/threshold-desktop-full-proximity.png', fullPage: true });
               await page.waitForTimeout(900);
               await page.screenshot({ path: 'qa-artifacts/threshold-desktop-full-proximity-later.png', fullPage: true });
+            } else {
+              const initialMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(initialMotion === 'full', `${spec.name} did not begin in FULL motion: ${initialMotion}`);
+              const proximity = await page.evaluate(() => {
+                const root = document.querySelector('.threshold-lab');
+                const rect = root.getBoundingClientRect();
+                const x = rect.left + rect.width * 0.5;
+                const y = rect.top + rect.height * 0.32;
+                root.dispatchEvent(new PointerEvent('pointermove', {
+                  clientX: x,
+                  clientY: y,
+                  bubbles: true,
+                  pointerType: 'touch',
+                  pointerId: 1,
+                }));
+                return { x, y };
+              });
+              assert(proximity.x > 0, 'mobile proximity dispatch failed');
+              await page.waitForTimeout(1100);
+              const visualState = await page.locator('[data-visual-state]').textContent();
+              assert(visualState === 'AWARE' || visualState === 'OPEN', `${spec.name} proximity did not activate visual state: ${visualState}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-proximity.png`, fullPage: true });
             }
 
             await page.locator('[data-motion-toggle]').focus();
@@ -116,6 +138,13 @@ jobs:
             assert(motion === 'reduced', `keyboard motion toggle failed: ${motion}`);
 
             await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}.png`, fullPage: true });
+
+            await page.locator('[data-motion-toggle]').focus();
+            await page.keyboard.press('Enter');
+            const offMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+            assert(offMotion === 'off', `${spec.name} second toggle did not reach OFF: ${offMotion}`);
+            await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-off.png`, fullPage: true });
+
             assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
             await context.close();
           }
@@ -123,7 +152,7 @@ jobs:
           await browser.close();
           fs.writeFileSync(
             'qa-artifacts/browser-acceptance.txt',
-            'PASS\ndesktop:full-proximity-captured\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nnative-canvas:present\nentry:explicit\n',
+            'PASS\ndesktop:full-proximity-captured\n390x844:full-proximity-captured\n412x915:full-proximity-captured\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nkeyboard:motion-off\nnative-canvas:present\nentry:explicit\n',
           );
           NODE
 
