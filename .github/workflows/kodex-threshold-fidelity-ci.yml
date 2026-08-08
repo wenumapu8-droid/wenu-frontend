@@ -98,6 +98,18 @@ jobs:
             const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
             assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
 
+            if (!spec.mobile) {
+              const initialMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(initialMotion === 'full', `desktop did not begin in FULL motion: ${initialMotion}`);
+              await page.mouse.move(spec.width * 0.64, spec.height * 0.50);
+              await page.waitForTimeout(1100);
+              const visualState = await page.locator('[data-visual-state]').textContent();
+              assert(visualState === 'AWARE' || visualState === 'OPEN', `proximity did not activate visual state: ${visualState}`);
+              await page.screenshot({ path: 'qa-artifacts/threshold-desktop-full-proximity.png', fullPage: true });
+              await page.waitForTimeout(900);
+              await page.screenshot({ path: 'qa-artifacts/threshold-desktop-full-proximity-later.png', fullPage: true });
+            }
+
             await page.locator('[data-motion-toggle]').focus();
             await page.keyboard.press('Enter');
             const motion = await page.locator('.threshold-lab').getAttribute('data-motion');
@@ -109,7 +121,10 @@ jobs:
           }
 
           await browser.close();
-          fs.writeFileSync('qa-artifacts/browser-acceptance.txt', 'PASS\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nnative-canvas:present\nentry:explicit\n');
+          fs.writeFileSync(
+            'qa-artifacts/browser-acceptance.txt',
+            'PASS\ndesktop:full-proximity-captured\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nnative-canvas:present\nentry:explicit\n',
+          );
           NODE
 
       - name: Upload KOD-49 QA evidence
