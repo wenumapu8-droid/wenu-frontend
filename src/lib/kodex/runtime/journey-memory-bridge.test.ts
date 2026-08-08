@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import type { KodexInteractionEventDetail } from "./interaction-events";
+import {
+  KODEX_INTERACTION_EVENT,
+  type KodexInteractionEventDetail,
+} from "./interaction-events";
 import {
   createKodexJourneyMemoryBridge,
   interactionToJourneyEvents,
-  KODEX_INTERACTION_EVENT,
   KODEX_JOURNEY_STORAGE_KEY,
   KODEX_ORGANISM_ACTION_EVENT,
   organismActionToJourneyEvents,
