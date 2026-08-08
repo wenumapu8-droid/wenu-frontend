@@ -406,9 +406,15 @@
 .kx-seg{ flex:1; height:2px; background:#1a1a1a; overflow:hidden; }
 .kx-seg>i{ display:block; height:100%; width:0; background:var(--ink); transition:width .15s linear; }
 
-/* status bar */
+/* status bar
+   El padding-block baja de 16px a 4px como CANJE exacto por los 44px de area
+   tactil que ahora traen los controles: 4 + 44 + 4 + 1px de borde = 53px, que
+   es justo lo que media esta barra antes (control de 20px + 16px arriba y
+   abajo). La barra no cambia de alto, asi que ninguna lamina de /folio,
+   /vol o /interlude -- son ~1500 rutas -- mueve un pixel su contenido.
+   El tramo <=560px hace el mismo canje con 8px para quedarse en 61px. */
 .kx-status{ position:sticky; top:0; z-index:52; display:flex; align-items:center; justify-content:space-between;
-  padding:16px clamp(16px,4vw,44px); background:linear-gradient(#000 60%,transparent); transition:background 1.9s ease;
+  padding:4px clamp(16px,4vw,44px); background:linear-gradient(#000 60%,transparent); transition:background 1.9s ease;
   border-top:1px solid rgba(201,168,76,.34); box-shadow:0 0 38px rgba(201,168,76,.18); }
 /* KODEX status chip + machine readout — per INTERFACE DNA §4 */
 .kdx-status{ font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; letter-spacing:.2em;
@@ -425,13 +431,15 @@
   word-break:break-word; }
 .kdx-readout [data-atelier-id], .kdx-readout [data-atelier-seed]{ color:var(--kdx-dust-white,#EDEDED); }
 
-.kx-word{ display:inline-flex; align-items:center; color:var(--kdx-dust-white,#EDEDED); position:relative; text-decoration:none; }
+/* min-height:44px = area tactil minima. El logotipo sigue midiendo 18-20px de
+   alto; lo que crece es la caja del enlace, centrada sobre el mismo glifo. */
+.kx-word{ display:inline-flex; align-items:center; min-height:44px; color:var(--kdx-dust-white,#EDEDED); position:relative; text-decoration:none; }
 .kx-word__svg{ display:block; width:auto; height:20px; }
 .kx-word__sr{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .kx-readout{ font-size:10.5px; letter-spacing:.18em; color:var(--gray); }
 .kx-readout b{ color:var(--gold); font-weight:400; }
 .kx-status__keys{ display:inline-flex; align-items:center; gap:clamp(14px,2.5vw,26px); }
-.kx-sound{ display:inline-flex; align-items:center; gap:7px; background:none; border:0; cursor:pointer; padding:0;
+.kx-sound{ display:inline-flex; align-items:center; min-height:44px; gap:7px; background:none; border:0; cursor:pointer; padding:0;
   font-family:'IBM Plex Mono',ui-monospace,monospace; font-size:10.5px; letter-spacing:.18em; color:var(--gray); transition:color .3s; }
 .kx-sound:hover{ color:var(--ink); }
 .kx-sound__ic{ font-size:12px; }
@@ -441,6 +449,9 @@
   .kx-status{
     min-width:0;
     padding-inline:14px;
+    /* 8 + 44 + 8 + 1 = 61px, el alto exacto que tenia esta barra en telefono
+       cuando sus controles median 28px con 16px de padding. */
+    padding-block:8px;
     gap:10px;
     overflow:hidden;
   }
@@ -449,10 +460,15 @@
   .kx-status__keys{ min-width:0; gap:10px; flex:0 0 auto; }
   .kx-sound [data-sound-label],
   .kx-signal [data-signal-label]{ display:none; }
+  /* Sin etiqueta quedan dos botones de icono. A 390px la barra usa 14+122
+     (logotipo) + 14 de canto: sobran 173px antes de tocar el logotipo, asi
+     que los dos controles caben en 44x44 reales con su separacion intacta
+     (44 + 10 + 44 = 104px). No hay que fingir el area tactil con padding
+     negativo, que ademas dejaria las dos zonas de toque superpuestas. */
   .kx-sound,
-  .kx-signal{ min-width:28px; min-height:28px; justify-content:center; }
+  .kx-signal{ min-width:44px; min-height:44px; justify-content:center; }
 }
-.kx-signal{ display:inline-flex; align-items:center; gap:8px; background:none; border:0; cursor:none; padding:0; font-size:10.5px; letter-spacing:.18em; color:var(--ink); }
+.kx-signal{ display:inline-flex; align-items:center; min-height:44px; gap:8px; background:none; border:0; cursor:none; padding:0; font-size:10.5px; letter-spacing:.18em; color:var(--ink); }
 .kx-signal__dot{ width:8px; height:8px; border:1px solid var(--gray); border-radius:50%; transition:.3s; }
 .kx-signal[aria-pressed="true"] .kx-signal__dot{ background:var(--gold); border-color:var(--gold); box-shadow:0 0 8px var(--gold); }
 
@@ -897,7 +913,10 @@
 
 /* mobile: the cover / first pages must FIT the phone — no scroll (Ocin) */
 @media (max-width:640px){
-  .kx--deck .kx-slide__in{ padding:46px 0 84px; }
+  /* `:not(.kx-threshold)` porque el THRESHOLD tambien lleva `kx--deck` en la
+     raiz: sin el filtro esta regla pesa (0,2,0) sobre la misma caja que
+     `.kx-threshold{ padding: ... }` (0,1,0) y le roba su respiro en telefono. */
+  .kx--deck .kx-slide__in:not(.kx-threshold){ padding:46px 0 84px; }
   .kx--deck .kx-frame--hero{ width:min(46vw,29vh); }
   .kx-umbral .kx-over{ font-size:8.5px; letter-spacing:.24em; }
   .kx-umbral .kx-h1{ font-size:clamp(1.7rem,10vw,2.6rem); margin-top:6px; }
@@ -1016,7 +1035,13 @@
     linear-gradient(0deg,rgba(230,230,230,.035) 1px,transparent 1px);
   background-size:auto,64px 64px,64px 64px;
 }
-.kx--threshold .kx-slide__in{ padding:0; margin:0; min-height:100dvh; }
+/* Sin `padding:0` a proposito. La lamina del THRESHOLD es UN solo elemento
+   con dos clases, `.kx-slide__in.kx-threshold`. Un `padding` puesto aca pesa
+   (0,2,0) y le gana por especificidad a `.kx-threshold{ padding: ... }`, que
+   pesa (0,1,0), sin importar el orden de las reglas: el respiro de la lamina
+   moria y la copia nacia en x=0, bajo la .kx-status y sobre la .kx-deckbar.
+   El padding de esta lamina lo decide su regla de direccion de escena. */
+.kx--threshold .kx-slide__in{ margin:0; min-height:100dvh; }
 .kx-slide--threshold{ overflow:hidden; }
 .kx--threshold [data-reveal]{ opacity:1; transform:none; }
 .kx-threshold{
@@ -1447,7 +1472,8 @@
 .kx--threshold .kx-status__keys{ gap:10px; justify-self:end; }
 .kx--threshold .kx-signal,
 .kx--threshold .kx-status__index{
-  min-height:36px;
+  min-height:44px;
+  min-width:44px;
   display:inline-flex;
   align-items:center;
   justify-content:center;
@@ -1808,7 +1834,7 @@
   .kx--threshold .kx-word__svg{ width:118px; }
   .kx--threshold .kx-status__keys{ gap:8px; }
   .kx--threshold .kx-signal,
-  .kx--threshold .kx-status__index{ min-height:34px; padding:0 10px; font-size:9px; }
+  .kx--threshold .kx-status__index{ min-height:44px; min-width:44px; padding:0 10px; font-size:9px; }
   .kx-threshold{ grid-template-columns:1fr; grid-template-rows:auto auto auto; align-content:start; gap:10px; padding:calc(var(--kx-th-header) + 10px + env(safe-area-inset-top)) 16px calc(var(--kx-th-nav) + 12px + env(safe-area-inset-bottom)); }
   .kx-threshold__field{ inset:auto 0 0 0; }
   .kx-threshold__portal{ left:50%; top:calc(var(--kx-th-header) + 190px); width:min(88vw,46svh); }
@@ -1889,9 +1915,15 @@
   box-shadow:0 0 0 1px rgba(255,39,51,.08), 0 0 40px rgba(255,39,51,.1);
   background:linear-gradient(180deg,rgba(0,0,0,.86),rgba(0,0,0,.58) 64%,transparent);
 }
+/* Estas dos fichas SI crecen de verdad a 44px, no con un area tactil
+   invisible: llevan borde visible, y una ficha que se ve de 34px pero se
+   toca en 44 miente sobre donde termina. La barra tiene sitio de sobra --
+   a 390px el carril de teclas ocupa 44+8+65=117px de los 346px del tramo,
+   y el logotipo solo necesita 118px de los 229px que le quedan. */
 .kx--threshold .kx-status__index,
 .kx--threshold .kx-signal{
-  min-height:34px;
+  min-height:44px;
+  min-width:44px;
   padding:0 12px;
   border:1px solid rgba(230,230,230,.12);
   background:rgba(255,255,255,.02);
@@ -3626,9 +3658,10 @@
   min-height:100dvh;
   overflow:hidden;
 }
+/* Igual que arriba: nada de `padding` en un selector que pesa (0,2,0) sobre
+   la misma caja que `.kx-threshold` viste con (0,1,0). */
 .kx--threshold .kx-slide__in{
   margin:0;
-  padding:0;
 }
 .kx-threshold{
   height:100dvh;
@@ -3860,11 +3893,32 @@
 .kx--threshold .kx-deck {
   transform: none !important;
 }
+
+/* Carriles del chrome fijo de esta escena. No son numeros inventados: son la
+   huella medida de las dos barras que comparten viewport con la lamina.
+
+     .kx-status   position:fixed arriba. Con sus controles ya en 44px de area
+                  tactil mide 57px en escritorio y 55px en telefono
+                  (padding-block 12/10 + control 44 + 1px de borde superior).
+     .kx-deckbar  position:fixed en bottom:18px y mide 66px de alto en esta
+                  escena, o sea se come los ultimos 84px de la ventana.
+
+   La lamina reserva los carriles en vez de adivinar un margen. Antes el valor
+   de abajo era 82px (escritorio) y 76px (telefono) contra una huella real de
+   84px: la CTA quedaba 2-8px por debajo de la barra. Nunca se noto porque
+   este padding jamas llego a aplicarse -- lo tapaban las reglas (0,2,0). */
+.kx--threshold{
+  --kdx-status-lane: calc(57px + env(safe-area-inset-top));
+  --kdx-deckbar-lane: calc(84px + env(safe-area-inset-bottom));
+}
 .kx-threshold {
   grid-template-columns:minmax(0,1fr);
   grid-template-areas:'artifact';
   place-items:center;
-  padding:clamp(74px,9vh,102px) clamp(22px,4vw,64px) calc(82px + env(safe-area-inset-bottom));
+  padding:
+    calc(var(--kdx-status-lane) + clamp(18px,3vh,46px))
+    clamp(22px,4vw,64px)
+    calc(var(--kdx-deckbar-lane) + clamp(14px,2vh,26px));
 }
 .kx-threshold__rail,
 .kx-threshold__headerline,
@@ -3920,9 +3974,17 @@
 }
 
 @media (max-width:900px){
+  /* .kx-status baja a padding-block 10px en este tramo, asi que su carril
+     mide 55px en vez de 57. La .kx-deckbar no cambia de huella. */
+  .kx--threshold{
+    --kdx-status-lane: calc(55px + env(safe-area-inset-top));
+  }
   .kx-threshold {
     grid-template-rows:1fr;
-    padding:calc(58px + env(safe-area-inset-top)) 16px calc(76px + env(safe-area-inset-bottom));
+    padding:
+      calc(var(--kdx-status-lane) + 14px)
+      16px
+      calc(var(--kdx-deckbar-lane) + 12px);
   }
   .kx-threshold__artifact {
     align-self:start;

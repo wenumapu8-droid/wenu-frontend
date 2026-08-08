@@ -117,8 +117,35 @@ const ogImage = new URL('/img/kodex/brand/KODEX_Master_Seal_transparent.png', SI
     <KodexIndexOverlay />
 
     <style is:global>
-      /* give page headers room so their tools clear the menu trigger */
-      .wk-top, .ar-top, .kw-hud{ padding-right:clamp(58px,8vw,86px) !important; }
+      /* ------------------------------------------------------------------
+         CARRIL DEL DISPARADOR DE MENU.
+
+         `.kxm-trigger` es position:fixed en la esquina superior derecha de
+         TODAS las paginas que envuelve este layout (libro, return, works,
+         world, movement/[key], work/[id], store). Cualquier pagina que
+         ponga algo en esa esquina choca contra el. Se comprobo en /store/
+         (el disparador se dibujaba encima de "← ARCHIVE") y en /libro/ (las
+         tres barras cruzaban la marca "KODEX−∞" de .bk-top).
+
+         El carril lo publica el shell, que es quien pone el disparador, y
+         se deriva de su propia geometria en vez de repetir un numero:
+         inset + tamano del boton + 4px de aire. Ninguna pagina tiene que
+         volver a calcularlo, y si el disparador se mueve, el carril se
+         mueve con el.
+
+         Una pagina nueva se suma al contrato con `data-kdx-lane` en su
+         barra superior; no hace falta tocar este archivo.
+         ------------------------------------------------------------------ */
+      :root{
+        --kdx-menu-inset: clamp(14px,4vw,40px);
+        --kdx-menu-size: 44px;   /* area tactil del boton, no del glifo */
+        --kdx-menu-lane: calc(var(--kdx-menu-inset) + var(--kdx-menu-size) + 4px);
+      }
+      /* !important porque los <style> con scope de Astro pesan mas que este
+         bloque global, y el carril no es negociable por la pagina. */
+      .wk-top, .ar-top, .kw-hud, .ks-top, .bk-top, [data-kdx-lane]{
+        padding-right:var(--kdx-menu-lane) !important;
+      }
       /* while a work's ABOUT modal is open, drop the shell chrome beneath it */
       body:has(.wk-about:not([hidden])) .kxc,
       body:has(.wk-about:not([hidden])) .kxm-trigger{ opacity:0 !important; pointer-events:none !important; }
@@ -136,18 +163,29 @@ const ogImage = new URL('/img/kodex/brand/KODEX_Master_Seal_transparent.png', SI
       .kxc.kxc-hot .kxc-v{ background:linear-gradient(180deg, transparent, rgba(201,168,76,.5) 12%, rgba(201,168,76,.5) 88%, transparent); }
       .kxc.kxc-hot .kxc-o{ border-color:rgba(201,168,76,.8); box-shadow:0 0 14px rgba(201,168,76,.5); transform:scale(1.5); }
       @media (hover:none){ .kxc{ display:none; } }
-      .kxm-trigger{ position:fixed; top:16px; right:clamp(14px,4vw,40px); z-index:120; width:34px; height:26px;
+      /* El boton pasa de 34x26 a 44x44 (area tactil) SIN mover el glifo: las
+         barras siguen alineadas a la derecha por `margin-left:auto`, y el
+         `top` se corrige para que su centro optico siga en y=29 (y=27 en
+         telefono), exactamente donde estaba con la caja de 26px. */
+      .kxm-trigger{ position:fixed; top:7px; right:var(--kdx-menu-inset); z-index:120;
+        width:var(--kdx-menu-size); height:var(--kdx-menu-size);
         display:flex; flex-direction:column; justify-content:center; gap:5px; background:none; border:0; cursor:pointer; padding:0; }
       .kxm-trigger i{ display:block; height:1.5px; width:26px; margin-left:auto; background:#c9a84c; transition:.3s; }
       .kxm-trigger:hover i{ width:26px; background:#f0ede8; }
       .kxm-trigger i:nth-child(2){ width:18px; } .kxm-trigger:hover i:nth-child(2){ width:26px; }
-      @media (max-width:640px){ .kxm-trigger{ top:14px; } }
+      @media (max-width:640px){ .kxm-trigger{ top:5px; } }
 
       .kxm{ position:fixed; inset:0; z-index:119; background:rgba(4,4,6,.97); backdrop-filter:blur(10px);
         display:grid; place-items:center; opacity:0; pointer-events:none; transition:opacity .5s ease; }
       .kxm[hidden]{ display:none; }               /* honour the hidden attr over display:grid */
       .kxm[data-open]{ opacity:1; pointer-events:auto; }  /* only capture clicks while open */
-      .kxm-x{ position:fixed; top:16px; right:clamp(14px,4vw,40px); z-index:121; font-size:15px; color:#9a948a; background:none; border:0; cursor:pointer; }
+      /* La ✕ ocupa el mismo sitio que el disparador al que reemplaza mientras
+         el menu esta abierto, con la misma area tactil y el glifo en el mismo
+         canto derecho. */
+      .kxm-x{ position:fixed; top:7px; right:var(--kdx-menu-inset); z-index:121;
+        width:var(--kdx-menu-size); height:var(--kdx-menu-size);
+        display:inline-flex; align-items:center; justify-content:flex-end;
+        font-size:15px; color:#9a948a; background:none; border:0; cursor:pointer; padding:0; }
       .kxm-x:hover{ color:#f0ede8; }
       .kxm-inner{ width:min(90vw,760px); padding:0 24px; }
       .kxm-mark{ margin:0 0 clamp(24px,5vh,44px); color:var(--kdx-dust-white,#EDEDED); position:relative; }
