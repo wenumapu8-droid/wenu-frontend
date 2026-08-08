@@ -1,0 +1,588 @@
+/* ==========================================================================
+   KODEX−∞ · PANEL GRAMMAR
+   --------------------------------------------------------------------------
+   El sistema de laminas, extraido MIDIENDO los posters, no inventado.
+
+   Fuentes medidas (pixel-scan sobre los PNG a 1672x941):
+     reference/posters/e379fb71-54983.png   OBSERVATION EYE
+     reference/posters/031e193b-54982.png   ARCHIVE TREE
+     reference/posters/20325042-54984.png   THRESHOLD PORTAL
+
+   Lo que dio la medicion:
+
+   · BORDE. Todas las lineas de panel son de 1px exacto. Ni una sola de 2px.
+     Color medido rgb(34,32,33) sobre un fondo casi negro. El panel se define
+     SOLO por su linea: nunca tiene relleno mas claro que el suelo.
+   · CANALETA. Entre el panel del centro y la columna derecha del poster EYE
+     hay 10px (bordes en x=1112 y x=1122). 10/1672 = 0.6% del ancho. Es una
+     canaleta muy apretada: eso es lo que hace que se lea como UNA hoja y no
+     como un tablero de tarjetas.
+   · MARGEN. El primer borde vertical esta en x=12 (0.72% del ancho). En TREE
+     y THRESHOLD hay ademas un marco exterior a x=4..6 (0.3%).
+   · CABECERA DE PANEL. Banda de ~18px separada del cuerpo por otra linea de
+     1px. La etiqueta arranca a 12px del borde izquierdo del panel (0.7%).
+   · TIPOGRAFIA (altura de mayuscula medida por scanline):
+       etiqueta de panel "01. SCAN STATES"  9px  -> ~11.5px = 0.69% del ancho
+       microetiqueta "SCENE ID"             7px  -> ~9.7px  = 0.58% del ancho
+       valor "TANDA-01"                    10px  -> ~13.9px = 0.83% del ancho
+     La razon etiqueta/valor es 0.70 y se mantiene en los tres posters.
+   · BARRA DE INSTRUMENTOS. 33px de alto, celdas de 105px iguales (6.3% del
+     ancho) separadas por verticales de 1px. Va arriba (identidad de la hoja)
+     y abajo (identidad del sistema).
+   · PRESUPUESTO DE TINTA. Contado pixel a pixel en los tres posters:
+       casi-negro   81.5% / 83.6% / 83.3%
+       gris neutro   9.7% / 10.5% /  9.9%
+       acento        8.8% /  5.8% /  6.8%
+     REGLA: el acento nunca pasa del 9% de la lamina, y NUNCA se gasta en los
+     bordes. Los bordes son siempre grises. El acento se gasta en cuatro
+     cosas y nada mas: el titulo de la hoja, UN valor por panel (el que
+     importa), el estado que esta activo, y la accion primaria.
+
+   Traduccion a web (decision, no medicion):
+     Las microetiquetas del poster caen a 8.4px a 1440 de ancho. El poster se
+     lo permite porque es impresion. Aca hay un PISO de 9px: la escala de tres
+     pasos del poster (11.5/9.7/8.4) se comprime a 10/9.5/9. Es la unica
+     medida que NO se respeta al pie de la letra, y se dice.
+   ========================================================================== */
+
+.kdxp {
+  /* --- linea. line.hairline / line.signal de kodex.tokens.json --- */
+  --kdxp-hair: 1px;
+  --kdxp-rule: #242123;
+  --kdxp-rule-lit: #3b3739;
+
+  /* --- ritmo. Medido: canaleta 0.6% del ancho, margen 0.72% --- */
+  --kdxp-gutter: 8px;
+  --kdxp-pad-i: 10px;
+  --kdxp-pad-b: 8px;
+
+  /* --- cabecera. Medido 18px @1672 -> 22px es el minimo que aloja una
+         etiqueta de 10px con aire suficiente para leerse en pantalla --- */
+  --kdxp-head: 22px;
+
+  /* --- tipografia --- */
+  --kdxp-label: 10px;
+  --kdxp-micro: 9px;
+  --kdxp-value: 12px;
+  --kdxp-value-lg: 15px;
+  --kdxp-track: 0.16em;
+  --kdxp-track-wide: 0.22em;
+  --kdxp-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* --- tinta --- */
+  --kdxp-ground: #050505;
+  --kdxp-ink: #E8E4DB;
+  --kdxp-dim: #7C7975;
+  --kdxp-dimmer: #565350;
+  --kdxp-accent: var(--kdx-red, #FF3833);
+
+  /* --- barras --- */
+  --kdxp-bar: 34px;
+  --kdxp-cell-min: 96px;
+
+  color: var(--kdxp-ink);
+  font-family: var(--kdxp-mono);
+}
+
+/* ==========================================================================
+   1 · PANEL — el primitivo. Nada flota: todo vive dentro de uno de estos.
+   ========================================================================== */
+
+.kdxp-panel {
+  position: relative;
+  display: grid;
+  /* minmax(0,1fr) EXPLICITO. Una pista implicita `auto` se dimensiona al
+     min-content del hijo mas ancho y revienta a los hermanos: es el mismo
+     fallo que se cobro /kodex/works/ y observe-v2. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: var(--kdxp-head) minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  border: var(--kdxp-hair) solid var(--kdxp-rule);
+  background: transparent;
+  isolation: isolate;
+}
+
+/* La cabecera numerada. Es lo que convierte una zona en un asiento del
+   documento: sin numero es un widget, con numero es una hoja. */
+.kdxp-panel__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding-inline: var(--kdxp-pad-i);
+  border-bottom: var(--kdxp-hair) solid var(--kdxp-rule);
+  font-size: var(--kdxp-label);
+  line-height: 1;
+  letter-spacing: var(--kdxp-track);
+  text-transform: uppercase;
+  color: var(--kdxp-ink);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.kdxp-panel__n {
+  color: var(--kdxp-dim);
+  flex: 0 0 auto;
+}
+
+.kdxp-panel__name {
+  /* El nombre del panel NO se recorta: es la mitad de la identidad de la
+     zona. El que cede espacio es la etiqueta secundaria. */
+  flex: 0 0 auto;
+}
+
+/* La etiqueta secundaria de la derecha (`/ CORE INTERFACE`, `/ LIVE FEED`).
+   En el poster va siempre mas apagada y siempre con la barra delante. */
+.kdxp-panel__aside {
+  margin-left: auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--kdxp-dimmer);
+  font-size: var(--kdxp-micro);
+  letter-spacing: var(--kdxp-track);
+}
+
+.kdxp-panel__body {
+  min-width: 0;
+  min-height: 0;
+  padding: 6px var(--kdxp-pad-i);
+  overflow: hidden;
+}
+
+.kdxp-panel__body--flush { padding: 0; }
+
+/* Un panel deliberadamente vacio. El canon dice
+   `preserve_empty_or_unresolved_state`: la ausencia es un estado informativo
+   valido y NO se rellena. Esto le da forma a esa ausencia en vez de
+   disimularla. */
+.kdxp-panel--sparse .kdxp-panel__body {
+  display: grid;
+  place-items: center;
+  color: var(--kdxp-dimmer);
+  font-size: var(--kdxp-micro);
+  letter-spacing: var(--kdxp-track-wide);
+  text-align: center;
+}
+
+/* Marcas de esquina. En el poster solo las lleva el panel dominante. */
+.kdxp-panel--focus::before,
+.kdxp-panel--focus::after {
+  content: '';
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border: var(--kdxp-hair) solid var(--kdxp-accent);
+  opacity: 0.7;
+  pointer-events: none;
+  z-index: 3;
+}
+.kdxp-panel--focus::before { inset: 4px auto auto 4px; border-right: 0; border-bottom: 0; }
+.kdxp-panel--focus::after { inset: auto 4px 4px auto; border-left: 0; border-top: 0; }
+
+/* ==========================================================================
+   2 · CELDA etiqueta/valor — el atomo de dato. Microetiqueta arriba, valor
+   abajo. Razon de tamano 0.70, medida en los tres posters.
+   ========================================================================== */
+
+.kdxp-cell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  min-width: 0;
+}
+
+.kdxp-cell__k {
+  font-size: var(--kdxp-micro);
+  line-height: 1.15;
+  letter-spacing: var(--kdxp-track);
+  text-transform: uppercase;
+  color: var(--kdxp-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kdxp-cell__v {
+  font-size: var(--kdxp-value);
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  color: var(--kdxp-ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* UN valor por panel puede llevar el acento. Es la regla de reparto medida. */
+.kdxp-cell--accent .kdxp-cell__v { color: var(--kdxp-accent); }
+.kdxp-cell--lg .kdxp-cell__v { font-size: var(--kdxp-value-lg); }
+
+/* ==========================================================================
+   3 · FILA DE DATOS — clave a la izquierda, valor a la derecha, separadas por
+   una guia de puntos. Es la forma que usan los paneles de diagnostico.
+   ========================================================================== */
+
+.kdxp-rows {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.kdxp-row {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+  align-items: baseline;
+  gap: 6px;
+  padding-block: 2px;
+  border-bottom: var(--kdxp-hair) solid color-mix(in srgb, var(--kdxp-rule) 70%, transparent);
+  font-size: var(--kdxp-micro);
+  letter-spacing: 0.1em;
+  min-width: 0;
+}
+.kdxp-row:last-child { border-bottom: 0; }
+
+.kdxp-row__k {
+  color: var(--kdxp-dim);
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* La guia. En el poster es lo que sostiene la mirada de la clave al valor. */
+.kdxp-row__lead {
+  border-bottom: var(--kdxp-hair) dotted color-mix(in srgb, var(--kdxp-rule-lit) 80%, transparent);
+  transform: translateY(-2px);
+  min-width: 8px;
+}
+
+.kdxp-row__v {
+  color: var(--kdxp-ink);
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.kdxp-row--accent .kdxp-row__v { color: var(--kdxp-accent); }
+.kdxp-row--muted .kdxp-row__v { color: var(--kdxp-dim); }
+
+/* ==========================================================================
+   4 · BARRA DE INSTRUMENTOS — 33px medidos, celdas iguales separadas por
+   verticales de 1px. Arriba dice que hoja es; abajo, que sistema la emite.
+   ========================================================================== */
+
+.kdxp-bar {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(var(--kdxp-cell-min), 1fr);
+  align-items: stretch;
+  min-height: var(--kdxp-bar);
+  min-width: 0;
+  border: var(--kdxp-hair) solid var(--kdxp-rule);
+  overflow: hidden;
+}
+
+.kdxp-bar__cell {
+  display: grid;
+  align-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px var(--kdxp-pad-i);
+  border-left: var(--kdxp-hair) solid var(--kdxp-rule);
+}
+.kdxp-bar__cell:first-child { border-left: 0; }
+
+.kdxp-bar__k {
+  font-size: var(--kdxp-micro);
+  line-height: 1.1;
+  letter-spacing: var(--kdxp-track);
+  text-transform: uppercase;
+  color: var(--kdxp-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kdxp-bar__v {
+  font-size: var(--kdxp-value);
+  line-height: 1.15;
+  letter-spacing: 0.06em;
+  color: var(--kdxp-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kdxp-bar__cell--accent .kdxp-bar__v { color: var(--kdxp-accent); }
+.kdxp-bar__cell--wide { grid-column: span 2; }
+
+/* ==========================================================================
+   5 · TIRA / CODIGO DE BARRAS — indice visual. NUNCA una credencial ni una
+   medida: es una marca de indice y se declara como tal.
+   ========================================================================== */
+
+.kdxp-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 22px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.kdxp-strip i {
+  display: block;
+  flex: 0 0 auto;
+  height: 100%;
+  background: var(--kdxp-dim);
+}
+
+/* ==========================================================================
+   6 · MOSAICO DE DIAGRAMA — celda chica con borde, contenido a sangre y pie
+   en microetiqueta. Siempre en grillas estrictas de 3 / 4 / 5 / 6.
+   ========================================================================== */
+
+.kdxp-tiles {
+  display: grid;
+  grid-template-columns: repeat(var(--kdxp-tile-cols, 3), minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+.kdxp-tile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+.kdxp-tile__frame {
+  position: relative;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  border: var(--kdxp-hair) solid var(--kdxp-rule);
+  overflow: hidden;
+}
+
+.kdxp-tile__cap {
+  font-size: var(--kdxp-micro);
+  line-height: 1.1;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kdxp-dim);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   7 · MUESTRA DE COLOR — la paleta canonica del organismo, con su hex. Es el
+   unico sitio donde el color NO cuenta contra el presupuesto de acento:
+   la paleta es el dato.
+   ========================================================================== */
+
+.kdxp-swatches {
+  display: grid;
+  /* Las siete de la paleta canonica en UNA fila. Envolverlas parte el dato
+     en dos y deja un hueco donde el poster no lo tiene. */
+  grid-template-columns: repeat(var(--kdxp-swatch-cols, 7), minmax(0, 1fr));
+  gap: 4px;
+  min-width: 0;
+}
+
+.kdxp-swatch {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  min-width: 0;
+}
+
+.kdxp-swatch__chip {
+  height: 26px;
+  border: var(--kdxp-hair) solid var(--kdxp-rule);
+}
+
+.kdxp-swatch__hex {
+  font-size: var(--kdxp-micro);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: var(--kdxp-dim);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   8 · MARCA EPISTEMICA — de que tipo es cada valor. Se marca en el sitio, no
+   en una leyenda lejana. CANON: el registro va declarado, no supuesto.
+       MEASURED  medido por el navegador en este momento
+       CANON     dato del manifiesto / del motor, verificable en el repo
+       AUTHORED  texto de autor
+   ========================================================================== */
+
+.kdxp-mark {
+  display: inline-block;
+  padding: 0 4px;
+  border: var(--kdxp-hair) solid var(--kdxp-rule-lit);
+  font-size: var(--kdxp-micro);
+  line-height: 14px;
+  letter-spacing: var(--kdxp-track);
+  text-transform: uppercase;
+  color: var(--kdxp-dimmer);
+  white-space: nowrap;
+}
+.kdxp-mark--measured { color: var(--kdxp-ink); border-color: var(--kdxp-rule-lit); }
+
+/* ==========================================================================
+   9 · ESTADO — la lista de estados canonicos con el activo marcado. El poster
+   marca el activo con el acento y deja los otros en gris.
+   ========================================================================== */
+
+.kdxp-states {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  min-width: 0;
+}
+
+.kdxp-state {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 3px 6px;
+  border: var(--kdxp-hair) solid var(--kdxp-rule);
+  font-size: var(--kdxp-micro);
+  letter-spacing: 0.1em;
+  color: var(--kdxp-dim);
+}
+
+.kdxp-state__id {
+  font-size: var(--kdxp-value);
+  letter-spacing: var(--kdxp-track);
+  color: var(--kdxp-dim);
+}
+
+.kdxp-state__es {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kdxp-state__amp {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.kdxp-state[data-active='true'] {
+  border-color: color-mix(in srgb, var(--kdxp-accent) 55%, transparent);
+}
+.kdxp-state[data-active='true'] .kdxp-state__id { color: var(--kdxp-accent); }
+
+/* ==========================================================================
+   10 · CODIGO — el shader real, citado. En el poster es `SHADER NOTES /
+   PSEUDO-CODE`. Aca no es pseudo: es el archivo que corre.
+   ========================================================================== */
+
+.kdxp-code {
+  margin: 0;
+  font-family: var(--kdxp-mono);
+  font-size: var(--kdxp-micro);
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+  color: var(--kdxp-dim);
+  white-space: pre;
+  overflow: hidden;
+}
+.kdxp-code b { color: var(--kdxp-ink); font-weight: 400; }
+.kdxp-code i { color: var(--kdxp-accent); font-style: normal; }
+
+/* ==========================================================================
+   11 · ACCION — la unica accion primaria de la hoja. Area tactil 44px minimo
+   (layout.touchTargetMin en kodex.tokens.json).
+   ========================================================================== */
+
+.kdxp-action {
+  display: grid;
+  place-items: center;
+  min-height: 48px;
+  padding: 0 16px;
+  border: var(--kdxp-hair) solid var(--kdxp-accent);
+  background: color-mix(in srgb, var(--kdxp-accent) 12%, transparent);
+  color: var(--kdxp-ink);
+  font-family: var(--kdxp-mono);
+  font-size: var(--kdxp-value);
+  letter-spacing: var(--kdxp-track-wide);
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 240ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.kdxp-action:hover,
+.kdxp-action:focus-visible {
+  background: var(--kdxp-accent);
+  color: #0A0505;
+  outline: none;
+}
+
+.kdxp-action--ghost {
+  /* 32px en escritorio -- puntero fino. El piso de 44px de
+     layout.touchTargetMin se aplica donde hay dedo, abajo de 900px. */
+  min-height: 32px;
+  border-color: var(--kdxp-rule-lit);
+  background: transparent;
+  color: var(--kdxp-dim);
+  font-size: var(--kdxp-micro);
+}
+.kdxp-action--ghost:hover,
+.kdxp-action--ghost:focus-visible {
+  background: transparent;
+  border-color: var(--kdxp-accent);
+  color: var(--kdxp-ink);
+}
+
+@media (max-width: 900px) {
+  .kdxp-action--ghost { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kdxp-action { transition: none; }
+}
+
+/* Una linea de codigo citado. Va como elemento por linea y no como texto con
+   saltos: el compilador de Astro no tiene que parsear GLSL dentro de JSX. */
+.kdxp-code__ln { display: block; white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+.kdxp-code__ln--note { color: var(--kdxp-accent); opacity: 0.75; }
+
+
+/* Los verbos del organismo, cada uno en su celda con borde. El poster nunca
+   deja tres columnas de texto sueltas: las encierra. */
+.kdxp-verbs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+  min-width: 0;
+}
+.kdxp-verb {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 3px 5px;
+  border: var(--kdxp-hair) solid var(--kdxp-rule);
+}
+/* 11px y sin corte: "REMEMBER" no puede partirse en "REMEMBE / R". */
+.kdxp-verb .kdxp-cell__v {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

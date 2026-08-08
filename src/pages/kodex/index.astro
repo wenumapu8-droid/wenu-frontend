@@ -6,18 +6,16 @@ import '../../styles/kodex.css';
 import '../../styles/kodex-motion.css';
 import HiddenMessageBand from '../../components/kodex/motion/HiddenMessageBand.astro';
 import ParticleField from '../../components/kodex/motion/ParticleField.astro';
-import SignalWaveform from '../../components/kodex/motion/SignalWaveform.astro';
 import SpriteSignal from '../../components/kodex/motion/SpriteSignal.astro';
 import KodexPortal from '../../components/kodex/portal/KodexPortal.astro';
-import KodexOriginVector from '../../components/kodex/density/KodexOriginVector.astro';
-import KodexSystemLog from '../../components/kodex/density/KodexSystemLog.astro';
-import KodexSystemFooter from '../../components/kodex/density/KodexSystemFooter.astro';
-import KodexRegistration from '../../components/kodex/density/KodexRegistration.astro';
 import KodexTransition from '../../components/kodex/transition/KodexTransition.astro';
 import KodexDebug from '../../components/kodex/debug/KodexDebug.astro';
-import KodexEje from '../../components/kodex/eje/KodexEje.astro';
 import KodexTira from '../../components/kodex/museo/KodexTira.astro';
 import KodexQuietFrame from '../../components/kodex/interludes/KodexQuietFrame.astro';
+import KdxPanel from '../../components/kodex/panels/KdxPanel.astro';
+import KdxBar from '../../components/kodex/panels/KdxBar.astro';
+import '../../components/kodex/panels/kodex-panels.css';
+import '../../components/kodex/panels/kodex-threshold-board.css';
 import { leerManifiesto, resolver } from '../../lib/kodex/volumenes';
 import { quietFrames } from '../../lib/kodex/quietFrames';
 import '../../styles/kodex-micrographics.css';
@@ -27,6 +25,9 @@ import { thresholdArtifactRecord, prologueObservationRecord } from '../../lib/ko
 import { SCENE_UNIVERSE } from '../../lib/kodexUniverse.js';
 import { KODEX_MESSAGES } from '../../lib/kodex/motion-config.js';
 import { motionVars, recipeFor, gridFor } from '../../lib/kodex/grammar';
+import manifest from '../../../public/kodex-content/manifest.json';
+import { THRESHOLD_PORTAL_CONFIG } from '../../kodex/threshold-portal/config.js';
+import { FASES } from '../../lib/kodex/archivo';
 
 // THRESHOLD toma el portal de marmol: su grilla dice "dream field, ambient
 // scene", que es exactamente una puerta que todavia no se cruzo.
@@ -40,42 +41,132 @@ const thresholdMotion = motionVars('threshold');
 const volumenesPortales = resolver(await leerManifiesto())
   .filter((v) => v.estrato === 'portales');
 
+/* CANON. El estrato 02 del manifiesto, que es al que pertenece esta lamina. */
+const estratoPortales = (await leerManifiesto()).estratos.find((e) => e.id === 'portales');
+
 const threshold = SCENE_UNIVERSE.threshold;
 const prologue = SCENE_UNIVERSE.prologue;
 
-const thresholdRows = [
-  ['NODE', 'KDX_00'],
-  ['STATUS', threshold.status],
-  ['ACCESS', 'UNVERIFIED'],
+/* ---------------------------------------------------------------------------
+   THRESHOLD · DE DONDE SALE CADA VALOR DE LA HOJA
+   ---------------------------------------------------------------------------
+   La lamina anterior mostraba `SIGNAL 137.59 MHz`, `RA 23h00m / DEC +89°06′18″`,
+   `CLEARANCE CL-5`, `THREAT T-1`, `ACCESS UNVERIFIED`, un registro de sistema
+   con marcas de tiempo `00:00:01 MEMORY MATRIX ONLINE` y tres chips
+   (`ARCHIVE SEALED` / `RITUAL MEMORY` / `OPERATIVE PORTAL`). Ninguno de esos
+   valores lo puede respaldar nada: son telemetria inventada.
+
+   docs/kodex/THRESHOLD_VISUAL_AUDIT_V1.md lo dice sin rodeos en D5:
+     "Do not copy the reference board's invented energy, auth, clearance,
+      harmonic, coordinates or similar claims."
+   y el canon fija la conducta ante el vacio:
+     "Absence is a valid informational state. It must not be filled."
+
+   Asi que la densidad de esta hoja NO viene de inventar mas numeros: viene de
+   que el proyecto ya tiene mucho dato real y no lo estaba mostrando. Tres
+   fuentes, y cada panel declara la suya:
+
+     CANON     public/kodex-content/manifest.json -> organismo 01
+               `threshold-portal`. Nombre, rol, estados, verbos, paleta,
+               ruteo de audio y cadena FX salen literalmente de ahi.
+     ENGINE    src/kodex/threshold-portal/ -- la configuracion y los cuatro
+               shaders que de verdad corren. Los numeros que se muestran son
+               los que el runtime sube como uniform, leidos del codigo fuente.
+     MEASURED  medido por el navegador en el momento: renderer, modo de
+               movimiento, viewport, DPR, fase del portal.
+
+   Y una cuarta, marcada aparte: AUTHORED, el texto de autor.
+   --------------------------------------------------------------------------- */
+
+/* CANON. El organismo 01 del manifiesto. Si el manifiesto cambia, cambia la
+   lamina: no hay copia del dato en esta pagina. */
+const organism = manifest.organismos.find((o) => o.id === 'threshold-portal');
+if (!organism) throw new Error('manifest.json: falta el organismo threshold-portal');
+
+/* ENGINE. Estos son los tres valores que el runtime sube tal cual:
+     u_seed   = seed del componente (0.382)
+     u_decay  = config.feedback.decay
+     u_mix    = config.feedback.mix, y 0.0 exacto con movimiento reducido
+              (KdxThresholdPortalRuntime.js:234)
+   El u_state que ve el shader es `phaseValue / 2` (linea 217), de modo que
+   DORMANT/AWARE/OPEN entran como 0.0 / 0.5 / 1.0. */
+const portalSeed = THRESHOLD_PORTAL_CONFIG.defaultSeed;
+const feedbackDecay = THRESHOLD_PORTAL_CONFIG.feedback.decay;
+const feedbackMix = THRESHOLD_PORTAL_CONFIG.feedback.mix;
+
+/* ENGINE. Las amplitudes por estado NO se leen de config.breathing/config.polar:
+   esos campos existen pero el runtime nunca los sube. Lo que de verdad corre
+   esta escrito en shaders/thresholdPortalSource.frag:41-43
+
+     breathe   = sin(u_time * mix(0.12, 0.28, u_state)) * mix(0.02, 0.08, u_state)
+     polarWarp = mix(0.06, 0.24, u_state) * sin(angle*4 + u_time*0.18 + u_seed*TAU)
+
+   Evaluado en los tres u_state canonicos. Se muestran estos y no los de
+   config.js porque son los que el portal esta usando. */
+const uState = { DORMANT: 0, AWARE: 0.5, OPEN: 1 };
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const stateRows = organism.estados.map((e) => {
+  const t = uState[e.id as keyof typeof uState] ?? 0;
+  return {
+    id: e.id,
+    es: e.es,
+    en: e.en,
+    u: t.toFixed(1),
+    breathe: lerp(0.02, 0.08, t).toFixed(3),
+    warp: lerp(0.06, 0.24, t).toFixed(2),
+  };
+});
+
+/* ENGINE. Los cuatro estados del archivo y el valor con el que cada uno entra
+   al shader. Salen de src/lib/kodex/archivo.ts, que es lo que el boton de la
+   hoja mueve: el MISMO numero alimenta u_state y el preset del audio. */
+const archivePhases: [string, string, string][] = FASES.map((f) => [
+  f.clave,
+  f.nombre,
+  f.valor.toFixed(2),
+]);
+
+/* ENGINE. Las cuatro pasadas reales, en el orden en que corren. */
+const shaderChain = [
+  ['VERT', 'screen.vert'],
+  ['PASS 1', 'thresholdPortalSource.frag'],
+  ['PASS 2', 'thresholdPortalFeedback.frag'],
+  ['PASS 3', 'thresholdPortalComposite.frag'],
 ];
 
-const thresholdRailRows = [
-  ['NODE', 'KDX_00'],
-  ['STATE', 'LATENT'],
-  ['SIGNAL', 'SONIDO'],
-  ['SOURCE', 'ARCHIVO VIVO'],
+/* ENGINE. Cita literal de shaders/thresholdPortalSource.frag:41-43 y de
+   runtime/KdxThresholdPortalRuntime.js:217,234. Va como dato y no como
+   markup para que el compilador no tenga que parsear GLSL dentro de JSX. */
+const shaderQuote: Array<[string, 'src' | 'note']> = [
+  ['float breathe   = sin(u_time * mix(0.12, 0.28, u_state))', 'src'],
+  ['                * mix(0.02, 0.08, u_state);', 'src'],
+  ['float polarWarp = mix(0.06, 0.24, u_state)', 'src'],
+  ['                * sin(angle * 4.0 + u_time * 0.18);', 'src'],
+  ['// u_state = phaseValue / 2', 'note'],
+  ['//   DORMANT 0.0 · AWARE 0.5 · OPEN 1.0', 'note'],
+  ['// u_mix = 0.0 exacto con movimiento reducido', 'note'],
 ];
 
-const thresholdMetaClusters = {
-  upper: [
-    ['NODE', 'KDX_00'],
-    ['STATUS', 'LATENT'],
-    ['ACCESS', 'UNVERIFIED'],
-  ],
-  lower: [
-    ['TYPE', 'AUDIOVISUAL SYSTEM'],
-    ['METHOD', 'SIGNAL / MATTER / MEMORY'],
-    ['CHECKSUM', thresholdArtifactRecord.checksum],
-  ],
-};
+/* Marca de indice del pie. El ancho y la opacidad de cada barra salen del
+   propio id del organismo: reproducible, y no afirma nada sobre nada. */
+const stripBars = Array.from(organism.id).map((ch, i) => {
+  const w = 1 + ((ch.charCodeAt(0) + i) % 4);
+  const o = (0.3 + (ch.charCodeAt(0) % 6) / 9).toFixed(2);
+  return 'width:' + w + 'px;opacity:' + o;
+});
 
-const thresholdStatusChips = ['ARCHIVE SEALED', 'RITUAL MEMORY', 'OPERATIVE PORTAL'];
+/* AUTHORED. Texto de autor de la pagina. No afirma nada del mundo. */
+const lede = 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.';
+const sublede = 'A LIVING AUDIOVISUAL SYSTEM FOR SIGNAL, MATTER, MEMORY AND GENERATIVE CODE.';
 
-const thresholdSystemLog = [
-  'PORTAL FIELD SEALED',
-  'GEOMETRY CALIBRATED',
-  'MEMORY CHANNEL LATENT',
-  'ACCESS UNVERIFIED',
+/* Los tres unicos enunciados de acceso que esta pagina puede sostener, de la
+   lista permitida del audit (D3). Son ciertos porque describen lo que la
+   pagina hace: no pide identidad, no escribe memoria hasta que se entra, y la
+   entrada es un acto explicito. */
+const entryTerms = [
+  ['IDENTITY CLAIM', 'NONE'],
+  ['MEMORY WRITE', 'NONE'],
+  ['ENTRY', 'VOLUNTARY'],
 ];
 
 const thresholdMessages = KODEX_MESSAGES.threshold;
@@ -120,234 +211,267 @@ const prologueRows = [
     <KodexChrome segs={7} />
 
     <div class="kx-deck" data-deck>
-      <section class="kx-slide kx-slide--threshold" id="threshold" aria-labelledby="kdx-threshold-title">
-        <div class="kx-slide__in kx-threshold">
-          {/* THRESHOLD ya NO corre el vortice de red. Su preset es el portal
-              sobre la obra, y correr los dos deja dos sistemas peleando por el
-              mismo fondo. La regla del proyecto es explicita: las siete
-              escenas no pueden verse iguales -- distincion por receta, no por
-              recolorear la misma lamina. */}
+      {/* ==================================================================
+          THRESHOLD · LA HOJA
+          ------------------------------------------------------------------
+          Once zonas numeradas, dos barras de instrumentos y un objeto vivo.
+          La numeracion corre en orden de lectura sobre la hoja entera --
+          columna izquierda 01..04, centro 05, columna derecha 06..08, banda
+          09..11 -- y no reinicia por columna: eso es lo que hace que se lea
+          como UN documento y no como una coleccion de bloques.
 
-          <div class="kx-threshold__field" aria-hidden="true">
-            <ParticleField class="kx-threshold__particles" scene="threshold" label="threshold particle field" />
-            <span class="kx-threshold__grid"></span>
-            <span class="kx-threshold__scanline"></span>
-            <span class="kx-threshold__portal"></span>
-            <span class="kx-threshold__ring kx-threshold__ring--a"></span>
-            <span class="kx-threshold__ring kx-threshold__ring--b"></span>
-            <span class="kx-threshold__signal-dots kx-threshold__signal-dots--a"></span>
-            <span class="kx-threshold__signal-dots kx-threshold__signal-dots--b"></span>
-            <span class="kx-threshold__dots"></span>
+          Cada panel declara de donde sale su contenido en su propia cabecera:
+          CANON (manifiesto), ENGINE (el motor que corre), MEASURED (medido por
+          el navegador ahora) o AUTHORED (texto de autor). Ningun panel afirma
+          algo que no pueda respaldar, y el que no tiene dato lo dice.
+          ================================================================== */}
+      <section class="kx-slide kx-slide--threshold" id="threshold" aria-labelledby="kdx-threshold-title">
+        <div class="kx-slide__in kx-threshold kdxp-board kdxp">
+          <div class="kdxp-field" aria-hidden="true">
+            <ParticleField class="kdxp-field__particles" scene="threshold" label="threshold particle field" />
           </div>
 
-          <aside class="kx-threshold__rail" aria-label="threshold metadata" data-reveal>
-            {thresholdRailRows.map(([label, value]) => (
-              <div>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </div>
-            ))}
-          </aside>
-
-          <main class="kx-threshold__body">
-            <div class="kx-threshold__headerline" data-reveal>
-              <p class="kx-threshold__kicker">SONIDO / ARCHIVO VIVO</p>
-              <p class="kx-threshold__serial">{thresholdArtifactRecord.archive} // <span data-kdx-checksum>{thresholdArtifactRecord.checksum}</span> // {thresholdArtifactRecord.timestamp}</p>
+          {/* ---------- MASTHEAD + barra de instrumentos superior ---------- */}
+          <header class="kdxp-masthead">
+            <div class="kdxp-masthead__id">
+              <h1 class="kdxp-masthead__title" id="kdx-threshold-title">
+                <span>KODEX−∞</span>
+                <span class="kdxp-masthead__slash">/</span>
+                <em>{organism.name_en.toUpperCase()}</em>
+              </h1>
+              <p class="kdxp-masthead__sub">{organism.name_es} · {organism.rol}</p>
             </div>
-            <dl class="kx-threshold__meta-zone kx-threshold__meta-zone--upper" data-reveal>
-              {thresholdMetaClusters.upper.map(([label, value]) => (
-                <div>
-                  <dt>{label}</dt>
-                  <dd data-kdx-access={label === 'ACCESS' ? '' : undefined}>{value}</dd>
-                </div>
-              ))}
-            </dl>
-            <h1 class="kx-threshold__command" id="kdx-threshold-title" data-reveal>
-              <span>KODEX−∞</span>
-            </h1>
-            <p class="kx-threshold__decree" data-reveal>
-              THE ARCHIVE RECOGNIZES YOU.
-            </p>
-            <p class="kx-threshold__lede" data-reveal>
-              THE ARCHIVE DOES NOT STORE. IT REMEMBERS.
-            </p>
-            <p class="kx-threshold__sublede" data-reveal>
-              A LIVING AUDIOVISUAL SYSTEM FOR SIGNAL, MATTER, MEMORY AND GENERATIVE CODE.
-            </p>
-            <div class="kx-threshold__chips" data-reveal>
-              {thresholdStatusChips.map((chip) => <span>{chip}</span>)}
-            </div>
-            <a class="kx-threshold__cta" href="/kodex/folio/i/" data-reveal>
-              <span>ENTER THE KODEX</span>
-            </a>
 
-            {/* Franja de instrumentos del pie: registro, checksum y monitor.
-                En el board es lo que da la sensacion de sistema encendido --
-                algo esta corriendo mientras uno lee. */}
-            <KodexSystemLog
-              entries={[
-                ['00:00:00', 'KDX-CORE INITIALIZED'],
-                ['00:00:01', 'MEMORY MATRIX ONLINE'],
-                ['00:00:02', `${thresholdArtifactRecord.protocol ?? 'THRESHOLD'} PROTOCOL STANDBY`],
-                ['00:00:03', 'WAITING FOR INTENT…'],
+            <KdxBar
+              label="sheet identity"
+              cells={[
+                { k: 'ORGANISM', v: organism.n, accent: true },
+                { k: 'ID', v: organism.id },
+                { k: 'ROUTE', v: '/kodex/' },
+                { k: 'STAGE', v: '00 / 07' },
+                { k: 'RENDERER', v: '—', hook: 'renderer' },
+                { k: 'MOTION', v: '—', hook: 'motion' },
               ]}
-              checksum={thresholdArtifactRecord.checksum}
-              verifyAt="KODEX-SYSTEMS/VERIFY"
-              threatLabel={`${thresholdArtifactRecord.threat ?? 'NO ANOMALIES'} DETECTED`}
-              accent="var(--kdx-red, #FF3833)"
-              class="kx-threshold__syslog"
             />
-          </main>
+          </header>
 
-            {/* El pie de sistema del board, en lugar del bloque de metadatos
-                que decia lo mismo en texto plano. Lleva la misma informacion
-                -- tipo, metodo, checksum -- mas el barcode del identificador y
-                el reloj: abajo de la lamina siempre hay algo corriendo. */}
-            <KodexSystemFooter
-              code={`${thresholdArtifactRecord.archive}-${thresholdArtifactRecord.checksum}`}
-              checksum={thresholdArtifactRecord.checksum}
-              kind="AUDIOVISUAL SYSTEM · SIGNAL / MATTER / MEMORY"
-              accent="var(--kdx-red, #FF3833)"
-              class="kx-threshold__sysfoot"
-            />
+          <div class="kdxp-main">
+            {/* ---------------- columna izquierda · 01..04 ---------------- */}
+            <div class="kdxp-col kdxp-col--left">
+              <KdxPanel n="01" label="SCENE" aside="CANON">
+                <dl class="kdxp-rows">
+                  <div class="kdxp-row"><dt class="kdxp-row__k">ROL</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{organism.rol}</dd></div>
+                  <div class="kdxp-row"><dt class="kdxp-row__k">NAME ES</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{organism.name_es}</dd></div>
+                  <div class="kdxp-row"><dt class="kdxp-row__k">NAME EN</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{organism.name_en}</dd></div>
+                </dl>
+              </KdxPanel>
 
+              {/* 02 · La maquina de estado. Los tres estados son del
+                  manifiesto; las amplitudes se leen del shader que corre. */}
+              <KdxPanel n="02" label="STATE MACHINE" aside="CANON">
+                <div class="kdxp-states">
+                  {stateRows.map((s) => (
+                    <div class="kdxp-state" data-kdxp-state={s.id}>
+                      <span class="kdxp-state__id">{s.id}</span>
+                      <span class="kdxp-state__es">{s.es} / {s.en}</span>
+                      <span class="kdxp-state__amp">u {s.u}</span>
+                    </div>
+                  ))}
+                </div>
+              </KdxPanel>
 
-          <figure class="kx-threshold__artifact" data-reveal>
-            <div class="kx-threshold__artifact-system" aria-hidden="true">
-              <span class="kx-threshold__system-grid"></span>
-              <span class="kx-threshold__system-noise"></span>
-              <span class="kx-threshold__system-particles"></span>
-              <svg class="kx-threshold__system-orbits kx-threshold__system-orbits--outer" viewBox="0 0 100 100" focusable="false" aria-hidden="true">
-                <circle cx="50" cy="50" r="42"></circle>
-                <circle cx="50" cy="50" r="34"></circle>
-                <path d="M12 50C20 24 38 12 50 12C74 12 88 30 88 50C88 70 74 88 50 88C30 88 12 74 12 50Z"></path>
-              </svg>
-              <svg class="kx-threshold__system-orbits kx-threshold__system-orbits--mid" viewBox="0 0 100 100" focusable="false" aria-hidden="true">
-                <circle cx="50" cy="50" r="28"></circle>
-                <circle cx="50" cy="50" r="22"></circle>
-                <path d="M22 38C34 30 66 30 78 38"></path>
-                <path d="M22 62C34 70 66 70 78 62"></path>
-              </svg>
-              <svg class="kx-threshold__system-traces" viewBox="0 0 100 100" focusable="false" aria-hidden="true">
-                <path d="M50 4V20M50 80V96M4 50H20M80 50H96"></path>
-                <path d="M18 18L30 30M70 70L82 82M82 18L70 30M30 70L18 82"></path>
-                <path d="M50 14C68 14 86 32 86 50"></path>
-                <path d="M50 86C32 86 14 68 14 50"></path>
-              </svg>
+              <KdxPanel n="03" label="MOTION VERBS" aside="CANON">
+                <div class="kdxp-verbs">
+                  {organism.verbos.en.map((en: string, i: number) => (
+                    <div class="kdxp-verb">
+                      <span class="kdxp-cell__k">{String(i + 1).padStart(2, '0')}</span>
+                      <span class="kdxp-cell__v">{en.toUpperCase()}</span>
+                      <span class="kdxp-cell__k">{organism.verbos.es[i]}</span>
+                    </div>
+                  ))}
+                </div>
+              </KdxPanel>
+
+              {/* 04 · Lo unico que esta hoja MIDE. Todo lo escribe
+                  kdx-runtime-readout.ts, que solo le pregunta al navegador. */}
+              <KdxPanel n="04" label="RUNTIME" aside="MEASURED">
+                <dl class="kdxp-rows">
+                  <div class="kdxp-row kdxp-row--accent"><dt class="kdxp-row__k">PHASE</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v" data-kdxp-hook="state">DORMANT</dd></div>
+                  <div class="kdxp-row"><dt class="kdxp-row__k">GPU</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v" data-kdxp-hook="gpu">—</dd></div>
+                  <div class="kdxp-row"><dt class="kdxp-row__k">CANVAS · DPR</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v" data-kdxp-hook="canvas">—</dd></div>
+                  <div class="kdxp-row"><dt class="kdxp-row__k">VIEWPORT</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v" data-kdxp-hook="viewport">—</dd></div>
+                </dl>
+              </KdxPanel>
             </div>
 
-            <div class="kx-threshold__artifact-core" data-kdx-threshold-parallax>
-              <span class="kx-threshold__focus kx-threshold__focus--h" aria-hidden="true"></span>
-              <span class="kx-threshold__focus kx-threshold__focus--v" aria-hidden="true"></span>
-              {/* El anchor era seis capas de SVG generado — circulos, elipses y
-                  paths animados. Se leia "cargado y abstracto": un enredo de
-                  lineas donde deberia haber una pieza.
-
-                  Ahora el anchor es la OBRA, tratada como artefacto archivado:
-                  pixelada, con dither Bayer, scanlines y glow del rojo de
-                  THRESHOLD. La densidad se movio a los datos (rails, metadata),
-                  que es donde el brief la queria. */}
-              <div class="kx-threshold__symbol-wrap" aria-hidden="true">
-                {/* El PORTAL, no un artefacto sobre un fondo.
-                    La obra es la textura del shader: entra como u_tex y sale
-                    en coordenadas polares, respirando, expandiendose con los
-                    graves y con memoria corta de feedback. Es la diferencia
-                    entre un sitio con efectos y un instrumento donde el
-                    contenido vive DENTRO de la visualizacion.
-
-                    El motor de tres pasadas ya existia en
-                    src/kodex/threshold-portal y nunca se habia conectado. */}
-                <img
-                  class="kx-threshold__portal-fallback"
-                  src="/img/kodex/works/mandala-0cin-negativo.png"
-                  alt=""
-                  loading="eager"
-                  decoding="async"
-                />
-                <KodexPortal
-                  artwork="/img/kodex/works/mandala-0cin-negativo.png"
-                  seed={0.382}
-                  label="THRESHOLD · portal vivo sobre la obra"
-                  class="kx-threshold__portal-live"
-                />
-              </div>
-              <span class="kx-threshold__focus-marker kx-threshold__focus-marker--tl" aria-hidden="true"></span>
-              <span class="kx-threshold__focus-marker kx-threshold__focus-marker--tr" aria-hidden="true"></span>
-              <span class="kx-threshold__focus-marker kx-threshold__focus-marker--bl" aria-hidden="true"></span>
-              <span class="kx-threshold__focus-marker kx-threshold__focus-marker--br" aria-hidden="true"></span>
-              <SignalWaveform class="kx-threshold__waveform" scene="threshold" />
-
-              {/* Bloque de coordenadas al costado de la pieza. En el board es
-                  lo que convierte el marco en un registro: el artefacto no solo
-                  se ve, esta ubicado. Los valores salen del propio record. */}
-              <KodexOriginVector
-                ra={`RA ${thresholdArtifactRecord.signal ?? '23h00m'}`}
-                dec={`DEC ${thresholdArtifactRecord.location ?? '+89° 06′ 18″'}`}
-                sig={`SIG ${thresholdArtifactRecord.protocol ?? '0.1 – 0.77Hz'}`}
-                mod={`MOD ${thresholdArtifactRecord.clearance ?? 'SPECTRAL'}`}
-                id={`${thresholdArtifactRecord.archive}-${thresholdArtifactRecord.specimen}-${thresholdArtifactRecord.checksum}`}
-                accent="var(--kdx-red, #FF3833)"
-                class="kx-threshold__origin"
-              />
-            </div>
-
-            <button
-              class="kdx-artifact-tab"
-              type="button"
-              data-kdx-artifact-open
-              aria-expanded="false"
-              aria-controls="kdx-artifact-panel"
-              aria-label="open artifact details"
+            {/* ------------------ centro · 05 · el objeto ------------------ */}
+            <KdxPanel
+              n="05"
+              label="THRESHOLD PORTAL"
+              aside="LIVE · SRC → FEEDBACK → COMPOSITE"
+              focus={true}
+              flush={true}
+              class="kdxp-hero"
             >
-              <span class="kdx-artifact-tab__fold" aria-hidden="true"></span>
-              <span class="kdx-artifact-tab__glyph">◈</span>
-            </button>
-            <figcaption>{thresholdArtifactRecord.title.toLowerCase()}</figcaption>
-          </figure>
-
-          <aside class="kx-threshold__systemband" data-reveal aria-label="threshold system band">
-            <div class="kx-threshold__barcode-cluster">
-              <div class="kx-threshold__barcode" aria-hidden="true">
-                {Array.from({ length: 24 }).map(() => <i></i>)}
-                <span>{thresholdArtifactRecord.archive} / {thresholdArtifactRecord.specimen}</span>
+              <div class="kdxp-stage">
+                <span class="kdxp-stage__reticle" aria-hidden="true"></span>
+                <div class="kdxp-stage__wrap" data-kdx-threshold-parallax>
+                  {/* El motor de tres pasadas de src/kodex/threshold-portal
+                      corriendo dentro del panel. La obra no va encima del
+                      shader: ES la textura del shader. */}
+                  <KodexPortal
+                    artwork="/img/kodex/works/mandala-0cin-negativo.png"
+                    seed={portalSeed}
+                    label="THRESHOLD · portal vivo sobre la obra"
+                    class="kdxp-stage__portal"
+                  />
+                </div>
               </div>
-              <p class="kx-threshold__serial-block">SERIAL // {threshold.subject} // {threshold.location} // {thresholdArtifactRecord.checksum}</p>
-            </div>
+              <div class="kdxp-hero__foot">
+                <div class="kdxp-cell"><span class="kdxp-cell__k">TEXTURE</span><span class="kdxp-cell__v">mandala-0cin-negativo</span></div>
+                <div class="kdxp-cell"><span class="kdxp-cell__k">U_SEED</span><span class="kdxp-cell__v">{portalSeed}</span></div>
+                <div class="kdxp-cell"><span class="kdxp-cell__k">U_DECAY</span><span class="kdxp-cell__v">{feedbackDecay}</span></div>
+                <div class="kdxp-cell"><span class="kdxp-cell__k">U_MIX</span><span class="kdxp-cell__v">{feedbackMix}</span></div>
+                <div class="kdxp-cell"><span class="kdxp-cell__k">TOOL</span><span class="kdxp-cell__v">WHEEL → U_WHEEL</span></div>
+                {/* El dossier de la obra: procedencia real -- autor, edicion,
+                    licencia -- no telemetria. Vive donde vive la obra. */}
+                <button
+                  class="kdxp-action kdxp-action--ghost kdxp-hero__dossier"
+                  type="button"
+                  data-kdx-artifact-open
+                  aria-expanded="false"
+                  aria-controls="kdx-artifact-panel"
+                >DOSSIER →</button>
+              </div>
+            </KdxPanel>
 
-            <div class="kx-threshold__systemlog">
-              <p>SYSTEM LOG</p>
-              <ul>
-                {thresholdSystemLog.map((item) => <li>{item}</li>)}
-              </ul>
-              <HiddenMessageBand class="kx-threshold__message-band" scene="threshold" messages={thresholdMessages} />
-            </div>
+            {/* ---------------- columna derecha · 06..08 ---------------- */}
+            <div class="kdxp-col kdxp-col--right">
+              {/* 06 · La accion. Un solo acto, explicito. */}
+              <KdxPanel n="06" label="ENTRY" aside="AUTHORED">
+                <div class="kdxp-entry">
+                  <p class="kdxp-entry__lede">{lede}</p>
+                  <p class="kdxp-entry__sub">{sublede}</p>
+                  <a class="kdxp-action" href="/kodex/folio/i/" data-reveal>ENTER THE KODEX</a>
+                  <dl class="kdxp-rows kdxp-entry__terms">
+                    {entryTerms.map(([k, v]) => (
+                      <div class="kdxp-row"><dt class="kdxp-row__k">{k}</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{v}</dd></div>
+                    ))}
+                  </dl>
+                </div>
+              </KdxPanel>
 
-            <div class="kx-threshold__checksum">
-              <p>CHECKSUM</p>
-              {/* Mismo gancho que el resto: cuando el sistema recalcula, este
-                  bloque cambia con los demas. Un checksum que difiere entre
-                  dos paneles de la misma lamina delata que es decorado. */}
-              <strong data-kdx-checksum>{thresholdArtifactRecord.checksum}</strong>
-              {/* Los cuatro estados del archivo, del prototipo aprobado. Es el
-                  eje que el visitante mueve; la maquina de escena corre por
-                  debajo y no se ve. Uno es el pulso, el otro la perilla. */}
-              {/* El eje del sistema. THRESHOLD esta en el borde de −∞: el
-                  archivo antes de descender. */}
-              <KodexEje posicion={0} accent="var(--kdx-red,#FF3833)" class="kx-threshold__eje" />
-              <KodexTira
-                volumenes={volumenesPortales}
-                estrato="portales"
-                accent="var(--kdx-red,#FF3833)"
-                class="kx-threshold__tira"
-              />
-              <button class="kx-threshold__shift" type="button" data-kdx-archive-shift>
-                <span data-kdx-archive-name>EXCAVATION · E00</span>
-                <span aria-hidden="true">→</span>
-              </button>
-              <span>{thresholdArtifactRecord.timestamp}</span>
-            </div>
-          </aside>
+              {/* 07 · El eje del archivo. Es la perilla del instrumento: el
+                  valor que sale de aca entra como u_state al shader y como
+                  preset al audio -- el MISMO numero para imagen y sonido.
+                  Los cuatro valores son los de src/lib/kodex/archivo.ts. */}
+              <KdxPanel n="07" label="ARCHIVE AXIS" aside="ENGINE">
+                <div class="kdxp-states">
+                  {archivePhases.map(([clave, nombre, valor]) => (
+                    <div class="kdxp-state" data-kdxp-phase={clave}>
+                      <span class="kdxp-state__id">{clave}</span>
+                      <span class="kdxp-state__es">{nombre}</span>
+                      <span class="kdxp-state__amp">{valor}</span>
+                    </div>
+                  ))}
+                </div>
+                <button class="kdxp-action kdxp-action--ghost" style="margin-top:8px" type="button" data-kdx-archive-shift>
+                  <span data-kdx-archive-name>EXCAVATION · E00</span>
+                </button>
+              </KdxPanel>
 
+            </div>
+          </div>
+
+          {/* -------------------- banda inferior · 09..11 -------------------- */}
+          <div class="kdxp-band">
+            <KdxPanel n="08" label="RENDER CHAIN" aside="ENGINE">
+              <dl class="kdxp-rows">
+                {shaderChain.map(([k, v]) => (
+                  <div class="kdxp-row"><dt class="kdxp-row__k">{k}</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{v}</dd></div>
+                ))}
+                <div class="kdxp-row kdxp-row--muted"><dt class="kdxp-row__k">FX CHAIN</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{organism.fx_chain.join(' · ')}</dd></div>
+                <div class="kdxp-row kdxp-row--muted"><dt class="kdxp-row__k">AUDIO</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{organism.audio.routing}</dd></div>
+              </dl>
+            </KdxPanel>
+
+            {/* 09 · El codigo que corre, citado literal. En el poster esta zona
+                se llama SHADER NOTES / PSEUDO-CODE; aca no es pseudo. */}
+            <KdxPanel n="09" label="SOURCE" aside="PORTALSOURCE.FRAG">
+              <pre class="kdxp-code">{shaderQuote.map(([t, kind]) => (
+                <span class:list={['kdxp-code__ln', kind === 'note' && 'kdxp-code__ln--note']}>{t}</span>
+              ))}</pre>
+            </KdxPanel>
+
+            {/* 10 · La paleta canonica del organismo, con su hex. Es el unico
+                sitio donde el color no cuenta contra el presupuesto de acento:
+                aca el color ES el dato. */}
+            <KdxPanel n="10" label="PALETTE" aside="CANON">
+              <div class="kdxp-palette">
+                <div class="kdxp-swatches">
+                  {organism.paleta.map((hex: string) => (
+                    <div class="kdxp-swatch">
+                      <span class="kdxp-swatch__chip" style={'background:' + hex}></span>
+                      <span class="kdxp-swatch__hex">{hex}</span>
+                    </div>
+                  ))}
+                </div>
+                <dl class="kdxp-rows">
+                  <div class="kdxp-row kdxp-row--muted"><dt class="kdxp-row__k">SOURCE</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">organismos[{organism.n}].paleta</dd></div>
+                  <div class="kdxp-row kdxp-row--muted"><dt class="kdxp-row__k">COUNT</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{organism.paleta.length} HEX</dd></div>
+                  <div class="kdxp-row kdxp-row--muted"><dt class="kdxp-row__k">ROLE</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">ONE ACCENT PER ORGANISM</dd></div>
+                </dl>
+              </div>
+            </KdxPanel>
+
+            {/* 11 · El estrato al que pertenece esta lamina. Si el manifiesto
+                no trae volumenes, la zona sale vacia y lo dice: el canon fija
+                `preserve_empty_or_unresolved_state`. */}
+            <KdxPanel
+              n="11"
+              label="STRATUM · PORTALES"
+              aside={volumenesPortales.length ? volumenesPortales.length + ' VOL' : 'EMPTY'}
+              sparse={volumenesPortales.length === 0}
+            >
+              {volumenesPortales.length ? (
+                <div class="kdxp-stratum">
+                  <KodexTira
+                    volumenes={volumenesPortales}
+                    estrato="portales"
+                    accent="var(--kdx-red,#FF3833)"
+                    class="kdxp-tira"
+                  />
+                  <dl class="kdxp-rows">
+                    <div class="kdxp-row"><dt class="kdxp-row__k">STRATUM</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{estratoPortales.n} · {estratoPortales.titulo_es}</dd></div>
+                    <div class="kdxp-row kdxp-row--muted"><dt class="kdxp-row__k">VOLUMES</dt><span class="kdxp-row__lead"></span><dd class="kdxp-row__v">{volumenesPortales.length}</dd></div>
+                  </dl>
+                </div>
+              ) : (
+                <span>NO VOLUMES IN MANIFEST<br />ABSENCE PRESERVED · NOT FILLED</span>
+              )}
+            </KdxPanel>
+          </div>
+
+          {/* --------- barra inferior: quien emite la hoja --------- */}
+          <footer class="kdxp-footbar">
+            <span class="kdxp-footbar__mark">KODEX−∞</span>
+            <span>{organism.id}</span>
+            <span class="kdxp-footbar__strip">
+              {/* Marca de indice, no una credencial. El ancho de cada barra
+                  sale del propio id del organismo: reproducible, y no afirma
+                  nada sobre nada. */}
+              <span class="kdxp-strip" aria-hidden="true">
+                {stripBars.map((b) => <i style={b}></i>)}
+              </span>
+            </span>
+            {/* Movimiento, no dato. Vive en la barra del pie, que es donde el
+                poster pone el zumbido del sistema. */}
+            <HiddenMessageBand class="kdxp-message-band" scene="threshold" messages={thresholdMessages} />
+            <span class="kdxp-footbar__tag">PATTERN. PROTECT. PERPETUATE.</span>
+          </footer>
+
+          {/* El dossier de la obra. Procedencia real; ningun valor de
+              telemetria. Se abre desde el panel 01. */}
           <aside
             class="kdx-artifact-panel"
             id="kdx-artifact-panel"
@@ -363,12 +487,6 @@ const prologueRows = [
               <p class="kdx-artifact-panel__eyebrow">{thresholdArtifactRecord.status}</p>
               <h2 class="kdx-artifact-panel__title" id="kdx-artifact-title">{thresholdArtifactRecord.title}</h2>
               <dl class="kdx-artifact-panel__meta">
-                <div><dt>Archive</dt><dd>{thresholdArtifactRecord.archive}</dd></div>
-                <div><dt>Specimen</dt><dd>{thresholdArtifactRecord.specimen}</dd></div>
-                <div><dt>Signal</dt><dd>{thresholdArtifactRecord.signal}</dd></div>
-                <div><dt>Protocol</dt><dd>{thresholdArtifactRecord.protocol}</dd></div>
-                <div><dt>Clearance</dt><dd>{thresholdArtifactRecord.clearance}</dd></div>
-                <div><dt>Checksum</dt><dd>{thresholdArtifactRecord.checksum}</dd></div>
                 <div><dt>Type</dt><dd>{thresholdArtifactRecord.type}</dd></div>
                 <div><dt>Origin</dt><dd>{thresholdArtifactRecord.origin}</dd></div>
                 <div><dt>Edition</dt><dd>{thresholdArtifactRecord.edition}</dd></div>
@@ -518,6 +636,7 @@ const prologueRows = [
 
   <script>
     import { initKx } from '../../scripts/kodex-engine.js';
+    import '../../components/kodex/panels/kdx-runtime-readout.ts';
     initKx();
   </script>
 </Base>
