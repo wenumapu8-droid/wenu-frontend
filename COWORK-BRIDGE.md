@@ -1303,3 +1303,29 @@ REGLA DURA: Visual Impact y Native suben JUNTOS. Prohibido inflar Visual con una
 EJECUCION: mini + Codex (musculo). Frontier re-audit (COWORK) sobre cada render. Deploy: gate APROBAR DEPLOY intacto.
 
 PRIMER PASO: conectar UN motor a UNA escena end-to-end como prueba (sugerido ARCHIVE -> KDX-FX-005) y medir Visual/Native antes y despues.
+
+
+## KIT PROTOCOL COWORK - como todos los modelos usan los kits bien (reusar, no reinventar)
+
+OBJETIVO: cada modulo de cada pagina, disponible y usable CORRECTAMENTE por los 4 modelos, sin que Ocin re-explique nada.
+
+UN KIT = 4 piezas juntas en el repo:
+1. MODULO: implementacion UNICA (ej. KodexEffectCanvas). Se define una vez, todos lo importan.
+2. CONTRATO: props/params + schema (que recibe, que hace).
+3. EJEMPLO copy-paste: uso real listo para pegar.
+4. FALLBACK + ACCEPTANCE CHECK: comportamiento sin WebGL + como se sabe que quedo bien.
+
+DISTRIBUCION (asi llega a todos sin repetir):
+- REGISTRY central machine-readable: indexa cada modulo (id, que hace, params, path, escenas que lo usan). Extender KODEX_EFFECT_REGISTRY a componentes, escenas y passports. Es el indice de la caja de herramientas.
+- CLAUDE.md co-locado por carpeta (src/components/kodex/, src/lib/kodex/, src/pages/kodex/): las instrucciones viajan CON el codigo; el agente las lee al entrar.
+- KIT MANIFEST por escena: que modulos usa, que passport la gobierna, que referencia/scaffold, que capturas de aceptacion.
+- GATE (CI + visual): si se rompe el contrato del kit, falla el build/QA.
+
+REGLA DURA: REUSAR, NUNCA REINVENTAR. Si el modulo esta en el registry, se importa; prohibido re-implementar. El bug del "mandala plano" fue reinventar en vez de usar el motor que ya existia.
+
+RESPONSABLES:
+- Codex / mini: al agregar un modulo, actualizan registry + CLAUDE.md + ejemplo.
+- opencode: valida que un modulo tenga sus 4 piezas antes de usarlo; no inventa modulos.
+- COWORK (frontier): audita coherencia y que no haya duplicacion/drift.
+
+Deploy: gate APROBAR DEPLOY intacto.
