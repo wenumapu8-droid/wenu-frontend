@@ -90,6 +90,12 @@ export interface KodexInteractionSequence {
   next(nodeId: string, interactionId: string): number;
   /** Returns the ordinal `next` would hand out, without consuming it. */
   peek(nodeId: string, interactionId: string): number;
+  /**
+   * Restores a counter after a reload, so that resuming a persisted session
+   * continues the causal sequence instead of restarting it and re-minting ids
+   * the journey state has already applied. Never lowers a counter.
+   */
+  prime(nodeId: string, interactionId: string, nextOrdinal: number): void;
   /** Drops all counters. Call at a genuine session boundary, never on replay. */
   reset(): void;
 }
@@ -110,6 +116,10 @@ export function createKodexInteractionSequence(): KodexInteractionSequence {
     },
     peek(nodeId, interactionId) {
       return counters.get(sequenceKey(nodeId, interactionId)) ?? 0;
+    },
+    prime(nodeId, interactionId, nextOrdinal) {
+      const key = sequenceKey(nodeId, interactionId);
+      counters.set(key, Math.max(counters.get(key) ?? 0, requireOrdinal(nextOrdinal)));
     },
     reset() {
       counters.clear();

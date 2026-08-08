@@ -375,6 +375,44 @@ test('sequence keys do not bleed between nodes or interactions', () => {
   assert.equal(sequence.next('node', 'ab'), 0);
 });
 
+test('a resumed session primes the sequence so a reload does not re-mint applied ids', () => {
+  // Session 1: two real clicks, both already folded into persisted memory.
+  const live = createKodexInteractionSequence();
+  const first = createKodexInteractionEventDetail(reveal(), { sequence: live });
+  const second = createKodexInteractionEventDetail(reveal(), { sequence: live });
+
+  let state = createInitialJourneyState({ sessionId: 'kdx-resume' });
+  state = applyJourneyEvent(state, asJourneyEvent(first));
+  state = applyJourneyEvent(state, asJourneyEvent(second));
+  assert.equal(state.appliedEventIds.length, 2);
+
+  // Session 2 after a reload: a fresh sequence would restart at ordinal 0 and
+  // re-mint `first.id`, so a genuine new click would be swallowed as a replay.
+  const naive = createKodexInteractionSequence();
+  assert.equal(createKodexInteractionEventDetail(reveal(), { sequence: naive }).id, first.id);
+
+  // Primed from the persisted trace, the sequence continues instead.
+  const resumed = createKodexInteractionSequence();
+  resumed.prime('interaction-v0', 'observe', second.ordinal + 1);
+  const third = createKodexInteractionEventDetail(reveal(), { sequence: resumed });
+
+  assert.equal(third.ordinal, 2);
+  assert.notEqual(third.id, first.id);
+  assert.notEqual(third.id, second.id);
+
+  state = applyJourneyEvent(state, asJourneyEvent(third));
+  assert.equal(state.appliedEventIds.length, 3);
+});
+
+test('prime never rewinds a counter', () => {
+  const sequence = createKodexInteractionSequence();
+  sequence.prime('node', 'act', 5);
+  sequence.prime('node', 'act', 2);
+
+  assert.equal(sequence.next('node', 'act'), 5);
+  assert.throws(() => sequence.prime('node', 'act', -1), RangeError);
+});
+
 test('malformed identities are rejected', () => {
   assert.throws(() => computeKodexInteractionEventId(reveal({ nodeId: '' }), 0), TypeError);
   assert.throws(() => computeKodexInteractionEventId(reveal({ interactionId: '' }), 0), TypeError);
