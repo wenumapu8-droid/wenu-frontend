@@ -66,6 +66,16 @@ handoff:
   deployment_status: NOT_REQUESTED
 ```
 
+## Worker failover and autonomy
+
+No individual model, chat, IDE session or local process owns a task permanently. Repository state, canonical files, work packets and evidence-backed handoffs are the continuity layer.
+
+Read `kodex-os/ops/WORKER_FAILOVER_PROTOCOL.md` for the full contract.
+
+A worker should resolve ordinary reversible implementation ambiguity autonomously and record the assumption. `Waiting for user input` without a documented hard blocker is eligible for immediate takeover by another capable worker.
+
+A replacement worker continues from the current repository/work-packet state; it does not restart blindly or discard prior work.
+
 ## Forbidden behavior
 
 - Editing `main` directly.
@@ -77,6 +87,7 @@ handoff:
 - Creating visual complexity without semantic purpose.
 - Adding new scenes before the experience graph and vertical slice are coherent.
 - Publishing private conversations or rights-unclear assets.
+- Treating one stalled agent as a reason to stop a recoverable task.
 
 ## Pull request requirements
 
@@ -102,4 +113,8 @@ Stop and request human review when:
 - a contemplative experience could produce material risk;
 - the change creates a new canonical concept;
 - the requested visual cannot be grounded in data, interaction or declared atmosphere;
-- the change would deploy or expose private material.
+- the change would deploy or expose private material;
+- a required credential is unavailable;
+- an irreversible/destructive operation is required;
+- a paid purchase/new paid dependency is required;
+- explicit requirements directly contradict each other and repository evidence cannot resolve them.
