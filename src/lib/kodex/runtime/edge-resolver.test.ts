@@ -1,13 +1,22 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { resolveEdge, resolveNodeForLetter, simulateJourney } from "./edge-resolver.ts";
-import { canonicalGraphProjection, projectCanonicalGraph } from "./journeyGraph/canonical-graph.ts";
-import type { GraphProjection } from "./journeyGraph/canonical-graph.ts";
+import {
+  MIN_RETURN_DISTINCT_COORDINATES,
+  resolveEdge,
+  resolveNodeForLetter,
+} from "./edge-resolver.ts";
+import {
+  HEART_ENDPOINT_ID,
+  RETURN_ENDPOINT_ID,
+  canonicalGraphProjection,
+  projectCanonicalGraph,
+  type GraphProjection,
+} from "./journeyGraph/canonical-graph.ts";
 import { createInitialJourneyState, replayJourney } from "./journey-state.ts";
 import type { JourneyEvent } from "./journey-state.ts";
 
-function node(id: string, coord: "A" | "M" | "Y" | null = null) {
+function node(id: string, coord: "A" | null = null) {
   return {
     id,
     coordinateAssignment: coord,
@@ -19,21 +28,28 @@ function node(id: string, coord: "A" | "M" | "Y" | null = null) {
   };
 }
 
+function runtimeEdge(id: string, from: string, to: string) {
+  return {
+    id,
+    from,
+    to,
+    type: "RELATED",
+    certainty: "CONFIRMED",
+    claimIds: [],
+    sourceIds: [],
+    runtimeNavigable: true,
+  };
+}
+
 function testProjection(): GraphProjection {
   return projectCanonicalGraph({
     source: "test",
     canonical: true,
-    nodes: [
-      node("NODE-A", "A"),
-      node("NODE-M", "M"),
-      node("NODE-Y", "Y"),
-      node("NODE-B"),
-      node("NODE-C"),
-    ],
+    nodes: [node("NODE-A", "A"), node("NODE-B"), node("NODE-C")],
     edges: [
-      { id: "E-AB", from: "NODE-A", to: "NODE-B", type: "RELATED", certainty: "CONFIRMED", claimIds: [], sourceIds: [] },
-      { id: "E-BC", from: "NODE-B", to: "NODE-C", type: "RELATED", certainty: "CONFIRMED", claimIds: [], sourceIds: [] },
-      { id: "E-AC", from: "NODE-A", to: "NODE-C", type: "RELATED", certainty: "CONFIRMED", claimIds: [], sourceIds: [] },
+      runtimeEdge("EDGE-AB", "NODE-A", "NODE-B"),
+      runtimeEdge("EDGE-BC", "NODE-B", "NODE-C"),
+      runtimeEdge("EDGE-AC", "NODE-A", "NODE-C"),
     ],
   });
 }
@@ -42,138 +58,149 @@ const ev = (
   over: Partial<JourneyEvent> & Pick<JourneyEvent, "id" | "kind" | "letter">,
 ): JourneyEvent => ({ at: 0, ...over });
 
+function stateWithLetters(letters: JourneyEvent["letter"][]) {
+  return replayJourney(
+    letters.map((letter, index) => ev({ id: `e${index}`, kind: "arrive", letter })),
+  );
+}
+
 describe("EdgeResolver (KOD-30)", () => {
-  it("resolves from A to a connected neighbor deterministically", () => {
+  it("uses only explicitly runtime-navigable edges", () => {
     const projection = testProjection();
-    const state = {
-      ...replayJourney([ev({ id: "start", kind: "arrive", letter: "A", world: "ARTIFACT" })]),
-      heart: { portalState: "AVAILABLE" as const, visitCount: 1 },
-    };
+    const state = stateWithLetters(["A"]);
     const result = resolveEdge({ state, projection, currentNode: "NODE-A", accessibility: "off" });
-    assert.equal(result.from, "NODE-A");
     assert.equal(result.reason, "CONNECTED");
-    assert.ok(result.candidates.includes(result.to));
+    assert.equal(result.to, "NODE-B");
+    assert.equal(result.toKind, "NODE");
   });
 
-  it("maps letter A to the common-origin node", () => {
+  it("maps structural A/M/Y without assigning B–X meanings", () => {
     const projection = testProjection();
     assert.deepEqual(resolveNodeForLetter(projection, "A"), ["NODE-A"]);
-    assert.deepEqual(resolveNodeForLetter(projection, "Y"), ["NODE-Y"]);
+    assert.deepEqual(resolveNodeForLetter(projection, "M"), [HEART_ENDPOINT_ID]);
+    assert.deepEqual(resolveNodeForLetter(projection, "Y"), [RETURN_ENDPOINT_ID]);
     assert.deepEqual(resolveNodeForLetter(projection, "B"), []);
   });
 
-  it("never returns Y on the first step", () => {
+  it("never returns Y before the canonical v0 completion threshold", () => {
     const projection = testProjection();
-    const state = createInitialJourneyState();
-    const result = resolveEdge({ state, projection, currentNode: "NODE-A" });
+    const letters: JourneyEvent["letter"][] = ["A", "B", "C", "D", "E"];
+    assert.equal(new Set(letters).size, MIN_RETURN_DISTINCT_COORDINATES - 1);
+    const result = resolveEdge({
+      state: stateWithLetters(letters),
+      projection,
+      currentNode: "NODE-B",
+      accessibility: "off",
+    });
     assert.notEqual(result.reason, "RETURN");
   });
 
-  it("returns Y only after a real multi-letter trace", () => {
+  it("converges to route-derived Y after six distinct consequential coordinates", () => {
     const projection = testProjection();
-    const state = replayJourney([
-      ev({ id: "a1", kind: "arrive", letter: "A" }),
-      ev({ id: "b1", kind: "arrive", letter: "B" }),
-    ]);
-    const result = resolveEdge({ state, projection, currentNode: "NODE-B" });
+    const state = stateWithLetters(["A", "B", "C", "D", "E", "F"]);
+    const result = resolveEdge({ state, projection, currentNode: "NODE-C" });
     assert.equal(result.reason, "RETURN");
-    assert.equal(result.to, "NODE-Y");
+    assert.equal(result.to, RETURN_ENDPOINT_ID);
     assert.equal(result.toLetter, "Y");
+    assert.equal(result.toKind, "RETURN_TERMINAL");
   });
 
-  it("offers heart M as an optional, non-scoring detour", () => {
+  it("does not expose Heart while portal state is LATENT/RESONANT", () => {
     const projection = testProjection();
-    const state = replayJourney([
-      ev({ id: "a1", kind: "arrive", letter: "A" }),
-      ev({ id: "b1", kind: "arrive", letter: "B" }),
-    ]);
+    const state = stateWithLetters(["A", "B"]);
+    assert.notEqual(state.heart.portalState, "AVAILABLE");
     const result = resolveEdge({ state, projection, currentNode: "NODE-B", accessibility: "off" });
-    if (result.reason === "RETURN") {
-      const next = simulateJourney({ state, projection, currentNode: "NODE-B", accessibility: "off" }, 2);
-      assert.equal(next[next.length - 1].to, "NODE-Y");
-    } else {
-      assert.equal(result.reason, "HEART");
-      assert.equal(result.to, "NODE-M");
-      assert.equal(result.toLetter, "M");
-    }
+    assert.ok(!result.candidates.includes(HEART_ENDPOINT_ID));
   });
 
-  it("heart never appears when portal is AVAILABLE (resolved)", () => {
+  it("exposes AVAILABLE Heart as optional rather than mandatory", () => {
     const projection = testProjection();
     const state = {
-      ...replayJourney([ev({ id: "a1", kind: "arrive", letter: "A" })]),
-      heart: { portalState: "AVAILABLE" as const, visitCount: 1 },
+      ...stateWithLetters(["A", "B"]),
+      heart: { portalState: "AVAILABLE" as const, visitCount: 0 },
+      serendipitySeed: 0,
     };
-    const candidates = resolveEdge({ state, projection, currentNode: "NODE-A", accessibility: "off" }).candidates;
-    assert.ok(!candidates.includes("NODE-M"));
+    const result = resolveEdge({ state, projection, currentNode: "NODE-B", accessibility: "off" });
+    assert.ok(result.candidates.includes(HEART_ENDPOINT_ID));
+    assert.equal(result.to, "NODE-A");
+    assert.equal(result.reason, "CONNECTED");
   });
 
-  it("serendipity is bounded: only reorders candidates, never invents new ones", () => {
+  it("can select Heart through bounded serendipity when AVAILABLE", () => {
     const projection = testProjection();
-    const base = replayJourney([
-      ev({ id: "a1", kind: "arrive", letter: "A" }),
-      ev({ id: "b1", kind: "arrive", letter: "B" }),
-    ]);
-    const results = new Set<string>();
-    for (let i = 0; i < 20; i++) {
-      const seeded = { ...base, serendipitySeed: i / 20 };
-      const result = resolveEdge({ state: { ...seeded, current: "B" }, projection, currentNode: "NODE-B" });
-      results.add(result.to);
-      assert.ok(
-        ["NODE-A", "NODE-C", "NODE-M", "NODE-Y"].includes(result.to),
-        `serendipity chose ${result.to}`,
-      );
+    const state = {
+      ...stateWithLetters(["A", "B"]),
+      heart: { portalState: "AVAILABLE" as const, visitCount: 0 },
+      serendipitySeed: 0.999,
+    };
+    const result = resolveEdge({ state, projection, currentNode: "NODE-B" });
+    assert.ok(result.candidates.includes(HEART_ENDPOINT_ID));
+    if (result.to === HEART_ENDPOINT_ID) {
+      assert.equal(result.reason, "HEART");
+      assert.equal(result.toLetter, "M");
+      assert.equal(result.toKind, "HEART_PORTAL");
     }
-    assert.ok(results.size >= 1);
   });
 
-  it("simulateJourney converges to Y when a real trace exists", () => {
+  it("reduced/off mode is deterministic and does not require pointer-style variability", () => {
     const projection = testProjection();
-    const state = replayJourney([
-      ev({ id: "a1", kind: "arrive", letter: "A" }),
-      ev({ id: "b1", kind: "arrive", letter: "B" }),
-      ev({ id: "c1", kind: "arrive", letter: "C" }),
-    ]);
-    const steps = simulateJourney({ state, projection, currentNode: "NODE-C", accessibility: "off" }, 20);
-    assert.ok(steps.length > 0);
-    assert.equal(steps[steps.length - 1].reason, "RETURN");
-    assert.equal(steps[steps.length - 1].to, "NODE-Y");
+    const state = {
+      ...stateWithLetters(["A"]),
+      heart: { portalState: "AVAILABLE" as const, visitCount: 0 },
+      serendipitySeed: 0.999,
+    };
+    const reduced = resolveEdge({ state, projection, currentNode: "NODE-A", accessibility: "reduced" });
+    const off = resolveEdge({ state, projection, currentNode: "NODE-A", accessibility: "off" });
+    assert.equal(reduced.to, "NODE-B");
+    assert.equal(off.to, "NODE-B");
   });
 
-  it("falls back to A on an orphan graph", () => {
-    const orphan = projectCanonicalGraph({
+  it("falls back to A when an executable subgraph has no exits", () => {
+    const projection = projectCanonicalGraph({
       source: "test",
       canonical: true,
-      nodes: [node("NODE-ALONE", "A")],
+      nodes: [node("NODE-A", "A"), node("NODE-KNOWLEDGE")],
+      edges: [
+        {
+          id: "EDGE-KNOWLEDGE",
+          from: "NODE-A",
+          to: "NODE-KNOWLEDGE",
+          type: "RELATED",
+          certainty: "CONFIRMED",
+          claimIds: [],
+          sourceIds: [],
+        },
+      ],
+    });
+    const result = resolveEdge({ state: stateWithLetters(["A"]), projection, currentNode: "NODE-A" });
+    assert.equal(result.reason, "FALLBACK");
+    assert.equal(result.to, "NODE-A");
+  });
+
+  it("refuses a projection with contract anomalies", () => {
+    const invalid = projectCanonicalGraph({
+      source: "test",
+      canonical: true,
+      nodes: [node("NODE-X")],
       edges: [],
     });
-    const state = replayJourney([ev({ id: "a1", kind: "arrive", letter: "A" })]);
-    const result = resolveEdge({ state, projection: orphan, currentNode: "NODE-ALONE" });
-    assert.equal(result.reason, "FALLBACK");
-    assert.equal(result.to, "NODE-ALONE");
+    assert.throws(
+      () => resolveEdge({ state: createInitialJourneyState(), projection: invalid }),
+      /projection invalid/,
+    );
   });
 
-  it("accessibility off disables serendipity ordering", () => {
-    const projection = testProjection();
-    const base = {
-      ...replayJourney([ev({ id: "a1", kind: "arrive", letter: "A" })]),
-      serendipitySeed: 0.999,
-      heart: { portalState: "AVAILABLE" as const, visitCount: 1 },
-    };
-    const full = resolveEdge({ state: { ...base, current: "A" }, projection, currentNode: "NODE-A" });
-    const off = resolveEdge({ state: { ...base, current: "A" }, projection, currentNode: "NODE-A", accessibility: "off" });
-    assert.equal(off.reason, "CONNECTED");
-    assert.equal(off.to, "NODE-B");
-    assert.ok(full.candidates.includes(full.to));
-  });
-
-  it("projection against the frozen canonical graph never crashes the resolver", () => {
-    const state = replayJourney([
-      ev({ id: "a1", kind: "arrive", letter: "A", world: "ARTIFACT" }),
-      ev({ id: "b1", kind: "arrive", letter: "B" }),
-    ]);
-    const result = resolveEdge({ state, projection: canonicalGraphProjection, currentNode: "NODE-KDX-CORPUS-001" });
-    assert.ok(result.to.length > 0);
+  it("the frozen Bridge-1 graph is knowledge-safe: no research relation becomes a visitor exit", () => {
     assert.equal(canonicalGraphProjection.anomalies.length, 0);
+    const state = stateWithLetters(["A"]);
+    const result = resolveEdge({
+      state,
+      projection: canonicalGraphProjection,
+      currentNode: "NODE-KDX-CORPUS-001",
+      accessibility: "off",
+    });
+    assert.equal(result.reason, "FALLBACK");
+    assert.equal(result.to, "NODE-KDX-CORPUS-001");
+    assert.ok(canonicalGraphProjection.unresolved.includes("NO_RUNTIME_EDGES_SELECTED"));
   });
 });
