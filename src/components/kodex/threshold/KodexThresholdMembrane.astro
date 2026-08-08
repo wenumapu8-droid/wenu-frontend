@@ -74,71 +74,156 @@ const { class: className = '' } = Astro.props;
       };
     };
 
-    const traceOrganicLoop = (
+    const LOBES = [
+      { angle: 0.0, length: 1.0, width: 0.34 },
+      { angle: 2.4, length: 0.82, width: 0.3 },
+      { angle: 4.6, length: 0.92, width: 0.36 },
+      { angle: 1.2, length: 0.7, width: 0.26 },
+      { angle: 3.6, length: 0.78, width: 0.28 },
+    ];
+
+    const CAVITIES = [];
+    for (let index = 0; index < 26; index += 1) {
+      const angle = index * 2.399963 + ((index * 7) % 5) * 0.07;
+      const radial = 0.28 + (((index * 37) % 47) / 100) * 0.46;
+      const size = 0.05 + (((index * 17) % 23) / 300) * 0.16;
+      CAVITIES.push({ angle, radial, size });
+    }
+
+    const pointerAngleOf = () => Math.atan2((pointerY - 0.5) * height, (pointerX - 0.5) * width);
+
+    const shellPoints = (
       cx: number,
       cy: number,
-      radius: number,
-      phase: number,
+      base: number,
       layer: number,
-      inner = false,
+      breathing: number,
+      startIndex: number,
+      endIndex: number,
+      steps: number,
     ) => {
-      const steps = 128;
-      for (let index = 0; index <= steps; index += 1) {
-        const direction = inner ? steps - index : index;
-        const angle = (direction / steps) * Math.PI * 2;
-        const waveA = Math.sin(angle * 3 + phase * 0.72 + layer * 0.83) * 0.07;
-        const waveB = Math.sin(angle * 7 - phase * 0.39 + layer * 1.37) * 0.033;
-        const waveC = Math.sin(angle * 13 + phase * 0.17 + layer) * 0.016;
-        const pointerAngle = Math.atan2((pointerY - 0.5) * height, (pointerX - 0.5) * width);
-        const localPull = Math.cos(angle - pointerAngle) * proximity * 0.052;
-        const localRadius = radius * (1 + waveA + waveB + waveC + localPull);
-        const x = cx + Math.cos(angle) * localRadius * (1 + 0.055 * Math.sin(phase * 0.21 + layer));
-        const y = cy + Math.sin(angle) * localRadius * (0.925 + 0.03 * Math.cos(phase * 0.27 + layer));
+      const pointerAngle = pointerAngleOf();
+      const points: Array<[number, number]> = [];
+      for (let index = startIndex; index <= endIndex; index += 1) {
+        const angle = (index / steps) * Math.PI * 2;
+        let radius = base;
+        for (const lobe of LOBES) {
+          const delta = angle - lobe.angle;
+          radius += base * Math.exp(-delta * delta * 7) * lobe.length * 0.3;
+        }
+        radius *= 1
+          + Math.sin(angle * 3 + layer * 1.3 + breathing) * 0.05
+          + Math.sin(angle * 7 - layer + breathing * 1.7) * 0.025
+          + Math.sin(angle * 13 + layer * 0.7 + breathing * 0.5) * 0.012;
+        radius *= 1 + Math.cos(angle - pointerAngle) * proximity * 0.07;
+        points.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius * 0.92]);
+      }
+      return points;
+    };
+
+    const tracePoints = (points: Array<[number, number]>, close = true) => {
+      context.beginPath();
+      for (let index = 0; index < points.length; index += 1) {
+        const [x, y] = points[index];
         if (index === 0) context.moveTo(x, y);
         else context.lineTo(x, y);
       }
+      if (close) context.closePath();
     };
 
-    const drawRing = (
-      cx: number,
-      cy: number,
-      outer: number,
-      inner: number,
-      layer: number,
-      alpha: number,
-      blur: number,
-    ) => {
+    const drawShell = (cx: number, cy: number, base: number, layer: number, alpha: number, breathing: number) => {
       context.save();
       context.globalCompositeOperation = 'screen';
-      context.beginPath();
-      traceOrganicLoop(cx, cy, outer, time, layer, false);
-      traceOrganicLoop(cx, cy, inner, time * 0.91, layer + 0.4, true);
-      context.closePath();
-      context.fillStyle = layer % 2 === 0 ? 'rgb(140 100 236)' : 'rgb(207 198 220)';
+      tracePoints(shellPoints(cx, cy, base, layer, breathing, 0, 180, 180));
+      context.fillStyle = layer % 2 === 0 ? 'rgb(20 18 28 / 0.96)' : 'rgb(8 7 13 / 0.97)';
       context.globalAlpha = alpha;
-      context.shadowColor = layer % 2 === 0 ? 'rgb(139 96 236)' : 'rgb(187 170 214)';
-      context.shadowBlur = blur;
-      context.fill('evenodd');
+      context.fill();
       context.restore();
     };
 
-    const drawCellularCavities = (cx: number, cy: number, scale: number) => {
+    const drawMineralRim = (cx: number, cy: number, base: number, alpha: number, breathing: number) => {
+      const points = shellPoints(cx, cy, base, 0, breathing, 0, 180, 180);
       context.save();
       context.globalCompositeOperation = 'screen';
-      for (let index = 0; index < 28; index += 1) {
-        const angle = index * 2.399963 + time * (0.012 + (index % 3) * 0.004);
-        const radial = scale * (0.34 + ((index * 37) % 53) / 100);
-        const radius = scale * (0.011 + ((index * 17) % 11) / 700);
-        const x = cx + Math.cos(angle) * radial * 1.08;
-        const y = cy + Math.sin(angle) * radial * 0.86;
-        const gradient = context.createRadialGradient(x, y, 0, x, y, radius * 4.5);
-        gradient.addColorStop(0, `rgb(226 218 238 / ${0.18 + proximity * 0.14})`);
-        gradient.addColorStop(0.35, `rgb(143 96 225 / ${0.12 + dwell * 0.16})`);
-        gradient.addColorStop(1, 'rgb(80 47 146 / 0)');
-        context.fillStyle = gradient;
+      tracePoints(points);
+      context.strokeStyle = `rgb(214 202 232 / ${alpha})`;
+      context.lineWidth = 1.1;
+      context.stroke();
+
+      const specStart = Math.floor(180 * 0.42);
+      const specEnd = Math.floor(180 * 0.62);
+      const spec = shellPoints(cx, cy, base, 0, breathing, specStart, specEnd, 180);
+      tracePoints(spec, false);
+      context.strokeStyle = `rgb(240 232 252 / ${Math.min(0.9, alpha * 2.4)})`;
+      context.lineWidth = 1.8;
+      context.stroke();
+      context.restore();
+    };
+
+    const drawCavity = (cx: number, cy: number, base: number, cavity: { angle: number; radial: number; size: number }, breathing: number) => {
+      const pointerAngle = pointerAngleOf();
+      const pull = Math.cos(cavity.angle - pointerAngle) * proximity * 0.08;
+      const r = base * (cavity.radial + pull);
+      const x = cx + Math.cos(cavity.angle) * r;
+      const y = cy + Math.sin(cavity.angle) * r * 0.92;
+      const s = base * cavity.size;
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      const gradient = context.createRadialGradient(x, y, 0, x, y, s * 4.5);
+      gradient.addColorStop(0, `rgb(170 130 255 / ${0.1 + proximity * 0.1})`);
+      gradient.addColorStop(0.4, `rgb(100 60 180 / ${0.08 + dwell * 0.1})`);
+      gradient.addColorStop(1, 'rgb(40 22 70 / 0)');
+      context.fillStyle = gradient;
+      context.beginPath();
+      context.arc(x, y, s * 4.5, 0, Math.PI * 2);
+      context.fill();
+      context.globalCompositeOperation = 'source-over';
+      context.fillStyle = 'rgb(4 4 8 / 0.9)';
+      context.beginPath();
+      context.arc(x, y, s * 1.15, 0, Math.PI * 2);
+      context.fill();
+      context.globalCompositeOperation = 'screen';
+      context.strokeStyle = `rgb(235 225 250 / ${0.12 + dwell * 0.18})`;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.arc(x, y, s * 1.4, -Math.PI / 2, Math.PI / 3);
+      context.stroke();
+      context.restore();
+    };
+
+    const drawGlyphTexture = (cx: number, cy: number, base: number, breathing: number) => {
+      context.save();
+      context.globalCompositeOperation = 'screen';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      const labels = [
+        { text: 'THRESHOLD', angle: 0.5, radial: 0.5, rot: 0.12, alpha: 0.1 },
+        { text: 'A / −∞', angle: 2.6, radial: 0.62, rot: -0.2, alpha: 0.12 },
+        { text: 'IDENTITY CLAIM: NONE', angle: 4.1, radial: 0.55, rot: 0.3, alpha: 0.07 },
+      ];
+      for (const label of labels) {
+        const x = cx + Math.cos(label.angle) * base * label.radial;
+        const y = cy + Math.sin(label.angle) * base * label.radial * 0.92;
+        context.save();
+        context.translate(x, y);
+        context.rotate(label.rot + breathing * 0.02);
+        context.font = `${Math.max(7, base * 0.045)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+        context.fillStyle = `rgb(240 238 232 / ${label.alpha})`;
+        context.fillText(label.text, 0, 0);
+        context.restore();
+      }
+      for (let index = 0; index < 14; index += 1) {
+        const angle = index * 2.399963 + 1.3;
+        const radial = 0.34 + ((index * 11) % 23) / 90;
+        const x = cx + Math.cos(angle) * base * radial;
+        const y = cy + Math.sin(angle) * base * radial * 0.92;
+        const s = base * (0.004 + ((index * 13) % 5) * 0.0015);
+        context.strokeStyle = `rgb(214 202 232 / ${0.05 + proximity * 0.05})`;
+        context.lineWidth = 0.7;
         context.beginPath();
-        context.arc(x, y, radius * 4.5, 0, Math.PI * 2);
-        context.fill();
+        context.moveTo(x - s * 3, y);
+        context.lineTo(x + s * 3, y);
+        context.stroke();
       }
       context.restore();
     };
@@ -147,7 +232,12 @@ const { class: className = '' } = Astro.props;
       const { x: cx, y: cy } = focalPoint();
       const shortSide = Math.min(width, height);
       const base = shortSide * (width < 900 ? 0.42 : 0.34);
-      const opening = clamp(0.22 + proximity * 0.36 + dwell * 0.24, 0.18, 0.8);
+      const discrete = mode() === 'REDUCED' || mode() === 'OFF';
+      const level = proximity > 0.6 ? 2 : proximity > 0.2 ? 1 : 0;
+      const opening = discrete
+        ? clamp(0.22 + level * 0.25, 0.18, 0.8)
+        : clamp(0.22 + proximity * 0.36 + dwell * 0.24, 0.18, 0.8);
+      const breathing = discrete ? 0 : Math.sin(time * 1.4) * 0.5 + Math.sin(time * 0.9 + 1.7) * 0.5;
 
       context.save();
       context.globalCompositeOperation = 'source-over';
@@ -155,20 +245,21 @@ const { class: className = '' } = Astro.props;
       context.fillRect(0, 0, width, height);
 
       const atmosphere = context.createRadialGradient(cx, cy, base * 0.06, cx, cy, base * 1.85);
-      atmosphere.addColorStop(0, `rgb(180 144 255 / ${0.08 + opening * 0.08})`);
-      atmosphere.addColorStop(0.35, `rgb(99 57 175 / ${0.08 + proximity * 0.06})`);
+      atmosphere.addColorStop(0, `rgb(180 144 255 / ${0.05 + opening * 0.05})`);
+      atmosphere.addColorStop(0.35, `rgb(99 57 175 / ${0.05 + proximity * 0.04})`);
       atmosphere.addColorStop(1, 'rgb(0 0 0 / 0)');
       context.fillStyle = atmosphere;
       context.fillRect(0, 0, width, height);
       context.restore();
 
-      const outer = base * (1.01 + opening * 0.1);
-      drawRing(cx, cy, outer, base * (0.76 - opening * 0.09), 0, 0.24 + proximity * 0.12, 28);
-      drawRing(cx, cy, base * 0.82, base * (0.60 - opening * 0.13), 1, 0.32 + dwell * 0.15, 20);
-      drawRing(cx, cy, base * 0.65, base * (0.42 - opening * 0.14), 2, 0.44 + opening * 0.16, 14);
-      drawRing(cx, cy, base * 0.49, base * (0.25 - opening * 0.11), 3, 0.52 + opening * 0.18, 10);
+      drawShell(cx, cy, base * 1.06, 0, 0.34, breathing);
+      drawShell(cx, cy, base * 0.84, 1, 0.5, breathing);
+      drawShell(cx, cy, base * 0.62, 2, 0.62, breathing);
 
-      drawCellularCavities(cx, cy, base);
+      for (const cavity of CAVITIES) drawCavity(cx, cy, base, cavity, breathing);
+
+      drawGlyphTexture(cx, cy, base, breathing);
+      drawMineralRim(cx, cy, base * 1.06, 0.16 + proximity * 0.1, breathing);
 
       context.save();
       context.globalCompositeOperation = 'source-over';
