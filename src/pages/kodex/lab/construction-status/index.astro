@@ -1,0 +1,335 @@
+---
+import {
+  KODEX_CONSTRUCTION_PROGRESS,
+  getFleetMeasurementCoverage,
+  getMeasurementCoverage,
+  getNextUnmeasuredGate,
+} from '../../../../lib/kodex/construction-progress';
+
+const fleetCoverage = getFleetMeasurementCoverage();
+const measuredVisual = KODEX_CONSTRUCTION_PROGRESS.filter((scene) => scene.visualTargetMatch !== null);
+const measuredNative = KODEX_CONSTRUCTION_PROGRESS.filter((scene) => scene.nativeImplementation !== null);
+const average = (values: number[]) => values.length
+  ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+  : null;
+const averageVisual = average(measuredVisual.map((scene) => scene.visualTargetMatch as number));
+const averageNative = average(measuredNative.map((scene) => scene.nativeImplementation as number));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>KODEX−∞ Construction Control Room</title>
+    <meta
+      name="description"
+      content="Internal evidence-based construction status for KODEX−∞ scenes."
+    />
+  </head>
+  <body>
+    <main class="kdx-control">
+      <header class="kdx-control__header">
+        <div>
+          <p class="eyebrow">KODEX−∞ / INTERNAL / NOINDEX</p>
+          <h1>CONSTRUCTION CONTROL ROOM</h1>
+          <p class="lede">
+            Evidence coverage is not completion. Unknown values remain unmeasured until a production packet supplies proof.
+          </p>
+        </div>
+
+        <div class="kdx-control__fleet" aria-label="Fleet measurement summary">
+          <div>
+            <span>MEASUREMENT COVERAGE</span>
+            <strong>{fleetCoverage}%</strong>
+          </div>
+          <div>
+            <span>AVG VISUAL TARGET</span>
+            <strong>{averageVisual === null ? 'UNMEASURED' : `${averageVisual}%`}</strong>
+          </div>
+          <div>
+            <span>AVG NATIVE BUILD</span>
+            <strong>{averageNative === null ? 'UNMEASURED' : `${averageNative}%`}</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="kdx-control__legend" aria-label="Status legend">
+        <span><i data-state="PASS"></i>PASS</span>
+        <span><i data-state="FAIL"></i>FAIL</span>
+        <span><i data-state="BLOCKED"></i>BLOCKED</span>
+        <span><i data-state="N/A"></i>N/A</span>
+        <span><i data-state="UNMEASURED"></i>UNMEASURED</span>
+      </section>
+
+      <section class="kdx-control__grid">
+        {KODEX_CONSTRUCTION_PROGRESS.map((scene, index) => {
+          const coverage = getMeasurementCoverage(scene);
+          const nextGate = scene.blocker ?? getNextUnmeasuredGate(scene) ?? 'NO UNMEASURED GATE';
+          const evidence = [
+            ['REF', scene.reference.resolved],
+            ['MAP', scene.evidence.structuralMap],
+            ['BLUEPRINT', scene.evidence.blueprint],
+            ['INFO', scene.evidence.informationDesign],
+            ['NODES', scene.evidence.nodeGraph],
+            ['BUILD', scene.evidence.nativeBuild],
+            ['DESK', scene.evidence.desktopQa],
+            ['390', scene.evidence.mobile390Qa],
+            ['412', scene.evidence.mobile412Qa],
+            ['MOTION', scene.evidence.reducedMotion],
+            ['FALLBACK', scene.evidence.fallback],
+          ] as const;
+
+          return (
+            <article class="kdx-scene">
+              <div class="kdx-scene__index">{String(index + 1).padStart(2, '0')}</div>
+              <div class="kdx-scene__title">
+                <div>
+                  <p>{scene.stage}</p>
+                  <h2>{scene.scene}</h2>
+                </div>
+                <strong class="coverage">{coverage}% measured</strong>
+              </div>
+
+              <div class="kdx-scene__bars">
+                <div>
+                  <span>VISUAL TARGET MATCH</span>
+                  <strong>{scene.visualTargetMatch === null ? 'UNMEASURED' : `${scene.visualTargetMatch}%`}</strong>
+                  <meter min="0" max="100" value={scene.visualTargetMatch ?? 0}></meter>
+                </div>
+                <div>
+                  <span>NATIVE IMPLEMENTATION</span>
+                  <strong>{scene.nativeImplementation === null ? 'UNMEASURED' : `${scene.nativeImplementation}%`}</strong>
+                  <meter min="0" max="100" value={scene.nativeImplementation ?? 0}></meter>
+                </div>
+              </div>
+
+              <div class="kdx-scene__evidence">
+                {evidence.map(([label, state]) => (
+                  <span data-state={state ?? 'UNMEASURED'}>
+                    <i></i>{label}
+                  </span>
+                ))}
+              </div>
+
+              <dl>
+                <div><dt>OWNER</dt><dd>{scene.owner ?? 'UNASSIGNED / VERIFY ACTIVE LANE'}</dd></div>
+                <div><dt>ROUTE</dt><dd>{scene.route ?? 'UNMEASURED'}</dd></div>
+                <div><dt>REFERENCE</dt><dd>{scene.reference.sourceId ?? 'UNRESOLVED'}</dd></div>
+                <div><dt>NEXT GATE</dt><dd>{nextGate}</dd></div>
+              </dl>
+            </article>
+          );
+        })}
+      </section>
+
+      <footer>
+        <span>RULE / NULL ≠ ZERO ≠ FAIL</span>
+        <span>UPDATE ONLY FROM PACKET EVIDENCE</span>
+        <span>NO PUBLIC DEPLOY</span>
+      </footer>
+    </main>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    color-scheme: dark;
+    background: #070808;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background:
+      linear-gradient(rgb(255 255 255 / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+      #070808;
+    background-size: 48px 48px;
+    color: #f1f2ed;
+  }
+
+  .kdx-control {
+    width: min(1600px, 100%);
+    margin: 0 auto;
+    padding: clamp(18px, 3vw, 46px);
+  }
+
+  .kdx-control__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(330px, .6fr);
+    gap: clamp(24px, 5vw, 80px);
+    padding-bottom: 28px;
+    border-bottom: 1px solid rgb(255 255 255 / .2);
+  }
+
+  .eyebrow,
+  .kdx-scene__title p,
+  dt,
+  .kdx-control__fleet span,
+  .kdx-scene__bars span,
+  footer {
+    font-size: 10px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .eyebrow { color: rgb(241 242 237 / .58); }
+  h1 { margin: 8px 0 14px; font-size: clamp(30px, 6vw, 78px); line-height: .92; letter-spacing: -.055em; }
+  .lede { max-width: 760px; color: rgb(241 242 237 / .62); line-height: 1.6; }
+
+  .kdx-control__fleet {
+    display: grid;
+    align-content: end;
+    gap: 1px;
+    border: 1px solid rgb(255 255 255 / .16);
+    background: rgb(255 255 255 / .16);
+  }
+
+  .kdx-control__fleet > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px;
+    background: #0b0d0c;
+  }
+
+  .kdx-control__fleet strong { font-size: 14px; }
+  .kdx-control__fleet span { color: rgb(241 242 237 / .55); }
+
+  .kdx-control__legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 14px 0 24px;
+    font-size: 9px;
+    letter-spacing: .12em;
+  }
+
+  .kdx-control__legend span,
+  .kdx-scene__evidence span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  i {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border: 1px solid currentColor;
+  }
+
+  [data-state='PASS'] { color: #c5ff98; }
+  [data-state='FAIL'] { color: #ff968e; }
+  [data-state='BLOCKED'] { color: #ffd278; }
+  [data-state='N/A'] { color: #95a3ae; }
+  [data-state='UNMEASURED'] { color: rgb(241 242 237 / .34); }
+
+  .kdx-control__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-top: 1px solid rgb(255 255 255 / .16);
+    border-left: 1px solid rgb(255 255 255 / .16);
+  }
+
+  .kdx-scene {
+    position: relative;
+    min-height: 390px;
+    padding: clamp(18px, 2.3vw, 30px);
+    border-right: 1px solid rgb(255 255 255 / .16);
+    border-bottom: 1px solid rgb(255 255 255 / .16);
+    background: rgb(6 7 7 / .76);
+    overflow: hidden;
+  }
+
+  .kdx-scene__index {
+    position: absolute;
+    right: 18px;
+    bottom: -12px;
+    color: rgb(255 255 255 / .035);
+    font-size: clamp(110px, 17vw, 230px);
+    line-height: 1;
+    letter-spacing: -.1em;
+    pointer-events: none;
+  }
+
+  .kdx-scene__title,
+  .kdx-scene__bars,
+  .kdx-scene dl,
+  .kdx-scene__evidence {
+    position: relative;
+    z-index: 1;
+  }
+
+  .kdx-scene__title {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: start;
+  }
+
+  .kdx-scene__title p { margin: 0 0 5px; color: rgb(241 242 237 / .45); }
+  h2 { margin: 0; font-size: clamp(24px, 4vw, 48px); letter-spacing: -.045em; }
+  .coverage { font-size: 10px; font-weight: 500; color: rgb(241 242 237 / .52); }
+
+  .kdx-scene__bars {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 32px 0 24px;
+  }
+
+  .kdx-scene__bars > div {
+    display: grid;
+    gap: 7px;
+    padding: 12px;
+    border: 1px solid rgb(255 255 255 / .13);
+  }
+
+  .kdx-scene__bars span { color: rgb(241 242 237 / .42); }
+  .kdx-scene__bars strong { font-size: 13px; }
+  meter { width: 100%; height: 3px; accent-color: #f1f2ed; }
+
+  .kdx-scene__evidence {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 13px 0;
+    border-top: 1px solid rgb(255 255 255 / .1);
+    border-bottom: 1px solid rgb(255 255 255 / .1);
+    font-size: 9px;
+    letter-spacing: .09em;
+  }
+
+  .kdx-scene dl { margin: 18px 0 0; }
+  .kdx-scene dl div { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 10px; padding: 5px 0; }
+  dt { color: rgb(241 242 237 / .37); }
+  dd { margin: 0; color: rgb(241 242 237 / .72); font-size: 11px; overflow-wrap: anywhere; }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 18px 0 4px;
+    color: rgb(241 242 237 / .38);
+  }
+
+  @media (max-width: 860px) {
+    .kdx-control__header { grid-template-columns: 1fr; }
+    .kdx-control__grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 520px) {
+    .kdx-control { padding: 14px; }
+    .kdx-scene { min-height: auto; }
+    .kdx-scene__title { flex-direction: column; gap: 8px; }
+    .kdx-scene__bars { grid-template-columns: 1fr; }
+    .kdx-scene dl div { grid-template-columns: 92px minmax(0, 1fr); }
+  }
+</style>
