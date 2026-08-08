@@ -17,7 +17,14 @@ export class KdxThresholdPortalRuntime {
     this.state = {
       seed: options.seed ?? this.config.defaultSeed,
       elapsedMs: options.elapsedMs ?? this.config.defaultElapsedMs,
+      // CANAL MEDIDO. Solo entra aqui la salida del analizador de audio. Si no
+      // hay analizador corriendo el valor es 0 y `bassMedido` queda en false:
+      // ausencia declarada, no un cero que se pueda leer como lectura real.
       bass: options.bass ?? this.config.defaultBass,
+      bassMedido: false,
+      // CANAL ORNAMENTAL. Envolvente de reposo generada por el sitio. No es una
+      // medicion de nada y jamas debe reportarse como tal.
+      idleAnimation: options.idleAnimation ?? 0,
       pointer: [0, 0],
       motionMode: options.motionMode ?? this.config.defaultMotionMode,
       qualityLevel: options.qualityLevel ?? this.config.defaultQualityLevel,
@@ -89,7 +96,62 @@ export class KdxThresholdPortalRuntime {
   }
   setMotionMode(mode) { this.state.motionMode = mode; this.renderOnce(); }
   setQualityLevel(levelName) { this.state.qualityLevel = levelName; this.renderOnce(); }
-  setBass(bass) { this.state.bass = Math.max(0, Math.min(1, bass)); this.renderOnce(); }
+  /**
+   * Graves MEDIDOS. Recibe unicamente la salida del analizador de audio.
+   *
+   * No pasar por aqui envolventes, senos, rampas ni ningun valor generado: el
+   * canal se llama como una medicion y por lo tanto solo puede transportar
+   * mediciones. Para animar sin senal esta `setIdleAnimation`.
+   */
+  setBass(bass) {
+    this.state.bass = Math.max(0, Math.min(1, bass));
+    this.state.bassMedido = true;
+    this.renderOnce();
+  }
+
+  /**
+   * No hay analizador: el canal medido vuelve a ausente, no a "cero medido".
+   *
+   * Sale temprano si ya estaba ausente. No es microoptimizacion: cada
+   * `renderOnce` acumula una pasada mas de feedback, asi que el numero de
+   * renders por cuadro es un parametro visual. Estos dos canales se escriben
+   * los dos en cada cuadro y solo uno de ellos cambia; si ambos renderizaran
+   * siempre, la estela del portal se alargaria a la mitad de velocidad.
+   */
+  clearBass() {
+    if (!this.state.bassMedido && this.state.bass === 0) return;
+    this.state.bass = 0;
+    this.state.bassMedido = false;
+    this.renderOnce();
+  }
+
+  /**
+   * Animacion de reposo: movimiento decorativo, generado por el sitio.
+   *
+   * Existe para que la lamina respire cuando no hay sonido. Es un canal propio
+   * justamente para que nadie pueda confundirlo con `bass`: quien lea el estado
+   * o las metricas ve dos numeros distintos con dos procedencias distintas.
+   */
+  setIdleAnimation(value) {
+    const next = Math.max(0, Math.min(1, value));
+    if (next === this.state.idleAnimation) return; // ver la nota en clearBass
+    this.state.idleAnimation = next;
+    this.renderOnce();
+  }
+
+  /**
+   * El unico punto donde los dos canales se suman.
+   *
+   * El shader expone una sola entrada de desplazamiento (`u_bass`), asi que la
+   * medicion y el ornamento acaban compartiendo uniform. La suma se hace aqui,
+   * en el ultimo salto, y no antes: aguas arriba los dos valores siguen
+   * separados y son distinguibles en `getMetrics()`. Renombrar el uniform a
+   * algo neutro (`u_drive`) exige tocar los shaders, que quedan fuera de este
+   * paquete.
+   */
+  _displacement() {
+    return Math.max(0, Math.min(1, this.state.bass + this.state.idleAnimation));
+  }
   setPointer(x, y) {
     this.state.pointer = [Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y))];
     if (!this.running) this.renderOnce();
@@ -113,6 +175,12 @@ export class KdxThresholdPortalRuntime {
       elapsedMs: this.state.elapsedMs,
       motionMode: this.state.motionMode,
       qualityLevel: this.state.qualityLevel,
+      // Los dos canales se reportan por separado y con su procedencia. Un
+      // consumidor de metricas nunca debe tener que adivinar si `bass` es una
+      // lectura real; si `bassMedido` es false, no hay senal y punto.
+      bass: this.state.bass,
+      bassMedido: this.state.bassMedido,
+      idleAnimation: this.state.idleAnimation,
     };
   }
 
@@ -198,6 +266,7 @@ export class KdxThresholdPortalRuntime {
     const timeSeconds = this.state.elapsedMs / 1000;
     const qualityValue = getThresholdPortalQualityValue(this.state.qualityLevel);
     const motionValue = this.state.motionMode === THRESHOLD_PORTAL_MOTION.REDUCED ? 0 : this.state.motionMode === THRESHOLD_PORTAL_MOTION.LOW_POWER ? 0.5 : 1;
+    const displacement = this._displacement();
 
     this.metrics.drawCalls = 0;
 
@@ -209,7 +278,7 @@ export class KdxThresholdPortalRuntime {
       gl.uniform1f(u.u_time, timeSeconds);
       gl.uniform1f(u.u_seed, this.state.seed);
       gl.uniform2f(u.u_pointer, this.state.pointer[0], this.state.pointer[1]);
-      gl.uniform1f(u.u_bass, this.state.bass);
+      gl.uniform1f(u.u_bass, displacement);
       // La fase del archivo manda sobre u_state cuando existe. Es el eje que
       // el visitante mueve a proposito; la fase interna del portal
       // (DORMANT/AWARE/OPEN) queda de respaldo.
@@ -241,7 +310,7 @@ export class KdxThresholdPortalRuntime {
       gl.bindTexture(gl.TEXTURE_2D, this.fbNext.tex);
       gl.uniform2f(u.u_res, width, height);
       gl.uniform1f(u.u_time, timeSeconds);
-      gl.uniform1f(u.u_bass, this.state.bass);
+      gl.uniform1f(u.u_bass, displacement);
       gl.uniform1f(u.u_motion, motionValue);
     });
 
