@@ -1,42 +1,27 @@
 /**
- * KODEX-∞ · EDGE RESOLVER + SERENDIPIDAD ACOTADA (KOD-30)
+ * KODEX-∞ · EDGE RESOLVER + BOUNDED SERENDIPITY (KOD-30)
  *
- * Resuelve el siguiente borde del recorrido de forma determinística a partir
- * del estado del viaje (KOD-28) y del graph canónico proyectado (KOD-29).
- *
- * Contrato canónico que cumple (alphabet-topology.json / experience-graph.json):
- *
- *   - edgeResolution: STATE_DEPENDENT
- *   - Y / RETURN se genera ÚNICAMENTE desde un event trace real que ya visitó
- *     más de una coordenada; nunca se fuerza Y al inicio.
- *   - M / HEART es opcional: puede ofrecerse desde más de una región, nunca
- *     es obligatorio y nunca puntúa.
- *   - LOOPS y MUTATED REVISITS están permitidos.
- *   - B–L y N–X no reciben significado inventado.
- *   - La serendipidad es ACOTADA y determinística: usa la semilla derivada
- *     del rastro (0..1) para variar el orden de candidatos sin aleatoriedad.
- *   - ACCESSIBILITY_MODE reduce la variabilidad (camino determinístico).
- *
- * Dominio: el recorrido se resuelve sobre NODOS del graph proyectado
- * (NODE-*), mientras el kernel de estado guarda letras. `resolveEdge` opera en
- * nodos y reporta también la letra destino cuando el nodo la tiene; la
- * integración con JourneyState traduce letra -> nodo inicial vía
- * `resolveNodeForLetter`.
- *
- * Es lógica pura: no toca DOM ni red, y se testea con `node --test`.
+ * Runtime exits consume only `GraphProjection.adjacency`, which contains edges
+ * explicitly admitted as runtime navigation. Bridge/research relations live in
+ * `knowledgeAdjacency` and are never treated as visitor exits implicitly.
  */
 
-import type { GraphProjection } from "./journeyGraph/canonical-graph.ts";
+import {
+  HEART_ENDPOINT_ID,
+  RETURN_ENDPOINT_ID,
+  type GraphProjection,
+} from "./journeyGraph/canonical-graph.ts";
 import type { JourneyState, KodexLetter } from "./journey-state.ts";
 
 export type AccessibilityMode = "full" | "reduced" | "off";
+export const MIN_RETURN_DISTINCT_COORDINATES = 6;
 
 export interface ResolverContext {
   state: JourneyState;
   projection: GraphProjection;
-  /** Nodo actual del recorrido. Si no se provee, se deriva de `state.current`. */
+  /** Current source/runtime node. If omitted, A/current coordinate is resolved. */
   currentNode?: string;
-  /** Preferencias del usuario. `reduced`/`off` desactivan la serendipidad. */
+  /** Reduced/off disables serendipitous reordering but preserves all actions. */
   accessibility?: AccessibilityMode;
 }
 
@@ -44,178 +29,163 @@ export interface ResolvedEdge {
   from: string;
   to: string;
   toLetter: KodexLetter | null;
-  /** Cómo se resolvió el borde. */
+  toKind: "NODE" | "HEART_PORTAL" | "RETURN_TERMINAL";
   reason: "RETURN" | "HEART" | "CONNECTED" | "SERENDIPITY" | "FALLBACK";
-  /** Semilla de serendipidad usada (determinística desde el rastro). */
   serendipitySeed: number;
-  /** Ids de nodos candidatos considerados, en el orden evaluado. */
   candidates: string[];
 }
 
-/**
- * Traduce una letra del recorrido a los nodos del graph que llevan esa
- * coordenada. Si la letra no tiene nodo asignado (LATENT), devuelve [].
- */
 export function resolveNodeForLetter(
   projection: GraphProjection,
   letter: KodexLetter,
 ): string[] {
-  return projection.nodesByCoordinate.get(letter) ?? [];
+  if (letter === "M") return [projection.structuralEndpoints.get("M")?.id ?? HEART_ENDPOINT_ID];
+  if (letter === "Y") return [projection.structuralEndpoints.get("Y")?.id ?? RETURN_ENDPOINT_ID];
+  if (letter === "A") return projection.nodesByCoordinate.get("A") ?? [];
+  return [];
+}
+
+function assertProjectionUsable(projection: GraphProjection): void {
+  if (projection.anomalies.length > 0) {
+    throw new Error(`KODEX graph projection invalid: ${projection.anomalies.join(" | ")}`);
+  }
 }
 
 function neighborsOf(projection: GraphProjection, nodeId: string): string[] {
   return projection.adjacency.get(nodeId) ?? [];
 }
 
-/**
- * Devuelve el nodo destino Y al que converge un recorrido real: el nodo
- * proyectado con coordenada Y, si existe y el rastro ya visitó más de una
- * letra (nunca se devuelve en el primer paso).
- */
-function resolveReturnNode(state: JourneyState, projection: GraphProjection): string | null {
-  const distinct = new Set(state.letterTrace).size;
-  if (distinct < 2) return null;
-  const yNodes = projection.nodesByCoordinate.get("Y") ?? [];
-  return yNodes.length ? yNodes[0] : null;
+function distinctConsequentialCoordinates(state: JourneyState): number {
+  return new Set(state.letterTrace.filter((letter) => letter !== "M" && letter !== "Y")).size;
 }
 
 /**
- * Ofrece M / HEART como candidato opcional. Sólo aparece cuando el corazón
- * está LATENT/RESONANT y el rastro ya tiene al menos una coordenada: es un
- * desvío posible, nunca obligatorio.
+ * Y is structural and route-derived. For the v0 executable gate we use the
+ * canonical minimum of six consequential coordinates; this is deliberately
+ * stricter than the old two-letter shortcut and does not assign meanings to
+ * any intermediate coordinate.
  */
-function maybeHeartNode(state: JourneyState, projection: GraphProjection): string | null {
-  if (state.heart.portalState === "AVAILABLE") return null;
-  if (state.letterTrace.length < 1) return null;
-  const mNodes = projection.nodesByCoordinate.get("M") ?? [];
-  return mNodes.length ? mNodes[0] : null;
+function resolveReturnEndpoint(state: JourneyState, projection: GraphProjection): string | null {
+  if (distinctConsequentialCoordinates(state) < MIN_RETURN_DISTINCT_COORDINATES) return null;
+  return projection.structuralEndpoints.get("Y")?.id ?? RETURN_ENDPOINT_ID;
+}
+
+/** Heart becomes selectable only when the JourneyState portal is AVAILABLE. */
+function maybeHeartEndpoint(state: JourneyState, projection: GraphProjection): string | null {
+  if (state.heart.portalState !== "AVAILABLE") return null;
+  if (state.current === "M" || state.letterTrace.length === 0) return null;
+  return projection.structuralEndpoints.get("M")?.id ?? HEART_ENDPOINT_ID;
 }
 
 function stableSort(ids: string[]): string[] {
-  return [...ids].sort((a, b) => a.localeCompare(b));
+  return [...new Set(ids)].sort((a, b) => a.localeCompare(b));
 }
 
-function letterOf(projection: GraphProjection, nodeId: string): KodexLetter | null {
-  const node = projection.nodeById.get(nodeId);
-  return node?.coordinateAssignment ?? null;
+function letterOf(projection: GraphProjection, id: string): KodexLetter | null {
+  if (id === (projection.structuralEndpoints.get("M")?.id ?? HEART_ENDPOINT_ID)) return "M";
+  if (id === (projection.structuralEndpoints.get("Y")?.id ?? RETURN_ENDPOINT_ID)) return "Y";
+  return projection.nodeById.get(id)?.coordinateAssignment ?? null;
 }
 
-/**
- * Resuelve el siguiente borde de forma determinística.
- *
- * Prioridad:
- *   1. RETURN (Y) cuando el rastro real ya justifica el retorno.
- *   2. HEART (M) como opción opcional.
- *   3. Vecinos conectados del nodo actual (orden estable).
- *   4. Variación serendípica acotada del orden de candidatos.
- *   5. Fallback: coordenada A (origen común) si el graph está huérfano.
- */
+function kindOf(projection: GraphProjection, id: string): ResolvedEdge["toKind"] {
+  if (id === (projection.structuralEndpoints.get("M")?.id ?? HEART_ENDPOINT_ID)) return "HEART_PORTAL";
+  if (id === (projection.structuralEndpoints.get("Y")?.id ?? RETURN_ENDPOINT_ID)) return "RETURN_TERMINAL";
+  return "NODE";
+}
+
 export function resolveEdge(ctx: ResolverContext): ResolvedEdge {
-  const state = ctx.state;
-  const projection = ctx.projection;
+  const { state, projection } = ctx;
+  assertProjectionUsable(projection);
   const accessibility = ctx.accessibility ?? "full";
 
   const current =
     ctx.currentNode ??
     resolveNodeForLetter(projection, state.current)[0] ??
-    projection.nodesByCoordinate.get("A")?.[0] ??
+    projection.structuralEndpoints.get("A")?.id ??
     "";
 
   const neighbors = stableSort(neighborsOf(projection, current));
-  const returnNode = resolveReturnNode(state, projection);
-  const heartNode = maybeHeartNode(state, projection);
+  const returnEndpoint = resolveReturnEndpoint(state, projection);
+  const heartEndpoint = maybeHeartEndpoint(state, projection);
+  const seed = Math.max(0, Math.min(0.999999, state.serendipitySeed));
 
-  const candidates = [
-    ...(returnNode ? [returnNode] : []),
-    ...(heartNode ? [heartNode] : []),
-    ...neighbors,
-  ];
+  // Once the v0 completion gate is met, Y is the canonical convergence.
+  if (returnEndpoint) {
+    return {
+      from: current,
+      to: returnEndpoint,
+      toLetter: "Y",
+      toKind: "RETURN_TERMINAL",
+      reason: "RETURN",
+      serendipitySeed: seed,
+      candidates: [returnEndpoint, ...neighbors, ...(heartEndpoint ? [heartEndpoint] : [])],
+    };
+  }
 
-  const seed = state.serendipitySeed;
+  // Heart is an optional candidate, never an automatic priority over a normal
+  // connected exit. Reduced/off mode therefore chooses the stable connected
+  // path first and exposes Heart only when no connected exit exists.
+  const pool = stableSort([...neighbors, ...(heartEndpoint ? [heartEndpoint] : [])]);
 
-  if (candidates.length === 0) {
-    const aNodes = projection.nodesByCoordinate.get("A") ?? [];
-    const fallback = aNodes[0] ?? current;
+  if (pool.length === 0) {
+    const fallback = projection.structuralEndpoints.get("A")?.id ?? current;
     return {
       from: current,
       to: fallback,
       toLetter: letterOf(projection, fallback),
+      toKind: kindOf(projection, fallback),
       reason: "FALLBACK",
       serendipitySeed: seed,
       candidates: [fallback],
     };
   }
 
-  // RETURN y HEART son invariantes: se resuelven sin variación.
-  if (returnNode && candidates[0] === returnNode) {
-    return {
-      from: current,
-      to: returnNode,
-      toLetter: "Y",
-      reason: "RETURN",
-      serendipitySeed: seed,
-      candidates,
-    };
-  }
-  if (heartNode && candidates[0] === heartNode) {
-    return {
-      from: current,
-      to: heartNode,
-      toLetter: "M",
-      reason: "HEART",
-      serendipitySeed: seed,
-      candidates,
-    };
+  let chosen: string;
+  if (accessibility === "off" || accessibility === "reduced") {
+    chosen = neighbors[0] ?? heartEndpoint ?? pool[0];
+  } else {
+    chosen = pool[Math.min(Math.floor(seed * pool.length), pool.length - 1)];
   }
 
-  let chosen: string;
-  let reason: ResolvedEdge["reason"];
-  if (neighbors.length === 0) {
-    chosen = candidates[0];
-    reason = "CONNECTED";
-  } else if (accessibility === "off" || accessibility === "reduced") {
-    chosen = neighbors[0];
-    reason = "CONNECTED";
-  } else {
-    const index = Math.min(Math.floor(seed * neighbors.length), neighbors.length - 1);
-    chosen = neighbors[index];
-    reason = index === 0 ? "CONNECTED" : "SERENDIPITY";
-  }
+  const isHeart = chosen === heartEndpoint;
+  const firstConnected = neighbors[0] ?? null;
+  const reason: ResolvedEdge["reason"] = isHeart
+    ? "HEART"
+    : chosen === firstConnected
+      ? "CONNECTED"
+      : "SERENDIPITY";
 
   return {
     from: current,
     to: chosen,
     toLetter: letterOf(projection, chosen),
+    toKind: kindOf(projection, chosen),
     reason,
     serendipitySeed: seed,
-    candidates,
+    candidates: pool,
   };
 }
 
-/**
- * Simula un recorrido desde el estado actual hasta que se alcanza RETURN (Y)
- * o se agota el límite de pasos. Devuelve los bordes resueltos.
- */
 export function simulateJourney(ctx: ResolverContext, maxSteps = 50): ResolvedEdge[] {
   const steps: ResolvedEdge[] = [];
   let cursor = ctx;
-  for (let i = 0; i < maxSteps; i++) {
+  for (let i = 0; i < maxSteps; i += 1) {
     const edge = resolveEdge(cursor);
     steps.push(edge);
     if (edge.reason === "RETURN") break;
+
+    const nextLetter = edge.toLetter;
     cursor = {
       ...cursor,
       currentNode: edge.to,
       state: {
         ...cursor.state,
-        current: edge.toLetter ?? cursor.state.current,
-        letterTrace: edge.toLetter
-          ? [...cursor.state.letterTrace, edge.toLetter]
-          : cursor.state.letterTrace,
-        visitCounts: edge.toLetter
+        current: nextLetter ?? cursor.state.current,
+        letterTrace: nextLetter ? [...cursor.state.letterTrace, nextLetter] : cursor.state.letterTrace,
+        visitCounts: nextLetter
           ? {
               ...cursor.state.visitCounts,
-              [edge.toLetter]: (cursor.state.visitCounts[edge.toLetter] ?? 0) + 1,
+              [nextLetter]: (cursor.state.visitCounts[nextLetter] ?? 0) + 1,
             }
           : cursor.state.visitCounts,
       },
