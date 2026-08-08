@@ -1,0 +1,25 @@
+---
+interface Props {
+  sourceSelector: string;
+  preset?: 'neutral' | 'threshold' | 'observe' | 'descent' | 'archive' | 'machine' | 'cosmology' | 'return';
+  quality?: 'full' | 'balanced' | 'low-power';
+  class?: string;
+}
+const { sourceSelector, preset = 'observe', quality = 'balanced', class: className = '' } = Astro.props;
+const id = `kdx-crt-${crypto.randomUUID()}`;
+---
+<div id={id} class={`kdx-crt-mount ${className}`} data-source-selector={sourceSelector} data-preset={preset} data-quality={quality} aria-hidden="true"></div>
+<script>
+  import { mountKodexCrt } from '/assets/kodex/crt/kodex-crt.esm.js';
+  document.querySelectorAll<HTMLElement>('.kdx-crt-mount:not([data-mounted])').forEach((mount) => {
+    mount.dataset.mounted = '1';
+    const source = document.querySelector(mount.dataset.sourceSelector || '');
+    const container = mount.parentElement;
+    if (!source || !container) return console.warn('KODEX CRT source/container missing');
+    container.classList.add('kdx-crt-host');
+    (mount as any).__kdxCrt = mountKodexCrt({ source, container, preset: mount.dataset.preset, quality: mount.dataset.quality });
+  });
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll<HTMLElement>('.kdx-crt-mount').forEach((mount) => (mount as any).__kdxCrt?.destroy?.());
+  }, { once: true });
+</script>

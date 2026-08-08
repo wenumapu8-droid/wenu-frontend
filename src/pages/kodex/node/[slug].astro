@@ -1,0 +1,211 @@
+---
+/**
+ * KODEX-∞ · Ficha de nodo.
+ *
+ * Ruta propia, aparte de /kodex/vol/[slug]. Esa página renderiza VOLÚMENES —
+ * obra— y su código para nodos fue retirado del repo. Colgar nodos ahí produciría
+ * páginas con props que la plantilla no sabe leer.
+ *
+ * Acá se muestra lo que un nodo realmente es: su función, sus relaciones con otros
+ * nodos, su procedencia y su capa epistémica. Las relaciones son las 74 aristas que
+ * el autor escribió a mano en el Visual Atlas y que nunca se habían visto.
+ *
+ * Placa técnica, no escena. La escena vendrá cuando el nodo tenga runtime.
+ */
+import KodexShell from '../../../layouts/KodexShell.astro';
+import { getKodexNodes, type KodexNode } from '../../../lib/kodex/nodes';
+import '../../../styles/kodex.css';
+
+export async function getStaticPaths() {
+  const nodes = await getKodexNodes();
+  return nodes.map((node) => ({ params: { slug: node.slug }, props: { node } }));
+}
+
+interface Props { node: KodexNode }
+const { node } = Astro.props;
+
+const epistemic = (node as any).epistemic ?? null;
+const cultural = epistemic?.culturalStatus ?? 'STANDARD';
+const needsAttribution = cultural !== 'STANDARD';
+---
+
+<KodexShell title={`KODEX −∞ · ${node.title}`} description={node.summary}>
+  <main class={`kx-node kx-node--${node.accent}`} data-status={node.status}>
+
+    <header class="kx-node__head">
+      <p class="kx-node__id">{node.id}</p>
+      <h1 class="kx-node__title">{node.title}</h1>
+      {node.subtitle && <p class="kx-node__sub">{node.subtitle}</p>}
+      <dl class="kx-node__meta">
+        <div><dt>TYPE</dt><dd>{node.type}</dd></div>
+        <div><dt>STATUS</dt><dd>{node.status}</dd></div>
+        <div><dt>VISIBILITY</dt><dd>{node.visibility}</dd></div>
+        <div><dt>VERSION</dt><dd>{node.version}</dd></div>
+      </dl>
+    </header>
+
+    <section class="kx-node__block">
+      <h2>FUNCTION</h2>
+      <p class="kx-node__summary">{node.summary}</p>
+      {node.proposition && <p class="kx-node__prop">{node.proposition}</p>}
+    </section>
+
+    {node.editorial?.body && (
+      <section class="kx-node__block" lang={node.editorial.language}>
+        <h2>EDITORIAL</h2>
+        <p class="kx-node__editorial">{node.editorial.body}</p>
+      </section>
+    )}
+
+    {node.symbols?.length > 0 && (
+      <section class="kx-node__block">
+        <h2>SYMBOLS</h2>
+        <ul class="kx-node__tags">
+          {node.symbols.map((s) => <li>{s}</li>)}
+        </ul>
+      </section>
+    )}
+
+    {node.relationships?.length > 0 && (
+      <section class="kx-node__block">
+        <h2>RELATIONS <span class="kx-node__count">{node.relationships.length}</span></h2>
+        <ul class="kx-node__rels">
+          {node.relationships.map((r) => (
+            <li>
+              <span class="kx-node__rel-type">{r.type}</span>
+              <span class="kx-node__rel-target">{r.label}</span>
+              {(r as any).validity && (
+                <span class="kx-node__rel-val" data-v={(r as any).validity}>
+                  {(r as any).validity}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    {epistemic && (
+      <section class="kx-node__block kx-node__epistemic">
+        <h2>EPISTEMIC LAYER</h2>
+        <dl class="kx-node__meta">
+          <div><dt>CLAIM CLASS</dt><dd>{epistemic.claimClass ?? 'UNKNOWN'}</dd></div>
+          <div><dt>CULTURAL</dt><dd>{cultural}</dd></div>
+          {epistemic.domains?.length > 0 && (
+            <div><dt>DOMAINS</dt><dd>{epistemic.domains.join(' · ')}</dd></div>
+          )}
+        </dl>
+        {needsAttribution && (
+          <p class="kx-node__notice">
+            Este nodo requiere atribución explícita de su procedencia. No presentar su
+            material como propio ni como afirmación científica.
+          </p>
+        )}
+        {epistemic.limitations?.length > 0 && (
+          <>
+            <h3>LO QUE LA FUENTE NO PERMITE AFIRMAR</h3>
+            <ul class="kx-node__limits">
+              {epistemic.limitations.map((l: string) => <li>{l}</li>)}
+            </ul>
+          </>
+        )}
+      </section>
+    )}
+
+    {node.sources?.length > 0 && (
+      <section class="kx-node__block">
+        <h2>SOURCES</h2>
+        <ul class="kx-node__sources">
+          {node.sources.map((s) => (
+            <li><span>{s.type}</span> {s.label}</li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <footer class="kx-node__foot">
+      <a href="/kodex/">← KODEX</a>
+      <span>{node.checksum}</span>
+    </footer>
+  </main>
+</KodexShell>
+
+<style>
+  .kx-node {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(2rem, 6vw, 5rem) clamp(1rem, 4vw, 2.5rem) 6rem;
+    color: var(--bone, #f0ede8);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .kx-node__id { color: var(--ember, #c9a84c); letter-spacing: 0.18em; margin: 0; }
+  .kx-node__title {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2.2rem, 7vw, 4rem);
+    line-height: 1.05;
+    margin: 0.4rem 0 0.2rem;
+  }
+  .kx-node__sub { color: var(--silver, #b8b4aa); letter-spacing: 0.1em; margin: 0 0 1.6rem; }
+
+  .kx-node__meta { display: flex; flex-wrap: wrap; gap: 1.6rem; margin: 0 0 2rem; }
+  .kx-node__meta dt { color: var(--sand, #9a948a); font-size: 0.68rem; letter-spacing: 0.16em; }
+  .kx-node__meta dd { margin: 0.2rem 0 0; text-transform: uppercase; }
+
+  .kx-node__block { border-top: 1px solid rgba(184,180,170,0.18); padding: 1.6rem 0; }
+  .kx-node__block h2 {
+    font-size: 0.7rem; letter-spacing: 0.2em; color: var(--sand, #9a948a);
+    margin: 0 0 0.9rem; font-weight: 400;
+  }
+  .kx-node__block h3 {
+    font-size: 0.66rem; letter-spacing: 0.16em; color: var(--sand, #9a948a);
+    margin: 1.2rem 0 0.6rem; font-weight: 400;
+  }
+  .kx-node__count { color: var(--ember, #c9a84c); margin-left: 0.5rem; }
+
+  .kx-node__summary { font-size: 1.05rem; margin: 0; }
+  .kx-node__prop {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.35rem; line-height: 1.45; color: var(--ember, #c9a84c);
+    margin: 1.2rem 0 0; max-width: 46ch;
+  }
+  .kx-node__editorial { max-width: 62ch; color: var(--silver, #b8b4aa); margin: 0; }
+
+  .kx-node__tags { list-style: none; display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0; margin: 0; }
+  .kx-node__tags li {
+    border: 1px solid rgba(184,180,170,0.28); padding: 0.2rem 0.6rem;
+    font-size: 0.7rem; letter-spacing: 0.1em;
+  }
+
+  .kx-node__rels { list-style: none; padding: 0; margin: 0; }
+  .kx-node__rels li {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem;
+    padding: 0.45rem 0; border-bottom: 1px dotted rgba(184,180,170,0.15);
+  }
+  .kx-node__rel-type { color: var(--ember, #c9a84c); font-size: 0.7rem; letter-spacing: 0.12em; min-width: 12rem; }
+  .kx-node__rel-target { flex: 1; }
+  .kx-node__rel-val { font-size: 0.62rem; letter-spacing: 0.12em; color: var(--sand, #9a948a); }
+  .kx-node__rel-val[data-v="CANONICAL"] { color: var(--ember, #c9a84c); }
+  .kx-node__rel-val[data-v="HYPOTHESIS"] { opacity: 0.6; }
+  .kx-node__rel-val[data-v="NEEDS_CULTURAL_REVIEW"] { color: #c96a4c; }
+
+  .kx-node__notice {
+    border-left: 2px solid #c96a4c; padding-left: 0.9rem;
+    color: var(--silver, #b8b4aa); max-width: 60ch;
+  }
+  .kx-node__limits, .kx-node__sources { padding-left: 1.1rem; margin: 0; color: var(--silver, #b8b4aa); }
+  .kx-node__limits li, .kx-node__sources li { margin: 0.35rem 0; max-width: 66ch; }
+  .kx-node__sources { list-style: none; padding-left: 0; }
+  .kx-node__sources span { color: var(--sand, #9a948a); font-size: 0.68rem; letter-spacing: 0.12em; margin-right: 0.6rem; }
+
+  .kx-node__foot {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid rgba(184,180,170,0.18); margin-top: 2rem; padding-top: 1.2rem;
+    font-size: 0.7rem; letter-spacing: 0.12em; color: var(--sand, #9a948a);
+  }
+  .kx-node__foot a { color: var(--bone, #f0ede8); text-decoration: none; }
+  .kx-node__foot a:hover { color: var(--ember, #c9a84c); }
+
+  @media (prefers-reduced-motion: reduce) { .kx-node * { animation: none !important; transition: none !important; } }
+</style>

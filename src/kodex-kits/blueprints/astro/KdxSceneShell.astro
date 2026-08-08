@@ -1,0 +1,118 @@
+---
+import "../../tokens/kdx.tokens.css";
+import "../../tokens/kdx.typography.css";
+import "../../tokens/kdx.motion.css";
+import "./kdx-scene-shell.css";
+
+interface Zone {
+  id: string;
+  role: string;
+  desktop: [number, number, number, number];
+  mobile: [number, number, number, number];
+  z: number;
+  render: "dom" | "svg" | "webgl";
+  motion: string;
+}
+
+interface Blueprint {
+  id: string;
+  index: number;
+  slug: string;
+  name: string;
+  theme: string;
+  purpose: string;
+  headline: string;
+  primaryCTA: string;
+  event: string;
+  zones: Zone[];
+}
+
+interface Props {
+  blueprint: Blueprint;
+  copy?: string;
+}
+
+const {
+  blueprint,
+  copy = blueprint.purpose,
+} = Astro.props;
+
+function vars(zone: Zone): string {
+  const [x, y, w, h] = zone.desktop;
+  const [mx, my, mw, mh] = zone.mobile;
+
+  return [
+    `--x:${x * 100}%`,
+    `--y:${y * 100}%`,
+    `--w:${w * 100}%`,
+    `--h:${h * 100}%`,
+    `--mx:${mx * 100}%`,
+    `--my:${my * 100}%`,
+    `--mw:${mw * 100}%`,
+    `--mh:${mh * 100}%`,
+    `--z:${zone.z}`,
+  ].join(";");
+}
+---
+
+<section
+  class="kdx-scene"
+  data-kdx-scene={blueprint.id}
+  data-kdx-theme={blueprint.theme}
+>
+  <div class="kdx-scene__grid" aria-hidden="true"></div>
+
+  {
+    blueprint.zones.map((zone) => (
+      <div
+        class:list={[
+          "kdx-zone",
+          `kdx-zone--${zone.role}`,
+          `kdx-render--${zone.render}`,
+          zone.motion !== "none" && `kdx-motion-${zone.motion}`,
+        ]}
+        data-zone={zone.id}
+        style={vars(zone)}
+      >
+        {
+          zone.id === "headline" || zone.role === "display"
+            ? <h1 class="kdx-display">{blueprint.headline}</h1>
+            : zone.role === "action"
+              ? (
+                <button
+                  class="kdx-scene__cta"
+                  type="button"
+                  data-kdx-scene-action
+                >
+                  {blueprint.primaryCTA}
+                </button>
+              )
+              : zone.role === "editorial"
+                ? <p class="kdx-body">{copy}</p>
+                : (
+                  <div class="kdx-zone__placeholder">
+                    <span class="kdx-label">{zone.id}</span>
+                    <span class="kdx-micro">{zone.render}</span>
+                  </div>
+                )
+        }
+      </div>
+    ))
+  }
+</section>
+
+<script define:vars={{ eventName: blueprint.event, sceneId: blueprint.id }}>
+  const root = document.querySelector(`[data-kdx-scene="${sceneId}"]`);
+  const action = root?.querySelector("[data-kdx-scene-action]");
+
+  action?.addEventListener("click", () => {
+    document.dispatchEvent(
+      new CustomEvent(eventName, {
+        detail: {
+          sceneId,
+          completedAt: performance.now(),
+        },
+      }),
+    );
+  });
+</script>
