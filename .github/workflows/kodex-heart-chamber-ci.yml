@@ -1,0 +1,178 @@
+name: KODEX Heart Chamber CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/heart-chamber/**'
+      - '.github/workflows/kodex-heart-chamber-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodex-heart-chamber-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-heart-chamber:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify noindex HEART output
+        run: |
+          test -f dist/kodex/lab/heart-chamber/index.html
+          grep -q 'HEART CHAMBER' dist/kodex/lab/heart-chamber/index.html
+          grep -q 'noindex,nofollow,noarchive' dist/kodex/lab/heart-chamber/index.html
+          grep -q 'SIMULATED DISPLAY / NOT BIOMETRIC' dist/kodex/lab/heart-chamber/index.html
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-heart-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/heart-chamber/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-heart-preview.log
+          exit 1
+
+      - name: Install browser QA tools
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.54.2 pixelmatch@6.0.0 pngjs@7.0.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser QA, static fidelity and evidence
+        run: |
+          mkdir -p qa-artifacts
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import pixelmatch from 'pixelmatch';
+          import { PNG } from 'pngjs';
+          import fs from 'node:fs';
+
+          const route = 'http://127.0.0.1:4321/kodex/lab/heart-chamber/';
+          const master = 'https://raw.githubusercontent.com/wenumapu8-droid/wenu-tools/57f50fbdb09a7df5c36f950ec8aa4ade386cd33c/kodex-preview/heart-chamber-plate-live-v1/heart-chamber-master.webp';
+          const browser = await chromium.launch({ headless: true });
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+
+          async function waitForPlate(page) {
+            await page.waitForFunction(() => {
+              const img = document.querySelector('[data-heart-plate]');
+              return img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0;
+            });
+          }
+
+          for (const spec of [
+            { name: 'desktop', width: 1440, height: 1000, mobile: false },
+            { name: '390x844', width: 390, height: 844, mobile: true },
+            { name: '412x915', width: 412, height: 915, mobile: true },
+          ]) {
+            const context = await browser.newContext({
+              viewport: { width: spec.width, height: spec.height },
+              hasTouch: spec.mobile,
+              isMobile: spec.mobile,
+            });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+            page.on('pageerror', error => errors.push(error.message));
+            await page.goto(route, { waitUntil: 'networkidle' });
+            await waitForPlate(page);
+
+            const natural = await page.locator('[data-heart-plate]').evaluate(img => ({ w: img.naturalWidth, h: img.naturalHeight }));
+            assert(natural.w === 512 && natural.h === 512, `${spec.name} canonical plate dimensions changed: ${natural.w}x${natural.h}`);
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+            assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
+            assert(await page.locator('[data-heart-fx]').count() === 1, `${spec.name} live canvas missing`);
+
+            await page.locator('[data-heart-mode="amplify"]').click();
+            assert(await page.locator('[data-heart-stage]').getAttribute('data-mode') === 'amplify', `${spec.name} AMPLIFY state did not commit`);
+            assert((await page.locator('[data-heart-mode-label]').textContent())?.trim() === 'AMPLIFY', `${spec.name} mode label did not update`);
+
+            await page.locator('[data-heart-mode="remember"]').focus();
+            await page.keyboard.press('Enter');
+            assert(await page.locator('[data-heart-stage]').getAttribute('data-mode') === 'remember', `${spec.name} keyboard REMEMBER state failed`);
+
+            await page.waitForTimeout(420);
+            await page.screenshot({ path: `qa-artifacts/heart-${spec.name}-live.png`, fullPage: true });
+            assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
+            await context.close();
+          }
+
+          const reducedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', isMobile: true, hasTouch: true });
+          const reducedPage = await reducedContext.newPage();
+          await reducedPage.goto(route, { waitUntil: 'networkidle' });
+          await waitForPlate(reducedPage);
+          assert(await reducedPage.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), 'reduced-motion media query not active');
+          await reducedPage.screenshot({ path: 'qa-artifacts/heart-390x844-reduced.png', fullPage: true });
+          await reducedContext.close();
+
+          // Exact static plate gate: render the scene with every live layer disabled,
+          // then compare that 512×512 stage against the immutable canonical plate
+          // rendered by the same browser. This detects accidental redesign/cropping.
+          const staticContext = await browser.newContext({ viewport: { width: 512, height: 512 } });
+          const staticPage = await staticContext.newPage();
+          await staticPage.goto(`${route}?static=1`, { waitUntil: 'networkidle' });
+          await waitForPlate(staticPage);
+          await staticPage.locator('[data-heart-stage]').screenshot({ path: 'qa-artifacts/heart-static-render.png' });
+
+          const masterPage = await staticContext.newPage();
+          await masterPage.setContent(`<style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:#000}img{display:block;width:512px;height:512px}</style><img src="${master}">`);
+          await masterPage.waitForFunction(() => document.querySelector('img')?.complete && document.querySelector('img')?.naturalWidth > 0);
+          await masterPage.screenshot({ path: 'qa-artifacts/heart-master-browser.png' });
+
+          const actual = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-static-render.png'));
+          const expected = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-master-browser.png'));
+          assert(actual.width === expected.width && actual.height === expected.height, `static fidelity dimensions differ: ${actual.width}x${actual.height} vs ${expected.width}x${expected.height}`);
+          const diff = new PNG({ width: actual.width, height: actual.height });
+          const changed = pixelmatch(actual.data, expected.data, diff.data, actual.width, actual.height, { threshold: 0.08, includeAA: false });
+          PNG.sync.write(diff).pipe(fs.createWriteStream('qa-artifacts/heart-static-diff.png'));
+          const ratio = changed / (actual.width * actual.height);
+          fs.writeFileSync('qa-artifacts/static-fidelity.txt', `changed_pixels=${changed}\nratio=${ratio}\nthreshold=0.002\n`);
+          assert(ratio <= 0.002, `static plate fidelity drifted: ${(ratio * 100).toFixed(3)}% pixels changed`);
+
+          await staticContext.close();
+          await browser.close();
+          fs.writeFileSync('qa-artifacts/browser-acceptance.txt', [
+            'PASS',
+            'canonical-plate:512x512',
+            'desktop:no-overflow',
+            '390x844:no-overflow',
+            '412x915:no-overflow',
+            'interaction:pointer-mode',
+            'interaction:keyboard-mode',
+            'reduced-motion:captured',
+            'static-fidelity:pixel-gated',
+            'telemetry:simulated-labelled',
+          ].join('\n') + '\n');
+          NODE
+
+      - name: Upload HEART QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-heart-chamber-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
