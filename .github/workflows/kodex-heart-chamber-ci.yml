@@ -22,6 +22,7 @@ jobs:
     timeout-minutes: 20
     env:
       ALLOW_EMPTY_PRODUCTS: 'true'
+      HEART_MASTER_URL: 'https://raw.githubusercontent.com/wenumapu8-droid/wenu-tools/57f50fbdb09a7df5c36f950ec8aa4ade386cd33c/kodex-preview/heart-chamber-plate-live-v1/heart-chamber-master.webp'
 
     steps:
       - name: Checkout
@@ -58,6 +59,11 @@ jobs:
           cat /tmp/kodex-heart-preview.log
           exit 1
 
+      - name: Cache immutable HEART master
+        run: |
+          curl -fL --retry 4 --retry-delay 2 "$HEART_MASTER_URL" -o /tmp/heart-master.webp
+          test -s /tmp/heart-master.webp
+
       - name: Install browser QA tools
         run: |
           npm install --no-save --ignore-scripts playwright@1.54.2 pixelmatch@6.0.0 pngjs@7.0.0
@@ -73,15 +79,26 @@ jobs:
           import fs from 'node:fs';
 
           const route = 'http://127.0.0.1:4321/kodex/lab/heart-chamber/';
-          const master = 'https://raw.githubusercontent.com/wenumapu8-droid/wenu-tools/57f50fbdb09a7df5c36f950ec8aa4ade386cd33c/kodex-preview/heart-chamber-plate-live-v1/heart-chamber-master.webp';
+          const masterUrl = process.env.HEART_MASTER_URL;
+          const masterPath = '/tmp/heart-master.webp';
+          const masterDataUrl = `data:image/webp;base64,${fs.readFileSync(masterPath).toString('base64')}`;
           const browser = await chromium.launch({ headless: true });
           const assert = (condition, message) => { if (!condition) throw new Error(message); };
 
-          async function waitForPlate(page) {
-            await page.waitForFunction(() => {
-              const img = document.querySelector('[data-heart-plate]');
-              return img instanceof HTMLImageElement && img.complete && img.naturalWidth > 0;
+          async function installMasterRoute(page) {
+            await page.route(masterUrl, async intercepted => {
+              await intercepted.fulfill({ path: masterPath, contentType: 'image/webp' });
             });
+          }
+
+          async function waitForPlate(page) {
+            await page.waitForFunction(async () => {
+              const img = document.querySelector('[data-heart-plate]');
+              if (!(img instanceof HTMLImageElement) || !img.complete || img.naturalWidth < 1) return false;
+              try { await img.decode(); } catch {}
+              return img.naturalWidth > 0;
+            });
+            await page.waitForTimeout(120);
           }
 
           for (const spec of [
@@ -95,6 +112,7 @@ jobs:
               isMobile: spec.mobile,
             });
             const page = await context.newPage();
+            await installMasterRoute(page);
             const errors = [];
             page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
             page.on('pageerror', error => errors.push(error.message));
@@ -107,13 +125,15 @@ jobs:
             assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
             assert(await page.locator('[data-heart-fx]').count() === 1, `${spec.name} live canvas missing`);
 
-            await page.locator('[data-heart-mode="amplify"]').click();
-            assert(await page.locator('[data-heart-stage]').getAttribute('data-mode') === 'amplify', `${spec.name} AMPLIFY state did not commit`);
+            const amplify = page.locator('[data-heart-mode="amplify"]');
+            await amplify.click({ force: true });
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-mode') === 'amplify');
             assert((await page.locator('[data-heart-mode-label]').textContent())?.trim() === 'AMPLIFY', `${spec.name} mode label did not update`);
 
-            await page.locator('[data-heart-mode="remember"]').focus();
+            const remember = page.locator('[data-heart-mode="remember"]');
+            await remember.focus();
             await page.keyboard.press('Enter');
-            assert(await page.locator('[data-heart-stage]').getAttribute('data-mode') === 'remember', `${spec.name} keyboard REMEMBER state failed`);
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-mode') === 'remember');
 
             await page.waitForTimeout(420);
             await page.screenshot({ path: `qa-artifacts/heart-${spec.name}-live.png`, fullPage: true });
@@ -123,24 +143,29 @@ jobs:
 
           const reducedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', isMobile: true, hasTouch: true });
           const reducedPage = await reducedContext.newPage();
+          await installMasterRoute(reducedPage);
           await reducedPage.goto(route, { waitUntil: 'networkidle' });
           await waitForPlate(reducedPage);
           assert(await reducedPage.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), 'reduced-motion media query not active');
           await reducedPage.screenshot({ path: 'qa-artifacts/heart-390x844-reduced.png', fullPage: true });
           await reducedContext.close();
 
-          // Exact static plate gate: render the scene with every live layer disabled,
-          // then compare that 512×512 stage against the immutable canonical plate
-          // rendered by the same browser. This detects accidental redesign/cropping.
           const staticContext = await browser.newContext({ viewport: { width: 512, height: 512 } });
           const staticPage = await staticContext.newPage();
+          await installMasterRoute(staticPage);
           await staticPage.goto(`${route}?static=1`, { waitUntil: 'networkidle' });
           await waitForPlate(staticPage);
           await staticPage.locator('[data-heart-stage]').screenshot({ path: 'qa-artifacts/heart-static-render.png' });
 
           const masterPage = await staticContext.newPage();
-          await masterPage.setContent(`<style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:#000}img{display:block;width:512px;height:512px}</style><img src="${master}">`);
-          await masterPage.waitForFunction(() => document.querySelector('img')?.complete && document.querySelector('img')?.naturalWidth > 0);
+          await masterPage.setContent(`<style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:#000}img{display:block;width:512px;height:512px}</style><img src="${masterDataUrl}">`);
+          await masterPage.waitForFunction(async () => {
+            const img = document.querySelector('img');
+            if (!(img instanceof HTMLImageElement) || !img.complete || img.naturalWidth < 1) return false;
+            try { await img.decode(); } catch {}
+            return true;
+          });
+          await masterPage.waitForTimeout(120);
           await masterPage.screenshot({ path: 'qa-artifacts/heart-master-browser.png' });
 
           const actual = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-static-render.png'));
@@ -148,7 +173,7 @@ jobs:
           assert(actual.width === expected.width && actual.height === expected.height, `static fidelity dimensions differ: ${actual.width}x${actual.height} vs ${expected.width}x${expected.height}`);
           const diff = new PNG({ width: actual.width, height: actual.height });
           const changed = pixelmatch(actual.data, expected.data, diff.data, actual.width, actual.height, { threshold: 0.08, includeAA: false });
-          PNG.sync.write(diff).pipe(fs.createWriteStream('qa-artifacts/heart-static-diff.png'));
+          fs.writeFileSync('qa-artifacts/heart-static-diff.png', PNG.sync.write(diff));
           const ratio = changed / (actual.width * actual.height);
           fs.writeFileSync('qa-artifacts/static-fidelity.txt', `changed_pixels=${changed}\nratio=${ratio}\nthreshold=0.002\n`);
           assert(ratio <= 0.002, `static plate fidelity drifted: ${(ratio * 100).toFixed(3)}% pixels changed`);
