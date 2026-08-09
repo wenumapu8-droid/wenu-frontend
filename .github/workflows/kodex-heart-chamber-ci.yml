@@ -1,0 +1,200 @@
+name: KODEX Heart Chamber CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/heart-chamber/**'
+      - 'public/kodex/assets/heart/**'
+      - '.github/workflows/kodex-heart-chamber-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodex-heart-chamber-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-heart-chamber:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify local golden target
+        run: |
+          test -s public/kodex/assets/heart/heart-chamber-rich-target.webp
+          file public/kodex/assets/heart/heart-chamber-rich-target.webp
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify noindex HEART output
+        run: |
+          test -f dist/kodex/lab/heart-chamber/index.html
+          grep -q 'HEART CHAMBER' dist/kodex/lab/heart-chamber/index.html
+          grep -q 'noindex,nofollow,noarchive' dist/kodex/lab/heart-chamber/index.html
+          grep -q 'SIMULATED DISPLAY / NOT BIOMETRIC' dist/kodex/lab/heart-chamber/index.html
+          grep -q 'ASCII FIELD' dist/kodex/lab/heart-chamber/index.html
+          grep -q 'PIXEL RELIC' dist/kodex/lab/heart-chamber/index.html
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-heart-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/heart-chamber/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-heart-preview.log
+          exit 1
+
+      - name: Install browser QA tools
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.54.2 pixelmatch@6.0.0 pngjs@7.0.0
+          npx playwright install --with-deps chromium
+
+      - name: Browser QA, local plate fidelity and evidence
+        run: |
+          mkdir -p qa-artifacts
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import pixelmatch from 'pixelmatch';
+          import { PNG } from 'pngjs';
+          import fs from 'node:fs';
+
+          const route = 'http://127.0.0.1:4321/kodex/lab/heart-chamber/';
+          const masterPath = 'public/kodex/assets/heart/heart-chamber-rich-target.webp';
+          const masterDataUrl = `data:image/webp;base64,${fs.readFileSync(masterPath).toString('base64')}`;
+          const browser = await chromium.launch({ headless: true });
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+
+          async function waitForPlate(page) {
+            await page.waitForFunction(async () => {
+              const img = document.querySelector('[data-heart-plate]');
+              if (!(img instanceof HTMLImageElement) || !img.complete || img.naturalWidth < 1) return false;
+              try { await img.decode(); } catch {}
+              return img.naturalWidth > 0;
+            });
+            await page.waitForTimeout(120);
+          }
+
+          for (const spec of [
+            { name: 'desktop', width: 1440, height: 1000, mobile: false },
+            { name: '390x844', width: 390, height: 844, mobile: true },
+            { name: '412x915', width: 412, height: 915, mobile: true },
+          ]) {
+            const context = await browser.newContext({ viewport: { width: spec.width, height: spec.height }, hasTouch: spec.mobile, isMobile: spec.mobile });
+            const page = await context.newPage();
+            const errors = [];
+            page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
+            page.on('pageerror', error => errors.push(error.message));
+            await page.goto(route, { waitUntil: 'networkidle' });
+            await waitForPlate(page);
+
+            const natural = await page.locator('[data-heart-plate]').evaluate(img => ({ w: img.naturalWidth, h: img.naturalHeight }));
+            assert(natural.w === 684 && natural.h === 684, `${spec.name} rich plate dimensions changed: ${natural.w}x${natural.h}`);
+            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+            assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
+            assert(await page.locator('[data-heart-fx]').count() === 1, `${spec.name} live canvas missing`);
+
+            await page.locator('[data-heart-mode="amplify"]').click({ force: true });
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-mode') === 'amplify');
+            assert((await page.locator('[data-heart-mode-label]').textContent())?.trim() === 'AMPLIFY', `${spec.name} AMPLIFY label failed`);
+
+            await page.locator('[data-heart-mode="remember"]').focus();
+            await page.keyboard.press('Enter');
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-mode') === 'remember');
+
+            await page.keyboard.press('KeyA');
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-render') === 'ascii');
+            await page.screenshot({ path: `qa-artifacts/heart-${spec.name}-ascii.png`, fullPage: true });
+            await page.keyboard.press('KeyP');
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-render') === 'pixel');
+            await page.screenshot({ path: `qa-artifacts/heart-${spec.name}-pixel.png`, fullPage: true });
+            await page.keyboard.press('KeyR');
+            await page.waitForFunction(() => document.querySelector('[data-heart-stage]')?.getAttribute('data-render') === 'reality');
+            await page.waitForTimeout(320);
+            await page.screenshot({ path: `qa-artifacts/heart-${spec.name}-reality.png`, fullPage: true });
+
+            assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
+            await context.close();
+          }
+
+          const reducedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce', isMobile: true, hasTouch: true });
+          const reducedPage = await reducedContext.newPage();
+          await reducedPage.goto(route, { waitUntil: 'networkidle' });
+          await waitForPlate(reducedPage);
+          assert(await reducedPage.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches), 'reduced-motion media query not active');
+          await reducedPage.screenshot({ path: 'qa-artifacts/heart-390x844-reduced.png', fullPage: true });
+          await reducedContext.close();
+
+          // Exact authored-plate gate. The living shell is intentionally excluded.
+          const staticContext = await browser.newContext({ viewport: { width: 684, height: 684 } });
+          const staticPage = await staticContext.newPage();
+          await staticPage.goto(`${route}?static=1`, { waitUntil: 'networkidle' });
+          await waitForPlate(staticPage);
+          await staticPage.addStyleTag({ content: `
+            html,body{margin:0!important;padding:0!important;width:684px!important;height:684px!important;overflow:hidden!important;background:#000!important}
+            .kdx,.viewport,.stage-shell,[data-heart-stage]{margin:0!important;padding:0!important;width:684px!important;height:684px!important;min-height:684px!important;max-width:none!important;position:absolute!important;inset:0!important;filter:none!important;transform:none!important}
+            .topbar,.bottom,.ambient,.drawer,.mode-switch{display:none!important}
+            [data-heart-stage]>*:not([data-heart-plate]){display:none!important}
+            [data-heart-plate]{display:block!important;position:absolute!important;inset:0!important;width:684px!important;height:684px!important;max-width:none!important;object-fit:fill!important;opacity:1!important;filter:none!important;transform:none!important}
+          `});
+          await staticPage.locator('[data-heart-plate]').screenshot({ path: 'qa-artifacts/heart-static-render.png' });
+
+          const masterPage = await staticContext.newPage();
+          await masterPage.setContent(`<style>html,body{margin:0;width:684px;height:684px;overflow:hidden;background:#000}img{display:block;width:684px;height:684px;object-fit:fill}</style><img src="${masterDataUrl}">`);
+          await masterPage.waitForFunction(async () => { const img=document.querySelector('img'); if (!(img instanceof HTMLImageElement)||!img.complete||img.naturalWidth<1) return false; try{await img.decode()}catch{} return true; });
+          await masterPage.locator('img').screenshot({ path: 'qa-artifacts/heart-master-browser.png' });
+
+          const actual = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-static-render.png'));
+          const expected = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-master-browser.png'));
+          assert(actual.width === expected.width && actual.height === expected.height, `plate dimensions differ: ${actual.width}x${actual.height} vs ${expected.width}x${expected.height}`);
+          const diff = new PNG({ width: actual.width, height: actual.height });
+          const changed = pixelmatch(actual.data, expected.data, diff.data, actual.width, actual.height, { threshold: 0.08, includeAA: false });
+          fs.writeFileSync('qa-artifacts/heart-static-diff.png', PNG.sync.write(diff));
+          const ratio = changed / (actual.width * actual.height);
+          fs.writeFileSync('qa-artifacts/static-fidelity.txt', `changed_pixels=${changed}\nratio=${ratio}\nthreshold=0.002\n`);
+          assert(ratio <= 0.002, `rich authored plate fidelity drifted: ${(ratio * 100).toFixed(3)}% pixels changed`);
+
+          await staticContext.close();
+          await browser.close();
+          fs.writeFileSync('qa-artifacts/browser-acceptance.txt', [
+            'PASS',
+            'rich-plate:684x684',
+            'desktop:no-overflow',
+            '390x844:no-overflow',
+            '412x915:no-overflow',
+            'orientation:pointer+keyboard',
+            'render:reality+ascii+pixel',
+            'reduced-motion:captured',
+            'plate-fidelity:pixel-gated',
+            'telemetry:simulated-labelled',
+          ].join('\n') + '\n');
+          NODE
+
+      - name: Upload HEART QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-heart-chamber-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
