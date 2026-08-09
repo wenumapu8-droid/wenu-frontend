@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# i23 — wrapper de img2threejs para el Mac mini.
+#
+# POR QUE EXISTE: el `python3` del sistema en este equipo es 3.9.6, y img2threejs
+# exige 3.10+ (usa `match` / structural pattern matching y `typing.TypeAlias`).
+# Llamar los scripts con `python3` pelado revienta con SyntaxError / ImportError.
+# Este wrapper resuelve un interprete >=3.10 y lo usa siempre.
+#
+# USO:
+#   scripts/i23 probe  <imagen>
+#   scripts/i23 spec   "Nombre" --image <imagen> --out spec.json
+#   scripts/i23 build  spec.json --out src/createObjectModel.ts
+#   scripts/i23 search "query"
+#   scripts/i23 raw    forge/<cualquier>/<script>.py [args...]
+#   scripts/i23 python -c '...'          # el interprete correcto, crudo
+set -euo pipefail
+
+SKILL_DIR="${IMG2THREEJS_HOME:-$HOME/.claude/skills/img2threejs}"
+
+if [[ ! -d "$SKILL_DIR" ]]; then
+  echo "i23: no encuentro img2threejs en $SKILL_DIR" >&2
+  echo "     instalalo con: git clone https://github.com/img2threejs/img2threejs.git $SKILL_DIR" >&2
+  exit 1
+fi
+
+# Resolver un python >= 3.10
+PY=""
+for cand in "$HOME/.local/bin/python3.12" "$HOME/.local/bin/python3.11" \
+            python3.13 python3.12 python3.11 python3.10 python3; do
+  if command -v "$cand" >/dev/null 2>&1; then
+    if "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3,10) else 1)' 2>/dev/null; then
+      PY="$(command -v "$cand")"
+      break
+    fi
+  fi
+done
+
+if [[ -z "$PY" ]]; then
+  echo "i23: no hay Python >=3.10 en este equipo (el del sistema es $(python3 -V 2>&1))." >&2
+  echo "     instalalo con: uv python install 3.12" >&2
+  exit 1
+fi
+
+# Los scripts de img2threejs importan forge/_shared/*, hay que tener el repo en el path.
+export PYTHONPATH="$SKILL_DIR:${PYTHONPATH:-}"
+
+cmd="${1:-}"; shift || true
+
+case "$cmd" in
+  probe)  exec "$PY" "$SKILL_DIR/forge/stage1_intake/probe_image.py" "$@" ;;
+  search) exec "$PY" "$SKILL_DIR/forge/stage1_intake/search_specs.py" "$@" ;;
+  spec)   exec "$PY" "$SKILL_DIR/forge/stage2_spec/new_sculpt_spec.py" "$@" ;;
+  build)  exec "$PY" "$SKILL_DIR/forge/stage3_build/generate_threejs_factory.py" "$@" ;;
+  review) exec "$PY" "$SKILL_DIR/forge/stage4_review/append_review.py" "$@" ;;
+  raw)    script="$1"; shift; exec "$PY" "$SKILL_DIR/$script" "$@" ;;
+  python) exec "$PY" "$@" ;;
+  version|--version|-v)
+          echo "img2threejs $(grep -m1 '^version:' "$SKILL_DIR/SKILL.md" | cut -d' ' -f2)"
+          echo "commit      $(git -C "$SKILL_DIR" log -1 --format='%h %ad' --date=short)"
+          echo "python      $PY ($("$PY" -V 2>&1 | cut -d' ' -f2))"
+          echo "skill dir   $SKILL_DIR"
+          ;;
+  ""|help|--help|-h)
+          sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+          ;;
+  *)      echo "i23: subcomando desconocido '$cmd' (probe|search|spec|build|review|raw|python|version|help)" >&2
+          exit 2 ;;
+esac
