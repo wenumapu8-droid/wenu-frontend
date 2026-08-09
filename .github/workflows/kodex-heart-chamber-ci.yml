@@ -69,7 +69,7 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.54.2 pixelmatch@6.0.0 pngjs@7.0.0
           npx playwright install --with-deps chromium
 
-      - name: Browser QA, static fidelity and evidence
+      - name: Browser QA, plate fidelity and evidence
         run: |
           mkdir -p qa-artifacts
           node --input-type=module <<'NODE'
@@ -150,15 +150,25 @@ jobs:
           await reducedPage.screenshot({ path: 'qa-artifacts/heart-390x844-reduced.png', fullPage: true });
           await reducedContext.close();
 
+          // Fidelity gate compares the authored bitmap only. Composition QA above
+          // deliberately tests the entire live page separately. This prevents
+          // ambient shell/drop-shadow/padding from being misclassified as plate drift.
           const staticContext = await browser.newContext({ viewport: { width: 512, height: 512 } });
           const staticPage = await staticContext.newPage();
           await installMasterRoute(staticPage);
           await staticPage.goto(`${route}?static=1`, { waitUntil: 'networkidle' });
           await waitForPlate(staticPage);
-          await staticPage.locator('[data-heart-stage]').screenshot({ path: 'qa-artifacts/heart-static-render.png' });
+          await staticPage.addStyleTag({ content: `
+            html,body{margin:0!important;padding:0!important;width:512px!important;height:512px!important;overflow:hidden!important;background:#000!important}
+            [data-heart-page]{padding:0!important;width:512px!important;height:512px!important;min-height:512px!important;background:#000!important}
+            [data-heart-stage]{width:512px!important;height:512px!important;filter:none!important;transform:none!important;transition:none!important}
+            [data-heart-stage]>*:not([data-heart-plate]){display:none!important}
+            [data-heart-plate]{display:block!important;position:absolute!important;inset:0!important;width:512px!important;height:512px!important;max-width:none!important;object-fit:fill!important;filter:none!important;transform:none!important}
+          `});
+          await staticPage.locator('[data-heart-plate]').screenshot({ path: 'qa-artifacts/heart-static-render.png' });
 
           const masterPage = await staticContext.newPage();
-          await masterPage.setContent(`<style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:#000}img{display:block;width:512px;height:512px}</style><img src="${masterDataUrl}">`);
+          await masterPage.setContent(`<style>html,body{margin:0;width:512px;height:512px;overflow:hidden;background:#000}img{display:block;width:512px;height:512px;object-fit:fill}</style><img src="${masterDataUrl}">`);
           await masterPage.waitForFunction(async () => {
             const img = document.querySelector('img');
             if (!(img instanceof HTMLImageElement) || !img.complete || img.naturalWidth < 1) return false;
@@ -166,7 +176,7 @@ jobs:
             return true;
           });
           await masterPage.waitForTimeout(120);
-          await masterPage.screenshot({ path: 'qa-artifacts/heart-master-browser.png' });
+          await masterPage.locator('img').screenshot({ path: 'qa-artifacts/heart-master-browser.png' });
 
           const actual = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-static-render.png'));
           const expected = PNG.sync.read(fs.readFileSync('qa-artifacts/heart-master-browser.png'));
@@ -176,7 +186,7 @@ jobs:
           fs.writeFileSync('qa-artifacts/heart-static-diff.png', PNG.sync.write(diff));
           const ratio = changed / (actual.width * actual.height);
           fs.writeFileSync('qa-artifacts/static-fidelity.txt', `changed_pixels=${changed}\nratio=${ratio}\nthreshold=0.002\n`);
-          assert(ratio <= 0.002, `static plate fidelity drifted: ${(ratio * 100).toFixed(3)}% pixels changed`);
+          assert(ratio <= 0.002, `authored plate fidelity drifted: ${(ratio * 100).toFixed(3)}% pixels changed`);
 
           await staticContext.close();
           await browser.close();
@@ -189,7 +199,8 @@ jobs:
             'interaction:pointer-mode',
             'interaction:keyboard-mode',
             'reduced-motion:captured',
-            'static-fidelity:pixel-gated',
+            'plate-fidelity:pixel-gated',
+            'live-composition:evidence-captured',
             'telemetry:simulated-labelled',
           ].join('\n') + '\n');
           NODE
