@@ -1,0 +1,69 @@
+---
+/**
+ * KODEX-∞ · RECUERDA · permanencia
+ *
+ * Registra que el visitante SE QUEDÓ, no que pasó.
+ *
+ * La primera versión de esto también grababa la vista del nodo, y estaba de
+ * más: `src/scripts/kodex-engine.js` y `src/layouts/KodexShell.astro` ya
+ * graban `{type:'view', work: location.pathname}` desde hace tiempo. Lo
+ * descubrí midiendo — el recorrido salía duplicado, «threshold» y «/kodex/»
+ * por la misma página— y quité mi parte. Queda anotado porque es la quinta vez
+ * en este proyecto que construyo algo que ya existía, y el patrón es siempre
+ * el mismo: escribir antes de auditar.
+ *
+ * Lo que sí faltaba, y nadie registraba: la PERMANENCIA. `memory.js` tiene un
+ * evento `signal` que ninguna página emitía, y la Scene Bible lo pide por
+ * nombre —«dwell threshold reached»—: pasar por una escena no es lo mismo que
+ * quedarse en ella, y sólo lo segundo debería pesar en el espécimen.
+ *
+ * Uso:
+ *   <KodexRecuerda />
+ *   <KodexRecuerda umbralPermanencia={4000} />
+ *
+ * Lo que NO graba, y es deliberado: nada que identifique a la persona. El
+ * contrato de privacidad de la Scene Bible es explícito — sin fingerprinting,
+ * sin inferencia emocional, sin puntaje espiritual, sin inferencia de salud.
+ * Acá sólo hay: por dónde pasaste y si te quedaste. Vive en tu navegador y no
+ * sale de ahí.
+ */
+interface Props {
+  /**
+   * Milisegundos de permanencia antes de contar una señal. La Scene Bible
+   * llama a esto «dwell threshold»: pasar no es lo mismo que quedarse, y sólo
+   * lo segundo debería pesar en el espécimen.
+   */
+  umbralPermanencia?: number;
+}
+const { umbralPermanencia = 6000 } = Astro.props;
+---
+
+<span data-kdx-permanencia={umbralPermanencia} hidden></span>
+
+<script>
+  import { record } from "../../kodex/return/memory.js";
+
+  const marca = document.querySelector("[data-kdx-permanencia]");
+  if (marca) {
+    /* La señal se cuenta una sola vez por carga, y sólo si la pestaña estuvo
+       visible todo el tiempo. Sin esto, una pestaña abierta y olvidada en el
+       fondo pesaría igual que una escena mirada de verdad. */
+    const permanencia = Number(marca.getAttribute("data-kdx-permanencia")) || 6000;
+    let visible = document.visibilityState === "visible";
+    let contada = false;
+
+    const reloj = setTimeout(() => {
+      if (visible && !contada) {
+        contada = true;
+        record({ type: "signal" });
+      }
+    }, permanencia);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState !== "visible") {
+        visible = false;
+        clearTimeout(reloj);
+      }
+    });
+  }
+</script>
