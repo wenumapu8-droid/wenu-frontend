@@ -1,0 +1,230 @@
+---
+/**
+ * KODEX-∞ · t01-05 SPECIMEN SKULL · CABECERA (0,0 · 1672×88)
+ *
+ * La caja arranca en el 0,0 del póster, así que las coordenadas de este archivo
+ * y las de la referencia son las mismas y se verifican una por una contra
+ * reference/canon/t01-05-specimen-skull.png.
+ *
+ * Nada de esto está estimado a ojo:
+ *
+ *  · Toda la tipografía de exhibición va TRAZADA del original (arte-hdrftr.ts),
+ *    no dibujada ni compuesta: "KODEX−∞ / SPECIMEN SKULL", la bajada roja, los
+ *    rótulos de la tabla, "BUILT FOR ARCHIVES THAT REMEMBER." y el emblema
+ *    alado. El umbral y el relleno de cada pieza salieron de un barrido medido
+ *    —siete umbrales, rasterizado a escala 1, relleno óptimo por mínimos
+ *    cuadrados, gana el de menor error absoluto—, no de criterio. La tabla con
+ *    los resultados está en la cabecera de arte-hdrftr.ts.
+ *
+ *  · La excepción son los VALORES de la tabla de metadatos, que van como <text>
+ *    de verdad: son cifras, y el canon pide que las cifras del póster se
+ *    presenten como texto dentro de un contenedor data-symbolic.
+ *
+ *  · El código de barras NO se traza: es una función de una sola variable, así
+ *    que se lee columna por columna del original (x=755..874, y=35..57) y se
+ *    comprime por tramos. El contorno le inventa esquinas y le come tinta.
+ *
+ *  · Las dos reglas inclinadas son inclinadas de verdad. La de arriba baja de
+ *    y=19,5 en x=755 a y=15 en x=1425; la de abajo va de y=88,5 en x=840 a
+ *    y=85 en x=1646 y por eso sólo entra en esta caja —que muere en la fila
+ *    87— de x≈1000 para la derecha; el resto de esa misma línea cae en las
+ *    filas 88..92, que son de los bloques de abajo. Enderezarlas las delata:
+ *    en el original están escaneadas torcidas.
+ *
+ *  · Los seis filetes verticales de la tabla no comparten ni ancho ni brillo
+ *    (x=738 · 893 · 1026 · 1135 · 1252 · 1386, de 1 y 2 px, luminancias 18 · 13
+ *    · 14 · 15 · 18 · 16). Emparejarlos se lee como una hoja de cálculo.
+ *
+ *  · La rayita suelta a la derecha de "DOC ID" (x=999..1023, y=30..32) es tinta
+ *    real del póster, no un adorno: pico 36 de luminancia.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-05-specimen-skull Cabecera --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-05-hdrftr.mjs
+ */
+import { hdrMarca, hdrBajada, hdrClaves, hdrBuilt, hdrAla, hdrBarras } from "./arte-hdrftr";
+import type { Glifo } from "./arte-hdrftr";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque
+ * lo que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo —la contraforma de la D queda fuera de sitio y la
+ * letra sale maciza.
+ */
+const pinta = (gs: Glifo[], fill: string) =>
+  gs
+    .map(
+      (g) =>
+        `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+        g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}"/>`).join("") +
+        `</svg>`
+    )
+    .join("");
+
+/* Relleno de cada pieza: NO es el color del píxel más brillante, es el que
+   resuelve el barrido por mínimos cuadrados sobre la cobertura del trazo. El
+   trazo binarizado se queda el halo del antialias adentro, así que cubre más
+   que el original y quiere menos luz: el logotipo pica en 233 y se rellena con
+   172. Elegirlo a ojo es lo que hace que una pieza trazada se vea quemada. */
+const TINTA = {
+  marca: "#b8b8b7",   // "KODEX−∞ / SPECIMEN SKULL": pico 233,233,234
+  bajada: "#a90f10",  // bajada roja: pico 241,56,44
+  claves: "#4c4c4b",  // rótulos de la tabla: pico 130,131,128
+  built: "#585958",   // "BUILT FOR ARCHIVES THAT REMEMBER.": pico 169,171,169
+  ala: "#474847",     // emblema: pico 158,160,158
+};
+
+/**
+ * Valores de la tabla: [texto, x del primer píxel de tinta, ancho de tinta,
+ * color]. El ancho va uno por celda y no derivado de un paso común porque el
+ * póster no es parejo: "KX-7A19-SK01" y "KODEX-∞ v2.0" tienen doce caracteres
+ * cada uno y avanzan 7,42 y 7,67 px —el ∞ ocupa el doble que un dígito—. Con
+ * textLength eso da igual: se fija el ancho del bloque, que es lo único que se
+ * puede medir en un PNG.
+ * La cima de la versal de la fila es y=47 y la versal mide 9 px.
+ */
+const VERSAL = 9;
+const valores: [string, number, number, string][] = [
+  ["KX-7A19-SK01", 914, 89, "#8f1618"],
+  ["TANDA-01", 1047, 58, "#8b201c"],
+  ["2025-05-22", 1155, 74, "#5f605d"],
+  ["KODEX-∞ v2.0", 1272, 92, "#961a1e"],
+];
+
+/* Versal de la mono del sistema, medida: 0,74 em. El cuerpo se despeja de ahí
+   y el apoyo izquierdo de la versal es 0,9 px a este tamaño. */
+const CUERPO = +(VERSAL / 0.74).toFixed(3);
+const LSB = 0.9;
+
+/* Filetes de la tabla: [x, ancho, luminancia]. Corren de y=27 a y=67. */
+const filetes: [number, number, number][] = [
+  [738, 1, 18],
+  [893, 1, 13],
+  [1026, 2, 14],
+  [1135, 2, 13],
+  [1252, 1, 18],
+  [1386, 2, 14],
+];
+---
+
+<div data-box style={box} class="hdr">
+  <!-- Marco del póster. Es UN rectángulo redondeado que abre acá y cierra en el
+       pie: se dibuja alto y lo recorta el overflow de la caja, porque partirlo
+       en dos bordes distintos deja costura en las esquinas. Los cuatro cantos
+       tienen anchos y brillos distintos en el original (arriba 2 px y 13 de
+       luminancia, los costados 4 px con 12 y 14, abajo 4 px con 11) y por eso
+       van por separado. -->
+  <div class="hdr__marco"></div>
+
+  <svg class="hdr__art" viewBox="0 0 1672 88" width="1672" height="88" aria-hidden="true">
+    <!-- Regla inclinada de arriba: de (755 · 19,5) a (1425 · 15). Es tenue
+         —luminancia 13 a 30— pero cruza toda la tabla. -->
+    <line class="hdr__regla" x1="755" y1="19.6" x2="1425" y2="15" />
+
+    <!-- Regla inclinada de abajo, la misma que sigue en las filas 88..92 de los
+         bloques: de (840 · 88,5) a (1646 · 85). Entra en esta caja recién
+         pasado x≈1000; el overflow recorta el resto. -->
+    <line class="hdr__regla2" x1="840" y1="88.5" x2="1646" y2="85" />
+
+    <!-- Regla tenue bajo el logotipo, x=314..718, y=60..61: luminancia 7 a 18.
+         Casi no se ve y aun así es 800 px de tinta. -->
+    <rect class="hdr__filo" x="314" y="60" width="405" height="2" />
+
+    {filetes.map(([x, w, v]) => (
+      <rect x={x} y="27" width={w} height="41" fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Rayita suelta a la derecha del rótulo "DOC ID". -->
+    <rect x="999" y="30" width="25" height="2" fill="#131313" />
+
+    <!-- Logotipo y título, trazados: a este cuerpo la mono del sistema no
+         acierta ni la silueta ni la mancha, y el texto real vive en el
+         aria-label, así que la lámina se lee sin verla. -->
+    <g role="img" aria-label="KODEX−∞ / SPECIMEN SKULL" set:html={pinta(hdrMarca, TINTA.marca)} />
+
+    <!-- Bajada roja. -->
+    <g role="img" aria-label="BIO DOSSIER / CRÁNEO ESPECÍMEN" set:html={pinta(hdrBajada, TINTA.bajada)} />
+
+    <!-- Código de barras: la luminancia media por columna del original entre
+         x=755 y x=874, comprimida por tramos, cada uno con SU valor. -->
+    <g class="hdr__barras">
+      {hdrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={hdrBarras.y} width={w} height={hdrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- DOC ID, SEED ID, DATE y SYSTEM son ficción del póster, no la lectura de
+         ningún sistema: por eso el bloque va marcado como simbólico. Los
+         rótulos van trazados —no llevan cifras— y los valores como texto. -->
+    <g data-symbolic="true">
+      <g role="img" aria-label="DOC ID · SEED ID · DATE · SYSTEM" set:html={pinta(hdrClaves, TINTA.claves)} />
+      {valores.map(([t, x, ancho, color]) => (
+        <text
+          class="hdr__v"
+          x={+(x - LSB).toFixed(2)}
+          y={47 + VERSAL}
+          font-size={CUERPO}
+          textLength={ancho}
+          lengthAdjust="spacing"
+          fill={color}
+        >{t}</text>
+      ))}
+    </g>
+
+    <!-- Consigna en dos líneas y emblema alado. El emblema de la cabecera mide
+         125×38 y el del pie 195×48: no son el mismo dibujo a otra escala, así
+         que van dos trazados distintos. Lo compartido es el pintor. -->
+    <g role="img" aria-label="BUILT FOR ARCHIVES THAT REMEMBER." set:html={pinta(hdrBuilt, TINTA.built)} />
+    <g role="img" aria-label="Emblema alado KODEX−∞" set:html={pinta(hdrAla, TINTA.ala)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .hdr {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .hdr__art { position: absolute; left: 0; top: 0; }
+
+  /* Rectángulo redondeado del póster: x=6..1664, y=8..932. Abre acá y lo cierra
+     el pie; el overflow de esta caja se queda con su filo superior. */
+  .hdr__marco {
+    position: absolute;
+    left: 6px;
+    top: 8px;
+    width: 1659px;
+    height: 925px;
+    box-sizing: border-box;
+    border: 4px solid #0c0c0c;
+    border-top: 2px solid #0d0d0d;
+    border-right-color: #0e0e0e;
+    border-bottom-color: #0b0b0b;
+    border-radius: 6px;
+  }
+
+  .hdr__regla { stroke: #121212; stroke-width: 1.7; }
+  .hdr__regla2 { stroke: #141414; stroke-width: 2.2; }
+  .hdr__filo { fill: #0b0b0b; }
+
+  .hdr__v {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    /* La tinta del póster no es un trazo limpio: derrama medio píxel por lado
+       más que el rasterizador del navegador. Un píxel de desenfoque reproduce
+       ese derrame. Por debajo de 0,8 px Chromium colapsa el núcleo del filtro a
+       una caja de 1 px y el filtro no hace nada. */
+    filter: blur(1px);
+  }
+</style>

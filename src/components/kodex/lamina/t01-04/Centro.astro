@@ -1,7 +1,459 @@
 ---
-/* MARCADOR — bloque sin escribir. Sobreescribilo entero. */
+/**
+ * KODEX-∞ · t01-04 ARCHIVE TREE · CENTRO (400,88 · 610×778)
+ *
+ * La caja empieza en (400,88), así que TODAS las coordenadas de este archivo
+ * están corridas −400 en x y −88 en y respecto del póster. Cada número salió de
+ * sondear `reference/canon/t01-04-archive-tree.png`; ninguno está estimado.
+ *
+ * El bloque no coincide con un panel: el andamiaje cortó en x=400 y x=1010 y la
+ * retícula del póster corta en 402/459/467/982/991. Por eso acá adentro hay
+ * TRES cosas:
+ *
+ *   · «02. ARCHIVE TREE», entero (x 402–982, y 82–586). El héroe.
+ *   · «08. ENVIRONMENT / HABITAT MOCKUP», casi entero (x 467–982, y 595–850).
+ *   · los últimos 57 px de «07. MOTION NOTES», que muere en x=459. El vecino
+ *     de la izquierda NO puede pintarlos —su caja termina en x=399— y sin esto
+ *     queda una franja negra de 57×250 en mitad de la lámina.
+ *
+ * Qué va trazado y qué va dibujado, y por qué:
+ *
+ *   · TRAZADO del original (trazos-centro/, generado por
+ *     `node scripts/lamina/_t0104_centro_arte.mjs`): la columna de siete
+ *     glifos, el emblema del disco, el ∞ del tronco y la fila de marcas del
+ *     pie. Es arte fija: dibujarla a ojo cuesta ~100 k tokens y sale peor.
+ *     Dos capas por pieza —una base a umbral bajo con el marco y el halo, un
+ *     realce a umbral alto con el núcleo— porque con una sola hay que elegir
+ *     entre perder el marco o empastar el glifo.
+ *
+ *   · LEÍDA COLUMNA POR COLUMNA (tiras.json): la tira de SIGNAL STRENGTH. Una
+ *     tira de marcas es una función de una variable; pasarla por el contorno le
+ *     inventa esquinas y le come tinta, y un repeating-linear-gradient le da un
+ *     ritmo regular que la referencia no tiene.
+ *
+ *   · PROCEDURAL en canvas 2D (centro.js): el árbol y la cámara del hábitat.
+ *     Son organismos, no dibujos fijos.
+ *
+ *   · TEXTO de verdad: los rótulos y todas las cifras. Las cifras del póster
+ *     son ficción y van dentro de contenedores data-symbolic.
+ *
+ * El ∞ se trazó y no se dibujó porque además es la pieza más brillante del
+ * panel —pico 226 contra 150 de las raíces que le pasan por detrás— y a umbral
+ * 96 se separa limpio del organismo. Un ∞ dibujado como dos elipses cruzadas no
+ * tiene la cinta de ancho variable que tiene el del póster.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-04-archive-tree Centro --triptico
+ */
+import glifosBase from "./trazos-centro/glifos-base.svg?raw";
+import glifosAlto from "./trazos-centro/glifos-alto.svg?raw";
+import emblemaBase from "./trazos-centro/emblema-base.svg?raw";
+import emblemaAlto from "./trazos-centro/emblema-alto.svg?raw";
+import infinitoBase from "./trazos-centro/infinito-base.svg?raw";
+import infinitoAlto from "./trazos-centro/infinito-alto.svg?raw";
+import marcasPie from "./trazos-centro/marcas-pie.svg?raw";
+import tiras from "./trazos-centro/tiras.json";
+
 interface Props { box: string }
 const { box } = Astro.props;
+
+/* Versal de la mono del sistema, medida: 0,74 em; apoyo izquierdo 0,9 px.
+   Mismo criterio que Cabecera y Pie para no divergir dentro de la lámina.
+
+   Las tintas de los rótulos NO son el color medio de la tinta del original: son
+   ~35 % más claras. La razón es medible y no es gusto — la mono del sistema
+   cubre menos área por versal que la del póster, así que a la misma altura de
+   versal deja menos tinta. Con el color medio, las siete zonas de texto del
+   bloque quedaban entre 25 y 35 % por debajo de la referencia en luminancia
+   media por bloque de 8×8; con el ajuste caen todas dentro de ±1,6. */
+const cuerpo = (versal: number) => +(versal / 0.74).toFixed(3);
+const LSB = 0.9;
+
+/**
+ * Rótulo anclado por su CAJA DE TINTA: primer píxel, ancho y cima de la
+ * versal, que es lo único que se puede medir en un PNG. El avance sale de
+ * textLength y no de la métrica de la fuente —el póster no usa una mono real y
+ * las dos discrepan—.
+ */
+type Rot = { t: string; x: number; y: number; w: number; v: number; c: string };
+
+/* ── 02 · título ─────────────────────────────────────────────────────────
+   Tres tintas medidas por familia de color sobre la fila: verde hasta x=524,
+   gris de 534 a 635, rojo de 660 a 705. El "|" y el punto final son manchas de
+   dos píxeles y van como rectángulos, no como texto. */
+const TITULO: Rot[] = [
+  { t: "02. ARCHIVE TREE", x: 15, y: 5, w: 110, v: 9, c: "#79980c" },
+  { t: "// CORE DIAGRAM", x: 134, y: 5, w: 102, v: 9, c: "#5f5f5d" },
+  { t: "LIVE FEED", x: 260, y: 7, w: 46, v: 7, c: "#a11c0c" },
+];
+
+/* ── 02 · escala vertical 01–09 ──────────────────────────────────────────
+   Nueve peldaños de 36,6 px medidos uno por uno (cimas en y=134, 169, 206,
+   243, 280, 316, 353, 390 y 427 del póster). El eje es una sola columna, la
+   414, con 61 de luminancia media. */
+const ESCALA = Array.from({ length: 9 }, (_, i) => ({
+  n: `0${i + 1}`,
+  y: +(46 + i * 36.6).toFixed(2),   // cima de la versal, coordenadas de caja
+}));
+
+/* ── 02 · rótulos de capa, columna derecha ───────────────────────────────
+   Todos terminan cerca de x=965 del póster pero NO están justificados: cada
+   uno arranca donde arranca. Se anclan por su x medida. */
+const CAPAS: Rot[] = [
+  { t: "NODE MAP", x: 522, y: 33, w: 39, v: 6, c: "#6a6a68" },
+  { t: "LAYER 01: CANOPY", x: 495, y: 56, w: 71, v: 6, c: "#6a6a68" },
+  { t: "DATA DISTRIBUTION", x: 492, y: 68, w: 74, v: 6, c: "#646462" },
+  { t: "LAYER 02: TRUNK", x: 496, y: 156, w: 68, v: 6, c: "#6a6a68" },
+  { t: "SIGNAL PROCESSING", x: 486, y: 168, w: 78, v: 6, c: "#646462" },
+  { t: "LAYER 03: ROOT", x: 496, y: 248, w: 64, v: 6, c: "#6a6a68" },
+  { t: "MEMORY INGESTION", x: 483, y: 260, w: 79, v: 6, c: "#646462" },
+];
+
+/* ── 02 · pie del panel ──────────────────────────────────────────────────
+   Las ocho cifras de la brida son ficción del póster: van como texto dentro de
+   un contenedor data-symbolic, con su ancho de tinta medido celda por celda
+   —"20" ocupa 7 px y los dígitos sueltos entre 2 y 4—. */
+const CIFRAS: [string, number, number][] = [
+  ["1", 36, 3], ["1", 56, 2], ["0", 91, 4], ["0", 127, 4],
+  ["20", 171, 7], ["0", 208, 3], ["0", 244, 3], ["1", 266, 2],
+];
+
+/* Tramos de la tira de SIGNAL STRENGTH: [x, ancho, y, alto, luminancia], leídos
+   columna por columna del póster y comprimidos por firma igual. Coordenadas del
+   póster; acá se corren a la caja. */
+const SENAL = tiras.senal as [number, number, number, number, number][];
 ---
 
-<div data-box style={box}></div>
+<div data-box style={box} class="ct">
+  <!-- ══ 02. ARCHIVE TREE ═══════════════════════════════════════════════
+       El borde superior de este panel (y=82–83 del póster) lo pinta Cabecera:
+       cae seis filas por encima de esta caja. Acá abren los cantos. -->
+  <i class="ct__b" style="left:2px;top:0;width:1px;height:498px;background:#0d0d0c"></i>
+  <i class="ct__b" style="left:3px;top:0;width:1px;height:498px;background:#282828"></i>
+  <i class="ct__b" style="left:580px;top:0;width:1px;height:498px;background:#050504"></i>
+  <i class="ct__b" style="left:581px;top:0;width:2px;height:498px;background:#191918"></i>
+  <i class="ct__b" style="left:2px;top:497px;width:581px;height:1px;background:#26260e"></i>
+  <i class="ct__b" style="left:2px;top:498px;width:581px;height:1px;background:#121205"></i>
+
+  <!-- El árbol y su retícula. El lienzo cubre (405,112)–(980,502) del póster.
+       Los arcos de fondo y la retícula van adentro del lienzo porque tienen que
+       quedar POR DEBAJO del organismo. -->
+  <canvas class="ct__arbol" width="575" height="390" aria-hidden="true"></canvas>
+
+  <svg class="ct__svg" viewBox="0 0 610 778" width="610" height="778" aria-hidden="true">
+    <!-- Regla bajo el título: dos filas, y muere en x=879 del póster, no en el
+         borde del panel. -->
+    <rect x="3" y="21" width="477" height="1" fill="#111110" />
+    <rect x="3" y="22" width="477" height="1" fill="#0e0e0d" />
+
+    <!-- Escala 01–09: eje, peldaños y cifras. -->
+    <g class="ct__esc">
+      <rect x="14" y="33" width="1" height="349" fill="#3d3d3d" />
+      {ESCALA.map((p) => <rect x="15" y={p.y + 3} width="10" height="1.4" fill="#3a3a3a" />)}
+    </g>
+    <g data-symbolic="true">
+      {ESCALA.map((p) => (
+        <text
+          class="ct__t"
+          x={27 - LSB}
+          y={p.y + 7}
+          font-size={cuerpo(7)}
+          textLength="11"
+          lengthAdjust="spacing"
+          fill="#5b5b60"
+        >{p.n}</text>
+      ))}
+    </g>
+
+    <!-- Título. "02." es una cifra del póster, así que el renglón entero va
+         marcado como simbólico. -->
+    <g data-symbolic="true">
+      {TITULO.map((r) => (
+        <text
+          class="ct__t"
+          x={r.x - LSB}
+          y={r.y + r.v}
+          font-size={cuerpo(r.v)}
+          textLength={r.w}
+          lengthAdjust="spacing"
+          fill={r.c}
+        >{r.t}</text>
+      ))}
+      <rect x="249" y="5" width="1" height="9" fill="#4e4e4c" />
+      <rect x="318" y="12" width="2" height="2" fill="#7c150a" />
+    </g>
+
+    <!-- Guías punteadas rojas que entran a NODE MAP. -->
+    <g class="ct__guia">
+      <path d="M438 32.5H508" />
+      <path d="M452 43.5H500" />
+    </g>
+
+    <!-- Rótulos de capa. -->
+    <g data-symbolic="true">
+      {CAPAS.map((r) => (
+        <text
+          class="ct__t"
+          x={r.x - LSB}
+          y={r.y + r.v}
+          font-size={cuerpo(r.v)}
+          textLength={r.w}
+          lengthAdjust="spacing"
+          fill={r.c}
+        >{r.t}</text>
+      ))}
+    </g>
+
+    <!-- ── pie del panel 02 ──────────────────────────────────────────── -->
+    <text
+      class="ct__t"
+      x={16 - LSB}
+      y={423 + 6}
+      font-size={cuerpo(7)}
+      textLength="78"
+      lengthAdjust="spacing"
+      fill="#7d7d80"
+    >SIGNAL STRENGTH</text>
+
+    <!-- Tira de señal: 251 tramos leídos columna por columna. -->
+    <g>
+      {SENAL.map(([x, w, y, h, v]) => (
+        <rect
+          x={x - 400}
+          y={y - 88}
+          width={w}
+          height={h}
+          fill={`rgb(${Math.round(v * 0.82)},${Math.round(v * 1.0)},${Math.round(v * 0.12)})`}
+        />
+      ))}
+    </g>
+
+    <!-- STABILITY: recuadro y cifra. La cifra es ficción del póster. -->
+    <g data-symbolic="true">
+      <rect x="447.5" y="430.5" width="119" height="29" fill="none" stroke="#3a4406" stroke-width="1" />
+      <text
+        class="ct__t"
+        x={458 - LSB}
+        y={437 + 8}
+        font-size={cuerpo(8)}
+        textLength="98"
+        lengthAdjust="spacing"
+        fill="#8aae0d"
+      >STABILITY: 87.6%</text>
+    </g>
+
+    <!-- Brida inferior: dos reglas tenues, dos corchetes rojos y dos guiones
+         rojos montados sobre la regla de arriba. -->
+    <rect x="23" y="459" width="538" height="1" fill="#22240c" />
+    <rect x="23" y="487" width="537" height="1" fill="#1a1c0b" />
+    <g class="ct__corch">
+      <path d="M14.5 459.5v28M14 459.5h7M14 487.5h7" />
+      <path d="M569.5 459.5v28M563 459.5h7M563 487.5h7" />
+    </g>
+    <rect x="412" y="459" width="12" height="1" fill="#6d1108" />
+    <rect x="428" y="459" width="11" height="1" fill="#5e0f07" />
+
+    <g data-symbolic="true">
+      {CIFRAS.map(([t, x, w]) => (
+        <text
+          class="ct__t"
+          x={x - LSB}
+          y={465 + 7}
+          font-size={cuerpo(7)}
+          textLength={w}
+          lengthAdjust="spacingAndGlyphs"
+          fill="#545453"
+        >{t}</text>
+      ))}
+    </g>
+
+    <text
+      class="ct__t"
+      x={466 - LSB}
+      y={471 + 7}
+      font-size={cuerpo(7)}
+      textLength="79"
+      lengthAdjust="spacing"
+      fill="#9b170d"
+    >FEED: REALTIME</text>
+
+    <!-- Regla de cierre de la banda de bloques. Va acá y no en el pie: cae en
+         y=865, la última fila de esta caja, y el pie arranca en 866. -->
+    <rect x="0" y="777" width="610" height="1" fill="#1c1c1b" />
+
+    <!-- ══ cabeza de «03. GROWTH STATES» y de «09. MOBILE TILE» ═══════
+         La retícula del póster abre esos paneles en x=991 y x=1000, dentro de
+         esta caja; el bloque de la derecha arranca en x=1010 y no llega. Arriba
+         el canto es VERDE (33,41,1 y 67,80,4 medidos) y abajo es gris, con la
+         arista brillante del marco del teléfono en x=1001 a 97 de media —la
+         columna más clara de todo el bloque—. -->
+    <rect x="591" y="0" width="1" height="497" fill="#1e2502" />
+    <rect x="592" y="0" width="1" height="497" fill="#202802" />
+    <rect x="593" y="0" width="1" height="497" fill="#0e1101" />
+    <rect x="590" y="0" width="1" height="497" fill="#060606" />
+    <rect x="601" y="0" width="1" height="497" fill="#0a0a0a" />
+    <rect x="602" y="0" width="8" height="497" fill="#0b0b0a" />
+    <rect x="590" y="508" width="1" height="254" fill="#131313" />
+    <rect x="591" y="508" width="1" height="254" fill="#1e1e1e" />
+    <rect x="600" y="508" width="1" height="254" fill="#232322" />
+    <rect x="601" y="508" width="1" height="254" fill="#616160" />
+    <rect x="602" y="508" width="1" height="254" fill="#191918" />
+    <rect x="603" y="508" width="7" height="254" fill="#0e0e0d" />
+
+    <!-- ══ 08. ENVIRONMENT / HABITAT MOCKUP ═══════════════════════════ -->
+    <rect x="67" y="507" width="515" height="1" fill="#111110" />
+    <rect x="67" y="508" width="515" height="1" fill="#1c1c1b" />
+    <rect x="67" y="508" width="1" height="255" fill="#0b0b0b" />
+    <rect x="68" y="508" width="2" height="255" fill="#242423" />
+    <rect x="580" y="508" width="2" height="255" fill="#212120" />
+    <rect x="67" y="761" width="515" height="1" fill="#232321" />
+    <rect x="67" y="762" width="515" height="1" fill="#131312" />
+    <rect x="70" y="531" width="508" height="1" fill="#1d1d1c" />
+    <g data-symbolic="true">
+      <text
+        class="ct__t"
+        x={77 - LSB}
+        y={516 + 7}
+        font-size={cuerpo(7)}
+        textLength="200"
+        lengthAdjust="spacing"
+        fill="#74920d"
+      >08. ENVIRONMENT / HABITAT MOCKUP</text>
+    </g>
+
+    <!-- ══ cola de 07. MOTION NOTES ═══════════════════════════════════
+         Los 57 px que le quedan a este bloque del panel del vecino. Los textos
+         van completos y los corta el overflow de la caja: escribir sólo el
+         fragmento visible pone las letras donde no van. -->
+    <rect x="0" y="507" width="60" height="1" fill="#151514" />
+    <rect x="0" y="508" width="60" height="1" fill="#191918" />
+    <rect x="59" y="508" width="1" height="255" fill="#2e2e2c" />
+    <rect x="60" y="508" width="1" height="255" fill="#161615" />
+    <rect x="0" y="531" width="59" height="1" fill="#1d1d1c" />
+    <g class="ct__vec" aria-hidden="true">
+      <text class="ct__t" x="-12" y="546" font-size={cuerpo(6)} textLength="43" lengthAdjust="spacing" fill="#6d860d">ARCHIVE</text>
+      <text class="ct__t" x="-46" y="568" font-size={cuerpo(6)} textLength="97" lengthAdjust="spacing" fill="#5b5b60">WRITE TO LEAVES.</text>
+      <text class="ct__t" x="-31" y="581" font-size={cuerpo(6)} textLength="79" lengthAdjust="spacing" fill="#5b5b60">STORE &#38; SEAL.</text>
+      <rect x="2" y="592.5" width="52" height="96" fill="none" stroke="#242420" stroke-width="1" />
+      <rect x="2" y="699" width="39" height="1" fill="#5c1409" />
+      <rect x="2" y="700" width="39" height="1" fill="#3d0d06" />
+      <text class="ct__t" x="-20" y="719" font-size={cuerpo(7)} textLength="55" lengthAdjust="spacing" fill="#656563">6 SEC</text>
+      <text class="ct__t" x="-30" y="734" font-size={cuerpo(7)} textLength="72" lengthAdjust="spacing" fill="#656563">DATA COMMIT</text>
+      <rect x="2" y="743" width="39" height="1" fill="#4e1108" />
+    </g>
+  </svg>
+
+  <!-- ── arte fija ────────────────────────────────────────────────────────
+       Cada pieza va en dos capas: base a umbral bajo (marco y halo) y realce a
+       umbral alto (núcleo). El color de cada capa arranca del píxel más
+       brillante de su banda y se baja hasta que la luminancia media por bloque
+       de 8×8 coincide con la del original — el trazo binarizado se queda el
+       halo de antialias adentro, así que cubre más superficie que el original y
+       quiere menos luz. La columna de glifos cierra en 11,7 contra 11,5 de la
+       referencia; el emblema, en 20,5 contra 21,6. -->
+  <div class="ct__tr" style="left:52px;top:32px;width:44px;height:232px;color:#1d1503" set:html={glifosBase}></div>
+  <div class="ct__tr" style="left:52px;top:32px;width:44px;height:232px;color:#6c7e15" set:html={glifosAlto}></div>
+
+  <div class="ct__tr" style="left:474px;top:288px;width:94px;height:96px;color:#232209" set:html={emblemaBase}></div>
+  <div class="ct__tr" style="left:474px;top:288px;width:94px;height:96px;color:#7a873f" set:html={emblemaAlto}></div>
+
+  <div class="ct__tr" style="left:256px;top:257px;width:88px;height:40px;color:#6d861a" set:html={infinitoBase}></div>
+  <div class="ct__tr" style="left:256px;top:257px;width:88px;height:40px;color:#cfe38c" set:html={infinitoAlto}></div>
+
+  <div class="ct__tr" style="left:12px;top:476px;width:260px;height:16px;color:#484846" set:html={marcasPie}></div>
+
+  <!-- Retícula y cruz roja del emblema: no son del trazado, son cromo. -->
+  <svg class="ct__svg" viewBox="0 0 610 778" width="610" height="778" aria-hidden="true">
+    <g class="ct__mira">
+      <path d="M471 336.5H571" />
+      <path d="M521.5 284v106" />
+    </g>
+    <rect x="480" y="400" width="82" height="1.4" fill="#5a1409" opacity="0.55" />
+  </svg>
+
+  <canvas class="ct__hab" width="500" height="223" aria-hidden="true"></canvas>
+  <canvas class="ct__nod" width="52" height="95" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos y les
+     sube el puntaje además del mío. */
+  .ct {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+    font-family: var(--lam-mono);
+  }
+  .ct i,
+  .ct canvas,
+  .ct > div,
+  .ct > svg { position: absolute; }
+  .ct__svg { left: 0; top: 0; }
+
+  .ct__arbol { left: 5px; top: 24px; width: 575px; height: 390px; }
+  .ct__hab { left: 75px; top: 534px; width: 500px; height: 223px; }
+  .ct__nod { left: 3px; top: 594px; width: 52px; height: 95px; }
+
+  /* El trazo binarizado sale con el filo del rasterizador; el póster derrama
+     medio píxel por lado. Un píxel de desenfoque reproduce ese derrame. Por
+     debajo de 0,8 px Chromium colapsa el núcleo del filtro a una caja de 1 px
+     y el filtro deja de hacer nada. */
+  .ct__tr { filter: blur(0.85px); }
+  .ct__tr :global(svg) { display: block; width: 100%; height: 100%; }
+
+  .ct__t {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    filter: blur(1px);
+  }
+
+  .ct__guia path { stroke: #6d1108; stroke-width: 1; stroke-dasharray: 2.4 3.2; fill: none; }
+  .ct__corch path { stroke: #7a1208; stroke-width: 1.2; fill: none; }
+  .ct__mira path { stroke: #5f1408; stroke-width: 1; fill: none; opacity: 0.75; }
+  .ct__vec text { letter-spacing: 0; }
+</style>
+
+<script>
+  import { ctx2d, pintarArbol, pintarHabitat, pintarNodos, pintarArcoPunteado } from "./centro.js";
+
+  function arrancar() {
+    const arbol = document.querySelector(".ct__arbol");
+    if (arbol && arbol.dataset.pintado !== "1") {
+      arbol.dataset.pintado = "1";
+      const c = ctx2d(arbol, 575, 390);
+      pintarArbol(c, 575, 390);
+      pintarArcoPunteado(c);
+    }
+    const hab = document.querySelector(".ct__hab");
+    if (hab && hab.dataset.pintado !== "1") {
+      hab.dataset.pintado = "1";
+      pintarHabitat(ctx2d(hab, 500, 223), 500, 223);
+    }
+    const nod = document.querySelector(".ct__nod");
+    if (nod && nod.dataset.pintado !== "1") {
+      nod.dataset.pintado = "1";
+      pintarNodos(ctx2d(nod, 52, 95), 52, 95);
+    }
+  }
+
+  arrancar();
+
+  /* El panel es estático a propósito —el banco compara píxel a píxel y un rAF
+     propio le hace medir ruido— pero igual se registra el congelador, que es el
+     contrato que espera la página. */
+  const w = window;
+  const congelar = () => arrancar();
+  if (typeof w.__kdxRegisterFreeze === "function") {
+    w.__kdxRegisterFreeze(congelar);
+  } else {
+    let n = 0;
+    const id = setInterval(() => {
+      if (typeof w.__kdxRegisterFreeze === "function") {
+        clearInterval(id);
+        w.__kdxRegisterFreeze(congelar);
+      } else if (++n > 200) clearInterval(id);
+    }, 25);
+  }
+</script>

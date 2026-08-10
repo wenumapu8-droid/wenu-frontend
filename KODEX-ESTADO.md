@@ -20,14 +20,17 @@ nada. Si sólo vas a leer una cosa, leé «Cómo producir una lámina».
 
 | lámina | combinado | píxel | estructural |
 |---|---|---|---|
-| `t01-01-threshold-portal` | **4,30 %** | 7,30 | 1,31 |
+| `t01-04-archive-tree` | **3,10 %** | 4,79 | 1,40 |
+| `t01-01-threshold-portal` | 3,72 % | 6,29 | 1,16 |
 | `t01-08-signal-bloom` | 5,06 % | 8,45 | 1,66 |
 | `t01-03-descent-tunnel` | 5,61 % | 9,60 | 1,62 |
+| `t01-02-observation-eye` | 5,82 % | 9,78 | 1,86 |
 
 Más `/kodex/lamina/` (índice) y `/kodex/m/descent` — **la primera página real**:
 móvil, viva, con máquina de estados, arrastre y telemetría que sale del motor.
 
-En vuelo al cerrar la sesión: `t01-02-observation-eye` y `t01-04-archive-tree`.
+Faltan doce: los organismos 05 SPECIMEN SKULL, 06 RITUAL DEVICE y 07 COSMOLOGY
+CORE, los ocho tratamientos de TANDA 02 y el pliego maestro.
 
 ## Cómo producir una lámina
 
@@ -84,6 +87,19 @@ organismos para ganarle al número.**
 **Reproducir un póster y hacer algo vivo son objetivos opuestos.** El banco mide
 parecido a una imagen quieta, así que cada punto de fidelidad empuja hacia el
 afiche. Las láminas son documentación; el producto son las páginas.
+
+**El andamiaje de bloques gruesos deja fronteras ambiguas.** En OBSERVATION EYE
+el corte quedó en x=1180 pero el marco real de los paneles 05 y 06 empieza en
+x=1122: dos agentes dibujaron los mismos 58 px porque ninguno podía alcanzarlos
+sin salirse. No hizo daño —los rellenos son opacos— pero hay dos verdades sobre
+el mismo píxel. Conviene que el corte caiga en un marco real, no en un número
+redondo.
+
+**Chromium redondea `feGaussianBlur` a cajas de ancho `floor(sigma·1,88+0,5)`,**
+así que todo sigma bajo 0,8 no hace nada y 0,9 y 1,3 dan capturas idénticas.
+Barrer valores intermedios es tiempo tirado. Y en 10 de 12 piezas trazadas el
+banco puntúa mejor SIN desenfoque, porque el trazo ya trae el halo del antialias
+binarizado adentro.
 
 **Antes de construir algo, buscá si ya existe.** Reconstruí `Micrografia` desde
 cero cuando `kodex_micrographics_kit` ya estaba instalado y en uso en tres

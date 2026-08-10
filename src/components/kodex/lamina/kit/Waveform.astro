@@ -25,6 +25,16 @@ interface Props {
   inercia?: number;
   /** Recorta la amplitud contra los bordes de la caja. */
   margen?: number;
+  /**
+   * 0 = la aguja más alta puede aparecer en cualquier parte · 1 = la señal se
+   * agrupa en ráfagas, con tramos casi planos entre medio.
+   *
+   * Sin esto el peine sale parejo de punta a punta y se lee como una trama, no
+   * como una señal registrada: los monitores de las referencias (SIGNAL FEED,
+   * VISUAL SIGNAL, NEURAL FEED) tienen todos ese contorno de ráfagas. Es una
+   * segunda serie lenta que multiplica la amplitud de la primera.
+   */
+  envolvente?: number;
   clase?: string;
 }
 const {
@@ -36,12 +46,29 @@ const {
   grosor = 0.8,
   inercia = variante === "peine" ? 0.2 : 0.82,
   margen = 1,
+  envolvente = 0,
   clase = "",
 } = Astro.props;
 
 const alto = h - margen * 2;
 const medio = h / 2;
-const vals = serieSuave(semilla, n, inercia, 0.06, 1);
+const base = serieSuave(semilla, n, inercia, 0.06, 1);
+/* La envolvente se NORMALIZA a [0,1] antes de usarse. Sin eso no sirve para
+   nada: una AR(1) con inercia 0,955 tiene desviación 0,04 y se queda entre 0,46
+   y 0,54, así que el peine sale igual de parejo que sin envolvente. Medido —
+   costó dos vueltas creer que el parámetro estaba puesto y no hacía nada.
+   El exponente es lo que separa ráfaga de silencio. */
+const crudo = envolvente > 0 ? serieSuave(semilla ^ 0x2f6d, n, 0.955, 0, 1) : null;
+const env = crudo
+  ? (() => {
+      const lo = Math.min(...crudo), hi = Math.max(...crudo);
+      const d = hi - lo || 1;
+      return crudo.map((v) => Math.pow((v - lo) / d, 1.7));
+    })()
+  : null;
+const vals = env
+  ? base.map((v, i) => v * (1 - envolvente + envolvente * env[i]))
+  : base;
 const r = rng(semilla ^ 0x9e37);
 
 // El peine es la variante más común y la que más se nota si se hace mal: en la
@@ -70,7 +97,12 @@ if (variante === "linea") {
 
   {variante === "peine" && vals.map((v, i) => {
     const a = (v * alto) / 2;
-    const off = (r() - 0.5) * alto * 0.18;
+    /* Con envolvente, el desplazamiento de cada aguja va con SU propia altura.
+       Si no, el jitter fijo de 0,18·alto rellena los silencios con una banda de
+       ruido y la ráfaga deja de leerse — que es exactamente lo que anulaba la
+       envolvente en la primera prueba. Sin envolvente se mantiene el
+       comportamiento de siempre, para no mover las láminas ya medidas. */
+    const off = (r() - 0.5) * alto * 0.18 * (env ? 0.2 + 0.8 * v : 1);
     return (
       <line
         x1={p2(i * paso)} y1={p2(medio - a + off)}

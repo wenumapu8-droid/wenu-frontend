@@ -42,7 +42,7 @@ const arg = (n, d) => {
   return i > -1 ? process.argv[i + 1] : d;
 };
 if (!slug || !arg("--band")) {
-  console.error("uso: node scripts/lamina/glyphs.mjs <slug> --band y0,y1 [--x x0,x1] [--umbral 34]");
+  console.error("uso: node scripts/lamina/glyphs.mjs <slug> --band y0,y1 [--x x0,x1] [--umbral 34] [--out subcarpeta]");
   process.exit(2);
 }
 const [y0, y1] = arg("--band").split(",").map(Number);
@@ -86,7 +86,19 @@ const cajas = celdas.map(([cx0, cx1]) => {
   return { x: cx0, y: ty, w: cx1 - cx0 + 1, h: by - ty + 1 };
 });
 
-const outDir = join(HERE, "glyphs", slug);
+/**
+ * Destino propio por corrida.
+ *
+ * Antes esto era siempre `glyphs/<slug>/`, un único directorio por lámina. Dos
+ * agentes trabajando bloques distintos de la MISMA lámina se pisaban la salida
+ * sin enterarse: uno perdió varias corridas de barrido y lo descubrió tarde,
+ * cuando ya había medido contra los archivos del otro. El bug es barato de
+ * arreglar y caro de no arreglar, porque el trabajo perdido no avisa.
+ *
+ *   --out <nombre>   escribe en glyphs/<slug>/<nombre>/
+ */
+const sub = arg("--out", "");
+const outDir = sub ? join(HERE, "glyphs", slug, sub) : join(HERE, "glyphs", slug);
 mkdirSync(outDir, { recursive: true });
 
 const manifiesto = [];
@@ -133,4 +145,5 @@ writeFileSync(
   join(outDir, "manifiesto.json"),
   JSON.stringify({ slug, banda: [y0, y1], umbral: UMBRAL, escala: ESCALA, glifos: manifiesto }, null, 2)
 );
-console.log(`\n  ${manifiesto.length} glifos → scripts/lamina/glyphs/${slug}/\n`);
+console.log(`\n  ${manifiesto.length} glifos → scripts/lamina/glyphs/${slug}${sub ? "/" + sub : ""}/\n`);
+if (!sub) console.log("  aviso: sin --out escribís en el directorio compartido de la lámina.\n         Si hay otro agente en la misma, vas a pisarle la salida.\n");

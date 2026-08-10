@@ -1,7 +1,214 @@
 ---
-/* MARCADOR — bloque sin escribir. Sobreescribilo entero. */
+/**
+ * KODEX-∞ · t01-02 OBSERVATION EYE · PIE (0,866 · 1672×75)
+ *
+ * La caja empieza en y=866, así que las y de este archivo están corridas −866
+ * respecto del póster. Las x sí son las del póster.
+ *
+ * Mismo criterio que la cabecera: el logotipo, los dos lemas y el emblema salen
+ * TRAZADOS del original (arte.ts) con el umbral y el relleno que ganaron un
+ * ajuste por mínimos cuadrados —no elegidos a ojo—, el código de barras es la
+ * media por columna del original, y lo único que va como texto de verdad son
+ * "VISUAL SYSTEM v2.0" y "TANDA-01", porque llevan cifras. Y como en la
+ * cabecera, el desenfoque y el corrimiento de cada trazo no son los del ajuste
+ * sino los que ganaron un segundo barrido contra la métrica del banco
+ * (scripts/lamina/_t0102_barrido.mjs).
+ *
+ * El logotipo de acá se re-trazó aparte, con scripts/lamina/_t0102_ftrmarca.mjs.
+ * El generador lo había leído en la ventana x=20..125 y ahí no entra entero:
+ * barrida la referencia columna por columna entre y=883 y y=909, la tinta corre
+ * de x=25 a x=155 —25..117 es "KODEX", 119..129 el guión y 133..155 el ∞—, así
+ * que la lámina decía "KODEX−" y le faltaba el símbolo que le da el nombre. La
+ * ventana corregida es x=20..160.
+ *
+ * El emblema del pie NO es el de la cabecera a otra escala: mide 170×33 contra
+ * 134×29, y su proporción es 5,2 contra 4,6. Son dos dibujos, y por eso arte.ts
+ * trae dos trazados. Lo que se comparte es el pintor, no la silueta.
+ *
+ * El marco del póster no se dibuja acá: se abre en la Cabecera y baja hasta
+ * y=935,8 como un único rectángulo redondeado. Partirlo en dos deja costura en
+ * las esquinas de abajo, que son curvas de radio 6,5.
+ *
+ * Todo el pie es tinta muy tenue —su pieza más brillante pica en 146 sobre
+ * negro y el emblema en 73—, así que el diff píxel a píxel casi no lo ve: con
+ * la tolerancia del banco (0,12) un negro y un gris #4C4C4C cuentan igual. Lo
+ * único que se sale de ese registro es "TANDA-01", que es la tipografía más
+ * grande de las dos franjas (versal de 19 px) y por eso pesa en el bloque más
+ * que el resto del pie junto: afinarle el ancho y el cuerpo lo bajó de 0,90 a
+ * 0,64 %.
+ *
+ * Puntaje del bloque: 0,58 % de diferencia contra la referencia.
+ *   node scripts/lamina/score-panel.mjs t01-02-observation-eye Pie --triptico
+ * Regenerar el arte trazada:
+ *   node scripts/lamina/arte-t01-02-cabpie.mjs   (y después _t0102_ftrmarca.mjs)
+ */
+import {
+  ftrMarca, ftrMarcaTinta,
+  ftrBuilt, ftrBuiltTinta,
+  ftrPpp, ftrPppTinta,
+  ftrAla, ftrAlaTinta,
+  ftrBarras,
+} from "./arte";
+import type { Glifo } from "./arte";
+
 interface Props { box: string }
 const { box } = Astro.props;
+
+/**
+ * Piezas trazadas. `tinta` sale del ajuste por mínimos cuadrados; `sigma`,
+ * `encoge`, `dx`/`dy` y `gain` son la corrección que ganó el barrido contra la
+ * métrica del banco, una por pieza (los cuatro campos están explicados en la
+ * cabecera de Cabecera.astro). Sólo el logotipo pide desenfoque: es la única
+ * pieza del pie con trazos gruesos, y las otras tres son tipografía de 7 px que
+ * el filtro empasta.
+ */
+type Pieza = { g: Glifo[]; tinta: string; sigma: number; encoge: number; dx: number; dy: number; gain: number; et: string };
+const trazos: Pieza[] = [
+  { g: ftrMarca, tinta: ftrMarcaTinta, sigma: 0.9, encoge: 0, dx: 0, dy: 0, gain: 1, et: "KODEX−∞" },
+  { g: ftrBuilt, tinta: ftrBuiltTinta, sigma: 0, encoge: 0.2, dx: 0, dy: 0, gain: 1, et: "BUILT FOR ARCHIVES THAT REMEMBER." },
+  { g: ftrPpp, tinta: ftrPppTinta, sigma: 0, encoge: 0.2, dx: 0, dy: 0, gain: 1, et: "PATTERN. PROTECT. PERPETUATE." },
+  { g: ftrAla, tinta: ftrAlaTinta, sigma: 0, encoge: 0, dx: 0, dy: 0.3, gain: 1, et: "Emblema alado KODEX−∞" },
+];
+
+/** Un filtro por desenfoque distinto de la tabla, y no uno por pieza. */
+const idFiltro = (sg: number) => `pieB${String(sg).replace(".", "")}`;
+const sigmas = [...new Set(trazos.map((p) => p.sigma))].filter((sg) => sg > 0);
+
+/** rgb(a,b,c) × gain, recortado a 255. */
+function ganar(tinta: string, k: number) {
+  const m = tinta.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!m || k === 1) return tinta;
+  const v = [1, 2, 3].map((i) => Math.min(255, Math.round(+m[i] * k)));
+  return `rgb(${v[0]},${v[1]},${v[2]})`;
+}
+
+/* Corrimiento del código de barras respecto de la banda que leyó el generador.
+   Acá quedó en cero: barrido en el banco, ±0,5 y +1 empeoran. En la cabecera no
+   —ahí el barrido pide +0,5—, que es por qué es una constante y no una regla. */
+const BARRAS_DY = 0;
+
+/* Apoyo izquierdo de la versal dentro de su avance, a estos cuerpos. */
+const LSB = 0.9;
+
+/* "VISUAL SYSTEM v2.0": primer píxel de tinta en x=407, cima de la versal en
+   y=892,3 del póster —26,3 en coordenadas de la caja— y 129 px de tinta hasta
+   x=535. Lo que se le pasa al <text> es el ancho total y no un paso por
+   carácter: a este cuerpo Chromium redondea el avance de la mono al píxel
+   entero, y con paso libre la línea se va larga. */
+const VERSION = "VISUAL SYSTEM v2.0";
+
+/* "TANDA-01" del recuadro: la tipografía más grande de las dos franjas. Su
+   tinta corre de x=1511 a x=1635 y de y=893 a y=912, o sea 19,3 px de versal —
+   pero el cuerpo que menos píxeles marca en el banco no es el que sale de esa
+   versal (26,1) sino 25,3, y el ancho no es el de la tinta (125) sino 129. No es
+   contradicción: la mono del sistema no es la del póster, y lo que se está
+   ajustando es dónde caen las ocho letras, no cuánto mide una. Va en violeta, no
+   en gris: media rgb(33,22,44) sobre el recuadro, pico rgb(111,89,148). */
+const TANDA = "TANDA-01";
 ---
 
-<div data-box style={box}></div>
+<div data-box style={box} class="pie">
+  <svg class="pie__art" viewBox="0 0 1672 75" width="1672" height="75" aria-hidden="true">
+    <defs>
+      {sigmas.map((sg) => (
+        <filter id={idFiltro(sg)} x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation={sg} />
+        </filter>
+      ))}
+      <!-- El filete que aparta la marca del código de barras se abre hacia
+           abajo: 24 de luminancia arriba y 34 abajo. -->
+      <linearGradient id="pieFilete" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="rgb(24,24,24)" />
+        <stop offset="1" stop-color="rgb(34,34,34)" />
+      </linearGradient>
+    </defs>
+
+    <!-- Regla que separa el pie de la banda de paneles. Cae en y=865,25 del
+         póster —tres cuartos de píxel por encima del borde de la caja— y por
+         eso sale apenas de ella: el original la tiene ahí, y entre la banda
+         inferior de paneles y el pie no hay nada más. Corre de riel a riel. -->
+    <rect class="pie__regla" x="4" y="-0.75" width="1664" height="1.5" />
+
+    <!-- Filete vertical que aparta el logotipo del código de barras. -->
+    <rect x="15.85" y="11.7" width="1.3" height="44" fill="url(#pieFilete)" />
+
+    <!-- Arte fija trazada. Sólo el logotipo lleva filtro; las otras tres piezas
+         van con sigma 0, que es sin desenfoque. -->
+    {trazos.map((p) => (
+      <g role="img" aria-label={p.et} filter={p.sigma > 0 ? `url(#${idFiltro(p.sigma)})` : undefined}>
+        {p.g.map((g) => (
+          <svg
+            x={g.x + p.encoge + p.dx}
+            y={g.y + p.encoge + p.dy}
+            width={Math.max(0.5, g.w - 2 * p.encoge)}
+            height={Math.max(0.5, g.h - 2 * p.encoge)}
+            viewBox={`0 0 ${g.vw} ${g.vh}`}
+            preserveAspectRatio="none"
+          >
+            {g.d.map(([d, tr]) => <path d={d} transform={tr} fill={ganar(p.tinta, p.gain)} />)}
+          </svg>
+        ))}
+      </g>
+    ))}
+
+    <!-- Código de barras: la media por columna del original entre x=170 y
+         x=384, comprimida por tramos de color parecido. No va con vtracer —el
+         contorno le inventa esquinas— ni con un repeating-linear-gradient, que
+         da un ritmo regular que la referencia no tiene. -->
+    <g class="pie__barras" role="img" aria-label="Código de barras KODEX−∞">
+      {ftrBarras.tramos.map(([x, w, r, g, b]) => (
+        <rect x={x} y={ftrBarras.y + BARRAS_DY} width={w} height={ftrBarras.h} fill={`rgb(${r},${g},${b})`} />
+      ))}
+    </g>
+
+    <!-- Recuadro de TANDA-01: x 1491..1657, y 878..924 del póster. El contorno
+         redondeado sólo aporta las cuatro esquinas (radio 4); los cuatro lados
+         van encima con su brillo medido, que no es el mismo en ninguno
+         (izquierda 27 · derecha 35 · arriba 25 · abajo 21). -->
+    <rect class="pie__caja" x="1492.2" y="12.85" width="165.1" height="45.35" rx="4" />
+    <rect x="1491.3" y="16.9" width="1.9" height="36.8" fill="rgb(27,27,27)" />
+    <rect x="1656.9" y="16.9" width="1.2" height="36.8" fill="rgb(35,35,35)" />
+    <rect x="1496.5" y="11.9" width="156.4" height="2.1" fill="rgb(25,25,25)" />
+    <rect x="1496.5" y="57.7" width="156.4" height="1.4" fill="rgb(21,21,21)" />
+
+    <!-- "VISUAL SYSTEM v2.0" y "TANDA-01" son rótulos ficticios del póster, no
+         la versión ni el lote de ningún sistema: de ahí data-symbolic. Van como
+         texto y no trazados porque llevan cifras. -->
+    <g data-symbolic="true">
+      <text class="pie__version" x={407 - LSB} y="34.3" textLength="130" lengthAdjust="spacing">{VERSION}</text>
+      <text class="pie__tanda" x={1512 - LSB} y="45.6" textLength="129" lengthAdjust="spacing">{TANDA}</text>
+    </g>
+  </svg>
+</div>
+
+<style>
+  /* `position: absolute` explícito: el estilo con ámbito del componente le gana
+     por orden de cascada a `.kdx-lam [data-box]`, y con `relative` el bloque se
+     acomoda en el flujo y aparece corrido.
+     `overflow: visible` es por la regla de arriba, que cae tres cuartos de
+     píxel fuera de la caja porque ahí la tiene el original. */
+  .pie {
+    position: absolute;
+    overflow: visible;
+    font-family: var(--lam-mono);
+  }
+
+  .pie__art { position: absolute; left: 0; top: 0; overflow: visible; }
+
+  /* Tinta medida sobre el PNG, no elegida. */
+  .pie__regla { fill: rgb(11, 11, 11); }
+  .pie__caja { fill: none; stroke: rgb(24, 24, 24); stroke-width: 1.7; }
+
+  .pie text {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    /* Un píxel de desenfoque reproduce el derrame del raster del póster, que
+       deja medio píxel más de tinta por lado que el rasterizador del navegador.
+       Por debajo de 0,8 px Chromium colapsa el núcleo del filtro a una caja de
+       1 px y no hace nada: medido, 0 · 0,4 · 0,7 px dan la misma captura. */
+    filter: blur(1px);
+  }
+  .pie__version { font-size: 10.81px; fill: #7f7f7f; }
+  .pie__tanda { font-size: 25.3px; fill: #6f4b92; }
+</style>

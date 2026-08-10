@@ -1,0 +1,178 @@
+---
+/**
+ * KODEX-∞ · t01-05 SPECIMEN SKULL · DERECHA (941,88 · 727×778)
+ *
+ * El encargo nombra dos paneles —03 TREATMENT MODES y 04 ANALYSIS— pero la caja
+ * del andamiaje llega hasta y=866, así que también le tocan la banda de abajo:
+ * el jirón derecho del 08 MOBILE TILE (de x=941 a x=1058) y, enteros, el 09
+ * NOTES / OBSERVATIONS y el 10 ARCHIVE TAGS. El banco puntúa la caja, no el
+ * encargo; dejar el tercio inferior negro es tinta perdida.
+ *
+ * ── Dónde cae el corte ────────────────────────────────────────────────────
+ *
+ * El corte x=941 de este andamiaje SÍ es un marco real: es la divisoria de
+ * columna del póster (dos líneas, x=941 y x=942, medidas con cobertura 0,96 en
+ * toda la altura). Arriba no hay ambigüedad.
+ *
+ * Abajo, en cambio, el corte parte por la mitad el panel 08: su caja va de
+ * x=914 a x=1058 y el teléfono con el cráneo rojo queda a caballo. No lo dibujo
+ * «por las dudas» entero ni lo dejo negro: pinto exactamente de x=941 para la
+ * derecha, que es lo que el vecino no puede alcanzar. La costura cae dentro del
+ * cráneo, y como los dos lados salen trazados de la MISMA referencia debería ser
+ * invisible; si se ve una junta vertical en x=941, es ahí.
+ *
+ * ── De dónde salen las medidas ────────────────────────────────────────────
+ *
+ * Nada está estimado. La caja se barrió fila por fila y columna por columna
+ * quedándose con las que tienen tinta en más del 80 % de su largo:
+ *
+ *   filas    87/88 (techo del 03) · 127 (techo de la franja de rótulos) ·
+ *            154 (su pie) · 318/319 (pie de las miniaturas) · 328/329 (pie del
+ *            03) · 338/339 (techo del 04) · 367 (techo de la fila 1) · 391 (su
+ *            regla) · 472/473 (su pie) · 482/483 (techo de la fila 2) · 577/578
+ *            (su pie) · 586/587 (pie del 04) · 595 (techo de la banda de abajo)
+ *            · 622/623 (reglas del 09 y del 10) · 845 (pie del cuerpo del 09) ·
+ *            858/859 (pie de la banda)
+ *   columnas 941/942 (divisoria de columna) · 950/951 y 1645/1646 (caja del 03
+ *            y del 04) · 963 · 1087/1088 · 1097 · 1221 · 1231 · 1354/1355 ·
+ *            1364 · 1478/1479 · 1487 · 1621/1622 (las cinco tarjetas: 125, 124,
+ *            124, 115 y 135 px — NO están repartidas parejo) · 957/958 ·
+ *            1121/1122 · 1130/1131 · 1305/1306 · 1314 · 1475/1476 · 1484 (los
+ *            ocho recuadros del 04) · 1058/1059 · 1070 · 1341/1342/1345 · 1354
+ *            (los cantos de 08 · 09 · 10) · 1661…1664 (el marco del póster)
+ *
+ * En la lista de MARCOS de este componente sólo están los de sección: los de las
+ * tarjetas y los de los ocho recuadros caen DENTRO de la caja de su pieza y
+ * salen trazados con ella. Repetirlos sería pintar el mismo píxel dos veces con
+ * dos verdades distintas.
+ *
+ * ── Todo el arte va TRAZADA ───────────────────────────────────────────────
+ *
+ * Los cinco cráneos, los ocho gráficos, el teléfono, los renglones de texto, las
+ * ocho etiquetas y el emblema del árbol salen de
+ * scripts/lamina/arte-t01-05-derecha.mjs. Dos cosas propias de esta lámina:
+ *
+ *  · Cuatro filtros de tinta en vez de tres —rojo, cian, amarillo y gris—
+ *    porque el 04 mezcla las cuatro en la misma fila de recuadros.
+ *
+ *  · Un modo "color": THERMAL y GLITCH no son línea de un tinte sino falso color
+ *    continuo (violeta→naranja→amarillo; el glitch mete cian, magenta y verde en
+ *    la misma fila de píxeles). No hay dos tintas que separar, hay un gradiente,
+ *    así que van con vtracer en ColorMode.Color sobre el recorte RGB. Medido
+ *    sobre THERMAL: máscara binaria multiumbral no baja de MAE 18; el trazo en
+ *    color da 3,67.
+ *
+ * Sin desenfoque, como en las otras once piezas trazadas del proyecto: el barrido
+ * de relleno ya se midió contra el trazo crudo y el halo del antialias viene
+ * dentro del contorno.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-05-specimen-skull Derecha --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-05-derecha.mjs
+ */
+import { ARTE, COLOR, MARCOS } from "./trazos/arte-derecha";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada binaria: todas las capas de una pieza, de la más oscura
+ * a la más clara, con un <svg> anidado por glifo. viewBox propio y sin conservar
+ * proporción — lo que hay que clavar es la caja medida, no la del contorno. El
+ * transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el dibujo.
+ */
+const pinta = (...ids: string[]) =>
+  ids
+    .flatMap((id) => ARTE[id] ?? [])
+    .map((capa) =>
+      capa.g
+        .map(
+          (g) =>
+            `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+            g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${capa.fill}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+/** Pintor de las piezas de falso color: el trazador ya emitió el relleno de
+ *  cada región, acá sólo se les pone la caja medida. */
+const pintaColor = (...ids: string[]) =>
+  ids
+    .map((id) => COLOR[id])
+    .filter(Boolean)
+    .map(
+      (p) =>
+        `<svg x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.vw} ${p.vh}" preserveAspectRatio="none">${p.s}</svg>`
+    )
+    .join("");
+---
+
+<div data-box style={box} class="d5">
+  <svg class="d5__art" viewBox="0 0 727 778" width="727" height="778" aria-hidden="true">
+    <g class="d5__marcos">
+      {MARCOS.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+    </g>
+
+    <!-- 03 · TREATMENT MODES (LIVE CROPS). Cinco miniaturas del mismo cráneo,
+         cada una con su tratamiento: radiografía roja, línea amarilla, tramado
+         de grises, termografía y glitch. Las tres primeras son de un solo tinte
+         y van por máscara de color con cinco umbrales; las dos últimas son falso
+         color continuo y van trazadas en color. -->
+    <g role="img" aria-label="03. TREATMENT MODES (LIVE CROPS) — X-RAY, LINEWORK, BITMAP, THERMAL, GLITCH.">
+      <g set:html={pinta("p3tit", "p3rot", "p3c1", "p3c2", "p3c3")} />
+      <g set:html={pintaColor("p3c4", "p3c5")} />
+    </g>
+
+    <!-- 04 · ANALYSIS / SIGNAL READOUTS. Ocho recuadros en dos filas. Las cifras
+         son ficción del póster: el grupo va marcado como simbólico. -->
+    <g
+      role="img"
+      aria-label="04. ANALYSIS / SIGNAL READOUTS — BONE DENSITY MAP. SIGNAL SPECTRUM. NEURAL INTERFACE PROB. 82%. ENERGY EMISSION. FREQUENCY RANGE 0.01 THZ - 100.0 THZ. HARMONIC DISTRIBUTION. SIGNAL INTEGRITY 97.6%. ANOMALY DETECTION HIGH."
+      data-symbolic="true"
+      set:html={pinta(
+        "p4tit",
+        "p4h1", "p4b1", "p4h2", "p4b2", "p4h3", "p4b3", "p4h4", "p4b4",
+        "p4h5", "p4b5", "p4h6", "p4b6", "p4h7", "p4b7", "p4h8", "p4b8"
+      )}
+    />
+
+    <!-- 08 · MOBILE TILE — sólo el jirón a la derecha de x=941. -->
+    <g role="img" aria-label="08. MOBILE TILE" data-symbolic="true" set:html={pinta("p08g", "p08r")} />
+
+    <!-- 09 · NOTES / OBSERVATIONS -->
+    <g
+      role="img"
+      aria-label="09. NOTES / OBSERVATIONS — Subject displays bio-synthetic integration far beyond known baseline. Cranial matrix acts as both processor and signal amplifier. Unknown origin. Non-human. Extreme adaptive behavior in hostile environments. DO NOT ENGAGE. OBSERVE ONLY. PATTERN. PROTECT. PERPETUATE."
+      set:html={pinta("p09t", "p09g", "p09r")}
+    />
+
+    <!-- 10 · ARCHIVE TAGS. Ocho etiquetas y el sello del árbol. -->
+    <g
+      role="img"
+      aria-label="10. ARCHIVE TAGS — SKULL, CYBER-ORGANIC, CRANIAL_MATRIX, HOSTILE, ADAPTIVE, UNKNOWN_ORIGIN, HIGH_SIGNAL, BLACK_ARCHIVE."
+      set:html={pinta("p10t", "p10g", "p10a", "p10ar")}
+    />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que se sale de la caja pisa al vecino. */
+  .d5 {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+    font-family: var(--lam-mono);
+  }
+
+  .d5__art { position: absolute; left: 0; top: 0; }
+
+  /* Los marcos son líneas de 1 px alineadas a la grilla: el antialias las parte
+     en dos grises de medio brillo, que es justo lo que el diff estructural
+     castiga. */
+  .d5__marcos { shape-rendering: crispEdges; }
+</style>
