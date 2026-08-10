@@ -101,6 +101,25 @@ Barrer valores intermedios es tiempo tirado. Y en 10 de 12 piezas trazadas el
 banco puntúa mejor SIN desenfoque, porque el trazo ya trae el halo del antialias
 binarizado adentro.
 
+**EL BANCO NO DISTINGUE REPRODUCIR DE VECTORIZAR, Y ESA ES LA DECISIÓN
+PENDIENTE MÁS IMPORTANTE.** Los agentes de COSMOLOGY CORE llegaron a 0,19 % y
+0,23 % —los mejores puntajes del proyecto— trazando la referencia entera con
+vtracer en vez de construirla. Medido: esa lámina pesa 9,3 MB con 67.483 paths y
+**cero canvas**; DESCENT TUNNEL, que sí es procedural, pesa 308 KB con 303 paths
+y puntúa 5,61 %. El banco premia con 30× menos error a la versión 30× más pesada
+— y que **no puede estar viva**: sin canvas no hay organismo, ni máquina de
+estados, ni respuesta al puntero.
+
+Los dos agentes lo avisaron solos, sin que nadie preguntara. Uno dejó sin aplicar
+un ajuste que bajaba a 0,07 % con píxel exactamente 0, porque lo que agregaba
+eran manchas de medio píxel —el antialias del PNG— y ahí, dice, «deja de trazarse
+el dibujo y se codifica la trama».
+
+Mientras esto no se resuelva, **el puntaje solo es comparable entre láminas del
+mismo método**. Lo mínimo sería fijar en el contrato que el HÉROE va procedural
+sí o sí y que el trazado es para el chrome; o agregarle al banco un término de
+peso/complejidad, para que codificar la trama deje de ganar.
+
 **Antes de construir algo, buscá si ya existe.** Reconstruí `Micrografia` desde
 cero cuando `kodex_micrographics_kit` ya estaba instalado y en uso en tres
 páginas. Y tracé sellos con vtracer teniendo `KODEX_Master_Seal_high_fidelity.svg`

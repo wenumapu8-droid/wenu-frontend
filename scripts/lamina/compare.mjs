@@ -84,6 +84,28 @@ await page
   .catch(() => {});
 await page.waitForTimeout(400);
 const shot = await page.screenshot({ animations: "disabled" });
+
+/**
+ * COMPLEJIDAD, junto al puntaje y no dentro de él.
+ *
+ * El banco no distingue «reproducido en código» de «vectorizado desde el PNG»,
+ * y esa distinción es todo el proyecto. Medido: COSMOLOGY CORE trazada da
+ * 0,19 % con 67.483 paths, 9,3 MB y CERO canvas; DESCENT TUNNEL, procedural,
+ * da 5,61 % con 303 paths y 308 KB. El banco premia con 30× menos error a la
+ * versión 30× más pesada — y que no puede estar viva, porque sin canvas no hay
+ * organismo ni máquina de estados.
+ *
+ * No lo meto DENTRO del puntaje a propósito. Ponderar fidelidad contra peso es
+ * elegir qué clase de obra es KODEX, y eso lo decide el creador, no una
+ * constante que yo inventé. Se mide, se muestra al lado, y quien lea el número
+ * no puede leerlo sin esto.
+ */
+const forma = await page.evaluate(() => ({
+  paths: document.querySelectorAll("path, polygon, polyline").length,
+  canvas: document.querySelectorAll("canvas").length,
+  nodos: document.querySelectorAll("*").length,
+  bytes: document.documentElement.outerHTML.length,
+}));
 await browser.close();
 
 writeFileSync(join(outDir, "actual.png"), shot);
@@ -204,6 +226,7 @@ const score = {
   generado: new Date().toISOString(),
   _metrica: "pct = promedio de (a) diff pixel a pixel y (b) diff estructural por bloques de 8x8. El estructural existe porque el diff a secas premia dejar el panel vacio en zonas de textura: ver el comentario en compare.mjs.",
   global: { pct: full.pct, pixel: full.pixel, estructural: full.estructural, distintos: full.bad, total: full.total },
+  forma: { ...forma, mb: +(forma.bytes / 1048576).toFixed(2), sospecha_trazado: forma.canvas === 0 && forma.paths > 8000 },
   regiones: perRegion.map((r) => ({
     id: r.id,
     nombre: r.nombre,
@@ -219,7 +242,17 @@ writeFileSync(join(outDir, "score.json"), JSON.stringify(score, null, 2));
 const bar = (p) => "█".repeat(Math.min(40, Math.round(p / 2.5))).padEnd(40, "·");
 console.log(`\n  ${slug}  ${width}x${height}`);
 console.log(`  GLOBAL  ${full.pct.toFixed(2).padStart(6)}%  ${bar(full.pct)}`);
-console.log(`          pixel ${full.pixel.toFixed(2)}%  ·  estructural ${full.estructural.toFixed(2)}%\n`);
+console.log(`          pixel ${full.pixel.toFixed(2)}%  ·  estructural ${full.estructural.toFixed(2)}%`);
+const mb = (forma.bytes / 1048576).toFixed(2);
+const trazada = forma.canvas === 0 && forma.paths > 8000;
+console.log(
+  `          forma: ${forma.paths.toLocaleString("es")} paths · ${forma.canvas} canvas · ${mb} MB` +
+  (trazada ? "   ⚠ SIN CANVAS Y MUY DENSA: probablemente el PNG vectorizado, no código" : "")
+);
+if (trazada) {
+  console.log("          el puntaje NO es comparable con el de una lámina procedural.");
+}
+console.log();
 for (const r of perRegion) {
   console.log(`  ${r.id.padEnd(22)} ${r.pct.toFixed(2).padStart(6)}%  ${bar(r.pct)}`);
 }
