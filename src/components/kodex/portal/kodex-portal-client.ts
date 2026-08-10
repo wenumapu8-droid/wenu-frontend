@@ -18,6 +18,35 @@ import { perfilKodex } from "../../../lib/kodex/perf";
 import { estadoEscena, montarEstadoEscena, type Estado } from "../../../lib/kodex/estado";
 import { montarRueda } from "../../../lib/kodex/scroll";
 import { montarEstadoArchivo } from "../../../lib/kodex/archivo";
+import { readSpecimen } from "../../../kodex/return/memory.js";
+
+/**
+ * La puerta de quien vuelve no es la puerta de quien llega.
+ *
+ * La P0 Scene Bible lo pide literal en THRESHOLD -- «return visit produces an
+ * altered gate using remembered route variables»-- y lo vuelve a poner como
+ * compuerta de terminado: «remembered state changes a future rendering». Sin
+ * esto el portal se veia igual la primera vez y la decima, y una escena que no
+ * cambia al volver no esta terminada, por bien que renderice.
+ *
+ * No inventa nada: `readSpecimen` ya derivaba una semilla del recorrido para
+ * RETURN, y el portal ya aceptaba una semilla. Esto solo las conecta.
+ *
+ * Honesto cuando no hay nada que recordar: `memory.js` marca `curated` si el
+ * recorrido esta vacio, y ahi se usa la semilla de autor. Un visitante nuevo ve
+ * la puerta compuesta, no una al azar disfrazada de memoria.
+ */
+function semillaRecordada(porDefecto: number): number {
+  try {
+    const esp = readSpecimen();
+    if (esp.curated) return porDefecto;
+    // `seed` es un uint32; el shader quiere 0..1. Se descartan los 8 bits bajos
+    // porque son los que mas saltan entre visitas contiguas del mismo recorrido.
+    return ((esp.seed >>> 8) & 0xffffff) / 0xffffff;
+  } catch {
+    return porDefecto; // sin localStorage la puerta sigue abriendo
+  }
+}
 
 /**
  * Las fases del portal dejan de ser suyas: son el estado de la escena leido
@@ -76,7 +105,7 @@ class KodexPortal {
     if (!canvas) throw new Error("KODEX portal: falta el canvas.");
     const runtime = new KdxThresholdPortalRuntime(canvas, {
       artworkUrl: root.dataset.artwork,
-      seed: Number(root.dataset.seed ?? 0.382),
+      seed: semillaRecordada(Number(root.dataset.seed ?? 0.382)),
     });
     await runtime.load();
     return new KodexPortal(root, runtime);
