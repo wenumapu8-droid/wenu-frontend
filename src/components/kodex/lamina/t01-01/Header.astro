@@ -1,0 +1,155 @@
+---
+/**
+ * KODEX-∞ · t01-01 THRESHOLD PORTAL · CABECERA (0,0 · 1672×82)
+ *
+ * La caja arranca en el 0,0 del póster, así que las coordenadas de este archivo
+ * y las de la referencia son las mismas y se pueden verificar una por una
+ * contra reference/canon/t01-01-threshold-portal.png.
+ *
+ * Nada de esto está estimado a ojo:
+ *
+ *  · El logotipo, la bajada, el lema y el emblema van TRAZADOS del original
+ *    (arte.ts), no dibujados. El umbral de cada pieza salió de un barrido
+ *    medido, no de criterio, y acá los umbrales de SIGNAL BLOOM no servían:
+ *    ésta es una lámina roja intensa y su bajada pide 32 donde la otra pedía
+ *    45. La tabla está en la cabecera de arte.ts.
+ *
+ *  · El código de barras no es un patrón inventado: es la luminancia media por
+ *    columna del original entre x=743 y x=893, comprimida por tramos. Un
+ *    repeating-linear-gradient da un ritmo regular que la referencia no tiene.
+ *
+ *  · Las cinco divisorias de la tabla NO comparten brillo (76 · 58 · 68 · 70 ·
+ *    41 sobre negro) y van una por una. Emparejarlas se lee como una tabla de
+ *    hoja de cálculo, que es justo lo que la referencia no es.
+ *
+ *  · Los rieles del marco corren de y=5 a y=934 en el original. Se dibujan
+ *    desde acá hasta el borde del pie porque el marco es UNO solo: partirlo por
+ *    panel deja costuras. Caen en x=5,6 y x=1666,1667, fuera de la caja de
+ *    todos los demás paneles de la lámina.
+ *
+ * Lo único que va como texto de verdad son los VALORES de la tabla de
+ * metadatos, porque son cifras y el canon pide que las cifras sean texto dentro
+ * de data-symbolic. Sus rótulos —SYS VER., BUILD, DATE, SEED HASH— no llevan
+ * cifras y van trazados: medido, como texto dejaban 8,83 % de residuo en su
+ * banda contra 2,76 % del trazo.
+ */
+import Trazo from "./Trazo.astro";
+import { rotulo } from "./tipografia";
+import { hdrMarca, hdrBajada, hdrLema, hdrAla, hdrBarras, hdrClaves } from "./arte";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Valores de la tabla de metadatos: [texto, x del primer píxel de tinta, avance
+ * total]. Los ROTULOS de la tabla —SYS VER., BUILD, DATE, SEED HASH— no están
+ * acá: no llevan cifras, así que van trazados del original como el resto del
+ * arte fija. Los valores sí son cifras y por eso son texto de verdad.
+ *
+ * Cada celda lleva su propio ancho y no uno derivado de un paso común, porque
+ * el póster no es parejo: "01.00.00" y "TANDA-01" tienen ocho caracteres cada
+ * uno, están uno al lado del otro, y el primero avanza 7,57 px por carácter
+ * contra 7,00 del segundo. Y "KX∞-7DA1-01X1A" ni siquiera es monoespaciado: su
+ * ∞ ocupa once píxeles donde las versales ocupan seis o siete. Con textLength
+ * eso da igual — se fija el ancho del bloque, que es lo que se puede medir.
+ */
+const valores: [string, number, number][] = [
+  ["01.00.00", 948, 60.4],
+  ["TANDA-01", 1057, 54.4],
+  ["2025-05-22", 1164, 66.5],
+  ["KX∞-7DA1-01X1A", 1275, 94.6],
+];
+
+/* Cima de la versal de cada fila, medida: claves 27, valores 44; versal 9. */
+const VERSAL_TABLA = 9;
+
+/* Divisorias: [x del centro del trazo, valor de luminancia]. Ancho 1 px, de
+   y=21 a y=57. */
+const divisorias: [number, number][] = [
+  [923.5, 76],
+  [1040.3, 58],
+  [1145.6, 68],
+  [1256.5, 70],
+  [1384.5, 41],
+];
+---
+
+<div data-box style={box} class="hdr">
+  <svg class="hdr__art" viewBox="0 0 1672 82" width="1672" height="82" aria-hidden="true">
+    <!-- Marco del póster: filo superior y los dos rieles. El filo cae en
+         y=4,75 con luminancia 20 (medido: la fila 4 lleva 5 y la 5 lleva 15,
+         que es un trazo de 1 px a un cuarto de píxel de la retícula). Los
+         rieles bajan hasta el pie, donde el Footer los recoge. -->
+    <rect class="hdr__filo" x="6" y="4.75" width="1660" height="1" />
+    <rect class="hdr__riel" x="5.6" y="5.25" width="1" height="874.4" />
+    <rect class="hdr__riel hdr__riel--der" x="1665.8" y="5.25" width="2.4" height="874.4" />
+
+    <!-- "KODEX−∞ / THRESHOLD PORTAL". Trazado del original. -->
+    <Trazo glifos={hdrMarca} etiqueta="KODEX−∞ / THRESHOLD PORTAL" />
+
+    <!-- Bajada roja. Trazada y no como texto: a 9 px de alto ninguna mono del
+         sistema acierta la mancha, y el texto real vive en el aria-label. -->
+    <Trazo glifos={hdrBajada} etiqueta="ENTRY PROTOCOL / UMBRAL DE ACCESO" />
+
+    <!-- Código de barras: cada tramo con la luminancia que tiene en el original. -->
+    <g class="hdr__barras">
+      {hdrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={hdrBarras.y} width={w} height={hdrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- Regla que corre por debajo de la tabla, de x=744 al filo derecho. -->
+    <rect class="hdr__regla" x="744" y="70.25" width="914" height="1" />
+
+    {divisorias.map(([x, v]) => (
+      <rect x={x - 0.5} y="21" width="1" height="37" fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Lema y emblema alado, ambos trazados. El emblema de la cabecera mide
+         90×26 y el del pie 170×30: no son el mismo dibujo a otra escala, así
+         que van dos trazados. Lo que se comparte es el pintor, no la silueta. -->
+    <Trazo glifos={hdrLema} etiqueta="PATTERN. PROTECT. PERPETUATE. // LO QUE OBSERVA, EVOLUCIONA." />
+    <Trazo glifos={hdrAla} etiqueta="Emblema alado KODEX−∞" />
+
+    <!-- SYS VER, BUILD, DATE y SEED HASH son ficción del póster, no una lectura
+         de ningún sistema: por eso el bloque va marcado como simbólico. Los
+         rótulos van trazados y los valores como texto, porque son cifras. -->
+    <g data-symbolic="true">
+      <Trazo glifos={hdrClaves} etiqueta="SYS VER. · BUILD · DATE · SEED HASH" />
+      {valores.map(([t, x, ancho]) => (
+        <text class="hdr__v" {...rotulo(x, 44, VERSAL_TABLA, ancho)}>{t}</text>
+      ))}
+    </g>
+  </svg>
+</div>
+
+<style>
+  /* Los rieles del marco salen de la caja a propósito (ver cabecera). No hay
+     ningún panel en x=5,6 ni en x=1666,1667: la primera columna de contenido
+     empieza en x=9 y la última muere en x=1657. */
+  .hdr { overflow: visible; font-family: var(--lam-mono); }
+
+  .hdr__art { position: absolute; left: 0; top: 0; overflow: visible; }
+
+  /* Tinta medida sobre el PNG, no elegida. El logotipo no lleva degradado
+     metálico: barrido fila por fila, la tinta del original es plana. */
+  .hdr__filo { fill: #141414; }
+  .hdr__riel { fill: #323232; }
+  .hdr__riel--der { fill: #1d1d1d; }
+  .hdr__regla { fill: #1f1f1f; }
+
+  .hdr__v {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    /* La tinta del póster no es un trazo limpio: barriendo una fila de texto
+       deja medio píxel más de derrame por lado que el rasterizador del
+       navegador. Un píxel de desenfoque reproduce ese derrame y bajó la tabla
+       de 8,73 % a 7,49 % cuando todavía era texto entera. Por debajo de 0,8 px
+       Chromium colapsa el núcleo del
+       filtro a una caja de 1 px y no hace nada: medido, 0 · 0,4 · 0,7 px dan la
+       misma captura, píxel por píxel. */
+    filter: blur(1px);
+  }
+  .hdr__v { fill: #8a120c; }
+</style>

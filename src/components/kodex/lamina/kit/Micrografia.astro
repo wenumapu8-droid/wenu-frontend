@@ -1,0 +1,86 @@
+---
+/**
+ * KIT · MICROGRAFÍA
+ *
+ * La capa de "texto" ilegible de 2-3 px que llena los huecos de las referencias.
+ *
+ * Es lo que más se echa de menos en la reproducción y lo que nadie pone, porque
+ * mirando la lámina no se ve como contenido: se ve como suciedad. Pero es
+ * justamente eso lo que le da peso de instrumento — sin ella los paneles quedan
+ * limpios y la lámina se lee como una maqueta.
+ *
+ * NO es texto de verdad y no debe serlo. A ese tamaño ningún texto es legible,
+ * y poner texto real significaría inventar contenido — que es exactamente lo
+ * que el protocolo de passports prohíbe. Son marcas: renglones de guiones de
+ * largo variable, con sangrías y huecos, que imitan la MANCHA del texto.
+ *
+ * Se dibuja con un solo <path> de rectángulos en vez de N elementos: a densidad
+ * alta son cientos de marcas por bloque y el DOM se hace pesado.
+ */
+import { rng, p2 } from "./rng";
+
+interface Props {
+  w: number;
+  h: number;
+  semilla?: number;
+  /** alto de cada renglón, en px */
+  renglon?: number;
+  /** alto de la marca dentro del renglón */
+  marca?: number;
+  /** 0..1 — cuánto del renglón se llena */
+  densidad?: number;
+  /** ancho medio de cada palabra, en px */
+  palabra?: number;
+  color?: string;
+  opacidad?: number;
+  /** deja renglones vacíos al azar, como los párrafos de la referencia */
+  huecos?: number;
+  clase?: string;
+}
+const {
+  w, h,
+  semilla = 11,
+  renglon = 3,
+  marca = 1,
+  densidad = 0.72,
+  palabra = 5,
+  color = "currentColor",
+  opacidad = 0.5,
+  huecos = 0.12,
+  clase = "",
+} = Astro.props;
+
+const r = rng(semilla);
+const partes: string[] = [];
+
+for (let y = 0; y + marca <= h; y += renglon) {
+  if (r() < huecos) continue;
+  // Sangría inicial: los bloques de texto de la referencia no arrancan todos
+  // en el mismo x, y esa irregularidad es la mitad del efecto.
+  let x = r() * palabra * 0.8;
+  // Cada renglón tiene su propio largo, como un párrafo justificado a la izquierda.
+  const fin = w * (0.55 + r() * 0.45);
+  while (x < fin) {
+    const pw = palabra * (0.3 + r() * 1.4);
+    if (r() < densidad) {
+      partes.push(`M${p2(x)} ${p2(y)}h${p2(Math.min(pw, fin - x))}v${marca}h-${p2(Math.min(pw, fin - x))}z`);
+    }
+    x += pw + palabra * (0.22 + r() * 0.35);
+  }
+}
+const d = partes.join("");
+---
+
+<svg
+  class={`kit-mg ${clase}`}
+  viewBox={`0 0 ${w} ${h}`}
+  width={w}
+  height={h}
+  aria-hidden="true"
+>
+  <path d={d} fill={color} opacity={opacidad} />
+</svg>
+
+<style>
+  .kit-mg { display: block; pointer-events: none; }
+</style>

@@ -1,0 +1,925 @@
+---
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Todo lo que se dibuja acá se genera en el frontmatter y no a mano: son ~46
+ * vértices de la curva, 5 arcos de dona y una rosa de vientos. Escritos uno por
+ * uno el archivo deja de poder leerse y cualquier ajuste de geometría obliga a
+ * recalcular a ojo.
+ *
+ * Las unidades de cada viewBox son los px reales de su caja (la caja exterior
+ * mide 547×232), así los círculos no se deforman y las medidas tomadas sobre la
+ * referencia se pueden trasladar tal cual.
+ *
+ * Andamiaje recalibrado: los bordes internos de la referencia caen en x 0/179,
+ * 186/374, 380/540 (fila de arriba) y 0/155, 161/359, 364/540 (fila de abajo).
+ * Las cajas estaban 1–3 px angostas y la tipografía se había encogido para que
+ * entrara; con la medida buena se devuelve el tamaño real.
+ */
+
+/* ── 01. DEPTH GRAPH ────────────────────────────────────────────────────── */
+/* Área de trazado medida sobre la referencia: x 23→169, base y 89, techo y 25. */
+const PLOT = { x0: 24, x1: 169, base: 89, top: 25 };
+const GRID_Y = [25.7, 41.2, 56.7, 72.2, 87.7];          // niveles 10K → 00K
+const Y_TICKS = ["10K", "8K", "4K", "2K", "00K"];
+const X_TICKS = ["00", "20", "40", "60", "80", "100"];
+
+/* LCG sembrado: la curva de la referencia es un diente de sierra ascendente,
+   no una señal suave. Un seed fijo la deja idéntica en cada build — si fuera
+   Math.random() el banco de capturas no podría comparar dos renders. */
+let seed = 20250807;
+const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+/* Contados sobre la referencia: ~15 dientes en el ancho del área, no ~23. Con
+   N=46 el trazo se veía como una lima; N=32 da la misma silueta con el paso
+   que tiene la lámina.
+   Ganancia corregida: con 1.14 la curva topaba el techo desde x≈85 y los
+   últimos 15 px salían planos. En la referencia el máximo está en el ÚLTIMO
+   vértice y queda por ENCIMA de la línea de 10K (y≈21 del viewBox, o sea
+   v≈1.06), así que la ganancia baja a 0.97, el diente se invierte para que el
+   último punto sea cresta y no valle, y el tope se abre a 1.09.
+   El exponente 1.15 hundía todo el tramo medio: leídos sobre la lámina los
+   valores en t 0,14 / 0,30 / 0,90 dan 0,16 / 0,30 / 0,85, o sea una rampa
+   prácticamente recta. */
+const N = 32;
+const series = Array.from({ length: N }, (_, i) => {
+  const t = i / (N - 1);
+  /* Dos escalas de ruido: el diente de sierra corto más una deriva lenta. Con
+     una sola el trazo sale demasiado regular y se lee como generado. El diente
+     crece con t pero menos que antes: medido en la lámina el dentado del tramo
+     final abre ~7 px, no ~11. */
+  const jag = (i % 2 ? 1 : -1) * (0.02 + 0.075 * rnd()) * (0.35 + 0.55 * t);
+  const drift = (rnd() - 0.5) * 0.09;
+  const v = Math.min(1.09, Math.max(0.004, Math.pow(t, 1.0) * 0.96 + jag + drift));
+  return {
+    x: +(PLOT.x0 + t * (PLOT.x1 - PLOT.x0)).toFixed(2),
+    y: +(PLOT.base - v * (PLOT.base - PLOT.top)).toFixed(2),
+  };
+});
+const line = series.map((p) => `${p.x},${p.y}`).join(" ");
+const area = `M${PLOT.x0},${PLOT.base} L${line.replace(/ /g, " L")} L${PLOT.x1},${PLOT.base} Z`;
+
+/* ── 02. SIGNAL COMPOSITION ─────────────────────────────────────────────── */
+/* Los `tone` no son una rampa inventada: son el brillo medio de cada sector
+   medido sobre la referencia y normalizado contra STRUCTURE. La lámina no
+   degrada parejo — tiene un sector claro, otro casi igual de claro y tres
+   apagados de golpe.
+   Remedidos sector por sector sobre la referencia (media del canal rojo del
+   anillo): 107 / 101 / 61 / 65 / 52. Los tres apagados estaban ~20 puntos por
+   debajo y el ladrillo base era demasiado oscuro para llegar a los picos de
+   ~200 que tiene la lámina en el borde interior de la corona. */
+const COMP = [
+  { k: "STRUCTURE", v: "38%", pct: 38, tone: 0.96 },
+  { k: "GLYPHS",    v: "27%", pct: 27, tone: 0.73 },
+  { k: "HARMONICS", v: "16%", pct: 16, tone: 0.48 },
+  { k: "RESIDUE",   v: "11%", pct: 11, tone: 0.44 },
+  { k: "NOISE",     v: "8%",  pct: 8,  tone: 0.33 },
+];
+/* La corona NO es una banda maciza de r 17 a r 34, y tampoco reparte los
+   porcentajes de la lista. Barriendo la referencia radio por radio aparecen
+   DOS anillos con un hueco negro entre medio: un filo claro en r 16,6→19,2,
+   nada entre 19 y 22,5, y la banda gruesa recién de r 22,8 a r 33,2.
+   Y barriéndola ángulo por ángulo los cortes radiales caen en 0°, 58,5°, 126°,
+   198°, 268° y 331°: seis tramos casi iguales con brillos distintos, no cinco
+   sectores proporcionales. Los porcentajes viven en la lista de la izquierda;
+   el anillo es ornamento. */
+const DO = { cx: 150.3, cy: 61.5 };
+const SEG_EDGE = [0, 58.5, 126, 198, 268, 331, 360];
+/* Media del canal rojo de la banda gruesa, tramo por tramo: 138 / 148 / 163 /
+   44 / 52 / 39. */
+const SEG_TONE = [0.895, 0.94, 1, 0.27, 0.35, 0.29];
+/* El filo interior NO acompaña al brillo de su tramo: en la referencia se
+   mantiene entre 67 y 112 incluso donde la banda cae a 44. Va con su propia
+   escala o los tramos oscuros quedan sin filo. */
+const RIM_TONE = [0.66, 1, 0.94, 0.86, 0.79, 0.6];
+const polar = (r: number, deg: number) => {
+  const a = ((deg - 90) * Math.PI) / 180;
+  return [DO.cx + r * Math.cos(a), DO.cy + r * Math.sin(a)];
+};
+const arc = (r: number, a0: number, a1: number) => {
+  const [x0, y0] = polar(r, a0);
+  const [x1, y1] = polar(r, a1);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+};
+const donut = SEG_TONE.map((tone, i) => ({
+  d: arc(28, SEG_EDGE[i] + 1.8, SEG_EDGE[i + 1] - 1.8),
+  rim: arc(17.9, SEG_EDGE[i] + 1.8, SEG_EDGE[i + 1] - 1.8),
+  tone,
+  rimTone: RIM_TONE[i],
+}));
+/* Anillos finos superpuestos: en la referencia la banda no es plana, se lee
+   como surcos concéntricos. Son textura, no datos. Van dentro de la banda
+   nueva (23→33), no sobre el hueco. */
+const grooves = Array.from({ length: 8 }, (_, i) => +(23.3 + i * 1.3).toFixed(2));
+
+/* ── 03. ORIENTATION VECTOR ─────────────────────────────────────────────── */
+/* La circunferencia de la referencia corta en x 396,5 y 449,5 sobre la fila del
+   eje: 53 px de diámetro, r 26,5 — la teníamos en 24 porque la caja iba corta.
+   Los ejes no se detienen en el borde: llegan a r≈35 (x 388→458). */
+const CO = { cx: 43, cy: 62, r: 26.5 };
+const AX = 1.32;   // largo de los ejes cardinales en radios
+/* Diagonales: dentro del círculo la lámina apenas las insinúa (luma 6–19 contra
+   36–53 que teníamos) y en cambio las remata con un tramo claro justo por
+   fuera del borde, entre r 27 y 31. Se dibujan en dos piezas. */
+const diag = [45, 135, 225, 315].map((deg) => {
+  const a = ((deg - 90) * Math.PI) / 180;
+  const at = (k: number) => [
+    +(CO.cx + CO.r * k * Math.cos(a)).toFixed(2),
+    +(CO.cy + CO.r * k * Math.sin(a)).toFixed(2),
+  ];
+  const [ix, iy] = at(-1.17);
+  const [ox, oy] = at(1.17);
+  const [c1x, c1y] = at(1.02);
+  const [c2x, c2y] = at(-1.02);
+  return { x1: ix, y1: iy, x2: ox, y2: oy, cx1: c1x, cy1: c1y, cx2: ox, cy2: oy, dx1: c2x, dy1: c2y, dx2: ix, dy2: iy };
+});
+/* El vector apunta arriba-derecha a ~38° sobre la horizontal y llega a r 23
+   (medido: punta en 441,59 con centro en 423,73). */
+const VEC = { x: +(CO.cx + 23 * Math.cos(-0.662)).toFixed(2), y: +(CO.cy + 23 * Math.sin(-0.662)).toFixed(2) };
+
+/* ── 05. SELLO DE SIGNAL STRENGTH ───────────────────────────────────────── */
+/* Medido sobre la referencia: centro fijo, radio exterior ≈21 px (antes se
+   dibujaba a 19). No es un blanco de puntería con dos rectángulos: es una
+   rosa de compás con brazos desiguales y dos anillos punteados que a este
+   tamaño se leen como texto grabado. viewBox de 44 → 1 unidad = 1 px. */
+const SC = 22;
+const ray = (a: number, r1: number, r2: number) => ({
+  x1: +(SC + r1 * Math.cos(a)).toFixed(2),
+  y1: +(SC + r1 * Math.sin(a)).toFixed(2),
+  x2: +(SC + r2 * Math.cos(a)).toFixed(2),
+  y2: +(SC + r2 * Math.sin(a)).toFixed(2),
+});
+/* Los 16 radios regulares + los 32 dientes daban una rueda de timón: pareja,
+   apagada y sin jerarquía (pico 71 contra 117 de la lámina, con el doble de
+   líneas). En la referencia el sello es una rosa náutica: dos ejes claros que
+   cruzan el sello entero, un rombo de puntas, un núcleo chico y una banda
+   exterior de marcas irregulares que a este tamaño se leen como letras.
+   Ejes cardinales de lado a lado, con punta de flecha en cada extremo. */
+const sealAxes = [0, 90, 180, 270].map((deg) => {
+  const a = (deg * Math.PI) / 180;
+  const tip = ray(a, 3.4, 19.6);
+  /* Las dos plumas de la flecha, a ±26° del eje y 4 px de largo. */
+  const feather = [-0.45, 0.45].map((off) => {
+    const b = a + Math.PI + off;
+    return {
+      x1: tip.x2,
+      y1: tip.y2,
+      x2: +(tip.x2 + 2.8 * Math.cos(b)).toFixed(2),
+      y2: +(tip.y2 + 2.8 * Math.sin(b)).toFixed(2),
+    };
+  });
+  return { tip, feather };
+});
+/* Rombo de puntas: vértices sobre los ejes a r 9. */
+const sealKite = [0, 90, 180, 270]
+  .map((deg) => {
+    const a = (deg * Math.PI) / 180;
+    return `${(SC + 9 * Math.cos(a)).toFixed(2)},${(SC + 9 * Math.sin(a)).toFixed(2)}`;
+  })
+  .join(" ");
+/* Muescas cortas en las diagonales, entre el rombo y el anillo de lectura. */
+const sealNicks = [45, 135, 225, 315].map((deg) => ray((deg * Math.PI) / 180, 11, 15.4));
+/* Banda grabada: marcas radiales de largo y ángulo sorteados con semilla fija
+   (mismo criterio que la curva: idénticas en cada build). No son letras, pero
+   a 44 px de sello la referencia tampoco las resuelve. */
+let s4 = 6613721;
+const r4 = () => (s4 = (s4 * 1103515245 + 12345) % 2147483648) / 2147483648;
+const sealBand = Array.from({ length: 64 }, (_, i) => {
+  const a = ((i * 5.62 + r4() * 4) * Math.PI) / 180;
+  const r1 = 16.9 + r4() * 0.8;
+  return ray(a, r1, r1 + 1.1 + r4() * 1.4);
+});
+
+/* ── 06. ANOMALY FEED ───────────────────────────────────────────────────── */
+/* Los códigos bajo cada miniatura son ilegibles en la referencia (≈4 px de
+   alto). Se transcribe la lectura más plausible; ver comentario en el marcado. */
+const TILES = [
+  { kind: "skull", tone: "bone",   code: "08" },
+  { kind: "glitch", tone: "red",   code: "03" },
+  { kind: "skull", tone: "cyan",   code: "38" },
+  { kind: "eye",   tone: "orange", code: "30" },
+];
+/* El ojo de la cuarta miniatura no tiene ocho radios largos: tiene una corona
+   de rayas cortas que llena la celda (media 34,5 en rojo contra 22,7 con los
+   radios). Se generan acá para no escribir 30 líneas a mano. */
+/* Con radios regulares salía un sol de rayos parejos; en la lámina el halo es
+   irregular y granulado, así que el ángulo y el radio se sortean con su propia
+   semilla fija (misma razón que la curva: repetible entre builds). */
+let s3 = 480913;
+const r3 = () => (s3 = (s3 * 1103515245 + 12345) % 2147483648) / 2147483648;
+const eyeRays = Array.from({ length: 72 }, (_, i) => {
+  const a = ((i * 5 + r3() * 6) * Math.PI) / 180;
+  const r1 = 7.4 + r3() * 9.4;
+  const r2 = r1 + 1 + r3() * 1.9;
+  return {
+    x1: +(17 + r1 * Math.cos(a)).toFixed(2),
+    y1: +(20 + r1 * Math.sin(a) * 0.95).toFixed(2),
+    x2: +(17 + r2 * Math.cos(a)).toFixed(2),
+    y2: +(20 + r2 * Math.sin(a) * 0.95).toFixed(2),
+  };
+});
+
+/* Ruido de fondo de cada miniatura: puntos y trazos sueltos, seed propio. */
+let s2 = 771001;
+const r2 = () => (s2 = (s2 * 1103515245 + 12345) % 2147483648) / 2147483648;
+const speck = TILES.map(() =>
+  Array.from({ length: 78 }, () => ({
+    x: +(r2() * 34).toFixed(1),
+    y: +(r2() * 40).toFixed(1),
+    w: +(0.6 + r2() * 4).toFixed(1),
+  }))
+);
+---
+
+<div data-box style={box} class="dtags">
+  <div class="dtags__head">
+    <span>07. Data Tags &amp; Charts</span>
+    <i class="dtags__rule"></i>
+  </div>
+
+  <!-- ── 01 · DEPTH GRAPH ─────────────────────────────────────────────── -->
+  <section class="dtags__box dtags__box--a" data-symbolic="true">
+    <h3 class="dtags__t">DEPTH GRAPH</h3>
+    <svg class="dtags__fig" viewBox="0 0 180 109" aria-hidden="true">
+      <defs>
+        <linearGradient id="dt-fade" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" class="dt-fade-a" />
+          <stop offset="1" class="dt-fade-b" />
+        </linearGradient>
+        <!-- Trama vertical dentro del relleno: la referencia muestra el área
+             bajo la curva rayada, no maciza. -->
+        <pattern id="dt-hatch" width="3" height="110" patternUnits="userSpaceOnUse">
+          <rect width="1" height="110" class="dt-hatch-bar" />
+        </pattern>
+        <clipPath id="dt-clip"><path d={area} /></clipPath>
+      </defs>
+
+      <g class="dt-grid">
+        {GRID_Y.map((y) => <line x1={PLOT.x0 - 1} y1={y} x2={PLOT.x1} y2={y} />)}
+        {X_TICKS.map((_, i) => (
+          <line x1={PLOT.x0 + i * 29} y1={PLOT.top} x2={PLOT.x0 + i * 29} y2={PLOT.base} />
+        ))}
+      </g>
+
+      <path d={area} fill="url(#dt-fade)" />
+      <g clip-path="url(#dt-clip)"><rect x="0" y="0" width="180" height="110" fill="url(#dt-hatch)" /></g>
+      <polyline class="dt-line" points={line} />
+
+      <line class="dt-axis" x1={PLOT.x0 - 1} y1={PLOT.top} x2={PLOT.x0 - 1} y2={PLOT.base} />
+      <line class="dt-axis" x1={PLOT.x0 - 1} y1={PLOT.base} x2={PLOT.x1} y2={PLOT.base} />
+
+      <g class="dt-ylab">
+        {Y_TICKS.map((t, i) => <text x="21" y={GRID_Y[i] + 2.6} text-anchor="end">{t}</text>)}
+      </g>
+      <g class="dt-xlab">
+        {X_TICKS.map((t, i) => (
+          <text x={Math.min(PLOT.x0 + i * 29, 167)} y="105" text-anchor="middle">{t}</text>
+        ))}
+      </g>
+    </svg>
+  </section>
+
+  <!-- ── 02 · SIGNAL COMPOSITION ──────────────────────────────────────── -->
+  <section class="dtags__box dtags__box--b" data-symbolic="true">
+    <h3 class="dtags__t">SIGNAL COMPOSITION</h3>
+    <ul class="dtags__comp">
+      {COMP.map((c) => (
+        <li><span>{c.k}</span><b>{c.v}</b></li>
+      ))}
+    </ul>
+    <svg class="dtags__fig" viewBox="0 0 189 109" aria-hidden="true">
+      <g class="dt-donut">
+        {donut.map((s) => <path d={s.d} style={`opacity:${s.tone}`} />)}
+      </g>
+      <g class="dt-grooves">
+        {grooves.map((r) => <circle cx={DO.cx} cy={DO.cy} r={r} />)}
+      </g>
+      <g class="dt-rim">
+        {donut.map((s) => <path d={s.rim} style={`opacity:${s.rimTone}`} />)}
+      </g>
+    </svg>
+  </section>
+
+  <!-- ── 03 · ORIENTATION VECTOR ──────────────────────────────────────── -->
+  <section class="dtags__box dtags__box--c" data-symbolic="true">
+    <h3 class="dtags__t">ORIENTATION VECTOR</h3>
+    <svg class="dtags__fig" viewBox="0 0 161 109" aria-hidden="true">
+      <g class="dt-rose-faint">
+        <circle cx={CO.cx} cy={CO.cy} r={CO.r * 0.52} />
+        {diag.map((d) => <line x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2} />)}
+      </g>
+      <g class="dt-rose">
+        <circle cx={CO.cx} cy={CO.cy} r={CO.r} />
+        <line x1={CO.cx - CO.r * AX} y1={CO.cy} x2={CO.cx + CO.r * AX} y2={CO.cy} />
+        <line x1={CO.cx} y1={CO.cy - CO.r * AX} x2={CO.cx} y2={CO.cy + CO.r * AX} />
+      </g>
+      <g class="dt-rose-cap">
+        {diag.map((d) => <line x1={d.cx1} y1={d.cy1} x2={d.cx2} y2={d.cy2} />)}
+        {diag.map((d) => <line x1={d.dx1} y1={d.dy1} x2={d.dx2} y2={d.dy2} />)}
+      </g>
+      <line class="dt-vec" x1={CO.cx} y1={CO.cy} x2={VEC.x} y2={VEC.y} />
+      <rect class="dt-core" x={CO.cx - 1.6} y={CO.cy - 1.6} width="3.2" height="3.2" />
+    </svg>
+    <dl class="dtags__ori">
+      <div><dt>AZ</dt><dd>245.6°</dd></div>
+      <div><dt>EL</dt><dd>-12.4°</dd></div>
+      <div><dt>ROLL</dt><dd>03.7°</dd></div>
+    </dl>
+    <p class="dtags__ok">ALIGN OK</p>
+  </section>
+
+  <!-- ── 04 · SYSTEM STATUS ───────────────────────────────────────────── -->
+  <section class="dtags__box dtags__box--d" data-symbolic="true">
+    <h3 class="dtags__t">SYSTEM STATUS</h3>
+    <dl class="dtags__stat">
+      <div><dt>ARCHIVE LINK</dt><dd>STABLE</dd></div>
+      <div><dt>SIGNAL LOCK</dt><dd>ACQUIRED</dd></div>
+      <div><dt>THRESHOLD</dt><dd>PASSED</dd></div>
+      <div><dt>PROTOCOL</dt><dd>DESCENT_01</dd></div>
+    </dl>
+  </section>
+
+  <!-- ── 05 · SIGNAL STRENGTH ─────────────────────────────────────────── -->
+  <section class="dtags__box dtags__box--e" data-symbolic="true">
+    <h3 class="dtags__t">SIGNAL STRENGTH</h3>
+
+    <div class="dtags__meter">
+      <!-- .kdx-barcode apila tres frecuencias del MISMO tinte, así que su
+           resultado es binario: 103 o 236, y la referencia no lo es (mediana
+           160 con colas en 55 y 210). Acá se reescriben las tres capas con
+           alfas distintas para que el solapamiento dé cuatro niveles. -->
+      <div class="dtags__meter-fill"><i class="kdx-barcode dtags__bars"></i></div>
+      <i class="kdx-barcode dtags__bars dtags__bars--off"></i>
+      <i class="dtags__meter-cells"></i>
+      <i class="dtags__meter-mid"></i>
+      <i class="dtags__meter-mid dtags__meter-mid--low"></i>
+    </div>
+    <!-- Marcas de escala bajo la barra: la lámina las tiene en x 210, 240, 270
+         y 285, dos filas por debajo del marco. -->
+    <i class="dtags__meter-ticks"></i>
+    <p class="dtags__pct">92<i>%</i></p>
+
+    <!-- Etiquetas de los dos campos cian: en la referencia miden ~4 px y no se
+         leen. La de la izquierda ocupa 28 px (≈6 caracteres) y arranca por
+         "DEPTH"; el resto queda tapado por la flecha, así que no se transcribe
+         más de lo que la lámina muestra. "DENSITY" mide 33 px = 7 caracteres. -->
+    <div class="dtags__fields">
+      <div class="dtags__field">
+        <span class="dtags__field-k">DEPTH<i class="dtags__field-arrow"></i></span>
+        <span class="dtags__field-v">01.3821e+03</span>
+      </div>
+      <div class="dtags__field">
+        <span class="dtags__field-k">DENSITY</span>
+        <span class="dtags__field-v">73<i>%</i></span>
+        <i class="dtags__field-split"></i>
+      </div>
+    </div>
+
+    <svg class="dtags__seal" viewBox="0 0 44 44" aria-hidden="true">
+      <g class="dt-seal-dim">
+        <circle cx="22" cy="22" r="19.4" />
+        <circle cx="22" cy="22" r="16.4" />
+      </g>
+      <g class="dt-seal-band">
+        {sealBand.map((l) => <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />)}
+      </g>
+      <g class="dt-seal">
+        <circle cx="22" cy="22" r="21" />
+        <circle cx="22" cy="22" r="2.7" />
+        {sealAxes.map((s) => <line x1={s.tip.x1} y1={s.tip.y1} x2={s.tip.x2} y2={s.tip.y2} />)}
+        {sealAxes.map((s) => s.feather.map((f) => <line x1={f.x1} y1={f.y1} x2={f.x2} y2={f.y2} />))}
+      </g>
+      <g class="dt-seal-kite"><polygon points={sealKite} /></g>
+      <g class="dt-seal-nick">
+        {sealNicks.map((l) => <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />)}
+      </g>
+    </svg>
+  </section>
+
+  <!-- ── 06 · ANOMALY FEED ────────────────────────────────────────────── -->
+  <section class="dtags__box dtags__box--f" data-symbolic="true">
+    <h3 class="dtags__t">ANOMALY FEED</h3>
+    <i class="dtags__hr"></i>
+    <div class="dtags__tiles">
+      {TILES.map((t, i) => (
+        <figure class={`dtags__tile dtags__tile--${t.tone}`}>
+          <svg viewBox="0 0 34 40" aria-hidden="true">
+            <g class="dt-speck">
+              {speck[i].map((p) => <rect x={p.x} y={p.y} width={p.w} height="0.7" />)}
+            </g>
+            {t.kind === "skull" && (
+              /* El cráneo de la lámina es más angosto y más largo que el que
+                 teníamos (19×31 px contra 21×25): se estira desde la coronilla
+                 en vez de redibujar los diez subtrazos. */
+              <g class="dt-glyph" transform="translate(17 5) scale(0.9 1.25) translate(-17 -5)">
+                <path d="M17 5c-6.6 0-10 4.2-10 9.6 0 3.2 1.1 5.4 2.7 7v4.2h14.6v-4.2c1.6-1.6 2.7-3.8 2.7-7C27 9.2 23.6 5 17 5Z" />
+                <ellipse cx="12.6" cy="15.6" rx="2.9" ry="3.3" />
+                <ellipse cx="21.4" cy="15.6" rx="2.9" ry="3.3" />
+                <path d="M17 19.2 15.4 22.6h3.2Z" />
+                <path d="M10.5 25.8v3.4M13.7 25.8v3.4M17 25.8v3.4M20.3 25.8v3.4M23.5 25.8v3.4" />
+              </g>
+            )}
+            {t.kind === "glitch" && (
+              <g class="dt-glyph">
+                <path d="M9 8v22M9 12h13M9 16h9M9 20h16M9 24h6M22 12v6M18 16v8M25 20v5" />
+                <path d="M4 14h3M27 16h4M4 22h4M26 24h5" />
+              </g>
+            )}
+            {t.kind === "eye" && (
+              <g class="dt-glyph">
+                <path d="M6 20c3.7-5 7.3-7.4 11-7.4s7.3 2.4 11 7.4c-3.7 5-7.3 7.4-11 7.4S9.7 25 6 20Z" />
+                <circle cx="17" cy="20" r="4.2" />
+                <circle class="dt-eye-pupil" cx="17" cy="20" r="1.7" />
+                {eyeRays.map((l) => <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />)}
+                {/* Los dos galones de arriba y abajo cerraban un hexágono que
+                    la lámina no tiene: ahí el halo se deshilacha contra el
+                    borde de la celda. Quedan sólo como restos laterales. */}
+                <path d="M5.5 8.5 8 6M28.5 8.5 26 6M5.5 31.5 8 34M28.5 31.5 26 34" />
+              </g>
+            )}
+          </svg>
+        </figure>
+      ))}
+    </div>
+    <i class="dtags__hr dtags__hr--low"></i>
+    <div class="dtags__codes">
+      {TILES.map((t) => <span>{t.code}</span>)}
+    </div>
+  </section>
+</div>
+
+<style>
+  .dtags {
+    /* Medidas tomadas sobre la referencia a 3×: el marco de esta lámina es gris
+       neutro, no naranja, y el naranja del gráfico tira más al ámbar que el
+       acento del sistema. */
+    --dt-rule: #252423;
+    /* El pico de los títulos en la referencia es 120, no 138: la mezcla al 64%
+       los dejaba demasiado blancos. */
+    --dt-title: color-mix(in srgb, var(--lam-ink) 56%, #000);
+    --dt-label: color-mix(in srgb, var(--lam-ink) 48%, #000);
+    --dt-val: color-mix(in srgb, var(--lam-ink) 38%, #000);
+    --dt-faint: color-mix(in srgb, var(--lam-ink) 9%, #000);
+    /* Naranjas medidos sobre la referencia. La curva tira al ámbar; el relleno
+       bajo la curva NO — es mucho más rojo que el trazo, por eso va aparte. La
+       corona de la dona es un ladrillo oscuro (media 112,26,3 en su sector más
+       claro), muy por debajo del naranja del vector. La barra de señal es el
+       más encendido pero con poco verde: 236,54,6. */
+    --dt-amber: #dd6a19;
+    --dt-graph: #c73c0c;
+    --dt-orange: #c74a17;
+    --dt-donut: #d53a09;
+    --dt-ember: #ec3606;
+    --dt-green: #4c7209;
+    --dt-cyan: #23807d;
+  }
+
+  /* El título se monta sobre el borde superior de la caja y queda cortado por
+     arriba, igual que en la lámina. */
+  .dtags__head {
+    position: absolute;
+    top: -4.8px;
+    left: 1px;
+    /* La regla de cabecera muere en el borde derecho de los recuadros (x 539),
+       no en el filo de la lámina. */
+    right: 7px;
+    display: flex;
+    gap: 7px;
+    color: var(--lam-accent);
+    font-size: 10.5px;
+    line-height: 11px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  /* La regla no se centra con el texto: corre por el borde superior de la caja
+     (y ≈ 0) mientras el título le queda montado encima y cortado. */
+  .dtags__rule {
+    flex: 1;
+    align-self: flex-start;
+    margin-top: 4.5px;
+    height: 0;
+    border-top: 1px solid var(--dt-rule);
+  }
+
+  .dtags__box {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--dt-rule);
+  }
+  /* Bordes internos leídos de la referencia: 0/179, 186/374, 380/540 arriba y
+     0/155, 161/359, 364/540 abajo. La caja de 547 px deja los 3 px que le
+     faltaban a la columna derecha (antes ORIENTATION VECTOR cortaba el ° de
+     ROLL contra el marco). */
+  .dtags__box--a { left: 0;   top: 11px;  width: 180px; height: 109px; }
+  .dtags__box--b { left: 186px; top: 11px; width: 189px; height: 109px; }
+  .dtags__box--c { left: 380px; top: 11px; width: 161px; height: 109px; }
+  .dtags__box--d { left: 0;   top: 126px; width: 156px; height: 96px; }
+  .dtags__box--e { left: 161px; top: 126px; width: 199px; height: 96px; }
+  .dtags__box--f { left: 364px; top: 126px; width: 177px; height: 96px; }
+
+  .dtags__t {
+    position: absolute;
+    top: 5px;
+    left: 6px;
+    margin: 0;
+    color: var(--dt-title);
+    font-family: var(--lam-mono);
+    /* Paso por carácter medido en cuatro recuadros de la referencia: 6,39 /
+       6,38 / 6,45 / 6,53 px. Con 11 px + 0,025em daban 6,7–6,75 y el título
+       más largo (ORIENTATION VECTOR) se iba 8 px de largo. */
+    font-size: 10.5px;
+    font-weight: 400;
+    line-height: 11px;
+    letter-spacing: 0.01em;
+  }
+
+  .dtags__fig {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    font-family: var(--lam-mono);
+  }
+
+  /* ── 01 · depth graph ─────────────────────────────────────────────── */
+  .dt-grid line { stroke: var(--dt-faint); stroke-width: 0.5; }
+  .dt-axis { stroke: color-mix(in srgb, var(--lam-ink) 22%, #000); stroke-width: 0.7; }
+  .dt-line {
+    stroke: var(--dt-amber);
+    stroke-width: 1;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .dt-fade-a { stop-color: var(--dt-graph); stop-opacity: 0.22; }
+  .dt-fade-b { stop-color: var(--dt-graph); stop-opacity: 0.015; }
+  .dt-hatch-bar { fill: var(--dt-graph); fill-opacity: 0.12; }
+  /* Los rótulos del eje Y estaban encogidos a 7 px para que "10K" no chocara
+     con el marco: en la referencia miden 7 filas de alto y 16 px de ancho, o
+     sea ~9 px. Con la caja buena entran. */
+  .dt-ylab text { fill: var(--dt-val); font-size: 8.5px; letter-spacing: 0.01em; }
+  /* Los rótulos del eje X tienen el alto correcto pero iban un tercio más
+     encendidos que la lámina (p95 84 contra 61). */
+  .dt-xlab text { fill: color-mix(in srgb, var(--lam-ink) 40%, #000); font-size: 11px; letter-spacing: 0.02em; }
+
+  /* ── 02 · signal composition ──────────────────────────────────────── */
+  /* Filas de la referencia en y 39, 55, 70, 87 y 104: el bloque iba 2 px
+     arriba y el paso era 16 en vez de 16,25. */
+  .dtags__comp {
+    position: absolute;
+    top: 23px;
+    left: 6px;
+    width: 92px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .dtags__comp li {
+    display: flex;
+    justify-content: space-between;
+    height: 16.25px;
+    font-size: 9.5px;
+    line-height: 16.25px;
+    letter-spacing: 0.01em;
+  }
+  .dtags__comp span { color: var(--dt-label); }
+  /* Los porcentajes van un punto más grandes que las etiquetas: en la
+     referencia avanzan 6,33 px por carácter contra 5,67 de "STRUCTURE". */
+  .dtags__comp b { color: var(--dt-val); font-weight: 400; font-size: 10.5px; }
+
+  .dt-donut path {
+    stroke: var(--dt-donut);
+    stroke-width: 10.4;
+  }
+  /* Filo interior de la corona: es lo que da los picos de ~200 de la lámina.
+     Va después de los surcos para que no lo corten. */
+  .dt-rim path {
+    stroke: #701f06;
+    stroke-width: 2.6;
+  }
+  /* Surcos: van encima de la corona en negro translúcido, así el mismo trazo
+     oscurece los sectores brillantes y los apagados por igual. En la
+     referencia son bastante más marcados de lo que estaban: la corona se lee
+     rayada, no lisa. */
+  .dt-grooves circle {
+    stroke: #000;
+    stroke-width: 0.62;
+    stroke-opacity: 0.55;
+  }
+
+  /* ── 03 · orientation vector ──────────────────────────────────────── */
+  /* El borde y los dos ejes son lo único claro de la rosa (luma ~50 medida
+     sobre la lámina); todo lo demás va muy por debajo. */
+  .dt-rose circle,
+  .dt-rose line { stroke: color-mix(in srgb, var(--lam-ink) 46%, #000); stroke-width: 0.7; }
+  /* Diagonales y círculo interior: en la referencia dan 6–19 de luma contra el
+     fondo en 0–2. Estaban a 36–53, o sea cuatro veces la tinta. */
+  .dt-rose-faint circle,
+  .dt-rose-faint line { stroke: color-mix(in srgb, var(--lam-ink) 11%, #000); stroke-width: 0.6; }
+  /* Remates de las diagonales justo por fuera del borde (r 27→31). */
+  .dt-rose-cap line { stroke: color-mix(in srgb, var(--lam-ink) 26%, #000); stroke-width: 0.75; }
+  .dt-vec {
+    stroke: var(--dt-orange);
+    stroke-width: 1.3;
+    stroke-dasharray: 2.4 1.6;
+  }
+  .dt-core { fill: var(--dt-orange); }
+
+  /* Filas medidas en la referencia: 44, 60 y 76 (paso 16, no 16,7) y el bloque
+     arranca 2 px más arriba. */
+  .dtags__ori {
+    position: absolute;
+    top: 29px;
+    left: 93px;
+    margin: 0;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+  .dtags__ori div { display: flex; gap: 6px; height: 16px; line-height: 16px; }
+  .dtags__ori dt { color: var(--dt-label); }
+  .dtags__ori dd { margin: 0; color: var(--dt-label); }
+  .dtags__ok {
+    position: absolute;
+    top: 89px;
+    left: 93px;
+    margin: 0;
+    color: var(--dt-green);
+    font-size: 11px;
+    line-height: 11px;
+    letter-spacing: 0.02em;
+  }
+
+  /* ── 04 · system status ───────────────────────────────────────────── */
+  /* Primera fila de la referencia en y 154 y borde izquierdo en x 5: iba 2 px
+     abajo y 2 px adentro. */
+  .dtags__stat {
+    position: absolute;
+    top: 22px;
+    left: 4px;
+    right: 10px;
+    margin: 0;
+    font-size: 9.5px;
+    letter-spacing: 0.01em;
+  }
+  .dtags__stat div {
+    display: flex;
+    justify-content: space-between;
+    height: 17.4px;
+    line-height: 17.4px;
+  }
+  .dtags__stat dt { color: var(--dt-label); }
+  .dtags__stat dd { margin: 0; color: var(--dt-green); }
+
+  /* ── 05 · signal strength ─────────────────────────────────────────── */
+  /* Barrido de la referencia fila por fila: la barra ocupa y 150→172 (25 px de
+     alto contando marco, no 28) y x 170→312. Y el marco no es un contorno
+     naranja: en la lámina las filas del borde valen ~5 sobre 255, o sea casi
+     negro. Con el borde encendido la barra parecía 3 px más alta de lo que es. */
+  .dtags__meter {
+    position: absolute;
+    left: 8px;
+    top: 22px;
+    width: 141px;
+    height: 23px;
+    /* El marco no es uniforme: arriba la lámina está casi en negro (0–9), abajo
+       queda un resto de ~28 y el canto derecho es una línea encendida (media
+       95, pico 157) que remata la escala. */
+    border: 1px solid transparent;
+    border-top-color: rgba(236, 54, 6, 0.04);
+    border-bottom-color: rgba(236, 54, 6, 0.11);
+    border-right-color: #641804;
+    overflow: hidden;
+  }
+  .dtags__meter-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 81.5%;
+    /* Pico medido en la referencia: (210,53,7), no (236,54,6). Con el ember
+       pleno el relleno salía un 15% más claro que la lámina. */
+    background: #d63008;
+  }
+  /* La media del relleno coincidía (150 contra 147) pero el reparto no: la
+     lámina tiene mediana 160 con cola en 55 y 210, y nosotros dos valores
+     secos, 103 y 236. Se rescriben las tres frecuencias del código de barras
+     como negros translúcidos de alfa distinta: donde se solapan una, dos o
+     tres capas salen cuatro escalones en vez de uno. */
+  .dtags__bars {
+    position: absolute;
+    inset: 0;
+    opacity: 1;
+    background-position-x: 4px;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.25) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.36) 0 2px, transparent 2px 7px),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.30) 0 1px, transparent 1px 11px);
+  }
+  .dtags__bars--off {
+    /* Tramo vacío: mismas tres frecuencias pero sumando naranja sobre negro.
+       Media de la referencia 23, pico 53. */
+    left: 81.5%;
+    right: 0;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(72, 17, 4, 0.42) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(72, 17, 4, 0.32) 0 2px, transparent 2px 7px),
+      repeating-linear-gradient(90deg, rgba(72, 17, 4, 0.25) 0 1px, transparent 1px 11px);
+  }
+  /* Diez celdas separadas por una línea vertical del color del fondo. Paso
+     recontado sobre la referencia: 14 px con la primera separación en x 182,
+     no 13,3 arrancando en 180. */
+  .dtags__meter-cells {
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      90deg, transparent 0 13px, rgba(0, 0, 0, 0.45) 13px 14px
+    );
+    background-position-x: -1px;
+  }
+  /* Las dos particiones horizontales. No son negras: en el tramo apagado SUBEN
+     el valor (de 10 a 35), así que son una banda gris-ladrillo casi opaca. La
+     segunda, 4 px más abajo, deja la tira fina que la lámina tiene bajo el
+     corte principal — sin ella la barra se lee como dos bloques. */
+  .dtags__meter-mid {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 11px;
+    height: 2px;
+    background: rgba(56, 14, 3, 0.72);
+  }
+  .dtags__meter-mid--low { top: 15px; height: 2px; background: rgba(56, 14, 3, 0.6); }
+  .dtags__meter-ticks {
+    position: absolute;
+    left: 49px;    /* x 210 de la lámina */
+    width: 63px;   /* tres marcas: 210, 240, 270 */
+    top: 48px;
+    height: 3px;
+    background-image: repeating-linear-gradient(
+      90deg, #5c1604 0 1.5px, transparent 1.5px 30px
+    );
+  }
+
+  /* El 92% de la lámina es más angosto de lo que da el mono a 16 px: los
+     dígitos avanzan de 8 en 8 (320→328) y no de 10 en 10, y entre el "2" y el
+     "%" queda un blanco de 4 px. Misma altura de caja, distinto paso. */
+  .dtags__pct {
+    position: absolute;
+    left: 157px;
+    top: 23px;
+    margin: 0;
+    color: #ce300b;
+    font-size: 15px;
+    line-height: 16px;
+    letter-spacing: -0.055em;
+  }
+  .dtags__pct i { margin-left: 3px; font-style: normal; }
+
+  /* El bloque entero iba 4 px alto: en la referencia las etiquetas caen en
+     y 188, los valores en 200 y el subrayado en 213. */
+  .dtags__fields { position: absolute; left: 8px; top: 56px; display: flex; gap: 4px; }
+  .dtags__field {
+    width: 80px;
+    padding: 3px 0 0 1px;
+    /* Los dos campos están encajonados arriba y abajo, no sólo subrayados: en
+       y 183 la referencia tiene una regla gris casi apagada (11,14,16) sobre
+       cada uno. Y el subrayado estaba al doble de brillo: la lámina lo tiene
+       en (8,45,50), no en (25,90,88). */
+    border-top: 1px solid color-mix(in srgb, var(--lam-ink) 6%, #000);
+    border-bottom: 1px solid color-mix(in srgb, var(--dt-cyan) 36%, #000);
+    color: var(--dt-cyan);
+  }
+  /* Ancho medido por el subrayado derecho: 254→290, o sea 36 px de caja. */
+  /* El separador entre los dos campos no cruza el bloque entero: en la lámina
+     sólo acompaña la fila del valor (y 195→208) y es la mitad de claro. */
+  .dtags__field:last-child { position: relative; width: 34px; padding-left: 6px; }
+  .dtags__field-split {
+    position: absolute;
+    left: 0;
+    top: 13px;
+    bottom: 1px;
+    width: 0;
+    border-left: 1px solid color-mix(in srgb, var(--dt-cyan) 17%, #000);
+  }
+  /* Los rótulos caen en y 187→192; iban dos pixeles abajo. El margen negativo
+     los sube sin arrastrar el valor. */
+  .dtags__field-k {
+    position: relative;
+    display: block;
+    height: 10px;
+    margin: -2px 0 2px;
+    font-size: 7px;
+    line-height: 10px;
+    letter-spacing: 0.04em;
+    opacity: 0.6;
+    white-space: nowrap;
+  }
+  /* La flecha que sale de la etiqueta izquierda hacia la derecha del campo. Va
+     posicionada, no en flujo: en la referencia arranca siempre en x 209 y
+     termina en 248, y su travesaño cruza el palito por la mitad (no por abajo,
+     como quedaba con un border-bottom). */
+  /* La flecha va montada 2 px más abajo que el rótulo (el travesaño cae en
+     y 190 y el rótulo subió), tiene tope vertical en LOS DOS extremos y es
+     bastante más apagada que el texto: la lámina la deja en 38–58, no en 77. */
+  .dtags__field-arrow {
+    position: absolute;
+    left: 38px;
+    right: 3px;
+    top: 2px;
+    height: 7px;
+    opacity: 0.62;
+    border-left: 1px solid currentColor;
+    border-right: 1px solid currentColor;
+    background: linear-gradient(currentColor, currentColor) left 3px / 100% 1px no-repeat;
+  }
+  .dtags__field-v {
+    display: block;
+    height: 16px;
+    /* Remedido: el pico del valor en la lámina llega a 125 y lo teníamos en 97.
+       El 76% venía de la época en que el bloque se había encogido. */
+    color: color-mix(in srgb, var(--dt-cyan) 92%, #000);
+    font-size: 12px;
+    line-height: 16px;
+    /* Los dígitos de la lámina avanzan de 6,8 en 6,8 px, no de 7,3: mismo alto
+       de caja, paso más corto. Y el "%" de DENSITY va separado del número. */
+    letter-spacing: -0.04em;
+  }
+  .dtags__field-v i { margin-left: 3px; font-style: normal; }
+
+  /* El sello mide 44 px de diámetro en la referencia y su centro cae en
+     (331,194) de la lámina: iba 2 px a la izquierda. */
+  .dtags__seal {
+    position: absolute;
+    left: 148px;
+    top: 46px;
+    width: 44px;
+    height: 44px;
+    fill: none;
+  }
+  /* Menos líneas y más claras: la referencia llega a 117 de pico con la misma
+     media que nosotros a 71. Lo claro es el borde, los dos ejes y el núcleo. */
+  .dt-seal circle,
+  .dt-seal line { stroke: var(--dt-cyan); stroke-width: 0.62; stroke-opacity: 0.96; }
+  .dt-seal-dim circle { stroke: var(--dt-cyan); stroke-width: 0.55; stroke-opacity: 0.5; }
+  .dt-seal-band line { stroke: var(--dt-cyan); stroke-width: 0.55; stroke-opacity: 0.58; }
+  .dt-seal-kite polygon { stroke: var(--dt-cyan); stroke-width: 0.55; stroke-opacity: 0.45; fill: none; }
+  .dt-seal-nick line { stroke: var(--dt-cyan); stroke-width: 0.5; stroke-opacity: 0.3; }
+
+  /* ── 06 · anomaly feed ────────────────────────────────────────────── */
+  .dtags__hr {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 21px;
+    height: 0;
+    border-top: 1px solid var(--dt-rule);
+  }
+  .dtags__hr--low { top: 76px; }
+
+  /* Bordes de las miniaturas en la referencia: 372, 413,3, 454,6 y 496 con la
+     caja de 547. Paso 41,33 (37 de caja + 4,33 de aire), no 41 exacto. */
+  .dtags__tiles {
+    position: absolute;
+    left: 7px;
+    top: 28px;
+    display: flex;
+    gap: 4.33px;
+  }
+  /* El marco de las miniaturas es mucho más tenue que las reglas del recuadro:
+     en la referencia vale ~11 sobre 255, no los 37 de --dt-rule. */
+  .dtags__tile {
+    width: 35px;
+    height: 40px;
+    margin: 0;
+    border: 1px solid color-mix(in srgb, var(--dt-rule) 32%, #000);
+  }
+  .dtags__tile svg { display: block; width: 100%; height: 100%; fill: none; }
+  /* Los glifos de la lámina son de trazo fino y apagado: el pico del cráneo
+     hueso es 118 y la media de su celda 7,7 — al 1,1 de grosor y con los
+     colores plenos daba 134 y 15,8, el doble de tinta. */
+  .dt-glyph { stroke-width: 0.8; stroke-linejoin: round; stroke-linecap: round; }
+  .dt-speck rect { stroke: none; }
+  .dt-eye-pupil { fill: currentColor; stroke: none; }
+
+  .dtags__tile--bone   { color: color-mix(in srgb, var(--lam-ink) 40%, #000); }
+  .dtags__tile--red    { color: #c81e2c; }
+  /* Pico medido por celda en la referencia: 129 el cráneo cian y 221 el ojo,
+     con p95 en 74 y 108. Los colores plenos daban 194 y 152 de p95 — el doble
+     de contraste con la misma tinta total, que es lo que hacía que nuestros
+     glifos se leyeran como iconos limpios y los de la lámina como grabados. */
+  .dtags__tile--cyan   { color: #2f8c97; }
+  .dtags__tile--orange { color: #b03408; }
+  .dtags__tile .dt-glyph { stroke: currentColor; }
+  .dtags__tile .dt-speck { fill: currentColor; fill-opacity: 0.3; }
+
+  .dtags__codes {
+    position: absolute;
+    left: 7px;
+    top: 78px;
+    display: flex;
+    gap: 4.33px;
+    color: color-mix(in srgb, var(--lam-ink) 52%, #000);
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+  .dtags__codes span { width: 37px; text-align: center; }
+</style>

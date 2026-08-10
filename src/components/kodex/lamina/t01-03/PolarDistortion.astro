@@ -1,0 +1,178 @@
+---
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Los dos gráficos polares se generan acá y no a mano: son ~90 trazos y
+ * escritos uno por uno el archivo deja de ser legible. Las unidades del
+ * viewBox son las mismas px de la tira (72×133), así los círculos no se
+ * deforman.
+ */
+const CX = 36;
+const CY = 66;
+const R  = 38;          // radio del anillo exterior; la tira mide 72 → se recorta
+const N  = 8;
+
+// UV IN: retícula sin distorsionar, anillos equiespaciados.
+const ringsIn = Array.from({ length: N }, (_, i) => +(R * (i + 1) / N).toFixed(2));
+// DISTORT OUT: el mismo campo pasado por pow(r, k) — se apelmaza hacia el centro.
+const ringsOut = Array.from({ length: N }, (_, i) => +(R * Math.pow((i + 1) / N, 1.7)).toFixed(2));
+// Dos arcos extra que sólo asoman por las esquinas, como en la referencia.
+const ringsEdge = [R * 1.28, R * 1.62].map((r) => +r.toFixed(2));
+
+const spokes = Array.from({ length: 24 }, (_, i) => {
+  const a = (i * 15 * Math.PI) / 180;
+  return {
+    x2: +(CX + 50 * Math.cos(a)).toFixed(2),
+    y2: +(CY + 50 * Math.sin(a)).toFixed(2),
+  };
+});
+---
+
+<div data-box style={box} class="kdx-panel polard">
+  <div class="polard__title">
+    <span>03. Polar / Radial Distortion</span>
+    <span class="polard__paren">(Pseudo Code)</span>
+    <i class="polard__rule"></i>
+  </div>
+
+  <!-- Pseudocódigo de ficción: no es el shader que corre en la página ni se
+       compila en ningún lado, por eso va marcado como simbólico. -->
+  <pre class="polard__code" data-symbolic="true"><span class="polard__c">// polar tunnel mapping</span>
+vec2 polarDistort(vec2 uv, float depth)&#123;
+   <span class="polard__t">vec2 p</span> = uv * 2.0 - 1.0;
+   <span class="polard__t">float r</span>  = length(p);
+   <span class="polard__t">float a</span>  = atan(p.y, p.x);
+   <span class="polard__t">float k</span>  = 1.0/(1.0 + r * depth);
+   <span class="polard__t">float rd</span> = pow(r, k);
+   <span class="polard__t">vec2 q</span> = vec2(cos(a), sin(a)) * rd;
+   <span class="polard__t">return</span> q * 0.5 + 0.5;
+&#125;</pre>
+
+  <div class="polard__thumbs" data-symbolic="true">
+    <svg class="polard__fig" viewBox="0 0 72 133" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <clipPath id="polard-half-l"><rect x="0" y="0" width={CX} height="133" /></clipPath>
+        <clipPath id="polard-half-r"><rect x={CX} y="0" width={72 - CX} height="133" /></clipPath>
+      </defs>
+
+      <g class="polard__spokes">
+        {spokes.map((s) => <line x1={CX} y1={CY} x2={s.x2} y2={s.y2} />)}
+      </g>
+
+      <g class="polard__rings" clip-path="url(#polard-half-l)">
+        {ringsIn.map((r) => <circle cx={CX} cy={CY} r={r} />)}
+        {ringsEdge.map((r) => <circle cx={CX} cy={CY} r={r} />)}
+      </g>
+      <g class="polard__rings" clip-path="url(#polard-half-r)">
+        {ringsOut.map((r) => <circle cx={CX} cy={CY} r={r} />)}
+        {ringsEdge.map((r) => <circle cx={CX} cy={CY} r={r} />)}
+      </g>
+
+      <line class="polard__split" x1={CX} y1="0" x2={CX} y2="133" />
+      <circle class="polard__core" cx={CX} cy={CY} r="0.8" />
+    </svg>
+
+    <div class="polard__labels">
+      <span>UV IN</span>
+      <span>DISTORT OUT</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* En la referencia este panel es ~403 px de ancho y acá la caja da 257: el
+     bloque de código no entra a su tamaño original. Se conserva la altura y el
+     interlineado (que sí coinciden) y se cede en el cuerpo tipográfico. */
+  .polard {
+    padding: 4px 4px 0 8px;
+    /* El marco de esta lámina es gris neutro, no naranja: medido sobre la
+       referencia da ~#1b1b1b en el borde superior. */
+    border-color: color-mix(in srgb, var(--lam-ink) 14%, #000);
+  }
+
+  .polard__title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--lam-accent);
+    font-size: 7px;
+    line-height: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .polard__paren { font-size: 5.5px; letter-spacing: 0.06em; }
+
+  /* La regla arranca donde termina el título y muere en el borde del panel. */
+  .polard__rule {
+    flex: 1;
+    height: 0;
+    border-top: 1px solid color-mix(in srgb, var(--lam-ink) 22%, #000);
+  }
+
+  .polard__code {
+    margin: 6px 0 0;
+    font-family: var(--lam-mono);
+    font-size: 7px;
+    line-height: 11.6px;
+    letter-spacing: 0;
+    color: color-mix(in srgb, var(--lam-ink) 62%, var(--lam-dim));
+    white-space: pre;
+  }
+  /* Resaltado del póster: comentario y tipos/palabras clave en un cian sucio,
+     todo lo demás en el gris del cuerpo. */
+  .polard__c { color: #3f7d86; }
+  .polard__t { color: #4e7d8a; }
+
+  /* La tira de gráficos sube hasta la regla del título y llega al fondo, igual
+     que en la referencia; por eso va absoluta y no en el flujo del código. */
+  .polard__thumbs {
+    position: absolute;
+    top: 12px;
+    right: 2px;
+    bottom: 5px;
+    width: 72px;
+    overflow: hidden;
+  }
+
+  .polard__fig {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    vector-effect: non-scaling-stroke;
+  }
+  /* Los arcos van punteados: en la referencia la retícula se lee segmentada
+     por sectores, no como circunferencias continuas. */
+  .polard__rings circle {
+    stroke: color-mix(in srgb, var(--lam-ink) 34%, #000);
+    stroke-width: 0.5;
+    stroke-dasharray: 3 1.7;
+  }
+  .polard__spokes line {
+    stroke: color-mix(in srgb, var(--lam-ink) 26%, #000);
+    stroke-width: 0.4;
+  }
+  .polard__split {
+    stroke: color-mix(in srgb, var(--lam-ink) 20%, #000);
+    stroke-width: 0.5;
+  }
+  .polard__core {
+    fill: color-mix(in srgb, var(--lam-ink) 70%, #000);
+    stroke: none;
+  }
+
+  .polard__labels {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 3px;
+    display: flex;
+    font-size: 5px;
+    letter-spacing: 0.1em;
+    color: color-mix(in srgb, var(--lam-ink) 46%, #000);
+    text-transform: uppercase;
+  }
+  .polard__labels span { flex: 1; text-align: center; }
+</style>

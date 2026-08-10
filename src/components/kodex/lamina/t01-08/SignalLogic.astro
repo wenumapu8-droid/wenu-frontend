@@ -1,0 +1,155 @@
+---
+/**
+ * KODEX-∞ · t01-08 SIGNAL BLOOM · 06. SIGNAL LOGIC / PSEUDO CODE
+ *
+ * Caja medida: 1181,438 485×274.
+ *
+ * Tres cosas que salieron de medir y no de mirar:
+ *
+ *  · El título del panel NO está dentro de la caja. Su tinta cae en y 423-431 y
+ *    la caja empieza en 438: vive en la banda muerta entre este panel y
+ *    AUTHENTICATION (que termina en 411). Se dibuja con top negativo, que es
+ *    donde está en el póster, y no invade a nadie porque ahí no hay panel.
+ *  · No hay divisoria vertical entre el código y el diagrama. Barriendo las
+ *    columnas 1465→1484 la tinta media es 0,5: el diagrama simplemente empieza
+ *    en x=1485. Dibujar la regla que uno espera ahí es tinta inventada.
+ *  · Las líneas del código no caen en una retícula regular. Los renglones en
+ *    blanco no valen un renglón: de la línea 6 (y 510) a la 7 (y 526) hay 16 px
+ *    y no los 24,6 que daría un salto completo. Por eso cada línea va a su
+ *    ordenada medida en vez de a un line-height.
+ *
+ * El paso por carácter medido es 5,8 px con versal de 8 px. Ver la nota de
+ * DataTags.astro sobre por qué eso obliga a condensar con scaleX.
+ *
+ * El diagrama radial, la reglilla, los cinco emblemas y el código de barras no
+ * están dibujados: son contorno trazado del original (trazos/SignalLogicArt).
+ */
+import Art from "./trazos/SignalLogicArt.astro";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+const ADV = 7.0;
+const CAP = 1.3;
+const sx = (paso: number) => +(paso / ADV).toFixed(4);
+/* El bloque de código y el bloque MODES NO están al mismo paso. Ajustando por
+   mínimos cuadrados sobre marcas inequívocas de la línea 6 —«pow(» en el
+   carácter 14 cae en x 1272, «max(» en el 18 en 1294 y «THRESHOLD» en el 26 en
+   1338— sale 5,55, y con ese paso el «;» final de las líneas 4 y 6 cae donde
+   está en la referencia (1422 y 1460). El bloque MODES mide 5,77 con la misma
+   cuenta: «THRESHOLD» en el carácter 13 en x 1269 y el «=» en el 23 en 1326.
+   Igualarlos deja el código 8 px largo o el MODES 5 px corto. */
+const PC = 5.55;  // paso del bloque de código
+const PM = 5.77;  // paso del bloque MODES
+const PT = 5.91;  // paso del título
+
+/* Ordenadas de la cima de tinta de cada renglón, medidas sobre la referencia y
+   pasadas al origen de la caja (y-438). */
+type Seg = { c: string; t: string };
+const codigo: { y: number; seg: Seg[] }[] = [
+  { y: 10,  seg: [{ c: "cm", t: "// KODEX-∞ SIGNAL BLOOM v2.0" }] },
+  { y: 23,  seg: [{ c: "kw", t: "float" }, { c: "pl", t: " time = u_time * SPEED;" }] },
+  { y: 35,  seg: [{ c: "kw", t: "vec2" }, { c: "pl", t: " uv = v_uv * SCALE;" }] },
+  { y: 47,  seg: [{ c: "kw", t: "float" }, { c: "pl", t: " pulse = sin(time * BPM) * 0.5 + 0.5;" }] },
+  { y: 60,  seg: [{ c: "kw", t: "float" }, { c: "pl", t: " n = fbm(uv * 3.0 + time * 0.1);" }] },
+  { y: 72,  seg: [{ c: "kw", t: "float" }, { c: "pl", t: " bloom = pow(max(n - THRESHOLD), 0.0), 2.0);" }] },
+  { y: 88,  seg: [{ c: "kw", t: "float" }, { c: "pl", t: " field = length(uv) * 2.0)" }] },
+  { y: 101, seg: [{ c: "pl", t: "field += sin(field * 8.0 - time) * 0.1;" }] },
+  { y: 119, seg: [{ c: "kw", t: "vec3" }, { c: "pl", t: " col = mix(" }, { c: "cn", t: "COLOR_A" }, { c: "pl", t: ", " }, { c: "cn", t: "COLOR_B" }, { c: "pl", t: ", bloom);" }] },
+  { y: 131, seg: [{ c: "kw", t: "col" }, { c: "pl", t: " += " }, { c: "kw", t: "vec3" }, { c: "pl", t: "(pulse) * 0.2;" }] },
+  { y: 143, seg: [{ c: "kw", t: "col" }, { c: "pl", t: " = glitch(col, uv, time);" }] },
+  { y: 155, seg: [{ c: "kw", t: "col" }, { c: "pl", t: " = scanlines(col, uv, 1024.0);" }] },
+  { y: 176, seg: [{ c: "rd", t: "out_color" }, { c: "pl", t: " = " }, { c: "kw", t: "vec4" }, { c: "pl", t: "(" }, { c: "rd", t: "col" }, { c: "pl", t: ", 1.0);" }] },
+  { y: 201, seg: [{ c: "cm2", t: "// MODES" }] },
+  /* La columna de THRESHOLD cae en el carácter 13 en las cuatro líneas: el
+     relleno de espacios se cuenta desde ahí, no se copia a ojo. */
+  { y: 215, seg: [{ c: "cm2", t: "// " }, { c: "tl", t: "IDLE:" }, { c: "cm2", t: "     THRESHOLD = 0.80" }] },
+  { y: 227, seg: [{ c: "cm2", t: "// " }, { c: "tl", t: "BUILD:" }, { c: "cm2", t: "    THRESHOLD = 0.55" }] },
+  { y: 240, seg: [{ c: "cm2", t: "// " }, { c: "rd2", t: "BLOOM:" }, { c: "cm2", t: "    THRESHOLD = 0.30" }] },
+  { y: 252, seg: [{ c: "cm2", t: "// " }, { c: "mg", t: "DISPERSE:" }, { c: "cm2", t: " THRESHOLD = 0.75" }] },
+];
+---
+
+<div data-box style={box} class="slog" data-symbolic="true">
+  <i class="slog__edge slog__edge--l"></i>
+  <i class="slog__edge slog__edge--r"></i>
+  <i class="slog__edge slog__edge--t"></i>
+
+  {/* Tinta en y 423-431 del póster: 15 px por encima del filo de la caja. */}
+  <h2 class="slog__title" style={`left:10px;top:${-15 - CAP}px;transform:scaleX(${sx(PT)})`}><span class="slog__num">06. SIGNAL LOGIC</span><span class="slog__sub"> / PSEUDO CODE</span></h2>
+
+  {codigo.map((l) => (
+    <p class="slog__ln" style={`left:13px;top:${l.y - CAP}px;transform:scaleX(${sx(l.y >= 201 ? PM : PC)})`}>{l.seg.map((s) => <span class={`c-${s.c}`}>{s.t}</span>)}</p>
+  ))}
+
+  {/* Resto de la regla de la reglilla: el trazador la agarra desde x 1508 y en
+      el original arranca en 1485. */}
+  <i class="slog__stub" style="left:304px;top:175px;width:26px"></i>
+
+  <Art />
+</div>
+
+<style>
+  .slog {
+    /* Cada color es el pico medido del núcleo del trazo en la referencia. A
+       este cuerpo el pico ES el color: el resto del glifo es antialias. */
+    --c-plain: #808281;
+    --c-kw: #2e8180;
+    --c-comment: #4e2564;
+    --c-const: #8669a2;
+    --c-red: #952e2a;
+    --c-modes: #989b98;
+    --c-teal: #1b7681;
+    --c-crimson: #9d2d4d;
+    --c-violet: #6a3a86;
+    --c-mag: #d33f80;
+    --c-sub: #787976;
+    --c-frame: #1a191a;
+    font-family: var(--lam-mono);
+  }
+
+  .slog__edge { position: absolute; background: var(--c-frame); }
+  .slog__edge--l { left: 0; top: 0; bottom: 0; width: 1px; }
+  .slog__edge--r { left: 476px; top: 0; bottom: 0; width: 1px; }
+  .slog__edge--t { left: 0; width: 477px; top: 0; height: 1px; }
+
+  .slog__title,
+  .slog__ln {
+    position: absolute;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1;
+    /* `pre`, no `nowrap`: el bloque MODES alinea THRESHOLD con espacios y
+       `nowrap` los colapsa. */
+    white-space: pre;
+    transform-origin: 0 0;
+    /* La tinta del original no es un trazo limpio: barriendo una fila de texto
+       la referencia da 8·50·82·63·9 donde nosotros damos 4·80·72·26·0 — el
+       mismo pico pero con medio píxel más de derrame a cada lado, que es como
+       rasteriza el póster. 1 px de desenfoque reproduce ese derrame. Medido
+       sobre DATA TAGS: sin desenfoque 6,59 %, con 0,8 px 5,89 %, con 1 px
+       5,17 %. Más allá de 1 px sigue bajando el número pero el texto deja de
+       leerse, y eso ya no es reproducir la lámina. */
+    filter: blur(1px);
+    /* El color de cada texto es el PICO medido en la referencia, que es el
+       núcleo del trazo. Pero al añadirle el derrame de 1 px se cuenta dos veces
+       la misma tinta: el bloque queda con la masa correcta y el brillo alto.
+       Este factor la devuelve a su sitio. Barrido 1 / 0,85 / 0,72 / 0,6: 5,79 · 5,40 · 5,28 · 5,31 %. */
+    opacity: 0.72;
+  }
+  .slog__num { color: var(--c-mag); }
+  .slog__sub { color: var(--c-sub); }
+
+  .c-pl { color: var(--c-plain); }
+  .c-kw { color: var(--c-kw); }
+  .c-cm { color: var(--c-comment); }
+  .c-cn { color: var(--c-const); }
+  .c-rd { color: var(--c-red); }
+  .c-cm2 { color: var(--c-modes); }
+  .c-tl { color: var(--c-teal); }
+  .c-rd2 { color: var(--c-crimson); }
+  .c-mg { color: var(--c-violet); }
+
+  .slog__stub { position: absolute; height: 1px; background: #131313; }
+</style>

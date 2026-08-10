@@ -1,0 +1,536 @@
+---
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* Las cinco miniaturas son cinco PASADAS distintas sobre el mismo túnel, no
+   cinco dibujos sin relación: dos comparten la malla polar (NEON WIRE y BLOOM
+   CORE) y las otras tres son capas de post-proceso. Por eso la malla se genera
+   una sola vez con parámetros y las capas se escriben aparte.
+
+   Todo el ruido va con PRNG sembrado y no con Math.random(): el banco de
+   pruebas compara capturas píxel a píxel, y un polvo distinto en cada build
+   convierte cualquier diff en falso positivo. */
+
+const rng = (seed: number) => () => {
+  seed = (seed + 0x6d2b79f5) | 0;
+  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+
+const W = 100;
+const H = 76;
+
+/* SQ: los anillos son elipses, no círculos. El túnel se mira de frente pero la
+   miniatura es más ancha que alta, y con círculos perfectos quedan pegados a
+   los cantos superior e inferior. */
+const SQ = 1.16;
+
+const ringPath = (
+  cx: number, cy: number, r: number, sides: number, jit: number[],
+) => {
+  let d = "";
+  for (let i = 0; i <= sides; i++) {
+    const a = (Math.PI * 2 / sides) * i;
+    const rr = r * (1 + jit[i % sides]);
+    const x = cx + Math.cos(a) * rr * SQ;
+    const y = cy + Math.sin(a) * rr;
+    d += (i ? " L" : "M") + x.toFixed(2) + " " + y.toFixed(2);
+  }
+  return d + " Z";
+};
+
+const spokePath = (cx: number, cy: number, n: number, r0: number, r1: number, off = 0) => {
+  let d = "";
+  for (let i = 0; i < n; i++) {
+    const a = (Math.PI * 2 / n) * i + off;
+    d += `M${(cx + Math.cos(a) * r0 * SQ).toFixed(2)} ${(cy + Math.sin(a) * r0).toFixed(2)}`;
+    d += ` L${(cx + Math.cos(a) * r1 * SQ).toFixed(2)} ${(cy + Math.sin(a) * r1).toFixed(2)}`;
+  }
+  return d;
+};
+
+/* Malla polar compartida. `jit` desalinea cada vértice: los anillos de la
+   referencia no son circunferencias limpias, se ven trazados a mano alzada. */
+const mesh = (
+  seed: number, radii: number[], sides: number, cx: number, cy: number, jit = 0.09,
+) => {
+  const r = rng(seed);
+  return radii.map((rad) => ({
+    rad,
+    /* Peso por anillo: en la referencia no hay dos anillos con el mismo brillo.
+       Con opacidad uniforme la malla se lee como una rejilla de CAD y no como
+       un trazado sucio. */
+    k: 0.55 + r() * 0.75,
+    d: ringPath(cx, cy, rad, sides, Array.from({ length: sides }, () => (r() - 0.5) * jit)),
+  }));
+};
+
+/* NEON WIRE: medido sobre la referencia — el punto de fuga NO está centrado,
+   cae al 57% del ancho, y los anillos están más separados de lo que estaban
+   (r ≈ 6/12/21/32/45/60/78/98 en unidades del viewBox). Entre ellos corre una
+   malla fina más tenue: eso es lo que da la textura de telaraña.
+
+   Medido de nuevo contra la referencia: el brillo MEDIO de la miniatura casi
+   coincide (ref R=26,4 · código R=23,9) pero está mal repartido. La referencia
+   gasta esa luz en MUCHOS hilos finos y parejos; el código la concentraba en 12
+   radios gruesos que se leen como una estrella. Por eso los radios adelgazan y
+   la malla fina sube de peso: misma luz, otra distribución. */
+const NW_C = { cx: 55, cy: 36 };
+const nwRings = mesh(1101, [5, 9, 14, 20, 27, 35, 44, 55, 68, 82, 98], 22, NW_C.cx, NW_C.cy, 0.22);
+const nwFine = mesh(1177, [7, 11.5, 17, 23.5, 31, 39.5, 49.5, 61, 75, 90, 108], 22, NW_C.cx, NW_C.cy, 0.28);
+/* Tercera pasada de anillos intercalada. En la referencia la telaraña no
+   deja huecos negros entre aro y aro; con dos series quedaban corredores
+   vacíos que el original no tiene. */
+const nwWeb = mesh(1213, [6, 10.2, 15.5, 21.7, 29, 37.2, 46.7, 58, 71.5, 86, 103], 22, NW_C.cx, NW_C.cy, 0.3);
+
+/* BLOOM CORE: la malla es MÁS densa que la de NEON WIRE (26 radios, 12
+   anillos) porque el halo solo se come el centro; hacia los bordes la
+   referencia sigue mostrando rejilla sobre negro, no un lavado naranja. */
+const BC_C = { cx: 50, cy: 37 };
+const bcRings = mesh(
+  2202,
+  [4, 6, 8.5, 11.5, 15, 19, 23.5, 28.5, 34, 40, 47, 55, 60, 64, 69, 74, 79.5, 85, 91, 97, 104],
+  28, BC_C.cx, BC_C.cy, 0.09,
+);
+
+/* DATA DUST: en la referencia el polvo cubre la miniatura ENTERA de canto a
+   canto, sin acumularse en el eje, y muchas partículas son trazos alargados
+   (arrastre de obturador), no puntos. El color es arena/crema, no naranja
+   saturado: el promedio medido da R≈8.8 G≈6.1 B≈4.2.
+
+   Recuento contra la referencia: el código daba R=6,5 con motas MUY brillantes
+   y separadas; la referencia da R=8,9 con muchas más motas y ninguna casi
+   blanca. Sube el número (235 → 430) y baja el pico: misma sensación de polvo,
+   más luz total y menos "estrellas". */
+const dust = (() => {
+  const r = rng(3303);
+  return Array.from({ length: 190 }, () => {
+    const t = r();
+    const x = 1.5 + r() * 97;
+    const y = 1.5 + r() * 73;
+    return {
+      x,
+      y,
+      rx: 0.5 + Math.pow(r(), 1.8) * 1.2,
+      ry: 0.4 + r() * 0.28,
+      rot: r() * 180,
+      o: 0.3 + r() * 0.42,
+      c: t > 0.965 ? "#d8c39c" : t > 0.45 ? "#b3814f" : "#7a532f",
+    };
+  });
+})();
+
+/* GLITCH LAYER: NO son barras largas. La referencia es un campo denso de
+   guiones cortos, tipo texto corrupto, que recorre cada scanline de izquierda
+   a derecha y llega al borde. Por eso la x avanza acumulando (no se sortea
+   suelta): así quedan filas continuas con huecos, no barras flotando. El cian
+   es minoría deliberada — es lo único que rompe la gama caliente.
+
+   Histograma medido de la miniatura (bandas de 32 sobre el canal máximo):
+
+                    0-32   32-64  64-96  96-128 128-160
+       referencia   88,4   8,3    2,2    0,6    0,5
+       código v3    86,3   13,0   0,7    0     0
+
+   O sea: el código llenaba de guiones GRISÁCEOS de brillo medio y no tenía
+   ni un destello fuerte. La referencia cubre menos superficie pero con una
+   cola larga hasta 160. Por eso baja la cobertura (huecos más largos) y sube
+   el rango de opacidad: menos guiones, más contraste entre ellos. */
+const glitch = (() => {
+  const r = rng(4404);
+  const out: { x: number; y: number; w: number; h: number; c: string; o: number }[] = [];
+  for (let y = 1.6; y < H - 1.6; y += 2) {
+    if (r() < 0.05) continue;                   // filas muertas = huecos negros
+    let x = 1 + r() * 5;
+    while (x < W - 2) {
+      const t = r();
+      const w = 1 + Math.pow(r(), 2.3) * 22;
+      if (x + w > W - 1) break;
+      out.push({
+        x,
+        y: y + (r() - 0.5) * 0.5,
+        w,
+        h: 0.7 + r() * 0.4,
+        c: t > 0.92 ? "#8fe4ea" : t > 0.82 ? "#24949c" : t > 0.77 ? "#f04c1e" : t > 0.46 ? "#8e2208" : "#460d03",
+        o: 0.16 + Math.pow(r(), 1.5) * 0.85,
+      });
+      x += w + 1.5 + Math.pow(r(), 1.15) * 24;
+    }
+  }
+  return out;
+})();
+
+/* DEPTH FOG: 22 anillos apretados, no 11 sueltos. Ganan peso hacia afuera y
+   van punteados: en la referencia cada anillo se lee como una sucesión de
+   destellos, no como una línea continua. */
+const FOG_C = { cx: 47, cy: 39 };
+const fog = (() => {
+  const r = rng(5505);
+  return Array.from({ length: 28 }, (_, i) => {
+    const t = i / 27;
+    const k = 0.6 + r() * 0.8;               // ningún anillo pesa igual que otro
+    return {
+      rad: 4 + Math.pow(t, 1.55) * 92,
+      /* Los aros dejan de ser elipses perfectas y pasan a polígono con
+         jitter: en la referencia ningún anillo cierra redondo, se leen como
+         arcos rotos y descentrados. Es lo que separaba visualmente esta
+         miniatura del original aunque los números ya coincidieran. */
+      d: ringPath(
+        FOG_C.cx, FOG_C.cy, 4 + Math.pow(t, 1.55) * 92, 44,
+        Array.from({ length: 44 }, () => (r() - 0.5) * 0.1),
+      ),
+      w: 0.26 + t * 0.28,
+      /* Opacidades bajadas ~20%: la miniatura medía 53,3% de superficie
+         encendida contra 37,4% de la referencia. Sobraba niebla, no faltaba. */
+      o: (0.026 + t * 0.088) * k,
+      dash: `${(1.4 + r() * 7).toFixed(1)} ${(1 + r() * 3).toFixed(1)}`,
+      dashO: Math.min(0.8, (0.14 + t * 0.45) * k),
+    };
+  });
+})();
+---
+
+<div data-box style={box} class="kdx-panel shdt">
+  <div class="kdx-panel__title">06. Shader Treatment</div>
+
+  <div class="shdt__strip">
+    <!-- 01 · NEON WIRE -->
+    <figure class="shdt__tile">
+      <div class="shdt__art" data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <defs>
+            {/* En la referencia el cable no es una línea limpia: tiene halo. El
+                filtro suma dos copias borrosas debajo del trazo nítido. */}
+            <filter id="shdt-glow" x="-25%" y="-25%" width="150%" height="150%">
+              <feGaussianBlur stdDeviation="0.7" result="b" />
+              {/* El halo va al 45%: con la copia borrosa a plena opacidad la
+                  miniatura medía R=57 contra R=26 de la referencia. */}
+              <feComponentTransfer in="b" result="bb">
+                <feFuncA type="linear" slope="0.45" />
+              </feComponentTransfer>
+              <feMerge>
+                <feMergeNode in="bb" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <rect width={W} height={H} fill="#000" />
+          <g fill="none" stroke-linejoin="round" filter="url(#shdt-glow)">
+            <g stroke="#a4470f">
+              {nwWeb.map((r) => (
+                <path d={r.d} stroke-width="0.24" opacity={(0.26 * r.k).toFixed(2)} />
+              ))}
+            </g>
+            <g stroke="#bb5312">
+              {nwFine.map((r) => (
+                <path d={r.d} stroke-width="0.3" opacity={(0.56 * r.k).toFixed(2)} />
+              ))}
+              {/* 30 radios finos en vez de 24: en la referencia la telaraña
+                  llega a los cuatro cantos, no se abre en abanicos vacíos. */}
+              <path d={spokePath(NW_C.cx, NW_C.cy, 30, 4, 115, 0.13)} stroke-width="0.26" opacity="0.46" />
+            </g>
+            <g stroke="#e06a1c">
+              {nwRings.map((r) => (
+                <path
+                  d={r.d}
+                  stroke-width={(r.rad > 45 ? 0.48 : 0.41) * r.k}
+                  opacity={Math.min(1, (r.rad > 45 ? 0.7 : 0.84) * r.k).toFixed(2)}
+                />
+              ))}
+              {/* 0,68 → 0,4 de grosor: los radios gruesos convertían la
+                  miniatura en una estrella. En la referencia son hilos, del
+                  mismo peso que los anillos. */}
+              <path d={spokePath(NW_C.cx, NW_C.cy, 12, 2, 115, 0.26)} stroke-width="0.5" opacity="0.9" />
+            </g>
+          </g>
+          {/* Destello: el punto de fuga es lo único saturado, pero es CHICO —
+              la cruz blanca larga que había antes no existe en la referencia. */}
+          <circle cx={NW_C.cx} cy={NW_C.cy} r="4.5" fill="#ff7a1e" opacity="0.18" />
+          <circle cx={NW_C.cx} cy={NW_C.cy} r="1.8" fill="#ffa652" opacity="0.45" />
+          <g stroke="#ffcf9a" stroke-linecap="round" opacity="0.45">
+            <path d={`M${NW_C.cx - 7} ${NW_C.cy} H${NW_C.cx + 7}`} stroke-width="0.4" />
+            <path d={`M${NW_C.cx} ${NW_C.cy - 6} V${NW_C.cy + 6}`} stroke-width="0.4" />
+          </g>
+          {/* El destello volvió a su tamaño: r=2,1 blanco era un botón pegado en el
+              medio. En la referencia el punto de fuga es naranja y el núcleo
+              blanco no pasa de un píxel. */}
+          <circle cx={NW_C.cx} cy={NW_C.cy} r="1.5" fill="#ffb257" opacity="0.75" />
+          <circle cx={NW_C.cx} cy={NW_C.cy} r="0.65" fill="#fffdf6" />
+        </svg>
+      </div>
+      <figcaption class="shdt__name">NEON WIRE</figcaption>
+    </figure>
+
+    <!-- 02 · BLOOM CORE -->
+    <figure class="shdt__tile">
+      <div class="shdt__art" data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <defs>
+            {/* r bajado de 72% a 32%: medido contra la referencia, el halo
+                muere a ~30 unidades del núcleo y afuera queda malla sobre
+                negro. Con 72% el naranja lavaba la miniatura entera. */}
+            {/* r 34% → 40% y el pie del halo levantado: la referencia mide
+                R=53 de media contra R=47 del código. Falta luz, pero DIFUSA —
+                por eso crece el halo en vez de engordar los anillos. */}
+            <radialGradient id="shdt-bloom" cx={`${BC_C.cx}%`} cy={`${(BC_C.cy / H) * 100}%`} r="40%">
+              <stop offset="0%" stop-color="#fff6dc" stop-opacity="1" />
+              <stop offset="11%" stop-color="#ffb845" stop-opacity="0.92" />
+              <stop offset="28%" stop-color="#ff6a12" stop-opacity="0.56" />
+              <stop offset="62%" stop-color="#a81f02" stop-opacity="0.28" />
+              <stop offset="100%" stop-color="#5c1200" stop-opacity="0.08" />
+            </radialGradient>
+            <filter id="shdt-bglow" x="-25%" y="-25%" width="150%" height="150%">
+              <feGaussianBlur stdDeviation="0.7" result="b" />
+              <feMerge>
+                <feMergeNode in="b" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <rect width={W} height={H} fill="#000" />
+          {/* La malla va DEBAJO del bloom: el halo la come cerca del núcleo, que
+              es exactamente lo que hace un bloom real. */}
+          {/* Los anillos entre 17 y 33 son los que la referencia marca fuerte:
+              es el borde del halo. El resto de la malla cae. */}
+          <g fill="none" stroke="#e8481a" stroke-linejoin="round" filter="url(#shdt-bglow)">
+            {/* Anillos adelgazados (0,4 → 0,28) y PARTIDOS con dasharray: en la
+                referencia ninguna circunferencia se cierra limpia, se leen como
+                tramos sueltos. Con línea continua y gruesa la miniatura parecía
+                un alambre de gallinero. */}
+            {bcRings.map((r) => (
+              <path
+                d={r.d}
+                stroke-width={r.rad > 45 ? 0.26 : 0.32}
+                stroke-dasharray={`${(2.5 + r.k * 9).toFixed(1)} ${(0.6 + r.k * 1.1).toFixed(1)}`}
+                opacity={Math.min(1, (r.rad > 45 ? 0.42 : 0.8) * r.k * (r.rad > 16 && r.rad < 34 ? 1.25 : 1)).toFixed(2)}
+              />
+            ))}
+            <path d={spokePath(BC_C.cx, BC_C.cy, 28, 2, 110)} stroke-width="0.26" opacity="0.62" />
+          </g>
+          <rect width={W} height={H} fill="url(#shdt-bloom)" />
+          {/* Sin cruz blanca: en la referencia solo queda un rastro horizontal
+              muy tenue a la altura del núcleo. */}
+          <path
+            d={`M0 ${BC_C.cy} H${W}`}
+            stroke="#ffd9a0"
+            stroke-width="0.35"
+            opacity="0.22"
+          />
+          {/* La referencia tiene también un rastro VERTICAL de canto a canto
+              cruzando el núcleo — es el eje de la lente, y faltaba. */}
+          <path
+            d={`M${BC_C.cx} 0 V${H}`}
+            stroke="#ffc98a"
+            stroke-width="0.4"
+            opacity="0.3"
+          />
+          <circle cx={BC_C.cx} cy={BC_C.cy} r="3.1" fill="#fffbf0" opacity="0.62" />
+          <circle cx={BC_C.cx} cy={BC_C.cy} r="1.5" fill="#ffffff" opacity="0.95" />
+        </svg>
+      </div>
+      <figcaption class="shdt__name">BLOOM CORE</figcaption>
+    </figure>
+
+    <!-- 03 · DATA DUST -->
+    <figure class="shdt__tile">
+      <div class="shdt__art" data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <defs>
+            <filter id="shdt-dustblur" x="-10%" y="-10%" width="120%" height="120%">
+              <feGaussianBlur stdDeviation="0.4" />
+            </filter>
+            {/* El grano de fondo. Percentiles medidos sobre la miniatura de la
+                referencia: p50=5 · p75=10 · p90=22 · p99=69. O sea que la
+                MITAD de los píxeles tiene algo de luz — no es negro con motas,
+                es un grano continuo con motas encima. Con elipses sueltas haría
+                falta un elemento por píxel; feTurbulence lo da en un nodo y es
+                determinista (la semilla está en la spec, no en Math.random),
+                que es lo que el banco necesita para comparar builds. */}
+            <filter id="shdt-grain" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+              <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" seed="17" result="n" />
+              <feColorMatrix
+                in="n"
+                type="matrix"
+                values="0 0 0 0 0.62
+                        0 0 0 0 0.42
+                        0 0 0 0 0.26
+                        0.62 0 0 0 -0.285"
+              />
+            </filter>
+          </defs>
+          <rect width={W} height={H} fill="#000" />
+          <rect width={W} height={H} filter="url(#shdt-grain)" />
+          <g filter="url(#shdt-dustblur)">
+            {dust.map((p) => (
+              <ellipse
+                cx={p.x.toFixed(2)}
+                cy={p.y.toFixed(2)}
+                rx={p.rx.toFixed(2)}
+                ry={p.ry.toFixed(2)}
+                transform={`rotate(${p.rot.toFixed(1)} ${p.x.toFixed(2)} ${p.y.toFixed(2)})`}
+                fill={p.c}
+                opacity={p.o.toFixed(2)}
+              />
+            ))}
+          </g>
+        </svg>
+      </div>
+      <figcaption class="shdt__name">DATA DUST</figcaption>
+    </figure>
+
+    <!-- 04 · GLITCH LAYER -->
+    <figure class="shdt__tile">
+      <div class="shdt__art" data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <rect width={W} height={H} fill="#050202" />
+          {glitch.map((b) => (
+            <rect
+              x={b.x.toFixed(2)}
+              y={b.y.toFixed(2)}
+              width={b.w.toFixed(2)}
+              height={b.h.toFixed(2)}
+              fill={b.c}
+              opacity={b.o.toFixed(2)}
+            />
+          ))}
+        </svg>
+      </div>
+      <figcaption class="shdt__name">GLITCH LAYER</figcaption>
+    </figure>
+
+    <!-- 05 · DEPTH FOG -->
+    <figure class="shdt__tile">
+      <div class="shdt__art" data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none">
+          <defs>
+            {/* El pozo negro central es lo que define esta pasada: la niebla se
+                come el detalle lejano y el centro queda sin información. */}
+            <radialGradient id="shdt-fogwell" cx="47%" cy="51%" r="35%">
+              <stop offset="0%" stop-color="#000" stop-opacity="1" />
+              <stop offset="24%" stop-color="#000" stop-opacity="0.94" />
+              <stop offset="60%" stop-color="#000" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#000" stop-opacity="0" />
+            </radialGradient>
+            {/* Antes esto subía hasta 0,2 EN EL BORDE y encendía las cuatro
+                esquinas. En la referencia las esquinas son casi negras y lo que
+                brilla es la corona intermedia; medido, el código daba 19,2 de
+                media contra 16,3. Ahora el gris hace pico al 68% y vuelve a
+                caer. */}
+            <radialGradient id="shdt-foglit" cx="47%" cy="51%" r="76%">
+              <stop offset="30%" stop-color="#8e8a86" stop-opacity="0" />
+              <stop offset="68%" stop-color="#8e8a86" stop-opacity="0.108" />
+              <stop offset="100%" stop-color="#8e8a86" stop-opacity="0.04" />
+            </radialGradient>
+            <filter id="shdt-blur" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="0.3" />
+            </filter>
+          </defs>
+          <rect width={W} height={H} fill="#060606" />
+          <rect width={W} height={H} fill="url(#shdt-foglit)" />
+          <g fill="none" stroke="#b3c0ba" filter="url(#shdt-blur)">
+            <path d={spokePath(FOG_C.cx, FOG_C.cy, 24, 12, 95)} stroke-width="0.3" opacity="0.16" />
+            {fog.map((f) => (
+              <path d={f.d} stroke-width={f.w.toFixed(2)} opacity={f.o.toFixed(3)} />
+            ))}
+            {/* Capa punteada encima: los anillos de la referencia se leen como
+                una sucesión de destellos, no como líneas continuas. */}
+            {fog.map((f) => (
+              <path
+                d={f.d}
+                stroke-width={(f.w * 1.15).toFixed(2)}
+                stroke-dasharray={f.dash}
+                opacity={f.dashO.toFixed(3)}
+              />
+            ))}
+          </g>
+          <rect width={W} height={H} fill="url(#shdt-fogwell)" />
+        </svg>
+      </div>
+      <figcaption class="shdt__name">DEPTH FOG</figcaption>
+    </figure>
+  </div>
+</div>
+
+<style>
+  /* Padding superior mayor que el del marco estándar: el título montado sobre
+     el borde ocupa esa franja. */
+  /* Padding lateral nulo: medido sobre la referencia, las cinco miniaturas van
+     de canto a canto (102,6px de ancho cada una con 6px de aire), no metidas
+     7px hacia adentro. El sobrante de ~10px queda todo a la derecha, como en la
+     referencia — no está repartido. */
+  /* El marco: medido columna a columna en la referencia, la regla de este panel
+     NO es la naranja de acento. El canto izquierdo da 27,8/27,3/27,3 (gris, =
+     13% de --lam-ink) y el canto DERECHO da 2,2 — o sea que no existe. El
+     código pintaba los cuatro lados en 87/31/11, que es la diferencia más
+     grande y más fácil de ver de todo el panel: dos columnas enteras de naranja
+     donde la referencia tiene negro. */
+  .shdt {
+    padding: 8px 0 9px;
+    border-color: color-mix(in srgb, var(--lam-ink) 13%, transparent);
+    border-right: 0;
+  }
+
+  /* Bordes de las cinco miniaturas leídos uno por uno en la referencia (fila
+     del borde superior, x relativo al marco):
+
+       −1,4 → 100,5 | 106,6 → 208,6 | 214,6 → 316,6 | 322,5 → 426,7 | 432,8 → 536,7
+
+     De ahí salen los tres números: paso 108,6 · aire 5 · miniatura 103,6, y la
+     tira arranca 2px a la IZQUIERDA del marco (el borde de la primera miniatura
+     se monta sobre el borde del panel) y termina en 537.
+     El `max-width` no servía: la tira es un bloque que llenaba los 545px del
+     marco y repartía 111 de paso, así que la quinta miniatura terminaba 10px
+     corrida. Con ancho fijo el reparto es el de la referencia. */
+  .shdt__strip {
+    display: flex;
+    gap: 5px;
+    height: 100%;
+    width: 538px;
+    margin-left: -2px;
+  }
+
+  /* `flex: 1 1 0` con `min-width: 0` reparte el ancho en cinco partes iguales
+     aunque el nombre más largo (GLITCH LAYER) pida más: la referencia tiene las
+     cinco miniaturas del mismo tamaño, y ahí manda la rejilla, no el texto. */
+  .shdt__tile {
+    flex: 1 1 0;
+    min-width: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    /* 17% → 19%: las columnas de borde entre miniaturas miden 45/45/46 en la
+       referencia y el código daba 36/36/34. */
+    border: 1px solid color-mix(in srgb, var(--lam-ink) 19%, transparent);
+    background: #000;
+    overflow: hidden;
+  }
+
+  .shdt__art {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .shdt__art svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* La franja del nombre es parte del marco, no una leyenda suelta: comparte el
+     borde con la miniatura y se apoya en la misma línea. */
+  .shdt__name {
+    flex: 0 0 auto;
+    border-top: 1px solid color-mix(in srgb, var(--lam-ink) 19%, transparent);
+    /* Franja de 16px y glifos de 7px de alto: los dos valores salen de medir
+       la referencia (banda 83→99, texto 87→93). Antes eran 14px y 6px. */
+    padding: 3px 2px 3px;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    line-height: 1;
+    white-space: nowrap;
+    /* Los rótulos de la referencia son gris medio, no blanco: medidos sobre
+       la banda dan ~22 de brillo medio contra 32 que daba el blanco. */
+    color: color-mix(in srgb, var(--lam-ink) 72%, #000);
+  }
+</style>

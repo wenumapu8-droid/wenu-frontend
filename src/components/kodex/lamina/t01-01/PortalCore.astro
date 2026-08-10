@@ -1,0 +1,352 @@
+---
+/**
+ * KODEX-∞ · t01-01 · 00. PORTAL CORE SCAN / NÚCLEO DEL PORTAL
+ *
+ * El héroe de la lámina: 738×597, casi la mitad de la superficie del póster.
+ * Portal procedural en canvas 2D y HUD en HTML encima. Ni un bitmap.
+ *
+ * Geometría medida dentro de la caja del panel (481,87):
+ *
+ *   · Centro del portal en (357.5, 298). La columna 357 y la fila 298 son las
+ *     de mayor energía acumulada del recorte, con el doble que sus vecinas. NO
+ *     es el centro geométrico en x (369): el portal está corrido 11 px a la
+ *     izquierda. Centrarlo «porque es el héroe» mueve las cinco coronas a la
+ *     vez, y es el error más caro que se puede cometer acá.
+ *   · El perfil radial por bandas y el porqué de cada anillo están en
+ *     `portal.js`, que es donde se dibuja.
+ *   · Rejilla de fondo: columnas cada 16.71 px desde x=14.4, filas cada 17.0
+ *     desde y=7.2. Sacadas por autocorrelación de la esquina inferior derecha,
+ *     que es el único rincón del panel sin portal encima.
+ *
+ * Cromo medido, no inventado:
+ *   · regla gris en y=0 (todo el ancho) y borde gris en x=0 (toda la altura);
+ *   · regla roja del título en y=26 hasta x≈604, quiebre diagonal, y sigue en
+ *     y=39 hasta el borde — el bracket que encierra SCAN MODE / RES;
+ *   · caja izquierda x 6–104, y 38–313, con separadores en 115, 164, 214 y 264
+ *     y una regla corta bajo cada rótulo;
+ *   · caja izquierda inferior y 469–574, con el ángulo superior derecho
+ *     achaflanado y la sección STATUS más ancha que la de ORIGIN;
+ *   · columna derecha x 633–729, y 64–519; los tres recuadros de gráfico
+ *     comparten x 642–721 y van en y 269–315, 348–389 y 425–508.
+ *
+ * TODO EL HUD SE POSICIONA EN COORDENADAS DEL PANEL, no de su caja. Las cajas
+ * son bordes sueltos (`<i>`), no contenedores: anidar el texto dentro del marco
+ * obliga a llevar dos sistemas de coordenadas contra una referencia que sólo
+ * tiene uno, y en la primera pasada eso corrió el bloque entero 38 px.
+ *
+ * Tipografía: el póster no usa una monoespaciada real, así que el cuerpo se
+ * fijó por AVANCE medido (ancho del bloque ÷ nº de caracteres), no por altura
+ * de caja — las dos discrepan y el avance es lo que se ve. Título 12 px,
+ * cabecera derecha 11.5, caja izquierda 10, caja inferior 12.2, columna
+ * derecha 9.4.
+ *
+ * El rosetón de SACRED GEOMETRY no está dibujado: está TRAZADO del original con
+ * `scripts/lamina/glyphs.mjs --umbral 30` (barrido 20/30/36/45/60; 45 y 60
+ * parten el glifo en esquirlas y 20 arrastra el halo del antialias).
+ *
+ * Los números son ficción del póster: van como texto, pero su contenedor lleva
+ * data-symbolic="true".
+ */
+import Waveform from "../kit/Waveform.astro";
+import roseton from "./trazos/roseton.svg?raw";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Caja izquierda por secciones. `sep` es el separador de ancho completo que
+ * abre la sección, `lbl`/`val` son las tapas de glifo medidas en la referencia
+ * y `regla` la línea corta entre rótulo y valor.
+ */
+const SECCIONES = [
+  { sep: 0, lbl: 49, rot: "COORDINATES", regla: 61.5, val: 0, txt: "" },
+  { sep: 115, lbl: 127, rot: "FOCUS LAYER", regla: 140, val: 146, txt: "07 / 13" },
+  { sep: 164, lbl: 178, rot: "SIGNAL LOCK", regla: 190, val: 0, txt: "" },
+  { sep: 214, lbl: 227, rot: "RITUAL PHASE", regla: 239, val: 248, txt: "III : ALIGN" },
+  { sep: 264, lbl: 276, rot: "ENERGY FLOW", regla: 289, val: 0, txt: "" },
+];
+const COORD = [["LAT:", "0.000°", 67], ["LON:", "0.000°", 81], ["ALT:", "0.000", 95]];
+---
+
+<div data-box style={box} class="pc">
+  <canvas class="pc__lienzo" width="738" height="597" aria-hidden="true"></canvas>
+
+  <!-- ── cromo ───────────────────────────────────────────────────────── -->
+  <i class="pc__r0" aria-hidden="true"></i>
+  <i class="pc__bx0" aria-hidden="true"></i>
+  <svg class="pc__bracket" viewBox="0 0 738 44" aria-hidden="true">
+    <path d="M0 26.5H604L617 39.5H738" fill="none" stroke="#380b05" stroke-width="1.3" />
+  </svg>
+  <i class="pc__marco pc__marco--izq" aria-hidden="true"></i>
+  <i class="pc__marco pc__marco--der" aria-hidden="true"></i>
+  <svg class="pc__marco2" viewBox="0 0 141 113" aria-hidden="true">
+    <path d="M0.5 0.5H73L94.5 21.5V49.5H0.5ZM0.5 49.5H121.5L127.5 54.5V105.5H0.5Z" fill="#000" />
+    <path d="M0.5 0.5H73L94.5 21.5V49.5M0.5 0.5V105.5H127.5V54.5L121.5 49.5H0.5"
+          fill="none" stroke="#1e1e1c" stroke-width="1" />
+  </svg>
+
+  <p class="pc__tit" data-symbolic="true">00. PORTAL CORE SCAN</p>
+  <p class="pc__sub">/ NUCLEO DEL PORTAL</p>
+  <p class="pc__scan">SCAN MODE: DEEP PROBE</p>
+  <p class="pc__res" data-symbolic="true">RES: 8K ANALYTIC</p>
+
+  <div class="pc__hud" data-symbolic="true">
+    <!-- ── coordenadas y fases ───────────────────────────────────────── -->
+    {SECCIONES.map((s) => (
+      <>
+        {s.sep > 0 && <i class="pc__sep" style={`top:${s.sep}px`}></i>}
+        <p class="pc__lbl" style={`top:${s.lbl - 0.5}px`}>{s.rot}</p>
+        <i class="pc__regla" style={`left:15px;top:${s.regla}px;width:83px`}></i>
+        {s.val > 0 && <p class="pc__val" style={`top:${s.val - 0.5}px`}>{s.txt}</p>}
+      </>
+    ))}
+    {COORD.map(([k, v, y]) => (
+      <>
+        <p class="pc__val" style={`top:${y - 0.5}px`}>{k}</p>
+        <p class="pc__val" style={`left:48px;top:${y - 0.5}px`}>{v}</p>
+      </>
+    ))}
+    <span class="pc__ok" style="left:15px;top:196px">&#10003;</span>
+    <p class="pc__val" style="left:27px;top:196.5px">ACQUIRED</p>
+    <span class="pc__flecha" style="left:15px;top:294px">&#8599;</span>
+    <p class="pc__val" style="left:30px;top:295.5px">78.3%</p>
+
+    <!-- ── origen y estado ───────────────────────────────────────────── -->
+    <p class="pc__lbl2" style="top:479.4px">ORIGIN</p>
+    <i class="pc__regla" style="left:17px;top:493px;width:80px"></i>
+    <p class="pc__val2" style="top:500.4px">UNKNOWN</p>
+    <p class="pc__lbl2" style="top:531.4px">STATUS</p>
+    <i class="pc__regla" style="left:17px;top:547px;width:111px"></i>
+    <p class="pc__val2" style="top:552.4px">THRESHOLD READY</p>
+
+    <!-- ── geometría sagrada y medidas ───────────────────────────────── -->
+    <p class="pc__lbl3" style="top:77.5px">SACRED GEOMETRY</p>
+    <i class="pc__regla" style="left:643px;top:91px;width:78px"></i>
+    <p class="pc__val3" style="top:95.5px">RATIO: 1.618</p>
+    <p class="pc__val3" style="top:109.5px">SIGMA: 7</p>
+    <p class="pc__val3" style="top:122.5px">PHI LOCK:</p>
+    <span class="pc__ok" style="left:695px;top:122px">&#10003;</span>
+
+    <div class="pc__roseton" set:html={roseton}></div>
+
+    <i class="pc__regla" style="left:643px;top:244px;width:78px"></i>
+    <p class="pc__lbl3" style="top:254.5px">FIELD DENSITY</p>
+    <div class="pc__graf" style="top:269px;height:47px">
+      <Waveform w={77} h={26} semilla={0x3d11} variante="linea" n={48} inercia={0.42} grosor={0.9} color="#b8996f" />
+    </div>
+
+    <p class="pc__lbl3" style="top:333.5px">ENTROPY</p>
+    <div class="pc__graf" style="top:348px;height:42px">
+      <Waveform w={77} h={24} semilla={0x71c4} variante="linea" n={52} inercia={0.14} grosor={0.9} color="#b81f14" />
+    </div>
+
+    <p class="pc__lbl3" style="top:409.5px">HARMONIC MAP</p>
+    <canvas class="pc__mapa" width="80" height="84" aria-hidden="true"></canvas>
+  </div>
+
+  <!-- ── rosa de los vientos ─────────────────────────────────────────── -->
+  <span class="pc__card" style="left:347px;top:120.9px">N</span>
+  <span class="pc__card" style="left:347px;top:464.9px">S</span>
+  <span class="pc__card" style="left:520px;top:293.4px">E</span>
+  <span class="pc__card" style="left:175px;top:293.4px">W</span>
+</div>
+
+<style>
+  .pc {
+    --ink: #6e6e6c;
+    --acc: #b8231a;
+    overflow: hidden;
+    font-family: var(--lam-mono, ui-monospace, Menlo, monospace);
+    color: var(--ink);
+    letter-spacing: 0;
+    line-height: 1;
+  }
+  .pc i, .pc p, .pc span, .pc svg, .pc canvas, .pc > div { position: absolute; }
+  .pc p { margin: 0; white-space: nowrap; }
+  .pc__lienzo { left: 0; top: 0; width: 738px; height: 597px; }
+  .pc__hud { left: 0; top: 0; width: 738px; height: 597px; }
+  .pc__hud i, .pc__hud p, .pc__hud span, .pc__hud div, .pc__hud canvas { position: absolute; }
+
+  /* ── cromo ──────────────────────────────────────────────────────────── */
+  .pc__r0 { left: 0; top: 0; width: 738px; height: 1px; background: #222220; }
+  .pc__bx0 { left: 0; top: 0; width: 1px; height: 597px; background: #1c1c1b; }
+  .pc__bracket { left: 0; top: 0; width: 738px; height: 44px; }
+  /* Fondo negro OPACO: en la referencia el portal no se ve por detrás del HUD —
+     la fila 298 dentro de la columna derecha vale 0–16, y la corona llega a
+     r=290, o sea hasta x=647. Sin la máscara los arcos cruzan los tres marcos
+     y el gráfico de FIELD DENSITY sale con el eje del portal atravesado. */
+  .pc__marco { border: 1px solid #1e1e1c; box-sizing: border-box; background: #000; }
+  .pc__marco--izq { left: 6px; top: 38px; width: 99px; height: 276px; }
+  .pc__marco--der { left: 633px; top: 64px; width: 97px; height: 456px; }
+  .pc__marco2 { left: 6px; top: 469px; width: 141px; height: 113px; }
+
+  /* ── títulos ────────────────────────────────────────────────────────── */
+  .pc__tit { left: 9px; top: 8.4px; font-size: 12px; color: #bc2419; }
+  .pc__sub { left: 156px; top: 8.5px; font-size: 10.2px; color: #55534f; }
+  .pc__scan { right: 11px; top: 9.4px; font-size: 11.5px; letter-spacing: -0.06px; color: #676765; }
+  .pc__res { right: 11px; top: 23.4px; font-size: 11.5px; letter-spacing: -0.06px; color: #676765; }
+
+  /* ── caja izquierda ─────────────────────────────────────────────────── */
+  .pc__sep { left: 6px; width: 99px; height: 1px; background: #1d1d1c; }
+  .pc__regla { height: 1px; background: #171716; }
+  .pc__lbl, .pc__val { left: 15px; font-size: 10px; letter-spacing: -0.25px; }
+  .pc__lbl { color: var(--acc); }
+  .pc__val { color: var(--ink); }
+  .pc__ok { font-size: 10px; color: #74a02c; }
+  .pc__flecha { font-size: 11px; color: #8c8a86; }
+
+  /* ── caja izquierda inferior ────────────────────────────────────────── */
+  .pc__lbl2, .pc__val2 { left: 17px; font-size: 12.2px; letter-spacing: -0.35px; }
+  .pc__lbl2 { color: var(--acc); }
+  .pc__val2 { color: #76766f; }
+
+  /* ── columna derecha ────────────────────────────────────────────────── */
+  .pc__lbl3, .pc__val3 { left: 643px; font-size: 9.4px; letter-spacing: -0.3px; }
+  .pc__lbl3 { color: #a01e0d; }
+  .pc__val3 { color: #63645f; }
+
+  .pc__roseton { left: 639px; top: 144px; width: 85px; height: 86px; color: #9e1d0c; }
+  .pc__roseton :global(svg) { position: static; display: block; width: 85px; height: 86px; }
+
+  .pc__graf {
+    left: 642px; width: 80px;
+    background-color: #000;
+    border: 1px solid #292826; box-sizing: border-box;
+    background:
+      repeating-linear-gradient(90deg, rgba(122,118,112,0.12) 0 1px, transparent 1px 19px),
+      repeating-linear-gradient(180deg, rgba(122,118,112,0.10) 0 1px, transparent 1px 11px);
+    overflow: hidden;
+  }
+  /* La onda ocupa el TERCIO BAJO del recuadro, no la caja entera: medido, la
+     tinta de FIELD DENSITY va de y 11 a 35 dentro de sus 46 px de alto. */
+  .pc__graf :global(svg) { position: absolute; left: 1px; bottom: 9px; }
+
+  .pc__mapa { left: 642px; top: 425px; width: 80px; height: 84px; }
+
+  /* ── rosa de los vientos ────────────────────────────────────────────── */
+  .pc__card {
+    width: 20px; text-align: center;
+    font-size: 12px; letter-spacing: 0; color: #b0aca3;
+  }
+</style>
+
+<script>
+  import { pintarPortal, rng } from "./portal.js";
+
+  function ctx2d(cv, w, h) {
+    const dpr = 2;
+    cv.width = w * dpr;
+    cv.height = h * dpr;
+    const c = cv.getContext("2d");
+    c.scale(dpr, dpr);
+    return c;
+  }
+
+  /**
+   * HARMONIC MAP. Medido sobre la referencia, en coordenadas de la caja de
+   * 80×84: centro en (37.5, 37.5) — arriba y a la izquierda del centro
+   * geométrico (40, 42), no centrado. Anillo de plasma FINO en r=26 con unos
+   * 3.5 px de grosor, foso negro entre r 10 y 20, y un núcleo que es otra
+   * dona: aro brillante de r≈7 con el medio apagado.
+   *
+   * La primera pasada lo resolvió con un degradado radial ancho y salió una
+   * mancha difusa: fue la peor baldosa del panel entero (53 % de error). Lo que
+   * hace la figura es el CONTRASTE entre aro fino y foso negro, no el glow.
+   */
+  function pintarMapa(cv) {
+    const W = 80;
+    const H = 84;
+    const cx = 37.5;
+    const cy = 37.5;
+    const ctx = ctx2d(cv, W, H);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#070101";
+    ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(170,48,24,0.26)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = 5.5; x < W; x += 6.4) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (let y = 5.5; y < H; y += 6.4) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+
+    ctx.globalCompositeOperation = "lighter";
+    /* radios tenues del centro al aro */
+    const r = rng(0x2b7f);
+    ctx.strokeStyle = "rgba(220,70,24,1)";
+    ctx.lineWidth = 0.6;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + 0.26;
+      ctx.globalAlpha = 0.12 + r() * 0.2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * 30, cy + Math.sin(a) * 30);
+      ctx.stroke();
+    }
+    /* aro de plasma: tres pasadas concéntricas, la del medio quemada */
+    ctx.globalAlpha = 1;
+    for (const [rad, lw, col] of [[26, 10, "rgba(150,34,8,0.22)"], [26, 4.6, "rgba(190,52,10,0.42)"], [26, 1.8, "rgba(230,86,26,0.34)"]]) {
+      ctx.strokeStyle = col;
+      ctx.lineWidth = lw;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    /* nodos sobre el aro */
+    ctx.strokeStyle = "rgba(240,140,80,0.6)";
+    ctx.lineWidth = 0.8;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      ctx.globalAlpha = 0.4 + r() * 0.4;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * 26, cy + Math.sin(a) * 26, 2.2, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    /* núcleo: otra dona, aro de 7 con el medio apagado */
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = "rgba(215,74,14,0.62)";
+    ctx.lineWidth = 5.0;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 6.4, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalCompositeOperation = "source-over";
+    ctx.fillStyle = "#3a0c02";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#b81d0c";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, W - 1, H - 1);
+  }
+
+  function arrancar() {
+    const cv = document.querySelector(".pc__lienzo");
+    if (cv && cv.dataset.pintado !== "1") {
+      cv.dataset.pintado = "1";
+      pintarPortal(ctx2d(cv, 738, 597), 738, 597);
+    }
+    const mapa = document.querySelector(".pc__mapa");
+    if (mapa && mapa.dataset.pintado !== "1") {
+      mapa.dataset.pintado = "1";
+      pintarMapa(mapa);
+    }
+  }
+
+  arrancar();
+
+  /* El panel es estático a propósito — el banco compara píxel a píxel y un rAF
+     propio le hace medir ruido. Aun así se registra el congelador, que es el
+     contrato que espera la página. */
+  const w = window;
+  const congelar = () => arrancar();
+  if (typeof w.__kdxRegisterFreeze === "function") {
+    w.__kdxRegisterFreeze(congelar);
+  } else {
+    let n = 0;
+    const id = setInterval(() => {
+      if (typeof w.__kdxRegisterFreeze === "function") {
+        clearInterval(id);
+        w.__kdxRegisterFreeze(congelar);
+      } else if (++n > 200) clearInterval(id);
+    }, 25);
+  }
+</script>

@@ -1,0 +1,248 @@
+---
+/**
+ * KODEX-∞ · t01-04 ARCHIVE TREE · CABECERA (0,0 · 1672×88)
+ *
+ * La caja arranca en el 0,0 del póster, así que las coordenadas de este archivo
+ * y las de la referencia son las mismas y se verifican una por una contra
+ * reference/canon/t01-04-archive-tree.png.
+ *
+ * Nada de esto está estimado a ojo:
+ *
+ *  · Toda la tipografía de exhibición va TRAZADA del original (arte.ts), no
+ *    dibujada ni compuesta: "KODEX−∞", "/ ARCHIVE TREE", la bajada verde, los
+ *    rótulos de la tabla, las dos líneas del lema y el emblema alado. El umbral
+ *    de cada pieza salió de un barrido medido —doce umbrales, rasterizado sobre
+ *    negro, gana el de menor error absoluto medio—, no de criterio. La tabla
+ *    con los once resultados está en la cabecera de arte.ts.
+ *
+ *  · La excepción son los VALORES de la tabla de metadatos, que van como <text>
+ *    de verdad: son cifras, y el canon pide que las cifras del póster se
+ *    presenten como texto dentro de un contenedor data-symbolic.
+ *
+ *  · La fecha del póster es 2025.05.22 y el sello KX∞-TR01-17XA. El encargo
+ *    pedía 2026.05.22, pero la referencia manda y las cifras no se inventan:
+ *    ampliada ×7 el tercer dígito es un 5. Igual con "TANDA-01", que en la
+ *    cabecera lleva guion y en el pie va suelto ("TANDA 01").
+ *
+ *  · Los tres rectángulos que asoman abajo (y=82) NO son míos: son las tapas de
+ *    Izquierda, Centro y Derecha, cuyas cajas empiezan en y=88 pero cuyo borde
+ *    superior cae seis píxeles más arriba, dentro de esta franja. Se dibujan
+ *    acá porque acá están, y los tres tienen brillos distintos (31 · 22 · 18
+ *    sobre negro, y cada canto el suyo): emparejarlos aplana la lámina.
+ *
+ *  · La retícula de puntos de x=664 a x=792 es tinta real pero mínima: 0,9 de
+ *    luminancia media sobre toda la franja. Está medida (paso 10,67 px en x,
+ *    filas en y=25 · 36 · 47 · 57) y no inventada, que es la diferencia entre
+ *    restar error y sumarlo.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-04-archive-tree Cabecera --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-04-hdrftr.mjs
+ */
+import { hdrMarca, hdrTitulo, hdrBajada, hdrClaves, hdrLema1, hdrLema2, hdrAla } from "./arte";
+import type { Glifo } from "./arte";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque
+ * lo que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo —la contraforma de la D queda fuera de sitio y la
+ * letra sale maciza.
+ */
+const pinta = (gs: Glifo[], fill: string) =>
+  gs
+    .map(
+      (g) =>
+        `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+        g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}"/>`).join("") +
+        `</svg>`
+    )
+    .join("");
+
+/* Tinta medida sobre el PNG, no elegida. El tono sale del píxel más brillante
+   de cada pieza y el BRILLO del barrido: el trazo binarizado se queda con el
+   halo de antialias adentro, así que cubre más que el original y quiere menos
+   luz. Los dos números juntos dan estos rellenos. */
+const TINTA = {
+  marca: "#9d9b97",   // logotipo: pico 212,209,204 · relleno de barrido 155
+  titulo: "#9a9691",  // "/ ARCHIVE TREE": pico 202,197,190 · relleno 150
+  bajada: "#465307",  // verde: pico 148,176,14 · relleno 70
+  claves: "#4b4b4a",  // rótulos de la tabla: pico 164,165,162 · relleno 75
+  lema1: "#282927",
+  lema2: "#282827",
+  ala: "#323230",
+};
+
+/**
+ * Valores de la tabla: [texto, x del primer píxel de tinta, ancho de tinta].
+ * El ancho va uno por celda y no derivado de un paso común porque el póster no
+ * es parejo: "01.00.00" y "TANDA-01" tienen ocho caracteres cada uno y avanzan
+ * 6,75 y 6,63 px; "KX∞-TR01-17XA" ni siquiera es monoespaciado —su ∞ ocupa el
+ * doble que un dígito—. Con textLength eso da igual: se fija el ancho del
+ * bloque, que es lo único que se puede medir en un PNG.
+ * La cima de la versal de la fila es y=48 y la versal mide 9 px.
+ */
+const VERSAL = 9;
+const valores: [string, number, number, string][] = [
+  ["01.00.00", 817, 55, "#820f0b"],
+  ["TANDA-01", 944, 54, "#7d0d0a"],
+  ["2025.05.22", 1062, 68, "#484948"],
+  ["KX∞-TR01-17XA", 1180, 91, "#7d0e0b"],
+];
+
+/* Versal de la mono del sistema, medida: 0,74 em. El cuerpo se despeja de ahí
+   y el apoyo izquierdo de la versal es 0,9 px a este tamaño. */
+const CUERPO = +(VERSAL / 0.74).toFixed(3);
+const LSB = 0.9;
+
+/* Divisorias de la tabla: [x, ancho, luminancia]. No comparten brillo y van una
+   por una; emparejarlas se lee como una hoja de cálculo. Corren de y=31 a y=56. */
+const divisorias: [number, number, number][] = [
+  [922, 1, 28],
+  [923, 1, 19],
+  [1041, 1, 30],
+  [1159, 1, 22],
+  [1304, 1, 24],
+];
+
+/* Retícula de puntos. Paso 10,67 px en x desde 664 (trece columnas) y cuatro
+   filas medidas. Cada punto es 2×2 y muy tenue. */
+const puntosX = Array.from({ length: 13 }, (_, i) => +(664 + i * 10.67).toFixed(2));
+const puntosY = [25, 36, 47, 57];
+
+/* Tapas de los tres bloques de abajo: [x izq, x der, luminancia del borde
+   superior, del canto izquierdo, del canto derecho]. Los cantos van de 2 px
+   porque en la referencia ocupan dos columnas (35,8 + 20,8 en el primero). */
+const tapas: [number, number, string, string, string][] = [
+  [16, 393, "#1f1f1f", "#1c1c1c", "#151515"],
+  [403, 982, "#161616", "#242424", "#272727"],
+  [992, 1652, "#121212", "#222222", "#1e1e1e"],
+];
+---
+
+<div data-box style={box} class="hdr">
+  <!-- Marco del póster. Es UN rectángulo redondeado que abre acá y cierra en el
+       pie: se dibuja alto y lo recorta el overflow de la caja, porque partirlo
+       en dos bordes distintos deja costura en las esquinas. Los cuatro cantos
+       tienen brillos distintos en el original (arriba 23, izquierda 28, derecha
+       30, abajo 21 sobre negro) y por eso van por separado. -->
+  <div class="hdr__marco"></div>
+
+  {tapas.map(([x0, x1, arriba, izq, der]) => (
+    <div
+      class="hdr__tapa"
+      style={`left:${x0}px;width:${x1 - x0 + 1}px;border-top-color:${arriba};border-left-color:${izq};border-right-color:${der}`}
+    ></div>
+  ))}
+
+  <svg class="hdr__art" viewBox="0 0 1672 88" width="1672" height="88" aria-hidden="true">
+    <!-- Retícula de puntos: 0,9 de luminancia media, pero es tinta del original. -->
+    <g class="hdr__puntos">
+      {puntosY.map((y) => puntosX.map((x) => <rect x={x} y={y} width="2" height="2" />))}
+    </g>
+
+    <!-- Regla que corre por encima de la tabla, de x=816 a x=1285. -->
+    <rect class="hdr__regla" x="816" y="23" width="470" height="1" />
+
+    {divisorias.map(([x, w, v]) => (
+      <rect x={x} y="31" width={w} height="26" fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Logotipo y título. Trazados: a este cuerpo la mono del sistema no
+         acierta ni la silueta ni la mancha, y el texto real vive en el
+         aria-label, así que la lámina se lee sin verla. -->
+    <g role="img" aria-label="KODEX−∞ / ARCHIVE TREE">
+      <g set:html={pinta(hdrMarca, TINTA.marca)} />
+      <g set:html={pinta(hdrTitulo, TINTA.titulo)} />
+    </g>
+
+    <!-- Bajada verde. -->
+    <g role="img" aria-label="LIVING MEMORY / ÁRBOL DE ARCHIVO" set:html={pinta(hdrBajada, TINTA.bajada)} />
+
+    <!-- SYS VER., BUILD, DATE y SEED HASH son ficción del póster, no la lectura
+         de ningún sistema: por eso el bloque va marcado como simbólico. Los
+         rótulos van trazados —no llevan cifras— y los valores como texto. -->
+    <g data-symbolic="true">
+      <g role="img" aria-label="SYS VER. · BUILD · DATE · SEED HASH" set:html={pinta(hdrClaves, TINTA.claves)} />
+      {valores.map(([t, x, ancho, color]) => (
+        <text
+          class="hdr__v"
+          x={+(x - LSB).toFixed(2)}
+          y={48 + VERSAL}
+          font-size={CUERPO}
+          textLength={ancho}
+          lengthAdjust="spacing"
+          fill={color}
+        >{t}</text>
+      ))}
+    </g>
+
+    <!-- Lema en dos líneas y emblema alado. El emblema de la cabecera mide
+         131×29 y el del pie 195×39: no son el mismo dibujo a otra escala, así
+         que van dos trazados distintos. Lo compartido es el pintor. -->
+    <g role="img" aria-label="PATTERN. PROTECT. PERPETUATE. // DO NOT OBSERVE. PARTICIPATE.">
+      <g set:html={pinta(hdrLema1, TINTA.lema1)} />
+      <g set:html={pinta(hdrLema2, TINTA.lema2)} />
+    </g>
+    <g role="img" aria-label="Emblema alado KODEX−∞" set:html={pinta(hdrAla, TINTA.ala)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .hdr {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .hdr__art { position: absolute; left: 0; top: 0; }
+
+  .hdr__marco {
+    position: absolute;
+    left: 4px;
+    top: 5px;
+    width: 1664px;
+    height: 930px;
+    box-sizing: border-box;
+    border: 1px solid #171717;
+    border-left-color: #1c1c1c;
+    border-right-color: #1e1e1e;
+    border-bottom-color: #151515;
+    border-radius: 6px;
+  }
+
+  /* Tapa de un bloque de abajo: borde superior de 2 px —en la referencia son
+     las filas 82 y 83— y cantos de 2 px, que es lo que ocupan. Sin borde
+     inferior: lo cierra el bloque, no la cabecera. */
+  .hdr__tapa {
+    position: absolute;
+    top: 82px;
+    height: 40px;
+    box-sizing: border-box;
+    border: 2px solid transparent;
+    border-bottom: 0;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .hdr__puntos rect { fill: #1a1a1a; }
+  .hdr__regla { fill: #212121; }
+
+  .hdr__v {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    /* La tinta del póster no es un trazo limpio: derrama medio píxel por lado
+       más que el rasterizador del navegador. Un píxel de desenfoque reproduce
+       ese derrame. Por debajo de 0,8 px Chromium colapsa el núcleo del filtro a
+       una caja de 1 px y el filtro no hace nada. */
+    filter: blur(1px);
+  }
+</style>

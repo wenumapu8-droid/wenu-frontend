@@ -1,0 +1,267 @@
+---
+/**
+ * KODEX-∞ · t01-08 · panel 01 — SIGNAL STATES / ESTADOS DE SEÑAL
+ *
+ * Cuatro tarjetas con el MISMO organismo en cuatro momentos. No son cuatro
+ * dibujos: es una sola ramificación recursiva (`_signal.ts`) con parámetros
+ * distintos, que es como se comporta la referencia — IDLE tiene un tronco y su
+ * reflejo, BLOOM tiene doce, DISPERSE tiene los mismos doce rotos en motas.
+ *
+ * Todo lo geométrico está MEDIDO sobre reference/canon/t01-08-signal-bloom.png
+ * con perfiles de tinta por fila y por columna, no estimado:
+ *
+ *   regla bajo el título   y 14-15        (x 5→481)
+ *   marcos de tarjeta      y 20→186, x [8,112] [116,235] [240,359] [365,481]
+ *   rótulo de estado       y 27→35        avance 6,75 px/carácter
+ *   floración              y 36→144       centro en y 93
+ *   filete interior        y 145
+ *   tres renglones         líneas base 158 · 169,5 · 181, avance 5,0 px
+ *
+ * Las tarjetas NO son de igual ancho (105 · 120 · 120 · 117). Es irregularidad
+ * real de la obra, no ruido de medición: repartirlas parejo desplaza tres de
+ * los cuatro bloques de texto.
+ *
+ * Los rótulos y los números de esta lámina son ficción del póster; el contenedor
+ * de cada floración va con data-symbolic.
+ */
+import { ramificar, motas, anillos } from "./_signal";
+import { rng, p2 } from "../kit/rng";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+type Estado = {
+  key: string;
+  rotulo: string;
+  x: number;
+  w: number;
+  borde: string;
+  tinta: string;
+  brillo: string;
+  halo: string;
+  /** ganancia del dibujo, calibrada contra la media rgb de la referencia */
+  gan: number;
+  lineas: [string, string, string];
+};
+
+const estados: Estado[] = [
+  {
+    key: "idle", rotulo: "IDLE", x: 8, w: 105,
+    borde: "#173d3e", tinta: "#3aa0a6", brillo: "#c3a4c2", halo: "#1d2228", gan: 1.02,
+    lineas: ["BACKGROUND HUM", "STABLE FIELD", "LOW ENERGY"],
+  },
+  {
+    key: "build", rotulo: "BUILD", x: 116, w: 120,
+    borde: "#100c19", tinta: "#b070e6", brillo: "#e8b4ff", halo: "#2c1450", gan: 1.3,
+    lineas: ["AMPLITUDE RISE", "PATTERN FORMATION", "ENERGY ACCUMULATION"],
+  },
+  {
+    key: "bloom", rotulo: "BLOOM", x: 240, w: 120,
+    borde: "#2f0c22", tinta: "#dc38a8", brillo: "#f8e4ff", halo: "#4d1038", gan: 0.96,
+    lineas: ["SIGNAL PEAK", "STRUCTURE BLOOMS", "TRANSMISSION ACTIVE"],
+  },
+  {
+    key: "disperse", rotulo: "DISPERSE", x: 365, w: 117,
+    borde: "#571a19", tinta: "#d8444a", brillo: "#ff8a86", halo: "#2c0708", gan: 1,
+    lineas: ["SIGNAL FRACTURES", "DATA SCATTERS", "FIELD RETURNS"],
+  },
+];
+
+/* ── caja del dibujo: y 36→144 dentro de la tarjeta, centro en y 93 ───────── */
+const GH = 108;
+
+/* IDLE — árbol: un tronco hacia arriba y su reflejo de raíces. En la referencia
+   la copa ocupa dos tercios y las raíces se abren más planas y más apagadas. */
+const copa = ramificar(0, 24, { troncos: 1, giro: -90, largo: 22, niveles: 7, merma: 0.68, abre: 40, ruido: 20, grosor: 2.4, op: 0.82 }, 401);
+const raiz = ramificar(0, 26, { troncos: 1, giro: 90, largo: 13, niveles: 5, merma: 0.72, abre: 58, ruido: 22, grosor: 1.6, op: 0.42, achate: 0.68 }, 907);
+/* La copa de la referencia no tiene 100 ramas sino varios cientos de brotes
+   finos. Se consigue superponiendo dos árboles con semilla distinta y no
+   subiendo un nivel más: el nivel extra duplica el largo total y el árbol se
+   sale de la tarjeta, mientras que la segunda copa sólo rellena. */
+const copa2 = ramificar(0, 28, { troncos: 1, giro: -90, largo: 24, niveles: 7, merma: 0.66, abre: 46, ruido: 28, grosor: 1.9, op: 0.5 }, 4013);
+const polvoIdle = motas(0, 6, 120, 6, 48, 611, 0.92, 1.5);
+
+/* BUILD — el organismo todavía no ramifica: es campo. Anillos en progresión
+   geométrica (razón 0,93, del kit) con cuatro nodos encendidos en los ejes. */
+const arosBuild = anillos(13, 55, 0.9, 313);
+const rB = rng(7717);
+const radiosBuild = Array.from({ length: 36 }, (_, i) => {
+  const a = (i * Math.PI * 2) / 36;
+  const r0 = 7 + rB() * 5;
+  const r1 = 34 + rB() * 24;
+  return { x1: p2(Math.cos(a) * r0), y1: p2(Math.sin(a) * r0), x2: p2(Math.cos(a) * r1), y2: p2(Math.sin(a) * r1), o: p2(0.07 + rB() * 0.22) };
+});
+const nodosBuild = [0, 90, 180, 270].map((d) => {
+  const a = (d * Math.PI) / 180;
+  return { x: p2(Math.cos(a) * 38), y: p2(Math.sin(a) * 38) };
+});
+const polvoBuild = motas(0, 0, 150, 8, 56, 233, 1, 1.25);
+
+/* BLOOM — doce troncos desde el núcleo. Es el pico: núcleo blanco, filamentos
+   saturados y un halo que llega al borde de la tarjeta. */
+const florBloom = ramificar(0, 0, { troncos: 12, giro: -90, largo: 17, niveles: 5, merma: 0.78, abre: 44, ruido: 22, grosor: 1.5, op: 0.95 }, 1201);
+const arosBloom = anillos(7, 44, 0.86, 1303);
+const polvoBloom = motas(0, 0, 110, 6, 54, 1409, 1, 1.1);
+
+/* DISPERSE — la misma estrella, sin cuerpo: trazos flojos y el doble de motas.
+   No es otro dibujo, es el mismo con la opacidad quebrada. */
+const florDisp = ramificar(0, 0, { troncos: 10, giro: -84, largo: 15, niveles: 4, merma: 0.8, abre: 52, ruido: 34, grosor: 1.1, op: 0.42 }, 1601);
+const polvoDisp = motas(0, 0, 190, 4, 56, 1709, 1, 0.85);
+const rD = rng(1811);
+const esquirlas = Array.from({ length: 26 }, () => {
+  const a = rD() * Math.PI * 2;
+  const r0 = 8 + rD() * 34;
+  const len = 2 + rD() * 9;
+  return {
+    d: `M${p2(Math.cos(a) * r0)} ${p2(Math.sin(a) * r0)}L${p2(Math.cos(a) * (r0 + len))} ${p2(Math.sin(a) * (r0 + len))}`,
+    o: p2(0.3 + rD() * 0.6),
+    w: p2(0.4 + rD() * 0.8),
+  };
+});
+---
+
+<div data-box style={box} class="sst">
+  <i class="sst__gutter"></i>
+
+  <div class="sst__title">
+    <span class="sst__title-a">01. SIGNAL STATES</span><span class="sst__title-b"> / ESTADOS DE SEÑAL</span>
+  </div>
+  <i class="sst__rule"></i>
+
+  {estados.map((e) => (
+    <div
+      class={`sst__card sst__card--${e.key}`}
+      style={`left:${e.x}px;width:${e.w}px;--b:${e.borde};--t:${e.tinta};--g:${e.brillo};--h:${e.halo}`}
+    >
+      <div class="sst__label">{e.rotulo}</div>
+
+      <div class="sst__dia" style={`filter:brightness(${e.gan})`} data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`${-e.w / 2} ${-GH / 2} ${e.w} ${GH}`} preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id={`sb-halo-${e.key}`} cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color={e.halo} stop-opacity="0.95" />
+              <stop offset="42%" stop-color={e.halo} stop-opacity="0.34" />
+              <stop offset="100%" stop-color="#000" stop-opacity="0" />
+            </radialGradient>
+            <filter id={`sb-blur-${e.key}`} x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="1.5" />
+            </filter>
+          </defs>
+
+          <rect x={-e.w / 2} y={-GH / 2} width={e.w} height={GH} fill={`url(#sb-halo-${e.key})`} />
+
+          {e.key === "idle" && (
+            <g stroke={e.tinta} fill="none" stroke-linecap="round">
+              {polvoIdle.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill={e.tinta} stroke="none" opacity={m.o * 0.5} />)}
+              {raiz.map((t) => <path d={t.d} stroke-width={t.w} opacity={t.o} />)}
+              {copa.map((t) => <path d={t.d} stroke-width={t.w} opacity={t.o} />)}
+              <path d="M0 26L0 -2" stroke-width="2.2" opacity="0.92" stroke="#a4839f" />
+              <path d="M0 4L0 -14" stroke-width="1.2" opacity="0.62" stroke="#9c7d9a" />
+            </g>
+          )}
+
+          {e.key === "build" && (
+            <g stroke={e.tinta} fill="none">
+              {radiosBuild.map((s) => <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke-width="0.4" opacity={s.o} />)}
+              {arosBuild.map((a) => <circle cx="0" cy="0" r={a.r} stroke-width={a.w} opacity={a.o} />)}
+              {polvoBuild.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill={e.tinta} stroke="none" opacity={m.o * 0.72} />)}
+              {nodosBuild.map((n) => (
+                <g>
+                  <circle cx={n.x} cy={n.y} r="4.6" fill={e.tinta} stroke="none" opacity="0.3" filter={`url(#sb-blur-${e.key})`} />
+                  <circle cx={n.x} cy={n.y} r="1.5" fill={e.brillo} stroke="none" opacity="0.9" />
+                </g>
+              ))}
+              <circle cx="0" cy="0" r="9" fill={e.tinta} stroke="none" opacity="0.28" filter={`url(#sb-blur-${e.key})`} />
+              <circle cx="0" cy="0" r="2.6" fill={e.brillo} stroke="none" opacity="0.95" />
+            </g>
+          )}
+
+          {e.key === "bloom" && (
+            <g stroke={e.tinta} fill="none" stroke-linecap="round">
+              {arosBloom.map((a) => <circle cx="0" cy="0" r={a.r} stroke-width={a.w} opacity={a.o * 0.5} />)}
+              {polvoBloom.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill={e.tinta} stroke="none" opacity={m.o * 0.8} />)}
+              <g opacity="0.4" filter={`url(#sb-blur-${e.key})`}>
+                {florBloom.map((t) => <path d={t.d} stroke-width={t.w * 1.6} opacity={t.o} />)}
+              </g>
+              {florBloom.map((t) => <path d={t.d} stroke-width={t.w} opacity={t.o} />)}
+              <circle cx="0" cy="0" r="12" fill={e.tinta} stroke="none" opacity="0.4" filter={`url(#sb-blur-${e.key})`} />
+              <circle cx="0" cy="0" r="3.2" fill={e.brillo} stroke="none" opacity="0.98" />
+            </g>
+          )}
+
+          {e.key === "disperse" && (
+            <g stroke={e.tinta} fill="none" stroke-linecap="round">
+              {florDisp.map((t) => <path d={t.d} stroke-width={t.w} opacity={t.o} />)}
+              {esquirlas.map((s) => <path d={s.d} stroke-width={s.w} opacity={s.o} />)}
+              {polvoDisp.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill={e.tinta} stroke="none" opacity={m.o} />)}
+              <circle cx="0" cy="0" r="7" fill={e.tinta} stroke="none" opacity="0.3" filter={`url(#sb-blur-${e.key})`} />
+              <circle cx="0" cy="0" r="1.6" fill={e.brillo} stroke="none" opacity="0.75" />
+            </g>
+          )}
+        </svg>
+      </div>
+
+      <i class="sst__sep"></i>
+      <div class="sst__lines">
+        {e.lineas.map((l) => <p>{l}</p>)}
+      </div>
+    </div>
+  ))}
+</div>
+
+<style>
+  /* `position:absolute` explícito: el estilo con ámbito del componente gana
+     por orden de cascada a `.kdx-lam [data-box]`, y con `relative` el panel se
+     acomoda en el flujo y aparece desplazado por la altura de los anteriores. */
+  .sst { position: absolute; overflow: hidden; }
+
+  /* La columna izquierda de la lámina lleva un filete continuo en x=14 que
+     atraviesa los cuatro paneles; en esta caja cae en x=0. */
+  .sst__gutter { position: absolute; left: 0; top: 0; width: 1px; height: 100%; background: #141414; }
+
+  .sst__title {
+    position: absolute; left: 10px; top: 0; height: 12px; line-height: 12px;
+    font-size: 10px; letter-spacing: -0.1px; white-space: nowrap;
+  }
+  .sst__title-a { color: #e04a95; }
+  .sst__title-b { color: #7a7d7c; }
+
+  .sst__rule {
+    position: absolute; left: 5px; top: 14px; width: 477px; height: 1px;
+    background: #1b1a19;
+    box-shadow: 0 1px 0 #0d0d0c;
+  }
+
+  .sst__card {
+    position: absolute; top: 20px; height: 167px;
+    border: 1px solid var(--b);
+    box-sizing: border-box;
+    background:
+      radial-gradient(120% 60% at 50% 46%, color-mix(in srgb, var(--h) 34%, transparent) 0%, transparent 72%);
+  }
+
+  .sst__label {
+    position: absolute; left: 0; right: 0; top: 2px; height: 16px; line-height: 16px;
+    text-align: center;
+    font-size: 12.5px; letter-spacing: -0.7px;
+    color: var(--t);
+    text-shadow: 0 0 3px color-mix(in srgb, var(--t) 30%, transparent);
+  }
+
+  /* y 36→144 dentro del panel = 16→124 dentro de la tarjeta. */
+  .sst__dia { position: absolute; left: 0; right: 0; top: 16px; height: 108px; }
+  .sst__dia svg { display: block; width: 100%; height: 100%; }
+
+  .sst__sep {
+    position: absolute; left: 5px; right: 5px; top: 125px; height: 1px;
+    background: color-mix(in srgb, var(--b) 78%, #2e2e2e);
+  }
+
+  .sst__lines { position: absolute; left: 6px; top: 129px; right: 2px; }
+  .sst__lines p {
+    margin: 0;
+    font-size: 9px; line-height: 11.5px; letter-spacing: -0.45px;
+    white-space: nowrap;
+    color: #737573;
+  }
+</style>

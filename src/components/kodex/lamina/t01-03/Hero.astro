@@ -1,0 +1,769 @@
+---
+/**
+ * KODEX-∞ · t01-03 · 04. DESCENT TUNNEL // HERO VIEW
+ *
+ * El héroe de la lámina, dibujado entero con canvas 2D: escalera logarítmica de
+ * anillos, 64 radios, micrografía sobre la retícula y niebla hacia el punto de
+ * fuga. Ni un solo bitmap.
+ *
+ * Todo lo que sigue sale de medir la referencia, no de estimarlo a ojo:
+ *
+ *   · Punto de fuga en (723, 369) absolutos → (406, 273) dentro de esta caja.
+ *     Es la fila y la columna más brillantes del recorte.
+ *   · Los anillos brillantes caen en r = 59, 84, 106, 123, 192, 239, 259 y
+ *     ajustan por mínimos cuadrados a r = 502,6·e^(−0,0741·n) con
+ *     n = 29, 24, 21, 19, 13, 10, 9. Esa escalera es el esqueleto del túnel.
+ *   · El peso de cada anillo es su exceso de luminancia sobre el fondo local,
+ *     normalizado al anillo 21 (r=106), el más brillante del póster.
+ *   · Los anillos NO son parejos alrededor del eje: en la referencia brillan
+ *     arriba y se apagan abajo, donde manda la retícula del suelo. Medido
+ *     anillo por anillo, el corte cae cerca de sin θ ≈ 0,55. Dibujar el anillo
+ *     entero con brillo uniforme —lo obvio— era el error más caro del panel:
+ *     arriba el túnel se lee como aros, abajo como retícula.
+ *
+ * El panel mide 776 px de ancho (x 317→1093) y el andamiaje YA da esos 776: el
+ * túnel se dibuja a escala 1:1 dentro de la caja, sin desbordes. Hubo una época
+ * en que la caja medía 731 y este componente sangraba 46 px a la derecha para
+ * llegar al borde verdadero; con la caja corregida ese desborde se salía del
+ * panel y pisaba DEPTH GRAPH. Todo lo de la columna derecha cuelga ahora del
+ * borde real (interior 0…775, borde del marco en x = 775):
+ *
+ *   · DEPTH INDEX  → su glifo termina en x = 767  (right: 8px)
+ *   · escala −01…−10 → riel en x = 731, etiquetas hasta 766
+ *   · TUNNEL METRICS → caja x 653→770, y 369→482  (right: 6px, 117×113)
+ *
+ * El suelo es lo que convierte el dibujo en un túnel y no en una diana. Es un
+ * plano que corta el cilindro: cada travesaño es la CUERDA horizontal —recta,
+ * no un arco— del anillo que lo contiene. Medido sobre la referencia, las filas
+ * brillantes caen en Δy = 79·1,1918^i por debajo del punto de fuga y cada una
+ * llega hasta |x−VX| = 1,05·Δy. De esas dos cifras sale la geometría: el plano
+ * está a 0,69 radios del eje y la cuerda abarca 0,724 del radio. Sin estas
+ * rectas el ojo no tiene a qué agarrarse para leer profundidad.
+ */
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* PRNG determinista: la onda del SIGNAL FEED tiene que salir idéntica en cada
+   build, si no el banco de pruebas mide ruido de compilación. */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const rw = mulberry32(0x1f35);
+const PW = 122.4;
+const PH = 44.3;
+const NPTS = 148;
+let v = 0.5;
+const pts = [];
+for (let i = 0; i < NPTS; i++) {
+  v = v * 0.82 + 0.5 * 0.18 + (rw() - 0.5) * 0.42;
+  const spike = rw() < 0.2 ? (rw() - 0.5) * 0.72 : 0;
+  const y = Math.min(0.97, Math.max(0.03, v + spike));
+  pts.push(`${((i * PW) / (NPTS - 1)).toFixed(2)},${((1 - y) * PH).toFixed(2)}`);
+}
+const wave = pts.join(" ");
+
+/* Rejilla vertical del sparkline: cada 13,9 px como en la referencia. */
+const vlines = Array.from({ length: 9 }, (_, i) => +(i * 13.9).toFixed(2)).filter((x) => x <= PW);
+
+/* Escala de profundidad −01…−10. El −07 va en acento: es la cota actual. */
+const depths = Array.from({ length: 10 }, (_, i) => ({
+  n: String(i + 1).padStart(2, "0"),
+  y: +(i * 22.78).toFixed(2),
+  here: i === 6,
+}));
+---
+
+<div data-box style={box} class="ht3" data-hero-t0103>
+  <!-- El túnel se pinta bajo el marco: en la referencia la imagen sangra hasta
+       tocar la línea del panel por los cuatro lados. -->
+  <canvas class="ht3__cv" width="776" height="522" aria-hidden="true"></canvas>
+
+  <div class="ht3__frame kdx-panel">
+    <span class="kdx-panel__title ht3__title">04. DESCENT TUNNEL // HERO VIEW</span>
+  </div>
+
+  <!-- Telemetría simbólica: números de póster, no medición de nada. -->
+  <div class="ht3__cam" data-symbolic="true">
+    <div>CAM: AXIS-0</div>
+    <div>FOV: 68.5°</div>
+    <div>MODE: DESCENT</div>
+  </div>
+
+  <div class="ht3__idx" data-symbolic="true">
+    <div class="ht3__idxrow">
+      <span>DEPTH INDEX</span>
+      <svg class="ht3__mark" viewBox="0 0 14 14" aria-hidden="true">
+        <circle cx="7" cy="7" r="6.2" fill="none" stroke="currentColor" stroke-width="0.9" />
+        <path d="M4 4.4 L10 9.6 M10 4.4 L4 9.6 M5.6 7 h2.8" fill="none" stroke="currentColor" stroke-width="0.9" />
+      </svg>
+    </div>
+    <div class="ht3__idxrow">
+      <span>7.3821e+03</span>
+      <svg class="ht3__mark" viewBox="0 0 14 14" aria-hidden="true">
+        <path
+          d="M1.5 1.5h4v4h-4z M8.5 1.5h4v4h-4z M1.5 8.5h4v4h-4z M8.5 8.5h4v4h-4z M7 0.5v13 M0.5 7h13"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="0.9"
+        />
+      </svg>
+    </div>
+  </div>
+
+  <div class="ht3__scale" data-symbolic="true">
+    {
+      depths.map((d, i) => (
+        <>
+          <i
+            class="ht3__tick"
+            style={`top:${(d.y + 1.65).toFixed(2)}px;width:${i === 0 ? 4.2 : i === 9 ? 14.7 : 9}px`}
+          />
+          <span
+            class={d.here ? "ht3__lvl ht3__lvl--here" : "ht3__lvl"}
+            style={`top:${(d.y - (d.here ? 6.08 : 4.82)).toFixed(2)}px`}
+          >
+            {d.here ? <b class="ht3__dot" /> : "−"}
+            {d.n}
+          </span>
+        </>
+      ))
+    }
+  </div>
+
+  <div class="ht3__feed" data-symbolic="true">
+    <div class="ht3__feedttl">SIGNAL FEED</div>
+    <svg class="ht3__spark" viewBox={`0 0 ${PW} ${PH}`} preserveAspectRatio="none" aria-hidden="true">
+      <g stroke="#1d1d1d" stroke-width="0.5">
+        {vlines.map((x) => <line x1={x} y1="0" x2={x} y2={PH} />)}
+        <line x1="0" y1="0.25" x2={PW} y2="0.25" />
+        <line x1="0" y1={PH / 2} x2={PW} y2={PH / 2} />
+        <line x1="0" y1={PH - 0.25} x2={PW} y2={PH - 0.25} />
+      </g>
+      <polyline points={wave} fill="none" stroke="#b8301a" stroke-width="0.9" />
+    </svg>
+    <div class="ht3__kv"><span>AMPLITUDE</span><span>0.73</span></div>
+    <div class="ht3__kv ht3__kv--b"><span>COHERENCE</span><span>92 %</span></div>
+  </div>
+
+  <div class="ht3__met" data-symbolic="true">
+    <div class="ht3__metttl">TUNNEL METRICS</div>
+    <div class="ht3__rule"></div>
+    <div class="ht3__kv" style="top:31.8px"><span>RINGS</span><span>128</span></div>
+    <div class="ht3__kv" style="top:47.3px"><span>SECTORS</span><span>64</span></div>
+    <div class="ht3__kv" style="top:62.8px"><span>GLYPHS</span><span>512</span></div>
+    <div class="ht3__kv" style="top:78.3px"><span>DEPTH</span><span>7.38K</span></div>
+    <div class="ht3__kv" style="top:93.8px"><span>GRAVITY</span><span>1.618x</span></div>
+  </div>
+</div>
+
+<style>
+  .ht3 { --ht3-txt: #737271; }
+
+  /* Sin desborde: la caja ya mide los 776 px del panel real. */
+  .ht3__cv { position: absolute; inset: 0; display: block; }
+
+  /* El marco de la referencia es gris neutro (#272727), no naranja: el acento
+     se lo queda el título. */
+  .ht3__frame {
+    position: absolute;
+    left: 0; top: 3px; right: 0; height: 517px;
+    padding: 0;
+    border-color: #272727;
+    pointer-events: none;
+  }
+  .ht3__title {
+    left: 5px;
+    top: -6px;
+    font-size: 10.5px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: #d8360a;
+  }
+
+  .ht3 :is(.ht3__cam, .ht3__idx, .ht3__scale, .ht3__feed, .ht3__met) { position: absolute; }
+
+  .ht3__cam {
+    left: 13.6px; top: 20.4px;
+    font-size: 10px; line-height: 14.3px;
+    color: var(--ht3-txt);
+  }
+
+  /* Los tres bloques de la derecha cuelgan del borde del panel, que ahora ES el
+     de la caja: offsets positivos, nada asoma fuera de los 776 px. */
+  .ht3__idx {
+    right: 8px; top: 18.9px;
+    font-size: 10px; line-height: 15.2px;
+    color: var(--ht3-txt);
+  }
+  .ht3__idxrow { display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+  .ht3__mark { width: 13px; height: 13px; flex: none; opacity: 0.8; }
+
+  /* La escala cuelga de su riel: el borde izquierdo del contenedor ES el riel. */
+  .ht3__scale {
+    left: 731px; top: 60px;
+    width: 35.2px; height: 205px;
+    border-left: 1px solid #242424;
+  }
+  .ht3__tick {
+    position: absolute; left: 1px; height: 1px;
+    background: #171717;
+  }
+  .ht3__lvl {
+    position: absolute; right: 0;
+    font-size: 10px; line-height: 15px;
+    color: var(--ht3-txt);
+    white-space: nowrap;
+  }
+  .ht3__lvl--here {
+    font-size: 12.4px; line-height: 18px;
+    color: #ff6a10;
+  }
+  /* El −07 no lleva guion sino un anillo diminuto. */
+  .ht3__dot {
+    display: inline-block;
+    width: 4px; height: 4px;
+    margin-right: 2.5px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    vertical-align: 0.15em;
+  }
+
+  .ht3__feed,
+  .ht3__met {
+    background: #050505;
+    border: 1px solid #2b2b2b;
+    font-size: 9.2px;
+    color: var(--ht3-txt);
+  }
+  .ht3__feed { left: 8px; top: 373px; width: 137px; height: 110px; }
+  /* Medida en la referencia: x 653→770, y 369→482. Pegada al borde derecho pero
+     DENTRO del héroe; el panel vecino empieza en x = 1110 absoluto.
+     Va anclada por `left`, no por `right`: con `right` el borde derecho depende
+     de que la caja mida exactamente 776 y cualquier desajuste del andamiaje
+     empuja el bloque fuera del héroe, encima de DEPTH GRAPH. Con left:653 +
+     width:117 el borde cae en x = 770 pase lo que pase, seis píxeles dentro. */
+  .ht3__met  { left: 653px; top: 369px; width: 117px; height: 113px; }
+
+  .ht3__feedttl { position: absolute; left: 8.1px; top: 6.4px; line-height: 12px; color: #828180; }
+  .ht3__metttl  { position: absolute; left: 10.6px; top: 5.7px; line-height: 12px; color: #828180; }
+  .ht3__rule { position: absolute; left: 10px; right: 6px; top: 25.5px; height: 1px; background: #313131; }
+
+  .ht3__spark { position: absolute; left: 7.6px; top: 25.3px; width: 122.4px; height: 44.3px; }
+
+  .ht3__kv {
+    position: absolute; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    line-height: 12px;
+  }
+  .ht3__feed .ht3__kv { top: 74.3px; padding: 0 8.4px 0 8.1px; }
+  .ht3__feed .ht3__kv--b { top: 90px; }
+  .ht3__met .ht3__kv { padding: 0 10px 0 10.6px; }
+</style>
+
+<script>
+  /**
+   * Túnel procedural. Todo el dibujo vive acá; el DOM de arriba es solo el HUD.
+   *
+   * Modelo: escalera logarítmica de anillos r_n = RBASE·e^(−(n−φ)·S). Animar es
+   * subir φ de 0 a 1: cada anillo ocupa el sitio del anterior y el patrón —que
+   * está indexado por n, no por posición— viaja hacia afuera sin costura. Al
+   * completar el ciclo el túnel vuelve a su estado inicial, así que el loop es
+   * exacto y no acumula deriva.
+   */
+  const host = document.querySelector("[data-hero-t0103]");
+  const cv = host && host.querySelector("canvas");
+  const ctx = cv && cv.getContext("2d");
+
+  if (cv && ctx) {
+    const W = 776, H = 522, VX = 406, VY = 273;
+    const S = 0.0741;     // paso logarítmico ajustado sobre siete anillos medidos
+    const RBASE = 502.6;  // radio del anillo n = 0
+    const NR = 80;        // n=0 → r=503 (llega a las esquinas); n=79 → r=1,5
+    const NS = 64;        // sectores (el readout canta SECTORS 64)
+    const TAU = Math.PI * 2;
+
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /* El naranja se saturó un punto: medido sobre la referencia el anillado medio
+       da R/G ≈ 2,35 y el render daba 2,17. Esa diferencia es exactamente lo que
+       se lee como "marrón" en vez de "naranja encendido" al comparar las dos
+       mitades lado a lado. */
+    const ora = (a) => `rgba(255,99,30,${a.toFixed(3)})`;
+    const cya = (a) => `rgba(70,158,178,${a.toFixed(3)})`;
+
+    /* Niebla: en la referencia el centro está en negro hasta r≈5 y recupera
+       brillo pleno cerca de r≈44 (perfil radial medido sobre el PNG). */
+    /* El pozo se apaga un poco más lento que antes (45 px en vez de 39, y
+       exponente 1,5): medido por anillos, la banda r = 10…40 del render salía a
+       luminancia media 8,9 contra 6,4 de la referencia. Ese exceso de bruma
+       clara junto al punto de fuga es lo que impedía subir el resto sin quemar
+       el centro; bajándolo hay margen para encender los anillos medios. */
+    const fog = (r) => {
+      const v = (r - 5) / 45;
+      return v <= 0 ? 0 : v >= 1 ? 1 : Math.pow(v, 1.5);
+    };
+
+    /* Peso de CADA anillo de la escalera, no de catorce sueltos.
+       Se mide en la referencia la luminancia media del arco superior sobre la
+       circunferencia r_n y se ajusta el peso hasta que el render devuelve la
+       misma cifra. Catorce entradas y un suelo plano de 0,13 dejaban el tramo
+       r = 30…60 tres veces más apagado que el original y el tramo r > 300 dos
+       veces más encendido: la tabla completa es lo que pone la densidad donde
+       va. Índice = n de la escalera; r_n = 502,6·e^(−0,0741·n). */
+    /* El suelo de la tabla NO puede ser casi cero. Con 0,10 y una compresión
+       cuadrática, los anillos sin entrada propia salían a alfa 0,015: invisibles.
+       Medida la referencia por percentil 96 del arco superior —el brillo de la
+       LÍNEA, no el promedio del anillo con su fondo vacío— ningún radio baja de
+       ~13 sobre 255, o sea alfa ≈ 0,10 ya pintada. De ahí 0,22 antes de la
+       compresión. */
+    const RFLOOR = 0.22;
+    const RING_A = {
+      3: 0.05, 4: 0.05, 5: 0.09, 6: 0.14, 7: 0.13, 8: 0.12,
+      9: 0.33, 10: 0.29, 11: 0.16, 12: 0.05, 13: 0.78, 14: 0.21,
+      15: 0.17, 16: 0.13, 17: 0.10, 18: 0.12, 19: 0.60, 20: 0.12,
+      21: 0.72, 22: 0.23, 23: 0.16, 24: 0.50, 25: 0.17, 26: 0.30,
+      27: 0.20, 28: 0.34, 29: 0.52, 30: 0.28, 31: 0.32, 32: 0.41,
+      33: 0.25, 34: 0.25, 35: 0.31, 36: 0.45, 37: 0.41, 38: 0.24,
+      39: 0.30, 40: 0.32, 41: 0.31, 42: 0.30, 43: 0.35, 44: 0.35,
+      45: 0.32, 46: 0.31, 47: 0.31, 48: 0.33, 49: 0.33,
+    };
+    /* Niebla de distancia. Antes esto ERA un realce (×1,2 más allá de r=200)
+       porque se suponía que la referencia decaía más lento que 1/r. Medida, la
+       referencia hace lo contrario: de r=260 a r=400 pierde tres cuartos de su
+       brillo. Realzar ahí encendía las esquinas y era el segundo error más caro
+       del panel después del suelo. */
+    const far = (r) => (r > 250 ? Math.max(0.46, Math.exp(-(r - 250) / 260)) : 1);
+    /* Realce de anillo lejano. La tabla RING_A se ajustó contra la luminancia
+       MEDIA del anillo, y de r=200 para afuera esa media está dominada por el
+       vacío entre líneas: sale un peso ridículo para anillos que en el original
+       se ven perfectamente (percentil 96 de 24 sobre 255 en r=280…400, contra 4
+       que daba el render). El realce corrige esa media, no inventa brillo. */
+    /* La rampa ahora satura en r = 310 en vez de r = 380 y luego CEDE: el realce
+       tiene que llegar al anillado medio (r = 130…280, que es donde la
+       referencia gana por percentil 90) sin encender las esquinas, que medidas
+       en r = 280…400 ya se iban a 7,5 contra 5,5 de la referencia. */
+    const outLift = (r) => {
+      const lift = 1.45 * Math.min(1, Math.max(0, (r - 120) / 190));
+      const damp = r > 300 ? Math.max(0.35, 1 - (r - 300) / 300) : 1;
+      return 1 + lift * damp;
+    };
+    /* Realce cardinal. El anillo r=106 de la referencia mide 136-157 sobre los
+       cuatro ejes y 42-90 en las diagonales: no es un aro parejo, son cuatro
+       arcos gruesos unidos por tramo fino. Repartir ese brillo por igual —lo que
+       hacía el código— enciende las diagonales, que en el original están casi
+       apagadas, y apaga los ejes, que es donde el ojo ancla el túnel. */
+    const midGain = (ang) => 0.72 + 1.6 * Math.pow(Math.abs(Math.cos(2 * ang)), 7);
+    /* El suelo del túnel manda: la mitad inferior viene más marcada… pero solo
+       lejos del punto de fuga, donde el plano todavía tiene superficie. */
+    const floorW = (sin, r) => 1 + 0.6 * Math.max(0, sin) * Math.min(1, Math.max(0, (r - 18) / 30));
+    /* …y por lo mismo los anillos se apagan ahí. Cerca del punto de fuga la
+       mitad de abajo se apaga casi del todo: medido, la razón abajo/arriba cae
+       de 0,7 en r=50 a 0,1 en r=14. */
+    const ringMod = (ang, r) => {
+      const u = Math.max(0, Math.min(1, (0.55 - Math.sin(ang)) / 0.26));
+      const kd = 0.18 * Math.max(0.08, Math.min(1, (r - 11) / 26));
+      return kd + (1 - kd) * u;
+    };
+
+    const rnd = mulberry32(0xc0de);
+
+    /* Micrografía: se decide una vez y se indexa por (anillo, sector), nunca por
+       posición. Así viaja con el anillo cuando el túnel avanza. */
+    const cells = [];
+    for (let n = 0; n < NR; n++) {
+      for (let k = 0; k < NS; k++) {
+        const q = rnd();
+        cells.push({
+          n, k,
+          kind: q < 0.27 ? 0 : q < 0.55 ? 1 : q < 0.77 ? 2 : 3,
+          half: rnd() < 0.5,
+          cyan: rnd() < 0.085,
+          a: rnd(),
+          b: rnd(),
+        });
+      }
+    }
+
+    /* Cuerdas largas: los tirantes rectos que cruzan la referencia en diagonal. */
+    const chords = Array.from({ length: 80 }, () => ({
+      n0: 2 + Math.floor(rnd() * 20),
+      k0: Math.floor(rnd() * NS),
+      n1: 2 + Math.floor(rnd() * 20),
+      k1: Math.floor(rnd() * NS),
+      cyan: rnd() < 0.35,
+      a: 0.05 + rnd() * 0.1,
+    }));
+
+    /* Adornos sobre los ejes cardinales, a los radios donde caen en el póster. */
+    const axisGlyphs = [
+      [96, Math.PI / 2], [140, Math.PI / 2], [160, -Math.PI / 2], [236, -Math.PI / 2],
+      [243, 0], [243, Math.PI], [277, 0], [277, Math.PI],
+    ];
+
+    /* frac RESTA: al avanzar, cada anillo crece y sale de cuadro. Es un descenso,
+       no un retroceso. Al llegar a frac = 1 el anillo n ocupa el sitio de n−1 y,
+       como el contenido está indexado por n, el ciclo cierra sin salto. */
+    const ringR = (n, frac) => RBASE * Math.exp(-(n - frac) * S);
+
+    function glyph(r, ang, f) {
+      const c = Math.cos(ang), s = Math.sin(ang);
+      const x = VX + r * c, y = VY + r * s;
+      const g = 7.5;
+      ctx.strokeStyle = ora(0.55 * f);
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(x - g * c - g * s * 0.55, y - g * s + g * c * 0.55);
+      ctx.lineTo(x + g * c, y + g * s);
+      ctx.lineTo(x - g * c + g * s * 0.55, y - g * s - g * c * 0.55);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - g * 1.9 * c, y - g * 1.9 * s);
+      ctx.lineTo(x + g * 1.9 * c, y + g * 1.9 * s);
+      ctx.moveTo(x - g * 0.8 * s, y + g * 0.8 * c);
+      ctx.lineTo(x + g * 0.8 * s, y - g * 0.8 * c);
+      ctx.stroke();
+    }
+
+    function draw(t) {
+      const frac = ((t / 14000) % 1 + 1) % 1;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = "#030202";
+      ctx.fillRect(0, 0, W, H);
+      ctx.lineCap = "butt";
+
+      // ── anillos ───────────────────────────────────────────────────────────
+      // En 24 tramos, no de una: cada tramo lleva su propio brillo según
+      // ringMod. Un arc() completo pinta el suelo tan fuerte como el techo y ahí
+      // se pierde el parecido con la referencia.
+      const SEG = 24, dseg = TAU / SEG;
+      for (let n = 0; n < NR; n++) {
+        const r = ringR(n, frac);
+        if (r < 1.6) continue;
+        // el anillo NO pasa por far(): su caída radial ya está en la tabla
+        const f = fog(r);
+        if (f < 0.005) continue;
+        const w = Math.max(RING_A[n] || 0, RFLOOR);
+        ctx.lineWidth = 0.7 + 0.8 * Math.min(1, w);
+        for (let i = 0; i < SEG; i++) {
+          const a0 = i * dseg;
+          const rm = ringMod(a0 + dseg / 2, r);
+          // Suelo de visibilidad: TODO anillo de la escalera se ve, aunque sea
+          // apenas. La referencia no tiene anillos apagados, tiene anillos
+          // tenues, y son ellos los que dan el grano de "muchas capas".
+          // Compresión 1,35, no cuadrática: el cuadrado dejaba vivos sólo los
+          // cuatro anillos héroe y hundía los otros cuarenta a alfa < 0,05. Eso
+          // —y no el color— era lo que hacía ver el túnel apagado y marrón al
+          // lado del original, que tiene TODAS sus capas encendidas.
+          // 1,28 / ×1,95 en vez de 1,35 / ×1,5: comparadas las dos mitades por
+          // percentil 90 del anillado —el brillo de la LÍNEA, no el promedio con
+          // su fondo— la referencia saca 33,5 contra 26,6 en r = 130…200, 23,0
+          // contra 16,8 en r = 200…280 y 15,1 contra 11,8 más afuera. Es un
+          // factor ~1,3 parejo de r = 130 para afuera, y eso es lo que pide el
+          // exponente más suave junto con outLift.
+          const al = Math.max(Math.pow(w, 1.28) * 1.95 * midGain(a0 + dseg / 2), 0.145) * outLift(r) * f * rm;
+          if (al < 0.004) continue;
+          ctx.strokeStyle = ora(Math.min(1, al));
+          ctx.beginPath();
+          // el 1,02 solapa apenas los tramos: sin eso quedan costuras negras
+          ctx.arc(VX, VY, r, a0, a0 + dseg * 1.02);
+          ctx.stroke();
+        }
+        // anillo intercalado a medio paso, solo en el techo: la referencia tiene
+        // ahí casi el doble de arcos finos que posiciones de la escalera
+        const rh = r * Math.exp(-S * 0.5);
+        if (rh > 2) {
+          // Entre cada dos peldaños de la escalera la referencia mete un arco
+          // más, pero solo en el techo: contando picos sobre el radio vertical
+          // salen ~1,5 arcos por posición de escalera arriba y ~1 abajo, donde
+          // el suelo se queda con el sitio.
+          const fh = 0.105 * fog(rh) * far(rh);
+          ctx.lineWidth = 0.6;
+          ctx.strokeStyle = ora(fh);
+          ctx.beginPath();
+          ctx.arc(VX, VY, rh, -2.2, 0.5);
+          ctx.stroke();
+        }
+      }
+
+      // ── anillos cian ──────────────────────────────────────────────────────
+      // En la referencia el cian no es ruido: son TRES anillos enteros. Un
+      // barrido de píxeles con azul dominante los encuentra en r = 150, 170 y
+      // 297 y en ningún otro radio. Son el 0,6 % del panel; el código los tenía
+      // al 0,01 % y por eso se veía monocromo al lado del original.
+      for (const n of [16.32, 14.63, 7.1]) {
+        const r = ringR(n, frac);
+        if (r < 3) continue;
+        const f = fog(r) * far(r);
+        if (f < 0.02) continue;
+        ctx.lineWidth = 1.1;
+        for (let i = 0; i < SEG; i++) {
+          const a0 = i * dseg;
+          const al = 0.19 * f * (0.45 + 0.55 * ringMod(a0 + dseg / 2, r));
+          if (al < 0.01) continue;
+          ctx.strokeStyle = cya(Math.min(1, al));
+          ctx.beginPath();
+          ctx.arc(VX, VY, r, a0, a0 + dseg * 1.02);
+          ctx.stroke();
+        }
+      }
+
+      // ── radios ────────────────────────────────────────────────────────────
+      const STEPS = 15;
+      for (let k = 0; k < NS; k++) {
+        const ang = (k * TAU) / NS;
+        const c = Math.cos(ang), s = Math.sin(ang);
+        const cardinal = k % 16 === 0;
+        // La retícula del suelo es lo que más se echaba de menos al comparar: en
+        // la mitad inferior la referencia da percentil 90 de 29,5 (r 130…200) y
+        // 20,3 (r 200…280) contra 24,7 y 15,3 del render. Los radios son la
+        // mitad de esa retícula —la otra son los travesaños— así que suben en la
+        // misma proporción.
+        const base = cardinal ? 0.62 : k % 4 === 0 ? 0.225 : 0.1;
+        ctx.lineWidth = cardinal ? 0.95 : 0.65;
+        for (let i = 0; i < STEPS; i++) {
+          const ra = 7 * Math.pow(600 / 7, i / STEPS);
+          const rb = 7 * Math.pow(600 / 7, (i + 1) / STEPS);
+          const rm = (ra + rb) / 2;
+          const f = fog(rm) * far(rm) * floorW(s, rm);
+          if (f < 0.01) continue;
+          ctx.strokeStyle = ora(Math.min(1, base * f));
+          ctx.beginPath();
+          ctx.moveTo(VX + ra * c, VY + ra * s);
+          ctx.lineTo(VX + rb * c, VY + rb * s);
+          ctx.stroke();
+        }
+      }
+
+      // ── plano de suelo ────────────────────────────────────────────────────
+      // Travesaños RECTOS, no arcos: son las cuerdas horizontales del cilindro
+      // a la altura del plano. Es la diferencia entre mirar de frente y mirar
+      // hacia adentro — un arco a Δy=214 no llega ni a la mitad del ancho que
+      // ocupa esta fila en la referencia, y sin ellos el panel se lee como una
+      // diana concéntrica.
+      //
+      // El suelo corre a la misma velocidad aparente que los anillos pero su
+      // escalón vale 2,375 pasos de la escalera, así que lleva su propio ciclo
+      // (33,25 s = 2,375 × 14 s). Colgarlo de `frac` daba un salto del 10 % en
+      // cada vuelta, porque el retículo del suelo no se mapea sobre sí mismo.
+      const ffrac = (((t / 33250) % 1) + 1) % 1;
+      const FSEG = 34;
+      for (let i = -9; i <= 6; i++) {
+        const dy = 79 * Math.exp(0.17546 * (i + ffrac));
+        if (dy < 5 || dy > 300) continue;
+        const y = VY + dy;
+        const hw = 1.05 * dy;            // semicuerda medida en la referencia
+        const f = fog(dy / 0.69);        // la niebla la fija el anillo, no la fila
+        if (f < 0.02) continue;
+        ctx.lineWidth = dy > 60 ? 1 : 0.7;
+        for (let s2 = 0; s2 < FSEG; s2++) {
+          const u0 = -1 + (2 * s2) / FSEG, u1 = -1 + (2 * (s2 + 1)) / FSEG;
+          const um = Math.abs((u0 + u1) / 2);
+          // se apaga hacia los extremos: ahí el plano se hunde bajo la pared
+          const al = 0.66 * f * (1 - um * um * 0.86) * (0.55 + 0.45 * Math.min(1, dy / 70));
+          if (al < 0.01) continue;
+          ctx.strokeStyle = ora(Math.min(1, al));
+          ctx.beginPath();
+          ctx.moveTo(VX + u0 * hw, y);
+          ctx.lineTo(VX + u1 * hw + 0.6, y);
+          ctx.stroke();
+        }
+      }
+
+      // ── micrografía sobre la retícula ─────────────────────────────────────
+      const dk = TAU / NS;
+      for (let i = 0; i < cells.length; i++) {
+        const cl = cells[i];
+        // media escalera para la mitad de las celdas: la trama de la referencia
+        // no se apoya solo en los anillos, también en los entrepaños
+        const r = ringR(cl.n, frac) * (cl.half ? Math.exp(-S * 0.5) : 1);
+        if (r < 4 || r > 620) continue;
+        const ang = cl.k * dk;
+        const f = fog(r) * far(r) * floorW(Math.sin(ang), r) * 0.82;
+        if (f < 0.02) continue;
+        const col = cl.cyan ? cya : ora;
+        const c = Math.cos(ang), s = Math.sin(ang);
+
+        if (cl.kind === 0) {
+          // tramo de anillo resaltado
+          ctx.strokeStyle = col(Math.min(1, (cl.cyan ? 0.27 : 0.215) * f));
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(VX, VY, r, ang, ang + dk * (0.5 + cl.a * 1.9));
+          ctx.stroke();
+        } else if (cl.kind === 1) {
+          // traviesa radial corta entre dos anillos
+          const r2 = r * Math.exp(-S * (0.6 + cl.a * 1.6));
+          ctx.strokeStyle = col(Math.min(1, 0.18 * f));
+          ctx.lineWidth = 0.8;
+          ctx.beginPath();
+          ctx.moveTo(VX + r * c, VY + r * s);
+          ctx.lineTo(VX + r2 * c, VY + r2 * s);
+          ctx.stroke();
+        } else if (cl.kind === 2) {
+          // punto/celda: los "glyphs" del readout
+          const wd = 1.2 + cl.a * 2.4;
+          ctx.fillStyle = col(Math.min(1, 0.3 * f));
+          ctx.save();
+          ctx.translate(VX + r * c, VY + r * s);
+          ctx.rotate(ang);
+          ctx.fillRect(-wd / 2, -0.9, wd, 1.8);
+          ctx.restore();
+        } else {
+          // par de arcos finos, muy juntos: la trama de "circuito"
+          const r2 = r * Math.exp(-S * 0.34);
+          ctx.strokeStyle = col(Math.min(1, 0.11 * f));
+          ctx.lineWidth = 0.6;
+          const sp = dk * (1 + cl.b * 3);
+          ctx.beginPath();
+          ctx.arc(VX, VY, r, ang, ang + sp);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(VX, VY, r2, ang, ang + sp);
+          ctx.stroke();
+        }
+      }
+
+      // ── cuerdas rectas ────────────────────────────────────────────────────
+      ctx.lineWidth = 0.7;
+      for (const ch of chords) {
+        const ra = ringR(ch.n0, frac), rb = ringR(ch.n1, frac);
+        const aa = ch.k0 * dk, ab = ch.k1 * dk;
+        const f = fog((ra + rb) / 2);
+        if (f < 0.05) continue;
+        ctx.strokeStyle = (ch.cyan ? cya : ora)(ch.a * f);
+        ctx.beginPath();
+        ctx.moveTo(VX + ra * Math.cos(aa), VY + ra * Math.sin(aa));
+        ctx.lineTo(VX + rb * Math.cos(ab), VY + rb * Math.sin(ab));
+        ctx.stroke();
+      }
+
+      // ── adornos de eje ────────────────────────────────────────────────────
+      for (const g of axisGlyphs) glyph(g[0], g[1], fog(g[0]));
+
+      // ── destellos donde los anillos mayores cruzan los ejes ───────────────
+      ctx.globalCompositeOperation = "lighter";
+      for (let n = 0; n < NR; n++) {
+        const w0 = RING_A[n];
+        if (!w0 || w0 < 0.4) continue;
+        const r = ringR(n, frac);
+        const f = fog(r) * w0 * 1.2;
+        if (f < 0.06 || r > 480) continue;
+        const rad = 8;
+        for (let q = 0; q < 4; q++) {
+          const ang = (q * Math.PI) / 2;
+          const x = VX + r * Math.cos(ang), y = VY + r * Math.sin(ang);
+          const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+          g.addColorStop(0, `rgba(255,196,150,${0.55 * f})`);
+          g.addColorStop(0.45, `rgba(255,110,40,${0.14 * f})`);
+          g.addColorStop(1, "rgba(255,90,31,0)");
+          ctx.fillStyle = g;
+          ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+        }
+      }
+
+      // halo cálido alrededor de los anillos héroe
+      const halo = ctx.createRadialGradient(VX, VY, 40, VX, VY, 310);
+      halo.addColorStop(0, "rgba(80,24,6,0)");
+      // 0,12 de baño marrón subía TODO el fondo del anillado medio ~5/255 sin
+      // aportar una sola línea: es exactamente el velo que hacía ver el panel
+      // más marrón y menos contrastado que la referencia (mediana 12 contra 8).
+      // Se baja otra vez, de 0,05 a 0,022, y se calienta el tono: este baño es
+      // exactamente el velo que separa "naranja" de "marrón". Ahora el brillo
+      // del anillado medio lo pone la LÍNEA (alfa de anillo y retícula), no un
+      // relleno plano detrás de ella.
+      halo.addColorStop(0.42, "rgba(138,44,13,0.022)");
+      halo.addColorStop(1, "rgba(50,15,5,0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+
+      // ── niebla del fondo del pozo ─────────────────────────────────────────
+      // El pozo se ensancha de 96 a 130 px y baja más gradual. Encender los
+      // anillos y la retícula también encendía los primeros 80 px alrededor del
+      // punto de fuga, que en la referencia son casi negros: medido por anillos,
+      // r = 10…40 daba media 8,9 contra 6,4 y r = 40…80 daba 17,2 contra 13,2.
+      // Los factores 0,75 / 0,50 / 0,18 son justo esas razones, así el brillo
+      // nuevo se queda en el anillado medio y el fondo del pozo sigue negro.
+      const core = ctx.createRadialGradient(VX, VY, 0, VX, VY, 130);
+      core.addColorStop(0, "rgba(0,0,0,0.97)");
+      core.addColorStop(0.2, "rgba(0,0,0,0.75)");
+      core.addColorStop(0.46, "rgba(0,0,0,0.5)");
+      core.addColorStop(0.75, "rgba(0,0,0,0.18)");
+      core.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = core;
+      ctx.fillRect(0, 0, W, H);
+
+      // Viñeta apenas insinuada: en la referencia las esquinas siguen teniendo
+      // retícula, así que oscurecerlas de más era tirar textura real a la basura.
+      const vg = ctx.createRadialGradient(VX, VY, 300, VX, VY, 580);
+      vg.addColorStop(0, "rgba(0,0,0,0)");
+      vg.addColorStop(1, "rgba(0,0,0,0.15)");
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    let frozen = false;
+    let last = -1e9;
+
+    /* El cuadro cuesta ~8000 trazos y el descenso entero dura 14 s: a 60 fps se
+       gasta CPU en cuadros que nadie distingue. Se repinta cada 42 ms (~24 fps),
+       y en una lámina de trece paneles eso se nota. */
+    const loop = (ts) => {
+      if (frozen) return;
+      if (ts - last >= 42) { last = ts; draw(ts); }
+      raf = requestAnimationFrame(loop);
+    };
+
+    /* El congelador de la página puede definirse después que este módulo, según
+       cómo Astro ordene los scripts empaquetados. Se reintenta hasta que exista
+       en vez de asumir el orden. */
+    const freeze = (t) => {
+      frozen = true;
+      if (raf) cancelAnimationFrame(raf);
+      draw(t || 0);
+    };
+    const w = window;
+    if (typeof w.__kdxRegisterFreeze === "function") {
+      w.__kdxRegisterFreeze(freeze);
+    } else {
+      let tries = 0;
+      const id = setInterval(() => {
+        if (typeof w.__kdxRegisterFreeze === "function") {
+          clearInterval(id);
+          w.__kdxRegisterFreeze(freeze);
+        } else if (++tries > 240) clearInterval(id);
+      }, 25);
+    }
+
+    if (reduced) {
+      frozen = true;
+      draw(0);
+    } else {
+      draw(0);
+      raf = requestAnimationFrame(loop);
+    }
+  }
+</script>

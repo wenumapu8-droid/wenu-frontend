@@ -1,0 +1,133 @@
+---
+/**
+ * KODEX-∞ · t01-01 THRESHOLD PORTAL · 07. SHADER NOTES / NOTAS DE SHADER
+ *
+ * Caja medida: 1228,405 429×168.
+ *
+ * El rótulo «07. SHADER NOTES / NOTAS DE SHADER (GLSL PSEUDO)» NO va acá: vive
+ * en y 389-397, dieciséis píxeles POR ENCIMA del borde de la caja, en el aire
+ * entre paneles. Lo mismo la regla de cierre de y 573. Dentro de la caja sólo
+ * entran la regla de apertura (y 405), catorce renglones de pseudo-GLSL y la
+ * malla del embudo.
+ *
+ * Estructura medida por bandas de tinta (umbral 26, columna x 1235-1500 para
+ * aislar el texto de la malla):
+ *
+ *      y 412, 423                dos renglones de cabecera   paso 11
+ *      y 440,450,461,472,483,494 seis declaraciones uniform  paso 10 y luego 11
+ *      y 512,522,532,542,552,562 CORE RENDER PASSES + cinco  paso 10
+ *
+ * El paso de los `uniform` NO es parejo: 440→450 son 10 px y de ahí en adelante
+ * 11. Repartir los seis a paso constante desalinea los cuatro últimos con sus
+ * comentarios de la derecha, que sí están enganchados a cada línea.
+ *
+ * Tres pasos de avance distintos, medidos dividiendo el ancho de cada renglón
+ * por sus caracteres: cabecera 5,55 · código 5,35 · pasadas 5,18. Se reproducen
+ * con scaleX sobre un cuerpo fijo, no cambiando el tamaño de letra: el alto de
+ * versal medido es 7 px arriba y 6 px en las pasadas, y eso es lo que fija el
+ * cuerpo (11 px y 10 px), no el ancho.
+ *
+ * La tinta del bloque entero es UN gris: media rgb(60,60,60) y pico rgb(100)
+ * renglón por renglón, sin distinción entre comentario, tipo e identificador.
+ * En un editor eso sería raro; en el póster el «código» es textura.
+ *
+ * OJO CON LAS LLAVES: este pseudo-GLSL no tiene ninguna — son seis `uniform` y
+ * una lista de comentarios, y el original tampoco las muestra. Si alguien añade
+ * un cuerpo de función, las llaves del markup van escapadas &#123; &#125; o el
+ * build de Astro las toma por expresión y revienta. Ya pasó una vez en este
+ * repo.
+ */
+import Funnel from "./trazos/FunnelArt.astro";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* Avance natural del mono a 11 px con el letter-spacing 0.04em de .kdx-lam.
+   scaleX lleva ese avance al medido; transform-origin 0 0 hace que el borde
+   izquierdo no se mueva. */
+const ADV11 = 6.912;
+const ADV10 = 6.272;
+const CAP11 = 1.27;   // del borde de la caja de línea al alto de versal
+const CAP10 = 1.16;
+
+const sx11 = (paso: number) => +(paso / ADV11).toFixed(4);
+const sx10 = (paso: number) => +(paso / ADV10).toFixed(4);
+
+const cabecera = [
+  { y: 412, t: "// KODEX-∞ THRESHOLD PORTAL SHADER" },
+  { y: 423, t: "// CYBER-ORGANIC / RITUAL GEOMETRY" },
+];
+
+/* Los seis uniform. El comentario de rango arranca en x 1418 en los cuatro que
+   lo tienen — es una columna, no una separación por tabulación. */
+const uniformes = [
+  { y: 440, t: "uniform float u_time;", c: "" },
+  { y: 450, t: "uniform vec2  u_resolution;", c: "" },
+  { y: 461, t: "uniform float u_signal;", c: "// 0.0 - 1.0" },
+  { y: 472, t: "uniform float u_coherence;", c: "// 0.0 - 1.0" },
+  { y: 483, t: "uniform float u_gateOpen;", c: "// 0.0 - 1.0" },
+  { y: 494, t: "uniform vec3  u_colorPrimary;", c: "// vec3(1.0, 0.12, 0.10)" },
+];
+
+const pasadas = [
+  { y: 512, t: "// CORE RENDER PASSES" },
+  { y: 522, t: "// 1. FIELD DISTORTION" },
+  { y: 532, t: "// 2. GLYPH OVERLAY" },
+  { y: 542, t: "// 3. ENERGY VEINS" },
+  { y: 552, t: "// 4. BLOOM + CHROMA" },
+  { y: 562, t: "// 5. SCANLINES + CRT" },
+];
+
+const OX = 1228;
+const OY = 405;
+---
+
+<div data-box style={box} class="sn" data-symbolic="true">
+  <i class="sn__col" aria-hidden="true"></i>
+  <i class="sn__regla" aria-hidden="true"></i>
+
+  {cabecera.map((l) => (
+    <span class="sn__ln" style={`left:12px;top:${l.y - OY - CAP11}px;transform:scaleX(${sx11(5.55)})`}>{l.t}</span>
+  ))}
+
+  {uniformes.map((l) => (
+    <>
+      <span class="sn__ln" style={`left:12px;top:${l.y - OY - CAP11}px;transform:scaleX(${sx11(5.35)})`}>{l.t}</span>
+      {l.c && <span class="sn__ln" style={`left:190px;top:${l.y - OY - CAP11}px;transform:scaleX(${sx11(5.37)})`}>{l.c}</span>}
+    </>
+  ))}
+
+  {pasadas.map((l) => (
+    <span class="sn__ln sn__ln--min" style={`left:12px;top:${l.y - OY - CAP10}px;transform:scaleX(${sx10(5.18)})`}>{l.t}</span>
+  ))}
+
+  <Funnel />
+</div>
+
+<style>
+  .sn {
+    --sn-ink: #3c3c3c;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  /* Filete de columna: el mismo píxel gris que atraviesa los tres paneles de
+     esta columna (y 88-778 en la lámina), no una decoración de este panel. */
+  .sn__col { position: absolute; left: 0; top: 0; width: 1px; height: 168px; background: #232323; }
+
+  /* Regla de apertura. Medida rgb(19,19,19): está por debajo del umbral de
+     tinta y aun así se ve, porque cruza los 413 px de ancho del panel. */
+  .sn__regla { position: absolute; left: 8px; top: 0; width: 413px; height: 1px; background: #141414; }
+
+  .sn__ln {
+    position: absolute;
+    margin: 0;
+    font-size: 10.8px;
+    font-weight: 400;
+    line-height: 1;
+    white-space: pre;
+    color: var(--sn-ink);
+    transform-origin: 0 0;
+  }
+  .sn__ln--min { font-size: 9.8px; }
+</style>

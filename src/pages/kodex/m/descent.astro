@@ -1,0 +1,410 @@
+---
+/**
+ * KODEX-∞ · DESCENSO · página móvil
+ *
+ * Esto NO es una lámina. Es el producto.
+ *
+ * La lámina t01-03 trae dentro un panel «10. MOBILE MOCKUP» que es, literal, el
+ * diseño de esta pantalla: la placa de marca arriba a la izquierda, el túnel
+ * ocupando todo, el riel de cuatro sellos contra el borde y la barra de datos
+ * abajo. Esa especificación ya estaba hecha; acá se ejecuta.
+ *
+ * Y se ejecuta VIVA, que es lo que la fotocopia no podía dar. Reproducir un
+ * póster con fidelidad y hacer que un organismo responda son objetivos
+ * opuestos: el banco de pruebas premia el parecido a una imagen quieta, así que
+ * cada punto de fidelidad empuja hacia el afiche. Esta página se mide por otra
+ * cosa — si responde.
+ *
+ * De la referencia sale la máquina de estados que la lámina documenta en su
+ * panel 02: SURFACE → DROP → DEEP → VOID, con sus glosas. Los cuatro sellos del
+ * riel no son adorno: son esos cuatro estados.
+ *
+ * TELEMETRÍA: el número de profundidad y el porcentaje NO son el texto fijo del
+ * póster. Se leen del motor — profundidad real recorrida y avance real dentro
+ * del descenso. Eso resuelve de paso la regla de canon que prohíbe presentar
+ * cifras inventadas como estado del sistema: acá son estado del sistema de
+ * verdad.
+ */
+const ESTADOS = [
+  { id: "SURFACE", glosa: ["Signal normal.", "Reality stable."] },
+  { id: "DROP", glosa: ["Threshold crossed.", "Gravity increases."] },
+  { id: "DEEP", glosa: ["Signal density high.", "Symbols align."] },
+  { id: "VOID", glosa: ["Form collapses.", "Archive receives."] },
+];
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#000000" />
+    <title>KODEX−∞ · Descenso</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body>
+    <main class="dsc" data-estado="SURFACE">
+      <canvas class="dsc__tunel" aria-hidden="true"></canvas>
+
+      <div class="dsc__marca">
+        <span class="dsc__wm">KODEX−∞</span>
+        <span class="dsc__sub">DESCENT PROTOCOL</span>
+      </div>
+
+      {/* Los cuatro sellos son los cuatro estados. Botones de verdad: se
+          alcanzan con teclado y anuncian cuál está activo. */}
+      <nav class="dsc__riel" aria-label="Estados del descenso">
+        {ESTADOS.map((e, i) => (
+          <button
+            class="dsc__sello"
+            type="button"
+            data-estado={e.id}
+            aria-pressed={i === 0 ? "true" : "false"}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="10.4" />
+              <circle cx="12" cy="12" r={String(7 - i * 1.4)} />
+              {Array.from({ length: 4 + i * 4 }, (_, k) => {
+                const a = (k * Math.PI * 2) / (4 + i * 4);
+                return (
+                  <line
+                    x1={(12 + Math.cos(a) * 3).toFixed(2)}
+                    y1={(12 + Math.sin(a) * 3).toFixed(2)}
+                    x2={(12 + Math.cos(a) * 10).toFixed(2)}
+                    y2={(12 + Math.sin(a) * 10).toFixed(2)}
+                  />
+                );
+              })}
+            </svg>
+            <span class="dsc__vu">{e.id}</span>
+          </button>
+        ))}
+      </nav>
+
+      <div class="dsc__glosa" aria-live="polite">
+        {ESTADOS.map((e, i) => (
+          <p data-glosa={e.id} hidden={i !== 0}>{e.glosa.join(" ")}</p>
+        ))}
+      </div>
+
+      <footer class="dsc__barra">
+        <div class="dsc__dato">
+          <span class="dsc__k">DEPTH INDEX</span>
+          <span class="dsc__v" data-depth>0.0000e+00</span>
+        </div>
+        <div class="dsc__dato dsc__dato--prog">
+          <span class="dsc__k">PROGRESS</span>
+          <span class="dsc__fila">
+            <span class="dsc__v" data-pct>0%</span>
+            <span class="dsc__medidor"><i data-fill></i></span>
+          </span>
+        </div>
+        <svg class="dsc__rosa" viewBox="0 0 28 28" aria-hidden="true">
+          <circle cx="14" cy="14" r="13" /><circle cx="14" cy="14" r="4.4" />
+          <path d="M14 0v28M0 14h28" />
+          <path d="M14 5.6 20.4 14 14 22.4 7.6 14z" />
+        </svg>
+      </footer>
+
+      <p class="dsc__pista">Arrastrá para mirar · tocá un sello para descender</p>
+    </main>
+
+    <style is:global>
+      :root { color-scheme: dark; }
+      html, body { margin: 0; padding: 0; height: 100%; background: #000; overscroll-behavior: none; }
+      body { font: 11px/1.4 ui-monospace, "SF Mono", Menlo, monospace; -webkit-font-smoothing: antialiased; }
+    </style>
+
+    <style>
+      .dsc {
+        --acc: #ff5a1f;
+        --dim: #8a6a58;
+        --linea: color-mix(in srgb, var(--acc) 42%, transparent);
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        color: #e2ddd4;
+        /* La barra y el riel respetan el notch y la barra de gestos. */
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+                 env(safe-area-inset-bottom) env(safe-area-inset-left);
+        touch-action: none;
+      }
+      .dsc__tunel { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+      .dsc__marca {
+        position: absolute; top: calc(env(safe-area-inset-top) + 12px); left: 12px;
+        padding: 5px 10px 6px; background: #000;
+        border: 1px solid var(--linea); line-height: 1;
+      }
+      .dsc__wm { display: block; font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+      .dsc__sub { display: block; margin-top: 3px; font-size: 7px; letter-spacing: 0.2em; color: var(--acc); }
+
+      .dsc__riel {
+        position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+        display: grid; gap: 6px;
+      }
+      .dsc__sello {
+        width: 44px; height: 44px;              /* objetivo táctil mínimo */
+        display: grid; place-items: center;
+        background: #000; border: 1px solid var(--linea);
+        color: var(--dim); cursor: pointer; padding: 0;
+      }
+      .dsc__sello svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 0.7; }
+      .dsc__sello[aria-pressed="true"] { color: var(--acc); border-color: var(--acc); }
+      .dsc__sello:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+      .dsc__vu {
+        position: absolute; width: 1px; height: 1px; overflow: hidden;
+        clip-path: inset(50%); white-space: nowrap;
+      }
+
+      .dsc__glosa {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        max-width: 40vw; color: var(--dim); font-size: 10px;
+      }
+      .dsc__glosa p { margin: 0; }
+
+      .dsc__barra {
+        position: absolute; left: 0; right: 0; bottom: env(safe-area-inset-bottom);
+        display: flex; align-items: flex-end; gap: 14px;
+        padding: 6px 62px 8px 12px;
+        background: linear-gradient(to top, #000 62%, transparent);
+      }
+      .dsc__dato--prog { flex: 1; }
+      .dsc__k { display: block; font-size: 7px; letter-spacing: 0.16em; color: var(--dim); }
+      .dsc__v { font-size: 19px; line-height: 1.1; color: var(--acc); font-variant-numeric: tabular-nums; }
+      .dsc__fila { display: flex; align-items: center; gap: 8px; }
+      /* Medidor de marcas, no barra sólida: la constante del kit. */
+      .dsc__medidor {
+        position: relative; flex: 1; height: 14px;
+        border: 1px solid var(--linea); overflow: hidden;
+      }
+      .dsc__medidor i {
+        position: absolute; inset: 1px auto 1px 1px; width: 0%;
+        background-image: repeating-linear-gradient(90deg, var(--acc) 0 1.5px, transparent 1.5px 3.4px);
+        transition: width 240ms cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .dsc__rosa {
+        position: absolute; right: 12px; bottom: 10px; width: 30px; height: 30px;
+        fill: none; stroke: var(--acc); stroke-width: 0.7; opacity: 0.8;
+      }
+
+      .dsc__pista {
+        position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 58px);
+        margin: 0; text-align: center; font-size: 8px; letter-spacing: 0.14em;
+        color: var(--dim); pointer-events: none;
+        animation: dsc-desvanecer 1s ease 6s forwards;
+      }
+      @keyframes dsc-desvanecer { to { opacity: 0; } }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dsc__pista { animation: none; }
+        .dsc__medidor i { transition: none; }
+      }
+    </style>
+
+    <script>
+      /**
+       * El organismo.
+       *
+       * Modelo del túnel heredado de la lámina, donde se midió contra la
+       * referencia: escalera logarítmica de anillos r = RBASE·e^(−n·S) con
+       * S = 0,075. Animar es correr la fase de 0 a 1: cada anillo ocupa el lugar
+       * del siguiente y el patrón viaja hacia adentro sin costura, así que el
+       * bucle cierra exacto y no acumula deriva.
+       */
+      const raiz = document.querySelector(".dsc");
+      const cv = raiz.querySelector(".dsc__tunel");
+      const ctx = cv.getContext("2d");
+
+      const ESTADOS = ["SURFACE", "DROP", "DEEP", "VOID"];
+      /* Cada estado cambia velocidad, densidad y cierre de la niebla. Son los
+         verbos del panel 03 de la lámina: acelera · distorsiona · absorbe. */
+      const PERFIL = {
+        SURFACE: { vel: 0.16, niebla: 0.55, sectores: 48, brillo: 0.85 },
+        DROP:    { vel: 0.34, niebla: 0.70, sectores: 56, brillo: 1.00 },
+        DEEP:    { vel: 0.62, niebla: 0.86, sectores: 64, brillo: 1.12 },
+        VOID:    { vel: 1.05, niebla: 0.97, sectores: 72, brillo: 0.72 },
+      };
+
+      let estado = "SURFACE";
+      let fase = 0;
+      let prof = 0;                 // profundidad acumulada real
+      const mira = { x: 0, y: 0 };  // hacia dónde mira, de −1 a 1
+      const miraObj = { x: 0, y: 0 };
+      let W = 0, H = 0, DPR = 1;
+
+      const quieto = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function medir() {
+        DPR = Math.min(2, window.devicePixelRatio || 1);
+        W = raiz.clientWidth;
+        H = raiz.clientHeight;
+        cv.width = Math.round(W * DPR);
+        cv.height = Math.round(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      }
+      medir();
+      addEventListener("resize", medir, { passive: true });
+
+      function pintar() {
+        const p = PERFIL[estado];
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, W, H);
+
+        // El punto de fuga se corre con la mirada: es lo que hace que el túnel
+        // "mire" hacia donde estás en vez de ser un fondo.
+        const vx = W / 2 + mira.x * W * 0.13;
+        const vy = H / 2 + mira.y * H * 0.13;
+        const RB = Math.hypot(W, H) * 0.78;
+        /* Paso de la escalera. 0,075 es el valor medido en la lámina, pero
+           allí el panel medía 776 px y aquí son 390: con el mismo paso caben
+           doce anillos y el túnel se lee como diana. Se comprime a 0,042, que
+           es el paso que da la misma DENSIDAD APARENTE en un ancho de teléfono
+           — lo que la referencia conserva no es la constante, es cuántos
+           anillos entran en el ojo. */
+        const S = 0.042;
+
+        ctx.globalCompositeOperation = "lighter";
+
+        // Radios
+        ctx.lineWidth = 0.6;
+        for (let k = 0; k < p.sectores; k++) {
+          const a = (k * Math.PI * 2) / p.sectores;
+          const r1 = RB * 0.98;
+          ctx.strokeStyle = `rgba(255,104,38,${(0.20 * p.brillo).toFixed(3)})`;
+          ctx.beginPath();
+          ctx.moveTo(vx + Math.cos(a) * RB * 0.02, vy + Math.sin(a) * RB * 0.02 * 0.62);
+          ctx.lineTo(vx + Math.cos(a) * r1, vy + Math.sin(a) * r1 * 0.62);
+          ctx.stroke();
+        }
+
+        // Anillos
+        /* Arranca en −1, no en 0.
+           El ciclo es geométrico, así que al dar la vuelta el anillo n ocupa
+           el sitio del n−1 y no debería notarse. Pero empezando en 0, el aro
+           más externo se encoge de RB a RB·ratio durante todo el ciclo y al
+           reiniciar SALTA de vuelta a RB: no hay nadie entrando desde afuera
+           que lo tape. Con n = −1 siempre hay un anillo naciendo fuera de
+           cuadro y la costura desaparece. */
+        for (let n = -1; n < 150; n++) {
+          const r = RB * Math.exp(-(n + fase) * S);
+          if (r < 1.2) break;
+          // Niebla: se apaga hacia el fondo. Cuanto más profundo el estado, más
+          // se cierra, hasta que en VOID el fondo se traga casi todo.
+          const t = 1 - Math.min(1, r / RB);
+          const alfa = Math.max(0, (1 - Math.pow(t, 1 / (1 - p.niebla + 0.03)))) * p.brillo;
+          if (alfa < 0.004) continue;
+          const fuerte = n % 6 === 0;
+          ctx.strokeStyle = `rgba(255,${fuerte ? 118 : 92},${fuerte ? 44 : 30},${(alfa * (fuerte ? 0.85 : 0.34)).toFixed(3)})`;
+          ctx.lineWidth = fuerte ? 1.1 : 0.55;
+          ctx.beginPath();
+          ctx.ellipse(vx, vy, r, r * 0.62, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        /* Plano de suelo EN PERSPECTIVA.
+           Antes eran las bases de las elipses, o sea las mismas curvas otra vez:
+           indistinguibles de los anillos y por eso el túnel se leía como diana.
+           Un suelo es otra cosa — rectas que convergen al punto de fuga y
+           travesaños que se aprietan hacia él. */
+        const suelo = vy + H * 0.30;
+        ctx.lineWidth = 0.5;
+        ctx.strokeStyle = `rgba(255,90,31,${(0.20 * p.brillo).toFixed(3)})`;
+        for (let k = -9; k <= 9; k++) {
+          ctx.beginPath();
+          ctx.moveTo(vx + k * (W * 0.24), H + 40);
+          ctx.lineTo(vx + k * 2.2, vy);
+          ctx.stroke();
+        }
+        ctx.strokeStyle = `rgba(255,90,31,${(0.14 * p.brillo).toFixed(3)})`;
+        for (let n = -1; n < 26; n++) {
+          // Progresión geométrica: en perspectiva los travesaños se juntan
+          // hacia el horizonte, no se reparten parejo. Igual que los anillos,
+          // arranca en −1 para que siempre haya un travesaño entrando desde
+          // abajo del borde y el ciclo cierre sin salto.
+          const u = Math.pow(0.80, n + fase);
+          const y = vy + (suelo - vy) * u + (H - suelo) * u;
+          if (y <= vy + 1) break;
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(W, y);
+          ctx.stroke();
+        }
+
+        /* Pozo del punto de fuga. Sin él los anillos se juntan en un nudo
+           brillante y el túnel no tiene fondo: hay que poder caer en algo. */
+        ctx.globalCompositeOperation = "source-over";
+        const pozo = ctx.createRadialGradient(vx, vy, 0, vx, vy, RB * 0.16);
+        pozo.addColorStop(0, "rgba(0,0,0,1)");
+        pozo.addColorStop(0.55, "rgba(0,0,0,0.88)");
+        pozo.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = pozo;
+        ctx.beginPath();
+        ctx.arc(vx, vy, RB * 0.16, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function hud() {
+        // Telemetría REAL: sale del motor, no del póster.
+        raiz.querySelector("[data-depth]").textContent = prof.toExponential(4).replace("e+", "e+");
+        const pct = Math.min(100, (ESTADOS.indexOf(estado) * 25) + (fase % 1) * 25);
+        raiz.querySelector("[data-pct]").textContent = Math.round(pct) + "%";
+        raiz.querySelector("[data-fill]").style.width = pct + "%";
+      }
+
+      let ultimo = performance.now();
+      /* La velocidad se interpola en vez de saltar. Al tocar un sello, pasar de
+         0,16 a 1,05 en un cuadro se lee como un tirón; llegar en ~0,8 s se lee
+         como que el túnel ACELERA, que es el verbo que la lámina pide. */
+      let velActual = PERFIL.SURFACE.vel;
+      function bucle(ts) {
+        const dt = Math.min(0.05, (ts - ultimo) / 1000);
+        ultimo = ts;
+        const p = PERFIL[estado];
+        velActual += (p.vel - velActual) * Math.min(1, dt * 1.6);
+        fase = (fase + velActual * dt) % 1;
+        prof += velActual * dt * 1483;
+        // La mirada persigue al dedo con inercia: un salto crudo se lee como glitch.
+        mira.x += (miraObj.x - mira.x) * Math.min(1, dt * 6);
+        mira.y += (miraObj.y - mira.y) * Math.min(1, dt * 6);
+        pintar();
+        hud();
+        requestAnimationFrame(bucle);
+      }
+
+      if (quieto) { pintar(); hud(); } else { requestAnimationFrame(bucle); }
+
+      // ── mirar ──────────────────────────────────────────────────────────
+      const apuntar = (e) => {
+        const t = e.touches ? e.touches[0] : e;
+        miraObj.x = (t.clientX / W) * 2 - 1;
+        miraObj.y = (t.clientY / H) * 2 - 1;
+      };
+      raiz.addEventListener("pointermove", apuntar, { passive: true });
+      raiz.addEventListener("touchmove", apuntar, { passive: true });
+      raiz.addEventListener("pointerleave", () => { miraObj.x = 0; miraObj.y = 0; }, { passive: true });
+
+      // ── descender ──────────────────────────────────────────────────────
+      function ir(nuevo) {
+        if (!PERFIL[nuevo]) return;
+        estado = nuevo;
+        raiz.dataset.estado = nuevo;
+        for (const b of raiz.querySelectorAll(".dsc__sello")) {
+          b.setAttribute("aria-pressed", String(b.dataset.estado === nuevo));
+        }
+        for (const g of raiz.querySelectorAll("[data-glosa]")) {
+          g.hidden = g.dataset.glosa !== nuevo;
+        }
+      }
+      for (const b of raiz.querySelectorAll(".dsc__sello")) {
+        b.addEventListener("click", () => ir(b.dataset.estado));
+      }
+      // Teclado: flechas para descender y subir, sin depender del puntero.
+      addEventListener("keydown", (e) => {
+        const i = ESTADOS.indexOf(estado);
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") ir(ESTADOS[Math.min(3, i + 1)]);
+        if (e.key === "ArrowUp" || e.key === "ArrowLeft") ir(ESTADOS[Math.max(0, i - 1)]);
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,853 @@
+---
+/**
+ * KODEX-∞ · t01-02 · BLOQUE IZQUIERDA
+ * 01. SCAN STATES · 02. MOTION NOTES (EYE BEHAVIOR) · 03. UI CHIPS & DETECTION LABELS
+ *
+ * Caja del bloque: ref (4,88) 464×778. Todo lo de acá es LOCAL a esa caja
+ * (restar 4 en x y 88 en y a cualquier coordenada de la referencia).
+ *
+ * TODO lo geométrico está medido sobre reference/canon/t01-02-observation-eye.png
+ * con perfiles de tinta por fila y por columna (umbral 8–20 según la zona,
+ * porque los filetes de esta lámina bajan hasta luminancia 8). Lo medido:
+ *
+ *   marcos de sección   x 12→459 · y 93→330 · 339→539 · 555→844   (ref)
+ *   filete bajo título  y 117 · 361 · 578      (lum 22 · 15 · 12: van bajando)
+ *   tarjetas de estado  y 128→180 · 199→251 · 269→321, x 82→453
+ *   partidor tarjeta    x 273 (a la izquierda texto, a la derecha la miniatura)
+ *   columnas de la 02   x 13|154|305|459 — NO son iguales (141·151·153)
+ *   tabla de la 02      filетes y 463 y 484, partidor x 69·216·217·367
+ *   chips fila 1        y 586→607, x [19,116] [125,225] [234,332] [340,451]
+ *   chips fila 2        y 616→638, x [19,125] [125,225] [234,332] [340,451]
+ *   iconos fila 1       y 659→711, 7 cajas desde x 19 hasta 451
+ *   iconos fila 2       y 727→836, 6 cajas de ancho DISTINTO (58·57·60·76·67·74)
+ *
+ * Densidad objetivo por zona (tinta >18 y media rgb), que es contra lo que
+ * mide el banco desde que el diff estructural entró en la métrica:
+ *
+ *   bloque entero      media  9,2  8,0 11,9   ·  14,6 %
+ *   sección 01         media 12,3 13,3 20,0   ·  23,2 %
+ *   sección 02         media  8,4  6,5  9,4   ·  11,3 %
+ *   sección 03         media  9,2  6,5  9,6   ·  13,5 %
+ *   miniatura LOCK     media 34,0  7,8 51,8   ·  37,9 %
+ *   miniatura TRACK    media 11,4 45,0 53,3   ·  60,1 %
+ *   miniatura IDLE     media 33,0 32,8 32,3   ·  57,5 %
+ *
+ * Los tres iris NO son tres dibujos: son el mismo organismo (`iris()`) con
+ * ganancia y tinta distintas, igual que las tarjetas de t01-08. TRACK es el
+ * más denso porque es el estado activo; IDLE es el mismo campo desaturado.
+ *
+ * Todos los números de esta lámina son ficción del póster: los contenedores
+ * que los muestran van con data-symbolic.
+ */
+import { rng, serieSuave, p2 } from "../kit/rng";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GENERADORES
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** Anillos en progresión geométrica, con peso irregular (regla del kit). */
+function anillos(n: number, rmax: number, razon: number, semilla: number) {
+  const r = rng(semilla);
+  return Array.from({ length: n }, (_, i) => ({
+    r: p2(rmax * Math.pow(razon, i)),
+    o: p2(0.14 + r() * 0.6),
+    w: p2(0.3 + (r() < 0.25 ? 0.45 : 0)),
+  }));
+}
+
+/**
+ * Iris de la miniatura. Un núcleo negro, una corona de fibras radiales, un
+ * anillo de "dientes" (la mandala que en la referencia parece un engranaje) y
+ * unos pocos aros exteriores recortados por la caja.
+ */
+function iris(semilla: number, densidad: number) {
+  const r = rng(semilla);
+  const fibras = Array.from({ length: Math.round(150 * densidad) }, () => {
+    const a = r() * Math.PI * 2;
+    const r0 = 8.6 + r() * 2.2;
+    const r1 = 15 + r() * 11;
+    return {
+      x1: p2(Math.cos(a) * r0), y1: p2(Math.sin(a) * r0),
+      x2: p2(Math.cos(a) * r1), y2: p2(Math.sin(a) * r1),
+      o: p2(0.12 + r() * 0.72), w: p2(0.3 + r() * 0.6),
+    };
+  });
+  const dientes = Array.from({ length: 96 }, (_, i) => {
+    const a = (i * Math.PI * 2) / 96 + r() * 0.02;
+    const r0 = 26 + r() * 3;
+    const r1 = r0 + 3 + r() * 7;
+    return {
+      x1: p2(Math.cos(a) * r0), y1: p2(Math.sin(a) * r0),
+      x2: p2(Math.cos(a) * r1), y2: p2(Math.sin(a) * r1),
+      o: p2(0.1 + r() * 0.6), w: p2(0.4 + r() * 0.9),
+    };
+  });
+  const motas = Array.from({ length: Math.round(220 * densidad) }, () => {
+    const a = r() * Math.PI * 2;
+    const rad = 9 + Math.pow(r(), 0.6) * 64;
+    return {
+      x: p2(Math.cos(a) * rad), y: p2(Math.sin(a) * rad * 0.92),
+      r: p2(0.3 + r() * 0.85), o: p2(0.1 + r() * 0.7),
+    };
+  });
+  /* La cola de señal: el iris sale por los dos lados como una onda tumbada. */
+  const picos = Array.from({ length: 132 }, (_, i) => {
+    const x = -88 + (i * 176) / 131;
+    const d = Math.abs(x);
+    const caida = d < 34 ? 0 : Math.min(1, (d - 30) / 26) * (1 - Math.min(1, (d - 34) / 62) * 0.45);
+    const h = caida * (1.2 + r() * 12) * (r() < 0.14 ? 2.1 : 1);
+    return { x: p2(x), h: p2(h), o: p2(0.14 + r() * 0.66), w: p2(0.35 + r() * 0.7) };
+  });
+  const verticales = Array.from({ length: 22 }, () => ({
+    x: p2(-88 + r() * 176),
+    y1: p2(-26 + r() * 10),
+    y2: p2(16 + r() * 12),
+    o: p2(0.05 + r() * 0.2),
+  }));
+  return { fibras, dientes, motas, picos, verticales };
+}
+
+/* Un solo organismo, tres ganancias. */
+const irisA = iris(2207, 0.62);
+const irisB = iris(2207, 1.0);
+const irisC = iris(2207, 0.92);
+const arosOjo = anillos(9, 74, 0.9, 3301);
+
+/** Onda de peine tumbada, la de abajo del rótulo de cada tarjeta. */
+function onda(semilla: number, ancho: number, alto: number, n: number, inercia: number) {
+  const v = serieSuave(semilla, n, inercia, 0.05, 1);
+  const r = rng(semilla ^ 0x51ab);
+  const paso = ancho / (n - 1);
+  return v.map((t, i) => {
+    const a = (t * alto) / 2 * (r() < 0.1 ? 1.5 : 1);
+    const off = (r() - 0.5) * alto * 0.1;
+    return { x: p2(i * paso), y1: p2(-a + off), y2: p2(a + off), o: p2(0.35 + r() * 0.6) };
+  });
+}
+const ondaLock = onda(811, 114, 11, 118, 0.42);
+const ondaTrack = onda(907, 114, 15, 130, 0.3);
+const ondaIdle = onda(1013, 114, 20, 126, 0.18);
+
+/* ── 02 · diagramas ─────────────────────────────────────────────────────── */
+
+/** BLINK — párpado: lente de dos arcos, relleno de puntos en hileras. */
+function blink(semilla: number) {
+  const r = rng(semilla);
+  const contornos = Array.from({ length: 7 }, (_, i) => {
+    const k = 0.24 + i * 0.126;
+    return { rx: p2(64 * k + 4), ry: p2(37 * k), o: p2(0.5 - i * 0.05) };
+  });
+  const puntos: { x: number; y: number; r: number; o: number }[] = [];
+  for (let f = -13; f <= 13; f++) {
+    const yy = f * 2.65;
+    const t = 1 - Math.abs(f) / 14;
+    const semi = 66 * Math.pow(t, 0.62);
+    const n = Math.round(semi / 2.1);
+    for (let i = -n; i <= n; i++) {
+      const x = (i / (n || 1)) * semi;
+      if (r() > 0.52) continue;
+      puntos.push({
+        x: p2(x), y: p2(yy),
+        r: p2(0.3 + r() * 0.55),
+        o: p2(0.12 + r() * 0.6 * (0.35 + t)),
+      });
+    }
+  }
+  const nucleo = Array.from({ length: 130 }, () => ({
+    x: p2((r() - 0.5) * 30), y: p2((r() - 0.5) * 11),
+    r: p2(0.3 + r() * 0.8), o: p2(0.2 + r() * 0.75),
+  }));
+  return { contornos, puntos, nucleo };
+}
+const dBlink = blink(4111);
+
+/** SCAN — barrido polar: aros achatados, radios, y una cuña encendida. */
+function scan(semilla: number) {
+  const r = rng(semilla);
+  const aros = Array.from({ length: 8 }, (_, i) => ({
+    rx: p2(52 * Math.pow(0.9, i)), ry: p2(36 * Math.pow(0.905, i)),
+    o: p2(0.18 + r() * 0.55), w: p2(0.32 + (r() < 0.3 ? 0.4 : 0)),
+    dx: p2((r() - 0.5) * 7),
+  }));
+  const radios = Array.from({ length: 26 }, (_, i) => {
+    const a = (i * Math.PI * 2) / 26;
+    const r0 = 6 + r() * 6;
+    const r1 = 30 + r() * 22;
+    return {
+      x1: p2(Math.cos(a) * r0), y1: p2(Math.sin(a) * r0 * 0.7),
+      x2: p2(Math.cos(a) * r1), y2: p2(Math.sin(a) * r1 * 0.7),
+      o: p2(0.08 + r() * 0.3),
+    };
+  });
+  const arcos = Array.from({ length: 9 }, () => {
+    const a0 = r() * Math.PI * 2;
+    const ext = 0.5 + r() * 2.1;
+    const rad = 14 + r() * 34;
+    const pts = Array.from({ length: 14 }, (_, k) => {
+      const a = a0 + (ext * k) / 13;
+      return `${k ? "L" : "M"}${p2(Math.cos(a) * rad)} ${p2(Math.sin(a) * rad * 0.72)}`;
+    }).join("");
+    return { d: pts, o: p2(0.2 + r() * 0.6), w: p2(0.35 + r() * 0.55) };
+  });
+  const cuna = Array.from({ length: 46 }, () => {
+    const a = -0.55 + r() * 1.1;
+    const rad = 18 + r() * 26;
+    return {
+      x: p2(Math.cos(a) * rad), y: p2(Math.sin(a) * rad * 0.72),
+      r: p2(0.4 + r() * 1.3), o: p2(0.3 + r() * 0.7),
+    };
+  });
+  return { aros, radios, arcos, cuna };
+}
+const dScan = scan(4703);
+
+/** PULSE — expansión: aro doble y rayos con guiones hacia afuera. */
+function pulse(semilla: number) {
+  const r = rng(semilla);
+  const aros = Array.from({ length: 6 }, (_, i) => ({
+    rx: p2(38 - i * 4.4), ry: p2(30 - i * 3.6),
+    o: p2(0.2 + r() * 0.55), w: p2(0.32 + (r() < 0.3 ? 0.4 : 0)),
+  }));
+  const rayos = Array.from({ length: 44 }, (_, i) => {
+    const a = (i * Math.PI * 2) / 44 + (r() - 0.5) * 0.03;
+    const r0 = 40 + r() * 4;
+    const r1 = r0 + 5 + r() * 20;
+    return {
+      x1: p2(Math.cos(a) * r0), y1: p2(Math.sin(a) * r0 * 0.79),
+      x2: p2(Math.cos(a) * r1), y2: p2(Math.sin(a) * r1 * 0.79),
+      o: p2(0.15 + r() * 0.65), w: p2(0.4 + r() * 0.8),
+    };
+  });
+  const motas = Array.from({ length: 120 }, () => {
+    const a = r() * Math.PI * 2;
+    const rad = 26 + Math.pow(r(), 0.7) * 34;
+    return {
+      x: p2(Math.cos(a) * rad), y: p2(Math.sin(a) * rad * 0.79),
+      r: p2(0.3 + r() * 0.7), o: p2(0.12 + r() * 0.6),
+    };
+  });
+  return { aros, rayos, motas };
+}
+const dPulse = pulse(5309);
+
+/* ── 03 · glifos de la fila de abajo ────────────────────────────────────── */
+
+function puntosAnillo(n: number, rad: number, semilla: number, ex = 1) {
+  const r = rng(semilla);
+  return Array.from({ length: n }, (_, i) => {
+    const a = (i * Math.PI * 2) / n;
+    const rr = rad * (0.94 + r() * 0.12);
+    return { x: p2(Math.cos(a) * rr), y: p2(Math.sin(a) * rr * ex), r: p2(0.4 + r() * 0.5), o: p2(0.3 + r() * 0.6) };
+  });
+}
+const gRetina = {
+  puntos: [...puntosAnillo(30, 24, 601), ...puntosAnillo(22, 19, 607), ...puntosAnillo(14, 14, 613)],
+  rayos: Array.from({ length: 24 }, (_, i) => {
+    const a = (i * Math.PI * 2) / 24;
+    return { x1: p2(Math.cos(a) * 12), y1: p2(Math.sin(a) * 12), x2: p2(Math.cos(a) * 22), y2: p2(Math.sin(a) * 22) };
+  }),
+};
+const gQlty = {
+  aros: anillos(6, 26, 0.86, 701),
+  radios: Array.from({ length: 16 }, (_, i) => {
+    const a = (i * Math.PI * 2) / 16;
+    return { x2: p2(Math.cos(a) * 26), y2: p2(Math.sin(a) * 26) };
+  }),
+  puntos: puntosAnillo(26, 22, 709),
+};
+const gConf = {
+  puntos: [...puntosAnillo(34, 26, 811), ...puntosAnillo(26, 20, 821), ...puntosAnillo(18, 14, 823)],
+  aros: anillos(4, 25, 0.82, 827),
+};
+const gCoher = {
+  puntos: puntosAnillo(16, 30, 907),
+  arcos: [0, 1, 2].map((i) => ({ rot: i * 60 })),
+};
+
+/* Barra de marcas de la fila 1 de iconos: no es un código de barras real,
+   es la tira de guiones y rombos que la referencia repite bajo cada rótulo. */
+function tira(semilla: number, ancho: number) {
+  const r = rng(semilla);
+  const out: { x: number; w: number; o: number }[] = [];
+  let x = 0;
+  while (x < ancho) {
+    const w = 0.7 + r() * 2.6;
+    if (r() > 0.32) out.push({ x: p2(x), w: p2(w), o: p2(0.3 + r() * 0.6) });
+    x += w + 0.7 + r() * 1.7;
+  }
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DATOS DE TEXTO (ficción del póster)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const estados = [
+  { k: "lock", rot: "LOCK", sub: "CONFIRM TARGET", kv: "THREAT LVL", val: "C-4", top: 40, wave: ondaLock, ir: irisA, gan: 1 },
+  { k: "track", rot: "TRACK", sub: "FOLLOW SIGNAL", kv: "SIGNAL STR", val: "87%", top: 111, wave: ondaTrack, ir: irisB, gan: 1 },
+  { k: "idle", rot: "IDLE", sub: "STANDBY MODE", kv: "POWER", val: "42%", top: 181, wave: ondaIdle, ir: irisC, gan: 1 },
+];
+
+const celdas = [
+  { k: "blink", rot: "BLINK", x: 9, w: 141, div: 65.5, lab: 16, val: 75, r0: 14, r1: 143, cx: 78.5,
+    dur: "4-6 FRAMES", beh: ["QUICK CLOSE", "SINGLE FRAME HOLD", "SUBTLE GLITCH"] },
+  { k: "scan", rot: "SCAN", x: 150, w: 151, div: 212.5, lab: 163, val: 222, r0: 157, r1: 294, cx: 225.5,
+    dur: "18-24 FRAMES", beh: ["ROTATIONAL SWEEP", "DATA LINE TRACE", "SPECTRAL SHIFT"] },
+  { k: "pulse", rot: "PULSE", x: 302, w: 153, div: 363, lab: 313, val: 372, r0: 307, r1: 448, cx: 377.5,
+    dur: "6-12 FRAMES", beh: ["IRIS EXPANSION", "CORE BRIGHTNESS", "ENERGY RIPPLE"] },
+];
+
+const chips1 = [
+  { t: "TARGET ACQUIRED", x: 15, w: 98, rojo: false },
+  { t: "SIGNAL ACTIVE", x: 121, w: 101, rojo: false },
+  { t: "PATTERN MATCH", x: 230, w: 99, rojo: false },
+  { t: "ANOMALY DETECTED", x: 336, w: 112, rojo: true },
+];
+const chips2 = [
+  { t: "SUBJECT: K-X-07", x: 15, w: 107, rojo: false },
+  { t: "ORIGIN: UNKNOWN", x: 121, w: 101, rojo: false },
+  { t: "THREAT LVL: C-4", x: 230, w: 99, rojo: true },
+  { t: "CLEARANCE: RED", x: 336, w: 112, rojo: true },
+];
+
+const iconos1 = [
+  { a: "BIO-SIG", b: "ACTIVE", x: 15, w: 57, s: 1201 },
+  { a: "NEURAL", b: "LOCK", x: 79, w: 57, s: 1213 },
+  { a: "SPECTRAL", b: "SYNC", x: 143, w: 56, s: 1217 },
+  { a: "TEMP SIG", b: "NOMINAL", x: 207, w: 58, s: 1223 },
+  { a: "ENV SYS", b: "STABLE", x: 273, w: 56, s: 1229 },
+  { a: "", b: "", x: 336, w: 51, s: 1231 },
+  { a: "DATA LINK", b: "SECURE", x: 393, w: 55, s: 1237 },
+];
+
+const iconos2 = [
+  { g: "retina", a: "RETINA ID", b: "RD-01", x: 15, w: 59 },
+  { g: "ojo", a: "GLYPH KEY", b: "AC-7F", x: 80, w: 58 },
+  { g: "hash", a: "DATA HASH", b: "KX∞-7A1B", x: 144, w: 61 },
+  { g: "qlty", a: "SIGNAL QLTY", b: "87.2%", x: 212, w: 77 },
+  { g: "conf", a: "CONFIDENCE", b: "98.4%", x: 297, w: 68 },
+  { g: "coher", a: "COHERENCE", b: "HIGH", x: 373, w: 75 },
+];
+---
+
+<div data-box style={box} class="oe">
+  {/* ═══════════ 01 · SCAN STATES ═══════════ */}
+  <div class="oe__frame" style="left:8px;top:5px;width:448px;height:238px"></div>
+  <div class="oe__h1" style="left:19px;top:12px">01. SCAN STATES</div>
+  <i class="oe__rule oe__rule--a" style="left:8px;top:29px;width:448px"></i>
+
+  {estados.map((e) => (
+    <>
+      {/* glifo de estado, columna izquierda */}
+      <svg class={`oe__mark oe__mark--${e.k}`} style={`left:16px;top:${e.top + 1}px`} viewBox="-26 -26 52 52" width="52" height="52" aria-hidden="true">
+        <g fill="none" stroke="currentColor" stroke-width="0.7">
+          <circle cx="0" cy="0" r="23" opacity="0.75" />
+          <circle cx="0" cy="0" r="17.5" opacity="0.3" stroke-dasharray="1.6 2.4" />
+          {[0, 90, 180, 270].map((d) => {
+            const a = (d * Math.PI) / 180;
+            return (
+              <line
+                x1={p2(Math.cos(a) * 19)} y1={p2(Math.sin(a) * 19)}
+                x2={p2(Math.cos(a) * 26)} y2={p2(Math.sin(a) * 26)}
+                opacity="0.85" stroke-width="0.8"
+              />
+            );
+          })}
+          {[45, 135, 225, 315].map((d) => {
+            const a = (d * Math.PI) / 180;
+            return (
+              <line
+                x1={p2(Math.cos(a) * 21)} y1={p2(Math.sin(a) * 21)}
+                x2={p2(Math.cos(a) * 23.6)} y2={p2(Math.sin(a) * 23.6)}
+                opacity="0.5" stroke-width="0.6"
+              />
+            );
+          })}
+
+          {e.k === "lock" && (
+            <g>
+              <circle cx="0" cy="0" r="13.5" opacity="0.5" />
+              <path d="M-6.4 -1.6 A6.4 7.4 0 0 1 6.4 -1.6" opacity="0.95" stroke-width="1.1" />
+              <rect x="-7.6" y="-1.8" width="15.2" height="12.4" rx="2.2" opacity="0.95" stroke-width="1.1" />
+              <path d="M0 1.6L0 7 M-2.6 4.3L2.6 4.3" opacity="0.95" stroke-width="1.1" />
+            </g>
+          )}
+
+          {e.k === "track" && (
+            <g>
+              <circle cx="0" cy="0" r="10.6" opacity="0.9" stroke-width="1.1" />
+              <path d="M-13.6 -4.6 A14.4 14.4 0 0 1 -1.2 -14.2" opacity="0.9" stroke-width="1.1" />
+              <path d="M-13.4 6.4 A14.6 14.6 0 0 0 3.6 14.2" opacity="0.9" stroke-width="1.1" />
+              <path d="M-1 -14.4 L2.6 -11.4 L-1.6 -9.2" opacity="0.85" stroke-width="0.9" />
+              <rect x="9.2" y="-1.4" width="2.8" height="2.8" fill="currentColor" stroke="none" opacity="0.95" />
+            </g>
+          )}
+
+          {e.k === "idle" && (
+            <g>
+              <circle cx="0" cy="0" r="12.6" opacity="0.95" stroke-width="1.3" />
+              <circle cx="0" cy="0" r="10" opacity="0.95" stroke-width="1.3" />
+            </g>
+          )}
+        </g>
+      </svg>
+
+      {/* tarjeta */}
+      <div class={`oe__card oe__card--${e.k}`} style={`top:${e.top}px`}>
+        <div class="oe__rot">{e.rot}</div>
+        <div class="oe__sub">{e.sub}</div>
+        <div class="oe__kv">{e.kv}</div>
+        <div class="oe__val" data-symbolic="true">{e.val}</div>
+
+        <svg class="oe__wave" style={`top:${e.k === "idle" ? 26 : e.k === "track" ? 29 : 32}px;height:${e.k === "idle" ? 22 : e.k === "track" ? 17 : 13}px`}
+             viewBox={`0 ${-(e.k === "idle" ? 11 : e.k === "track" ? 8.5 : 6.5)} 114 ${e.k === "idle" ? 22 : e.k === "track" ? 17 : 13}`}
+             width="114" height={e.k === "idle" ? 22 : e.k === "track" ? 17 : 13} aria-hidden="true">
+          <line x1="0" y1="0" x2="114" y2="0" stroke="currentColor" stroke-width="0.45" opacity="0.5" />
+          {e.wave.map((s) => (
+            <line x1={s.x} y1={s.y1} x2={s.x} y2={s.y2} stroke="currentColor" stroke-width="0.55" opacity={s.o} />
+          ))}
+        </svg>
+
+        <i class="oe__cardsplit"></i>
+
+        {/* miniatura de iris */}
+        <div class="oe__thumb" data-symbolic="true" aria-hidden="true">
+          <svg viewBox="-89 -25.5 178 51" width="178" height="51">
+            <defs>
+              <radialGradient id={`oe-glow-${e.k}`} cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="0.5" />
+                <stop offset="34%" stop-color="currentColor" stop-opacity="0.24" />
+                <stop offset="72%" stop-color="currentColor" stop-opacity="0.08" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0" />
+              </radialGradient>
+              <linearGradient id={`oe-band-${e.k}`} x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="0.05" />
+                <stop offset="50%" stop-color="currentColor" stop-opacity="0.22" />
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0.05" />
+              </linearGradient>
+            </defs>
+
+            <rect x="-89" y="-25.5" width="178" height="51" fill={`url(#oe-glow-${e.k})`} />
+            <rect x="-89" y="-9" width="178" height="18" fill={`url(#oe-band-${e.k})`} />
+
+            <g fill="none" stroke="currentColor">
+              {e.ir.verticales.map((v) => (
+                <line x1={v.x} y1={v.y1} x2={v.x} y2={v.y2} stroke-width="0.35" opacity={v.o} />
+              ))}
+              {arosOjo.map((a) => (
+                <ellipse cx="0" cy="0" rx={a.r} ry={p2(a.r * 0.93)} opacity={p2(a.o * 0.55)} stroke-width={a.w} />
+              ))}
+              {e.ir.dientes.map((d) => (
+                <line x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2} stroke-width={d.w} opacity={d.o} />
+              ))}
+              {e.ir.fibras.map((f) => (
+                <line x1={f.x1} y1={f.y1} x2={f.x2} y2={f.y2} stroke-width={f.w} opacity={f.o} />
+              ))}
+              <line x1="-89" y1="0" x2="89" y2="0" stroke-width="0.55" opacity="0.6" />
+              {e.ir.picos.map((s) => (
+                <line x1={s.x} y1={p2(-s.h)} x2={s.x} y2={p2(s.h)} stroke-width={s.w} opacity={s.o} />
+              ))}
+              {e.ir.motas.map((m) => (
+                <circle cx={m.x} cy={m.y} r={m.r} fill="currentColor" stroke="none" opacity={m.o} />
+              ))}
+              <circle cx="0" cy="0" r="25.6" opacity="0.8" stroke-width="0.7" />
+              <circle cx="0" cy="0" r="9.4" opacity="0.85" stroke-width="1" />
+            </g>
+
+            <circle cx="0" cy="0" r="8.2" fill="#000" />
+            <circle cx="0" cy="0" r="8.2" fill="none" stroke="currentColor" stroke-width="0.6" opacity="0.7" />
+            <circle cx="3.4" cy="-3" r="1.6" class="oe__spec" />
+          </svg>
+        </div>
+      </div>
+    </>
+  ))}
+
+  {/* ═══════════ 02 · MOTION NOTES ═══════════ */}
+  <div class="oe__frame oe__frame--b" style="left:8px;top:251px;width:448px;height:201px"></div>
+  <div class="oe__h1" style="left:19px;top:257px">02. MOTION NOTES (EYE BEHAVIOR)</div>
+  <i class="oe__rule oe__rule--b" style="left:8px;top:273px;width:448px"></i>
+  <i class="oe__vdiv" style="left:150px;top:282px;height:163px"></i>
+  <i class="oe__vdiv" style="left:301px;top:282px;height:163px"></i>
+
+  {celdas.map((c) => (
+    <>
+      <i class="oe__hair" style={`left:${c.r0}px;top:285px;width:${c.r1 - c.r0}px`}></i>
+      <div class="oe__ch" style={`left:${c.x}px;top:281px;width:${c.w}px`}>{c.rot}</div>
+
+      <div class="oe__dia" style={`left:${c.cx - 70}px;top:298px`} aria-hidden="true">
+        <svg viewBox="-70 -40 140 80" width="140" height="80">
+          <g class="oe__grid">
+            {Array.from({ length: 11 }, (_, i) => -70 + i * 14).map((gx) => (
+              <line x1={gx} y1="-40" x2={gx} y2="40" />
+            ))}
+            {Array.from({ length: 7 }, (_, i) => -39 + i * 13).map((gy) => (
+              <line x1="-70" y1={gy} x2="70" y2={gy} />
+            ))}
+          </g>
+
+          {c.k === "blink" && (
+            <g fill="none" stroke="currentColor">
+              {dBlink.contornos.map((o) => (
+                <path
+                  d={`M${-o.rx} 0 Q0 ${-o.ry * 2.1} ${o.rx} 0 Q0 ${o.ry * 2.1} ${-o.rx} 0`}
+                  stroke-width="0.35" opacity={p2(o.o * 0.35)} stroke-dasharray="1.2 2.6"
+                />
+              ))}
+              {dBlink.puntos.map((p) => (
+                <circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />
+              ))}
+              {dBlink.nucleo.map((p) => (
+                <circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />
+              ))}
+              <line x1="-70" y1="0" x2="70" y2="0" stroke-width="0.6" opacity="0.75" />
+              <ellipse cx="0" cy="0" rx="17" ry="4.6" fill="currentColor" stroke="none" opacity="0.4" />
+            </g>
+          )}
+
+          {c.k === "scan" && (
+            <g fill="none" stroke="currentColor">
+              {dScan.radios.map((s) => (
+                <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke-width="0.32" opacity={s.o} />
+              ))}
+              {dScan.aros.map((a) => (
+                <ellipse cx={a.dx} cy="0" rx={a.rx} ry={a.ry} stroke-width={a.w} opacity={a.o} />
+              ))}
+              {dScan.arcos.map((a) => (
+                <path d={a.d} stroke-width={a.w} opacity={a.o} />
+              ))}
+              {dScan.cuna.map((p) => (
+                <circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />
+              ))}
+              <line x1="-70" y1="0" x2="70" y2="0" stroke-width="0.5" opacity="0.5" />
+              <line x1="0" y1="-38" x2="0" y2="38" stroke-width="0.4" opacity="0.4" />
+              <ellipse cx="26" cy="0" rx="7" ry="3" fill="currentColor" stroke="none" opacity="0.75" />
+              <line x1="26" y1="0" x2="60" y2="0" stroke-width="1.1" opacity="0.7" />
+            </g>
+          )}
+
+          {c.k === "pulse" && (
+            <g fill="none" stroke="currentColor">
+              {dPulse.rayos.map((s) => (
+                <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke-width={s.w} opacity={s.o} />
+              ))}
+              {dPulse.aros.map((a) => (
+                <ellipse cx="0" cy="0" rx={a.rx} ry={a.ry} stroke-width={a.w} opacity={a.o} />
+              ))}
+              {dPulse.motas.map((p) => (
+                <circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />
+              ))}
+              <line x1="-70" y1="0" x2="70" y2="0" stroke-width="0.5" opacity="0.55" />
+              <ellipse cx="0" cy="0" rx="4.6" ry="3.6" fill="currentColor" stroke="none" opacity="0.5" />
+            </g>
+          )}
+        </svg>
+      </div>
+
+      <i class="oe__hair oe__hair--tbl" style={`left:${c.r0}px;top:375px;width:${c.r1 - c.r0}px`}></i>
+      <i class="oe__hair oe__hair--tbl" style={`left:${c.r0}px;top:396px;width:${c.r1 - c.r0}px`}></i>
+      <i class="oe__vdiv oe__vdiv--tbl" style={`left:${c.div}px;top:379px;height:66px`}></i>
+
+      <div class="oe__tl" style={`left:${c.lab}px;top:381px`}>DURATION</div>
+      <div class="oe__tv" style={`left:${c.val}px;top:381px`} data-symbolic="true">{c.dur}</div>
+      <div class="oe__tl" style={`left:${c.lab}px;top:404px`}>BEHAVIOR</div>
+      {c.beh.map((b, i) => (
+        <div class="oe__tb" style={`left:${c.val}px;top:${404 + i * 12.5}px`}>{b}</div>
+      ))}
+    </>
+  ))}
+
+  {/* ═══════════ 03 · UI CHIPS & DETECTION LABELS ═══════════ */}
+  <div class="oe__frame oe__frame--c" style="left:8px;top:467px;width:448px;height:291px"></div>
+  <div class="oe__h1 oe__h1--c" style="left:19px;top:473px">03. UI CHIPS &amp; DETECTION LABELS</div>
+  <i class="oe__rule oe__rule--c" style="left:8px;top:490px;width:448px"></i>
+
+  {chips1.map((c) => (
+    <div class={`oe__chip${c.rojo ? " oe__chip--rojo" : ""}`} style={`left:${c.x}px;top:498px;width:${c.w}px;height:22px`}>{c.t}</div>
+  ))}
+  {chips2.map((c) => (
+    <div class={`oe__chip${c.rojo ? " oe__chip--rojo" : ""}`} style={`left:${c.x}px;top:528px;width:${c.w}px;height:23px`}>{c.t}</div>
+  ))}
+
+  <i class="oe__hair oe__hair--tbl" style="left:15px;top:561px;width:147px"></i>
+
+  {iconos1.map((c) => (
+    <div class="oe__ibox" style={`left:${c.x}px;top:571px;width:${c.w}px;height:53px`}>
+      {c.a ? (
+        <>
+          <div class="oe__ia">{c.a}</div>
+          <div class="oe__ib">{c.b}</div>
+          <svg class="oe__tira" viewBox={`0 0 ${c.w - 22} 5`} width={c.w - 22} height="5" aria-hidden="true">
+            {tira(c.s, c.w - 22).map((m) => (
+              <rect x={m.x} y="1.6" width={m.w} height="1.8" fill="currentColor" opacity={m.o} />
+            ))}
+            <circle cx={p2((c.w - 22) / 2)} cy="2.5" r="1.5" fill="none" stroke="currentColor" stroke-width="0.5" opacity="0.8" />
+          </svg>
+        </>
+      ) : (
+        <svg class="oe__brujula" viewBox="-19 -19 38 38" width="38" height="38" aria-hidden="true">
+          <g fill="none" stroke="currentColor" stroke-width="0.7" opacity="0.85">
+            <circle cx="0" cy="0" r="11.4" />
+            <path d="M0 -16.4L9.2 -7.2L16.4 0L9.2 7.2L0 16.4L-9.2 7.2L-16.4 0L-9.2 -7.2Z" />
+            <path d="M0 -11.4L6.4 -5L6.4 5L0 11.4L-6.4 5L-6.4 -5Z" opacity="0.7" />
+            <path d="M-16.4 0L-11.4 0 M16.4 0L11.4 0 M0 -16.4L0 -11.4 M0 16.4L0 11.4" />
+            <circle cx="0" cy="0" r="3.6" />
+            <path d="M-1.8 1L0 -1.6L1.8 1Z" fill="currentColor" stroke="none" opacity="0.9" />
+          </g>
+        </svg>
+      )}
+    </div>
+  ))}
+
+  {iconos2.map((c) => (
+    <div class="oe__gbox" style={`left:${c.x}px;top:639px;width:${c.w}px;height:109px`}>
+      <svg class="oe__glifo" viewBox="-34 -34 68 68" width={c.w - 2} height="70" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <g class="oe__grid oe__grid--g">
+          {[-30, -15, 0, 15, 30].map((g) => (<line x1={g} y1="-32" x2={g} y2="32" />))}
+          {[-30, -15, 0, 15, 30].map((g) => (<line x1="-32" y1={g} x2="32" y2={g} />))}
+        </g>
+        <g fill="none" stroke="currentColor" stroke-width="0.7">
+          {c.g === "retina" && (
+            <g>
+              {gRetina.rayos.map((s) => (<line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke-width="0.5" opacity="0.35" stroke-dasharray="1.4 2" />))}
+              {gRetina.puntos.map((p) => (<circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />))}
+              <circle cx="0" cy="0" r="12.4" opacity="0.9" />
+              <circle cx="0" cy="0" r="6.4" opacity="0.85" />
+              <circle cx="0" cy="0" r="2.4" fill="currentColor" stroke="none" opacity="0.8" />
+              <path d="M-19 0L-13 0 M19 0L13 0 M0 -19L0 -13 M0 19L0 13" opacity="0.75" />
+            </g>
+          )}
+          {c.g === "ojo" && (
+            <g>
+              <path d="M-25 0Q0 -19 25 0Q0 19 -25 0Z" opacity="0.95" stroke-width="1" />
+              <path d="M-19.6 0Q0 -13.4 19.6 0Q0 13.4 -19.6 0Z" opacity="0.55" />
+              <circle cx="0" cy="0" r="8.4" opacity="0.95" stroke-width="1" />
+              <path d="M0 -7.4Q4.4 0 0 7.4Q-4.4 0 0 -7.4Z" opacity="0.95" />
+              <path d="M-24 0L-16.4 -4.6L-16.4 4.6Z" opacity="0.75" />
+              <path d="M24 0L16.4 -4.6L16.4 4.6Z" opacity="0.75" />
+              <path d="M0 -12.6L0 -19 M0 12.6L0 19" opacity="0.7" />
+              <path d="M-6 -19L6 -19 M-6 19L6 19" opacity="0.7" />
+            </g>
+          )}
+          {c.g === "hash" && (
+            <g>
+              <path d="M0 -26L21 -3L0 26L-21 -3Z" opacity="0.9" />
+              <path d="M0 -26L14 6L-14 6Z" opacity="0.9" />
+              <path d="M-14 6L14 6L8 22L-8 22Z" opacity="0.7" />
+              <ellipse cx="0" cy="1" rx="9" ry="7" opacity="0.85" />
+              <ellipse cx="0" cy="1" rx="4.6" ry="3.6" opacity="0.7" />
+              <path d="M-21 -3L-26 -3 M21 -3L26 -3 M0 26L0 30 M0 -26L0 -30" opacity="0.7" />
+            </g>
+          )}
+          {c.g === "qlty" && (
+            <g>
+              {gQlty.radios.map((s) => (<line x1="0" y1="0" x2={s.x2} y2={s.y2} stroke-width="0.35" opacity="0.28" />))}
+              {gQlty.aros.map((a) => (<circle cx="0" cy="0" r={a.r} stroke-width={a.w} opacity={a.o} />))}
+              {gQlty.puntos.map((p) => (<circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />))}
+              <circle cx="-2" cy="2" r="14" opacity="0.6" />
+              <circle cx="3" cy="-2" r="20" opacity="0.5" />
+              <line x1="-2" y1="2" x2="22" y2="-19" stroke-width="1.5" opacity="0.95" />
+              <circle cx="-2" cy="2" r="2.6" fill="currentColor" stroke="none" opacity="0.95" />
+              <path d="M-30 0L-24 0 M30 0L24 0 M0 -30L0 -24 M0 30L0 24" opacity="0.6" />
+            </g>
+          )}
+          {c.g === "conf" && (
+            <g>
+              {gConf.aros.map((a) => (<circle cx="0" cy="0" r={a.r} stroke-width={a.w} opacity={p2(a.o * 0.7)} stroke-dasharray="1.4 2.2" />))}
+              {gConf.puntos.map((p) => (<circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p.o} />))}
+              <ellipse cx="0" cy="0" rx="7.6" ry="5.4" opacity="0.95" />
+              <path d="M-2.6 -1.4L0 1.8L2.6 -1.4" opacity="0.95" />
+              <circle cx="0" cy="0" r="15.6" opacity="0.4" />
+              <circle cx="0" cy="0" r="22.4" opacity="0.32" />
+            </g>
+          )}
+          {c.g === "coher" && (
+            <g>
+              {gCoher.puntos.map((p) => (<circle cx={p.x} cy={p.y} r={p.r} fill="currentColor" stroke="none" opacity={p2(p.o * 0.7)} />))}
+              <circle cx="0" cy="0" r="24" opacity="0.95" stroke-width="1" />
+              {gCoher.arcos.map((a) => (
+                <path d="M-24 0A24 24 0 0 1 24 0" opacity="0.35" transform={`rotate(${a.rot})`} />
+              ))}
+              <path d="M-24 0L24 0 M0 -24L0 24" opacity="0.35" />
+              <path d="M-30 0L-24 0 M30 0L24 0 M0 -30L0 -24 M0 30L0 24" opacity="0.6" />
+              <circle cx="0" cy="0" r="2" fill="currentColor" stroke="none" opacity="0.5" />
+            </g>
+          )}
+        </g>
+      </svg>
+      <i class="oe__gsplit"></i>
+      <div class="oe__ga">{c.a}</div>
+      <div class="oe__gb" data-symbolic="true">{c.b}</div>
+    </div>
+  ))}
+</div>
+
+<style>
+  /* `position:absolute` explícito: el estilo con ámbito del componente gana por
+     orden de cascada a `.kdx-lam [data-box]`, y con `relative` el bloque se
+     acomoda en el flujo y aparece desplazado. */
+  .oe {
+    position: absolute;
+    overflow: hidden;
+    box-sizing: border-box;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: #6f6c68;
+    --pu: #a45fd8;
+    --cy: #12b6c6;
+    --wh: #c6c6c6;
+    --rj: #c2382e;
+  }
+  .oe :global(*) { box-sizing: border-box; }
+
+  /* ── marcos ──────────────────────────────────────────────────────────── */
+  /* El filete de las tres secciones NO tiene el mismo peso: 27 · 15 · 14 de
+     luminancia medidos en la referencia. Es el gradiente de la lámina, no
+     ruido, y aplanarlo se nota en el diff estructural. */
+  .oe__frame {
+    position: absolute;
+    border: 1px solid #1c1a1b;
+    border-left-width: 2px;
+    border-left-color: #232323;
+  }
+  .oe__frame--b { border-color: #100f10; border-left-color: #232323; }
+  .oe__frame--c { border-color: #0f0e0f; border-left-color: #232323; }
+
+  .oe__rule { position: absolute; height: 1px; }
+  .oe__rule--a { background: #161615; box-shadow: 0 -1px 0 #100f0f; }
+  .oe__rule--b { background: #131213; }
+  .oe__rule--c { background: #0c0b0c; }
+
+  .oe__vdiv { position: absolute; width: 1px; background: #191818; }
+  .oe__vdiv--tbl { background: #131212; }
+  .oe__hair { position: absolute; height: 1px; background: #131212; }
+  .oe__hair--tbl { background: #0a090a; }
+
+  /* ── títulos de sección ──────────────────────────────────────────────── */
+  .oe__h1 {
+    position: absolute;
+    font-size: 11px; line-height: 12px; letter-spacing: -0.25px;
+    color: #9c62cc; white-space: nowrap;
+  }
+  .oe__h1--c { color: #8f5abb; }
+
+  /* ── 01 · tarjetas de estado ─────────────────────────────────────────── */
+  .oe__mark { position: absolute; display: block; }
+  .oe__mark--lock { color: #a054cf; }
+  .oe__mark--track { color: #0f9ea6; }
+  .oe__mark--idle { color: #a9a9a9; }
+
+  .oe__card {
+    position: absolute; left: 78px; width: 372px; height: 53px;
+    border: 1px solid var(--b);
+    color: var(--t);
+  }
+  .oe__card--lock { --b: #341648; --t: #b84cf0; --h: #2a0b45; }
+  .oe__card--track { --b: #0f3138; --t: #0dc0d6; --h: #06333c; }
+  .oe__card--idle { --b: #2e2d2d; --t: #cfcfcf; --h: #232323; }
+
+  .oe__rot {
+    position: absolute; left: 22px; top: 3px;
+    font-size: 21px; line-height: 22px; letter-spacing: -1.6px;
+    color: var(--t);
+    text-shadow: 0 0 4px color-mix(in srgb, var(--t) 26%, transparent);
+  }
+  .oe__sub {
+    position: absolute; right: 106px; top: 8px;
+    font-size: 9px; line-height: 10px; letter-spacing: -0.4px;
+    color: #8b8a89; white-space: nowrap;
+  }
+  .oe__kv {
+    position: absolute; right: 108px; top: 26px;
+    font-size: 9px; line-height: 10px; letter-spacing: -0.4px;
+    color: #8b8a89; white-space: nowrap;
+  }
+  .oe__val {
+    position: absolute; right: 118px; top: 35px;
+    font-size: 12px; line-height: 13px; letter-spacing: -0.1px;
+    color: var(--t); white-space: nowrap;
+  }
+  .oe__wave { position: absolute; left: 12px; display: block; color: var(--t); }
+
+  .oe__cardsplit {
+    position: absolute; left: 191px; top: 0; width: 2px; height: 100%;
+    background: linear-gradient(90deg, #4a4a4a, #262626);
+    opacity: 0.55;
+  }
+
+  .oe__thumb {
+    position: absolute; left: 193px; top: 0; width: 178px; height: 51px;
+    overflow: hidden; color: var(--t);
+    background: radial-gradient(84% 150% at 50% 50%, var(--h) 0%, #05040a 78%, #000 100%);
+  }
+  .oe__thumb svg { display: block; }
+  .oe__spec { fill: #ffffff; opacity: 0.9; }
+  .oe__card--idle .oe__thumb { background: radial-gradient(84% 150% at 50% 50%, #262626 0%, #070707 78%, #000 100%); }
+
+  /* ── 02 · notas de movimiento ────────────────────────────────────────── */
+  .oe__ch {
+    position: absolute;
+    font-size: 12px; line-height: 11px; letter-spacing: 0.35px;
+    color: #8a8a88; text-align: center;
+  }
+  .oe__dia { position: absolute; width: 140px; height: 80px; color: #a154d6; }
+  .oe__dia svg { display: block; }
+  .oe__grid { stroke: #171320; stroke-width: 0.4; fill: none; }
+  .oe__grid--g { stroke: #14101c; }
+
+  .oe__tl {
+    position: absolute;
+    font-size: 9px; line-height: 10px; letter-spacing: -0.35px;
+    color: #767573; white-space: nowrap;
+  }
+  .oe__tv {
+    position: absolute;
+    font-size: 9.5px; line-height: 10px; letter-spacing: -0.1px;
+    color: #8e8d8b; white-space: nowrap;
+  }
+  .oe__tb {
+    position: absolute;
+    font-size: 8.2px; line-height: 10px; letter-spacing: -0.5px;
+    color: #767573; white-space: nowrap;
+  }
+
+  /* ── 03 · chips e iconos ─────────────────────────────────────────────── */
+  .oe__chip {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #2a1a33;
+    font-size: 9px; letter-spacing: -0.2px;
+    color: #8d68a8; white-space: nowrap;
+  }
+  .oe__chip--rojo { border-color: #3b1310; color: #b2382c; }
+
+  .oe__ibox { position: absolute; border: 1px solid #232222; color: #8d8c8b; }
+  .oe__ia {
+    position: absolute; left: 0; right: 0; top: 8px;
+    text-align: center; font-size: 9.5px; line-height: 10px; letter-spacing: -0.1px;
+    color: #86857f;
+  }
+  .oe__ib {
+    position: absolute; left: 0; right: 0; top: 22px;
+    text-align: center; font-size: 11px; line-height: 12px; letter-spacing: -0.1px;
+    color: #a3a29e;
+  }
+  .oe__tira { position: absolute; left: 11px; bottom: 6px; display: block; color: #7e7d7b; }
+  .oe__brujula { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #b4b3b0; }
+
+  .oe__gbox { position: absolute; border: 1px solid #322f31; color: #9a52c6; }
+  .oe__glifo { position: absolute; left: 0; top: 0; display: block; }
+  .oe__gsplit { position: absolute; left: 0; right: 0; top: 69px; height: 1px; background: #262427; }
+  .oe__ga {
+    position: absolute; left: 0; right: 0; top: 78px;
+    text-align: center; font-size: 8.6px; line-height: 9px; letter-spacing: -0.35px;
+    color: #7c7b79; white-space: nowrap;
+  }
+  .oe__gb {
+    position: absolute; left: 0; right: 0; top: 91px;
+    text-align: center; font-size: 9.2px; line-height: 10px; letter-spacing: -0.25px;
+    color: #8e8d8b; white-space: nowrap;
+  }
+</style>

@@ -1,0 +1,513 @@
+---
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* Los cuatro diagramas de la referencia son el MISMO instrumento visto a cuatro
+   profundidades. Medido sobre la referencia con un perfil radial (brillo medio
+   por radio, centro en el cruce de la retícula) da siempre la misma silueta:
+
+     r 0–2.5   núcleo blanco caliente (230)
+     r 4–18    meseta baja (20–35): telaraña de radios, casi sin anillos
+     r 18.5–26 RACIMO principal, joroba suave con pico en 22 (85–160)
+     r 27–29.5 arco suelto (28)      r 30.5–31 valle (15)
+     r 32–33   segundo arco (35–44)  r 34–38 valle (12)
+     r 39–42   campo lejano que vuelve a subir y el viewBox recorta
+
+   La joroba del racimo es SUAVE, no cuatro anillos separados: son ~11 anillos
+   finos superpuestos con opacidad gaussiana. Ese es el error que se veía antes
+   (pocos anillos, todos iguales, demasiado limpios).
+
+   Lo que cambia entre estados (medido, no inventado):
+     brillo pico del racimo  SURFACE 177 · DROP 240 · DEEP 233 · VOID 168
+     color pico              b15617 · f09c19 · e9511c · a82123
+     zona interior r 6–11    SURFACE vacía · DROP anillo nítido en 9
+                             DEEP anillo ancho y más apagado en 8.5
+                             VOID el anillo ya no cierra: arcos sueltos
+   O sea: el descenso ilumina primero y después se apaga y se rompe. */
+
+/* Celda del diagrama medida en la referencia: 83 px de ancho por 59 de alto, y
+   el centro NO está centrado — cae a 31 px del filo izquierdo (37 %), así que
+   el campo sigue hacia la derecha y el viewBox lo recorta por el otro lado. */
+const CX = 31;
+const CY = 29;
+const W = 83;
+const H = 58;
+
+const pt = (r: number, deg: number) => {
+  const a = (deg * Math.PI) / 180;
+  return [CX + r * Math.cos(a), CY + r * Math.sin(a)];
+};
+
+const seg = (r0: number, r1: number, deg: number) => {
+  const [x0, y0] = pt(r0, deg);
+  const [x1, y1] = pt(r1, deg);
+  return `M${x0.toFixed(2)} ${y0.toFixed(2)} L${x1.toFixed(2)} ${y1.toFixed(2)}`;
+};
+
+const spokes = (n: number, r0: number, r1: number, off = 0) =>
+  Array.from({ length: n }, (_, i) => seg(r0, r1, (360 / n) * i + off)).join(" ");
+
+/* PRNG con semilla: la irregularidad de la referencia tiene que ser estable
+   entre builds (si no, cada captura del banco de pruebas mide otra lámina). */
+const rng = (seed: number) => {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+type Ring = { r: number; op: number; w: number; dx?: number; dy?: number; sweep?: number; from?: number };
+
+/* Racimo: n anillos finos entre r0 y r1 con opacidad gaussiana centrada en el
+   pico. Dos cosas importan acá y son las que faltaban antes:
+
+   1. Los anillos NO son concéntricos. Barriendo la referencia por sectores, el
+      máximo del racimo se corre de radio según el sector (en SURFACE, 19.6 mirando
+      arriba-izquierda y 22.4 mirando abajo-derecha) y en algunos sectores el valle
+      entre anillos desaparece. Eso sólo pasa si cada aro está descentrado un poco.
+   2. Varios no cierran: son tramos largos, no círculos.
+
+   Sin esas dos cosas los aros se apilan perfectos y el racimo lee como una rosca
+   de degradado — que es exactamente lo que se veía de más en la versión anterior. */
+/* 3. AÑADIDO tras medir de nuevo el racimo aro por aro: la joroba gaussiana sola
+      producía una ROSCA continua. En la referencia, sobre esa joroba hay un
+      PEINE: contando en el perfil radial salen 5 aros nítidos entre r 18 y r 26
+      (≈1,7 px de paso) separados por hueco casi negro. Sin el peine el racimo
+      lee como un donut de degradado — que es justo lo que sobraba. */
+const cluster = (
+  r0: number, r1: number, peak: number, n: number, sigma: number,
+  max: number, seed: number, comb = 1.7, depth = 0.6,
+): Ring[] => {
+  const rnd = rng(seed * 31 + 9);
+  return Array.from({ length: n }, (_, i) => {
+    const r = r0 + ((r1 - r0) * i) / (n - 1);
+    const g = Math.exp(-(((r - peak) / sigma) ** 2));
+    const c = 1 - depth + depth * (0.5 + 0.5 * Math.cos((2 * Math.PI * (r - r0)) / comb));
+    const open = rnd() < 0.45;
+    return {
+      r,
+      op: max * (0.1 + 0.9 * g) * c,
+      w: 0.34 + 0.26 * g,
+      dx: (rnd() - 0.5) * 1.5,
+      dy: (rnd() - 0.5) * 1.3,
+      from: rnd() * 360,
+      sweep: open ? 130 + rnd() * 170 : 360,
+    };
+  });
+};
+
+/* Trama interior (r 4–17). Medida como una meseta baja pero NO vacía: en la
+   referencia esa zona está rayada de aros tenues e incompletos, y es la mitad
+   de la densidad del instrumento. Antes estaba en negro y por eso los cuatro
+   diagramas leían limpios y simples. */
+const hatch = (seed: number, n: number, r0: number, r1: number): Ring[] => {
+  const rnd = rng(seed * 17 + 3);
+  return Array.from({ length: n }, (_, i) => {
+    const r = r0 + ((r1 - r0) * i) / (n - 1) + (rnd() - 0.5) * 0.6;
+    const open = rnd() < 0.6;
+    return {
+      r,
+      op: 0.08 + rnd() * 0.13,
+      w: 0.28 + rnd() * 0.1,
+      dx: (rnd() - 0.5) * 1.2,
+      dy: (rnd() - 0.5) * 1,
+      from: rnd() * 360,
+      sweep: open ? 80 + rnd() * 210 : 360,
+    };
+  });
+};
+
+/* Arcos incompletos. pathLength=360 deja escribir el dash en GRADOS. */
+type Arc = { r: number; from: number; sweep: number; op: number; w: number };
+const dash = (a: Arc) => `${a.sweep} ${360 - a.sweep}`;
+
+type Row = {
+  key: string;
+  title: string;
+  lines: string[];
+  acc: string;      // trazo del campo
+  core: string;     // núcleo caliente
+  glow: string;     // halo de fondo
+  max: number;      // opacidad del campo (telaraña, arcos lejanos, marcas)
+  /* El núcleo de la referencia NO es blanco: el píxel central mide
+     232,88,0 · 229,123,0 · 208,32,9 · 201,4,19. Es el acento a plena
+     saturación, no una brasa lavada. `cop` es su brillo. */
+  cop: number;
+  bmax: number;     // opacidad pico del racimo: va aparte porque los anillos se
+                    // superponen y el alfa se suma; se calibró contra el perfil
+                    // radial medido en la referencia, no a ojo.
+  cluster: [number, number, number, number, number]; // r0, r1, pico, nº, sigma
+  comb: [number, number]; // paso del peine y profundidad del hueco
+  hatch: [number, number, number]; // nº de aros de trama, r0, r1
+  inner: Ring[];    // zona r 6–11
+  innerArcs: Arc[]; // lo que queda del anillo interior cuando se rompe
+  n: number;        // radios brillantes
+  web: number;      // radios finos de la telaraña
+  seed: number;
+};
+
+const rows: Row[] = [
+  {
+    key: "surface",
+    title: "SURFACE",
+    lines: ["Signal normal. Reality stable.", "Patterns visible.", "Awareness external."],
+    /* El acento estaba demasiado amarillo: en los píxeles de más de 50 de luma
+       la referencia da rgb(133,47,6) → g/r 0,36, y esta capa daba 0,51. */
+    acc: "#ff6316", core: "#ff5200", glow: "#63220a",
+    max: 0.62, cop: 0.88, bmax: 0.58, cluster: [18.6, 26.4, 22.1, 24, 3.2],
+    comb: [1.75, 0.6], hatch: [11, 5, 17.2],
+    inner: [], innerArcs: [],
+    n: 8, web: 17, seed: 11,
+  },
+  {
+    key: "drop",
+    title: "DROP",
+    lines: ["Threshold crossed.", "Gravity increases.", "Orientation shifts."],
+    /* referencia g/r 0,46 (aquí daba 0,63) y luma media 24,0 (aquí 31,4): era
+       el panel que más se pasaba de brillo, no sólo de temperatura. */
+    acc: "#ff7d14", core: "#ff6e00", glow: "#743206",
+    max: 0.76, cop: 0.82, bmax: 0.72, cluster: [18.4, 27.2, 22, 26, 3.4],
+    comb: [1.8, 0.54], hatch: [12, 11, 17.4],
+    inner: [{ r: 9.2, op: 0.95, w: 0.7 }, { r: 8.2, op: 0.3, w: 0.4 }, { r: 10, op: 0.4, w: 0.45 }],
+    innerArcs: [],
+    n: 12, web: 19, seed: 23,
+  },
+  {
+    key: "deep",
+    title: "DEEP",
+    lines: ["Signal density high.", "Symbols align.", "Self dissolves."],
+    /* DEEP es el de aros más SEPARADOS de los cuatro: en la referencia se
+       cuentan uno por uno con hueco negro entre medio, y el anillo interior
+       de r 8 es tan nítido como el racimo (acá estaba medio borrado). */
+    acc: "#ff350f", core: "#ff2006", glow: "#661204",
+    max: 0.7, cop: 0.78, bmax: 0.7, cluster: [18.5, 27, 22.4, 26, 3.4],
+    comb: [1.65, 0.7], hatch: [13, 11.2, 17.6],
+    inner: [{ r: 8.2, op: 0.92, w: 0.62 }, { r: 6.4, op: 0.4, w: 0.42 }, { r: 9.6, op: 0.34, w: 0.42 }],
+    innerArcs: [{ r: 10.6, from: 196, sweep: 96, op: 0.44, w: 0.45 }],
+    n: 12, web: 21, seed: 37,
+  },
+  {
+    key: "void",
+    title: "VOID",
+    lines: ["Form collapses.", "Only pattern remains.", "Archive receives."],
+    /* El único cuyo color ya medía bien (g/r 0,10). Lo que le faltaba era
+       ALCANCE: la referencia tiene 140 píxeles sobre 50 de luma y esta capa
+       sólo 101, con el pico 12 puntos más bajo. Sube el núcleo, no el fondo. */
+    acc: "#ff1e1c", core: "#ff0414", glow: "#4c0c03",
+    max: 0.56, cop: 0.86, bmax: 0.62, cluster: [18.3, 26.8, 22.3, 26, 3.3],
+    comb: [1.9, 0.74], hatch: [12, 11.8, 17.4],
+    /* Corrección: mirando la referencia de cerca, en VOID el anillo de r 8
+       TODAVÍA cierra — es el aro que lleva la rueda de radios. Lo que se
+       rompe en tramos es lo de r 9 para afuera. */
+    inner: [{ r: 8.2, op: 0.9, w: 0.55 }, { r: 6.5, op: 0.34, w: 0.4 }],
+    innerArcs: [
+      { r: 9.4, from: 24, sweep: 74, op: 0.9, w: 0.55 },
+      { r: 10.5, from: 150, sweep: 96, op: 0.95, w: 0.55 },
+      { r: 11.3, from: 300, sweep: 70, op: 0.7, w: 0.45 },
+    ],
+    n: 12, web: 23, seed: 53,
+  },
+];
+
+/* Campo lejano: los dos arcos medidos (28.6 y 32.4) llegan más marcados que el
+   resto; de 38 para afuera sólo asoman por los cantos, que es lo que recorta el
+   viewBox. */
+const farRings: Ring[] = [
+  { r: 28.6, op: 0.5, w: 0.5 },
+  { r: 30, op: 0.2, w: 0.4 },
+  { r: 32.1, op: 0.5, w: 0.55 },
+  { r: 32.9, op: 0.42, w: 0.45 },
+  { r: 34.3, op: 0.16, w: 0.4 },
+  { r: 36.5, op: 0.14, w: 0.4 },
+  { r: 39.4, op: 0.24, w: 0.45 },
+  { r: 41.8, op: 0.28, w: 0.45 },
+  { r: 44.1, op: 0.1, w: 0.4 },
+  { r: 46.6, op: 0.12, w: 0.4 },
+  { r: 49.4, op: 0.09, w: 0.4 },
+  { r: 52.3, op: 0.11, w: 0.4 },
+  { r: 55.6, op: 0.08, w: 0.4 },
+  { r: 59, op: 0.09, w: 0.4 },
+];
+
+/* Micro-marcas: trazos tangentes cortos sueltos por todo el campo. Son las que
+   dan la sensación de instrumento y no de gráfico vectorial. */
+type Mark = { d: string; op: number; w: number };
+const marks = (seed: number, count: number): Mark[] => {
+  const r = rng(seed);
+  return Array.from({ length: count }, () => {
+    const rad = 12 + r() * 26;
+    const deg = r() * 360;
+    const len = 1.2 + r() * 2.6;
+    return { d: seg(rad - len / 2, rad + len / 2, deg), op: 0.28 + r() * 0.5, w: 0.35 + r() * 0.35 };
+  });
+};
+
+/* Fragmentos de arco fuera del racimo: rompen los círculos completos. */
+const shards = (seed: number, count: number): Arc[] => {
+  const r = rng(seed * 7 + 1);
+  return Array.from({ length: count }, () => ({
+    r: 13 + r() * 22,
+    from: r() * 360,
+    sweep: 14 + r() * 62,
+    op: 0.16 + r() * 0.3,
+    w: 0.35 + r() * 0.25,
+  }));
+};
+
+/* Telaraña: radios finos que no arrancan todos del mismo sitio. */
+const web = (seed: number, n: number) => {
+  const rnd = rng(seed * 13 + 5);
+  return Array.from({ length: n }, (_, i) => {
+    const deg = (360 / n) * i + (rnd() - 0.5) * 3;
+    return seg(11 + rnd() * 7, 26 + rnd() * 26, deg);
+  }).join(" ");
+};
+---
+
+<div data-box style={box} class="kdx-panel stprog">
+  <div class="kdx-panel__title">02. State Progression</div>
+
+  {rows.map((r) => (
+    <div class="stprog__row">
+      {/* El diagrama no mide nada: es el emblema del estado, no un instrumento. */}
+      <div class="stprog__dia" data-symbolic="true" aria-hidden="true">
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMinYMid slice">
+          <defs>
+            {/* El fondo de la referencia es casi negro: el halo es corto y flojo,
+                todo el brillo lo ponen los trazos. */}
+            <radialGradient id={`sp-glow-${r.key}`} cx={`${(CX / W) * 100}%`} cy="50%" r="52%">
+              <stop offset="0%" stop-color={r.glow} stop-opacity="0.2" />
+              <stop offset="40%" stop-color={r.glow} stop-opacity="0.07" />
+              <stop offset="100%" stop-color="#000" stop-opacity="0" />
+            </radialGradient>
+            {/* Bloom: el racimo se repite desenfocado. Sin esto los anillos
+                quedan de vector limpio y la referencia sangra luz. Pero iba
+                demasiado cargado (0,17 · σ 1,1) y el halo se comía los huecos
+                entre aros: en la referencia el fondo entre aros es casi negro. */}
+            <filter id={`sp-bloom-${r.key}`} x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="0.85" />
+            </filter>
+          </defs>
+
+          <rect width={W} height={H} fill={`url(#sp-glow-${r.key})`} />
+
+          <g stroke={r.acc} fill="none" stroke-linecap="round">
+            {/* campo lejano + telaraña */}
+            <g>
+              {farRings.map((f) => (
+                <circle cx={CX} cy={CY} r={f.r} opacity={f.op * r.max} stroke-width={f.w} />
+              ))}
+              <path d={web(r.seed, r.web)} stroke-width="0.32" opacity={0.22 * r.max} />
+              {/* Rejilla polar de fuera del racimo: en la referencia los radios
+                  largos se ven tanto como los arcos y son los que arman el
+                  cuadriculado que asoma por el canto derecho. */}
+              <path d={spokes(18, 27, 62, 4)} stroke-width="0.4" opacity={0.24 * r.max} />
+              <path d={spokes(36, 30, 62, 9)} stroke-width="0.26" opacity={0.07 * r.max} />
+            </g>
+
+            {/* trama interior: la meseta baja rayada */}
+            {hatch(r.seed, ...r.hatch).map((c) => (
+              <circle
+                cx={CX + (c.dx ?? 0)}
+                cy={CY + (c.dy ?? 0)}
+                r={c.r}
+                pathLength="360"
+                stroke-dasharray={`${c.sweep} ${360 - (c.sweep ?? 360)}`}
+                stroke-dashoffset={-(c.from ?? 0)}
+                stroke-width={c.w}
+                opacity={c.op * r.max}
+              />
+            ))}
+
+            {/* fragmentos de arco: círculos que no cierran */}
+            {shards(r.seed, 9).map((a) => (
+              <circle
+                cx={CX}
+                cy={CY}
+                r={a.r}
+                pathLength="360"
+                stroke-dasharray={dash(a)}
+                stroke-dashoffset={-a.from}
+                stroke-width={a.w}
+                opacity={a.op * r.max}
+              />
+            ))}
+
+            {/* racimo principal, dos veces: desenfocado y nítido */}
+            <g opacity="0.09" filter={`url(#sp-bloom-${r.key})`}>
+              {cluster(...r.cluster, r.bmax, r.seed, ...r.comb).map((c) => (
+                <circle
+                  cx={CX + (c.dx ?? 0)}
+                  cy={CY + (c.dy ?? 0)}
+                  r={c.r}
+                  pathLength="360"
+                  stroke-dasharray={`${c.sweep} ${360 - (c.sweep ?? 360)}`}
+                  stroke-dashoffset={-(c.from ?? 0)}
+                  opacity={c.op}
+                  stroke-width={c.w * 1.3}
+                />
+              ))}
+            </g>
+            <g>
+              {cluster(...r.cluster, r.bmax, r.seed, ...r.comb).map((c) => (
+                <circle
+                  cx={CX + (c.dx ?? 0)}
+                  cy={CY + (c.dy ?? 0)}
+                  r={c.r}
+                  pathLength="360"
+                  stroke-dasharray={`${c.sweep} ${360 - (c.sweep ?? 360)}`}
+                  stroke-dashoffset={-(c.from ?? 0)}
+                  opacity={c.op}
+                  stroke-width={c.w}
+                />
+              ))}
+            </g>
+
+            {/* zona interior: entera, rota o ausente según el estado */}
+            {r.inner.map((c) => (
+              <circle cx={CX} cy={CY} r={c.r} opacity={c.op * r.max} stroke-width={c.w} />
+            ))}
+            {r.innerArcs.map((a) => (
+              <circle
+                cx={CX}
+                cy={CY}
+                r={a.r}
+                pathLength="360"
+                stroke-dasharray={dash(a)}
+                stroke-dashoffset={-a.from}
+                stroke-width={a.w}
+                opacity={a.op * r.max}
+              />
+            ))}
+
+            {/* radios brillantes */}
+            <path d={spokes(r.n, 3, r.cluster[1] + 1.4)} stroke-width="0.45" opacity={0.55 * r.max} />
+            <path d={spokes(r.n * 2, 19, 26, 360 / (r.n * 4))} stroke-width="0.3" opacity={0.35 * r.max} />
+
+            {/* retícula: cruz a sangre, como en la referencia */}
+            <g stroke-width="0.55" opacity={0.62 * r.max}>
+              <path d={`M0 ${CY} H${W}`} />
+              <path d={`M${CX} 0 V${H}`} />
+            </g>
+
+            {/* micro-marcas sueltas + las cuatro diagonales medidas en ±44° */}
+            {marks(r.seed, 22).map((m) => (
+              <path d={m.d} stroke-width={m.w} opacity={m.op * r.max} />
+            ))}
+            <path
+              d={[44, 136, 224, 316].map((d) => seg(20.4, 26.4, d)).join(" ")}
+              stroke-width="0.75"
+              opacity={r.max}
+            />
+          </g>
+
+          {/* núcleo: punto caliente + destello de ocho puntas */}
+          <g>
+            <circle cx={CX} cy={CY} r="4.2" fill={r.core} opacity="0.04" />
+            <circle cx={CX} cy={CY} r="2.5" fill={r.core} opacity="0.22" />
+            <path
+              d={`${[0, 45, 90, 135].map((d) => seg(-4.8, 4.8, d)).join(" ")}`}
+              stroke={r.core}
+              stroke-width="0.45"
+              stroke-linecap="round"
+              opacity="0.35"
+            />
+            <path
+              d={`M${CX - 5.8} ${CY} H${CX + 5.8} M${CX} ${CY - 5.2} V${CY + 5.2}`}
+              stroke={r.core}
+              stroke-width="0.6"
+              stroke-linecap="round"
+              opacity="0.6"
+            />
+            <circle cx={CX} cy={CY} r="1.7" fill={r.core} opacity={r.cop} />
+          </g>
+        </svg>
+      </div>
+
+      <div class="stprog__txt">
+        <h3 class="stprog__name">{r.title}</h3>
+        {r.lines.map((l) => <p class="stprog__line">{l}</p>)}
+      </div>
+    </div>
+  ))}
+</div>
+
+<style>
+  /* La caja exterior la fija `box`. El padding superior es mayor que el del
+     marco estándar porque el título montado sobre el borde come esa franja. */
+  /* Paso vertical medido en la referencia: caja de 59 px + 3 px de aire = 63 px
+     de fila a fila, y la primera empieza 29 px debajo del filo del marco. Antes
+     el hueco era de 5 px y la primera fila arrancaba a los 23 px: las cuatro
+     filas quedaban 7 px altas y las cajas 2 px más bajas de la cuenta.
+     El marco que baja el `box` es 6 px más corto que el de la referencia, así
+     que ese aire se le quita al pie: vale más que las cuatro filas caigan en su
+     sitio (ahí está el contenido) que conservar el margen de abajo. */
+  .stprog {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    /* Con la caja ya corregida a 297 px, el ancho útil de fila de la referencia
+       es 289 px (borde a borde) y con 8 px por lado quedaba en 278. El margen
+       de la referencia tampoco es simétrico: 6 px a la izquierda y 4 a la
+       derecha, medidos contra el filo del marco. */
+    padding: 19px 2px 0 6px;
+  }
+
+  /* Cada estado es una caja propia con hueco entre medio, no filas de una tabla:
+     en la referencia se ven los cuatro bordes de cada una. */
+  .stprog__row {
+    flex: 1 1 0;
+    display: flex;
+    min-height: 0;
+    border: 1px solid color-mix(in srgb, var(--lam-ink) 20%, transparent);
+    overflow: hidden;
+  }
+
+  .stprog__dia {
+    flex: 0 0 83px;
+    position: relative;
+    border-right: 1px solid color-mix(in srgb, var(--lam-ink) 20%, transparent);
+    background: #000;
+  }
+  .stprog__dia svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .stprog__txt {
+    flex: 1 1 auto;
+    min-width: 0;
+    /* Sangría del texto medida contra el filo del divisor: 10,7 px (había 9). */
+    padding: 6px 4px 0 10px;
+  }
+
+  .stprog__name {
+    font-family: var(--lam-display);
+    font-weight: 500;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    /* En la referencia este panel NO va a tinta plena: el pico del rótulo mide
+       158 y el de las descripciones 115, contra 216 de --lam-ink. Es un bloque
+       apagado, y en tinta plena se adelantaba a todo lo que tiene alrededor. */
+    color: color-mix(in srgb, var(--lam-ink) 54%, var(--lam-dim));
+  }
+
+  /* Medido en la referencia: 12 px de una línea a la siguiente (antes 11,5) y
+     5,38 px de avance por carácter. Con avance 0,62 em eso son 8,7 px de
+     cuerpo. La línea más larga ("Signal normal. Reality stable.", 29 caracteres)
+     entra entera: la celda de texto da 184 px y la línea pide 157. */
+  .stprog__line {
+    margin: 0;
+    font-size: 8.7px;
+    line-height: 12px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--lam-ink) 15%, var(--lam-dim));
+  }
+  .stprog__name + .stprog__line { margin-top: 4px; }
+</style>

@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>medidor de desborde</title>
+<!--
+  POR QUÉ EXISTE ESTO
+  ===================
+  Venía midiendo "desborde" contando píxeles con tinta en la última columna de
+  una captura. Es un proxy y da FALSOS POSITIVOS en dos casos:
+
+    · página de fondo claro  → el fondo mismo cuenta como tinta
+    · diseño que llega al borde a propósito → cuenta como si se cortara
+
+  Con eso marqué `folio/vi` como la página más rota del sitio. Está impecable.
+
+  Desborde horizontal es una sola cosa y es del DOM, no de los píxeles:
+
+      documentElement.scrollWidth > documentElement.clientWidth
+
+  Chrome headless con `--screenshot` no puede leer eso. Con `--dump-dom` sí,
+  pero necesita que alguien lo escriba en el documento. Eso hace esta página:
+  carga la ruta en un iframe del ancho pedido, lee las dos medidas desde adentro
+  —mismo origen, así que se puede— y las deja escritas en el DOM.
+
+  USO
+      /_medir.html?u=/kodex/vol/tribu&w=390&h=844
+      chrome --headless=new --dump-dom  → sale la línea RESULTADO
+
+  Devuelve además el ancho del elemento MÁS ANCHO que se sale, que es lo que
+  hace falta para arreglarlo: sin eso uno sabe que algo desborda y no qué.
+-->
+<style>
+  body { background:#111; color:#e8e5de; font:14px ui-monospace,monospace; margin:0; padding:12px }
+  #marco { border:0; display:block }
+  #salida { padding:10px 0; white-space:pre-wrap }
+</style>
+<div id="salida">midiendo…</div>
+<iframe id="marco"></iframe>
+<script>
+  const q = new URLSearchParams(location.search);
+  const u = q.get("u") || "/";
+  const w = +(q.get("w") || 390);
+  const h = +(q.get("h") || 844);
+
+  const marco = document.getElementById("marco");
+  marco.width = w; marco.height = h; marco.src = u;
+
+  const escribir = (t) => { document.getElementById("salida").textContent = t; };
+
+  marco.addEventListener("load", () => {
+    // Un cuadro de margen: dejar que el layout se asiente antes de medir.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try {
+        const d = marco.contentDocument;
+        const raiz = d.documentElement;
+        const sw = raiz.scrollWidth, cw = raiz.clientWidth;
+        const exceso = sw - cw;
+
+        // Quién se sale. Sin esto uno sabe QUE desborda y no QUÉ lo desborda.
+        let culpables = [];
+        if (exceso > 0) {
+          for (const el of d.querySelectorAll("*")) {
+            const r = el.getBoundingClientRect();
+            if (r.right > cw + 1 && r.width > 8) {
+              culpables.push({
+                sel: el.tagName.toLowerCase() +
+                     (el.id ? "#" + el.id : "") +
+                     (el.className && typeof el.className === "string"
+                        ? "." + el.className.trim().split(/\s+/).slice(0, 2).join(".")
+                        : ""),
+                sale: Math.round(r.right - cw),
+                ancho: Math.round(r.width),
+              });
+            }
+          }
+          // el que más se sale primero, y sin repetir selector
+          const vistos = new Set();
+          culpables = culpables
+            .sort((a, b) => b.sale - a.sale)
+            .filter((c) => !vistos.has(c.sel) && vistos.add(c.sel))
+            .slice(0, 6);
+        }
+
+        escribir(
+          "RESULTADO " + JSON.stringify({
+            ruta: u, ancho: w,
+            scrollWidth: sw, clientWidth: cw, exceso,
+            desborda: exceso > 1,
+            culpables,
+          })
+        );
+      } catch (e) {
+        escribir("RESULTADO " + JSON.stringify({ ruta: u, ancho: w, error: String(e) }));
+      }
+    }));
+  });
+
+  // Si el iframe nunca carga, que no quede "midiendo…" para siempre.
+  setTimeout(() => {
+    const s = document.getElementById("salida");
+    if (s.textContent === "midiendo…") {
+      escribir("RESULTADO " + JSON.stringify({ ruta: u, ancho: w, error: "timeout de carga" }));
+    }
+  }, 12000);
+</script>
