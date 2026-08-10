@@ -44,6 +44,21 @@ interface Props {
   nucleo?: number;
   /** marcas cortas sobre el anillo exterior */
   ticks?: number;
+  /**
+   * Multiplica el peso de los radios.
+   *
+   * De fábrica los radios son una trama de fondo (opacidad 0,08–0,34): así es
+   * como aparecen en la mayoría de las referencias, donde el disco es un
+   * diagrama de anillos con una malla debajo. Pero hay instrumentos —el FIELD
+   * DENSITY de RITUAL DEVICE es el caso claro— donde los radios SON el dibujo:
+   * un estallido de rayos desde un núcleo encendido, con los anillos apenas
+   * insinuados. Sin esta perilla ese medidor sale como una diana apagada, que
+   * es como salió en la primera pasada (11,49 % con el brillo a 6,9 contra 17,1
+   * de la referencia).
+   */
+  pesoRadios?: number;
+  /** grosor de los radios; el de los anillos lo fija cada anillo */
+  grosorRadios?: number;
   clase?: string;
 }
 const {
@@ -64,6 +79,8 @@ const {
   frio = "",
   nucleo = 0,
   ticks = 0,
+  pesoRadios = 1,
+  grosorRadios = 0.3,
   clase = "",
 } = Astro.props;
 
@@ -91,7 +108,7 @@ const sp = Array.from({ length: radios }, (_, i) => {
   return {
     x1: p2(CX + Math.cos(a) * r0), y1: p2(CY + Math.sin(a) * r0 * excentricidad),
     x2: p2(CX + Math.cos(a) * r1), y2: p2(CY + Math.sin(a) * r1 * excentricidad),
-    o: p2(0.08 + r() * 0.26),
+    o: p2(Math.min(1, (0.08 + r() * 0.26) * pesoRadios)),
   };
 });
 
@@ -108,7 +125,9 @@ const tk = Array.from({ length: ticks }, (_, i) => {
 
 <svg class={`kit-rs ${clase}`} viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden="true">
   <g fill="none" stroke={color} stroke-width="0.3">
-    {sp.map((s) => <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} opacity={s.o} />)}
+    {sp.map((s) => (
+      <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} opacity={s.o} stroke-width={grosorRadios} />
+    ))}
     {rs.map((a) => (
       <ellipse
         cx={p2(CX)} cy={p2(CY)}

@@ -1,0 +1,244 @@
+---
+/**
+ * KODEX-∞ · t01-06 RITUAL DEVICE · BLOQUE IZQUIERDA (4,88 · 616×778)
+ *
+ * ─── LO QUE HAY QUE SABER ANTES DE TOCAR ESTO ─────────────────────────────
+ *
+ * EL HÉROE VA PROCEDURAL. Los tres organismos del bloque —el dispositivo
+ * despiezado del panel 01, los cuatro discos de estado del panel 02 y las
+ * cuatro gráficas del panel 05— se dibujan por código en tres <canvas> (izq.js)
+ * con parámetros. NO están trazados. Trazarlos con vtracer bajaría el error a
+ * casi cero, como ya pasó en COSMOLOGY CORE, y sería escribir el mapa de bits
+ * como SVG: sin canvas no hay máquina de estados, no hay despiece que se abra
+ * y no hay página viva, que es el producto. Las láminas son documentación.
+ *
+ * EL CHROME VA TRAZADO. Rótulos, micrografía de la regla lateral, los ocho
+ * glifos, las flechas de transición, el pseudocódigo del panel 06 y las 47
+ * tiras de retícula salen de arte-izq.ts, generado por
+ * `node scripts/lamina/arte-t01-06-izq.mjs`. Ese archivo NO se edita a mano.
+ * Ahí el trazado es lo correcto: son marcas fijas, y a 7-9 px de versal la mono
+ * del póster no existe en ninguna máquina — medido en la lámina 1, el mismo
+ * rótulo dejaba 8,83 % como texto real contra 2,71 % trazado.
+ *
+ * ─── EL ENCARGO HABLABA DE DOS PANELES Y SON CUATRO ───────────────────────
+ *
+ * La caja medida llega hasta y=866, no hasta y=574. Adentro entran, además de
+ * «01. COMPONENT BREAKDOWN» y «02. OPERATING STATES»:
+ *
+ *   · «05. WAVEFORMS & RESONANCE GRAPHS» (x 16..490, y 579..849) COMPLETO;
+ *   · «06. UNIFORM MAP / PSEUDO-CODE» (x 495..1010) por sus primeros 125 px.
+ *
+ * El corte del andamiaje cae en x=620, DENTRO del panel 06. Nadie más lo
+ * alcanza —la caja de Centro empieza en 620— así que su rebanada se dibuja acá
+ * y queda anotada. Es el mismo caso que el panel 07 de ARCHIVE TREE.
+ *
+ * FRONTERA AMBIGUA, REPORTADA: la esquina superior izquierda del marco del
+ * héroe arranca en x=596 y sigue hasta x=653, o sea cruza el borde del bloque.
+ * Acá se dibujan sus 24 px de este lado (tiras `heroeSup`/`heroeIzq`); los
+ * otros 33 son de Centro. Los rellenos son opacos, así que si Centro también
+ * los dibuja no hace daño, pero hay dos verdades sobre el mismo píxel.
+ *
+ * ─── MEDIDO, NO ESTIMADO ──────────────────────────────────────────────────
+ *
+ * Ninguna caja de acá viene de mirar la lámina. `bandas.mjs` no encuentra la
+ * retícula de este póster (sus marcos son grises de luminancia 43 sobre negro y
+ * el detector global sólo devolvió las dos columnas del marco exterior), así
+ * que se midió con sondas propias, en `scripts/lamina/_t0106_izq_probe.mjs`:
+ *
+ *   panel 01   x 16..414   y 97..569, con reglas internas en 123 · 471 · 516 · 540
+ *   panel 02   caja de rótulo 421..588 × 97..123 y CUATRO celdas independientes
+ *              en y 130..239 · 249..357 · 367..474 · 483..563 — la de EMIT mide
+ *              80 px y las otras 107-109; tratarlas como una grilla pareja
+ *              corría las tres de abajo
+ *   panel 05   x 16..490   y 579..849, con reglas en 603 · 677 · 801 · 839
+ *   eje del dispositivo en x=154, discos de estado en x=470 con radio 30
+ *
+ * Puntaje del bloque:
+ *   node scripts/lamina/score-panel.mjs t01-06-ritual-device Izquierda --triptico
+ */
+import * as A from "./arte-izq";
+import type { Capa } from "./arte-izq";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* La caja del andamiaje es left:4 top:88 y todo arte-izq.ts está en ese sistema.
+   Si alguien reparte el bloque en otra caja, el desplazamiento se compensa acá
+   en vez de regenerar el arte: las coordenadas del póster son la verdad. */
+const num = (k: string) => Number((box.match(new RegExp(`${k}\\s*:\\s*(-?[\\d.]+)px`)) ?? [])[1] ?? 0);
+const DX = 4 - num("left");
+const DY = 88 - num("top");
+
+/** Pintor de arte trazada: un <svg> anidado por glifo, con su viewBox propio y
+ *  sin conservar proporción — lo que hay que clavar es la caja medida, no la
+ *  del contorno. El transform de cada path se conserva: el trazador emite uno
+ *  por contorno y perderlo desarma el glifo. */
+const pinta = (capas: Capa[]) =>
+  capas
+    .map(({ c, g }) =>
+      g
+        .map(
+          (p) =>
+            `<svg x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.vw} ${p.vh}" preserveAspectRatio="none">` +
+            p.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${c}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+/* Orden de pintado: la retícula primero (marcos y reglas), después los rótulos.
+   El texto del póster se monta sobre las reglas, no al revés. */
+const chrome = [
+  A.p01Titulo, A.p01Regla, A.p01Etq, A.p01Glifos, A.p01Materiales, A.p01Masa,
+  A.p02Titulo,
+  A.p02Chip1, A.p02Nom1, A.p02Glosa1,
+  A.p02Chip2, A.p02Nom2, A.p02Glosa2,
+  A.p02Chip3, A.p02Nom3, A.p02Glosa3,
+  A.p02Chip4, A.p02Nom4, A.p02Glosa4,
+  A.p02Flecha1, A.p02Flecha2, A.p02Flecha3,
+  A.p05Titulo, A.p05RotA, A.p05PieA, A.p05RotB, A.p05PieB,
+  A.p05RotC, A.p05EjeCy, A.p05EjeCx, A.p05RotD, A.p05EjeDy, A.p05EjeDx, A.p05Metricas,
+  A.p06Titulo, A.p06Codigo,
+].map(pinta).join("");
+
+const reticula = A.reticula
+  .map(([x, y, w, h, r, g, b]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgb(${r},${g},${b})"/>`)
+  .join("");
+
+/* Cajas de los tres lienzos, en coordenadas del PÓSTER, y su equivalente en el
+   sistema del bloque. */
+const LIENZOS = [
+  { id: "dispositivo", x: 56, y: 126, w: 198, h: 350 },
+  { id: "estados", x: 430, y: 130, w: 190, h: 436 },
+  { id: "graficos", x: 18, y: 604, w: 470, h: 196 },
+];
+---
+
+<div data-box style={box} class="kdx-t0106-izq">
+  <div class="kdx-t0106-izq__capa" style={`transform:translate(${DX}px,${DY}px)`}>
+    {
+      LIENZOS.map((l) => (
+        <canvas
+          data-kdx-lienzo={l.id}
+          width={l.w}
+          height={l.h}
+          style={`left:${l.x - 4}px;top:${l.y - 88}px;width:${l.w}px;height:${l.h}px`}
+          data-ox={l.x}
+          data-oy={l.y}
+        />
+      ))
+    }
+    {/* Las cifras del póster (12.47 KG, 0.93 M, -4.2 dB, 7.83, 0.94…) son ficción
+        del afiche: viven dentro de un contenedor marcado y no se presentan como
+        estado real del sistema. */}
+    <svg
+      class="kdx-t0106-izq__chrome"
+      width="616"
+      height="778"
+      viewBox="0 0 616 778"
+      data-symbolic="true"
+      aria-label="Despiece del dispositivo ritual, estados de operación y gráficas de resonancia"
+      set:html={reticula + chrome}
+    />
+  </div>
+</div>
+
+<style>
+  .kdx-t0106-izq {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+    contain: paint;
+  }
+  .kdx-t0106-izq__capa { position: absolute; inset: 0; }
+  .kdx-t0106-izq canvas { position: absolute; display: block; }
+  .kdx-t0106-izq__chrome { position: absolute; left: 0; top: 0; display: block; }
+</style>
+
+<script>
+  import { ctx2d, pintarDispositivo, pintarEstados, pintarGraficos } from "./izq.js";
+
+  /* El <script> de Astro se empaqueta como módulo, así que no hay
+     document.currentScript: la raíz se busca por su clase. */
+  const raiz = document.querySelector(".kdx-t0106-izq");
+  const lienzo = (id) => raiz && raiz.querySelector(`[data-kdx-lienzo="${id}"]`);
+
+  const disp = lienzo("dispositivo");
+  const est = lienzo("estados");
+  const gra = lienzo("graficos");
+
+  if (disp && est && gra) {
+    const cd = ctx2d(disp, +disp.dataset.ox, +disp.dataset.oy);
+    const ce = ctx2d(est, +est.dataset.ox, +est.dataset.oy);
+    const cg = ctx2d(gra, +gra.dataset.ox, +gra.dataset.oy);
+
+    const caja = (el) => [+el.dataset.ox, +el.dataset.oy, el.width, el.height];
+
+    /**
+     * El cuadro t. t=0 es EL PÓSTER: despiece cerrado, ningún estado encendido,
+     * gráficas en reposo. Lo que sigue es la página viva.
+     */
+    const cuadro = (t) => {
+      const ciclo = (t % 8) / 8;
+      const estado = t > 0 ? Math.floor(ciclo * 4) : -1;
+      const fase = (ciclo * 4) % 1;
+      pintarDispositivo(cd, ...caja(disp), {
+        apertura: t > 0 ? (1 - Math.cos(Math.min(t, 2) * Math.PI)) * 3 : 0,
+        pulso: t > 0 ? (1 - Math.cos(t * 2.4)) / 2 : 0,
+      });
+      pintarEstados(ce, ...caja(est), { estado, fase });
+      pintarGraficos(cg, ...caja(gra), { deriva: t > 0 ? Math.sin(t * 1.3) * 1.2 : 0 });
+    };
+
+    cuadro(0);
+
+    /* El banco captura con animations:disabled, que no congela un canvas con su
+       propio rAF. La página expone __kdxFreeze; acá se registra el sumidero que
+       pinta el cuadro pedido y APAGA el bucle. */
+    /* `detenido` NO es redundante con cancelAnimationFrame. Si el congelado cae
+       justo mientras corre el callback, cancela el id viejo y pone corriendo en
+       0, y una línea después el callback lo pisa con un id nuevo: el bucle
+       sobrevive al freeze. Medido — el lienzo seguía cambiando 500 ms después de
+       __kdxFreeze(0). La bandera se lee DENTRO del callback y corta de verdad. */
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    /* El sumidero se registra CON REINTENTO. Astro empaqueta los <script> de la
+       página y los de los componentes en módulos distintos y no garantiza cuál
+       corre primero: si éste gana la carrera, `window.__kdxRegisterFreeze`
+       todavía no existe, el registro se pierde en silencio y el banco captura un
+       lienzo que sigue animándose. Comprobado — el congelado no congelaba nada. */
+    const sumidero = (t = 0) => { parar(); cuadro(t); };
+    let intentos = 0;
+    const registrar = () => {
+      if (typeof window.__kdxRegisterFreeze === "function") { window.__kdxRegisterFreeze(sumidero); return; }
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const arrancar = () => {
+      if (corriendo || reducido) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro((ahora - t0) / 1000);
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+
+    /* Respuesta al puntero: el despiece sólo se abre mientras lo mirás. Sin
+       esto el bloque es un afiche con un canvas adentro. */
+    if (raiz) {
+      raiz.addEventListener("pointerenter", arrancar);
+      raiz.addEventListener("pointerleave", () => { parar(); cuadro(0); });
+    }
+  }
+</script>

@@ -1,0 +1,218 @@
+---
+/**
+ * KODEX-∞ · t01-06 RITUAL DEVICE · PIE (0,866 · 1672×75)
+ *
+ * La caja abre en y=866, así que las y de este archivo están corridas −866
+ * respecto del póster; las x sí son las del póster. Las coordenadas del arte
+ * trazada ya vienen restadas desde arte-hdrftr.ts.
+ *
+ * Mismo criterio que la cabecera:
+ *
+ *  · El logotipo, las dos consignas y el emblema van TRAZADOS del original, con
+ *    el umbral de cada pieza salido de un barrido medido (la tabla está en
+ *    arte-hdrftr.ts). Las tres piezas de texto del pie son las que mejor
+ *    puntúan de la lámina —4,4 a 5,0 de error absoluto medio— porque a esta
+ *    escala el trazo es casi exacto.
+ *
+ *  · El código de barras NO se traza: es una función de una variable, así que
+ *    se lee columna por columna del original y se comprime por tramos, cada uno
+ *    con SU luminancia. Pasarlo por el contorno le inventa esquinas y le come
+ *    tinta, y un repeating-linear-gradient le da un ritmo regular que la
+ *    referencia no tiene: acá las barras están donde y como están.
+ *
+ *  · "VISUAL SYSTEM v2.0" va como <text> de verdad y no trazado porque lleva
+ *    cifras, y el canon pide que las cifras del póster vayan como texto dentro
+ *    de un contenedor data-symbolic. Es la pieza que peor puntúa del pie —11 %
+ *    del error del bloque en 111×8 píxeles— y no porque esté mal puesta: está
+ *    en su x, su ancho y su cima, pero la mono del sistema tiene el trazo de un
+ *    píxel donde la del póster tiene dos. El único píxel de desenfoque del pie
+ *    está ahí y por eso: reproduce ese trazo grueso y bajó el bloque de 0,48 %
+ *    a 0,45 %. Por debajo de 0,8 px Chromium colapsa el núcleo y el filtro no
+ *    hace nada.
+ *
+ *  · La franja del pie no es un recuadro cerrado. Tiene tapa (y=867), base
+ *    (y=917) y canto derecho (x=1655), las tres arrancando en x=13, pero NO
+ *    tiene canto izquierdo: ahí el trazo simplemente empieza. Cerrarlo sería
+ *    inventar una línea que en la referencia no está.
+ *
+ * FRONTERA CON LOS BLOQUES DE LA BANDA — dicho, no dibujado dos veces: la regla
+ * de y=861, que corre entera de x=6 a 1666, cae CINCO filas por encima del
+ * borde de esta caja y pertenece a los tres bloques de la banda central, que
+ * mueren en y=865. No se dibuja acá. La primera regla del pie es la de y=866.
+ *
+ * Todo el pie es tinta tenue: la pieza más brillante es el logotipo, con 88 de
+ * relleno, y la más apagada el emblema, con 55.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-06-ritual-device Pie --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-06-hdrftr.mjs
+ */
+import { ftrMarca, ftrBarras, ftrLema, ftrPpp, ftrAla } from "./arte-hdrftr";
+import type { Glifo } from "./arte-hdrftr";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/** Mismo pintor que la cabecera: un <svg> anidado por glifo, con su viewBox
+ *  propio, sin conservar proporción, y conservando el transform de cada path
+ *  —perderlo desarma el glifo y la letra sale maciza. */
+const pinta = (gs: Glifo[], fill: string) =>
+  gs
+    .map(
+      (g) =>
+        `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+        g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}"/>`).join("") +
+        `</svg>`
+    )
+    .join("");
+
+/* Relleno ganador del barrido de umbral de cada pieza, corregido ×1,05.
+
+   La corrección hubo que medirla: el barrido rasteriza con sharp y Chromium no
+   pinta lo mismo —comparadas las tintas totales sobre la captura del banco, las
+   cuatro piezas del pie salían al 0,89-0,93 de la referencia—. Con ×1,05 el
+   combinado baja; con ×1,15 el término estructural sigue bajando pero el de
+   píxel sube más y el conjunto empeora. */
+const TINTA = {
+  marca: "#585757", // "KODEX−∞": pico 120,120,121 · barrido #545353 · err 6,80
+  lema: "#505150",  // "BUILT FOR ARCHIVES THAT REMEMBER.": pico 165,166,166 · barrido #4c4d4c · err 4,98
+  ppp: "#404140",   // "PATTERN. PROTECT. PERPETUATE.": pico 119,119,118 · barrido #3d3e3d · err 4,37
+  ala: "#373737",   // emblema alado: pico 124,126,125 · barrido #343434 · err 4,46
+};
+
+/* "VISUAL SYSTEM v2.0": primer píxel de tinta en x=288, último en x=398, cima
+   de la versal en y=888 del póster —22 en esta caja— y versal de 8 px. Se ancla
+   por el ancho de tinta y no por el avance, porque el ancho es lo único que se
+   puede medir en un PNG. */
+const SISTEMA = "VISUAL SYSTEM v2.0";
+const SIS_X = 288;
+const SIS_ANCHO = 111;
+const SIS_CIMA = 22;
+const SIS_VERSAL = 8;
+
+/* Versal de la mono del sistema, medida: 0,74 em; apoyo izquierdo 0,9 px. */
+const CUERPO = +(SIS_VERSAL / 0.74).toFixed(3);
+const LSB = 0.9;
+---
+
+<div data-box style={box} class="ftr">
+  <!-- Cierre del marco del póster: los dos cantos bajan desde la cabecera y
+       mueren en el filo inferior, en y=934. Es el mismo rectángulo redondeado
+       de arriba, dibujado alto y recortado por el overflow de la caja. -->
+  <div class="ftr__marco"></div>
+  <div class="ftr__halo"></div>
+
+  <svg class="ftr__art" viewBox="0 0 1672 75" width="1672" height="75" aria-hidden="true">
+    <!-- Tapa y base de la franja: y=867 y y=917 del póster, de x=13 a 1656,
+         cada una con su fila de halo por fuera (y=866 y y=916). La base es más
+         apagada que la tapa —18 contra 22— y no se emparejan. -->
+    <rect x="13" y="0" width="1644" height="1" fill="#0a0a0a" />
+    <rect x="13" y="1" width="1644" height="1" fill="#161616" />
+    <rect x="13" y="50" width="1644" height="1" fill="#070707" />
+    <rect x="13" y="51" width="1644" height="1" fill="#121212" />
+
+    <!-- Canto derecho de la franja, x=1655 con su halo en 1656. No hay canto
+         izquierdo en la referencia. -->
+    <rect x="1655" y="2" width="1" height="48" fill="#1a1a1a" />
+    <rect x="1656" y="2" width="1" height="48" fill="#0e0e0e" />
+
+    <!-- El filo de abajo son DOS filas y no una: y=934 vale 22 sobre negro y
+         y=935 vale 16. La brillante la pone el borde del marco; ésta es la
+         otra, y va por dentro de las esquinas redondeadas. -->
+    <rect x="10" y="69" width="1653" height="1" fill="#101010" />
+
+    <!-- FLORECIMIENTO. Igual que en la cabecera: cada pieza del póster derrama
+         luz alrededor —medido sobre el fondo del original, la media del grano
+         sube a 4,7 junto al logotipo y a 2,6 junto al lema, contra 0,6 en el
+         vacío—. Va como una copia desenfocada y muy apagada de las mismas
+         piezas trazadas, debajo de las nítidas: 0,45 % → 0,39 %. Subirla más
+         (×1,5) vuelve a empeorar.
+         El pie NO lleva suelo de grano, al revés que la cabecera: acá la
+         mediana del fondo es 0,3 y ponerle 1 lo empeoraba. -->
+    <g class="ftr__bloom" aria-hidden="true" set:html={pinta(ftrMarca, "#1c1c1c") + pinta(ftrLema, "#141414") + pinta(ftrPpp, "#101010") + pinta(ftrAla, "#0e0e0e")} />
+
+    <!-- "KODEX−∞". El pie repite la marca sin volver a gritarla: la misma
+         palabra que arriba a menos de la mitad del brillo. -->
+    <g role="img" aria-label="KODEX−∞" set:html={pinta(ftrMarca, TINTA.marca)} />
+
+    <!-- Código de barras: la luminancia media por columna del original entre
+         x=168 y x=267, comprimida por tramos, cada uno con SU valor. -->
+    <g>
+      {ftrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={ftrBarras.y} width={w} height={ftrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- "v2.0" es el rótulo de versión ficticio del póster, no la versión real
+         de ningún sistema: de ahí data-symbolic. -->
+    <g data-symbolic="true">
+      <text
+        class="ftr__sistema"
+        x={+(SIS_X - LSB).toFixed(2)}
+        y={SIS_CIMA + SIS_VERSAL}
+        font-size={CUERPO}
+        textLength={SIS_ANCHO}
+        lengthAdjust="spacing"
+      >{SISTEMA}</text>
+    </g>
+
+    <!-- Las dos consignas y el emblema, los tres trazados. El texto real de
+         cada uno queda en su aria-label, así que el pie se lee sin verlo. -->
+    <g role="img" aria-label="BUILT FOR ARCHIVES THAT REMEMBER." set:html={pinta(ftrLema, TINTA.lema)} />
+    <g role="img" aria-label="PATTERN. PROTECT. PERPETUATE." set:html={pinta(ftrPpp, TINTA.ppp)} />
+    <g role="img" aria-label="Emblema alado KODEX−∞" set:html={pinta(ftrAla, TINTA.ala)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .ftr {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .ftr__art { position: absolute; left: 0; top: 0; }
+
+  .ftr__bloom { filter: blur(3px); }
+
+  /* El rectángulo abre fuera de la caja y sólo entra su filo inferior: con
+     top=−100 y alto 169, el borde de abajo cae en la fila 68 de esta caja, que
+     es y=934 del póster. Los brillos son los mismos que en la cabecera. */
+  .ftr__marco {
+    position: absolute;
+    left: 6px;
+    top: -100px;
+    width: 1661px;
+    height: 169px;
+    box-sizing: border-box;
+    border: 1px solid #161616;
+    border-top: 0;
+    border-left-color: #2e2e2e;
+    border-right-color: #383838;
+    border-radius: 0 0 4px 4px;
+  }
+
+  .ftr__halo {
+    position: absolute;
+    left: 7px;
+    top: -100px;
+    width: 1659px;
+    height: 168px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-left-color: #212121;
+    border-right-color: #1b1b1b;
+    border-radius: 0 0 3px 3px;
+  }
+
+  .ftr__sistema {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    fill: #6f6f6e;
+    filter: blur(1px);
+  }
+</style>

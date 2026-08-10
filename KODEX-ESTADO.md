@@ -21,6 +21,7 @@ nada. Si sólo vas a leer una cosa, leé «Cómo producir una lámina».
 | lámina | combinado | píxel | estructural |
 |---|---|---|---|
 | `t01-04-archive-tree` | **3,10 %** | 4,79 | 1,40 |
+| `t01-06-ritual-device` | 6,06 % | 9,89 | 2,24 |
 | `t01-01-threshold-portal` | 3,72 % | 6,29 | 1,16 |
 | `t01-08-signal-bloom` | 5,06 % | 8,45 | 1,66 |
 | `t01-03-descent-tunnel` | 5,61 % | 9,60 | 1,62 |
@@ -114,6 +115,16 @@ Los dos agentes lo avisaron solos, sin que nadie preguntara. Uno dejó sin aplic
 un ajuste que bajaba a 0,07 % con píxel exactamente 0, porque lo que agregaba
 eran manchas de medio píxel —el antialias del PNG— y ahí, dice, «deja de trazarse
 el dibujo y se codifica la trama».
+
+**El contrato ya se corrigió y funciona.** RITUAL DEVICE, la primera hecha con
+él, da 6,06 % con **6 canvas**, 5.400 paths y 2,68 MB — su héroe es código con
+máquina de estados real. SPECIMEN SKULL, hecha con el contrato viejo, da 0,78 %
+con **0 canvas**, 35.276 paths y 13,61 MB. La de peor puntaje es la que está
+bien hecha.
+
+**Quedan dos láminas en la categoría equivocada:** `t01-05-specimen-skull` y
+`t01-07-cosmology-core`. Sus héroes hay que rehacerlos procedurales, o dejarlas
+declaradas como excepción. Es decisión del creador.
 
 Mientras esto no se resuelva, **el puntaje solo es comparable entre láminas del
 mismo método**. Lo mínimo sería fijar en el contrato que el HÉROE va procedural

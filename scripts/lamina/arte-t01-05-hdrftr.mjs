@@ -68,6 +68,25 @@ function barras(x0, x1, y0, y1, dy) {
   return { y: y0 - dy, h: y1 - y0 + 1, tramos };
 }
 
+/** Perfil de UNA fila, leída columna por columna y comprimida por tramos. Es el
+ *  mismo criterio que el código de barras aplicado a las reglas largas: una
+ *  regla del póster no tiene brillo parejo —va de 8 a 21 de luminancia a lo
+ *  largo de 1659 px— y pintarla de un solo tono la endurece. */
+function perfil(x0, x1, y, dy, tol = 3) {
+  const cols = [];
+  for (let x = x0; x <= x1; x++) cols.push(lum(x, y));
+  const tramos = [];
+  let i = 0;
+  while (i < cols.length) {
+    let j = i;
+    while (j + 1 < cols.length && Math.abs(cols[j + 1] - cols[i]) <= tol) j++;
+    const v = Math.round(cols.slice(i, j + 1).reduce((a, b) => a + b, 0) / (j - i + 1));
+    if (v > 2) tramos.push([x0 + i, j - i + 1, v]);
+    i = j + 1;
+  }
+  return { y: y - dy, h: 1, tramos };
+}
+
 const arte = {
   hdrMarca:  trazar("hdrMarca",  "20,59",    "20,715",    100, 0),
   hdrBajada: trazar("hdrBajada", "66,84",    "20,305",     38, 0),
@@ -79,8 +98,17 @@ const arte = {
   ftrVdb:    trazar("ftrVdb",    "884,900",  "285,472",    38, 866),
   ftrLema:   trazar("ftrLema",   "891,907",  "685,950",    34, 866),
   ftrPpp:    trazar("ftrPpp",    "891,907",  "1138,1368",  34, 866),
-  ftrAla:    trazar("ftrAla",    "877,924",  "1436,1630",  26, 866),
-  ftrBarras: barras(174, 273, 889, 910, 866),
+  ftrAla:    trazar("ftrAla",    "877,924",  "1436,1630",  22, 866),
+  /* Extensión medida de las barras del pie: x=174..272, y=890..909. Antes decía
+     889..910 y eso metía dos filas vacías dentro del promedio: bajaba el brillo
+     de cada barra un 9 % y le agregaba una fila de tinta arriba y otra abajo que
+     en el original no existen. */
+  ftrBarras: barras(174, 272, 890, 909, 866),
+  /* Las dos filas de la regla que separa la banda de bloques del pie. Van por
+     separado porque no comparten brillo: 13,3 de media la de arriba y 16,0 la
+     de abajo. */
+  ftrReglaA: perfil(6, 1664, 873, 866),
+  ftrReglaB: perfil(6, 1664, 874, 866),
 };
 
 const cab = `/**
@@ -104,10 +132,17 @@ const cab = `/**
  *   "VISUAL DEVELOPMENT BOARD"  884..900      38     #4a4b4a    6,35
  *   "BUILT FOR ARCHIVES…" pie   891..907      34     #414141    4,82
  *   "PATTERN. PROTECT.…"        891..907      34     #464747    5,17
- *   emblema del pie            877..924      26     #343433    4,94   11,71
+ *   emblema del pie            877..924      22     #343433    4,94   11,71
  *
  * La columna «negro» es el error de NO dibujar la pieza: es la referencia
  * contra la que se mide si el trazado suma o resta.
+ *
+ * El emblema del pie es el único umbral que NO salió de ese barrido sino de un
+ * segundo barrido, hecho con el panel ya montado y medido con score-panel: 18 ·
+ * 22 · 26 · 32 · 40 dan 0,40 % · 0,36 % · 0,37 % · 0,39 % · 0,52 %. Los dos
+ * barridos discrepan porque el primero rasteriza el trazo con su propio motor y
+ * el segundo lo mide como lo dibuja Chromium, que cubre algo menos. Los demás
+ * umbrales del pie se barrieron igual y confirmaron el valor del primero.
  *
  * NO están acá los valores de la tabla de metadatos ni "TANDA 01" del pie:
  * llevan cifras, y el canon pide que las cifras del póster vayan como texto de
@@ -117,13 +152,18 @@ const cab = `/**
  * empieza su caja. Los códigos de barras son la luminancia media por columna
  * del original comprimida por tramos: cada barra está donde y como está en la
  * referencia.
+ *
+ * ftrReglaA y ftrReglaB son las dos filas de la regla que separa la banda de
+ * bloques del pie (y=873 y y=874 del póster), leídas con el mismo criterio de
+ * columna por columna: esa regla va de 8 a 21 de luminancia a lo largo de sus
+ * 1659 px y de un tono único se endurece.
  */
 export type Glifo = { x: number; y: number; w: number; h: number; vw: number; vh: number; d: [string, string][] };
 export type Barras = { y: number; h: number; tramos: number[][] };
 `;
 
 const cuerpo = Object.entries(arte)
-  .map(([k, v]) => `export const ${k} = ${JSON.stringify(v)} as unknown as ${k.includes("Barras") ? "Barras" : "Glifo[]"};`)
+  .map(([k, v]) => `export const ${k} = ${JSON.stringify(v)} as unknown as ${Array.isArray(v) ? "Glifo[]" : "Barras"};`)
   .join("\n\n");
 
 writeFileSync("src/components/kodex/lamina/t01-05/arte-hdrftr.ts", cab + "\n" + cuerpo + "\n");

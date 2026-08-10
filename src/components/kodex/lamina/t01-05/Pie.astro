@@ -1,7 +1,234 @@
 ---
-/* MARCADOR — bloque sin escribir. Sobreescribilo entero. */
+/**
+ * KODEX-∞ · t01-05 SPECIMEN SKULL · PIE (0,866 · 1672×75)
+ *
+ * La caja empieza en y=866, así que las y de este archivo van corridas −866
+ * respecto del póster; las x sí son las del póster. El arte trazada ya viene
+ * con esa resta hecha desde arte-hdrftr.ts.
+ *
+ * Acá NO hay héroe: el pie entero es chrome —marca, código de barras, rótulos
+ * de exhibición y emblema—, y para chrome el trazado es lo correcto. No hay
+ * canvas en este bloque a propósito; el organismo de esta lámina vive en el
+ * bloque Centro.
+ *
+ *  · Marca, "VISUAL DEVELOPMENT BOARD", el lema, la tríada y el emblema van
+ *    TRAZADOS del original. El umbral y el relleno de cada pieza salieron del
+ *    barrido por mínimos cuadrados que documenta arte-hdrftr.ts, no de criterio.
+ *
+ *  · El código de barras NO se traza: es una función de una sola variable, así
+ *    que se lee columna por columna (x=174..272, y=890..909) y se comprime por
+ *    tramos. El contorno le inventa esquinas y le come tinta.
+ *
+ *  · "TANDA 01" va como <text> de verdad y no trazado porque lleva cifras, y el
+ *    canon pide que las cifras del póster vayan como texto dentro de un
+ *    contenedor data-symbolic. Es lo único rojo del pie: medido, la tinta roja
+ *    ocupa exactamente x=292..349 · y=902..911 y pica en 196,21,22. "VISUAL
+ *    DEVELOPMENT BOARD", que está justo encima, es gris —no rojo—: pico 146 de
+ *    luminancia con r−g de 2.
+ *
+ *  · La regla de y=873..874 cruza el póster entero (x=6..1664) y es tinta muy
+ *    tenue: luminancia media 13 en la fila de arriba y 16 en la de abajo, con
+ *    picos de 26. Son dos filas de brillo distinto, no una de 2 px, y ninguna
+ *    de las dos es pareja a lo largo de sus 1659 px —van de 8 a 21—, así que
+ *    también se leen columna por columna (ftrReglaA/B). Caen dentro de esta caja
+ *    —filas 7 y 8— porque los bloques centrales mueren en y=865.
+ *
+ *  · El marco del póster es UN rectángulo redondeado que abre en la cabecera y
+ *    cierra acá. Se vuelve a dibujar alto y lo recorta el overflow de la caja,
+ *    con la misma geometría que la cabecera, y encima van los cantos y el filo
+ *    MEDIDOS en esta banda, columna por columna y fila por fila. El marco no es
+ *    ni parejo ni recto: el canto derecho se corre de x=1661 a x=1665 según la
+ *    altura del escaneo y ninguna de las cuatro filas del filo inferior tiene el
+ *    brillo de la de al lado (9 · 8 · 15 · 10). Con un borde de un solo tono el
+ *    bloque puntúa 0,42 %; con los cantos medidos, 0,37 %. Al div le queda sólo
+ *    la geometría de las dos esquinas redondeadas.
+ *
+ * Puntaje del panel: 0,36 % (píxel 0,48 · estructural 0,24), sin canvas. La
+ * línea base del bloque escrito de una fue 0,42 %.
+ *   node scripts/lamina/score-panel.mjs t01-05-specimen-skull Pie --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-05-hdrftr.mjs
+ */
+import { ftrMarca, ftrVdb, ftrLema, ftrPpp, ftrAla, ftrBarras, ftrReglaA, ftrReglaB } from "./arte-hdrftr";
+import type { Glifo } from "./arte-hdrftr";
+
 interface Props { box: string }
 const { box } = Astro.props;
+
+/**
+ * Mismo pintor que la cabecera: un <svg> anidado por glifo, con su viewBox
+ * propio y sin conservar proporción, porque lo que hay que clavar es la caja
+ * medida y no la del contorno. El transform de cada path se conserva: el
+ * trazador emite uno por contorno y perderlo desarma el glifo —la contraforma
+ * de la D queda fuera de sitio y la letra sale maciza—.
+ */
+const pinta = (gs: Glifo[], fill: string) =>
+  gs
+    .map(
+      (g) =>
+        `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+        g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}"/>`).join("") +
+        `</svg>`
+    )
+    .join("");
+
+/* Relleno de cada pieza: NO es el píxel más brillante, es el que resuelve el
+   barrido por mínimos cuadrados sobre la cobertura del trazo (tabla completa en
+   arte-hdrftr.ts). El trazo binarizado se queda el halo del antialias adentro,
+   así que cubre más que el original y quiere menos luz.
+
+   Barrido propio, ya hecho: escalar TODOS estos rellenos ×0,88 · ×0,94 · ×1,06
+   y ×1,12 da 0,48 % · 0,41 % · 0,38 % y 0,42 %. El óptimo es dejarlos como
+   salieron del barrido, aunque con eso la banda quede un 20 % por debajo del
+   brillo medio del original: subirlos empareja la media y empeora el píxel,
+   porque la tinta de más cae en el halo del trazo, donde el original no tiene
+   nada. */
+const TINTA = {
+  marca: "#3e3e3d", // "KODEX−∞" del pie: pico 98 · umbral 32 · error 4,44
+  vdb: "#4a4b4a",   // "VISUAL DEVELOPMENT BOARD": pico 146 · umbral 38 · error 6,35
+  lema: "#414141",  // "BUILT FOR ARCHIVES THAT REMEMBER.": pico 125 · error 4,82
+  ppp: "#464747",   // "PATTERN. PROTECT. PERPETUATE.": pico 128 · error 5,17
+  ala: "#343433",   // emblema alado: pico 133 · umbral 22 · error 4,94
+};
+
+/* "TANDA 01": primer píxel de tinta roja en x=292, último en x=349, cima de la
+   versal en y=902 del póster —36 en esta caja— y versal de 9 px. Se ancla por
+   el ancho de tinta y no por el avance, porque el ancho es lo único que se
+   puede medir en un PNG. */
+const TANDA = "TANDA 01";
+const T_X = 292;
+const T_ANCHO = 58;
+const T_CIMA = 902 - 866;
+const T_VERSAL = 9;
+
+/* Versal de la mono del sistema, medida: 0,74 em; apoyo izquierdo 0,9 px. */
+const CUERPO = +(T_VERSAL / 0.74).toFixed(3);
+const LSB = 0.9;
+
+/**
+ * Marco del póster, medido en ESTA banda (y=876..926 para los cantos, x=24..1640
+ * para el filo): [coordenada, luminancia]. El marco no es parejo ni recto —el
+ * canto derecho se corre de x=1661 a x=1665 según la altura del escaneo— así
+ * que acá va columna por columna en vez de un borde de un solo tono.
+ */
+const cantoIzq: [number, number][] = [[6, 19], [7, 13], [8, 14], [9, 3]];
+const cantoDer: [number, number][] = [[1661, 1], [1662, 5], [1663, 15], [1664, 20], [1665, 9]];
+/* Filo inferior, fila por fila: y de la caja y luminancia. Poster 929..932. */
+const filoAbajo: [number, number][] = [[63, 9], [64, 8], [65, 15], [66, 10]];
 ---
 
-<div data-box style={box}></div>
+<div data-box style={box} class="ftr">
+  <!-- Cierre del marco del póster: el mismo rectángulo que abre la cabecera,
+       dibujado alto y recortado por el overflow de la caja. -->
+  <div class="ftr__marco"></div>
+
+  <svg class="ftr__art" viewBox="0 0 1672 75" width="1672" height="75" aria-hidden="true">
+    <!-- Regla que separa la banda de bloques del pie, x=6..1664. Se lee columna
+         por columna como el código de barras: a lo largo de sus 1659 px va de 8
+         a 21 de luminancia, y de un solo tono se endurece. Las dos filas van por
+         separado porque tampoco comparten brillo. -->
+    <g class="ftr__regla">
+      {[ftrReglaA, ftrReglaB].map((r) =>
+        r.tramos.map(([x, w, v]) => (
+          <rect x={x} y={r.y} width={w} height={r.h} fill={`rgb(${v},${v},${v})`} />
+        ))
+      )}
+    </g>
+
+    <!-- Cantos y filo del marco, medidos en esta banda. Van encima del
+         rectángulo redondeado, que sólo queda a cargo de las dos esquinas. -->
+    <g class="ftr__marco-med">
+      {cantoIzq.map(([x, v]) => (
+        <rect x={x} y="0" width="1" height="59" fill={`rgb(${v},${v},${v})`} />
+      ))}
+      {cantoDer.map(([x, v]) => (
+        <rect x={x} y="0" width="1" height="59" fill={`rgb(${v},${v},${v})`} />
+      ))}
+      {filoAbajo.map(([y, v]) => (
+        <rect x="24" y={y} width="1617" height="1" fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- "KODEX−∞": el pie repite la marca sin volver a gritarla, a un tercio
+         del brillo que tiene arriba. -->
+    <g role="img" aria-label="KODEX−∞" set:html={pinta(ftrMarca, TINTA.marca)} />
+
+    <!-- Código de barras: la luminancia media por columna del original,
+         comprimida por tramos, cada uno con SU valor. -->
+    <g class="ftr__barras">
+      {ftrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={ftrBarras.y} width={w} height={ftrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- "VISUAL DEVELOPMENT BOARD / TANDA 01". El rótulo va trazado; "TANDA 01"
+         lleva cifras y va como texto. Los dos son ficción del póster —no hay
+         ninguna tanda real numerada—, así que el bloque va marcado simbólico. -->
+    <g data-symbolic="true">
+      <g role="img" aria-label="VISUAL DEVELOPMENT BOARD" set:html={pinta(ftrVdb, TINTA.vdb)} />
+      <text
+        class="ftr__tanda"
+        x={+(T_X - LSB).toFixed(2)}
+        y={T_CIMA + T_VERSAL}
+        font-size={CUERPO}
+        textLength={T_ANCHO}
+        lengthAdjust="spacing"
+      >{TANDA}</text>
+    </g>
+
+    <!-- Lema, tríada y emblema, los tres trazados. El texto real de cada uno
+         queda en su aria-label, así que el pie se lee sin verlo. -->
+    <g role="img" aria-label="BUILT FOR ARCHIVES THAT REMEMBER." set:html={pinta(ftrLema, TINTA.lema)} />
+    <g role="img" aria-label="PATTERN. PROTECT. PERPETUATE." set:html={pinta(ftrPpp, TINTA.ppp)} />
+    <g role="img" aria-label="Emblema alado KODEX−∞" set:html={pinta(ftrAla, TINTA.ala)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .ftr {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .ftr__art { position: absolute; left: 0; top: 0; }
+
+  /* Marco y regla son líneas de 1 px alineadas a la grilla: el antialias las
+     parte en dos filas de medio tono y deja de ser un filo. */
+  .ftr__regla, .ftr__marco-med { shape-rendering: crispEdges; }
+
+  /* Rectángulo redondeado del póster: x=6..1664, y=8..932 en coordenadas del
+     póster. Acá se dibuja con top=8−866=−858 y sólo entra su filo inferior, que
+     cae en las filas 929..932 —medido—. Misma geometría que la cabecera. */
+  .ftr__marco {
+    position: absolute;
+    left: 6px;
+    top: -858px;
+    width: 1659px;
+    height: 925px;
+    box-sizing: border-box;
+    border: 4px solid #0f0f0f;
+    border-top: 0;
+    border-right-color: #101010;
+    border-bottom-color: #0b0b0b;
+    border-radius: 0 0 6px 6px;
+  }
+
+  .ftr__tanda {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    /* Barrido con el panel montado: #701013 · #8c1214 · #a91618 · #c41a1c dan
+       0,37 · 0,36 · 0,36 y 0,36 %, y el píxel toca fondo en #a91618. */
+    fill: #a91618;
+    /* La tinta del póster derrama medio píxel por lado más que el rasterizador
+       del navegador; un píxel de desenfoque reproduce ese derrame. Por debajo
+       de 0,8 px Chromium colapsa el núcleo a una caja de 1 px y el filtro no
+       hace nada. Acá el desenfoque SÍ paga —medido: 0,36 % con él y 0,39 % sin
+       él— al revés que en las piezas trazadas, que ya traen el halo del
+       antialias binarizado adentro y por eso van sin filtro. */
+    filter: blur(1px);
+  }
+</style>

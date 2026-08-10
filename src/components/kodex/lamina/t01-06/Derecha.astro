@@ -1,0 +1,854 @@
+---
+/**
+ * KODEX-∞ · t01-06 RITUAL DEVICE · DERECHA (1014,88 · 654×778)
+ *
+ * ── Qué cae en la caja y qué no ───────────────────────────────────────────
+ *
+ * El andamiaje me da 1014..1668 × 88..866, pero los RECORTES de esta lámina
+ * dicen otra cosa: `crops/t01-06/iter1/Derecha.png` mide 654×486 —o sea
+ * y=88..574— y existe además un `Bandas.png` de 1672×287 que es la banda de
+ * abajo entera. Los recortes describen el reparto real; el JSON de paneles es
+ * la salida genérica de `andamiar.mjs`, con los tres tercios a altura completa.
+ *
+ * Dibujo lo que me encargaron y lo que los recortes confirman como mío: los
+ * paneles 03 y 04, de y=97 a y=569. NO dibujo el 07 HABITAT ni el 08 MOBILE
+ * TILE, que caen dentro de mi caja del JSON pero son de la banda inferior.
+ * Queda ANOTADO como el punto dudoso número uno: si nadie toma esa banda, el
+ * tercio de abajo de mi caja queda negro y mi puntaje medido con la caja del
+ * JSON lo paga entero. Medido con la caja real del recorte, no.
+ *
+ * ── De dónde salen las medidas ────────────────────────────────────────────
+ *
+ * Barrido fila por fila y columna por columna, quedándome con las líneas que
+ * tienen tinta en más del 75 % de su largo. Nada estimado:
+ *
+ *   marco del póster   x=1665,1666 (toda la altura)
+ *   panel 03           x=1014,1015 … 1216,1217 · y=97,98 … 568,569
+ *                      reglas interiores y=123/124 · 268/269 · 397/398
+ *   panel 04           x=1223,1224 … 1655,1656 · mismas tapas
+ *                      reglas y=123/124 · 340/341 · 362/363 · 469/470
+ *   medidores          y=148..226 · x 1233-1303 · 1313-1383 · 1393-1474 ·
+ *                      1485-1558 · 1569-1644   ← NO son cinco cajas iguales:
+ *                      miden 70, 70, 81, 73 y 75. Repartirlas parejo mueve
+ *                      cuatro de los cinco.
+ *   señales            INPUT 1233-1421 · OUTPUT 1442-1645, y=258..332
+ *   chips              y=370..460 · 1233-1326 · 1339-1432 · 1445-1538 ·
+ *                      1552-1645 (93 de ancho, 13 de aire)
+ *   SYSTEM STATUS      caja 1230..1656 y=479..568 · tira 1233-1541 y=499..522
+ *                      glifos y=525..566 · ARCHIVE LINK 1547-1648
+ *   divisoria de banda y=579, de borde a borde del póster
+ *
+ * ── Procedural vs. trazado ────────────────────────────────────────────────
+ *
+ * Este bloque no tiene héroe: tiene INSTRUMENTOS, y un instrumento es
+ * exactamente lo que el contrato manda dibujar. Van por código:
+ *
+ *  · el ORBIT DIAGRAM y el FIELD LAYERS, en dos <canvas> con su propio rAF —
+ *    el primero hace girar la órbita de glifos y late el núcleo; el segundo
+ *    calcula las líneas de campo de un dipolo (r = L·sen²θ, la fórmula, no un
+ *    dibujo de una) y respira el toroide;
+ *  · los cinco medidores, las dos señales y el cuerpo de los cuatro chips, con
+ *    las primitivas del kit (RadialScanner, Waveform, Micrografía) — que es
+ *    para lo que están.
+ *
+ * Va TRAZADO sólo lo que es marca fija y no tiene estado: los siete glifos de
+ * SYSTEM STATUS, los cuatro emblemas del troquel de los chips y el globo polar
+ * del OUTPUT FEED. Doce piezas, 238 paths. Se regeneran con
+ *   node scripts/lamina/_t0106_der_arte.mjs
+ *
+ * El texto es TEXTO, no contorno: <text> con `textLength` +
+ * `lengthAdjust="spacingAndGlyphs"`. La tipografía del póster es una mono
+ * condensada —la relación alto de caja / avance ronda 1,45 contra el 1,17 de
+ * una mono normal— y estirar el texto a la medida tomada es lo que la clava sin
+ * pelearse con las métricas de la fuente del navegador.
+ *
+ * Las cifras del póster (+17.3°, 36.4°C, -24.8 dB, 7.83 kHz) son ficción: los
+ * grupos que las contienen van con data-symbolic="true".
+ *
+ * Puntaje:
+ *   node scripts/lamina/score-panel.mjs t01-06-ritual-device Derecha --triptico
+ */
+import { ARTE } from "./trazos/der";
+import { rng, p2 } from "../kit/rng";
+import RadialScanner from "../kit/RadialScanner.astro";
+import Waveform from "../kit/Waveform.astro";
+import Micrografia from "../kit/Micrografia.astro";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ── paleta medida sobre la referencia ─────────────────────────────────── */
+const CY_TIT = "#22cfd8";   // títulos numerados
+const INK = "#a5aaad";      // rótulos de sección
+const DIM = "#7a7c79";      // leyendas
+const NOTE = "#9ea49f";     // texto corrido
+const CY = "#19b8cc";       // instrumento frío
+const CY_HOT = "#7ee1e2";   // núcleos
+const MG = "#9b6cc4";       // instrumento cálido
+const MG_HOT = "#cebddf";
+
+/* ── marcos: [x, y, ancho, alto, relleno] ──────────────────────────────────
+   El brillo de cada línea es el promedio medido de esa fila/columna en la
+   referencia. No hay dos iguales y emparejarlas aplana la lámina. */
+const G = (v: number) => `rgb(${v},${v},${v})`;
+const marcos: [number, number, number, number, string][] = [
+  // panel 03 — tapas y reglas
+  [0, 9, 204, 1, G(27)], [0, 10, 204, 1, G(13)],
+  [1, 35, 202, 1, G(27)], [1, 36, 202, 1, G(18)],
+  [1, 180, 202, 1, G(13)], [1, 181, 202, 1, G(40)],
+  [1, 309, 202, 1, G(28)], [1, 310, 202, 1, G(19)],
+  [0, 480, 204, 1, G(26)], [0, 481, 204, 1, G(21)],
+  [0, 9, 1, 473, G(27)], [1, 9, 1, 473, G(33)],
+  [202, 9, 1, 473, G(39)], [203, 9, 1, 473, G(19)],
+
+  // panel 04 — tapas y reglas
+  [209, 9, 434, 1, G(24)], [209, 10, 434, 1, G(12)],
+  [210, 35, 432, 1, G(15)], [210, 36, 432, 1, G(12)],
+  [210, 252, 432, 1, G(15)], [210, 253, 432, 1, G(18)],
+  [210, 274, 432, 1, G(28)], [210, 275, 432, 1, G(12)],
+  [210, 381, 432, 1, G(19)], [210, 382, 432, 1, G(13)],
+  [209, 480, 434, 1, G(20)], [209, 481, 434, 1, G(15)],
+  [209, 9, 1, 473, G(26)], [210, 9, 1, 473, G(25)],
+  [641, 9, 1, 473, G(37)], [642, 9, 1, 473, G(13)],
+
+  // marco derecho del póster y divisoria contra la banda de abajo
+  [651, 0, 1, 778, G(24)], [652, 0, 1, 778, G(52)],
+  [0, 491, 651, 1, G(37)],
+];
+
+/** Caja de 1 px: cuatro tiras en vez de un <rect stroke>, que a 1 px cae
+ *  medio píxel fuera de la retícula y el diff estructural lo cobra. */
+const caja = (x: number, y: number, w: number, h: number, f: string) =>
+  [
+    [x, y, w, 1, f],
+    [x, y + h - 1, w, 1, f],
+    [x, y, 1, h, f],
+    [x + w - 1, y, 1, h, f],
+  ] as [number, number, number, number, string][];
+
+/* medidores · señales · chips · estado: los rectángulos medidos */
+const GA = [
+  { x: 219, w: 71 }, { x: 299, w: 71 }, { x: 379, w: 82 },
+  { x: 471, w: 74 }, { x: 555, w: 76 },
+];
+const CH = [219, 325, 431, 538];
+const cajas: [number, number, number, number, string][] = [
+  ...GA.flatMap((g) => caja(g.x, 60, g.w, 79, G(29))),
+  ...caja(219, 169, 189, 76, G(26)),   // INPUT STREAM
+  ...caja(428, 171, 204, 75, G(26)),   // OUTPUT FEED
+  ...CH.flatMap((x) => caja(x, 281, 94, 92, G(30))),
+  ...caja(216, 391, 427, 90, G(17)),   // SYSTEM STATUS
+  ...caja(219, 411, 309, 24, G(31)),   // tira de estado
+  ...caja(219, 437, 309, 41, G(22)),   // fila de glifos
+  ...caja(533, 411, 102, 67, G(28)),   // ARCHIVE LINK
+];
+
+/* divisores de la fila de glifos: siete celdas de 44 px */
+const divGlifos = [1, 2, 3, 4, 5, 6].map((i) => [219 + i * 44, 438, 1, 39, G(20)] as
+  [number, number, number, number, string]);
+
+/* ── texto ─────────────────────────────────────────────────────────────────
+   [x, línea de base, cadena, tamaño, largo medido, color]. El largo sale del
+   barrido de columnas de la referencia; `textLength` lo clava. */
+type Txt = [number, number, string, number, number, string];
+const T03: Txt[] = [
+  [9, 28, "03. ORBIT & FIELD MOTION", 12.4, 156, CY_TIT],
+  [15, 56, "ORBIT DIAGRAM", 11.1, 70, INK],
+  [13, 203, "FIELD LAYERS", 11.1, 65, INK],
+  [13, 331, "FLOW NOTES", 11.1, 55, INK],
+];
+const LEY: Array<[number, string, number, string]> = [
+  [96, "CORE AXIS", 35, CY], [114, "FIELD RING", 38, MG],
+  [131, "GLYPH ORBIT", 43, CY], [148, "DATA FLOW", 36, MG],
+  [231, "INNER FIELD", 43, MG], [248, "MID FIELD", 36, CY],
+  [267, "OUTER FIELD", 43, CY], [285, "NULL SHELL", 39, CY],
+];
+const NOTAS: Array<[number, number, string, number, boolean]> = [
+  [19, 349, "Energy rises through the spine.", 154, true],
+  [19, 364, "Glyphs orbit counter to field.", 149, true],
+  [19, 379, "Resonance forms interference", 141, true],
+  [23, 393, "nodes (data points).", 99, false],
+  [19, 409, "Emission collapses outward", 133, true],
+  [23, 423, "into broadcast lattice.", 113, false],
+];
+const T04: Txt[] = [
+  [220, 28, "04. INTERFACE WIDGETS / CONTROLLERS", 12.4, 229, CY_TIT],
+  [220, 55, "GLYPH LOCK", 9.8, 46, INK],
+  [300, 55, "FIELD DENSITY", 9.8, 58, INK],
+  [381, 55, "SIGNAL STRENGTH", 9.8, 69, INK],
+  [473, 55, "PHASE OFFSET", 9.8, 54, INK],
+  [559, 55, "CORE TEMP.", 9.8, 46, INK],
+  [221, 164, "INPUT STREAM", 9.8, 57, INK],
+  [429, 166, "OUTPUT FEED", 9.8, 52, INK],
+  [219, 270, "CONTROLLER CHIPS", 10.4, 89, CY_TIT],
+  [220, 407, "SYSTEM STATUS", 11.6, 70, CY_TIT],
+];
+const CIFRAS: Txt[] = [
+  [372, 191, "THRESH", 9.2, 26, DIM],
+  [371, 202, "-24.8 dB", 9.2, 31, DIM],
+  [586, 193, "Q-FREQ", 9.2, 27, DIM],
+  [586, 203, "7.83 kHz", 9.2, 33, DIM],
+  [586, 225, "OF MAX", 9.2, 27, "#43494a"],
+  [586, 235, "00:00:00", 9.2, 33, "#43494a"],
+  [481, 122, "+17.3°", 10.4, 53, "#86c3ca"],
+  [564, 122, "36.4°C", 10.8, 57, "#b992d3"],
+];
+const ESTADO: Txt[] = [
+  [223, 427, "POWER: NOMINAL", 9.6, 62, "#7f8985"],
+  [317, 427, "LINK: SECURE", 9.6, 51, "#7f8985"],
+  [387, 427, "SYNC: LOCKED", 9.6, 52, "#7f8985"],
+  [458, 427, "THREAT: NONE", 9.6, 54, "#7f8985"],
+];
+const CHIPS: Array<[string, string, number]> = [
+  ["KX-CTRL_01", "ORBIT MANAGER", 60],
+  ["KX-CTRL_02", "FIELD SHAPER", 55],
+  ["KX-CTRL_03", "GLYPH ENGINE", 55],
+  ["KX-CTRL_04", "SIGNAL ROUTER", 60],
+];
+
+/* ── piezas dibujadas a mano que no son del kit ───────────────────────── */
+
+/** Peine de marcas de un troquel: los pines de un chip. */
+function pines(x: number, y: number, n: number, largo: number, vert: boolean) {
+  const r = rng(0x51 + n + x);
+  return Array.from({ length: n }, (_, i) => {
+    const t = i * (vert ? 1 : 1);
+    const o = p2(0.35 + r() * 0.5);
+    return vert
+      ? { x: p2(x), y: p2(y + t * 2.6), w: p2(largo), h: 1, o }
+      : { x: p2(x + t * 2.6), y: p2(y), w: 1, h: p2(largo), o };
+  });
+}
+
+/** Marcas de esquina de una caja (los cuatro corchetes). */
+function esquinas(x: number, y: number, w: number, h: number, l = 4) {
+  const p: Array<[number, number, number, number]> = [];
+  const add = (a: number, b: number, c: number, d: number) => p.push([a, b, c, d]);
+  add(x, y, l, 1); add(x, y, 1, l);
+  add(x + w - l, y, l, 1); add(x + w - 1, y, 1, l);
+  add(x, y + h - 1, l, 1); add(x, y + h - l, 1, l);
+  add(x + w - l, y + h - 1, l, 1); add(x + w - 1, y + h - l, 1, l);
+  return p;
+}
+
+/** Retícula punteada de un monitor de señal. */
+function reticula(x: number, y: number, w: number, h: number, nx: number, ny: number) {
+  const v: string[] = [];
+  for (let i = 1; i < nx; i++) v.push(`M${p2(x + (w * i) / nx)} ${y}V${y + h}`);
+  for (let j = 1; j < ny; j++) v.push(`M${x} ${p2(y + (h * j) / ny)}H${x + w}`);
+  return v.join("");
+}
+
+/* barras del OUTPUT FEED: espectro de columnas, determinista */
+const rb = rng(0x0f16);
+const barras = Array.from({ length: 40 }, (_, i) => {
+  /* Un espectro NO es una campana: en la referencia hay picos altos aislados
+     sobre un lecho bajo, y los picos se agrupan hacia la derecha. Con una
+     envolvente suave sale una colina y se lee como un histograma de manual. */
+  /* Un espectro NO es una campana. En la referencia hay agujas altas —que
+     rozan el techo de la caja— cada dos o tres columnas, sobre un lecho bajo, y
+     las columnas son de 1 px con hueco de 1. Con una envolvente suave sale una
+     colina y se lee como el histograma de un manual. */
+  const alta = rb() < 0.5; const v = alta ? 0.5 + rb() * 0.5 : 0.12 + rb() * 0.26; return { x: p2(430 + i * 1.95), h: p2(v * 60) };
+});
+
+/* micro-marcas de los chips: la columna de rayitas del canto derecho */
+const rt = rng(0x2ac1);
+const ticksChip = Array.from({ length: 14 }, (_, i) => ({
+  y: p2(288 + i * 5.4),
+  w: p2(3 + rt() * 9),
+  o: p2(0.3 + rt() * 0.6),
+}));
+/* Trama de fondo del chip: la referencia no deja un chip vacío alrededor del
+   troquel, lo llena de puntitos y rayitas de 1 px. Sin eso el bloque queda con
+   un 23 % menos de tinta que el original y el diff estructural lo cobra. */
+const rg = rng(0x77c3);
+const tramaChip = Array.from({ length: 150 }, () => {
+  const largo = rg() < 0.25 ? 2 + rg() * 5 : 1;
+  return {
+    x: p2(6 + rg() * 82),
+    y: p2(286 + rg() * 84),
+    w: p2(largo),
+    o: p2(0.12 + rg() * 0.4),
+  };
+});
+
+const pinta = (id: string, fill: string, op = 1) => {
+  const a = ARTE[id];
+  if (!a) return "";
+  return (
+    `<svg x="${a.x}" y="${a.y}" width="${a.w}" height="${a.h}" viewBox="0 0 ${a.vw} ${a.vh}" preserveAspectRatio="none">` +
+    a.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}" opacity="${op}"/>`).join("") +
+    `</svg>`
+  );
+};
+
+const COLOR_ST = [CY, MG, "#a9afac", "#a291b1", "#c6c8c4", "#aaaaa7", "#b6b8b6"];
+const COLOR_CHIP = ["#a473c3", "#35aaad", "#59b9d5", "#4abbcf"];
+---
+
+<div data-box style={box} class="d6">
+  <svg class="d6__art" viewBox="0 0 654 778" width="654" height="778" aria-hidden="true">
+    <g class="d6__crisp">
+      {marcos.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+      {cajas.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+      {divGlifos.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+      <!-- rayita decorativa a la derecha del título del panel 04 -->
+      <rect x="504" y="23" width="138" height="1" fill={G(34)} />
+      <rect x="504" y="20" width="1" height="4" fill={G(30)} />
+    </g>
+
+    <!-- ══ 03 · ORBIT & FIELD MOTION ══════════════════════════════════ -->
+    <g class="d6__tx">
+      {T03.map(([x, y, s, fs, tl, c]) => (
+        <text x={x} y={y} font-size={fs} textLength={tl} lengthAdjust="spacingAndGlyphs" fill={c}>{s}</text>
+      ))}
+    </g>
+
+    <!-- leyendas: muestra de color + rótulo -->
+    <g class="d6__tx">
+      {LEY.map(([y, s, tl, c]) => (
+        <g>
+          <rect x="138" y={y - 5} width="7" height="2" fill={c} />
+          <text x="148" y={y} font-size="9.5" textLength={tl} lengthAdjust="spacingAndGlyphs" fill={DIM}>{s}</text>
+        </g>
+      ))}
+    </g>
+
+    <!-- separadores punteados entre diagrama y leyenda -->
+    <g stroke={G(38)} stroke-width="1" stroke-dasharray="1 3" fill="none">
+      <path d="M132 66V174" />
+      <path d="M132 212V300" />
+    </g>
+
+    <g class="d6__tx">
+      {NOTAS.map(([x, y, s, tl, punto]) => (
+        <g>
+          {punto && <rect x="13" y={y - 5} width="3" height="3" fill="#c8ccc8" />}
+          <text x={x} y={y} font-size="10" textLength={tl} lengthAdjust="spacingAndGlyphs" fill={NOTE}>{s}</text>
+        </g>
+      ))}
+    </g>
+
+    <!-- ══ 04 · INTERFACE WIDGETS / CONTROLLERS ═══════════════════════ -->
+    <g class="d6__tx">
+      {T04.map(([x, y, s, fs, tl, c]) => (
+        <text x={x} y={y} font-size={fs} textLength={tl} lengthAdjust="spacingAndGlyphs" fill={c}>{s}</text>
+      ))}
+    </g>
+    <g class="d6__tx" data-symbolic="true">
+      {CIFRAS.map(([x, y, s, fs, tl, c]) => (
+        <text x={x} y={y} font-size={fs} textLength={tl} lengthAdjust="spacingAndGlyphs" fill={c}>{s}</text>
+      ))}
+      {ESTADO.map(([x, y, s, fs, tl, c]) => (
+        <text x={x} y={y} font-size={fs} textLength={tl} lengthAdjust="spacingAndGlyphs" fill={c}>{s}</text>
+      ))}
+    </g>
+
+    <!-- medidor 1 · GLYPH LOCK: mira cuadrada, corchetes y nodos sobre anillo -->
+    <g stroke={CY} fill="none">
+      <path d="M254 68V80M254 118V130M224 99h12M272 99h12" stroke-width="0.7" opacity="0.45" />
+      <circle cx="254" cy="99" r="26" stroke-width="0.6" opacity="0.45" stroke-dasharray="2 4" />
+      <path d="M254 78l2.4 3.4h-4.8z" fill="#e6f4f6" stroke="none" opacity="0.9" />
+    </g>
+    <g class="d6__crisp" fill={CY} opacity="0.6">
+      {esquinas(226, 69, 57, 61, 5).map(([x, y, w, h]) => (
+        <rect x={x} y={y} width={w} height={h} />
+      ))}
+    </g>
+    <g class="d6__crisp" fill="#cdeef2">
+      {[0, 1, 2, 3].map((i) => {
+        const a = (i * Math.PI) / 2 - Math.PI / 2;
+        return (
+          <rect x={p2(253.5 + Math.cos(a) * 22)} y={p2(98.5 + Math.sin(a) * 22)} width="1.6" height="1.6" opacity="0.85" />
+        );
+      })}
+      <rect x="253" y="98" width="2" height="2" fill={CY_HOT} />
+    </g>
+
+    <!-- medidor 2 · FIELD DENSITY: aro de micro-marcas (el rótulo circular del
+         póster, que a 2 px no es texto y no debe serlo) y el núcleo encendido -->
+    <g stroke={CY} fill="none">
+      <circle cx="334" cy="99" r="27" stroke-width="1.6" stroke-dasharray="1.2 2.6" opacity="0.5" />
+      <circle cx="334" cy="99" r="30" stroke-width="0.6" opacity="0.28" />
+      <path d="M334 69a30 30 0 0 1 26 15" stroke="#a8e8ee" stroke-width="0.8" opacity="0.55" />
+    </g>
+    <g>
+      <circle cx="334" cy="99" r="7" fill={CY_HOT} opacity="0.25" />
+      <circle cx="334" cy="99" r="2.6" fill="#c7f7fa" />
+    </g>
+
+    <!-- medidor 3 · SIGNAL STRENGTH: línea de base del peine -->
+    <g class="d6__crisp" fill={CY} opacity="0.3">
+      <rect x="386" y="99" width="68" height="1" />
+    </g>
+
+    <!-- medidor 4 · PHASE OFFSET: corchetes, satélite y el arco encendido -->
+    <g fill="none">
+      <path d="M478 70h9M478 70v6" stroke="#aab4b6" stroke-width="0.8" opacity="0.6" />
+      <path d="M538 130h-9M538 130v-6" stroke="#aab4b6" stroke-width="0.8" opacity="0.6" />
+      <ellipse cx="534" cy="72" rx="4.4" ry="3.6" stroke="#9fa9ab" stroke-width="0.8" opacity="0.7" />
+      <path d="M479 112a30 30 0 0 0 24 20" stroke={CY_HOT} stroke-width="1.4" opacity="0.9" />
+      <path d="M482 76a28 28 0 0 1 22-10" stroke="#c8d2d4" stroke-width="0.9" opacity="0.5" />
+      <circle cx="508" cy="99" r="21" stroke={CY} stroke-width="0.9" opacity="0.6" />
+    </g>
+
+    <!-- medidor 5 · CORE TEMP: marcas cardinales magenta sobre el anillo -->
+    <g fill="none">
+      <circle cx="592" cy="99" r="27" stroke={MG} stroke-width="1" opacity="0.75" />
+      <circle cx="592" cy="99" r="21" stroke={MG} stroke-width="0.6" opacity="0.28" />
+    </g>
+    <g class="d6__crisp" fill={MG_HOT}>
+      <rect x="587" y="67" width="11" height="2" />
+      <rect x="587" y="129" width="11" height="2" />
+      <rect x="558" y="98" width="3" height="2" opacity="0.8" />
+      <rect x="625" y="98" width="3" height="2" opacity="0.8" />
+      <rect x="591" y="73" width="1" height="3" opacity="0.5" />
+      <rect x="593" y="123" width="1" height="3" opacity="0.5" />
+    </g>
+
+    <!-- señales: retícula punteada de los dos monitores -->
+    <g stroke={G(30)} stroke-width="0.8" stroke-dasharray="1 3" fill="none">
+      <path d={reticula(222, 173, 182, 68, 8, 4)} />
+      <path d={reticula(431, 175, 197, 67, 8, 4)} />
+    </g>
+    <g stroke={G(46)} stroke-width="0.7" stroke-dasharray="3 3" fill="none">
+      <path d="M366 173V241" />
+      <path d="M579 175V242" />
+      <path d="M431 208H500" />
+    </g>
+    <!-- el gancho que enlaza INPUT con OUTPUT -->
+    <path d="M411 200c5 2 5 10 0 12" stroke={G(60)} stroke-width="0.9" fill="none" />
+
+    <!-- OUTPUT FEED · espectro de barras -->
+    <g fill={CY} data-symbolic="true">
+      {barras.map((b) => <rect x={b.x} y={p2(238 - b.h)} width="1" height={b.h} opacity="0.9" />)}
+    </g>
+
+    <!-- OUTPUT FEED · globo polar (marca fija, trazada) -->
+    <g set:html={pinta("globo", CY, 0.7)} />
+
+    <!-- chips: troquel, pines, corchetes y micro-marcas -->
+    {CH.map((cx, i) => (
+      <g>
+        <g class="d6__crisp" fill={G(58)}>
+          {esquinas(cx + 3, 284, 88, 86, 4).map(([x, y, w, h]) => (
+            <rect x={x} y={y} width={w} height={h} opacity="0.7" />
+          ))}
+          {ticksChip.map((t) => (
+            <rect x={cx + 76} y={t.y} width={t.w} height="1" opacity={t.o} />
+          ))}
+          {tramaChip.map((t) => (
+            <rect x={p2(cx + t.x)} y={t.y} width={t.w} height="1" opacity={t.o} />
+          ))}
+        </g>
+        <rect x={cx + 33} y="323" width="38" height="34" rx="2" fill="none" stroke={G(74)} stroke-width="0.9" />
+        <rect x={cx + 37} y="327" width="30" height="26" fill="#0b0910" stroke={G(64)} stroke-width="0.6" />
+        <g class="d6__crisp" fill={G(96)}>
+          {pines(cx + 36, 318, 12, 4, false).map((p) => (
+            <rect x={p.x} y={p.y} width={p.w} height={p.h} opacity={p.o} />
+          ))}
+          {pines(cx + 36, 358, 12, 4, false).map((p) => (
+            <rect x={p.x} y={p.y} width={p.w} height={p.h} opacity={p.o} />
+          ))}
+          {pines(cx + 27, 326, 11, 4, true).map((p) => (
+            <rect x={p.x} y={p.y} width={p.w} height={p.h} opacity={p.o} />
+          ))}
+          {pines(cx + 71, 326, 11, 4, true).map((p) => (
+            <rect x={p.x} y={p.y} width={p.w} height={p.h} opacity={p.o} />
+          ))}
+        </g>
+        <g set:html={pinta(`chip${i + 1}`, COLOR_CHIP[i], 0.88)} />
+        <g class="d6__tx">
+          <text x={cx + 8} y="297" font-size="10" textLength="52" lengthAdjust="spacingAndGlyphs" fill="#c3c8c4">{CHIPS[i][0]}</text>
+          <text x={cx + 8} y="307" font-size="9.6" textLength={CHIPS[i][2]} lengthAdjust="spacingAndGlyphs" fill="#8b918c">{CHIPS[i][1]}</text>
+        </g>
+      </g>
+    ))}
+
+    <!-- SYSTEM STATUS · los siete glifos (marca fija, trazados) -->
+    <g role="img" aria-label="SYSTEM STATUS — POWER NOMINAL, LINK SECURE, SYNC LOCKED, THREAT NONE.">
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+        <g set:html={pinta(`st${i + 1}`, COLOR_ST[i], 0.62)} />
+      ))}
+    </g>
+
+    <!-- ARCHIVE LINK -->
+    <g class="d6__tx">
+      <text x="547" y="433" font-size="13.4" textLength="72" lengthAdjust="spacingAndGlyphs" fill="#21afbd">ARCHIVE LINK</text>
+      <text x="560" y="447" font-size="10" textLength="47" lengthAdjust="spacingAndGlyphs" fill="#0f9aa2">CONNECTED</text>
+      <!-- El lemniscato NO va como <text>: U+221E no está en la cadena de mono
+           del navegador de captura y sale en blanco. Dos anillos tangentes,
+           que es lo que hay en la referencia (27×13 px, trazo de 2). -->
+      <g stroke="#dfe1dd" stroke-width="2" fill="none">
+        <circle cx="576" cy="462" r="5.6" />
+        <circle cx="589" cy="462" r="5.6" />
+      </g>
+    </g>
+  </svg>
+
+  <!-- ── primitivas del kit, posicionadas sobre la caja ─────────────────── -->
+  <!-- 01 GLYPH LOCK: anillos apretados y malla de fondo -->
+  <span class="d6__p" style="left:224px;top:69px">
+    <RadialScanner w={61} h={61} semilla={41} anillos={8} radios={32} rmax={30} razon={0.83} color={CY} frio="#cdeef2" nucleo={0} ticks={40} pesoRadios={2.2} grosorRadios={0.45} />
+  </span>
+  <!-- 02 FIELD DENSITY: acá los RADIOS son el dibujo, no la trama -->
+  <span class="d6__p" style="left:302px;top:67px">
+    <RadialScanner w={65} h={65} semilla={83} anillos={5} radios={44} rmax={29} razon={0.74} color={CY} frio="#a8e8ee" nucleo={0} ticks={44} pesoRadios={3} grosorRadios={0.5} />
+  </span>
+  <!-- 03 SIGNAL STRENGTH -->
+  <span class="d6__p" style="left:386px;top:71px">
+    <Waveform w={69} h={54} semilla={97} variante="peine" n={68} color={CY} grosor={0.7} inercia={0.05} envolvente={0.9} margen={2} />
+  </span>
+  <!-- 04 PHASE OFFSET -->
+  <span class="d6__p" style="left:475px;top:68px">
+    <RadialScanner w={64} h={64} semilla={17} anillos={1} radios={0} rmax={30}
+      razon={0.7} color="#8d989a" frio={CY} nucleo={0} ticks={30} />
+  </span>
+  <!-- 05 CORE TEMP -->
+  <span class="d6__p" style="left:559px;top:66px">
+    <RadialScanner w={66} h={66} semilla={29} anillos={1} radios={0} rmax={32}
+      razon={0.845} color={MG} frio={MG_HOT} nucleo={0} ticks={26} />
+  </span>
+  <!-- INPUT STREAM: ruido con picos, no una curva suave -->
+  <span class="d6__p" style="left:224px;top:183px">
+    <Waveform w={140} h={50} semilla={311} variante="linea" n={152} color="#9c6dc4"
+      grosor={0.7} inercia={0.16} margen={2} />
+  </span>
+
+  {CH.map((cx) => (
+    <span class="d6__p" style={`left:${cx + 8}px;top:311px`}>
+      <Micrografia w={18} h={56} semilla={cx} renglon={5} marca={1} densidad={0.5}
+        palabra={3} color="#7d8288" opacidad={0.42} huecos={0.3} />
+    </span>
+  ))}
+
+  <!-- ── los dos diagramas del panel 03: código, no calco ──────────────── -->
+  <canvas class="d6__cv" data-kdx="orbita" width="128" height="120"
+    style="left:8px;top:58px;width:128px;height:120px"
+    role="img" aria-label="ORBIT DIAGRAM — eje del núcleo, anillo de campo, órbita de glifos y flujo de datos."></canvas>
+  <canvas class="d6__cv" data-kdx="campo" width="132" height="100"
+    style="left:4px;top:205px;width:132px;height:100px"
+    role="img" aria-label="FIELD LAYERS — campo interior, medio, exterior y cáscara nula."></canvas>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y lo que se sale de la caja pisa al vecino. */
+  .d6 {
+    position: absolute;
+    overflow: hidden;
+    background: transparent;
+    font-family: var(--lam-mono);
+  }
+  .d6__art { position: absolute; left: 0; top: 0; }
+  .d6__p { position: absolute; display: block; }
+  .d6__cv { position: absolute; display: block; }
+
+  /* Las tiras de marco son líneas de 1 px alineadas a la retícula: con
+     antialias se parten en dos grises de medio brillo, que es justo lo que el
+     diff estructural castiga. */
+  .d6__crisp { shape-rendering: crispEdges; }
+
+  .d6__tx {
+    font-family: var(--lam-mono);
+    letter-spacing: 0;
+    white-space: pre;
+  }
+</style>
+
+<script>
+  /* ── ORBIT DIAGRAM y FIELD LAYERS ────────────────────────────────────────
+   *
+   * Los dos diagramas del panel 03 son lo único de este bloque que en la página
+   * viva tiene estado, así que son los dos únicos <canvas>. Nada de esto es un
+   * calco: el campo sale de la ecuación del dipolo (r = L·sen²θ) y la órbita de
+   * un puñado de radios y fases. Cambiar un parámetro cambia el dibujo, que es
+   * la prueba de que está construido y no trazado.
+   *
+   * Congelado: el banco captura con animations:disabled, que NO detiene un rAF
+   * propio. La página expone __kdxFreeze(); acá se registra el pintor de un
+   * cuadro concreto y se corta el bucle.
+   */
+  (() => {
+    const cvOrb = document.querySelector('canvas[data-kdx="orbita"]');
+    const cvCam = document.querySelector('canvas[data-kdx="campo"]');
+    if (!cvOrb || !cvCam) return;
+
+    const g1 = cvOrb.getContext("2d");
+    const g2 = cvCam.getContext("2d");
+    const CY = "#19b8cc", CYH = "#7ee1e2", MG = "#9b6cc4", MGH = "#cebddf";
+
+    /* azar determinista: dos capturas del mismo cuadro deben dar lo mismo */
+    function rng(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const anillo = (g, cx, cy, r, col, w, op, dash) => {
+      g.save();
+      g.globalAlpha = op;
+      g.strokeStyle = col;
+      g.lineWidth = w;
+      if (dash) g.setLineDash(dash);
+      g.beginPath();
+      g.arc(cx, cy, r, 0, Math.PI * 2);
+      g.stroke();
+      g.restore();
+    };
+
+    const punto = (g, x, y, r, col, halo) => {
+      if (halo) {
+        g.globalAlpha = 0.28;
+        g.fillStyle = col;
+        g.beginPath(); g.arc(x, y, r * 2.6, 0, Math.PI * 2); g.fill();
+      }
+      g.globalAlpha = 1;
+      g.fillStyle = col;
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    };
+
+    /* ── ORBIT DIAGRAM ─────────────────────────────────────────────────── */
+    const CX = 62, CY0 = 62;                 // centro medido: (1084, 208)
+    const R = [13, 21, 30, 44, 53];          // radios medidos sobre la fila y=208
+    const rO = rng(0x0be1);
+    const motas = [];
+    for (let i = 0; i < 26; i++) {
+      motas.push({
+        a: rO() * Math.PI * 2,
+        r: 44 + rO() * 10,
+        s: rO() < 0.3 ? 1.4 : 1,
+        c: rO() < 0.25 ? MGH : "#cfd6dc",
+      });
+    }
+    const radios = [];
+    for (let i = 0; i < 12; i++) radios.push((i * Math.PI * 2) / 12 + 0.13);
+
+    function orbita(t) {
+      const g = g1;
+      g.clearRect(0, 0, 128, 120);
+      const gi = t * 0.00022;          // órbita de glifos: al derecho
+      const gc = -t * 0.00014;         // flujo de datos: contra el campo
+      const lat = 0.5 + 0.5 * Math.sin(t * 0.0016);
+
+      /* telaraña de fondo: radios y una malla débil */
+      g.save();
+      g.globalAlpha = 0.5;
+      g.strokeStyle = "#2b2440";
+      g.lineWidth = 0.6;
+      for (const a of radios) {
+        g.beginPath();
+        g.moveTo(CX + Math.cos(a) * 8, CY0 + Math.sin(a) * 8);
+        g.lineTo(CX + Math.cos(a) * 40, CY0 + Math.sin(a) * 40);
+        g.stroke();
+      }
+      g.restore();
+      anillo(g, CX, CY0, 36, "#241d33", 0.6, 0.9);
+      anillo(g, CX, CY0, 8, "#4a4560", 0.7, 0.8);
+
+      /* ejes: la cruz que atraviesa el diagrama entero */
+      g.save();
+      g.globalAlpha = 0.45;
+      g.strokeStyle = "#4b4358";
+      g.lineWidth = 0.7;
+      g.setLineDash([1, 3]);
+      g.beginPath();
+      g.moveTo(CX, 2); g.lineTo(CX, 118);
+      g.moveTo(4, CY0); g.lineTo(124, CY0);
+      g.stroke();
+      g.restore();
+
+      /* NULL SHELL: la cáscara punteada de afuera */
+      anillo(g, CX, CY0, R[4] + 2, "#5c5169", 0.7, 0.5, [1, 3]);
+      /* DATA FLOW: anillo discontinuo que gira al revés */
+      g.save();
+      g.translate(CX, CY0); g.rotate(gc); g.translate(-CX, -CY0);
+      anillo(g, CX, CY0, R[4], MG, 0.8, 0.6, [5, 6]);
+      g.restore();
+
+      /* GLYPH ORBIT: el anillo frío, y las motas que orbitan con él */
+      anillo(g, CX, CY0, R[3], CY, 1, 0.85);
+      g.save();
+      for (const m of motas) {
+        const a = m.a + gi;
+        const x = CX + Math.cos(a) * m.r;
+        const y = CY0 + Math.sin(a) * m.r;
+        g.globalAlpha = 0.75;
+        g.fillStyle = m.c;
+        g.fillRect(x - m.s / 2, y - m.s / 2, m.s, m.s);
+      }
+      g.restore();
+
+      /* FIELD RING: anillo cálido con cuatro nodos cardinales */
+      anillo(g, CX, CY0, R[1], MG, 1, 0.9);
+      anillo(g, CX, CY0, R[0], MG, 0.7, 0.5);
+      for (let i = 0; i < 4; i++) {
+        const a = (i * Math.PI) / 2 - Math.PI / 2;
+        punto(g, CX + Math.cos(a) * R[1], CY0 + Math.sin(a) * R[1], 1.5, "#f3ecff", true);
+      }
+
+      /* CORE AXIS: los dos nodos fríos del eje, arriba y abajo */
+      punto(g, CX, CY0 - R[2], 2.1, CYH, true);
+      punto(g, CX, CY0 + R[2], 2.1, CYH, true);
+
+      /* satélites: el aro cálido a babor y el punto blanco a estribor */
+      anillo(g, CX - 28, CY0, 5, MG, 1, 0.9);
+      punto(g, CX + 26, CY0, 1.9, "#fff3ff", true);
+
+      /* núcleo: late */
+      g.globalAlpha = 0.16 + 0.1 * lat;
+      g.fillStyle = CYH;
+      g.beginPath(); g.arc(CX, CY0, 7, 0, Math.PI * 2); g.fill();
+      punto(g, CX, CY0, 2.6 + 0.4 * lat, CYH, true);
+      g.globalAlpha = 1;
+    }
+
+    /* ── FIELD LAYERS ──────────────────────────────────────────────────── */
+    const FX = 66, FY = 49;                  // centro medido: (1084, 342)
+    /* La huella medida del campo es 115×86 px, y la forma NO es la de un
+       dipolo puntual. Medido sobre la referencia: a 2/3 de la altura el bucle
+       exterior ya alcanza el 93 % de su ancho, y su punto más alto cae sobre el
+       eje. Un dipolo r = L·sen²θ pone el punto más alto a 0,54·L del eje y sólo
+       llega a y = 0,385·L: sale una pajarita aplastada, que es como salió la
+       primera pasada de este bloque.
+
+       Los dos pares (0,93 · 0,67) y (1 · 0) los resuelve una superelipse
+         |x/A|^n + |y/B|^n = 1   con n ≈ 3,6
+       que es el campo de un imán con dos polos sobre la espina —bucles que
+       suben pegados al eje y se abren a media altura—, no el de un punto.
+       Parametrizada con exponente e = 2/n para poder recorrerla de un tirón. */
+    const EXP = 0.555;
+    const sg = (v) => (v < 0 ? -1 : 1);
+
+    function lineaCampo(g, A, B, col, op, w) {
+      g.save();
+      g.globalAlpha = op;
+      g.strokeStyle = col;
+      g.lineWidth = w;
+      g.beginPath();
+      for (let i = 0; i <= 160; i++) {
+        const t = (i / 160) * Math.PI * 2;
+        const st = Math.sin(t), ct = Math.cos(t);
+        const x = FX + A * sg(st) * Math.pow(Math.abs(st), EXP);
+        const y = FY - B * sg(ct) * Math.pow(Math.abs(ct), EXP);
+        if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+      g.restore();
+    }
+
+    const rF = rng(0x0fed);
+    const toro = [];
+    for (let i = 0; i < 14; i++) {
+      toro.push({
+        rx: 9 + i * 3.6,
+        ry: 2 + i * 0.85,
+        dy: (rF() - 0.5) * 3.2,
+        op: 0.34 + rF() * 0.55,
+        w: 0.5 + (rF() < 0.3 ? 0.4 : 0),
+      });
+    }
+
+    function campo(t) {
+      const g = g2;
+      g.clearRect(0, 0, 132, 100);
+      const resp = 0.94 + 0.06 * Math.sin(t * 0.0013);
+      const giro = t * 0.00018;
+
+      /* las capas del campo, de afuera hacia adentro */
+      for (let i = 9; i >= 0; i--) {
+        const A = (13 + i * 4.9) * resp;
+        const B = (31 + i * 1.35) * resp;
+        const frio = i < 3;
+        lineaCampo(g, A, B, frio ? "#33566e" : "#4a3968", 0.6 + i * 0.03, 0.65);
+      }
+      /* NULL SHELL: la envolvente punteada */
+      g.save();
+      g.setLineDash([1, 3]);
+      lineaCampo(g, 57 * resp, 44 * resp, "#6a5c7d", 0.75, 0.7);
+      g.restore();
+
+      /* el disco: elipses concéntricas achatadas, ninguna con el mismo peso */
+      g.save();
+      g.translate(FX, FY);
+      for (const e of toro) {
+        g.globalAlpha = e.op;
+        g.strokeStyle = CY;
+        g.lineWidth = e.w;
+        g.beginPath();
+        g.ellipse(0, e.dy, e.rx * resp, e.ry, Math.sin(giro + e.rx * 0.05) * 0.05, 0, Math.PI * 2);
+        g.stroke();
+      }
+      /* el anillo cálido de en medio */
+      g.globalAlpha = 0.95;
+      g.strokeStyle = "#a86ec8";
+      g.lineWidth = 1;
+      g.beginPath();
+      g.ellipse(0, 1, 24 * resp, 5.6, 0, 0, Math.PI * 2);
+      g.stroke();
+      g.restore();
+
+      /* espina y núcleo */
+      g.save();
+      g.globalAlpha = 0.85;
+      g.strokeStyle = CYH;
+      g.lineWidth = 1.2;
+      g.beginPath();
+      g.moveTo(FX, FY - 14); g.lineTo(FX, FY + 14);
+      g.stroke();
+      g.restore();
+      punto(g, FX, FY - 12, 1.8, "#dfeaff", true);
+      punto(g, FX, FY + 12, 1.8, "#dfeaff", true);
+      g.globalAlpha = 0.22;
+      g.fillStyle = CYH;
+      g.beginPath(); g.arc(FX, FY, 5.5 * resp, 0, Math.PI * 2); g.fill();
+      punto(g, FX, FY, 2.4, CYH, true);
+      g.globalAlpha = 1;
+    }
+
+    /* ── bucle y congelado ─────────────────────────────────────────────── */
+    let raf = 0;
+    let frozen = false;
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const draw = (t) => { orbita(t); campo(t); };
+
+    const bucle = (ts) => {
+      if (frozen) return;
+      draw(ts);
+      raf = requestAnimationFrame(bucle);
+    };
+
+    draw(0);
+
+    const freeze = (t) => {
+      frozen = true;
+      if (raf) cancelAnimationFrame(raf);
+      draw(t || 0);
+    };
+
+    /* El congelador de la página puede definirse después que este módulo,
+       según cómo Astro ordene los scripts empaquetados: se reintenta en vez de
+       asumir el orden. */
+    const w = window;
+    if (typeof w.__kdxRegisterFreeze === "function") {
+      w.__kdxRegisterFreeze(freeze);
+    } else {
+      let tries = 0;
+      const id = setInterval(() => {
+        if (typeof w.__kdxRegisterFreeze === "function") {
+          clearInterval(id);
+          w.__kdxRegisterFreeze(freeze);
+        } else if (++tries > 240) clearInterval(id);
+      }, 25);
+    }
+
+    if (!reduced) raf = requestAnimationFrame(bucle);
+    else frozen = true;
+  })();
+</script>
