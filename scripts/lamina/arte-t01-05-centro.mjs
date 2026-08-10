@@ -294,6 +294,63 @@ function campo(x0, y0, x1, y1, { piso = 6, salto = 4 } = {}) {
   return celdas;
 }
 
+// ── cromo ──────────────────────────────────────────────────────────────────
+
+/**
+ * Los filos, en coordenadas del PÓSTER. Cada rectángulo cubre SÓLO cromo:
+ * marcos, reglas, separadores y tabiques. Las cajas salen de barrer la
+ * referencia con `scripts/lamina/_t0105_bordes.mjs` —columnas y filas con tinta
+ * en más del 90 % de su largo—, no de mirarlas.
+ *
+ * La lista hace DOS trabajos, y ése es el punto: se lee con `campo` para
+ * dibujarla, y se descuenta de la máscara de TODAS las piezas trazadas. Así
+ * cada píxel de la caja tiene un solo dueño. En la lámina 04 esto se hacía a
+ * ojo, rectángulo por rectángulo, y las zonas donde un arco del organismo cruza
+ * un filo quedaban pintadas dos veces con dos verdades distintas.
+ *
+ * Y sale mejor que trazarlas: `campo` conserva el RGB real de cada tramo, y un
+ * filo del póster reparte su tinta entre dos o tres filas con pesos distintos
+ * —el canto de un panel pica en 43 y el de al lado en 26—. El contorno binario
+ * los aplana a un solo gris.
+ */
+const CROMO = [
+  [299, 99, 940, 104],    // 02 · filo superior
+  [299, 104, 302, 592],   // 02 · canto izquierdo (el eje está en 298, del vecino)
+  [299, 583, 940, 592],   // 02 · filo inferior
+  [303, 127, 620, 139],   // 02 · regla bajo el título y su escalón
+  [750, 128, 940, 133],   // overlays · arranque de la columna
+  [750, 153, 940, 158],   // overlays · regla del encabezado
+  [750, 246, 940, 253],   // overlays · separador 01|02
+  [750, 336, 940, 343],   // overlays · separador 02|03
+  [750, 426, 940, 433],   // overlays · separador 03|04
+  [750, 130, 757, 520],   // overlays · canto izquierdo de la columna
+  [752, 514, 940, 523],   // lock · filo superior de la caja
+  [752, 523, 763, 572],   // lock · canto izquierdo
+  [843, 523, 852, 572],   // lock · tabique central
+  [925, 523, 940, 572],   // lock · canto derecho
+  [752, 566, 940, 576],   // lock · filo inferior
+  [299, 593, 940, 601],   // banda inferior · filo de apertura
+  [299, 601, 940, 606],   // 05 · filo superior
+  [299, 617, 740, 628],   // 05 · regla del título y techo de las fichas
+  [299, 628, 316, 692],   // 05 · tabique ISOLATE|REVEAL
+  [450, 620, 464, 692],   // 05 · tabique REVEAL|GLITCH
+  [588, 620, 602, 692],   // 05 · tabique GLITCH|ARCHIVE
+  [299, 681, 740, 700],   // 05 · piso de las fichas y del panel
+  [299, 700, 740, 710],   // 06 · filo superior
+  [299, 718, 740, 734],   // 06 · regla del título y techo de las celdas
+  [452, 726, 472, 842],   // 06 · tabique del hash y canto de ACCESS LEVEL
+  [574, 726, 596, 842],   // 06 · tabique OMEGA|QR
+  [676, 726, 692, 842],   // 06 · tabique QR|botones
+  [722, 726, 740, 842],   // 06 · canto derecho
+  [299, 835, 740, 852],   // 06 · piso
+  [740, 596, 916, 606],   // 07 · filo superior
+  [740, 606, 757, 858],   // 07 · canto izquierdo
+  [740, 617, 916, 626],   // 07 · regla del título
+  [894, 606, 916, 858],   // 07 · canto derecho
+  [740, 846, 916, 860],   // 07 · piso
+  [299, 853, 940, 866],   // banda inferior · filo de cierre
+];
+
 // ── piezas ─────────────────────────────────────────────────────────────────
 
 /* La ventana del organismo lleva dentro cinco cosas que NO son el organismo.
@@ -383,10 +440,15 @@ const PIEZAS = [
 
 const UMBRALES = [10, 14, 18, 24, 30, 38, 48, 60, 75, 95];
 
+/** Toda pieza trazada renuncia al cromo: ahí manda `campo`, que conserva el RGB
+ *  exacto. Un píxel, un dueño. */
+const conCromo = (opc = {}) => ({ ...opc, exc: [...CROMO, ...(opc.exc ?? [])] });
+
 if (process.argv.includes("--cajas")) {
-  for (const [nombre, bandas, xr, , opc = {}] of PIEZAS) {
+  for (const [nombre, bandas, xr, , opc0 = {}] of PIEZAS) {
+    const opc = conCromo(opc0);
     const v = ventana(bandas, xr);
-    const exc = opc.exc ?? [];
+    const exc = opc.exc;
     const fn = opc.fam ? FAMILIAS[opc.fam] : null;
     let ax = 1e9, bx = -1, ay = 1e9, by = -1, n = 0;
     for (let y = v.y0; y <= v.y1; y++) for (let x = v.x0; x <= v.x1; x++) {
@@ -404,11 +466,11 @@ if (process.argv.includes("--cajas")) {
 if (process.argv.includes("--barrer")) {
   const i = process.argv.indexOf("--pieza");
   const filtro = i > -1 ? process.argv[i + 1] : null;
-  for (const [nombre, bandas, xr, us, opc = {}] of PIEZAS) {
+  for (const [nombre, bandas, xr, us, opc0 = {}] of PIEZAS) {
     if (filtro && nombre !== filtro) continue;
     if (us.length > 1) { console.log(nombre.padEnd(11), "capas — el barrido lineal no aplica"); continue; }
+    const opc = conCromo(opc0);
     const v = ventana(bandas, xr);
-    const exc = opc.exc ?? [];
     const filas = [];
     for (const u of UMBRALES) {
       const g = await trazar(bandas, xr, u, opc);
@@ -424,16 +486,16 @@ if (process.argv.includes("--barrer")) {
 
 const arte = {};
 const informe = [];
-for (const [nombre, bandas, xr, us, opc = {}] of PIEZAS) {
+for (const [nombre, bandas, xr, us, opc0 = {}] of PIEZAS) {
+  const opc = conCromo(opc0);
   const v = ventana(bandas, xr);
-  const exc = opc.exc ?? [];
   const capas = [];
   for (const u of us) capas.push(await trazar(bandas, xr, u, opc));
   const vivas = capas.filter((c) => c.length);
   if (!vivas.length) { console.warn("\nVACÍA", nombre); continue; }
   const { grises, mae } = ajustarGrises(await mascaras(vivas, v), v, opc);
   arte[nombre] = vivas.map((glifos, i) => ({
-    c: tono(v, grises[i], us[Math.min(i, us.length - 1)], { fam: opc.fam, exc }),
+    c: tono(v, grises[i], us[Math.min(i, us.length - 1)], opc),
     g: glifos,
   }));
   const nodos = vivas.reduce((a, c) => a + c.reduce((b, g) => b + g.d.length, 0), 0);
@@ -447,47 +509,11 @@ console.log();
    salen de sondear la referencia (scripts/lamina/_t0105_bordes.mjs), no de
    mirarlas. Los rangos se eligen para no morder tipografía ni organismo: lo
    que entre acá se dibuja con su RGB exacto y volvería a dibujarse trazado. */
-arte.cromo = [
-  ...campo(299, 99, 940, 104),    // 02 · filo superior
-  ...campo(299, 104, 302, 590),   // 02 · canto izquierdo (el eje está en 298, del vecino)
-  ...campo(299, 583, 940, 592),   // 02 · filo inferior
-  ...campo(303, 127, 620, 139),   // 02 · regla bajo el título y su escalón
-  ...campo(750, 128, 940, 133),   // overlays · arranque de la columna
-  ...campo(750, 153, 940, 158),   // overlays · regla del encabezado
-  ...campo(750, 246, 940, 253),   // overlays · separador 01|02
-  ...campo(750, 336, 940, 343),   // overlays · separador 02|03
-  ...campo(750, 426, 940, 433),   // overlays · separador 03|04
-  ...campo(750, 130, 757, 520),   // overlays · canto izquierdo de la columna
-  ...campo(752, 516, 940, 523),   // lock · filo superior de la caja
-  ...campo(752, 523, 762, 572),   // lock · canto izquierdo
-  ...campo(843, 523, 852, 572),   // lock · tabique central
-  ...campo(925, 523, 940, 572),   // lock · canto derecho
-  ...campo(752, 566, 940, 574),   // lock · filo inferior
-  ...campo(299, 593, 940, 601),   // banda inferior · filo de apertura
-  ...campo(299, 601, 940, 604),   // 05 · filo superior
-  ...campo(299, 619, 740, 628),   // 05 · regla del título y techo de las fichas
-  ...campo(299, 628, 316, 690),   // 05 · tabique ISOLATE|REVEAL
-  ...campo(450, 622, 464, 690),   // 05 · tabique REVEAL|GLITCH
-  ...campo(588, 622, 602, 690),   // 05 · tabique GLITCH|ARCHIVE
-  ...campo(299, 678, 740, 700),   // 05 · piso de las fichas y del panel
-  ...campo(299, 700, 740, 708),   // 06 · filo superior
-  ...campo(299, 720, 740, 733),   // 06 · regla del título y techo de las celdas
-  ...campo(452, 726, 472, 840),   // 06 · tabique de la celda del hash
-  ...campo(574, 726, 596, 840),   // 06 · tabique OMEGA|QR
-  ...campo(676, 726, 692, 840),   // 06 · tabique QR|botones
-  ...campo(722, 726, 740, 840),   // 06 · canto derecho
-  ...campo(299, 833, 740, 850),   // 06 · piso
-  ...campo(740, 598, 916, 606),   // 07 · filo superior
-  ...campo(740, 606, 758, 858),   // 07 · canto izquierdo
-  ...campo(740, 617, 916, 626),   // 07 · regla del título
-  ...campo(893, 606, 916, 858),   // 07 · canto derecho
-  ...campo(740, 845, 916, 860),   // 07 · piso
-  ...campo(299, 855, 940, 866),   // banda inferior · filo de cierre
-];
+arte.cromo = CROMO.flatMap(([a, b, c, d]) => campo(a, b, c, d));
 
 /* El QR se lee celda por celda: a resolución de módulo las fronteras caen a
    mitad de píxel y dos rectángulos vecinos no suman su cobertura. */
-arte.p06Qr = campo(594, 742, 678, 830, { piso: 8, salto: 2 });
+arte.p06Qr = campo(597, 742, 675, 830, { piso: 8, salto: 2 });
 
 const cab = `/**
  * t01-05 · BLOQUE CENTRO · ARTE FIJA TRAZADA — NO SE EDITA A MANO.

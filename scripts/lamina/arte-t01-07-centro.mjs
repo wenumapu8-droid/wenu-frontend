@@ -6,8 +6,8 @@
  * reference/canon/t01-07-cosmology-core.png las cinco regiones del bloque. Los
  * .svg NO se editan a mano: se corre esto.
  *
- *   node scripts/lamina/arte-t01-07-centro.mjs             # genera
- *   node scripts/lamina/arte-t01-07-centro.mjs --barrer    # barre parámetros
+ *   node scripts/lamina/arte-t01-07-centro.mjs           # genera con mota 4
+ *   MOTA=2 node scripts/lamina/arte-t01-07-centro.mjs    # la variante de 0,07 %
  *
  * Escribe SÓLO en trazos-centro/ y en scripts/lamina/out/_t0107_centro. La
  * lámina la arman cinco agentes a la vez y `scripts/lamina/glyphs/<slug>/` es

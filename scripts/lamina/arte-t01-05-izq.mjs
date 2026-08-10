@@ -214,10 +214,12 @@ function tono(v, gris, piso) {
  *    34, 10 y 20). Promediarlos en un rectángulo de 1,5 px de alto deja las dos
  *    filas mal; leerlas por separado deja las dos bien.
  *
- * `color:true` guarda el RGB medido en vez de la luminancia: la regla roja bajo
- * el logotipo (y=187·188) sale plomiza si se guarda como gris.
+ * El brillo se guarda SIEMPRE como RGB medido y no como luminancia. No es un
+ * lujo: la regla bajo el logotipo (y=187·188), el marco de la caja THREAT LEVEL
+ * y el de la caja del sello son ROJOS, y como gris salen plomizos encima del
+ * organismo que envuelven, que sí es rojo.
  */
-function tira(eje, pos, a, b, { piso = 3, salto = 4, color = false } = {}) {
+function tira(eje, pos, a, b, { piso = 3, salto = 3, color = true } = {}) {
   const n = b - a + 1;
   const cel = [];
   for (let i = 0; i < n; i++) {
@@ -257,8 +259,7 @@ const REGLAS_H = [
   [101, 4, 298], [102, 4, 298],                        // filo superior de la columna
   [131, 4, 298], [132, 4, 298],                        // filo superior de la ficha
   [134, 16, 60], [135, 16, 60],                        // lengüeta del canto izquierdo
-  [187, 16, 298, { color: true }],                     // regla roja bajo el logotipo
-  [188, 16, 298, { color: true }],
+  [187, 16, 298], [188, 16, 298],                      // regla roja bajo el logotipo
   [276, 26, 278],                                      // línea de guiones bajo ORIGIN
   [298, 26, 278], [299, 26, 278],                      // divisoria bajo STATUS
   [310, 26, 136], [311, 26, 136], [312, 26, 136],      // filo superior de THREAT LEVEL
@@ -408,7 +409,6 @@ for (const [nombre, bandas, xr, us, opc] of PIEZAS) {
 }
 console.log();
 
-/* La regla roja bajo el logotipo se lee con RGB; el resto del chrome es gris. */
 arte.reglas = [
   ...REGLAS_H.map(([y, a, b, o]) => tira("h", y, a, b, o)),
   ...REGLAS_V.map(([x, a, b, o]) => tira("v", x, a, b, o)),

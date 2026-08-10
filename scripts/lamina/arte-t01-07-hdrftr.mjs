@@ -75,6 +75,20 @@ const arte = {
   hdrAla: trazar("23,62", "1480,1660", 24, 0),    // emblema alado
   hdrBarras: barras(1181, 1288, 26, 48, 0),
 
+  /* Las cifras. Van trazadas y no como <text> porque se midió: con el texto
+     puesto encima, esta cabecera daba 1,91 % y las seis celdas dejaban entre
+     9,3 y 19,5 de error absoluto medio cada una. No es cuestión de brillo —con
+     el relleno recalibrado para que la tinta media coincida al 1 %, el error
+     SUBIÓ (16,7 → 19,5 en "TANDA 01"): lo que no coincide es la forma, porque
+     la mono del póster no existe en ninguna máquina. Cada una conserva su texto
+     literal en el aria-label y vive dentro de un contenedor data-symbolic. */
+  hdrTanda: trazar("77,88", "20,84", 32, 0),      // "TANDA 01" del chip
+  hdrVal1: trazar("36,47", "708,800", 30, 0),     // TANDA-01
+  hdrVal2: trazar("36,47", "812,900", 31, 0),     // KX-T01-01A
+  hdrVal3: trazar("36,47", "907,1005", 40, 0),    // 2025-05-22
+  hdrVal4: trazar("36,47", "1016,1078", 42, 0),   // v2.0.0
+  hdrVal5: trazar("36,47", "1086,1163", 28, 0),   // T01A-CORE
+
   // ── pie (caja 0,866 · 1672×75: las y ya vienen restadas −866) ─────────────
   ftrMarca: trazar("888,914", "16,152", 42, 866), // "KODEX−∞"
   ftrLema: trazar("894,908", "686,948", 30, 866), // "BUILT FOR ARCHIVES THAT REMEMBER."

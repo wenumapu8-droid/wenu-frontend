@@ -369,11 +369,12 @@ function medirMarco([x0, y0, x1, y1]) {
 }
 
 /* ── ejecución ────────────────────────────────────────────────────────────*/
-async function pieza([id, x0, y0, x1, y1, modo, capas]) {
-  const c = { x: Math.max(0, x0), y: Math.max(0, y0), w: Math.min(W - 1, x1) - x0 + 1, h: Math.min(H - 1, y1) - y0 + 1 };
+
+/** Resuelve UNA caja: traza sus capas y les barre el relleno. Devuelve las
+ *  capas listas (ya en coordenadas de la lámina) y pinta el compuesto. */
+async function resolver(c, modo, capas, compuesto, cw, ox, oy) {
   const salida = [];
   const trazos = [];
-  const compuesto = Buffer.alloc(c.w * c.h);
 
   for (const [filtro, u, speckle] of capas) {
     const buf = mascara(c, filtro, u);
