@@ -71,6 +71,67 @@ decisión del creador.
 
 ---
 
+## 2026-08-10 · KODEX es la fuente; las marcas salen de él
+
+> *«wenu mapu es gracias al kodex y tiene sentido porque el logo nuevo nace de
+> mi obra digital gracias a ese workflow»*
+> *«de ahí sale, o sea del kodex también, el logo de soma elixir mushroom»*
+
+La dirección es **KODEX → marca**, no dos proyectos paralelos:
+
+```
+KODEX          el lenguaje visual y el método que lo genera
+  ↓
+WENU MAPU      logo y sistema gráfico nacidos de la obra digital
+SOMA ELIXIR    ídem
+```
+
+**Corrige un error de lectura.** El inventario del Drive trató las piezas de
+`WENU MAPU · SOLAR TECHNOLOGY I–V` como «otra marca, fuera de alcance». No lo
+son: son la **salida aplicada** del sistema. Que sean fotográficas no las
+excluye del canon — las ubica en otra etapa de la cadena.
+
+Calza con lo que ya está escrito en la bóveda: *«su obra va LIMPIA (sin FX);
+los FX son para fotos y derivados»*. La obra es la fuente; el derivado es
+producto.
+
+Y calza con la estructura real: el blueprint verifica que KODEX vive en
+`wenumapuonline.com/kodex/`. El códice está **dentro** del sitio de la marca
+porque la marca nació de él.
+
+**Qué NO decide.** Si las piezas de marca entran al códice como obra, como
+derivado o como caso de aplicación. Son tres lugares distintos y hay que
+elegir uno.
+
+---
+
+## 2026-08-10 · Los cursos, sin decidir
+
+> *«los cursos no sé si son relevantes, ni idea, pueden ser inspiración o
+> diccionarios de lenguas de pueblos originarios»*
+
+En el Drive aparecieron `SPECULATIVE ARCHITECTS`, `QUANTUM FABRICATOR v.07`,
+`SYNTHESIS CHAMBER v.05` y `SIMULATION OUTPUT`. Todas llevan impreso
+*«CONCEPT PLATE — NOT A DEPLOYED FEATURE»*, o sea que ya nacen declaradas como
+concepto y no como producto.
+
+Queda **abierto** a propósito. Pero la segunda idea —diccionarios de lenguas de
+pueblos originarios— **no es una decisión de diseño y no la puede tomar un
+agente**. La regla cultural del Truth Ledger la cubre entera y pide, por cada
+símbolo o lengua: cultura o tradición específica, territorio, fuente, autor o
+comunidad custodia, licencia o permiso, transformación realizada, límites de
+uso, riesgo de apropiación y estado de consulta.
+
+Y prohíbe explícitamente tratar «sabiduría ancestral» como categoría
+homogénea: mapuche, selk'nam, sumeria y cualquier otra se estudian por
+separado.
+
+Un diccionario de una lengua originaria dentro de un producto que se vende
+necesita consulta con la comunidad antes que decisión de producto. Lo dejo
+anotado como pendiente de consulta, no como tarea de diseño.
+
+---
+
 ## Sigue esperando decisión
 
 1. **`t01-05 SPECIMEN SKULL` y `t01-07 COSMOLOGY CORE`** — trazadas, sin canvas.

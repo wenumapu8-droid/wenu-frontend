@@ -105,9 +105,7 @@ con tratamiento GPU es legítimo; fingir que se generan no lo es.
 
 # 4 · Lo que hay que decidir, y no me toca
 
-1. **Qué series son KODEX y cuáles no.** Aparecieron mezcladas piezas de
-   `WENU MAPU`, una revista `RENDAH MAG ISSUE 014` y cursos
-   (`SPECULATIVE ARCHITECTS`, `QUANTUM FABRICATOR v.07`).
+1. **Dónde entran las piezas de marca.** Ya está resuelto QUE son KODEX: las marcas nacen de él (ver KODEX-DECISIONES.md). Falta si entran como obra, como derivado o como caso de aplicacion.
 2. **Si la serie UNIVERSE 01–10 es el índice del sitio**, o si convive con las
    siete escenas ya declaradas. Se parecen pero no son lo mismo.
 3. **Qué se hace con los 19 fotográficos** — tratamiento GPU sobre la imagen, o
