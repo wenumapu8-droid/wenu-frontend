@@ -3,10 +3,14 @@
  * KODEX-∞ · u04-alphabet · PIE — banda inferior, y 1240..1402 del póster.
  *
  * Cuatro piezas, de arriba a abajo:
- *   1. Frase con adornos ◇ a los lados            y 1249,5
- *   2. Regla de ancho completo con rombo central  y 1272
- *   3. Pie final en tres columnas                 y 1323,5 / 1334,5 / 1343,5
+ *   1. Frase con adornos ◇ a los lados            y 1249,5   (acá)
+ *   2. Regla de ancho completo con rombo central  y 1272     (acá)
+ *   3. Pie final en tres columnas                 y 1323,5 / 1343,5
  *   4. Sello hexagonal                            centro (1009 · 1329), R=37
+ *
+ * Las dos últimas las pone `serie-universe/PieUniverse.astro`, que es el mismo
+ * remate de las cinco láminas de la serie. Las dos primeras son de esta página
+ * y van por el slot `antes`.
  *
  * COORDENADAS. El bloque va con `inset:0` sobre el lienzo entero, así que las
  * x/y de este archivo son las del póster sin corrimiento: lo que se lee acá se
@@ -30,16 +34,13 @@
  * en vez de con un `letter-spacing` común: en SVG, `textLength` clava el extremo
  * de tinta donde lo tiene la referencia sea cual sea la fuente que resuelva.
  *
- * TELEMETRÍA SIMBÓLICA. `KDX-ALPHABET-004 / PROTOCOL INITIATED` es ficción del
- * póster, no estado de ningún sistema; va marcado `data-symbolic="true"`.
- *
  * LO QUE NO SE DIBUJA ACÁ. El marco del póster —las verticales de x=12,5 y
  * x=1109,5, la interior de x=54,5 y la regla de cierre de y=1385— cruza la banda
  * pero pertenece a la Cabecera, que lo abre arriba y lo baja de un solo trazo.
  * Partirlo deja costura en las esquinas.
  */
-
-/* ── eje ───────────────────────────────────────────────────────────────── */
+import PieUniverse from "../serie-universe/PieUniverse.astro";
+import { romboR } from "../serie-universe/geom";
 
 /**
  * Eje de simetría de la banda. Los dos adornos que flanquean la frase están en
@@ -48,82 +49,41 @@
  */
 const EJE = 560;
 
-/* ── sello hexagonal ───────────────────────────────────────────────────── */
-
-/**
- * Vértice superior en (1009 · 1292) y lados verticales entre y=1310,5 y
- * y=1347,5 en x=977 y x=1041 → centro (1009 · 1329) y R=37.
- */
-const SELLO = { cx: 1009, cy: 1329, R: 37 };
-
-/** Hexágono de punta arriba: 6 vértices desde −90°, uno cada 60°. */
-const hexPuntos = Array.from({ length: 6 }, (_, k) => {
-  const a = ((-90 + k * 60) * Math.PI) / 180;
-  return `${(SELLO.cx + SELLO.R * Math.cos(a)).toFixed(2)},${(SELLO.cy + SELLO.R * Math.sin(a)).toFixed(2)}`;
-}).join(" ");
-
-/**
- * Rosa de la estrella, paramétrica. Tres familias, porque en la referencia los
- * ocho brazos NO son iguales — y esa desigualdad es lo que la separa de un
- * asterisco tipográfico:
- *   · las cuatro DIAGONALES son trazo grueso con un cuadradito en la punta;
- *   · el eje VERTICAL va cortado — tramo, hueco, punto, punta;
- *   · el eje HORIZONTAL es más largo y lleva tres travesaños graduados;
- *   · entre medio, ocho pelos cortos a 22,5°.
- */
-const pol = (r: number, a: number) => [
-  SELLO.cx + r * Math.cos((a * Math.PI) / 180),
-  SELLO.cy + r * Math.sin((a * Math.PI) / 180),
-];
-
-const NUCLEO = 3.4;
-const brazos = Array.from({ length: 8 }, (_, k) => {
-  const a = k * 45;
-  const eje = k % 2 === 0;
-  const horiz = a === 0 || a === 180;
-  const largo = eje ? (horiz ? 19 : 17) : 16.5;
-  const [x1, y1] = pol(NUCLEO, a);
-  const [x2, y2] = pol(eje && !horiz ? 10.5 : largo, a);
-  const [px, py] = pol(largo + 1.6, a);
-  return {
-    eje,
-    d: `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`,
-    punta: [px, py],
-    travesanos: horiz
-      ? [
-          [7, 3.2],
-          [11.5, 2.6],
-          [15.5, 2],
-        ].map(([r, h]) => {
-          const [cx, cy] = pol(r, a);
-          return `M${cx.toFixed(2)} ${(cy - h).toFixed(2)}L${cx.toFixed(2)} ${(cy + h).toFixed(2)}`;
-        })
-      : [],
-    suelto: eje && !horiz ? pol(13.5, a) : null,
-  };
-});
-
-const pelos = Array.from({ length: 8 }, (_, k) => {
-  const a = 22.5 + k * 45;
-  const [x1, y1] = pol(4.2, a);
-  const [x2, y2] = pol(9.4, a);
-  return `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`;
-});
-
-/** Rombo hueco: cierre de regla y flanco de la frase. Un generador, dos tamaños. */
-const rombo = (cx: number, cy: number, r: number) =>
-  `M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`;
+/* La única cota de geometría que se aparta del valor por defecto de la serie es
+   el cuerpo de los códigos (versal de 9 px → 12,3). Las opacidades van por los
+   mandos `-op`, que caen en `opacity`: es la propiedad contra la que se calibró
+   esta lámina y no rasteriza igual que `fill-opacity`. Ver la nota de
+   `PieUniverse`. */
+const vars = [
+  "--pi-ink:#cfc6e8",
+  "--pi-vio:#a77cf0",
+  "--pi-cod-size:12.3px",
+  "--pi-cod-op:.88",
+  "--pi-lema-op:.74",
+  "--pi-fuente-op:.78",
+  "--pi-expr-op:.64",
+  "--pi-hex-op:.55",
+  "--pi-pelo-op:.75",
+].join(";");
 ---
 
-<div data-bloque="Pie" style="inset:0">
-  <svg class="pie" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
-    <!-- ═══ 1 · FRASE ════════════════════════════════════════════════════ -->
+<PieUniverse
+  vars={vars}
+  codigo={{ x: 82, y: 1323.5, len: 134, t: "KDX-ALPHABET-004" }}
+  estado={{ x: 82, y: 1343.5, len: 135, t: "PROTOCOL INITIATED" }}
+  lema={{ x: 349, y: 1334.5, len: 429, t: "THE KODEX IS LIVING. YOU ARE PART OF IT." }}
+  fuente={{ x: 893, y: 1323.5, len: 66, t: "ONE SOURCE" }}
+  expr={{ x: 823, y: 1343.5, len: 137, t: "INFINITE EXPRESSIONS" }}
+  sello={{ cx: 1009, cy: 1329, R: 37 }}
+>
+  <Fragment slot="antes">
+    <!-- ═══ 1 · FRASE ══════════════════════════════════════════════════════
+         Tinta de x=381 a 738 con 41 caracteres → 8,9 px de paso. Los dos rombos
+         que la flanquean miden 4 px de lado a lado, no 7: medido. -->
     <g class="pie-frase">
-      <!-- Tinta de x=381 a 738 con 41 caracteres → 8,9 px de paso. Los dos
-           rombos que la flanquean miden 4 px de lado a lado, no 7: medido. -->
       <text class="pie-t pie-t--frase" x="381" y="1249.5" textLength="357" lengthAdjust="spacing">TRAVERSE WITH INTENT. RETURN WITH WISDOM.</text>
-      <path class="pie-frase__romb" d={rombo(364.5, 1245.5, 2.2)} />
-      <path class="pie-frase__romb" d={rombo(756.5, 1245.5, 2.2)} />
+      <path class="pie-frase__romb" d={romboR(364.5, 1245.5, 2.2)} />
+      <path class="pie-frase__romb" d={romboR(756.5, 1245.5, 2.2)} />
     </g>
 
     <!-- ═══ 2 · REGLA ════════════════════════════════════════════════════ -->
@@ -132,102 +92,23 @@ const rombo = (cx: number, cy: number, r: number) =>
       <path class="pie-regla__cierre" d="M53 1267.8v8.4m-4.2 -4.2h8.4" />
       <circle class="pie-regla__punto" cx="61" cy="1272" r="0.9" />
       <circle class="pie-regla__punto" cx="1051" cy="1272" r="0.9" />
-      <path class="pie-regla__cierre" d={rombo(1060, 1272, 3.6)} />
+      <path class="pie-regla__cierre" d={romboR(1060, 1272, 3.6)} />
       <!-- Rombo del eje: el original lo tiene y es lo que parte la regla en dos
            mitades legibles en vez de una sola raya de 1000 px. -->
-      <path class="pie-regla__cierre" d={rombo(EJE + 0.5, 1272, 4.4)} />
+      <path class="pie-regla__cierre" d={romboR(EJE + 0.5, 1272, 4.4)} />
     </g>
-
-    <!-- ═══ 3 · PIE FINAL ════════════════════════════════════════════════ -->
-    <g class="pie-cierre">
-      <g data-symbolic="true">
-        <text class="pie-t pie-t--codigo" x="82" y="1323.5" textLength="134" lengthAdjust="spacing">KDX-ALPHABET-004</text>
-        <text class="pie-t pie-t--codigo" x="82" y="1343.5" textLength="135" lengthAdjust="spacing">PROTOCOL INITIATED</text>
-      </g>
-
-      <text class="pie-t pie-t--lema" x="349" y="1334.5" textLength="429" lengthAdjust="spacing">THE KODEX IS LIVING. YOU ARE PART OF IT.</text>
-
-      <text class="pie-t pie-t--fuente" x="893" y="1323.5" textLength="66" lengthAdjust="spacing">ONE SOURCE</text>
-      <text class="pie-t pie-t--expr" x="823" y="1343.5" textLength="137" lengthAdjust="spacing">INFINITE EXPRESSIONS</text>
-
-      <!-- Sello: hexágono de punta arriba + rosa paramétrica. -->
-      <g class="pie-sello" role="img" aria-label="Sello KODEX-∞: una fuente, infinitas expresiones">
-        <polygon class="pie-sello__hex" points={hexPuntos} />
-        <g class="pie-sello__rosa">
-          {pelos.map((d) => <path class="pie-sello__pelo" d={d} />)}
-          {
-            brazos.map((b) => (
-              <g>
-                <path class={b.eje ? "pie-sello__eje" : "pie-sello__diag"} d={b.d} />
-                {b.travesanos.map((d) => <path class="pie-sello__pelo" d={d} />)}
-                {b.suelto && (
-                  <circle class="pie-sello__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.9" />
-                )}
-                <rect
-                  class="pie-sello__punta"
-                  x={(b.punta[0] - 1.15).toFixed(2)}
-                  y={(b.punta[1] - 1.15).toFixed(2)}
-                  width="2.3"
-                  height="2.3"
-                />
-              </g>
-            ))
-          }
-          <circle class="pie-sello__nucleo" cx={SELLO.cx} cy={SELLO.cy} r="2.6" />
-        </g>
-      </g>
-    </g>
-  </svg>
-</div>
+  </Fragment>
+</PieUniverse>
 
 <style>
-  /* El bloque cubre el lienzo entero y no pinta fondo: todo lo suyo cae de
-     y=1240 para abajo, y lo de arriba queda visible tal cual. */
-  .pie {
-    position: absolute;
-    left: 0;
-    top: 0;
-    pointer-events: none;
-  }
-
-  /* ── tipografía ─────────────────────────────────────────────────────── */
-  /* Los cuerpos salen de la versal medida en el PNG (9 px en toda la banda) y
-     el ancho de cada línea lo clava `textLength`. En SVG el espaciado de letra
-     se suma también DESPUÉS del último carácter; con textLength eso deja de
-     importar, que es la otra razón para usarlo acá. */
-  .pie-t {
-    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-    font-variant-ligatures: none;
-    white-space: pre;
-    fill: currentColor;
-  }
+  /* Sólo lo de esta lámina: la banda de tres columnas y el sello los viste
+     `PieUniverse` con las variables `--pi-*` de arriba. */
   .pie-t--frase {
     font-size: 12.3px;
     fill: #cfc6e8;
     opacity: 0.86;
   }
-  .pie-t--codigo {
-    font-size: 12.3px;
-    fill: #a77cf0;
-    opacity: 0.88;
-  }
-  .pie-t--lema {
-    font-size: 12px;
-    fill: #cfc6e8;
-    opacity: 0.74;
-  }
-  .pie-t--fuente {
-    font-size: 10.5px;
-    fill: #a77cf0;
-    opacity: 0.78;
-  }
-  .pie-t--expr {
-    font-size: 10.5px;
-    fill: #cfc6e8;
-    opacity: 0.64;
-  }
 
-  /* ── reglas y adornos ───────────────────────────────────────────────── */
   .pie-regla__linea {
     stroke: #4a3570;
     stroke-width: 1;
@@ -248,34 +129,5 @@ const rombo = (cx: number, cy: number, r: number) =>
     stroke: #cfc6e8;
     stroke-width: 0.9;
     opacity: 0.5;
-  }
-
-  /* ── sello ──────────────────────────────────────────────────────────── */
-  .pie-sello__hex {
-    fill: none;
-    stroke: #cfc6e8;
-    stroke-width: 1;
-    opacity: 0.55;
-  }
-  .pie-sello__diag {
-    stroke: #a77cf0;
-    stroke-width: 1.5;
-  }
-  .pie-sello__eje {
-    stroke: #a77cf0;
-    stroke-width: 1;
-  }
-  .pie-sello__pelo {
-    stroke: #a77cf0;
-    stroke-width: 0.7;
-    opacity: 0.75;
-  }
-  .pie-sello__punta {
-    fill: #a77cf0;
-  }
-  .pie-sello__nucleo {
-    fill: none;
-    stroke: #a77cf0;
-    stroke-width: 1;
   }
 </style>

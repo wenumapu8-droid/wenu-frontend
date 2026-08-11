@@ -9,6 +9,10 @@
  *   2. CHAMBER SIGNATURE    x 711..969  y 1189..1280   firma y sello hexagonal
  *   3. remate               y 1288..1382                tres columnas y la marca
  *
+ * El remate lo pone `serie-universe/PieUniverse.astro`, que es el mismo de las
+ * cinco láminas de la serie. El juramento y la firma son de esta página y van
+ * por el slot `antes`; el cierre de la regla inferior, por `despues`.
+ *
  * EL JURAMENTO ES EL CONTRATO DE LA LÁMINA. «WE RECORD WITHOUT BIAS. WE PRESERVE
  * WITHOUT ALTERATION. WE SEEK TRUTH, NOT COMFORT.» es lo que hace que las cinco
  * clases de la tabla signifiquen algo: sin la promesa de no alterar, NEEDS
@@ -20,11 +24,18 @@
  * `KDX-SOURCE-0009` es un número de póster y no el estado de ningún sistema. Va
  * marcada `data-symbolic="true"`, como manda el canon.
  *
+ * DOS SELLOS Y UNA SOLA ROSA. El de la firma es el mismo dibujo que el del
+ * remate al 78 %: `geom.ts` lo genera con un factor de escala en vez de tener
+ * dos juegos de constantes. Lo único que no encoge es el punto suelto del eje
+ * vertical, que en la referencia mide lo mismo en los dos.
+ *
  * LO QUE NO SE DIBUJA ACÁ. El marco del póster —las verticales de x=10,5 y
  * x=1017,5, el marco interior de x=49 y x=978 y las reglas de y=1288,5 y
  * y=1381,5— cruza esta banda pero pertenece a la `Cabecera`, que lo abre arriba
  * y lo baja de un solo trazo. Partirlo deja costura en las esquinas.
  */
+import PieUniverse from "../serie-universe/PieUniverse.astro";
+import { hexPuntos, rosa, romboR, esquinaL } from "../serie-universe/geom";
 
 /* ── 1 · el juramento ───────────────────────────────────────────────────── */
 
@@ -72,73 +83,13 @@ const firmaD = RASGO.reduce((d, [x, y], i, a) => {
 /** Cola larga de la firma: la raya que la subraya y la cierra. */
 const COLA = "M725 1272Q790 1266 855 1270Q885 1272 900 1268";
 
-/* ── sellos hexagonales ─────────────────────────────────────────────────── */
-
-const hexagono = (cx: number, cy: number, R: number): string =>
-  Array.from({ length: 6 }, (_, k) => {
-    const a = ((-90 + k * 60) * Math.PI) / 180;
-    return `${(cx + R * Math.cos(a)).toFixed(2)},${(cy + R * Math.sin(a)).toFixed(2)}`;
-  }).join(" ");
-
-/**
- * Rosa de la marca KODEX, paramétrica. Tres familias, porque los ocho brazos NO
- * son iguales — y esa desigualdad es lo que la separa de un asterisco
- * tipográfico:
- *   · las cuatro DIAGONALES son trazo grueso con un cuadradito en la punta;
- *   · el eje VERTICAL va cortado: tramo, hueco, punto, punta;
- *   · el eje HORIZONTAL es más largo y lleva tres travesaños graduados;
- *   · entre medio, ocho pelos cortos a 22,5°.
- */
-function rosa(cx: number, cy: number, k: number) {
-  const pol = (r: number, a: number): [number, number] => [
-    cx + r * Math.cos((a * Math.PI) / 180),
-    cy + r * Math.sin((a * Math.PI) / 180),
-  ];
-  const nucleo = 3.4 * k;
-  const brazos = Array.from({ length: 8 }, (_, i) => {
-    const a = i * 45;
-    const eje = i % 2 === 0;
-    const horiz = a === 0 || a === 180;
-    const largo = (eje ? (horiz ? 19 : 17) : 16.5) * k;
-    const [x1, y1] = pol(nucleo, a);
-    const [x2, y2] = pol(eje && !horiz ? 10.5 * k : largo, a);
-    const [px, py] = pol(largo + 1.6 * k, a);
-    return {
-      eje,
-      horiz,
-      d: `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`,
-      punta: [px, py] as [number, number],
-      travesanos: horiz
-        ? ([[7, 3.2], [11.5, 2.6], [15.5, 2]] as [number, number][]).map(([r, h]) => {
-            const [tx, ty] = pol(r * k, a);
-            return `M${tx.toFixed(2)} ${(ty - h * k).toFixed(2)}L${tx.toFixed(2)} ${(ty + h * k).toFixed(2)}`;
-          })
-        : [],
-      suelto: eje && !horiz ? pol(13.5 * k, a) : null,
-    };
-  });
-  const pelos = Array.from({ length: 8 }, (_, i) => {
-    const a = 22.5 + i * 45;
-    const [x1, y1] = pol(4.2 * k, a);
-    const [x2, y2] = pol(9.4 * k, a);
-    return `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`;
-  });
-  return { brazos, pelos, nucleo: 2.6 * k };
-}
-
+/** El sello de la firma: la misma rosa del remate al 78 %. */
 const ROSA_FIRMA = rosa(935, 1229, 0.78);
-const ROSA_PIE = rosa(930.5, 1341, 1);
 
 /* ── 3 · remate ─────────────────────────────────────────────────────────── */
 
 /** Cruz de puntería: cuadradito y cuatro tics. Flanquea el lema del remate. */
 const CRUCES = [310, 329, 698.5, 719];
-
-const esquina = (x: number, y: number, sx: number, sy: number, l = 9) =>
-  `M${x + sx * l} ${y}H${x}V${y + sy * l}`;
-
-const rombo = (cx: number, cy: number, r: number) =>
-  `M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`;
 
 const av = (tinta: number) => +(tinta + 2).toFixed(1);
 
@@ -155,115 +106,110 @@ const av = (tinta: number) => +(tinta + 2).toFixed(1);
 const modo = (texto: string, largo: number, cuerpo: number) =>
   largo >= texto.length * cuerpo * 0.6 ? "spacing" : "spacingAndGlyphs";
 
+/* Todo este bloque está calibrado contra la referencia caja por caja, y con las
+   alfas de pintura (`fill-opacity` / `stroke-opacity`), que son las propiedades
+   con las que se midió — por eso los mandos `-a` y no los `-op`. Ver la nota de
+   `PieUniverse`. El juramento fue el peor caso de la lámina: puesto "a gusto"
+   su título salía 14 puntos de luminancia por encima —más del doble— y la banda
+   entera con él. */
+const vars = [
+  "--pi-ink:#cfcfd2",
+  "--pi-vio:#b49ad8",
+  "--pi-cod-size:9.4px",
+  "--pi-cod-a:.58",
+  "--pi-est-a:.48",
+  "--pi-lema-size:10.5px",
+  "--pi-lema-a:.4",
+  "--pi-fuente-size:9.4px",
+  "--pi-fuente-a:.5",
+  "--pi-expr-a:.38",
+  "--pi-hex-a:.3",
+  "--pi-rosa-a:.62",
+  "--pi-pelo-a:.46",
+].join(";");
 ---
 
-<div data-bloque="Pie" style="inset:0">
-  <svg class="pie" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+<PieUniverse
+  vars={vars}
+  codigo={{ x: 68, y: 1334, len: av(113), t: "KDX-SOURCE-0009" }}
+  estado={{ x: 68, y: 1349, len: av(146), t: "TRUTH CHAMBER INITIATED" }}
+  lema={{ x: 349, y: 1338, len: av(332), t: "THE KODEX IS LIVING. YOU ARE PART OF IT." }}
+  fuente={{ x: 832, y: 1333, len: av(61), t: "ONE SOURCE" }}
+  expr={{ x: 769, y: 1349, len: av(124), t: "INFINITE EXPRESSIONS" }}
+  sello={{ cx: 930.5, cy: 1341, R: 29.5 }}
+>
+  <Fragment slot="antes">
     <!-- ═══ 1 · JURAMENTO ════════════════════════════════════════════════ -->
     <path class="pie__regla" d="M62 1189H969" stroke-dasharray="2 6" />
     <path class="pie__regla" d="M62 1280H969" stroke-dasharray="2 6" />
     {[OATH, FIRMA].map((c) => (
       <g class="pie__esq">
-        <path d={esquina(c.x0, c.y0, 1, 1)} />
-        <path d={esquina(c.x1, c.y0, -1, 1)} />
-        <path d={esquina(c.x0, c.y1, 1, -1)} />
-        <path d={esquina(c.x1, c.y1, -1, -1)} />
+        <path d={esquinaL(c.x0, c.y0, 1, 1)} />
+        <path d={esquinaL(c.x1, c.y0, -1, 1)} />
+        <path d={esquinaL(c.x0, c.y1, 1, -1)} />
+        <path d={esquinaL(c.x1, c.y1, -1, -1)} />
       </g>
     ))}
 
-    <text class="pie__t" x="85" y="1211" textLength={av(165)} lengthAdjust={modo("TRUTH CHAMBER OATH", av(165), 10.5)}>TRUTH CHAMBER OATH</text>
+    <text class="pie-t pie__t" x="85" y="1211" textLength={av(165)} lengthAdjust={modo("TRUTH CHAMBER OATH", av(165), 10.5)}>TRUTH CHAMBER OATH</text>
     {PROMESAS.map(([texto, y]) => (
-      <text class="pie__voz" x={PROMESA_CX} y={y}>{texto}</text>
+      <text class="pie-t pie__voz" x={PROMESA_CX} y={y}>{texto}</text>
     ))}
     {DESEOS.map(([texto, y]) => (
-      <text class="pie__voz" x={DESEO_CX} y={y}>{texto}</text>
+      <text class="pie-t pie__voz" x={DESEO_CX} y={y}>{texto}</text>
     ))}
 
     <!-- Guías punteadas que entran al medallón desde los dos lados. -->
     <path class="pie__guia" d="M338 1238H372M476 1238H510" stroke-dasharray="1 5" />
 
     <!-- ═══ 2 · FIRMA ════════════════════════════════════════════════════ -->
-    <text class="pie__t" x="736" y="1211" textLength={av(117)} lengthAdjust={modo("CHAMBER SIGNATURE", av(117), 10.5)}>CHAMBER SIGNATURE</text>
+    <text class="pie-t pie__t" x="736" y="1211" textLength={av(117)} lengthAdjust={modo("CHAMBER SIGNATURE", av(117), 10.5)}>CHAMBER SIGNATURE</text>
     <g class="pie__firma" data-symbolic="true">
       <path d={firmaD} />
       <path class="pie__cola" d={COLA} />
     </g>
-    <text class="pie__marca" x="847" y="1274" textLength="60" lengthAdjust={modo("KODEX-∞", 60, 9.4)}>KODEX-∞</text>
+    <text class="pie-t pie__marca" x="847" y="1274" textLength="60" lengthAdjust={modo("KODEX-∞", 60, 9.4)}>KODEX-∞</text>
 
-    <g class="pie__sello">
-      <polygon class="pie__hex" points={hexagono(935, 1229, 23.5)} />
-      <g class="pie__rosa">
-        {ROSA_FIRMA.pelos.map((d) => <path class="pie__pelo" d={d} />)}
+    <!-- El sello de la firma comparte las clases del sello del remate: mismos
+         valores medidos, así que también comparte el estilo. -->
+    <g class="pie-sello">
+      <polygon class="pie-sello__hex" points={hexPuntos(935, 1229, 23.5)} />
+      <g class="pie-sello__rosa">
+        {ROSA_FIRMA.pelos.map((d) => <path class="pie-sello__pelo" d={d} />)}
         {ROSA_FIRMA.brazos.map((b) => (
           <g>
-            <path class={b.eje ? "pie__eje" : "pie__diag"} d={b.d} />
-            {b.travesanos.map((d) => <path class="pie__pelo" d={d} />)}
-            {b.suelto && <circle class="pie__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.8" />}
-            <rect class="pie__punta" x={(b.punta[0] - 0.9).toFixed(2)} y={(b.punta[1] - 0.9).toFixed(2)} width="1.8" height="1.8" />
+            <path class={b.eje ? "pie-sello__eje" : "pie-sello__diag"} d={b.d} />
+            {b.travesanos.map((d) => <path class="pie-sello__pelo" d={d} />)}
+            {b.suelto && <circle class="pie-sello__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.8" />}
+            <rect class="pie-sello__punta" x={(b.punta[0] - 0.9).toFixed(2)} y={(b.punta[1] - 0.9).toFixed(2)} width="1.8" height="1.8" />
           </g>
         ))}
-        <circle class="pie__nucleo" cx="935" cy="1229" r="2" />
+        <circle class="pie-sello__nucleo" cx="935" cy="1229" r="2" />
       </g>
     </g>
+  </Fragment>
 
-    <!-- ═══ 3 · REMATE ═══════════════════════════════════════════════════ -->
-    <g data-symbolic="true">
-      <text class="pie__cod" x="68" y="1334" textLength={av(113)} lengthAdjust={modo("KDX-SOURCE-0009", av(113), 9.4)}>KDX-SOURCE-0009</text>
-      <text class="pie__estado" x="68" y="1349" textLength={av(146)} lengthAdjust={modo("TRUTH CHAMBER INITIATED", av(146), 9.4)}>TRUTH CHAMBER INITIATED</text>
+  {CRUCES.map((x) => (
+    <g class="pie__cruz" slot="cruces">
+      <rect x={x - 1.5} y="1333" width="3" height="3" />
+      <path d={`M${x} 1329.4v2M${x} 1337.6v2M${x - 5.2} 1334.5H${x - 3.2}M${x + 3.2} 1334.5H${x + 5.2}`} />
     </g>
+  ))}
 
-    <text class="pie__lema" x="349" y="1338" textLength={av(332)} lengthAdjust={modo("THE KODEX IS LIVING. YOU ARE PART OF IT.", av(332), 10.5)}>THE KODEX IS LIVING. YOU ARE PART OF IT.</text>
-    {CRUCES.map((x) => (
-      <g class="pie__cruz">
-        <rect x={x - 1.5} y="1333" width="3" height="3" />
-        <path d={`M${x} 1329.4v2M${x} 1337.6v2M${x - 5.2} 1334.5H${x - 3.2}M${x + 3.2} 1334.5H${x + 5.2}`} />
-      </g>
+  <!-- Cierre de la regla de abajo: rombo hueco flanqueado por dos tríos de
+       puntos. Es simétrico respecto de x=513, que es donde la referencia
+       interrumpe la regla inferior del marco. -->
+  <g class="pie__cierre" slot="despues">
+    <path d={romboR(513, 1381.5, 5)} />
+    {[-52, -44, -38, 38, 44, 52].map((d) => (
+      <circle cx={513 + d} cy="1381.5" r={Math.abs(d) === 52 ? 1.4 : 1} />
     ))}
-
-    <text class="pie__fuente" x="832" y="1333" textLength={av(61)} lengthAdjust={modo("ONE SOURCE", av(61), 9.4)}>ONE SOURCE</text>
-    <text class="pie__expr" x="769" y="1349" textLength={av(124)} lengthAdjust={modo("INFINITE EXPRESSIONS", av(124), 9.4)}>INFINITE EXPRESSIONS</text>
-
-    <g class="pie__sello">
-      <polygon class="pie__hex" points={hexagono(930.5, 1341, 29.5)} />
-      <g class="pie__rosa">
-        {ROSA_PIE.pelos.map((d) => <path class="pie__pelo" d={d} />)}
-        {ROSA_PIE.brazos.map((b) => (
-          <g>
-            <path class={b.eje ? "pie__eje" : "pie__diag"} d={b.d} />
-            {b.travesanos.map((d) => <path class="pie__pelo" d={d} />)}
-            {b.suelto && <circle class="pie__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.9" />}
-            <rect class="pie__punta" x={(b.punta[0] - 1.15).toFixed(2)} y={(b.punta[1] - 1.15).toFixed(2)} width="2.3" height="2.3" />
-          </g>
-        ))}
-        <circle class="pie__nucleo" cx="930.5" cy="1341" r="2.6" />
-      </g>
-    </g>
-
-    <!-- Cierre de la regla de abajo: rombo hueco flanqueado por dos tríos de
-         puntos. Es simétrico respecto de x=513, que es donde la referencia
-         interrumpe la regla inferior del marco. -->
-    <g class="pie__cierre">
-      <path d={rombo(513, 1381.5, 5)} />
-      {[-52, -44, -38, 38, 44, 52].map((d) => (
-        <circle cx={513 + d} cy="1381.5" r={Math.abs(d) === 52 ? 1.4 : 1} />
-      ))}
-    </g>
-  </svg>
-</div>
+  </g>
+</PieUniverse>
 
 <style>
-  .pie {
-    position: absolute;
-    inset: 0;
-    display: block;
-    pointer-events: none;
-  }
-  .pie text {
-    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-    font-variant-ligatures: none;
-    white-space: pre;
-  }
-
+  /* Sólo lo de esta lámina: la banda de tres columnas y los dos sellos los
+     viste `PieUniverse` con las variables `--pi-*` de arriba. */
   .pie__regla {
     fill: none;
     stroke: #cfcfd2;
@@ -283,10 +229,7 @@ const modo = (texto: string, largo: number, cuerpo: number) =>
     stroke-opacity: 0.35;
   }
 
-  /* ── tipografía ───────────────────────────────────────────────────────── */
-  /* Todo este bloque está calibrado contra la referencia caja por caja. El
-     juramento fue el peor caso de la lámina: puesto "a gusto" su título salía
-     14 puntos de luminancia por encima —más del doble— y la banda entera con él. */
+  /* ── tipografía del juramento y la firma ──────────────────────────────── */
   .pie__t {
     font-size: 10.5px;
     fill: #b49ad8;
@@ -308,31 +251,6 @@ const modo = (texto: string, largo: number, cuerpo: number) =>
     fill: #cfcfd2;
     fill-opacity: 0.6;
   }
-  .pie__cod {
-    font-size: 9.4px;
-    fill: #b49ad8;
-    fill-opacity: 0.58;
-  }
-  .pie__estado {
-    font-size: 9.4px;
-    fill: #b49ad8;
-    fill-opacity: 0.48;
-  }
-  .pie__lema {
-    font-size: 10.5px;
-    fill: #cfcfd2;
-    fill-opacity: 0.4;
-  }
-  .pie__fuente {
-    font-size: 9.4px;
-    fill: #b49ad8;
-    fill-opacity: 0.5;
-  }
-  .pie__expr {
-    font-size: 9.4px;
-    fill: #cfcfd2;
-    fill-opacity: 0.38;
-  }
 
   /* ── firma ────────────────────────────────────────────────────────────── */
   .pie__firma path {
@@ -344,19 +262,6 @@ const modo = (texto: string, largo: number, cuerpo: number) =>
     stroke-linejoin: round;
   }
   .pie__cola { stroke-width: 0.9 !important; stroke-opacity: 0.5 !important; }
-
-  /* ── sellos ───────────────────────────────────────────────────────────── */
-  .pie__hex {
-    fill: none;
-    stroke: #cfcfd2;
-    stroke-width: 1;
-    stroke-opacity: 0.3;
-  }
-  .pie__diag { stroke: #b49ad8; stroke-width: 1.5; stroke-opacity: 0.62; }
-  .pie__eje { stroke: #b49ad8; stroke-width: 1; stroke-opacity: 0.62; }
-  .pie__pelo { stroke: #b49ad8; stroke-width: 0.7; stroke-opacity: 0.46; }
-  .pie__punta { fill: #b49ad8; fill-opacity: 0.62; }
-  .pie__nucleo { fill: none; stroke: #b49ad8; stroke-width: 1; stroke-opacity: 0.62; }
 
   /* ── cruces y cierre ──────────────────────────────────────────────────── */
   .pie__cruz rect { fill: #b49ad8; fill-opacity: 0.4; }

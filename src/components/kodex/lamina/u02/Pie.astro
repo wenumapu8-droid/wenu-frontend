@@ -3,11 +3,16 @@
  * KODEX-∞ · u02-threshold · PIE — banda inferior, y 1040..1402 del póster.
  *
  * Cinco piezas, de arriba a abajo:
- *   1. Botón INITIATE            x 455,5..663   y 1048..1193
- *   2. Dos monitores de onda     x 94..440 y 680..1021, y 1109..1189
- *   3. Regla con cierres ◇ / ×   y 1213
- *   4. Frase en dos líneas       y 1239 / 1263
+ *   1. Botón INITIATE            x 455,5..663   y 1048..1193   (acá)
+ *   2. Dos monitores de onda     x 94..440 y 680..1021, y 1109..1189   (acá)
+ *   3. Regla con cierres ◇ / ×   y 1213                        (acá)
+ *   4. Frase en dos líneas       y 1239 / 1263                 (acá)
  *   5. Pie final en tres columnas + sello hexagonal   y 1287..1370
+ *
+ * La pieza 5 la pone `serie-universe/PieUniverse.astro`, que es el mismo remate
+ * de las cinco láminas de la serie. Las otras cuatro son de esta página —ninguna
+ * de las otras cuatro láminas tiene botón ni monitores— y van por el slot
+ * `antes`.
  *
  * COORDENADAS. El bloque va con `inset:0` sobre el lienzo entero, así que las
  * x/y de este archivo son las del póster sin corrimiento: lo que se lee acá se
@@ -35,9 +40,7 @@
  * lenta que agrupa las agujas en ráfagas— ajustada contra las referencias. El
  * kit dibuja con `rng(semilla)` de `kit/rng.ts` y nunca con Math.random(): sin
  * semilla, dos capturas de esta misma página dan puntajes distintos y el banco
- * de fotocopia mide ruido en vez de convergencia. Redibujarlas acá en canvas
- * habría sido el decimocuarto juego de medidores del proyecto, que es la razón
- * por la que el kit existe (ver `kit/README.md`).
+ * de fotocopia mide ruido en vez de convergencia.
  *
  * TELEMETRÍA SIMBÓLICA. `KDX-THRESHOLD-002 / PROTOCOL ACTIVE` y las dos ondas
  * son ficción del póster, no estado de ningún sistema. Van marcados
@@ -48,6 +51,8 @@
  * central— cruza la banda pero pertenece a la Cabecera, que lo abre arriba y lo
  * baja de un solo trazo. Partirlo deja costura en las esquinas.
  */
+import PieUniverse from "../serie-universe/PieUniverse.astro";
+import { romboR } from "../serie-universe/geom";
 import Waveform from "../kit/Waveform.astro";
 
 /* ── eje ───────────────────────────────────────────────────────────────── */
@@ -55,8 +60,7 @@ import Waveform from "../kit/Waveform.astro";
 /**
  * Eje de simetría de la lámina, deducido de los adornos de la frase: sus tres
  * marcas a cada lado (rombo · punto · raya) son espejo respecto de 560,25 con
- * medio píxel de error. La paleta —#cfc6e8 tinta, #a77cf0 acento, #4a3570
- * violeta profundo— vive abajo en el <style>, que es donde se usa.
+ * medio píxel de error.
  */
 const EJE = 560;
 
@@ -100,9 +104,6 @@ const ONDA_H = 38;
  * semillas × 4 densidades × 3 envolventes contra el perfil de la referencia
  * (`scripts/lamina/_u02_pie_semillas.mjs` reproduce la matemática del kit sin
  * rebuildar el sitio).
- * El objetivo fue la semi-amplitud media por cubo de 25 px medida en la parte
- * de la señal que no queda tapada por el rótulo —x 230..412 a la izquierda,
- * 708..880 a la derecha— más la altura del pico más alto.
  *
  * Lo que enseñó la medición y no se veía a ojo: la señal de la referencia es
  * MUCHO más plana de lo que parece. Su semi-amplitud media ronda 1,2–3,8 px
@@ -135,97 +136,42 @@ const MON = [
   },
 ];
 
-/* ── 5 · sello hexagonal ───────────────────────────────────────────────── */
-
-const SELLO = { cx: 1009.5, cy: 1333.5, R: 36.5 };
-
-/** Hexágono de punta arriba: 6 vértices desde −90°, uno cada 60°. */
-const hexPuntos = Array.from({ length: 6 }, (_, k) => {
-  const a = ((-90 + k * 60) * Math.PI) / 180;
-  return `${(SELLO.cx + SELLO.R * Math.cos(a)).toFixed(2)},${(SELLO.cy + SELLO.R * Math.sin(a)).toFixed(2)}`;
-}).join(" ");
-
-/**
- * Rosa de la estrella, paramétrica. Tres familias, porque en la referencia los
- * ocho brazos NO son iguales — y esa desigualdad es justamente lo que la separa
- * de un asterisco tipográfico:
- *   · las cuatro DIAGONALES son trazo grueso con un cuadradito en la punta;
- *   · el eje VERTICAL va cortado — tramo, hueco, punto, punta;
- *   · el eje HORIZONTAL es más largo y lleva tres travesaños graduados, como la
- *     escala de un instrumento;
- *   · entre medio, ocho pelos cortos a 22,5°.
- */
-const pol = (r: number, a: number) => [
-  SELLO.cx + r * Math.cos((a * Math.PI) / 180),
-  SELLO.cy + r * Math.sin((a * Math.PI) / 180),
-];
-
-const NUCLEO = 3.4;
-const brazos = Array.from({ length: 8 }, (_, k) => {
-  const a = k * 45;
-  const eje = k % 2 === 0;
-  const horiz = a === 0 || a === 180;
-  const largo = eje ? (horiz ? 19 : 17) : 16.5;
-  const [x1, y1] = pol(NUCLEO, a);
-  const [x2, y2] = pol(eje && !horiz ? 10.5 : largo, a);
-  const [px, py] = pol(largo + 1.6, a);
-  return {
-    a,
-    eje,
-    horiz,
-    d: `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`,
-    punta: [px, py],
-    /* Travesaños del eje horizontal: media longitud decreciente hacia afuera. */
-    travesanos: horiz
-      ? [
-          [7, 3.2],
-          [11.5, 2.6],
-          [15.5, 2],
-        ].map(([r, h]) => {
-          const [cx, cy] = pol(r, a);
-          return `M${cx.toFixed(2)} ${(cy - h).toFixed(2)}L${cx.toFixed(2)} ${(cy + h).toFixed(2)}`;
-        })
-      : [],
-    /* Punto suelto del eje vertical, en el hueco entre tramo y punta. */
-    suelto: eje && !horiz ? pol(13.5, a) : null,
-  };
-});
-
-const pelos = Array.from({ length: 8 }, (_, k) => {
-  const a = 22.5 + k * 45;
-  const [x1, y1] = pol(4.2, a);
-  const [x2, y2] = pol(9.4, a);
-  return `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`;
-});
-
-/* ── adornos sueltos ───────────────────────────────────────────────────── */
-
-/** Rombo hueco: aparece de cierre de regla, de flanco de la frase y sobre el
- *  marco del botón. Un solo generador, tres tamaños. */
-const rombo = (cx: number, cy: number, r: number) =>
-  `M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`;
-
 /** Cruz de puntería de las tres columnas del pie: cuadradito y cuatro ticks. */
 const CRUCES = [EJE - 227, EJE + 227];
+
+/* Esta lámina es la que fijó los valores por defecto de la serie, así que sólo
+   declara la paleta y las opacidades —que van por los mandos `-op`, o sea
+   `opacity`, que es la propiedad contra la que se calibró. */
+const vars = [
+  "--pi-ink:#cfc6e8",
+  "--pi-vio:#a77cf0",
+  "--pi-cod-ls:.04em",
+  "--pi-cod-op:.88",
+  "--pi-lema-ls:.252em",
+  "--pi-lema-op:.74",
+  "--pi-lema-tr:translateX(1.51px)",
+  "--pi-fuente-ls:.09em",
+  "--pi-fuente-op:.78",
+  "--pi-fuente-tr:translateX(0.95px)",
+  "--pi-expr-op:.64",
+  "--pi-hex-op:.55",
+  "--pi-pelo-op:.75",
+].join(";");
 ---
 
-<div data-bloque="Pie" style="inset:0">
-  <svg
-    class="pie"
-    viewBox="0 0 1122 1402"
-    width="1122"
-    height="1402"
-    aria-hidden="true"
-  >
+<PieUniverse
+  vars={vars}
+  codigo={{ x: 82, y: 1331, t: "KDX-THRESHOLD-002" }}
+  estado={{ x: 82, y: 1349, t: "PROTOCOL ACTIVE" }}
+  lema={{ x: EJE, y: 1333, anchor: "middle", t: "THE KODEX IS LIVING. YOU ARE PART OF IT." }}
+  fuente={{ x: 962, y: 1332, anchor: "end", t: "ONE SOURCE" }}
+  expr={{ x: 962, y: 1349, anchor: "end", t: "INFINITE EXPRESSIONS" }}
+  sello={{ cx: 1009.5, cy: 1333.5, R: 36.5 }}
+>
+  <Fragment slot="antes">
     <!-- ═══ 1 · BOTÓN INITIATE ═══════════════════════════════════════════ -->
     <g class="pie-btn">
-      <rect
-        class="pie-btn__marco"
-        x={BTN.x}
-        y={BTN.y}
-        width={BTN.w}
-        height={BTN.h}
-      />
+      <rect class="pie-btn__marco" x={BTN.x} y={BTN.y} width={BTN.w} height={BTN.h} />
       <!-- Las verticales del original pesan más que las horizontales
            (media 39 y 28 contra 40 y 20 sobre trazos de un píxel): se refuerzan
            encima en vez de subirle el brillo a todo el rectángulo. -->
@@ -235,15 +181,12 @@ const CRUCES = [EJE - 227, EJE + 227];
       />
       {
         esquinas.map(([x, y, sx, sy]) => (
-          <path
-            class="pie-btn__esquina"
-            d={`M${x + sx * ESQ} ${y}H${x}V${y + sy * ESQ}`}
-          />
+          <path class="pie-btn__esquina" d={`M${x + sx * ESQ} ${y}H${x}V${y + sy * ESQ}`} />
         ))
       }
 
       <!-- Marcadores del eje: rombo hueco arriba, saeta hacia abajo abajo. -->
-      <path class="pie-btn__hito" d={rombo(BTN_EJE, BTN.y, 4.6)} />
+      <path class="pie-btn__hito" d={romboR(BTN_EJE, BTN.y, 4.6)} />
       <path
         class="pie-btn__hito pie-btn__hito--relleno"
         d={`M${BTN_EJE} ${BTN.y + BTN.h}v8.5m-3.6 -4.2l3.6 4.2l3.6 -4.2`}
@@ -255,12 +198,7 @@ const CRUCES = [EJE - 227, EJE + 227];
       <!-- Disco y flecha. Los cuatro puntos cardinales del anillo son más
            brillantes que el trazo: el original los tiene y son lo que lo hace
            leer como mira y no como botón redondo. -->
-      <circle
-        class="pie-disco"
-        cx={DISCO.cx}
-        cy={DISCO.cy}
-        r={DISCO.r}
-      />
+      <circle class="pie-disco" cx={DISCO.cx} cy={DISCO.cy} r={DISCO.r} />
       {
         [0, 90, 180, 270].map((a) => {
           const [x, y] = [
@@ -297,10 +235,7 @@ const CRUCES = [EJE - 227, EJE + 227];
             <circle class="pie-mon__cierre" cx={intX} cy={m.marco.y0} r="1.6" />
             <circle class="pie-mon__cierre" cx={intX} cy={m.marco.y1} r="1" />
             {/* Línea de reposo de la señal. */}
-            <path
-              class="pie-mon__reposo"
-              d={`M${m.onda.x} ${ONDA_Y}H${m.onda.x + m.onda.w}`}
-            />
+            <path class="pie-mon__reposo" d={`M${m.onda.x} ${ONDA_Y}H${m.onda.x + m.onda.w}`} />
             {/* El rótulo va en UNA línea y pegado a las etiquetas. Con
                 `white-space: pre` —que hace falta para que la mono no colapse
                 los espacios— el salto de línea y la sangría del marcado entran
@@ -315,7 +250,7 @@ const CRUCES = [EJE - 227, EJE + 227];
     <!-- ═══ 3 · REGLA CON CIERRES ════════════════════════════════════════ -->
     <g class="pie-regla">
       <path class="pie-regla__linea" d="M96 1213H1021" />
-      <path class="pie-regla__cierre" d={rombo(90, 1213, 4.2)} />
+      <path class="pie-regla__cierre" d={romboR(90, 1213, 4.2)} />
       <circle class="pie-regla__punto" cx="1023" cy="1213" r="0.9" />
       <path class="pie-regla__cierre" d="M1023.4 1209.6l7.2 6.8m0 -6.8l-7.2 6.8" />
     </g>
@@ -328,124 +263,71 @@ const CRUCES = [EJE - 227, EJE + 227];
       {
         [-1, 1].map((s) => (
           <g>
-            <path class="pie-frase__romb" d={rombo(EJE + s * 288.5, 1234, 3.4)} />
+            <path class="pie-frase__romb" d={romboR(EJE + s * 288.5, 1234, 3.4)} />
             <circle class="pie-frase__pto" cx={EJE + s * 282} cy="1234" r="1.1" />
-            <path
-              class="pie-frase__raya"
-              d={`M${EJE + s * 254} 1234H${EJE + s * 242.5}`}
-            />
+            <path class="pie-frase__raya" d={`M${EJE + s * 254} 1234H${EJE + s * 242.5}`} />
           </g>
         ))
       }
     </g>
 
-    <!-- ═══ 5 · PIE FINAL ════════════════════════════════════════════════ -->
-    <g class="pie-cierre">
-      <!-- Regla de apertura, con + a la izquierda y ◇ a la derecha, más una
-           segunda hebra 16 px abajo que es el techo de la franja. -->
-      <path class="pie-regla__linea" d="M66 1287H1056" />
-      <path class="pie-regla__cierre" d="M53 1282.8v8.4m-4.2 -4.2h8.4" />
-      <circle class="pie-regla__punto" cx="61" cy="1287" r="0.9" />
-      <circle class="pie-regla__punto" cx="1059.5" cy="1287" r="0.9" />
-      <path class="pie-regla__cierre" d={rombo(1067, 1287, 3.6)} />
-      <path class="pie-regla__hebra" d="M73 1303H1042" />
+    <!-- ═══ 5 · REGLAS DE APERTURA DEL PIE FINAL ═════════════════════════
+         Con + a la izquierda y ◇ a la derecha, más una segunda hebra 16 px
+         abajo que es el techo de la franja. -->
+    <path class="pie-regla__linea" d="M66 1287H1056" />
+    <path class="pie-regla__cierre" d="M53 1282.8v8.4m-4.2 -4.2h8.4" />
+    <circle class="pie-regla__punto" cx="61" cy="1287" r="0.9" />
+    <circle class="pie-regla__punto" cx="1059.5" cy="1287" r="0.9" />
+    <path class="pie-regla__cierre" d={romboR(1067, 1287, 3.6)} />
+    <path class="pie-regla__hebra" d="M73 1303H1042" />
+  </Fragment>
 
-      <g data-symbolic="true">
-        <text class="pie-t pie-t--codigo" x="82" y="1331">KDX-THRESHOLD-002</text>
-        <text class="pie-t pie-t--codigo" x="82" y="1349">PROTOCOL ACTIVE</text>
+  {
+    CRUCES.map((x) => (
+      <g class="pie-cruz" slot="cruces">
+        <rect x={x - 1.6} y="1326.4" width="3.2" height="3.2" />
+        <path d={`M${x} 1322.4v2.2M${x} 1331.4v2.2M${x - 5.5} 1328H${x - 3.3}M${x + 3.3} 1328H${x + 5.5}`} />
       </g>
-
-      <text class="pie-t pie-t--lema" x={EJE} y="1333">THE KODEX IS LIVING. YOU ARE PART OF IT.</text>
-      {
-        CRUCES.map((x) => (
-          <g class="pie-cruz">
-            <rect x={x - 1.6} y="1326.4" width="3.2" height="3.2" />
-            <path
-              d={`M${x} 1322.4v2.2M${x} 1331.4v2.2M${x - 5.5} 1328H${x - 3.3}M${x + 3.3} 1328H${x + 5.5}`}
-            />
-          </g>
-        ))
-      }
-
-      <text class="pie-t pie-t--fuente" x="962" y="1332" text-anchor="end">ONE SOURCE</text>
-      <text class="pie-t pie-t--expr" x="962" y="1349" text-anchor="end">INFINITE EXPRESSIONS</text>
-
-      <!-- Sello: hexágono de punta arriba + rosa paramétrica. -->
-      <g class="pie-sello" role="img" aria-label="Sello KODEX-∞: una fuente, infinitas expresiones">
-        <polygon class="pie-sello__hex" points={hexPuntos} />
-        <g class="pie-sello__rosa">
-          {pelos.map((d) => <path class="pie-sello__pelo" d={d} />)}
-          {
-            brazos.map((b) => (
-              <g>
-                <path class={b.eje ? "pie-sello__eje" : "pie-sello__diag"} d={b.d} />
-                {b.travesanos.map((d) => <path class="pie-sello__pelo" d={d} />)}
-                {b.suelto && (
-                  <circle class="pie-sello__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.9" />
-                )}
-                <rect
-                  class="pie-sello__punta"
-                  x={(b.punta[0] - 1.15).toFixed(2)}
-                  y={(b.punta[1] - 1.15).toFixed(2)}
-                  width="2.3"
-                  height="2.3"
-                />
-              </g>
-            ))
-          }
-          <circle class="pie-sello__nucleo" cx={SELLO.cx} cy={SELLO.cy} r="2.6" />
-        </g>
-      </g>
-    </g>
-  </svg>
+    ))
+  }
 
   <!-- Las dos señales, fuera del SVG porque el kit trae su propio <svg>.
        Deterministas por semilla: mismo dibujo en cada render. -->
-  {
-    MON.map((m) => (
-      <div
-        class="pie-onda"
-        data-symbolic="true"
-        style={`left:${m.onda.x}px;top:${ONDA_Y - ONDA_H / 2}px;width:${m.onda.w}px;height:${ONDA_H}px`}
-      >
-        <Waveform
-          w={m.onda.w}
-          h={ONDA_H}
-          semilla={m.onda.semilla}
-          variante="peine"
-          n={m.onda.n}
-          inercia={m.onda.inercia}
-          envolvente={m.onda.env}
-          grosor={0.55}
-          margen={1}
-        />
-      </div>
-    ))
-  }
-</div>
+  <Fragment slot="fuera">
+    {
+      MON.map((m) => (
+        <div
+          class="pie-onda"
+          data-symbolic="true"
+          style={`left:${m.onda.x}px;top:${ONDA_Y - ONDA_H / 2}px;width:${m.onda.w}px;height:${ONDA_H}px`}
+        >
+          <Waveform
+            w={m.onda.w}
+            h={ONDA_H}
+            semilla={m.onda.semilla}
+            variante="peine"
+            n={m.onda.n}
+            inercia={m.onda.inercia}
+            envolvente={m.onda.env}
+            grosor={0.55}
+            margen={1}
+          />
+        </div>
+      ))
+    }
+  </Fragment>
+</PieUniverse>
 
 <style>
-  /* El bloque cubre el lienzo entero y no pinta fondo: todo lo suyo cae de
-     y=1048 para abajo, y lo de arriba queda visible tal cual. */
-  .pie {
-    position: absolute;
-    left: 0;
-    top: 0;
-    pointer-events: none;
-  }
+  /* Sólo lo de esta lámina: la banda de tres columnas y el sello los viste
+     `PieUniverse` con las variables `--pi-*` de arriba.
 
-  /* ── tipografía ─────────────────────────────────────────────────────── */
-  /* Los cuerpos y los espaciados salen de la versal y del paso de carácter
+     Los cuerpos y los espaciados salen de la versal y del paso de carácter
      medidos en el PNG; no son una escala tipográfica inventada. En SVG el
      espaciado de letra se suma también DESPUÉS del último carácter, así que
-     todo lo centrado y lo alineado a la derecha se corrige con `dx` — sin eso
-     la frase larga queda 2,3 px corrida a la izquierda y el banco lo ve. */
-  .pie-t {
-    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-    font-variant-ligatures: none;
-    white-space: pre;
-    fill: currentColor;
-  }
+     todo lo centrado y lo alineado a la derecha se corrige con `translateX` —
+     sin eso la frase larga queda 2,3 px corrida a la izquierda y el banco lo
+     ve. */
   .pie-t--initiate {
     font-size: 18px;
     letter-spacing: 0.08em;
@@ -481,34 +363,6 @@ const CRUCES = [EJE - 227, EJE + 227];
     fill: #cfc6e8;
     opacity: 0.88;
     transform: translateX(2.21px);
-  }
-  .pie-t--codigo {
-    font-size: 12.5px;
-    letter-spacing: 0.04em;
-    fill: #a77cf0;
-    opacity: 0.88;
-  }
-  .pie-t--lema {
-    font-size: 12px;
-    letter-spacing: 0.252em;
-    text-anchor: middle;
-    fill: #cfc6e8;
-    opacity: 0.74;
-    transform: translateX(1.51px);
-  }
-  .pie-t--fuente,
-  .pie-t--expr {
-    font-size: 10.5px;
-    letter-spacing: 0.09em;
-    transform: translateX(0.95px);
-  }
-  .pie-t--fuente {
-    fill: #a77cf0;
-    opacity: 0.78;
-  }
-  .pie-t--expr {
-    fill: #cfc6e8;
-    opacity: 0.64;
   }
 
   /* ── botón ──────────────────────────────────────────────────────────── */
@@ -629,34 +483,5 @@ const CRUCES = [EJE - 227, EJE + 227];
     stroke: #cfc6e8;
     stroke-width: 0.9;
     opacity: 0.6;
-  }
-
-  /* ── sello ──────────────────────────────────────────────────────────── */
-  .pie-sello__hex {
-    fill: none;
-    stroke: #cfc6e8;
-    stroke-width: 1;
-    opacity: 0.55;
-  }
-  .pie-sello__diag {
-    stroke: #a77cf0;
-    stroke-width: 1.5;
-  }
-  .pie-sello__eje {
-    stroke: #a77cf0;
-    stroke-width: 1;
-  }
-  .pie-sello__pelo {
-    stroke: #a77cf0;
-    stroke-width: 0.7;
-    opacity: 0.75;
-  }
-  .pie-sello__punta {
-    fill: #a77cf0;
-  }
-  .pie-sello__nucleo {
-    fill: none;
-    stroke: #a77cf0;
-    stroke-width: 1;
   }
 </style>

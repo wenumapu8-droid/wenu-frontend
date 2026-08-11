@@ -6,9 +6,10 @@
  * `reference/canon/u09-source.png` (1122×1402). Todo trazado en SVG por código:
  * ni un bitmap.
  *
- * Las coordenadas salieron de barrer el PNG fila por fila y columna por columna
- * con umbral de luminancia (sonda propia, no estimación a ojo). Lo que conviene
- * saber antes de tocar nada:
+ * El cromo lo pone `serie-universe/CabeceraUniverse.astro`. Las coordenadas de
+ * acá salieron de barrer el PNG fila por fila y columna por columna con umbral
+ * de luminancia (sonda propia, no estimación a ojo). Lo que conviene saber
+ * antes de tocar nada:
  *
  *  · MARCO. Verticales en x=10,5 y x=1017,5; reglas en y=10,5 e y=1381,5, las
  *    dos recortadas por chaflanes de ~12 px en las cuatro esquinas. El póster NO
@@ -23,71 +24,24 @@
  *  · TÍTULO. Y acá el hallazgo que separa esta lámina de la 02: KODEX y SOURCE
  *    SÍ comparten cuerpo. Las dos versales miden 93..153 —60 px exactos— así que
  *    va un solo cuerpo de 96 px (60 / 0,625 de altura de versal de Cormorant) y
- *    ninguno de los dos condensado. En u02 no era así y componerlo con un solo
- *    <text> dejaba un bloque desbordado; acá el problema no existe, pero el
- *    reparto sigue en tres piezas porque el ∞, el guion y la barra van
- *    dibujados.
+ *    ninguno de los dos condensado. El reparto sigue en tres piezas porque el ∞,
+ *    el guion y la barra van dibujados.
  *  · BAJADA. "TRUTH CHAMBER" ocupa x 352..694 con versal de 15 px, flanqueada
  *    por dos flechas de doble punta (216..320 y 725..828) que son simétricas
  *    respecto de x=522 — o sea que la bajada tiene su propio eje, ocho píxeles a
  *    la derecha del eje del marco. Medido, no elegido.
  *
- * Por qué el texto va con `textLength` y no con `letter-spacing`: la mono y la
- * serif del póster no existen en ninguna máquina, así que la métrica del avance
- * no se puede heredar. `textLength` clava el extremo de la tinta donde lo tiene
- * la referencia sea cual sea la fuente que resuelva.
+ * LA PALETA NO ES LA DE u02. Medido sobre esta referencia, el violeta de los
+ * rótulos tiene pico rgb(173,157,203) —r/b = 0,85— contra el 0,70 del #a77cf0
+ * de la lámina 02: es un violeta MÁS GRIS. Y el texto de las celdas de la tabla
+ * no es violeta en absoluto, su pico es rgb(122,127,126), un gris neutro. Usar
+ * la paleta de u02 tiñe de lila toda la retícula.
  *
- * Nada de acá usa Math.random(): las tramas de puntos y los glifos de riel son
- * listas explícitas y las estrellas salen de una función de rayos determinista.
+ * El peso del título es 300 y no 400: con 400 las astas engordan y el bloque
+ * sale 2,5 puntos de luminancia por encima de la referencia.
  */
-import "@fontsource/cormorant-garamond/300.css";
-import "@fontsource/cormorant-garamond/400.css";
-
-/* ── helpers de dibujo, todos deterministas ─────────────────────────────── */
-
-/** Estrella de n rayos desde el centro: el glifo que más se repite en los rieles. */
-const rayos = (cx: number, cy: number, r: number, n: number, fase = 0): string =>
-  Array.from({ length: n }, (_, i) => {
-    const a = fase + (i * Math.PI * 2) / n;
-    return `M${cx} ${cy}L${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
-  }).join("");
-
-/**
- * Lemniscata de exhibición (curva de Gerono):
- *      x = a·cos t          y = (b/2)·sen 2t
- * Se traza como UNA curva cerrada que se cruza a sí misma en el centro, y va
- * contorneada, no rellena. Dos anillos elípticos con `fill-rule="evenodd"` NO
- * sirven: dan dos circunferencias con costura vertical, no un cruce en diagonal.
- * `a` es el semieje horizontal de la línea media y `b` su altura total: al ancho
- * y alto de tinta medidos hay que descontarles el grosor del trazo.
- */
-const lemniscata = (cx: number, cy: number, a: number, b: number, pasos = 96): string =>
-  Array.from({ length: pasos }, (_, i) => {
-    const t = (i / pasos) * Math.PI * 2;
-    const x = (cx + a * Math.cos(t)).toFixed(2);
-    const y = (cy + (b / 2) * Math.sin(2 * t)).toFixed(2);
-    return `${i ? "L" : "M"}${x} ${y}`;
-  }).join("") + "Z";
-
-/** Rombo hueco de los separadores. */
-const rombo = (cx: number, cy: number, w: number, h: number): string =>
-  `M${cx} ${cy - h / 2}L${cx + w / 2} ${cy}L${cx} ${cy + h / 2}L${cx - w / 2} ${cy}Z`;
-
-/** Hexágono de vértice arriba, R medido de centro a vértice. */
-const hexagono = (cx: number, cy: number, R: number): string =>
-  Array.from({ length: 6 }, (_, k) => {
-    const a = ((-90 + k * 60) * Math.PI) / 180;
-    return `${(cx + R * Math.cos(a)).toFixed(2)},${(cy + R * Math.sin(a)).toFixed(2)}`;
-  }).join(" ");
-
-/**
- * Flecha de doble punta de la bajada. Las cabezas son dos trazos abiertos, no
- * triángulos rellenos: en la referencia se ven las dos patas por separado.
- */
-const flechaDoble = (x0: number, x1: number, y: number, c = 5.5): string =>
-  `M${x0} ${y}H${x1}` +
-  `M${x0 + c} ${y - c * 0.62}L${x0} ${y}L${x0 + c} ${y + c * 0.62}` +
-  `M${x1 - c} ${y - c * 0.62}L${x1} ${y}L${x1 - c} ${y + c * 0.62}`;
+import CabeceraUniverse from "../serie-universe/CabeceraUniverse.astro";
+import { rayos, rombo, hexPuntos, flechaDoble } from "../serie-universe/geom";
 
 /* ── marco exterior ─────────────────────────────────────────────────────── */
 /* Chaflán de 12 px sobre la diagonal en las cuatro esquinas, en sentido horario
@@ -116,117 +70,110 @@ const rielDer: [number, number, boolean][] = [
 const EJE_I = 11;
 const EJE_D = 1017;
 
-/* Micropunteado y nodos sueltos de los rieles. */
+/* Nodos sueltos de los rieles. */
 const nodosIzq = [265.5, 358.5, 701.5, 711.5, 754.5, 863.5];
 const nodosDer = [191.5, 214.5, 302.5, 563.5];
 
-/* ── regla superior ─────────────────────────────────────────────────────── */
-const puntosRegla = [253.5, 309, 321.5, 468.5, 552.5, 710.5];
-const nodosRegla = [369, 394, 489.5, 532.5];
+/* Calibrado contra la referencia caja por caja: la regla superior estaba 3,4
+   puntos de luminancia POR DEBAJO y el resto de la franja 2-3 por encima. */
+const vars = [
+  "--cb-ink:#cfcfd2",
+  "--cb-vio:#b49ad8",
+  "--cb-tit:#dcd9e2",
+  "--cb-marco-op:.115",
+  "--cb-fantasma-op:.03",
+  "--cb-interior-op:.05",
+  "--cb-interior-esq-op:.12",
+  "--cb-regla-op:.42",
+  "--cb-regla-der-op:.36",
+  "--cb-cruz-op:.4",
+  "--cb-nodo-op:.3",
+  "--cb-nodo-f-op:.42",
+  "--cb-punteo-op:.09",
+  "--cb-hex-borde-op:.1",
+  "--cb-hex-tic-sw:1.3",
+  "--cb-hex-tic-op:.18",
+  "--cb-inf-sw:1.7",
+  "--cb-inf-op:.72",
+  "--cb-tit-inf-sw:4.6",
+  "--cb-tit-inf-op:.82",
+  "--cb-tit-peso:300",
+  "--cb-tit-op:.98",
+  "--cb-tit-fig-op:.8",
+  "--cb-sig-size:15px",
+  "--cb-sig-op:.44",
+  "--cb-lema-size:20.5px",
+  "--cb-lema-op:.5",
+  "--cb-pag-size:13px",
+  "--cb-pag-op:.44",
+  "--cb-nota-size:11.8px",
+  "--cb-nota-op:.31",
+  "--cb-riel-op:.085",
+  "--cb-glifo-op:.2",
+  "--cb-micro-size:7px",
+  "--cb-micro-op:.13",
+  "--cb-folio-size:11px",
+  "--cb-folio-op:.3",
+].join(";");
 ---
 
-<div data-bloque="Cabecera" style="inset:0">
-  <svg
-    class="cab"
-    viewBox="0 0 1122 1402"
-    width="1122"
-    height="1402"
-    role="img"
-    aria-label="KODEX-∞ / SOURCE — página 09 · Truth chamber · Epistemic layers and provenance archive."
-  >
-    <defs>
-      <!-- El título de la referencia no es de tinta plana: pierde ~15 % de luz
-           del hombro al pie de las astas. Un color plano lo deja acartonado. -->
-      <linearGradient id="u09TitGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#f0eef3" />
-        <stop offset="0.45" stop-color="#dcd9e2" />
-        <stop offset="1" stop-color="#a9a3b6" />
-      </linearGradient>
-      <!-- Halo corto de los acentos violeta: en la referencia el ∞ del hexágono
-           sangra ~2 px sobre el negro; sin halo queda recortado y muerto. -->
-      <filter id="u09Halo" x="-60%" y="-60%" width="220%" height="220%">
-        <feGaussianBlur stdDeviation="1.1" result="b" />
-        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-      </filter>
-    </defs>
+<CabeceraUniverse
+  gradId="u09"
+  grad={["#f0eef3", "#dcd9e2", "#a9a3b6"]}
+  ariaLabel="KODEX-∞ / SOURCE — página 09 · Truth chamber · Epistemic layers and provenance archive."
+  vars={vars}
+  marcoSup="M23 10.5H470M553 10.5H1005"
+  marcoInf={{ d: "M23 1381.5H458M571 1381.5H1005", tenue: false }}
+  fantasma="M10.5 23V1369M1017.5 23V1369"
+  chaflanes={chaflanes}
+  interior="M49.5 100V1289M978.5 100V1289"
+  interiorRegla="M49.5 1288.5H978.5"
+  interiorEsq="M49.5 224.5H66M978.5 224.5H962"
+  cruces={[[39, 39.5], [990, 39.5]]}
+  reglaIzq={{ x: 55, y: 44, len: 177, t: "KODEX-∞ UNIVERSE" }}
+  reglaDer={{ x: 734, y: 44, len: 233, t: "OBSERVE. DECIPHER. TRANSCEND." }}
+  reglaCy={39.5}
+  puntosRegla={[253.5, 309, 321.5, 468.5, 552.5, 710.5]}
+  puntosReglaR={1.5}
+  nodosRegla={[369, 394, 489.5, 532.5]}
+  nodosReglaR={1.9}
+  punteo={{ d: "M262 39.5H360M402 39.5H482M540 39.5H620M660 39.5H703M718 39.5H726", dash: "16 3" }}
+  hex={{
+    poligono: hexPuntos(511, 39.5, 24),
+    tics: "M491 28.5h4M527 28.5h4M491 50.5h4M527 50.5h4",
+    inf: [511, 40, 11.2, 8.4],
+  }}
+  titKodex={{ x: 90.4, y: 153.5, size: 96, len: 348, t: "KODEX" }}
+  titGuion={{ x: 448, y: 124, w: 20, h: 4 }}
+  titInf={[523.5, 124.5, 33.2, 28.5]}
+  titBarra="M606 91L611 91L591 155L586 155Z"
+  titPalabra={{ x: 628.5, y: 153.5, size: 96, len: 316, t: "SOURCE" }}
+  sig={{ x: 85, y: 191.5, len: 64, t: "A / -∞" }}
+  lema={{ x: 351, y: 191.5, len: 344, t: "TRUTH CHAMBER" }}
+  pag={{ x: 893, y: 191.5, len: 56, t: "PAGE 09" }}
+  ejeI={EJE_I}
+  ejeD={EJE_D}
+  rielIzq={rielIzq}
+  rielDer={rielDer}
+  rielDash="1 5"
+  nodosIzq={nodosIzq}
+  nodosIzqR={1.4}
+  nodosDer={nodosDer}
+  micro={[
+    { transform: "translate(13.6 852) rotate(-90)", len: 57, t: "XX KDX WEISSE" },
+    { transform: "translate(1019.6 1167) rotate(-90)", len: 414, t: "KDX / 09 · 09 · 09   ·   TRUTH CHAMBER   ·   KDX / 09 · 09 · 09" },
+  ]}
+  folio={{ x: 1011, y: 548.5, len: 12.5, t: "09" }}
+>
+  <!-- Flechas de doble punta, simétricas respecto de x=522. -->
+  <g class="cab__flecha" slot="sep">
+    <path d={flechaDoble(216, 320, 184)} />
+    <path d={flechaDoble(725, 829, 184)} />
+    <circle class="cab__nodo-f" cx="323.5" cy="184" r="1.8" />
+    <circle class="cab__nodo-f" cx="720.5" cy="184" r="1.8" />
+  </g>
 
-    <!-- ═══ 1 · MARCO EXTERIOR ═══════════════════════════════════════════ -->
-    <g class="cab__marco">
-      <!-- La regla superior se parte en dos para dejar pasar el hexágono
-           (hueco medido x=470..553). La inferior se parte por el rombo del pie. -->
-      <path d="M23 10.5H470M553 10.5H1005" />
-      <path d="M23 1381.5H458M571 1381.5H1005" />
-      <!-- Verticales de fondo: hilo casi apagado sobre el que después montan
-           los tramos macizos y punteados del riel. -->
-      <path class="cab__marco--fantasma" d="M10.5 23V1369M1017.5 23V1369" />
-      {chaflanes.map((d) => <path d={d} />)}
-    </g>
-
-    <!-- Marco interior: sólo verticales y la regla que cierra el pie. -->
-    <g class="cab__interior">
-      <path d="M49.5 100V1289M978.5 100V1289" />
-      <path class="cab__interior--regla" d="M49.5 1288.5H978.5" />
-      <path class="cab__interior--esq" d="M49.5 224.5H66M978.5 224.5H962" />
-    </g>
-
-    <!-- ═══ 2 · REGLA SUPERIOR ═══════════════════════════════════════════ -->
-
-    <!-- Cruces violeta de los extremos: 7×9 px centradas en (39·39,5) y (990·39,5). -->
-    <g class="cab__cruz" filter="url(#u09Halo)">
-      <path d="M39 35L40.3 38.2L43.5 39.5L40.3 40.8L39 44L37.7 40.8L34.5 39.5L37.7 38.2Z" />
-      <path d="M990 35L991.3 38.2L994.5 39.5L991.3 40.8L990 44L988.7 40.8L985.5 39.5L988.7 38.2Z" />
-    </g>
-
-    <text class="cab__regla" x="55" y="44" textLength="177" lengthAdjust="spacing">KODEX-∞ UNIVERSE</text>
-    <text class="cab__regla cab__regla--der" x="734" y="44" textLength="233" lengthAdjust="spacing">OBSERVE. DECIPHER. TRANSCEND.</text>
-
-    <g class="cab__nodo">
-      {puntosRegla.map((x) => <circle cx={x} cy="39.5" r="1.5" />)}
-      {nodosRegla.map((x) => <circle cx={x} cy="39.5" r="1.9" />)}
-    </g>
-
-    <!-- Reglas punteadas que corren hacia el hexágono. Muy por debajo del brillo
-         del texto: ~30 de luminancia contra ~150. -->
-    <path class="cab__punteo" d="M262 39.5H360M402 39.5H482M540 39.5H620M660 39.5H703M718 39.5H726" stroke-dasharray="16 3" />
-
-    <!-- Hexágono de vértice arriba con el ∞ adentro. Centro medido (511·39,5),
-         vértices en y=15,5 e y=63,5. -->
-    <g class="cab__hex">
-      <polygon class="cab__hex-borde" points={hexagono(511, 39.5, 24)} />
-      <path class="cab__hex-tic" d="M491 28.5h4M527 28.5h4M491 50.5h4M527 50.5h4" />
-      <path class="cab__inf" filter="url(#u09Halo)" d={lemniscata(511, 40, 11.2, 8.4)} />
-    </g>
-
-    <!-- ═══ 3 · TÍTULO ═══════════════════════════════════════════════════ -->
-    <g class="cab__titulo">
-      <!-- KODEX — versal 60 px, base y=153,5, tinta x=94..437. -->
-      <text x="90.4" y="153.5" font-size="96" textLength="348" lengthAdjust="spacingAndGlyphs">KODEX</text>
-      <!-- Guion como figura: 20×4 apoyado en y=124, más alto y más corto que el
-           guion tipográfico de Cormorant. -->
-      <rect x="448" y="124" width="20" height="4" />
-      <!-- ∞ de exhibición, x=488..559 · y=108..141. Contorneado: el descuento
-           del grosor del trazo ya está hecho en a y b. -->
-      <path class="cab__tit-inf" d={lemniscata(523.5, 124.5, 33.2, 28.5)} />
-      <!-- Barra: cuadrilátero de 5 px de canto, x=586..611 · y=91..155. -->
-      <path d="M606 91L611 91L591 155L586 155Z" />
-      <!-- SOURCE — mismo cuerpo que KODEX; tinta x=632..942. -->
-      <text x="628.5" y="153.5" font-size="96" textLength="316" lengthAdjust="spacingAndGlyphs">SOURCE</text>
-    </g>
-
-    <!-- ═══ 4 · BAJADA ═══════════════════════════════════════════════════ -->
-    <text class="cab__sig" x="85" y="191.5" textLength="64" lengthAdjust="spacing">A / -∞</text>
-    <text class="cab__lema" x="351" y="191.5" textLength="344" lengthAdjust="spacing">TRUTH CHAMBER</text>
-    <text class="cab__pag" x="893" y="191.5" textLength="56" lengthAdjust="spacing">PAGE 09</text>
-
-    <!-- Flechas de doble punta, simétricas respecto de x=522. -->
-    <g class="cab__flecha">
-      <path d={flechaDoble(216, 320, 184)} />
-      <path d={flechaDoble(725, 829, 184)} />
-      <circle class="cab__nodo-f" cx="323.5" cy="184" r="1.8" />
-      <circle class="cab__nodo-f" cx="720.5" cy="184" r="1.8" />
-    </g>
-
-    <!-- ═══ 5 · SUBBAJADA ════════════════════════════════════════════════ -->
+  <Fragment slot="nota">
     <path class="cab__punteo" d="M80 211H318M737 211H953" stroke-dasharray="2 6" />
     <g class="cab__nodo">
       <circle cx="73.5" cy="211" r="1.6" />
@@ -235,190 +182,26 @@ const nodosRegla = [369, 394, 489.5, 532.5];
       <circle cx="959.5" cy="211" r="1.6" />
     </g>
     <text class="cab__nota" x="347" y="214.5" textLength="361" lengthAdjust="spacing">EPISTEMIC LAYERS &amp; PROVENANCE ARCHIVE</text>
+  </Fragment>
 
-    <!-- ═══ 6 · RIELES ═══════════════════════════════════════════════════ -->
-    <g class="cab__riel">
-      {rielIzq.map(([a, b, macizo]) => (
-        <path d={`M${EJE_I} ${a}V${b}`} stroke-dasharray={macizo ? undefined : "1 5"} />
-      ))}
-      {rielDer.map(([a, b, macizo]) => (
-        <path d={`M${EJE_D} ${a}V${b}`} stroke-dasharray={macizo ? undefined : "1 5"} />
-      ))}
-    </g>
-
-    <g class="cab__glifo">
-      <!-- Riel izquierdo · racimo alto -->
-      <path d={rayos(EJE_I, 183, 5.2, 8)} />
-      <path d={rayos(EJE_I, 282, 5.2, 8, Math.PI / 8)} />
-      <circle cx={EJE_I} cy="296.5" r="4.2" />
-      <path d="M8 311.5H14L11 318.5ZM11 318.5V320" />
-      <path d={rombo(EJE_I, 330, 10, 8)} />
-      <path d={rayos(EJE_I, 343.5, 4.2, 6, Math.PI / 2)} />
-      <!-- Riel izquierdo · racimo bajo -->
-      <path d={rayos(EJE_I, 726, 4, 6)} />
-      <path d={rombo(EJE_I, 740, 9, 8)} />
-      <!-- Riel derecho -->
-      <path d={rayos(EJE_D, 179, 4, 4, Math.PI / 4)} />
-      <path d={rayos(EJE_D, 202.5, 4, 4)} />
-      <path d={rombo(EJE_D, 225, 8, 10)} />
-      <path d={rayos(EJE_D, 252, 4, 6)} />
-      <path d="M1017 257L1021.5 259.5V264.5L1017 267L1012.5 264.5V259.5Z" />
-      <path d={rayos(EJE_D, 272.5, 4, 8)} />
-      <path d={rayos(EJE_D, 729, 5, 8)} />
-    </g>
-
-    <g class="cab__nodo">
-      {nodosIzq.map((y) => <circle cx={EJE_I} cy={y} r="1.4" />)}
-      {nodosDer.map((y) => <circle cx={EJE_D} cy={y} r="1.4" />)}
-    </g>
-
-    <!-- Microtipografía rotada: se lee de abajo hacia arriba, que es como está
-         en el póster. -->
-    <text class="cab__micro" transform="translate(13.6 852) rotate(-90)" textLength="57" lengthAdjust="spacing">XX KDX WEISSE</text>
-    <text class="cab__micro" transform="translate(1019.6 1167) rotate(-90)" textLength="414" lengthAdjust="spacing">KDX / 09 · 09 · 09   ·   TRUTH CHAMBER   ·   KDX / 09 · 09 · 09</text>
-
-    <!-- El 09 grande del riel derecho, a media altura. -->
-    <text class="cab__folio" x="1011" y="548.5" textLength="12.5" lengthAdjust="spacing">09</text>
-  </svg>
-</div>
-
-<style>
-  .cab {
-    position: absolute;
-    inset: 0;
-    display: block;
-    pointer-events: none;
-  }
-
-  /* Paleta de la lámina. Se declara acá y no en :root porque la Cabecera es el
-     único bloque que fija el marco y los rieles; el resto la hereda del
-     contenedor .lam.
-
-     No es la paleta de u02. Medido sobre esta referencia, el violeta de los
-     rótulos tiene pico rgb(173,157,203) —r/b = 0,85— contra el 0,70 del
-     #a77cf0 de la lámina 02: es un violeta MÁS GRIS. Y el texto de las celdas
-     de la tabla no es violeta en absoluto, su pico es rgb(122,127,126), un gris
-     neutro. Usar la paleta de u02 tiñe de lila toda la retícula. */
-  .cab {
-    --u09-ink: #cfcfd2;
-    --u09-vio: #b49ad8;
-    --u09-hondo: #4e3f66;
-    --u09-tit: #dcd9e2;
-    --u09-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  }
-
-  .cab text {
-    font-family: var(--u09-mono);
-    font-variant-ligatures: none;
-    white-space: pre;
-    fill: var(--u09-ink);
-  }
-
-  /* ── marco ────────────────────────────────────────────────────────────── */
-  .cab__marco path {
-    fill: none;
-    stroke: var(--u09-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.115;
-  }
-  /* El hilo fantasma sostiene la lectura del riel entre tramo y tramo. Medido
-     sobre negro no pasa de 20 de luminancia: si sube, deja de ser riel y se
-     vuelve borde. */
-  .cab__marco--fantasma { stroke-opacity: 0.03 !important; }
-
-  .cab__interior path {
-    fill: none;
-    stroke: var(--u09-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.05;
-  }
-  .cab__interior--regla { stroke-opacity: 0.14 !important; }
-  .cab__interior--esq { stroke-opacity: 0.12 !important; }
-
-  /* ── regla superior ───────────────────────────────────────────────────── */
-  /* Calibrado contra la referencia caja por caja: la regla estaba 3,4 puntos de
-     luminancia POR DEBAJO y el resto de la franja 2-3 por encima. */
-  .cab__regla {
-    font-size: 12.3px;
-    fill: var(--u09-ink);
-    fill-opacity: 0.42;
-  }
-  .cab__regla--der { fill-opacity: 0.36; }
-
-  .cab__cruz path { fill: var(--u09-vio); fill-opacity: 0.4; }
-
-  .cab__nodo circle { fill: var(--u09-ink); fill-opacity: 0.3; }
-  .cab__nodo-f { fill: var(--u09-ink); fill-opacity: 0.42; }
-
-  .cab__punteo {
-    fill: none;
-    stroke: var(--u09-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.09;
-  }
-
-  /* ── hexágono ─────────────────────────────────────────────────────────── */
-  .cab__hex-borde { fill: none; stroke: var(--u09-ink); stroke-width: 1; stroke-opacity: 0.1; }
-  .cab__hex-tic { fill: none; stroke: var(--u09-ink); stroke-width: 1.3; stroke-opacity: 0.18; }
-  .cab__inf {
-    fill: none;
-    stroke: var(--u09-vio);
-    stroke-width: 1.7;
-    stroke-opacity: 0.72;
-    stroke-linejoin: round;
-  }
-  .cab__tit-inf {
-    fill: none !important;
-    stroke: var(--u09-tit);
-    stroke-width: 4.6;
-    stroke-opacity: 0.82;
-    stroke-linejoin: round;
-  }
-
-  /* ── título ───────────────────────────────────────────────────────────── */
-  /* Cormorant Garamond es la serif de exhibición más cercana que tiene el repo:
-     alto contraste y serifas de pelo, como el póster. */
-  .cab__titulo text {
-    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif;
-    /* Peso 300 y no 400: con 400 las astas engordan y el bloque del título sale
-       2,5 puntos de luminancia por encima de la referencia. */
-    font-weight: 300;
-    fill: url(#u09TitGrad);
-    fill-opacity: 0.98;
-  }
-  .cab__titulo path,
-  .cab__titulo rect { fill: var(--u09-tit); fill-opacity: 0.8; }
-
-  /* ── bajada ───────────────────────────────────────────────────────────── */
-  .cab__sig { font-size: 15px; fill: var(--u09-vio); fill-opacity: 0.44; }
-  /* La pieza de mayor cuerpo de la franja después del título: versal de 15 px,
-     no de 9 como el resto de la mono. */
-  .cab__lema { font-size: 20.5px; fill: var(--u09-vio); fill-opacity: 0.5; }
-  .cab__pag { font-size: 13px; fill: var(--u09-vio); fill-opacity: 0.44; }
-
-  .cab__flecha path {
-    fill: none;
-    stroke: var(--u09-ink);
-    stroke-width: 0.9;
-    stroke-opacity: 0.22;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .cab__nota { font-size: 11.8px; fill: var(--u09-ink); fill-opacity: 0.31; }
-
-  /* ── rieles ───────────────────────────────────────────────────────────── */
-  .cab__riel path {
-    fill: none;
-    stroke: var(--u09-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.085;
-    stroke-linecap: butt;
-  }
-
-  .cab__glifo path { fill: none; stroke: var(--u09-ink); stroke-width: 1; stroke-opacity: 0.2; }
-  .cab__glifo circle { fill: none; stroke: var(--u09-ink); stroke-width: 1; stroke-opacity: 0.2; }
-
-  .cab__micro { font-size: 7px; fill: var(--u09-ink); fill-opacity: 0.13; }
-  .cab__folio { font-size: 11px; fill: var(--u09-vio); fill-opacity: 0.3; }
-</style>
+  <g class="cab__glifo" slot="glifos">
+    <!-- Riel izquierdo · racimo alto -->
+    <path d={rayos(EJE_I, 183, 5.2, 8)} />
+    <path d={rayos(EJE_I, 282, 5.2, 8, Math.PI / 8)} />
+    <circle cx={EJE_I} cy="296.5" r="4.2" />
+    <path d="M8 311.5H14L11 318.5ZM11 318.5V320" />
+    <path d={rombo(EJE_I, 330, 10, 8)} />
+    <path d={rayos(EJE_I, 343.5, 4.2, 6, Math.PI / 2)} />
+    <!-- Riel izquierdo · racimo bajo -->
+    <path d={rayos(EJE_I, 726, 4, 6)} />
+    <path d={rombo(EJE_I, 740, 9, 8)} />
+    <!-- Riel derecho -->
+    <path d={rayos(EJE_D, 179, 4, 4, Math.PI / 4)} />
+    <path d={rayos(EJE_D, 202.5, 4, 4)} />
+    <path d={rombo(EJE_D, 225, 8, 10)} />
+    <path d={rayos(EJE_D, 252, 4, 6)} />
+    <path d="M1017 257L1021.5 259.5V264.5L1017 267L1012.5 264.5V259.5Z" />
+    <path d={rayos(EJE_D, 272.5, 4, 8)} />
+    <path d={rayos(EJE_D, 729, 5, 8)} />
+  </g>
+</CabeceraUniverse>

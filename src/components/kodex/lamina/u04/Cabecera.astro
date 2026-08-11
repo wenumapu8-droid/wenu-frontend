@@ -5,8 +5,7 @@
  * Franja superior (y=0..240) + marco + los dos rieles verticales. Todo SVG
  * trazado por código; ni un bitmap.
  *
- * La u04 comparte plantilla con la u02 —misma serie UNIVERSE— así que la
- * estructura de este bloque es la de `u02/Cabecera.astro`. Lo que cambia se
+ * El cromo lo pone `serie-universe/CabeceraUniverse.astro`. Lo que cambia se
  * midió sobre `reference/canon/u04-alphabet.png` (1122×1402) barriendo filas y
  * columnas con umbral de luminancia, no a ojo:
  *
@@ -24,38 +23,14 @@
  *  · bajada — la u04 es más compacta: el subtítulo cae en y=204,5 (la u02 en
  *    210,5) y la línea de la bajada en y=230,5 (la u02 en 245,5).
  *
- * Los ∞ de exhibición van dibujados como curva de Gerono, no tipografiados: el
- * ∞ de Cormorant es un signo matemático de caja chica. Mismo criterio que u02.
- *
- * Nada de Math.random(): las tramas de puntos y los glifos de riel son listas
- * explícitas y las estrellas salen de una función de rayos determinista.
+ * EL COLOR DE LA BAJADA NO ES EL VIOLETA DE ACENTO. `A / -∞`, `RELATION FIELD`
+ * y `PAGE 04` van en #b18ce0, que es un violeta más claro que el #a77cf0 del
+ * hexágono y de las cruces. Se ve midiendo el pico de sus píxeles y por eso
+ * viaja como variable propia (`--cb-sig-fill` y compañía) en vez de reusar
+ * `--cb-vio`.
  */
-import "@fontsource/cormorant-garamond/300.css";
-import "@fontsource/cormorant-garamond/400.css";
-
-/* ── helpers de dibujo, todos deterministas ─────────────────────────────── */
-
-/** Estrella de n rayos desde el centro: el glifo que más se repite en rieles. */
-const rayos = (cx: number, cy: number, r: number, n: number, fase = 0): string =>
-  Array.from({ length: n }, (_, i) => {
-    const a = fase + (i * Math.PI * 2) / n;
-    return `M${cx} ${cy}L${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
-  }).join("");
-
-/** Lemniscata de exhibición (curva de Gerono): UNA curva cerrada que se cruza a
- *  sí misma en el centro, contorneada. Dos anillos con evenodd no cruzan en
- *  diagonal y se ve; está probado en la u02. */
-const lemniscata = (cx: number, cy: number, a: number, b: number, pasos = 96): string =>
-  Array.from({ length: pasos }, (_, i) => {
-    const t = (i / pasos) * Math.PI * 2;
-    const x = (cx + a * Math.cos(t)).toFixed(2);
-    const y = (cy + (b / 2) * Math.sin(2 * t)).toFixed(2);
-    return `${i ? "L" : "M"}${x} ${y}`;
-  }).join("") + "Z";
-
-/** Rombo hueco de los separadores. */
-const rombo = (cx: number, cy: number, w: number, h: number): string =>
-  `M${cx} ${cy - h / 2}L${cx + w / 2} ${cy}L${cx} ${cy + h / 2}L${cx - w / 2} ${cy}Z`;
+import CabeceraUniverse from "../serie-universe/CabeceraUniverse.astro";
+import { rayos, rombo } from "../serie-universe/geom";
 
 /* ── marco exterior ─────────────────────────────────────────────────────── */
 /* Chaflán de 14 px medido sobre la diagonal, en las cuatro esquinas. */
@@ -83,260 +58,92 @@ const puntosIzq = [287, 397.5, 783.5, 830, 845.5, 949.5];
 const puntosDer = [794.5, 832.5, 574.5, 586.5, 625];
 const micropunteo: [number, number][] = [[328, 338], [834, 841]];
 
-/* ── regla superior ─────────────────────────────────────────────────────── */
-const puntosRegla = [272, 332, 347];
-const nodosRegla = [516, 607, 780];
+const vars = [
+  "--cb-ink:#cfc6e8",
+  "--cb-vio:#a77cf0",
+  "--cb-tit:#d8d3e6",
+  "--cb-regla-op:.33",
+  "--cb-tit-inf-sw:4.6",
+  "--cb-tit-inf-op:.75",
+  "--cb-tit-op:.9",
+  "--cb-tit-fig-op:.72",
+  "--cb-sig-fill:#b18ce0",
+  "--cb-sig-op:.72",
+  "--cb-lema-fill:#b18ce0",
+  "--cb-lema-op:.85",
+  "--cb-pag-fill:#b18ce0",
+  "--cb-pag-op:.72",
+  "--cb-nota-op:.46",
+].join(";");
 ---
 
-<div data-bloque="Cabecera" style="inset:0">
-  <svg
-    class="cab"
-    viewBox="0 0 1122 1402"
-    width="1122"
-    height="1402"
-    role="img"
-    aria-label="KODEX-∞ / ALPHABET — página 04 · Relation field · Topología de los nodos A-Y."
-  >
-    <defs>
-      <linearGradient id="u04TitGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#e9e5f3" />
-        <stop offset="0.45" stop-color="#d8d3e6" />
-        <stop offset="1" stop-color="#b0a9c4" />
-      </linearGradient>
-      <filter id="u04Halo" x="-60%" y="-60%" width="220%" height="220%">
-        <feGaussianBlur stdDeviation="1.1" result="b" />
-        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-      </filter>
-    </defs>
+<CabeceraUniverse
+  gradId="u04"
+  grad={["#e9e5f3", "#d8d3e6", "#b0a9c4"]}
+  ariaLabel="KODEX-∞ / ALPHABET — página 04 · Relation field · Topología de los nodos A-Y."
+  vars={vars}
+  marcoSup="M31 12.5H502M620 12.5H1090"
+  marcoInf={{ d: "M31 1385.5H1090", dash: "11 4.5" }}
+  fantasma="M12.5 26.5V1371.5M1109.5 26.5V1371.5"
+  chaflanes={chaflanes}
+  nodosSup={[{ x: 509.5, y: 12.5 }, { x: 613.5, y: 12.5 }]}
+  interior="M54.5 76V1360M1065.5 76V1275"
+  interiorEsq="M54.5 76.5H88.5M1065.5 76.5H1031.5"
+  cruces={[[40, 43.5], [1082, 43.5]]}
+  reglaIzq={{ x: 66, y: 47.5, len: 187, t: "KODEX-∞ UNIVERSE" }}
+  reglaDer={{ x: 798, y: 47.5, len: 260, t: "OBSERVE. DECIPHER. TRANSCEND." }}
+  reglaCy={43.5}
+  puntosRegla={[272, 332, 347]}
+  nodosRegla={[516, 607, 780]}
+  punteo={{ d: "M378 43.5H494M631 43.5H773", dash: "17 3" }}
+  hex={{
+    borde: "M561.5 17L585.5 30V53L561.5 66L537.5 53V30Z",
+    tics: "M538 28.5h4M581 28.5h4M538 54.5h4M581 54.5h4",
+    tallo: "M561.5 65.5V71",
+    inf: [561.5, 42, 12.95, 10.4],
+  }}
+  titKodex={{ x: 81.7, y: 163.5, size: 86.4, len: 323, ajuste: "spacing", t: "KODEX" }}
+  titGuion={{ x: 407, y: 137, w: 24, h: 3.8 }}
+  titInf={[480, 141, 31.9, 25.8]}
+  titBarra="M557.5 111L562 111L544.5 167L540 167Z"
+  titPalabra={{ x: 587.5, y: 163.5, size: 86.4, len: 451, ajuste: "spacing", t: "ALPHABET" }}
+  sig={{ x: 87, y: 208.5, len: 71, t: "A / -∞" }}
+  lema={{ x: 432, y: 204.5, len: 258, t: "RELATION FIELD" }}
+  pag={{ x: 970, y: 208.5, len: 65, t: "PAGE 04" }}
+  ejeI={EJE_I}
+  ejeD={EJE_D}
+  rielIzq={rielIzq}
+  rielDer={rielDer}
+  nodosIzq={puntosIzq}
+  nodosDer={puntosDer}
+  micropunteo={micropunteo}
+  micro={[
+    { transform: "translate(1106.6 399) rotate(-90)", len: 182, t: "05 44 XX XXII / 00 88" },
+    { transform: "translate(10 950) rotate(-90)", len: 75, t: "KODEX ARCHIVE ///" },
+  ]}
+  folio={{ x: 1103.5, y: 610.5, len: 14.5, t: "04" }}
+>
+  <!-- Separadores: rombo ◇ · guía punteada · punto, espejados en x=560,25. -->
+  <g class="cab__sep" slot="sep">
+    <path d={rombo(288, 195.5, 12, 9)} />
+    <path d={rombo(832.5, 195.5, 12, 9)} />
+    <path class="cab__punteo" d="M296 195.5H404M717 195.5H825" stroke-dasharray="9 4" />
+    <circle class="cab__nodo-f" cx="409.5" cy="195.5" r="1.9" />
+    <circle class="cab__nodo-f" cx="711.5" cy="195.5" r="1.9" />
+  </g>
 
-    <!-- ═══ 1 · MARCO EXTERIOR ═══════════════════════════════════════════ -->
-    <g class="cab__marco">
-      <path d="M31 12.5H502M620 12.5H1090" />
-      <path class="cab__marco--tenue" d="M31 1385.5H1090" stroke-dasharray="11 4.5" />
-      <path class="cab__marco--fantasma" d="M12.5 26.5V1371.5M1109.5 26.5V1371.5" />
-      {chaflanes.map((d) => <path d={d} />)}
-    </g>
+  <text class="cab__nota" slot="nota" x="316" y="230.5" textLength="487" lengthAdjust="spacing">TOPOLOGY OF THE A-Y NODES. PATHS ARE MANY. RETURN IS ONE.</text>
 
-    <g class="cab__nodo">
-      <circle cx="509.5" cy="12.5" r="2" />
-      <circle cx="613.5" cy="12.5" r="2" />
-    </g>
-
-    <!-- Marco interior. La vertical izquierda baja hasta el pie (y=1360) y la
-         derecha corta en 1275, que es donde arranca la banda final. -->
-    <g class="cab__interior">
-      <path d="M54.5 76V1360M1065.5 76V1275" />
-      <path class="cab__interior--esq" d="M54.5 76.5H88.5M1065.5 76.5H1031.5" />
-    </g>
-
-    <!-- ═══ 2 · REGLA SUPERIOR ═══════════════════════════════════════════ -->
-    <g class="cab__cruz" filter="url(#u04Halo)">
-      <path d="M40 39L41.3 42.2L44.5 43.5L41.3 44.8L40 48L38.7 44.8L35.5 43.5L38.7 42.2Z" />
-      <path d="M1082 39L1083.3 42.2L1086.5 43.5L1083.3 44.8L1082 48L1080.7 44.8L1077.5 43.5L1080.7 42.2Z" />
-    </g>
-
-    <text class="cab__regla" x="66" y="47.5" textLength="187" lengthAdjust="spacing">KODEX-∞ UNIVERSE</text>
-    <text class="cab__regla cab__regla--der" x="798" y="47.5" textLength="260" lengthAdjust="spacing">OBSERVE. DECIPHER. TRANSCEND.</text>
-
-    <g class="cab__nodo">
-      {puntosRegla.map((x) => <circle cx={x} cy="43.5" r="1.6" />)}
-      {nodosRegla.map((x) => <circle cx={x} cy="43.5" r="2" />)}
-    </g>
-
-    <path class="cab__punteo" d="M378 43.5H494M631 43.5H773" stroke-dasharray="17 3" />
-
-    <g class="cab__hex">
-      <path class="cab__hex-borde" d="M561.5 17L585.5 30V53L561.5 66L537.5 53V30Z" />
-      <path class="cab__hex-tic" d="M538 28.5h4M581 28.5h4M538 54.5h4M581 54.5h4" />
-      <path class="cab__hex-tallo" d="M561.5 65.5V71" />
-      <path class="cab__inf" filter="url(#u04Halo)" d={lemniscata(561.5, 42, 12.95, 10.4)} />
-    </g>
-
-    <!-- ═══ 3 · TÍTULO ═══════════════════════════════════════════════════ -->
-    <g class="cab__titulo">
-      <!-- KODEX — versal 54 px, base y=163,5, tinta x=85..402. -->
-      <text x="81.7" y="163.5" font-size="86.4" textLength="323" lengthAdjust="spacing">KODEX</text>
-      <!-- Guion como figura: 24×3,8 apoyado en y=137 (medido). -->
-      <rect x="407" y="137" width="24" height="3.8" />
-      <!-- ∞ de exhibición, tinta x=446..514. El grosor del trazo ya está
-           descontado de a y b. -->
-      <path class="cab__tit-inf" d={lemniscata(480, 141, 31.9, 25.8)} />
-      <!-- Barra: cuadrilátero de 4,5 px de canto, tinta x=540..562. -->
-      <path d="M557.5 111L562 111L544.5 167L540 167Z" />
-      <!-- ALPHABET — mismo cuerpo que KODEX y ESTIRADO por espaciado. -->
-      <text x="587.5" y="163.5" font-size="86.4" textLength="451" lengthAdjust="spacing">ALPHABET</text>
-    </g>
-
-    <!-- ═══ 4 · LÍNEA BAJO EL TÍTULO ═════════════════════════════════════ -->
-    <text class="cab__sig" x="87" y="208.5" textLength="71" lengthAdjust="spacing">A / -∞</text>
-    <text class="cab__lema" x="432" y="204.5" textLength="258" lengthAdjust="spacing">RELATION FIELD</text>
-    <text class="cab__pag" x="970" y="208.5" textLength="65" lengthAdjust="spacing">PAGE 04</text>
-
-    <!-- Separadores: rombo ◇ · guía punteada · punto, espejados en x=560,25. -->
-    <g class="cab__sep">
-      <path d={rombo(288, 195.5, 12, 9)} />
-      <path d={rombo(832.5, 195.5, 12, 9)} />
-      <path class="cab__punteo" d="M296 195.5H404M717 195.5H825" stroke-dasharray="9 4" />
-      <circle class="cab__nodo-f" cx="409.5" cy="195.5" r="1.9" />
-      <circle class="cab__nodo-f" cx="711.5" cy="195.5" r="1.9" />
-    </g>
-
-    <!-- ═══ 5 · BAJADA CENTRADA ══════════════════════════════════════════ -->
-    <text class="cab__nota" x="316" y="230.5" textLength="487" lengthAdjust="spacing">TOPOLOGY OF THE A-Y NODES. PATHS ARE MANY. RETURN IS ONE.</text>
-
-    <!-- ═══ 6 · RIELES ═══════════════════════════════════════════════════ -->
-    <g class="cab__riel">
-      {rielIzq.map(([a, b, macizo]) => (
-        <path d={`M${EJE_I} ${a}V${b}`} stroke-dasharray={macizo ? undefined : "1 5.5"} />
-      ))}
-      {rielDer.map(([a, b, macizo]) => (
-        <path d={`M${EJE_D} ${a}V${b}`} stroke-dasharray={macizo ? undefined : "1 5.5"} />
-      ))}
-    </g>
-
-    <g class="cab__glifo">
-      <circle cx={EJE_I} cy="304.5" r="4.7" />
-      <path d="M7.8 315.5H17.2L12.5 322.2ZM12.5 322.2V325" />
-      <path d={rayos(EJE_I, 347.5, 5, 8)} />
-      <path d={rayos(EJE_I, 364, 3.4, 6, Math.PI / 2)} />
-      <path d={rayos(EJE_I, 378.5, 4, 8, Math.PI / 8)} />
-      <path d={rayos(EJE_I, 799, 4, 6)} />
-      <path d={rombo(EJE_I, 814.5, 12, 9)} />
-      <circle cx={EJE_I} cy="814.5" r="1.6" />
-      <path d="M1109.5 801L1114.6 803.5V808.5L1109.5 811L1104.4 808.5V803.5Z" />
-      <path d={rayos(EJE_D, 806, 2.4, 4)} />
-    </g>
-
-    <g class="cab__nodo">
-      {puntosIzq.map((y) => <circle cx={EJE_I} cy={y} r="1.5" />)}
-      {puntosDer.map((y) => <circle cx={EJE_D} cy={y} r="1.4" />)}
-    </g>
-    <path class="cab__punteo" d={micropunteo.map(([a, b]) => `M${EJE_I} ${a}V${b}`).join("")} stroke-dasharray="1 3" />
-
-    <!-- Microtipografía rotada, de abajo hacia arriba como en el póster. -->
-    <text class="cab__micro" transform="translate(1106.6 399) rotate(-90)" textLength="182" lengthAdjust="spacing">05 44 XX XXII / 00 88</text>
-    <text class="cab__micro" transform="translate(10 950) rotate(-90)" textLength="75" lengthAdjust="spacing">KODEX ARCHIVE ///</text>
-
-    <!-- El 04 del riel derecho, a media altura. -->
-    <text class="cab__folio" x="1103.5" y="610.5" textLength="14.5" lengthAdjust="spacing">04</text>
-  </svg>
-</div>
-
-<style>
-  .cab {
-    position: absolute;
-    inset: 0;
-    display: block;
-    pointer-events: none;
-  }
-
-  /* Paleta de la lámina: la Cabecera es el único bloque que fija marco y
-     rieles, y el resto la hereda del contenedor .lam. */
-  .cab {
-    --u04-ink: #cfc6e8;
-    --u04-vio: #a77cf0;
-    --u04-tit: #d8d3e6;
-    --u04-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  }
-
-  .cab text {
-    font-family: var(--u04-mono);
-    font-variant-ligatures: none;
-    white-space: pre;
-    fill: var(--u04-ink);
-  }
-
-  /* ── marco ────────────────────────────────────────────────────────────── */
-  .cab__marco path {
-    fill: none;
-    stroke: var(--u04-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.1;
-  }
-  .cab__marco--tenue { stroke-opacity: 0.06 !important; }
-  /* El hilo fantasma sostiene la lectura del riel entre tramo y tramo. Medido
-     sobre negro no pasa de 20 de luminancia. */
-  .cab__marco--fantasma { stroke-opacity: 0.025 !important; }
-
-  .cab__interior path {
-    fill: none;
-    stroke: var(--u04-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.045;
-  }
-  .cab__interior--esq { stroke-opacity: 0.14 !important; }
-
-  /* ── regla superior ───────────────────────────────────────────────────── */
-  .cab__regla {
-    font-size: 12.3px;
-    fill: var(--u04-ink);
-    fill-opacity: 0.33;
-  }
-  .cab__regla--der { fill-opacity: 0.21; }
-
-  .cab__cruz path { fill: var(--u04-vio); fill-opacity: 0.36; }
-
-  .cab__nodo circle { fill: var(--u04-ink); fill-opacity: 0.32; }
-  .cab__nodo-f { fill: var(--u04-ink); fill-opacity: 0.4; }
-
-  .cab__punteo {
-    fill: none;
-    stroke: var(--u04-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.075;
-  }
-
-  /* ── hexágono ─────────────────────────────────────────────────────────── */
-  .cab__hex-borde { fill: none; stroke: var(--u04-ink); stroke-width: 1; stroke-opacity: 0.085; }
-  .cab__hex-tic { fill: none; stroke: var(--u04-ink); stroke-width: 1.4; stroke-opacity: 0.19; }
-  .cab__hex-tallo { fill: none; stroke: var(--u04-ink); stroke-width: 1; stroke-opacity: 0.07; }
-  .cab__inf {
-    fill: none;
-    stroke: var(--u04-vio);
-    stroke-width: 1.6;
-    stroke-opacity: 0.62;
-    stroke-linejoin: round;
-  }
-  .cab__tit-inf {
-    fill: none !important;
-    stroke: var(--u04-tit);
-    stroke-width: 4.6;
-    stroke-opacity: 0.75;
-    stroke-linejoin: round;
-  }
-
-  /* ── título ───────────────────────────────────────────────────────────── */
-  .cab__titulo text {
-    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif;
-    font-weight: 400;
-    fill: url(#u04TitGrad);
-    fill-opacity: 0.9;
-  }
-  .cab__titulo path,
-  .cab__titulo rect { fill: var(--u04-tit); fill-opacity: 0.72; }
-
-  /* ── línea bajo el título ─────────────────────────────────────────────── */
-  .cab__sig { font-size: 15.4px; fill: #b18ce0; fill-opacity: 0.72; }
-  .cab__lema { font-size: 22px; fill: #b18ce0; fill-opacity: 0.85; }
-  .cab__pag { font-size: 13.7px; fill: #b18ce0; fill-opacity: 0.72; }
-
-  .cab__sep path { fill: none; stroke: var(--u04-ink); stroke-width: 1; stroke-opacity: 0.28; }
-  .cab__sep .cab__punteo { stroke-opacity: 0.1; }
-
-  .cab__nota { font-size: 13.5px; fill: var(--u04-ink); fill-opacity: 0.46; }
-
-  /* ── rieles ───────────────────────────────────────────────────────────── */
-  .cab__riel path {
-    fill: none;
-    stroke: var(--u04-ink);
-    stroke-width: 1;
-    stroke-opacity: 0.075;
-    stroke-linecap: butt;
-  }
-
-  .cab__glifo path { fill: none; stroke: var(--u04-ink); stroke-width: 1; stroke-opacity: 0.18; }
-  .cab__glifo circle { fill: none; stroke: var(--u04-ink); stroke-width: 1; stroke-opacity: 0.18; }
-
-  .cab__micro { font-size: 7.4px; fill: var(--u04-ink); fill-opacity: 0.11; }
-  .cab__folio { font-size: 12.3px; fill: var(--u04-vio); fill-opacity: 0.2; }
-</style>
+  <g class="cab__glifo" slot="glifos">
+    <circle cx={EJE_I} cy="304.5" r="4.7" />
+    <path d="M7.8 315.5H17.2L12.5 322.2ZM12.5 322.2V325" />
+    <path d={rayos(EJE_I, 347.5, 5, 8)} />
+    <path d={rayos(EJE_I, 364, 3.4, 6, Math.PI / 2)} />
+    <path d={rayos(EJE_I, 378.5, 4, 8, Math.PI / 8)} />
+    <path d={rayos(EJE_I, 799, 4, 6)} />
+    <path d={rombo(EJE_I, 814.5, 12, 9)} />
+    <circle cx={EJE_I} cy="814.5" r="1.6" />
+    <path d="M1109.5 801L1114.6 803.5V808.5L1109.5 811L1104.4 808.5V803.5Z" />
+    <path d={rayos(EJE_D, 806, 2.4, 4)} />
+  </g>
+</CabeceraUniverse>

@@ -1,0 +1,511 @@
+---
+/**
+ * KODEX-∞ · SERIE UNIVERSE · CABECERA COMPARTIDA
+ *
+ * El cromo de cabecera de las cinco láminas de la serie —u01, u02, u04, u07,
+ * u09— estaba escrito cinco veces. Entre el 29 % y el 40 % de cada archivo era
+ * esto mismo con otros números, y esa duplicación ya costó cara: el bug de
+ * especificidad de `.cab text` (que es (0,1,1) y le gana a cualquier
+ * `.cab__loquesea`, (0,1,0), dejando grises catorce rótulos que la referencia
+ * tiene violeta) nació en u02, viajó a u01 y todavía vivía en u04, u07 y u09
+ * cuando se hizo este refactor.
+ *
+ * ACÁ ESE BUG NO PUEDE VOLVER. El color base va en el `<svg>`, que hereda
+ * `fill` a todos sus descendientes sin gastar especificidad, y no en un
+ * selector de tipo. Cualquier clase de una sola palabra lo pisa, que es lo que
+ * se quería desde el principio.
+ *
+ * QUÉ ES PROP Y QUÉ NO. Todo lo que difiere entre láminas es prop, incluida la
+ * paleta: está medido que NO se hereda —la nube de u01 es acromática
+ * (rgb 235,229,232 en picos) mientras u02 es violeta de punta a punta— así que
+ * unificar colores «porque queda mejor» tiñe media lámina. Los números que
+ * varían entran por props de geometría o por variables CSS (`--cb-*`), nunca
+ * por un valor promedio inventado.
+ *
+ * QUÉ VA POR SLOT. Cuatro grupos no son «lo mismo con otros números» sino
+ * dibujos distintos, y forzarlos a un parámetro común habría sido inventar una
+ * abstracción falsa:
+ *   · `marco-extra` — u07 tiene halo de regla, aspas y travesaño interior; u09
+ *     tiene la regla que cierra el pie. Los demás no tienen nada.
+ *   · `sep`    — los adornos que flanquean la bajada: anillo+raya en u01,
+ *                rombo+punteo en u02/u04, cuatro nodos en u07, flechas de doble
+ *                punta en u09.
+ *   · `nota`   — la bajada centrada. u01 no la tiene.
+ *   · `glifos` — los racimos de riel, distintos lámina por lámina.
+ * El slot recibe el estilo por las clases `.cab__*`, que van globales
+ * justamente para que el contenido inyectado desde la lámina las alcance.
+ */
+import "@fontsource/cormorant-garamond/300.css";
+import "@fontsource/cormorant-garamond/400.css";
+import { lemniscata } from "./geom";
+
+export interface TextoDef {
+  x: number;
+  y: number;
+  t: string;
+  len?: number;
+  ajuste?: "spacing" | "spacingAndGlyphs";
+}
+
+export interface Props {
+  /** Prefijo de los ids del <defs>: dos gradientes con el mismo id se pisan. */
+  gradId: string;
+  /** Los tres topes del degradado del título, del hombro al pie del asta. */
+  grad: [string, string, string];
+  ariaLabel: string;
+  /** Overrides de las variables `--cb-*`, como cadena de declaraciones CSS. */
+  vars?: string;
+
+  /* ── marco exterior ─────────────────────────────────────────────────── */
+  marcoSup: string;
+  marcoInf?: { d: string; dash?: string; tenue?: boolean };
+  /** Segundo trazo ancho y tenue bajo las reglas: sólo u07 lo tiene medido. */
+  marcoHalo?: string;
+  fantasma: string;
+  chaflanes: string[];
+  nodosSup?: { x: number; y: number; r?: number }[];
+
+  /* ── marco interior ─────────────────────────────────────────────────── */
+  interior: string;
+  interiorHalo?: string;
+  /** Travesaño superior del marco interior: lo tiene u07, no u02. Medido. */
+  interiorTra?: string;
+  /** Regla horizontal que cierra el pie: la tiene u09. */
+  interiorRegla?: string;
+  interiorEsq?: string;
+
+  /* ── regla superior ─────────────────────────────────────────────────── */
+  cruces: [number, number][];
+  reglaIzq: TextoDef;
+  reglaDer: TextoDef;
+  reglaCy: number;
+  puntosRegla: number[];
+  puntosReglaR?: number;
+  nodosRegla: number[];
+  nodosReglaR?: number;
+  punteo?: { d: string; dash?: string };
+
+  /* ── hexágono ───────────────────────────────────────────────────────── */
+  hex: {
+    borde?: string;
+    poligono?: string;
+    tics: string;
+    tallo?: string;
+    /** cx, cy, a, b de la lemniscata de adentro. */
+    inf: [number, number, number, number];
+  };
+
+  /* ── título ─────────────────────────────────────────────────────────── */
+  titKodex: TextoDef & { size: number };
+  titGuion: { x: number; y: number; w: number; h: number };
+  /** cx, cy, a, b del ∞ de exhibición. */
+  titInf: [number, number, number, number];
+  titBarra: string;
+  titPalabra: TextoDef & { size: number };
+
+  /* ── línea bajo el título ───────────────────────────────────────────── */
+  sig: TextoDef;
+  lema: TextoDef;
+  pag: TextoDef;
+
+  /* ── rieles ─────────────────────────────────────────────────────────── */
+  ejeI: number;
+  ejeD: number;
+  rielIzq: [number, number, boolean][];
+  rielDer: [number, number, boolean][];
+  rielDash?: string;
+  nodosIzq?: number[];
+  nodosIzqR?: number;
+  nodosDer?: number[];
+  nodosDerR?: number;
+  micropunteo?: [number, number][];
+  micropunteoDash?: string;
+
+  /* ── microtipografía y folio ────────────────────────────────────────── */
+  micro?: { transform: string; len: number; t: string }[];
+  folio: TextoDef;
+}
+
+const {
+  gradId,
+  grad,
+  ariaLabel,
+  vars = "",
+  marcoSup,
+  marcoInf,
+  marcoHalo,
+  fantasma,
+  chaflanes,
+  nodosSup = [],
+  interior,
+  interiorHalo,
+  interiorTra,
+  interiorRegla,
+  interiorEsq,
+  cruces,
+  reglaIzq,
+  reglaDer,
+  reglaCy,
+  puntosRegla,
+  puntosReglaR = 1.6,
+  nodosRegla,
+  nodosReglaR = 2,
+  punteo,
+  hex,
+  titKodex,
+  titGuion,
+  titInf,
+  titBarra,
+  titPalabra,
+  sig,
+  lema,
+  pag,
+  ejeI,
+  ejeD,
+  rielIzq,
+  rielDer,
+  rielDash = "1 5.5",
+  nodosIzq = [],
+  nodosIzqR = 1.5,
+  nodosDer = [],
+  nodosDerR = 1.4,
+  micropunteo,
+  micropunteoDash = "1 3",
+  micro = [],
+  folio,
+} = Astro.props;
+
+/**
+ * Cruz violeta de los extremos de la regla: 7 px de ancho por 9 de alto. Estaba
+ * escrita como dos `d` literales en cada una de las cinco cabeceras, con las
+ * mismas quince cifras y sólo el centro cambiado.
+ */
+/* Sin redondeo, 43,5 − 1,3 sale 42,199999999999996 en coma flotante y el
+   atributo `d` queda ilegible. El dibujo es el mismo; el archivo, no. */
+const n2 = (v: number): number => +v.toFixed(4);
+const cruzRegla = (cx: number, cy: number): string =>
+  `M${cx} ${n2(cy - 4.5)}L${n2(cx + 1.3)} ${n2(cy - 1.3)}L${n2(cx + 4.5)} ${cy}L${n2(cx + 1.3)} ${n2(cy + 1.3)}` +
+  `L${cx} ${n2(cy + 4.5)}L${n2(cx - 1.3)} ${n2(cy + 1.3)}L${n2(cx - 4.5)} ${cy}L${n2(cx - 1.3)} ${n2(cy - 1.3)}Z`;
+---
+
+<div data-bloque="Cabecera" style="inset:0">
+  <svg
+    class="cab"
+    style={`--cb-tit-grad:url(#${gradId}TitGrad);${vars}`}
+    viewBox="0 0 1122 1402"
+    width="1122"
+    height="1402"
+    role="img"
+    aria-label={ariaLabel}
+  >
+    <defs>
+      <!-- El título de la referencia no es de tinta plana: pierde ~15 % de luz
+           del hombro al pie de las astas. Un color plano lo deja acartonado. -->
+      <linearGradient id={`${gradId}TitGrad`} x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color={grad[0]} />
+        <stop offset="0.45" stop-color={grad[1]} />
+        <stop offset="1" stop-color={grad[2]} />
+      </linearGradient>
+      <!-- Halo corto de los acentos violeta: en la referencia el ∞ del hexágono
+           sangra ~2 px sobre el negro y sin halo queda recortado y muerto. -->
+      <filter id={`${gradId}Halo`} x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="1.1" result="b" />
+        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+
+    <!-- ═══ 1 · MARCO EXTERIOR ═══════════════════════════════════════════ -->
+    <g class="cab__marco">
+      {marcoHalo && <path class="cab__marco--halo" d={marcoHalo} />}
+      <path d={marcoSup} />
+      {marcoInf && (
+        <path
+          class={marcoInf.tenue === false ? undefined : "cab__marco--tenue"}
+          d={marcoInf.d}
+          stroke-dasharray={marcoInf.dash}
+        />
+      )}
+      <!-- El hilo fantasma sostiene la lectura del riel entre tramo y tramo.
+           Medido sobre negro no pasa de 20 de luminancia: si sube, el riel deja
+           de ser un riel y se vuelve un borde. -->
+      <path class="cab__marco--fantasma" d={fantasma} />
+      {chaflanes.map((d) => <path d={d} />)}
+    </g>
+
+    <slot name="marco-extra" />
+
+    {nodosSup.length > 0 && (
+      <g class="cab__nodo">
+        {nodosSup.map((n) => <circle cx={n.x} cy={n.y} r={n.r ?? 2} />)}
+      </g>
+    )}
+
+    <!-- Marco interior: se ve por sus verticales y por las escuadras en L de la
+         boca. Quién lleva travesaño superior y quién no está medido lámina por
+         lámina; el que lo lleva lo inyecta por el slot `marco-extra`. -->
+    <g class="cab__interior">
+      {interiorHalo && <path class="cab__marco--halo" d={interiorHalo} />}
+      <path d={interior} />
+      {interiorTra && <path class="cab__interior--tra" d={interiorTra} />}
+      {interiorRegla && <path class="cab__interior--regla" d={interiorRegla} />}
+      {interiorEsq && <path class="cab__interior--esq" d={interiorEsq} />}
+    </g>
+
+    <!-- ═══ 2 · REGLA SUPERIOR ═══════════════════════════════════════════ -->
+    <g class="cab__cruz" filter={`url(#${gradId}Halo)`}>
+      {cruces.map(([cx, cy]) => <path d={cruzRegla(cx, cy)} />)}
+    </g>
+
+    <text
+      class="cab__regla"
+      x={reglaIzq.x}
+      y={reglaIzq.y}
+      textLength={reglaIzq.len}
+      lengthAdjust={reglaIzq.ajuste ?? "spacing"}>{reglaIzq.t}</text>
+    <text
+      class="cab__regla cab__regla--der"
+      x={reglaDer.x}
+      y={reglaDer.y}
+      textLength={reglaDer.len}
+      lengthAdjust={reglaDer.ajuste ?? "spacing"}>{reglaDer.t}</text>
+
+    <g class="cab__nodo">
+      {puntosRegla.map((x) => <circle cx={x} cy={reglaCy} r={puntosReglaR} />)}
+      {nodosRegla.map((x) => <circle cx={x} cy={reglaCy} r={nodosReglaR} />)}
+    </g>
+
+    {punteo && <path class="cab__punteo" d={punteo.d} stroke-dasharray={punteo.dash} />}
+
+    <!-- Hexágono de vértice arriba. Los tics de los vértices laterales están en
+         la referencia y son lo que le da el aire de instrumento: sin ellos se
+         lee como un polígono cualquiera. -->
+    <g class="cab__hex">
+      {hex.poligono
+        ? <polygon class="cab__hex-borde" points={hex.poligono} />
+        : <path class="cab__hex-borde" d={hex.borde} />}
+      <path class="cab__hex-tic" d={hex.tics} />
+      {hex.tallo && <path class="cab__hex-tallo" d={hex.tallo} />}
+      <path class="cab__inf" filter={`url(#${gradId}Halo)`} d={lemniscata(...hex.inf)} />
+    </g>
+
+    <!-- ═══ 3 · TÍTULO ═══════════════════════════════════════════════════ -->
+    <!-- Cormorant Garamond es la serif de exhibición más cercana que tiene el
+         repo: alto contraste y serifas de pelo, como el póster. El texto va con
+         `textLength` y no con `letter-spacing` porque la mono y la serif del
+         póster no existen en ninguna máquina y el avance no se hereda:
+         `textLength` clava el extremo de tinta donde lo tiene la referencia sea
+         cual sea la fuente que resuelva. -->
+    <g class="cab__titulo">
+      <text
+        x={titKodex.x}
+        y={titKodex.y}
+        font-size={titKodex.size}
+        textLength={titKodex.len}
+        lengthAdjust={titKodex.ajuste ?? "spacingAndGlyphs"}>{titKodex.t}</text>
+      <!-- El guion va como figura: medido, es más alto y más corto que el guion
+           tipográfico de Cormorant a este cuerpo. -->
+      <rect x={titGuion.x} y={titGuion.y} width={titGuion.w} height={titGuion.h} />
+      <!-- ∞ de exhibición, contorneado: el descuento del grosor del trazo ya
+           está hecho en a y b. Va dibujado y no tipografiado porque el ∞ de
+           Cormorant es un signo matemático de caja chica. -->
+      <path class="cab__tit-inf" d={lemniscata(...titInf)} />
+      <path d={titBarra} />
+      <text
+        x={titPalabra.x}
+        y={titPalabra.y}
+        font-size={titPalabra.size}
+        textLength={titPalabra.len}
+        lengthAdjust={titPalabra.ajuste ?? "spacingAndGlyphs"}>{titPalabra.t}</text>
+    </g>
+
+    <!-- ═══ 4 · LÍNEA BAJO EL TÍTULO ═════════════════════════════════════ -->
+    <text class="cab__sig" x={sig.x} y={sig.y} textLength={sig.len} lengthAdjust={sig.ajuste ?? "spacing"}>{sig.t}</text>
+    <text class="cab__lema" x={lema.x} y={lema.y} textLength={lema.len} lengthAdjust={lema.ajuste ?? "spacing"}>{lema.t}</text>
+    <text class="cab__pag" x={pag.x} y={pag.y} textLength={pag.len} lengthAdjust={pag.ajuste ?? "spacing"}>{pag.t}</text>
+
+    <slot name="sep" />
+    <slot name="nota" />
+
+    <!-- ═══ 5 · RIELES ═══════════════════════════════════════════════════ -->
+    <g class="cab__riel">
+      {rielIzq.map(([a, b, macizo]) => (
+        <path d={`M${ejeI} ${a}V${b}`} stroke-dasharray={macizo ? undefined : rielDash} />
+      ))}
+      {rielDer.map(([a, b, macizo]) => (
+        <path d={`M${ejeD} ${a}V${b}`} stroke-dasharray={macizo ? undefined : rielDash} />
+      ))}
+    </g>
+
+    <slot name="glifos" />
+
+    <g class="cab__nodo">
+      {nodosIzq.map((y) => <circle cx={ejeI} cy={y} r={nodosIzqR} />)}
+      {nodosDer.map((y) => <circle cx={ejeD} cy={y} r={nodosDerR} />)}
+    </g>
+    {micropunteo && (
+      <path
+        class="cab__punteo"
+        d={micropunteo.map(([a, b]) => `M${ejeI} ${a}V${b}`).join("")}
+        stroke-dasharray={micropunteoDash}
+      />
+    )}
+
+    <!-- Microtipografía rotada: se lee de abajo hacia arriba, que es como está
+         en el póster. -->
+    {micro.map((m) => (
+      <text class="cab__micro" transform={m.transform} textLength={m.len} lengthAdjust="spacing">{m.t}</text>
+    ))}
+
+    <text class="cab__folio" x={folio.x} y={folio.y} textLength={folio.len} lengthAdjust={folio.ajuste ?? "spacing"}>{folio.t}</text>
+
+    <slot />
+  </svg>
+</div>
+
+<!--
+  Las reglas van GLOBALES a propósito, no por comodidad: el contenido que las
+  láminas inyectan por los slots (`sep`, `glifos`, `marco-extra`, `nota`) lleva
+  el ámbito de la lámina, no el de este archivo, y con estilos con ámbito no lo
+  alcanzarían. Todo cuelga de `.cab`, que existe una sola vez por página.
+-->
+<style is:global>
+  .cab {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  /* EL COLOR BASE VA EN EL <svg>, NO EN `.cab text`, y ésta es la corrección
+     que da sentido al refactor. `.cab text` tiene especificidad (0,1,1) —clase
+     más tipo— y `.cab__lema` sólo (0,1,0), así que la regla genérica GANABA y
+     todos los rótulos con color propio salían del color de la tinta. Se ve
+     midiendo el color medio: rgb(83,81,79) contra los rgb(86,83,90) de la
+     referencia — un tono, no una posición, y por eso pasa desapercibido
+     mirando. `fill` se hereda, así que puesto en el propio <svg> hace de valor
+     por defecto y cualquier clase de una sola palabra lo pisa. */
+  .cab { fill: var(--cb-ink); }
+
+  .cab text {
+    font-family: var(--cb-mono, "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace);
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  /* ── marco ────────────────────────────────────────────────────────────── */
+  .cab__marco path {
+    fill: none;
+    stroke: var(--cb-ink);
+    stroke-width: 1;
+    stroke-opacity: var(--cb-marco-op, 0.1);
+  }
+  .cab__marco--tenue { stroke-opacity: var(--cb-marco-tenue-op, 0.06) !important; }
+  .cab__marco--fantasma { stroke-opacity: var(--cb-fantasma-op, 0.025) !important; }
+  /* Las reglas de la referencia NO son de un píxel: dejan un halo de 15 de
+     luminancia en la fila de arriba y 3 en la de abajo. El halo va como segundo
+     trazo ancho y tenue, más barato y más predecible que un desenfoque. */
+  .cab__marco--halo { stroke-width: 3 !important; stroke-opacity: var(--cb-halo-op, 0.055) !important; }
+
+  .cab__aspa { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-aspa-op, 0.34); }
+  .cab__sep-r { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-sepr-op, 0.42); }
+
+  .cab__interior path {
+    fill: none;
+    stroke: var(--cb-ink);
+    stroke-width: 1;
+    stroke-opacity: var(--cb-interior-op, 0.045);
+  }
+  .cab__interior--tra { stroke-opacity: var(--cb-interior-tra-op, 0.075) !important; }
+  .cab__interior--esq { stroke-opacity: var(--cb-interior-esq-op, 0.14) !important; }
+  .cab__interior--regla { stroke-opacity: var(--cb-interior-regla-op, 0.14) !important; }
+
+  /* ── regla superior ───────────────────────────────────────────────────── */
+  .cab__regla {
+    font-size: var(--cb-regla-size, 12.3px);
+    fill: var(--cb-ink);
+    fill-opacity: var(--cb-regla-op, 0.27);
+  }
+  .cab__regla--der { fill-opacity: var(--cb-regla-der-op, 0.21); }
+
+  .cab__cruz path { fill: var(--cb-vio); fill-opacity: var(--cb-cruz-op, 0.36); }
+
+  .cab__nodo circle { fill: var(--cb-ink); fill-opacity: var(--cb-nodo-op, 0.32); }
+  .cab__nodo-f { fill: var(--cb-ink); fill-opacity: var(--cb-nodo-f-op, 0.4); }
+
+  .cab__punteo {
+    fill: none;
+    stroke: var(--cb-ink);
+    stroke-width: 1;
+    stroke-opacity: var(--cb-punteo-op, 0.075);
+  }
+
+  /* ── hexágono ─────────────────────────────────────────────────────────── */
+  .cab__hex-borde { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-hex-borde-op, 0.085); }
+  .cab__hex-tic { fill: none; stroke: var(--cb-ink); stroke-width: var(--cb-hex-tic-sw, 1.4); stroke-opacity: var(--cb-hex-tic-op, 0.19); }
+  .cab__hex-tallo { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-hex-tallo-op, 0.07); }
+  .cab__inf {
+    fill: none;
+    stroke: var(--cb-vio);
+    stroke-width: var(--cb-inf-sw, 1.6);
+    stroke-opacity: var(--cb-inf-op, 0.62);
+    stroke-linejoin: round;
+  }
+  .cab__tit-inf {
+    fill: none !important;
+    stroke: var(--cb-tit);
+    stroke-width: var(--cb-tit-inf-sw, 4.2);
+    stroke-opacity: var(--cb-tit-inf-op, 0.8);
+    stroke-linejoin: round;
+  }
+
+  /* ── título ───────────────────────────────────────────────────────────── */
+  .cab__titulo text {
+    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif;
+    font-weight: var(--cb-tit-peso, 400);
+    fill: var(--cb-tit-grad);
+    fill-opacity: var(--cb-tit-op, 0.86);
+  }
+  .cab__titulo path,
+  .cab__titulo rect { fill: var(--cb-tit); fill-opacity: var(--cb-tit-fig-op, 0.78); }
+
+  /* ── línea bajo el título ─────────────────────────────────────────────── */
+  /* LA BAJADA NO ES TODA DEL MISMO COLOR, y eso sólo se ve midiendo píxel por
+     píxel: en u01 los dos extremos van en acento y el rótulo largo del medio
+     NO, mientras que en u02 el lema central sí es violeta. Por eso cada una de
+     las tres piezas tiene su propia variable de color en vez de compartir una. */
+  .cab__sig { font-size: var(--cb-sig-size, 15.4px); fill: var(--cb-sig-fill, var(--cb-vio)); fill-opacity: var(--cb-sig-op, 0.42); }
+  .cab__lema { font-size: var(--cb-lema-size, 22px); fill: var(--cb-lema-fill, var(--cb-vio)); fill-opacity: var(--cb-lema-op, 0.5); }
+  .cab__pag { font-size: var(--cb-pag-size, 13.7px); fill: var(--cb-pag-fill, var(--cb-vio)); fill-opacity: var(--cb-pag-op, 0.4); }
+
+  .cab__sep path { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-sep-op, 0.28); }
+  .cab__sep .cab__punteo { stroke-opacity: var(--cb-sep-punteo-op, 0.1); }
+
+  .cab__guia { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-guia-op, 0.34); }
+  .cab__guia-anillo { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-guia-anillo-op, 0.4); }
+
+  .cab__flecha path {
+    fill: none;
+    stroke: var(--cb-ink);
+    stroke-width: 0.9;
+    stroke-opacity: var(--cb-flecha-op, 0.22);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .cab__nota { font-size: var(--cb-nota-size, 13.5px); fill: var(--cb-nota-fill, var(--cb-ink)); fill-opacity: var(--cb-nota-op, 0.37); }
+
+  /* ── rieles ───────────────────────────────────────────────────────────── */
+  .cab__riel path {
+    fill: none;
+    stroke: var(--cb-ink);
+    stroke-width: 1;
+    stroke-opacity: var(--cb-riel-op, 0.075);
+    stroke-linecap: butt;
+  }
+
+  .cab__glifo path { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-glifo-op, 0.18); }
+  .cab__glifo circle { fill: none; stroke: var(--cb-ink); stroke-width: 1; stroke-opacity: var(--cb-glifo-op, 0.18); }
+
+  .cab__micro { font-size: var(--cb-micro-size, 7.4px); fill: var(--cb-ink); fill-opacity: var(--cb-micro-op, 0.11); }
+  .cab__folio { font-size: var(--cb-folio-size, 12.3px); fill: var(--cb-folio-fill, var(--cb-vio)); fill-opacity: var(--cb-folio-op, 0.2); }
+</style>

@@ -1,0 +1,213 @@
+---
+/**
+ * KODEX-∞ · SERIE UNIVERSE · PIE COMPARTIDO
+ *
+ * El remate de las cinco láminas de la serie tenía escrito cinco veces lo
+ * mismo: la banda de tres columnas —`KDX-XXX-NNN`, `PROTOCOL …`, `THE KODEX IS
+ * LIVING. YOU ARE PART OF IT.`, `ONE SOURCE`, `INFINITE EXPRESSIONS`— y el
+ * sello hexagonal con su rosa de ocho brazos, que solo entre generador y
+ * marcado son unas ochenta líneas por archivo.
+ *
+ * QUÉ ES PROP. Cada rótulo lleva su propia caja (x, y y `textLength` o
+ * `letter-spacing`) porque los pasos de carácter NO son los mismos ni dentro de
+ * una misma lámina: en u01, `KDX-ORIGIN-0001` y `PROTOCOL INITIATED` comparten
+ * caja de 130 px pero tienen 15 y 18 caracteres, así que el interletrado es
+ * 0,144em y 0,007em. Un solo valor para los dos deja una de las dos líneas 20 px
+ * larga. Los colores y las opacidades entran por variables `--pi-*` por la misma
+ * razón: están calibrados caja por caja contra cada referencia.
+ *
+ * QUÉ VA POR SLOT. Todo lo que hay ARRIBA de la banda es distinto en cada
+ * lámina y no se fuerza a un molde común: el botón INITIATE y los dos monitores
+ * de onda de u02, la caja de la sentencia de u07, el juramento y la firma de
+ * u09, la frase montada sobre la regla de u01. Van en `antes` y `despues`, y
+ * las cruces que flanquean el lema en `cruces`, porque son tres dibujos
+ * distintos y no tres tamaños del mismo.
+ *
+ * TELEMETRÍA SIMBÓLICA. `KDX-XXX-NNN / PROTOCOL …` es ficción del póster, no
+ * estado de ningún sistema: va marcado `data-symbolic="true"`, como manda el
+ * canon.
+ */
+import { hexPuntos, rosa, ROSA_STD, ROSA_U01 } from "./geom";
+
+export interface TextoPie {
+  x: number;
+  y: number;
+  t: string;
+  len?: number;
+  ajuste?: "spacing" | "spacingAndGlyphs";
+  anchor?: "start" | "middle" | "end";
+}
+
+export interface Props {
+  /** Overrides de las variables `--pi-*`, como cadena de declaraciones CSS. */
+  vars?: string;
+  codigo?: TextoPie;
+  estado?: TextoPie;
+  /** u01 no lo lleva en la banda: su frase vive arriba, montada sobre la regla. */
+  lema?: TextoPie;
+  fuente: TextoPie;
+  expr: TextoPie;
+  sello: { cx: number; cy: number; R: number; k?: number; cfg?: "std" | "u01" };
+}
+
+const { vars = "", codigo, estado, lema, fuente, expr, sello } = Astro.props;
+
+const R = rosa(sello.cx, sello.cy, sello.k ?? 1, sello.cfg === "u01" ? ROSA_U01 : ROSA_STD);
+---
+
+<div data-bloque="Pie" style="inset:0">
+  <svg class="pie" style={vars} viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <slot name="antes" />
+
+    {(codigo || estado) && (
+      <g data-symbolic="true">
+        {codigo && (
+          <text class="pie-t pie-t--codigo" x={codigo.x} y={codigo.y} text-anchor={codigo.anchor} textLength={codigo.len} lengthAdjust={codigo.len ? (codigo.ajuste ?? "spacing") : undefined}>{codigo.t}</text>
+        )}
+        {estado && (
+          <text class="pie-t pie-t--estado" x={estado.x} y={estado.y} text-anchor={estado.anchor} textLength={estado.len} lengthAdjust={estado.len ? (estado.ajuste ?? "spacing") : undefined}>{estado.t}</text>
+        )}
+      </g>
+    )}
+
+    {lema && (
+      <text class="pie-t pie-t--lema" x={lema.x} y={lema.y} text-anchor={lema.anchor} textLength={lema.len} lengthAdjust={lema.len ? (lema.ajuste ?? "spacing") : undefined}>{lema.t}</text>
+    )}
+
+    <slot name="cruces" />
+
+    <text class="pie-t pie-t--fuente" x={fuente.x} y={fuente.y} text-anchor={fuente.anchor} textLength={fuente.len} lengthAdjust={fuente.len ? (fuente.ajuste ?? "spacing") : undefined}>{fuente.t}</text>
+    <text class="pie-t pie-t--expr" x={expr.x} y={expr.y} text-anchor={expr.anchor} textLength={expr.len} lengthAdjust={expr.len ? (expr.ajuste ?? "spacing") : undefined}>{expr.t}</text>
+
+    <!-- Sello: hexágono de punta arriba + rosa paramétrica. Los ocho brazos NO
+         son iguales, y esa desigualdad es lo que la separa de un asterisco
+         tipográfico; el detalle vive en `geom.ts`, que la genera. -->
+    <g class="pie-sello" role="img" aria-label="Sello KODEX-∞: una fuente, infinitas expresiones">
+      <polygon class="pie-sello__hex" points={hexPuntos(sello.cx, sello.cy, sello.R)} />
+      <g class="pie-sello__rosa">
+        {R.pelos.map((d) => <path class="pie-sello__pelo" d={d} />)}
+        {R.brazos.map((b) => (
+          <g>
+            <path class={b.eje ? "pie-sello__eje" : "pie-sello__diag"} d={b.d} />
+            {b.travesanos.map((d) => <path class="pie-sello__pelo" d={d} />)}
+            {b.suelto && (
+              <circle class="pie-sello__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r={R.sueltoR} />
+            )}
+            <rect
+              class="pie-sello__punta"
+              x={(b.punta[0] - R.puntaLado / 2).toFixed(2)}
+              y={(b.punta[1] - R.puntaLado / 2).toFixed(2)}
+              width={R.puntaLado}
+              height={R.puntaLado}
+            />
+          </g>
+        ))}
+        <circle class="pie-sello__nucleo" cx={sello.cx} cy={sello.cy} r={R.nucleoR} />
+      </g>
+    </g>
+
+    <slot name="despues" />
+    <slot />
+  </svg>
+
+  <!-- Fuera del <svg>: lo que cada lámina trae con su propio contenedor, como
+       las señales del kit en u02, que vienen con su propio <svg>. -->
+  <slot name="fuera" />
+</div>
+
+<!--
+  Global, y por la misma razón que en la cabecera: el contenido que las láminas
+  inyectan por los slots lleva el ámbito de la lámina y no el de este archivo,
+  así que con estilos con ámbito no alcanzaría a las clases `.pie-*`. Todo
+  cuelga de `.pie`, que existe una sola vez por página.
+-->
+<style is:global>
+  /* El bloque cubre el lienzo entero y no pinta fondo: todo lo suyo cae en la
+     banda inferior, y lo de arriba queda visible tal cual. */
+  .pie {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+  }
+
+  /* ── tipografía ─────────────────────────────────────────────────────── */
+  /* Los cuerpos salen de la versal medida en cada PNG y el ancho de cada línea
+     lo clava `textLength` o el interletrado, según lo que tenga la referencia.
+     En SVG el espaciado de letra se suma también DESPUÉS del último carácter,
+     así que lo centrado y lo alineado a la derecha se corrige con una
+     traslación de media letra o de una entera: eso es `--pi-*-tr`. */
+  .pie-t {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  /* DOS MANDOS DE OPACIDAD POR PIEZA, Y NO ES INDECISIÓN: `-op` cae en
+     `opacity` (la del elemento entero) y `-a` en la alfa de la pintura
+     (`fill-opacity` / `stroke-opacity`). En un texto sin contorno las dos
+     dicen lo mismo por especificación, pero NO rasterizan igual: `opacity`
+     manda el elemento a una capa aparte y el suavizado sale distinto. Y estas
+     cinco láminas se calibraron por medición, cada una contra su referencia y
+     con la propiedad que tenía escrita — u01, u02 y u04 con `opacity`; u07 y
+     u09 con las alfas de pintura. Cambiarles la propiedad les mueve el puntaje
+     por debajo de la milésima, o sea que no es una diferencia que se vea, pero
+     sí una que el banco cobra. Cada lámina conserva la suya. */
+  .pie-t--codigo {
+    font-size: var(--pi-cod-size, 12.5px);
+    letter-spacing: var(--pi-cod-ls, normal);
+    fill: var(--pi-cod-fill, var(--pi-vio));
+    fill-opacity: var(--pi-cod-a, 1);
+    opacity: var(--pi-cod-op, 1);
+    transform: var(--pi-cod-tr, none);
+  }
+  /* La segunda línea de la columna izquierda hereda del código salvo donde la
+     medición diga otra cosa: en u07 baja un punto de cuerpo, en u01 cambia el
+     interletrado y en u09 la opacidad. */
+  .pie-t--estado {
+    font-size: var(--pi-est-size, var(--pi-cod-size, 12.5px));
+    letter-spacing: var(--pi-est-ls, var(--pi-cod-ls, normal));
+    fill: var(--pi-est-fill, var(--pi-cod-fill, var(--pi-vio)));
+    fill-opacity: var(--pi-est-a, var(--pi-cod-a, 1));
+    opacity: var(--pi-est-op, var(--pi-cod-op, 1));
+    transform: var(--pi-est-tr, var(--pi-cod-tr, none));
+  }
+  .pie-t--lema {
+    font-size: var(--pi-lema-size, 12px);
+    letter-spacing: var(--pi-lema-ls, normal);
+    fill: var(--pi-lema-fill, var(--pi-ink));
+    fill-opacity: var(--pi-lema-a, 1);
+    opacity: var(--pi-lema-op, 1);
+    transform: var(--pi-lema-tr, none);
+  }
+  .pie-t--fuente {
+    font-size: var(--pi-fuente-size, 10.5px);
+    letter-spacing: var(--pi-fuente-ls, normal);
+    fill: var(--pi-fuente-fill, var(--pi-vio));
+    fill-opacity: var(--pi-fuente-a, 1);
+    opacity: var(--pi-fuente-op, 1);
+    transform: var(--pi-fuente-tr, none);
+  }
+  .pie-t--expr {
+    font-size: var(--pi-expr-size, var(--pi-fuente-size, 10.5px));
+    letter-spacing: var(--pi-expr-ls, var(--pi-fuente-ls, normal));
+    fill: var(--pi-expr-fill, var(--pi-ink));
+    fill-opacity: var(--pi-expr-a, 1);
+    opacity: var(--pi-expr-op, 1);
+    transform: var(--pi-expr-tr, var(--pi-fuente-tr, none));
+  }
+
+  /* ── sello ──────────────────────────────────────────────────────────── */
+  .pie-sello__hex {
+    fill: none;
+    stroke: var(--pi-ink);
+    stroke-width: var(--pi-hex-sw, 1);
+    stroke-opacity: var(--pi-hex-a, 1);
+    opacity: var(--pi-hex-op, 1);
+  }
+  .pie-sello__diag { stroke: var(--pi-vio); stroke-width: 1.5; stroke-opacity: var(--pi-rosa-a, 1); opacity: var(--pi-rosa-op, 1); }
+  .pie-sello__eje { stroke: var(--pi-vio); stroke-width: 1; stroke-opacity: var(--pi-rosa-a, 1); opacity: var(--pi-rosa-op, 1); }
+  .pie-sello__pelo { stroke: var(--pi-vio); stroke-width: 0.7; stroke-opacity: var(--pi-pelo-a, 1); opacity: var(--pi-pelo-op, 1); }
+  .pie-sello__punta { fill: var(--pi-vio); fill-opacity: var(--pi-rosa-a, 1); opacity: var(--pi-rosa-op, 1); }
+  .pie-sello__nucleo { fill: none; stroke: var(--pi-vio); stroke-width: 1; stroke-opacity: var(--pi-rosa-a, 1); opacity: var(--pi-rosa-op, 1); }
+</style>
