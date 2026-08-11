@@ -1,0 +1,971 @@
+---
+/**
+ * KODEX-∞ · u08-anomaly · LA ENTIDAD — el héroe procedural.
+ *
+ * Región global x 160..960 · y 245..1175. Tres actos apilados en un solo eje
+ * (x=558,5 global → 398,5 local), medidos sobre la referencia:
+ *
+ *  · INTERFERENCIA (centro 558,5·368): telaraña radial con rayos blancos que
+ *    se abren en horizontal. Su corazón es CASI BLANCO (250,245,252) y es la
+ *    franja más ancha de luz de arriba (pico de columna L 83 en x 550).
+ *  · RUPTURA (centro 558,5·662): malla desgarrada blanco-violeta con el
+ *    corazón NARANJA (pico 254,180,151 sobre hombros 215,72,63) y venas rojas
+ *    que sangran hacia los costados (tenues: 130,99,94 en los picos).
+ *  · REORDENAMIENTO (centro 558,5·980): mandala de anillos concéntricos
+ *    (r 22..150, tapa en y 830), hexagrama doble, destello horizontal en
+ *    y 979..981 que corre de x 181 a 847 (fila más brillante del tercio bajo,
+ *    L 90,8 de media) y núcleo blanco-violeta (255,255,254 / orla 211,168,227).
+ *    Debajo, el círculo del ∞ en (557,5·1125), r 33.
+ *  · Entre ruptura y entidad, el EMBUDO: hilos violeta que convergen
+ *    (columna encendida x 557 · y 830..903, tinta 228,203,235).
+ *
+ * CONTRATO — el de toda la serie:
+ *  · canvas 2D paramétrico, ni un bitmap ni un SVG calcado;
+ *  · azar = mulberry32 con semilla fija, jamás Math.random();
+ *  · bucle POR FASE 0→1 sin costura: TODO término temporal es sin/cos de
+ *    múltiplos ENTEROS de fase·TAU — y en esta lámina eso no es un detalle:
+ *    el tema es la ruptura, y una ruptura que no vuelve al inicio deja
+ *    costura. El ciclo es interferencia → ruptura → reordenamiento →
+ *    interferencia: cada acto respira desfasado un tercio de vuelta, pero
+ *    los tres cierran en la misma fase 0.
+ *  · prefers-reduced-motion alarga el período, no congela;
+ *  · IntersectionObserver + visibilitychange apagan el rAF fuera de vista;
+ *  · se cuelga de window.__kdxSumideros para que __kdxFreeze(t) lo fije.
+ *
+ * DOS LIENZOS: `fondo` (telaraña, rayos, malla rota, mandala — una vez) y
+ * `vivo` (corazones, chispas, embudo, destello — por cuadro).
+ */
+---
+
+<div data-bloque="Entidad" style="left:160px;top:245px;width:800px;height:930px">
+  <canvas data-capa="fondo" width="800" height="930" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="800" height="930" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Entidad"] { pointer-events: none; }
+  [data-bloque="Entidad"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 800px;
+    height: 930px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro lo compila como JS. */
+  const raiz = document.querySelector('[data-bloque="Entidad"]');
+  if (raiz) {
+    const W = 800;
+    const H = 930;
+    const TAU = Math.PI * 2;
+    const CX = 398.5; // eje medido (global 558,5)
+    const Y1 = 123; // corazón de la interferencia (global 368)
+    const Y2 = 417; // corazón de la ruptura (global 662)
+    const Y3 = 735; // centro de la entidad (global 980)
+    const YC = 880; // círculo del ∞ (global 1125)
+
+    const LUZ = "246,240,252"; // blanco-violeta de los hilos
+    const VIO = "186,150,225"; // violeta del embudo y los anillos
+    const HONDO = "118,84,164"; // violeta hondo
+    const NAR = "242,132,86"; // naranja de la ruptura
+    const ROJO = "204,72,48"; // venas rojas laterales
+    const NUC = "255,252,250"; // núcleos
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(raiz.querySelector('[data-capa="fondo"]'));
+    const gv = preparar(raiz.querySelector('[data-capa="vivo"]'));
+
+    /* ── ACTO 1 · rayos de interferencia (precalculados: el vivo les corre
+       chispas encima) ─────────────────────────────────────────────────── */
+    const rayosInt = (() => {
+      const r = azar(0x0801);
+      const out = [];
+      for (const lado of [-1, 1]) {
+        for (let i = 0; i < 13; i++) {
+          /* la banda vertical de los rayos manda en el perfil por filas y un
+             paseo libre la vuelve caótica ante cualquier reseed: el rayo
+             serpentea con RETORNO a su y0, no a la deriva */
+          const y0 = Y1 + (r() - 0.58) * 50;
+          const pts = [[CX + lado * (4 + r() * 14), y0]];
+          const largo = 90 + r() * 220;
+          const caida = (r() - 0.5) * 30;
+          let [x, y] = pts[0];
+          while (Math.abs(x - CX) < largo && x > 4 && x < W - 4) {
+            x += lado * (7 + r() * 13);
+            const t = Math.abs(x - CX) / largo;
+            y += (r() - 0.5) * 11 + (y0 - y) * 0.16 + (caida * t) / 6;
+            pts.push([x, y]);
+          }
+          out.push({ pts, alfa: 0.3 + r() * 0.5, w: 0.6 + r() * 0.5 });
+          /* ramas cortas */
+          if (r() < 0.75 && pts.length > 6) {
+            const k = 2 + Math.floor(r() * (pts.length - 4));
+            const rp = [pts[k].slice()];
+            let [bx, by] = pts[k];
+            const sv = r() < 0.5 ? -1 : 1;
+            for (let j = 0; j < 4 + r() * 6; j++) {
+              bx += lado * (5 + r() * 9);
+              by += sv * (3 + r() * 8);
+              rp.push([bx, by]);
+            }
+            out.push({ pts: rp, alfa: 0.18 + r() * 0.32, w: 0.55 });
+          }
+        }
+      }
+      return out;
+    })();
+
+    /* ── ACTO 2 · malla desgarrada (nodos + enlaces, blanco-violeta y
+       naranja) ────────────────────────────────────────────────────────── */
+    const malla = (() => {
+      const r = azar(0x0802);
+      const nodos = [];
+      /* tres nubes: el cuerpo central y las dos ALAS que el perfil por filas
+         de la referencia exige — banda brillante en y global 600..640 y raíz
+         densa en 680..790. Uniforme no da: el perfil es bimodal. */
+      for (let i = 0; i < 380; i++) {
+        const x = CX + ((r() + r() + r()) / 1.5 - 1) * 315;
+        const y = Y2 - 32 + (r() * 2 - 1) * 130;
+        if (x < 6 || x > W - 6) continue;
+        nodos.push([x, y]);
+      }
+      for (let i = 0; i < 170; i++) {
+        const x = CX + (r() * 2 - 1) * 265;
+        const y = 372 + (r() * 2 - 1) * 42;
+        if (x < 6 || x > W - 6) continue;
+        nodos.push([x, y]);
+      }
+      for (let i = 0; i < 200; i++) {
+        const x = CX + (r() * 2 - 1) * 235;
+        const y = 492 + (r() * 2 - 1) * 58;
+        if (x < 6 || x > W - 6) continue;
+        nodos.push([x, y]);
+      }
+      const enlaces = [];
+      const caras = [];
+      for (let i = 0; i < nodos.length; i++) {
+        let m1 = -1, m2 = -1, d1 = 1e9, d2 = 1e9;
+        for (let j = 0; j < nodos.length; j++) {
+          if (j === i) continue;
+          const dx = nodos[i][0] - nodos[j][0];
+          const dy = nodos[i][1] - nodos[j][1];
+          const d = dx * dx + dy * dy;
+          if (d < d1) { d2 = d1; m2 = m1; d1 = d; m1 = j; }
+          else if (d < d2) { d2 = d; m2 = j; }
+        }
+        if (m1 > i) enlaces.push([i, m1]);
+        if (m2 > i && r() < 0.8) enlaces.push([i, m2]);
+        /* facetas: el brillo de tela arrugada que llena la franja — el diff
+           por bloques de 8×8 lo ve, y en la referencia ESTÁ (filas 550..790
+           promedian L 17..29 y con puro hilo no se llega ni a la mitad) */
+        if (m1 >= 0 && m2 >= 0 && r() < 0.5) caras.push([i, m1, m2]);
+      }
+      /* venas naranjas: subconjunto cercano al corazón */
+      /* raíces: hilachas horizontales de la banda baja (y global 700..790),
+         donde el perfil de la referencia tiene su segundo pico */
+      const raices = [];
+      for (let i = 0; i < 30; i++) {
+        const s = i % 2 ? 1 : -1;
+        const x0 = CX + s * (10 + r() * 60);
+        const y0 = 470 + r() * 90;
+        raices.push({
+          x0, y0,
+          x1: x0 + s * (60 + r() * 90), y1: y0 + (r() - 0.5) * 30,
+          x2: x0 + s * (130 + r() * 130), y2: y0 + (r() - 0.5) * 50,
+          alfa: 0.24 + r() * 0.3,
+          luz: r() < 0.5,
+        });
+      }
+      /* jirones: cintas dentadas de tela rota, los pliegues blancos que en la
+         referencia son lo más brillante de la franja después del corazón */
+      const jirones = [];
+      for (let i = 0; i < 46; i++) {
+        const lado = i % 2 ? 1 : -1;
+        const x0 = CX + lado * (16 + r() * 200);
+        /* sesgo a la mitad ALTA: los rizos blancos de la referencia se apiñan
+           en y global 530..600, arriba del corazón */
+        const y0 = Y2 + (r() * 2 - 1) * 108 - 32;
+        const largo = 50 + r() * 110;
+        const dir = r() * TAU;
+        const a1 = [], b1 = [];
+        let ax = x0, ay = y0;
+        const nx = Math.cos(dir + Math.PI / 2) * (3 + r() * 6);
+        const ny = Math.sin(dir + Math.PI / 2) * (3 + r() * 6);
+        for (let k = 0; k <= 7; k++) {
+          ax = x0 + Math.cos(dir) * (largo * k) / 7 + (r() - 0.5) * 16;
+          ay = y0 + Math.sin(dir) * (largo * k) / 7 * 0.45 + (r() - 0.5) * 12;
+          a1.push([ax, ay]);
+          b1.push([ax + nx + (r() - 0.5) * 6, ay + ny + (r() - 0.5) * 6]);
+        }
+        jirones.push({ a: a1, b: b1, alfa: 0.26 + r() * 0.38 });
+      }
+      const naranjas = [];
+      for (let i = 0; i < 60; i++) {
+        const a = r() * TAU;
+        const rad = 12 + r() * r() * 150;
+        naranjas.push([CX + Math.cos(a) * rad * 1.7, Y2 + Math.sin(a) * rad * 0.55]);
+      }
+      const enlacesNar = [];
+      for (let i = 0; i < naranjas.length; i++) {
+        let m = -1, dm = 1e9;
+        for (let j = 0; j < naranjas.length; j++) {
+          if (j === i) continue;
+          const dx = naranjas[i][0] - naranjas[j][0];
+          const dy = naranjas[i][1] - naranjas[j][1];
+          const d = dx * dx + dy * dy;
+          if (d < dm) { dm = d; m = j; }
+        }
+        if (m > i) enlacesNar.push([i, m]);
+        if (r() < 0.55 && m !== i) enlacesNar.push([i, (i + 3) % naranjas.length]);
+      }
+      return { nodos, enlaces, caras, naranjas, enlacesNar, jirones, raices };
+    })();
+
+    /* ── ACTO 3 · embudo (curvas precalculadas: el vivo les corre gotas) ── */
+    const embudo = (() => {
+      const r = azar(0x0803);
+      const out = [];
+      for (let i = 0; i < 52; i++) {
+        const s = i % 2 ? 1 : -1;
+        const x0 = CX + s * (10 + r() * 95);
+        const y0 = 435 + r() * 70;
+        const x2 = CX + (r() - 0.5) * 16;
+        const y2 = 580 + r() * 22;
+        out.push({ x0, y0, x1: CX + s * (4 + r() * 14), y1: 540 + r() * 35, x2, y2, alfa: 0.3 + r() * 0.36 });
+      }
+      return out;
+    })();
+    const puntoEmbudo = (c, t) => {
+      const u = 1 - t;
+      return [
+        u * u * c.x0 + 2 * u * t * c.x1 + t * t * c.x2,
+        u * u * c.y0 + 2 * u * t * c.y1 + t * t * c.y2,
+      ];
+    };
+
+    const poli = (g, cx, cy, rad, n, fase0) => {
+      g.beginPath();
+      for (let k = 0; k <= n; k++) {
+        const a = fase0 + (k / n) * TAU;
+        const x = cx + rad * Math.cos(a);
+        const y = cy + rad * Math.sin(a);
+        k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+    };
+
+    function pintarFondo(g) {
+      const r = azar(0x0804);
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* ── brumas de base: la luz ambiente que la referencia tiene y que el
+         hilo solo no alcanza (perfil por filas medido: sin esto faltan
+         10..23 puntos de luminancia en cada franja) ── */
+      const bruma = (cx, cy, rx, ry, c, a) => {
+        const gr = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
+        gr.addColorStop(0, tinta(c, a));
+        gr.addColorStop(0.55, tinta(c, a * 0.38));
+        gr.addColorStop(1, tinta(c, 0));
+        g.save();
+        g.translate(cx, cy); g.scale(1, ry / rx); g.translate(-cx, -cy);
+        g.fillStyle = gr;
+        g.beginPath(); g.arc(cx, cy, rx, 0, TAU); g.fill();
+        g.restore();
+      };
+      bruma(CX, Y1 - 14, 225, 95, VIO, 0.14);
+      bruma(CX, Y2, 265, 105, "196,90,70", 0.16);
+      bruma(CX, Y2, 175, 85, LUZ, 0.16);
+      bruma(CX, 340, 230, 55, LUZ, 0.11);
+      bruma(CX, 505, 210, 60, VIO, 0.13);
+      bruma(CX, Y3, 150, 140, HONDO, 0.26);
+      bruma(CX, 675, 105, 55, HONDO, 0.14);
+
+      /* ── telaraña de la interferencia ── */
+      const RADIOS = [16, 30, 46, 63, 82, 103, 122, 142];
+      for (let i = 0; i < RADIOS.length; i++) {
+        g.beginPath();
+        for (let k = 0; k <= 44; k++) {
+          const a = (k / 44) * TAU;
+          const rad = RADIOS[i] * (1 + (r() - 0.5) * 0.07);
+          const x = CX + rad * Math.cos(a) * 1.65;
+          const y = Y1 - 9 + rad * Math.sin(a) * 0.9;
+          k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(VIO, 0.3 - i * 0.026);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      for (let i = 0; i < 22; i++) {
+        const a = (i / 22) * TAU;
+        g.beginPath();
+        g.moveTo(CX + 8 * Math.cos(a), Y1 - 9 + 7 * Math.sin(a));
+        g.lineTo(CX + 148 * Math.cos(a) * 1.65, Y1 - 9 + 138 * Math.sin(a) * 0.9);
+        g.strokeStyle = tinta(VIO, 0.15);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      /* hilos conectivos entre interferencia y ruptura: la franja y 400..540
+         global no está vacía en la referencia — hay telaraña suelta */
+      for (let i = 0; i < 64; i++) {
+        const x0 = CX + (r() - 0.5) * 520;
+        const y0 = 160 + r() * 140;
+        const x1 = x0 + (r() - 0.5) * 240;
+        const y1 = y0 + 40 + r() * 140;
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.quadraticCurveTo((x0 + x1) / 2 + (r() - 0.5) * 60, (y0 + y1) / 2 + 20, x1, y1);
+        g.strokeStyle = tinta(r() < 0.4 ? VIO : LUZ, 0.08 + r() * 0.16);
+        g.lineWidth = 0.5;
+        g.stroke();
+        if (r() < 0.4) {
+          g.beginPath();
+          g.arc(x1, y1, 0.8, 0, TAU);
+          g.fillStyle = tinta(LUZ, 0.35);
+          g.fill();
+        }
+      }
+      /* rayos blancos */
+      for (const b of rayosInt) {
+        g.beginPath();
+        b.pts.forEach(([x, y], k) => (k === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
+        g.strokeStyle = tinta(LUZ, b.alfa);
+        g.lineWidth = b.w;
+        g.stroke();
+        if (r() < 0.6) {
+          const [px, py] = b.pts[b.pts.length - 1];
+          g.beginPath();
+          g.arc(px, py, 0.8, 0, TAU);
+          g.fillStyle = tinta(NUC, 0.5);
+          g.fill();
+        }
+      }
+
+      /* ── eje vertical con sus nodos ── */
+      g.beginPath();
+      g.moveTo(CX, 4);
+      g.lineTo(CX, YC - 34);
+      g.strokeStyle = tinta(VIO, 0.22);
+      g.lineWidth = 0.8;
+      g.stroke();
+      /* nodo instrumental medido en (558,5·455) → local (398,5·210) */
+      for (const [rad, a] of [[30, 0.12], [16, 0.22], [8, 0.4]]) {
+        g.beginPath();
+        g.arc(CX, 210, rad, 0, TAU);
+        g.strokeStyle = tinta(VIO, a);
+        g.lineWidth = 0.7;
+        g.stroke();
+      }
+      g.beginPath();
+      g.moveTo(CX - 12, 210); g.lineTo(CX + 12, 210);
+      g.moveTo(CX, 198); g.lineTo(CX, 222);
+      g.strokeStyle = tinta(LUZ, 0.4);
+      g.lineWidth = 0.6;
+      g.stroke();
+      for (const y of [22, 60, 262, 305]) {
+        g.beginPath();
+        g.arc(CX, y, 2, 0, TAU);
+        g.fillStyle = tinta(LUZ, 0.5);
+        g.fill();
+      }
+
+      /* ── malla desgarrada ── */
+      const { nodos, enlaces, caras, naranjas, enlacesNar, jirones, raices } = malla;
+      for (const t of raices) {
+        g.beginPath();
+        g.moveTo(t.x0, t.y0);
+        g.quadraticCurveTo(t.x1, t.y1, t.x2, t.y2);
+        g.strokeStyle = tinta(t.luz ? LUZ : VIO, t.alfa);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+      for (const [i, j, k] of caras) {
+        g.beginPath();
+        g.moveTo(nodos[i][0], nodos[i][1]);
+        g.lineTo(nodos[j][0], nodos[j][1]);
+        g.lineTo(nodos[k][0], nodos[k][1]);
+        g.closePath();
+        const d = Math.hypot((nodos[i][0] - CX) / 1.7, nodos[i][1] - Y2);
+        g.fillStyle = tinta(LUZ, Math.max(0.02, 0.12 - d / 2400) * (0.5 + r()));
+        g.fill();
+      }
+      for (const [i, j] of enlaces) {
+        const [x1, y1] = nodos[i];
+        const [x2, y2] = nodos[j];
+        const d = Math.hypot(((x1 + x2) / 2 - CX) / 1.7, (y1 + y2) / 2 - Y2);
+        const alfa = Math.max(0.11, 0.66 - d / 450);
+        g.beginPath();
+        g.moveTo(x1, y1);
+        /* quiebre a mitad de camino: tela rasgada, no malla CAD */
+        g.lineTo((x1 + x2) / 2 + (r() - 0.5) * 9, (y1 + y2) / 2 + (r() - 0.5) * 9);
+        g.lineTo(x2, y2);
+        g.strokeStyle = tinta(r() < 0.25 ? VIO : LUZ, alfa);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+      for (const [x, y] of nodos) {
+        if (r() < 0.45) continue;
+        g.beginPath();
+        g.arc(x, y, 0.85, 0, TAU);
+        g.fillStyle = tinta(LUZ, 0.3 + r() * 0.35);
+        g.fill();
+      }
+      /* jirones de tela rota: cintas RELLENAS con bordes dentados — los
+         pliegues blancos de la referencia son mancha, no rayita */
+      for (const j of jirones) {
+        g.beginPath();
+        j.a.forEach(([x, y], k) => (k === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
+        for (let k = j.b.length - 1; k >= 0; k--) g.lineTo(j.b[k][0], j.b[k][1]);
+        g.closePath();
+        g.fillStyle = tinta(LUZ, j.alfa * 0.34);
+        g.fill();
+        for (const borde of [j.a, j.b]) {
+          g.beginPath();
+          borde.forEach(([x, y], k) => (k === 0 ? g.moveTo(x, y) : g.lineTo(x, y)));
+          g.strokeStyle = tinta(LUZ, j.alfa);
+          g.lineWidth = 0.6;
+          g.stroke();
+        }
+      }
+      /* venas naranjas y sangrado rojo lateral */
+      for (const [i, j] of enlacesNar) {
+        const [x1, y1] = naranjas[i];
+        const [x2, y2] = naranjas[j];
+        g.beginPath();
+        g.moveTo(x1, y1);
+        g.lineTo((x1 + x2) / 2 + (r() - 0.5) * 7, (y1 + y2) / 2 + (r() - 0.5) * 7);
+        g.lineTo(x2, y2);
+        g.strokeStyle = tinta(NAR, 0.22 + r() * 0.34);
+        g.lineWidth = 0.7;
+        g.stroke();
+      }
+      for (const [x, y] of naranjas) {
+        if (r() < 0.5) continue;
+        g.beginPath();
+        g.arc(x, y, 0.9, 0, TAU);
+        g.fillStyle = tinta(NAR, 0.3 + r() * 0.3);
+        g.fill();
+      }
+      for (const lado of [-1, 1]) {
+        for (let i = 0; i < 7; i++) {
+          const y0 = Y2 + (r() - 0.4) * 60;
+          const largo = 160 + r() * 260;
+          g.beginPath();
+          g.moveTo(CX + lado * 30, y0);
+          g.lineTo(CX + lado * (30 + largo * 0.55), y0 + (r() - 0.5) * 26);
+          g.lineTo(CX + lado * (30 + largo), y0 + (r() - 0.5) * 44);
+          g.strokeStyle = tinta(ROJO, 0.14 + r() * 0.2);
+          g.lineWidth = 0.65;
+          g.stroke();
+        }
+      }
+
+      /* ── embudo ── */
+      for (const c of embudo) {
+        g.beginPath();
+        for (let k = 0; k <= 20; k++) {
+          const [x, y] = puntoEmbudo(c, k / 20);
+          k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(VIO, c.alfa);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+      /* al llegar al mandala los hilos se abren sobre la cúpula: arcos que
+         abrazan la corona del anillo exterior, como agua sobre un domo */
+      for (let i = 0; i < 22; i++) {
+        const s = i % 2 ? 1 : -1;
+        const rad = 152 - r() * 24;
+        const a0 = -Math.PI / 2 + s * (0.06 + r() * 0.1);
+        const a1 = a0 + s * (0.5 + r() * 1.1);
+        g.beginPath();
+        g.arc(CX, Y3, rad, Math.min(a0, a1), Math.max(a0, a1));
+        g.strokeStyle = tinta(VIO, 0.18 + r() * 0.26);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+      /* rulos laterales del embudo: las volutas en S que caen a los costados */
+      for (let i = 0; i < 12; i++) {
+        const s = i % 2 ? 1 : -1;
+        const x0 = CX + s * (30 + r() * 60);
+        const y0 = 500 + r() * 60;
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.bezierCurveTo(
+          x0 + s * (20 + r() * 30), y0 + 35 + r() * 25,
+          CX + s * (10 + r() * 40), y0 + 70 + r() * 40,
+          CX + s * (30 + r() * 80), y0 + 110 + r() * 60,
+        );
+        g.strokeStyle = tinta(VIO, 0.18 + r() * 0.24);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+      bruma(CX, 600, 70, 55, VIO, 0.2);
+      /* anillitos que flanquean el embudo, medidos (500·865) y (620·862) */
+      for (const [x, y] of [[340, 620], [460, 617]]) {
+        g.beginPath(); g.arc(x, y, 8.5, 0, TAU);
+        g.strokeStyle = tinta(VIO, 0.5); g.lineWidth = 0.8; g.stroke();
+        g.beginPath(); g.arc(x, y, 2.2, 0, TAU);
+        g.fillStyle = tinta(LUZ, 0.7); g.fill();
+      }
+
+      /* ── mandala de la entidad ── */
+      const ANILLOS = [
+        [150, 0.24], [132, 0.15], [115, 0.36], [100, 0.24], [85, 0.44],
+        [71, 0.24], [58, 0.42], [46, 0.3], [33, 0.48], [22, 0.55],
+      ];
+      for (const [rad, alfa] of ANILLOS) {
+        g.beginPath();
+        g.arc(CX, Y3, rad, 0, TAU);
+        g.strokeStyle = tinta(VIO, alfa);
+        g.lineWidth = rad < 60 ? 0.8 : 0.6;
+        g.stroke();
+      }
+      /* hexagrama doble + estrella interior */
+      for (const f0 of [-Math.PI / 2, Math.PI / 2]) {
+        poli(g, CX, Y3, 86, 3, f0);
+        g.closePath();
+        g.strokeStyle = tinta(VIO, 0.45);
+        g.lineWidth = 0.8;
+        g.stroke();
+        poli(g, CX, Y3, 46, 3, f0);
+        g.closePath();
+        g.strokeStyle = tinta(LUZ, 0.36);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      poli(g, CX, Y3, 115, 6, -Math.PI / 2);
+      g.closePath();
+      g.strokeStyle = tinta(VIO, 0.16);
+      g.lineWidth = 0.6;
+      g.stroke();
+      /* pétalos: seis círculos de flor, apenas */
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i / 6) * TAU;
+        g.beginPath();
+        g.arc(CX + 71 * Math.cos(a), Y3 + 71 * Math.sin(a), 71, 0, TAU);
+        g.strokeStyle = tinta(HONDO, 0.2);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      /* red interior fina: cuerdas entre anillos — la referencia tiene el
+         interior del mandala tejido, no vacío (filas 890..930 del perfil) */
+      for (let i = 0; i < 95; i++) {
+        const a0 = r() * TAU;
+        const a1 = a0 + 0.5 + r() * 2.2;
+        const r0 = 30 + r() * 118;
+        const r1 = 30 + r() * 118;
+        g.beginPath();
+        g.moveTo(CX + r0 * Math.cos(a0), Y3 + r0 * Math.sin(a0));
+        g.quadraticCurveTo(
+          CX + (r0 + r1) * 0.3 * Math.cos((a0 + a1) / 2),
+          Y3 + (r0 + r1) * 0.3 * Math.sin((a0 + a1) / 2),
+          CX + r1 * Math.cos(a1), Y3 + r1 * Math.sin(a1),
+        );
+        g.strokeStyle = tinta(r() < 0.3 ? LUZ : VIO, 0.1 + r() * 0.2);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      /* radios y nodos sobre anillos */
+      for (let i = 0; i < 12; i++) {
+        const a = -Math.PI / 2 + (i / 12) * TAU;
+        g.beginPath();
+        g.moveTo(CX + 22 * Math.cos(a), Y3 + 22 * Math.sin(a));
+        g.lineTo(CX + 150 * Math.cos(a), Y3 + 150 * Math.sin(a));
+        g.strokeStyle = tinta(VIO, 0.14);
+        g.lineWidth = 0.5;
+        g.stroke();
+        for (const rad of [85, 115, 150]) {
+          g.beginPath();
+          g.arc(CX + rad * Math.cos(a), Y3 + rad * Math.sin(a), 1.3, 0, TAU);
+          g.fillStyle = tinta(LUZ, 0.5);
+          g.fill();
+        }
+      }
+      /* destello horizontal: corre de x 181..847 global → 21..687 local */
+      const linea = g.createLinearGradient(21, 0, 687, 0);
+      linea.addColorStop(0, tinta(VIO, 0));
+      linea.addColorStop(0.25, tinta(VIO, 0.3));
+      linea.addColorStop(0.5, tinta(NUC, 0.6));
+      linea.addColorStop(0.75, tinta(VIO, 0.3));
+      linea.addColorStop(1, tinta(VIO, 0));
+      g.fillStyle = linea;
+      g.fillRect(21, Y3 - 0.7, 666, 1.4);
+      /* lentes del destello a ±107 y puntas sueltas */
+      for (const s of [-1, 1]) {
+        const x = CX + s * 107;
+        g.beginPath();
+        g.moveTo(x - 20, Y3);
+        g.lineTo(x, Y3 - 5);
+        g.lineTo(x + 20, Y3);
+        g.lineTo(x, Y3 + 5);
+        g.closePath();
+        g.strokeStyle = tinta(LUZ, 0.55);
+        g.lineWidth = 0.7;
+        g.stroke();
+        for (const dx of [145, 170, 196]) {
+          g.beginPath();
+          g.arc(CX + s * dx, Y3, 1.1, 0, TAU);
+          g.fillStyle = tinta(LUZ, 0.5);
+          g.fill();
+        }
+      }
+
+      /* telaraña de descarga bajo el mandala: la referencia no corta en el
+         anillo exterior — sigue hilo suelto hasta el círculo del ∞ */
+      for (let i = 0; i < 42; i++) {
+        const a0 = Math.PI * (0.15 + r() * 0.7);
+        const r0 = 150 + r() * 12;
+        const x0 = CX + r0 * Math.cos(a0);
+        const y0 = Y3 + r0 * Math.sin(a0) * 0.9;
+        const x1 = x0 + (r() - 0.5) * 150;
+        const y1 = Math.min(H - 12, y0 + 20 + r() * 95);
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.quadraticCurveTo((x0 + x1) / 2 + (r() - 0.5) * 40, (y0 + y1) / 2 + 12, x1, y1);
+        g.strokeStyle = tinta(VIO, 0.16 + r() * 0.24);
+        g.lineWidth = 0.5;
+        g.stroke();
+        if (r() < 0.5) {
+          g.beginPath();
+          g.arc(x1, y1, 0.8, 0, TAU);
+          g.fillStyle = tinta(LUZ, 0.4);
+          g.fill();
+        }
+      }
+      /* hilachas horizontales a la altura del círculo del ∞ (global ~1080) */
+      for (let i = 0; i < 16; i++) {
+        const s = i % 2 ? 1 : -1;
+        const x0 = CX + s * (40 + r() * 50);
+        const y0 = 822 + r() * 46;
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.quadraticCurveTo(x0 + s * (40 + r() * 60), y0 + (r() - 0.5) * 24, x0 + s * (90 + r() * 140), y0 + (r() - 0.5) * 40);
+        g.strokeStyle = tinta(VIO, 0.14 + r() * 0.22);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      for (const rad of [168, 186]) {
+        g.beginPath();
+        g.arc(CX, Y3, rad, Math.PI * 0.2, Math.PI * 0.8);
+        g.setLineDash([2, 5]);
+        g.strokeStyle = tinta(VIO, 0.28);
+        g.lineWidth = 0.6;
+        g.stroke();
+        g.setLineDash([]);
+      }
+
+      /* ── círculo del ∞ ── */
+      g.globalCompositeOperation = "source-over";
+      g.beginPath();
+      g.arc(CX - 1, YC, 33, 0, TAU);
+      g.fillStyle = "rgba(0,0,0,0.92)";
+      g.fill();
+      g.globalCompositeOperation = "lighter";
+      g.beginPath();
+      g.arc(CX - 1, YC, 33, 0, TAU);
+      g.strokeStyle = tinta(VIO, 0.6);
+      g.lineWidth = 1;
+      g.stroke();
+      g.beginPath();
+      for (let k = 0; k <= 64; k++) {
+        const t = (k / 64) * TAU;
+        const x = CX - 1 + 10 * Math.cos(t);
+        const y = YC + 4 * Math.sin(2 * t);
+        k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.closePath();
+      g.strokeStyle = tinta(NUC, 0.75);
+      g.lineWidth = 1.1;
+      g.stroke();
+
+      /* ── marcas de campo: aspas y polvo ── */
+      for (const [x, y] of [[165, 27], [679, 15], [160, 227], [682, 210], [688, 392]]) {
+        g.beginPath();
+        g.moveTo(x - 4, y - 4); g.lineTo(x + 4, y + 4);
+        g.moveTo(x + 4, y - 4); g.lineTo(x - 4, y + 4);
+        g.strokeStyle = tinta(LUZ, 0.4);
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+      /* polvo denso alrededor del círculo del ∞: la referencia no apaga la
+         zona (fila 1090 del perfil) */
+      for (let i = 0; i < 70; i++) {
+        const x = CX + (r() * 2 - 1) * 210;
+        const y = 795 + r() * 110;
+        g.beginPath();
+        g.arc(x, y, 0.5 + r() * 0.5, 0, TAU);
+        g.fillStyle = tinta(r() < 0.25 ? NUC : VIO, 0.18 + r() * 0.3);
+        g.fill();
+      }
+      for (let i = 0; i < 420; i++) {
+        const x = r() * W;
+        const zona = r();
+        const y = zona < 0.3 ? Y1 + (r() - 0.5) * 250 : zona < 0.65 ? Y2 + (r() - 0.5) * 270 : Y3 + (r() - 0.5) * 330;
+        if (y < 2 || y > H - 2) continue;
+        const cerca = Math.abs(x - CX) < 310;
+        if (!cerca && r() < 0.55) continue;
+        g.beginPath();
+        g.arc(x, y, 0.5 + r() * 0.55, 0, TAU);
+        g.fillStyle = tinta(r() < 0.22 ? NUC : VIO, 0.14 + r() * 0.34);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* chispas fijadas por semilla, animadas por fase */
+    const chispas = (() => {
+      const r = azar(0x0805);
+      const ray = rayosInt.filter(() => r() < 0.6).map((b) => ({ b, vel: 1 + Math.floor(r() * 2), f0: r() }));
+      const emb = embudo.filter(() => r() < 0.7).map((c) => ({ c, vel: 1 + Math.floor(r() * 2), f0: r() }));
+      const orb = Array.from({ length: 10 }, (_, i) => ({
+        rad: [33, 46, 58, 85, 115, 150][i % 6],
+        f0: r() * TAU,
+        dir: r() < 0.5 ? -1 : 1,
+      }));
+      return { ray, emb, orb };
+    })();
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      /* los tres actos respiran desfasados un tercio de vuelta: cuando la
+         interferencia pica, la ruptura viene subiendo y la entidad bajando.
+         Todo es sin(k·ang + cte): cierre exacto en fase 0 = fase 1. */
+      const pInt = 0.82 + 0.18 * Math.sin(2 * ang);
+      const pRup = 0.78 + 0.22 * Math.sin(2 * ang - TAU / 3);
+      const pEnt = 0.84 + 0.16 * Math.sin(2 * ang - (2 * TAU) / 3);
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* corazón de la interferencia: casi blanco, ancho */
+      let grd = g.createRadialGradient(CX, Y1, 0, CX, Y1, 64);
+      grd.addColorStop(0, tinta(NUC, 0.24 * pInt));
+      grd.addColorStop(0.25, tinta(LUZ, 0.12 * pInt));
+      grd.addColorStop(1, tinta(VIO, 0));
+      g.save();
+      g.translate(CX, Y1 - 6); g.scale(1.45, 1.02); g.translate(-CX, -Y1 + 6);
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(CX, Y1 - 6, 64, 0, TAU); g.fill();
+      g.restore();
+      g.beginPath(); g.arc(CX, Y1, 3.2, 0, TAU);
+      g.fillStyle = tinta(NUC, 0.9); g.fill();
+
+      /* chispas por los rayos */
+      for (const s of chispas.ray) {
+        const p = (fase * s.vel + s.f0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.04) continue;
+        const pts = s.b.pts;
+        const k = p * (pts.length - 1);
+        const i = Math.floor(k);
+        const f = k - i;
+        const x = pts[i][0] + (pts[Math.min(i + 1, pts.length - 1)][0] - pts[i][0]) * f;
+        const y = pts[i][1] + (pts[Math.min(i + 1, pts.length - 1)][1] - pts[i][1]) * f;
+        grd = g.createRadialGradient(x, y, 0, x, y, 2.6);
+        grd.addColorStop(0, tinta(NUC, 0.55 * env * pInt));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(x, y, 2.6, 0, TAU); g.fill();
+      }
+
+      /* pulso que baja por el eje: interferencia → ruptura */
+      const pp = fase % 1;
+      const envP = Math.sin(pp * Math.PI);
+      const yP = Y1 + 30 + (Y2 - Y1 - 60) * pp;
+      grd = g.createRadialGradient(CX, yP, 0, CX, yP, 5);
+      grd.addColorStop(0, tinta(NUC, 0.5 * envP));
+      grd.addColorStop(1, tinta(VIO, 0));
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(CX, yP, 5, 0, TAU); g.fill();
+
+      /* corazón NARANJA de la ruptura */
+      grd = g.createRadialGradient(CX, Y2, 0, CX, Y2, 80);
+      grd.addColorStop(0, tinta("254,208,178", 0.5 * pRup));
+      grd.addColorStop(0.16, tinta(NAR, 0.32 * pRup));
+      grd.addColorStop(0.5, tinta(ROJO, 0.22 * pRup));
+      grd.addColorStop(1, tinta(ROJO, 0));
+      g.save();
+      g.translate(CX, Y2); g.scale(1.4, 0.72); g.translate(-CX, -Y2);
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(CX, Y2, 80, 0, TAU); g.fill();
+      g.restore();
+      /* focos de brasa fijos a los lados del corazón, como en la referencia
+         (manchas naranjas en ±60..130 del eje a la altura de la rasgadura) */
+      for (const [dx, dy, rad, ai] of [[-78, -8, 30, 0.3], [64, 12, 26, 0.26], [-140, 18, 20, 0.16], [126, -16, 22, 0.18]]) {
+        grd = g.createRadialGradient(CX + dx, Y2 + dy, 0, CX + dx, Y2 + dy, rad);
+        grd.addColorStop(0, tinta(NAR, ai * pRup));
+        grd.addColorStop(1, tinta(ROJO, 0));
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(CX + dx, Y2 + dy, rad, 0, TAU); g.fill();
+      }
+      g.beginPath(); g.arc(CX, Y2, 4.5, 0, TAU);
+      g.fillStyle = tinta(NUC, 0.95); g.fill();
+      g.beginPath(); g.arc(CX, Y2, 9, 0, TAU);
+      g.strokeStyle = tinta("254,208,178", 0.6 * pRup);
+      g.lineWidth = 0.8; g.stroke();
+
+      /* brasas sobre las venas naranjas */
+      const { naranjas } = malla;
+      for (let i = 0; i < naranjas.length; i += 3) {
+        const [x, y] = naranjas[i];
+        const p = 0.5 + 0.5 * Math.sin(3 * ang + i * 1.7);
+        grd = g.createRadialGradient(x, y, 0, x, y, 3);
+        grd.addColorStop(0, tinta(NAR, 0.4 * p * pRup));
+        grd.addColorStop(1, tinta(ROJO, 0));
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(x, y, 3, 0, TAU); g.fill();
+      }
+
+      /* columna encendida del embudo (global y 830..903) + gotas */
+      grd = g.createLinearGradient(0, 585, 0, 660);
+      grd.addColorStop(0, tinta(VIO, 0));
+      grd.addColorStop(0.5, tinta("228,203,235", 0.5 * pEnt));
+      grd.addColorStop(1, tinta("228,203,235", 0.65 * pEnt));
+      g.fillStyle = grd;
+      g.fillRect(CX - 1.3, 585, 2.6, 75);
+      for (const s of chispas.emb) {
+        const p = (fase * s.vel + s.f0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.04) continue;
+        const [x, y] = puntoEmbudo(s.c, p);
+        grd = g.createRadialGradient(x, y, 0, x, y, 2.4);
+        grd.addColorStop(0, tinta("228,203,235", 0.5 * env));
+        grd.addColorStop(1, tinta(VIO, 0));
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(x, y, 2.4, 0, TAU); g.fill();
+      }
+
+      /* núcleo de la entidad: blanco con orla violeta */
+      grd = g.createRadialGradient(CX, Y3, 0, CX, Y3, 60);
+      grd.addColorStop(0, tinta(NUC, 0.9 * pEnt));
+      grd.addColorStop(0.2, tinta(VIO, 0.45 * pEnt));
+      grd.addColorStop(1, tinta(HONDO, 0));
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(CX, Y3, 60, 0, TAU); g.fill();
+      g.beginPath(); g.arc(CX, Y3, 3.6, 0, TAU);
+      g.fillStyle = tinta(NUC, 1); g.fill();
+
+      /* satélites orbitando los anillos: una vuelta entera por ciclo */
+      for (const o of chispas.orb) {
+        const a = o.f0 + o.dir * ang;
+        const x = CX + o.rad * Math.cos(a);
+        const y = Y3 + o.rad * Math.sin(a);
+        grd = g.createRadialGradient(x, y, 0, x, y, 2.2);
+        grd.addColorStop(0, tinta(NUC, 0.5 * pEnt));
+        grd.addColorStop(1, tinta(VIO, 0));
+        g.fillStyle = grd;
+        g.beginPath(); g.arc(x, y, 2.2, 0, TAU); g.fill();
+      }
+
+      /* respiración del destello horizontal y del círculo del ∞ */
+      const gl = 0.3 + 0.2 * Math.sin(2 * ang - (2 * TAU) / 3);
+      grd = g.createLinearGradient(CX - 200, 0, CX + 200, 0);
+      grd.addColorStop(0, tinta(NUC, 0));
+      grd.addColorStop(0.5, tinta(NUC, gl));
+      grd.addColorStop(1, tinta(NUC, 0));
+      g.fillStyle = grd;
+      g.fillRect(CX - 200, Y3 - 0.5, 400, 1);
+      g.beginPath(); g.arc(CX - 1, YC, 33, 0, TAU);
+      g.strokeStyle = tinta(VIO, 0.14 * pEnt);
+      g.lineWidth = 2.2;
+      g.stroke();
+      g.restore();
+    }
+
+    /* ── montaje: mismo esqueleto de bucle que toda la serie ───────────── */
+    pintarFondo(gf);
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const PERIODO = reducido ? 44000 : 12000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (es) => {
+          visible = es.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* Sumidero del freeze: compartido con los demás bloques de la lámina. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>
