@@ -1,0 +1,151 @@
+---
+/**
+ * KODEX-∞ · ORGANISMO · esqueleto compartido
+ *
+ * El plan registra este esqueleto como duplicado cuatro veces, ~2.483 líneas:
+ * canvas, DPR, rAF, congelado, visibilidad y estados, reescrito en cada lámina.
+ * Acá está una sola vez, y los organismos sólo traen su pintura.
+ *
+ * Lo que resuelve, y que ninguna copia resolvía igual:
+ *
+ * · **Bucle por fase, no por tiempo.** Un `t` creciente produce una costura al
+ *   dar la vuelta. Acá la fase es `0..1` y vuelve a 0 sin salto.
+ * · **Movimiento reducido.** No congela: reduce. La norma pide reducir o
+ *   reemplazar, y las escenas que lo hacen bien —`return`, `observe-v2`— bajan
+ *   densidad y ritmo en vez de detenerse. Acá el ciclo se vuelve muy lento y el
+ *   organismo queda legible.
+ * · **Fuera de pantalla no dibuja**, y con la pestaña oculta tampoco. Son
+ *   muchas páginas; no pueden correr todas.
+ * · **`__kdxRegisterFreeze`**, porque Playwright con `animations:"disabled"`
+ *   congela WAAPI pero NO congela un canvas con rAF. Sin esto el banco mide
+ *   ruido de animación y ningún puntaje es comparable.
+ */
+import { ORGANISMOS } from "./organismos.js";
+
+interface Props {
+  /** Nombre del organismo. Debe existir en el registro. */
+  organismo: string;
+  /** Semilla determinista. Nunca `Math.random()`: sin semilla no hay medición. */
+  semilla?: number;
+  /** Segundos que tarda el ciclo completo. */
+  ciclo?: number;
+  etiqueta?: string;
+}
+const { organismo, semilla = 0x51b1, ciclo = 24, etiqueta } = Astro.props;
+const def = ORGANISMOS[organismo as keyof typeof ORGANISMOS];
+const [nw, nh] = def?.nativo ?? [660, 490];
+---
+
+{def && (
+  <figure class="kdx-org" data-kdx-org={organismo} data-kdx-semilla={semilla} data-kdx-ciclo={ciclo}>
+    <canvas class="kdx-org__cv" data-kdx-org-canvas width={nw} height={nh} aria-hidden="true"></canvas>
+    <figcaption class="kdx-org__pie">
+      <span class="kdx-org__t">{def.titulo}</span>
+      {etiqueta && <span class="kdx-org__e">{etiqueta}</span>}
+      <span class="kdx-org__s">{def.vive ? "organismo · ciclo activo" : "organismo · pintado procedural"}</span>
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .kdx-org { margin: 0; display: grid; gap: 8px; }
+  .kdx-org__cv {
+    width: 100%; height: auto; display: block;
+    background: #000;
+    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  }
+  .kdx-org__pie {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline;
+    font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+    opacity: 0.72;
+  }
+  .kdx-org__t { font-weight: 600; }
+  .kdx-org__s { opacity: 0.6; }
+</style>
+
+<script>
+  import { ORGANISMOS } from "./organismos.js";
+
+  const marco = document.querySelector("[data-kdx-org]");
+  const lienzo = marco?.querySelector("[data-kdx-org-canvas]");
+
+  if (marco && lienzo) {
+    const nombre = marco.getAttribute("data-kdx-org");
+    const semilla = Number(marco.getAttribute("data-kdx-semilla")) || 0x51b1;
+    const def = ORGANISMOS[nombre];
+
+    if (def) {
+      const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      /* Reducir, no congelar: el ciclo se estira mucho y el organismo sigue
+         legible y quieto a la vista. */
+      const ciclo = (Number(marco.getAttribute("data-kdx-ciclo")) || 24) * (reducido ? 12 : 1);
+
+      const ctx = lienzo.getContext("2d");
+      const [nw, nh] = def.nativo;
+
+      /* El organismo se pinta SIEMPRE a su tamaño nativo, que son las cajas
+         medidas de su lámina. El lienzo se escala; los números calibrados no
+         se tocan. */
+      const ajustar = () => {
+        const dpr = Math.min(devicePixelRatio || 1, reducido ? 1.5 : 2);
+        lienzo.width = Math.round(nw * dpr);
+        lienzo.height = Math.round(nh * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+      ajustar();
+      addEventListener("resize", ajustar, { passive: true });
+
+      let modulo = null;
+      let raf = 0;
+      let visible = false;
+      let congelado = false;
+      const t0 = performance.now();
+
+      const pintar = (fase) => {
+        if (!modulo) return;
+        try {
+          def.pintar(modulo, ctx, nw, nh, fase, semilla);
+        } catch (e) {
+          /* Un organismo que revienta no puede tumbar la página que lo aloja.
+             Se detiene y deja el último cuadro dibujado. */
+          console.warn(`[kodex] organismo «${nombre}» falló:`, e);
+          parar();
+        }
+      };
+
+      const bucle = () => {
+        if (!visible || congelado) return;
+        /* Fase 0..1 y vuelta a 0. Sin `t` creciente no hay costura al cerrar. */
+        const fase = ((performance.now() - t0) / 1000 / ciclo) % 1;
+        pintar(fase);
+        raf = requestAnimationFrame(bucle);
+      };
+      const arrancar = () => { if (!raf && visible && !congelado) raf = requestAnimationFrame(bucle); };
+      const parar = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
+
+      /* El banco necesita poder congelar: `animations:"disabled"` de Playwright
+         no toca un rAF. Sin esto, cualquier comparación de píxeles mide fase. */
+      const registrar = window.__kdxRegisterFreeze;
+      if (typeof registrar === "function") {
+        registrar(() => { congelado = true; parar(); pintar(0); });
+      }
+      window.__kdxFreeze = () => { congelado = true; parar(); pintar(0); };
+
+      new IntersectionObserver((es) => {
+        visible = es.some((e) => e.isIntersecting);
+        visible ? arrancar() : parar();
+      }).observe(marco);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) parar(); else arrancar();
+      });
+
+      def.cargar().then((m) => {
+        modulo = m;
+        /* Los que no tienen ciclo se pintan una vez y no gastan más cuadros. */
+        if (!def.vive) { pintar(0); return; }
+        arrancar();
+      }).catch((e) => console.warn(`[kodex] no cargó el organismo «${nombre}»:`, e));
+    }
+  }
+</script>
