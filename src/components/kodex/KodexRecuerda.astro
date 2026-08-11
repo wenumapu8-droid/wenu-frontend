@@ -34,17 +34,36 @@ interface Props {
    * lo segundo debería pesar en el espécimen.
    */
   umbralPermanencia?: number;
+  /**
+   * Graba también el paso por la página. Apagado por omisión y a propósito:
+   * `KodexShell.astro:229` ya lo hace, y encenderlo ahí duplicaba el recorrido
+   * —lo vi salir con «threshold» y «/kodex/» por la misma página—.
+   *
+   * Se enciende donde el shell NO llega. El caso que lo motivó: las 1.427
+   * páginas de `vol/` usan `Base` + `KodexChrome`, no el shell, y por eso el
+   * corpus entero era invisible para la memoria. Medido: recorrer un volumen
+   * dejaba el recorrido vacío. Alguien podía leer cincuenta especímenes y su
+   * puerta no cambiaba, que es justo lo contrario de lo que el archivo promete.
+   */
+  registraVista?: boolean;
 }
-const { umbralPermanencia = 6000 } = Astro.props;
+const { umbralPermanencia = 6000, registraVista = false } = Astro.props;
 ---
 
-<span data-kdx-permanencia={umbralPermanencia} hidden></span>
+<span data-kdx-permanencia={umbralPermanencia} data-kdx-vista={registraVista ? "" : null} hidden></span>
 
 <script>
   import { record } from "../../kodex/return/memory.js";
 
   const marca = document.querySelector("[data-kdx-permanencia]");
   if (marca) {
+    /* Sólo donde el shell no graba. El guardia mira el DOM en vez de confiar
+       en la prop: si alguna vez el shell aparece en una página que además pide
+       `registraVista`, el recorrido no se duplica. */
+    if (marca.hasAttribute("data-kdx-vista") && !document.querySelector(".kxm-nav")) {
+      try { record({ type: "view", work: location.pathname }); } catch {}
+    }
+
     /* La señal se cuenta una sola vez por carga, y sólo si la pestaña estuvo
        visible todo el tiempo. Sin esto, una pestaña abierta y olvidada en el
        fondo pesaría igual que una escena mirada de verdad. */
