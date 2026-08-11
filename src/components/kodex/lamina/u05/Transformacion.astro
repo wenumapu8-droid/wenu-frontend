@@ -1,0 +1,466 @@
+---
+/**
+ * KODEX-∞ · u05-genesis · THE TRANSFORMATION — la banda héroe, y 868..1062.
+ *
+ * Caja medida x 71..875. Adentro, de arriba a abajo:
+ *   · título "THE TRANSFORMATION" x 458..625, línea de base ≈890, violeta;
+ *   · cinco rótulos con su subtítulo (líneas de base 916 / 929) y flechas
+ *     punteadas entre ellos (x 214 / 391 / 567 / 735):
+ *       IMPULSE cx 126 · PATTERN 277 · MEANING 447 · LANGUAGE 628 ·
+ *       CONSCIOUSNESS 801
+ *   · el torrente: decenas de filamentos que corren de izquierda a derecha
+ *     apretándose en cada nodo (y 940..1030, eje en y≈983) — ESO es el canvas;
+ *   · la sentencia "THE KODEX DOES NOT CREATE. IT REMEMBERS." x 354..603,
+ *     línea de base ≈1052.
+ *
+ * JERARQUÍA MEDIDA, media de luminancia por zona en la referencia:
+ *   · nodo CONSCIOUSNESS (x 750-850)  L 29,0  ← lo más brillante de la banda
+ *   · nodo MEANING / corazón (400-500) L 15,8
+ *   · resto del torrente                L ~8
+ * El torrente crece de izquierda a derecha: caos de puntos sueltos al arrancar,
+ * halo blanco al llegar. Si el corazón le gana al halo final, la banda cuenta
+ * la historia al revés.
+ *
+ * CONTRATO: canvas 2D paramétrico, mulberry32 (nunca Math.random()), bucle por
+ * fase 0→1 sin costura, reduced-motion = período largo, IntersectionObserver +
+ * visibilitychange, y sumidero en window.__kdxSumideros para __kdxFreeze.
+ */
+const NODOS = [
+  { cx: 126, lab: "IMPULSE", sub: "CHAOS" },
+  { cx: 277, lab: "PATTERN", sub: "RECOGNITION" },
+  { cx: 447, lab: "MEANING", sub: "FOCUS" },
+  { cx: 628, lab: "LANGUAGE", sub: "EXPRESSION" },
+  { cx: 801, lab: "CONSCIOUSNESS", sub: "EMERGENCE" },
+];
+const FLECHAS = [214, 391, 567, 735];
+---
+
+<div data-bloque="Transformacion" style="inset:0">
+  <svg class="tr" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <rect class="tr__caja" x="71.5" y="868.5" width="803" height="193.5" />
+    <text class="tr__titulo" x="458" y="890" textLength="167">THE TRANSFORMATION</text>
+    {NODOS.map((n) => (
+      <g>
+        <text class="tr__lab" x={n.cx} y="916" text-anchor="middle">{n.lab}</text>
+        <text class="tr__sub" x={n.cx} y="929" text-anchor="middle">{n.sub}</text>
+      </g>
+    ))}
+    {FLECHAS.map((x) => (
+      <path class="tr__flecha" d={`M${x - 14} 912.5H${x + 10}m-4 -3.4l4 3.4l-4 3.4`} stroke-dasharray="3 3" />
+    ))}
+    <text class="tr__cita" x="354" y="1052" textLength="249">THE KODEX DOES NOT CREATE. IT REMEMBERS.</text>
+  </svg>
+  <canvas data-capa="rio" width="800" height="112" aria-hidden="true" style="left:73px;top:930px;width:800px;height:112px"></canvas>
+</div>
+
+<style is:global>
+  [data-bloque="Transformacion"] { pointer-events: none; }
+  [data-bloque="Transformacion"] svg { position: absolute; inset: 0; }
+  [data-bloque="Transformacion"] canvas { position: absolute; }
+  .tr text {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  .tr__caja { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.14; }
+  .tr__titulo { font-size: 12.5px; fill: #b48fe2; fill-opacity: 0.66; }
+  .tr__lab { font-size: 10px; fill: #b48fe2; fill-opacity: 0.6; letter-spacing: 0.14em; }
+  .tr__sub { font-size: 8.6px; fill: #d8d4d0; fill-opacity: 0.36; letter-spacing: 0.1em; }
+  .tr__flecha { fill: none; stroke: #d8d4d0; stroke-width: 0.8; stroke-opacity: 0.3; }
+  .tr__cita { font-size: 9.8px; fill: #d8d4d0; fill-opacity: 0.46; }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro lo compila como JS. */
+  const raiz = document.querySelector('[data-bloque="Transformacion"]');
+  if (raiz) {
+    const W = 800;
+    const H = 112;
+    const TAU = Math.PI * 2;
+    const cy = 53; // eje del torrente (global 983)
+    /* Nodos en coordenadas locales del canvas (global − 73). */
+    const NX = [53, 204, 374, 555, 728];
+
+    const LUZ = "186,146,224";
+    const HONDO = "112,78,156";
+    const NUCLEO = "246,238,250";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      return g;
+    }
+    const gr = preparar(raiz.querySelector('[data-capa="rio"]'));
+
+    /* ── filamentos del torrente ─────────────────────────────────────────
+     * Cada uno es una polilínea x→y precalculada: ondula, se APRIETA contra el
+     * eje al pasar por cada nodo (la envolvente `cierre` multiplica el desvío)
+     * y se abre entre nodos. El desorden decrece con x: el caos del arranque
+     * se vuelve trenza al llegar a CONSCIOUSNESS.
+     */
+    const filamentos = (() => {
+      const r = azar(0x0510);
+      const out = [];
+      const N = 44;
+      for (let i = 0; i < N; i++) {
+        const off = (i / (N - 1) - 0.5) * 2; // −1..1
+        /* La referencia trenza APRETADO: las hebras viven en ±25 px del eje y
+           lo que puebla el resto de la banda son motas, no trazos. La primera
+           versión abría ±46 y salían guirnaldas — se midió contra el tríptico
+           y se cerró. */
+        const base = off * (8 + 18 * Math.abs(off));
+        const amp = 2 + r() * 5.5;
+        const frec = 0.8 + r() * 1.6;
+        const desf = r() * TAU;
+        const ruido = 0.5 + r();
+        const M = 160;
+        const pts = new Float64Array((M + 1) * 2);
+        for (let k = 0; k <= M; k++) {
+          const x = (k / M) * W;
+          /* cierre: 1 lejos de los nodos, →0.15 encima de cada uno. */
+          let cierre = 1;
+          for (const nx of NX) {
+            const d = Math.abs(x - nx) / 46;
+            cierre = Math.min(cierre, 0.15 + 0.85 * Math.min(1, d * d));
+          }
+          const caos = 1 - (0.72 * x) / W; // el desorden decae hacia la derecha
+          const y =
+            cy +
+            base * cierre +
+            amp * cierre * Math.sin((frec * x * TAU) / W + desf) +
+            1.6 * caos * ruido * Math.sin((x * 11 * TAU) / W + desf * 2);
+          pts[k * 2] = x;
+          pts[k * 2 + 1] = y;
+        }
+        out.push({ pts, M, alfa: 0.1 + r() * 0.16, vel: 1 + Math.floor(r() * 3), fase0: r() });
+      }
+      return out;
+    })();
+    const puntoFil = (f, s) => {
+      const q = Math.max(0, Math.min(1, s)) * f.M;
+      const i = Math.min(f.M - 1, Math.floor(q));
+      const t = q - i;
+      return [
+        f.pts[i * 2] + (f.pts[i * 2 + 2] - f.pts[i * 2]) * t,
+        f.pts[i * 2 + 1] + (f.pts[i * 2 + 3] - f.pts[i * 2 + 1]) * t,
+      ];
+    };
+
+    /* Motas fijas: apretadas a la izquierda (caos), ralas después. */
+    const motas = (() => {
+      const r = azar(0x0511);
+      const out = [];
+      for (let i = 0; i < 320; i++) {
+        const x = r() * W;
+        const dens = 1 - (0.55 * x) / W;
+        if (r() > dens) continue;
+        out.push([x, cy + (r() + r() - 1) * 50, 0.5 + r() * 0.8, 0.12 + r() * 0.36, r() < 0.16]);
+      }
+      return out;
+    })();
+
+    /* ── capa estática del torrente (se pinta una vez sobre el mismo canvas
+       en cada cuadro no: se cachea en un offscreen) ─────────────────────── */
+    const fondo = document.createElement("canvas");
+    fondo.width = Math.round(W * dpr);
+    fondo.height = Math.round(H * dpr);
+    const gfo = fondo.getContext("2d");
+    gfo.setTransform(dpr, 0, 0, dpr, 0, 0);
+    gfo.lineCap = "round";
+    (function pintarFondo(g) {
+      const r = azar(0x0512);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      /* El trazo se apaga hacia la izquierda: la zona IMPULSE promedia L 5,3
+         en la referencia (motas, casi sin hebra) y con alfa plano salía 11,2. */
+      for (const f of filamentos) {
+        g.beginPath();
+        g.moveTo(f.pts[0], f.pts[1]);
+        for (let k = 1; k <= f.M; k++) g.lineTo(f.pts[k * 2], f.pts[k * 2 + 1]);
+        const grad = g.createLinearGradient(0, 0, W, 0);
+        grad.addColorStop(0, tinta(LUZ, f.alfa * 0.3));
+        grad.addColorStop(0.35, tinta(LUZ, f.alfa * 0.62));
+        grad.addColorStop(1, tinta(LUZ, f.alfa * 0.85));
+        g.strokeStyle = grad;
+        g.lineWidth = 0.6;
+        g.stroke();
+        /* nodos muertos sueltos sobre el trazo */
+        for (let j = 0; j < 3; j++) {
+          if (r() < 0.5) continue;
+          const [x, y] = puntoFil(f, r());
+          g.beginPath();
+          g.arc(x, y, 0.8, 0, TAU);
+          g.fillStyle = tinta(r() < 0.2 ? NUCLEO : LUZ, 0.3 + r() * 0.3);
+          g.fill();
+        }
+      }
+      for (const [x, y, rad, a, blanca] of motas) {
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.fillStyle = tinta(blanca ? NUCLEO : LUZ, a);
+        g.fill();
+      }
+
+      /* La hebra maestra: el eje corre visible de nodo a nodo y se enciende
+         hacia la derecha — en la referencia el tramo LANGUAGE→CONSCIOUSNESS
+         es casi blanco. */
+      const eje = g.createLinearGradient(0, 0, W, 0);
+      eje.addColorStop(0, tinta(LUZ, 0.06));
+      eje.addColorStop(0.5, tinta(LUZ, 0.16));
+      eje.addColorStop(0.82, tinta(NUCLEO, 0.32));
+      eje.addColorStop(1, tinta(NUCLEO, 0.45));
+      g.strokeStyle = eje;
+      g.lineWidth = 0.9;
+      g.beginPath();
+      g.moveTo(0, cy);
+      g.lineTo(W, cy);
+      g.stroke();
+
+      /* Arquitectura muerta de los nodos (los anillos; el brillo es del vivo). */
+      /* PATTERN: retícula radial con cruz. */
+      g.strokeStyle = tinta(LUZ, 0.4);
+      g.lineWidth = 0.7;
+      g.beginPath();
+      g.arc(NX[1], cy, 26, 0, TAU);
+      g.stroke();
+      g.beginPath();
+      g.arc(NX[1], cy, 15, 0, TAU);
+      g.strokeStyle = tinta(HONDO, 0.4);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(NX[1] - 34, cy);
+      g.lineTo(NX[1] + 34, cy);
+      g.moveTo(NX[1], cy - 34);
+      g.lineTo(NX[1], cy + 34);
+      g.strokeStyle = tinta(LUZ, 0.3);
+      g.stroke();
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * TAU;
+        g.beginPath();
+        g.moveTo(NX[1] + 22 * Math.cos(a), cy + 22 * Math.sin(a));
+        g.lineTo(NX[1] + 26 * Math.cos(a), cy + 26 * Math.sin(a));
+        g.strokeStyle = tinta(LUZ, 0.35);
+        g.stroke();
+      }
+      /* MEANING: corazón en anillo doble. */
+      g.beginPath();
+      g.arc(NX[2], cy, 30, 0, TAU);
+      g.strokeStyle = tinta(LUZ, 0.5);
+      g.lineWidth = 0.9;
+      g.stroke();
+      g.beginPath();
+      g.arc(NX[2], cy, 23, 0, TAU);
+      g.strokeStyle = tinta(HONDO, 0.42);
+      g.lineWidth = 0.7;
+      g.stroke();
+      /* LANGUAGE: anillo chico con satélites. */
+      g.beginPath();
+      g.arc(NX[3], cy, 13, 0, TAU);
+      g.strokeStyle = tinta(LUZ, 0.42);
+      g.lineWidth = 0.7;
+      g.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i / 6) * TAU;
+        g.beginPath();
+        g.arc(NX[3] + 19 * Math.cos(a), cy + 19 * Math.sin(a), 1, 0, TAU);
+        g.fillStyle = tinta(LUZ, 0.5);
+        g.fill();
+      }
+      /* CONSCIOUSNESS: sistema de anillos concéntricos. */
+      for (const [rad, a, w] of [[10, 0.6, 0.8], [17, 0.4, 0.6], [25, 0.5, 0.8], [33, 0.3, 0.6], [41, 0.38, 0.8], [48, 0.2, 0.6]]) {
+        g.beginPath();
+        g.arc(NX[4], cy, rad, 0, TAU);
+        g.strokeStyle = tinta(LUZ, a);
+        g.lineWidth = w;
+        g.stroke();
+      }
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * TAU;
+        g.beginPath();
+        g.moveTo(NX[4] + 41 * Math.cos(a), cy + 41 * Math.sin(a));
+        g.lineTo(NX[4] + 48 * Math.cos(a), cy + 48 * Math.sin(a));
+        g.strokeStyle = tinta(LUZ, 0.3);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      /* IMPULSE: nudo chico de caos, tenue — la zona entera promedia L 5,3. */
+      const rr = azar(0x0513);
+      for (let i = 0; i < 10; i++) {
+        const a0 = rr() * TAU;
+        g.beginPath();
+        g.moveTo(NX[0] + 4 * Math.cos(a0), cy + 4 * Math.sin(a0));
+        g.lineTo(NX[0] + (7 + rr() * 10) * Math.cos(a0 + rr()), cy + (7 + rr() * 10) * Math.sin(a0 + rr()));
+        g.strokeStyle = tinta(LUZ, 0.12 + rr() * 0.16);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      g.beginPath();
+      g.arc(NX[0], cy, 6.5, 0, TAU);
+      g.strokeStyle = tinta(LUZ, 0.32);
+      g.lineWidth = 0.7;
+      g.stroke();
+      g.restore();
+    })(gfo);
+
+    /* ── vivo ──────────────────────────────────────────────────────────── */
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.drawImage(fondo, 0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* Glows de los nodos — la jerarquía va acá: CONSCIOUSNESS L29 >
+         MEANING L15,8 > el resto. */
+      const glow = (x, rad, aN, aL, p) => {
+        const grd = g.createRadialGradient(x, cy, 0, x, cy, rad);
+        grd.addColorStop(0, tinta(NUCLEO, aN * p));
+        grd.addColorStop(0.3, tinta(LUZ, aL * p));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(x, cy, rad, 0, TAU);
+        g.fill();
+      };
+      /* Alfas recalibradas contra las medias por zona de la referencia:
+         impulse 5,3 · pattern 12,9 · heart 15,8 · language 8,5 · consciousness
+         29,0 — la primera pasada las tenía todas 4-6 puntos arriba. */
+      glow(NX[0], 14, 0.14, 0.07, 0.75 + 0.25 * Math.sin(ang * 2));
+      glow(NX[1], 26, 0.24, 0.12, 0.8 + 0.2 * Math.sin(ang * 2 + 1.3));
+      glow(NX[2], 32, 0.28, 0.14, 0.78 + 0.22 * Math.sin(ang * 3));
+      glow(NX[3], 15, 0.11, 0.06, 0.8 + 0.2 * Math.sin(ang * 2 + 3.1));
+      glow(NX[4], 52, 0.58, 0.3, 0.84 + 0.16 * Math.sin(ang * 2 + 4.4));
+
+      /* Corazón de MEANING, latiendo. */
+      const lat = 1 + 0.06 * Math.sin(ang * 3);
+      g.beginPath();
+      for (let i = 0; i <= 36; i++) {
+        const a = (i / 36) * TAU;
+        const hx = 16 * Math.pow(Math.sin(a), 3);
+        const hy = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+        const x = NX[2] + hx * 0.72 * lat;
+        const y = cy + hy * 0.72 * lat;
+        i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.closePath();
+      g.strokeStyle = tinta(NUCLEO, 0.8);
+      g.lineWidth = 1.1;
+      g.stroke();
+      /* Núcleo de CONSCIOUSNESS. */
+      g.beginPath();
+      g.arc(NX[4], cy, 3.4, 0, TAU);
+      g.fillStyle = tinta(NUCLEO, 0.8 + 0.2 * Math.sin(ang * 2));
+      g.fill();
+
+      /* Paquetes viajando por los filamentos: envolvente sin(π p) = ciclo sin
+         costura. */
+      for (const f of filamentos) {
+        const p = (fase * f.vel + f.fase0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.03) continue;
+        const [hx, hy] = puntoFil(f, p);
+        const [ax, ay] = puntoFil(f, Math.max(0, p - 0.04));
+        g.beginPath();
+        g.moveTo(ax, ay);
+        g.lineTo(hx, hy);
+        g.strokeStyle = tinta(LUZ, 0.42 * env);
+        g.lineWidth = 1.1;
+        g.stroke();
+        const grd = g.createRadialGradient(hx, hy, 0, hx, hy, 3.4);
+        grd.addColorStop(0, tinta(NUCLEO, 0.5 * env));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(hx, hy, 3.4, 0, TAU);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ── montaje ───────────────────────────────────────────────────────── */
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const PERIODO = reducido ? 44000 : 13000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gr, fase);
+    cuadro(0);
+
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (es) => {
+          visible = es.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>

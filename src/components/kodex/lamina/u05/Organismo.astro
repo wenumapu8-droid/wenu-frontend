@@ -1,0 +1,383 @@
+---
+/**
+ * KODEX-∞ · u05-genesis · ORGANISM — espécimen 06, el sistema vivo.
+ *
+ * Región global x 899..1047 · y 401..727 (panel 06 de la secuencia). Medido:
+ * la tinta del espécimen corre en x 932..1022 con el eje en x=977 —local 78—
+ * y el corazón encendido en (977,565), que es el punto más brillante de toda
+ * la franja de especímenes (el panel promedia L 14,4 contra 8,7-10,8 de los
+ * demás). ESA es su posición en la jerarquía: el organismo remata la secuencia
+ * y tiene que leerse más vivo que los cinco anteriores, sin competirle al
+ * halo blanco de CONSCIOUSNESS de la banda de abajo (L 29).
+ *
+ * CONTRATO — el mismo de toda la serie:
+ *  · canvas 2D paramétrico, ni un bitmap ni un SVG calcado;
+ *  · azar = mulberry32 con semilla fija, jamás Math.random();
+ *  · bucle POR FASE 0→1 sin costura (todo término temporal es sin/cos de
+ *    múltiplos enteros de fase·TAU);
+ *  · prefers-reduced-motion alarga el período, no congela;
+ *  · IntersectionObserver + visibilitychange apagan el rAF fuera de vista;
+ *  · se cuelga de window.__kdxSumideros para que __kdxFreeze(t) lo fije.
+ *
+ * DOS LIENZOS: `fondo` (red de filamentos, anillos y nodos muertos — se pinta
+ * una vez) y `vivo` (pulso del corazón, columna y chispas — por cuadro).
+ */
+---
+
+<div data-bloque="Organismo" style="left:899px;top:401px;width:148px;height:326px">
+  <canvas data-capa="fondo" width="148" height="326" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="148" height="326" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Organismo"] { pointer-events: none; }
+  [data-bloque="Organismo"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 148px;
+    height: 326px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro lo compila como JS. */
+  const raiz = document.querySelector('[data-bloque="Organismo"]');
+  if (raiz) {
+    const W = 148;
+    const H = 326;
+    const TAU = Math.PI * 2;
+    const cx = 78; // eje medido (global 977)
+    const cyCor = 164; // corazón (global 565)
+
+    const LUZ = "186,146,224";
+    const HONDO = "112,78,156";
+    const NUCLEO = "246,238,250";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(raiz.querySelector('[data-capa="fondo"]'));
+    const gv = preparar(raiz.querySelector('[data-capa="vivo"]'));
+
+    /* Nodos del eje, de arriba abajo: (y, radio). El corazón NO está acá — es
+       del vivo. Rematan en círculo arriba y rombo abajo, como la referencia. */
+    const NODOS = [[14, 3.2], [46, 2.2], [72, 2.6], [104, 2.4], [138, 3], [200, 2.4], [228, 2.6], [254, 2.2], [282, 2.4], [312, 2.6]];
+
+    /* Filamentos: arcos que salen del eje, se abren y vuelven — la malla del
+       organismo. Precalculados una vez. */
+    const filamentos = (() => {
+      const r = azar(0x0611);
+      const out = [];
+      for (let i = 0; i < 96; i++) {
+        const y0 = 16 + r() * 284;
+        const y1 = y0 + 24 + r() * 100;
+        const lado = r() < 0.5 ? -1 : 1;
+        const panza = lado * (10 + r() * 48);
+        out.push({ y0, y1, panza, alfa: 0.1 + r() * 0.22, nodo: r() < 0.6 ? 0.2 + r() * 0.6 : -1 });
+      }
+      return out;
+    })();
+    const puntoFil = (f, t) => {
+      const y = f.y0 + (f.y1 - f.y0) * t;
+      const x = cx + f.panza * Math.sin(Math.PI * t);
+      return [x, y];
+    };
+
+    function pintarFondo(g) {
+      const r = azar(0x0612);
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* Malla de filamentos con sus nodos muertos. */
+      for (const f of filamentos) {
+        g.beginPath();
+        for (let k = 0; k <= 24; k++) {
+          const [x, y] = puntoFil(f, k / 24);
+          k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(LUZ, f.alfa);
+        g.lineWidth = 0.55;
+        g.stroke();
+        if (f.nodo > 0) {
+          const [x, y] = puntoFil(f, f.nodo);
+          g.beginPath();
+          g.arc(x, y, 0.9, 0, TAU);
+          g.fillStyle = tinta(r() < 0.2 ? NUCLEO : LUZ, 0.3 + r() * 0.3);
+          g.fill();
+        }
+      }
+
+      /* Sistemas de anillos: alrededor del corazón y de los nodos mayores. */
+      /* La mitad ALTA del organismo pesa más que la baja en la referencia
+         (L 12,7 contra 10,1 por franjas): los sistemas de anillos superiores
+         van más cargados que sus espejos de abajo. */
+      /* Los sistemas caen donde el perfil de la espina de la referencia tiene
+         sus picos: y globales 504 / 539 / 568 / 606 → locales 103 / 138 /
+         164 / 205, con ecos menores en 33 y 250. */
+      const anillos = [
+        [cyCor, [16, 26, 36, 46, 57], 0.52],
+        [138, [9, 15], 0.46],
+        [103, [10, 16, 23], 0.44],
+        [205, [9, 15, 22], 0.3],
+        [33, [8, 13], 0.24],
+        [250, [10, 16], 0.2],
+      ];
+      for (const [cy, radios, alfa] of anillos) {
+        for (let i = 0; i < radios.length; i++) {
+          g.beginPath();
+          g.arc(cx, cy, radios[i], 0, TAU);
+          g.strokeStyle = tinta(i % 2 ? HONDO : LUZ, alfa * (1 - i * 0.12));
+          g.lineWidth = i % 2 ? 0.55 : 0.75;
+          g.stroke();
+        }
+      }
+      /* Vesica alrededor del corazón: dos arcos grandes que lo encierran.
+         Tenues — en la primera vuelta dominaban como huevos lisos y la malla
+         de la referencia es hilo enredado, no curva suave. */
+      for (const s of [-1, 1]) {
+        g.beginPath();
+        g.ellipse(cx, cyCor, 30, 92, 0, 0, TAU);
+        g.strokeStyle = tinta(HONDO, 0.16);
+        g.lineWidth = 0.7;
+        g.stroke();
+        g.beginPath();
+        g.ellipse(cx + s * 10, cyCor, 44, 120, 0, 0, TAU);
+        g.strokeStyle = tinta(HONDO, 0.09);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+
+      /* Remates del eje: círculo arriba, rombo abajo. */
+      g.beginPath();
+      g.arc(cx, 14, 5.5, 0, TAU);
+      g.strokeStyle = tinta(LUZ, 0.5);
+      g.lineWidth = 0.8;
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx, 306);
+      g.lineTo(cx + 5, 312);
+      g.lineTo(cx, 318);
+      g.lineTo(cx - 5, 312);
+      g.closePath();
+      g.strokeStyle = tinta(LUZ, 0.5);
+      g.stroke();
+
+      /* Polvo. */
+      for (let i = 0; i < 110; i++) {
+        const x = cx + (r() + r() - 1) * 66;
+        const y = 10 + r() * 306;
+        if (x < 2 || x > W - 2) continue;
+        g.beginPath();
+        g.arc(x, y, 0.55 + r() * 0.5, 0, TAU);
+        g.fillStyle = tinta(r() < 0.16 ? NUCLEO : LUZ, 0.12 + r() * 0.3);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* Chispas que recorren filamentos: fijas por semilla, animadas por fase. */
+    const chispas = (() => {
+      const r = azar(0x0613);
+      return filamentos.filter(() => r() < 0.5).map((f) => ({ f, vel: 1 + Math.floor(r() * 2), fase0: r() }));
+    })();
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* Bruma violeta del organismo: en la referencia el panel entero respira
+         color (promedia L 14,4, el más alto de la franja) y la nube se apiña
+         alrededor del corazón. Luz derramada, sin bordes. */
+      /* El centro de la nube va ARRIBA del corazón (y≈148): la franja alta
+         del panel promedia L 12,7 y la baja 10,1 — centrada en el corazón la
+         copia salía al revés. */
+      const bruma = g.createRadialGradient(cx, 148, 0, cx, 148, 110);
+      bruma.addColorStop(0, tinta(LUZ, 0.2 * (0.85 + 0.15 * Math.sin(ang))));
+      bruma.addColorStop(0.5, tinta(HONDO, 0.09));
+      bruma.addColorStop(1, tinta(HONDO, 0));
+      g.save();
+      g.translate(cx, 148);
+      g.scale(0.62, 1);
+      g.translate(-cx, -148);
+      g.fillStyle = bruma;
+      g.beginPath();
+      g.arc(cx, 148, 110, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* Columna vertebral: tres anchos apilados con leve pulso. */
+      const pulso = 0.82 + 0.18 * Math.sin(ang * 2);
+      for (const [w, a] of [[10, 0.06], [4, 0.14], [1.4, 0.5]]) {
+        const grd = g.createLinearGradient(0, 8, 0, H - 8);
+        grd.addColorStop(0, tinta(LUZ, 0));
+        grd.addColorStop(0.2, tinta(LUZ, a * pulso));
+        grd.addColorStop(0.5, tinta(w < 2 ? NUCLEO : LUZ, a * 1.25 * pulso));
+        grd.addColorStop(0.8, tinta(LUZ, a * pulso));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.fillRect(cx - w / 2, 8, w, H - 16);
+      }
+
+      /* Nodos del eje, respirando desfasados, con su destello en cruz: los de
+         la referencia son estrellitas de cuatro brazos, no discos. */
+      for (const [y, rad] of NODOS) {
+        const p = 0.6 + 0.4 * Math.sin(ang * 2 + y * 0.05);
+        /* La mitad baja de la referencia pesa menos: sus nodos bajan un cuarto. */
+        const peso = y > 180 ? 0.72 : 1;
+        const grd = g.createRadialGradient(cx, y, 0, cx, y, rad * 3);
+        grd.addColorStop(0, tinta(NUCLEO, 0.6 * p * peso));
+        grd.addColorStop(0.35, tinta(LUZ, 0.28 * p * peso));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(cx, y, rad * 3, 0, TAU);
+        g.fill();
+        const brazo = rad * (1.1 + rad * 0.55);
+        g.strokeStyle = tinta(NUCLEO, 0.55 * p * peso);
+        g.lineWidth = 0.7;
+        g.beginPath();
+        g.moveTo(cx - brazo, y);
+        g.lineTo(cx + brazo, y);
+        g.moveTo(cx, y - brazo * 1.25);
+        g.lineTo(cx, y + brazo * 1.25);
+        g.stroke();
+      }
+
+      /* EL CORAZÓN — el punto más vivo del panel. Halo + trazo. */
+      const lat = 0.72 + 0.28 * Math.sin(ang * 3);
+      const halo = g.createRadialGradient(cx, cyCor, 0, cx, cyCor, 40);
+      halo.addColorStop(0, tinta(NUCLEO, 0.52 * lat));
+      halo.addColorStop(0.3, tinta(LUZ, 0.28 * lat));
+      halo.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(cx, cyCor, 40, 0, TAU);
+      g.fill();
+      const k = 1.05 + 0.07 * Math.sin(ang * 3);
+      g.beginPath();
+      for (let i = 0; i <= 40; i++) {
+        const a = (i / 40) * TAU;
+        const hx = 16 * Math.pow(Math.sin(a), 3);
+        const hy = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+        const x = cx + hx * k;
+        const y = cyCor + hy * k;
+        i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.closePath();
+      g.strokeStyle = tinta(NUCLEO, 0.78);
+      g.lineWidth = 1.1;
+      g.stroke();
+
+      /* Chispas por los filamentos: envolvente sin(π p), cierre sin costura. */
+      for (const c of chispas) {
+        const p = (fase * c.vel + c.fase0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.03) continue;
+        const [x, y] = puntoFil(c.f, p);
+        const grd = g.createRadialGradient(x, y, 0, x, y, 3);
+        grd.addColorStop(0, tinta(NUCLEO, 0.5 * env));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(x, y, 3, 0, TAU);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ── montaje: mismo esqueleto de bucle que toda la serie ───────────── */
+    pintarFondo(gf);
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const PERIODO = reducido ? 40000 : 11000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (es) => {
+          visible = es.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* Sumidero del freeze: compartido con los demás bloques de la lámina. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>
