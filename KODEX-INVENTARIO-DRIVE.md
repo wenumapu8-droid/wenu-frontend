@@ -83,7 +83,10 @@ héroe FOTOGRÁFICO  19   render orgánico o fotografía: NO se generan por cód
 Los 19 fotográficos son sobre todo dos familias:
 
 - **WENU MAPU · SOLAR TECHNOLOGY I–V** — discos solares metálicos, yantras,
-  reactores. Es **otra marca**, con su propio lenguaje ancestral.
+  reactores. **No es «otra marca»**, como decía la primera versión de este
+  inventario: es la salida aplicada de KODEX. El creador lo aclaró —*«wenu mapu
+  es gracias al kodex… el logo nuevo nace de mi obra digital»*— y lo mismo vale
+  para SOMA ELIXIR. Ver `KODEX-DECISIONES.md`.
 - **KX-8 / ARCHIVE DOSSIER** — cabezas rituales de piedra, cráneos con
   circuitería, bustos de mármol partidos.
 
