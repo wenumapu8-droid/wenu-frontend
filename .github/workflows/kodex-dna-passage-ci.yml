@@ -1,0 +1,72 @@
+name: KODEX DNA Passage CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/kodex/dna/**'
+      - 'src/pages/kodex/lab/dna-passage/**'
+      - 'src/lib/kodex/runtime/**'
+      - 'scripts/ci/dna-passage-qa.mjs'
+      - '.github/workflows/kodex-dna-passage-ci.yml'
+  push:
+    branches:
+      - feature/kodex-dna-passage-v1
+    paths:
+      - 'src/components/kodex/dna/**'
+      - 'src/pages/kodex/lab/dna-passage/**'
+      - 'src/lib/kodex/runtime/**'
+      - 'scripts/ci/dna-passage-qa.mjs'
+      - '.github/workflows/kodex-dna-passage-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - name: Test journey memory integration
+        run: npx --yes tsx@4.23.1 --test src/lib/kodex/runtime/journey-state.test.ts src/lib/kodex/runtime/journey-memory-bridge.test.ts
+      - name: Build
+        run: npm run build
+      - name: Verify lab output
+        run: |
+          test -f dist/kodex/lab/dna-passage/index.html
+          grep -q 'DNA PASSAGE' dist/kodex/lab/dna-passage/index.html
+          grep -q 'SYMBOLIC_ONLY' dist/kodex/lab/dna-passage/index.html
+          grep -q 'BIOLOGICAL REFERENCE' dist/kodex/lab/dna-passage/index.html
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start static server
+        run: |
+          python3 -m http.server 4173 --directory dist > /tmp/dna-passage-http.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/kodex/lab/dna-passage/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/dna-passage-http.log
+          exit 1
+      - name: Browser QA
+        env:
+          KDX_DNA_PASSAGE_BASE_URL: 'http://127.0.0.1:4173'
+        run: node scripts/ci/dna-passage-qa.mjs
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-dna-passage-qa
+          path: artifacts/dna-passage-qa/
+          if-no-files-found: warn
+          retention-days: 14
