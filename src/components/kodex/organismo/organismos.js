@@ -65,13 +65,17 @@ export const ORGANISMOS = {
   "archive-tree": {
     titulo: "ARCHIVE TREE",
     nativo: [575, 390],
-    vive: false,
+    vive: true,
     async cargar() {
       return await import("../lamina/t01-04/centro.js");
     },
-    pintar(m, ctx, W, H) {
-      ctx.clearRect(0, 0, W, H);
-      m.pintarArbol(ctx, W, H);
+    pintar(m, ctx, W, H, fase) {
+      /* Crece y se queda. La fase sube de 0,12 a 1 durante los primeros dos
+         tercios del ciclo y después el árbol permanece completo: una raíz que
+         creciera y se deshiciera en bucle sería un efecto, no un organismo. El
+         reinicio ocurre al cerrar la fase, y ahí el árbol vuelve a ser semilla. */
+      const t = Math.min(1, fase / 0.66);
+      m.pintarArbol(ctx, W, H, 0.12 + t * 0.88);
     },
   },
 

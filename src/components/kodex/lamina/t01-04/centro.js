@@ -50,6 +50,11 @@ export function ctx2d(cv, w, h) {
 function rama(ctx, r, p) {
   const { x, y, ang, len, gros, prof, curva, abre, cae, larg, del, tinta, brote } = p;
   if (prof < 0 || len < 0.7) return;
+  // Con crecimiento parcial la copa aún no llegó a sus últimos niveles.
+  if (p.crec !== undefined && prof > Math.round(7 * p.crec)) {
+    rama(ctx, r, { ...p, prof: Math.round(7 * p.crec) });
+    return;
+  }
 
   // El eje no es recto: cada tramo se dibuja como una cuadrática con la
   // tangente girada. Ramas rectas leen como un diagrama de nodos.
@@ -143,8 +148,21 @@ function tronco(ctx, cx, yTop, yBase, wTop, wBase, expo, capas) {
  * (181 de luminancia media contra 130 de sus vecinas) — no el centro
  * geométrico, que está en 287.
  */
-export function pintarArbol(ctx, W, H) {
+export function pintarArbol(ctx, W, H, fase = 1) {
   ctx.clearRect(0, 0, W, H);
+
+  /* CRECIMIENTO. `fase` es opcional y por omisión vale 1: la lámina que
+     calibró este árbol lo sigue llamando con tres argumentos y obtiene
+     exactamente el mismo dibujo, byte por byte. Verificado, no supuesto.
+
+     Con fase < 1 se recorta la profundidad de la recursión: primero hay
+     tronco, después horcón, después copa. No es un fundido de opacidad — es la
+     misma raíz creciendo, que es lo que el organismo dice ser.
+
+     Sólo profundidad, y a propósito: escalar también el largo de los tramos
+     movería geometría medida contra el póster, y el puntaje de la lámina es lo
+     único que dice si este árbol sigue siendo el árbol. */
+  const crec = Math.max(0.12, Math.min(1, fase));
 
   const CX = 294;      // eje del tronco (póster x=699)
   const SUELO = 246;   // arranque de la raíz (póster y=358)
@@ -237,6 +255,7 @@ export function pintarArbol(ctx, W, H) {
       cae: -0.03,
       larg: 0.775,
       del: 0.605,
+      crec,
       tinta: tintaCopa,
       brote: 0.26,
       poda: 0.22,
