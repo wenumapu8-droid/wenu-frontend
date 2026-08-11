@@ -13,7 +13,7 @@ import manifiesto from "../../../../reference/MANIFEST.json";
 
 // Los puntajes salen del banco, no de números escritos a mano: si falta el
 // archivo, la tarjeta lo dice en vez de mentir con un valor viejo.
-const construidas = [
+let construidas = [
   {
     slug: "t01-03-descent-tunnel",
     titulo: "DESCENT TUNNEL",
@@ -51,6 +51,48 @@ const construidas = [
     nota: "Primera con el método nuevo: cajas medidas, arte trazada, kit calibrado. Llegó al mismo puntaje en UNA vuelta con 4 agentes.",
   },
 ];
+
+/**
+ * De acá abajo el índice se descubre solo.
+ *
+ * Antes la lista de arriba ERA el índice, y eso rompía la integración
+ * progresiva: el cron produce una lámina a las 3 de la mañana y la página no
+ * aparecía hasta que alguien editaba este archivo a mano. Una lámina sin
+ * enlazar no existe —hoy encontré once rutas construidas con cero enlaces
+ * entrantes, incluido este mismo índice—, así que el descubrimiento no puede
+ * depender de que alguien se acuerde.
+ *
+ * Ahora la lista de arriba es sólo la CURADURÍA: título y nota escritos a
+ * mano. Los archivos mandan. Una lámina nueva entra sola con un título
+ * derivado del slug, y cuando alguien le escriba su nota, la toma.
+ */
+const excluidas: Record<string, string> = {
+  "t01-05-specimen-skull": "trazada, 0 canvas — espera decisión del creador",
+  "t01-07-cosmology-core": "trazada, 0 canvas — espera decisión del creador",
+  "t01-06-izq-solo": "fragmento de trabajo, no es una lámina",
+};
+
+const archivos = Object.keys(import.meta.glob("./t*.astro"))
+  .map((r) => r.replace(/^\.\//, "").replace(/\.astro$/, ""))
+  .filter((s) => !(s in excluidas));
+
+const curadas = new Set(construidas.map((c) => c.slug));
+// Las curadas primero y en su orden; las nuevas se agregan al final.
+for (const slug of archivos) {
+  if (curadas.has(slug)) continue;
+  construidas.push({
+    slug,
+    titulo: slug.replace(/^t\d+-\d+-/, "").replace(/-/g, " ").toUpperCase(),
+    sub: "sin curaduría todavía",
+    nota: "Entró sola al índice. Falta escribirle su nota.",
+  });
+}
+// Y si una curada perdió su archivo, no se anuncia una página que no existe.
+const huerfanasCuradas = construidas.filter((c) => !archivos.includes(c.slug)).map((c) => c.slug);
+if (huerfanasCuradas.length) {
+  console.warn(`[kodex] láminas con curaduría y sin archivo, quedan fuera: ${huerfanasCuradas.join(", ")}`);
+}
+construidas = construidas.filter((c) => archivos.includes(c.slug));
 
 for (const c of construidas) {
   try {
