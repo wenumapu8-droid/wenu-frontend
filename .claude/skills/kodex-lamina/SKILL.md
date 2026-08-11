@@ -237,6 +237,27 @@ que `src/scripts/kodex-engine.js:170` lee para navegar.
 | el puntaje no cambia | estás midiendo contra un `dist/` viejo. **Reconstruí antes de medir.** |
 | build falla por WooCommerce | `ALLOW_EMPTY_PRODUCTS=true npm run build` — está documentado en `CLAUDE.md`. |
 
+## Trabajar en paralelo: el `dist/` es compartido
+
+Cuando cuatro agentes escriben bloques de la misma lámina a la vez, **comparten
+`dist/` y el scratchpad**, y eso produce fallos que parecen bugs propios y no lo
+son. Ya pasó, medido: un build falló por un chunk `works_*.mjs` que faltaba
+—era otro agente escribiendo en el mismo `dist/` a mitad de camino— y otro
+agente sobreescribió un script de trabajo ajeno.
+
+Cómo se distingue de un error real, y es la parte que importa:
+
+```bash
+npm run build -- --outDir /tmp/verif-<mi-bloque>   # aislado
+```
+
+Si en aislado pasa y en el compartido falla, **no es tu cambio**. No lo
+«arregles»: es una colisión y desaparece sola.
+
+Y para no chocar: cada agente escribe en su propia subcarpeta del scratchpad,
+con nombre único. El tracer de glifos ya tiene `--out <subcarpeta>` por esta
+misma razón — dos agentes en la misma lámina se pisaban la salida.
+
 ## La trampa de medición más peligrosa
 
 **Una animación confunde cualquier comparación de píxeles.** Comparar dos
