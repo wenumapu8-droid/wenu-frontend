@@ -1,0 +1,470 @@
+---
+/**
+ * KODEX-∞ · u02-threshold · PANELES
+ *
+ * Los cuatro instrumentos de los costados de `reference/canon/u02-threshold.png`
+ * (1122×1402). Medidos sobre recortes del original a ×3, no estimados a ojo:
+ *
+ *   INCOMING SIGNALS   x  88– 260   y  285– 478   (sin marco)
+ *   RELATION SELECTED  x 825–1001   y  385– 755   (sin marco)
+ *   CONSENT PROTOCOL   x  92– 301   y  807–1063   (con marco)
+ *   FIRST ACTION       x 811–1023   y  807–1063   (con marco)
+ *
+ * Todo es CSS + SVG generado por código. Ni un bitmap, y ni una figura trazada
+ * punto por punto: la roseta y los anillos salen de la geometría paramétrica
+ * que se lee abajo (una rosa de círculos por el origen y una serie de radios).
+ * Trazar una roseta a ojo es exactamente el gasto que el kit existe para evitar.
+ *
+ * Las dos ondas son el `Waveform` del kit y NO un canvas propio. Dibuja con
+ * `rng(semilla)` de `kit/rng.ts` — determinista, jamás `Math.random()`. Con
+ * azar real dos capturas de la misma página dan puntajes distintos y el banco
+ * de fotocopia mide ruido en vez de convergencia (kit/README.md).
+ *
+ * No hay bloque `<script>` a propósito: en este repo Astro compila el contenido
+ * de `<script>` como JS puro y cualquier anotación de tipo lo rompe. Nada de
+ * esta región necesita runtime.
+ */
+import Waveform from "../kit/Waveform.astro";
+import { p2 } from "../kit/rng";
+
+/* ── corazón de línea, una sola vez ──────────────────────────────────────
+   Caja nativa ≈18,2 × 14,4 centrada en el origen; se reusa escalado en el
+   disco de RELATION y dentro de los dos iconos de los paneles de abajo. */
+const HEART =
+  "M0,7.2 C-1.4,4.4 -5.4,2.8 -7.2,0 C-9.1,-3.1 -6.7,-7.2 -3.3,-7.2 " +
+  "C-1.4,-7.2 -0.4,-6.1 0,-5 C0.4,-6.1 1.4,-7.2 3.3,-7.2 " +
+  "C6.7,-7.2 9.1,-3.1 7.2,0 C5.4,2.8 1.4,4.4 0,7.2 Z";
+
+/* ── 1 · INCOMING SIGNALS ───────────────────────────────────────────────── */
+const señales = ["SOUND", "MOTION", "INTENT", "PRESENCE"];
+/* Filas medidas en 328 / 360,5 / 393 / 425,5 → paso 32,5 exacto. */
+const filaY = (i: number) => 328 + i * 32.5;
+
+/* ── 2 · RELATION SELECTED ──────────────────────────────────────────────
+   Este disco es la excepción a la regla del kit. Los anillos del kit van en
+   progresión geométrica porque así son los discos de scanner de las otras
+   láminas; medidos acá dan 28 / 50 / 72 / 92, que es paso CONSTANTE de ~21,8.
+   Es una diana deliberada —el blanco al que la lámina apunta el corazón— y no
+   un instrumento de profundidad. Puesta geométrica sale 28/39/55 y el disco se
+   cierra sobre sí mismo; se probó y no es lo que dice la referencia.
+
+   Lo que sí se mantiene del kit: ningún anillo con el mismo brillo. El peso
+   desparejo es lo que separa un trazado de instrumento de una figura de CAD. */
+const R0 = 28;
+const PASO_ANILLO = 21.8;
+const anillos = [0, 1, 2].map((i) => ({
+  r: p2(R0 + i * PASO_ANILLO),
+  o: [0.62, 0.5, 0.34][i],
+  w: [0.9, 0.8, 0.7][i],
+}));
+const anilloTenue = p2(R0 + 3 * PASO_ANILLO);
+const anilloPunteado = p2(R0 + 3.8 * PASO_ANILLO);
+/* Cuentas sobre los ejes: en los radios de los anillos, más intermedios en el
+   eje vertical, que en la referencia está mucho más poblado que el horizontal. */
+const radiosAnillo = [...anillos.map((a) => a.r), anilloTenue, anilloPunteado];
+const cuentasV = [...radiosAnillo, 40, 62, 84, 98, 122].sort((a, b) => a - b);
+const cuentasH = [...radiosAnillo];
+const EJE_V = 128;
+const EJE_H = 88;
+
+/* ── 4 · FIRST ACTION · roseta ───────────────────────────────────────────
+   NO es una flor de la vida. Se probó y se descartó midiendo: la retícula
+   hexagonal de 19 círculos sale como una malla plana de peso parejo, y en la
+   referencia los pétalos NACEN DEL CENTRO y convergen en un núcleo encendido.
+   Eso solo pasa si todos los círculos PASAN POR EL CENTRO.
+
+   La construcción real es una rosa: N círculos de radio ρ con los centros
+   sobre una circunferencia del mismo radio ρ. Cada uno pasa por el origen, así
+   que cada par vecino deja un pétalo con la punta en el centro, y la unión
+   llega justo a 2ρ = 51 px, que es el borde lobulado medido.
+
+   Todo lo demás cae solo, y es la prueba de que la construcción es la correcta:
+   dos círculos separados m pasos vuelven a cruzarse en
+
+       θ = θk + m·Δ/2 ,  r = 2ρ·cos(m·Δ/2)      con Δ = 2π/N
+
+   y ahí es exactamente donde la referencia pone sus puntos. Las capas de
+   pétalos anidados son esas mismas familias de cruce, no dibujos aparte.
+
+   El gradiente de brillo tampoco se pinta: los trazos translúcidos se acumulan
+   donde hay más solapamiento, o sea hacia el centro. */
+const ANG0 = -Math.PI / 2; // un lóbulo apuntando arriba, como la referencia
+const rosa = (n: number, rho: number) =>
+  Array.from({ length: n }, (_, k) => {
+    const a = ANG0 + (k * 2 * Math.PI) / n;
+    return { x: p2(Math.cos(a) * rho), y: p2(Math.sin(a) * rho), a };
+  });
+
+/* Son DOS rosas coaxiales, no una. La referencia tiene una flor de SEIS pétalos
+   encendida adentro de un encaje de DOCE, y con una sola rosa de 12 salen doce
+   pétalos parejos: se probó y el centro pierde la flor. Los radios salen de las
+   puntas medidas — 22 px la flor (2ρ·cos30) y 51 px el encaje (2ρ). */
+const N_LACE = 12;
+const RHO_LACE = 25.5;
+const RHO_FLOR = 12.7;
+const centrosLace = rosa(N_LACE, RHO_LACE);
+const centrosFlor = rosa(6, RHO_FLOR);
+const R_ROSA = p2(2 * RHO_LACE);
+
+/* m = 0 son las puntas de lóbulo (2ρ); m = 3 y m = 4 son las dos coronas de
+   cruce que la referencia marca hacia adentro. */
+const DELTA = (2 * Math.PI) / N_LACE;
+const familias = [
+  { m: 0, r: 1.3, op: 0.66 },
+  { m: 3, r: 1.0, op: 0.48 },
+  { m: 4, r: 0.85, op: 0.36 },
+];
+const nodos = familias.flatMap((f) =>
+  centrosLace.map((c) => {
+    const giro = (f.m * DELTA) / 2;
+    const rad = 2 * RHO_LACE * Math.cos(giro);
+    return { x: p2(Math.cos(c.a + giro) * rad), y: p2(Math.sin(c.a + giro) * rad), r: f.r, op: f.op };
+  }),
+);
+
+/* ── 3 · CONSENT PROTOCOL ───────────────────────────────────────────────── */
+const clausulas = ["AWARENESS", "VOLITION", "ORIENTATION", "BOUNDARY"];
+const clausulaY = (i: number) => 882.5 + i * 24.5;
+---
+
+<div data-bloque="Paneles" style="inset:0">
+  <!-- ════════ 1 · INCOMING SIGNALS ════════ -->
+  <div class="u2p u2p--signals">
+    <div class="u2p__t" style="left:88px;top:291px">INCOMING SIGNALS</div>
+
+    {señales.map((nombre, i) => (
+      <div class="u2sig" style={`left:88px;top:${filaY(i)}px`}>
+        <svg class="u2sig__i" viewBox="-9 -9 18 18" width="18" height="18" aria-hidden="true">
+          <circle cx="0" cy="0" r="6" fill="none" stroke="currentColor" stroke-width="0.8"
+            stroke-dasharray={i === 3 ? "1.6 1.9" : undefined} opacity="0.85" />
+          {i === 3 ? (
+            <circle cx="0" cy="0" r="2.6" fill="none" stroke="currentColor" stroke-width="0.8" />
+          ) : (
+            <path
+              d="M0,-3.3 L1.15,-1.15 L3.3,0 L1.15,1.15 L0,3.3 L-1.15,1.15 L-3.3,0 L-1.15,-1.15 Z"
+              fill="none" stroke="currentColor" stroke-width="0.85" />
+          )}
+          {[0, 1, 2, 3].map((k) => {
+            const a = (k * Math.PI) / 2;
+            return <circle cx={p2(Math.cos(a) * 8)} cy={p2(Math.sin(a) * 8)} r="0.6" fill="currentColor" opacity="0.7" />;
+          })}
+        </svg>
+        <span class="u2sig__n">{nombre}</span>
+        <span class="u2lead"></span>
+      </div>
+    ))}
+
+    <!-- Onda densa. Peine con envolvente: la referencia tiene ráfagas, no una
+         trama pareja de punta a punta. -->
+    <div class="u2wave u2wave--densa" style="left:89px;top:446px">
+      <Waveform w={158} h={30} semilla={0x7d2} variante="peine" n={148}
+        color="#a77cf0" grosor={0.75} inercia={0.24} envolvente={0.62} margen={1} />
+    </div>
+  </div>
+
+  <!-- ════════ 2 · RELATION SELECTED ════════ -->
+  <div class="u2p u2p--relation">
+    <div class="u2p__t u2p__t--centro" style="left:835px;top:393px;width:165px">
+      RELATION SELECTED
+    </div>
+
+    <svg class="u2disc" style="left:825px;top:408px" viewBox="-88 -140 176 280"
+      width="176" height="280" aria-hidden="true">
+      <!-- ejes -->
+      <line x1={-EJE_H} y1="0" x2={EJE_H} y2="0" stroke="#a77cf0" stroke-width="0.6" opacity="0.3" />
+      <line x1="0" y1={-EJE_V} x2="0" y2={EJE_V} stroke="#a77cf0" stroke-width="0.6" opacity="0.3" />
+
+      <!-- anillos, radio en progresión geométrica y brillo desparejo -->
+      {anillos.map((a) => (
+        <circle cx="0" cy="0" r={a.r} fill="none" stroke="#a77cf0" stroke-width={a.w} opacity={a.o} />
+      ))}
+      <circle cx="0" cy="0" r={anilloTenue} fill="none" stroke="#a77cf0" stroke-width="0.6" opacity="0.2" />
+      <circle cx="0" cy="0" r={anilloPunteado} fill="none" stroke="#a77cf0" stroke-width="0.55"
+        stroke-dasharray="1.2 4.2" opacity="0.22" />
+
+      <!-- cuentas sobre los ejes, en los cruces con los anillos -->
+      {cuentasV.map((d, i) => [
+        <circle cx="0" cy={-d} r={i % 3 === 0 ? 1.5 : 1.05} fill="#cfc6e8" opacity={0.85 - i * 0.05} />,
+        <circle cx="0" cy={d} r={i % 3 === 0 ? 1.5 : 1.05} fill="#cfc6e8" opacity={0.85 - i * 0.05} />,
+      ])}
+      {cuentasH.map((d, i) => [
+        <circle cx={-d} cy="0" r={i === 1 ? 1.6 : 1.05} fill="#cfc6e8" opacity={0.8 - i * 0.09} />,
+        <circle cx={d} cy="0" r={i === 1 ? 1.6 : 1.05} fill="#cfc6e8" opacity={0.8 - i * 0.09} />,
+      ])}
+
+      <!-- corazón al centro -->
+      <path d={HEART} transform="scale(1.54)" fill="none" stroke="#e6dcff"
+        stroke-width="1.05" stroke-linejoin="round" />
+    </svg>
+
+    <div class="u2p__l" style="left:853px;top:698px">BOUND BY CHOICE.</div>
+    <div class="u2p__l" style="left:853px;top:716px">NOT BY DEFAULT.</div>
+
+    <!-- Onda plana y tenue: misma primitiva, caja baja y margen alto recortan
+         la amplitud contra los bordes. -->
+    <div class="u2wave u2wave--plana" style="left:853px;top:738px">
+      <Waveform w={119} h={14} semilla={0x3a91} variante="peine" n={112}
+        color="#a77cf0" grosor={0.6} inercia={0.3} envolvente={0.5} margen={4} />
+    </div>
+  </div>
+
+  <!-- ════════ 3 · CONSENT PROTOCOL ════════ -->
+  <div class="u2p u2p--consent u2marco" style="left:92px;top:807px;width:209px;height:256px">
+    <span class="u2marco__c u2marco__c--tl"></span>
+    <span class="u2marco__c u2marco__c--tr"></span>
+    <span class="u2marco__c u2marco__c--bl"></span>
+    <span class="u2marco__c u2marco__c--br"></span>
+
+    <svg class="u2ic" style="left:18px;top:22px" viewBox="-16 -16 32 32"
+      width="32" height="32" aria-hidden="true">
+      <circle cx="0" cy="0" r="14.5" fill="none" stroke="#a77cf0" stroke-width="0.6"
+        stroke-dasharray="2.2 3.4" opacity="0.5" />
+      <circle cx="9.6" cy="-10.6" r="1.1" fill="#a77cf0" opacity="0.9" />
+      <path d="M0,-10.5 C5.8,-10.5 10.5,-7 10.5,-2.4 C10.5,4 4.6,8.6 0,10.8
+               C-4.6,8.6 -10.5,4 -10.5,-2.4 C-10.5,-7 -5.8,-10.5 0,-10.5 Z"
+        fill="none" stroke="#cfc6e8" stroke-width="0.85" opacity="0.85" />
+      <path d={HEART} transform="scale(0.72) translate(0,-0.5)" fill="none"
+        stroke="#e6dcff" stroke-width="1.15" stroke-linejoin="round" />
+    </svg>
+    <div class="u2p__t" style="left:61px;top:37px">CONSENT PROTOCOL</div>
+
+    {clausulas.map((c, i) => (
+      <div class="u2cl" style={`left:21px;top:${clausulaY(i) - 807}px`}>
+        <span class="u2cl__n">{c}</span>
+        <span class="u2lead u2lead--ancho"></span>
+        <span class="u2cl__ok">&#10003;</span>
+      </div>
+    ))}
+
+    <div class="u2sep" style="left:12px;top:176px;width:194px">
+      <span class="u2sep__r"></span>
+      <span class="u2sep__p"></span>
+      <span class="u2sep__d"></span>
+      <span class="u2sep__p"></span>
+      <span class="u2sep__r"></span>
+    </div>
+
+    <div class="u2p__l u2p__l--dim" style="left:21px;top:204px">STATUS</div>
+    <div class="u2estado" style="left:21px;top:226px">CONSENT CONFIRMED</div>
+  </div>
+
+  <!-- ════════ 4 · FIRST ACTION ════════ -->
+  <div class="u2p u2p--action u2marco" style="left:811px;top:807px;width:212px;height:256px">
+    <span class="u2marco__c u2marco__c--tl"></span>
+    <span class="u2marco__c u2marco__c--tr"></span>
+    <span class="u2marco__c u2marco__c--bl"></span>
+    <span class="u2marco__c u2marco__c--br"></span>
+
+    <svg class="u2ic" style="left:15px;top:21px" viewBox="-15 -15 30 30"
+      width="30" height="30" aria-hidden="true">
+      <circle cx="0" cy="0" r="13.4" fill="none" stroke="#a77cf0" stroke-width="0.6"
+        stroke-dasharray="2 3.6" opacity="0.45" />
+      <circle cx="9.2" cy="-9.7" r="1" fill="#cfc6e8" opacity="0.9" />
+      <circle cx="0" cy="0" r="9" fill="none" stroke="#cfc6e8" stroke-width="0.8" opacity="0.8" />
+      <path d={HEART} transform="scale(0.6)" fill="none" stroke="#e6dcff"
+        stroke-width="1.3" stroke-linejoin="round" />
+    </svg>
+    <div class="u2p__t" style="left:72px;top:37px">FIRST ACTION</div>
+    <div class="u2p__l u2p__l--centro" style="left:0;top:64px;width:210px">INITIATE ORIENTATION</div>
+
+    <!-- Roseta: N círculos de radio ρ con los centros a ρ del origen. -->
+    <svg class="u2ros" style="left:44px;top:69px" viewBox="-62 -62 124 124"
+      width="124" height="124" aria-hidden="true">
+      <circle cx="0" cy="0" r={R_ROSA} fill="none" stroke="#a77cf0" stroke-width="0.5" opacity="0.14" />
+
+      {centrosLace.map((c) => (
+        <circle cx={c.x} cy={c.y} r={RHO_LACE} fill="none" stroke="#a77cf0"
+          stroke-width="0.7" opacity="0.26" />
+      ))}
+      {centrosFlor.map((c) => (
+        <circle cx={c.x} cy={c.y} r={RHO_FLOR} fill="none" stroke="#a77cf0"
+          stroke-width="0.95" opacity="0.5" />
+      ))}
+
+      {nodos.map((n) => <circle cx={n.x} cy={n.y} r={n.r} fill="#cfc6e8" opacity={n.op} />)}
+
+      <!-- Núcleo: los 12 arcos ya convergen acá, así que alcanza con encenderlo
+           y devolverle el punto oscuro del centro. -->
+      <circle cx="0" cy="0" r="2.6" fill="#c9a8ff" opacity="0.9" />
+      <circle cx="0" cy="0" r="1.1" fill="#000000" opacity="0.85" />
+    </svg>
+
+    <div class="u2p__l u2p__l--centro u2p__l--acc" style="left:0;top:201px;width:210px">RETURN VECTOR</div>
+    <div class="u2p__l u2p__l--centro u2p__l--dim" style="left:0;top:228px;width:210px">
+      ···· LINKED ····
+    </div>
+  </div>
+</div>
+
+<style>
+  /* La lámina fija la mono y el color base; acá solo van los tamaños, el
+     interletrado y los tonos propios de esta región. */
+  [data-bloque="Paneles"] {
+    --u2-ink: #cfc6e8;
+    --u2-acc: #a77cf0;
+    --u2-deep: #4a3570;
+    --u2-ok: #c9a8ff;
+    --u2-bg: #000000;
+    color: var(--u2-ink);
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    pointer-events: none;
+  }
+  [data-bloque="Paneles"] * { box-sizing: border-box; }
+
+  .u2p { position: absolute; }
+  .u2p--signals, .u2p--relation { inset: 0; }
+
+  /* ── texto ─────────────────────────────────────────────────────────── */
+  /* `translateY(-50%)` sobre `top` = centro óptico medido. Posicionar por la
+     caja obliga a compensar el interlineado en cada rótulo, y ahí se cuela el
+     error de un par de px que el banco sí ve. */
+  .u2p__t,
+  .u2p__l,
+  .u2estado,
+  .u2sig,
+  .u2cl {
+    position: absolute;
+    line-height: 1;
+    white-space: nowrap;
+    transform: translateY(-50%);
+  }
+
+  .u2p__t {
+    font-size: 11px;
+    letter-spacing: 0.17em;
+    color: var(--u2-acc);
+  }
+  .u2p__t--centro { text-align: center; }
+
+  .u2p__l {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    color: var(--u2-ink);
+    opacity: 0.82;
+  }
+  .u2p__l--centro { text-align: center; }
+  .u2p__l--dim { opacity: 0.58; }
+  .u2p__l--acc { color: var(--u2-acc); opacity: 1; letter-spacing: 0.17em; font-size: 11px; }
+
+  /* ── 1 · filas de señal ────────────────────────────────────────────── */
+  .u2sig {
+    display: flex;
+    align-items: center;
+    width: 152px;
+    height: 18px;
+    color: var(--u2-acc);
+  }
+  .u2sig__i { display: block; flex: 0 0 18px; }
+  .u2sig__n {
+    margin-left: 6px;
+    min-width: 55px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--u2-ink);
+  }
+
+  /* Guía de puntos: gradiente repetido, no una tira de caracteres. Con `·` el
+     paso queda atado al avance de la fuente y no se puede afinar. */
+  .u2lead {
+    flex: 1 1 auto;
+    align-self: stretch;
+    margin-left: 8px;
+    background-image: radial-gradient(circle at center, currentColor 0.55px, transparent 0.75px);
+    background-size: 6.6px 100%;
+    background-position: 0 50%;
+    background-repeat: repeat-x;
+    opacity: 0.6;
+  }
+  .u2lead--ancho { background-size: 7px 100%; }
+
+  .u2wave { position: absolute; color: var(--u2-acc); }
+  .u2wave--densa { opacity: 0.92; }
+  .u2wave--plana { opacity: 0.45; }
+
+  /* ── 2 · disco de relación ─────────────────────────────────────────── */
+  .u2disc { position: absolute; display: block; overflow: visible; }
+
+  /* ── marcos ────────────────────────────────────────────────────────── */
+  .u2marco {
+    border: 1px solid color-mix(in srgb, var(--u2-deep) 62%, transparent);
+    background: transparent;
+  }
+  .u2marco__c {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    border: 1px solid var(--u2-acc);
+    opacity: 0.55;
+  }
+  .u2marco__c--tl { top: 4px; left: 4px; border-right: 0; border-bottom: 0; }
+  .u2marco__c--tr { top: 4px; right: 4px; border-left: 0; border-bottom: 0; }
+  .u2marco__c--bl { bottom: 4px; left: 4px; border-right: 0; border-top: 0; }
+  .u2marco__c--br { bottom: 4px; right: 4px; border-left: 0; border-top: 0; }
+
+  .u2ic { position: absolute; display: block; overflow: visible; }
+
+  /* ── 3 · cláusulas del protocolo ───────────────────────────────────── */
+  .u2cl {
+    display: flex;
+    align-items: center;
+    width: 177px;
+    height: 12px;
+  }
+  .u2cl__n {
+    min-width: 74px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--u2-ink);
+    opacity: 0.86;
+  }
+  .u2cl__ok {
+    flex: 0 0 18px;
+    margin-left: 8px;
+    font-size: 14px;
+    line-height: 1;
+    text-align: right;
+    color: var(--u2-ink);
+    opacity: 0.95;
+  }
+
+  .u2sep {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 8px;
+  }
+  .u2sep__r {
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(90deg,
+      transparent, color-mix(in srgb, var(--u2-deep) 90%, transparent) 30%,
+      color-mix(in srgb, var(--u2-deep) 90%, transparent) 70%, transparent);
+  }
+  .u2sep__p {
+    flex: 0 0 2px;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: var(--u2-ink);
+    opacity: 0.55;
+  }
+  .u2sep__d {
+    flex: 0 0 6px;
+    width: 6px;
+    height: 6px;
+    border: 1px solid var(--u2-ink);
+    opacity: 0.6;
+    transform: rotate(45deg);
+  }
+
+  /* El único rótulo grande de la región: es el desenlace del panel. */
+  .u2estado {
+    font-size: 13.5px;
+    letter-spacing: 0.16em;
+    color: var(--u2-ok);
+  }
+
+  /* ── 4 · roseta ────────────────────────────────────────────────────── */
+  .u2ros { position: absolute; display: block; overflow: visible; }
+</style>
