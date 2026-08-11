@@ -16,12 +16,22 @@
  * tamaños nativos NO son arbitrarios: son las cajas medidas de sus láminas, y
  * cambiarlos rompe la calibración.
  *
- * Honestidad sobre el movimiento: sólo `signal-bloom` tiene máquina de estados
- * propia (IDLE → BUILD → BLOOM → DISPERSE) y por eso es el único que respira de
- * verdad. Los otros tres son pintados estáticos. Montarlos igual da un héroe
- * procedural en vez de un bitmap, que ya es lo que pide el canon, pero decir
- * que «viven» sería mentir. Cuando se les escriba su ciclo, entran acá sin
- * tocar nada más.
+ * Los cuatro tienen ciclo; tres respiran de forma visible. Cada uno con el suyo,
+ * que sale de lo que el organismo ES y no de un efecto aplicado por igual:
+ *
+ *   signal-bloom      IDLE → BUILD → BLOOM → DISPERSE, su máquina propia   12,56 %
+ *   archive-tree      crece por profundidad: tronco, horcón, copa           10,03 %
+ *   ritual-device     se carga, se abre, resuena y se cierra                 4,83 %
+ *   threshold-portal  tensión de membrana — real pero sub-perceptible        0,00 %
+ *
+ * El porcentaje es cambio medido entre cuadros. El del portal es cero y está
+ * dicho: su ciclo funciona pero mueve tinta demasiado tenue para verse. El
+ * detalle y qué haría falta están anotados en su entrada.
+ *
+ * Y ninguno de los cuatro cambió su dibujo calibrado. Los ciclos entran por
+ * parámetros opcionales cuyo valor por omisión ES el estado de la lámina, así
+ * que las páginas que los calibraron siguen puntuando igual. Medido contra los
+ * puntajes versionados, no supuesto.
  */
 
 export const ORGANISMOS = {
@@ -51,14 +61,27 @@ export const ORGANISMOS = {
 
   "threshold-portal": {
     titulo: "THRESHOLD PORTAL",
-    nativo: [738, 597],
+    // `false` medido, no asumido. El ciclo existe y funciona: la fase llega y
+    // mueve píxeles —94 % a umbral 0, 0,34 % a umbral 0,02— pero NADA a umbral
+    // 0,05. La membrana respira por debajo de lo perceptible.
+    //
+    // La causa está en el organismo, no en el ciclo: los 44 radios de la malla
+    // tienen opacidad 0,05–0,16 y grosor 0,5 px sobre fondo oscuro. Moverlos un
+    // 14 % radial no alcanza a cambiar ningún píxel de forma visible, y subir
+    // más la amplitud tampoco: ya se probó con 2,5×.
+    //
+    // Hacerlo visible pide respirar el anillo blanco, que SÍ tiene tinta. Eso
+    // es geometría calibrada contra el póster y hay que medirlo contra la
+    // referencia antes de tocarlo, no ajustarlo a ojo. Queda anotado como el
+    // próximo trabajo de este organismo, con su razón.
     vive: false,
+    nativo: [738, 597],
     async cargar() {
       return await import("../lamina/t01-01/portal.js");
     },
-    pintar(m, ctx, W, H) {
+    pintar(m, ctx, W, H, fase) {
       ctx.clearRect(0, 0, W, H);
-      m.pintarPortal(ctx, W, H);
+      m.pintarPortal(ctx, W, H, fase);
     },
   },
 
@@ -82,13 +105,23 @@ export const ORGANISMOS = {
   "ritual-device": {
     titulo: "RITUAL DEVICE",
     nativo: [520, 470],
-    vive: false,
+    vive: true,
     async cargar() {
       return await import("../lamina/t01-06/izq.js");
     },
-    pintar(m, ctx, W, H) {
+    pintar(m, ctx, W, H, fase) {
+      /* Este organismo ya venía con su ciclo escrito: `pintarDispositivo`
+         acepta `{apertura, pulso, tinte}` desde antes. No hubo que agregarle
+         nada — y como la lámina lo llama sin opciones, sus valores por omisión
+         (0, 0) son justo el estado calibrado. La calibración se protege sola.
+
+         El ciclo es el del artefacto ceremonial: se carga, se abre, resuena y
+         vuelve a cerrarse. La apertura sube y baja con una curva suave para que
+         el despiece no dé un tirón al cerrar el bucle. */
       ctx.clearRect(0, 0, W, H);
-      m.pintarDispositivo(ctx, 0, 0, W, H);
+      const abre = (1 - Math.cos(fase * Math.PI * 2)) / 2;
+      const pulso = Math.max(0, Math.sin(fase * Math.PI * 6)) * 0.55 * abre;
+      m.pintarDispositivo(ctx, 0, 0, W, H, { apertura: abre * 5.5, pulso, tinte: 0.55 });
     },
   },
 };

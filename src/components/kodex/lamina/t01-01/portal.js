@@ -226,13 +226,15 @@ function arbol(ctx, cx, cy, sentido, semilla) {
 }
 
 /* ── malla gris del anillo interior ──────────────────────────────────── */
-function malla(ctx, cx, cy) {
+function malla(ctx, cx, cy, fase = 0) {
   const r = rng(0x4c17);
+  const giro = Math.sin(fase * TAU) * (TAU / 44) * 1.15;
+  const resp = 1 + Math.sin(fase * TAU) * 0.14;
   ctx.strokeStyle = "#cdc8bd";
   for (let i = 0; i < 44; i++) {
-    const a = (i / 44) * TAU + 0.03;
+    const a = (i / 44) * TAU + 0.03 + giro;
     const r0 = 67 + r() * 6;
-    const r1 = 118 + r() * 34;
+    const r1 = (118 + r() * 34) * resp;
     ctx.globalAlpha = 0.05 + r() * 0.11;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
@@ -397,7 +399,16 @@ function infinito(ctx, cx, cy) {
   ctx.stroke();
 }
 
-export function pintarPortal(ctx, W, H) {
+export function pintarPortal(ctx, W, H, fase = 0) {
+  /* TENSIÓN DE MEMBRANA. `fase` es opcional y vale 0 por omisión: la lámina que
+     calibró este portal lo llama con tres argumentos y obtiene exactamente el
+     mismo dibujo. Verificado contra su puntaje versionado, no supuesto.
+
+     La Scene Bible describe el umbral como membrana viva y pide que la cercanía
+     aumente su tensión. Acá la tensión respira sola: la malla del anillo se
+     tuerce y se estira apenas, y vuelve. Oscila en vez de girar para que el
+     bucle cierre sin salto — un giro continuo dejaría costura al dar la vuelta,
+     porque cada radio tiene su propia opacidad sembrada. */
   const CX = 357.5;
   const CY = 298.5;
   ctx.clearRect(0, 0, W, H);
@@ -432,7 +443,7 @@ export function pintarPortal(ctx, W, H) {
     ctx.stroke();
   }
 
-  malla(ctx, CX, CY);
+  malla(ctx, CX, CY, fase);
   arbol(ctx, CX, CY, -1, 0x2f51);
   arbol(ctx, CX, CY, 1, 0x9b27);
 
