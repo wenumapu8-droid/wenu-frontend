@@ -72,6 +72,24 @@ algoritmo, define una transformación o se declara modelo conceptual.
 
 ---
 
+# Antes de nada: ¿tenés las herramientas a mano?
+
+Todo lo que sigue asume el repo `kodex-work`. Comprobalo primero:
+
+```bash
+ls scripts/lamina/compare.mjs src/components/kodex/lamina/kit/ 2>/dev/null
+```
+
+Si no está, no improvises un banco nuevo — **el banco es el método**. Conseguí
+el repo (vive en el Mac mini `mac-mini-de-galvazinc`, tailnet 100.76.126.118,
+carpeta `~/kodex-work`) o trabajá sólo la parte que no necesita medición:
+canon, memoria, estado de escena y alcance de rutas.
+
+Sin banco podés igual: leer la jerarquía de verdad, respetar lo que no se
+inventa, enchufar memoria y estado, y verificar las doce compuertas menos la
+de fidelidad. Lo que **no** podés es afirmar un puntaje. Sin medición no hay
+número, y un número inventado es exactamente lo que el Truth Ledger prohíbe.
+
 # El método, en orden
 
 ## 1 · Medir las bandas de la referencia
