@@ -132,6 +132,48 @@ anotado como pendiente de consulta, no como tarea de diseño.
 
 ---
 
+## CONFLICTO REGISTRADO · el grafo A–Y no es el alfabeto A–Y
+
+Encontrado el 2026-08-11 al reproducir `PAGE 04 · ALPHABET`. Se registra sin
+resolver, como pide el Truth Ledger.
+
+Los nodos del póster, leídos uno a uno con detección radial sobre el original y
+verificados a ×5:
+
+```
+A B C D F G H I I J K L M N O P Q R S T U V W X Y
+```
+
+**No hay E. Hay dos I** (en 674,456 y en 801,435). Y aun así suman **25**, que
+es exactamente lo que declara el propio panel del póster: `TOTAL NODES 25`.
+
+De A a Y inclusive son 25 letras. O sea que el póster tiene el **conteo**
+correcto pero no el **conjunto**: falta una letra y otra está repetida.
+
+Dos lecturas posibles, y son muy distintas:
+
+1. **Deliberado** — una ausencia que significa algo dentro del canon: una letra
+   que todavía no existe en el códice, un cifrado, un nodo desdoblado.
+2. **Un error del generador** que quedó fijado como referencia visual.
+
+La lámina `u04-alphabet` reproduce fielmente lo que hay, porque el encargo fue
+copiar la topología y no «mejorarla»: es canon del creador y un agente que la
+corrige está reescribiendo la obra. Si la decisión es que fue error, se
+corrige en una línea.
+
+### Lo demás que se midió del mismo grafo, y que sí es claro
+
+- **A** `ORIGIN COMMON NODE` — anillos punteados en 38 / 48,5 / 58 / 66 y cruceta.
+- **M** `OPTIONAL HEART / 0 NODE` — **corona, no núcleo caliente**: el perfil
+  radial cae a 27 entre r=27 y 37 y vuelve a subir a 70 entre 42 y 67.
+- **Y** `CONVERGENT HORIZON` — el nudo de convergencia **no está en el centro**,
+  sino 34 px arriba, sobre el anillo.
+- Cuatro familias de arista, según la leyenda del propio póster: trayectorias
+  desde A, retorno de todos al nudo de Y, radios del corazón M, y malla latente
+  punteada por proximidad.
+
+---
+
 ## Sigue esperando decisión
 
 1. **`t01-05 SPECIMEN SKULL` y `t01-07 COSMOLOGY CORE`** — trazadas, sin canvas.

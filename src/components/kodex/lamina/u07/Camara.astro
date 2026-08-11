@@ -1,0 +1,1196 @@
+---
+/**
+ * KODEX-∞ · u07-observer · CÁMARA (héroe de la lámina)
+ *
+ * Reproducción procedural del centro de `reference/canon/u07-observer.png`
+ * (región x 248–872, y 244–992 de la lámina de 1122×1402).
+ *
+ * MEDIDO SOBRE LA REFERENCIA, no estimado a ojo:
+ *   · eje de simetría vertical en x=560 — los nodos de la fila horizontal caen
+ *     en pares (533,5 · 587), (507 · 613,5), (435 · 685), (365,5 · 755,5),
+ *     (343 · 776), (308 · 811,5), (268,5 · 851,5), simétricos con medio píxel;
+ *   · fila de nodos —la más brillante de toda la lámina, luminancia media 84,6
+ *     contra 40 de sus vecinas— en y=610,5;
+ *   · núcleo del disco superior en (560, 350) y del inferior en (560, 871):
+ *     equidistan 260,5 de la fila. La cámara ES un espejo, y su plano de espejo
+ *     es esa fila;
+ *   · discos: semieje mayor 185, menor 45 (razón 0,243 — casi plano, no un
+ *     círculo en escorzo suave);
+ *   · muro del cilindro en x=365 y 755 (semiancho 195) con la jamba interior en
+ *     380 y 740; los realces verticales del muro viven en y 427..584 y 643..792
+ *     y NO cruzan la fila de nodos;
+ *   · óvalo central (el espejo) x 526..597 · y 508..711 → semiejes 36 × 101.
+ *
+ * De ahí el sistema local: el bloque arranca en (248,244) y mide 624×748, así
+ * que el eje cae en x=312 y el plano de espejo en y=366,5.
+ *
+ * CONTRATO
+ * - Todo es canvas 2D paramétrico. Ni un bitmap, ni un SVG calcado.
+ * - El azar es `azar()` (mulberry32) con semilla fija. Nunca Math.random(): el
+ *   banco de fotocopia compara captura contra referencia, y con azar real dos
+ *   capturas de la misma página dan puntajes distintos — se mide ruido.
+ * - El bucle va POR FASE, no por tiempo: `fase` recorre 0→1 y vuelve a 0 sin
+ *   costura porque cada término temporal es sin/cos de un múltiplo ENTERO de
+ *   `fase·TAU`, y las envolventes de paquete valen 0 en los dos extremos.
+ * - `prefers-reduced-motion` alarga el período (baja el ritmo); no congela.
+ * - Fuera de pantalla o con la pestaña oculta no se pinta (IntersectionObserver
+ *   + visibilitychange).
+ * - `window.__kdxFreeze(t)` fija el cuadro y APAGA el rAF: Playwright con
+ *   `animations:"disabled"` no congela un canvas que corre su propio bucle.
+ *
+ * LA MITAD SE DIBUJA UNA VEZ. La cámara es especular respecto de y=366,5, así
+ * que `mitad()` pinta el hemisferio superior y el inferior sale de
+ * `translate(0, 2·yM) + scale(1,-1)` sobre el mismo código con la misma semilla.
+ * No es un atajo: es la afirmación de la lámina —"THE MIRROR DOES NOT COPY, IT
+ * RESPONDS"— puesta en la geometría. Dibujar las dos mitades por separado
+ * habría metido una asimetría que la referencia no tiene y que el banco sí ve.
+ *
+ * DOS LIENZOS
+ *   `fondo` — órbitas, discos, columnas, telaraña, óvalo y polvo. Se pinta una
+ *             sola vez; es lo caro y no se mueve.
+ *   `vivo`  — pulsos de los discos, latido de los núcleos, paquetes que viajan
+ *             por la fila de nodos y respiración del espejo. Se repinta por
+ *             cuadro.
+ */
+---
+
+<div data-bloque="Camara" style="left:248px;top:244px;width:624px;height:748px">
+  <canvas data-capa="fondo" width="624" height="748" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="624" height="748" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Camara"] {
+    pointer-events: none;
+  }
+  [data-bloque="Camara"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 624px;
+    height: 748px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
+     anotaciones de tipo revientan el build. */
+  const raiz = document.querySelector('[data-bloque="Camara"]');
+  if (raiz) {
+    const W = 624;
+    const H = 748;
+    const TAU = Math.PI * 2;
+
+    /* Cotas locales, todas derivadas de la medición de la cabecera del archivo. */
+    const cx = 312; // eje de simetría vertical (x=560 del póster)
+    const yM = 366.5; // plano de espejo (y=610,5 del póster)
+    const dDisco = 260.5; // separación núcleo-espejo
+    const yDisco = yM - dDisco; // 106 → y=350 del póster
+    const RX = 185; // semieje mayor del disco
+    const RY = 45; // semieje menor
+    const MURO = 195; // semiancho del cilindro
+    const OVX = 36; // semiejes del espejo central
+    const OVY = 101;
+
+    const LUZ = "167,124,240";
+    const HONDO = "109,75,176";
+    const NUCLEO = "242,236,255";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    /* Offsets medidos de la fila de nodos respecto del eje. */
+    const NODOS_FILA = [26.5, 53, 90, 125, 162.5, 195, 216.5, 251.5, 291.5];
+
+    /* mulberry32. Determinista a propósito — ver cabecera. */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /* ---------------------------------------------------------------- lienzos */
+    const cFondo = raiz.querySelector('[data-capa="fondo"]');
+    const cVivo = raiz.querySelector('[data-capa="vivo"]');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(cFondo);
+    const gv = preparar(cVivo);
+
+    const elipse = (g, x, y, rx, ry, a0, a1) => {
+      g.beginPath();
+      g.ellipse(x, y, Math.abs(rx), Math.abs(ry), 0, a0 === undefined ? 0 : a0, a1 === undefined ? TAU : a1);
+    };
+
+    /* ═══════════════════════════════════════════════ HEMISFERIO (se refleja) */
+
+    /* --- 1 · órbita ancha ---------------------------------------------------
+     * Las dos elipses muy abiertas que pasan por detrás del cilindro y salen de
+     * los costados. Medidas: semieje 305 × 52, centro 16 px por encima del
+     * núcleo del disco. Van punteadas con cuentas en los cruces. */
+    function orbita(g) {
+      const r = azar(0x3a71);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const oy = yDisco - 16;
+      for (let k = 0; k < 3; k++) {
+        const rx = 305 - k * 30;
+        const ry = 52 - k * 8;
+        elipse(g, cx, oy, rx, ry);
+        g.setLineDash([1.1, 5.4]);
+        g.strokeStyle = tinta(LUZ, 0.42 - k * 0.09);
+        g.lineWidth = 0.95;
+        g.stroke();
+        g.setLineDash([]);
+        /* Cuentas: no una por paso, sino donde la elipse se cruza con los
+           radios del disco. Es lo que hace que se lea como una órbita medida y
+           no como un contorno de rayado. */
+        for (let i = 0; i < 40; i++) {
+          if (r() > 0.42) continue;
+          const a = (i / 40) * TAU;
+          const x = cx + Math.cos(a) * rx;
+          const y = oy + Math.sin(a) * ry;
+          g.beginPath();
+          g.arc(x, y, 0.9 + r() * 0.9, 0, TAU);
+          g.fillStyle = tinta(r() < 0.3 ? NUCLEO : LUZ, 0.35 + r() * 0.5);
+          g.fill();
+        }
+      }
+      /* Dos arcos sueltos que se escapan hacia las esquinas: en la referencia
+         cruzan el marco de los paneles y son lo que ata el héroe a la página. */
+      for (const s of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(cx + s * 330, oy + 40);
+        g.bezierCurveTo(cx + s * 250, oy - 60, cx + s * 90, oy - 78, cx, oy - 64);
+        g.strokeStyle = tinta(HONDO, 0.3);
+        g.lineWidth = 0.7;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* --- 1bis · capota -------------------------------------------------------
+     * La campana mecanizada que corona el disco. NO es adorno: medida por bandas
+     * de 60 px, la franja y 244..304 de la referencia tiene luminancia media
+     * 4,91 y la primera versión de este bloque daba 1,68 — un tercio. Toda esa
+     * luz está acá, en una estructura oscura y grande que a ojo se lee como
+     * "fondo" y que el banco cobra entera. Son arcos elípticos por encima del
+     * disco con montantes verticales entre uno y otro. */
+    function capota(g) {
+      const r = azar(0x0b4d);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const s = -1; // hacia afuera del plano de espejo
+      for (let k = 0; k < 7; k++) {
+        const f = 1.05 + k * 0.06;
+        const dy = s * (6 + k * 7.5);
+        elipse(g, cx, yDisco + dy, RX * f, RY * f, Math.PI + 0.05, TAU - 0.05);
+        g.strokeStyle = tinta(k % 2 ? LUZ : HONDO, 0.2 + r() * 0.24);
+        g.lineWidth = k === 0 ? 1.1 : 0.75;
+        g.stroke();
+      }
+      /* Montantes: cortan la campana en gajos, como los segmentos de un anillo
+         de máquina. Los de los costados son más largos porque la elipse cae. */
+      for (let j = 0; j < 44; j++) {
+        const a = Math.PI + 0.08 + (j / 43) * (Math.PI - 0.16);
+        const f0 = 1.04;
+        const f1 = 1.4;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * RX * f0, yDisco + Math.sin(a) * RY * f0 - 6);
+        g.lineTo(cx + Math.cos(a) * RX * f1, yDisco + Math.sin(a) * RY * f1 - 42);
+        g.strokeStyle = tinta(j % 5 === 0 ? LUZ : HONDO, 0.13 + r() * 0.28);
+        g.lineWidth = 0.65;
+        g.stroke();
+      }
+      /* Cornisa: el canto plano que remata la campana, con sus tacos. */
+      for (let k = 0; k < 2; k++) {
+        elipse(g, cx, yDisco - 46 - k * 5, RX * 1.4, RY * 1.4, Math.PI + 0.02, TAU - 0.02);
+        g.strokeStyle = tinta(LUZ, 0.3 - k * 0.09);
+        g.lineWidth = 0.9;
+        g.stroke();
+      }
+      for (let j = 0; j < 30; j++) {
+        const a = Math.PI + 0.16 + (j / 29) * (Math.PI - 0.32);
+        const x = cx + Math.cos(a) * RX * 1.4;
+        const y = yDisco + Math.sin(a) * RY * 1.4 - 46;
+        g.beginPath();
+        g.rect(x - 2, y - 3, 4, 6);
+        g.strokeStyle = tinta(HONDO, 0.2 + r() * 0.26);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* --- 2 · disco -----------------------------------------------------------
+     * Anillos concéntricos en progresión geométrica (razón 0,86) que convergen
+     * en un núcleo encendido, más radios, cuentas y DOS anillos gruesos de
+     * realce. Los dos gruesos son lo que da el brillo de la referencia: sin
+     * ellos el disco se lee como diana apagada. */
+    function disco(g) {
+      const r = azar(0x51d3);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* Radios del disco: nacen fuera del núcleo y mueren en el borde. */
+      for (let i = 0; i < 48; i++) {
+        const a = (i / 48) * TAU;
+        const f0 = 0.1;
+        const f1 = 0.88 + r() * 0.16;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * RX * f0, yDisco + Math.sin(a) * RY * f0);
+        g.lineTo(cx + Math.cos(a) * RX * f1, yDisco + Math.sin(a) * RY * f1);
+        /* Los radios de la mitad DELANTERA del disco pesan menos: medido por
+           bandas, la referencia da 8,6 de luminancia debajo del aro contra 13,1
+           encima. Con los radios parejos la franja de abajo sale un 30 % pasada
+           y el disco pierde el escorzo. */
+        const frente = Math.sin(a) > 0 ? 0.5 : 1;
+        g.strokeStyle = tinta(i % 6 === 0 ? LUZ : HONDO, (0.07 + r() * 0.16) * frente);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+
+      /* Anillos. Ningún par con el mismo brillo: el peso desparejo es lo que
+         separa un trazado de instrumento de una figura de CAD. */
+      let rad = RX;
+      for (let i = 0; i < 12; i++) {
+        const rx = rad;
+        const ry = rad * (RY / RX);
+        const grueso = i === 0 || i === 2;
+        /* El mapa por celdas mostró que al disco le faltaban 13 puntos en los
+           hombros (x ±120..168 del eje) y le sobraban 10 en el centro: la luz
+           del disco vive en los aros, no en el núcleo. */
+        elipse(g, cx, yDisco, rx, ry);
+        g.strokeStyle = tinta(grueso ? NUCLEO : LUZ, grueso ? 0.62 : 0.16 + r() * 0.3);
+        g.lineWidth = grueso ? 1.7 : 0.6;
+        g.stroke();
+        /* Cuentas sobre el anillo, sólo en algunos radios. */
+        for (let j = 0; j < 24; j++) {
+          if (r() > 0.3) continue;
+          const a = (j / 24) * TAU;
+          g.beginPath();
+          g.arc(cx + Math.cos(a) * rx, yDisco + Math.sin(a) * ry, 0.85, 0, TAU);
+          g.fillStyle = tinta(NUCLEO, 0.3 + r() * 0.45);
+          g.fill();
+        }
+        rad *= 0.86;
+      }
+
+      /* Aro exterior punteado, un poco más ancho que el disco. */
+      elipse(g, cx, yDisco, RX * 1.09, RY * 1.09);
+      g.setLineDash([1, 4.6]);
+      g.strokeStyle = tinta(LUZ, 0.26);
+      g.lineWidth = 0.8;
+      g.stroke();
+      g.setLineDash([]);
+
+      /* Borde mecanizado: el disco no flota, está montado sobre un aro. Son
+         arcos delanteros desplazados HACIA AFUERA del plano de espejo más un
+         peine de segmentos.
+         El sentido no es un detalle: con el aro hacia adentro, la franja
+         y 364..424 daba 15,6 de luminancia media contra 8,6 de la referencia y
+         la de y 244..304 se quedaba en 3,8 contra 4,9. La misma pieza, del otro
+         lado, arregla las dos bandas a la vez. */
+      const s = -1;
+      for (let k = 1; k <= 3; k++) {
+        elipse(g, cx, yDisco + s * k * 7, RX * (1.02 - k * 0.005), RY * (1.02 - k * 0.005), 0.06, Math.PI - 0.06);
+        g.strokeStyle = tinta(HONDO, 0.34 - k * 0.06);
+        g.lineWidth = 0.9;
+        g.stroke();
+      }
+      for (let j = 0; j < 34; j++) {
+        const a = 0.1 + (j / 33) * (Math.PI - 0.2);
+        const x0 = cx + Math.cos(a) * RX * 1.015;
+        const y0 = yDisco + Math.sin(a) * RY * 1.015;
+        g.beginPath();
+        g.moveTo(x0, y0);
+        g.lineTo(x0, y0 + s * (12 + r() * 9));
+        g.strokeStyle = tinta(HONDO, 0.12 + r() * 0.2);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+
+      /* Núcleo: gradiente radial achatado + cruz de destello. */
+      const grd = g.createRadialGradient(cx, yDisco, 0, cx, yDisco, 26);
+      grd.addColorStop(0, tinta(NUCLEO, 0.9));
+      grd.addColorStop(0.12, tinta(LUZ, 0.3));
+      grd.addColorStop(1, tinta(LUZ, 0));
+      g.save();
+      g.translate(cx, yDisco);
+      g.scale(1, 0.55);
+      g.translate(-cx, -yDisco);
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, yDisco, 26, 0, TAU);
+      g.fill();
+      g.restore();
+
+      g.restore();
+    }
+
+    /* --- 3 · columnas -------------------------------------------------------
+     * El muro del cilindro. En la referencia son cuatro hilos por lado (195,
+     * 180, 172 y 160 de semiancho) con placas, muescas y un realce brillante que
+     * NO llega a la fila de nodos: muere en y=584 y vuelve a nacer en 643. */
+    /* --- 2bis · interior ----------------------------------------------------
+     * El aire de la cámara. La referencia NO tiene el interior negro: entre las
+     * dos columnas hay un velo violeta que sube desde el plano de espejo y que
+     * pesa más contra los muros que en el centro. Medido por bandas, es lo que
+     * explica que la franja y 424..484 de la referencia dé 11,74 de luminancia
+     * media contra 5,62 de la primera versión de este bloque. Sin el velo, todo
+     * lo demás hay que subirlo de brillo hasta que se ve dibujado a rotulador. */
+    function interior(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const y0 = yDisco;
+      const y1 = yM;
+      /* El velo NO es parejo: medido por bandas, la referencia sube de 8,6 justo
+         debajo del disco a 24,3 contra el plano de espejo. La luz no baja del
+         disco, sube del espejo. */
+      const vert = g.createLinearGradient(0, y0, 0, y1);
+      vert.addColorStop(0, tinta(LUZ, 0.02));
+      vert.addColorStop(0.3, tinta(HONDO, 0.06));
+      vert.addColorStop(0.72, tinta(LUZ, 0.085));
+      vert.addColorStop(1, tinta(LUZ, 0.125));
+      /* Dos velos, uno por muro, y uno central más tenue: el degradado lateral
+         sale de superponerlos, no de un gradiente horizontal (que daría una
+         banda plana y se lee como una tira de color). */
+      /* El mapa de diferencias por celdas de 48×57 lo dijo sin ambigüedad: a
+         120..216 px del eje faltaban 13 puntos de luminancia y en el centro
+         sobraban 17. La cámara se ilumina POR LOS MUROS, no por el eje. */
+      for (const [dx, an, k] of [[-MURO - 40, 105, 1.5], [MURO - 65, 105, 1.5], [-120, 240, 0.22]]) {
+        g.globalAlpha = k;
+        g.fillStyle = vert;
+        g.fillRect(cx + dx, y0, an, y1 - y0);
+      }
+      g.globalAlpha = 1;
+      g.restore();
+    }
+
+    function columnas(g) {
+      const r = azar(0x77af);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* El realce del muro NO arranca donde termina el disco: medido, vive en
+         y 427..584 del póster (local 183..340) y deja un hueco de 77 px debajo
+         del aro. Arrancarlo pegado al disco metía 4 puntos de luminancia de más
+         en la franja y 364..424, que la referencia tiene casi apagada. */
+      const yTop = yDisco + 77;
+      const yBot = yM - 26;
+      const hilos = [MURO, 180, 172, 160];
+
+      for (let k = 0; k < hilos.length; k++) {
+        const dx = hilos[k];
+        for (const s of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + s * dx, yTop);
+          g.lineTo(cx + s * dx, yBot);
+          g.strokeStyle = tinta(k === 1 ? LUZ : HONDO, k === 1 ? 0.4 : 0.16 + k * 0.04);
+          g.lineWidth = k === 1 ? 1.1 : 0.7;
+          g.stroke();
+        }
+      }
+
+      /* Muescas: travesaños cortos que cruzan el espesor de la jamba. Son lo que
+         convierte dos verticales en una estructura. */
+      for (let k = 0; k < 22; k++) {
+        const y = yTop + 8 + k * 9.6 + r() * 4;
+        if (y > yBot) break;
+        const a = 158 + Math.floor(r() * 3) * 8;
+        const b = a + 10 + r() * 40;
+        g.strokeStyle = tinta(LUZ, 0.08 + r() * 0.24);
+        g.lineWidth = 0.7;
+        g.beginPath();
+        g.moveTo(cx - b, y);
+        g.lineTo(cx - a, y);
+        g.moveTo(cx + a, y);
+        g.lineTo(cx + b, y);
+        g.stroke();
+      }
+
+      /* Placas: rectángulos con la esquina cortada, incrustados en la jamba. */
+      for (let k = 0; k < 6; k++) {
+        const y = yTop + 12 + k * 38 + r() * 12;
+        if (y > yBot - 20) break;
+        const x = 162 + r() * 26;
+        const an = 14 + r() * 20;
+        const al = 9 + r() * 15;
+        const ch = 4;
+        for (const s of [-1, 1]) {
+          const x0 = cx + s * (x + an);
+          const x1 = cx + s * x;
+          g.beginPath();
+          g.moveTo(x0, y);
+          g.lineTo(x1 - s * ch, y);
+          g.lineTo(x1, y + ch);
+          g.lineTo(x1, y + al);
+          g.lineTo(x0, y + al);
+          g.closePath();
+          g.strokeStyle = tinta(HONDO, 0.28 + r() * 0.22);
+          g.lineWidth = 0.7;
+          g.stroke();
+        }
+      }
+
+      /* Capitel: el bloque de máquina donde la columna se encuentra con el aro.
+         No es adorno — la franja y 424..484 de la referencia da 11,74 de
+         luminancia media y sin esta pieza el bloque se quedaba en 8,1. Es la
+         zona más oscura de toda la reproducción y toda su luz vive acá. */
+      for (const s of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(cx + s * 202, yTop + 2);
+        g.lineTo(cx + s * 176, yTop + 2);
+        g.lineTo(cx + s * 164, yTop + 20);
+        g.lineTo(cx + s * 164, yTop + 58);
+        g.strokeStyle = tinta(LUZ, 0.44);
+        g.lineWidth = 1.2;
+        g.stroke();
+        /* Placa achaflanada + costillas: cinco horizontales de distinto largo,
+           que es lo que se lee como maquinado y no como caja. */
+        g.beginPath();
+        g.moveTo(cx + s * 198, yTop + 10);
+        g.lineTo(cx + s * 172, yTop + 10);
+        g.lineTo(cx + s * 172, yTop + 46);
+        g.lineTo(cx + s * 196, yTop + 52);
+        g.strokeStyle = tinta(HONDO, 0.5);
+        g.lineWidth = 0.9;
+        g.stroke();
+        for (let k = 0; k < 6; k++) {
+          const y = yTop + 14 + k * 7;
+          const l = 158 + (k % 3) * 11;
+          g.beginPath();
+          g.moveTo(cx + s * l, y);
+          g.lineTo(cx + s * 196, y);
+          g.strokeStyle = tinta(k % 2 ? LUZ : HONDO, 0.22 + r() * 0.2);
+          g.lineWidth = 0.65;
+          g.stroke();
+        }
+        /* Tirante que baja del capitel hacia el nicho. */
+        g.beginPath();
+        g.moveTo(cx + s * 164, yTop + 30);
+        g.quadraticCurveTo(cx + s * 132, yTop + 44, cx + s * 118, yTop + 82);
+        g.strokeStyle = tinta(LUZ, 0.26);
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+
+      /* Lluvia de hilos finísimos dentro de la cámara: es lo que le da cuerpo al
+         interior en la referencia. Desparejos y muy tenues. */
+      for (let k = 0; k < 110; k++) {
+        const dx = (r() - 0.5) * 300;
+        const y0 = yTop + r() * 120;
+        const y1 = y0 + 40 + r() * 220;
+        g.beginPath();
+        g.moveTo(cx + dx, y0);
+        g.lineTo(cx + dx, Math.min(y1, yM - 6));
+        g.strokeStyle = tinta(r() < 0.22 ? NUCLEO : LUZ, 0.03 + r() * 0.11);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* --- 4 · telaraña -------------------------------------------------------
+     * Las curvas que bajan del aro hacia el eje. Cada una es una cuadrática con
+     * la tangente horizontal en el arranque, que es lo que produce ese abanico
+     * de catenarias del póster. */
+    function telarana(g) {
+      const r = azar(0x7ea1);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let k = 0; k < 16; k++) {
+        const x0 = MURO - k * 4.6 - r() * 5;
+        const y0 = yDisco + 62 + r() * 30;
+        const y1 = yM - 8 - r() * 60;
+        const cy = y0 + (y1 - y0) * (0.72 + r() * 0.2);
+        for (const s of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + s * x0, y0);
+          g.quadraticCurveTo(cx + s * x0 * 0.86, cy, cx + s * (6 + r() * 22), y1);
+          g.strokeStyle = tinta(k % 4 === 0 ? LUZ : HONDO, 0.1 + r() * 0.22);
+          g.lineWidth = 0.6;
+          g.stroke();
+        }
+      }
+      /* Retícula diagonal fina entre el aro y el eje: la malla de fondo. */
+      for (let k = 0; k < 14; k++) {
+        const y0 = yDisco + 60 + k * 14;
+        for (const s of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + s * (MURO - 6), y0);
+          g.lineTo(cx + s * 8, y0 + 66);
+          g.strokeStyle = tinta(HONDO, 0.06 + r() * 0.08);
+          g.lineWidth = 0.45;
+          g.stroke();
+        }
+      }
+
+      /* Eje luminoso del hemisferio, del núcleo al espejo. */
+      const grd = g.createLinearGradient(0, yDisco, 0, yM);
+      grd.addColorStop(0, tinta(NUCLEO, 0.4));
+      grd.addColorStop(0.45, tinta(NUCLEO, 0.34));
+      grd.addColorStop(1, tinta(LUZ, 0.26));
+      g.strokeStyle = grd;
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(cx, yDisco);
+      g.lineTo(cx, yM);
+      g.stroke();
+
+      /* Nodos del eje: dos anillos concéntricos medidos en y=443 y y=480 del
+         póster (local 199 y 236). */
+      for (const [y, rr] of [[199, 11], [236, 7]]) {
+        for (let i = 3; i >= 1; i--) {
+          g.beginPath();
+          g.arc(cx, y, (rr * i) / 3, 0, TAU);
+          g.strokeStyle = tinta(i === 3 ? LUZ : NUCLEO, 0.22 + i * 0.12);
+          g.lineWidth = i === 3 ? 0.8 : 0.7;
+          g.stroke();
+        }
+        g.beginPath();
+        g.arc(cx, y, 1.7, 0, TAU);
+        g.fillStyle = tinta(NUCLEO, 0.9);
+        g.fill();
+      }
+
+      /* Ramas que se abren del segundo nodo hacia las jambas: el póster las
+         tiene y son lo que impide que el eje se lea como un simple hilo. */
+      for (const s of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(cx + s * 6, 244);
+        g.quadraticCurveTo(cx + s * 52, 250, cx + s * 66, 300);
+        g.strokeStyle = tinta(LUZ, 0.34);
+        g.lineWidth = 0.9;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* --- 5 · estallidos laterales -------------------------------------------
+     * Los dos "árboles" de luz que cuelgan a ±125 del eje, justo encima de la
+     * fila de nodos. Son un haz de curvas que nacen del nodo de la fila y se
+     * abren hacia arriba. */
+    function estallidos(g) {
+      const r = azar(0x1d3f);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const s of [-1, 1]) {
+        const bx = cx + s * 125;
+        for (let k = 0; k < 28; k++) {
+          const abre = (r() - 0.5) * 84;
+          const alto = 74 + r() * 82;
+          g.beginPath();
+          g.moveTo(bx, yM - 4);
+          g.quadraticCurveTo(bx + abre * 0.35, yM - alto * 0.55, bx + abre, yM - alto);
+          g.strokeStyle = tinta(r() < 0.3 ? NUCLEO : LUZ, 0.07 + r() * 0.22);
+          g.lineWidth = 0.55;
+          g.stroke();
+        }
+        /* Vértices del abanico: puntos donde dos curvas se tocan. */
+        for (let k = 0; k < 14; k++) {
+          const x = bx + (r() - 0.5) * 56;
+          const y = yM - 18 - r() * 110;
+          g.beginPath();
+          g.arc(x, y, 0.8 + r() * 0.8, 0, TAU);
+          g.fillStyle = tinta(NUCLEO, 0.35 + r() * 0.45);
+          g.fill();
+        }
+      }
+      g.restore();
+    }
+
+    /* --- 5bis · hornacina ---------------------------------------------------
+     * El nicho ojival que enmarca el espejo. En la referencia el óvalo no está
+     * suelto: lo rodea un arco apuntado con ménsulas en los hombros y una
+     * retícula de rombos que lo cose a las columnas. Sin el nicho, el espejo se
+     * lee como una mancha gris pegada encima del dibujo — que es exactamente lo
+     * que devolvía el mapa de diferencias en la primera pasada.
+     * Vive en el hemisferio, así que el reflejo lo repite abajo. */
+    function hornacina(g) {
+      const r = azar(0x5e21);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* Arco apuntado: dos cuadráticas que arrancan verticales en el hombro y se
+         encuentran en punta sobre el eje. */
+      for (let k = 0; k < 3; k++) {
+        const w = OVX + 12 + k * 9;
+        const hombro = yM - OVY * 0.55;
+        const punta = yM - OVY - 16 - k * 11;
+        for (const sg of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + sg * w, hombro + 26);
+          g.lineTo(cx + sg * w, hombro);
+          g.quadraticCurveTo(cx + sg * w, punta + 12, cx, punta);
+          g.strokeStyle = tinta(k === 0 ? LUZ : HONDO, 0.42 - k * 0.11);
+          g.lineWidth = k === 0 ? 1.1 : 0.75;
+          g.stroke();
+        }
+      }
+
+      /* Ménsulas del hombro: la pieza en S que sale del arco hacia la jamba. */
+      for (const sg of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(cx + sg * (OVX + 12), yM - OVY * 0.42);
+        g.bezierCurveTo(
+          cx + sg * (OVX + 46), yM - OVY * 0.5,
+          cx + sg * (OVX + 40), yM - OVY * 0.9,
+          cx + sg * (OVX + 74), yM - OVY * 0.86,
+        );
+        g.strokeStyle = tinta(LUZ, 0.4);
+        g.lineWidth = 1;
+        g.stroke();
+      }
+
+      /* Retícula de rombos entre el nicho y las columnas: dos familias de rectas
+         cruzadas, no un dibujo trazado. */
+      for (let k = 0; k < 11; k++) {
+        const t = k / 10;
+        for (const sg of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + sg * (OVX + 16), yM - 8 - t * 96);
+          g.lineTo(cx + sg * MURO, yM - 96 + t * 78);
+          g.strokeStyle = tinta(HONDO, 0.05 + r() * 0.09);
+          g.lineWidth = 0.5;
+          g.stroke();
+          g.beginPath();
+          g.moveTo(cx + sg * (OVX + 16), yM - 100 + t * 92);
+          g.lineTo(cx + sg * MURO, yM - 10 - t * 84);
+          g.strokeStyle = tinta(HONDO, 0.045 + r() * 0.08);
+          g.lineWidth = 0.5;
+          g.stroke();
+        }
+      }
+
+      /* Jaula: arcos verticales muy abiertos que bajan del aro por fuera del
+         espejo. Son los que dan la sensación de cilindro y no de columna. */
+      for (let k = 0; k < 4; k++) {
+        const w = 92 + k * 26;
+        for (const sg of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + sg * w * 0.5, yDisco + 40);
+          g.quadraticCurveTo(cx + sg * (w + 24), yM - 150, cx + sg * w, yM - 4);
+          g.strokeStyle = tinta(k % 2 ? LUZ : HONDO, 0.12 + k * 0.04);
+          g.lineWidth = 0.6;
+          g.stroke();
+        }
+      }
+      g.restore();
+    }
+
+    function mitad(g) {
+      orbita(g);
+      interior(g);
+      telarana(g);
+      columnas(g);
+      hornacina(g);
+      capota(g);
+      disco(g);
+      estallidos(g);
+    }
+
+    /* ═══════════════════════════════════════════════════════ BANDA DE ESPEJO */
+
+    /* --- 6 · fila de nodos --------------------------------------------------
+     * La fila horizontal de y=610,5: racimos de anillos concéntricos en los
+     * offsets medidos, atravesados por una recta punteada de punta a punta. */
+    function filaNodos(g) {
+      const r = azar(0x4c8e);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      const grd = g.createLinearGradient(cx - 300, 0, cx + 300, 0);
+      grd.addColorStop(0, tinta(LUZ, 0));
+      grd.addColorStop(0.18, tinta(LUZ, 0.34));
+      grd.addColorStop(0.5, tinta(NUCLEO, 0.5));
+      grd.addColorStop(0.82, tinta(LUZ, 0.34));
+      grd.addColorStop(1, tinta(LUZ, 0));
+      g.strokeStyle = grd;
+      g.lineWidth = 1.2;
+      g.setLineDash([2.6, 2.8]);
+      g.beginPath();
+      g.moveTo(cx - 300, yM);
+      g.lineTo(cx + 300, yM);
+      g.stroke();
+      g.setLineDash([]);
+
+      /* Resplandor de la fila: el plano de espejo es la línea más luminosa de
+         toda la lámina —84,6 de media contra 40 de sus vecinas— y esa luz no
+         sale de los nodos sueltos sino de una banda continua debajo de ellos. */
+      const banda = g.createLinearGradient(cx - 310, 0, cx + 310, 0);
+      banda.addColorStop(0, tinta(LUZ, 0));
+      banda.addColorStop(0.5, tinta(LUZ, 0.13));
+      banda.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = banda;
+      g.fillRect(cx - 310, yM - 9, 620, 18);
+
+      /* Racimos. El tamaño no es parejo: los de ±216,5 y ±291,5 son los grandes
+         del póster, los de ±26,5 y ±53 apenas cuentas sobre el espejo. */
+      /* Los racimos NO son todos iguales: medidos sobre la referencia, el de
+         ±216,5 es el grande —28 px de radio— y los de ±26,5 y ±53 no son
+         racimos sino cuentas sobre el borde del espejo. Repartirlos parejo deja
+         una fila de lunares y pierde el ritmo del póster. */
+      const tam = { 26.5: 0, 53: 0, 90: 7, 125: 0, 162.5: 6, 195: 10, 216.5: 28, 251.5: 17, 291.5: 13 };
+      for (const d of NODOS_FILA) {
+        for (const s of [-1, 1]) {
+          const x = cx + s * d;
+          const R = tam[d];
+          for (let i = 0; i < 5 && R > 0; i++) {
+            const rr = R * (1 - i * 0.2);
+            g.beginPath();
+            g.arc(x, yM, rr, 0, TAU);
+            g.strokeStyle = tinta(i === 0 ? LUZ : HONDO, 0.18 + r() * 0.34);
+            g.lineWidth = i === 1 ? 0.9 : 0.6;
+            g.stroke();
+          }
+          if (R > 12) {
+            g.beginPath();
+            g.arc(x, yM, R * 1.32, 0, TAU);
+            g.setLineDash([1, 3.6]);
+            g.strokeStyle = tinta(LUZ, 0.24);
+            g.lineWidth = 0.7;
+            g.stroke();
+            g.setLineDash([]);
+          }
+          const gg = g.createRadialGradient(x, yM, 0, x, yM, 7);
+          gg.addColorStop(0, tinta(NUCLEO, 0.92));
+          gg.addColorStop(0.2, tinta(LUZ, 0.34));
+          gg.addColorStop(1, tinta(LUZ, 0));
+          g.fillStyle = gg;
+          g.beginPath();
+          g.arc(x, yM, 7, 0, TAU);
+          g.fill();
+        }
+      }
+      g.restore();
+    }
+
+    /* --- 7 · vesicas --------------------------------------------------------
+     * Los dos ojos apuntados de ±125. No son elipses: son la intersección de
+     * dos círculos —una vesica— y por eso terminan en punta arriba y abajo. Con
+     * elipses el póster se lee como dos globos y pierde el ojo. */
+    function vesica(g, x, rx, ry) {
+      const R = (rx * rx + ry * ry) / (2 * rx);
+      const dxx = R - rx;
+      g.beginPath();
+      const a = Math.asin(Math.min(1, ry / R));
+      g.arc(x - dxx, yM, R, -a, a);
+      g.arc(x + dxx, yM, R, Math.PI - a, Math.PI + a);
+      g.closePath();
+    }
+
+    function vesicas(g) {
+      const r = azar(0x2b19);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const s of [-1, 1]) {
+        const x = cx + s * 125;
+        /* Halo: tres anillos concéntricos alrededor del ojo. En la referencia
+           están y son lo que impide que la vesica se lea como una hoja. */
+        for (let k = 0; k < 3; k++) {
+          g.beginPath();
+          g.arc(x, yM, 30 + k * 13, 0, TAU);
+          g.setLineDash(k === 1 ? [1.2, 4] : []);
+          g.strokeStyle = tinta(HONDO, 0.3 - k * 0.07);
+          g.lineWidth = 0.65;
+          g.stroke();
+          g.setLineDash([]);
+        }
+        for (let k = 0; k < 4; k++) {
+          vesica(g, x, 34 - k * 7, 80 - k * 17);
+          g.strokeStyle = tinta(k === 0 ? LUZ : HONDO, 0.5 - k * 0.09);
+          g.lineWidth = k === 0 ? 1.1 : 0.7;
+          g.stroke();
+        }
+        /* Filamentos que llenan el ojo, del centro a la punta. */
+        for (let k = 0; k < 30; k++) {
+          const a = r() * TAU;
+          const l = 20 + r() * 62;
+          g.beginPath();
+          g.moveTo(x, yM);
+          g.lineTo(x + Math.cos(a) * l * 0.42, yM + Math.sin(a) * l);
+          g.strokeStyle = tinta(r() < 0.28 ? NUCLEO : LUZ, 0.06 + r() * 0.2);
+          g.lineWidth = 0.5;
+          g.stroke();
+        }
+      }
+      g.restore();
+    }
+
+    /* --- 8 · espejo ---------------------------------------------------------
+     * El óvalo central. Es la única superficie LLENA de la lámina: en la
+     * referencia da gris —no violeta— con luminancia de 90 a 130, y esa
+     * neutralidad es justamente lo que lo separa de todo lo demás. Pintarlo
+     * violeta como el resto lo funde con la cámara y desaparece. */
+    function espejo(g) {
+      const r = azar(0x6d0b);
+      g.save();
+      /* Medido dentro del óvalo: la referencia da media 65,8 con pico 255. La
+         primera versión daba media 76,3 con pico 225 — más gris de fondo y menos
+         brillo de detalle. El relleno baja y el dibujo de encima sube. */
+      const grd = g.createLinearGradient(0, yM - OVY, 0, yM + OVY);
+      grd.addColorStop(0, "rgba(214,210,222,0.5)");
+      grd.addColorStop(0.35, "rgba(150,146,160,0.3)");
+      grd.addColorStop(0.72, "rgba(112,108,124,0.24)");
+      grd.addColorStop(1, "rgba(168,160,190,0.36)");
+      g.fillStyle = grd;
+      elipse(g, cx, yM, OVX, OVY);
+      g.fill();
+
+      g.globalCompositeOperation = "lighter";
+      /* Grano del espejo: manchas suaves, no ruido de un píxel. */
+      for (let k = 0; k < 90; k++) {
+        const a = r() * TAU;
+        const rr = Math.sqrt(r());
+        const x = cx + Math.cos(a) * OVX * rr * 0.92;
+        const y = yM + Math.sin(a) * OVY * rr * 0.92;
+        g.beginPath();
+        g.arc(x, y, 1.4 + r() * 4.4, 0, TAU);
+        g.fillStyle = "rgba(226,222,236," + (0.02 + r() * 0.05).toFixed(3) + ")";
+        g.fill();
+      }
+      /* Retícula interior: los meridianos y paralelos que la referencia dibuja
+         sobre la superficie. */
+      for (let k = 1; k <= 5; k++) {
+        elipse(g, cx, yM, OVX * (k / 5.5), OVY);
+        g.strokeStyle = tinta(NUCLEO, 0.09);
+        g.lineWidth = 0.5;
+        g.stroke();
+        g.beginPath();
+        g.moveTo(cx - OVX * Math.sin(Math.acos(k / 6)), yM - (OVY * k) / 6);
+        g.lineTo(cx + OVX * Math.sin(Math.acos(k / 6)), yM - (OVY * k) / 6);
+        g.moveTo(cx - OVX * Math.sin(Math.acos(k / 6)), yM + (OVY * k) / 6);
+        g.lineTo(cx + OVX * Math.sin(Math.acos(k / 6)), yM + (OVY * k) / 6);
+        g.strokeStyle = tinta(NUCLEO, 0.07);
+        g.stroke();
+      }
+      /* Estrella inscrita: el póster dibuja dentro del espejo un polígono
+         estrellado de ocho puntas con los vértices sobre el óvalo. Es el detalle
+         que le sube el pico a 255 sin subirle la media. */
+      for (const salto of [3, 2]) {
+        g.beginPath();
+        for (let k = 0; k <= 8; k++) {
+          const a = -Math.PI / 2 + (((k * salto) % 8) * TAU) / 8;
+          const x = cx + Math.cos(a) * OVX * 0.86;
+          const y = yM + Math.sin(a) * OVY * 0.86;
+          k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(NUCLEO, salto === 3 ? 0.34 : 0.2);
+        g.lineWidth = 0.7;
+        g.stroke();
+      }
+
+      /* Contorno: doble, con el interior más brillante. */
+      elipse(g, cx, yM, OVX, OVY);
+      g.strokeStyle = tinta(NUCLEO, 0.5);
+      g.lineWidth = 1.4;
+      g.stroke();
+      elipse(g, cx, yM, OVX + 5, OVY + 7);
+      g.strokeStyle = tinta(LUZ, 0.4);
+      g.lineWidth = 1;
+      g.stroke();
+      g.restore();
+    }
+
+    /* --- 9 · polvo ---------------------------------------------------------- */
+    function polvo(g) {
+      const r = azar(0x9c41);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 560; i++) {
+        /* Suma de tres uniformes ≈ campana: la mota se apiña sobre la cámara. */
+        const x = cx + (r() + r() + r() - 1.5) * 300;
+        const y = yM + (r() + r() + r() - 1.5) * 330;
+        if (x < 3 || x > W - 3 || y < 3 || y > H - 3) continue;
+        const rad = 0.45 + r() * 0.85;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.fillStyle = tinta(r() < 0.3 ? NUCLEO : LUZ, 0.12 + r() * 0.5);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------- lo vivo */
+    const chispas = (() => {
+      const r = azar(0x1ff0);
+      const out = [];
+      for (let i = 0; i < 64; i++) {
+        out.push([
+          cx + (r() + r() + r() - 1.5) * 290,
+          yM + (r() + r() + r() - 1.5) * 300,
+          0.7 + r() * 1.3,
+          1 + Math.floor(r() * 3),
+          r() * TAU,
+        ]);
+      }
+      return out;
+    })();
+
+    function pulsoDisco(g, y, ang, fase) {
+      /* Tres anillos que nacen en el núcleo y mueren en el borde. La envolvente
+         vale 0 en los dos extremos, así que el ciclo cierra sin costura. */
+      for (let i = 0; i < 3; i++) {
+        const p = (fase + i / 3) % 1;
+        const f = 0.08 + p * 1.02;
+        const a = 0.42 * Math.sin(p * Math.PI);
+        if (a <= 0.01) continue;
+        elipse(g, cx, y, RX * f, RY * f);
+        g.strokeStyle = tinta(NUCLEO, a);
+        g.lineWidth = 1.3;
+        g.stroke();
+      }
+      /* Latido del núcleo. */
+      const resp = 0.7 + 0.3 * Math.sin(ang);
+      const grd = g.createRadialGradient(cx, y, 0, cx, y, 46);
+      grd.addColorStop(0, tinta(NUCLEO, 0.55 * resp));
+      grd.addColorStop(0.12, tinta(LUZ, 0.24 * resp));
+      grd.addColorStop(1, tinta(LUZ, 0));
+      g.save();
+      g.translate(cx, y);
+      g.scale(1, 0.5);
+      g.translate(-cx, -y);
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(cx, y, 46, 0, TAU);
+      g.fill();
+      g.restore();
+      /* Destello en cruz: horizontal largo, vertical corto — es un disco visto
+         casi de canto. */
+      const fl = g.createLinearGradient(cx - RX, 0, cx + RX, 0);
+      fl.addColorStop(0, tinta(LUZ, 0));
+      fl.addColorStop(0.5, tinta(NUCLEO, 0.4 * resp));
+      fl.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = fl;
+      g.fillRect(cx - RX, y - 0.8, RX * 2, 1.6);
+    }
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* 0 · bruma del interior: la cámara no es negra por dentro, es violeta. */
+      const bruma = g.createRadialGradient(cx, yM, 0, cx, yM, 250);
+      bruma.addColorStop(0, tinta(LUZ, 0.075 * (0.85 + 0.15 * Math.sin(ang))));
+      bruma.addColorStop(0.55, tinta(HONDO, 0.04));
+      bruma.addColorStop(1, tinta(HONDO, 0));
+      g.save();
+      g.translate(cx, yM);
+      g.scale(0.8, 1);
+      g.translate(-cx, -yM);
+      g.fillStyle = bruma;
+      g.beginPath();
+      g.arc(cx, yM, 250, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* 1 · los dos discos, en oposición de fase: cuando uno emite el otro
+         devuelve. Es la lectura de la lámina, no un adorno. */
+      pulsoDisco(g, yDisco, ang, fase);
+      pulsoDisco(g, yM + dDisco, ang + Math.PI, (fase + 0.5) % 1);
+
+      /* 2 · columna de luz entre los dos núcleos. */
+      /* Medido en la columna x 557..564: la referencia da media 58,6 con pico
+         252 — o sea un hilo MUY brillante y muy angosto. La primera versión daba
+         media 87,8 con pico 236: una banda ancha y tibia. Estrechar y subir el
+         pico corrige las dos cifras a la vez. */
+      const anchos = [26, 12, 5, 1.6];
+      const alfas = [0.035, 0.06, 0.1, 0.4];
+      for (let i = 0; i < anchos.length; i++) {
+        const pulso = 0.74 + 0.26 * Math.sin(ang * 2 + i * 1.1);
+        const grd = g.createLinearGradient(0, yDisco, 0, yM + dDisco);
+        grd.addColorStop(0, tinta(NUCLEO, alfas[i] * 1.2 * pulso));
+        grd.addColorStop(0.5, tinta(i < 2 ? LUZ : NUCLEO, alfas[i] * pulso));
+        grd.addColorStop(1, tinta(NUCLEO, alfas[i] * 1.2 * pulso));
+        g.fillStyle = grd;
+        g.fillRect(cx - anchos[i] / 2, yDisco, anchos[i], dDisco * 2);
+      }
+
+      /* 3 · el espejo respira. Un velo sobre el óvalo, no un repintado: lo de
+         abajo es estático y caro. */
+      const resp = 0.6 + 0.4 * Math.sin(ang);
+      const gv2 = g.createRadialGradient(cx, yM, 0, cx, yM, OVY);
+      gv2.addColorStop(0, tinta(NUCLEO, 0.3 * resp));
+      gv2.addColorStop(0.35, tinta(LUZ, 0.1 * resp));
+      gv2.addColorStop(1, tinta(LUZ, 0));
+      g.save();
+      g.translate(cx, yM);
+      g.scale(OVX / OVY, 1);
+      g.translate(-cx, -yM);
+      g.fillStyle = gv2;
+      g.beginPath();
+      g.arc(cx, yM, OVY, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* 4 · banda de barrido sobre el espejo: recorre el óvalo de arriba abajo
+         una vez por ciclo y entra y sale con la envolvente, así que no salta. */
+      const py = yM - OVY + fase * OVY * 2;
+      const env = Math.sin(fase * Math.PI);
+      const bx = OVX * Math.sqrt(Math.max(0, 1 - ((py - yM) / OVY) ** 2));
+      const bg = g.createLinearGradient(cx - bx, 0, cx + bx, 0);
+      bg.addColorStop(0, tinta(NUCLEO, 0));
+      bg.addColorStop(0.5, tinta(NUCLEO, 0.5 * env));
+      bg.addColorStop(1, tinta(NUCLEO, 0));
+      g.fillStyle = bg;
+      g.fillRect(cx - bx, py - 0.9, bx * 2, 1.8);
+
+      /* 5 · paquetes que viajan por la fila de nodos hacia afuera. */
+      for (let i = 0; i < 5; i++) {
+        const p = (fase * (1 + (i % 2)) + i / 5) % 1;
+        const e = Math.sin(p * Math.PI);
+        if (e <= 0.02) continue;
+        const d = p * 300;
+        for (const s of [-1, 1]) {
+          const x = cx + s * d;
+          const gg = g.createRadialGradient(x, yM, 0, x, yM, 9);
+          gg.addColorStop(0, tinta(NUCLEO, 0.62 * e));
+          gg.addColorStop(1, tinta(LUZ, 0));
+          g.fillStyle = gg;
+          g.beginPath();
+          g.arc(x, yM, 9, 0, TAU);
+          g.fill();
+        }
+      }
+
+      /* 6 · los nodos de la fila laten con desfase por distancia: la respuesta
+         viaja, no ocurre a la vez. */
+      for (const d of NODOS_FILA) {
+        const a = 0.34 + 0.34 * Math.sin(ang * 2 - d * 0.035);
+        for (const s of [-1, 1]) {
+          const x = cx + s * d;
+          g.beginPath();
+          g.arc(x, yM, 1.6, 0, TAU);
+          g.fillStyle = tinta(NUCLEO, a);
+          g.fill();
+        }
+      }
+
+      /* 7 · destellos sueltos. */
+      for (const [x, y, rad, k, ph] of chispas) {
+        const a = Math.max(0, Math.sin(ang * k + ph));
+        if (a <= 0.02) continue;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.fillStyle = tinta(NUCLEO, 0.6 * a);
+        g.fill();
+      }
+
+      g.restore();
+    }
+
+    /* --------------------------------------------------------------- montaje */
+    function pintarFondo(g) {
+      g.clearRect(0, 0, W, H);
+      polvo(g);
+      mitad(g);
+      /* El hemisferio inferior ES el reflejo del superior: mismo código, misma
+         semilla, transformada de espejo. */
+      g.save();
+      g.translate(0, 2 * yM);
+      g.scale(1, -1);
+      mitad(g);
+      g.restore();
+      filaNodos(g);
+      vesicas(g);
+      espejo(g);
+    }
+    pintarFondo(gf);
+
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    /* Menos movimiento = ritmo más lento, no congelado. */
+    const PERIODO = reducido ? 42000 : 13000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    /* `detenido` no es redundante con cancelAnimationFrame: si el congelado cae
+       mientras corre el callback, éste vuelve a pedir cuadro y el bucle
+       sobrevive al freeze. La bandera se lee DENTRO del callback y corta. */
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+
+    /* Nada de pintar fuera de pantalla ni con la pestaña oculta. */
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (entradas) => {
+          visible = entradas.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* El banco captura con animations:disabled, y eso NO congela un canvas con
+       su propio rAF. Por eso el sumidero: fija el cuadro pedido y apaga el
+       bucle. Se registra en la bolsa compartida para que los demás bloques de
+       la lámina cuelguen del mismo __kdxFreeze. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    /* Registro con reintento: Astro empaqueta el script de la página y el del
+       componente por separado y no garantiza el orden. Si la página instala su
+       propio registrador más tarde, hay que colgarse de ése. */
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>

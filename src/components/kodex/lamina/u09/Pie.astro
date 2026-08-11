@@ -1,0 +1,373 @@
+---
+/**
+ * KODEX-∞ · u09-source · PIE
+ *
+ * De y 1189 al borde inferior de `reference/canon/u09-source.png`. Tres piezas:
+ *
+ *   1. TRUTH CHAMBER OATH   x  62..699  y 1189..1280   el juramento en dos alas
+ *      con el medallón del corazón en el medio (su luz vive en `Diagramas`)
+ *   2. CHAMBER SIGNATURE    x 711..969  y 1189..1280   firma y sello hexagonal
+ *   3. remate               y 1288..1382                tres columnas y la marca
+ *
+ * EL JURAMENTO ES EL CONTRATO DE LA LÁMINA. «WE RECORD WITHOUT BIAS. WE PRESERVE
+ * WITHOUT ALTERATION. WE SEEK TRUTH, NOT COMFORT.» es lo que hace que las cinco
+ * clases de la tabla signifiquen algo: sin la promesa de no alterar, NEEDS
+ * CONFIRMATION sería una etiqueta y no una obligación. Va copiado tal cual.
+ *
+ * LA FIRMA ES UN TRAZO, NO UNA IMAGEN. Sale de una sola polilínea suavizada por
+ * bézier con puntos de control fijos —ni un bitmap, ni `Math.random()`— y NO
+ * pretende ser la firma de nadie: es la marca de la cámara, del mismo modo que
+ * `KDX-SOURCE-0009` es un número de póster y no el estado de ningún sistema. Va
+ * marcada `data-symbolic="true"`, como manda el canon.
+ *
+ * LO QUE NO SE DIBUJA ACÁ. El marco del póster —las verticales de x=10,5 y
+ * x=1017,5, el marco interior de x=49 y x=978 y las reglas de y=1288,5 y
+ * y=1381,5— cruza esta banda pero pertenece a la `Cabecera`, que lo abre arriba
+ * y lo baja de un solo trazo. Partirlo deja costura en las esquinas.
+ */
+
+/* ── 1 · el juramento ───────────────────────────────────────────────────── */
+
+const OATH = { x0: 62, x1: 699, y0: 1189, y1: 1280 };
+const FIRMA = { x0: 711, x1: 969, y0: 1189, y1: 1280 };
+
+/** Las tres promesas, centradas en x=212 según la tinta medida. */
+const PROMESAS: [string, number][] = [
+  ["WE RECORD WITHOUT BIAS.", 1231],
+  ["WE PRESERVE WITHOUT ALTERATION.", 1245],
+  ["WE SEEK TRUTH, NOT COMFORT.", 1263],
+];
+const PROMESA_CX = 212;
+
+/** El deseo, centrado en x=575. */
+const DESEOS: [string, number][] = [
+  ["MAY THIS ARCHIVE GUIDE", 1231],
+  ["THOSE WHO SEEK WISDOM.", 1245],
+  ["MAY IT ENDURE BEYOND US ALL.", 1263],
+];
+const DESEO_CX = 575;
+
+/**
+ * Firma. Puntos de control explícitos y una sola curva: la mano sube y baja tres
+ * veces, con dos remates altos. Se traza con `Q` encadenadas —punto medio entre
+ * vértices como ancla— que es lo que le da el vaivén continuo de una pluma; con
+ * `L` sale un electrocardiograma.
+ */
+const RASGO: [number, number][] = [
+  [726, 1262], [738, 1244], [748, 1258], [757, 1232], [766, 1256],
+  [774, 1238], [782, 1257], [792, 1230], [800, 1252], [810, 1240],
+  [820, 1256], [832, 1226], [841, 1254], [850, 1236], [860, 1252],
+  [872, 1234], [884, 1248], [896, 1238], [902, 1244],
+];
+const firmaD = RASGO.reduce((d, [x, y], i, a) => {
+  if (i === 0) return `M${x} ${y}`;
+  const [px, py] = a[i - 1];
+  return `${d}Q${px} ${py} ${((px + x) / 2).toFixed(1)} ${((py + y) / 2).toFixed(1)}`;
+}, "") + `T${RASGO[RASGO.length - 1][0]} ${RASGO[RASGO.length - 1][1]}`;
+
+/** Cola larga de la firma: la raya que la subraya y la cierra. */
+const COLA = "M725 1272Q790 1266 855 1270Q885 1272 900 1268";
+
+/* ── sellos hexagonales ─────────────────────────────────────────────────── */
+
+const hexagono = (cx: number, cy: number, R: number): string =>
+  Array.from({ length: 6 }, (_, k) => {
+    const a = ((-90 + k * 60) * Math.PI) / 180;
+    return `${(cx + R * Math.cos(a)).toFixed(2)},${(cy + R * Math.sin(a)).toFixed(2)}`;
+  }).join(" ");
+
+/**
+ * Rosa de la marca KODEX, paramétrica. Tres familias, porque los ocho brazos NO
+ * son iguales — y esa desigualdad es lo que la separa de un asterisco
+ * tipográfico:
+ *   · las cuatro DIAGONALES son trazo grueso con un cuadradito en la punta;
+ *   · el eje VERTICAL va cortado: tramo, hueco, punto, punta;
+ *   · el eje HORIZONTAL es más largo y lleva tres travesaños graduados;
+ *   · entre medio, ocho pelos cortos a 22,5°.
+ */
+function rosa(cx: number, cy: number, k: number) {
+  const pol = (r: number, a: number): [number, number] => [
+    cx + r * Math.cos((a * Math.PI) / 180),
+    cy + r * Math.sin((a * Math.PI) / 180),
+  ];
+  const nucleo = 3.4 * k;
+  const brazos = Array.from({ length: 8 }, (_, i) => {
+    const a = i * 45;
+    const eje = i % 2 === 0;
+    const horiz = a === 0 || a === 180;
+    const largo = (eje ? (horiz ? 19 : 17) : 16.5) * k;
+    const [x1, y1] = pol(nucleo, a);
+    const [x2, y2] = pol(eje && !horiz ? 10.5 * k : largo, a);
+    const [px, py] = pol(largo + 1.6 * k, a);
+    return {
+      eje,
+      horiz,
+      d: `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`,
+      punta: [px, py] as [number, number],
+      travesanos: horiz
+        ? ([[7, 3.2], [11.5, 2.6], [15.5, 2]] as [number, number][]).map(([r, h]) => {
+            const [tx, ty] = pol(r * k, a);
+            return `M${tx.toFixed(2)} ${(ty - h * k).toFixed(2)}L${tx.toFixed(2)} ${(ty + h * k).toFixed(2)}`;
+          })
+        : [],
+      suelto: eje && !horiz ? pol(13.5 * k, a) : null,
+    };
+  });
+  const pelos = Array.from({ length: 8 }, (_, i) => {
+    const a = 22.5 + i * 45;
+    const [x1, y1] = pol(4.2 * k, a);
+    const [x2, y2] = pol(9.4 * k, a);
+    return `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`;
+  });
+  return { brazos, pelos, nucleo: 2.6 * k };
+}
+
+const ROSA_FIRMA = rosa(935, 1229, 0.78);
+const ROSA_PIE = rosa(930.5, 1341, 1);
+
+/* ── 3 · remate ─────────────────────────────────────────────────────────── */
+
+/** Cruz de puntería: cuadradito y cuatro tics. Flanquea el lema del remate. */
+const CRUCES = [310, 329, 698.5, 719];
+
+const esquina = (x: number, y: number, sx: number, sy: number, l = 9) =>
+  `M${x + sx * l} ${y}H${x}V${y + sy * l}`;
+
+const rombo = (cx: number, cy: number, r: number) =>
+  `M${cx} ${cy - r}L${cx + r} ${cy}L${cx} ${cy + r}L${cx - r} ${cy}Z`;
+
+const av = (tinta: number) => +(tinta + 2).toFixed(1);
+
+/**
+ * Elige el modo de `lengthAdjust`. NO es un detalle: con `spacingAndGlyphs` el
+ * navegador ESTIRA los glifos hasta el largo pedido, y como casi todos los
+ * rótulos de esta lámina van más espaciados que su ancho natural, el resultado
+ * era una mono engordada un 18 % que se lee negrita. La referencia tiene astas
+ * finas y mucho aire entre letras: eso es tracking, no un cuerpo más ancho.
+ * Regla: si el largo pedido supera el natural, se reparte en el interletrado
+ * (`spacing`); si hay que meter el texto en menos espacio del que ocupa, se
+ * condensan los glifos, que es la única forma de que entre.
+ */
+const modo = (texto: string, largo: number, cuerpo: number) =>
+  largo >= texto.length * cuerpo * 0.6 ? "spacing" : "spacingAndGlyphs";
+
+---
+
+<div data-bloque="Pie" style="inset:0">
+  <svg class="pie" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <!-- ═══ 1 · JURAMENTO ════════════════════════════════════════════════ -->
+    <path class="pie__regla" d="M62 1189H969" stroke-dasharray="2 6" />
+    <path class="pie__regla" d="M62 1280H969" stroke-dasharray="2 6" />
+    {[OATH, FIRMA].map((c) => (
+      <g class="pie__esq">
+        <path d={esquina(c.x0, c.y0, 1, 1)} />
+        <path d={esquina(c.x1, c.y0, -1, 1)} />
+        <path d={esquina(c.x0, c.y1, 1, -1)} />
+        <path d={esquina(c.x1, c.y1, -1, -1)} />
+      </g>
+    ))}
+
+    <text class="pie__t" x="85" y="1211" textLength={av(165)} lengthAdjust={modo("TRUTH CHAMBER OATH", av(165), 10.5)}>TRUTH CHAMBER OATH</text>
+    {PROMESAS.map(([texto, y]) => (
+      <text class="pie__voz" x={PROMESA_CX} y={y}>{texto}</text>
+    ))}
+    {DESEOS.map(([texto, y]) => (
+      <text class="pie__voz" x={DESEO_CX} y={y}>{texto}</text>
+    ))}
+
+    <!-- Guías punteadas que entran al medallón desde los dos lados. -->
+    <path class="pie__guia" d="M338 1238H372M476 1238H510" stroke-dasharray="1 5" />
+
+    <!-- ═══ 2 · FIRMA ════════════════════════════════════════════════════ -->
+    <text class="pie__t" x="736" y="1211" textLength={av(117)} lengthAdjust={modo("CHAMBER SIGNATURE", av(117), 10.5)}>CHAMBER SIGNATURE</text>
+    <g class="pie__firma" data-symbolic="true">
+      <path d={firmaD} />
+      <path class="pie__cola" d={COLA} />
+    </g>
+    <text class="pie__marca" x="847" y="1274" textLength="60" lengthAdjust={modo("KODEX-∞", 60, 9.4)}>KODEX-∞</text>
+
+    <g class="pie__sello">
+      <polygon class="pie__hex" points={hexagono(935, 1229, 23.5)} />
+      <g class="pie__rosa">
+        {ROSA_FIRMA.pelos.map((d) => <path class="pie__pelo" d={d} />)}
+        {ROSA_FIRMA.brazos.map((b) => (
+          <g>
+            <path class={b.eje ? "pie__eje" : "pie__diag"} d={b.d} />
+            {b.travesanos.map((d) => <path class="pie__pelo" d={d} />)}
+            {b.suelto && <circle class="pie__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.8" />}
+            <rect class="pie__punta" x={(b.punta[0] - 0.9).toFixed(2)} y={(b.punta[1] - 0.9).toFixed(2)} width="1.8" height="1.8" />
+          </g>
+        ))}
+        <circle class="pie__nucleo" cx="935" cy="1229" r="2" />
+      </g>
+    </g>
+
+    <!-- ═══ 3 · REMATE ═══════════════════════════════════════════════════ -->
+    <g data-symbolic="true">
+      <text class="pie__cod" x="68" y="1334" textLength={av(113)} lengthAdjust={modo("KDX-SOURCE-0009", av(113), 9.4)}>KDX-SOURCE-0009</text>
+      <text class="pie__estado" x="68" y="1349" textLength={av(146)} lengthAdjust={modo("TRUTH CHAMBER INITIATED", av(146), 9.4)}>TRUTH CHAMBER INITIATED</text>
+    </g>
+
+    <text class="pie__lema" x="349" y="1338" textLength={av(332)} lengthAdjust={modo("THE KODEX IS LIVING. YOU ARE PART OF IT.", av(332), 10.5)}>THE KODEX IS LIVING. YOU ARE PART OF IT.</text>
+    {CRUCES.map((x) => (
+      <g class="pie__cruz">
+        <rect x={x - 1.5} y="1333" width="3" height="3" />
+        <path d={`M${x} 1329.4v2M${x} 1337.6v2M${x - 5.2} 1334.5H${x - 3.2}M${x + 3.2} 1334.5H${x + 5.2}`} />
+      </g>
+    ))}
+
+    <text class="pie__fuente" x="832" y="1333" textLength={av(61)} lengthAdjust={modo("ONE SOURCE", av(61), 9.4)}>ONE SOURCE</text>
+    <text class="pie__expr" x="769" y="1349" textLength={av(124)} lengthAdjust={modo("INFINITE EXPRESSIONS", av(124), 9.4)}>INFINITE EXPRESSIONS</text>
+
+    <g class="pie__sello">
+      <polygon class="pie__hex" points={hexagono(930.5, 1341, 29.5)} />
+      <g class="pie__rosa">
+        {ROSA_PIE.pelos.map((d) => <path class="pie__pelo" d={d} />)}
+        {ROSA_PIE.brazos.map((b) => (
+          <g>
+            <path class={b.eje ? "pie__eje" : "pie__diag"} d={b.d} />
+            {b.travesanos.map((d) => <path class="pie__pelo" d={d} />)}
+            {b.suelto && <circle class="pie__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.9" />}
+            <rect class="pie__punta" x={(b.punta[0] - 1.15).toFixed(2)} y={(b.punta[1] - 1.15).toFixed(2)} width="2.3" height="2.3" />
+          </g>
+        ))}
+        <circle class="pie__nucleo" cx="930.5" cy="1341" r="2.6" />
+      </g>
+    </g>
+
+    <!-- Cierre de la regla de abajo: rombo hueco flanqueado por dos tríos de
+         puntos. Es simétrico respecto de x=513, que es donde la referencia
+         interrumpe la regla inferior del marco. -->
+    <g class="pie__cierre">
+      <path d={rombo(513, 1381.5, 5)} />
+      {[-52, -44, -38, 38, 44, 52].map((d) => (
+        <circle cx={513 + d} cy="1381.5" r={Math.abs(d) === 52 ? 1.4 : 1} />
+      ))}
+    </g>
+  </svg>
+</div>
+
+<style>
+  .pie {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .pie text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  .pie__regla {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.1;
+  }
+  .pie__esq path {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.35;
+  }
+  .pie__guia {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.8;
+    stroke-opacity: 0.35;
+  }
+
+  /* ── tipografía ───────────────────────────────────────────────────────── */
+  /* Todo este bloque está calibrado contra la referencia caja por caja. El
+     juramento fue el peor caso de la lámina: puesto "a gusto" su título salía
+     14 puntos de luminancia por encima —más del doble— y la banda entera con él. */
+  /* Mismo filete que en `Paneles`: engorda el asta sin mover la métrica. */
+  .pie__t {
+    font-size: 10.5px;
+    fill: #b49ad8;
+    fill-opacity: 0.45;
+    paint-order: stroke fill;
+    stroke: #b49ad8;
+    stroke-width: 0.32px;
+    stroke-opacity: 0.45;
+  }
+  /* Las seis líneas del juramento son la voz de la lámina: van más brillantes
+     que cualquier otro texto chico de la página, medido. */
+  .pie__voz {
+    font-size: 9.6px;
+    letter-spacing: 0.075em;
+    text-anchor: middle;
+    fill: #cfcfd2;
+    fill-opacity: 0.43;
+    transform: translateX(0.36px);
+  }
+  .pie__marca {
+    font-size: 9.4px;
+    text-anchor: middle;
+    fill: #cfcfd2;
+    fill-opacity: 0.6;
+  }
+  .pie__cod {
+    font-size: 9.4px;
+    fill: #b49ad8;
+    fill-opacity: 0.58;
+  }
+  .pie__estado {
+    font-size: 9.4px;
+    fill: #b49ad8;
+    fill-opacity: 0.48;
+  }
+  .pie__lema {
+    font-size: 10.5px;
+    fill: #cfcfd2;
+    fill-opacity: 0.4;
+  }
+  .pie__fuente {
+    font-size: 9.4px;
+    fill: #b49ad8;
+    fill-opacity: 0.5;
+  }
+  .pie__expr {
+    font-size: 9.4px;
+    fill: #cfcfd2;
+    fill-opacity: 0.38;
+  }
+
+  /* ── firma ────────────────────────────────────────────────────────────── */
+  .pie__firma path {
+    fill: none;
+    stroke: #d8d4dd;
+    stroke-width: 1.15;
+    stroke-opacity: 0.58;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .pie__cola { stroke-width: 0.9 !important; stroke-opacity: 0.5 !important; }
+
+  /* ── sellos ───────────────────────────────────────────────────────────── */
+  .pie__hex {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.3;
+  }
+  .pie__diag { stroke: #b49ad8; stroke-width: 1.5; stroke-opacity: 0.62; }
+  .pie__eje { stroke: #b49ad8; stroke-width: 1; stroke-opacity: 0.62; }
+  .pie__pelo { stroke: #b49ad8; stroke-width: 0.7; stroke-opacity: 0.46; }
+  .pie__punta { fill: #b49ad8; fill-opacity: 0.62; }
+  .pie__nucleo { fill: none; stroke: #b49ad8; stroke-width: 1; stroke-opacity: 0.62; }
+
+  /* ── cruces y cierre ──────────────────────────────────────────────────── */
+  .pie__cruz rect { fill: #b49ad8; fill-opacity: 0.4; }
+  .pie__cruz path { stroke: #b49ad8; stroke-width: 0.9; stroke-opacity: 0.4; }
+
+  .pie__cierre path {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.4;
+  }
+  .pie__cierre circle { fill: #cfcfd2; fill-opacity: 0.35; }
+</style>

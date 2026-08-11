@@ -1,0 +1,288 @@
+---
+/**
+ * KODEX-∞ · u01-origin-field · PIE — banda inferior, y 1265..1400 del póster.
+ *
+ * Tres piezas:
+ *   1. Regla con la frase montada encima      y 1275
+ *   2. Pie en tres columnas                   y 1319..1347
+ *   3. Sello hexagonal                        centro (1011,5 · 1333) R 38
+ *
+ * COORDENADAS. El bloque va con `inset:0` sobre el lienzo entero, así que las
+ * x/y de este archivo son las del póster sin corrimiento: lo que se lee acá se
+ * puede buscar tal cual en `reference/canon/u01-origin-field.png`.
+ *
+ * DIFERENCIA CON u02, y no es de detalle: allá la frase «THE KODEX IS LIVING…»
+ * vive ABAJO del todo, en y=1333, entre las dos columnas de códigos. Acá está
+ * ARRIBA, montada sobre la regla de y=1275 que cierra la lámina, y sin el
+ * artículo inicial: «KODEX IS LIVING. YOU ARE PART OF IT.». La banda de códigos
+ * queda entonces sola, 45 px más abajo. Reusar el pie de u02 tal cual apila las
+ * dos cosas en el mismo renglón.
+ *
+ * MEDIDO, NO ELEGIDO:
+ *   - la frase arranca en x=383 con un avance de 10,03 px por carácter (versal
+ *     de 8 px, o sea 0,312em de interletrado). Puesto «a ojo» en 0,2em la línea
+ *     sale 80 px corta.
+ *   - los adornos que la flanquean —regla, punto, anillo, cruz— son simétricos
+ *     respecto de x=557,5 y NO del eje del marco, que cae en 561.
+ *   - `KDX-ORIGIN-0001` y `PROTOCOL INITIATED` tienen la misma versal (9 px) y
+ *     el mismo ancho de caja (130 px), pero 15 y 18 caracteres: el póster ajustó
+ *     cada uno a la caja, así que el interletrado es 0,144em y 0,007em. Un solo
+ *     valor para los dos deja una de las dos líneas 20 px larga.
+ *
+ * TELEMETRÍA SIMBÓLICA. `KDX-ORIGIN-0001 / PROTOCOL INITIATED` es ficción del
+ * póster, no estado de ningún sistema. Va marcado `data-symbolic="true"`.
+ */
+
+/* ── sello hexagonal ───────────────────────────────────────────────────── */
+
+const SELLO = { cx: 1011.5, cy: 1333, R: 38 };
+
+/** Hexágono de punta arriba: 6 vértices desde −90°, uno cada 60°. */
+const hexPuntos = Array.from({ length: 6 }, (_, k) => {
+  const a = ((-90 + k * 60) * Math.PI) / 180;
+  return `${(SELLO.cx + SELLO.R * Math.cos(a)).toFixed(2)},${(SELLO.cy + SELLO.R * Math.sin(a)).toFixed(2)}`;
+}).join(" ");
+
+/**
+ * Rosa de la estrella, paramétrica. Tres familias, porque en la referencia los
+ * ocho brazos NO son iguales — y esa desigualdad es lo que la separa de un
+ * asterisco tipográfico:
+ *   · las cuatro DIAGONALES son trazo grueso con un cuadradito en la punta;
+ *   · el eje VERTICAL va cortado — tramo, hueco, punto, punta;
+ *   · el eje HORIZONTAL es más largo y lleva tres travesaños graduados;
+ *   · entre medio, ocho pelos cortos a 22,5°.
+ */
+const pol = (r: number, a: number) => [
+  SELLO.cx + r * Math.cos((a * Math.PI) / 180),
+  SELLO.cy + r * Math.sin((a * Math.PI) / 180),
+];
+
+const NUCLEO = 3.5;
+const brazos = Array.from({ length: 8 }, (_, k) => {
+  const a = k * 45;
+  const eje = k % 2 === 0;
+  const horiz = a === 0 || a === 180;
+  const largo = eje ? (horiz ? 20 : 18) : 17;
+  const [x1, y1] = pol(NUCLEO, a);
+  const [x2, y2] = pol(eje && !horiz ? 11 : largo, a);
+  const [px, py] = pol(largo + 1.7, a);
+  return {
+    eje,
+    horiz,
+    d: `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`,
+    punta: [px, py],
+    travesanos: horiz
+      ? [
+          [7.3, 3.3],
+          [12, 2.7],
+          [16.2, 2.1],
+        ].map(([r, h]) => {
+          const [cx, cy] = pol(r, a);
+          return `M${cx.toFixed(2)} ${(cy - h).toFixed(2)}L${cx.toFixed(2)} ${(cy + h).toFixed(2)}`;
+        })
+      : [],
+    suelto: eje && !horiz ? pol(14, a) : null,
+  };
+});
+
+const pelos = Array.from({ length: 8 }, (_, k) => {
+  const a = 22.5 + k * 45;
+  const [x1, y1] = pol(4.4, a);
+  const [x2, y2] = pol(9.8, a);
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`;
+});
+
+/** Rombo hueco: cierre de regla y remate del canto inferior. */
+const rombo = (cx: number, cy: number, w: number, h: number) =>
+  `M${cx} ${cy - h / 2}L${cx + w / 2} ${cy}L${cx} ${cy + h / 2}L${cx - w / 2} ${cy}Z`;
+
+/** Cruz de puntería de los flancos de la frase. */
+const cruz = (cx: number, cy: number, r: number) =>
+  `M${cx} ${cy - r}V${cy + r}M${cx - r} ${cy}H${cx + r}`;
+---
+
+<div data-bloque="Pie" style="inset:0">
+  <svg class="pie" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <!-- ═══ 1 · REGLA CON LA FRASE ═══════════════════════════════════════ -->
+    <g class="pie-regla">
+      <path class="pie-regla__linea" d="M50 1275.5H310M806 1275.5H1066" />
+      <circle class="pie-regla__pto" cx="313.5" cy="1275.5" r="1.2" />
+      <circle class="pie-regla__pto" cx="802" cy="1275.5" r="1.2" />
+      <circle class="pie-regla__aro" cx="318.5" cy="1275.5" r="3.4" />
+      <circle class="pie-regla__aro" cx="796.5" cy="1275.5" r="3.4" />
+      <path class="pie-regla__cruz" d={cruz(356, 1275.5, 4.6)} />
+      <path class="pie-regla__cruz" d={cruz(762, 1275.5, 4.6)} />
+      <circle class="pie-regla__pto" cx="1070.5" cy="1275.5" r="1.2" />
+    </g>
+    <text class="pie-t pie-t--lema" x="383" y="1277.5">KODEX IS LIVING. YOU ARE PART OF IT.</text>
+
+    <!-- ═══ 2 · PIE EN TRES COLUMNAS ═════════════════════════════════════ -->
+    <g data-symbolic="true">
+      <text class="pie-t pie-t--codigo" x="82" y="1327.5">KDX-ORIGIN-0001</text>
+      <text class="pie-t pie-t--protocolo" x="82" y="1346.5">PROTOCOL INITIATED</text>
+    </g>
+
+    <text class="pie-t pie-t--fuente" x="962" y="1329.5" text-anchor="end">ONE SOURCE</text>
+    <text class="pie-t pie-t--expr" x="962" y="1346.5" text-anchor="end">INFINITE EXPRESSIONS</text>
+
+    <!-- ═══ 3 · SELLO ════════════════════════════════════════════════════ -->
+    <g class="pie-sello" role="img" aria-label="Sello KODEX-∞: una fuente, infinitas expresiones">
+      <polygon class="pie-sello__hex" points={hexPuntos} />
+      <g class="pie-sello__rosa">
+        {pelos.map((d) => <path class="pie-sello__pelo" d={d} />)}
+        {
+          brazos.map((b) => (
+            <g>
+              <path class={b.eje ? "pie-sello__eje" : "pie-sello__diag"} d={b.d} />
+              {b.travesanos.map((d) => <path class="pie-sello__pelo" d={d} />)}
+              {b.suelto && (
+                <circle class="pie-sello__punta" cx={b.suelto[0].toFixed(2)} cy={b.suelto[1].toFixed(2)} r="0.95" />
+              )}
+              <rect
+                class="pie-sello__punta"
+                x={(b.punta[0] - 1.2).toFixed(2)}
+                y={(b.punta[1] - 1.2).toFixed(2)}
+                width="2.4"
+                height="2.4"
+              />
+            </g>
+          ))
+        }
+        <circle class="pie-sello__nucleo" cx={SELLO.cx} cy={SELLO.cy} r="2.7" />
+      </g>
+    </g>
+
+    <!-- ═══ 4 · REMATE DEL CANTO ═════════════════════════════════════════ -->
+    <!-- El rombo del borde inferior mide 8×13 y se apoya sobre la regla de
+         cierre que traza la Cabecera. El tramo central va más brillante que el
+         resto de la regla: medido, 26 contra 42 de media. -->
+    <g class="pie-canto">
+      <path class="pie-canto__realce" d="M499 1387.5H622" />
+      <path class="pie-canto__rombo" d={rombo(561, 1386.5, 8, 13)} />
+    </g>
+  </svg>
+</div>
+
+<style>
+  .pie {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+  }
+
+  /* ── tipografía ─────────────────────────────────────────────────────── */
+  .pie-t {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  /* Versal 8 px → cuerpo 11; avance medido 10,03 → 0,312em. */
+  .pie-t--lema {
+    font-size: 11px;
+    letter-spacing: 0.312em;
+    fill: #cfccc6;
+    opacity: 0.58;
+  }
+  /* Versal 9 px → cuerpo 12. Los dos códigos comparten caja pero no
+     interletrado: 8,93 y 7,29 de avance. */
+  .pie-t--codigo {
+    font-size: 12px;
+    letter-spacing: 0.144em;
+    fill: #b79ee0;
+    opacity: 0.58;
+  }
+  .pie-t--protocolo {
+    font-size: 12px;
+    letter-spacing: 0.007em;
+    fill: #b79ee0;
+    opacity: 0.56;
+  }
+  /* Alineados a la derecha: la corrección del interletrado sobrante es una
+     letra entera, no media. */
+  .pie-t--fuente {
+    font-size: 11px;
+    letter-spacing: 0.026em;
+    fill: #b79ee0;
+    opacity: 0.46;
+    transform: translateX(2.8px);
+  }
+  .pie-t--expr {
+    font-size: 11px;
+    letter-spacing: 0.041em;
+    fill: #cfccc6;
+    opacity: 0.42;
+    transform: translateX(2.9px);
+  }
+
+  /* ── regla ──────────────────────────────────────────────────────────── */
+  .pie-regla__linea {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1;
+    opacity: 0.36;
+  }
+  .pie-regla__pto {
+    fill: #cfccc6;
+    opacity: 0.55;
+  }
+  .pie-regla__aro {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+  .pie-regla__cruz {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1.1;
+    opacity: 0.5;
+  }
+
+  /* ── sello ──────────────────────────────────────────────────────────── */
+  .pie-sello__hex {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1.1;
+    opacity: 0.55;
+  }
+  .pie-sello__diag {
+    stroke: #b79ee0;
+    stroke-width: 1.5;
+    opacity: 0.9;
+  }
+  .pie-sello__eje {
+    stroke: #b79ee0;
+    stroke-width: 1;
+    opacity: 0.9;
+  }
+  .pie-sello__pelo {
+    stroke: #b79ee0;
+    stroke-width: 0.7;
+    opacity: 0.7;
+  }
+  .pie-sello__punta {
+    fill: #b79ee0;
+    opacity: 0.9;
+  }
+  .pie-sello__nucleo {
+    fill: none;
+    stroke: #b79ee0;
+    stroke-width: 1;
+    opacity: 0.9;
+  }
+
+  /* ── canto ──────────────────────────────────────────────────────────── */
+  .pie-canto__realce {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1;
+    opacity: 0.28;
+  }
+  .pie-canto__rombo {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1;
+    opacity: 0.42;
+  }
+</style>

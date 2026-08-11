@@ -1,0 +1,351 @@
+---
+/**
+ * KODEX-∞ · u09-source · PANELES · columna izquierda
+ *
+ * Los tres instrumentos del costado de `reference/canon/u09-source.png`, todos
+ * dentro de la misma caja de 156 px de ancho (x 62,5..218,5):
+ *
+ *   TRUTH PROTOCOL          y  236,5.. 450     el estallido y las cinco leyes
+ *   LEGEND: TRUTH CLASSES   y  465,5.. 770,5   la clave de las cinco clases
+ *   PROVENANCE SEAL         y  789,5..1038     el cuño de continuidad
+ *
+ * La LUZ de las dos figuras radiales —el estallido y el sello— vive en el canvas
+ * de `Diagramas`. Acá van los marcos, los rótulos y los cinco iconos de la
+ * leyenda, que son geometría de filo a 32 px: a ese cuerpo un halo de canvas los
+ * emborrona y hay que trazarlos.
+ *
+ * LOS CINCO ICONOS SON LA CLAVE DEL LEDGER, no adorno. Cada uno repite en
+ * miniatura el emblema de su fila en la tabla, y la progresión es deliberada:
+ * VERIFIED cierra (círculo lleno con tilde), CANONICAL cierra encendido
+ * (hexágono con núcleo), INFERRED cierra apagado (hexágono con punto),
+ * SPECULATIVE se abre (hexágono con retícula interna) y NEEDS CONFIRMATION no
+ * cierra (hexágono con anillo partido). Se lee de arriba abajo como una escala
+ * de certeza, y por eso el orden no se toca.
+ *
+ * Los marcos van punteados y NO macizos: medido, la vertical del panel de la
+ * leyenda tiene tinta sólo en tramos de 8-10 px cada ~20. Con borde continuo los
+ * tres paneles ganan peso y se comen los rieles de la Cabecera.
+ */
+
+const CAJA = { x0: 62.5, x1: 218.5 };
+const EJE = 140.5;
+
+/* ── 1 · TRUTH PROTOCOL ─────────────────────────────────────────────────── */
+
+const P1 = { y0: 236.5, y1: 450 };
+/** Las cinco leyes, con la tinta medida de cada renglón. */
+const LEYES: [string, number, number][] = [
+  ["TRUTH IS STRATIFIED.", 86, 111],
+  ["CONTEXT IS RECORDED.", 83, 113],
+  ["PROVENANCE IS PRESERVED.", 75, 131],
+  ["NOTHING IS ABSOLUTE.", 86, 110],
+  ["EVERYTHING IS TRACEABLE.", 76, 130],
+];
+const LEY_Y = [376, 390.5, 405, 419, 434];
+
+/* ── 2 · LEGEND: TRUTH CLASSES ──────────────────────────────────────────── */
+
+const P2 = { y0: 465.5, y1: 770.5 };
+/**
+ * Las cinco entradas. Ni el paso entre entradas ni el interlineado de cada una
+ * son regulares —52, 53, 53, 51 entre líneas de base grandes, y 12/12 contra
+ * 14/13 en la quinta— así que van renglón por renglón con su tinta medida en
+ * vez de calcularse. La quinta entrada además pierde el tracking del rótulo:
+ * "NEEDS CONFIRMATION" tiene paso de carácter 5,4 contra los 7,6-8,4 de las
+ * otras cuatro. Es la única que no cabía y el póster la compuso apretada.
+ */
+const ICONO_CX = 87.5;
+const ICONO_R = 17;
+const LEYENDA = [
+  {
+    icono: "verified", cy: 516, base: 513,
+    grande: ["VERIFIED", 117, 58] as [string, number, number],
+    chicas: [["MULTI-SOURCE", 117, 65, 525], ["CONFIRMED", 117, 49, 537]],
+  },
+  {
+    icono: "canonical", cy: 567, base: 565,
+    grande: ["CANONICAL", 117, 72] as [string, number, number],
+    chicas: [["PRIMARY SOURCE", 117, 81, 577], ["ESTABLISHED", 118, 63, 590]],
+  },
+  {
+    icono: "inferred", cy: 619.5, base: 618,
+    grande: ["INFERRED", 118, 64] as [string, number, number],
+    chicas: [["DERIVED LOGIC", 118, 75, 630], ["PATTERNED", 118, 52, 642]],
+  },
+  {
+    icono: "speculative", cy: 670.5, base: 671,
+    grande: ["SPECULATIVE", 118, 79] as [string, number, number],
+    chicas: [["HYPOTHETICAL", 118, 68, 682], ["EXPLORATORY", 118, 63, 694]],
+  },
+  {
+    icono: "needs", cy: 724.5, base: 722,
+    grande: ["NEEDS CONFIRMATION", 115, 97] as [string, number, number],
+    chicas: [["INSUFFICIENT DATA", 118, 94, 736], ["PENDING REVIEW", 117, 80, 749]],
+  },
+];
+
+/* ── 3 · PROVENANCE SEAL ────────────────────────────────────────────────── */
+
+const P3 = { y0: 789.5, y1: 1038 };
+
+/* ── geometría compartida ───────────────────────────────────────────────── */
+
+/** Hexágono de vértice arriba. */
+const hexagono = (cx: number, cy: number, R: number): string =>
+  Array.from({ length: 6 }, (_, k) => {
+    const a = ((-90 + k * 60) * Math.PI) / 180;
+    return `${(cx + R * Math.cos(a)).toFixed(2)},${(cy + R * Math.sin(a)).toFixed(2)}`;
+  }).join(" ");
+
+/** Cuentas en los seis vértices del hexágono: es lo que lo vuelve instrumento. */
+const vertices = (cx: number, cy: number, R: number) =>
+  Array.from({ length: 6 }, (_, k) => {
+    const a = ((-90 + k * 60) * Math.PI) / 180;
+    return { x: +(cx + R * Math.cos(a)).toFixed(2), y: +(cy + R * Math.sin(a)).toFixed(2) };
+  });
+
+/** Marca en L de esquina de panel. */
+const esquina = (x: number, y: number, sx: number, sy: number, l = 8) =>
+  `M${x + sx * l} ${y}H${x}V${y + sy * l}`;
+
+const av = (tinta: number) => +(tinta + 2).toFixed(1);
+
+/**
+ * Elige el modo de `lengthAdjust`. NO es un detalle: con `spacingAndGlyphs` el
+ * navegador ESTIRA los glifos hasta el largo pedido, y como casi todos los
+ * rótulos de esta lámina van más espaciados que su ancho natural, el resultado
+ * era una mono engordada un 18 % que se lee negrita. La referencia tiene astas
+ * finas y mucho aire entre letras: eso es tracking, no un cuerpo más ancho.
+ * Regla: si el largo pedido supera el natural, se reparte en el interletrado
+ * (`spacing`); si hay que meter el texto en menos espacio del que ocupa, se
+ * condensan los glifos, que es la única forma de que entre.
+ */
+const modo = (texto: string, largo: number, cuerpo: number) =>
+  largo >= texto.length * cuerpo * 0.6 ? "spacing" : "spacingAndGlyphs";
+
+---
+
+<div data-bloque="Paneles" style="inset:0">
+  <svg class="pan" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <!-- ═══ marcos ═══════════════════════════════════════════════════════ -->
+    {[P1, P2, P3].map((p) => (
+      <g>
+        <rect class="pan__marco" x={CAJA.x0} y={p.y0} width={CAJA.x1 - CAJA.x0} height={p.y1 - p.y0} />
+        <g class="pan__esq">
+          <path d={esquina(CAJA.x0, p.y0, 1, 1)} />
+          <path d={esquina(CAJA.x1, p.y0, -1, 1)} />
+          <path d={esquina(CAJA.x0, p.y1, 1, -1)} />
+          <path d={esquina(CAJA.x1, p.y1, -1, -1)} />
+        </g>
+      </g>
+    ))}
+
+    <!-- ═══ 1 · TRUTH PROTOCOL ═══════════════════════════════════════════ -->
+    <text class="pan__t" x="87" y="255" textLength={av(110)} lengthAdjust={modo("TRUTH PROTOCOL", av(110), 10.5)}>TRUTH PROTOCOL</text>
+    {LEYES.map(([texto, x, w], i) => (
+      <text class="pan__ley" x={x} y={LEY_Y[i]} textLength={av(w)} lengthAdjust={modo(texto, av(w), 9.2)}>{texto}</text>
+    ))}
+
+    <!-- ═══ 2 · LEGEND ═══════════════════════════════════════════════════ -->
+    <text class="pan__t" x="75" y="484" textLength={av(134)} lengthAdjust={modo("LEGEND: TRUTH CLASSES", av(134), 10.5)}>LEGEND: TRUTH CLASSES</text>
+
+    {
+      LEYENDA.map((e) => {
+        const cy = e.cy;
+        return (
+          <g class="pan__ent">
+            {/* icono: hexágono salvo la primera clase, que cierra en círculo */}
+            {e.icono === "verified" ? (
+              <g class="pan__ico">
+                <circle class="pan__ico-borde" cx={ICONO_CX} cy={cy} r="15" />
+                <circle class="pan__ico-tenue" cx={ICONO_CX} cy={cy} r="11.5" />
+                <path class="pan__tilde" d={`M${ICONO_CX - 6} ${cy}L${ICONO_CX - 1.5} ${cy + 4.5}L${ICONO_CX + 6.5} ${cy - 5}`} />
+              </g>
+            ) : (
+              <g class="pan__ico">
+                <polygon class="pan__ico-borde" points={hexagono(ICONO_CX, cy, ICONO_R)} />
+                {vertices(ICONO_CX, cy, ICONO_R).map((v) => <circle class="pan__ico-cuenta" cx={v.x} cy={v.y} r="1.2" />)}
+                {e.icono === "canonical" && (
+                  <g>
+                    <polygon class="pan__ico-tenue" points={hexagono(ICONO_CX, cy, 10)} />
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+                      const a = (k * Math.PI) / 4;
+                      return (
+                        <path
+                          class="pan__ico-rayo"
+                          d={`M${ICONO_CX} ${cy}L${(ICONO_CX + Math.cos(a) * 9).toFixed(2)} ${(cy + Math.sin(a) * 9).toFixed(2)}`}
+                        />
+                      );
+                    })}
+                    <circle class="pan__nucleo" cx={ICONO_CX} cy={cy} r="2.4" />
+                  </g>
+                )}
+                {e.icono === "inferred" && (
+                  <g>
+                    <polygon class="pan__ico-tenue" points={hexagono(ICONO_CX, cy, 10)} />
+                    <circle class="pan__nucleo" cx={ICONO_CX} cy={cy} r="2.1" />
+                  </g>
+                )}
+                {e.icono === "speculative" && (
+                  <g>
+                    {vertices(ICONO_CX, cy, ICONO_R).map((v) => (
+                      <path class="pan__ico-rayo" d={`M${ICONO_CX} ${cy}L${v.x} ${v.y}`} />
+                    ))}
+                    <circle class="pan__ico-cuenta" cx={ICONO_CX} cy={cy} r="1.3" />
+                  </g>
+                )}
+                {e.icono === "needs" && (
+                  <g>
+                    <circle class="pan__ico-tenue" cx={ICONO_CX} cy={cy} r="10" />
+                    <circle class="pan__ico-borde" cx={ICONO_CX} cy={cy} r="5.8" />
+                    <circle class="pan__nucleo" cx={ICONO_CX} cy={cy} r="2" />
+                  </g>
+                )}
+              </g>
+            )}
+
+            <text
+              class={e.icono === "needs" ? "pan__grande pan__grande--acc" : "pan__grande"}
+              x={e.grande[1]}
+              y={e.base}
+              textLength={av(e.grande[2])}
+              lengthAdjust={modo(e.grande[0], av(e.grande[2]), 10.4)}
+            >{e.grande[0]}</text>
+            {e.chicas.map((c) => (
+              <text
+                class="pan__chica"
+                x={c[1] as number}
+                y={c[3] as number}
+                textLength={av(c[2] as number)}
+                lengthAdjust={modo(c[0] as string, av(c[2] as number), 9)}
+              >{c[0]}</text>
+            ))}
+          </g>
+        );
+      })
+    }
+
+    <!-- ═══ 3 · PROVENANCE SEAL ══════════════════════════════════════════ -->
+    <text class="pan__t" x="84" y="822" textLength={av(110)} lengthAdjust={modo("PROVENANCE SEAL", av(110), 10.5)}>PROVENANCE SEAL</text>
+    <!-- El ∞ del centro del cuño va como carácter y no dibujado: a 20 px de caja
+         la lemniscata de exhibición y el signo matemático se ven igual. -->
+    <text class="pan__inf" x={EJE} y="912">∞</text>
+    <text class="pan__ley" x="82" y="984" textLength={av(116)} lengthAdjust={modo("SEAL OF CONTINUITY", av(116), 9.2)}>SEAL OF CONTINUITY</text>
+    <text class="pan__cod" x="90" y="1003" textLength={av(102)} lengthAdjust={modo("KX-TRUTH-∞-0917", av(102), 9.4)}>KX-TRUTH-∞-0917</text>
+  </svg>
+</div>
+
+<style>
+  .pan {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .pan text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  /* ── marcos ───────────────────────────────────────────────────────────── */
+  .pan__marco {
+    fill: none;
+    stroke: #4b4450;
+    stroke-width: 1;
+    stroke-opacity: 0.85;
+    stroke-dasharray: 9 12;
+  }
+  .pan__esq path {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.32;
+  }
+
+  /* ── tipografía ───────────────────────────────────────────────────────── */
+  /* Las opacidades de este bloque NO están elegidas a ojo: salen de comparar la
+     luminancia media de cada caja contra la misma caja de la referencia. Puestas
+     "a gusto" los tres paneles quedaban entre 3 y 8 puntos por encima y le ponían
+     piso al puntaje de toda la columna. */
+  /* Los rótulos de panel van muy traqueados y con el glifo a cuerpo natural la
+     caja quedaba 3 puntos de luminancia por debajo de la referencia: le faltaba
+     GROSOR DE ASTA, no ancho de bloque ni cuerpo. Subir el `font-size` lo
+     arreglaba a costa de crecer la versal 1 px, que se ve. La mono del póster es
+     de un peso intermedio que el repo no tiene, así que se engorda el asta con
+     un filete del propio color —`paint-order: stroke fill`— y la métrica no se
+     mueve. Es la misma pieza que hace falta cada vez que la referencia usa un
+     peso que no está instalado. */
+  .pan__t {
+    font-size: 10.5px;
+    fill: #b49ad8;
+    fill-opacity: 0.62;
+    paint-order: stroke fill;
+    stroke: #b49ad8;
+    stroke-width: 0.34px;
+    stroke-opacity: 0.62;
+  }
+  .pan__ley {
+    font-size: 9.2px;
+    fill: #cfcfd2;
+    fill-opacity: 0.45;
+  }
+  .pan__cod {
+    font-size: 9.4px;
+    fill: #cfcfd2;
+    fill-opacity: 0.37;
+  }
+  .pan__grande {
+    font-size: 10.5px;
+    fill: #cfcfd2;
+    fill-opacity: 0.56;
+  }
+  /* La quinta entrada va encendida y SIN tracking: es la única que cambia de
+     peso en la referencia, y es la clase que pide acción. */
+  .pan__grande--acc {
+    font-size: 10px;
+    fill: #c3a9e6;
+    fill-opacity: 0.72;
+  }
+  .pan__chica {
+    font-size: 9px;
+    fill: #cfcfd2;
+    fill-opacity: 0.4;
+  }
+  .pan__inf {
+    font-size: 26px;
+    text-anchor: middle;
+    fill: #d3bdf2;
+    fill-opacity: 0.9;
+  }
+
+  /* ── iconos de la leyenda ─────────────────────────────────────────────── */
+  .pan__ico-borde {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.9;
+    stroke-opacity: 0.9;
+  }
+  .pan__ico-tenue {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.7;
+    stroke-opacity: 0.48;
+  }
+  .pan__ico-rayo {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.55;
+    stroke-opacity: 0.45;
+  }
+  .pan__ico-cuenta { fill: #cfcfd2; fill-opacity: 0.85; }
+  .pan__nucleo { fill: #e0d2fb; fill-opacity: 0.95; }
+  .pan__tilde {
+    fill: none;
+    stroke: #e4dcf5;
+    stroke-width: 1.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-opacity: 0.92;
+  }
+</style>

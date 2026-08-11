@@ -1,0 +1,495 @@
+---
+/**
+ * KODEX-∞ · u09-source · TABLA · el héroe de la lámina
+ *
+ * El TRUTH LEDGER: seis columnas —SOURCE / CLAIM / EVIDENCE / TRANSLATION /
+ * PROVENANCE bajo TRUTH CLASS— por cinco clases de verdad.
+ *
+ * LAS CINCO CLASES Y SUS TEXTOS SON POLÍTICA, NO DECORACIÓN. VERIFIED,
+ * CANONICAL, INFERRED, SPECULATIVE y NEEDS CONFIRMATION están copiadas de
+ * `reference/canon/u09-source.png` palabra por palabra, incluidas las erratas
+ * del póster —«STABLITY» sin la i, en las cinco filas— porque la lámina es el
+ * documento y no un formulario que se corrige al pasarlo a limpio. Si alguna vez
+ * cambia una clase, cambia acá y en ningún otro lado: este archivo es la única
+ * copia del ledger en el repo.
+ *
+ * EL HÉROE ES TIPOGRÁFICO Y DE RETÍCULA. Ni un bitmap y ni una figura calcada:
+ * las cajas, los divisores punteados y los sellos son CSS/SVG generados por
+ * código, y la luz de los emblemas y los diagramas de EVIDENCE vive en el canvas
+ * paramétrico de `Diagramas`. Acá va lo que tiene filo; allá, lo que tiene halo.
+ *
+ * LA RETÍCULA ESTÁ MEDIDA, NO REPARTIDA. Es lo que más costó y lo que más se
+ * nota si se hace mal:
+ *   · caja de la tabla   x 237,5..968,5
+ *   · divisores          377 · 488,5 · 600,5 · 713 · 834,5
+ *   · cabecera           y 240,5..279,5, versal de las etiquetas en y 258..266
+ *   · filas              287,5..435,5 · 442,5..590,5 · 596,5..740,5 ·
+ *                        747,5..887,5 · 894,5..1027,5
+ * Las cinco filas NO miden lo mismo: 148, 148, 144, 140 y 133 px. Repartir
+ * (1027,5−287,5−4·7)/5 = 142,6 parejo corre las tres últimas filas hasta 7 px y
+ * arrastra con ellas emblemas, sellos y las quince líneas de texto de cada una.
+ * La irregularidad está en la referencia; se copia.
+ *
+ * POR QUÉ CADA LÍNEA LLEVA `textLength`. La mono del póster no existe en ninguna
+ * máquina y su avance no se puede heredar: medido, el paso de carácter de las
+ * celdas es 5,75 px con una versal de 7, o sea una relación avance/versal de
+ * 0,82 que ninguna mono del sistema reproduce sola. `textLength` clava el
+ * extremo de la tinta donde lo tiene la referencia sea cual sea la fuente que
+ * resuelva, y además hace que el bloque no se descuadre si mañana falta una
+ * familia. Qué modo de `lengthAdjust` usa cada renglón lo decide `modo()`, abajo,
+ * comparando el largo pedido contra el natural: repartir en el interletrado
+ * cuando sobra sitio y condensar los glifos sólo cuando falta. Elegir uno solo
+ * para todo engorda la mitad de la lámina o le abre huecos a la otra mitad.
+ */
+
+/* ── retícula ───────────────────────────────────────────────────────────── */
+
+const TAB = { x0: 237.5, x1: 968.5 };
+/** Divisores verticales entre columnas, medidos uno por uno. */
+const DIV = [377, 488.5, 600.5, 713, 834.5];
+/** Cabecera de columnas: [etiqueta, x de arranque de tinta, ancho de tinta]. */
+const CABEZAS: [string, number, number][] = [
+  ["TRUTH CLASS", 263, 88],
+  ["SOURCE", 410, 46],
+  ["CLAIM", 518, 41],
+  ["EVIDENCE", 629, 58],
+  ["TRANSLATION", 737, 78],
+  ["PROVENANCE", 863, 79],
+];
+const CAB = { y0: 240.5, y1: 279.5, base: 266 };
+
+/** Cada fila con su caja medida. */
+const FILAS = [
+  { y0: 287.5, y1: 435.5 },
+  { y0: 442.5, y1: 590.5 },
+  { y0: 596.5, y1: 740.5 },
+  { y0: 747.5, y1: 887.5 },
+  { y0: 894.5, y1: 1027.5 },
+];
+
+/* ── el ledger ──────────────────────────────────────────────────────────── */
+
+/**
+ * `clase` son las líneas del rótulo de la izquierda con su tinta medida
+ * [texto, x0, x1, línea de base]; `fuente`, `afirmacion` y `traduccion` son las
+ * columnas de texto corrido; `sello` es el cuño latino; `datos` las cinco líneas
+ * de la derecha.
+ */
+const LEDGER = [
+  {
+    clase: [
+      ["VERIFIED", 263, 343, 402, "grande"],
+      ["MULTI-SOURCE", 264, 343, 416, "chica"],
+      ["CONFIRMED", 274, 333, 428, "chica"],
+    ],
+    fuente: ["DIRECT", "OBSERVATION", "INSTRUMENTAL", "RECORD", "PEER REVIEW"],
+    afirmacion: ["THE CLAIM IS", "SUPPORTED BY", "MULTIPLE", "INDEPENDENT", "SOURCES."],
+    traduccion: ["HIGH CONFIDENCE.", "TRANSLATION", "PRESERVES", "ORIGINAL", "INTENT."],
+    sello: { alto: "VERUM EST", bajo: "CONFIRMATUS", letra: "V", cy: 349.5 },
+    datos: [
+      ["PURITY: 98.7%", 55],
+      ["STABLITY: 97.2%", 58],
+      ["TRACE: LOCKED", 56],
+      ["ARCHIVE HASH", 49],
+      ["V-∞-0917-A", 51],
+    ],
+  },
+  {
+    clase: [
+      ["CANONICAL", 256, 347, 553, "grande"],
+      ["PRIMARY SOURCE", 255, 353, 568, "chica"],
+      ["ESTABLISHED", 267, 342, 581, "chica"],
+    ],
+    fuente: ["CORE TEXTS", "FOUNDATIONAL", "RECORDS", "AUTHORITATIVE", "TESTIMONY"],
+    afirmacion: ["THE CLAIM IS", "ROOTED IN", "ESTABLISHED", "CANONICAL", "MATERIAL."],
+    traduccion: ["TRANSLATED", "WITH FIDELITY.", "NO CONFLICT", "DETECTED."],
+    sello: { alto: "CANONICUM", bajo: "FIRMATUM", letra: "C", cy: 504 },
+    datos: [
+      ["PURITY: 96.1%", 54],
+      ["STABLITY: 95.4%", 58],
+      ["TRACE: LOCKED", 56],
+      ["ARCHIVE HASH", 49],
+      ["C-∞-0917-B", 52],
+    ],
+  },
+  {
+    clase: [
+      ["INFERRED", 259, 347, 700, "grande"],
+      ["DERIVED LOGIC", 256, 350, 716, "chica"],
+      ["PATTERNED", 269, 336, 729, "chica"],
+    ],
+    fuente: ["OBSERVED DATA", "PATTERN ANALYSIS", "CORRELATED", "SIGNALS"],
+    afirmacion: ["THE CLAIM IS", "DERIVED FROM", "OBSERVABLE", "PATTERNS AND", "LOGIC."],
+    traduccion: ["TRANSLATION", "EXPRESSES", "DERIVED MEANING.", "CONFIDENCE", "MODERATE."],
+    sello: { alto: "INFERENTIA", bajo: "RATIO", letra: "I", cy: 652.5 },
+    datos: [
+      ["PURITY: 82.3%", 54],
+      ["STABLITY: 79.8%", 58],
+      ["TRACE: PARTIAL", 58],
+      ["ARCHIVE HASH", 49],
+      ["I-∞-0917-C", 52],
+    ],
+  },
+  {
+    clase: [
+      ["SPECULATIVE", 249, 357, 850, "grande"],
+      ["HYPOTHETICAL", 264, 344, 864, "chica"],
+      ["EXPLORATORY", 267, 342, 877, "chica"],
+    ],
+    fuente: ["THEORETICAL", "MODELS", "HYPOTHESES", "SIMULATION", "EXTRAPOLATION"],
+    afirmacion: ["THE CLAIM IS", "HYPOTHETICAL", "AND SUBJECT", "TO REVISION."],
+    traduccion: ["TRANSLATION", "PRESERVES", "POTENTIAL", "MEANING.", "UNCERTAIN."],
+    sello: { alto: "SPECULARE", bajo: "POTENTIA", letra: "S", cy: 808.5 },
+    datos: [
+      ["PURITY: 63.2%", 54],
+      ["STABLITY: 58.7%", 58],
+      ["TRACE: WEAK", 46],
+      ["ARCHIVE HASH", 48],
+      ["S-∞-0917-D", 52],
+    ],
+  },
+  {
+    clase: [
+      ["NEEDS", 281, 325, 983, "grande-acc"],
+      ["CONFIRMATION", 252, 359, 996, "grande-acc"],
+      ["INSUFFICIENT DATA", 252, 355, 1009, "chica"],
+      ["PENDING REVIEW", 263, 345, 1021, "chica"],
+    ],
+    fuente: ["UNVERIFIED INPUT", "UNCORROBORATED", "SIGNAL", "INCOMPLETE", "CONTEXT"],
+    afirmacion: ["THE CLAIM LACKS", "SUFFICIENT", "EVIDENCE.", "CONFIRMATION", "REQUIRED."],
+    traduccion: ["TRANSLATION", "MINIMAL.", "MEANING", "INDETERMINATE."],
+    sello: { alto: "CONFIRMATIO", bajo: "REQUISITA", letra: "?", cy: 952.5 },
+    datos: [
+      ["PURITY: 28.4%", 54],
+      ["STABLITY: 24.1%", 58],
+      ["TRACE: OPEN", 46],
+      ["ARCHIVE HASH", 48],
+      ["N-∞-0917-E", 51],
+    ],
+  },
+];
+
+/**
+ * Columnas de texto corrido. Arranque de tinta, desplazamiento de la primera
+ * línea de base respecto del techo de la fila y paso entre líneas: los tres
+ * salieron de barrer las cinco filas, y los tres son DISTINTOS por columna
+ * (18,9 / 19,7 / 19,6 de paso). No es ruido de medición: se repite fila a fila.
+ */
+const COLS_TEXTO = [
+  { campo: "fuente", x: 388.5, dy: 33, paso: 18.9, paso_car: 5.75 },
+  { campo: "afirmacion", x: 501, dy: 36, paso: 19.7, paso_car: 5.75 },
+  { campo: "traduccion", x: 726, dy: 34, paso: 19.6, paso_car: 5.6 },
+] as const;
+
+/** Los cinco renglones de la derecha: desplazamiento desde el techo de la fila. */
+const DY_DATOS = [33.5, 47.5, 62.5, 100.5, 115.5];
+const DY_DATOS_5 = [33.5, 47.5, 62.5, 97.5, 111.5];
+const X_DATOS = 902;
+
+/* ── sello circular ─────────────────────────────────────────────────────── */
+
+const SELLO_CX = 855;
+const SELLO_R = 39;
+/** Radio de la línea de base del texto anular. */
+const SELLO_RT = 32.5;
+
+/** Arco superior: se recorre de izquierda a derecha por ARRIBA (barrido 1), y
+ *  el inferior por ABAJO (barrido 0). Los dos leen de izquierda a derecha y las
+ *  letras quedan de pie: es la convención de cuño, y con los barridos al revés
+ *  el texto de abajo sale cabeza abajo. */
+const arcoAlto = (cy: number) =>
+  `M${SELLO_CX - SELLO_RT} ${cy}A${SELLO_RT} ${SELLO_RT} 0 0 1 ${SELLO_CX + SELLO_RT} ${cy}`;
+const arcoBajo = (cy: number) =>
+  `M${SELLO_CX - SELLO_RT + 4} ${cy + 4}A${SELLO_RT} ${SELLO_RT} 0 0 0 ${SELLO_CX + SELLO_RT - 4} ${cy + 4}`;
+
+/** Cuentas del anillo del cuño: 24 marcas, más brillantes en los ejes. */
+const cuentasSello = (cy: number) =>
+  Array.from({ length: 26 }, (_, k) => {
+    const a = (k * Math.PI * 2) / 26 - Math.PI / 2;
+    return {
+      x: +(SELLO_CX + Math.cos(a) * (SELLO_R - 3)).toFixed(2),
+      y: +(cy + Math.sin(a) * (SELLO_R - 3)).toFixed(2),
+      r: k % 6 === 0 ? 1.3 : 0.75,
+    };
+  });
+
+/** Marca en L de cada esquina de caja. `sx`/`sy` son los signos del cuadrante. */
+const esquina = (x: number, y: number, sx: number, sy: number, l = 7) =>
+  `M${x + sx * l} ${y}H${x}V${y + sy * l}`;
+
+/** Ancho de avance a partir de la tinta medida: media letra de holgura. */
+const av = (tinta: number) => +(tinta + 2).toFixed(1);
+
+/**
+ * Elige el modo de `lengthAdjust`. NO es un detalle: con `spacingAndGlyphs` el
+ * navegador ESTIRA los glifos hasta el largo pedido, y como casi todos los
+ * rótulos de esta lámina van más espaciados que su ancho natural, el resultado
+ * era una mono engordada un 18 % que se lee negrita. La referencia tiene astas
+ * finas y mucho aire entre letras: eso es tracking, no un cuerpo más ancho.
+ * Regla: si el largo pedido supera el natural, se reparte en el interletrado
+ * (`spacing`); si hay que meter el texto en menos espacio del que ocupa, se
+ * condensan los glifos, que es la única forma de que entre.
+ */
+const modo = (texto: string, largo: number, cuerpo: number) =>
+  largo >= texto.length * cuerpo * 0.6 ? "spacing" : "spacingAndGlyphs";
+
+---
+
+<div data-bloque="Tabla" style="inset:0">
+  <svg
+    class="tab"
+    viewBox="0 0 1122 1402"
+    width="1122"
+    height="1402"
+    role="img"
+    aria-label="Truth ledger: cinco clases de verdad —VERIFIED, CANONICAL, INFERRED, SPECULATIVE y NEEDS CONFIRMATION— con sus columnas de fuente, afirmación, evidencia, traducción y procedencia."
+  >
+    <!-- ═══ CABECERA DE COLUMNAS ═════════════════════════════════════════ -->
+    <g class="tab__caja">
+      <rect x={TAB.x0} y={CAB.y0} width={TAB.x1 - TAB.x0} height={CAB.y1 - CAB.y0} />
+      <g class="tab__esq">
+        <path d={esquina(TAB.x0, CAB.y0, 1, 1)} />
+        <path d={esquina(TAB.x1, CAB.y0, -1, 1)} />
+        <path d={esquina(TAB.x0, CAB.y1, 1, -1)} />
+        <path d={esquina(TAB.x1, CAB.y1, -1, -1)} />
+      </g>
+    </g>
+    <!-- En la CABECERA los divisores sí van punteados: medido, la columna x=489
+         entre y=243 y 277 tiene tinta suelta de 3 a 17 de luminancia. -->
+    <g class="tab__div tab__div--cabeza">
+      {DIV.map((x) => <path d={`M${x} ${CAB.y0 + 5}V${CAB.y1 - 5}`} stroke-dasharray="1 4" />)}
+    </g>
+    {CABEZAS.map(([texto, x, w]) => (
+      <text class="tab__cabeza" x={x} y={CAB.base} textLength={av(w)} lengthAdjust={modo(texto, av(w), 11.5)}>{texto}</text>
+    ))}
+
+    <!-- ═══ LAS CINCO CLASES ═════════════════════════════════════════════ -->
+    {
+      FILAS.map((caja, i) => {
+        const fila = LEDGER[i];
+        const dyDatos = i === 4 ? DY_DATOS_5 : DY_DATOS;
+        return (
+          <g class="tab__fila">
+            {/* caja de la fila */}
+            <g class="tab__caja">
+              <rect x={TAB.x0} y={caja.y0} width={TAB.x1 - TAB.x0} height={caja.y1 - caja.y0} />
+              <g class="tab__esq">
+                <path d={esquina(TAB.x0, caja.y0, 1, 1)} />
+                <path d={esquina(TAB.x1, caja.y0, -1, 1)} />
+                <path d={esquina(TAB.x0, caja.y1, 1, -1)} />
+                <path d={esquina(TAB.x1, caja.y1, -1, -1)} />
+              </g>
+            </g>
+
+            {/* Divisores de fila: SÓLIDOS y tenues, no punteados. Costó una
+                vuelta: a ×2 el recorte los hace ver de puntos, pero barriendo la
+                columna x=488 entre y=297 y 428 la tinta es continua y vale 30 de
+                luminancia sin un solo hueco. El último divisor —x=834,5, el que
+                separa TRANSLATION del cuño— sí es la mitad de brillante. */}
+            <g class="tab__div">
+              {DIV.map((x) => (
+                <path
+                  class={x > 800 ? "tab__div--tenue" : undefined}
+                  d={`M${x} ${caja.y0 + 10}V${caja.y1 - 8}`}
+                />
+              ))}
+            </g>
+
+            {/* rótulo de la clase, centrado en x=303 */}
+            {fila.clase.map(([texto, x0, x1, base, tono]) => (
+              <text
+                class={`tab__clase tab__clase--${tono}`}
+                x={x0}
+                y={base}
+                textLength={av((x1 as number) - (x0 as number))}
+                lengthAdjust={modo(texto as string, av((x1 as number) - (x0 as number)), tono === "chica" ? 9.6 : 13.4)}
+              >{texto}</text>
+            ))}
+
+            {/* las tres columnas de texto corrido */}
+            {COLS_TEXTO.map((col) => (
+              (fila as any)[col.campo].map((linea: string, k: number) => (
+                <text
+                  class="tab__celda"
+                  x={col.x}
+                  y={caja.y0 + col.dy + k * col.paso}
+                  textLength={+(linea.length * col.paso_car).toFixed(1)}
+                  lengthAdjust={modo(linea, linea.length * col.paso_car, 9.6)}
+                >{linea}</text>
+              ))
+            ))}
+
+            {/* cuño de procedencia */}
+            <g class="tab__sello">
+              <circle class="tab__sello-ext" cx={SELLO_CX} cy={fila.sello.cy} r={SELLO_R} />
+              <circle class="tab__sello-int" cx={SELLO_CX} cy={fila.sello.cy} r={SELLO_R - 6} />
+              <circle class="tab__sello-int" cx={SELLO_CX} cy={fila.sello.cy} r={SELLO_R - 16} />
+              {cuentasSello(fila.sello.cy).map((c) => (
+                <circle class="tab__sello-cuenta" cx={c.x} cy={c.y} r={c.r} />
+              ))}
+              <path id={`u09arcA${i}`} d={arcoAlto(fila.sello.cy)} fill="none" />
+              <path id={`u09arcB${i}`} d={arcoBajo(fila.sello.cy)} fill="none" />
+              <text class="tab__sello-txt">
+                <textPath href={`#u09arcA${i}`} startOffset="50%" text-anchor="middle">{fila.sello.alto}</textPath>
+              </text>
+              <text class="tab__sello-txt">
+                <textPath href={`#u09arcB${i}`} startOffset="50%" text-anchor="middle">{fila.sello.bajo}</textPath>
+              </text>
+              <text class="tab__sello-letra" x={SELLO_CX} y={fila.sello.cy + 10}>{fila.sello.letra}</text>
+            </g>
+
+            {/* los cinco renglones de la derecha */}
+            {fila.datos.map(([texto, w], k) => (
+              <text
+                class={k >= 3 ? "tab__dato tab__dato--hash" : "tab__dato"}
+                x={X_DATOS}
+                y={caja.y0 + dyDatos[k]}
+                textLength={av(w as number)}
+                lengthAdjust={modo(texto as string, av(w as number), 7.4)}
+              >{texto}</text>
+            ))}
+          </g>
+        );
+      })
+    }
+
+    <!-- Los emblemas de clase llevan encima una figura de filo que el canvas no
+         puede dar con nitidez a este cuerpo: el tilde, el signo y las letras. El
+         halo de cada uno ya está pintado abajo, en `Diagramas`. -->
+    <g class="tab__glifo">
+      <!-- 1 · VERIFIED · tilde dentro del anillo encendido -->
+      <path class="tab__tilde" d="M291 340L299 348L316 330" />
+      <!-- 5 · NEEDS CONFIRMATION · interrogante -->
+      <text class="tab__interrog" x="303" y="950">?</text>
+    </g>
+  </svg>
+</div>
+
+<style>
+  .tab {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  .tab text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  /* ── cajas ────────────────────────────────────────────────────────────── */
+  /* El borde medido tiene pico rgb(80,76,84): un gris violáceo, no el violeta
+     saturado de los rótulos. Pintarlo con el acento enciende toda la retícula. */
+  .tab__caja rect {
+    fill: none;
+    stroke: #4b4450;
+    stroke-width: 1;
+  }
+  .tab__esq path {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.4;
+  }
+
+  .tab__div path {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.15;
+  }
+  .tab__div--tenue { stroke-opacity: 0.07 !important; }
+  .tab__div--cabeza path { stroke-opacity: 0.06; }
+
+  /* ── tipografía ───────────────────────────────────────────────────────── */
+  .tab__cabeza {
+    font-size: 11.5px;
+    fill: #b49ad8;
+    fill-opacity: 0.72;
+  }
+
+  .tab__clase { fill: #cfcfd2; }
+  .tab__clase--grande {
+    font-size: 13.5px;
+    fill: #b49ad8;
+    fill-opacity: 0.86;
+  }
+  /* La quinta clase es la única cuyo rótulo va encendido: es la que pide algo.
+     Medido, su pico de brillo está 20 puntos por encima de las otras cuatro. */
+  .tab__clase--grande-acc {
+    font-size: 13px;
+    fill: #c3a9e6;
+    fill-opacity: 0.6;
+  }
+  .tab__clase--chica {
+    font-size: 9.6px;
+    fill: #cfcfd2;
+    fill-opacity: 0.7;
+  }
+
+  /* Las celdas NO son violeta: el pico medido de su tinta es rgb(122,127,126),
+     gris neutro. Teñirlas de lila es el error más fácil de cometer acá. */
+  .tab__celda {
+    font-size: 9.6px;
+    fill: #cfcfd2;
+    fill-opacity: 0.72;
+  }
+
+  .tab__dato {
+    font-size: 7.4px;
+    fill: #cfcfd2;
+    fill-opacity: 0.66;
+  }
+  .tab__dato--hash { fill-opacity: 0.5; }
+
+  /* ── cuño ─────────────────────────────────────────────────────────────── */
+  .tab__sello-ext {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.9;
+    stroke-opacity: 0.62;
+  }
+  .tab__sello-int {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.6;
+    stroke-opacity: 0.28;
+  }
+  .tab__sello-cuenta {
+    fill: #b49ad8;
+    fill-opacity: 0.7;
+  }
+  .tab__sello-txt {
+    font-size: 8.2px;
+    letter-spacing: 0.1em;
+    fill: #b49ad8;
+    fill-opacity: 0.85;
+  }
+  /* La versal del cuño va en la serif de exhibición, como en la referencia: es
+     la única letra grande de toda la retícula y con la mono se lee como código. */
+  .tab__sello-letra {
+    font-family: "Cormorant Garamond", "Cormorant", Didot, serif;
+    font-size: 31px;
+    text-anchor: middle;
+    fill: #c3a9e6;
+    fill-opacity: 0.88;
+  }
+
+  /* ── glifos de filo ───────────────────────────────────────────────────── */
+  .tab__tilde {
+    fill: none;
+    stroke: #e4dcf5;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-opacity: 0.92;
+  }
+  .tab__interrog {
+    font-size: 34px;
+    text-anchor: middle;
+    fill: #d7c6f2;
+    fill-opacity: 0.9;
+  }
+</style>

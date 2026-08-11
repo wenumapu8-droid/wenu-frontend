@@ -1,0 +1,855 @@
+---
+/**
+ * KODEX-∞ · u01-origin-field · CAMPO (héroe de la lámina)
+ *
+ * Reproducción procedural de la nube de nodos y filamentos de
+ * `reference/canon/u01-origin-field.png` (región x 46–1078, y 225–1065 de la
+ * lámina de 1122×1402).
+ *
+ * MEDIDO ANTES DE DIBUJAR, no estimado a ojo:
+ *
+ *  · núcleo en (561 · 675). Es el píxel más brillante de toda la región y el
+ *    centro de la simetría radial; la luminancia media sobre la circunferencia
+ *    de radio r da 121 en r=1 y cae a 7,5 en r=41.
+ *  · el CENTRO ESTÁ HUECO. Entre r=26 y r=46 la media baja a 7–13 y vuelve a
+ *    subir a 29 en r=51 y a 41,5 en r=66. O sea: los filamentos NO nacen del
+ *    núcleo, nacen de un anillo a ~48 px de él, y entre medio sólo hay un
+ *    abanico finísimo de rayos. Dibujarlos saliendo del punto central llena
+ *    ese hueco y es el error más visible que se puede cometer acá.
+ *  · la envolvente radial de la nube, medida circunferencia por circunferencia:
+ *      r    55   66   91  120  145  180  200  240  280  320  360  400
+ *      lum  29   41   30   18   12   7,6  6,9  6,4  5,5  4,0  2,5  1,8
+ *    que es ~41·(66/r)^1,6 pasado el pico. Una caída de 1/r —la que sale sola
+ *    de un abanico de rayos rectos— deja la nube el doble de gorda en el borde.
+ *  · la retícula de fondo es papel milimetrado de 32,7 × 33,1 px: verticales
+ *    en x=143, 174, 207, 237… y horizontales en y=270, 303, 336, 369… La primera
+ *    lectura dio 65 px porque a simple vista sólo se ven las líneas pares; el
+ *    barrido por percentil 35 de cada columna saca las intermedias.
+ *  · la nube es GRIS, no violeta. Los 80 píxeles más brillantes de la zona de
+ *    filamentos dan rgb(235,229,232) y el grueso rgb(72,70,70): casi
+ *    acromático. El violeta —rgb(185,170,193)— vive sólo en el núcleo y en
+ *    algunos nodos. u02 es violeta de punta a punta y ésta no lo es.
+ *
+ * CONTRATO
+ * - Todo es canvas 2D paramétrico. Ni un bitmap, ni un SVG calcado.
+ * - El azar es `azar()` (mulberry32) con semilla fija. Nunca Math.random(): el
+ *   banco de fotocopia compara captura contra referencia y con azar real dos
+ *   capturas de la misma página dan puntajes distintos — se mide ruido.
+ * - El bucle va POR FASE, no por tiempo: `fase` recorre 0→1 y vuelve a 0 sin
+ *   costura porque cada término temporal es sin/cos de un múltiplo entero de
+ *   `fase·TAU` y las envolventes de paquete valen 0 en los dos extremos. Un `t`
+ *   creciente deja salto al cerrar el ciclo.
+ * - `prefers-reduced-motion` alarga el período (baja el ritmo); no congela.
+ * - Fuera de pantalla o pestaña oculta no se pinta (IntersectionObserver +
+ *   visibilitychange).
+ * - `window.__kdxFreeze(t)` fija el cuadro y APAGA el rAF: Playwright con
+ *   `animations:"disabled"` no congela un canvas que corre su propio bucle.
+ *
+ * DOS LIENZOS
+ *   `fondo` — retícula, anillos, radios, la trama entera de filamentos, nodos y
+ *             polvo. Es lo caro y no se mueve: se pinta una sola vez.
+ *   `vivo`  — núcleo, abanico de rayos, paquetes que viajan por los filamentos
+ *             y parpadeo de nodos. Se repinta por cuadro.
+ */
+---
+
+<div data-bloque="Campo" style="left:46px;top:225px;width:1032px;height:840px">
+  <canvas data-capa="fondo" width="1032" height="840" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="1032" height="840" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Campo"] {
+    pointer-events: none;
+  }
+  [data-bloque="Campo"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1032px;
+    height: 840px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
+     anotaciones de tipo revientan el build. */
+  const raiz = document.querySelector('[data-bloque="Campo"]');
+  if (raiz) {
+    const W = 1032;
+    const H = 840;
+    const TAU = Math.PI * 2;
+
+    /* Núcleo del campo, ya en coordenadas locales del bloque (global 561·675
+       menos el origen 46·225). */
+    const cx = 515;
+    const cy = 450;
+
+    /* Paleta medida. LUZ es el filamento (casi acromático), VIO el acento del
+       núcleo y de algunos nodos, NUCLEO el blanco de los picos. */
+    const LUZ = "228,224,224";
+    const TENUE = "150,148,148";
+    const VIO = "183,158,224";
+    const NUCLEO = "246,243,245";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    /* mulberry32. Determinista a propósito — ver cabecera. */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /* ---------------------------------------------------------------- lienzos */
+    const cFondo = raiz.querySelector('[data-capa="fondo"]');
+    const cVivo = raiz.querySelector('[data-capa="vivo"]');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(cFondo);
+    const gv = preparar(cVivo);
+
+    /* ----------------------------------------------------- envolvente radial
+     * El único parámetro que gobierna si la nube se lee o no. Sale de la
+     * medición de la referencia: meseta hasta el pico en r=66 y caída (66/r)^1,6.
+     * Todo lo que se dibuja lejos del núcleo pasa por acá. */
+    const R_PICO = 62;
+    const env = (r) => (r <= R_PICO ? 1 : Math.pow(R_PICO / r, 1.1));
+
+    /* ------------------------------------------------------------- retícula */
+    /* Papel milimetrado de 32,7 × 33,1. La línea par pesa el doble que la impar:
+       así es como se lee a 65 px de paso sin que las intermedias desaparezcan. */
+    function reticula(g) {
+      g.save();
+      g.lineWidth = 1;
+      const X0 = 97; // global 143
+      const Y0 = 45; // global 270
+      for (let k = -4; k < 34; k++) {
+        const x = X0 + k * 32.72;
+        if (x < 0 || x > W) continue;
+        g.strokeStyle = tinta(TENUE, k % 2 === 0 ? 0.05 : 0.028);
+        g.beginPath();
+        g.moveTo(Math.round(x) + 0.5, 20);
+        g.lineTo(Math.round(x) + 0.5, 790);
+        g.stroke();
+      }
+      for (let k = -2; k < 26; k++) {
+        const y = Y0 + k * 33.06;
+        if (y < 0 || y > H) continue;
+        g.strokeStyle = tinta(TENUE, k % 2 === 0 ? 0.05 : 0.028);
+        g.beginPath();
+        g.moveTo(60, Math.round(y) + 0.5);
+        g.lineTo(985, Math.round(y) + 0.5);
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* --------------------------------------------------------------- anillos */
+    /* Circunferencias concéntricas. Los radios NO están repartidos parejo: son
+       los excesos que deja el perfil radial de la referencia sobre su propia
+       tendencia (r = 122, 152, 180, 212, 240, 267, 286, 308, 340, 364, 402, 436).
+       Repartidos de a uno el disco se lee como diana. */
+    const ANILLOS = [
+      [122, 0.13, 0.7, 0],
+      [152, 0.09, 0.6, 1],
+      [180, 0.05, 0.6, 0],
+      [212, 0.11, 0.6, 1],
+      [240, 0.05, 0.55, 0],
+      [267, 0.14, 0.7, 0],
+      [286, 0.08, 0.55, 1],
+      [308, 0.1, 0.6, 0],
+      [340, 0.07, 0.55, 1],
+      [364, 0.11, 0.65, 0],
+      [402, 0.06, 0.5, 1],
+      [436, 0.08, 0.55, 0],
+    ];
+
+    function anillos(g) {
+      const r = azar(0x3ac1);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const [rad, alfa, grosor, punteado] of ANILLOS) {
+        g.beginPath();
+        g.arc(cx, cy, rad, 0, TAU);
+        g.strokeStyle = tinta(TENUE, alfa);
+        g.lineWidth = grosor;
+        g.setLineDash(punteado ? [1.6, 5.4] : []);
+        g.stroke();
+      }
+      g.setLineDash([]);
+
+      /* Arcos descentrados: en la referencia hay circunferencias grandes cuyo
+         centro NO es el núcleo. Son las que rompen la simetría perfecta y
+         evitan que la nube se lea como una diana. */
+      for (let k = 0; k < 20; k++) {
+        const ox = cx + (r() - 0.5) * 460;
+        const oy = cy + (r() - 0.5) * 400;
+        const rad = 110 + r() * 300;
+        const a0 = r() * TAU;
+        const a1 = a0 + 1.2 + r() * 3.6;
+        const punteado = r() < 0.6;
+        g.beginPath();
+        g.arc(ox, oy, rad, a0, a1);
+        /* Los arcos punteados de la referencia son MÁS brillantes que los
+           continuos, no menos: son rosarios de puntos de un píxel bien marcados.
+           Puestos al mismo peso que los trazos llenos, desaparecen. */
+        g.strokeStyle = tinta(TENUE, punteado ? 0.15 + r() * 0.13 : 0.05 + r() * 0.06);
+        g.lineWidth = punteado ? 0.9 : 0.6;
+        g.setLineDash(punteado ? [1.2, 4.6] : []);
+        g.stroke();
+      }
+      g.setLineDash([]);
+      g.restore();
+    }
+
+    /* ---------------------------------------------------------------- radios */
+    /* Rectas largas desde el núcleo. Van por debajo de los filamentos y son las
+       que sostienen la lectura de «campo radial» donde la trama ya se acabó. */
+    function radios(g) {
+      const r = azar(0x77e3);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let k = 0; k < 17; k++) {
+        const a = (k / 17) * TAU + (r() - 0.5) * 0.14;
+        const r0 = 52 + r() * 40;
+        const r1 = 170 + r() * 300;
+        const pasos = 26;
+        g.beginPath();
+        for (let i = 0; i <= pasos; i++) {
+          const rr = r0 + ((r1 - r0) * i) / pasos;
+          const x = cx + Math.cos(a) * rr;
+          const y = cy + Math.sin(a) * rr;
+          i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        /* Un solo trazo con la alfa del punto medio: repetir por tramos costaría
+           52×26 llamadas a stroke y no se nota. */
+        g.strokeStyle = tinta(TENUE, (0.05 + r() * 0.08) * env((r0 + r1) / 2));
+        g.lineWidth = 0.6;
+        g.setLineDash(r() < 0.35 ? [1.4, 4.2] : []);
+        g.stroke();
+      }
+      g.setLineDash([]);
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------ filamentos
+     * La trama. Cada filamento es un caminante en polares que sale del anillo
+     * de nacimiento (r≈48) hacia afuera, con deriva angular y ondulación, y que
+     * puede parir hijos. La rama hija hereda brillo reducido: eso, y no un
+     * degradado pintado encima, es lo que produce el gradiente de la referencia.
+     */
+    const R_NACE = 41;
+
+    function tejer() {
+      const r = azar(0x5b21);
+      const salida = [];
+      const cola = [];
+
+      /* 38 troncos repartidos en el anillo de nacimiento. El jitter angular es
+         lo que impide que se lea como un peine. */
+      /* LOS TRONCOS NO SE REPARTEN PAREJO POR EL ANILLO, y ésta es la corrección
+         que más cambió la lectura del héroe.
+         Repartidos de a uno el campo sale isótropo: una escarapela de pelos con
+         la misma densidad en todas las direcciones. La referencia tiene otra
+         cosa — grumos. Hay tres o cuatro brazos gordos (arriba y a la derecha del
+         núcleo, sobre todo) y entre ellos vacíos donde sólo queda la retícula.
+         Y esto NO se ve en el perfil radial, que promedia sobre la
+         circunferencia y da lo mismo para un campo isótropo que para uno
+         agrumado: dos dibujos muy distintos con la misma envolvente. Se ve
+         comparando los recortes al mismo gamma, y lo paga el diff estructural.
+         Los troncos se reparten en 9 racimos de ancho y peso desiguales. */
+      const RACIMOS = Array.from({ length: 9 }, (_, j) => ({
+        a: (j / 9) * TAU + (r() - 0.5) * 0.28,
+        ancho: 0.16 + r() * 0.34,
+        peso: 0.45 + r() * 0.85,
+      }));
+      const N = 92;
+      for (let i = 0; i < N; i++) {
+        const rc = RACIMOS[Math.floor(r() * RACIMOS.length)];
+        /* Suma de dos uniformes ≈ triangular: el tronco se apiña en el eje del
+           racimo y se deshilacha en los bordes. */
+        const a = rc.a + (r() + r() - 1) * rc.ancho;
+        /* El radio de nacimiento se sortea en una banda de 26 px y no es fijo.
+           Con todos los troncos arrancando en el mismo r, la circunferencia de
+           nacimiento acumula 52 arranques y el perfil medido salta a 51 donde la
+           referencia tiene 24: se ve como un aro y no como un borde de nube. */
+        cola.push({
+          a,
+          rad: R_NACE + Math.pow(r(), 0.85) * 42,
+          giro: (r() - 0.5) * 0.5,
+          peso: rc.peso,
+          gen: 0,
+          /* La vida NO es uniforme: es de cola pesada. En la referencia la
+             mayoría de los cordones muere antes de r=200 y sólo unos pocos
+             llegan al borde del campo. Con vida uniforme sale un erizo de mar:
+             cincuenta hilos igual de largos saliendo del centro. */
+          vida: 55 + Math.pow(r(), 2) * 400,
+        });
+      }
+
+      let guardia = 0;
+      while (cola.length && guardia++ < 9000) {
+        const f = cola.pop();
+        const pts = [];
+        let a = f.a;
+        let rad = f.rad;
+        let giro = f.giro;
+        const frec = 1.4 + r() * 3.2;
+        const amp = 0.05 + r() * 0.11;
+        const fin = f.rad + f.vida;
+        let paso = 0;
+        while (rad < fin && rad < 520) {
+          const ds = 5 + r() * 5;
+          /* La deriva angular se divide por el radio: en polares, avanzar un
+             ángulo fijo lejos del centro barre muchísimo más que cerca. Sin
+             esto los filamentos exteriores salen en espiral. */
+          /* La amplitud de la deriva es lo que separa un filamento de un rayo.
+             Con 0,09 el caminante gira 8° en todo su recorrido y el campo sale
+             como una escarapela; la referencia tiene cordones que se tuercen
+             medio radián y se cruzan entre sí. */
+          giro += (r() - 0.5) * 0.38;
+          giro *= 0.9;
+          a += (giro * ds) / rad + (amp * Math.sin(paso * frec * 0.16) * ds) / rad;
+          rad += ds;
+          paso++;
+          pts.push(cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, rad);
+
+          /* Ramificación. La probabilidad baja con la generación: si no, la
+             tercera generación domina y la trama se vuelve musgo. */
+          if (r() < 0.17 / (1 + f.gen) && f.gen < 3 && cola.length < 1600) {
+            cola.push({
+              a: a + (r() < 0.5 ? -1 : 1) * (0.18 + r() * 0.5),
+              rad,
+              giro: (r() - 0.5) * 0.6,
+              peso: f.peso * (0.5 + r() * 0.3),
+              gen: f.gen + 1,
+              vida: 35 + Math.pow(r(), 1.8) * 260,
+            });
+          }
+        }
+        if (pts.length >= 4) {
+          salida.push({
+            pts: Float64Array.from(pts),
+            n: pts.length / 3,
+            peso: f.peso,
+            gen: f.gen,
+            vel: 1 + Math.floor(r() * 3),
+            fase0: r(),
+          });
+        }
+      }
+      return salida;
+    }
+    const filamentos = tejer();
+
+    /** Punto interpolado sobre un filamento, con s en [0,1]. */
+    function puntoFil(f, s) {
+      const q = Math.max(0, Math.min(1, s)) * (f.n - 1);
+      const i = Math.min(f.n - 2, Math.floor(q));
+      const t = q - i;
+      const x = f.pts[i * 3] + (f.pts[i * 3 + 3] - f.pts[i * 3]) * t;
+      const y = f.pts[i * 3 + 1] + (f.pts[i * 3 + 4] - f.pts[i * 3 + 1]) * t;
+      return [x, y];
+    }
+
+    /**
+     * DOS PASADAS, y ésta es la diferencia que hace que la trama se lea como la
+     * referencia y no como un estallido de alambres.
+     *
+     * En el original los filamentos NO son líneas: son cordones con halo — un
+     * alma clara de un píxel envuelta en tres o cuatro de luz difusa. Se ve
+     * comparando recortes al mismo gamma: la reproducción a un solo trazo queda
+     * dura y transparente, con el negro asomando entre filamento y filamento,
+     * mientras el original tiene la celda entera iluminada.
+     *
+     * El halo no se puede hacer con `filter: blur` sobre el canvas —cuesta un
+     * repintado completo por cuadro y este lienzo mide 1032×840—, así que va
+     * como segunda pasada de trazo ancho y alfa baja en modo `lighter`: el
+     * solape de los tramos vecinos acumula justo donde la trama es densa, que es
+     * exactamente donde el original tiene su bruma.
+     */
+    function tramaBase(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const pasada of [0, 1]) {
+        const r = azar(0x1e07);
+        for (const f of filamentos) {
+          /* SE PROBÓ el camino contrario —40 cordones gordos de 3 a 6 px en vez
+             de 92 hilos— porque a ojo es lo que tiene la referencia en el anillo
+             interior. Midió PEOR y por las dos varas a la vez: la región del
+             núcleo pasó de 10,60 % a 13,40 % y el diff estructural de 1,25 a
+             1,29, con el perfil radial igual de bien ajustado. La razón es que un
+             cordón ancho que cae dos píxeles corrido paga el error dos veces
+             —donde está y donde debería estar— y muchos hilos finos con la misma
+             masa total no. Queda anotado para que nadie lo vuelva a intentar
+             creyendo que no se probó. */
+          const brillo = (0.105 + r() * 0.155) * f.peso;
+          const ancho = f.gen === 0 ? 0.95 : f.gen === 1 ? 0.75 : 0.6;
+          const k = pasada === 0 ? 0.16 : 0.5;
+          for (let i = 0; i < f.n - 1; i++) {
+            const rad = f.pts[i * 3 + 2];
+            const a = brillo * env(rad) * k;
+            if (a < 0.008) continue;
+            g.lineWidth = pasada === 0 ? ancho * 6.4 : ancho * 1.5;
+            g.beginPath();
+            g.moveTo(f.pts[i * 3], f.pts[i * 3 + 1]);
+            g.lineTo(f.pts[i * 3 + 3], f.pts[i * 3 + 4]);
+            g.strokeStyle = tinta(LUZ, a);
+            g.stroke();
+          }
+        }
+      }
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------ travesaños
+     * Los enlaces tangenciales entre filamentos vecinos. Son los que cierran
+     * las celdas poligonales: sin ellos la trama es un abanico de pelos y no una
+     * red. Se trazan como arcos cortos, no como cuerdas rectas. */
+    function travesanos(g) {
+      const r = azar(0x2fd5);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let k = 0; k < 1100; k++) {
+        /* Radio con sesgo hacia adentro: la red es mucho más tupida cerca del
+           anillo de nacimiento. El sesgo es suave —exponente 1,45— porque con
+           u=r()² la mitad de los travesaños caía dentro de r=150 y el borde de
+           la nube quedaba pelado; medido contra el perfil radial. */
+        const u = Math.pow(r(), 1.3);
+        const rad = R_NACE + 22 + u * 400;
+        const a0 = r() * TAU;
+        const arco = (0.08 + r() * 0.2) * (r() < 0.5 ? -1 : 1);
+        const dr = (r() - 0.5) * rad * 0.16;
+        const pasos = 7;
+        g.beginPath();
+        for (let i = 0; i <= pasos; i++) {
+          const t = i / pasos;
+          const rr = rad + dr * Math.sin(t * Math.PI);
+          const aa = a0 + arco * t;
+          const x = cx + Math.cos(aa) * rr;
+          const y = cy + Math.sin(aa) * rr;
+          i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        const base = (0.06 + r() * 0.132) * env(rad);
+        const w0 = 0.55 + r() * 0.4;
+        g.strokeStyle = tinta(LUZ, base * 0.2);
+        g.lineWidth = w0 * 6;
+        g.stroke();
+        g.strokeStyle = tinta(LUZ, base * 0.55);
+        g.lineWidth = w0 * 1.5;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* ----------------------------------------------------------------- nodos
+     * Tres familias, y las tres están en la referencia: punto lleno, anillo
+     * abierto y cuadradito. El anillo abierto es lo que más se ve a media
+     * distancia y lo primero que se echa de menos si no está. */
+    const nodos = (() => {
+      const r = azar(0x6c4f);
+      const out = [];
+      /* DOS TERCIOS DE LOS NODOS SE APOYAN EN UN FILAMENTO y el tercio restante
+         flota suelto. En la referencia los puntos brillantes caen casi siempre
+         sobre un cordón —son sus engrosamientos, no confeti— y sólo los anillos
+         abiertos aparecen en el vacío. Sembrados los 700 al azar en polares, el
+         campo se llena de puntos que no tocan nada y la trama deja de leerse
+         como una red. */
+      for (let k = 0; k < 700; k++) {
+        let x, y, rad;
+        if (r() < 0.68 && filamentos.length) {
+          const f = filamentos[Math.floor(r() * filamentos.length)];
+          const i = Math.floor(r() * (f.n - 1));
+          x = f.pts[i * 3];
+          y = f.pts[i * 3 + 1];
+          rad = f.pts[i * 3 + 2];
+        } else {
+          const u = Math.pow(r(), 1.5);
+          rad = 60 + u * 375;
+          const a = r() * TAU;
+          x = cx + Math.cos(a) * rad;
+          y = cy + Math.sin(a) * rad;
+        }
+        if (x < 6 || x > W - 6 || y < 6 || y > H - 6) continue;
+        /* Los anillos abiertos y los cuadraditos viven AFUERA. Dentro de r=170
+           la referencia sólo tiene puntos llenos sobre los cordones; los aros
+           empiezan donde la trama se abre. Sembrados por igual en todo el campo,
+           el recorte del núcleo se llena de circunferencias que el original no
+           tiene y la región paga 1,5 puntos. */
+        const d = r() * (rad < 170 ? 0.55 : 1);
+        out.push({
+          x,
+          y,
+          rad,
+          tipo: d < 0.72 ? 0 : d < 0.93 ? 1 : 2,
+          t: d < 0.72 ? 0.5 + r() * 1.05 : d < 0.93 ? 2 + r() * 3.4 : 1.5 + r() * 2.4,
+          brillo: 0.33 + r() * 0.57,
+          vio: r() < 0.13,
+          k: 1 + Math.floor(r() * 3),
+          ph: r() * TAU,
+        });
+      }
+      return out;
+    })();
+
+    function nodosBase(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const n of nodos) {
+        const a = n.brillo * Math.min(1, env(n.rad) * 1.35);
+        if (a < 0.03) continue;
+        const c = n.vio ? VIO : NUCLEO;
+        if (n.tipo === 0) {
+          g.beginPath();
+          g.arc(n.x, n.y, n.t, 0, TAU);
+          g.fillStyle = tinta(c, a);
+          g.fill();
+        } else if (n.tipo === 1) {
+          g.beginPath();
+          g.arc(n.x, n.y, n.t, 0, TAU);
+          g.strokeStyle = tinta(c, a * 0.9);
+          g.lineWidth = 0.9;
+          g.stroke();
+        } else {
+          g.strokeStyle = tinta(c, a * 0.75);
+          g.lineWidth = 0.8;
+          g.strokeRect(n.x - n.t / 2, n.y - n.t / 2, n.t, n.t);
+        }
+      }
+      g.restore();
+    }
+
+    /* ----------------------------------------------------------------- polvo */
+    function polvo(g) {
+      const r = azar(0x9a13);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let k = 0; k < 2600; k++) {
+        const u = Math.pow(r(), 1.4);
+        const rad = 50 + u * 400;
+        const a = r() * TAU;
+        const x = cx + Math.cos(a) * rad;
+        const y = cy + Math.sin(a) * rad;
+        if (x < 3 || x > W - 3 || y < 3 || y > H - 3) continue;
+        const al = (0.16 + r() * 0.54) * Math.min(1, env(rad) * 1.3);
+        if (al < 0.02) continue;
+        g.beginPath();
+        g.arc(x, y, 0.45 + r() * 0.7, 0, TAU);
+        g.fillStyle = tinta(r() < 0.12 ? VIO : LUZ, al);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------------ ejes
+     * Cruz de puntería del campo: la vertical corre de y=232 a 1060 del póster
+     * y la horizontal de x=208 a 915. Van punteadas y con hitos. */
+    function ejes(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.setLineDash([1.5, 4.5]);
+      g.lineWidth = 0.9;
+      g.strokeStyle = tinta(TENUE, 0.3);
+      g.beginPath();
+      g.moveTo(cx, 7);
+      g.lineTo(cx, 835);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(162, cy);
+      g.lineTo(869, cy);
+      g.stroke();
+      g.setLineDash([]);
+
+      /* Rombos sobre la vertical: los tres que la referencia marca por encima y
+         por debajo del núcleo. */
+      for (const y of [cy - 214, cy + 216, cy + 320]) {
+        g.beginPath();
+        g.moveTo(cx, y - 5);
+        g.lineTo(cx + 4, y);
+        g.lineTo(cx, y + 5);
+        g.lineTo(cx - 4, y);
+        g.closePath();
+        g.strokeStyle = tinta(TENUE, 0.4);
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    /* ---------------------------------------------------------------- lo vivo */
+    /** Rayo de luz radial con degradado, para el abanico del núcleo. */
+    function nucleo(g, fase) {
+      const ang = fase * TAU;
+      const r = azar(0x4d81);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* 1 · abanico de rayos finísimos entre r=12 y r=46. Es lo que llena el
+         hueco entre el núcleo y el anillo de nacimiento, y en la referencia mide
+         7–13 de luminancia: si se sube, el hueco desaparece. */
+      const RAYOS = 132;
+      for (let i = 0; i < RAYOS; i++) {
+        const a = (i / RAYOS) * TAU;
+        const r1 = 27 + r() * 20;
+        const pulso = 0.7 + 0.3 * Math.sin(ang * 2 + i * 0.7);
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * 12, cy + Math.sin(a) * 12);
+        g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+        g.strokeStyle = tinta(i % 7 === 0 ? VIO : LUZ, (0.085 + r() * 0.18) * pulso);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+
+      /* 2 · halo violeta. Medido: el color del núcleo es rgb(185,170,193). */
+      const halo = g.createRadialGradient(cx, cy, 0, cx, cy, 26);
+      const respiro = 0.78 + 0.22 * Math.sin(ang);
+      halo.addColorStop(0, tinta(VIO, 0.24 * respiro));
+      halo.addColorStop(0.3, tinta(VIO, 0.1 * respiro));
+      halo.addColorStop(1, tinta(VIO, 0));
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(cx, cy, 26, 0, TAU);
+      g.fill();
+
+      /* 3 · anillos del núcleo: r = 4, 10, 18 y 22, medidos sobre el perfil. */
+      const ANI = [
+        [4, 0.72, 1],
+        [10, 0.4, 0.8],
+        [18, 0.5, 0.8],
+        [22, 0.62, 0.85],
+      ];
+      for (const [rad, alfa, grosor] of ANI) {
+        g.beginPath();
+        g.arc(cx, cy, rad, 0, TAU);
+        g.strokeStyle = tinta(rad <= 10 ? NUCLEO : VIO, alfa * (0.82 + 0.18 * Math.sin(ang * 2)));
+        g.lineWidth = grosor;
+        g.stroke();
+      }
+
+      /* 4 · el punto. */
+      g.beginPath();
+      g.arc(cx, cy, 1.9, 0, TAU);
+      g.fillStyle = tinta(NUCLEO, 0.95);
+      g.fill();
+
+      g.restore();
+    }
+
+    /* Sólo una parte de los filamentos lleva paquete: en la referencia los
+       trazos brillantes son unos pocos, no todos. */
+    const conPaquete = filamentos.filter((_, i) => i % 4 === 0);
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* 1 · paquetes que viajan por los filamentos. La envolvente sin(π·p) vale
+         0 en los dos extremos, así que el ciclo cierra sin costura. */
+      for (const f of conPaquete) {
+        const p = (fase * f.vel + f.fase0) % 1;
+        const e = Math.sin(p * Math.PI);
+        if (e <= 0.03) continue;
+        const [hx, hy] = puntoFil(f, p);
+        const rad = Math.hypot(hx - cx, hy - cy);
+        const a = 0.5 * e * f.peso * Math.min(1, env(rad) * 2.6);
+        if (a < 0.02) continue;
+        const s0 = Math.max(0, p - 0.06);
+        const [ax, ay] = puntoFil(f, s0);
+        g.beginPath();
+        g.moveTo(ax, ay);
+        g.lineTo(hx, hy);
+        g.strokeStyle = tinta(NUCLEO, a * 0.7);
+        g.lineWidth = 1.2;
+        g.stroke();
+        const grd = g.createRadialGradient(hx, hy, 0, hx, hy, 5.5);
+        grd.addColorStop(0, tinta(NUCLEO, a));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(hx, hy, 5.5, 0, TAU);
+        g.fill();
+      }
+
+      /* 2 · parpadeo de los nodos violeta. `k` entero por ciclo: sin salto. */
+      for (const n of nodos) {
+        if (!n.vio) continue;
+        const a = Math.max(0, Math.sin(ang * n.k + n.ph)) * 0.55 * Math.min(1, env(n.rad) * 2.1);
+        if (a < 0.03) continue;
+        const grd = g.createRadialGradient(n.x, n.y, 0, n.x, n.y, 4.5);
+        grd.addColorStop(0, tinta(VIO, a));
+        grd.addColorStop(1, tinta(VIO, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(n.x, n.y, 4.5, 0, TAU);
+        g.fill();
+      }
+
+      /* 3 · el núcleo, que es lo único que respira a la vista. */
+      nucleo(g, fase);
+
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------ bruma y grano
+     * EL FONDO DEL CAMPO NO ES NEGRO. Es lo que más cuesta ver mirando la
+     * referencia —parece negro— y lo que salta apenas se comparan los dos
+     * recortes al mismo gamma: el original tiene una capa de grano fino sobre
+     * TODA la región del campo, con media 2 de luminancia lejos del núcleo y
+     * picos de 10, más una bruma difusa que sigue la misma envolvente radial que
+     * los filamentos.
+     *
+     * Sin esto la trama se lee dura: cada filamento recortado contra negro, con
+     * la celda vacía entre uno y otro. Y el banco lo castiga dos veces, porque
+     * el diff estructural promedia bloques de 8×8 y un bloque de celda vacía se
+     * aparta del de la referencia aunque los filamentos que lo bordean estén
+     * bien puestos.
+     *
+     * Va como ImageData y no como miles de arcos: son 867.000 píxeles y
+     * dibujarlos de a uno tardaría segundos. Se pinta PRIMERO —el lienzo está
+     * vacío— y todo lo demás monta encima en `lighter`. */
+    function grano(g) {
+      const r = azar(0xb17d);
+      /* `createImageData`/`putImageData` trabajan en píxeles de DISPOSITIVO y
+         NO pasan por la transformación del contexto: con dpr=2 un ImageData de
+         W×H cubriría sólo el cuarto superior izquierdo del lienzo. Por eso el
+         grano se genera a resolución de dispositivo y los radios se dividen. */
+      const AW = Math.round(W * dpr);
+      const AH = Math.round(H * dpr);
+      const img = g.createImageData(AW, AH);
+      const d = img.data;
+      for (let y = 0; y < AH; y++) {
+        const dy = y / dpr - cy;
+        for (let x = 0; x < AW; x++) {
+          const dx = x / dpr - cx;
+          const rad = Math.sqrt(dx * dx + dy * dy);
+          if (rad > 480) continue;
+          /* amp es la luminancia MEDIA del grano a ese radio. El 0,75 de piso es
+             el velo que la referencia tiene incluso en el borde del campo. */
+          const amp = 4.6 * env(rad) + 0.75;
+          const u = r();
+          const v = amp * (0.3 + 1.45 * u * u);
+          if (v < 0.4) continue;
+          const i = (y * AW + x) * 4;
+          /* El grano es levemente frío-violáceo, como el de la referencia: sus
+             píxeles de fondo dan azul un punto por encima del rojo. */
+          d[i] = Math.min(255, v * 0.92);
+          d[i + 1] = Math.min(255, v * 0.9);
+          d[i + 2] = Math.min(255, v);
+          d[i + 3] = 255;
+        }
+      }
+      g.putImageData(img, 0, 0);
+    }
+
+    /* --------------------------------------------------------------- montaje */
+    function pintarFondo(g) {
+      g.clearRect(0, 0, W, H);
+      grano(g);
+      reticula(g);
+      anillos(g);
+      radios(g);
+      ejes(g);
+      travesanos(g);
+      tramaBase(g);
+      polvo(g);
+      nodosBase(g);
+    }
+    pintarFondo(gf);
+
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    /* Menos movimiento = ritmo más lento, no congelado. */
+    const PERIODO = reducido ? 48000 : 14000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    /* `detenido` no es redundante con cancelAnimationFrame: si el congelado cae
+       mientras corre el callback, éste vuelve a pedir cuadro y el bucle
+       sobrevive al freeze. La bandera se lee DENTRO del callback y corta. */
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+
+    /* Nada de pintar fuera de pantalla ni con la pestaña oculta. */
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (entradas) => {
+          visible = entradas.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* El banco captura con animations:disabled, y eso NO congela un canvas con
+       su propio rAF. Por eso el sumidero: fija el cuadro pedido y apaga el
+       bucle. Se registra en la bolsa compartida para que los demás bloques de
+       la lámina cuelguen del mismo __kdxFreeze. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    /* Registro con reintento: Astro empaqueta el script de la página y el del
+       componente por separado y no garantiza el orden. */
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>

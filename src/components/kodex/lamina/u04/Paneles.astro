@@ -1,0 +1,544 @@
+---
+/**
+ * KODEX-∞ · u04-alphabet · PANELES
+ *
+ * Los ocho instrumentos que rodean al grafo en `reference/canon/u04-alphabet.png`
+ * (1122×1402). Todas las cajas salieron de barrer el PNG buscando filas y
+ * columnas con más del 55 % de tinta continua, no de estimar a ojo:
+ *
+ *   COMMON ORIGIN      x  92– 300   y  264– 390   (sin marco)
+ *   RELATION FIELD     x 880–1024   y  264– 390   (sin marco, alineado a la derecha)
+ *   ORIGIN COMMON NODE x  99– 169   y  523– 548   (rótulo suelto sobre A)
+ *   M OPTIONAL         x 919–1043   y  523– 620   (rótulo suelto sobre M)
+ *   LEGEND             x  69– 234   y  705– 911   (con marco)
+ *   NODE STATES        x 883–1039   y  713– 911   (con marco)
+ *   NETWORK METRICS    x  69– 270   y  926–1224   (con marco)
+ *   FIELD NOTES        x 853–1028   y  958–1161   (con marco)
+ *   Y CONVERGENT HOR.  x 603– 824   y 1136–1205   (rótulo suelto bajo Y)
+ *
+ * TIPOGRAFÍA MEDIDA, NO ELEGIDA. Cada cuerpo sale del paso de carácter real del
+ * original, contando el arranque de tinta de cada glifo fila por fila. Y no hay
+ * un solo tamaño: el póster usa cuatro pasos distintos y se ven al medirlos.
+ *   · rótulos violeta       8,5 px/carácter → 11,5 px con 0,135em
+ *   · cuerpo de panel       6,0            →  9,7 px con 0,025em
+ *   · tabla de métricas     6,45           → 10,4 px con 0,02em
+ *   · FIELD NOTES           6,8            → 11   px con 0,02em
+ * Componerlos todos iguales —que es lo que sale «a ojo»— deja FIELD NOTES corto
+ * 15 px y las métricas desbordadas sobre su columna de valores.
+ *
+ * LAS DOS ONDAS Y EL DISCO VAN CON EL KIT (`Waveform`, `RadialScanner`), que
+ * dibujan con `rng(semilla)` de `kit/rng.ts` y jamás con Math.random(): con azar
+ * real dos capturas de la misma página dan puntajes distintos y el banco de
+ * fotocopia mide ruido en vez de convergencia (ver `kit/README.md`).
+ *
+ * TELEMETRÍA SIMBÓLICA. Los números de NETWORK METRICS son ficción del póster,
+ * no estado de ningún sistema, y van marcados `data-symbolic="true"` como manda
+ * el canon. Que declare «TOTAL NODES 25» sí importa para otra cosa: confirma que
+ * el grafo del héroe va con 25 nodos, sin E y con dos I. Ver `Grafo.astro`.
+ *
+ * No hay bloque `<script>` a propósito: en este repo Astro compila el contenido
+ * de `<script>` como JS puro y cualquier anotación de tipo lo rompe. Nada de
+ * esta región necesita runtime.
+ */
+import "@fontsource/cormorant-garamond/400.css";
+import Waveform from "../kit/Waveform.astro";
+import RadialScanner from "../kit/RadialScanner.astro";
+import { rng, p2 } from "../kit/rng";
+
+/* ── corazón de línea, una sola vez ──────────────────────────────────────
+   Caja nativa ≈18,2 × 14,4 centrada en el origen. Se reusa en HEART NODE y en
+   RETURN ANCHORED, que es donde el póster lo repite. */
+const HEART =
+  "M0,7.2 C-1.4,4.4 -5.4,2.8 -7.2,0 C-9.1,-3.1 -6.7,-7.2 -3.3,-7.2 " +
+  "C-1.4,-7.2 -0.4,-6.1 0,-5 C0.4,-6.1 1.4,-7.2 3.3,-7.2 " +
+  "C6.7,-7.2 9.1,-3.1 7.2,0 C5.4,2.8 1.4,4.4 0,7.2 Z";
+
+/* ── 1 · COMMON ORIGIN ──────────────────────────────────────────────────
+   Filas medidas en 300,5 / 319,5 / 338,5 / 357,5 → paso 19 exacto. */
+const origenLineas = [
+  "ALL TRAJECTORIES",
+  "EMERGE FROM A.",
+  "THE FIRST SIGNAL.",
+  "THE UNWRITTEN.",
+];
+
+/* Trama de rayas del pie del panel: 24 diagonales de paso 2,1, medido entre
+   x=93 y x=142. No es una fuente ni un patrón CSS — son líneas. */
+const rayas = Array.from({ length: 24 }, (_, i) => p2(93 + i * 2.1));
+
+/* ── 2 · RELATION FIELD ─────────────────────────────────────────────────── */
+const campoLineas = [
+  "EACH NODE IS A STATE.",
+  "EACH LINK A POSSIBILITY.",
+  "MEANING EMERGES",
+  "THROUGH TRAVERSAL.",
+];
+
+/* ── 3 · M OPTIONAL ─────────────────────────────────────────────────────── */
+const corazonLineas = ["CENTER OF OPTIONS.", "NOT REQUIRED.", "ALWAYS PRESENT."];
+
+/* ── 4 · Y CONVERGENT HORIZON ───────────────────────────────────────────
+   «AL PATHS CONVERGE.» va con una sola L. Es lo que dice el original: se
+   verificó ampliando el recorte a ×3 antes de escribirlo. No se corrige. */
+const horizonteLineas = ["AL PATHS CONVERGE.", "THE RETURN VECTOR.", "THE NEXT ORIGIN."];
+
+/* ── 5 · LEGEND ─────────────────────────────────────────────────────────
+   Ocho filas de paso 21 (747,5 · 767,5 · 788,5 · 809,5 · 830,5 · 852,5 ·
+   873,5 · 894,5). El icono ocupa x 83–124 y la etiqueta arranca en 129. */
+const leyenda = [
+  { t: "TRAJECTORY", y: 747.5, icono: "flecha" },
+  { t: "LATENT LINK", y: 767.5, icono: "punteado" },
+  { t: "POTENTIAL PATH", y: 788.5, icono: "punteado-flecha" },
+  { t: "RETURN VECTOR", y: 809.5, icono: "flecha-gruesa" },
+  { t: "MUTATED REVISIT", y: 830.5, icono: "equis" },
+  { t: "VISITED", y: 852.5, icono: "visitado" },
+  { t: "LATENT NODES", y: 873.5, icono: "latente" },
+  { t: "SIGNAL ECHO", y: 894.5, icono: "eco" },
+];
+
+/* Eco de señal del último renglón: zigzag corto y determinista. */
+const ecoPts = (() => {
+  const r = rng(0x5c1a);
+  const alturas = Array.from({ length: 13 }, (_, i) =>
+    i < 3 || i > 9 ? 0 : (r() - 0.5) * 9,
+  );
+  return alturas.map((v, i) => `${i ? "L" : "M"}${p2(84 + i * 3.2)} ${p2(894.5 - 3 + v)}`).join("");
+})();
+
+/* ── 6 · NODE STATES ────────────────────────────────────────────────────── */
+const estados = [
+  { t: "VISITED", y: 767.5, icono: "visitado" },
+  { t: "LATENT", y: 796.5, icono: "latente" },
+  { t: "MUTATED REVISIT", y: 825.5, icono: "equis" },
+  { t: "RETURN ANCHORED", y: 854.5, icono: "anclado" },
+  { t: "HEART NODE", y: 884.5, icono: "corazon" },
+];
+
+/* ── 7 · NETWORK METRICS ────────────────────────────────────────────────
+   Seis filas de paso ~20,8 y guía de puntos entre etiqueta y valor. */
+const metricas = [
+  ["TOTAL NODES", "25", 980.5],
+  ["ACTIVE NODES", "25", 1001.5],
+  ["LATENT NODES", "87", 1021.5],
+  ["POSSIBLE PATHS", "∞", 1042.5],
+  ["RETURN PATHS", "∞", 1063.5],
+  ["FIELD DENSITY", "98.3%", 1084.5],
+] as [string, string, number][];
+
+/* Cuentas del disco: caen en los cruces de anillo y radio, que es donde el
+   original las pone. Misma progresión geométrica que usa el scanner del kit
+   (razón 0,93), así que los puntos y los anillos son la MISMA figura y no dos
+   dibujos superpuestos que casi coinciden. */
+const DISCO = { cx: 103, cy: 118, rmax: 92, razon: 0.9, excent: 0.62 };
+const cuentasDisco = (() => {
+  const r = rng(0x71c4);
+  const out: { x: number; y: number; rad: number; op: number }[] = [];
+  for (let i = 0; i < 8; i++) {
+    const rad = DISCO.rmax * Math.pow(DISCO.razon, i);
+    const n = 20 - i;
+    for (let k = 0; k < n; k++) {
+      if (r() > 0.55) continue;
+      const a = (k / n) * Math.PI * 2 + i * 0.21;
+      out.push({
+        x: p2(DISCO.cx + Math.cos(a) * rad),
+        y: p2(DISCO.cy + Math.sin(a) * rad * DISCO.excent),
+        rad: p2(0.7 + r() * 0.9),
+        op: p2(0.35 + r() * 0.5),
+      });
+    }
+  }
+  return out;
+})();
+
+/* ── 8 · FIELD NOTES ────────────────────────────────────────────────────── */
+const notas = [
+  ["NOT A SEQUENCE.", 1017.5],
+  ["A LIVING TOPOLOGY.", 1036.5],
+  ["THE ALPHABET BREATHES.", 1056.5],
+  ["YOU DO NOT READ IT.", 1084.5],
+  ["YOU TRAVERSE IT.", 1105.5],
+] as [string, number][];
+---
+
+<div data-bloque="Paneles" style="inset:0">
+  <!-- ════════ 1 · COMMON ORIGIN ════════ -->
+  <div class="p4t" style="left:93px;top:268px">COMMON ORIGIN</div>
+
+  <!-- La A va encajonada: 36×37 con la versal centrada, medido. -->
+  <div class="p4caja" style="left:92px;top:293px;width:36px;height:37px"></div>
+  <div class="p4inicial" style="left:92px;top:293px;width:36px;height:37px">A</div>
+
+  {origenLineas.map((t, i) => (
+    <div class="p4l" style={`left:139px;top:${297 + i * 19}px`}>{t}</div>
+  ))}
+
+  <svg class="p4svg" style="left:88px;top:374px" width="150" height="24" viewBox="88 374 150 24" aria-hidden="true">
+    {rayas.map((x) => <path class="p4raya" d={`M${x} 389.5L${p2(x + 4.2)} 381`} />)}
+    <path class="p4guia" d="M147 385.5H203" />
+    {[148, 170, 187, 202].map((x) => <circle class="p4pto" cx={x} cy="385.5" r="1.5" />)}
+  </svg>
+
+  <!-- ════════ 2 · RELATION FIELD ════════ -->
+  <div class="p4t p4t--relacion p4der" style="left:823.5px;top:267.5px;width:200px">RELATION FIELD</div>
+  {campoLineas.map((t, i) => (
+    <div class="p4l p4der" style={`left:825.5px;top:${296.5 + i * 19}px;width:200px`}>{t}</div>
+  ))}
+
+  <svg class="p4svg" style="left:900px;top:374px" width="124" height="24" viewBox="900 374 124 24" aria-hidden="true">
+    <path class="p4guia" d="M906 386H968" />
+    {[907, 930, 952, 967].map((x) => <circle class="p4pto" cx={x} cy="386" r="1.5" />)}
+  </svg>
+  <!-- Onda del kit: peine con envolvente alta, que es como el póster agrupa las
+       agujas en una sola ráfaga corta contra el margen derecho. -->
+  <div class="p4onda" style="left:971px;top:376px" data-symbolic="true">
+    <Waveform w={47} h={20} semilla={0x3d71} variante="peine" n={30}
+      color="#a77cf0" grosor={0.8} inercia={0.18} envolvente={0.9} margen={1} />
+  </div>
+
+  <!-- ════════ 3 · rótulos sueltos del campo ════════ -->
+  <div class="p4side" style="left:126px;top:526.5px">ORIGIN</div>
+  <div class="p4side" style="left:99px;top:543.5px">COMMON NODE</div>
+
+  <svg class="p4svg" style="left:900px;top:512px" width="60" height="120" viewBox="900 512 60 120" aria-hidden="true">
+    <path class="p4guia" d="M905 528H922" />
+    <circle class="p4pto" cx="903" cy="528" r="1.6" />
+  </svg>
+  <div class="p4big" style="left:930px;top:527.5px">M OPTIONAL</div>
+  <div class="p4t" style="left:931px;top:549px">HEART / 0 NODE</div>
+  {corazonLineas.map((t, i) => (
+    <div class="p4l" style={`left:931px;top:${578 + i * 19}px`}>{t}</div>
+  ))}
+
+  <svg class="p4svg" style="left:596px;top:1130px" width="70" height="26" viewBox="596 1130 70 26" aria-hidden="true">
+    <circle class="p4pto" cx="603" cy="1141" r="1.6" />
+    <path class="p4guia" d="M612 1141H646" stroke-dasharray="6 4" />
+  </svg>
+  <div class="p4t" style="left:654px;top:1141px">Y CONVERGENT HORIZON</div>
+  {horizonteLineas.map((t, i) => (
+    <div class="p4l" style={`left:672px;top:${1168 + i * 16.5}px`}>{t}</div>
+  ))}
+
+  <!-- ════════ 4 · LEGEND ════════ -->
+  <div class="p4marco" style="left:69px;top:705px;width:166px;height:207px">
+    <span class="p4esq p4esq--tl"></span>
+    <span class="p4esq p4esq--tr"></span>
+    <span class="p4esq p4esq--bl"></span>
+    <span class="p4esq p4esq--br"></span>
+  </div>
+  <div class="p4t p4t--legend" style="left:84px;top:721.5px">LEGEND</div>
+  {leyenda.map((f) => (
+    <div class="p4l" style={`left:129px;top:${f.y - 3.5}px`}>{f.t}</div>
+  ))}
+
+  <svg class="p4svg" style="left:78px;top:735px" width="54" height="172" viewBox="78 735 54 172" aria-hidden="true">
+    <!-- TRAJECTORY: flecha llena -->
+    <path class="p4ico" d="M84 744.5H118" />
+    <path class="p4ico" d="M112 740.5l6 4l-6 4" />
+    <!-- LATENT LINK: punteado sin punta -->
+    <path class="p4ico p4ico--tenue" d="M84 764.5H118" stroke-dasharray="1.6 4" />
+    <!-- POTENTIAL PATH: punteado con punta -->
+    <path class="p4ico p4ico--tenue" d="M84 785.5H112" stroke-dasharray="1.6 4" />
+    <path class="p4ico" d="M112 781.5l6 4l-6 4" />
+    <!-- RETURN VECTOR: trazo grueso con punta -->
+    <path class="p4ico p4ico--grueso" d="M84 806.5H117" />
+    <path class="p4ico p4ico--grueso" d="M111 802.5l6 4l-6 4" />
+    <!-- MUTATED REVISIT: ×···× -->
+    <path class="p4ico" d="M84 823.5l6 6m0 -6l-6 6M112 823.5l6 6m0 -6l-6 6" />
+    <path class="p4ico p4ico--tenue" d="M93 826.5H109" stroke-dasharray="1.6 3.6" />
+    <!-- VISITED: punto con halo -->
+    <circle class="p4ico" cx="97.5" cy="849" r="6" />
+    <circle class="p4pto" cx="97.5" cy="849" r="1.8" />
+    <!-- LATENT NODES: anillo punteado doble -->
+    <circle class="p4ico p4ico--tenue" cx="97.5" cy="870" r="7" stroke-dasharray="1.4 2.2" />
+    <circle class="p4ico" cx="97.5" cy="870" r="4.6" />
+    <!-- SIGNAL ECHO: el zigzag -->
+    <path class="p4ico" d={ecoPts} />
+    <path class="p4ico p4ico--tenue" d="M84 891.5H88M124 891.5H132" />
+  </svg>
+
+  <!-- ════════ 5 · NODE STATES ════════ -->
+  <div class="p4marco" style="left:883px;top:713px;width:157px;height:199px">
+    <span class="p4esq p4esq--tl"></span>
+    <span class="p4esq p4esq--tr"></span>
+    <span class="p4esq p4esq--bl"></span>
+    <span class="p4esq p4esq--br"></span>
+  </div>
+  <div class="p4t p4t--estados" style="left:898px;top:732.5px">NODE STATES</div>
+  {estados.map((f) => (
+    <div class="p4l" style={`left:898px;top:${f.y - 3.5}px`}>{f.t}</div>
+  ))}
+
+  <svg class="p4svg" style="left:995px;top:750px" width="46" height="152" viewBox="995 750 46 152" aria-hidden="true">
+    <!-- VISITED -->
+    <circle class="p4ico p4ico--tenue" cx="1014" cy="764" r="8" stroke-dasharray="1.2 2.4" />
+    <circle class="p4ico" cx="1014" cy="764" r="4.4" />
+    <circle class="p4pto" cx="1014" cy="764" r="1.6" />
+    <!-- LATENT -->
+    <circle class="p4ico p4ico--tenue" cx="1014" cy="793" r="8" stroke-dasharray="1.2 2.6" />
+    <circle class="p4ico p4ico--tenue" cx="1014" cy="793" r="3.4" stroke-dasharray="1 2" />
+    <!-- MUTATED REVISIT -->
+    <path class="p4ico" d="M1005 818.5l6 6m0 -6l-6 6M1017 818.5l6 6m0 -6l-6 6" />
+    <path class="p4ico p4ico--tenue" d="M1013 821.5h2" />
+    <!-- RETURN ANCHORED -->
+    <circle class="p4ico" cx="1014" cy="851" r="9" />
+    <circle class="p4ico p4ico--tenue" cx="1014" cy="851" r="5.6" />
+    <path class="p4heart" d={HEART} transform="translate(1014 851) scale(0.38)" />
+    <!-- HEART NODE -->
+    <path class="p4heart p4heart--fuerte" d={HEART} transform="translate(1014 881) scale(0.95)" />
+    <path class="p4heart" d={HEART} transform="translate(1014 881) scale(0.5)" />
+  </svg>
+
+  <!-- ════════ 6 · NETWORK METRICS ════════ -->
+  <div class="p4marco" style="left:69px;top:926px;width:202px;height:299px">
+    <span class="p4esq p4esq--tl"></span>
+    <span class="p4esq p4esq--tr"></span>
+    <span class="p4esq p4esq--bl"></span>
+    <span class="p4esq p4esq--br"></span>
+  </div>
+  <div class="p4t" style="left:85px;top:951.5px">NETWORK METRICS</div>
+  {metricas.map(([k, v, y]) => (
+    <div class="p4fila" data-symbolic="true" style={`left:86px;top:${y - 4}px;width:171px`}>
+      <span class="p4fila__k">{k}</span>
+      <span class="p4fila__g"></span>
+      <span class="p4fila__v">{v}</span>
+    </div>
+  ))}
+
+  <!-- Disco del pie: anillos y radios del kit, y encima las cuentas en los
+       cruces. El núcleo encendido es un degradado, no un dibujo. -->
+  <div class="p4disco" style="left:80px;top:1090px;width:180px;height:130px">
+    <div class="p4disco__nucleo"></div>
+    <RadialScanner
+      w={180} h={130} semilla={0x3ab1}
+      anillos={9} radios={28} rmax={92} razon={0.9}
+      excentricidad={0.62} cx={0.51} cy={0.5}
+      color="#a77cf0" pesoRadios={1.5} grosorRadios={0.4}
+    />
+    <svg class="p4disco__cuentas" viewBox="0 0 180 130" width="180" height="130" aria-hidden="true">
+      {cuentasDisco.map((c) => (
+        <circle cx={c.x} cy={c.y} r={c.rad} fill="#e6dcff" opacity={c.op} />
+      ))}
+    </svg>
+  </div>
+
+  <!-- ════════ 7 · FIELD NOTES ════════ -->
+  <div class="p4marco" style="left:853px;top:958px;width:176px;height:204px">
+    <span class="p4esq p4esq--tl"></span>
+    <span class="p4esq p4esq--tr"></span>
+    <span class="p4esq p4esq--bl"></span>
+    <span class="p4esq p4esq--br"></span>
+  </div>
+  <div class="p4t p4t--notas p4centro" style="left:837px;top:984.5px;width:200px">FIELD NOTES</div>
+  {notas.map(([t, y]) => (
+    <div class="p4lf p4centro" style={`left:839px;top:${y - 4}px;width:200px`}>{t}</div>
+  ))}
+
+  <svg class="p4svg" style="left:875px;top:1120px" width="130" height="24" viewBox="875 1120 130 24" aria-hidden="true">
+    <path class="p4guia" d="M885 1131H927M951 1131H993" />
+    <circle class="p4pto" cx="921" cy="1131" r="1.3" />
+    <circle class="p4pto" cx="957" cy="1131" r="1.3" />
+    <path class="p4ico" d="M939 1124l7 7l-7 7l-7 -7Z" />
+    <path class="p4ico p4ico--tenue" d="M939 1121v4m0 12v4m-11 -11h4m14 0h4" />
+  </svg>
+</div>
+
+<style>
+  /* La lámina fija la mono y el color base; acá van los tamaños, el
+     interletrado y los tonos propios de esta región. */
+  [data-bloque="Paneles"] {
+    --p4-ink: #cfc6e8;
+    --p4-acc: #a77cf0;
+    --p4-deep: #4a3570;
+    --p4-luz: #e6dcff;
+    color: var(--p4-ink);
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    pointer-events: none;
+  }
+  [data-bloque="Paneles"] * { box-sizing: border-box; }
+
+  /* `translateY(-50%)` sobre `top` = centro óptico medido. Posicionar por la
+     caja obliga a compensar el interlineado en cada rótulo, y ahí se cuela el
+     error de un par de px que el banco sí ve. */
+  .p4t, .p4l, .p4lf, .p4big, .p4side, .p4fila {
+    position: absolute;
+    line-height: 1;
+    white-space: nowrap;
+    /* El `top` de cada rótulo es su CENTRO ÓPTICO medido en el original, pero
+       el centro de la caja de línea no coincide con el centro de la versal: la
+       mono reparte ascendente y descendente asimétricos. Medido contra la
+       captura, la corrección es +2 px en los rótulos de 11,5 px y +1 en el
+       cuerpo. Sin ella los seis paneles quedan uniformemente altos. */
+    transform: translateY(calc(-50% + 1px));
+  }
+  .p4t, .p4big { transform: translateY(calc(-50% + 2px)); }
+  /* Se probó un halo de 1,1 px sobre estos rótulos —la tinta del original a
+     umbral bajo cubre más que la nuestra— y NO sirve: sube el brillo medio de
+     los seis paneles un 25 % y empeora el puntaje global de 3,50 a 3,61. El
+     original tiene glow, pero no de esta forma; queda medido y descartado. */
+
+  /* Rótulo violeta: 8,5 px de paso medidos en COMMON ORIGIN, RELATION FIELD,
+     LEGEND, NODE STATES, NETWORK METRICS y FIELD NOTES — los seis dan lo mismo. */
+  /* Paso de carácter medido rótulo por rótulo. No es capricho de detalle: van
+     de 7,2 px (NODE STATES) a 8,5 (COMMON ORIGIN), y con un solo valor la
+     diferencia llega a 14 px de ancho en una caja de 157. */
+  .p4t {
+    font-size: 11.5px;
+    letter-spacing: 0.139em;
+    color: var(--p4-acc);
+    opacity: 0.85;
+  }
+  .p4t--relacion { letter-spacing: 0.0826em; }
+  .p4t--legend { letter-spacing: 0.0435em; }
+  .p4t--estados { letter-spacing: 0.026em; }
+  .p4t--notas { letter-spacing: 0.113em; }
+  /* Cuerpo de panel: 6,0 px de paso. */
+  .p4l {
+    font-size: 9.7px;
+    letter-spacing: 0.025em;
+    color: var(--p4-ink);
+    opacity: 0.6;
+  }
+  /* FIELD NOTES va un punto más grande que el resto: 6,8 px de paso. */
+  .p4lf {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: var(--p4-ink);
+    opacity: 0.55;
+  }
+  /* «M OPTIONAL» es el único rótulo en tinta y no en violeta, y el de mayor
+     cuerpo de los sueltos: versal 10 px contra 9 del resto. */
+  .p4big {
+    font-size: 13px;
+    letter-spacing: 0.07em;
+    color: var(--p4-ink);
+    opacity: 0.76;
+  }
+  .p4side {
+    font-size: 10.5px;
+    letter-spacing: 0.045em;
+    color: var(--p4-ink);
+    opacity: 0.48;
+  }
+  .p4der { text-align: right; }
+  .p4centro { text-align: center; }
+
+  /* ── caja de la inicial ────────────────────────────────────────────── */
+  .p4caja {
+    position: absolute;
+    border: 1px solid var(--p4-ink);
+    opacity: 0.24;
+  }
+  .p4inicial {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif;
+    font-weight: 400;
+    /* Versal medida: 18 px de alto por 17 de ancho → cuerpo 29. */
+    font-size: 29px;
+    line-height: 1;
+    color: var(--p4-luz);
+    opacity: 0.72;
+  }
+
+  /* ── marcos ────────────────────────────────────────────────────────── */
+  .p4marco {
+    position: absolute;
+    border: 1px solid color-mix(in srgb, var(--p4-deep) 40%, transparent);
+    background: transparent;
+  }
+  .p4esq {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--p4-acc);
+    opacity: 0.4;
+  }
+  .p4esq--tl { top: 4px; left: 4px; border-right: 0; border-bottom: 0; }
+  .p4esq--tr { top: 4px; right: 4px; border-left: 0; border-bottom: 0; }
+  .p4esq--bl { bottom: 4px; left: 4px; border-right: 0; border-top: 0; }
+  .p4esq--br { bottom: 4px; right: 4px; border-left: 0; border-top: 0; }
+
+  /* ── SVG suelto: comparte el sistema de coordenadas del póster ────── */
+  .p4svg { position: absolute; display: block; overflow: visible; }
+  .p4ico {
+    fill: none;
+    stroke: var(--p4-ink);
+    stroke-width: 0.9;
+    opacity: 0.54;
+  }
+  .p4ico--tenue { opacity: 0.32; }
+  .p4ico--grueso { stroke-width: 1.5; opacity: 0.62; }
+  .p4pto { fill: var(--p4-luz); opacity: 0.55; }
+  .p4guia {
+    fill: none;
+    stroke: var(--p4-ink);
+    stroke-width: 0.8;
+    opacity: 0.25;
+  }
+  .p4raya {
+    fill: none;
+    stroke: var(--p4-acc);
+    stroke-width: 0.9;
+    opacity: 0.4;
+  }
+  .p4heart {
+    fill: none;
+    stroke: var(--p4-luz);
+    stroke-width: 1.1;
+    stroke-linejoin: round;
+    opacity: 0.66;
+  }
+  .p4heart--fuerte { stroke: var(--p4-acc); stroke-width: 1.3; opacity: 1; }
+
+  .p4onda { position: absolute; color: var(--p4-acc); opacity: 0.75; }
+
+  /* ── tabla de métricas ─────────────────────────────────────────────── */
+  .p4fila {
+    display: flex;
+    align-items: center;
+    height: 12px;
+    font-size: 10.4px;
+    letter-spacing: 0.02em;
+  }
+  .p4fila__k {
+    color: var(--p4-ink);
+    opacity: 0.58;
+    white-space: nowrap;
+  }
+  /* Guía de puntos: gradiente repetido, no una tira de caracteres. Con `·` el
+     paso queda atado al avance de la fuente y no se puede afinar. */
+  .p4fila__g {
+    flex: 1 1 auto;
+    align-self: stretch;
+    margin: 0 7px;
+    background-image: radial-gradient(circle at center, currentColor 0.5px, transparent 0.72px);
+    background-size: 6.5px 100%;
+    background-position: 0 50%;
+    background-repeat: repeat-x;
+    opacity: 0.36;
+  }
+  .p4fila__v {
+    color: var(--p4-ink);
+    opacity: 0.7;
+    text-align: right;
+  }
+
+  /* ── disco del pie de métricas ─────────────────────────────────────── */
+  .p4disco { position: absolute; color: var(--p4-acc); opacity: 0.62; }
+  .p4disco > * { position: absolute; left: 0; top: 0; }
+  .p4disco__nucleo {
+    left: 68px;
+    top: 53px;
+    width: 70px;
+    height: 26px;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(242, 236, 255, 0.85) 0%,
+      rgba(167, 124, 240, 0.4) 20%,
+      rgba(167, 124, 240, 0) 70%
+    );
+  }
+  .p4disco__cuentas { overflow: visible; }
+</style>

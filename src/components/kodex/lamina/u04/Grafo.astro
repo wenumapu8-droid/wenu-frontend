@@ -1,0 +1,963 @@
+---
+/**
+ * KODEX-∞ · u04-alphabet · GRAFO (héroe de la lámina)
+ *
+ * Reproducción procedural del centro de `reference/canon/u04-alphabet.png`
+ * (región x 80–940, y 245–1250 de la lámina de 1122×1402).
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * LA TOPOLOGÍA ES CANON. NO SE INVENTA NI SE "MEJORA".
+ *
+ * Las 25 coordenadas de `NODOS` no son una disposición elegida acá: salieron de
+ * ajustar, nodo por nodo, el anillo principal del original con una búsqueda de
+ * Hough sobre el perfil radial (`score = 2·anillo(r) − anillo(r−6) − anillo(r+6)`
+ * barriendo centro ±8 px y radio 18..34). Todos los nodos normales caen con el
+ * mismo perfil: glifo hasta r≈11, anillo tenue en r≈21, anillo principal en
+ * r≈27 y corona punteada en r≈33. Eso es lo que hace que el ajuste sea fiable y
+ * no una lectura a ojo.
+ *
+ * DOS COSAS QUE EL ORIGINAL TIENE Y QUE PARECEN ERRATAS —y se copian igual,
+ * porque el encargo es reproducir el canon dibujado, no corregirlo:
+ *
+ *   · NO HAY NODO «E». El póster salta de D a F.
+ *   · HAY DOS NODOS «I», en (674,456) y en (801,435). Se ampliaron los dos a
+ *     ×5 y se leyeron: son dos I con serifa, no una I y una E.
+ *
+ * Aun así el recuento cierra en 25, que es exactamente lo que declara el panel
+ * NETWORK METRICS del propio póster («TOTAL NODES 25»). O sea: el original es
+ * coherente consigo mismo con 25 nodos y sin E. Cambiarlo rompería el conteo.
+ *
+ * Tres nodos están marcados aparte en el póster y acá llevan tipo propio:
+ *   A  ORIGIN COMMON NODE   — origen común, anillos concéntricos y cruceta.
+ *   M  OPTIONAL HEART / 0   — corazón encendido al centro, con su ∅ de radios.
+ *   Y  CONVERGENT HORIZON   — horizonte de convergencia; el nudo donde todas
+ *      las trayectorias se juntan NO está en el centro de Y sino 34 px arriba,
+ *      justo sobre su anillo (medido: el pico de luz cae en y≈1136).
+ * ─────────────────────────────────────────────────────────────────────────
+ *
+ * CONTRATO
+ * - Todo es canvas 2D paramétrico. Ni un bitmap, ni un SVG calcado.
+ * - El azar es `azar()` (mulberry32) con semilla fija. Nunca Math.random(): el
+ *   banco de fotocopia compara captura contra referencia y con azar real dos
+ *   capturas de la misma página dan puntajes distintos — se mide ruido.
+ * - El bucle va POR FASE, no por tiempo: `fase` recorre 0→1 y vuelve a 0 sin
+ *   costura porque cada término temporal es sin/cos de un múltiplo ENTERO de
+ *   `fase·TAU`, y los paquetes usan la envolvente sin(π·p) con velocidad entera,
+ *   que vale 0 en los dos extremos.
+ * - `prefers-reduced-motion` alarga el período (baja el ritmo); no congela.
+ * - Fuera de pantalla o pestaña oculta no se pinta (IntersectionObserver +
+ *   visibilitychange).
+ * - `window.__kdxFreeze(t)` fija el cuadro y APAGA el rAF: Playwright con
+ *   `animations:"disabled"` no congela un canvas que corre su propio bucle.
+ *
+ * DOS LIENZOS
+ *   `fondo` — envolvente, malla latente, trazas de las trayectorias, anillos de
+ *             nodo, letras y glifos sueltos. Se pinta una vez; es lo caro.
+ *   `vivo`  — corazón M, paquetes que viajan, nudo de Y y pulsos de nodo.
+ *
+ * LAS LETRAS son texto de canvas en Cormorant Garamond (la misma serif del
+ * título). El repintado del lienzo estático espera a `document.fonts.load`: sin
+ * eso el primer cuadro sale en la serif del sistema y la captura del banco
+ * mide la fuente equivocada.
+ */
+import "@fontsource/cormorant-garamond/500.css";
+---
+
+<div data-bloque="Grafo" style="left:80px;top:245px;width:860px;height:1005px">
+  <!-- Cebo de fuente. El canvas NO cuenta como uso de una @font-face: el
+       navegador sólo descarga Cormorant 500 cuando algo del DOM la pide, así que
+       sin esto la fuente llega DESPUÉS de `networkidle` y la primera captura del
+       banco sale con la serif del sistema. Se midió: 21.365 píxeles de
+       diferencia entre dos corridas que debían ser idénticas. Tiene que quedar
+       en el flujo (opacidad 0, no `display:none`) o no dispara la descarga. -->
+  <span class="grafo__cebo" aria-hidden="true">ABCDFGHIJKLMNOPQRSTUVWXY</span>
+  <canvas data-capa="fondo" width="860" height="1005" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="860" height="1005" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Grafo"] {
+    pointer-events: none;
+  }
+  .grafo__cebo {
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-family: "Cormorant Garamond", serif;
+    font-weight: 500;
+    font-size: 34px;
+    opacity: 0;
+    pointer-events: none;
+    user-select: none;
+  }
+  [data-bloque="Grafo"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 860px;
+    height: 1005px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
+     anotaciones de tipo revientan el build. */
+  const raiz = document.querySelector('[data-bloque="Grafo"]');
+  if (raiz) {
+    const W = 860;
+    const H = 1005;
+    const TAU = Math.PI * 2;
+    /* Origen del bloque dentro de la lámina: las coordenadas de abajo están en
+       el sistema del PÓSTER, que es donde se midieron, y se trasladan una sola
+       vez. Así lo que se lee acá se puede buscar tal cual en el PNG. */
+    const OX = 80;
+    const OY = 245;
+
+    const LUZ = "167,124,240";
+    /* Los anillos de nodo del original NO son violeta saturado: medidos, dan
+       lavanda casi gris. Con LUZ puro el campo se lee como neón y el banco lo
+       cobra en cada uno de los 25 nodos. */
+    const ARO = "198,188,228";
+    const HONDO = "109,75,176";
+    const NUCLEO = "242,236,255";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    /* mulberry32. Determinista a propósito — ver cabecera. */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /* ─────────────────────────────────────────────── LA TOPOLOGÍA (canon)
+     * [letra, x, y, tipo] en coordenadas del póster. Ajustadas sobre el anillo
+     * principal del original; ver el bloque de cabecera. `i1`/`i2` son las dos
+     * I del póster: la clave es interna, la etiqueta que se dibuja es "I". */
+    const NODOS = [
+      ["A", 195, 625, "origen"],
+      ["B", 409, 323, "n"],
+      ["C", 561, 291, "n"],
+      ["D", 708, 318, "n"],
+      ["F", 327, 438, "n"],
+      ["G", 447, 457, "n"],
+      ["H", 561, 417, "n"],
+      ["I", 674, 456, "n"],
+      ["I", 801, 435, "n"],
+      ["J", 409, 576, "n"],
+      ["K", 562, 561, "n"],
+      ["L", 711, 576, "n"],
+      ["M", 561, 647, "corazon"],
+      ["N", 396, 722, "n"],
+      ["O", 561, 742, "n"],
+      ["P", 721, 724, "n"],
+      ["Q", 338, 820, "n"],
+      ["R", 461, 841, "n"],
+      ["S", 652, 840, "n"],
+      ["T", 788, 823, "n"],
+      ["U", 352, 958, "n"],
+      ["V", 447, 985, "n"],
+      ["W", 660, 985, "n"],
+      ["X", 764, 957, "n"],
+      ["Y", 561, 1170, "horizonte"],
+    ].map(([letra, gx, gy, tipo], i) => ({
+      i,
+      letra,
+      tipo,
+      x: gx - OX,
+      y: gy - OY,
+    }));
+
+    const iA = 0;
+    const iM = NODOS.findIndex((n) => n.tipo === "corazon");
+    const iY = NODOS.findIndex((n) => n.tipo === "horizonte");
+    const A = NODOS[iA];
+    const M = NODOS[iM];
+    const Y = NODOS[iY];
+
+    /* El nudo de convergencia: 34 px por encima del centro de Y, sobre su
+       anillo. Medido en el original (pico de luminancia en y≈1136). */
+    const NUDO = { x: Y.x, y: Y.y - 34 };
+
+    /* Eje vertical del campo: la línea punteada que baja de C hasta el nudo. */
+    const EJE_X = 561 - OX;
+
+    /* ───────────────────────────────────────────────────────── geometría */
+
+    /** Bézier cuadrática muestreada. `arco` es la flecha del combado en px,
+     *  medida sobre la perpendicular al segmento. */
+    function curva(x0, y0, x1, y1, arco, N) {
+      const mx = (x0 + x1) / 2;
+      const my = (y0 + y1) / 2;
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const d = Math.hypot(dx, dy) || 1;
+      /* El control va a 2× la flecha porque una cuadrática pasa por la mitad
+         entre la cuerda y el control, no por el control. */
+      const cxp = mx - (dy / d) * arco * 2;
+      const cyp = my + (dx / d) * arco * 2;
+      const pts = new Float64Array((N + 1) * 2);
+      for (let k = 0; k <= N; k++) {
+        const t = k / N;
+        const u = 1 - t;
+        pts[k * 2] = u * u * x0 + 2 * u * t * cxp + t * t * x1;
+        pts[k * 2 + 1] = u * u * y0 + 2 * u * t * cyp + t * t * y1;
+      }
+      return pts;
+    }
+
+    function puntoEn(pts, N, s) {
+      const q = Math.max(0, Math.min(1, s)) * N;
+      const i = Math.min(N - 1, Math.floor(q));
+      const t = q - i;
+      return [
+        pts[i * 2] + (pts[i * 2 + 2] - pts[i * 2]) * t,
+        pts[i * 2 + 1] + (pts[i * 2 + 3] - pts[i * 2 + 1]) * t,
+      ];
+    }
+
+    function trazar(g, pts, N) {
+      g.beginPath();
+      g.moveTo(pts[0], pts[1]);
+      for (let k = 1; k <= N; k++) g.lineTo(pts[k * 2], pts[k * 2 + 1]);
+    }
+
+    /** Radio del anillo exterior de cada nodo: por ahí arrancan y terminan las
+     *  aristas, para que no se metan debajo del glifo. */
+    function radio(n) {
+      if (n.tipo === "origen") return 44;
+      if (n.tipo === "corazon") return 36;
+      if (n.tipo === "horizonte") return 36;
+      return 29;
+    }
+
+    /** Punto del borde de un nodo mirando hacia (x,y). */
+    function borde(n, x, y) {
+      const dx = x - n.x;
+      const dy = y - n.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const r = radio(n);
+      return [n.x + (dx / d) * r, n.y + (dy / d) * r];
+    }
+
+    /* ─────────────────────────────────────────── las cuatro familias de arista
+     * El póster no dibuja un grafo genérico: dibuja CUATRO gestos distintos, y
+     * cada uno se lee a simple vista en la referencia.
+     *
+     *   1 TRAYECTORIA  — el abanico que sale de A hacia todo el campo.
+     *   2 RETORNO      — el abanico que baja de todo el campo al nudo de Y.
+     *   3 CORAZÓN      — los radios de M, que tocan a todos los demás nodos.
+     *   4 LATENTE      — la malla corta entre vecinos, punteada.
+     *
+     * Las tres primeras salen de las marcas del propio póster (ORIGIN COMMON
+     * NODE, Y CONVERGENT HORIZON, M OPTIONAL HEART). La cuarta es la trama que
+     * queda entre nodo y nodo, y se genera por proximidad: un umbral de 195 px
+     * reproduce la densidad de la referencia sin cruzar el campo de lado a lado.
+     */
+    const ARISTAS = (() => {
+      const r = azar(0x4a17);
+      const out = [];
+      const N = 40;
+
+      const empujar = (a, b, clase, arco, semilla) => {
+        const [x0, y0] = borde(a, b.x, b.y);
+        const [x1, y1] = borde(b, a.x, a.y);
+        const rr = azar(semilla);
+        const pts = curva(x0, y0, x1, y1, arco, N);
+        /* Cuentas sobre el recorrido: los nodos chicos que el póster siembra a
+           lo largo de cada camino. */
+        const cuentas = [];
+        const cuantas = clase === "latente" ? 2 + Math.floor(rr() * 4) : 3 + Math.floor(rr() * 7);
+        for (let k = 0; k < cuantas; k++) cuentas.push([0.1 + rr() * 0.8, 0.7 + rr() * 1.2]);
+        out.push({
+          a,
+          b,
+          clase,
+          pts,
+          N,
+          cuentas,
+          brillo: 0.14 + rr() * 0.24,
+          vel: 1 + Math.floor(rr() * 3),
+          fase0: rr(),
+          punta: clase !== "latente" && rr() < 0.42,
+          anillo: rr() < 0.3 ? [0.25 + rr() * 0.5, 2.4 + rr() * 3.2] : null,
+        });
+      };
+
+      /* 1 · trayectorias desde A. Se abren en abanico: el combado crece con la
+         distancia al eje horizontal de A, que es lo que abre la boca del haz. */
+      NODOS.forEach((n, i) => {
+        if (i === iA || i === iY) return;
+        const dy = n.y - A.y;
+        const arco = (dy / 260) * (26 + r() * 26);
+        empujar(A, n, "trayectoria", arco, 0x1000 + i * 37);
+      });
+
+      /* 2 · retorno: todo baja al nudo de Y. El combado se signa por el lado
+         del eje, así que las dos mitades del abanico se abren hacia afuera. */
+      const nudoNodo = { x: NUDO.x, y: NUDO.y, tipo: "nudo" };
+      NODOS.forEach((n, i) => {
+        if (i === iY) return;
+        /* Casi rectos. Con el combado alto que pedía el primer intento, los 24
+           caminos llegaban al nudo casi verticales y el abanico salía como un
+           pincel angosto; en el original se abre casi 180° porque cada rayo
+           entra al nudo con el ángulo real de su nodo. */
+        const lado = n.x < EJE_X ? -1 : 1;
+        const arco = lado * (2 + Math.abs(n.x - EJE_X) * 0.035 + r() * 5);
+        const [x0, y0] = borde(n, NUDO.x, NUDO.y);
+        const rr = azar(0x2000 + i * 53);
+        const pts = curva(x0, y0, NUDO.x, NUDO.y, arco, N);
+        const cuentas = [];
+        const cuantas = 2 + Math.floor(rr() * 5);
+        for (let k = 0; k < cuantas; k++) cuentas.push([0.08 + rr() * 0.84, 0.7 + rr() * 1.3]);
+        out.push({
+          a: n,
+          b: nudoNodo,
+          clase: "retorno",
+          pts,
+          N,
+          cuentas,
+          brillo: 0.15 + rr() * 0.23,
+          vel: 1 + Math.floor(rr() * 3),
+          fase0: rr(),
+          punta: false,
+          anillo: rr() < 0.24 ? [0.3 + rr() * 0.45, 2.2 + rr() * 2.8] : null,
+        });
+      });
+
+      /* 3 · radios del corazón. Casi rectos: el póster los tiene como rayos. */
+      NODOS.forEach((n, i) => {
+        if (i === iM) return;
+        empujar(M, n, "corazon", (r() - 0.5) * 9, 0x3000 + i * 71);
+      });
+
+      /* 4 · malla latente por proximidad. */
+      for (let i = 0; i < NODOS.length; i++) {
+        for (let j = i + 1; j < NODOS.length; j++) {
+          if (i === iM || j === iM || i === iA || j === iA || i === iY || j === iY) continue;
+          const d = Math.hypot(NODOS[i].x - NODOS[j].x, NODOS[i].y - NODOS[j].y);
+          if (d > 235) continue;
+          empujar(NODOS[i], NODOS[j], "latente", (r() - 0.5) * d * 0.22, 0x5000 + i * 101 + j);
+        }
+      }
+
+      return out;
+    })();
+
+    /* ────────────────────────────────────────────────────────────── lienzos */
+    const cFondo = raiz.querySelector('[data-capa="fondo"]');
+    const cVivo = raiz.querySelector('[data-capa="vivo"]');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(cFondo);
+    const gv = preparar(cVivo);
+
+    const SERIF = '500 %Fpx "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif';
+    const serif = (px) => SERIF.replace("%F", px);
+
+    /* ───────────────────────────────────────────────────── la envolvente
+     * El campo tiene forma de gota: se abre desde el vértice de C, alcanza su
+     * máximo a la altura de M y se cierra en punta sobre el nudo de Y. El
+     * semiancho está medido por bandas sobre el original. */
+    const PERFIL = [
+      [258, 52], [300, 190], [350, 252], [430, 300], [520, 326],
+      [630, 340], [740, 330], [850, 300], [950, 254], [1030, 188],
+      [1090, 104], [1136, 0],
+    ].map(([gy, hw]) => [gy - OY, hw]);
+
+    function semiancho(y) {
+      if (y <= PERFIL[0][0]) return 0;
+      for (let i = 1; i < PERFIL.length; i++) {
+        if (y <= PERFIL[i][0]) {
+          const [y0, w0] = PERFIL[i - 1];
+          const [y1, w1] = PERFIL[i];
+          const t = (y - y0) / (y1 - y0);
+          return w0 + (w1 - w0) * t;
+        }
+      }
+      return 0;
+    }
+
+    function envolvente(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const capas = [
+        [1.0, 0.3, 0.9],
+        [0.95, 0.11, 0.65],
+        [0.86, 0.08, 0.6],
+      ];
+      for (const [k, alfa, grosor] of capas) {
+        for (const s of [-1, 1]) {
+          g.beginPath();
+          let primero = true;
+          for (let y = PERFIL[0][0]; y <= PERFIL[PERFIL.length - 1][0]; y += 4) {
+            const x = EJE_X + s * semiancho(y) * k;
+            primero ? ((g.moveTo(x, y)), (primero = false)) : g.lineTo(x, y);
+          }
+          g.strokeStyle = tinta(k === 1 ? LUZ : HONDO, alfa);
+          g.lineWidth = grosor;
+          g.stroke();
+        }
+      }
+      g.restore();
+    }
+
+    /* ─────────────────────────────────────────────────────────── el polvo */
+    function polvo(g) {
+      const r = azar(0x6d0b);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 1250; i++) {
+        /* Suma de tres uniformes ≈ campana: la mota se apiña sobre el campo. */
+        const x = EJE_X + (r() + r() + r() - 1.5) * 300;
+        const y = 400 + (r() + r() + r() - 1.5) * 420;
+        if (x < 4 || x > W - 4 || y < 4 || y > H - 4) continue;
+        /* El polvo vive DENTRO de la gota. Sin este recorte se cuela sobre
+           COMMON ORIGIN y RELATION FIELD, donde la referencia tiene negro puro
+           y el banco lo cobra como mota de más en un panel de texto. */
+        if (Math.abs(x - EJE_X) > semiancho(y) * 1.06 + 10) continue;
+        const rad = 0.45 + r() * 0.85;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.fillStyle = tinta(r() < 0.28 ? NUCLEO : LUZ, 0.16 + r() * 0.58);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ───────────────────────────────────────────── trazas de las aristas */
+    /* Las cuatro familias se distinguen POR EL TRAZO, no por el color, y eso lo
+       declara la propia LEGEND del póster: trayectoria llena, latente punteada,
+       potencial rayada, retorno de trazo pesado. Ampliar el campo a ×3 confirma
+       que casi todo el tejido es punteado con cuentas, no línea continua: con
+       todo macizo el grafo se lee como un diagrama de cableado. */
+    const TRAZO = {
+      trayectoria: { color: LUZ, w: 0.7, k: 0.95, dash: null },
+      retorno: { color: ARO, w: 0.65, k: 0.85, dash: [1.8, 3.2] },
+      corazon: { color: ARO, w: 0.6, k: 0.7, dash: [1.5, 3.4] },
+      latente: { color: HONDO, w: 0.6, k: 0.7, dash: [1.2, 4.4] },
+    };
+
+    function aristasBase(g) {
+      const r = azar(0x3f27);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const e of ARISTAS) {
+        const t = TRAZO[e.clase];
+        trazar(g, e.pts, e.N);
+        g.setLineDash(t.dash || []);
+        g.strokeStyle = tinta(t.color, e.brillo * t.k);
+        g.lineWidth = t.w;
+        g.stroke();
+        g.setLineDash([]);
+
+        for (const [s, rad] of e.cuentas) {
+          const [x, y] = puntoEn(e.pts, e.N, s);
+          g.beginPath();
+          g.arc(x, y, rad, 0, TAU);
+          g.fillStyle = tinta(r() < 0.34 ? NUCLEO : LUZ, 0.42 + r() * 0.55);
+          g.fill();
+        }
+        if (e.anillo) {
+          const [s, rad] = e.anillo;
+          const [x, y] = puntoEn(e.pts, e.N, s);
+          g.beginPath();
+          g.arc(x, y, rad, 0, TAU);
+          g.strokeStyle = tinta(LUZ, 0.34);
+          g.lineWidth = 0.7;
+          g.stroke();
+        }
+        /* Punta de flecha: en la referencia sólo algunas trayectorias la
+           llevan, y siempre del lado de llegada. */
+        if (e.punta) {
+          const [x1, y1] = puntoEn(e.pts, e.N, 0.985);
+          const [x0, y0] = puntoEn(e.pts, e.N, 0.93);
+          const a = Math.atan2(y1 - y0, x1 - x0);
+          g.beginPath();
+          g.moveTo(x1, y1);
+          g.lineTo(x1 - Math.cos(a - 0.42) * 6.5, y1 - Math.sin(a - 0.42) * 6.5);
+          g.moveTo(x1, y1);
+          g.lineTo(x1 - Math.cos(a + 0.42) * 6.5, y1 - Math.sin(a + 0.42) * 6.5);
+          g.strokeStyle = tinta(LUZ, 0.44);
+          g.lineWidth = 0.85;
+          g.stroke();
+        }
+      }
+      g.restore();
+    }
+
+    /* ────────────────────────────────────────────────────── ejes y crucetas */
+    function ejes(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      /* Eje vertical del campo, de C al nudo. */
+      g.setLineDash([1.4, 5]);
+      g.beginPath();
+      g.moveTo(EJE_X, 258 - OY);
+      g.lineTo(EJE_X, NUDO.y);
+      g.strokeStyle = tinta(LUZ, 0.34);
+      g.lineWidth = 0.9;
+      g.stroke();
+      /* Cruceta de A: el original la tiene y es lo que lo marca como origen. */
+      g.beginPath();
+      g.moveTo(A.x - 96, A.y);
+      g.lineTo(A.x + 108, A.y);
+      g.moveTo(A.x, A.y - 96);
+      g.lineTo(A.x, A.y + 96);
+      g.strokeStyle = tinta(LUZ, 0.3);
+      g.lineWidth = 0.9;
+      g.stroke();
+      g.setLineDash([]);
+      g.restore();
+    }
+
+    /* ──────────────────────────────────────────────────────────── los nodos */
+
+    /** Anillo con tics: la unidad de instrumento que se repite en cada nodo. */
+    function anillo(g, cx, cy, r, alfa, grosor, dash) {
+      g.beginPath();
+      g.arc(cx, cy, r, 0, TAU);
+      g.setLineDash(dash || []);
+      g.strokeStyle = tinta(ARO, alfa);
+      g.lineWidth = grosor;
+      g.stroke();
+      g.setLineDash([]);
+    }
+
+    /** Cuentas repartidas sobre una circunferencia. */
+    function cuentasAnillo(g, cx, cy, r, n, rad, alfa, fase) {
+      for (let i = 0; i < n; i++) {
+        const a = fase + (i / n) * TAU;
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, rad, 0, TAU);
+        g.fillStyle = tinta(NUCLEO, alfa);
+        g.fill();
+      }
+    }
+
+    /** Corazón de línea, centrado en el origen; caja nativa ≈18,2×14,4. Es el
+     *  mismo trazo que usa la u02 en RELATION SELECTED. */
+    function corazon(g, cx, cy, k) {
+      const P = [
+        [0, 7.2], [-1.4, 4.4, -5.4, 2.8, -7.2, 0], [-9.1, -3.1, -6.7, -7.2, -3.3, -7.2],
+        [-1.4, -7.2, -0.4, -6.1, 0, -5], [0.4, -6.1, 1.4, -7.2, 3.3, -7.2],
+        [6.7, -7.2, 9.1, -3.1, 7.2, 0], [5.4, 2.8, 1.4, 4.4, 0, 7.2],
+      ];
+      g.beginPath();
+      g.moveTo(cx + P[0][0] * k, cy + P[0][1] * k);
+      for (let i = 1; i < P.length; i++) {
+        const c = P[i];
+        g.bezierCurveTo(
+          cx + c[0] * k, cy + c[1] * k,
+          cx + c[2] * k, cy + c[3] * k,
+          cx + c[4] * k, cy + c[5] * k,
+        );
+      }
+      g.closePath();
+    }
+
+    function nodos(g) {
+      const r = azar(0x77af);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+
+      for (const n of NODOS) {
+        if (n.tipo === "corazon") continue; // el corazón lo pinta la capa viva
+
+        if (n.tipo === "origen") {
+          /* A: pila de anillos concéntricos, medidos en el perfil radial del
+             original (bumps en 40, 47, 55, 62 y 72). */
+          /* Casi todos punteados: ampliado a ×3, el original no tiene un solo
+             anillo macizo alrededor de A — son coronas de puntos y de trazos
+             cortos. Con anillos llenos, A se lee como una diana de tiro. */
+          const pila = [
+            [26, 0.14, 0.6, [1.2, 2.6]], [32, 0.14, 0.6, [1.2, 2.6]],
+            [38, 0.3, 0.8, [2.4, 2.2]], [48.5, 0.42, 0.9, null],
+            [51.5, 0.26, 0.7, [1.4, 2.6]], [58, 0.22, 0.7, [2, 3]],
+            [66, 0.34, 0.85, [3, 2.4]], [73, 0.14, 0.65, [1.6, 3.4]],
+            [82, 0.11, 0.6, [1.4, 5]], [95, 0.08, 0.6, [1.2, 6]],
+          ];
+          for (const [rr, al, gr, dash] of pila) anillo(g, n.x, n.y, rr, al, gr, dash);
+          cuentasAnillo(g, n.x, n.y, 38, 16, 1.0, 0.5, 0);
+          cuentasAnillo(g, n.x, n.y, 48.5, 22, 0.9, 0.42, 0.13);
+          cuentasAnillo(g, n.x, n.y, 66, 28, 0.8, 0.34, 0.05);
+        } else if (n.tipo === "horizonte") {
+          anillo(g, n.x, n.y, 32.5, 0.46, 1.0, null);
+          anillo(g, n.x, n.y, 27, 0.22, 0.7, [1.4, 2.6]);
+          anillo(g, n.x, n.y, 42.5, 0.24, 0.75, [1.6, 3.6]);
+          cuentasAnillo(g, n.x, n.y, 32.5, 20, 0.95, 0.5, 0.08);
+          cuentasAnillo(g, n.x, n.y, 42.5, 28, 0.75, 0.3, 0);
+        } else {
+          /* Nodo normal: el perfil medido da anillo tenue en 21, principal en
+             27 y corona punteada en 33. Los tres, siempre. */
+          anillo(g, n.x, n.y, 21, 0.2, 0.6, [1.1, 2.2]);
+          anillo(g, n.x, n.y, 27, 0.44, 0.85, null);
+          anillo(g, n.x, n.y, 33, 0.2, 0.65, [1.5, 3.4]);
+          cuentasAnillo(g, n.x, n.y, 27, 12, 0.95, 0.6, r() * 0.5);
+          cuentasAnillo(g, n.x, n.y, 33, 18, 0.7, 0.34, r() * 0.4);
+        }
+
+        /* La letra. Cuerpos medidos sobre la caja de tinta del original:
+           versal 21 px en los nodos normales, 30 en Y y 36 en A. */
+        const cuerpo = n.tipo === "origen" ? 53 : n.tipo === "horizonte" ? 45 : 34;
+        g.font = serif(cuerpo);
+        /* +2 px: la caja de tinta del original cae 2 px por debajo del centro
+           del anillo en los tres nodos que se midieron (C, O, B). */
+        const yl = n.y + 2;
+        g.fillStyle = tinta(NUCLEO, n.tipo === "n" ? 0.9 : 0.95);
+        g.fillText(n.letra, n.x, yl);
+        /* Un trazo fino encima engorda la versal sin cambiar de fuente. Con el
+           relleno solo, la mancha da 70 px de tinta contra los 105 del original;
+           con el trazo, 100. */
+        g.strokeStyle = tinta(NUCLEO, 0.55);
+        g.lineWidth = 0.9;
+        g.strokeText(n.letra, n.x, yl);
+      }
+
+      g.restore();
+    }
+
+    /* ───────────────────────────────────────────────── glifos de estado
+     * El póster siembra el campo con las marcas que su propia LEGEND declara:
+     * × de "mutated revisit", anillos punteados de "latent node" y puntos con
+     * halo de "visited". Van sobre las aristas, no al azar por el lienzo. */
+    function glifos(g) {
+      const r = azar(0x1d3f);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const e of ARISTAS) {
+        if (r() > 0.34) continue;
+        const [x, y] = puntoEn(e.pts, e.N, 0.2 + r() * 0.6);
+        const clase = r();
+        if (clase < 0.36) {
+          const k = 3 + r() * 1.6;
+          g.beginPath();
+          g.moveTo(x - k, y - k);
+          g.lineTo(x + k, y + k);
+          g.moveTo(x + k, y - k);
+          g.lineTo(x - k, y + k);
+          g.strokeStyle = tinta(NUCLEO, 0.4 + r() * 0.3);
+          g.lineWidth = 0.85;
+          g.stroke();
+        } else if (clase < 0.72) {
+          const rr = 3.2 + r() * 2.4;
+          g.setLineDash([1, 2.2]);
+          g.beginPath();
+          g.arc(x, y, rr, 0, TAU);
+          g.strokeStyle = tinta(LUZ, 0.42 + r() * 0.25);
+          g.lineWidth = 0.8;
+          g.stroke();
+          g.setLineDash([]);
+        } else {
+          g.beginPath();
+          g.arc(x, y, 3.4 + r() * 1.4, 0, TAU);
+          g.strokeStyle = tinta(LUZ, 0.4);
+          g.lineWidth = 0.75;
+          g.stroke();
+          g.beginPath();
+          g.arc(x, y, 1.15, 0, TAU);
+          g.fillStyle = tinta(NUCLEO, 0.8);
+          g.fill();
+        }
+      }
+      g.restore();
+    }
+
+    /* ─────────────────────────────────────────────────────────── lo vivo */
+
+    function estrella(g, x, y, rad, a) {
+      const grd = g.createRadialGradient(x, y, 0, x, y, rad * 3.6);
+      grd.addColorStop(0, tinta(NUCLEO, a));
+      grd.addColorStop(0.22, tinta(LUZ, a * 0.5));
+      grd.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(x, y, rad * 3.6, 0, TAU);
+      g.fill();
+    }
+
+    /* Los radios finos del halo de M: 48 rayos, longitud despareja. */
+    const RAYOS_M = (() => {
+      const r = azar(0x2b19);
+      return Array.from({ length: 48 }, (_, i) => [
+        (i / 48) * TAU,
+        42 + r() * 62,
+        0.07 + r() * 0.17,
+      ]);
+    })();
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* 1 · el corazón. Es lo único encendido de verdad en toda la lámina, y en
+         la referencia domina el centro: un núcleo blanco, un halo violeta ancho
+         y una pila de anillos que respira. */
+      const pulso = 0.82 + 0.18 * Math.sin(ang);
+      /* El perfil radial del original no es una bola de luz: es una CORONA.
+         Medido, la luminancia media por anillo vale ~60 en r<22 (que es la
+         letra), CAE a ~28 entre 27 y 37, VUELVE a subir hasta 70 entre 42 y 67
+         y recién ahí se apaga. Un degradado con el máximo en el centro —que es
+         lo que sale «a ojo»— da 155 en el núcleo y 35 en la corona: justo al
+         revés. Por eso van dos degradados, uno de base y otro de corona. */
+      const base = g.createRadialGradient(M.x, M.y, 0, M.x, M.y, 150);
+      base.addColorStop(0, tinta(LUZ, 0.09 * pulso));
+      base.addColorStop(0.12, tinta(LUZ, 0.055 * pulso));
+      base.addColorStop(0.22, tinta(LUZ, 0.022 * pulso));
+      base.addColorStop(0.42, tinta(LUZ, 0.022 * pulso));
+      base.addColorStop(0.55, tinta(LUZ, 0.012 * pulso));
+      base.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = base;
+      g.beginPath();
+      g.arc(M.x, M.y, 150, 0, TAU);
+      g.fill();
+
+      const corona = g.createRadialGradient(M.x, M.y, 0, M.x, M.y, 150);
+      corona.addColorStop(0, tinta(LUZ, 0));
+      corona.addColorStop(0.2, tinta(LUZ, 0.02));
+      corona.addColorStop(0.27, tinta(LUZ, 0.23 * pulso));
+      corona.addColorStop(0.32, tinta(LUZ, 0.34 * pulso));
+      corona.addColorStop(0.39, tinta(LUZ, 0.34 * pulso));
+      corona.addColorStop(0.45, tinta(LUZ, 0.22 * pulso));
+      corona.addColorStop(0.52, tinta(LUZ, 0.07 * pulso));
+      corona.addColorStop(0.62, tinta(LUZ, 0.015));
+      corona.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = corona;
+      g.beginPath();
+      g.arc(M.x, M.y, 150, 0, TAU);
+      g.fill();
+
+      for (const [a, l, al] of RAYOS_M) {
+        g.beginPath();
+        g.moveTo(M.x + Math.cos(a) * 22, M.y + Math.sin(a) * 22);
+        g.lineTo(M.x + Math.cos(a) * l, M.y + Math.sin(a) * l);
+        g.strokeStyle = tinta(LUZ, al * 1.5 * (0.7 + 0.3 * Math.sin(ang * 2 + a * 3)));
+        g.lineWidth = 0.75;
+        g.stroke();
+      }
+
+      /* Los anillos siguen la misma corona: apretados y brillantes entre 42 y
+         68, sueltos y tenues fuera. El de 92 está en el original y es el que
+         cierra el halo. */
+      const ANILLOS_M = [
+        [26, 0.06], [32, 0.07], [37, 0.09], [42, 0.26], [47, 0.34],
+        [52, 0.3], [57, 0.34], [62, 0.22], [67, 0.2], [74, 0.05],
+        [82, 0.04], [92, 0.2], [104, 0.05],
+      ];
+      for (let i = 0; i < ANILLOS_M.length; i++) {
+        const [rr, a0] = ANILLOS_M[i];
+        const a = a0 * (0.75 + 0.25 * Math.sin(ang * 2 + i * 0.7));
+        g.beginPath();
+        g.arc(M.x, M.y, rr, 0, TAU);
+        g.strokeStyle = tinta(LUZ, Math.max(0, a));
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+
+      /* La M y el corazón: el póster los apila sobre el mismo eje, la letra 16
+         px por encima del centro del halo y el corazón 20 por debajo. */
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+      g.font = serif(50);
+      g.fillStyle = tinta(NUCLEO, 0.95);
+      g.fillText("M", M.x, M.y - 16);
+      g.strokeStyle = tinta(NUCLEO, 0.3);
+      g.lineWidth = 0.9;
+      g.strokeText("M", M.x, M.y - 16);
+      corazon(g, M.x, M.y + 20, 1.15);
+      g.fillStyle = tinta(NUCLEO, 0.5 + 0.3 * pulso);
+      g.fill();
+      corazon(g, M.x, M.y + 20, 1.7);
+      g.strokeStyle = tinta(LUZ, 0.55);
+      g.lineWidth = 1.1;
+      g.stroke();
+
+      /* 2 · paquetes que viajan por las aristas. La envolvente sin(π·p) vale 0
+         en los dos extremos, así que el ciclo cierra sin costura. */
+      for (const e of ARISTAS) {
+        if (e.clase === "latente") continue;
+        const p = (fase * e.vel + e.fase0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.04) continue;
+        const s0 = Math.max(0, p - 0.06);
+        const s1 = Math.min(1, p + 0.06);
+        const k0 = Math.floor(s0 * e.N);
+        const k1 = Math.ceil(s1 * e.N);
+        g.beginPath();
+        const [ax, ay] = puntoEn(e.pts, e.N, s0);
+        g.moveTo(ax, ay);
+        for (let k = k0 + 1; k < k1; k++) g.lineTo(e.pts[k * 2], e.pts[k * 2 + 1]);
+        const [bx, by] = puntoEn(e.pts, e.N, s1);
+        g.lineTo(bx, by);
+        g.strokeStyle = tinta(NUCLEO, 0.44 * env);
+        g.lineWidth = 1.3;
+        g.stroke();
+        const [hx, hy] = puntoEn(e.pts, e.N, p);
+        estrella(g, hx, hy, 1.7, 0.62 * env);
+      }
+
+      /* 3 · el nudo de Y: donde el abanico de retorno se cierra. */
+      const respiro = 0.7 + 0.3 * Math.sin(ang * 2);
+      estrella(g, NUDO.x, NUDO.y, 7.2, 0.9 * respiro);
+      const flash = g.createLinearGradient(NUDO.x - 70, 0, NUDO.x + 70, 0);
+      flash.addColorStop(0, tinta(LUZ, 0));
+      flash.addColorStop(0.5, tinta(NUCLEO, 0.4 * respiro));
+      flash.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = flash;
+      g.fillRect(NUDO.x - 70, NUDO.y - 0.8, 140, 1.6);
+
+      /* 4 · pulso de nodo: cada uno respira con su propio desfase, atado a la
+         fase por un múltiplo entero para que el ciclo cierre. */
+      for (const n of NODOS) {
+        if (n.tipo === "corazon") continue;
+        const p = 0.5 + 0.5 * Math.sin(ang * 2 + n.i * 0.83);
+        const rr = n.tipo === "origen" ? 40 : n.tipo === "horizonte" ? 32.5 : 27;
+        g.beginPath();
+        g.arc(n.x, n.y, rr, 0, TAU);
+        g.strokeStyle = tinta(ARO, 0.1 + 0.14 * p);
+        g.lineWidth = 1.2;
+        g.stroke();
+      }
+
+      /* 5 · A late como origen: un anillo que se expande y se apaga. */
+      for (let i = 0; i < 3; i++) {
+        const p = (fase + i / 3) % 1;
+        const rr = 26 + p * 78;
+        const a = 0.3 * (1 - p) * Math.min(1, p * 6);
+        g.beginPath();
+        g.arc(A.x, A.y, rr, 0, TAU);
+        g.strokeStyle = tinta(NUCLEO, a);
+        g.lineWidth = 1.1;
+        g.stroke();
+      }
+
+      g.restore();
+    }
+
+    /* ─────────────────────────────────────────────────────────── montaje */
+    function pintarFondo(g) {
+      g.clearRect(0, 0, W, H);
+      polvo(g);
+      envolvente(g);
+      ejes(g);
+      aristasBase(g);
+      glifos(g);
+      nodos(g);
+    }
+    pintarFondo(gf);
+
+    /* Las letras van en Cormorant: hasta que la fuente resuelve, el canvas
+       dibuja con la serif del sistema. Se repinta el estático cuando llega. */
+    if (document.fonts && document.fonts.load) {
+      Promise.all([
+        document.fonts.load(serif(34), "ABCM"),
+        document.fonts.load(serif(53), "A"),
+        document.fonts.load(serif(45), "Y"),
+      ])
+        .then(() => pintarFondo(gf))
+        .catch(() => {});
+    }
+
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    /* Menos movimiento = ritmo más lento, no congelado. */
+    const PERIODO = reducido ? 46000 : 13000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    /* `detenido` no es redundante con cancelAnimationFrame: si el congelado cae
+       mientras corre el callback, éste vuelve a pedir cuadro y el bucle
+       sobrevive al freeze. La bandera se lee DENTRO del callback y corta. */
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (entradas) => {
+          visible = entradas.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* El banco captura con animations:disabled, y eso NO congela un canvas con
+       su propio rAF. Por eso el sumidero: fija el cuadro pedido y apaga el
+       bucle. Se registra en la bolsa compartida para que los demás bloques de
+       la lámina cuelguen del mismo __kdxFreeze. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      /* El estático se repinta también acá. No es redundante: en una carga fría
+         la promesa de `document.fonts.load` puede resolver DESPUÉS de la captura
+         y dejar dos corridas de la misma página con letras distintas (serif del
+         sistema en una, Cormorant en la otra). Se vio: 17.338 píxeles de
+         diferencia entre dos capturas que debían ser idénticas. */
+      pintarFondo(gf);
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    /* Registro con reintento: Astro empaqueta el script de la página y el del
+       componente por separado y no garantiza el orden. */
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>

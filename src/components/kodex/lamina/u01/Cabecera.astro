@@ -1,0 +1,417 @@
+---
+/**
+ * KODEX-∞ · u01-origin-field · CABECERA
+ *
+ * Franja superior (y=0..250) + el marco y los dos rieles que corren de canto a
+ * canto. Todo trazado en SVG por código: ni un bitmap.
+ *
+ * Comparte diseño con `u02/Cabecera.astro` —misma serie, misma regla
+ * `KODEX-∞ UNIVERSE · OBSERVE. DECIPHER. TRANSCEND.`, mismo hexágono— pero las
+ * coordenadas NO se heredaron: se volvieron a barrer sobre
+ * `reference/canon/u01-origin-field.png` (1122×1402) y hay diferencias que se
+ * ven midiendo y no a ojo:
+ *
+ *  · el marco de u01 es MÁS ANCHO. Vertical izquierda en x=12,5 contra 13,5 de
+ *    u02, y derecha en x=1109,5 contra 1106,5 — tres píxeles de luz de más.
+ *    El marco interior repite el corrimiento: 54,5 / 1066,5 contra 55,5 /
+ *    1063,5. Copiar la cabecera de u02 tal cual deja el marco entero dos
+ *    píxeles adentro y eso el banco lo ve en las cuatro esquinas.
+ *  · el eje de la lámina cae en 561 (media de las dos verticales del marco), no
+ *    en 560 como en u02.
+ *  · la regla superior es idéntica en tinta y en tracking: "KODEX-∞ UNIVERSE"
+ *    arranca en x=64 con avance de 11,6 px por carácter y
+ *    "OBSERVE. DECIPHER. TRANSCEND." cierra en x=1060.
+ *  · el título: KODEX mide 55 px de versal (y=113..167) y ORIGIN FIELD mide 50
+ *    (y=115..164). Igual que en u02, NO tienen el mismo cuerpo, y la segunda
+ *    palabra además viene condensada. Los tramos de tinta medidos son
+ *    KODEX x=91..404 · guion x=411..435 · ∞ x=454..520 · barra x=548..569 ·
+ *    ORIGIN FIELD x=593..1043. Los tres primeros coinciden con u02 al píxel
+ *    —la palabra KODEX está compuesta igual en las dos páginas— y a partir de
+ *    la barra se separan.
+ *  · la bajada NO es la de u02: acá el rótulo central tiene 53 caracteres con
+ *    avance de 9,25 px (contra 21 caracteres de cuerpo 22 en u02), así que va
+ *    con cuerpo 13,7 y no con 22. Puesto al cuerpo de u02 la frase sale
+ *    doscientos píxeles larga.
+ *
+ * El texto va con `textLength` y no con `letter-spacing`: la mono y la serif
+ * del póster no existen en ninguna máquina, así que el avance no se hereda.
+ * `textLength` clava el extremo de tinta donde lo tiene la referencia sea cual
+ * sea la fuente que resuelva.
+ *
+ * Nada de esto usa Math.random(): las tramas de puntos y los glifos de riel son
+ * listas explícitas y las estrellas salen de una función de rayos determinista.
+ */
+import "@fontsource/cormorant-garamond/300.css";
+import "@fontsource/cormorant-garamond/400.css";
+import "@fontsource/cormorant-garamond/500.css";
+
+/* ── helpers de dibujo, todos deterministas ─────────────────────────────── */
+
+/** Estrella de n rayos desde el centro: el glifo que más se repite en los rieles. */
+const rayos = (cx: number, cy: number, r: number, n: number, fase = 0): string =>
+  Array.from({ length: n }, (_, i) => {
+    const a = fase + (i * Math.PI * 2) / n;
+    return `M${cx} ${cy}L${(cx + r * Math.cos(a)).toFixed(2)} ${(cy + r * Math.sin(a)).toFixed(2)}`;
+  }).join("");
+
+/**
+ * Lemniscata de exhibición (curva de Gerono):
+ *      x = a·cos t          y = (b/2)·sen 2t
+ * Se traza como UNA curva cerrada que se cruza a sí misma en el centro, y va
+ * contorneada, no rellena. Dos anillos elípticos con `fill-rule="evenodd"` NO
+ * sirven: dan dos circunferencias con una costura vertical en el medio, y el ∞
+ * del póster cruza en diagonal, que es lo que una paramétrica sí produce.
+ *
+ * `a` es el semieje horizontal de la línea media y `b` la altura total de esa
+ * misma línea media: al ancho y alto de tinta medidos hay que descontarles el
+ * grosor del trazo antes de pasarlos acá.
+ */
+const lemniscata = (cx: number, cy: number, a: number, b: number, pasos = 96): string =>
+  Array.from({ length: pasos }, (_, i) => {
+    const t = (i / pasos) * Math.PI * 2;
+    const x = (cx + a * Math.cos(t)).toFixed(2);
+    const y = (cy + (b / 2) * Math.sin(2 * t)).toFixed(2);
+    return `${i ? "L" : "M"}${x} ${y}`;
+  }).join("") + "Z";
+
+/** Rombo hueco de los separadores. */
+const rombo = (cx: number, cy: number, w: number, h: number): string =>
+  `M${cx} ${cy - h / 2}L${cx + w / 2} ${cy}L${cx} ${cy + h / 2}L${cx - w / 2} ${cy}Z`;
+
+/* ── marco exterior ─────────────────────────────────────────────────────── */
+/* Verticales medidas en x=12,5 y x=1109,5; reglas en y=12,5 y y=1388. Las
+   cuatro esquinas son un chaflán a 45° de 14 px, no un ángulo recto. */
+const MARCO_I = 12.5;
+const MARCO_D = 1109.5;
+const chaflanes = [
+  `M${MARCO_I} 26.5L29 12.5`,
+  `M1093 12.5L${MARCO_D} 26.5`,
+  `M${MARCO_D} 1374.5L1093 1388.5`,
+  `M26.5 1388.5L${MARCO_I} 1374.5`,
+];
+
+/* Los rieles no son una línea continua: alternan tramos macizos y tramos de
+   puntos. En u01 el tramo central es mucho más largo que en u02 —de y=403 a
+   y=778 a la izquierda y de y=356 a y=800 a la derecha— y eso cambia el peso
+   del canto. [y0, y1, macizo?] */
+const rielIzq: [number, number, boolean][] = [
+  [40, 76, true], [99, 206, false], [238, 295, false], [307, 398, false],
+  [403, 778, true], [789, 940, false], [954, 1243, true],
+  [1248, 1318, false], [1319, 1388, true],
+];
+const rielDer: [number, number, boolean][] = [
+  [39, 75, true], [83, 224, false], [241, 350, false], [356, 800, true],
+  [837, 1243, true], [1248, 1316, false], [1317, 1386, true],
+];
+
+/* ── glifos de riel ─────────────────────────────────────────────────────── */
+const EJE_I = 12.5;
+const EJE_D = 1109.5;
+
+const puntosIzq = [218, 789, 835, 845, 850, 862, 892, 898, 917, 954];
+const puntosDer = [208, 583, 619, 634, 798, 807];
+
+/* ── regla superior ─────────────────────────────────────────────────────── */
+const puntosRegla = [269, 328, 344];
+const nodosRegla = [511, 606, 777];
+---
+
+<div data-bloque="Cabecera" style="inset:0">
+  <svg
+    class="cab"
+    viewBox="0 0 1122 1402"
+    width="1122"
+    height="1402"
+    role="img"
+    aria-label="KODEX-∞ / ORIGIN FIELD — página 01 · Before language, the signal // before form, potential."
+  >
+    <defs>
+      <!-- El título de u01 NO es violeta como el de u02: medido sobre los 60
+           píxeles más brillantes da rgb(228,225,219), un gris cálido casi
+           neutro. Se degrada del hombro al pie de las astas ~15 %. -->
+      <linearGradient id="u01TitGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#eeece6" />
+        <stop offset="0.45" stop-color="#dcd9d2" />
+        <stop offset="1" stop-color="#b2afa8" />
+      </linearGradient>
+      <filter id="u01Halo" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="1.1" result="b" />
+        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+
+    <!-- ═══ 1 · MARCO EXTERIOR ═══════════════════════════════════════════ -->
+    <g class="cab__marco">
+      <!-- La regla superior se parte para dejar pasar el hexágono (hueco medido
+           x=502..612). La inferior corre de 40 a 1090 y va más tenue. -->
+      <path d="M30 12.5H502M613 12.5H1092" />
+      <path class="cab__marco--tenue" d="M40 1388H1090" />
+      <path class="cab__marco--fantasma" d={`M${MARCO_I} 26.5V1374.5M${MARCO_D} 26.5V1374.5`} />
+      {chaflanes.map((d) => <path d={d} />)}
+    </g>
+
+    <g class="cab__nodo">
+      <circle cx="509.5" cy="12.5" r="2" />
+      <circle cx="613.5" cy="12.5" r="2" />
+    </g>
+
+    <!-- Marco interior: verticales continuas más las dos escuadras en L de la
+         boca. No lleva travesaño superior. -->
+    <g class="cab__interior">
+      <path d="M54.5 64V1258M1066.5 64V1258" />
+      <path class="cab__interior--esq" d="M54.5 76.5H88.5M1066.5 76.5H1032.5" />
+    </g>
+
+    <!-- ═══ 2 · REGLA SUPERIOR ═══════════════════════════════════════════ -->
+    <g class="cab__cruz" filter="url(#u01Halo)">
+      <path d="M40 39L41.3 42.2L44.5 43.5L41.3 44.8L40 48L38.7 44.8L35.5 43.5L38.7 42.2Z" />
+      <path d="M1082 39L1083.3 42.2L1086.5 43.5L1083.3 44.8L1082 48L1080.7 44.8L1077.5 43.5L1080.7 42.2Z" />
+    </g>
+
+    <text class="cab__regla" x="63.6" y="47.5" textLength="187" lengthAdjust="spacing">KODEX-∞ UNIVERSE</text>
+    <text class="cab__regla cab__regla--der" x="802.6" y="47.5" textLength="257.5" lengthAdjust="spacing">OBSERVE. DECIPHER. TRANSCEND.</text>
+
+    <g class="cab__nodo">
+      {puntosRegla.map((x) => <circle cx={x} cy="43.5" r="1.6" />)}
+      {nodosRegla.map((x) => <circle cx={x} cy="43.5" r="2" />)}
+    </g>
+
+    <!-- Las reglas que corren hacia el hexágono son CONTINUAS en u01 (medido:
+         tinta ininterrumpida de x=366 a 506 y de 616 a 779 con luminancia 30-45),
+         mientras que en u02 son un punteado 17/3. -->
+    <path class="cab__punteo" d="M351 43.5H360M366 43.5H506M616 43.5H779" />
+
+    <g class="cab__hex">
+      <path class="cab__hex-borde" d="M561.5 17L585.5 30V53L561.5 66L537.5 53V30Z" />
+      <path class="cab__hex-tic" d="M538 28.5h4M581 28.5h4M538 54.5h4M581 54.5h4" />
+      <path class="cab__hex-tallo" d="M561.5 65.5V71" />
+      <path class="cab__inf" filter="url(#u01Halo)" d={lemniscata(561.5, 42, 12.95, 10.4)} />
+    </g>
+
+    <!-- ═══ 3 · TÍTULO ═══════════════════════════════════════════════════ -->
+    <g class="cab__titulo">
+      <!-- KODEX — versal 55 px, base y=167, tinta x=91..404. Idéntico a u02. -->
+      <text x="87.7" y="167" font-size="88" textLength="319" lengthAdjust="spacingAndGlyphs">KODEX</text>
+      <!-- El guion va como figura: 25×3,8, apoyado en y=139. -->
+      <rect x="411" y="139" width="25" height="3.8" />
+      <!-- ∞ de exhibición, x=454..520 · y=126..156. Contorneado. -->
+      <path class="cab__tit-inf" d={lemniscata(487, 141, 31.2, 25.8)} />
+      <!-- La barra de u01 es una BARRA INCLINADA de verdad —tinta de (568,112)
+           a (548,167), grosor 4,5— y no el cuadrilátero casi vertical de u02. -->
+      <path d="M566.9 111.5L571.4 111.5L552.1 167.5L547.6 167.5Z" />
+      <!-- ORIGIN FIELD — versal 50 px, base y=164,5, tinta x=593..1043. -->
+      <text x="592" y="164.5" font-size="80" textLength="453" lengthAdjust="spacingAndGlyphs">ORIGIN FIELD</text>
+    </g>
+
+    <!-- ═══ 4 · LÍNEA BAJO EL TÍTULO ═════════════════════════════════════ -->
+    <text class="cab__sig" x="91.5" y="214" textLength="71" lengthAdjust="spacing">A / -∞</text>
+    <text class="cab__lema" x="320.5" y="213.5" textLength="486" lengthAdjust="spacing">BEFORE LANGUAGE, THE SIGNAL // BEFORE FORM, POTENTIAL</text>
+    <text class="cab__pag" x="973.5" y="213.5" textLength="60" lengthAdjust="spacing">PAGE 01</text>
+
+    <!-- Guías de la bajada: anillo + raya a cada lado. NO son simétricas
+         respecto del eje del marco (261 y 868 dan centro 564,5), y así están
+         medidas. -->
+    <g class="cab__sep">
+      <circle class="cab__guia-anillo" cx="260.5" cy="208.5" r="4.2" />
+      <circle class="cab__nodo-f" cx="260.5" cy="208.5" r="1.3" />
+      <path class="cab__guia" d="M266 208.5H305" />
+      <path class="cab__guia" d="M824 208.5H862" />
+      <circle class="cab__guia-anillo" cx="868" cy="208.5" r="4.2" />
+      <circle class="cab__nodo-f" cx="868" cy="208.5" r="1.3" />
+    </g>
+
+    <!-- ═══ 5 · RIELES ═══════════════════════════════════════════════════ -->
+    <g class="cab__riel">
+      {rielIzq.map(([a, b, macizo]) => (
+        <path d={`M${EJE_I} ${a}V${b}`} stroke-dasharray={macizo ? undefined : "1 5.5"} />
+      ))}
+      {rielDer.map(([a, b, macizo]) => (
+        <path d={`M${EJE_D} ${a}V${b}`} stroke-dasharray={macizo ? undefined : "1 5.5"} />
+      ))}
+    </g>
+
+    <g class="cab__glifo">
+      <!-- Riel izquierdo · anillo alto y racimo de rayos -->
+      <circle cx={EJE_I} cy="311" r="4.7" />
+      <path d={rayos(EJE_I, 330, 4.6, 8)} />
+      <path d={rayos(EJE_I, 347, 3.4, 6, Math.PI / 2)} />
+      <path d={rayos(EJE_I, 363, 4, 8, Math.PI / 8)} />
+      <path d="M7.8 375.5H17.2L12.5 382.2ZM12.5 382.2V385" />
+      <!-- Riel izquierdo · racimo bajo -->
+      <path d={rayos(EJE_I, 806, 4, 6)} />
+      <path d={rombo(EJE_I, 822, 12, 9)} />
+      <circle cx={EJE_I} cy="822" r="1.6" />
+      <path d={rayos(EJE_I, 906, 3.2, 4)} />
+      <!-- Riel derecho -->
+      <path d="M1109.5 306L1114.6 308.5V313.5L1109.5 316L1104.4 313.5V308.5Z" />
+      <path d={rayos(EJE_D, 337, 3.4, 8)} />
+      <circle cx={EJE_D} cy="811" r="4.4" />
+    </g>
+
+    <g class="cab__nodo">
+      {puntosIzq.map((y) => <circle cx={EJE_I} cy={y} r="1.5" />)}
+      {puntosDer.map((y) => <circle cx={EJE_D} cy={y} r="1.4" />)}
+    </g>
+
+    <!-- Microtipografía rotada, de abajo hacia arriba como en el póster. -->
+    <text class="cab__micro" transform="translate(1106.6 400) rotate(-90)" textLength="164" lengthAdjust="spacing">XX XX PDX-01 / ORIGIN XX</text>
+    <text class="cab__micro" transform="translate(10 1000) rotate(-90)" textLength="86" lengthAdjust="spacing">KDX · REVIEW ·</text>
+
+    <!-- El 01 grande del riel derecho, a media altura. -->
+    <text class="cab__folio" x="1103.5" y="608.5" textLength="14.5" lengthAdjust="spacing">01</text>
+  </svg>
+</div>
+
+<style>
+  .cab {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  /* Paleta de la lámina. Medida sobre la referencia, y NO es la de u02: el
+     título y los filamentos del campo son gris cálido casi neutro
+     —rgb(228,225,219) en el título, rgb(235,229,232) en los filamentos— y el
+     violeta queda para los rótulos, el núcleo y el emblema. u02 es violeta de
+     punta a punta; copiarle la paleta acá tiñe media lámina. */
+  .cab {
+    --u01-ink: #cfccc6;
+    --u01-vio: #b79ee0;
+    --u01-vio-hondo: #6f5a96;
+    --u01-tit: #dcd9d2;
+    --u01-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  /* EL COLOR BASE VA EN EL <svg>, NO EN `.cab text`, y esto es un bug real que
+     costó encontrar: `.cab text` tiene especificidad (0,1,1) —clase más tipo— y
+     `.cab__lema` sólo (0,1,0), así que la regla genérica GANABA y todos los
+     rótulos violeta de la franja (A / -∞, la bajada, PAGE 01, el folio) salían
+     grises. Se ve midiendo el color medio de la tinta: rgb(83,81,79) contra los
+     rgb(86,83,90) de la referencia — un tono, no una posición, y por eso pasa
+     desapercibido mirando. `fill` hereda, así que puesto en el propio <svg>
+     hace de valor por defecto y cualquier clase de una sola palabra lo pisa. */
+  .cab { fill: var(--u01-ink); }
+  .cab text {
+    font-family: var(--u01-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  /* ── marco ────────────────────────────────────────────────────────────── */
+  .cab__marco path {
+    fill: none;
+    stroke: var(--u01-ink);
+    stroke-width: 1;
+    stroke-opacity: 0.11;
+  }
+  .cab__marco--tenue { stroke-opacity: 0.16 !important; }
+  /* El hilo fantasma sostiene la lectura del riel entre tramo y tramo. Medido
+     sobre negro no pasa de 20 de luminancia. */
+  .cab__marco--fantasma { stroke-opacity: 0.03 !important; }
+
+  .cab__interior path {
+    fill: none;
+    stroke: var(--u01-ink);
+    stroke-width: 1;
+    stroke-opacity: 0.05;
+  }
+  .cab__interior--esq { stroke-opacity: 0.14 !important; }
+
+  /* ── regla superior ───────────────────────────────────────────────────── */
+  .cab__regla {
+    font-size: 12.3px;
+    fill: var(--u01-ink);
+    fill-opacity: 0.3;
+  }
+  .cab__regla--der { fill-opacity: 0.24; }
+
+  .cab__cruz path { fill: var(--u01-vio); fill-opacity: 0.4; }
+
+  .cab__nodo circle { fill: var(--u01-ink); fill-opacity: 0.32; }
+  .cab__nodo-f { fill: var(--u01-ink); fill-opacity: 0.45; }
+
+  .cab__punteo {
+    fill: none;
+    stroke: var(--u01-ink);
+    stroke-width: 1;
+    stroke-opacity: 0.13;
+  }
+
+  /* ── hexágono ─────────────────────────────────────────────────────────── */
+  .cab__hex-borde { fill: none; stroke: var(--u01-ink); stroke-width: 1; stroke-opacity: 0.085; }
+  .cab__hex-tic { fill: none; stroke: var(--u01-ink); stroke-width: 1.4; stroke-opacity: 0.19; }
+  .cab__hex-tallo { fill: none; stroke: var(--u01-ink); stroke-width: 1; stroke-opacity: 0.07; }
+  .cab__inf {
+    fill: none;
+    stroke: var(--u01-vio);
+    stroke-width: 1.6;
+    stroke-opacity: 0.66;
+    stroke-linejoin: round;
+  }
+  .cab__tit-inf {
+    fill: none !important;
+    stroke: var(--u01-tit);
+    stroke-width: 4.2;
+    stroke-opacity: 0.82;
+    stroke-linejoin: round;
+  }
+
+  /* ── título ───────────────────────────────────────────────────────────── */
+  /* Cormorant Garamond es la serif de exhibición más cercana que tiene el repo:
+     alto contraste y serifas de pelo, como el póster. */
+  /* Peso 400. Se probó el 500 con contorno de 0,7 para engrosar las astas
+     —parecía más cerca a ojo— y midió PEOR: 9,03 % contra 8,06 % en la región
+     del título. Lo que la referencia tiene de más no es peso de asta sino
+     contraste dentro del glifo, y engrosar el contorno lo aplana. */
+  .cab__titulo text {
+    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif;
+    font-weight: 400;
+    fill: url(#u01TitGrad);
+    fill-opacity: 0.88;
+  }
+  .cab__titulo path,
+  .cab__titulo rect { fill: var(--u01-tit); fill-opacity: 0.8; }
+
+  /* ── línea bajo el título ─────────────────────────────────────────────── */
+  /* LA BAJADA NO ES TODA VIOLETA, y esto sólo se ve midiendo el color de sus
+     píxeles más brillantes, uno por uno:
+       A / -∞    rgb(180,156,200)  violeta franco
+       la frase  rgb(140,142,139)  gris neutro
+       PAGE 01   rgb(144,121,165)  violeta
+     O sea: los dos extremos van en acento y el rótulo largo del medio NO. En la
+     miniatura los tres parecen del mismo color —y en u02 el lema central sí es
+     violeta, que es de donde venía la suposición—. Pintar la frase de violeta
+     tiñe 486 px de ancho de la franja más visible de la lámina. */
+  .cab__sig { font-size: 15px; fill: var(--u01-vio); fill-opacity: 0.72; }
+  .cab__lema { font-size: 13.7px; fill: var(--u01-ink); fill-opacity: 0.63; }
+  .cab__pag { font-size: 13.7px; fill: var(--u01-vio); fill-opacity: 0.6; }
+
+  .cab__guia {
+    fill: none;
+    stroke: var(--u01-ink);
+    stroke-width: 1;
+    stroke-opacity: 0.34;
+  }
+  .cab__guia-anillo {
+    fill: none;
+    stroke: var(--u01-ink);
+    stroke-width: 1;
+    stroke-opacity: 0.4;
+  }
+
+  /* ── rieles ───────────────────────────────────────────────────────────── */
+  .cab__riel path {
+    fill: none;
+    stroke: var(--u01-ink);
+    stroke-width: 1;
+    stroke-opacity: 0.085;
+    stroke-linecap: butt;
+  }
+
+  .cab__glifo path { fill: none; stroke: var(--u01-ink); stroke-width: 1; stroke-opacity: 0.18; }
+  .cab__glifo circle { fill: none; stroke: var(--u01-ink); stroke-width: 1; stroke-opacity: 0.18; }
+
+  .cab__micro { font-size: 7.4px; fill: var(--u01-ink); fill-opacity: 0.12; }
+  .cab__folio { font-size: 12.3px; fill: var(--u01-vio); fill-opacity: 0.42; }
+</style>

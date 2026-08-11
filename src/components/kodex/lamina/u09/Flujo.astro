@@ -1,0 +1,297 @@
+---
+/**
+ * KODEX-∞ · u09-source · FLUJO
+ *
+ * La banda de y 1047 a 1173 de `reference/canon/u09-source.png`, en tres cajas
+ * con marca en L en cada esquina y una regla punteada de techo:
+ *
+ *   PROVENANCE TRACE   x  56..232   la traza es inmutable
+ *   el flujo           x 246..813   ORIGIN → INGEST → TRANSLATION → VALIDATION → ARCHIVE
+ *   la época           x 833..969   epoch, ciclo y custodio
+ *
+ * EL FLUJO ES POLÍTICA, NO DECORACIÓN. Los cinco pasos y sus tres renglones de
+ * glosa están copiados de la referencia palabra por palabra. El orden importa:
+ * nada entra al archivo sin pasar por VALIDATION, y VALIDATION es lo que asigna
+ * la clase de verdad de la tabla de arriba. La banda es el procedimiento que
+ * produce el ledger.
+ *
+ * LOS CINCO NODOS NO ESTÁN REPARTIDOS PAREJO. Centros medidos en x = 306 ·
+ * 424,5 · 540,5 · 653 · 759, o sea pasos de 118,5 · 116 · 112,5 · 106. Se
+ * comprime hacia la derecha. Repartirlos con `(759−306)/4 = 113,25` corre el
+ * primero 5 px y el último 7, y con ellos las quince líneas de glosa.
+ *
+ * Los iconos de los nodos van trazados en SVG y no en el canvas de `Diagramas`:
+ * a 30 px de diámetro un cubo isométrico o un tilde necesitan filo, no halo.
+ */
+
+const BANDA = { y0: 1047, y1: 1173 };
+const CAJAS = [
+  { x0: 56, x1: 232 },
+  { x0: 246, x1: 813 },
+  { x0: 833, x1: 969 },
+];
+
+/* ── 1 · PROVENANCE TRACE ───────────────────────────────────────────────── */
+
+const TRAZA: [string, number][] = [
+  ["EVERY CLAIM IS TRACKED", 131],
+  ["ACROSS ITS ORIGINS,", 112],
+  ["TRANSFORMATIONS, AND", 120],
+  ["CONTEXTS. THE CHAIN", 116],
+  ["IS IMMUTABLE.", 75],
+];
+const TRAZA_Y = [1096, 1111, 1126, 1141, 1157];
+
+/* ── 2 · el flujo ───────────────────────────────────────────────────────── */
+
+const NODO_CY = 1101;
+const NODO_R = 29.5;
+/** [paso, centro x, ancho de tinta del rótulo, tres renglones de glosa] */
+const PASOS: { nombre: string; cx: number; w: number; glosa: string[] }[] = [
+  { nombre: "ORIGIN", cx: 306, w: 41, glosa: ["SOURCE CAPTURED", "AT POINT OF", "EMERGENCE."] },
+  { nombre: "INGEST", cx: 424.5, w: 40, glosa: ["DATA NORMALIZED", "AND STRUCTURED", "INTO KODEX."] },
+  { nombre: "TRANSLATION", cx: 540.5, w: 74, glosa: ["MEANING PRESERVED", "ACROSS LANGUAGES", "AND SYMBOLS."] },
+  { nombre: "VALIDATION", cx: 653, w: 67, glosa: ["TRUTH CLASS", "ASSIGNED VIA", "PROTOCOL."] },
+  { nombre: "ARCHIVE", cx: 759, w: 47, glosa: ["SEALED WITH HASH.", "RECORDED IN", "PERPETUITY."] },
+];
+const GLOSA_Y = [1141, 1153, 1165];
+
+/* ── 3 · la época ───────────────────────────────────────────────────────── */
+
+const EPOCA_CX = 900;
+const EPOCA: [string, number, string][] = [
+  ["CURRENT EPOCH", 1064, "t"],
+  ["∞ . 09 . 09", 1081, "v"],
+  ["TRUTH CYCLE", 1103, "t"],
+  ["0917-09-09-09", 1119, "v"],
+  ["CUSTODIAN", 1147, "t"],
+  ["KODEX PROTOCOL", 1163, "v"],
+];
+
+/* ── geometría ──────────────────────────────────────────────────────────── */
+
+const esquina = (x: number, y: number, sx: number, sy: number, l = 9) =>
+  `M${x + sx * l} ${y}H${x}V${y + sy * l}`;
+
+/**
+ * Flecha entre nodo y nodo. Arranca y termina con aire: en la referencia la
+ * punta no toca el anillo siguiente, quedan ~9 px. Pegada, la banda se lee como
+ * una cadena soldada y no como un recorrido.
+ */
+const flecha = (x0: number, x1: number, y: number) =>
+  `M${x0} ${y}H${x1}M${x1 - 5.5} ${y - 3.4}L${x1} ${y}L${x1 - 5.5} ${y + 3.4}`;
+
+const av = (tinta: number) => +(tinta + 2).toFixed(1);
+
+/**
+ * Elige el modo de `lengthAdjust`. NO es un detalle: con `spacingAndGlyphs` el
+ * navegador ESTIRA los glifos hasta el largo pedido, y como casi todos los
+ * rótulos de esta lámina van más espaciados que su ancho natural, el resultado
+ * era una mono engordada un 18 % que se lee negrita. La referencia tiene astas
+ * finas y mucho aire entre letras: eso es tracking, no un cuerpo más ancho.
+ * Regla: si el largo pedido supera el natural, se reparte en el interletrado
+ * (`spacing`); si hay que meter el texto en menos espacio del que ocupa, se
+ * condensan los glifos, que es la única forma de que entre.
+ */
+const modo = (texto: string, largo: number, cuerpo: number) =>
+  largo >= texto.length * cuerpo * 0.6 ? "spacing" : "spacingAndGlyphs";
+
+---
+
+<div data-bloque="Flujo" style="inset:0">
+  <svg class="flu" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <!-- Regla punteada de techo: cruza la banda entera por detrás de las tres
+         cajas, que sólo aportan las marcas de esquina. -->
+    <path class="flu__regla" d="M56 1047H969" stroke-dasharray="2 6" />
+    <path class="flu__regla" d="M56 1173H969" stroke-dasharray="2 6" />
+    {CAJAS.map((c) => (
+      <g class="flu__esq">
+        <path d={esquina(c.x0, BANDA.y0, 1, 1)} />
+        <path d={esquina(c.x1, BANDA.y0, -1, 1)} />
+        <path d={esquina(c.x0, BANDA.y1, 1, -1)} />
+        <path d={esquina(c.x1, BANDA.y1, -1, -1)} />
+      </g>
+    ))}
+
+    <!-- ═══ 1 · PROVENANCE TRACE ═════════════════════════════════════════ -->
+    <text class="flu__t" x="75" y="1074" textLength={av(119)} lengthAdjust={modo("PROVENANCE TRACE", av(119), 10.5)}>PROVENANCE TRACE</text>
+    {TRAZA.map(([texto, w], i) => (
+      <text class="flu__p" x="75" y={TRAZA_Y[i]} textLength={av(w)} lengthAdjust={modo(texto, av(w), 9.4)}>{texto}</text>
+    ))}
+
+    <!-- ═══ 2 · EL FLUJO ═════════════════════════════════════════════════ -->
+    <g class="flu__conector">
+      {PASOS.slice(0, 4).map((p, i) => (
+        <path d={flecha(p.cx + NODO_R + 9, PASOS[i + 1].cx - NODO_R - 9, NODO_CY)} />
+      ))}
+      <!-- Dos marcas de entrada y salida: la banda no empieza ni termina en el
+           aire, viene de algo y va a algo. -->
+      <path d={`M${PASOS[0].cx - NODO_R - 22} ${NODO_CY}h9`} />
+      <circle cx={PASOS[0].cx - NODO_R - 26} cy={NODO_CY} r="1.4" />
+      <path d={`M${PASOS[4].cx + NODO_R + 13} ${NODO_CY}h9`} />
+      <circle cx={PASOS[4].cx + NODO_R + 26} cy={NODO_CY} r="1.4" />
+    </g>
+
+    {
+      PASOS.map((p, i) => (
+        <g>
+          <text class="flu__paso" x={p.cx - p.w / 2} y="1064" textLength={av(p.w)} lengthAdjust={modo(p.nombre, av(p.w), 11)}>{p.nombre}</text>
+          <circle class="flu__anillo" cx={p.cx} cy={NODO_CY} r={NODO_R} />
+          <circle class="flu__anillo flu__anillo--int" cx={p.cx} cy={NODO_CY} r={NODO_R - 5} />
+
+          {/* iconos, uno por paso */}
+          {i === 0 && (
+            <g class="flu__ico">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((k) => {
+                const a = (k * Math.PI) / 4;
+                const r = k % 2 === 0 ? 13 : 8.5;
+                return (
+                  <path d={`M${p.cx} ${NODO_CY}L${(p.cx + Math.cos(a) * r).toFixed(2)} ${(NODO_CY + Math.sin(a) * r).toFixed(2)}`} />
+                );
+              })}
+            </g>
+          )}
+          {i === 1 && (
+            <g class="flu__ico">
+              {/* cubo isométrico: tapa en rombo y tres aristas al frente */}
+              <path d={`M${p.cx} ${NODO_CY - 12}L${p.cx + 10.5} ${NODO_CY - 6}L${p.cx + 10.5} ${NODO_CY + 6}L${p.cx} ${NODO_CY + 12}L${p.cx - 10.5} ${NODO_CY + 6}L${p.cx - 10.5} ${NODO_CY - 6}Z`} />
+              <path d={`M${p.cx - 10.5} ${NODO_CY - 6}L${p.cx} ${NODO_CY}L${p.cx + 10.5} ${NODO_CY - 6}M${p.cx} ${NODO_CY}V${NODO_CY + 12}`} />
+            </g>
+          )}
+          {i === 2 && (
+            <g class="flu__ico">
+              <circle cx={p.cx} cy={NODO_CY} r="11.5" fill="none" />
+              <circle cx={p.cx - 5} cy={NODO_CY - 2} r="3.4" fill="none" />
+              <circle cx={p.cx + 5} cy={NODO_CY - 2} r="3.4" fill="none" />
+              <path d={`M${p.cx} ${NODO_CY + 2.5}v6M${p.cx - 4} ${NODO_CY + 8.5}h8`} />
+              <path d={`M${p.cx} ${NODO_CY - 11.5}v-3`} />
+            </g>
+          )}
+          {i === 3 && (
+            <path class="flu__tilde" d={`M${p.cx - 7} ${NODO_CY + 1}L${p.cx - 2} ${NODO_CY + 6}L${p.cx + 8} ${NODO_CY - 6}`} />
+          )}
+          {i === 4 && <text class="flu__inf" x={p.cx} y={NODO_CY + 8}>∞</text>}
+
+          {p.glosa.map((g, k) => (
+            <text class="flu__glosa" x={p.cx} y={GLOSA_Y[k]}>{g}</text>
+          ))}
+        </g>
+      ))
+    }
+
+    <!-- ═══ 3 · LA ÉPOCA ═════════════════════════════════════════════════ -->
+    {EPOCA.map(([texto, y, tono]) => (
+      <text class={tono === "t" ? "flu__t flu__t--centro" : "flu__epoca"} x={EPOCA_CX} y={y}>{texto}</text>
+    ))}
+  </svg>
+</div>
+
+<style>
+  .flu {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+  .flu text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  .flu__regla {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.1;
+  }
+  .flu__esq path {
+    fill: none;
+    stroke: #cfcfd2;
+    stroke-width: 1;
+    stroke-opacity: 0.35;
+  }
+
+  /* Opacidades calibradas contra la referencia, caja por caja: la banda entera
+     salía 3-4 puntos de luminancia por encima. */
+  .flu__t {
+    font-size: 10.5px;
+    fill: #b49ad8;
+    fill-opacity: 0.58;
+  }
+  .flu__t--centro {
+    text-anchor: middle;
+    letter-spacing: 0.16em;
+    transform: translateX(0.84px);
+    fill-opacity: 0.46;
+  }
+  .flu__p {
+    font-size: 9.4px;
+    fill: #cfcfd2;
+    fill-opacity: 0.44;
+  }
+  .flu__epoca {
+    font-size: 9.6px;
+    letter-spacing: 0.1em;
+    text-anchor: middle;
+    fill: #cfcfd2;
+    fill-opacity: 0.4;
+    transform: translateX(0.48px);
+  }
+
+  .flu__paso {
+    font-size: 11px;
+    fill: #b49ad8;
+    fill-opacity: 0.85;
+  }
+  .flu__glosa {
+    font-size: 8.4px;
+    letter-spacing: 0.05em;
+    text-anchor: middle;
+    fill: #cfcfd2;
+    fill-opacity: 0.64;
+    transform: translateX(0.21px);
+  }
+
+  .flu__anillo {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 1.1;
+    stroke-opacity: 0.72;
+  }
+  .flu__anillo--int { stroke-width: 0.6; stroke-opacity: 0.28; }
+
+  .flu__conector path {
+    fill: none;
+    stroke: #b49ad8;
+    stroke-width: 0.8;
+    stroke-opacity: 0.45;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .flu__conector circle { fill: #b49ad8; fill-opacity: 0.5; }
+
+  .flu__ico path,
+  .flu__ico circle {
+    fill: none;
+    stroke: #cbb6ea;
+    stroke-width: 0.9;
+    stroke-opacity: 0.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .flu__tilde {
+    fill: none;
+    stroke: #e4dcf5;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-opacity: 0.9;
+  }
+  .flu__inf {
+    font-size: 22px;
+    text-anchor: middle;
+    fill: #d3bdf2;
+    fill-opacity: 0.92;
+  }
+</style>
