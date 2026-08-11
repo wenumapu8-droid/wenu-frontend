@@ -181,6 +181,29 @@ El banco también reporta la **forma** (paths, canvas, nodos, bytes) al lado del
 puntaje, para que la diferencia entre trazado y procedural se vea en vez de
 esconderse dentro de un número.
 
+## 5-bis · El puntaje mide promedio, no jerarquía
+
+**Un número bueno puede esconder una lámina rota.** Pasó en `u02-threshold`, que
+midió 4,68 % —mejor que varias de TANDA 01— y aun así fallaba en lo principal:
+
+- el arco del portal quedó como un halo tenue en vez de una puerta con jambas,
+  placas y muescas: se perdió lo que lo hace un umbral y no un resplandor;
+- el eje apilaba lemniscatas y leía como cadena, cuando la referencia tiene
+  **una** sobre una columna de luz fina;
+- el campo de filamentos brillaba de más y la base pesaba de más.
+
+Las cuatro cosas se compensan en la media. El promedio no sabe que el arco
+importa más que la base.
+
+**Por eso, después de medir, MIRÁ.** Capturá el render a tamaño de referencia,
+abrilo junto al PNG y preguntate una sola cosa: *¿qué se lee primero?* Si el
+orden de lectura no es el de la referencia, la lámina no está bien aunque el
+número lo diga.
+
+Y cuando corrijas: **un puntaje que sube un poco con la jerarquía arreglada es
+mejor resultado que uno que baja con la lectura rota.** No optimices el número
+a costa de lo que la lámina significa.
+
 ## 6 · Terminado no es «se ve bien»
 
 Las doce compuertas del blueprint, y **la fidelidad de píxel no está entre
