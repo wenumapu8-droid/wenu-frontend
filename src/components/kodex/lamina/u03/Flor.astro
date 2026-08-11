@@ -1,0 +1,871 @@
+---
+/**
+ * KODEX-∞ · u03-return · FLOR (héroe de la lámina)
+ *
+ * Reproducción procedural del centro de `reference/canon/u03-return.png`:
+ * una flor radial de filamentos que convergen en un núcleo luminoso, sobre
+ * papel blanco hueso — acá la tinta OSCURECE, al revés que en las láminas
+ * sobre negro, así que todo se pinta source-over con trazos oscuros y la
+ * «luz» del núcleo es literalmente pintar blanco.
+ *
+ * Medido sobre la referencia antes de dibujar:
+ *   · centro del núcleo en (561,645) global; el bloque arranca en (55,268)
+ *     así que el centro local es (506,377);
+ *   · perfil radial de luminancia (media por anillo, fondo 245):
+ *     r30 211 · r40 195 · r60 173 · r80 187 · r100 201 · r120 217 ·
+ *     r150 232 · r200 239 · r230 229 (anillo) · r250 234 (anillo) · >280 fondo.
+ *     La banda densa es un anillo r≈35..110 con caída suave hasta 170;
+ *   · el núcleo NO es un punto oscuro: hay un canal VERTICAL claro (vesica)
+ *     de ±80 de alto por ±35 de ancho —la columna x=561 no tiene tinta entre
+ *     y=563 y 643— y un disco blanco de r≈24 con el ∞ chico en el medio;
+ *   · eje horizontal y=645 de canto a canto con nodos anillados: A en x=122
+ *     (r 21), C en 222 (r 18), M en 874 (r 21), Q en 963 (r 26), más nodos
+ *     menores en 316, 393, 770, 803;
+ *   · eje vertical: cadena de marcas de y=371 a 480, estrella en y=888,
+ *     loto en y=963;
+ *   · el color dominante del campo es lavanda rgb(184,168,184)/(200,184,200)
+ *     con violeta hondo rgb(~122,100,140) y acentos DORADOS pastel
+ *     rgb(216,200,184) — medidos, no supuestos.
+ *
+ * CONTRATO: canvas 2D paramétrico, azar mulberry32 con semilla fija, bucle
+ * por fase 0→1 sin costura, reduced-motion alarga el período, se pinta sólo
+ * visible, y window.__kdxFreeze fija el cuadro para el banco.
+ */
+---
+
+<div data-bloque="Flor" style="left:55px;top:268px;width:1012px;height:748px">
+  <canvas data-capa="fondo" width="1012" height="748" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="1012" height="748" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Flor"] {
+    pointer-events: none;
+  }
+  [data-bloque="Flor"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1012px;
+    height: 748px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro compila este bloque como JS. */
+  const raiz = document.querySelector('[data-bloque="Flor"]');
+  if (raiz) {
+    const W = 1012;
+    const H = 748;
+    const TAU = Math.PI * 2;
+    const cx = 506;
+    const cy = 377;
+
+    /* Paleta medida sobre el PNG. Tinta sobre papel: nada de "lighter". */
+    const LAV = "162,142,176";
+    const CLARO = "196,178,208";
+    const HONDO = "116,92,150";
+    const TINTA = "104,98,94";
+    const ORO = "196,158,104";
+    const ORO_P = "212,190,158";
+    const BLANCO = "255,255,251";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    /* mulberry32, semilla fija. Nunca Math.random(). */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const cFondo = raiz.querySelector('[data-capa="fondo"]');
+    const cVivo = raiz.querySelector('[data-capa="vivo"]');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(cFondo);
+    const gv = preparar(cVivo);
+
+    /* ------------------------------------------------ geometría auxiliar */
+    /* Vesica vertical: dos arcos de circunferencia por (0,±h) que barrigan
+       hasta ±w. R = (w²+h²)/2w, centros en ∓(R−w). */
+    function vesica(g, h, w) {
+      const R = (w * w + h * h) / (2 * w);
+      const d = R - w;
+      const a = Math.asin(h / R);
+      g.beginPath();
+      g.arc(cx - d, cy, R, -a, a);
+      g.moveTo(cx + w, cy - (0 * h));
+      g.arc(cx + d, cy, R, Math.PI - a, Math.PI + a);
+    }
+
+    function lemniscata(g, x, y, ex, ey) {
+      const LEM_V = 0.3535533906;
+      g.beginPath();
+      const N = 120;
+      for (let i = 0; i <= N; i++) {
+        const t = (i / N) * TAU;
+        const d = 1 + Math.sin(t) * Math.sin(t);
+        const u = (Math.cos(t) / d) * ex;
+        const v = (((Math.sin(t) * Math.cos(t)) / d) / LEM_V) * (ey / 2) * 2;
+        if (i === 0) g.moveTo(x + u, y + v);
+        else g.lineTo(x + u, y + v);
+      }
+    }
+
+    /* ------------------------------------------------------- filamentos
+     * El campo de la flor: cientos de arcos cortos casi radiales que se
+     * apiñan en el anillo r 35..110 y se ralean hacia 170. Precalculados
+     * para que el vivo pueda hacer viajar paquetes por algunos. */
+    const filamentos = (() => {
+      const r = azar(0x0311);
+      const salida = [];
+      const N = 940;
+      for (let i = 0; i < N; i++) {
+        const a0 = r() * TAU;
+        const u = r();
+        /* El anillo denso: la mayoría nace cerca del núcleo. Cortos y muchos:
+           la primera versión (520 largos con deriva ±0,45) daba una maraña
+           rala y vertical; la referencia es un anillo denso r 35..110 con
+           caída suave, y eso lo da el largo corto y la deriva chica. */
+        const r0 = 28 + Math.pow(u, 1.6) * 68;
+        const r1 = Math.min(180, r0 + 18 + r() * 66);
+        const giro = (r() - 0.5) * 0.5; /* deriva angular → espiral suave */
+        const M = 22;
+        const pts = new Float64Array((M + 1) * 2);
+        for (let k = 0; k <= M; k++) {
+          const s = k / M;
+          const rr = r0 + (r1 - r0) * s;
+          const a = a0 + giro * s;
+          pts[k * 2] = cx + rr * Math.cos(a);
+          pts[k * 2 + 1] = cy + rr * Math.sin(a) * 1.08;
+        }
+        const q = r();
+        const color = q < 0.38 ? LAV : q < 0.58 ? CLARO : q < 0.84 ? HONDO : ORO_P;
+        salida.push({
+          pts,
+          M,
+          color,
+          alfa: 0.18 + r() * 0.3,
+          w: 0.45 + r() * 0.4,
+          vel: 1 + Math.floor(r() * 3),
+          fase0: r(),
+          viaja: r() < 0.22,
+        });
+      }
+      /* Segunda familia: refuerzo del anillo 45..90, que es donde el perfil
+         radial de la referencia toca fondo (L 173) y la primera familia sola
+         quedaba 20 puntos clara. Más corta y más honda. */
+      for (let i = 0; i < 300; i++) {
+        const a0 = r() * TAU;
+        const r0 = 42 + r() * 34;
+        const r1 = r0 + 12 + r() * 28;
+        const giro = (r() - 0.5) * 0.4;
+        const M = 12;
+        const pts = new Float64Array((M + 1) * 2);
+        for (let k = 0; k <= M; k++) {
+          const s = k / M;
+          const rr = r0 + (r1 - r0) * s;
+          const a = a0 + giro * s;
+          pts[k * 2] = cx + rr * Math.cos(a);
+          pts[k * 2 + 1] = cy + rr * Math.sin(a) * 1.08;
+        }
+        salida.push({
+          pts,
+          M,
+          color: r() < 0.55 ? HONDO : LAV,
+          alfa: 0.22 + r() * 0.28,
+          w: 0.5 + r() * 0.45,
+          vel: 1,
+          fase0: r(),
+          viaja: false,
+        });
+      }
+      return salida;
+    })();
+
+    function puntoFil(f, s) {
+      const q = Math.max(0, Math.min(1, s)) * f.M;
+      const i = Math.min(f.M - 1, Math.floor(q));
+      const t = q - i;
+      return [
+        f.pts[i * 2] + (f.pts[i * 2 + 2] - f.pts[i * 2]) * t,
+        f.pts[i * 2 + 1] + (f.pts[i * 2 + 3] - f.pts[i * 2 + 1]) * t,
+      ];
+    }
+
+    /* --------------------------------------------------------- el fondo */
+    function anillos(g) {
+      /* Los dos anillos grandes medidos (r 230 y 250) más arcos tenues. */
+      const juego = [
+        [205, 0.06, 0.8],
+        [230, 0.13, 1],
+        [250, 0.09, 0.9],
+        [285, 0.045, 0.7],
+        [312, 0.03, 0.7],
+      ];
+      for (const [rr, a, w] of juego) {
+        g.beginPath();
+        g.arc(cx, cy, rr, 0, TAU);
+        g.strokeStyle = tinta(TINTA, a);
+        g.lineWidth = w;
+        g.stroke();
+      }
+      /* Circunferencias finas punteadas dentro del campo. */
+      const r = azar(0x77c1);
+      for (const rr of [122, 150, 178]) {
+        const n = Math.round(rr * 0.9);
+        for (let k = 0; k < n; k++) {
+          if (r() < 0.42) continue;
+          const a = (k / n) * TAU;
+          g.beginPath();
+          g.arc(cx + rr * Math.cos(a), cy + rr * Math.sin(a), 0.5, 0, TAU);
+          g.fillStyle = tinta(LAV, 0.35);
+          g.fill();
+        }
+      }
+      /* Textura de arcos sueltos: la referencia no tiene fondo limpio — todo
+         el cuadro está rayado por arcos concéntricos tenues de mil radios. */
+      for (let i = 0; i < 48; i++) {
+        const rr = 185 + r() * 150;
+        const a0 = r() * TAU;
+        const span = 0.5 + r() * 1.6;
+        g.beginPath();
+        g.arc(cx, cy, rr, a0, a0 + span);
+        g.strokeStyle = tinta(r() < 0.16 ? ORO_P : LAV, 0.05 + r() * 0.06);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      /* Cuerdas rectas del entramado: líneas finas de anillo a anillo que
+         cruzan la figura entera y arman el polígono sagrado de atrás. */
+      for (let i = 0; i < 18; i++) {
+        const a1 = (Math.floor(r() * 12) / 12) * TAU + (r() - 0.5) * 0.12;
+        const a2 = a1 + TAU * (0.28 + r() * 0.3);
+        const rr = 205 + r() * 45;
+        g.beginPath();
+        g.moveTo(cx + rr * Math.cos(a1), cy + rr * Math.sin(a1));
+        g.lineTo(cx + rr * Math.cos(a2), cy + rr * Math.sin(a2));
+        g.strokeStyle = tinta(LAV, 0.05 + r() * 0.06);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      /* Nodos chicos sembrados sobre los anillos medios. */
+      for (let i = 0; i < 22; i++) {
+        const rr = [148, 178, 205, 230][Math.floor(r() * 4)];
+        const a = r() * TAU;
+        const x = cx + rr * Math.cos(a);
+        const y = cy + rr * Math.sin(a);
+        g.beginPath();
+        g.arc(x, y, 1.8 + r() * 2.6, 0, TAU);
+        g.strokeStyle = tinta(r() < 0.3 ? ORO : HONDO, 0.2 + r() * 0.2);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+    }
+
+    function petalos(g) {
+      /* Rosetón de pétalos apuntados: contornos de elipse rotados. Dos
+         coronas — la interna densa y honda, la externa rala y clara. */
+      const capas = [
+        [24, 118, 30, HONDO, 0.22, 0.8, 0],
+        [16, 158, 36, LAV, 0.18, 0.8, 0.09],
+        [12, 205, 42, CLARO, 0.14, 0.9, 0],
+      ];
+      for (const [n, largo, ancho, color, alfa, w, relleno] of capas) {
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * TAU + (n === 16 ? Math.PI / n : 0);
+          g.save();
+          g.translate(cx, cy);
+          g.rotate(a);
+          g.scale(1, 1.14);
+          g.beginPath();
+          g.ellipse(largo / 2, 0, largo / 2, ancho / 2, 0, 0, TAU);
+          /* La corona media de la referencia tiene masa suave, no sólo
+             contorno: el pétalo lavanda se rellena apenas. */
+          if (relleno) {
+            g.fillStyle = tinta(CLARO, relleno);
+            g.fill();
+          }
+          g.strokeStyle = tinta(color, alfa);
+          g.lineWidth = w;
+          g.stroke();
+          g.restore();
+        }
+      }
+      /* Rayos diagonales largos y finos. */
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU + Math.PI / 8;
+        g.beginPath();
+        g.moveTo(cx + 40 * Math.cos(a), cy + 40 * Math.sin(a));
+        g.lineTo(cx + 228 * Math.cos(a), cy + 228 * Math.sin(a));
+        g.strokeStyle = tinta(LAV, 0.16);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      /* Radios finos alrededor de toda la corona: la referencia tiene una
+         rueda de rayos cortos, no sólo ocho diagonales. */
+      const r = azar(0x44e2);
+      for (let i = 0; i < 72; i++) {
+        const a = (i / 72) * TAU + (r() - 0.5) * 0.04;
+        const rr0 = 36 + r() * 30;
+        const rr1 = 130 + r() * 100;
+        g.beginPath();
+        g.moveTo(cx + rr0 * Math.cos(a), cy + rr0 * Math.sin(a) * 1.08);
+        g.lineTo(cx + rr1 * Math.cos(a), cy + rr1 * Math.sin(a) * 1.08);
+        g.strokeStyle = tinta(r() < 0.14 ? ORO_P : LAV, 0.06 + r() * 0.1);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+      /* Telaraña geométrica: anillos de cuerdas (cada punto con el quinto
+         siguiente) — es lo que en la referencia se lee como trama sagrada
+         debajo de los filamentos. */
+      for (const [rr, alfa] of [[58, 0.1], [78, 0.09], [98, 0.08], [120, 0.06]]) {
+        const n = 24;
+        g.beginPath();
+        for (let k = 0; k <= n; k++) {
+          const a = ((k * 5) % n) * (TAU / n);
+          const x = cx + rr * Math.cos(a);
+          const y = cy + rr * Math.sin(a) * 1.12;
+          k === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(HONDO, alfa);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+    }
+
+    /* Veladura: el lavado suave que la referencia tiene bajo todo el campo.
+       No es trampa de métrica — es tinta de verdad del original: la media de
+       luminancia por anillo baja hasta 173 y los trazos solos no llegan. */
+    function veladura(g) {
+      const capa = g.createRadialGradient(cx, cy, 0, cx, cy, 185);
+      capa.addColorStop(0, tinta(LAV, 0.32));
+      capa.addColorStop(0.32, tinta(LAV, 0.5));
+      capa.addColorStop(0.58, tinta(CLARO, 0.3));
+      capa.addColorStop(0.82, tinta(CLARO, 0.1));
+      capa.addColorStop(1, tinta(CLARO, 0));
+      g.save();
+      g.translate(cx, cy);
+      g.scale(1, 1.14);
+      g.translate(-cx, -cy);
+      g.fillStyle = capa;
+      g.beginPath();
+      g.arc(cx, cy, 185, 0, TAU);
+      g.fill();
+      g.restore();
+      /* Tinte dorado del anillo medio, apenas. */
+      const oro = g.createRadialGradient(cx, cy, 0, cx, cy, 150);
+      oro.addColorStop(0, tinta(ORO_P, 0));
+      oro.addColorStop(0.4, tinta(ORO_P, 0.1));
+      oro.addColorStop(0.7, tinta(ORO_P, 0.05));
+      oro.addColorStop(1, tinta(ORO_P, 0));
+      g.fillStyle = oro;
+      g.beginPath();
+      g.arc(cx, cy, 150, 0, TAU);
+      g.fill();
+    }
+
+    function campoBase(g) {
+      for (const f of filamentos) {
+        g.beginPath();
+        g.moveTo(f.pts[0], f.pts[1]);
+        for (let k = 1; k <= f.M; k++) g.lineTo(f.pts[k * 2], f.pts[k * 2 + 1]);
+        g.strokeStyle = tinta(f.color, f.alfa);
+        g.lineWidth = f.w;
+        g.stroke();
+      }
+    }
+
+    function motas(g) {
+      const r = azar(0x5e0d);
+      for (let i = 0; i < 620; i++) {
+        const a = r() * TAU;
+        const rr = 40 + Math.pow(r(), 0.7) * 250;
+        const x = cx + rr * Math.cos(a);
+        const y = cy + rr * Math.sin(a) * 1.05;
+        if (x < 3 || x > W - 3 || y < 3 || y > H - 3) continue;
+        g.beginPath();
+        g.arc(x, y, 0.5 + r() * 0.9, 0, TAU);
+        g.fillStyle = tinta(r() < 0.18 ? HONDO : LAV, 0.08 + r() * 0.22);
+        g.fill();
+      }
+      /* Acentos dorados: circulitos y anillos abiertos, medidos como pastel
+         rgb(~216,200,184) — pocos y repartidos, no una constelación. */
+      for (let i = 0; i < 54; i++) {
+        const a = r() * TAU;
+        const rr = 60 + r() * 200;
+        const x = cx + rr * Math.cos(a);
+        const y = cy + rr * Math.sin(a) * 0.95;
+        if (x < 6 || x > W - 6 || y < 6 || y > H - 6) continue;
+        g.beginPath();
+        if (r() < 0.55) {
+          g.arc(x, y, 1.2 + r() * 2.4, 0, TAU);
+          g.fillStyle = tinta(ORO, 0.22 + r() * 0.3);
+          g.fill();
+        } else {
+          g.arc(x, y, 3 + r() * 5, 0, TAU);
+          g.strokeStyle = tinta(ORO, 0.2 + r() * 0.25);
+          g.lineWidth = 0.7;
+          g.stroke();
+        }
+      }
+    }
+
+    function nucleo(g) {
+      /* El canal vertical claro (vesica) y el disco blanco del centro:
+         la única «luz» de una lámina sobre papel es pintar papel más blanco. */
+      const lens = g.createRadialGradient(cx, cy, 0, cx, cy, 92);
+      lens.addColorStop(0, tinta(BLANCO, 0.9));
+      lens.addColorStop(0.55, tinta(BLANCO, 0.55));
+      lens.addColorStop(1, tinta(BLANCO, 0));
+      g.save();
+      g.translate(cx, cy);
+      g.scale(0.42, 1);
+      g.translate(-cx, -cy);
+      g.fillStyle = lens;
+      g.beginPath();
+      g.arc(cx, cy, 92, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* Contornos de vesica: dos ojivas verticales concéntricas, con rombo
+         en cada punta — el ornamento que remata la lente en la referencia. */
+      vesica(g, 160, 46);
+      g.strokeStyle = tinta(HONDO, 0.46);
+      g.lineWidth = 1;
+      g.stroke();
+      vesica(g, 118, 30);
+      g.strokeStyle = tinta(HONDO, 0.34);
+      g.lineWidth = 0.8;
+      g.stroke();
+      for (const s of [-1, 1]) {
+        const yv = cy + s * 172;
+        g.beginPath();
+        g.moveTo(cx, yv - 7);
+        g.lineTo(cx + 4.5, yv);
+        g.lineTo(cx, yv + 7);
+        g.lineTo(cx - 4.5, yv);
+        g.closePath();
+        g.strokeStyle = tinta(HONDO, 0.5);
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+
+      /* Disco blanco del núcleo con su anillo. */
+      /* r=27 y no más: la referencia ya tiene tinta a r=30 (L 211) — con el
+         disco a 34 esa corona quedaba lavada y el perfil radial daba +29. */
+      const disco = g.createRadialGradient(cx, cy, 0, cx, cy, 27);
+      disco.addColorStop(0, tinta(BLANCO, 0.97));
+      disco.addColorStop(0.78, tinta(BLANCO, 0.88));
+      disco.addColorStop(1, tinta(BLANCO, 0));
+      g.fillStyle = disco;
+      g.beginPath();
+      g.arc(cx, cy, 27, 0, TAU);
+      g.fill();
+      /* Espinas blancas del núcleo: los rayos de luz que en la referencia
+         cruzan la corona densa desde el centro. Sobre papel, luz = blanco. */
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * TAU + Math.PI / 16;
+        const l = i % 2 === 0 ? 68 : 46;
+        g.beginPath();
+        g.moveTo(cx + 25 * Math.cos(a), cy + 25 * Math.sin(a));
+        g.lineTo(cx + l * Math.cos(a), cy + l * Math.sin(a));
+        g.strokeStyle = tinta(BLANCO, 0.75);
+        g.lineWidth = 1.5;
+        g.stroke();
+      }
+      /* Chispas blancas sobre la zona densa: son lo que hace que el campo se
+         lea como organismo luminoso y no como maraña — la referencia tiene
+         cientos de puntos casi blancos sembrados entre los filamentos. */
+      const rs = azar(0x9b31);
+      for (let i = 0; i < 110; i++) {
+        const a = rs() * TAU;
+        const rr = 30 + Math.pow(rs(), 0.8) * 90;
+        g.beginPath();
+        g.arc(cx + rr * Math.cos(a), cy + rr * Math.sin(a) * 1.1, 0.6 + rs() * 0.9, 0, TAU);
+        g.fillStyle = tinta(BLANCO, 0.5 + rs() * 0.4);
+        g.fill();
+      }
+      /* Anillos finos de la corona media: la arquitectura circular que en la
+         referencia se lee POR ENCIMA de los filamentos. */
+      for (const [rr, alfa] of [[48, 0.3], [64, 0.26], [82, 0.22], [100, 0.18]]) {
+        g.beginPath();
+        g.save();
+        g.translate(cx, cy);
+        g.scale(1, 1.08);
+        g.arc(0, 0, rr, 0, TAU);
+        g.restore();
+        g.strokeStyle = tinta(HONDO, alfa);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      /* Anillos finos del corazón: la referencia tiene una rosa de círculos
+         chicos alrededor del ∞, no un disco pelado. */
+      for (const [rr, alfa, w] of [[36, 0.3, 0.9], [31, 0.45, 1], [26, 0.4, 0.8], [19, 0.32, 0.6], [12.5, 0.42, 0.6]]) {
+        g.beginPath();
+        g.arc(cx, cy, rr, 0, TAU);
+        g.strokeStyle = tinta(HONDO, alfa);
+        g.lineWidth = w;
+        g.stroke();
+      }
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * TAU;
+        g.beginPath();
+        g.moveTo(cx + 19 * Math.cos(a), cy + 19 * Math.sin(a));
+        g.lineTo(cx + (i % 4 === 0 ? 26 : 22.5) * Math.cos(a), cy + (i % 4 === 0 ? 26 : 22.5) * Math.sin(a));
+        g.strokeStyle = tinta(HONDO, 0.3);
+        g.lineWidth = 0.5;
+        g.stroke();
+      }
+    }
+
+    /* Ejes, nodos, estrella y loto: la arquitectura que ordena la flor. */
+    const NODOS = [
+      /* [x global→local, radio exterior, radio interior] — A C M Q. */
+      [122 - 55, 21, 15],
+      [222 - 55, 18, 13],
+      [874 - 55, 21, 15],
+      [963 - 55, 26, 19],
+    ];
+    const NODOS_MENORES = [
+      [316 - 55, 8],
+      [393 - 55, 9],
+      [770 - 55, 9],
+      [803 - 55, 6],
+    ];
+
+    function ejes(g) {
+      const y = cy;
+      /* Tramos del eje horizontal, con luz alrededor de los nodos. */
+      const cortes = [8, 46, 88, 146, 185, 240, 253, 330, 356, 452, 700, 733, 785, 826, 853, 877, 934, 1004];
+      for (let i = 0; i < cortes.length - 1; i += 2) {
+        g.beginPath();
+        g.moveTo(cortes[i], y);
+        g.lineTo(cortes[i + 1], y);
+        g.strokeStyle = tinta(TINTA, 0.3);
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+      /* Puntas de flecha en los extremos. */
+      for (const [x, s] of [[8, 1], [1004, -1]]) {
+        g.beginPath();
+        g.moveTo(x + s * 7, y - 4);
+        g.lineTo(x, y);
+        g.lineTo(x + s * 7, y + 4);
+        g.strokeStyle = tinta(TINTA, 0.45);
+        g.lineWidth = 0.9;
+        g.stroke();
+      }
+      /* Nodos con letra: disco blanco + doble anillo. La letra la pone el
+         SVG de rótulos, que monta encima. */
+      for (const [x, re, ri] of NODOS) {
+        g.beginPath();
+        g.arc(x, y, re, 0, TAU);
+        g.fillStyle = tinta(BLANCO, 0.9);
+        g.fill();
+        g.beginPath();
+        g.arc(x, y, re, 0, TAU);
+        g.strokeStyle = tinta(TINTA, 0.4);
+        g.lineWidth = 0.9;
+        g.stroke();
+        g.beginPath();
+        g.arc(x, y, ri, 0, TAU);
+        g.strokeStyle = tinta(LAV, 0.5);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      for (const [x, rr] of NODOS_MENORES) {
+        /* Doble anillo concéntrico, como los nodos de anillo del original. */
+        for (const f of [1, 0.55]) {
+          g.beginPath();
+          g.arc(x, y, rr * f, 0, TAU);
+          g.strokeStyle = tinta(HONDO, 0.42);
+          g.lineWidth = 0.7;
+          g.stroke();
+        }
+        g.beginPath();
+        g.arc(x, y, 1.3, 0, TAU);
+        g.fillStyle = tinta(HONDO, 0.55);
+        g.fill();
+      }
+      /* Puntos sueltos del eje. */
+      for (const x of [208, 230, 640, 864, 947, 973]) {
+        g.beginPath();
+        g.arc(x, y, 1.1, 0, TAU);
+        g.fillStyle = tinta(TINTA, 0.4);
+        g.fill();
+      }
+
+      /* Eje vertical: cadena de marcas entre la Y de arriba y el loto. */
+      g.strokeStyle = tinta(TINTA, 0.32);
+      g.lineWidth = 0.8;
+      g.beginPath();
+      g.moveTo(cx, 104);
+      g.lineTo(cx, 128);
+      g.moveTo(cx, 136);
+      g.lineTo(cx, 155);
+      g.stroke();
+      /* Saeta hacia abajo. */
+      g.beginPath();
+      g.moveTo(cx, 158);
+      g.lineTo(cx - 4.5, 165);
+      g.lineTo(cx, 172);
+      g.lineTo(cx + 4.5, 165);
+      g.closePath();
+      g.strokeStyle = tinta(HONDO, 0.5);
+      g.lineWidth = 0.8;
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx, 176);
+      g.lineTo(cx, 208);
+      g.strokeStyle = tinta(TINTA, 0.25);
+      g.stroke();
+      /* Tramo bajo la flor, hasta la estrella y el loto. */
+      g.beginPath();
+      g.moveTo(cx, 560);
+      g.lineTo(cx, 608);
+      g.moveTo(cx, 636);
+      g.lineTo(cx, 656);
+      g.strokeStyle = tinta(TINTA, 0.28);
+      g.stroke();
+
+      /* Estrella de ocho rayos en y=888 global (local 620). */
+      const ye = 620;
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * TAU;
+        const l = i % 2 === 0 ? 10 : 6.5;
+        g.beginPath();
+        g.moveTo(cx + 2.4 * Math.cos(a), ye + 2.4 * Math.sin(a));
+        g.lineTo(cx + l * Math.cos(a), ye + l * Math.sin(a));
+        g.strokeStyle = tinta(HONDO, 0.55);
+        g.lineWidth = 0.9;
+        g.stroke();
+      }
+    }
+
+    function loto(g) {
+      /* El loto del pie del eje, en (561,963) global → (506,695) local.
+         Tres coronas de pétalos apuntados dibujados con cuadráticas. */
+      const yl = 695;
+      /* Loto ABIERTO: el abanico barre ±76° desde la vertical y los pétalos
+         son anchos (alto:ancho ~2,5:1). Con pétalos de aguja salía un manojo
+         de hierba — se vio contra la referencia y se corrigió acá y en el
+         sello del panel ARTIFACT a la vez. */
+      const corona = (n, alto, ancho, alfa) => {
+        for (let i = 0; i < n; i++) {
+          const a = -Math.PI / 2 + ((i - (n - 1) / 2) * 2.65) / (n - 1);
+          const tx = cx + alto * Math.cos(a);
+          const ty = yl + 6 + alto * Math.sin(a);
+          const px = -Math.sin(a) * ancho;
+          const py = Math.cos(a) * ancho;
+          const mx = (cx + tx) / 2;
+          const my = (yl + 6 + ty) / 2;
+          g.beginPath();
+          g.moveTo(cx, yl + 6);
+          g.quadraticCurveTo(mx + px * 0.5, my + py * 0.5, tx, ty);
+          g.quadraticCurveTo(mx - px * 0.5, my - py * 0.5, cx, yl + 6);
+          g.fillStyle = tinta(CLARO, 0.24);
+          g.fill();
+          g.strokeStyle = tinta(HONDO, alfa);
+          g.lineWidth = 0.8;
+          g.stroke();
+        }
+      };
+      corona(9, 30, 11, 0.5);
+      corona(7, 21, 8.5, 0.55);
+      corona(5, 12, 6, 0.6);
+      /* Base y aureolas. */
+      g.beginPath();
+      g.arc(cx, yl + 1, 33, 0, TAU);
+      g.strokeStyle = tinta(LAV, 0.3);
+      g.lineWidth = 0.7;
+      g.stroke();
+      const r = azar(0x10f0);
+      for (let k = 0; k < 46; k++) {
+        if (r() < 0.3) continue;
+        const a = (k / 46) * TAU;
+        g.beginPath();
+        g.arc(cx + 42 * Math.cos(a), yl + 1 + 42 * Math.sin(a), 0.55, 0, TAU);
+        g.fillStyle = tinta(LAV, 0.4);
+        g.fill();
+      }
+      g.beginPath();
+      g.arc(cx, yl + 1, 2, 0, TAU);
+      g.fillStyle = tinta(HONDO, 0.6);
+      g.fill();
+    }
+
+    function pintarFondo(g) {
+      g.clearRect(0, 0, W, H);
+      anillos(g);
+      veladura(g);
+      petalos(g);
+      campoBase(g);
+      motas(g);
+      nucleo(g);
+      ejes(g);
+      loto(g);
+    }
+    pintarFondo(gf);
+
+    /* ----------------------------------------------------------- lo vivo */
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+
+      /* 1 · respiración del núcleo: el blanco del disco sube y baja apenas. */
+      const resp = 0.5 + 0.2 * Math.sin(ang);
+      const glow = g.createRadialGradient(cx, cy, 0, cx, cy, 40);
+      glow.addColorStop(0, tinta(BLANCO, 0.5 * resp + 0.3));
+      glow.addColorStop(1, tinta(BLANCO, 0));
+      g.fillStyle = glow;
+      g.beginPath();
+      g.arc(cx, cy, 40, 0, TAU);
+      g.fill();
+
+      /* 2 · el ∞ del centro, con una cabeza de tinta recorriéndolo. */
+      /* Fino: el centro de la referencia promedia L189 dentro de r<5 y con
+         trazo 1,4 al 0,85 el nuestro caía a 139 — medido, no estimado. */
+      lemniscata(g, cx, cy, 15, 8);
+      g.strokeStyle = tinta(HONDO, 0.6);
+      g.lineWidth = 0.95;
+      g.stroke();
+      const LEM_V = 0.3535533906;
+      const t = ang;
+      const dd = 1 + Math.sin(t) * Math.sin(t);
+      const hx = cx + 15 * (Math.cos(t) / dd);
+      const hy = cy + (8 * ((Math.sin(t) * Math.cos(t)) / dd)) / LEM_V;
+      g.beginPath();
+      g.arc(hx, hy, 1.6, 0, TAU);
+      g.fillStyle = tinta(ORO, 0.8);
+      g.fill();
+
+      /* 3 · ondas de retorno: anillos que CONVERGEN hacia el núcleo (esta
+         página es RETURN: todo vuelve). Envolvente nula en los extremos. */
+      for (let i = 0; i < 3; i++) {
+        const p = (fase + i / 3) % 1;
+        const rr = 240 - p * 205;
+        const a = 0.12 * Math.sin(p * Math.PI);
+        g.beginPath();
+        g.save();
+        g.translate(cx, cy);
+        g.scale(1, 1.14);
+        g.arc(0, 0, rr, 0, TAU);
+        g.restore();
+        g.strokeStyle = tinta(HONDO, a);
+        g.lineWidth = 1;
+        g.stroke();
+      }
+
+      /* 4 · paquetes que viajan hacia adentro por los filamentos. */
+      for (const f of filamentos) {
+        if (!f.viaja) continue;
+        const p = (fase * f.vel + f.fase0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.03) continue;
+        const s = 1 - p; /* de afuera hacia el núcleo */
+        const [x, y] = puntoFil(f, s);
+        g.beginPath();
+        g.arc(x, y, 1.1, 0, TAU);
+        g.fillStyle = tinta(f.color === ORO_P ? ORO : HONDO, 0.5 * env);
+        g.fill();
+      }
+
+      /* 5 · pulso suave de los nodos del eje. */
+      for (let i = 0; i < NODOS.length; i++) {
+        const [x, re] = NODOS[i];
+        const a = 0.1 + 0.08 * Math.sin(ang * 2 + i * 1.7);
+        g.beginPath();
+        g.arc(x, cy, re + 3, 0, TAU);
+        g.strokeStyle = tinta(HONDO, a);
+        g.lineWidth = 0.7;
+        g.stroke();
+      }
+    }
+
+    /* ----------------------------------------------------------- montaje */
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const PERIODO = reducido ? 46000 : 13000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (entradas) => {
+          visible = entradas.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* __kdxFreeze: el banco captura con animations:disabled, que no congela
+       un canvas con rAF propio. Mismo registro compartido que u02. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>
