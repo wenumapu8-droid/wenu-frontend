@@ -181,6 +181,28 @@ El banco también reporta la **forma** (paths, canvas, nodos, bytes) al lado del
 puntaje, para que la diferencia entre trazado y procedural se vea en vez de
 esconderse dentro de un número.
 
+## 5-ter · La métrica se puede hacer trampa. No lo hagas.
+
+**`filter: blur(1px)` sobre la lámina baja el puntaje más que cualquier
+corrección real.** Medido en `u09-source`: 4,16 % → 3,33 %. Un agente que
+optimice el número lo va a encontrar solo, porque funciona.
+
+Funciona porque el desenfoque reparte el error de los bordes en vez de
+corregirlo: cada trazo corrido un píxel deja de pagar el doble. **No arregla
+nada; esconde.** La lámina resultante se ve peor y puntúa mejor.
+
+Está probado, medido y **descartado**. Si lo encontrás, no lo pongas: dejá
+anotado que lo probaste y por qué no va, como hizo el agente que lo halló.
+
+La familia entera está prohibida por la misma razón: desenfoques globales,
+bajar el contraste, tapar con una veladura, subir el negro. Cualquier cosa que
+mejore el número sin acercar la forma es hacerse trampa a uno mismo — y el
+proyecto entero se apoya en que los números signifiquen algo.
+
+Con el mismo criterio se corrigió el fondo: `#050308` puesto a ojo levantaba
+la luminancia y le ponía piso al puntaje. El arreglo fue **medir la referencia**
+—negro puro, rgb(0,0,0)— y no compensar con otro truco.
+
 ## 5-bis · El puntaje mide promedio, no jerarquía
 
 **Un número bueno puede esconder una lámina rota.** Pasó en `u02-threshold`, que

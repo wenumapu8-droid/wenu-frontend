@@ -42,6 +42,8 @@
  * para todo engorda la mitad de la lámina o le abre huecos a la otra mitad.
  */
 
+import Waveform from "../kit/Waveform.astro";
+
 /* ── retícula ───────────────────────────────────────────────────────────── */
 
 const TAB = { x0: 237.5, x1: 968.5 };
@@ -363,6 +365,36 @@ const modo = (texto: string, largo: number, cuerpo: number) =>
       <text class="tab__interrog" x="303" y="950">?</text>
     </g>
   </svg>
+
+  <!--
+    La señal de la fila INFERRED, fuera del SVG porque el kit trae el suyo.
+    Va con `kit/Waveform` en variante peine y NO redibujada acá: dibuja con
+    `rng(semilla)` de `kit/rng.ts`, jamás con Math.random(), así que dos capturas
+    de esta página dan el mismo trazo y el banco mide convergencia en vez de
+    ruido. Redibujarla habría sido el juego de medidores número catorce del
+    proyecto, que es para lo que existe el kit (kit/README.md).
+
+    SEMILLA, DENSIDAD Y ENVOLVENTE NO SON GUSTO. Salieron de barrer 6.000
+    semillas × 4 alturas × 4 envolventes × 4 densidades contra el perfil medido
+    de la referencia (tinta x 609..704, y 620..695), con TRES objetivos y no dos:
+    amplitud media por columna 10,8 px, pico 70 y —el que cambió el resultado—
+    59 % de columnas por debajo de 6 px. Con sólo media y pico ganaba una señal
+    de amplitud pareja que promediaba bien y se leía como trama; el tercer
+    objetivo es el que obliga al silencio entre ráfagas, que es lo que hace que
+    se lea como algo registrado. Ganador: semilla 2795, h 94, envolvente 0,99,
+    n 132 — media 10,93 · pico 71,9 · quietas 55 %.
+
+    Y la variante es PEINE, no LINEA, aunque a ojo la referencia parezca un
+    trazo de osciloscopio. `linea` mapea el valor a `medio + (v−0,5)·alto` y la
+    envolvente empuja los valores hacia 0, o sea hacia el BORDE SUPERIOR: la
+    señal se pega arriba en vez de descansar en el eje. `peine` es simétrico
+    respecto del medio por construcción, y a 132 muestras en 96 px las agujas se
+    tocan y forman la línea de reposo sola.
+  -->
+  <div class="tab__onda" data-symbolic="true">
+    <Waveform w={96} h={94} semilla={2795} variante="peine" n={132}
+      color="#cbb6ea" grosor={0.65} inercia={0.2} envolvente={0.99} margen={2} />
+  </div>
 </div>
 
 <style>
@@ -371,6 +403,15 @@ const modo = (texto: string, largo: number, cuerpo: number) =>
     inset: 0;
     display: block;
     pointer-events: none;
+  }
+
+  .tab__onda {
+    position: absolute;
+    left: 609px;
+    top: 610px;
+    width: 96px;
+    height: 94px;
+    opacity: 0.9;
   }
 
   .tab text {
