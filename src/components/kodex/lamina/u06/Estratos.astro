@@ -1,0 +1,539 @@
+---
+/**
+ * KODEX-∞ · u06-memory · ESTRATOS — el héroe: la pila de seis capas.
+ *
+ * Región global x 262..852 · y 225..790. Medido sobre la referencia:
+ *  · eje central x=555 (local 293); semieje horizontal a≈257 (vértices
+ *    laterales x 298 / 812) y semieje vertical b≈37 — la capa es MUY oblicua;
+ *  · centros de capa (vértice lateral) y = 297, 371, 445, 519, 597, 674
+ *    (paso ~74-77, local 72/146/220/294/372/449), losa de ~15 px de espesor;
+ *  · jerarquía por franjas de luminancia media: y305..515 es lo más denso
+ *    (L 14,9-15,7), la capa cima es rala pero lleva EL punto más brillante
+ *    (el núcleo espiral, 255) y hacia abajo el brillo EROSIONA:
+ *    12,0 → 10,3 → 7,8. Los estratos hondos viran a tinta CÁLIDA (sedimento);
+ *    los altos son violeta.
+ *
+ * CONTRATO — el de toda la serie:
+ *  · canvas 2D paramétrico, ni un bitmap ni un SVG calcado;
+ *  · azar = mulberry32 con semilla fija, jamás Math.random();
+ *  · bucle POR FASE 0→1 sin costura (sólo sin/cos de múltiplos enteros);
+ *  · prefers-reduced-motion alarga el período, no congela;
+ *  · IntersectionObserver + visibilitychange apagan el rAF fuera de vista;
+ *  · se cuelga de window.__kdxSumideros para que __kdxFreeze(t) lo fije.
+ *
+ * DOS LIENZOS: `fondo` (mallas, losas, conectores, polvo — una sola vez) y
+ * `vivo` (núcleo espiral, nodos encendidos, chispas — por cuadro).
+ */
+---
+
+<div data-bloque="Estratos" style="left:262px;top:225px;width:590px;height:565px">
+  <canvas data-capa="fondo" width="590" height="565" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="590" height="565" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Estratos"] { pointer-events: none; }
+  [data-bloque="Estratos"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 590px;
+    height: 565px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro lo compila como JS. */
+  const raiz = document.querySelector('[data-bloque="Estratos"]');
+  if (raiz) {
+    const W = 590;
+    const H = 565;
+    const TAU = Math.PI * 2;
+    const CX = 293;
+    const A = 257; // semieje horizontal del rombo
+    const B = 37; // semieje vertical
+    const LOSA = 15;
+    const CAPAS = [72, 146, 220, 294, 372, 449]; // centro de cada capa
+
+    const VIO = "182,142,222";
+    const CAL = "224,188,158"; // tinta cálida del sedimento
+    const NUC = "248,240,250";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+    /* Mezcla violeta→cálido según profundidad. */
+    const mez = (k) => {
+      const va = VIO.split(",").map(Number);
+      const ca = CAL.split(",").map(Number);
+      return va.map((v, i) => Math.round(v + (ca[i] - v) * k)).join(",");
+    };
+
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(raiz.querySelector('[data-capa="fondo"]'));
+    const gv = preparar(raiz.querySelector('[data-capa="vivo"]'));
+
+    /* Proyección: (p,q) ∈ [-1,1]² sobre la capa i → pantalla. */
+    const px = (p, q) => CX + ((p - q) * A) / 2;
+    const py = (i, p, q) => CAPAS[i] + ((p + q) * B) / 2;
+
+    /* Carácter por capa, de cima (0) a fondo (5). La cima es rala y nítida;
+       el medio denso; el fondo denso pero erosionado (tenue y cálido). */
+    /* Calibrado contra las franjas de la referencia (L medio 15,7/14,9/15,6/
+       12,0/10,3/7,8): la primera vuelta salió a la MITAD de brillo y el banco
+       lo premiaba — el óptimo cae más oscuro que el original, y no se le hace
+       caso. Malla y neblina suben hasta clavar la franja. */
+    /* La luz de la referencia no vive en la CARA sino en el ENREJADO: entre
+       capa y capa cuelgan decenas de verticales finas (el goteo) y anillitos.
+       Por eso la bruma va contenida y el resto lo ponen goteo + malla. */
+    const PERFIL = [
+      { n: 38, borde: 0.6, malla: 0.18, calor: 0.06, bruma: 0.03 },
+      { n: 150, borde: 0.42, malla: 0.46, calor: 0.22, bruma: 0.06 },
+      { n: 158, borde: 0.38, malla: 0.42, calor: 0.4, bruma: 0.055 },
+      { n: 152, borde: 0.36, malla: 0.38, calor: 0.58, bruma: 0.05 },
+      { n: 144, borde: 0.32, malla: 0.25, calor: 0.75, bruma: 0.036 },
+      { n: 162, borde: 0.3, malla: 0.17, calor: 0.9, bruma: 0.026 },
+    ];
+
+    /* Nodos de cada capa, precalculados una vez: la malla es fija. */
+    const capas = PERFIL.map((pf, i) => {
+      const r = azar(0x0600 + i * 7);
+      const nodos = [];
+      for (let k = 0; k < pf.n; k++) {
+        const p = 2 * r() - 1;
+        const q = 2 * r() - 1;
+        nodos.push({
+          x: px(p, q),
+          y: py(i, p, q),
+          r: 0.5 + r() * 1.3,
+          brillo: r(),
+          nuc: r() < 0.13,
+        });
+      }
+      /* Aristas: cada nodo con 1-3 vecinos cercanos. */
+      const aristas = [];
+      for (let k = 0; k < nodos.length; k++) {
+        let m = 1 + (r() < 0.7 ? 1 : 0) + (r() < 0.3 ? 1 : 0);
+        for (let j = k + 1; j < nodos.length && m > 0; j++) {
+          const dx = nodos[k].x - nodos[j].x;
+          const dy = nodos[k].y - nodos[j].y;
+          if (dx * dx + dy * dy * 14 < 7800) {
+            aristas.push([k, j, 0.35 + r() * 0.65]);
+            m--;
+          }
+        }
+      }
+      /* Nodos ESTRELLA: los que se encienden en el vivo, con sus anillos. */
+      const estrellas = [];
+      const nEst = i === 0 ? 1 : i >= 4 ? 2 : 3;
+      for (let k = 0; k < nEst; k++) {
+        const p = (2 * r() - 1) * 0.62;
+        const q = (2 * r() - 1) * 0.62;
+        estrellas.push({
+          x: px(p, q),
+          y: py(i, p, q),
+          esc: 0.7 + r() * 0.7,
+          f0: r(),
+          anillos: 1 + Math.floor(r() * 2.6),
+        });
+      }
+      return { pf, nodos, aristas, estrellas, i };
+    });
+    /* La cima no lleva estrella suelta: su estrella ES el núcleo central. */
+    capas[0].estrellas = [];
+
+    /* Conectores verticales: columnas fijas (p,q) que atraviesan la pila. */
+    const conectores = (() => {
+      const r = azar(0x06c0);
+      const cols = [[0, 0, true]];
+      for (let k = 0; k < 9; k++) cols.push([(2 * r() - 1) * 0.85, (2 * r() - 1) * 0.85, r() < 0.3]);
+      return cols.map(([p, q, alto]) => ({
+        x: px(p, q),
+        ys: CAPAS.map((_, i) => py(i, p, q)),
+        alto,
+        alfa: 0.1 + r() * 0.12,
+      }));
+    })();
+
+    function rombo(g, cy, k) {
+      g.beginPath();
+      g.moveTo(CX - A * k, cy);
+      g.lineTo(CX, cy - B * k);
+      g.lineTo(CX + A * k, cy);
+      g.lineTo(CX, cy + B * k);
+      g.closePath();
+    }
+
+    function pintarFondo(g) {
+      const r = azar(0x06f0);
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      for (const c of capas) {
+        const { pf, i } = c;
+        const cy = CAPAS[i];
+        const col = mez(pf.calor);
+
+        /* Neblina de la cara: el vidrio translúcido de la capa. Sin esto la
+           franja media rinde L 5,8 contra los 15 de la referencia. */
+        const brm = g.createRadialGradient(CX, cy, 0, CX, cy, A);
+        brm.addColorStop(0, tinta(col, pf.bruma * 1.5));
+        brm.addColorStop(0.55, tinta(col, pf.bruma));
+        brm.addColorStop(1, tinta(col, 0));
+        g.save();
+        rombo(g, cy, 1);
+        g.clip();
+        g.translate(CX, cy);
+        g.scale(1, B / A);
+        g.translate(-CX, -cy);
+        g.fillStyle = brm;
+        g.beginPath();
+        g.arc(CX, cy, A, 0, TAU);
+        g.fill();
+        g.restore();
+
+        /* Losa: media cara inferior + cantos verticales. */
+        g.strokeStyle = tinta(col, pf.borde * 0.38);
+        g.lineWidth = 0.7;
+        g.beginPath();
+        g.moveTo(CX - A, cy + LOSA);
+        g.lineTo(CX, cy + B + LOSA);
+        g.lineTo(CX + A, cy + LOSA);
+        g.moveTo(CX - A, cy);
+        g.lineTo(CX - A, cy + LOSA);
+        g.moveTo(CX + A, cy);
+        g.lineTo(CX + A, cy + LOSA);
+        g.moveTo(CX, cy + B);
+        g.lineTo(CX, cy + B + LOSA);
+        g.stroke();
+
+        /* Cara superior: doble pasada — halo ancho y filo. */
+        g.strokeStyle = tinta(col, pf.borde * 0.22);
+        g.lineWidth = 2.6;
+        rombo(g, cy, 1);
+        g.stroke();
+        g.strokeStyle = tinta(i === 0 ? NUC : col, pf.borde);
+        g.lineWidth = i === 0 ? 1.1 : 0.8;
+        rombo(g, cy, 1);
+        g.stroke();
+        /* Rombo interior tenue (retícula de la cara). */
+        g.strokeStyle = tinta(col, pf.borde * 0.3);
+        g.lineWidth = 0.6;
+        rombo(g, cy, 0.55);
+        g.stroke();
+
+        /* Malla. */
+        for (const [ka, kb, w] of c.aristas) {
+          const na = c.nodos[ka];
+          const nb = c.nodos[kb];
+          g.strokeStyle = tinta(col, pf.malla * w);
+          g.lineWidth = 0.5;
+          g.beginPath();
+          g.moveTo(na.x, na.y);
+          g.lineTo(nb.x, nb.y);
+          g.stroke();
+        }
+        for (const n of c.nodos) {
+          g.fillStyle = tinta(n.nuc ? NUC : col, (0.28 + n.brillo * 0.6) * (1 - pf.calor * 0.4));
+          g.beginPath();
+          g.arc(n.x, n.y, n.r, 0, TAU);
+          g.fill();
+        }
+
+        /* Sistemas de anillos alrededor de las estrellas (estáticos). */
+        for (const e of c.estrellas) {
+          for (let k = 1; k <= e.anillos; k++) {
+            g.strokeStyle = tinta(col, 0.42 - k * 0.08);
+            g.lineWidth = 0.6;
+            g.beginPath();
+            g.ellipse(e.x, e.y, 9 * k * e.esc, 3.2 * k * e.esc, 0, 0, TAU);
+            g.stroke();
+          }
+        }
+
+        /* GOTEO: verticales finas que cuelgan de la malla hacia la capa de
+           abajo — el enrejado que hace torre a la pila en la referencia. */
+        if (i < 5) {
+          const rg = azar(0x0640 + i);
+          for (let k = 0; k < 44; k++) {
+            const n = c.nodos[Math.floor(rg() * c.nodos.length)];
+            const L = 14 + rg() * 56;
+            g.strokeStyle = tinta(col, 0.05 + rg() * 0.12);
+            g.lineWidth = 0.5;
+            g.beginPath();
+            g.moveTo(n.x, n.y);
+            g.lineTo(n.x, n.y + L);
+            g.stroke();
+            if (rg() < 0.4) {
+              g.fillStyle = tinta(rg() < 0.2 ? NUC : col, 0.3 + rg() * 0.3);
+              g.beginPath();
+              g.arc(n.x, n.y + L, 0.7, 0, TAU);
+              g.fill();
+            }
+          }
+        }
+
+        /* Anillitos sueltos: los ◯ que salpican cada capa del póster. */
+        {
+          const ra = azar(0x0650 + i);
+          for (let k = 0; k < 7; k++) {
+            const n = c.nodos[Math.floor(ra() * c.nodos.length)];
+            g.strokeStyle = tinta(ra() < 0.3 ? NUC : col, 0.22 + ra() * 0.26);
+            g.lineWidth = 0.6;
+            g.beginPath();
+            g.arc(n.x, n.y, 2 + ra() * 3.4, 0, TAU);
+            g.stroke();
+          }
+        }
+      }
+
+      /* Núcleo de la cima: anillos concéntricos elípticos (estáticos; el
+         resplandor lo pone el vivo). */
+      const cy0 = CAPAS[0];
+      for (const [rx, alfa] of [[11, 0.5], [19, 0.42], [28, 0.34], [39, 0.26], [53, 0.2], [69, 0.13]]) {
+        g.strokeStyle = tinta(VIO, alfa);
+        g.lineWidth = 0.7;
+        g.beginPath();
+        g.ellipse(CX, cy0, rx, rx * 0.34, 0, 0, TAU);
+        g.stroke();
+      }
+
+      /* Conectores verticales punteados con nodo en cada capa. */
+      g.setLineDash([1, 3.6]);
+      for (const cn of conectores) {
+        g.strokeStyle = tinta(VIO, cn.alfa);
+        g.lineWidth = 0.6;
+        g.beginPath();
+        g.moveTo(cn.x, cn.alto ? cn.ys[0] - 42 : cn.ys[0]);
+        g.lineTo(cn.x, cn.ys[5] + 32);
+        g.stroke();
+      }
+      g.setLineDash([]);
+      for (const cn of conectores) {
+        for (const y of cn.ys) {
+          g.fillStyle = tinta(VIO, cn.alfa * 2.4);
+          g.beginPath();
+          g.arc(cn.x, y, 0.9, 0, TAU);
+          g.fill();
+        }
+        if (cn.alto) {
+          g.strokeStyle = tinta(VIO, cn.alfa * 2.6);
+          g.lineWidth = 0.7;
+          g.beginPath();
+          g.arc(cn.x, cn.ys[0] - 46, 3.6, 0, TAU);
+          g.stroke();
+        }
+      }
+
+      /* Anillo del vértice derecho de la cima, con su gancho hacia el panel
+         de erosión (está en la referencia: ◯ y una curva que sale a x>560). */
+      g.strokeStyle = tinta(VIO, 0.4);
+      g.lineWidth = 0.8;
+      g.beginPath();
+      g.arc(518, 72, 7.5, 0, TAU);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(525, 74);
+      g.quadraticCurveTo(552, 82, 553, 108);
+      g.stroke();
+
+      /* Polvo alrededor de la pila (llega bajo la última losa: y global 745). */
+      for (let k = 0; k < 250; k++) {
+        const x = CX + (r() + r() - 1) * 280;
+        const y = 30 + r() * 492;
+        if (x < 3 || x > W - 3) continue;
+        const hondo = Math.min(5, Math.max(0, Math.floor((y - 40) / 78)));
+        g.fillStyle = tinta(r() < 0.12 ? NUC : mez(hondo / 5), 0.12 + r() * 0.3);
+        g.beginPath();
+        g.arc(x, y, 0.5 + r() * 0.7, 0, TAU);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* Chispas que recorren aristas del medio de la pila. */
+    const chispas = (() => {
+      const r = azar(0x06e0);
+      const out = [];
+      for (const c of capas) {
+        if (c.i === 0) continue;
+        for (const [ka, kb] of c.aristas) {
+          if (r() < 0.045) out.push({ a: c.nodos[ka], b: c.nodos[kb], vel: 1 + Math.floor(r() * 2), f0: r(), hondo: c.i });
+        }
+      }
+      return out;
+    })();
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* EL NÚCLEO — el punto más brillante de la lámina. Late a 3 ciclos. */
+      const lat = 0.78 + 0.22 * Math.sin(ang * 3);
+      const cy0 = CAPAS[0];
+      const halo = g.createRadialGradient(CX, cy0, 0, CX, cy0, 46);
+      halo.addColorStop(0, tinta(NUC, 0.72 * lat));
+      halo.addColorStop(0.25, tinta(VIO, 0.4 * lat));
+      halo.addColorStop(1, tinta(VIO, 0));
+      g.save();
+      g.translate(CX, cy0);
+      g.scale(1, 0.42);
+      g.translate(-CX, -cy0);
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(CX, cy0, 46, 0, TAU);
+      g.fill();
+      g.restore();
+      /* Corazón puntual + destello en cruz. */
+      const nuc = g.createRadialGradient(CX, cy0, 0, CX, cy0, 7);
+      nuc.addColorStop(0, tinta(NUC, 0.95));
+      nuc.addColorStop(1, tinta(NUC, 0));
+      g.fillStyle = nuc;
+      g.beginPath();
+      g.arc(CX, cy0, 7, 0, TAU);
+      g.fill();
+      g.strokeStyle = tinta(NUC, 0.6 * lat);
+      g.lineWidth = 0.7;
+      g.beginPath();
+      g.moveTo(CX - 22 * lat, cy0);
+      g.lineTo(CX + 22 * lat, cy0);
+      g.moveTo(CX, cy0 - 7 * lat);
+      g.lineTo(CX, cy0 + 7 * lat);
+      g.stroke();
+
+      /* Estrellas de cada capa: respiración desfasada + onda de excavación
+         que baja por la pila (término entero: se cierra sin costura). */
+      for (const c of capas) {
+        const exc = 0.8 + 0.2 * Math.sin(ang - c.i * 0.85);
+        for (const e of c.estrellas) {
+          const p = 0.76 + 0.24 * Math.sin(ang * 2 + e.f0 * TAU);
+          const hondo = c.i / 5;
+          const col = mez(hondo);
+          const fuerza = (1 - hondo * 0.55) * exc;
+          const rad = 15 * e.esc;
+          const grd = g.createRadialGradient(e.x, e.y, 0, e.x, e.y, rad);
+          grd.addColorStop(0, tinta(NUC, 0.68 * p * fuerza));
+          grd.addColorStop(0.4, tinta(col, 0.36 * p * fuerza));
+          grd.addColorStop(1, tinta(col, 0));
+          g.fillStyle = grd;
+          g.beginPath();
+          g.arc(e.x, e.y, rad, 0, TAU);
+          g.fill();
+          g.fillStyle = tinta(NUC, 0.75 * p * fuerza);
+          g.beginPath();
+          g.arc(e.x, e.y, 1.4, 0, TAU);
+          g.fill();
+        }
+      }
+
+      /* Chispas por las aristas. */
+      for (const ch of chispas) {
+        const p = (fase * ch.vel + ch.f0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.04) continue;
+        const x = ch.a.x + (ch.b.x - ch.a.x) * p;
+        const y = ch.a.y + (ch.b.y - ch.a.y) * p;
+        const grd = g.createRadialGradient(x, y, 0, x, y, 2.6);
+        grd.addColorStop(0, tinta(NUC, 0.5 * env * (1 - ch.hondo * 0.12)));
+        grd.addColorStop(1, tinta(VIO, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(x, y, 2.6, 0, TAU);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ── montaje: mismo esqueleto de bucle que toda la serie ─────────────── */
+    pintarFondo(gf);
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const PERIODO = reducido ? 42000 : 12000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (es) => {
+          visible = es.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    /* Sumidero del freeze: compartido con los demás bloques de la lámina. */
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>

@@ -1,0 +1,206 @@
+---
+/**
+ * KODEX-∞ · u06-memory · PANELES LATERALES
+ *
+ * Cuatro piezas SVG, todas medidas sobre la referencia:
+ *  · STRATIFIED MEMORY STACK (izq): cabecera base 355, filas L6..L1 con
+ *    líneas de base 388/417/446/475/504/533 (paso 29), guía hasta x=268.
+ *  · EROSION OVER TIME (der): cabecera base 355, filas 385..533 y bajo cada
+ *    una su sismograma (y 394/423/453/483/510/538) — la amplitud y la
+ *    densidad CRECEN hacia L1: el estrato hondo es el más erosionado.
+ *  · MEMORY TRACE: caja x 82..243 · y 572..778, telaraña radial centro
+ *    (152,639), rótulo `trace` base 692, cuatro líneas 710..758.
+ *  · VERSION INDEX: caja x 831..1026 · y 572..778, filas v5.3..v1.0 con
+ *    bases 618..686 (paso 17), la fila v3.2 resaltada, `version` base 711.
+ *
+ * Los sismogramas y la telaraña salen de `rng` con semilla fija (kit).
+ */
+import { rng, p2 } from "../kit/rng";
+import { rombo } from "../serie-universe/geom";
+
+const CH = 6.3; // avance del cuerpo 10.5 medido en los paneles
+
+/* ── stack izquierdo ────────────────────────────────────────────────────── */
+const stack = ["ECHO LAYER", "CONTEXT LAYER", "SEMANTIC LAYER", "EVENT LAYER", "SIGNAL LAYER", "RAW IMPRESSION"];
+
+/* ── erosión: sismogramas seeded, más violentos hacia abajo ─────────────── */
+const olas = stack.map((_, i) => {
+  const r = rng(0x0660 + i);
+  const y0 = [394, 423, 453, 483, 510, 538][i];
+  const x0 = 928 - i * 5 - r() * 6;
+  /* Tope duro en x=1050: la primera vuelta desbordaba el marco interior. */
+  const ancho = Math.min(95 + i * 11 + r() * 8, 1050 - x0);
+  const n = 26 + i * 8;
+  let d = `M${p2(x0)} ${y0}`;
+  for (let k = 1; k <= n; k++) {
+    const x = x0 + (ancho * k) / n;
+    const amp = (1 + i * 0.5) * (r() < 0.22 ? 2.3 : 1);
+    d += `L${p2(x)} ${p2(y0 + (r() * 2 - 1) * amp)}`;
+  }
+  return { d, y0, x0: p2(x0) };
+});
+
+/* ── telaraña del trace ─────────────────────────────────────────────────── */
+const telarana = (() => {
+  const r = rng(0x0672);
+  const cx = 152;
+  const cy = 639;
+  const anillos = [10, 20, 30, 42, 54].map((rr, k) => ({ rx: rr, ry: p2(rr * 0.72), op: p2(0.48 - k * 0.06) }));
+  const radios = [];
+  for (let k = 0; k < 10; k++) {
+    const a = (k / 10) * Math.PI * 2 + 0.25;
+    const L = 40 + r() * 22;
+    radios.push(`M${cx} ${cy}L${p2(cx + L * Math.cos(a))} ${p2(cy + L * 0.72 * Math.sin(a))}`);
+  }
+  const nodos = [];
+  for (let k = 0; k < 30; k++) {
+    const a = r() * Math.PI * 2;
+    const rr = 10 + r() * 52;
+    nodos.push({
+      x: p2(cx + rr * Math.cos(a)),
+      y: p2(cy + rr * 0.72 * Math.sin(a)),
+      r: p2(0.6 + r() * 1.1),
+      op: p2(0.35 + r() * 0.55),
+      nuc: r() < 0.2,
+    });
+  }
+  return { cx, cy, anillos, radios: radios.join(""), nodos };
+})();
+
+/* ── índice de versiones: patrón de rombos por fila ─────────────────────── */
+const versiones = [
+  { v: "v5.3", y: 618, n: 6, cola: "dots" },
+  { v: "v4.7", y: 635, n: 5, cola: "" },
+  { v: "v3.2", y: 652, n: 3, cola: "faint", brillante: true },
+  { v: "v2.1", y: 669, n: 2, cola: "dot" },
+  { v: "v1.0", y: 686, n: 1, cola: "" },
+];
+---
+
+<div data-bloque="Paneles" style="inset:0">
+  <svg class="u6p" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <!-- ═══ STRATIFIED MEMORY STACK ═══ -->
+    <text class="u6p-hdr" x="88" y="355" textLength="173" lengthAdjust="spacing">STRATIFIED MEMORY STACK</text>
+    <path class="u6p-linea" d="M88 366.5H276" stroke-dasharray="1 3" />
+    {stack.map((nombre, i) => {
+      const y = 388 + i * 29;
+      const x1 = 122 + nombre.length * CH + 10;
+      return (
+        <g>
+          <text class="u6p-code" x="88" y={y}>{`L${6 - i}`}</text>
+          <text class="u6p-txt" x="122" y={y} textLength={nombre.length * CH}>{nombre}</text>
+          <path class="u6p-guia" d={`M${x1} ${y - 3.5}H266`} />
+          <path class="u6p-guia u6p-guia--f" d={rombo(271, y - 3.5, 6, 6)} />
+        </g>
+      );
+    })}
+
+    <!-- ═══ EROSION OVER TIME ═══ -->
+    <text class="u6p-hdr" x="828" y="355" textLength="127" lengthAdjust="spacing">EROSION OVER TIME</text>
+    <path class="u6p-linea" d="M828 366.5H1035" stroke-dasharray="1 3" />
+    {stack.map((_, i) => {
+      const y = [385, 415, 444, 474, 503, 533][i];
+      const mas = "+".repeat(5 - i);
+      return (
+        <g>
+          <text class="u6p-code" x="828" y={y}>{`L${6 - i}`}</text>
+          <path class="u6p-guia" d={`M853 ${y - 3.5}H876`} />
+          <circle class="u6p-punto" cx="879.5" cy={y - 3.5} r="1.2" />
+          <text class="u6p-txt" x="886" y={y}>{"Δt"}</text>
+          {i < 5
+            ? <text class="u6p-mas" x="908" y={y} letter-spacing="4.5">{mas}</text>
+            : <text class="u6p-mas" x="908" y={y} letter-spacing="4.5">0 ·</text>}
+        </g>
+      );
+    })}
+    {olas.map((o) => (
+      <g>
+        <path class="u6p-ola-guia" d={`M${o.x0 - 22} ${o.y0}H${o.x0 - 4}`} stroke-dasharray="1 3" />
+        <path class="u6p-ola" d={o.d} />
+      </g>
+    ))}
+
+    <!-- ═══ MEMORY TRACE ═══ -->
+    <rect class="u6p-caja" x="82.5" y="572.5" width="161" height="206" />
+    <path class="u6p-esq" d="M82.5 584.5V572.5H94.5M231.5 572.5H243.5V584.5M243.5 766.5V778.5H231.5M94.5 778.5H82.5V766.5" />
+    <text class="u6p-hdr" x="96" y="593" textLength="114" lengthAdjust="spacing">MEMORY TRACE</text>
+    <g class="u6p-tela">
+      {telarana.anillos.map((a) => (
+        <ellipse cx={telarana.cx} cy={telarana.cy} rx={a.rx} ry={a.ry} stroke-opacity={a.op} transform={`rotate(-8 ${telarana.cx} ${telarana.cy})`} />
+      ))}
+      <path d={telarana.radios} stroke-opacity="0.34" />
+      {telarana.nodos.map((n) => (
+        <circle class={n.nuc ? "u6p-tela--nuc" : "u6p-tela--nodo"} cx={n.x} cy={n.y} r={n.r} fill-opacity={n.op} />
+      ))}
+      <circle class="u6p-tela--halo" cx={telarana.cx} cy={telarana.cy} r="10" />
+      <circle class="u6p-tela--halo2" cx={telarana.cx} cy={telarana.cy} r="3.6" />
+      <circle class="u6p-tela--core" cx={telarana.cx} cy={telarana.cy} r="1.8" />
+    </g>
+    <text class="u6p-lab" x="96" y="692">trace</text>
+    <path class="u6p-linea" d="M203 688H240" stroke-dasharray="5 4" />
+    {["A RESIDUAL PATTERN", "LEFT BY AN EVENT.", "FRAGILE. INCOMPLETE.", "BUT REAL."].map((t, i) => (
+      <text class="u6p-txt u6p-txt--chico" x="96" y={710 + i * 16} textLength={t.length * 6}>{t}</text>
+    ))}
+
+    <!-- ═══ VERSION INDEX ═══ -->
+    <rect class="u6p-caja" x="831.5" y="572.5" width="194.5" height="206" />
+    <path class="u6p-esq" d="M831.5 584.5V572.5H843.5M1014 572.5H1026V584.5M1026 766.5V778.5H1014M843.5 778.5H831.5V766.5" />
+    <text class="u6p-hdr" x="845" y="594" textLength="120" lengthAdjust="spacing">VERSION INDEX</text>
+    <rect class="u6p-resalte" x="832.5" y="639" width="192.5" height="18" />
+    {versiones.map((f) => (
+      <g>
+        <text class={f.brillante ? "u6p-txt u6p-txt--vivo" : "u6p-txt"} x="845" y={f.y}>{f.v}</text>
+        {Array.from({ length: f.n }, (_, k) => (
+          <path class={f.brillante ? "u6p-dia u6p-dia--vivo" : "u6p-dia"} d={rombo(891 + k * 17, f.y - 3.5, 9, 9)} />
+        ))}
+        {f.cola === "dots" && <text class="u6p-txt u6p-txt--chico" x={891 + f.n * 17} y={f.y}>· ···</text>}
+        {f.cola === "dot" && <circle class="u6p-punto" cx={891 + f.n * 17 - 5} cy={f.y - 3.5} r="1.2" />}
+        {f.cola === "faint" && <path class="u6p-dia u6p-dia--tenue" d={rombo(891 + f.n * 17, f.y - 3.5, 9, 9)} />}
+      </g>
+    ))}
+    <text class="u6p-lab" x="845" y="711">version</text>
+    <path class="u6p-linea" d="M955 707H1015" stroke-dasharray="5 4" />
+    {["A HYPOTHESIS OF THE PAST.", "PARTIAL. CONTEXTUAL.", "SUBJECT TO REVISITATION."].map((t, i) => (
+      <text class="u6p-txt u6p-txt--chico" x="845" y={730 + i * 16} textLength={t.length * 6}>{t}</text>
+    ))}
+  </svg>
+</div>
+
+<style is:global>
+  .u6p {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .u6p text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  .u6p-hdr { font-size: 11.5px; fill: #b18ae0; fill-opacity: 0.55; }
+  .u6p-code { font-size: 13px; fill: #d8d4d0; fill-opacity: 0.72; }
+  .u6p-txt { font-size: 10.5px; fill: #d8d4d0; fill-opacity: 0.42; }
+  .u6p-txt--chico { font-size: 9.5px; fill-opacity: 0.38; }
+  .u6p-txt--vivo { fill-opacity: 0.85; }
+  .u6p-lab { font-size: 11px; fill: #d8d4d0; fill-opacity: 0.6; }
+  .u6p-mas { font-size: 10.5px; fill: #b18ae0; fill-opacity: 0.55; }
+  .u6p-linea { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.16; }
+  .u6p-guia { fill: none; stroke: #d8d4d0; stroke-width: 0.7; stroke-opacity: 0.16; }
+  .u6p-guia--f { stroke-opacity: 0.32; }
+  .u6p-punto { fill: #d8d4d0; fill-opacity: 0.4; }
+  .u6p-caja { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.12; }
+  .u6p-esq { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.28; }
+  .u6p-ola { fill: none; stroke: #b18ae0; stroke-width: 0.7; stroke-opacity: 0.5; }
+  .u6p-ola-guia { fill: none; stroke: #b18ae0; stroke-width: 0.7; stroke-opacity: 0.3; }
+  .u6p-tela ellipse { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6p-tela path { fill: none; stroke: #b18ae0; stroke-width: 0.6; }
+  .u6p-tela--nodo { fill: #b18ae0; }
+  .u6p-tela--nuc { fill: #f2ecf6; }
+  .u6p-tela--halo { fill: #b18ae0; fill-opacity: 0.16; }
+  .u6p-tela--halo2 { fill: #b18ae0; fill-opacity: 0.3; }
+  .u6p-tela--core { fill: #f2ecf6; fill-opacity: 0.9; }
+  .u6p-resalte { fill: #d8d4d0; fill-opacity: 0.05; }
+  .u6p-dia { fill: none; stroke: #b18ae0; stroke-width: 0.9; stroke-opacity: 0.5; }
+  .u6p-dia--vivo { stroke-opacity: 0.9; }
+  .u6p-dia--tenue { stroke-opacity: 0.22; }
+</style>

@@ -281,6 +281,9 @@ que `src/scripts/kodex-engine.js:170` lee para navegar.
 | no centra | `place-items: center` sobre una caja más grande que el contenedor desborda de un lado. `transform-origin: 0 0` + `translate` calculado. |
 | el puntaje no cambia | estás midiendo contra un `dist/` viejo. **Reconstruí antes de medir.** |
 | build falla por WooCommerce | `ALLOW_EMPTY_PRODUCTS=true npm run build` — está documentado en `CLAUDE.md`. |
+| un `<path>` con degradado sale **negro** | `fill: url(#id)` escrito en una hoja externa resuelve contra `/_astro/*.css`, no contra el documento, y no encuentra el gradiente. Ponelo como atributo en el elemento, no en CSS. |
+| círculos SVG que salen **negros** | un `<circle>` sin regla de `fill` hereda negro. En SVG el valor inicial de `fill` es negro, no «ninguno». |
+| el índice «no lista» mi lámina | estás mirando el archivo fuente, que sólo trae la curaduría. El índice se descubre por glob: mirá `dist/kodex/lamina/index.html`. |
 
 ## Trabajar en paralelo: el `dist/` es compartido
 

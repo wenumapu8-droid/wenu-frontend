@@ -1,0 +1,205 @@
+---
+/**
+ * KODEX-∞ · u06-memory · FILA INFERIOR — y 1102..1262, x 82..1026, con
+ * divisores en x=506 y x=826. Tres paneles medidos:
+ *  · SEDIMENTED SIGNALS: campo de estratos ondulados x 96..380 · y 1136..1250
+ *    + leyenda de cinco iconos en x≈398;
+ *  · FIELD EXCAVATION PROTOCOL: pasos 01..06 (bases 1150..1245, paso 19) y
+ *    escáner radial centrado en (747,1190) con núcleo de asterisco;
+ *  · EROSION LAW: texto en x 840 y rosa geométrica en (976,1190).
+ *
+ * Estratos, motas y cuerdas: rng con semilla fija.
+ */
+import { rng, p2 } from "../kit/rng";
+
+/* ── campo de estratos ──────────────────────────────────────────────────── */
+const campo = (() => {
+  /* Calibrado: la franja del campo rinde L 10,8 en la referencia y la
+     primera vuelta dio 2,2 — faltaba densidad, no orden. */
+  const r = rng(0x06d1);
+  const lineas = [];
+  const puntosPorLinea = [];
+  for (let i = 0; i < 9; i++) {
+    const y0 = 1143 + i * 12.4;
+    let d = "";
+    const pts = [];
+    for (let s = 0; s <= 26; s++) {
+      const x = 98 + (s / 26) * 280;
+      const y = y0 + Math.sin(s * 0.7 + i * 1.9) * 4 + (r() * 2 - 1) * 2.6;
+      d += `${s ? "L" : "M"}${p2(x)} ${p2(y)}`;
+      pts.push([x, y]);
+    }
+    lineas.push({ d, op: p2(0.55 + r() * 0.28), calida: i > 2 && r() < 0.35 });
+    puntosPorLinea.push(pts);
+  }
+  /* Cuerdas diagonales entre estratos vecinos + nodos. */
+  const cuerdas = [];
+  const nodos = [];
+  for (let k = 0; k < 160; k++) {
+    const i = Math.floor(r() * 8);
+    const s = 1 + Math.floor(r() * 25);
+    const a = puntosPorLinea[i][s];
+    /* La cuerda puede saltar DOS estratos y correrse varios pasos: eso teje
+       la red diagonal de la referencia, no una escalera. */
+    const j = Math.min(8, i + 1 + (r() < 0.3 ? 1 : 0));
+    const b = puntosPorLinea[j][Math.max(0, Math.min(26, s + Math.floor(r() * 9) - 4))];
+    if (r() < 0.75) cuerdas.push({ d: `M${p2(a[0])} ${p2(a[1])}L${p2(b[0])} ${p2(b[1])}`, op: p2(0.24 + r() * 0.28) });
+    nodos.push({ x: p2(a[0]), y: p2(a[1]), r: p2(0.7 + r() * 1.3), op: p2(0.5 + r() * 0.5), nuc: r() < 0.18, vio: r() < 0.65 });
+  }
+  return { lineas, cuerdas, nodos };
+})();
+
+/* ── escáner radial ─────────────────────────────────────────────────────── */
+const escaner = (() => {
+  const r = rng(0x06d2);
+  const cx = 747;
+  const cy = 1190;
+  const motas = [];
+  for (let k = 0; k < 12; k++) {
+    const a = r() * Math.PI * 2;
+    const rr = [18, 26, 34, 42][Math.floor(r() * 4)];
+    motas.push({ x: p2(cx + rr * Math.cos(a)), y: p2(cy + rr * Math.sin(a)), r: p2(0.7 + r() * 0.8), op: p2(0.3 + r() * 0.45) });
+  }
+  const ast = Array.from({ length: 8 }, (_, k) => {
+    const a = (k * Math.PI) / 4 + Math.PI / 8;
+    return `M${cx} ${cy}L${p2(cx + 9.5 * Math.cos(a))} ${p2(cy + 9.5 * Math.sin(a))}`;
+  }).join("");
+  return { cx, cy, motas, ast };
+})();
+
+/* ── rosa geométrica ────────────────────────────────────────────────────── */
+const rosa = (() => {
+  const cx = 976;
+  const cy = 1190;
+  const petalos = Array.from({ length: 6 }, (_, k) => {
+    const a = (k * Math.PI) / 3;
+    return { x: p2(cx + 19 * Math.cos(a)), y: p2(cy + 19 * Math.sin(a)) };
+  });
+  const rombos = `M${cx} ${cy - 40}L${cx + 40} ${cy}L${cx} ${cy + 40}L${cx - 40} ${cy}Z` +
+    `M${cx} ${cy - 28}L${cx + 28} ${cy}L${cx} ${cy + 28}L${cx - 28} ${cy}Z`;
+  const rayos = Array.from({ length: 12 }, (_, k) => {
+    const a = (k * Math.PI) / 6;
+    return `M${p2(cx + 30 * Math.cos(a))} ${p2(cy + 30 * Math.sin(a))}L${p2(cx + 44 * Math.cos(a))} ${p2(cy + 44 * Math.sin(a))}`;
+  }).join("");
+  return { cx, cy, petalos, rombos, rayos };
+})();
+
+const leyenda = [
+  { t: "STRONG COHERENCE", icono: "cohF" },
+  { t: "WEAK COHERENCE", icono: "cohD" },
+  { t: "DISRUPTED TRACE", icono: "disr" },
+  { t: "FORGOTTEN LAYER", icono: "olvi" },
+  { t: "DORMANT PATTERN", icono: "dorm" },
+];
+const pasos = ["CALIBRATE INTENT", "SELECT HYPOTHESIS", "EXCAVATE LAYER BY LAYER", "VALIDATE TRACE INTEGRITY", "RECONSTRUCT CONTEXT", "INTEGRATE & TRANSCEND"];
+const ley = ["ALL FORMS DECAY.", "ALL MEANINGS SHIFT.", "ONLY THE SEEKER", "DETERMINES THE", "MEMORY'S FATE."];
+const CH = 6;
+---
+
+<div data-bloque="Sedimentos" style="inset:0">
+  <svg class="u6s" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <rect class="u6s-caja" x="82.5" y="1102.5" width="943.5" height="159.5" />
+    <path class="u6s-div" d="M506.5 1102.5V1262M826.5 1102.5V1262" />
+
+    <!-- ═══ SEDIMENTED SIGNALS ═══ -->
+    <text class="u6s-hdr" x="96" y="1126" textLength="140" lengthAdjust="spacing">SEDIMENTED SIGNALS</text>
+    <rect class="u6s-caja u6s-caja--int" x="95.5" y="1135.5" width="286" height="115" />
+    <g class="u6s-campo">
+      {campo.lineas.map((l) => <path class={l.calida ? "u6s-est u6s-est--cal" : "u6s-est"} d={l.d} stroke-opacity={l.op} />)}
+      {campo.cuerdas.map((c) => <path class="u6s-cuerda" d={c.d} stroke-opacity={c.op} />)}
+      {campo.nodos.map((n) => (
+        <circle class={n.nuc ? "u6s-nuc" : n.vio ? "u6s-nodo--vio" : "u6s-nodo--cal"} cx={n.x} cy={n.y} r={n.r} fill-opacity={n.op} />
+      ))}
+    </g>
+    <!-- leyenda -->
+    {leyenda.map((f, i) => {
+      const y = 1142 + i * 23;
+      return (
+        <g>
+          <g class="u6s-icono">
+            {f.icono === "cohF" && <g><rect x="392" y={y - 9} width="11" height="11" /><circle class="u6s-icono--dot" cx="397.5" cy={y - 3.5} r="1.4" /></g>}
+            {f.icono === "cohD" && <circle cx="397.5" cy={y - 3.5} r="5.5" stroke-dasharray="2.5 2.5" />}
+            {f.icono === "disr" && <g><circle cx="397.5" cy={y - 3.5} r="4" /><path d={`M397.5 ${y - 13}v3M397.5 ${y + 2.5}v3M388 ${y - 3.5}h3M404 ${y - 3.5}h3`} /></g>}
+            {f.icono === "olvi" && <path d={`M392 ${y - 0.5}a5.5 5.5 0 0 1 11 0`} stroke-dasharray="2 2.4" />}
+            {f.icono === "dorm" && <g><rect x="392" y={y - 9} width="11" height="11" transform={`rotate(45 397.5 ${y - 3.5})`} /><circle class="u6s-icono--dot" cx="397.5" cy={y - 3.5} r="1.2" /></g>}
+          </g>
+          <text class="u6s-txt" x="414" y={y} textLength={f.t.length * 5.5}>{f.t}</text>
+        </g>
+      );
+    })}
+
+    <!-- ═══ FIELD EXCAVATION PROTOCOL ═══ -->
+    <text class="u6s-hdr" x="522" y="1126" textLength="190" lengthAdjust="spacing">FIELD EXCAVATION PROTOCOL</text>
+    {pasos.map((t, i) => (
+      <g>
+        <text class="u6s-num" x="522" y={1150 + i * 19}>{`0${i + 1}`}</text>
+        <text class="u6s-txt" x="549" y={1150 + i * 19} textLength={t.length * CH}>{t}</text>
+      </g>
+    ))}
+    <!-- escáner -->
+    <g class="u6s-scan">
+      {[10, 18, 26, 34, 42, 50].map((rr, k) => (
+        <circle cx={escaner.cx} cy={escaner.cy} r={rr} stroke-opacity={k % 2 ? 0.16 : 0.3} />
+      ))}
+      <path d={`M${escaner.cx - 56} ${escaner.cy}H${escaner.cx + 56}M${escaner.cx} ${escaner.cy - 54}V${escaner.cy + 54}`} stroke-opacity="0.2" stroke-dasharray="1 3" />
+      {escaner.motas.map((m) => <circle class="u6s-nodo--vio" cx={m.x} cy={m.y} r={m.r} fill-opacity={m.op} />)}
+      <path class="u6s-ast" d={escaner.ast} />
+      <circle class="u6s-halo" cx={escaner.cx} cy={escaner.cy} r="8" />
+      <circle class="u6s-nuc" cx={escaner.cx} cy={escaner.cy} r="1.8" />
+    </g>
+
+    <!-- ═══ EROSION LAW ═══ -->
+    <text class="u6s-hdr" x="840" y="1126" textLength="90" lengthAdjust="spacing">EROSION LAW</text>
+    {ley.map((t, i) => (
+      <text class="u6s-txt" x="840" y={1152 + i * 19} textLength={t.length * CH}>{t}</text>
+    ))}
+    <!-- rosa -->
+    <g class="u6s-rosa">
+      <circle cx={rosa.cx} cy={rosa.cy} r="40" stroke-opacity="0.25" />
+      <circle cx={rosa.cx} cy={rosa.cy} r="19" stroke-opacity="0.3" />
+      {rosa.petalos.map((pt) => <circle cx={pt.x} cy={pt.y} r="19" stroke-opacity="0.2" />)}
+      <path d={rosa.rombos} stroke-opacity="0.28" />
+      <path d={rosa.rayos} stroke-opacity="0.24" />
+      <circle class="u6s-halo" cx={rosa.cx} cy={rosa.cy} r="7" />
+      <circle class="u6s-nuc" cx={rosa.cx} cy={rosa.cy} r="1.8" />
+    </g>
+  </svg>
+</div>
+
+<style is:global>
+  .u6s {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .u6s text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  .u6s-caja { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.12; }
+  .u6s-caja--int { stroke-opacity: 0.09; }
+  .u6s-div { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.1; }
+  .u6s-hdr { font-size: 11px; fill: #b18ae0; fill-opacity: 0.55; }
+  .u6s-txt { font-size: 9.5px; fill: #d8d4d0; fill-opacity: 0.4; }
+  .u6s-num { font-size: 9.5px; fill: #b18ae0; fill-opacity: 0.6; }
+  .u6s-est { fill: none; stroke: #b18ae0; stroke-width: 0.6; }
+  .u6s-est--cal { stroke: #e0bc9e; }
+  .u6s-cuerda { fill: none; stroke: #b18ae0; stroke-width: 0.5; }
+  .u6s-nodo--vio { fill: #b18ae0; }
+  .u6s-nodo--cal { fill: #e0bc9e; }
+  .u6s-nuc { fill: #f2ecf6; fill-opacity: 0.85; }
+  .u6s-halo { fill: #b18ae0; fill-opacity: 0.2; }
+  .u6s-icono rect, .u6s-icono circle, .u6s-icono path { fill: none; stroke: #d8d4d0; stroke-width: 0.8; stroke-opacity: 0.4; }
+  .u6s-icono--dot { fill: #d8d4d0 !important; fill-opacity: 0.5; stroke: none !important; }
+  .u6s-scan circle { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6s-scan path { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6s-scan .u6s-nodo--vio { fill: #b18ae0; stroke: none; }
+  .u6s-scan .u6s-halo { fill: #b18ae0; stroke: none; }
+  .u6s-scan .u6s-nuc { fill: #f2ecf6; stroke: none; }
+  .u6s-ast { stroke: #cfa9f2 !important; stroke-width: 1.1 !important; stroke-opacity: 0.85; }
+  .u6s-rosa circle { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6s-rosa path { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6s-rosa .u6s-halo { fill: #b18ae0; stroke: none; }
+  .u6s-rosa .u6s-nuc { fill: #f2ecf6; stroke: none; }
+</style>
