@@ -87,6 +87,42 @@ Ephemeral pointer/touch input may influence visual state, but persistent narrati
 
 ---
 
+## 2026-08-11 — Demoscene / CRT / procedural effects research
+
+### Learning: research must search the repo before creating a new renderer
+
+A Kimi research packet proposed a new lightweight CRT shader, but `redesign-v2` already contains `src/kodex/crt/kodex-crt.esm.js` with scanlines, phosphor masks, noise, flicker, bloom, persistence, chromatic offset, curvature, vignette, bleed, anomaly modes, scene presets and adaptive quality profiles.
+
+**Evidence:** `src/kodex/crt/kodex-crt.esm.js`; `docs/research/KODEX_DEMOSCENE_CRT_RESEARCH_2026-08-11.md`.
+
+**Use:** external CRT research is a benchmark/tuning input. Do not build a parallel CRT implementation unless a measured capability gap justifies it.
+
+### Learning: “external dependency prohibited” is too broad
+
+KODEX prefers internal, lightweight, free/open or already-available capabilities when they solve the need cleanly. That is not the same as a blanket ban on every external dependency.
+
+**Use:** evaluate dependencies by duplication, license, weight, maintainability and actual capability gap. If a robust internal subsystem already exists, extend it instead of adding another package.
+
+### Learning: demoscene timing must not own narrative progression
+
+Small-demo timelines are useful for sequencing shaders, but KODEX is a voluntary/non-linear journey rather than a fixed movie.
+
+**Use:** elapsed time may animate a selected effect; JourneyState + explicit user action + routing own canonical progression.
+
+### Learning: procedural generation is useful when it replaces weight or communicates state
+
+Sine fields and plasma-like shaders can be extremely small and reusable, but “procedural” alone does not make an effect valuable.
+
+**Use:** only add a recipe when it has a declared scene/node function, controllable parameters, reduced-motion behavior and mobile QA.
+
+### Learning: current ASCII subtree contains no `.ans` assets
+
+The audited `src/kodex/ascii/` tree on `redesign-v2` contains renderer/config/scene code but no `.ans` files.
+
+**Use:** do not create an ANSI-import migration task until real assets are present. External ANSI art defaults to `REF` until creator/provenance/rights are verified.
+
+---
+
 ## KODEX durable design learnings
 
 ### Visual density needs hierarchy
