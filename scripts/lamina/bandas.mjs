@@ -12,8 +12,18 @@ import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const slug = process.argv[2];
-const img = PNG.sync.read(readFileSync(join(ROOT, "reference", "canon", `${slug}.png`)));
+/* Acepta slug o ruta. Antes sólo aceptaba slug y pegaba `.png` al final, así
+   que pasarle `reference/canon/x.png` buscaba `x.png.png` y el error parecía
+   un bug del script. Le pasó a un agente en otra máquina y perdió una vuelta
+   averiguándolo. */
+const arg = process.argv[2];
+if (!arg) {
+  console.error("uso: bandas.mjs <slug|ruta-al-png>   ej: bandas.mjs u02-threshold");
+  process.exit(2);
+}
+const slug = arg.replace(/\.png$/i, "").replace(/^.*\//, "");
+const ruta = arg.includes("/") ? arg : join(ROOT, "reference", "canon", `${slug}.png`);
+const img = PNG.sync.read(readFileSync(ruta));
 const { width: W, height: H, data } = img;
 const lum = (x, y) => { const i = (y * W + x) * 4; return (data[i]*77 + data[i+1]*150 + data[i+2]*29) >> 8; };
 
