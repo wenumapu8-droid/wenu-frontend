@@ -120,6 +120,21 @@ Every visual packet should report:
 
 Resolve drift between docs and actual CI/offline product-fetch behavior. A green-looking packet without a reproducible check is not evidence.
 
+### P2.3 Convert demoscene research into delta-only Effect Foundry work
+
+Research packet: `docs/research/KODEX_DEMOSCENE_CRT_RESEARCH_2026-08-11.md`.
+
+Important correction: do **not** create another CRT renderer as the default next step. `src/kodex/crt/kodex-crt.esm.js` already implements the core CRT effect family plus scene presets, adaptive quality and anomaly behavior.
+
+Next actions:
+
+1. compare external CRT research against the existing KODEX CRT and list only genuine missing capabilities;
+2. search current Effect Foundry/shader lanes for sine/plasma equivalents before writing new code;
+3. if no equivalent exists, create the smallest reversible semantic recipes (procedural plasma and/or sine-scroller) with no unnecessary dependency;
+4. keep JourneyState/user action authoritative for narrative progression — time only modulates effects;
+5. validate any new recipe at 390×844 and 412×915 plus reduced motion;
+6. do not copy external implementation code until the exact source/license is resolved.
+
 ---
 
 ## P2 — Build the KODEX asset corpus as a production resource
@@ -138,6 +153,10 @@ Kimi should help maintain:
 - thumbnail/contact-sheet access for agents.
 
 Prioritize Ocín-authored artwork and approved KODEX plates before generating replacements.
+
+### ANSI audit note
+
+The audited `src/kodex/ascii/` subtree on `redesign-v2` currently contains renderer/config/scene code but no `.ans` files. Do not invent an ANSI ingestion migration until assets exist. External ANSI art should remain `REF` until stable ID, creator, provenance and rights are verified.
 
 ---
 
