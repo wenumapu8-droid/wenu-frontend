@@ -59,6 +59,7 @@
     const CAL = "224,188,158";
     const NUC = "248,240,250";
     const AQUA = "140,200,210";
+    const ROSA = "220,140,180";
     const tinta = (c, a) => "rgba(" + c + "," + a + ")";
 
     function espiral(g, cx, cy, rr, brazos, vueltas, alfa) {
@@ -69,9 +70,9 @@
       for (let b = 0; b < brazos; b++) {
         g.beginPath();
         const off = (b / brazos) * TAU;
-        for (let s = 0; s <= 120; s++) {
-          const t = (s / 120) * vueltas * TAU;
-          const r = 2 + (rr * s) / 120;
+        for (let s = 0; s <= 160; s++) {
+          const t = (s / 160) * vueltas * TAU;
+          const r = 2 + (rr * s) / 160;
           const a = off + t;
           const x = r * Math.cos(a);
           const y = r * Math.sin(a) * 0.65;
@@ -104,6 +105,70 @@
       g.restore();
     }
 
+    function corazon(g, cx, cy, R, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(ROSA, alfa);
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let i = 0; i <= 64; i++) {
+        const t = (i / 64) * TAU;
+        const x = R * 16 * Math.pow(Math.sin(t), 3) / 16;
+        const y = -R * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16;
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.closePath();
+      g.stroke();
+      g.restore();
+    }
+
+    function lemniscata(g, cx, cy, a, b, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(NUC, alfa);
+      g.lineWidth = 1.2;
+      g.beginPath();
+      for (let i = 0; i <= 96; i++) {
+        const t = (i / 96) * TAU;
+        const x = a * Math.cos(t);
+        const y = (b / 2) * Math.sin(2 * t);
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.closePath();
+      g.stroke();
+      g.restore();
+    }
+
+    function anillos(g, cx, cy, rads, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.6;
+      for (const r of rads) {
+        g.beginPath();
+        g.arc(0, 0, r, 0, TAU);
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    function radios(g, cx, cy, R, n, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.5;
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * TAU;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(R * Math.cos(a), R * Math.sin(a));
+        g.stroke();
+      }
+      g.restore();
+    }
+
     function pintarFondo(g) {
       const r = azar(0x1000);
       g.clearRect(0, 0, W, H);
@@ -111,13 +176,13 @@
       g.globalCompositeOperation = "lighter";
 
       const grd = g.createRadialGradient(CX, CY, 0, CX, CY, Math.max(W, H) * 0.6);
-      grd.addColorStop(0, tinta(VIO, 0.04));
-      grd.addColorStop(0.5, tinta(VIO, 0.02));
+      grd.addColorStop(0, tinta(VIO, 0.05));
+      grd.addColorStop(0.5, tinta(VIO, 0.025));
       grd.addColorStop(1, tinta(VIO, 0));
       g.fillStyle = grd;
       g.fillRect(0, 0, W, H);
 
-      for (let k = 0; k < 2200; k++) {
+      for (let k = 0; k < 2600; k++) {
         const rr = Math.sqrt(r());
         const a = r() * TAU;
         const x = CX + rr * (W / 2 - 8) * Math.cos(a);
@@ -133,7 +198,7 @@
 
       const estrellas = [];
       const re = azar(0x1010);
-      for (let k = 0; k < 180; k++) {
+      for (let k = 0; k < 220; k++) {
         const rr = Math.sqrt(re());
         const a = re() * TAU;
         estrellas.push({
@@ -164,6 +229,20 @@
         g.fill();
       }
 
+      /* Estructura central: anillos y radios. */
+      anillos(g, CX, CY, [30, 55, 85, 120, 160, 200, 250, 310], 0.14);
+      radios(g, CX, CY, 340, 24, 0.10);
+      anillos(g, CX, CY, [8, 14], 0.35);
+
+      /* Corazón arriba. */
+      corazon(g, CX, CY - 360, 10, 0.35);
+      corazon(g, CX, CY - 360, 6, 0.25);
+
+      /* ∞ abajo. */
+      lemniscata(g, CX, CY + 320, 22, 16, 0.45);
+      anillos(g, CX, CY + 320, [35, 50, 65], 0.16);
+
+      /* Flores y espirales. */
       const rc = azar(0x1020);
       const objetos = [
         { x: 0.28, y: 0.32, tipo: "espiral", r: 38 },
@@ -172,14 +251,15 @@
         { x: 0.22, y: 0.70, tipo: "flor", r: 26, n: 6 },
         { x: 0.50, y: 0.55, tipo: "flor", r: 22, n: 12 },
         { x: 0.35, y: 0.55, tipo: "torre", r: 30 },
+        { x: 0.68, y: 0.48, tipo: "flor", r: 20, n: 6 },
       ];
       for (const o of objetos) {
         const x = o.x * W;
         const y = o.y * H;
-        if (o.tipo === "espiral") espiral(g, x, y, o.r, 3, 1.8, 0.18 + rc() * 0.1);
-        else if (o.tipo === "flor") flor(g, x, y, o.r, o.n, 0.16 + rc() * 0.08);
+        if (o.tipo === "espiral") espiral(g, x, y, o.r, 3, 1.8, 0.16 + rc() * 0.08);
+        else if (o.tipo === "flor") flor(g, x, y, o.r, o.n, 0.14 + rc() * 0.06);
         else if (o.tipo === "torre") {
-          g.strokeStyle = tinta(VIO, 0.18);
+          g.strokeStyle = tinta(VIO, 0.16);
           g.lineWidth = 0.7;
           g.beginPath();
           g.moveTo(x, y - o.r);
@@ -201,13 +281,13 @@
       g.save();
       g.globalCompositeOperation = "lighter";
       const lat = 0.78 + 0.22 * Math.sin(fase * TAU * 3);
-      const halo = g.createRadialGradient(CX, CY, 0, CX, CY, 80);
+      const halo = g.createRadialGradient(CX, CY, 0, CX, CY, 90);
       halo.addColorStop(0, tinta(NUC, 0.22 * lat));
       halo.addColorStop(0.4, tinta(VIO, 0.10 * lat));
       halo.addColorStop(1, tinta(VIO, 0));
       g.fillStyle = halo;
       g.beginPath();
-      g.arc(CX, CY, 80, 0, TAU);
+      g.arc(CX, CY, 90, 0, TAU);
       g.fill();
       g.fillStyle = tinta(NUC, 0.9 * lat);
       g.beginPath();
