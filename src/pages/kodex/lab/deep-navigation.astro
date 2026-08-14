@@ -30,13 +30,32 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         <p class="kdx-deep__eyebrow"><span data-field>SCIENCE</span> · <span data-plate-role>KNOWLEDGE</span></p>
         <h1 data-title>Living Systems</h1>
         <p class="kdx-deep__summary" data-summary>Life as nested organization: membrane, organism, ecology.</p>
+
+        <section class="kdx-activator" data-activator hidden aria-live="polite">
+          <div class="kdx-activator__stage" role="img" data-activator-stage aria-label="Protected Ocín artwork source is withheld until export approval.">
+            <span></span><span></span><span></span>
+            <p>PROTECTED AUTHORIAL WORK</p>
+          </div>
+          <div class="kdx-activator__copy">
+            <p><span data-art-id></span> · <span data-art-series></span></p>
+            <h2 data-art-title></h2>
+            <p data-art-note></p>
+            <dl>
+              <div><dt>PRIMARY RESPONSE</dt><dd data-art-activation></dd></div>
+              <div><dt>SOURCE</dt><dd>WITHHELD / FULL VIEW REQUIRED</dd></div>
+            </dl>
+            <button type="button" data-activate-art>ACTIVATE SIGNAL</button>
+            <small data-art-status>Entering the chamber does not activate memory. Activation requires this explicit action.</small>
+          </div>
+        </section>
+
         <div class="kdx-deep__doors" data-doors aria-label="possible routes"></div>
       </article>
 
       <aside class="kdx-deep__memory">
         <p>MEMORY TRACE</p>
         <ol data-trace><li>SCI-BIOLOGY</li></ol>
-        <p class="kdx-deep__note">Synthetic lab only. Session memory stays in history.state; public URL contains node + lens only.</p>
+        <p class="kdx-deep__note">Session memory stays in history.state. Public URL contains node + lens only. Protected source bytes remain outside this runtime.</p>
       </aside>
     </section>
 
@@ -48,7 +67,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
           <div class="kdx-constellation__nodes" data-constellation-nodes aria-label="visited nodes"></div>
         </div>
       </details>
-      <p>12 NODES · BACK/FORWARD LIVE · DEEP LINK SAFE · NO PRIVATE MEMORY IN URL</p>
+      <p>12 NODES · 3 PROTECTED ACTIVATORS · BACK/FORWARD LIVE · DEEP LINK SAFE</p>
       <div class="kdx-deep__controls">
         <button type="button" data-lens-action="APPROACH">← MICRO</button>
         <button type="button" data-reset>RESET</button>
@@ -57,24 +76,23 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       </div>
     </footer>
 
-    <script type="application/json" id="kdx-node-index" set:html={JSON.stringify(nodes.map(({id,title,field,plate,summary}) => ({id,title,field,plate,summary})))}></script>
+    <script type="application/json" id="kdx-node-index" set:html={JSON.stringify(nodes.map(({id,title,field,plate,summary,artworkId}) => ({id,title,field,plate,summary,artworkId})))}></script>
   </main>
 </Base>
 
 <script>
   import {
     MICRO_UNIVERSE_NODES,
+    activateMicroUniverseArtwork,
     buildMicroUniverseFrame,
     buildMicroUniverseUrl,
     createMicroUniverseHistorySnapshot,
     createMicroUniverseState,
     enterMicroUniverseNode,
+    getMicroUniverseArtwork,
     restoreMicroUniverseHistoryState,
   } from '../../../lib/kodex/micro-universe.js';
-  import {
-    buildMicroUniverseMemoryConstellation,
-    revisitKnownMicroUniverseNode,
-  } from '../../../lib/kodex/memory-constellation.js';
+  import { buildMicroUniverseMemoryConstellation, revisitKnownMicroUniverseNode } from '../../../lib/kodex/memory-constellation.js';
   import { reduceObserverState } from '../../../lib/kodex/deep-navigation-engine.js';
 
   const root = document.querySelector('[data-kdx-deep-lab]');
@@ -103,7 +121,6 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         button.type = 'button';
         button.className = 'kdx-memory-node';
         button.dataset.current = memoryNode.isCurrent ? 'true' : 'false';
-        button.dataset.field = memoryNode.field;
         button.disabled = memoryNode.isCurrent;
         button.innerHTML = `<span>${memoryNode.isCurrent ? '●' : '○'}</span><strong>${memoryNode.title}</strong><small>${memoryNode.visits}× · ${memoryNode.field}</small>`;
         button.addEventListener('click', () => {
@@ -117,6 +134,26 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       }
     };
 
+    const renderActivator = () => {
+      const panel = $('[data-activator]');
+      const artwork = getMicroUniverseArtwork(state.currentNodeId);
+      panel.hidden = !artwork;
+      if (!artwork) return;
+      $('[data-art-id]').textContent = artwork.artworkId;
+      $('[data-art-series]').textContent = artwork.series;
+      $('[data-art-title]').textContent = artwork.title;
+      $('[data-art-note]').textContent = artwork.curatorialNote;
+      $('[data-art-activation]').textContent = artwork.primaryActivation;
+      const activated = state.activatedArtworks.includes(artwork.artworkId);
+      const button = $('[data-activate-art]');
+      button.disabled = activated;
+      button.textContent = activated ? 'SIGNAL ACTIVATED' : 'ACTIVATE SIGNAL';
+      $('[data-art-status]').textContent = activated
+        ? 'Memory event recorded. Original source bytes remain withheld and unmodified.'
+        : 'Entering the chamber does not activate memory. Activation requires this explicit action.';
+      $('[data-activator-stage]').dataset.activated = activated ? 'true' : 'false';
+    };
+
     const render = () => {
       const node = MICRO_UNIVERSE_NODES[state.currentNodeId];
       const frame = buildMicroUniverseFrame(state);
@@ -127,6 +164,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       $('[data-lens]').textContent = state.lens;
       $('[data-depth]').textContent = String(state.depth);
       $('[data-signature]').textContent = state.routeSignature;
+      renderActivator();
 
       const doors = $('[data-doors]');
       doors.replaceChildren();
@@ -156,11 +194,20 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       renderConstellation();
     };
 
+    $('[data-activate-art]').addEventListener('click', () => {
+      const artwork = getMicroUniverseArtwork(state.currentNodeId);
+      if (!artwork) return;
+      const next = activateMicroUniverseArtwork(state, artwork.artworkId);
+      if (next === state || next.activatedArtworks.length === state.activatedArtworks.length) return;
+      state = next;
+      commitHistory('replace');
+      render();
+    });
+
     root.querySelectorAll('[data-lens-action]').forEach((button) => {
       button.addEventListener('click', () => {
         const action = button.getAttribute('data-lens-action');
         state = reduceObserverState(state, { type: action === 'META' ? 'SET_LENS' : action, lens: action === 'META' ? 'META' : undefined });
-        // Lens changes alter the representation coordinate without polluting Back with micro-adjustments.
         commitHistory('replace');
         render();
       });
@@ -177,7 +224,6 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       render();
     });
 
-    // Fresh loads and external deep links become canonical same-document history coordinates.
     commitHistory('replace');
     render();
   }
@@ -192,20 +238,36 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   .kdx-deep__chrome strong { font-size:12px; letter-spacing:.12em; }
   .kdx-deep__chrome dl { display:grid; grid-template-columns:repeat(4,minmax(80px,auto)); gap:18px; margin:0; }
   .kdx-deep dt { font-size:8px; opacity:.45; letter-spacing:.14em; }
-  .kdx-deep dd { margin:4px 0 0; max-width:150px; overflow:hidden; text-overflow:ellipsis; font-size:9px; white-space:nowrap; }
+  .kdx-deep dd { margin:4px 0 0; max-width:180px; overflow:hidden; text-overflow:ellipsis; font-size:9px; white-space:nowrap; }
   .kdx-deep__stage { min-height:0; display:grid; grid-template-columns:minmax(52px,.14fr) minmax(0,1fr) minmax(150px,.28fr); gap:clamp(16px,3vw,52px); align-items:center; }
   .kdx-deep__scale { height:min(54dvh,520px); display:flex; flex-direction:column; align-items:center; justify-content:space-between; font-size:7px; letter-spacing:.12em; opacity:.5; }
   .kdx-deep__scale i { width:1px; flex:1; margin:8px 0; background:#4b4650; }
-  .kdx-deep__plate { width:min(100%,1040px); justify-self:center; }
+  .kdx-deep__plate { width:min(100%,1040px); justify-self:center; min-width:0; }
   .kdx-deep__eyebrow { margin:0 0 14px; font-size:10px; letter-spacing:.2em; opacity:.58; }
-  .kdx-deep h1 { margin:0; font-size:clamp(48px,9vw,150px); line-height:.78; letter-spacing:-.065em; max-width:11ch; text-wrap:balance; }
-  .kdx-deep__summary { max-width:58ch; margin:26px 0; font-size:clamp(12px,1.25vw,17px); line-height:1.55; opacity:.72; }
+  .kdx-deep h1 { margin:0; font-size:clamp(42px,8vw,132px); line-height:.8; letter-spacing:-.06em; max-width:11ch; text-wrap:balance; }
+  .kdx-deep__summary { max-width:58ch; margin:20px 0; font-size:clamp(12px,1.2vw,16px); line-height:1.5; opacity:.72; }
   .kdx-deep__doors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-width:860px; }
-  :global(.kdx-door) { min-width:0; min-height:86px; display:grid; grid-template-columns:1fr auto; gap:5px 12px; align-content:center; padding:14px 16px; color:inherit; text-align:left; background:#0a0a0a; border:1px solid #3a3640; cursor:pointer; }
+  :global(.kdx-door) { min-width:0; min-height:72px; display:grid; grid-template-columns:1fr auto; gap:5px 12px; align-content:center; padding:11px 14px; color:inherit; text-align:left; background:#0a0a0a; border:1px solid #3a3640; cursor:pointer; }
   :global(.kdx-door:hover),:global(.kdx-door:focus-visible) { border-color:#a89ac2; outline:none; background:#111014; }
   :global(.kdx-door small) { grid-column:1/-1; font-size:8px; letter-spacing:.15em; opacity:.45; }
   :global(.kdx-door strong) { overflow:hidden; text-overflow:ellipsis; font-size:13px; }
   :global(.kdx-door span) { font-size:9px; opacity:.45; text-transform:uppercase; }
+  .kdx-activator { display:grid; grid-template-columns:minmax(150px,.7fr) minmax(0,1.3fr); gap:clamp(12px,2vw,24px); margin:16px 0; padding:12px; border:1px solid #4b4352; background:#09090b; }
+  .kdx-activator[hidden] { display:none; }
+  .kdx-activator__stage { min-height:160px; position:relative; display:grid; place-items:center; overflow:hidden; border:1px solid #302b35; background:radial-gradient(circle,#17131d 0,#080808 68%); }
+  .kdx-activator__stage span { position:absolute; inset:16%; border:1px solid #4b4352; border-radius:50%; }
+  .kdx-activator__stage span:nth-child(2) { inset:28%; transform:rotate(45deg); border-radius:0; }
+  .kdx-activator__stage span:nth-child(3) { inset:39%; border-radius:50%; }
+  .kdx-activator__stage[data-activated='true'] span:nth-child(1) { border-color:#b8aacd; }
+  .kdx-activator__stage p { z-index:1; margin:0; padding:7px 9px; background:#080808d9; font-size:8px; letter-spacing:.14em; }
+  .kdx-activator__copy { min-width:0; align-self:center; }
+  .kdx-activator__copy > p:first-child,.kdx-activator__copy small { font-size:8px; letter-spacing:.08em; opacity:.55; }
+  .kdx-activator__copy h2 { margin:6px 0 8px; font:500 clamp(20px,3vw,36px)/.95 system-ui,sans-serif; letter-spacing:-.035em; }
+  .kdx-activator__copy > p:not(:first-child) { margin:0 0 10px; max-width:58ch; font:12px/1.45 system-ui,sans-serif; opacity:.72; }
+  .kdx-activator__copy dl { display:flex; flex-wrap:wrap; gap:8px 18px; margin:0 0 10px; }
+  .kdx-activator__copy button { padding:8px 11px; color:inherit; background:#111014; border:1px solid #71647d; font:inherit; font-size:9px; cursor:pointer; }
+  .kdx-activator__copy button:disabled { opacity:.55; cursor:default; }
+  .kdx-activator__copy small { display:block; margin-top:8px; line-height:1.4; }
   .kdx-deep__memory { align-self:stretch; min-width:0; padding:24px 0 24px 18px; border-left:1px solid #343039; display:flex; flex-direction:column; justify-content:center; }
   .kdx-deep__memory ol { margin:12px 0 28px; padding-left:18px; font-size:9px; line-height:1.9; opacity:.7; }
   .kdx-deep__note { max-width:24ch; line-height:1.55; }
@@ -215,24 +277,23 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   .kdx-constellation { position:relative; flex:0 0 auto; }
   .kdx-constellation summary { list-style:none; cursor:pointer; font-size:8px; letter-spacing:.13em; opacity:.72; white-space:nowrap; }
   .kdx-constellation summary::-webkit-details-marker { display:none; }
-  .kdx-constellation[open] summary { opacity:1; }
   .kdx-constellation__panel { position:absolute; left:0; bottom:calc(100% + 12px); width:min(72vw,720px); max-height:42dvh; overflow:auto; padding:14px; background:#080808f2; border:1px solid #47414d; box-shadow:0 16px 52px #000b; z-index:5; }
-  .kdx-constellation__panel p { margin:0 0 10px; }
   .kdx-constellation__nodes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
   :global(.kdx-memory-node) { min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:2px 8px; align-items:center; padding:9px 10px; color:inherit; text-align:left; background:#0b0b0b; border:1px solid #302d33; cursor:pointer; }
   :global(.kdx-memory-node strong) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; }
   :global(.kdx-memory-node small) { grid-column:2; font-size:7px; opacity:.45; text-transform:uppercase; }
   :global(.kdx-memory-node[data-current='true']) { border-color:#b8aacd; background:#15121a; cursor:default; }
-  :global(.kdx-memory-node:focus-visible) { outline:1px solid #c6b8db; outline-offset:2px; }
   @media (max-width:760px) {
     .kdx-deep { padding:12px; }
     .kdx-deep__chrome dl { grid-template-columns:repeat(2,minmax(70px,1fr)); gap:8px; }
     .kdx-deep__stage { grid-template-columns:20px minmax(0,1fr); gap:10px; }
     .kdx-deep__memory { display:none; }
-    .kdx-deep h1 { font-size:clamp(42px,15vw,84px); }
-    .kdx-deep__summary { margin:18px 0; }
+    .kdx-deep h1 { font-size:clamp(38px,13vw,76px); }
+    .kdx-deep__summary { margin:14px 0; }
     .kdx-deep__doors { grid-template-columns:1fr; gap:5px; }
-    :global(.kdx-door) { min-height:61px; padding:9px 11px; }
+    :global(.kdx-door) { min-height:56px; padding:8px 10px; }
+    .kdx-activator { grid-template-columns:1fr; max-height:48dvh; overflow:auto; }
+    .kdx-activator__stage { min-height:120px; }
     .kdx-deep__footer { align-items:flex-end; gap:8px; }
     .kdx-deep__footer > p { display:none; }
     .kdx-constellation__panel { width:min(88vw,520px); max-height:50dvh; }
