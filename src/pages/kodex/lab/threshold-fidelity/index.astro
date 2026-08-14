@@ -94,7 +94,9 @@ import KodexThresholdMembrane from '../../../../components/kodex/threshold/Kodex
         let motionIndex = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 0;
         let visualState: 'DORMANT' | 'AWARE' | 'OPEN' = 'DORMANT';
         let dwell = 0;
-        let lastMove = performance.now();
+        let near = false;
+        let veryNear = false;
+        let lastTick = performance.now();
 
         const renderControls = () => {
           const motion = modes[motionIndex] ?? 'FULL';
@@ -112,36 +114,33 @@ import KodexThresholdMembrane from '../../../../components/kodex/threshold/Kodex
           }
         };
 
+        const setVisualState = (next: 'DORMANT' | 'AWARE' | 'OPEN') => {
+          if (visualState === next) return;
+          visualState = next;
+          renderControls();
+        };
+
         const updateVisualState = (event: PointerEvent) => {
           const rect = root.getBoundingClientRect();
           const compact = rect.width < 900;
-          const focalX = rect.width * (compact ? 0.5 : 0.64);
-          const focalY = rect.height * (compact ? 0.39 : 0.5);
+          // Shared focal contract with KodexThresholdMembrane.astro.
+          const focalX = rect.width * (compact ? 0.5 : 0.6);
+          const focalY = rect.height * (compact ? 0.32 : 0.46);
           const dx = event.clientX - rect.left - focalX;
           const dy = event.clientY - rect.top - focalY;
           const distance = Math.hypot(dx, dy);
-          const near = distance < Math.min(rect.width, rect.height) * 0.31;
-          const veryNear = distance < Math.min(rect.width, rect.height) * 0.19;
+          near = distance < Math.min(rect.width, rect.height) * 0.31;
+          veryNear = distance < Math.min(rect.width, rect.height) * 0.19;
 
-          if (veryNear) {
-            dwell = Math.min(1, dwell + 0.12);
-            visualState = dwell > 0.62 ? 'OPEN' : 'AWARE';
-          } else if (near) {
-            dwell = Math.max(0, dwell - 0.025);
-            visualState = 'AWARE';
-          } else {
-            dwell = Math.max(0, dwell - 0.08);
-            visualState = 'DORMANT';
-          }
-          lastMove = performance.now();
-          renderControls();
+          if (veryNear) setVisualState(dwell >= 0.62 ? 'OPEN' : 'AWARE');
+          else if (near) setVisualState('AWARE');
+          else if (dwell <= 0.1) setVisualState('DORMANT');
         };
 
         root.addEventListener('pointermove', updateVisualState, { passive: true });
         root.addEventListener('pointerleave', () => {
-          dwell = 0;
-          visualState = 'DORMANT';
-          renderControls();
+          near = false;
+          veryNear = false;
         }, { passive: true });
 
         motionToggle?.addEventListener('click', () => {
@@ -149,16 +148,22 @@ import KodexThresholdMembrane from '../../../../components/kodex/threshold/Kodex
           renderControls();
         });
 
-        const idleTimer = window.setInterval(() => {
-          if (performance.now() - lastMove > 1400 && visualState !== 'DORMANT') {
-            dwell = Math.max(0, dwell - 0.2);
-            if (dwell <= 0.1) visualState = 'DORMANT';
-            else if (visualState === 'OPEN') visualState = 'AWARE';
-            renderControls();
-          }
-        }, 300);
+        // Match the membrane renderer's approximate frame-based dwell/decay rates,
+        // but make semantics elapsed-time based so a stationary pointer can open the gate.
+        const stateTimer = window.setInterval(() => {
+          const now = performance.now();
+          const dt = Math.min(0.25, Math.max(0, (now - lastTick) / 1000));
+          lastTick = now;
 
-        addEventListener('pagehide', () => clearInterval(idleTimer), { once: true });
+          if (veryNear) dwell = Math.min(1, dwell + dt * 0.25);
+          else dwell = Math.max(0, dwell - dt * 0.44);
+
+          if (veryNear) setVisualState(dwell >= 0.62 ? 'OPEN' : 'AWARE');
+          else if (near) setVisualState('AWARE');
+          else setVisualState(dwell > 0.1 ? 'AWARE' : 'DORMANT');
+        }, 50);
+
+        addEventListener('pagehide', () => clearInterval(stateTimer), { once: true });
         renderControls();
       }
     </script>
