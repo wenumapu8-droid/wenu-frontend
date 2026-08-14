@@ -6,14 +6,21 @@ import {
   MICRO_UNIVERSE_GRAPH,
   MICRO_UNIVERSE_HISTORY_KIND,
   MICRO_UNIVERSE_NODES,
+  activateMicroUniverseArtwork,
   buildMicroUniverseFrame,
   buildMicroUniverseUrl,
   createMicroUniverseDeepLinkState,
   createMicroUniverseHistorySnapshot,
   createMicroUniverseState,
   enterMicroUniverseNode,
+  getMicroUniverseArtwork,
   restoreMicroUniverseHistoryState,
 } from '../src/lib/kodex/micro-universe.js';
+import {
+  OCIN_PROTECTED_ACTIVATOR_IDS,
+  OCIN_PROTECTED_ACTIVATORS_V0,
+  validateProtectedOcinActivator,
+} from '../src/lib/kodex/ocin/protected-activators-v0.js';
 
 test('micro-universe has exactly 12 nodes across four primary fields', () => {
   const nodes = Object.values(MICRO_UNIVERSE_NODES);
@@ -21,6 +28,21 @@ test('micro-universe has exactly 12 nodes across four primary fields', () => {
   assert.deepEqual([...new Set(nodes.map((node) => node.field))].sort(), ['art','consciousness','science','technology']);
   assert.equal(Object.keys(MICRO_UNIVERSE_GRAPH).length, 12);
   assert.ok(nodes.every((node) => MICRO_UNIVERSE_GRAPH[node.id]?.length === 4));
+});
+
+test('three protected Ocín activators are source-linked, full-view and non-renderable before approval', () => {
+  assert.deepEqual([...OCIN_PROTECTED_ACTIVATOR_IDS].sort(), ['OCN-MND-GRY-002','OCN-SQR-001','OCN-TOR-001']);
+  for (const record of Object.values(OCIN_PROTECTED_ACTIVATORS_V0)) {
+    assert.deepEqual(validateProtectedOcinActivator(record), { valid:true, reasons:[] });
+    assert.equal(record.fullViewRequired,true);
+    assert.equal(record.sourceBytesRenderable,false);
+    assert.equal(record.provenanceStatus,'SOURCE_LINKED');
+    assert.equal(record.prohibitedPresentation.includes('crop'),true);
+    assert.ok(record.primaryActivation);
+  }
+  assert.equal(MICRO_UNIVERSE_NODES['ART-FORM'].artworkId,'OCN-SQR-001');
+  assert.equal(MICRO_UNIVERSE_NODES['ART-IMAGE'].artworkId,'OCN-TOR-001');
+  assert.equal(MICRO_UNIVERSE_NODES['ART-POETRY'].artworkId,'OCN-MND-GRY-002');
 });
 
 test('entry frame is bounded, deterministic and never auto-navigates', () => {
@@ -33,18 +55,34 @@ test('entry frame is bounded, deterministic and never auto-navigates', () => {
   assert.equal(a.autoNavigate,false);
 });
 
-test('memory-conditioned ritual is closed before synthetic art key and can open after it', () => {
+test('entering an artwork node does not activate it; explicit activation unlocks the memory-conditioned ritual', () => {
   let state = createMicroUniverseState({ currentNodeId:'CON-OBSERVER', currentFields:['consciousness','observer'] });
   const before = buildMicroUniverseFrame(state,{ seed:'before-key' });
   assert.equal(before.selected.some((x) => x.id === 'CON-RITUAL'),false);
 
   state = enterMicroUniverseNode(state,'ART-IMAGE','BRIDGE');
-  assert.ok(state.activatedArtworks.includes('OCN-LAB-KEY'));
+  assert.equal(state.activatedArtworks.includes('OCN-TOR-001'),false);
+  const artwork = getMicroUniverseArtwork('ART-IMAGE');
+  assert.equal(artwork?.artworkId,'OCN-TOR-001');
+
+  state = activateMicroUniverseArtwork(state,'OCN-TOR-001');
+  assert.ok(state.activatedArtworks.includes('OCN-TOR-001'));
+  assert.ok(state.memorySignals.includes('art:OCN-TOR-001'));
   state = enterMicroUniverseNode(state,'CON-OBSERVER','ECHO');
 
   const seen = Array.from({ length:64 },(_,i) => buildMicroUniverseFrame(state,{ seed:`after-key-${i}` }))
     .some((frame) => frame.selected.some((x) => x.id === 'CON-RITUAL'));
   assert.equal(seen,true);
+});
+
+test('activation is restricted to the protected artwork bound to the current node', () => {
+  let state = enterMicroUniverseNode(createMicroUniverseState(),'ART-FORM','BRIDGE');
+  state = activateMicroUniverseArtwork(state,'OCN-TOR-001');
+  assert.deepEqual(state.activatedArtworks,[]);
+  state = activateMicroUniverseArtwork(state,'OCN-SQR-001');
+  assert.deepEqual(state.activatedArtworks,['OCN-SQR-001']);
+  const repeated = activateMicroUniverseArtwork(state,'OCN-SQR-001');
+  assert.deepEqual(repeated.activatedArtworks,['OCN-SQR-001']);
 });
 
 test('every node remains reachable in the declared lab graph', () => {
@@ -59,11 +97,13 @@ test('every node remains reachable in the declared lab graph', () => {
   assert.equal(reached.size,12);
 });
 
-test('history snapshot reconstructs route memory without putting memory in the URL', () => {
+test('history snapshot reconstructs explicit artwork memory without putting it in the URL', () => {
   let state = createMicroUniverseState();
   state = enterMicroUniverseNode(state,'ART-FORM','BRIDGE');
+  state = activateMicroUniverseArtwork(state,'OCN-SQR-001');
   state = enterMicroUniverseNode(state,'ART-IMAGE','CONTINUITY');
-  assert.ok(state.activatedArtworks.includes('OCN-LAB-KEY'));
+  state = activateMicroUniverseArtwork(state,'OCN-TOR-001');
+  assert.ok(state.activatedArtworks.includes('OCN-TOR-001'));
 
   const snapshot = createMicroUniverseHistorySnapshot(state);
   assert.equal(snapshot.kind, MICRO_UNIVERSE_HISTORY_KIND);
@@ -75,7 +115,8 @@ test('history snapshot reconstructs route memory without putting memory in the U
   const url = buildMicroUniverseUrl(restored);
   assert.match(url,/node=ART-IMAGE/);
   assert.match(url,/lens=NAKED_EYE/);
-  assert.equal(url.includes('OCN-LAB-KEY'),false);
+  assert.equal(url.includes('OCN-TOR-001'),false);
+  assert.equal(url.includes('OCN-SQR-001'),false);
   assert.equal(url.includes('routeSignature'),false);
   assert.equal(url.includes('memory'),false);
 });
