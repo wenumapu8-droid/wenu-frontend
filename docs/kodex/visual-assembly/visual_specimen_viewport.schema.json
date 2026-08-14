@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "KODEX Visual Specimen Viewport v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "execution_scope",
+    "source_resolution",
+    "visual_mode",
+    "recipe_id",
+    "presentation_mode",
+    "display_state",
+    "motion_mode",
+    "viewport",
+    "seed",
+    "layers",
+    "fallback"
+  ],
+  "properties": {
+    "schema": {"const": "kdx.visual-specimen-viewport.v0.1"},
+    "execution_scope": {"enum": ["INTERNAL_ONLY", "PUBLIC_ELIGIBLE"]},
+    "source_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "resolution_status", "public_export_allowed", "allowed_transformations"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "resolution_status": {"enum": ["RESOLVED", "UNRESOLVED", "BLOCKED"]},
+        "public_export_allowed": {"type": "boolean"},
+        "allowed_transformations": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "visual_mode": {"type": "string", "minLength": 1},
+    "recipe_id": {"type": "string", "pattern": "^RCP-[A-Z0-9-]+$"},
+    "presentation_profile": {"type": "string", "minLength": 1},
+    "presentation_mode": {
+      "enum": ["STATIC_MASTER", "SVG_SYSTEM", "CANVAS_2D", "WEBGL_SHADER", "VIDEO_LOOP", "PARTICLE_FIELD", "MODEL_3D"]
+    },
+    "effect_kit_id": {"type": ["string", "null"]},
+    "component_ids": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^KDX-VIS-[0-9]{4}$"},
+      "uniqueItems": true,
+      "maxItems": 12
+    },
+    "display_state": {"enum": ["OFF", "BOOT", "IDLE", "ACTIVE", "LOOP", "FALLBACK"]},
+    "motion_mode": {"enum": ["FULL", "REDUCED", "OFF"]},
+    "viewport": {"enum": ["desktop", "mobile"]},
+    "seed": {"type": "integer", "minimum": 0, "maximum": 2147483647},
+    "loop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "duration_ms", "phase", "semantic_motion_dependency"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "duration_ms": {"type": "integer", "minimum": 0, "maximum": 120000},
+        "phase": {"type": "number", "minimum": 0, "maximum": 1},
+        "semantic_motion_dependency": {"const": false}
+      }
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "BACKPLATE",
+          "SOURCE_MASTER",
+          "SOURCE_DERIVATIVE",
+          "LIVE_EFFECT",
+          "FIELD_OR_DIAGRAM",
+          "MASK_OR_APERTURE",
+          "FRAME_AND_MARKERS",
+          "LIVE_METADATA",
+          "INTERACTION_STATE"
+        ]
+      }
+    },
+    "applied_transformations": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "fallback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required", "mode", "semantic_path_preserved"],
+      "properties": {
+        "required": {"const": true},
+        "mode": {"enum": ["SOURCE_MASTER", "POSTER_FRAME", "STATIC_SVG", "SEMANTIC_ONLY"]},
+        "semantic_path_preserved": {"const": true}
+      }
+    },
+    "epistemic_flags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "debug": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "expose_source_id": {"type": "boolean"},
+        "expose_applied_transformations": {"type": "boolean"},
+        "expose_renderer_state": {"type": "boolean"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"execution_scope": {"const": "PUBLIC_ELIGIBLE"}}, "required": ["execution_scope"]},
+      "then": {
+        "properties": {
+          "source_resolution": {
+            "properties": {
+              "resolution_status": {"const": "RESOLVED"},
+              "public_export_allowed": {"const": true}
+            },
+            "required": ["resolution_status", "public_export_allowed"]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"motion_mode": {"enum": ["REDUCED", "OFF"]}}, "required": ["motion_mode"]},
+      "then": {
+        "properties": {
+          "loop": {
+            "properties": {"enabled": {"const": false}},
+            "required": ["enabled"]
+          }
+        }
+      }
+    }
+  ]
+}
