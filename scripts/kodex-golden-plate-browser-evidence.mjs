@@ -48,6 +48,14 @@ async function openCase(page, caseId) {
   assert(response?.ok(), `${caseId}: route did not return OK (${response?.status()})`);
   await page.locator('[data-kdx-golden-plate]').waitFor({ state: 'visible', timeout: 10_000 });
   await page.locator('[data-active-plate]').waitFor({ state: 'visible', timeout: 10_000 });
+  // The renderer restores focus in requestAnimationFrame. Observe that post-frame
+  // state instead of sampling the same DOMContentLoaded tick and turning a
+  // scheduler race into a false accessibility failure.
+  await page.waitForFunction(
+    () => document.activeElement === document.querySelector('[data-active-plate]'),
+    undefined,
+    { timeout: 2_000 },
+  );
 }
 
 async function metrics(page) {
