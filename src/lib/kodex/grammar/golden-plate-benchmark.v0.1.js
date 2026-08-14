@@ -1,8 +1,8 @@
 import { MICRO_UNIVERSE_GRAPH, MICRO_UNIVERSE_NODES } from '../micro-universe.js';
-import { getProtectedOcinActivator } from '../ocin/protected-activators-v0.js';
+import { buildProtectedOcinActivationInput } from './protected-activation-adapter.js';
 
 export const KDX_GOLDEN_PLATE_BENCHMARK_PROFILE = Object.freeze({
-  version: 'golden-plate-benchmark-v0.1.1',
+  version: 'golden-plate-benchmark-v0.1.2',
   status: 'IMPLEMENTED_CANDIDATE',
   plateCount: 12,
   domains: Object.freeze(['science', 'technology', 'art', 'consciousness']),
@@ -32,30 +32,6 @@ function routeSlateFor(nodeId) {
   }));
 }
 
-function protectedArtworkContract(artworkId) {
-  const record = getProtectedOcinActivator(artworkId);
-  if (!record) return null;
-  return {
-    artwork_id: record.artworkId,
-    full_view_required: record.fullViewRequired === true,
-    preserve_aspect: true,
-    crop_allowed: false,
-    recolor_source_allowed: false,
-    distort_source_allowed: false,
-    source_bytes_renderable: record.sourceBytesRenderable === true,
-  };
-}
-
-function artworkActivationProfile(artworkId) {
-  const record = getProtectedOcinActivator(artworkId);
-  if (!record) return null;
-  return {
-    activation_id: record.primaryActivation,
-    explicit_action_required: true,
-    environment_only: true,
-  };
-}
-
 function nodeInput(nodeId, plateType) {
   const node = MICRO_UNIVERSE_NODES[nodeId];
   if (!node) throw new Error(`Unknown golden benchmark node ${nodeId}`);
@@ -74,9 +50,11 @@ function nodeInput(nodeId, plateType) {
   };
   if (plateType === 'JUNCTION_PLATE') input.route_slate = routeSlateFor(nodeId);
   if (plateType === 'ACTIVATOR_PLATE' && node.artworkId) {
-    input.artwork_contract = protectedArtworkContract(node.artworkId);
-    input.activation_profile = artworkActivationProfile(node.artworkId);
-    delete input.primary_payload;
+    const protectedInput = buildProtectedOcinActivationInput(node.artworkId);
+    input.primary_payload = { ...protectedInput.primary_payload };
+    input.artwork_contract = { ...protectedInput.artwork_contract };
+    input.activation_profile = { ...protectedInput.activation_profile };
+    input.provenance_refs = [...new Set([...input.provenance_refs, ...protectedInput.provenance_refs])];
   } else if (plateType === 'ACTIVATOR_PLATE') {
     input.primary_payload = {
       payload_type: 'FIELD',
