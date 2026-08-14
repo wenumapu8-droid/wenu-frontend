@@ -1,0 +1,50 @@
+name: Ocín Collage Asset Vendor
+
+on:
+  push:
+    branches:
+      - feature/ocin-kodex-collage-pages-v1
+    paths:
+      - 'scripts/vendor-ocin-collage-assets.mjs'
+      - '.github/workflows/ocin-collage-asset-vendor.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ocin-collage-asset-vendor
+  cancel-in-progress: false
+
+jobs:
+  vendor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out collage branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/ocin-kodex-collage-pages-v1
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+
+      - name: Fetch and verify Ocín originals
+        run: node scripts/vendor-ocin-collage-assets.mjs
+
+      - name: Commit verified originals
+        shell: bash
+        run: |
+          git add public/assets/kodex/ocin/originals
+          if git diff --cached --quiet; then
+            echo "No asset changes required."
+            exit 0
+          fi
+          git config user.name "kodex-asset-vendor[bot]"
+          git config user.email "kodex-asset-vendor[bot]@users.noreply.github.com"
+          git commit -m "assets(kodex): vendor checksum-verified Ocín originals"
+          git push origin HEAD:feature/ocin-kodex-collage-pages-v1
