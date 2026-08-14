@@ -25,6 +25,12 @@ const fail = (name, error) => {
   console.error(message);
 };
 
+const cssTimeListIsZero = (value = '') => String(value)
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean)
+  .every((item) => Number.parseFloat(item) === 0);
+
 async function navigate(page, search = '') {
   const url = new URL(`/kodex/lab/deep-navigation/${search}`, baseURL).toString();
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
@@ -82,7 +88,7 @@ async function desktopHistoryKeyboard() {
 
     const descendedNode = new URL(page.url()).searchParams.get('node');
     const depthAfterEnter = Number(await page.locator('[data-depth]').textContent());
-    assert(depthAfterEnter === 1, `${name}: meaningful descent did not increment depth to 1`);
+    assert(depthAfterEnter === 1, `${name}: meaningful descent did not increment depth to 1 (received ${depthAfterEnter})`);
     assert((await page.evaluate(() => history.length)) === initialHistoryLength + 1, `${name}: descent did not push exactly one history entry`);
 
     const knownAfterEnter = Number(await page.locator('[data-known-count]').textContent());
@@ -150,20 +156,21 @@ async function reducedMotionContract() {
     await navigate(page, '?node=SCI-BIOLOGY&lens=NAKED_EYE');
     const motion = await page.evaluate(() => {
       const targets = [
-        document.querySelector('[data-kdx-deep-lab]'),
-        document.querySelector('[data-doors] .kdx-door'),
-        document.querySelector('[data-lens-action="META"]'),
-      ].filter(Boolean);
+        ['root', document.querySelector('[data-kdx-deep-lab]')],
+        ['door', document.querySelector('[data-doors] .kdx-door')],
+        ['meta-control', document.querySelector('[data-lens-action="META"]')],
+      ].filter(([, el]) => Boolean(el));
       return {
         media: matchMedia('(prefers-reduced-motion: reduce)').matches,
-        styles: targets.map((el) => {
+        styles: targets.map(([target, el]) => {
           const style = getComputedStyle(el);
-          return { transitionDuration: style.transitionDuration, animationDuration: style.animationDuration, scrollBehavior: style.scrollBehavior };
+          return { target, transitionDuration: style.transitionDuration, animationDuration: style.animationDuration, scrollBehavior: style.scrollBehavior };
         }),
       };
     });
     assert(motion.media, `${name}: browser did not expose reduced-motion preference`);
-    assert(motion.styles.every((style) => style.transitionDuration === '0s' && style.animationDuration === '0s'), `${name}: motion remained enabled under prefers-reduced-motion`);
+    const nonZero = motion.styles.filter((style) => !cssTimeListIsZero(style.transitionDuration) || !cssTimeListIsZero(style.animationDuration));
+    assert(nonZero.length === 0, `${name}: effective motion remained enabled under prefers-reduced-motion (${JSON.stringify(nonZero)})`);
     assertBoundedShell(await shellMetrics(page), name);
     const file = `${name}.png`;
     await page.screenshot({ path: path.join(outputDir, file), fullPage: false, animations: 'allow' });
