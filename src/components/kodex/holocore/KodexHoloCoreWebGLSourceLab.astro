@@ -2,14 +2,17 @@
 interface Props {
   id?: string;
   label?: string;
+  variant?: 'observe' | 'toroidal';
 }
 const {
   id = 'kdx-holocore-webgl-source',
   label = 'KODEX internal WebGL source shader rendered as an ambient HoloCore field',
+  variant = 'observe',
 } = Astro.props;
+const toroidal = variant === 'toroidal';
 ---
 
-<figure class="kdx-webgl-source" id={id} data-kdx-webgl-source>
+<figure class="kdx-webgl-source" id={id} data-kdx-webgl-source data-shader-variant={variant}>
   <header class="kdx-webgl-source__bar" aria-hidden="true">
     <span>HOLOCORE // WEBGL SOURCE ADAPTER</span>
     <span data-webgl-state>DORMANT</span>
@@ -19,31 +22,31 @@ const {
     <canvas class="kdx-webgl-source__canvas" data-webgl-canvas role="img" aria-label={label}></canvas>
     <div class="kdx-webgl-source__grid" aria-hidden="true"></div>
     <div class="kdx-webgl-source__meta" aria-hidden="true">
-      <strong>OBSERVE SOURCE FIELD</strong>
+      <strong>{toroidal ? 'TOROIDAL FIELD' : 'OBSERVE SOURCE FIELD'}</strong>
       <span>RENDERER · WEBGL-SHADER</span>
       <span>ROLE · SOURCE GENERATOR</span>
       <span>TIME · <b>AMBIENT / UNCLOSED</b></span>
       <span>SEAM CLAIM · FALSE</span>
-      <span>FALLBACK · STATIC RETICLE</span>
+      <span>FALLBACK · {toroidal ? 'STATIC TORUS' : 'STATIC RETICLE'}</span>
     </div>
   </div>
 
   <footer class="kdx-webgl-source__footer" aria-hidden="true">
-    <span>INTERNAL KODEX SHADER REUSE</span>
+    <span>{toroidal ? 'KDX-HOLO-BENCH-001 · ART / COMP / SPEC' : 'INTERNAL KODEX SHADER REUSE'}</span>
     <span data-webgl-mode>MODE —</span>
     <span data-webgl-frame>FRAME —</span>
   </footer>
 
   <figcaption>
-    Internal KODEX shader proof. This field is ambient and is not claimed to form a mathematically seamless loop.
+    {toroidal
+      ? 'Internal KODEX toroidal perceptual benchmark. Authored visualization; not a scientific field simulation and not claimed to form a mathematically seamless loop.'
+      : 'Internal KODEX shader proof. This field is ambient and is not claimed to form a mathematically seamless loop.'}
   </figcaption>
 </figure>
 
 <script>
   import { WebGLSourceShaderRenderer } from '../../../kodex/holocore/renderers/WebGLSourceShaderRenderer.js';
-
   const instances = new WeakMap();
-
   function mount(root) {
     if (!(root instanceof HTMLElement) || instances.has(root)) return;
     const canvas = root.querySelector('[data-webgl-canvas]');
@@ -51,24 +54,17 @@ const {
     const mode = root.querySelector('[data-webgl-mode]');
     const frame = root.querySelector('[data-webgl-frame]');
     if (!(canvas instanceof HTMLCanvasElement)) return;
-
     const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const renderer = new WebGLSourceShaderRenderer(canvas, { reducedMotion });
+    const variant = root.dataset.shaderVariant === 'toroidal' ? 'toroidal' : 'observe';
+    const renderer = new WebGLSourceShaderRenderer(canvas, { reducedMotion, variant });
     root.dataset.rendererKind = 'webgl-shader';
     root.dataset.rendererMode = renderer.mode;
     root.dataset.reducedMotion = String(reducedMotion);
-    root.dataset.temporalContract = 'ambient_unclosed';
-    root.dataset.seamlessLoopClaim = 'false';
-
-    const setState = value => {
-      root.dataset.state = value.toLowerCase();
-      if (state) state.textContent = value;
-    };
-
-    setState('RESOLVING');
-    renderer.start();
+    root.dataset.temporalContract = renderer.spec.temporalContract.toLowerCase();
+    root.dataset.seamlessLoopClaim = String(renderer.spec.seamlessLoopClaim);
+    const setState = value => { root.dataset.state = value.toLowerCase(); if (state) state.textContent = value; };
+    setState('RESOLVING'); renderer.start();
     const settleTimer = window.setTimeout(() => setState('STABLE FIELD'), reducedMotion ? 180 : 520);
-
     let metricTimer = 0;
     const update = () => {
       if (mode) mode.textContent = `MODE ${renderer.mode.toUpperCase()}`;
@@ -76,48 +72,21 @@ const {
       metricTimer = window.setTimeout(update, 500);
     };
     update();
-
-    const destroy = () => {
-      window.clearTimeout(settleTimer);
-      window.clearTimeout(metricTimer);
-      renderer.destroy();
-      instances.delete(root);
-    };
+    const destroy = () => { window.clearTimeout(settleTimer); window.clearTimeout(metricTimer); renderer.destroy(); instances.delete(root); };
     instances.set(root, { destroy });
   }
-
-  function mountAll() {
-    document.querySelectorAll('[data-kdx-webgl-source]').forEach(mount);
-  }
-  mountAll();
-  document.addEventListener('astro:page-load', mountAll);
-  document.addEventListener('astro:before-swap', () => {
-    document.querySelectorAll('[data-kdx-webgl-source]').forEach(root => instances.get(root)?.destroy());
-  });
+  function mountAll(){document.querySelectorAll('[data-kdx-webgl-source]').forEach(mount);}
+  mountAll(); document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap',()=>{document.querySelectorAll('[data-kdx-webgl-source]').forEach(root=>instances.get(root)?.destroy());});
 </script>
 
 <style>
-  .kdx-webgl-source {
-    --line: rgba(174, 126, 255, .28);
-    box-sizing: border-box;
-    display: grid;
-    grid-template-rows: 30px minmax(0,1fr) 30px;
-    width: 100%; height: 100%; min-height: 0; margin: 0;
-    overflow: hidden; background: #020205; color: #ece7f4;
-    border: 1px solid var(--line);
-  }
-  .kdx-webgl-source__bar,.kdx-webgl-source__footer {
-    z-index: 6; display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;
-    font:500 8px/1 'Share Tech Mono',ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase;
-    color:rgba(235,226,245,.56);background:rgba(2,2,5,.94);
-  }
-  .kdx-webgl-source__bar{border-bottom:1px solid var(--line)}
-  .kdx-webgl-source__footer{border-top:1px solid var(--line)}
-  .kdx-webgl-source__viewport{position:relative;min-height:0;overflow:hidden;background:#05030b}
-  .kdx-webgl-source__canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  .kdx-webgl-source__grid{position:absolute;inset:0;pointer-events:none;opacity:.08;background-image:linear-gradient(rgba(167,113,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(108,220,255,.1) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(circle at center,#000 15%,transparent 90%)}
-  .kdx-webgl-source__meta{position:absolute;z-index:4;top:14px;right:14px;display:grid;justify-items:end;gap:5px;max-width:45%;text-align:right;font:500 7px/1.15 'Share Tech Mono',ui-monospace,monospace;letter-spacing:.1em;color:rgba(220,210,235,.5);text-shadow:0 1px 2px #000}
-  .kdx-webgl-source__meta strong{color:#eee8f7;font-weight:500}.kdx-webgl-source__meta b{color:#b787ff;font-weight:500}
+  .kdx-webgl-source{--line:rgba(174,126,255,.28);box-sizing:border-box;display:grid;grid-template-rows:30px minmax(0,1fr) 30px;width:100%;height:100%;min-height:0;margin:0;overflow:hidden;background:#020205;color:#ece7f4;border:1px solid var(--line)}
+  .kdx-webgl-source__bar,.kdx-webgl-source__footer{z-index:6;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 10px;font:500 8px/1 'Share Tech Mono',ui-monospace,monospace;letter-spacing:.13em;text-transform:uppercase;color:rgba(235,226,245,.56);background:rgba(2,2,5,.94)}
+  .kdx-webgl-source__bar{border-bottom:1px solid var(--line)}.kdx-webgl-source__footer{border-top:1px solid var(--line)}
+  .kdx-webgl-source__viewport{position:relative;min-height:0;overflow:hidden;background:#05030b}.kdx-webgl-source__canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .kdx-webgl-source__grid{position:absolute;inset:0;pointer-events:none;opacity:.035;background-image:linear-gradient(rgba(167,113,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(108,220,255,.1) 1px,transparent 1px);background-size:52px 52px;mask-image:radial-gradient(circle at center,#000 10%,transparent 92%)}
+  .kdx-webgl-source__meta{position:absolute;z-index:4;top:14px;right:14px;display:grid;justify-items:end;gap:5px;max-width:45%;text-align:right;font:500 7px/1.15 'Share Tech Mono',ui-monospace,monospace;letter-spacing:.1em;color:rgba(220,210,235,.45);text-shadow:0 1px 2px #000}.kdx-webgl-source__meta strong{color:#eee8f7;font-weight:500}.kdx-webgl-source__meta b{color:#b787ff;font-weight:500}
   .kdx-webgl-source>figcaption{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   @media(max-width:700px){.kdx-webgl-source{grid-template-rows:28px minmax(0,1fr) 28px}.kdx-webgl-source__bar,.kdx-webgl-source__footer{font-size:6px;padding:0 7px}.kdx-webgl-source__meta{font-size:6px;top:10px;right:10px}}
 </style>
