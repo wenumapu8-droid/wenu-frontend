@@ -1,0 +1,90 @@
+# Final certification gate for the synced V1 publishing contract.
+name: Ocín Collage Browser QA
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/ocin-collage/**'
+      - 'src/components/kodex/ocin/OcinArtworkTile.astro'
+      - 'src/components/kodex/ocin/OcinCollageShell.astro'
+      - 'src/lib/kodex/ocin/collage-pages-v1.ts'
+      - 'src/styles/kodex-ocin-collage.css'
+      - 'src/styles/kodex-ocin-collage-mobile.css'
+      - 'public/assets/kodex/ocin/originals/**'
+      - 'scripts/qa-ocin-collage.mjs'
+      - '.github/workflows/ocin-collage-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocin-collage-qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify collage outputs and vendored originals
+        run: |
+          test -f dist/kodex/lab/ocin-collage/index.html
+          test -f dist/kodex/lab/ocin-collage/archive/index.html
+          test -f dist/kodex/lab/ocin-collage/museum/index.html
+          grep -q 'noindex, nofollow' dist/kodex/lab/ocin-collage/index.html
+          grep -q 'THRESHOLD' dist/kodex/lab/ocin-collage/index.html
+          grep -q 'ARCHIVE ATLAS' dist/kodex/lab/ocin-collage/archive/index.html
+          grep -q 'MUSEUM OF SPACE' dist/kodex/lab/ocin-collage/museum/index.html
+          test -f dist/assets/kodex/ocin/originals/OCN-TOR-005.jpg
+          test -f dist/assets/kodex/ocin/originals/OCN-TOR-001.jpg
+          test -f dist/assets/kodex/ocin/originals/OCN-SQR-001.jpg
+          test -f dist/assets/kodex/ocin/originals/OCN-FRC-002.jpg
+          test -f dist/assets/kodex/ocin/originals/OCN-TRI-001.jpg
+          test -f dist/assets/kodex/ocin/originals/OCN-MND-GRY-002.jpg
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/ocin-collage-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/ocin-collage/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ocin-collage-preview.log
+          exit 1
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Verify visual integrity and capture evidence
+        run: node scripts/qa-ocin-collage.mjs
+
+      - name: Upload Ocín collage QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ocin-collage-browser-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
