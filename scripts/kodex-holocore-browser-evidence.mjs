@@ -45,8 +45,8 @@ async function metrics(page) {
     const viewportRect = viewport?.getBoundingClientRect();
     const canvasRect = canvas?.getBoundingClientRect();
     return {
-      innerWidth: innerWidth,
-      innerHeight: innerHeight,
+      innerWidth,
+      innerHeight,
       scrollWidth: document.documentElement.scrollWidth,
       scrollHeight: document.documentElement.scrollHeight,
       bodyScrollHeight: document.body.scrollHeight,
@@ -83,12 +83,15 @@ async function canvasFingerprint(page) {
   return page.locator('[data-holocore-canvas]').evaluate((canvas) => {
     const context = canvas.getContext('2d');
     if (!context || canvas.width === 0 || canvas.height === 0) return 'empty';
-    const width = Math.min(canvas.width, 160);
-    const height = Math.min(canvas.height, 100);
-    const data = context.getImageData(0, 0, width, height).data;
+    const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const stride = Math.max(4, Math.floor(data.length / 12000 / 4) * 4);
     let hash = 2166136261;
-    for (let i = 0; i < data.length; i += 29) {
+    for (let i = 0; i < data.length; i += stride) {
       hash ^= data[i];
+      hash = Math.imul(hash, 16777619);
+      hash ^= data[i + 1] ?? 0;
+      hash = Math.imul(hash, 16777619);
+      hash ^= data[i + 2] ?? 0;
       hash = Math.imul(hash, 16777619);
     }
     return String(hash >>> 0);
