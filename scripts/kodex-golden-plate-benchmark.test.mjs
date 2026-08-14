@@ -40,9 +40,10 @@ test('golden corpus is exactly 12 plates with balanced four-domain coverage', ()
     art: 3,
     consciousness: 3,
   });
-  assert.equal(summary.byPlateType.ACTIVATOR_PLATE, 3);
-  assert.ok(summary.byPlateType.KNOWLEDGE_PLATE >= 4);
-  assert.ok(summary.byPlateType.JUNCTION_PLATE >= 2);
+  assert.equal(summary.byPlateType.ACTIVATOR_PLATE, 4);
+  assert.equal(summary.protectedArtworkActivators, 3);
+  assert.equal(summary.livingFieldActivators, 1);
+  assert.equal(summary.activatorContractGap, null);
 });
 
 test('all 12 golden cases assemble successfully from registered IDs only', () => {
@@ -72,11 +73,10 @@ test('golden corpus is byte-deterministic for identical case inputs', () => {
   assert.deepEqual(second, first);
 });
 
-test('golden corpus preserves protected artwork integrity in all art activators', () => {
-  const activators = assembleCorpus().filter(({ spec }) => spec.plate_type === 'ACTIVATOR_PLATE');
-  assert.equal(activators.length, 3);
-  for (const { spec } of activators) {
-    assert.equal(spec.primary_payload.payload_type, 'ARTWORK');
+test('three protected artwork activators preserve Ocín source integrity', () => {
+  const protectedActivators = assembleCorpus().filter(({ spec }) => spec.plate_type === 'ACTIVATOR_PLATE' && spec.primary_payload.payload_type === 'ARTWORK');
+  assert.equal(protectedActivators.length, 3);
+  for (const { spec } of protectedActivators) {
     assert.equal(spec.artwork_contract.full_view_required, true);
     assert.equal(spec.artwork_contract.preserve_aspect, true);
     assert.equal(spec.artwork_contract.crop_allowed, false);
@@ -89,12 +89,25 @@ test('golden corpus preserves protected artwork integrity in all art activators'
   }
 });
 
+test('CON-RITUAL is represented as one living-field activator without fake artwork semantics', () => {
+  const fieldCases = assembleCorpus().filter(({ spec }) => spec.plate_type === 'ACTIVATOR_PLATE' && spec.primary_payload.payload_type === 'FIELD');
+  assert.equal(fieldCases.length, 1);
+  const [{ entry, spec }] = fieldCases;
+  assert.equal(entry.node_id, 'CON-RITUAL');
+  assert.equal(spec.artwork_contract, null);
+  assert.equal(spec.primary_payload.payload_ref, 'CON-RITUAL');
+  assert.equal(spec.activation_profile.environment_only, true);
+  assert.ok(registeredIds.has(spec.activation_profile.activation_id), 'living-field activation must reference a registered production element ID');
+  assert.equal(spec.qa_requirements.includes('NO_CROP'), false, 'living field must not fabricate artwork-specific NO_CROP semantics');
+});
+
 test('golden benchmark exposes composition diversity without treating diversity as correctness', () => {
   const assembled = assembleCorpus();
   const compositionIds = assembled.map(({ spec }) => spec.slots[0].element_id);
   const uniqueCompositionIds = new Set(compositionIds);
   const exactSignatures = new Set(assembled.map(({ spec }) => JSON.stringify({
     type: spec.plate_type,
+    payload: spec.primary_payload.payload_type,
     composition: spec.slots[0].element_id,
     motion: spec.motion_profile.element_ids,
   })));
