@@ -48,6 +48,11 @@ const { id = 'kdx-manifestation-core' } = Astro.props;
     createManifestationState,
     reduceManifestationState,
   } from '../../../lib/kodex/manifestation-engine.js';
+  import { manifestationTraceToJourneyAction } from '../../../lib/kodex/manifestation-journey-bridge';
+  import {
+    KODEX_ORGANISM_ACTION_EVENT,
+    mountKodexJourneyMemoryBridge,
+  } from '../../../lib/kodex/runtime/journey-memory-bridge';
 
   const instances = new WeakMap();
 
@@ -63,6 +68,8 @@ const { id = 'kdx-manifestation-core' } = Astro.props;
     const blockersLabel = root.querySelector('[data-manifestation-blockers]');
     if (!(canvas instanceof HTMLCanvasElement)) return;
 
+    mountKodexJourneyMemoryBridge();
+
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let state = createManifestationState();
     let renderer = null;
@@ -70,6 +77,7 @@ const { id = 'kdx-manifestation-core' } = Astro.props;
     let freezeTimer = 0;
     let settleTimer = 0;
     let destroyed = false;
+    let lastJourneyActionId = null;
 
     const setRendererState = value => {
       root.dataset.rendererState = value.toLowerCase().replaceAll(' ', '-');
@@ -136,6 +144,18 @@ const { id = 'kdx-manifestation-core' } = Astro.props;
           visualSpecimenId: view.visualSpecimenId,
         },
       }));
+
+      const journeyAction = manifestationTraceToJourneyAction({
+        ...view,
+        traceLength: state.trace.length,
+      });
+      if (journeyAction && journeyAction.id !== lastJourneyActionId) {
+        lastJourneyActionId = journeyAction.id;
+        document.dispatchEvent(new CustomEvent(KODEX_ORGANISM_ACTION_EVENT, {
+          detail: journeyAction,
+        }));
+        root.dataset.journeyTraceWritten = 'true';
+      }
     };
 
     const onEvent = event => {
