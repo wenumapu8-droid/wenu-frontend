@@ -75,6 +75,7 @@ jobs:
           const url = 'http://127.0.0.1:4321/kodex/lab/threshold-fidelity/';
           const browser = await chromium.launch({ headless: true });
           const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          const trace = [];
 
           const dispatchMembranePointer = async (page, spec, xNorm, yNorm) => {
             return page.locator('[data-kdx-threshold-membrane]').evaluate((element, input) => {
@@ -92,72 +93,82 @@ jobs:
             }, { xNorm, yNorm, pointerType: spec.mobile ? 'touch' : 'mouse' });
           };
 
-          for (const spec of [
-            { name: 'desktop', width: 1440, height: 1000, mobile: false, focalX: 0.60, focalY: 0.46 },
-            { name: '390x844', width: 390, height: 844, mobile: true, focalX: 0.50, focalY: 0.32 },
-            { name: '412x915', width: 412, height: 915, mobile: true, focalX: 0.50, focalY: 0.32 },
-          ]) {
-            const context = await browser.newContext({
-              viewport: { width: spec.width, height: spec.height },
-              hasTouch: spec.mobile,
-              isMobile: spec.mobile,
-            });
-            const page = await context.newPage();
-            const errors = [];
-            page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
-            page.on('pageerror', (error) => errors.push(error.message));
-            await page.goto(url, { waitUntil: 'networkidle' });
+          try {
+            for (const spec of [
+              { name: 'desktop', width: 1440, height: 1000, mobile: false, focalX: 0.60, focalY: 0.46 },
+              { name: '390x844', width: 390, height: 844, mobile: true, focalX: 0.50, focalY: 0.32 },
+              { name: '412x915', width: 412, height: 915, mobile: true, focalX: 0.50, focalY: 0.32 },
+            ]) {
+              const context = await browser.newContext({
+                viewport: { width: spec.width, height: spec.height },
+                hasTouch: spec.mobile,
+                isMobile: spec.mobile,
+              });
+              const page = await context.newPage();
+              const errors = [];
+              page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+              page.on('pageerror', (error) => errors.push(error.message));
+              await page.goto(url, { waitUntil: 'networkidle' });
 
-            const membrane = page.locator('[data-kdx-threshold-membrane]');
-            assert(await membrane.locator('canvas').count() === 1, 'native membrane canvas missing');
-            assert(await page.locator('a.threshold-lab__enter').getAttribute('href') === '/kodex/lab/visible-assembly/', 'explicit entry does not lead to functional assembly');
+              const membrane = page.locator('[data-kdx-threshold-membrane]');
+              assert(await membrane.locator('canvas').count() === 1, 'native membrane canvas missing');
+              assert(await page.locator('a.threshold-lab__enter').getAttribute('href') === '/kodex/lab/visible-assembly/', 'explicit entry does not lead to functional assembly');
 
-            const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
-            assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
+              const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+              assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
 
-            const initialMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
-            assert(initialMotion === 'full', `${spec.name} did not begin in FULL motion: ${initialMotion}`);
+              const initialMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(initialMotion === 'full', `${spec.name} did not begin in FULL motion: ${initialMotion}`);
 
-            const focal = await dispatchMembranePointer(page, spec, spec.focalX, spec.focalY);
-            assert(focal.x > 0 && focal.y > 0, `${spec.name} membrane focal dispatch failed`);
-            await page.waitForTimeout(250);
-            const awareState = await page.locator('[data-visual-state]').textContent();
-            assert(awareState === 'AWARE' || awareState === 'OPEN', `${spec.name} focal point did not activate state: ${awareState}`);
+              const focal = await dispatchMembranePointer(page, spec, spec.focalX, spec.focalY);
+              assert(focal.x > 0 && focal.y > 0, `${spec.name} membrane focal dispatch failed`);
+              await page.waitForTimeout(250);
+              const awareState = await page.locator('[data-visual-state]').textContent();
+              trace.push(`${spec.name}:aware:${awareState}`);
+              assert(awareState === 'AWARE' || awareState === 'OPEN', `${spec.name} focal point did not activate state: ${awareState}`);
 
-            // No more pointermove events: semantic dwell must progress from elapsed time.
-            await page.waitForTimeout(2700);
-            const openState = await page.locator('[data-visual-state]').textContent();
-            assert(openState === 'OPEN', `${spec.name} stationary dwell did not reach OPEN: ${openState}`);
-            await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-open.png`, fullPage: true });
+              // No more pointermove events: semantic dwell must progress from elapsed time.
+              await page.waitForTimeout(2700);
+              const openState = await page.locator('[data-visual-state]').textContent();
+              trace.push(`${spec.name}:open:${openState}`);
+              assert(openState === 'OPEN', `${spec.name} stationary dwell did not reach OPEN: ${openState}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-open.png`, fullPage: true });
 
-            // Move once outside the influence field, then stop. State must decay predictably.
-            await dispatchMembranePointer(page, spec, 0.05, 0.90);
-            await page.waitForTimeout(1800);
-            const dormantState = await page.locator('[data-visual-state]').textContent();
-            assert(dormantState === 'DORMANT', `${spec.name} state did not decay to DORMANT: ${dormantState}`);
-            await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-decayed.png`, fullPage: true });
+              // Move once outside the influence field, then stop. State must decay predictably.
+              await dispatchMembranePointer(page, spec, 0.05, 0.90);
+              await page.waitForTimeout(2600);
+              const dormantState = await page.locator('[data-visual-state]').textContent();
+              trace.push(`${spec.name}:decay:${dormantState}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-decay-check.png`, fullPage: true });
+              assert(dormantState === 'DORMANT', `${spec.name} state did not decay to DORMANT: ${dormantState}`);
 
-            await page.locator('[data-motion-toggle]').focus();
-            await page.keyboard.press('Enter');
-            const motion = await page.locator('.threshold-lab').getAttribute('data-motion');
-            assert(motion === 'reduced', `keyboard motion toggle failed: ${motion}`);
-            await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-reduced.png`, fullPage: true });
+              await page.locator('[data-motion-toggle]').focus();
+              await page.keyboard.press('Enter');
+              const motion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(motion === 'reduced', `keyboard motion toggle failed: ${motion}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-reduced.png`, fullPage: true });
 
-            await page.locator('[data-motion-toggle]').focus();
-            await page.keyboard.press('Enter');
-            const offMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
-            assert(offMotion === 'off', `${spec.name} second toggle did not reach OFF: ${offMotion}`);
-            await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-off.png`, fullPage: true });
+              await page.locator('[data-motion-toggle]').focus();
+              await page.keyboard.press('Enter');
+              const offMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(offMotion === 'off', `${spec.name} second toggle did not reach OFF: ${offMotion}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-off.png`, fullPage: true });
 
-            assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
-            await context.close();
+              assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
+              await context.close();
+            }
+
+            fs.writeFileSync(
+              'qa-artifacts/browser-acceptance.txt',
+              'PASS\ndesktop:focal-sync+stationary-dwell-open\n390x844:focal-sync+stationary-dwell-open\n412x915:focal-sync+stationary-dwell-open\ndesktop:predictable-decay\n390x844:predictable-decay\n412x915:predictable-decay\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nkeyboard:motion-off\nnative-canvas:present\nentry:explicit\n',
+            );
+          } catch (error) {
+            trace.push(`FAIL:${error instanceof Error ? error.message : String(error)}`);
+            throw error;
+          } finally {
+            fs.writeFileSync('qa-artifacts/state-trace.txt', `${trace.join('\n')}\n`);
+            await browser.close();
           }
-
-          await browser.close();
-          fs.writeFileSync(
-            'qa-artifacts/browser-acceptance.txt',
-            'PASS\ndesktop:focal-sync+stationary-dwell-open\n390x844:focal-sync+stationary-dwell-open\n412x915:focal-sync+stationary-dwell-open\ndesktop:predictable-decay\n390x844:predictable-decay\n412x915:predictable-decay\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nkeyboard:motion-off\nnative-canvas:present\nentry:explicit\n',
-          );
           NODE
 
       - name: Upload KOD-49 QA evidence
