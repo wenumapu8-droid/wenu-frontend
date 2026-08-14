@@ -2,26 +2,47 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   HOLOCORE_DEFAULT_SPECIMEN_ID,
+  HOLOCORE_NODE_MAP,
   HOLOCORE_SPECIMEN_IDS,
   getHoloCoreSpecimens,
+  resolveHoloCoreForNode,
   resolveHoloCoreSpecimen,
 } from '../src/kodex/holocore/registry.js';
 
 const pointer = Object.freeze({ x: 0.5, y: 0.5, active: false });
 const seed = 17.25;
 
-test('HoloCore registry exposes three unique query-addressable specimens', () => {
-  assert.deepEqual(HOLOCORE_SPECIMEN_IDS, [
-    'orbital-city',
-    'signal-core',
-    'interference-portal',
-  ]);
+const EXPECTED_IDS = [
+  'orbital-city',
+  'signal-core',
+  'interference-portal',
+  'signal-vortex',
+  'dna-ascent',
+  'memory-tree',
+  'skull-archive',
+  'cosmology-orbit',
+  'field-of-eyes',
+  'heart-chamber',
+  'source-chamber',
+  'return-gate',
+  'living-organism',
+  'signal-seed',
+];
+
+test('HoloCore registry exposes fourteen unique query-addressable core archetypes', () => {
+  assert.deepEqual(HOLOCORE_SPECIMEN_IDS, EXPECTED_IDS);
 
   const specimens = getHoloCoreSpecimens();
-  assert.equal(specimens.length, 3);
-  assert.equal(new Set(specimens.map(specimen => specimen.id)).size, 3);
-  assert.equal(new Set(specimens.map(specimen => specimen.scene.id)).size, 3);
-  assert.equal(new Set(specimens.map(specimen => specimen.accent)).size, 3);
+  assert.equal(specimens.length, EXPECTED_IDS.length);
+  assert.equal(new Set(specimens.map(specimen => specimen.id)).size, EXPECTED_IDS.length);
+  assert.equal(new Set(specimens.map(specimen => specimen.scene.id)).size, EXPECTED_IDS.length);
+  assert.equal(new Set(specimens.map(specimen => specimen.archetype)).size, EXPECTED_IDS.length);
+
+  for (const specimen of specimens) {
+    assert.equal(specimen.sourceRefs.length > 0, true, `${specimen.id}: missing Atlas/source reference`);
+    assert.equal(typeof specimen.topology, 'string', `${specimen.id}: missing topology`);
+    assert.equal(typeof specimen.epistemic, 'string', `${specimen.id}: missing epistemic layer`);
+  }
 });
 
 test('unknown HoloCore specimen IDs fall back deterministically', () => {
@@ -29,7 +50,17 @@ test('unknown HoloCore specimen IDs fall back deterministically', () => {
   assert.equal(resolveHoloCoreSpecimen('unknown').id, HOLOCORE_DEFAULT_SPECIMEN_ID);
 });
 
-test('every HoloCore registry field is finite, normalized and closes at 24 seconds', () => {
+test('node-to-HoloCore mapping resolves representative canonical concepts without inventing a second routing system', () => {
+  assert.equal(resolveHoloCoreForNode('KDX-NODE-DNA-ASCENT').id, 'dna-ascent');
+  assert.equal(resolveHoloCoreForNode('KDX-NODE-HEART-M').id, 'heart-chamber');
+  assert.equal(resolveHoloCoreForNode('KDX-NODE-FIELD-OF-EYES').id, 'field-of-eyes');
+  assert.equal(resolveHoloCoreForNode('KDX-NODE-RETURN').id, 'return-gate');
+  assert.equal(resolveHoloCoreForNode('KDX-NODE-SIGNAL-SEED').id, 'signal-seed');
+  assert.equal(resolveHoloCoreForNode('KDX-NODE-NOT-REGISTERED').id, HOLOCORE_DEFAULT_SPECIMEN_ID);
+  assert.equal(Object.keys(HOLOCORE_NODE_MAP).length >= 20, true);
+});
+
+test('every HoloCore registry field is finite, normalized and closes exactly at 24 seconds', () => {
   const probes = [
     [-0.71, -0.62],
     [-0.35, 0.15],
@@ -59,9 +90,15 @@ test('every HoloCore registry field is finite, normalized and closes at 24 secon
 });
 
 test('pointer perturbation stays bounded for all registered HoloCore fields', () => {
-  const activePointer = Object.freeze({ x: 0.93, y: 0.08, active: true });
+  const activePointers = [
+    Object.freeze({ x: 0.93, y: 0.08, active: true }),
+    Object.freeze({ x: 0.08, y: 0.91, active: true }),
+  ];
+
   for (const specimen of getHoloCoreSpecimens()) {
-    const value = specimen.scene.field(0.21, -0.33, 13.5, activePointer, seed);
-    assert.ok(value >= 0 && value <= 1, specimen.id);
+    for (const activePointer of activePointers) {
+      const value = specimen.scene.field(0.21, -0.33, 13.5, activePointer, seed);
+      assert.ok(value >= 0 && value <= 1, specimen.id);
+    }
   }
 });
