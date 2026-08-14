@@ -30,64 +30,86 @@ export const holocoreToroidalFieldScene = Object.freeze({
     const sx = x - px;
     const sy = y - py;
 
-    // Project the field into a gently tilted ellipse. This is intentionally an
-    // authored perceptual model rather than a claim of physical simulation.
-    const tilt = -0.16;
+    // Project into a visibly tilted, less-compressed ellipse so the object reads
+    // as a volume rather than a thin horizontal ring. This remains an authored
+    // perceptual model, not a physical field simulation.
+    const tilt = -0.23;
     const ct = Math.cos(tilt);
     const st = Math.sin(tilt);
     const rx = sx * ct - sy * st;
-    const ry = (sx * st + sy * ct) / 0.58;
+    const ry = (sx * st + sy * ct) / 0.72;
     const radius = Math.hypot(rx, ry);
     const angle = Math.atan2(ry, rx);
 
-    const major = 0.54;
+    const major = 0.55;
     const tubeDistance = Math.abs(radius - major);
-    const bodyMask = 1 - smoothstep(0.12, 0.27, tubeDistance);
+    const bodyMask = 1 - smoothstep(0.105, 0.245, tubeDistance);
 
-    // Dense laminated surface: several close toroidal contours prevent the form
-    // from reading like a single flat ring.
+    // A continuous low-frequency skin is intentional. v0.1 relied mainly on
+    // contour peaks, which produced sparse beads in the ASCII quantizer. The
+    // skin gives the torus perceptual mass while keeping microglyph texture.
+    const crossSection = 1 - smoothstep(0.018, 0.215, tubeDistance);
+    const frontness = Math.sin(angle) * 0.5 + 0.5;
+    const sideLight = Math.cos(angle - 0.42) * 0.5 + 0.5;
+    const depth = 0.68 + frontness * 0.32;
+    const skin = bodyMask * crossSection * (0.22 + sideLight * 0.16) * depth;
+
+    // Dense laminated surface. Wider low-amplitude bands form a coherent shell;
+    // narrow bands retain the optical "field-line" language at close range.
     let laminations = 0;
-    for (let band = -4; band <= 4; band += 1) {
-      const offset = band * 0.027;
+    for (let band = -5; band <= 5; band += 1) {
+      const offset = band * 0.024;
       const breathe = Math.sin(phase + band * 0.48) * 0.004;
-      laminations = Math.max(
-        laminations,
-        gaussian(radius - (major + offset + breathe), 0.012) * (0.48 + (4 - Math.abs(band)) * 0.07),
-      );
+      const distance = radius - (major + offset + breathe);
+      const broad = gaussian(distance, 0.020) * (0.22 + (5 - Math.abs(band)) * 0.035);
+      const filament = gaussian(distance, 0.0085) * (0.36 + (5 - Math.abs(band)) * 0.055);
+      laminations = Math.max(laminations, broad, filament);
     }
 
-    // Longitudinal surface flow. Opposed phase directions keep the loop alive
-    // without making the object spin like a loading indicator.
+    // Longitudinal surface flow. Opposed directions create circulation without
+    // turning the object into a loading spinner. The threshold is lowered from
+    // v0.1 so flow reads as a continuous current rather than isolated packets.
     const flowA = Math.sin(angle * 12 - phase * 2 + tubeDistance * 38) * 0.5 + 0.5;
     const flowB = Math.sin(angle * 17 + phase * 1.35 - tubeDistance * 52) * 0.5 + 0.5;
-    const stream = bodyMask * smoothstep(0.74, 0.97, Math.max(flowA, flowB * 0.9)) * 0.72;
+    const flowSignal = Math.max(flowA, flowB * 0.92);
+    const stream = bodyMask * smoothstep(0.56, 0.92, flowSignal) * (0.34 + frontness * 0.34);
 
-    // The near side is subtly brighter; the rear side remains visible so the
-    // aperture reads as volume rather than a donut outline.
-    const nearSide = 0.62 + 0.38 * (Math.sin(angle) * 0.5 + 0.5);
-    const surface = Math.max(laminations, stream) * bodyMask * nearSide;
+    // Front/back separation is encoded in luminance, not fake occlusion. Rear
+    // material remains visible, while the near side carries the brightest skin.
+    const rearAttenuation = 0.64 + frontness * 0.36;
+    const surface = Math.max(skin, laminations * 0.88, stream) * bodyMask * rearAttenuation;
 
-    // Interior throat and a soft negative-space rim make the central opening
-    // visually legible even at small/mobile sizes.
+    // Interior throat and two aperture rims create a legible negative-space
+    // opening. The outer rim is weaker so the hole remains open, not filled.
     const apertureRadius = 0.255;
-    const aperture = gaussian(radius - apertureRadius, 0.018) * 0.46;
-    const throat = (1 - smoothstep(0.12, apertureRadius, radius)) * 0.08;
+    const apertureInner = gaussian(radius - apertureRadius, 0.014) * (0.48 + frontness * 0.16);
+    const apertureOuter = gaussian(radius - 0.315, 0.025) * 0.15;
+    const throat = (1 - smoothstep(0.105, apertureRadius, radius)) * 0.045;
 
-    // Slow circulating packets give the eye a path to follow while preserving a
-    // seamless 24 second loop.
+    // Slow circulating packets now sit inside the continuous shell. They provide
+    // a readable flow path but no longer carry the object's entire visual mass.
     let packets = 0;
-    for (let i = 0; i < 6; i += 1) {
-      const packetAngle = phase * (i % 2 === 0 ? 1 : -0.72) + i * TAU / 6;
-      const packetRadius = major + Math.sin(phase * 2 + i) * 0.028;
+    for (let i = 0; i < 8; i += 1) {
+      const direction = i % 2 === 0 ? 1 : -1;
+      const packetAngle = phase * direction + i * TAU / 8;
+      const packetRadius = major + Math.sin(phase * 2 + i) * 0.032;
       const dx = rx - Math.cos(packetAngle) * packetRadius;
       const dy = ry - Math.sin(packetAngle) * packetRadius;
-      packets = Math.max(packets, Math.exp(-Math.hypot(dx, dy) / 0.055));
+      packets = Math.max(packets, Math.exp(-Math.hypot(dx, dy) / 0.050));
     }
 
-    // Peripheral field lines are deliberately weak: the torus must dominate.
-    const halo = gaussian(radius - 0.78, 0.028) * 0.11
-      + gaussian(radius - 0.92, 0.035) * 0.05;
+    // A restrained surrounding field gives the object spatial context without
+    // competing with it. The torus remains the dominant signal.
+    const halo = gaussian(radius - 0.77, 0.045) * 0.10
+      + gaussian(radius - 0.91, 0.055) * 0.045;
 
-    return clamp(surface * 0.96 + aperture + throat + packets * 0.72 + halo);
+    return clamp(
+      surface * 1.08
+      + apertureInner
+      + apertureOuter
+      + throat
+      + packets * 0.55
+      + halo,
+    );
   },
 });
