@@ -2,7 +2,7 @@ import { MICRO_UNIVERSE_GRAPH, MICRO_UNIVERSE_NODES } from '../micro-universe.js
 import { getProtectedOcinActivator } from '../ocin/protected-activators-v0.js';
 
 export const KDX_GOLDEN_PLATE_BENCHMARK_PROFILE = Object.freeze({
-  version: 'golden-plate-benchmark-v0.1.0',
+  version: 'golden-plate-benchmark-v0.1.1',
   status: 'IMPLEMENTED_CANDIDATE',
   plateCount: 12,
   domains: Object.freeze(['science', 'technology', 'art', 'consciousness']),
@@ -23,6 +23,7 @@ const NATURAL_PLATE_TYPE = Object.freeze({
 });
 
 const ROUTE_ROLES = Object.freeze(['CONTINUITY', 'BRIDGE', 'ECHO', 'SERENDIPITY']);
+const LIVING_FIELD_ACTIVATION_ID = 'KDX-FX-006';
 
 function routeSlateFor(nodeId) {
   return (MICRO_UNIVERSE_GRAPH[nodeId] || []).slice(0, 4).map((target_node, index) => ({
@@ -45,7 +46,7 @@ function protectedArtworkContract(artworkId) {
   };
 }
 
-function activationProfile(artworkId) {
+function artworkActivationProfile(artworkId) {
   const record = getProtectedOcinActivator(artworkId);
   if (!record) return null;
   return {
@@ -72,10 +73,22 @@ function nodeInput(nodeId, plateType) {
     },
   };
   if (plateType === 'JUNCTION_PLATE') input.route_slate = routeSlateFor(nodeId);
-  if (plateType === 'ACTIVATOR_PLATE') {
+  if (plateType === 'ACTIVATOR_PLATE' && node.artworkId) {
     input.artwork_contract = protectedArtworkContract(node.artworkId);
-    input.activation_profile = activationProfile(node.artworkId);
+    input.activation_profile = artworkActivationProfile(node.artworkId);
     delete input.primary_payload;
+  } else if (plateType === 'ACTIVATOR_PLATE') {
+    input.primary_payload = {
+      payload_type: 'FIELD',
+      payload_ref: node.id,
+      status: 'IMPLEMENTED_CANDIDATE',
+    };
+    input.artwork_contract = null;
+    input.activation_profile = {
+      activation_id: LIVING_FIELD_ACTIVATION_ID,
+      explicit_action_required: true,
+      environment_only: true,
+    };
   }
   return input;
 }
@@ -92,11 +105,7 @@ const CASE_BLUEPRINTS = Object.freeze([
   ['GP-ART-03', 'art', 'ART-POETRY', 'seed-gp-art-03'],
   ['GP-CON-01', 'consciousness', 'CON-MIND', 'seed-gp-con-01'],
   ['GP-CON-02', 'consciousness', 'CON-OBSERVER', 'seed-gp-con-02'],
-  // The current PlateSpec v0.1 restricts ACTIVATOR_PLATE to protected artwork.
-  // CON-RITUAL is therefore not silently coerced. A second seeded CON-MIND
-  // representation keeps the benchmark at 12 plates while the living-field
-  // activator contract remains an explicit schema follow-up.
-  ['GP-CON-03', 'consciousness', 'CON-MIND', 'seed-gp-con-03'],
+  ['GP-CON-03', 'consciousness', 'CON-RITUAL', 'seed-gp-con-03'],
 ]);
 
 export const KDX_GOLDEN_PLATE_CASES = Object.freeze(CASE_BLUEPRINTS.map(([case_id, domain, nodeId, seed]) => {
@@ -122,6 +131,8 @@ export function getGoldenPlateBenchmarkSummary() {
     total: KDX_GOLDEN_PLATE_CASES.length,
     byDomain: Object.freeze(byDomain),
     byPlateType: Object.freeze(byPlateType),
-    knownGap: 'Living-field ACTIVATOR_PLATE is canon-supported but not yet represented by PlateSpec v0.1.',
+    protectedArtworkActivators: KDX_GOLDEN_PLATE_CASES.filter((entry) => entry.node.artwork_contract).length,
+    livingFieldActivators: KDX_GOLDEN_PLATE_CASES.filter((entry) => entry.plate_type === 'ACTIVATOR_PLATE' && entry.node.primary_payload?.payload_type === 'FIELD').length,
+    activatorContractGap: null,
   });
 }
