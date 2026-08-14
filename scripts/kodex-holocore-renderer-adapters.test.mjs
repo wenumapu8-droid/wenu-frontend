@@ -11,6 +11,7 @@ import {
   IMPLEMENTED_HOLOCORE_RENDERER_KINDS,
   HOLOCORE_SURFACE_KINDS,
   RASTER_SIGNAL_RENDERER_SPEC,
+  WEBGL_SOURCE_RENDERER_CONTRACT,
   RENDERER_ADAPTER_STATUS,
 } from '../src/kodex/holocore/renderers/registry.js';
 
@@ -21,10 +22,20 @@ test('renderer taxonomy separates content renderers from surface pipelines', () 
     'webgl-shader',
     'artwork-adapter',
   ]);
-  assert.deepEqual(IMPLEMENTED_HOLOCORE_RENDERER_KINDS, ['ascii-field', 'raster2d-lowres']);
+  assert.deepEqual(IMPLEMENTED_HOLOCORE_RENDERER_KINDS, ['ascii-field', 'raster2d-lowres', 'webgl-shader']);
   assert.deepEqual(HOLOCORE_SURFACE_KINDS, ['none', 'crt-webgl']);
-  assert.equal(RENDERER_ADAPTER_STATUS['webgl-shader'], 'ADMITTED_NOT_YET_ADAPTED');
+  assert.equal(RENDERER_ADAPTER_STATUS['webgl-shader'], 'IMPLEMENTED_FEATURE_PROOF');
   assert.equal(RENDERER_ADAPTER_STATUS['artwork-adapter'], 'ADMITTED_NOT_YET_ADAPTED');
+});
+
+test('WebGL source renderer contract refuses an unproved loop claim', () => {
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.rendererKind, 'webgl-shader');
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.shaderRole, 'SOURCE_GENERATOR');
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.temporalContract, 'AMBIENT_UNCLOSED');
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.seamlessLoopClaim, false);
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.reducedMotion, 'STATIC_TIME_FRAME');
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.fallback, 'STATIC_CANVAS_RETICLE');
+  assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.provenance, 'KODEX_INTERNAL_SHADER_REUSE');
 });
 
 test('raster signal spec encodes low-resolution-first behavior and fallback', () => {
@@ -49,11 +60,9 @@ test('raster signal state closes and pointer perturbation stays bounded', () => 
   const pointer = { x: 0.93, y: 0.06, active: true };
   const start = rasterSignalState(0, pointer);
   const seam = rasterSignalState(24_000, pointer);
-
   for (const key of ['phase', 'pointerX', 'pointerY', 'objectYaw', 'objectPitch', 'ringRadius', 'rasterPhase', 'paletteIndex', 'scanY']) {
     assert.ok(Math.abs(start[key] - seam[key]) < 1e-12, `${key}: ${start[key]} vs ${seam[key]}`);
   }
-
   assert.ok(Math.abs(start.pointerX) <= 0.045);
   assert.ok(Math.abs(start.pointerY) <= 0.035);
   assert.ok(start.scanY >= 0 && start.scanY <= 239);
@@ -64,7 +73,6 @@ test('deterministic star generator is stable and remains inside the internal ras
   const b = makeRasterStars();
   assert.deepEqual(a, b);
   assert.equal(a.length, 148);
-
   for (const star of a) {
     assert.ok(star.x >= 0 && star.x < 320);
     assert.ok(star.y >= 0 && star.y < 240);
