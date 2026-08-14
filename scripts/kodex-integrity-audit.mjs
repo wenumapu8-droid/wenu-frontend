@@ -132,6 +132,31 @@ for (const rel of authorialFiles) {
   }
 }
 
+const visibleAssemblyRuntime = 'src/lib/kodex/runtime/visible-assembly.ts';
+const visibleAssemblyRoute = 'src/pages/kodex/lab/visible-assembly/index.astro';
+const journeyStatePath = 'src/lib/kodex/runtime/journey-state.ts';
+const graphPath = 'src/lib/kodex/runtime/journeyGraph/canonical-graph.ts';
+for (const rel of [visibleAssemblyRuntime, visibleAssemblyRoute, journeyStatePath, graphPath]) {
+  if (!exists(rel)) errors.push(`VISIBLE ASSEMBLY: missing reconciled file ${rel}`);
+}
+if (exists(visibleAssemblyRuntime)) {
+  const source = read(visibleAssemblyRuntime);
+  if (!source.includes('REFERENCE_ONLY')) errors.push('VISIBLE ASSEMBLY: Archive evidence rights boundary missing');
+  if (!source.includes('createReturnSignature')) errors.push('VISIBLE ASSEMBLY: deterministic Return signature missing');
+  if (!source.includes('restoreVisibleAssembly')) errors.push('VISIBLE ASSEMBLY: history/state restore path missing');
+  for (const letter of ['B','C','D','E','F','G','H','I','J','K','L','N','O','P','Q','R','S','T','U','V','W','X']) {
+    const pattern = new RegExp(`letter:\\s*["']${letter}["']`);
+    if (pattern.test(source)) errors.push(`VISIBLE ASSEMBLY: unresolved coordinate ${letter} was assigned`);
+  }
+}
+if (exists(journeyStatePath)) {
+  const source = read(journeyStatePath);
+  if (!source.includes('PAYLOAD_ALLOWLIST')) errors.push('JOURNEY STATE: semantic payload allowlist missing');
+  for (const rawKey of ['clientX', 'clientY', 'pointerX', 'pointerY', 'pressure', 'movementX', 'movementY']) {
+    if (new RegExp(`\\b${rawKey}\\b`).test(source)) errors.push(`JOURNEY STATE: raw telemetry key present: ${rawKey}`);
+  }
+}
+
 const output = {
   valid: errors.length === 0,
   coreScenes: report.coreCount,
@@ -140,6 +165,7 @@ const output = {
   evidenceSources: evidenceReport.sources,
   evidenceRelations: evidenceReport.relations,
   v0Checkpoints: KODEX_V0_CHECKPOINTS.length,
+  visibleAssembly: exists(visibleAssemblyRoute),
   errors,
   notes,
 };
