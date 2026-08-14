@@ -2,7 +2,7 @@ import elementRegistry from './kdx_element_registry.v0.1.json' with { type: 'jso
 import { hashSeed } from '../deep-navigation-engine.js';
 
 export const KDX_ASSEMBLER_PROFILE = Object.freeze({
-  version: 'deterministic-assembler-v0.1.0',
+  version: 'deterministic-assembler-v0.1.1',
   status: 'IMPLEMENTED_CANDIDATE',
   registryVersion: elementRegistry.registry_version,
   deterministic: true,
@@ -116,12 +116,37 @@ function normalizeRouteSlate(node, plateType) {
   return routes.map(({ target_node, role }) => ({ target_node, role }));
 }
 
-function normalizeArtwork(node, plateType) {
-  if (plateType !== 'ACTIVATOR_PLATE') return { artworkContract: null, activationProfile: null };
-  const art = node.artwork_contract;
+function normalizeActivator(node, plateType) {
+  if (plateType !== 'ACTIVATOR_PLATE') return { kind: null, artworkContract: null, activationProfile: null };
+
   const activation = node.activation_profile;
-  if (!art || !activation) {
-    throw new KdxAssemblyError('ACTIVATOR_CONTRACT_REQUIRED', 'ACTIVATOR_PLATE requires pre-existing artwork_contract and activation_profile.', { nodeId: nodeIdOf(node) });
+  if (!activation?.activation_id || activation.environment_only !== true) {
+    throw new KdxAssemblyError('ACTIVATION_CONTRACT_BLOCK', 'ACTIVATOR_PLATE requires activation_id and environment_only=true.', { nodeId: nodeIdOf(node) });
+  }
+  const activationProfile = {
+    activation_id: activation.activation_id,
+    explicit_action_required: activation.explicit_action_required !== false,
+    environment_only: true,
+  };
+
+  const payloadType = node.primary_payload?.payload_type || (node.artwork_contract ? 'ARTWORK' : null);
+  if (payloadType === 'FIELD') {
+    if (node.artwork_contract != null) {
+      throw new KdxAssemblyError('LIVING_FIELD_ARTWORK_CONFLICT', 'Living-field activators cannot carry artwork_contract.', { nodeId: nodeIdOf(node) });
+    }
+    if (!node.primary_payload?.payload_ref) {
+      throw new KdxAssemblyError('LIVING_FIELD_PAYLOAD_REQUIRED', 'Living-field activators require an explicit FIELD payload_ref.', { nodeId: nodeIdOf(node) });
+    }
+    return { kind: 'FIELD', artworkContract: null, activationProfile };
+  }
+
+  if (payloadType !== 'ARTWORK') {
+    throw new KdxAssemblyError('ACTIVATOR_PAYLOAD_BLOCK', 'ACTIVATOR_PLATE payload must be ARTWORK or FIELD.', { nodeId: nodeIdOf(node), payloadType });
+  }
+
+  const art = node.artwork_contract;
+  if (!art) {
+    throw new KdxAssemblyError('ACTIVATOR_CONTRACT_REQUIRED', 'Artwork ACTIVATOR_PLATE requires a pre-existing artwork_contract.', { nodeId: nodeIdOf(node) });
   }
   const integrityOk = art.full_view_required === true
     && art.preserve_aspect === true
@@ -131,10 +156,11 @@ function normalizeArtwork(node, plateType) {
   if (!integrityOk) {
     throw new KdxAssemblyError('ARTWORK_INTEGRITY_BLOCK', 'Protected artwork contract violates full-view/no-crop/source-integrity gates.', { artworkId: art.artwork_id });
   }
-  if (!art.artwork_id || !activation.activation_id || activation.environment_only !== true) {
-    throw new KdxAssemblyError('ACTIVATION_CONTRACT_BLOCK', 'Activator requires artwork_id, activation_id and environment_only activation.', { nodeId: nodeIdOf(node) });
+  if (!art.artwork_id) {
+    throw new KdxAssemblyError('ACTIVATION_CONTRACT_BLOCK', 'Artwork activator requires artwork_id.', { nodeId: nodeIdOf(node) });
   }
   return {
+    kind: 'ARTWORK',
     artworkContract: {
       artwork_id: art.artwork_id,
       full_view_required: true,
@@ -144,23 +170,24 @@ function normalizeArtwork(node, plateType) {
       distort_source_allowed: false,
       source_bytes_renderable: art.source_bytes_renderable === true,
     },
-    activationProfile: {
-      activation_id: activation.activation_id,
-      explicit_action_required: activation.explicit_action_required !== false,
-      environment_only: true,
-    },
+    activationProfile,
   };
 }
 
-function normalizePayload(node, plateType, artworkContract) {
+function normalizePayload(node, plateType, activatorKind, artworkContract) {
   const fallback = {
     payload_type: PLATE_CONFIG[plateType].defaultPayloadType,
     payload_ref: plateType === 'JUNCTION_PLATE' ? `ROUTE-${nodeIdOf(node)}` : nodeIdOf(node),
     status: 'IMPLEMENTED_CANDIDATE',
   };
-  const payload = plateType === 'ACTIVATOR_PLATE'
-    ? { payload_type: 'ARTWORK', payload_ref: artworkContract.artwork_id, status: node.primary_payload?.status || fallback.status }
-    : (node.primary_payload ? { ...node.primary_payload } : fallback);
+  let payload;
+  if (plateType === 'ACTIVATOR_PLATE' && activatorKind === 'ARTWORK') {
+    payload = { payload_type: 'ARTWORK', payload_ref: artworkContract.artwork_id, status: node.primary_payload?.status || fallback.status };
+  } else if (plateType === 'ACTIVATOR_PLATE' && activatorKind === 'FIELD') {
+    payload = { ...node.primary_payload };
+  } else {
+    payload = node.primary_payload ? { ...node.primary_payload } : fallback;
+  }
   if (!PAYLOAD_TYPES.has(payload.payload_type) || !payload.payload_ref || !PAYLOAD_STATUSES.has(payload.status)) {
     throw new KdxAssemblyError('INVALID_PRIMARY_PAYLOAD', 'Primary payload does not satisfy PlateSpec payload contract.', { payload, nodeId: nodeIdOf(node) });
   }
@@ -192,9 +219,9 @@ export function assemblePlateSpec(node, plateType, seed) {
   assertInput(node, plateType, seed);
   const nodeId = nodeIdOf(node);
   const config = PLATE_CONFIG[plateType];
-  const { artworkContract, activationProfile } = normalizeArtwork(node, plateType);
+  const { kind: activatorKind, artworkContract, activationProfile } = normalizeActivator(node, plateType);
   const routeSlate = normalizeRouteSlate(node, plateType);
-  const primaryPayload = normalizePayload(node, plateType, artworkContract);
+  const primaryPayload = normalizePayload(node, plateType, activatorKind, artworkContract);
   const copySlots = normalizeCopySlots(node);
 
   const compositionCandidates = stableCandidates({
@@ -257,7 +284,7 @@ export function assemblePlateSpec(node, plateType, seed) {
     qa_requirements: unique([
       ...BASE_QA,
       ...(plateType === 'JUNCTION_PLATE' ? ['ROUTE_BOUNDS'] : []),
-      ...(plateType === 'ACTIVATOR_PLATE' ? ['NO_CROP'] : []),
+      ...(plateType === 'ACTIVATOR_PLATE' && activatorKind === 'ARTWORK' ? ['NO_CROP'] : []),
     ]),
   };
 
