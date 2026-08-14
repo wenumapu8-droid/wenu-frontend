@@ -1,0 +1,212 @@
+---
+interface Props {
+  id?: string;
+  label?: string;
+}
+
+const {
+  id = 'kdx-holocore-renderer-lab',
+  label = 'Synthetic KODEX low-resolution raster signal materializing inside a CRT-treated HoloCore chamber',
+} = Astro.props;
+---
+
+<figure class="kdx-renderer-lab" id={id} data-kdx-renderer-lab>
+  <header class="kdx-renderer-lab__bar" aria-hidden="true">
+    <span>HOLOCORE // RENDERER ADAPTER</span>
+    <span data-renderer-state>DORMANT</span>
+  </header>
+
+  <div class="kdx-renderer-lab__viewport" data-renderer-viewport>
+    <canvas
+      class="kdx-renderer-lab__source"
+      data-renderer-source
+      role="img"
+      aria-label={label}
+    ></canvas>
+
+    <div class="kdx-renderer-lab__frame" aria-hidden="true"></div>
+    <div class="kdx-renderer-lab__meta" aria-hidden="true">
+      <strong>RASTER SIGNAL</strong>
+      <span>CONTENT · RASTER2D-LOWRES</span>
+      <span>SURFACE · <b data-surface-label>RESOLVING</b></span>
+      <span>320×240 · 15 VISUAL FPS</span>
+      <span>LOOP · 24.00 S</span>
+    </div>
+  </div>
+
+  <footer class="kdx-renderer-lab__footer" aria-hidden="true">
+    <span>LOW RES FIRST → UPSCALE → CRT SURFACE</span>
+    <span data-frame-count>FRAME —</span>
+    <span>FALLBACK · PIXELATED CANVAS</span>
+  </footer>
+
+  <figcaption>
+    Synthetic KODEX raster/early-computer behavior study. No external reference pixels, logos, typography, models or source layout are embedded.
+  </figcaption>
+</figure>
+
+<script>
+  import { createRasterSignalAdapter } from '../../../kodex/holocore/renderers/registry.js';
+
+  const instances = new WeakMap();
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+    const canvas = root.querySelector('[data-renderer-source]');
+    const viewport = root.querySelector('[data-renderer-viewport]');
+    const state = root.querySelector('[data-renderer-state]');
+    const surfaceLabel = root.querySelector('[data-surface-label]');
+    const frameCount = root.querySelector('[data-frame-count]');
+    if (!(canvas instanceof HTMLCanvasElement) || !(viewport instanceof HTMLElement)) return;
+
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const adapter = createRasterSignalAdapter({ canvas, container: viewport, reducedMotion });
+    root.dataset.rendererKind = adapter.spec.rendererKind;
+    root.dataset.surfaceKind = adapter.spec.surfaceKind;
+    root.dataset.reducedMotion = String(reducedMotion);
+
+    const setState = value => {
+      root.dataset.state = value.toLowerCase();
+      if (state) state.textContent = value;
+    };
+
+    setState('RESOLVING');
+    adapter.start();
+
+    const settleTimer = window.setTimeout(() => {
+      setState('STABLE LOOP');
+      root.classList.add('is-stable');
+      if (surfaceLabel) surfaceLabel.textContent = viewport.dataset.surfaceMode || 'source-canvas';
+    }, reducedMotion ? 240 : 720);
+
+    let metricsTimer = 0;
+    const updateMetrics = () => {
+      if (frameCount) frameCount.textContent = `FRAME ${canvas.dataset.frameCount || '—'}`;
+      metricsTimer = window.setTimeout(updateMetrics, 500);
+    };
+    updateMetrics();
+
+    const destroy = () => {
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(metricsTimer);
+      adapter.destroy();
+      instances.delete(root);
+    };
+
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-renderer-lab]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-renderer-lab]').forEach(root => instances.get(root)?.destroy());
+  });
+</script>
+
+<style>
+  .kdx-renderer-lab {
+    --line: rgba(124, 229, 255, .26);
+    box-sizing: border-box;
+    position: relative;
+    display: grid;
+    grid-template-rows: 30px minmax(0, 1fr) 30px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #020205;
+    color: #e9e5ed;
+  }
+
+  .kdx-renderer-lab__bar,
+  .kdx-renderer-lab__footer {
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 10px;
+    font: 500 8px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: rgba(230,224,238,.58);
+    background: rgba(2,2,5,.96);
+  }
+  .kdx-renderer-lab__bar { border-bottom: 1px solid var(--line); }
+  .kdx-renderer-lab__footer { border-top: 1px solid var(--line); }
+
+  .kdx-renderer-lab__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: #05030b;
+  }
+
+  .kdx-renderer-lab__source {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  .kdx-renderer-lab__viewport[data-surface-mode='webgl-crt'] .kdx-renderer-lab__source {
+    opacity: .22;
+  }
+
+  .kdx-renderer-lab__frame {
+    position: absolute;
+    z-index: 6;
+    inset: 0;
+    pointer-events: none;
+    border: 9px solid rgba(0,0,0,.16);
+    box-shadow: inset 0 0 78px rgba(0,0,0,.44);
+  }
+
+  .kdx-renderer-lab__meta {
+    position: absolute;
+    z-index: 8;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    justify-items: end;
+    gap: 5px;
+    max-width: 48%;
+    font: 500 7px/1.15 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .11em;
+    text-align: right;
+    color: rgba(211,238,245,.54);
+    text-shadow: 0 1px 2px #000;
+  }
+  .kdx-renderer-lab__meta strong { color: #edfaff; font-weight: 500; }
+  .kdx-renderer-lab__meta b { color: #7de9ff; font-weight: 500; }
+
+  .kdx-renderer-lab > figcaption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 700px) {
+    .kdx-renderer-lab { grid-template-rows: 28px minmax(0, 1fr) 28px; }
+    .kdx-renderer-lab__bar,
+    .kdx-renderer-lab__footer { padding: 0 7px; font-size: 6px; gap: 6px; }
+    .kdx-renderer-lab__meta { top: 11px; right: 11px; font-size: 6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-renderer-lab__source { opacity: 1 !important; }
+  }
+</style>
