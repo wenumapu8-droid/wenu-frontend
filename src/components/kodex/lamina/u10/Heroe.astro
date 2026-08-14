@@ -80,6 +80,26 @@
        Los valores de abajo son mas claros que los medidos porque lo medido es el
        compuesto sobre negro, con su antialias; lo que se declara aca es el color
        del trazo antes de la opacidad. Los pesos si son los medidos. */
+    /* RADIO SORTEADO DEL PERFIL MEDIDO, no de una formula.
+       Ninguna potencia de u reproduce la forma real: la referencia tiene 13,3
+       por ciento de tinta en el centro, SUBE a un pico de 27,5 en r=40 y recien
+       ahi baja. Es una roseta, y cualquier decaimiento monotono da su maximo en
+       el centro. Probado y descartado: con sqrt el medio quedaba vacio; con
+       u^0,74 mas exclusion interior se abria un agujero en la banda mas densa;
+       al cerrarlo esa banda paso de 0 a 50 contra el 26 de la referencia. Cada
+       ajuste cambiaba un error por otro porque el modelo no daba esa forma.
+       Estos son los 28 anillos de 20 px medidos sobre la referencia desde
+       (561,760), convertidos a peso de muestreo -densidad por area del anillo-. */
+    const ANILLOS = [0.0048,0.0128,0.0204,0.0240,0.0298,0.0303,0.0280,0.0370,0.0403,0.0463,0.0446,0.0391,0.0412,0.0401,0.0560,0.0444,0.0387,0.0320,0.0373,0.0351,0.0318,0.0470,0.0496,0.0455,0.0311,0.0351,0.0397,0.0381];
+    const radioMedido = (u) => {
+      let acc = u;
+      for (let k = 0; k < ANILLOS.length; k++) {
+        acc -= ANILLOS[k];
+        if (acc <= 0) return (k + (1 + acc / ANILLOS[k])) / ANILLOS.length;
+      }
+      return 1;
+    };
+
     const PALETA = [
       ["150,148,145", 25],  // neutro, el dominante
       ["150,132,180", 11],  // 270
@@ -240,7 +260,7 @@
          El campo arranca en el 16 % del radio; el centro lo dibuja la estructura
          de anillos, no el polvo. */
       for (let k = 0; k < 2600; k++) {
-        const rr = 0.16 + Math.pow(r(), 0.74) * 0.84;
+        const rr = radioMedido(r());
         const a = r() * TAU;
         const x = CX + rr * (W / 2 - 8) * Math.cos(a);
         const y = CY + rr * (H / 2 - 8) * Math.sin(a);
@@ -266,7 +286,7 @@
       const estrellas = [];
       const re = azar(0x1010);
       for (let k = 0; k < 1400; k++) {
-        const rr = 0.16 + Math.pow(re(), 0.74) * 0.84;
+        const rr = radioMedido(re());
         const a = re() * TAU;
         estrellas.push({
           x: CX + rr * (W / 2 - 30) * Math.cos(a),
@@ -349,8 +369,12 @@
       g.globalCompositeOperation = "lighter";
       const lat = 0.78 + 0.22 * Math.sin(fase * TAU * 3);
       const halo = g.createRadialGradient(CX, CY, 0, CX, CY, 90);
-      halo.addColorStop(0, tinta(NUC, 0.22 * lat));
-      halo.addColorStop(0.4, tinta(VIO, 0.10 * lat));
+      /* El halo pintaba un DISCO SOLIDO de tinta: con composicion `lighter` y
+         opacidad 0,22 sobre NUC -luminancia 242- el centro daba 53, muy por
+         encima del umbral de 26, y no bajaba hasta r=36. El build tenia 100 por
+         ciento de tinta entre r=0 y r=30 donde la referencia tiene 13,3. */
+      halo.addColorStop(0, tinta(NUC, 0.10 * lat));
+      halo.addColorStop(0.4, tinta(VIO, 0.045 * lat));
       halo.addColorStop(1, tinta(VIO, 0));
       g.fillStyle = halo;
       g.beginPath();
