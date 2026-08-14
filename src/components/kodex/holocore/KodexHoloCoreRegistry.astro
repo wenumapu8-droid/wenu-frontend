@@ -1,0 +1,361 @@
+---
+interface Props {
+  id?: string;
+  specimen?: 'orbital-city' | 'signal-core' | 'interference-portal';
+  profile?: 'full' | 'balanced' | 'low';
+}
+
+const {
+  id = 'kdx-holocore-registry',
+  specimen = 'orbital-city',
+  profile = 'balanced',
+} = Astro.props;
+---
+
+<figure
+  class="kdx-holocore-registry"
+  id={id}
+  data-kdx-holocore-registry
+  data-specimen={specimen}
+  data-profile={profile}
+>
+  <header class="kdx-holocore-registry__bar">
+    <span>HOLOCORE // SPECIMEN REGISTRY</span>
+    <span data-holocore-state>DORMANT</span>
+  </header>
+
+  <div class="kdx-holocore-registry__viewport">
+    <canvas class="kdx-holocore-registry__canvas" data-holocore-canvas role="img"></canvas>
+    <div class="kdx-holocore-registry__grid" aria-hidden="true"></div>
+    <div class="kdx-holocore-registry__scan" aria-hidden="true"></div>
+    <div class="kdx-holocore-registry__vignette" aria-hidden="true"></div>
+    <span class="kdx-holocore-registry__corner kdx-holocore-registry__corner--tl" aria-hidden="true"></span>
+    <span class="kdx-holocore-registry__corner kdx-holocore-registry__corner--tr" aria-hidden="true"></span>
+    <span class="kdx-holocore-registry__corner kdx-holocore-registry__corner--bl" aria-hidden="true"></span>
+    <span class="kdx-holocore-registry__corner kdx-holocore-registry__corner--br" aria-hidden="true"></span>
+
+    <div class="kdx-holocore-registry__identity" aria-hidden="true">
+      <strong data-holocore-title>—</strong>
+      <span data-holocore-render>—</span>
+      <span>LOOP 24.00 S</span>
+    </div>
+
+    <div class="kdx-holocore-registry__boot" data-holocore-boot aria-hidden="true">
+      <span>RESOLVING SPECIMEN</span>
+    </div>
+  </div>
+
+  <footer class="kdx-holocore-registry__footer">
+    <span data-holocore-id>—</span>
+    <span data-holocore-fps>-- FPS</span>
+    <span>BOUNDED / QUERY-ADDRESSABLE</span>
+  </footer>
+
+  <figcaption class="kdx-holocore-registry__caption" data-holocore-caption>
+    Procedural KODEX specimen. Motion is ambient and optional.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiRenderer } from '../../../kodex/ascii/engine/AsciiRenderer.js';
+  import {
+    HOLOCORE_DEFAULT_SPECIMEN_ID,
+    HOLOCORE_SPECIMEN_IDS,
+    resolveHoloCoreSpecimen,
+  } from '../../../kodex/holocore/registry.js';
+
+  const instances = new WeakMap();
+
+  function requestedSpecimen(root) {
+    const query = new URL(window.location.href).searchParams.get('specimen');
+    if (query && HOLOCORE_SPECIMEN_IDS.includes(query)) return query;
+    if (root.dataset.specimen && HOLOCORE_SPECIMEN_IDS.includes(root.dataset.specimen)) {
+      return root.dataset.specimen;
+    }
+    return HOLOCORE_DEFAULT_SPECIMEN_ID;
+  }
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+
+    const canvas = root.querySelector('[data-holocore-canvas]');
+    const state = root.querySelector('[data-holocore-state]');
+    const fps = root.querySelector('[data-holocore-fps]');
+    const title = root.querySelector('[data-holocore-title]');
+    const render = root.querySelector('[data-holocore-render]');
+    const id = root.querySelector('[data-holocore-id]');
+    const caption = root.querySelector('[data-holocore-caption]');
+    const boot = root.querySelector('[data-holocore-boot]');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+
+    const specimen = resolveHoloCoreSpecimen(requestedSpecimen(root));
+    root.dataset.specimen = specimen.id;
+    root.style.setProperty('--holocore-accent', specimen.accent);
+    canvas.setAttribute('aria-label', specimen.label);
+    if (title) title.textContent = specimen.title;
+    if (render) render.textContent = specimen.render;
+    if (id) id.textContent = specimen.id.toUpperCase();
+    if (caption) caption.textContent = `${specimen.label}. Motion is ambient and optional.`;
+
+    const renderer = new AsciiRenderer(canvas, {
+      scene: specimen.scene,
+      profile: root.dataset.profile || 'balanced',
+      glyphSet: 'kodex',
+      palette: specimen.palette,
+    });
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let destroyed = false;
+    let fpsTimer = 0;
+    let resolveTimer = 0;
+    let settleTimer = 0;
+    let freezeTimer = 0;
+
+    const setState = value => {
+      root.dataset.state = value.toLowerCase();
+      if (state) state.textContent = value;
+    };
+
+    const reveal = () => {
+      root.classList.add('is-stable');
+      boot?.setAttribute('hidden', '');
+    };
+
+    setState('BOOT');
+    requestAnimationFrame(() => root.classList.add('is-powered'));
+
+    if (reduced) {
+      const resolveStatic = async () => {
+        setState('RESOLVING');
+        try { await document.fonts?.ready; } catch {}
+        if (destroyed) return;
+        renderer.start();
+        reveal();
+        freezeTimer = window.setTimeout(() => {
+          renderer.stop();
+          setState('STABLE LOOP');
+        }, 180);
+      };
+      void resolveStatic();
+    } else {
+      resolveTimer = window.setTimeout(() => {
+        if (destroyed) return;
+        setState('RESOLVING');
+        renderer.start();
+      }, 260);
+      settleTimer = window.setTimeout(() => {
+        if (destroyed) return;
+        reveal();
+        setState('STABLE LOOP');
+      }, 1450);
+    }
+
+    const updateFps = () => {
+      if (destroyed) return;
+      if (fps) fps.textContent = `${renderer.fps || '--'} FPS`;
+      fpsTimer = window.setTimeout(updateFps, 1000);
+    };
+    updateFps();
+
+    root.dispatchEvent(new CustomEvent('kdx:holocore:specimen', {
+      bubbles: true,
+      detail: { id: specimen.id, title: specimen.title, render: specimen.render, provenance: specimen.provenance },
+    }));
+
+    const destroy = () => {
+      destroyed = true;
+      window.clearTimeout(fpsTimer);
+      window.clearTimeout(resolveTimer);
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(freezeTimer);
+      renderer.destroy();
+      instances.delete(root);
+    };
+
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-holocore-registry]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-holocore-registry]').forEach(root => {
+      instances.get(root)?.destroy();
+    });
+  });
+</script>
+
+<style>
+  .kdx-holocore-registry {
+    --holocore-accent: #a06cff;
+    --line: color-mix(in srgb, var(--holocore-accent) 38%, #fff 8%);
+    box-sizing: border-box;
+    position: relative;
+    display: grid;
+    grid-template-rows: 30px minmax(0, 1fr) 30px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    isolation: isolate;
+    color: #e9e5ed;
+    background: #020205;
+    border: 1px solid var(--line);
+  }
+
+  .kdx-holocore-registry__bar,
+  .kdx-holocore-registry__footer {
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 10px;
+    font: 500 8px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    color: rgba(230,224,238,.55);
+  }
+  .kdx-holocore-registry__bar { border-bottom: 1px solid var(--line); }
+  .kdx-holocore-registry__footer { border-top: 1px solid var(--line); }
+
+  .kdx-holocore-registry__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at center, color-mix(in srgb, var(--holocore-accent) 7%, transparent), transparent 44%),
+      #020205;
+  }
+
+  .kdx-holocore-registry__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    transform: scale(.99);
+    filter: saturate(.95) contrast(1.18);
+    transition: opacity .45s ease, transform .9s cubic-bezier(.2,.75,.15,1), filter .8s ease;
+  }
+  .is-powered .kdx-holocore-registry__canvas { opacity: .6; }
+  .is-stable .kdx-holocore-registry__canvas {
+    opacity: 1;
+    transform: scale(1);
+    filter: saturate(1.08) contrast(1.25) drop-shadow(0 0 8px color-mix(in srgb, var(--holocore-accent) 28%, transparent));
+  }
+
+  .kdx-holocore-registry__grid,
+  .kdx-holocore-registry__scan,
+  .kdx-holocore-registry__vignette,
+  .kdx-holocore-registry__boot { position: absolute; inset: 0; pointer-events: none; }
+
+  .kdx-holocore-registry__grid {
+    z-index: 2;
+    opacity: .11;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--holocore-accent) 18%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--holocore-accent) 14%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(circle at center, #000 18%, transparent 88%);
+  }
+
+  .kdx-holocore-registry__scan {
+    z-index: 4;
+    inset: -9% 0 auto;
+    height: 8%;
+    opacity: .18;
+    background: linear-gradient(transparent, var(--holocore-accent), transparent);
+    filter: blur(7px);
+    animation: holocore-registry-scan 8s linear infinite;
+  }
+
+  .kdx-holocore-registry__vignette {
+    z-index: 5;
+    box-shadow: inset 0 0 72px 24px rgba(0,0,0,.72);
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.014) 0 1px, transparent 1px 4px);
+    opacity: .62;
+  }
+
+  .kdx-holocore-registry__identity {
+    position: absolute;
+    z-index: 6;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    justify-items: end;
+    gap: 5px;
+    max-width: 38%;
+    text-align: right;
+    font: 500 8px/1.15 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .11em;
+    color: color-mix(in srgb, var(--holocore-accent) 68%, #fff 22%);
+  }
+  .kdx-holocore-registry__identity strong { font-weight: 500; color: #f4f0f7; }
+
+  .kdx-holocore-registry__corner {
+    position: absolute;
+    z-index: 6;
+    width: 18px;
+    height: 18px;
+    border-color: color-mix(in srgb, var(--holocore-accent) 62%, #fff 10%);
+    border-style: solid;
+    opacity: .72;
+  }
+  .kdx-holocore-registry__corner--tl { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+  .kdx-holocore-registry__corner--tr { top: 10px; right: 10px; border-width: 1px 1px 0 0; }
+  .kdx-holocore-registry__corner--bl { bottom: 10px; left: 10px; border-width: 0 0 1px 1px; }
+  .kdx-holocore-registry__corner--br { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+
+  .kdx-holocore-registry__boot {
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    background: #020205;
+    transition: opacity .45s ease;
+  }
+  .kdx-holocore-registry__boot[hidden] { opacity: 0; visibility: hidden; }
+  .kdx-holocore-registry__boot span {
+    font: 500 9px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .22em;
+    color: var(--holocore-accent);
+    animation: holocore-registry-pulse 1.2s steps(2, end) infinite;
+  }
+
+  .kdx-holocore-registry__caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes holocore-registry-scan {
+    from { transform: translateY(0); }
+    to { transform: translateY(1450%); }
+  }
+  @keyframes holocore-registry-pulse {
+    0%, 48% { opacity: .35; }
+    49%, 100% { opacity: 1; }
+  }
+
+  @media (max-width: 700px) {
+    .kdx-holocore-registry { grid-template-rows: 28px minmax(0, 1fr) 28px; }
+    .kdx-holocore-registry__bar,
+    .kdx-holocore-registry__footer { font-size: 6px; padding: 0 7px; gap: 6px; }
+    .kdx-holocore-registry__identity { font-size: 6px; top: 12px; right: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-holocore-registry__canvas { transition: none; opacity: 1; transform: none; }
+    .kdx-holocore-registry__scan,
+    .kdx-holocore-registry__boot span { animation: none; }
+    .kdx-holocore-registry__scan { top: 48%; opacity: .06; }
+  }
+</style>
