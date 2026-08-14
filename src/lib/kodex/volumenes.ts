@@ -210,6 +210,7 @@ export function assetUrl(src: string | undefined, variant: ArtVariant = "hero"):
     clean = clean.replace(/\/cover\.webp$/, variant === "thumb" ? thumbFile : "/cover-1400.webp");
   }
   if (clean.startsWith("art/")) return `${KODEX_ART_CDN_BASE}/kodex-content/${clean}`;
+  if (clean.startsWith("free/")) return `${KODEX_ART_CDN_BASE}/kodex-content/${clean}`;
   return `/kodex-content/${clean}`;
 }
 
