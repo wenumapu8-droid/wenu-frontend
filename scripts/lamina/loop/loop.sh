@@ -16,9 +16,47 @@ CONF="$AQUI/loop.conf"
 # shellcheck source=/dev/null
 [[ -f "$CONF" ]] && source "$CONF"
 
-: "${ESPERA_CUOTA:=3600}"   # segundos a dormir cuando se agota la cuota
+: "${ESPERA_CUOTA:=1800}"   # segundos entre sondeos cuando se agota la cuota
 : "${ESPERA_COLA:=1800}"    # segundos a dormir con la cola vacía, en --siempre
 : "${MAX_VUELTAS:=0}"       # 0 = sin límite
+: "${MAX_ESPERAS:=24}"      # sondeos seguidos sin cuota antes de rendirse
+
+ESPERAS=0
+REPO="$(cd "$AQUI/../../.." && pwd)"
+
+# ── publicación continua, sólo a PREVIEW ────────────────────────────────────
+# Publica después de cada vuelta que dejó un commit nuevo. Nunca toca
+# producción: `deploy-kodex-preview.sh` despliega al alias `kodex-preview` del
+# proyecto de Pages y lo dice en su primera línea.
+#
+# Producción es OTRA COSA y no va acá. La regla del creador es permanente: sin
+# deploy a producción sin la frase literal APROBAR DEPLOY, y sólo `redesign-v2`,
+# nunca `main`. Un loop que publica solo a producción convierte cada vuelta sin
+# revisar en algo que ve el público, y la revisión es justamente la compuerta
+# que él se reservó.
+publicar_preview() {
+  [[ "${PUBLICAR_PREVIEW:-0}" == "1" ]] || return 0
+
+  local sha previo
+  sha="$(git -C "$REPO" rev-parse HEAD)"
+  previo="$(cat "$AQUI/.ultimo-publicado" 2>/dev/null || true)"
+  if [[ "$sha" == "$previo" ]]; then
+    echo "[$(date '+%F %T')] preview: nada nuevo que publicar"
+    return 0
+  fi
+
+  echo "[$(date '+%F %T')] preview: publicando $sha"
+  if (cd "$REPO" && eval "${PUBLICAR_CMD:-./deploy-kodex-preview.sh}") >>"$AQUI/registro/preview.log" 2>&1; then
+    echo "$sha" >"$AQUI/.ultimo-publicado"
+    echo "[$(date '+%F %T')] preview: ok"
+    command -v "${BITACORA:-bitacora}" >/dev/null && \
+      "${BITACORA:-bitacora}" "${NOMBRE_AGENTE:-loop}" "KODEX loop publico preview del commit $sha" >/dev/null 2>&1
+  else
+    # Un fallo de publicación no puede matar el loop: el trabajo ya está
+    # commiteado y la próxima vuelta reintenta.
+    echo "[$(date '+%F %T')] preview: FALLÓ — ver registro/preview.log. El loop sigue."
+  fi
+}
 
 SIEMPRE=0
 [[ "${1:-}" == "--siempre" ]] && SIEMPRE=1
@@ -47,10 +85,23 @@ while :; do
   case "$CODIGO" in
     0)
       # Una vuelta que revierte también es una vuelta completa. No se reintenta.
+      ESPERAS=0
+      publicar_preview
       ;;
     3)
-      echo "[$(date '+%F %T')] cuota agotada — durmiendo ${ESPERA_CUOTA}s"
+      # La cuota se repone en ventana (~5 h), pero la ventana corre desde el
+      # primer uso y no desde una hora fija del reloj. Dormir cinco horas de una
+      # sentada llegaría tarde casi siempre: si la reposición cayó a los veinte
+      # minutos, se pierden cuatro horas y media de producción. Por eso se
+      # SONDEA cada ESPERA_CUOTA en vez de esperar la ventana entera — retoma
+      # dentro de la media hora de que vuelva, de día o de noche.
+      ESPERAS=$((ESPERAS + 1))
       VUELTAS=$((VUELTAS - 1))   # no cuenta: no se trabajó
+      if [[ "$ESPERAS" -ge "$MAX_ESPERAS" ]]; then
+        echo "[$(date '+%F %T')] $ESPERAS sondeos seguidos sin cuota — eso ya no es la ventana, es otra cosa. Se detiene."
+        exit 3
+      fi
+      echo "[$(date '+%F %T')] sin cuota (sondeo $ESPERAS/$MAX_ESPERAS) — reintenta el mismo ítem en ${ESPERA_CUOTA}s"
       sleep "$ESPERA_CUOTA"
       ;;
     4)

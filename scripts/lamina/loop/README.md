@@ -62,6 +62,41 @@ es tan útil como el trabajo hecho. Ver el ítem `u10-rieles-punteos`.
 Antes de agregar un ítem, la pregunta es una sola: **¿qué región medida cubre
 esto?** Si no hay respuesta, no es un ítem del loop.
 
+## La cuota, de día y de noche
+
+Cuando el agente se queda sin cuota, `vuelta.sh` sale con 3, revierte lo que
+haya quedado a medias y `loop.sh` **sondea cada 30 minutos** hasta que vuelva,
+reintentando el mismo ítem.
+
+No duerme la ventana entera a propósito. La ventana es de unas 5 h pero corre
+**desde el primer uso, no desde una hora fija**: si la cuota se repone a los
+veinte minutos, un `sleep 5h` pierde cuatro horas y media de producción. Con
+sondeos de media hora retoma dentro de los 30 min de que vuelva, a las 4 de la
+mañana igual que a las 4 de la tarde.
+
+A las 12 h de sondeos sin éxito se detiene. A esa altura ya no es la ventana.
+
+Para que sobreviva a un reinicio y corra sin nadie mirando, está
+`ai.kodex.loop-laminas.plist.ejemplo`. **No es un cron que lo dispara cada
+tanto** — el loop ya sabe esperar solo; launchd sólo se ocupa de que el proceso
+siga vivo. Y relanza únicamente en salida fallida: un `PARAR`, una compuerta o
+las 12 h sin cuota son decisiones, no accidentes.
+
+## Publicación continua — preview sí, producción no
+
+Con `PUBLICAR_PREVIEW=1`, después de cada vuelta que dejó un commit nuevo el
+loop corre `deploy-kodex-preview.sh`, que publica al alias `kodex-preview` del
+proyecto de Pages y **nunca toca producción** (lo dice en su primera línea).
+Si la publicación falla, se anota y el loop sigue: el trabajo ya está
+commiteado y la vuelta siguiente reintenta.
+
+Producción no va acá, y no es una omisión. La regla del creador es permanente:
+**sin deploy a producción sin la frase literal `APROBAR DEPLOY`, y sólo por
+`redesign-v2`, nunca por `main`.** Un loop que publicara solo a producción
+convertiría cada vuelta sin revisar en algo que ve el público, y la revisión es
+exactamente la compuerta que él se reservó. El loop produce sin parar; publicar
+lo revisado sigue siendo un acto humano.
+
 ## Dónde corre
 
 Donde esté el agente. El repo entero viaja por git —las referencias PNG y los
