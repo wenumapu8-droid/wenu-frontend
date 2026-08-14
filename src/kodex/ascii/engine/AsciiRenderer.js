@@ -23,6 +23,7 @@ export class AsciiRenderer {
     this.glyphs = getGlyphSet(this.glyphSetName);
     this.fontFamily = options.fontFamily ?? '"Share Tech Mono", monospace';
     this.profile = options.profile ?? "balanced";
+    this.ditherStrength = clamp(options.ditherStrength ?? 1, 0, 1);
     this.seed = Math.random() * 100;
     this.pointer = { x: 0.5, y: 0.5, active: false };
     this.width = 0;
@@ -49,13 +50,17 @@ export class AsciiRenderer {
     this.profile = profile;
     const mobile = matchMedia("(max-width: 700px)").matches;
     const map = {
-      full: mobile ? { cell: 9, fps: 30 } : { cell: 10, fps: 36 },
-      balanced: mobile ? { cell: 11, fps: 26 } : { cell: 12, fps: 30 },
-      low: mobile ? { cell: 14, fps: 18 } : { cell: 15, fps: 20 },
+      // RGX is intentionally denser than the legacy full profile. It is for
+      // reference-grounded HoloCore specimens where the ASCII layer behaves
+      // like a micro-raster beneath a separate structural scaffold.
+      rgx: mobile ? { cell: 7, fps: 22, aspect: 1.25 } : { cell: 6, fps: 24, aspect: 1.25 },
+      full: mobile ? { cell: 9, fps: 30, aspect: 1.35 } : { cell: 10, fps: 36, aspect: 1.35 },
+      balanced: mobile ? { cell: 11, fps: 26, aspect: 1.35 } : { cell: 12, fps: 30, aspect: 1.35 },
+      low: mobile ? { cell: 14, fps: 18, aspect: 1.35 } : { cell: 15, fps: 20, aspect: 1.35 },
     };
     const selected = map[profile] ?? map.balanced;
     this.cellWidth = selected.cell;
-    this.cellHeight = Math.round(selected.cell * 1.35);
+    this.cellHeight = Math.round(selected.cell * selected.aspect);
     this.frameInterval = 1000 / selected.fps;
     this.resize();
   }
@@ -137,9 +142,10 @@ export class AsciiRenderer {
         const x = (column / Math.max(this.columns - 1, 1)) * 2 - 1;
         let value = this.scene.field(x, y, t, this.pointer, this.seed);
 
-        // Dither mínimo para que la imagen respire sin volverse ruido.
-        const ordered = ((column & 1) + ((row & 1) << 1)) / 12;
-        value = clamp(value + ordered - 0.10);
+        // Ordered dither remains available, but RGX can attenuate it so fine
+        // reference geometry is not washed out by coarse checkerboard noise.
+        const ordered = (((column & 1) + ((row & 1) << 1)) / 12 - 0.10) * this.ditherStrength;
+        value = clamp(value + ordered);
 
         const glyphIndex = Math.floor(value * (this.glyphs.length - 1));
         const glyph = this.glyphs[glyphIndex] ?? " ";
