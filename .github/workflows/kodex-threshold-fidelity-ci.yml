@@ -1,0 +1,224 @@
+name: KODEX Threshold Fidelity CI
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/threshold-fidelity/**'
+      - 'src/components/kodex/threshold/**'
+      - '.github/workflows/kodex-threshold-fidelity-ci.yml'
+      - 'package.json'
+      - 'package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodex-threshold-fidelity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-threshold-fidelity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify noindex Threshold lab output
+        run: |
+          test -f dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'THRESHOLD Fidelity Lab' dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'noindex, nofollow, noarchive' dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'THE GATE IS A LIVING AGREEMENT' dist/kodex/lab/threshold-fidelity/index.html
+          grep -q 'ENTER VOLUNTARILY' dist/kodex/lab/threshold-fidelity/index.html
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-threshold-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/threshold-fidelity/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-threshold-preview.log
+          exit 1
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.54.2
+          npx playwright install --with-deps chromium
+
+      - name: Browser QA and evidence
+        run: |
+          mkdir -p qa-artifacts qa-artifacts/video-raw
+          node --input-type=module <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const url = 'http://127.0.0.1:4321/kodex/lab/threshold-fidelity/';
+          const browser = await chromium.launch({ headless: true });
+          const assert = (condition, message) => { if (!condition) throw new Error(message); };
+          const trace = [];
+
+          const dispatchMembranePointer = async (page, spec, xNorm, yNorm) => {
+            return page.locator('[data-kdx-threshold-membrane]').evaluate((element, input) => {
+              const rect = element.getBoundingClientRect();
+              const x = rect.left + rect.width * input.xNorm;
+              const y = rect.top + rect.height * input.yNorm;
+              element.dispatchEvent(new PointerEvent('pointermove', {
+                clientX: x,
+                clientY: y,
+                bubbles: true,
+                pointerType: input.pointerType,
+                pointerId: 1,
+              }));
+              return { x, y };
+            }, { xNorm, yNorm, pointerType: spec.mobile ? 'touch' : 'mouse' });
+          };
+
+          const captureFullMotionVideo = async (spec) => {
+            const videoSize = spec.mobile
+              ? { width: spec.width, height: spec.height }
+              : { width: 960, height: 666 };
+            const context = await browser.newContext({
+              viewport: { width: spec.width, height: spec.height },
+              hasTouch: spec.mobile,
+              isMobile: spec.mobile,
+              recordVideo: {
+                dir: 'qa-artifacts/video-raw',
+                size: videoSize,
+              },
+            });
+            const page = await context.newPage();
+            const video = page.video();
+            await page.goto(url, { waitUntil: 'networkidle' });
+            assert(await page.locator('.threshold-lab').getAttribute('data-motion') === 'full', `${spec.name} motion-video did not start FULL`);
+
+            // ~10 s evidence envelope: dormant → approach → stationary OPEN → local perturbation → decay.
+            await page.waitForTimeout(1400);
+            await dispatchMembranePointer(page, spec, spec.focalX + (spec.mobile ? 0.10 : 0.12), spec.focalY + 0.05);
+            await page.waitForTimeout(1100);
+            await dispatchMembranePointer(page, spec, spec.focalX, spec.focalY);
+            await page.waitForTimeout(3300);
+            const openState = await page.locator('[data-visual-state]').textContent();
+            assert(openState === 'OPEN', `${spec.name} motion-video stationary dwell did not reach OPEN: ${openState}`);
+            await dispatchMembranePointer(page, spec, spec.focalX - (spec.mobile ? 0.09 : 0.11), spec.focalY + 0.02);
+            await page.waitForTimeout(1500);
+            await dispatchMembranePointer(page, spec, spec.focalX + (spec.mobile ? 0.07 : 0.09), spec.focalY - 0.04);
+            await page.waitForTimeout(1300);
+            await dispatchMembranePointer(page, spec, 0.05, 0.90);
+            await page.waitForTimeout(1500);
+
+            await page.close();
+            if (!video) throw new Error(`${spec.name} Playwright video object missing`);
+            await video.saveAs(`qa-artifacts/threshold-${spec.name}-full-motion.webm`);
+            await context.close();
+            trace.push(`${spec.name}:full-motion-video:PASS`);
+          };
+
+          try {
+            for (const spec of [
+              { name: 'desktop', width: 1440, height: 1000, mobile: false, focalX: 0.60, focalY: 0.46 },
+              { name: '390x844', width: 390, height: 844, mobile: true, focalX: 0.50, focalY: 0.32 },
+              { name: '412x915', width: 412, height: 915, mobile: true, focalX: 0.50, focalY: 0.32 },
+            ]) {
+              const context = await browser.newContext({
+                viewport: { width: spec.width, height: spec.height },
+                hasTouch: spec.mobile,
+                isMobile: spec.mobile,
+              });
+              const page = await context.newPage();
+              const errors = [];
+              page.on('console', (msg) => { if (msg.type() === 'error') errors.push(msg.text()); });
+              page.on('pageerror', (error) => errors.push(error.message));
+              await page.goto(url, { waitUntil: 'networkidle' });
+
+              const membrane = page.locator('[data-kdx-threshold-membrane]');
+              assert(await membrane.locator('canvas').count() === 1, 'native membrane canvas missing');
+              assert(await page.locator('a.threshold-lab__enter').getAttribute('href') === '/kodex/lab/visible-assembly/', 'explicit entry does not lead to functional assembly');
+
+              const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+              assert(overflow <= 1, `${spec.name} horizontal overflow: ${overflow}`);
+
+              const initialMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(initialMotion === 'full', `${spec.name} did not begin in FULL motion: ${initialMotion}`);
+
+              const focal = await dispatchMembranePointer(page, spec, spec.focalX, spec.focalY);
+              assert(focal.x > 0 && focal.y > 0, `${spec.name} membrane focal dispatch failed`);
+              await page.waitForTimeout(250);
+              const awareState = await page.locator('[data-visual-state]').textContent();
+              trace.push(`${spec.name}:aware:${awareState}`);
+              assert(awareState === 'AWARE' || awareState === 'OPEN', `${spec.name} focal point did not activate state: ${awareState}`);
+
+              // No more pointermove events: semantic dwell must progress from elapsed time.
+              await page.waitForTimeout(2700);
+              const openState = await page.locator('[data-visual-state]').textContent();
+              trace.push(`${spec.name}:open:${openState}`);
+              assert(openState === 'OPEN', `${spec.name} stationary dwell did not reach OPEN: ${openState}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-open.png`, fullPage: true });
+
+              // Move once outside the influence field, then stop. State must decay predictably.
+              await dispatchMembranePointer(page, spec, 0.05, 0.90);
+              await page.waitForTimeout(2600);
+              const dormantState = await page.locator('[data-visual-state]').textContent();
+              trace.push(`${spec.name}:decay:${dormantState}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-full-decay-check.png`, fullPage: true });
+              assert(dormantState === 'DORMANT', `${spec.name} state did not decay to DORMANT: ${dormantState}`);
+
+              await page.locator('[data-motion-toggle]').focus();
+              await page.keyboard.press('Enter');
+              const motion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(motion === 'reduced', `keyboard motion toggle failed: ${motion}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-reduced.png`, fullPage: true });
+
+              await page.locator('[data-motion-toggle]').focus();
+              await page.keyboard.press('Enter');
+              const offMotion = await page.locator('.threshold-lab').getAttribute('data-motion');
+              assert(offMotion === 'off', `${spec.name} second toggle did not reach OFF: ${offMotion}`);
+              await page.screenshot({ path: `qa-artifacts/threshold-${spec.name}-off.png`, fullPage: true });
+
+              assert(errors.length === 0, `${spec.name} browser errors: ${errors.join(' | ')}`);
+              await context.close();
+            }
+
+            // D13 frontier evidence: explicit 8–12 s FULL-motion captures for desktop + primary mobile width.
+            await captureFullMotionVideo({ name: 'desktop', width: 1440, height: 1000, mobile: false, focalX: 0.60, focalY: 0.46 });
+            await captureFullMotionVideo({ name: '390x844', width: 390, height: 844, mobile: true, focalX: 0.50, focalY: 0.32 });
+
+            fs.writeFileSync(
+              'qa-artifacts/browser-acceptance.txt',
+              'PASS\ndesktop:focal-sync+stationary-dwell-open\n390x844:focal-sync+stationary-dwell-open\n412x915:focal-sync+stationary-dwell-open\ndesktop:predictable-decay\n390x844:predictable-decay\n412x915:predictable-decay\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\ndesktop:full-motion-video\n390x844:full-motion-video\nkeyboard:motion-toggle\nkeyboard:motion-off\nnative-canvas:present\nentry:explicit\n',
+            );
+          } catch (error) {
+            trace.push(`FAIL:${error instanceof Error ? error.message : String(error)}`);
+            throw error;
+          } finally {
+            fs.writeFileSync('qa-artifacts/state-trace.txt', `${trace.join('\n')}\n`);
+            await browser.close();
+          }
+          NODE
+
+      - name: Upload KOD-49 QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-threshold-fidelity-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
