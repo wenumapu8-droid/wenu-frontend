@@ -1,189 +1,157 @@
 # CURRENT STATE — KODEX−∞ + WËNU MAPU
 
 Last verified: 2026-08-14.  
-Purpose: fast operational truth for agents. Update when implementation, blockers, production state or ownership materially changes.
-
-> This file is not canon. It is a verified snapshot. Re-check Drive canon, GitHub PRs/CI and Linear before acting on anything time-sensitive.
+Purpose: fast operational truth for agents. This file is **not canon**; re-check Drive canon, active PR heads and CI before time-sensitive work.
 
 ---
 
-## 1. Repository / deployment topology
+## 1. Repository / deployment
 
-Primary active repository: `wenumapu8-droid/wenu-frontend`.
+Primary repository: `wenumapu8-droid/wenu-frontend`.
 
-Current WËNU MAPU frontend stack on `redesign-v2`:
-
-- Astro 6.2.1 SSG;
-- Node pinned to 24.14.1 via `.nvmrc`;
-- WooCommerce REST is the product-data source at build time;
-- public site: `wenumapuonline.com`;
-- Cloudflare Pages deployment is Direct Upload (`deploy-now.sh` / Wrangler), not automatic on `git push`;
-- production workflow currently uses `redesign-v2`; do not assume `main` is the deployed version;
-- product fetch/build safety exists to prevent silent zero-product output;
-- mobile, structured data, image optimization and reduced-motion behavior are already part of the frontend contract.
-
-No KODEX draft PR listed below authorizes merge or deployment.
+WËNU MAPU production remains Astro/Cloudflare Pages on the existing `redesign-v2` workflow. Git push does not itself authorize or imply production deployment. No KODEX draft PR below authorizes merge, deployment, permission changes or public asset approval.
 
 ---
 
-## 2. WËNU MAPU implementation state
+## 2. KODEX authoritative baseline
 
-Verified from current repository documentation:
+### PR #62 — Deep Navigation + Assembly OS
 
-- canonical dark-first token system exists in `src/styles/tokens.css`;
-- current type system uses Instrument Serif, Cormorant Garamond, Instrument Sans and JetBrains Mono;
-- WooCommerce access is centralized in `src/lib/woo.ts` and should not be changed casually;
-- product pages, shop, contact, local/pickup, search index, sitemap and structured-data work exist;
-- current architecture includes image cleanup/AVIF generation and explicit performance work;
-- `src/i18n/en.json` + `src/i18n/mapudungun.json` exist;
-- frontend work is further advanced than the default-branch README suggests; prefer active branch/docs over stale starter text.
-
-Operational WËNU MAPU principle: keep commerce truthful and usable while evolving the visual system.
-
----
-
-## 3. KODEX authoritative convergence state
-
-KODEX is no longer blocked on basic contract architecture.
-
-### PR #62 — Deep Navigation + Assembly OS baseline
-
-Current verified baseline head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.
-
+Verified baseline head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.  
 KODEX Core Runtime run 164: **SUCCESS**.
 
-Verified on this lane:
+The current baseline already contains and tests:
 
-- deliberate focus restoration and browser history/deep-link acceptance;
+- focus restoration + browser history/deep-link acceptance;
 - ElementContract + 28 normalized repo-native elements;
 - PlateSpec for KNOWLEDGE / JUNCTION / ACTIVATOR;
-- deterministic seedable assembler using registered IDs only;
-- 12 Golden Plate benchmark across Science / Technology / Art / Consciousness;
+- deterministic seedable registered-ID-only assembler;
+- 12 Golden Plates across Science / Technology / Art / Consciousness;
 - source-linked copy-role compiler;
 - protected Ocín activation adapter with full-view/no-crop/source-integrity gates;
 - Assembly QA result contract;
 - WorkOrder / StationResult interchange contract;
-- macro chapter factory reusing the existing Deep Route Engine;
+- macro chapter factory reusing Deep Route Engine;
 - seeded factory benchmark;
 - universal PlateSpec renderer + desktop/mobile/reduced-motion Golden browser evidence.
 
-Truth boundary: `human_curator_acceptance` remains separate from machine validity. Protected Ocín source bytes are not implicitly approved by registry presence. PR #62 remains draft/open/not deployed.
+Truth boundary: `human_curator_acceptance` is separate from machine validity. Protected Ocín source bytes are not approved by registry presence. PR #62 remains draft/open/not deployed.
 
-### Consequence
-
-Do **not** create another routing engine, assembly engine, PlateSpec family, copy compiler or QA truth model merely because a new visual experiment needs one. Reuse this lineage unless a documented contract gap is demonstrated.
+**Do not create another routing engine, assembler, PlateSpec family, copy compiler or QA truth model unless a concrete verified contract gap exists.**
 
 ---
 
-## 4. Current perceptual / HoloCore lane
+## 3. Current perceptual / HoloCore lane
 
-The highest-leverage unresolved gap is now visual/perceptual quality rather than mechanical validity.
+The highest-leverage unresolved gap is now **perceptual materiality**, not contract architecture.
 
-### PR #67 — HoloCore registry + toroidal benchmark
+### PR #67 — HoloCore registry + TOROIDAL FIELD
 
-Branch: `feat/kodex-holocore-registry-v1`.
+Branch: `feat/kodex-holocore-registry-v1`.  
+Current head: `d33714568b49a61ca62758d96d16bb6e9b9a97c9`.
 
-The registry contains 15 query-addressable HoloCore specimens and keeps scientific/symbolic status explicit. `KDX-HOLO-BENCH-001 / TOROIDAL FIELD` is an internal ART / COMP / SPEC benchmark and is deliberately not mapped to a canonical semantic node.
+`KDX-HOLO-BENCH-001 / TOROIDAL FIELD` remains an internal `ART / COMP / SPEC` benchmark and is deliberately not mapped to a canonical semantic node.
 
-Run 192 at `e42615e833ebffe5f09a18c14fb08fe322a0517a`: **SUCCESS** for the first toroidal browser-validated implementation.
+Evidence chain:
 
-A later branch head `f18f7420632f3b36eda4c0ca77a932e7ee1033f6` also completed run 194 SUCCESS; the prior PR body was stale about this head.
+- v0.1 `e42615e…` → run 192 SUCCESS; visually too sparse/flat/small.
+- v0.2 `e2f204f…` → run 200 SUCCESS; artifact showed a perceptual regression: rear/top arc lost enough weight that the torus read as a U.
+- v0.2.1 `d337145…` → run 202 **SUCCESS** across runtime, Assembly OS, build, browser, Deep Navigation, HoloCore registry, toroidal gate and Golden Plates. Artifact `kodex-evidence` id `9235665736`, digest `sha256:bcef56a59de0f326c16bc5d7744753c3a7d2753476ba59da1cb73551bce57d06`.
 
-Visual evidence from the actual CI artifact showed the toroidal v0.1 object was technically valid but perceptually too sparse, flat and small to serve as a finished-piece benchmark. A reversible v0.2 field refinement was therefore committed on the same branch at `e2f204f19c0cc14bfe315cef8f0d5a10fc3225f7`: continuous surface mass, stronger front/back luminance separation, less-compressed projection and denser flow, while retaining the existing renderer/runtime and epistemic boundary. KODEX Core Runtime run 200 is the validation gate for that exact head at this snapshot.
+Actual v0.2.1 desktop/mobile review: rear arc is somewhat stronger, but the object still reads as sparse glyph geometry rather than a volumetric finished piece. **Creator visual acceptance remains PENDING / benchmark standard NOT MET.**
 
-Creator visual acceptance remains PENDING. Browser acceptance must not be promoted to aesthetic approval.
+Renderer-level cause is now concrete: `AsciiRenderer` applies ordered dither (`value + ordered - 0.10`), then quantizes through a glyph ramp whose first two entries are spaces and renders low/mid values with dark palette/alpha. Medium shell energy is therefore intentionally suppressed perceptually.
 
-### PR #72 — HoloCore RGX reference-fidelity prototype
+**Decision for next iteration: stop blind ASCII tuning for the volumetric benchmark.** This is a materiality limitation for the target visual standard, not an Assembly OS failure.
 
-Branch: `feat/kodex-holocore-rgx-orbital-v1`, stacked on the HoloCore registry lane.
+### PR #72 — RGX reference-fidelity prototype
 
-Head `2c73c5824461135b9f47e8ee7fd38fb9ddc2b40b` completed KODEX Core Runtime run 198 **SUCCESS**.
+Head `2c73c5824461135b9f47e8ee7fd38fb9ddc2b40b` completed run 198 SUCCESS.
 
-RGX rebuilds ORBITAL CITY from code using normalized reference topology, dense microglyph raster and procedural SVG/vector scaffold. It embeds no reference pixels. CI evidence verifies desktop/mobile/reduced-motion, 100dvh/no-overflow and reference-structure contracts.
+RGX materially improves structural density and reference-topology legibility with code-native microglyph + SVG/vector construction and no reference pixels. Actual artifact review still reads primarily as technical diagram/scaffold rather than a volumetric finished object. Creator acceptance remains separate.
 
-Actual artifact review: RGX materially improves density and structural legibility versus early HoloCore, but still reads primarily as a technical diagram/scaffold rather than a volumetric finished digital object. Creator visual acceptance remains PENDING.
+### Existing renderer adapters
 
-### Renderer-adapter proofs
+PR #69: low-resolution raster adapter — browser green.  
+PR #70: WebGL source-shader adapter — browser green; WebGL2 + reduced-motion static frame + Canvas fallback; explicit `AMBIENT_UNCLOSED` temporal truth and `seamlessLoopClaim=false` for its current OBSERVE shader.
 
-PR #69: low-resolution raster renderer adapter — browser green, creator visual approval separate.  
-PR #70: WebGL source-shader adapter — browser green, explicitly `AMBIENT_UNCLOSED`, no false seamless-loop claim.
+These are **existing HoloCore renderer capabilities**, not competing architectures.
 
-These are renderer capability proofs. Do not turn them into competing HoloCore architectures.
+**Next toroidal experiment belongs on PR #70's existing WebGL adapter lineage as a SOURCE_GENERATOR variant.** Do not create a fourth renderer/runtime. The toroidal shader must declare its actual temporal contract; do not inherit the ASCII 24 s seamless-loop claim unless mathematically implemented and tested.
 
 ---
 
-## 5. Authorial / artwork integrity lane
+## 4. Authorial / artwork integrity
 
-PR #61 is the strongest current Ocín-original publishing proof:
+PR #61 remains the strongest current Ocín-original publishing proof:
 
 - six checksum-verified same-origin originals;
 - immutable artwork treatment (`contain`, no crop/filter/blend/distort);
-- THRESHOLD / ARCHIVE ATLAS / MUSEUM OF SPACE internal compositions;
+- internal THRESHOLD / ARCHIVE ATLAS / MUSEUM OF SPACE compositions;
 - desktop/mobile/reduced-motion browser QA green;
 - Drive remains provenance/source storage rather than runtime image origin;
-- final creator visual acceptance + route promotion + integration/deploy remain separate gates.
+- creator approval + route promotion + integration/deploy remain separate gates.
 
-PR #58 is an earlier authorial registry/case-study bridge and remains useful for content-contract provenance, but its body/state must not override later verified code/evidence.
-
----
-
-## 6. Other active lanes / fragmentation warning
-
-Many older KODEX PRs remain open (#3, #35, #52–#60, #63–#64, #68, #71, etc.). Open status does **not** make all of them equally authoritative.
-
-Examples:
-
-- #68 is a separate authored/static-reference corridor and measurement lane with useful traversal/coverage findings; do not silently substitute it for the Assembly OS/HoloCore lineage.
-- #71 adds a deterministic manifestation/causal-state model over existing HoloCore concepts; it must remain software state semantics, not a claim that thought changes matter.
-- #63 is the earlier single HoloCore prototype; #67/#72 are later descendants for reusable registry/fidelity work.
-- #64 is a governed visual-assembly proposal lane; it must not supersede the already-implemented Assembly OS contracts without explicit reconciliation.
-
-Default rule: use the newest verified descendant that already owns the capability, and document any lineage fork before writing across it.
+No toroidal/HoloCore work may weaken these boundaries.
 
 ---
 
-## 7. Current systemic condition
+## 5. Fragmentation warning
 
-KODEX has real engines, routes, graph data, visual fields, artwork publishing proofs, QA artifacts and deterministic production contracts.
+Many older KODEX PRs remain open. Open status does not make them equally authoritative.
 
-The primary risks are now:
+- #63 = earlier HoloCore prototype; #67/#72 are later registry/fidelity descendants.
+- #68 = separate authored/static-reference corridor and measurement lane; do not silently substitute it for Assembly OS/HoloCore lineage.
+- #71 = deterministic manifestation/software-state semantics; not a claim that thought changes matter.
+- #64 = governed visual-assembly proposal lane; it must not supersede implemented Assembly OS contracts without explicit reconciliation.
 
-- **visual quality lagging behind system sophistication**;
-- multiple open branches creating false architectural plurality;
-- browser/test success being mistaken for creator acceptance;
-- visual-reference fidelity work drifting into pixel copying or false provenance;
-- scientific/symbolic language being collapsed;
-- protected artwork curation being mistaken for public-use approval.
+Default rule: use the newest verified descendant that already owns the capability and document any lineage fork before writing across it.
 
-Strategic mode remains: **convergence + curation + perceptual refinement**.
+---
+
+## 6. Current systemic condition
+
+KODEX now has real route/memory engines, deterministic production contracts, renderer/browser QA, HoloCore renderer adapters and protected-art publishing proofs.
+
+Primary risks:
+
+- visual quality lagging behind system sophistication;
+- mistaking browser/CI green for creator acceptance;
+- branch proliferation creating false architectural plurality;
+- visual-reference fidelity drifting into pixel copying/false provenance;
+- collapsing science, metaphor, cultural provenance and speculation;
+- treating protected artwork curation as public-use approval.
+
+Strategic mode: **convergence + curation + perceptual refinement**.
 
 `BUILD LESS. CURATE HARDER. LET MEMORY CREATE COMPLEXITY.`
 
 ---
 
-## 8. Current next-action hierarchy
+## 7. Exact next action
 
-1. Close the toroidal v0.2 CI gate on PR #67 and inspect the new artifact, not just the check result.
-2. Compare v0.2 against v0.1 on perceptual mass, aperture legibility, front/back separation, object dominance and mobile readability.
-3. Keep creator visual acceptance explicit; do not infer it from metrics.
-4. Use RGX / raster / WebGL adapter lessons as materiality options inside the existing HoloCore chamber, not as new parallel systems.
-5. Do not add Assembly OS schemas/contracts unless a concrete verified contract gap appears.
-6. Preserve Ocín originals and rights/provenance boundaries.
-7. Update this file and Drive operational docs when verified state materially changes.
+1. Do not spend another iteration tuning the ASCII torus for volumetric fidelity.
+2. Advance the **existing PR #70 WebGL renderer adapter** with one toroidal SOURCE_GENERATOR variant; reuse its WebGL2 lifecycle, reduced-motion frame and Canvas fallback.
+3. Keep `TOROIDAL FIELD` as `ART / COMP / SPEC`; no scientific field-simulation claim.
+4. Add a truthful temporal contract for that shader (`CLOSED_LOOP` only if actually proved; otherwise `AMBIENT_UNCLOSED`).
+5. Capture desktop/mobile/reduced-motion/WebGL-disabled browser evidence.
+6. Download and visually inspect the artifact before any quality claim.
+7. Compare WebGL torus against the ASCII v0.2.1 and RGX artifacts on volume, aperture, front/back separation, material continuity, object dominance and mobile readability.
+8. Keep creator acceptance explicit and separate.
 
 ---
 
-## 9. Session-start checks
+## 8. Session-start checks
 
-Before modifying KODEX, verify:
+Before editing KODEX, verify:
 
 1. Which Drive canon applies?
 2. Which PR is the newest verified owner of the capability?
-3. Is the requested change architectural, semantic, visual, authorial or deployment-related?
+3. Is the change architectural, semantic, visual, authorial or deployment-related?
 4. Is there already a reusable implementation?
-5. What exact CI/browser/visual evidence exists?
+5. What exact CI/browser/**visual artifact** evidence exists?
 6. Is creator/cultural/public-release approval required?
 7. Does the change preserve user agency, reduced-motion/fallbacks and truth-state separation?
-8. Is the proposed output implementation, test evidence, hypothesis, reference or deployment?
+8. Is the output implementation, test evidence, hypothesis, reference or deployment?
 
 If these cannot be answered from connected sources, do not guess.
