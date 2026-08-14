@@ -1,0 +1,350 @@
+---
+import { resolveHoloCoreRGXProfile } from '../../../kodex/holocore/reference-profiles/rgx-family.js';
+import { buildHoloCoreRGXScaffold, scaffoldStats } from '../../../kodex/holocore/reference-profiles/rgx-scaffold.js';
+
+interface Props {
+  conceptId: string;
+  id?: string;
+  label?: string;
+}
+
+const { conceptId, id = `kdx-holocore-rgx-${conceptId}`, label } = Astro.props;
+const profile = resolveHoloCoreRGXProfile(conceptId);
+const primitives = buildHoloCoreRGXScaffold(profile.conceptId);
+const stats = scaffoldStats(primitives);
+const ariaLabel = label ?? `Reference-grounded code-native HoloCore visualization for ${profile.title}`;
+const points = (primitive: any) => primitive.points?.map(([x, y]: [number, number]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ') ?? '';
+---
+
+<figure
+  id={id}
+  class="kdx-rgx-family"
+  data-kdx-holocore-rgx-family
+  data-concept-id={profile.conceptId}
+  data-profile={profile.id}
+  data-motif={profile.motif}
+  data-state="dormant"
+  style={`--rgx:${profile.accent}`}
+>
+  <header class="kdx-rgx-family__bar">
+    <span>HOLOCORE RGX // REFERENCE-GROUNDED EXECUTION</span>
+    <span data-rgx-state>DORMANT</span>
+  </header>
+
+  <div class="kdx-rgx-family__viewport">
+    <canvas class="kdx-rgx-family__canvas" data-rgx-canvas role="img" aria-label={ariaLabel}></canvas>
+
+    <svg class="kdx-rgx-family__scaffold" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" data-rgx-scaffold>
+      <defs>
+        <filter id={`${id}-glow`} x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="0.25" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <g filter={`url(#${id}-glow)`}>
+        {primitives.map((primitive: any, index: number) => {
+          const className = `rgx-p rgx-p--${primitive.role ?? 'structure'} rgx-p--${primitive.type}`;
+          const style = `--p-index:${index};`;
+          if (primitive.type === 'ellipse') {
+            const transform = primitive.rotation ? `rotate(${primitive.rotation} ${primitive.cx} ${primitive.cy})` : undefined;
+            return <ellipse class={className} data-rgx-primitive={primitive.id} data-rgx-role={primitive.role} cx={primitive.cx} cy={primitive.cy} rx={primitive.rx} ry={primitive.ry} transform={transform} style={style} />;
+          }
+          if (primitive.type === 'circle') {
+            return <circle class={className} data-rgx-primitive={primitive.id} data-rgx-role={primitive.role} cx={primitive.cx} cy={primitive.cy} r={primitive.r} style={style} />;
+          }
+          if (primitive.type === 'line') {
+            return <line class={className} data-rgx-primitive={primitive.id} data-rgx-role={primitive.role} x1={primitive.x1} y1={primitive.y1} x2={primitive.x2} y2={primitive.y2} style={style} />;
+          }
+          if (primitive.type === 'polyline') {
+            return <polyline class={className} data-rgx-primitive={primitive.id} data-rgx-role={primitive.role} points={points(primitive)} style={style} />;
+          }
+          return null;
+        })}
+      </g>
+    </svg>
+
+    <div class="kdx-rgx-family__grid" aria-hidden="true"></div>
+    <div class="kdx-rgx-family__scan" aria-hidden="true"></div>
+    <div class="kdx-rgx-family__vignette" aria-hidden="true"></div>
+
+    <div class="kdx-rgx-family__telemetry" aria-hidden="true">
+      <strong>{profile.title} / RGX</strong>
+      <span>{profile.motif.toUpperCase()}</span>
+      <span data-rgx-grid>GRID -- × --</span>
+      <span data-rgx-fps>-- FPS</span>
+      <span>LOOP {profile.loopSeconds.toFixed(2)} S</span>
+      <span>PRIMITIVES {stats.total}</span>
+    </div>
+  </div>
+
+  <footer class="kdx-rgx-family__footer">
+    <span>MICROGLYPH RASTER</span>
+    <span>VECTOR SCAFFOLD</span>
+    <span>NO SOURCE PIXELS</span>
+    <span>{profile.epistemicStatus}</span>
+  </footer>
+
+  <figcaption>
+    {profile.title}: reference topology is re-executed as procedural code. Source pixels are not displayed or embedded.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiRenderer } from '../../../kodex/ascii/engine/AsciiRenderer.js';
+  import { resolveHoloCoreRGXScene } from '../../../kodex/ascii/scenes/holocore-rgx-family.js';
+  import { resolveHoloCoreRGXProfile } from '../../../kodex/holocore/reference-profiles/rgx-family.js';
+
+  const instances = new WeakMap();
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+    const conceptId = root.dataset.conceptId || 'orbital-city';
+    const profile = resolveHoloCoreRGXProfile(conceptId);
+    const scene = resolveHoloCoreRGXScene(conceptId);
+    const canvas = root.querySelector('[data-rgx-canvas]');
+    const state = root.querySelector('[data-rgx-state]');
+    const fps = root.querySelector('[data-rgx-fps]');
+    const grid = root.querySelector('[data-rgx-grid]');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+
+    const renderer = new AsciiRenderer(canvas, {
+      scene,
+      profile: 'rgx',
+      glyphSet: profile.density.glyphSet,
+      ditherStrength: profile.density.ditherStrength,
+      palette: profile.palette,
+    });
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let destroyed = false;
+    let stableTimer = 0;
+    let stopTimer = 0;
+    let metricsTimer = 0;
+
+    const setState = value => {
+      root.dataset.state = value.toLowerCase();
+      if (state) state.textContent = value;
+    };
+
+    const updateMetrics = () => {
+      if (destroyed) return;
+      root.dataset.gridColumns = String(renderer.columns);
+      root.dataset.gridRows = String(renderer.rows);
+      root.dataset.fps = String(renderer.fps || 0);
+      if (grid) grid.textContent = `GRID ${renderer.columns} × ${renderer.rows}`;
+      if (fps) fps.textContent = `${renderer.fps || '--'} FPS`;
+      metricsTimer = window.setTimeout(updateMetrics, 500);
+    };
+
+    const resolve = async () => {
+      setState('BOOT');
+      root.classList.add('is-powered');
+      try { await document.fonts?.ready; } catch {}
+      if (destroyed) return;
+      renderer.resize();
+      setState('RESOLVING');
+      renderer.start();
+      stableTimer = window.setTimeout(() => {
+        if (destroyed) return;
+        root.classList.add('is-stable');
+        setState('STABLE LOOP');
+      }, reduced ? 120 : 900);
+      if (reduced) stopTimer = window.setTimeout(() => renderer.stop(), 190);
+    };
+
+    void resolve();
+    updateMetrics();
+
+    root.dispatchEvent(new CustomEvent('kdx:holocore:rgx-family', {
+      bubbles: true,
+      detail: {
+        conceptId: profile.conceptId,
+        profile: profile.id,
+        motif: profile.motif,
+        sourceRefs: profile.sourceRefs,
+        sourceStatus: profile.sourceStatus,
+        mode: profile.renderMode,
+      },
+    }));
+
+    const destroy = () => {
+      destroyed = true;
+      clearTimeout(stableTimer);
+      clearTimeout(stopTimer);
+      clearTimeout(metricsTimer);
+      renderer.destroy();
+      instances.delete(root);
+    };
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-holocore-rgx-family]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-holocore-rgx-family]').forEach(root => instances.get(root)?.destroy());
+  });
+</script>
+
+<style>
+  .kdx-rgx-family {
+    box-sizing: border-box;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    display: grid;
+    grid-template-rows: 30px minmax(0, 1fr) 30px;
+    overflow: hidden;
+    color: #eee8f4;
+    background: #020205;
+    border: 1px solid color-mix(in srgb, var(--rgx) 38%, transparent);
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
+  }
+
+  .kdx-rgx-family__bar,
+  .kdx-rgx-family__footer {
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 10px;
+    font-size: 7px;
+    letter-spacing: .12em;
+    color: color-mix(in srgb, var(--rgx) 35%, #eee8f4 65%);
+    text-transform: uppercase;
+    background: rgba(2,2,5,.9);
+  }
+  .kdx-rgx-family__bar { border-bottom: 1px solid color-mix(in srgb, var(--rgx) 24%, transparent); }
+  .kdx-rgx-family__footer { border-top: 1px solid color-mix(in srgb, var(--rgx) 24%, transparent); }
+
+  .kdx-rgx-family__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    isolation: isolate;
+    background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--rgx) 9%, transparent), transparent 50%), #020205;
+  }
+
+  .kdx-rgx-family__canvas,
+  .kdx-rgx-family__scaffold,
+  .kdx-rgx-family__grid,
+  .kdx-rgx-family__scan,
+  .kdx-rgx-family__vignette {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .kdx-rgx-family__canvas {
+    z-index: 1;
+    display: block;
+    opacity: 0;
+    filter: contrast(1.25) saturate(.86);
+    transition: opacity .45s ease;
+  }
+  .is-powered .kdx-rgx-family__canvas { opacity: .54; }
+  .is-stable .kdx-rgx-family__canvas { opacity: .88; }
+
+  .kdx-rgx-family__scaffold {
+    z-index: 3;
+    overflow: visible;
+    fill: none;
+    stroke: color-mix(in srgb, var(--rgx) 72%, #ffffff 28%);
+    stroke-width: .11;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--rgx) 32%, transparent));
+    pointer-events: none;
+  }
+
+  .rgx-p { vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; }
+  .rgx-p--primary { stroke-width: .19; opacity: .96; }
+  .rgx-p--ring { stroke-width: .095; opacity: .66; stroke-dasharray: .8 .42 .16 .36; animation: rgx-family-dash 24s linear infinite; animation-delay: calc(var(--p-index) * -0.31s); }
+  .rgx-p--secondary { stroke-width: .055; opacity: .3; stroke-dasharray: .2 .34; }
+  .rgx-p--axis { stroke-width: .06; opacity: .36; }
+  .rgx-p--node { stroke-width: .07; opacity: .72; fill: color-mix(in srgb, var(--rgx) 62%, transparent); animation: rgx-family-node 24s ease-in-out infinite; animation-delay: calc(var(--p-index) * -0.17s); }
+  .rgx-p--atmosphere { stroke-width: .05; opacity: .18; stroke-dasharray: .24 .5; animation: rgx-family-breathe 24s ease-in-out infinite; }
+  .rgx-p--planet { stroke-width: .12; opacity: .58; }
+  .rgx-p--polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+
+  .kdx-rgx-family__grid {
+    z-index: 2;
+    opacity: .075;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--rgx) 15%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--rgx) 12%, transparent) 1px, transparent 1px);
+    background-size: 20px 20px;
+    mask-image: radial-gradient(ellipse at center, #000 25%, transparent 94%);
+  }
+
+  .kdx-rgx-family__scan {
+    z-index: 5;
+    top: -8%;
+    bottom: auto;
+    height: 3.5%;
+    opacity: .09;
+    background: linear-gradient(transparent, color-mix(in srgb, var(--rgx) 80%, white 20%), transparent);
+    filter: blur(5px);
+    animation: rgx-family-scan 12s linear infinite;
+    pointer-events: none;
+  }
+
+  .kdx-rgx-family__vignette {
+    z-index: 6;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.011) 0 1px, transparent 1px 4px);
+    box-shadow: inset 0 0 68px 28px rgba(0,0,0,.72);
+  }
+
+  .kdx-rgx-family__telemetry {
+    position: absolute;
+    z-index: 7;
+    top: 12px;
+    right: 12px;
+    display: grid;
+    justify-items: end;
+    gap: 4px;
+    max-width: 46%;
+    font-size: 6px;
+    letter-spacing: .1em;
+    color: rgba(219,202,237,.47);
+    text-align: right;
+    pointer-events: none;
+  }
+  .kdx-rgx-family__telemetry strong { color: color-mix(in srgb, var(--rgx) 66%, white 34%); font-weight: 500; }
+
+  .kdx-rgx-family figcaption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes rgx-family-dash { to { stroke-dashoffset: -24; } }
+  @keyframes rgx-family-node { 0%,100% { opacity: .48; } 50% { opacity: 1; } }
+  @keyframes rgx-family-breathe { 0%,100% { opacity: .14; } 50% { opacity: .28; } }
+  @keyframes rgx-family-scan { from { transform: translateY(0); } to { transform: translateY(2900%); } }
+
+  @media (max-width: 700px) {
+    .kdx-rgx-family__bar,
+    .kdx-rgx-family__footer { font-size: 5px; padding: 0 6px; gap: 4px; }
+    .kdx-rgx-family__telemetry { font-size: 5px; max-width: 58%; }
+    .kdx-rgx-family__grid { background-size: 14px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rgx-p--ring,
+    .rgx-p--node,
+    .rgx-p--atmosphere,
+    .kdx-rgx-family__scan { animation: none !important; }
+    .kdx-rgx-family__canvas { transition: none; }
+  }
+</style>
