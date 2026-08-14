@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodex.local/schema/kdx-station-result-v0.1.json",
+  "title": "KODEX StationResult v0.1",
+  "description": "Bounded station output contract. Worker identity is recorded for provenance but does not change allowed writes, validators, or release authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result_id", "version", "work_id", "station_id", "worker_kind", "status",
+    "output_refs", "write_manifest", "validator_results", "provenance_refs", "blockers",
+    "next_event_type", "idempotency_key", "human_review_required", "release_authorized"
+  ],
+  "properties": {
+    "result_id": { "type": "string", "pattern": "^KDX-RESULT-[A-Z0-9_-]+$" },
+    "version": { "const": "0.1.0" },
+    "work_id": { "type": "string", "pattern": "^KDX-WORK-[A-Z0-9_-]+$" },
+    "station_id": { "type": "string", "minLength": 2 },
+    "worker_kind": { "type": "string", "enum": ["SCRIPT", "AGENT", "HUMAN"] },
+    "status": { "type": "string", "enum": ["PASS", "FAIL", "BLOCKED", "NEEDS_REVIEW"] },
+    "output_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "write_manifest": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "value_ref", "operation"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "value_ref": { "type": "string", "minLength": 2 },
+          "operation": { "type": "string", "enum": ["CREATE", "UPDATE", "PROPOSE"] }
+        }
+      }
+    },
+    "validator_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["validator_id", "status", "evidence_ref"],
+        "properties": {
+          "validator_id": { "type": "string", "minLength": 2 },
+          "status": { "type": "string", "enum": ["PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE"] },
+          "evidence_ref": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "provenance_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "blockers": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "next_event_type": { "type": ["string", "null"] },
+    "idempotency_key": { "type": "string", "minLength": 8 },
+    "human_review_required": { "type": "boolean" },
+    "release_authorized": { "type": "boolean" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "status": { "const": "PASS" } }, "required": ["status"] },
+      "then": {
+        "properties": {
+          "validator_results": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "properties": { "status": { "const": "FAIL" } },
+                "required": ["status"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "worker_kind": { "enum": ["SCRIPT", "AGENT"] } }, "required": ["worker_kind"] },
+      "then": { "properties": { "release_authorized": { "const": false } } }
+    }
+  ],
+  "x-kodex-invariants": [
+    "Worker kind is provenance, not authority.",
+    "A result cannot PASS while a required validator has failed.",
+    "Script/agent workers cannot authorize release.",
+    "Write manifests are checked against the originating WorkOrder allowed/prohibited write sets.",
+    "Canon, cultural meaning, rights, scientific truth and final aesthetic acceptance may require human review rather than silent repair."
+  ]
+}
