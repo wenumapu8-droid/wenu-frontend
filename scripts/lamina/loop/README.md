@@ -53,6 +53,54 @@ El 5 no se reintenta nunca. Rama equivocada, árbol sucio o ítem sin región no
 se arreglan insistiendo, y reintentar en bucle es exactamente el modo de falla
 que este loop existe para evitar.
 
+## El relevo — que lo siga otro agente, u otra máquina
+
+Todo el estado vive en git, no en la cabeza del agente. Por eso el trabajo se
+puede soltar y levantar sin coordinación humana:
+
+```bash
+scripts/lamina/loop/estado.sh    # lo primero que corre el que llega
+```
+
+Contesta las cuatro preguntas del que toma el relevo: qué lámina, cómo va el
+puntaje por región, qué está tomado por quién, y cuál es el siguiente.
+
+Cómo funciona el pase de mano:
+
+- Antes de trabajar, `vuelta.sh` hace `pull --rebase`, marca el ítem
+  `en_curso` con **quién** y **desde cuándo**, y lo **commitea y pushea**. Otra
+  máquina que sincronice ve que está ocupado y no lo toca.
+- Al terminar —mejore o no— suelta el ítem con su resultado y vuelve a pushear.
+  Desde ahí cualquiera clona, lee `cola.json` y sigue donde quedó.
+- **La toma caduca.** Si el agente se cayó, se quedó sin cuota o le mataron el
+  proceso, pasadas `LOCK_TTL` (2 h por defecto) el ítem vuelve a estar libre y
+  otro lo levanta. Y si se queda sin cuota, lo suelta en el acto en vez de
+  esperar a que caduque.
+
+Si la rama no está en `origin`, `estado.sh` lo dice con todas las letras: sin
+upstream nadie puede tomar el relevo.
+
+## Dónde seguir, sin que nadie lo escriba
+
+Cuando la cola se vacía, el loop no termina: corre `reponer.sh`, que mira los
+`score.json` medidos y encola las peores regiones que siguen por encima de la
+meta (3 % por defecto). **Termina la lámina en curso antes de cruzar a la
+siguiente** — acabar una vale más que empezar tres.
+
+```bash
+scripts/lamina/loop/reponer.sh --meta 3.0 --max 3
+```
+
+Dos cosas que no puede hacer, y son las que lo vuelven confiable: sólo propone
+regiones que existen en `regions/<slug>.json` —la regla dura vale igual para lo
+automático que para lo escrito a mano—, y descarta por lámina+región y no por
+nombre, así que no manda a nadie dos veces al mismo lugar.
+
+Los ítems traen su propio `slug`, de modo que la cola puede mezclar láminas. Sin
+tocar nada, el orden natural que sale de los puntajes de hoy es terminar u10 y
+después ir a `t01-03-descent-tunnel` (13,3 %), `u04-alphabet` (12,9 %) y
+`u01-origin-field` (10,2 %).
+
 ## La cola
 
 `cola.json`. Un ítem sin `region` se puede dejar anotado con `"estado":

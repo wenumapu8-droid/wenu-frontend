@@ -105,11 +105,20 @@ while :; do
       sleep "$ESPERA_CUOTA"
       ;;
     4)
+      # Cola vacía no es el final: reponer.sh mira los puntajes medidos y
+      # propone las peores regiones que quedan, terminando la lámina en curso
+      # antes de cruzar a la siguiente. Sólo puede proponer regiones que existen
+      # en regions/<slug>.json, así que la regla dura se sostiene igual.
+      echo "[$(date '+%F %T')] cola vacía — reponiendo desde los puntajes"
+      if "$AQUI/reponer.sh"; then
+        echo "[$(date '+%F %T')] cola repuesta — sigue"
+        continue
+      fi
       if [[ "$SIEMPRE" -eq 1 ]]; then
-        echo "[$(date '+%F %T')] cola vacía — durmiendo ${ESPERA_COLA}s"
+        echo "[$(date '+%F %T')] no hay nada por encima de la meta — durmiendo ${ESPERA_COLA}s"
         sleep "$ESPERA_COLA"
       else
-        echo "[$(date '+%F %T')] cola vacía — el loop termina"
+        echo "[$(date '+%F %T')] no hay nada por encima de la meta — el loop termina"
         exit 0
       fi
       ;;

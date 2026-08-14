@@ -50,19 +50,44 @@ if ! git diff --quiet HEAD -- . ':!scripts/lamina/out'; then
   exit 5
 fi
 
-SLUG="$(jq_node 'console.log(require(process.argv[1]).slug)' "$COLA")"
-[[ -n "$SLUG" ]] || { log "cola.json sin slug"; exit 5; }
+# El relevo se apoya en que el estado viva en git y no en la cabeza del agente:
+# cualquier máquina que clone el repo sabe qué ítem se está trabajando, quién lo
+# tomó y cuándo. Sin este pull, dos agentes toman el mismo ítem y se pisan.
+if git rev-parse --abbrev-ref "@{upstream}" >/dev/null 2>&1; then
+  if ! git pull --rebase --quiet origin "$RAMA"; then
+    log "COMPUERTA: no se pudo sincronizar con origin/$RAMA. Alguien más está trabajando y hay conflicto."
+    git rebase --abort >/dev/null 2>&1
+    exit 5
+  fi
+fi
 
 # ── ítem ────────────────────────────────────────────────────────────────────
+# Un ítem `en_curso` está tomado por otro agente. Pero un agente se puede caer,
+# quedar sin cuota y no volver, o que le maten el proceso — así que la toma
+# caduca: pasado LOCK_TTL, el ítem vuelve a estar disponible y otro lo levanta
+# donde quedó. Eso es lo que hace que el relevo sea automático y no un trámite.
 ITEM="$(jq_node '
   const c = require(process.argv[1]);
-  const i = c.items.find(x => x.estado === "pendiente");
+  const ahora = Number(process.argv[2]);
+  const ttl = Number(process.argv[3]);
+  const libre = i =>
+    i.estado === "pendiente" ||
+    (i.estado === "en_curso" && (!i.tomado?.desde || ahora - Number(i.tomado.desde) > ttl));
+  const i = c.items.find(libre);
   if (!i) process.exit(4);
   if (!i.region) { console.error("SIN_REGION " + i.id); process.exit(5); }
+  if (i.estado === "en_curso") console.error(`  (retomando ${i.id}, abandonado por ${i.tomado?.agente ?? "?"})`);
   console.log(JSON.stringify(i));
-' "$COLA")" || { c=$?; [[ $c -eq 4 ]] && { log "cola vacía"; exit 4; }; log "ítem sin región medible — rechazado"; exit 5; }
+' "$COLA" "$(date +%s)" "${LOCK_TTL:-7200}")" || { c=$?; [[ $c -eq 4 ]] && { log "cola vacía"; exit 4; }; log "ítem sin región medible — rechazado"; exit 5; }
 
 ID="$(jq_node 'console.log(JSON.parse(process.argv[1]).id)' "$ITEM")"
+# El slug sale del ítem, con el de la cola como respaldo. Así el loop puede
+# cruzar de lámina solo: cuando u10 no da más, el ítem siguiente trae el suyo.
+SLUG="$(jq_node '
+  const i = JSON.parse(process.argv[1]);
+  console.log(i.slug || require(process.argv[2]).slug || "");
+' "$ITEM" "$COLA")"
+[[ -n "$SLUG" ]] || { log "el ítem no declara slug y cola.json tampoco"; exit 5; }
 REGION="$(jq_node 'console.log(JSON.parse(process.argv[1]).region)' "$ITEM")"
 UMBRAL="$(jq_node 'const i=JSON.parse(process.argv[1]);console.log(i.umbral ?? 0.03)' "$ITEM")"
 
@@ -74,6 +99,34 @@ if ! jq_node '
   log "COMPUERTA: la región '$REGION' no existe en regions/$SLUG.json"
   exit 5
 fi
+
+# ── tomar el ítem, a la vista de todos ──────────────────────────────────────
+# La toma se commitea y se pushea antes de trabajar. Es el único modo de que
+# otra máquina —el iMac, otro agente, vos— vea que este ítem está ocupado y no
+# lo levante en paralelo.
+marcar_cola() {   # $1 = estado, resto = pares clave=valor para `ultimo`
+  local estado="$1"; shift
+  node -e '
+    const fs = require("fs"), p = process.argv[1];
+    const c = JSON.parse(fs.readFileSync(p, "utf8"));
+    const i = c.items.find(x => x.id === process.argv[2]);
+    i.estado = process.argv[3];
+    if (i.estado === "en_curso") {
+      i.tomado = { agente: process.argv[4], maquina: process.argv[5], desde: process.argv[6] };
+    } else {
+      delete i.tomado;
+      const [antes, despues, delta] = process.argv.slice(7);
+      if (antes) i.ultimo = { antes, despues, delta, agente: process.argv[4], cuando: new Date(Number(process.argv[6]) * 1000).toISOString() };
+    }
+    fs.writeFileSync(p, JSON.stringify(c, null, 2) + "\n");
+  ' "$COLA" "$ID" "$estado" "$NOMBRE_AGENTE" "$(hostname -s)" "$(date +%s)" "$@"
+
+  git add "$COLA" >/dev/null
+  git diff --cached --quiet -- "$COLA" || git commit -q -m "loop: $ID -> $estado"
+  git push --quiet origin "$RAMA" 2>/dev/null || log "aviso: no se pudo pushear el estado de la cola"
+}
+
+marcar_cola en_curso
 
 BASE_COMMIT="$(git rev-parse HEAD)"
 log "vuelta · $ID · región $REGION · umbral $UMBRAL · base $BASE_COMMIT"
@@ -120,9 +173,12 @@ set -e
 tail -n 40 "$SALIDA" | sed 's/^/  | /'
 
 if grep -qiE "$PATRON_CUOTA" "$SALIDA"; then
-  log "CUOTA agotada — se revierte lo que haya quedado a medias y se reintenta después"
+  log "CUOTA agotada — se revierte lo a medias y se SUELTA el ítem"
   git reset --hard "$BASE_COMMIT" >/dev/null 2>&1
   rm -f "$SALIDA"
+  # Se devuelve a pendiente en vez de dejarlo tomado: si este agente no vuelve,
+  # otro lo levanta en su próxima vuelta sin esperar a que caduque la toma.
+  marcar_cola pendiente
   exit 3
 fi
 rm -f "$SALIDA"
@@ -149,14 +205,9 @@ fi
 log "veredicto: $VEREDICTO"
 
 # ── estado y bitácora ───────────────────────────────────────────────────────
-node -e '
-  const fs = require("fs"), p = process.argv[1];
-  const c = JSON.parse(fs.readFileSync(p, "utf8"));
-  const i = c.items.find(x => x.id === process.argv[2]);
-  i.estado = process.argv[3];
-  i.ultimo = { antes: process.argv[4], despues: process.argv[5], delta: process.argv[6] };
-  fs.writeFileSync(p, JSON.stringify(c, null, 2) + "\n");
-' "$COLA" "$ID" "$NUEVO_ESTADO" "$R0" "$R1" "$DELTA"
+# Suelta el ítem y publica el resultado. Desde acá, cualquier agente en
+# cualquier máquina puede clonar, leer cola.json y seguir donde quedó esto.
+marcar_cola "$NUEVO_ESTADO" "$R0" "$R1" "$DELTA"
 
 command -v "$BITACORA" >/dev/null && \
   "$BITACORA" "$NOMBRE_AGENTE" "KODEX loop $SLUG · $ID · region $REGION $R0 -> $R1 (delta $DELTA), global $G0 -> $G1. Veredicto: $VEREDICTO. Rama $RAMA, base $BASE_COMMIT." >/dev/null 2>&1
