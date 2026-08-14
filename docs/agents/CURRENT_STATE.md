@@ -1,9 +1,9 @@
 # CURRENT STATE — KODEX−∞ + WËNU MAPU
 
-Last verified: 2026-08-11.  
+Last verified: 2026-08-14.  
 Purpose: fast operational truth for agents. Update when implementation, blockers, production state or ownership materially changes.
 
-> This file is not canon. It is a verified snapshot. Re-check GitHub/Linear before acting on anything time-sensitive.
+> This file is not canon. It is a verified snapshot. Re-check Drive canon, GitHub PRs/CI and Linear before acting on anything time-sensitive.
 
 ---
 
@@ -22,7 +22,7 @@ Current WËNU MAPU frontend stack on `redesign-v2`:
 - product fetch/build safety exists to prevent silent zero-product output;
 - mobile, structured data, image optimization and reduced-motion behavior are already part of the frontend contract.
 
-Do not modify deployment behavior from memory. Read current `CLAUDE.md`, scripts and the active issue/PR first.
+No KODEX draft PR listed below authorizes merge or deployment.
 
 ---
 
@@ -36,138 +36,154 @@ Verified from current repository documentation:
 - product pages, shop, contact, local/pickup, search index, sitemap and structured-data work exist;
 - current architecture includes image cleanup/AVIF generation and explicit performance work;
 - `src/i18n/en.json` + `src/i18n/mapudungun.json` exist;
-- current category direction includes Piercing, Hangers, Ear Weights, Amulets and Ritual Pieces;
 - frontend work is further advanced than the default-branch README suggests; prefer active branch/docs over stale starter text.
 
 Operational WËNU MAPU principle: keep commerce truthful and usable while evolving the visual system.
 
 ---
 
-## 3. KODEX code footprint
+## 3. KODEX authoritative convergence state
 
-On the active WËNU MAPU/KODEX line, `src/kodex/` currently contains specialized modules including:
+KODEX is no longer blocked on basic contract architecture.
 
-- `ascii/`
-- `audio/`
-- `crt/`
-- `engine/`
-- `observe-v2/`
-- `return/`
-- `shaders/`
-- `threshold-portal/`
-- `treatments/`
+### PR #62 — Deep Navigation + Assembly OS baseline
 
-Other active/experimental KODEX work also exists in `src/lib/kodex/`, routes, data and feature branches. Do not infer system completeness from one directory.
+Current verified baseline head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.
 
----
+KODEX Core Runtime run 164: **SUCCESS**.
 
-## 4. Active KODEX lanes visible in GitHub
+Verified on this lane:
 
-The repository currently has multiple open KODEX PRs/branches. Important examples include:
+- deliberate focus restoration and browser history/deep-link acceptance;
+- ElementContract + 28 normalized repo-native elements;
+- PlateSpec for KNOWLEDGE / JUNCTION / ACTIVATOR;
+- deterministic seedable assembler using registered IDs only;
+- 12 Golden Plate benchmark across Science / Technology / Art / Consciousness;
+- source-linked copy-role compiler;
+- protected Ocín activation adapter with full-view/no-crop/source-integrity gates;
+- Assembly QA result contract;
+- WorkOrder / StationResult interchange contract;
+- macro chapter factory reusing the existing Deep Route Engine;
+- seeded factory benchmark;
+- universal PlateSpec renderer + desktop/mobile/reduced-motion Golden browser evidence.
 
-### PR #54 — HEART CHAMBER plate-to-live v1
+Truth boundary: `human_curator_acceptance` remains separate from machine validity. Protected Ocín source bytes are not implicitly approved by registry presence. PR #62 remains draft/open/not deployed.
 
-- Uses an approved/canonical Heart Chamber plate as source of truth.
-- Adds a noindex lab route.
-- Uses Canvas2D live augmentation instead of redrawing the heart.
-- Simulated BPM/coherence is explicitly labelled `SIM`.
-- Deployment is blocked.
-- Important pattern: approved plate → minimal meaningful live layer → browser evidence → integration decision.
+### Consequence
 
-### PR #53 — THRESHOLD closure candidate
-
-- Combines recovered authored WebGL renderer with current voluntary-entry semantics.
-- Keeps public `/kodex/` untouched.
-- Requires build + browser captures at desktop and mobile sizes.
-- No deployment from the PR.
-
-### PR #52 — shared KODEX contracts
-
-- Recreates/normalizes node loading, signals, memory, scene-state typing and node route work.
-- Includes a closed epistemic claim-class vocabulary.
-- Contains a 54-node atlas lane.
-- Draft/no deploy.
-
-### PR #51 — Effect Foundry motors wired into folio scenes
-
-- Wires living visual engines into PROLOGUE, DESCENT, MACHINE and RETURN folios.
-- Includes programmatic visual verification artifacts.
-- Still needs aesthetic/creator-level review.
-
-### PR #48 — build / browser evidence kit
-
-- Encodes known screenshot/browser pitfalls and repeatable viewport auditing.
-- Useful as infrastructure for cross-agent QA.
-- Important because visual completion must be evidenced on real target viewport behavior.
-
-### PR #46 — recovered authored WebGL Threshold engine
-
-- Recovers previously authored GPU assets instead of inventing a new portal.
-- Keeps work on noindex lab routes and avoids public replacement until comparison/evidence.
-
-### PR #44 / related node-graph lanes
-
-- Demonstrates that earlier empty node routes were caused by loader/build behavior rather than missing concepts.
-- Recovers authored graph/edge information.
-- Also surfaced cultural-review and sensitivity distinctions that must not be flattened into one “critical = blocked” rule.
-
-### PR #43 — test runner / CI wiring
-
-- Identifies that evidence claims are weak without reproducible test/build infrastructure.
-- Also notes documentation drift around CI/offline build behavior that must be reconciled, not silently ignored.
-
-### PR #42 — JourneyState / memory bridge lane
-
-- Identifies incompatible journey-memory APIs coexisting across branches.
-- This is a real architecture lineage risk: do not wire more stateful behavior until the authoritative lineage is verified.
+Do **not** create another routing engine, assembly engine, PlateSpec family, copy compiler or QA truth model merely because a new visual experiment needs one. Reuse this lineage unless a documented contract gap is demonstrated.
 
 ---
 
-## 5. Current systemic condition
+## 4. Current perceptual / HoloCore lane
 
-KODEX has moved beyond “idea only.” There are real engines, routes, graph data, visual plates, QA artifacts and state prototypes.
+The highest-leverage unresolved gap is now visual/perceptual quality rather than mechanical validity.
 
-The main risk is now **fragmentation rather than lack of material**:
+### PR #67 — HoloCore registry + toroidal benchmark
 
-- multiple branches can contain valid but incompatible implementations;
-- visual work can diverge from approved plates if agents regenerate from prose;
-- a generated route can look complete without having browser evidence or creator acceptance;
-- state/memory implementations can diverge;
-- old instructions can remain technically true for one branch and false for another;
-- cultural/scientific content needs provenance and epistemic handling as the archive grows.
+Branch: `feat/kodex-holocore-registry-v1`.
 
-Therefore the current strategic job is **convergence**.
+The registry contains 15 query-addressable HoloCore specimens and keeps scientific/symbolic status explicit. `KDX-HOLO-BENCH-001 / TOROIDAL FIELD` is an internal ART / COMP / SPEC benchmark and is deliberately not mapped to a canonical semantic node.
+
+Run 192 at `e42615e833ebffe5f09a18c14fb08fe322a0517a`: **SUCCESS** for the first toroidal browser-validated implementation.
+
+A later branch head `f18f7420632f3b36eda4c0ca77a932e7ee1033f6` also completed run 194 SUCCESS; the prior PR body was stale about this head.
+
+Visual evidence from the actual CI artifact showed the toroidal v0.1 object was technically valid but perceptually too sparse, flat and small to serve as a finished-piece benchmark. A reversible v0.2 field refinement was therefore committed on the same branch at `e2f204f19c0cc14bfe315cef8f0d5a10fc3225f7`: continuous surface mass, stronger front/back luminance separation, less-compressed projection and denser flow, while retaining the existing renderer/runtime and epistemic boundary. KODEX Core Runtime run 200 is the validation gate for that exact head at this snapshot.
+
+Creator visual acceptance remains PENDING. Browser acceptance must not be promoted to aesthetic approval.
+
+### PR #72 — HoloCore RGX reference-fidelity prototype
+
+Branch: `feat/kodex-holocore-rgx-orbital-v1`, stacked on the HoloCore registry lane.
+
+Head `2c73c5824461135b9f47e8ee7fd38fb9ddc2b40b` completed KODEX Core Runtime run 198 **SUCCESS**.
+
+RGX rebuilds ORBITAL CITY from code using normalized reference topology, dense microglyph raster and procedural SVG/vector scaffold. It embeds no reference pixels. CI evidence verifies desktop/mobile/reduced-motion, 100dvh/no-overflow and reference-structure contracts.
+
+Actual artifact review: RGX materially improves density and structural legibility versus early HoloCore, but still reads primarily as a technical diagram/scaffold rather than a volumetric finished digital object. Creator visual acceptance remains PENDING.
+
+### Renderer-adapter proofs
+
+PR #69: low-resolution raster renderer adapter — browser green, creator visual approval separate.  
+PR #70: WebGL source-shader adapter — browser green, explicitly `AMBIENT_UNCLOSED`, no false seamless-loop claim.
+
+These are renderer capability proofs. Do not turn them into competing HoloCore architectures.
 
 ---
 
-## 6. Current workflow integration
+## 5. Authorial / artwork integrity lane
 
-This branch introduces a permanent cross-agent memory layer:
+PR #61 is the strongest current Ocín-original publishing proof:
 
-- root `AGENTS.md` — universal bootstrap;
-- `docs/agents/KIMI_MASTER_CONTEXT.md` — durable constitution;
-- `docs/agents/CURRENT_STATE.md` — this file;
-- `docs/agents/PRIORITIES.md` — next-action hierarchy;
-- `docs/agents/LEARNINGS.md` — durable discoveries and traps.
+- six checksum-verified same-origin originals;
+- immutable artwork treatment (`contain`, no crop/filter/blend/distort);
+- THRESHOLD / ARCHIVE ATLAS / MUSEUM OF SPACE internal compositions;
+- desktop/mobile/reduced-motion browser QA green;
+- Drive remains provenance/source storage rather than runtime image origin;
+- final creator visual acceptance + route promotion + integration/deploy remain separate gates.
 
-Branch created for this integration: `agent/kimi-workflow-context`.
-
-This documentation is not operationally permanent until reviewed/merged into the active lineage.
+PR #58 is an earlier authorial registry/case-study bridge and remains useful for content-contract provenance, but its body/state must not override later verified code/evidence.
 
 ---
 
-## 7. What Kimi should verify at session start
+## 6. Other active lanes / fragmentation warning
 
-Before doing work, Kimi should answer internally:
+Many older KODEX PRs remain open (#3, #35, #52–#60, #63–#64, #68, #71, etc.). Open status does **not** make all of them equally authoritative.
 
-1. Which repo/branch/PR is authoritative for this task?
-2. Is there already an implementation lane for the same component?
-3. What is the approved visual/canonical source?
-4. What does the Linear acceptance contract require?
-5. Is deployment allowed, blocked or not requested?
-6. What browser/build/test evidence already exists?
-7. Is there an unresolved lineage conflict?
-8. Does the task touch culture, factual claims, customer safety or product-material truth?
-9. What durable learning should survive after this task?
+Examples:
+
+- #68 is a separate authored/static-reference corridor and measurement lane with useful traversal/coverage findings; do not silently substitute it for the Assembly OS/HoloCore lineage.
+- #71 adds a deterministic manifestation/causal-state model over existing HoloCore concepts; it must remain software state semantics, not a claim that thought changes matter.
+- #63 is the earlier single HoloCore prototype; #67/#72 are later descendants for reusable registry/fidelity work.
+- #64 is a governed visual-assembly proposal lane; it must not supersede the already-implemented Assembly OS contracts without explicit reconciliation.
+
+Default rule: use the newest verified descendant that already owns the capability, and document any lineage fork before writing across it.
+
+---
+
+## 7. Current systemic condition
+
+KODEX has real engines, routes, graph data, visual fields, artwork publishing proofs, QA artifacts and deterministic production contracts.
+
+The primary risks are now:
+
+- **visual quality lagging behind system sophistication**;
+- multiple open branches creating false architectural plurality;
+- browser/test success being mistaken for creator acceptance;
+- visual-reference fidelity work drifting into pixel copying or false provenance;
+- scientific/symbolic language being collapsed;
+- protected artwork curation being mistaken for public-use approval.
+
+Strategic mode remains: **convergence + curation + perceptual refinement**.
+
+`BUILD LESS. CURATE HARDER. LET MEMORY CREATE COMPLEXITY.`
+
+---
+
+## 8. Current next-action hierarchy
+
+1. Close the toroidal v0.2 CI gate on PR #67 and inspect the new artifact, not just the check result.
+2. Compare v0.2 against v0.1 on perceptual mass, aperture legibility, front/back separation, object dominance and mobile readability.
+3. Keep creator visual acceptance explicit; do not infer it from metrics.
+4. Use RGX / raster / WebGL adapter lessons as materiality options inside the existing HoloCore chamber, not as new parallel systems.
+5. Do not add Assembly OS schemas/contracts unless a concrete verified contract gap appears.
+6. Preserve Ocín originals and rights/provenance boundaries.
+7. Update this file and Drive operational docs when verified state materially changes.
+
+---
+
+## 9. Session-start checks
+
+Before modifying KODEX, verify:
+
+1. Which Drive canon applies?
+2. Which PR is the newest verified owner of the capability?
+3. Is the requested change architectural, semantic, visual, authorial or deployment-related?
+4. Is there already a reusable implementation?
+5. What exact CI/browser/visual evidence exists?
+6. Is creator/cultural/public-release approval required?
+7. Does the change preserve user agency, reduced-motion/fallbacks and truth-state separation?
+8. Is the proposed output implementation, test evidence, hypothesis, reference or deployment?
 
 If these cannot be answered from connected sources, do not guess.
