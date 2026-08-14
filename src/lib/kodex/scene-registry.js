@@ -57,11 +57,33 @@ export const KODEX_SCENES = Object.freeze({
 });
 
 export const KODEX_ORBITALS = Object.freeze({
-  observer: scene({ id: 'KDX-ORB-01', key: 'observer', role: 'orbital', status: 'CANONICAL_NODE', label: 'OBSERVER', routingStatus: 'SCENE_DEPENDENT', worlds: ['observer', 'consciousness'], affinity: ['prologue', 'descent', 'cosmology'] }),
-  heart: scene({ id: 'KDX-ORB-02', key: 'heart', role: 'orbital', status: 'CANONICAL_NODE', label: 'HEART', routingStatus: 'SCENE_DEPENDENT', worlds: ['body', 'memory', 'orientation'], affinity: ['descent', 'archive', 'cosmology', 'return'] }),
-  'digital-altar': scene({ id: 'KDX-ORB-03', key: 'digital-altar', role: 'orbital', status: 'CANONICAL_NODE', label: 'DIGITAL ALTAR', routingStatus: 'SCENE_DEPENDENT', worlds: ['memory', 'contribution'], affinity: ['archive', 'return'] }),
-  'signal-temple': scene({ id: 'KDX-ORB-04', key: 'signal-temple', role: 'orbital', status: 'CANONICAL_NODE', label: 'SIGNAL TEMPLE', routingStatus: 'SCENE_DEPENDENT', worlds: ['memory', 'machine', 'signal'], affinity: ['machine', 'cosmology', 'return'] }),
-  gaia: scene({ id: 'KDX-ORB-05', key: 'gaia', role: 'orbital', status: 'CANONICAL_VISUAL_MODE', label: 'GAIA / LIVING FIELD', routingStatus: 'NEEDS_SCENE_PLACEMENT', worlds: ['biology', 'earth'], affinity: ['archive', 'cosmology'] }),
+  observer: scene({
+    id: 'KDX-ORB-01', key: 'observer', role: 'orbital', status: 'CANONICAL_NODE',
+    implementationStatus: 'IMPLEMENTED_CANDIDATE', label: 'OBSERVER', href: '/kodex/lab/observe-v2/',
+    routingStatus: 'SCENE_DEPENDENT', worlds: ['observer', 'consciousness'],
+    affinity: ['prologue', 'descent', 'cosmology'],
+  }),
+  heart: scene({
+    id: 'KDX-ORB-02', key: 'heart', role: 'orbital', status: 'CANONICAL_NODE',
+    implementationStatus: 'TESTED_CANDIDATE', label: 'HEART', href: '/kodex/lab/heart-chamber/',
+    routingStatus: 'SCENE_DEPENDENT', worlds: ['body', 'memory', 'orientation'],
+    affinity: ['descent', 'archive', 'cosmology', 'return'],
+  }),
+  'digital-altar': scene({
+    id: 'KDX-ORB-03', key: 'digital-altar', role: 'orbital', status: 'CANONICAL_NODE',
+    implementationStatus: 'SPECIFIED', label: 'DIGITAL ALTAR', href: null,
+    routingStatus: 'SCENE_DEPENDENT', worlds: ['memory', 'contribution'], affinity: ['archive', 'return'],
+  }),
+  'signal-temple': scene({
+    id: 'KDX-ORB-04', key: 'signal-temple', role: 'orbital', status: 'CANONICAL_NODE',
+    implementationStatus: 'IMPLEMENTED_OTHER_BRANCH', label: 'SIGNAL TEMPLE', href: null,
+    routingStatus: 'SCENE_DEPENDENT', worlds: ['memory', 'machine', 'signal'], affinity: ['machine', 'cosmology', 'return'],
+  }),
+  gaia: scene({
+    id: 'KDX-ORB-05', key: 'gaia', role: 'orbital', status: 'CANONICAL_VISUAL_MODE',
+    implementationStatus: 'NEEDS_SCENE_PLACEMENT', label: 'GAIA / LIVING FIELD', href: null,
+    routingStatus: 'NEEDS_SCENE_PLACEMENT', worlds: ['biology', 'earth'], affinity: ['archive', 'cosmology'],
+  }),
 });
 
 export const FOLIO_TO_SCENE = Object.freeze({ i: 'prologue', ii: 'descent', iii: 'archive', iv: 'machine', v: 'cosmology', vi: 'return' });
