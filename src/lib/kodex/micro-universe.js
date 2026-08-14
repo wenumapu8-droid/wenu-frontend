@@ -68,6 +68,9 @@ export function enterMicroUniverseNode(stateInput, nodeId, role = null) {
   const node = MICRO_UNIVERSE_NODES[nodeId];
   if (!node) return createMicroUniverseState(stateInput);
   let state = reduceObserverState(stateInput,{ type:'CHOOSE_ROUTE', nodeId, role });
+  // A route choice is a semantic descent even when the visual lens does not change.
+  // Browser Back/Forward restores the prior stored depth from history.state.
+  state = { ...state, depth: state.depth + 1 };
   state = reduceObserverState(state,{ type:'VISIT_NODE', nodeId, fields:node.fields });
   return state;
 }
