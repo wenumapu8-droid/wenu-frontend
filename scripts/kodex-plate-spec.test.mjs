@@ -36,11 +36,17 @@ function validate(spec) {
     if (!Array.isArray(spec.route_slate) || spec.route_slate.length < 2 || spec.route_slate.length > 5) errors.push('junction_route_bounds');
   }
   if (spec.plate_type === 'ACTIVATOR_PLATE') {
-    const art = spec.artwork_contract;
-    if (spec.primary_payload?.payload_type !== 'ARTWORK') errors.push('activator_payload');
-    if (!art || art.full_view_required !== true || art.preserve_aspect !== true || art.crop_allowed !== false || art.recolor_source_allowed !== false || art.distort_source_allowed !== false) errors.push('artwork_integrity');
     if (!spec.activation_profile || spec.activation_profile.environment_only !== true) errors.push('activation_environment');
-    if (!spec.qa_requirements?.includes('NO_CROP')) errors.push('no_crop_qa');
+    if (spec.primary_payload?.payload_type === 'ARTWORK') {
+      const art = spec.artwork_contract;
+      if (!art || art.full_view_required !== true || art.preserve_aspect !== true || art.crop_allowed !== false || art.recolor_source_allowed !== false || art.distort_source_allowed !== false) errors.push('artwork_integrity');
+      if (!spec.qa_requirements?.includes('NO_CROP')) errors.push('no_crop_qa');
+    } else if (spec.primary_payload?.payload_type === 'FIELD') {
+      if (spec.artwork_contract !== null) errors.push('field_artwork_conflict');
+      if (spec.qa_requirements?.includes('NO_CROP')) errors.push('field_fake_no_crop');
+    } else {
+      errors.push('activator_payload');
+    }
   }
   return errors;
 }
@@ -71,8 +77,8 @@ const junction = {
   qa_requirements: [...common.qa_requirements, 'ROUTE_BOUNDS']
 };
 
-const activator = {
-  ...structuredClone(common), plate_id: 'KDX-PLATE-ACTIVATOR-001', plate_type: 'ACTIVATOR_PLATE', scene_state: 'COSMOLOGY',
+const artworkActivator = {
+  ...structuredClone(common), plate_id: 'KDX-PLATE-ACTIVATOR-ART-001', plate_type: 'ACTIVATOR_PLATE', scene_state: 'COSMOLOGY',
   primary_payload: { payload_type: 'ARTWORK', payload_ref: 'OCN-TOR-001', status: 'IMPLEMENTED_CANDIDATE' },
   slots: [{ slot_id: 'environment', slot_type: 'TRANSFORMATION_FIELD', required: true, element_id: 'KDX-FX-006' }],
   allowed_element_families: ['EFFECT', 'MOTION'],
@@ -81,10 +87,20 @@ const activator = {
   qa_requirements: [...common.qa_requirements, 'NO_CROP']
 };
 
-test('three primary PlateSpec fixtures satisfy explicit hard invariants', () => {
+const livingFieldActivator = {
+  ...structuredClone(common), plate_id: 'KDX-PLATE-ACTIVATOR-FIELD-001', plate_type: 'ACTIVATOR_PLATE', scene_state: 'COSMOLOGY', semantic_node: 'CON-RITUAL',
+  primary_payload: { payload_type: 'FIELD', payload_ref: 'CON-RITUAL', status: 'IMPLEMENTED_CANDIDATE' },
+  slots: [{ slot_id: 'environment', slot_type: 'TRANSFORMATION_FIELD', required: true, element_id: 'KDX-FX-006' }],
+  allowed_element_families: ['EFFECT'],
+  artwork_contract: null,
+  activation_profile: { activation_id: 'KDX-FX-006', explicit_action_required: true, environment_only: true }
+};
+
+test('primary PlateSpec fixtures satisfy knowledge, junction, artwork-activator and living-field invariants', () => {
   assert.deepEqual(validate(knowledge), []);
   assert.deepEqual(validate(junction), []);
-  assert.deepEqual(validate(activator), []);
+  assert.deepEqual(validate(artworkActivator), []);
+  assert.deepEqual(validate(livingFieldActivator), []);
 });
 
 test('JUNCTION_PLATE rejects fewer than two or more than five routes', () => {
@@ -94,14 +110,23 @@ test('JUNCTION_PLATE rejects fewer than two or more than five routes', () => {
   assert.ok(validate(tooMany).includes('junction_route_bounds'));
 });
 
-test('ACTIVATOR_PLATE rejects crop, source mutation, or non-environment activation', () => {
-  const broken = structuredClone(activator);
+test('artwork ACTIVATOR_PLATE rejects crop, source mutation, or non-environment activation', () => {
+  const broken = structuredClone(artworkActivator);
   broken.artwork_contract.crop_allowed = true;
   broken.artwork_contract.recolor_source_allowed = true;
   broken.activation_profile.environment_only = false;
   const errors = validate(broken);
   assert.ok(errors.includes('artwork_integrity'));
   assert.ok(errors.includes('activation_environment'));
+});
+
+test('living-field ACTIVATOR_PLATE rejects fake artwork contract and fake NO_CROP semantics', () => {
+  const broken = structuredClone(livingFieldActivator);
+  broken.artwork_contract = structuredClone(artworkActivator.artwork_contract);
+  broken.qa_requirements.push('NO_CROP');
+  const errors = validate(broken);
+  assert.ok(errors.includes('field_artwork_conflict'));
+  assert.ok(errors.includes('field_fake_no_crop'));
 });
 
 test('PlateSpec rejects unregistered, HOLD, and plate-incompatible element IDs', () => {

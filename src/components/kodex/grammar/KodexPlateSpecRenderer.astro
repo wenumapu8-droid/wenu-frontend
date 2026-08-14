@@ -1,0 +1,301 @@
+---
+const { model, caseId, domain } = Astro.props;
+const isKnowledge = model.plate_type === 'KNOWLEDGE_PLATE';
+const isJunction = model.plate_type === 'JUNCTION_PLATE';
+const isActivator = model.plate_type === 'ACTIVATOR_PLATE';
+const isArtwork = model.primary_payload?.payload_type === 'ARTWORK';
+const isField = model.primary_payload?.payload_type === 'FIELD';
+const primarySlot = model.slots?.find((slot) => slot.required) || model.slots?.[0] || null;
+const routeCount = model.route_slate?.length || 0;
+const provenance = model.provenance_refs || [];
+const motionIds = model.motion?.map((item) => item.element_id) || [];
+const sourceState = model.artwork?.render_source_bytes === true ? 'RENDERABLE' : 'WITHHELD';
+---
+
+<section
+  class:list={['kdx-golden-renderer', `kdx-golden-renderer--${model.plate_type.toLowerCase()}`]}
+  data-kdx-golden-renderer
+  data-case-id={caseId}
+  data-domain={domain}
+  data-plate-id={model.plate_id}
+  data-plate-type={model.plate_type}
+  data-scene-state={model.scene_state}
+  data-semantic-node={model.semantic_node}
+  data-primary-element-id={primarySlot?.element_id || ''}
+  data-artwork-source={isArtwork ? sourceState : 'NOT_APPLICABLE'}
+>
+  <header class="kdx-golden__chrome" aria-label="plate contract status">
+    <div class="kdx-golden__brand">
+      <span>KODEX−∞ / ASSEMBLY OS</span>
+      <strong>{caseId}</strong>
+    </div>
+    <dl>
+      <div><dt>DOMAIN</dt><dd>{String(domain).toUpperCase()}</dd></div>
+      <div><dt>TYPE</dt><dd>{model.plate_type.replace('_PLATE', '')}</dd></div>
+      <div><dt>SCENE</dt><dd>{model.scene_state}</dd></div>
+      <div><dt>STATUS</dt><dd>IMPLEMENTED CANDIDATE</dd></div>
+    </dl>
+  </header>
+
+  <article
+    class="kdx-golden__plate"
+    data-active-plate
+    tabindex="-1"
+    aria-labelledby={`title-${caseId}`}
+  >
+    <div class="kdx-golden__system-rail" aria-label="registered assembly metadata">
+      <p>REGISTERED ASSEMBLY</p>
+      <dl>
+        <div><dt>NODE</dt><dd>{model.semantic_node}</dd></div>
+        <div><dt>ELEMENT</dt><dd data-element-id>{primarySlot?.element_id || 'NONE'}</dd></div>
+        <div><dt>ROLE</dt><dd>{primarySlot?.element?.semantic_role || 'UNRESOLVED'}</dd></div>
+        <div><dt>MOTION</dt><dd>{motionIds.length ? motionIds.join(' · ') : 'STATIC'}</dd></div>
+      </dl>
+    </div>
+
+    <div class="kdx-golden__payload" data-primary-payload data-payload-type={model.primary_payload?.payload_type}>
+      <p class="kdx-golden__eyebrow">{model.communication_mode} · {model.primary_payload?.status}</p>
+      <h1 id={`title-${caseId}`}>{model.macro_signal}</h1>
+
+      {isKnowledge && (
+        <div class="kdx-golden__knowledge" data-knowledge-payload>
+          <div class="kdx-golden__diagram" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><i></i>
+          </div>
+          <div class="kdx-golden__payload-meta">
+            <p>PRIMARY PAYLOAD</p>
+            <strong>{model.primary_payload?.payload_ref}</strong>
+            <small>The renderer exposes the registered payload reference; copy synthesis is not inferred here.</small>
+          </div>
+        </div>
+      )}
+
+      {isJunction && (
+        <nav class="kdx-golden__junction" aria-label="validated route choices" data-route-count={routeCount}>
+          <p>VALIDATED ROUTE SLATE · {routeCount} CHOICES</p>
+          <div class="kdx-golden__route-grid">
+            {model.route_slate.map((route, index) => (
+              <button
+                type="button"
+                class="kdx-golden__route"
+                data-route-target={route.target_node}
+                data-route-role={route.role}
+                aria-describedby={`route-role-${caseId}-${index}`}
+              >
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <strong>{route.target_node}</strong>
+                <small id={`route-role-${caseId}-${index}`}>{route.role}</small>
+              </button>
+            ))}
+          </div>
+          <output data-route-output aria-live="polite">NO ROUTE CHOSEN · AUTO NAV OFF</output>
+        </nav>
+      )}
+
+      {isActivator && (
+        <div class="kdx-golden__activator" data-activator-kind={isArtwork ? 'ARTWORK' : isField ? 'FIELD' : 'UNKNOWN'}>
+          <div
+            class:list={['kdx-golden__activation-stage', isArtwork && 'is-artwork', isField && 'is-field']}
+            role="img"
+            aria-label={isArtwork
+              ? 'Protected Ocín artwork source remains withheld until source-byte rendering is explicitly permitted.'
+              : 'Registered living field activator preview.'}
+          >
+            {isArtwork ? (
+              <div class="kdx-golden__protected-art" data-protected-artwork>
+                <span>PROTECTED AUTHORIAL WORK</span>
+                <strong>{model.artwork?.artwork_id}</strong>
+                <p>SOURCE BYTES {sourceState}</p>
+                <small>FULL VIEW · PRESERVE ASPECT · NO CROP · NO RECOLOR · NO DISTORT</small>
+              </div>
+            ) : (
+              <div class="kdx-golden__field" aria-hidden="true"><span></span><span></span><span></span><i></i></div>
+            )}
+          </div>
+          <div class="kdx-golden__activation-copy">
+            <p>{isArtwork ? 'ARTWORK ACTIVATION CONTRACT' : 'LIVING FIELD CONTRACT'}</p>
+            <strong>{model.activation_profile?.activation_id || 'NO ACTIVATION'}</strong>
+            <small>Activation is environmental only. Visitor action is explicit; no route or memory mutation occurs automatically.</small>
+            <button type="button" data-activation-action aria-pressed="false">ACTIVATE ENVIRONMENT</button>
+            <output data-activation-output aria-live="polite">DORMANT · EXPLICIT ACTION REQUIRED</output>
+          </div>
+        </div>
+      )}
+    </div>
+
+    <aside class="kdx-golden__evidence" aria-label="truth and provenance boundary">
+      <p>TRUTH BOUNDARY</p>
+      <dl>
+        <div><dt>RENDER</dt><dd>{model.evidence.render_status}</dd></div>
+        <div><dt>BROWSER</dt><dd>{model.evidence.browser_validated ? 'PASS' : 'NOT RUN'}</dd></div>
+        <div><dt>CURATOR</dt><dd>{model.evidence.human_curator_acceptance}</dd></div>
+        <div><dt>PROVENANCE</dt><dd>{provenance.length} REF{provenance.length === 1 ? '' : 'S'}</dd></div>
+      </dl>
+      <details>
+        <summary>SOURCE REFERENCES</summary>
+        <ul>{provenance.map((ref) => <li>{ref}</li>)}</ul>
+      </details>
+    </aside>
+  </article>
+
+  <footer class="kdx-golden__footer">
+    <span>100DVH · PAGE SCROLL OFF · KEYBOARD · REDUCED MOTION · REGISTERED IDS ONLY</span>
+    <a href="/kodex/lab/golden-plates/">12-PLATE BENCHMARK</a>
+  </footer>
+</section>
+
+<script>
+  const renderer = document.querySelector('[data-kdx-golden-renderer]');
+  if (renderer instanceof HTMLElement) {
+    const activePlate = renderer.querySelector('[data-active-plate]');
+    if (activePlate instanceof HTMLElement) requestAnimationFrame(() => activePlate.focus({ preventScroll: true }));
+
+    const routeOutput = renderer.querySelector('[data-route-output]');
+    renderer.querySelectorAll('[data-route-target]').forEach((button) => {
+      button.addEventListener('click', () => {
+        if (!(routeOutput instanceof HTMLOutputElement)) return;
+        const target = button.getAttribute('data-route-target');
+        const role = button.getAttribute('data-route-role');
+        routeOutput.value = `SELECTED ${target} · ${role} · COMMIT NOT AUTOMATIC`;
+      });
+    });
+
+    const activationButton = renderer.querySelector('[data-activation-action]');
+    const activationOutput = renderer.querySelector('[data-activation-output]');
+    activationButton?.addEventListener('click', () => {
+      const active = activationButton.getAttribute('aria-pressed') === 'true';
+      activationButton.setAttribute('aria-pressed', String(!active));
+      renderer.toggleAttribute('data-activated', !active);
+      if (activationOutput instanceof HTMLOutputElement) {
+        activationOutput.value = !active ? 'ACTIVE · ENVIRONMENT ONLY' : 'DORMANT · EXPLICIT ACTION REQUIRED';
+      }
+    });
+  }
+</script>
+
+<style>
+  .kdx-golden-renderer {
+    --kdx-signal: #d7ff4f;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    background: #070808;
+    color: #f4f4ef;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  .kdx-golden-renderer--activator_plate { --kdx-signal: #bca7ff; }
+  .kdx-golden-renderer--junction_plate { --kdx-signal: #73e9ff; }
+  .kdx-golden-renderer *, .kdx-golden-renderer *::before, .kdx-golden-renderer *::after { box-sizing: border-box; }
+  .kdx-golden__chrome, .kdx-golden__footer {
+    min-height: 3.25rem;
+    padding: .65rem clamp(.8rem, 2vw, 1.5rem);
+    border-color: #313534;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: #0a0c0c;
+  }
+  .kdx-golden__chrome { border-bottom: 1px solid #313534; }
+  .kdx-golden__footer { border-top: 1px solid #313534; font-size: .65rem; letter-spacing: .08em; }
+  .kdx-golden__brand { display: grid; gap: .2rem; }
+  .kdx-golden__brand span, .kdx-golden__eyebrow, .kdx-golden__system-rail p, .kdx-golden__evidence > p { color: #8d9592; font-size: .62rem; letter-spacing: .12em; }
+  .kdx-golden__brand strong { font-size: .78rem; color: var(--kdx-signal); }
+  .kdx-golden__chrome dl { margin: 0; display: flex; gap: clamp(.6rem, 2vw, 1.6rem); }
+  .kdx-golden__chrome dl div, .kdx-golden__evidence dl div, .kdx-golden__system-rail dl div { display: grid; gap: .15rem; }
+  dt { color: #69706e; font-size: .52rem; letter-spacing: .1em; }
+  dd { margin: 0; font-size: .65rem; }
+  .kdx-golden__plate {
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(9rem, 15rem) minmax(0, 1fr) minmax(10rem, 16rem);
+    outline: none;
+  }
+  .kdx-golden__plate:focus-visible { box-shadow: inset 0 0 0 2px var(--kdx-signal); }
+  .kdx-golden__system-rail, .kdx-golden__evidence { padding: clamp(.8rem, 2vw, 1.4rem); background: #090b0b; min-width: 0; overflow: hidden; }
+  .kdx-golden__system-rail { border-right: 1px solid #262a29; }
+  .kdx-golden__evidence { border-left: 1px solid #262a29; }
+  .kdx-golden__system-rail dl, .kdx-golden__evidence dl { display: grid; gap: 1rem; margin: 1.2rem 0 0; }
+  .kdx-golden__system-rail dd, .kdx-golden__evidence dd { overflow-wrap: anywhere; }
+  .kdx-golden__payload { min-width: 0; min-height: 0; overflow: hidden; padding: clamp(1.1rem, 4vw, 3.5rem); display: grid; align-content: center; gap: clamp(.8rem, 2vh, 1.5rem); position: relative; }
+  .kdx-golden__payload::before { content: ''; position: absolute; inset: 1rem; pointer-events: none; border: 1px solid #1f2422; }
+  .kdx-golden__eyebrow { margin: 0; position: relative; z-index: 1; }
+  .kdx-golden__payload h1 { margin: 0; max-width: 16ch; font: 500 clamp(2rem, 6vw, 6rem)/.9 ui-sans-serif, system-ui, sans-serif; letter-spacing: -.055em; position: relative; z-index: 1; }
+  .kdx-golden__knowledge { min-height: 12rem; display: grid; grid-template-columns: minmax(10rem, 1fr) minmax(10rem, .7fr); gap: 1rem; position: relative; z-index: 1; }
+  .kdx-golden__diagram { position: relative; border: 1px solid #353b38; min-height: 13rem; overflow: hidden; background: linear-gradient(90deg, transparent 49.8%, #242927 50%, transparent 50.2%), linear-gradient(0deg, transparent 49.8%, #242927 50%, transparent 50.2%); }
+  .kdx-golden__diagram span { position: absolute; width: 3.2rem; aspect-ratio: 1; border: 1px solid var(--kdx-signal); border-radius: 50%; }
+  .kdx-golden__diagram span:nth-child(1) { left: 12%; top: 18%; }
+  .kdx-golden__diagram span:nth-child(2) { right: 10%; top: 28%; width: 5rem; }
+  .kdx-golden__diagram span:nth-child(3) { left: 40%; bottom: 12%; width: 4.2rem; }
+  .kdx-golden__diagram span:nth-child(4) { left: 50%; top: 43%; width: .45rem; background: var(--kdx-signal); }
+  .kdx-golden__diagram i { position: absolute; left: 12%; right: 10%; top: 50%; border-top: 1px dashed #59605d; transform: rotate(-9deg); }
+  .kdx-golden__payload-meta { border: 1px solid #353b38; padding: 1rem; display: grid; align-content: end; gap: .5rem; }
+  .kdx-golden__payload-meta p, .kdx-golden__junction > p, .kdx-golden__activation-copy > p { margin: 0; color: #777f7c; font-size: .6rem; letter-spacing: .1em; }
+  .kdx-golden__payload-meta strong { color: var(--kdx-signal); overflow-wrap: anywhere; }
+  .kdx-golden__payload-meta small, .kdx-golden__activation-copy small { color: #a4aaa8; line-height: 1.45; }
+  .kdx-golden__junction { display: grid; gap: .8rem; position: relative; z-index: 1; }
+  .kdx-golden__route-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+  .kdx-golden__route { min-height: 5rem; border: 1px solid #353b38; background: #0a0d0d; color: inherit; padding: .8rem; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: .7rem; text-align: left; cursor: pointer; }
+  .kdx-golden__route:hover, .kdx-golden__route:focus-visible { border-color: var(--kdx-signal); outline: none; }
+  .kdx-golden__route span, .kdx-golden__route small { color: #707875; font-size: .62rem; }
+  .kdx-golden__junction output, .kdx-golden__activation-copy output { color: var(--kdx-signal); font-size: .63rem; min-height: 1.2em; }
+  .kdx-golden__activator { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(12rem, .65fr); gap: 1rem; min-height: min(56vh, 34rem); position: relative; z-index: 1; }
+  .kdx-golden__activation-stage { border: 1px solid #353b38; min-height: 0; display: grid; place-items: center; overflow: hidden; background: #050606; }
+  .kdx-golden__protected-art { width: min(72%, 28rem); aspect-ratio: 1; border: 1px solid #4b4755; display: grid; place-items: center; align-content: center; gap: .5rem; text-align: center; padding: 1rem; }
+  .kdx-golden__protected-art span, .kdx-golden__protected-art p, .kdx-golden__protected-art small { font-size: .6rem; letter-spacing: .08em; color: #8e8999; margin: 0; }
+  .kdx-golden__protected-art strong { color: var(--kdx-signal); overflow-wrap: anywhere; }
+  .kdx-golden__field { position: relative; width: min(72%, 28rem); aspect-ratio: 1; border-radius: 50%; border: 1px solid #4b4755; background: repeating-radial-gradient(circle, transparent 0 8%, #292632 8.3% 8.8%, transparent 9.1% 16%); }
+  .kdx-golden__field span { position: absolute; inset: 20%; border: 1px solid var(--kdx-signal); transform: rotate(45deg); }
+  .kdx-golden__field span:nth-child(2) { inset: 32%; transform: rotate(0); }
+  .kdx-golden__field span:nth-child(3) { inset: 42%; border-radius: 50%; }
+  .kdx-golden__field i { position: absolute; left: 50%; top: 8%; bottom: 8%; border-left: 1px dashed #666070; }
+  .kdx-golden__activation-copy { border: 1px solid #353b38; padding: 1rem; display: grid; align-content: end; gap: .75rem; }
+  .kdx-golden__activation-copy button { min-height: 2.75rem; border: 1px solid var(--kdx-signal); background: transparent; color: var(--kdx-signal); font: inherit; font-size: .67rem; cursor: pointer; }
+  .kdx-golden__activation-copy button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  [data-activated] .kdx-golden__activation-stage { box-shadow: inset 0 0 4rem color-mix(in srgb, var(--kdx-signal) 12%, transparent); }
+  .kdx-golden__evidence details { margin-top: 1.2rem; font-size: .6rem; color: #838a87; }
+  .kdx-golden__evidence summary { cursor: pointer; color: var(--kdx-signal); }
+  .kdx-golden__evidence ul { padding-left: 1rem; overflow-wrap: anywhere; }
+  .kdx-golden__footer a { color: var(--kdx-signal); text-decoration: none; }
+
+  @media (max-width: 760px) {
+    .kdx-golden__chrome { align-items: flex-start; }
+    .kdx-golden__chrome dl div:nth-child(3), .kdx-golden__chrome dl div:nth-child(4) { display: none; }
+    .kdx-golden__plate { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto; }
+    .kdx-golden__system-rail { border-right: 0; border-bottom: 1px solid #262a29; padding: .55rem .8rem; }
+    .kdx-golden__system-rail > p { display: none; }
+    .kdx-golden__system-rail dl { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+    .kdx-golden__system-rail dl div:nth-child(n+3) { display: none; }
+    .kdx-golden__payload { padding: 1rem; align-content: center; }
+    .kdx-golden__payload::before { inset: .5rem; }
+    .kdx-golden__payload h1 { font-size: clamp(1.8rem, 10vw, 3.5rem); max-width: 13ch; }
+    .kdx-golden__knowledge { min-height: 0; grid-template-columns: 1fr; grid-template-rows: minmax(7rem, 1fr) auto; }
+    .kdx-golden__diagram { min-height: 7rem; }
+    .kdx-golden__payload-meta { padding: .65rem; }
+    .kdx-golden__payload-meta small { display: none; }
+    .kdx-golden__route-grid { grid-template-columns: 1fr; max-height: 34vh; overflow: auto; }
+    .kdx-golden__route { min-height: 3.15rem; padding: .55rem; }
+    .kdx-golden__activator { min-height: 0; grid-template-columns: 1fr; grid-template-rows: minmax(8rem, 1fr) auto; }
+    .kdx-golden__protected-art, .kdx-golden__field { width: min(52vw, 12rem); }
+    .kdx-golden__activation-copy { padding: .65rem; gap: .45rem; }
+    .kdx-golden__activation-copy small { display: none; }
+    .kdx-golden__evidence { border-left: 0; border-top: 1px solid #262a29; padding: .5rem .8rem; }
+    .kdx-golden__evidence > p, .kdx-golden__evidence details { display: none; }
+    .kdx-golden__evidence dl { margin: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; }
+    .kdx-golden__evidence dd { font-size: .55rem; }
+    .kdx-golden__footer span { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-golden-renderer *, .kdx-golden-renderer *::before, .kdx-golden-renderer *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
+    }
+  }
+</style>
