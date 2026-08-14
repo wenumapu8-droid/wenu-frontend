@@ -34,12 +34,30 @@ async function openLab(page) {
   });
 }
 
+async function waitRenderer(page) {
+  await page.waitForFunction(() => {
+    const value = document.querySelector('[data-kdx-manifestation-core]')?.dataset.rendererState;
+    return value === 'stable-loop' || value === 'static-frame';
+  }, null, { timeout: 10_000 });
+  await page.waitForTimeout(100);
+}
+
 async function metrics(page) {
   return page.evaluate(() => {
     const lab = document.querySelector('[data-manifestation-lab]');
     const core = document.querySelector('[data-kdx-manifestation-core]');
     const canvas = core?.querySelector('[data-manifestation-canvas]');
     const rect = lab?.getBoundingClientRect();
+    let paintedSamples = 0;
+    if (canvas instanceof HTMLCanvasElement && canvas.width && canvas.height) {
+      const context = canvas.getContext('2d');
+      if (context) {
+        const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 0; i < data.length; i += 64) {
+          if (data[i] + data[i + 1] + data[i + 2] > 24) paintedSamples += 1;
+        }
+      }
+    }
     return {
       width: innerWidth,
       height: innerHeight,
@@ -50,10 +68,12 @@ async function metrics(page) {
       labHeight: rect?.height ?? 0,
       phase: core?.dataset.phase ?? null,
       specimen: core?.dataset.specimen ?? null,
+      rendererState: core?.dataset.rendererState ?? null,
       blocked: core?.dataset.blocked ?? null,
       load: Number(core?.dataset.causalLoad ?? 0),
       backingWidth: canvas?.width ?? 0,
       backingHeight: canvas?.height ?? 0,
+      paintedSamples,
       robots: document.querySelector('meta[name="robots"]')?.getAttribute('content') ?? null,
     };
   });
@@ -66,6 +86,11 @@ function assertBounded(value, label) {
   assert(value.bodyScrollHeight <= value.height + 2, `${label}: body vertical overflow`);
   assert(value.backingWidth > 0 && value.backingHeight > 0, `${label}: canvas is empty`);
   assert(value.robots?.includes('noindex'), `${label}: lab route must remain noindex`);
+}
+
+function assertPainted(value, label) {
+  assert(['stable-loop', 'static-frame'].includes(value.rendererState), `${label}: renderer is not stable`);
+  assert(value.paintedSamples > 20, `${label}: canvas has insufficient painted signal (${value.paintedSamples})`);
 }
 
 async function waitPhase(page, phase, specimen) {
@@ -108,15 +133,20 @@ async function validateDesktop() {
     await waitPhase(page, 'TRANSFORMING', 'signal-vortex');
     await click(page, '[data-action="realize"]');
     await waitPhase(page, 'REALIZED', 'interference-portal');
+    await waitRenderer(page);
+    const realized = await metrics(page);
+    assertPainted(realized, 'desktop realized');
+
     await click(page, '[data-action="trace"]');
     await waitPhase(page, 'TRACE', 'memory-tree');
+    await waitRenderer(page);
 
-    await page.waitForTimeout(500);
     const value = await metrics(page);
     assertBounded(value, 'desktop');
+    assertPainted(value, 'desktop');
     const screenshot = 'manifestation-desktop-trace.png';
     await page.screenshot({ path: path.join(outputDir, screenshot), fullPage: false });
-    report.desktop = { pass: true, metrics: value, screenshot };
+    report.desktop = { pass: true, realized, metrics: value, screenshot };
   } catch (error) {
     report.errors.push(`desktop: ${error?.stack || error}`);
     report.desktop = { pass: false, error: String(error?.message || error) };
@@ -138,8 +168,10 @@ async function validateMobile() {
     await click(page, '[data-action="signal"]');
     await click(page, '[data-action="blocker"][data-blocker="creator"]');
     await waitPhase(page, 'INTERFERENCE', 'interference-portal');
+    await waitRenderer(page);
     const value = await metrics(page);
     assertBounded(value, 'mobile');
+    assertPainted(value, 'mobile');
     const screenshot = 'manifestation-mobile-interference.png';
     await page.screenshot({ path: path.join(outputDir, screenshot), fullPage: false });
     report.mobile = { pass: true, metrics: value, screenshot };
@@ -159,7 +191,7 @@ async function validateReducedMotion() {
   const page = await context.newPage();
   try {
     await openLab(page);
-    await page.waitForTimeout(350);
+    await waitRenderer(page);
     const motion = await page.evaluate(() => {
       const root = document.querySelector('[data-kdx-manifestation-core]');
       const scan = root?.querySelector('.kdx-manifestation-core__scan');
@@ -174,6 +206,7 @@ async function validateReducedMotion() {
     assert(motion.scanAnimation === 'none', 'reduced: scan animation remains active');
     const value = await metrics(page);
     assertBounded(value, 'reduced');
+    assertPainted(value, 'reduced');
     report.reducedMotion = { pass: true, motion, metrics: value };
   } catch (error) {
     report.errors.push(`reduced: ${error?.stack || error}`);
@@ -194,5 +227,5 @@ if (report.errors.length) {
   for (const error of report.errors) console.error(error);
   process.exitCode = 1;
 } else {
-  console.log('Manifestation browser evidence passed for desktop, mobile and reduced motion.');
+  console.log('Manifestation browser evidence passed with stable painted output for desktop, mobile and reduced motion.');
 }
