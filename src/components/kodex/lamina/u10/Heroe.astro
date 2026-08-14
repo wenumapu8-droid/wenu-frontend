@@ -182,8 +182,21 @@
       g.fillStyle = grd;
       g.fillRect(0, 0, W, H);
 
+      /* El radio NO se sortea con `sqrt`. Esa transformada reparte densidad
+         CONSTANTE por area, y la referencia no es pareja: medida por anillos de
+         56 px desde (561,760), su tinta cae de 34,9 % en el centro a 5,2 % en el
+         borde, monotona. El campo con `sqrt` daba 8,6 % donde la referencia
+         tiene 20 % y hasta subia cerca del canto — se leia como empapelado en vez
+         de organismo, y encima tapaba el texto de los paneles laterales.
+         Sorteando el radio como u^0,74 la densidad queda proporcional a r^-0,65,
+         que es la caida medida.
+         Y el anillo interior queda excluido: el nucleo ya llegaba al 65 % de
+         tinta contra el 34,9 % de la referencia ANTES de tocar el campo, asi que
+         concentrar estrellas ahi lo llevaba al 93 % y lo volvia una masa solida.
+         El campo arranca en el 16 % del radio; el centro lo dibuja la estructura
+         de anillos, no el polvo. */
       for (let k = 0; k < 2600; k++) {
-        const rr = Math.sqrt(r());
+        const rr = 0.16 + Math.pow(r(), 0.74) * 0.84;
         const a = r() * TAU;
         const x = CX + rr * (W / 2 - 8) * Math.cos(a);
         const y = CY + rr * (H / 2 - 8) * Math.sin(a);
@@ -196,10 +209,20 @@
         g.fill();
       }
 
+      /* 220 estrellas era una decima parte de lo que pide la referencia.
+         Medido sobre `reference/canon/u10-commons.png` con umbral 20, contando
+         componentes conectados en toda el area del heroe:
+
+           elementos de 4 a 12 px    referencia 3.466   render 486
+           trazos de 25 px o mas     referencia    89   render   9
+
+         El campo no estaba "poco denso": estaba una escala entera por debajo, y
+         la trama de constelacion no llegaba a existir porque su opacidad 0,08
+         cae debajo del umbral con el que se mide la tinta. */
       const estrellas = [];
       const re = azar(0x1010);
-      for (let k = 0; k < 220; k++) {
-        const rr = Math.sqrt(re());
+      for (let k = 0; k < 1400; k++) {
+        const rr = 0.16 + Math.pow(re(), 0.74) * 0.84;
         const a = re() * TAU;
         estrellas.push({
           x: CX + rr * (W / 2 - 30) * Math.cos(a),
@@ -208,13 +231,13 @@
           br: re(),
         });
       }
-      g.strokeStyle = tinta(VIO, 0.08);
+      g.strokeStyle = tinta(VIO, 0.15);
       g.lineWidth = 0.5;
       for (let i = 0; i < estrellas.length; i++) {
         for (let j = i + 1; j < estrellas.length; j++) {
           const dx = estrellas[i].x - estrellas[j].x;
           const dy = estrellas[i].y - estrellas[j].y;
-          if (dx * dx + dy * dy < 3600) {
+          if (dx * dx + dy * dy < 1600) {
             g.beginPath();
             g.moveTo(estrellas[i].x, estrellas[i].y);
             g.lineTo(estrellas[j].x, estrellas[j].y);
