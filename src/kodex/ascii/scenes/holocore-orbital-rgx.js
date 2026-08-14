@@ -3,47 +3,35 @@ import { orbitalCityRGXProfile, profileToField } from '../../holocore/reference-
 
 const TAU = Math.PI * 2;
 const FIELD_LAYERS = orbitalCityRGXProfile.layers.map(profileToField);
+const STRUCTURAL_LAYERS = FIELD_LAYERS.filter(layer => layer.type === 'ring' || layer.type === 'habitat');
+const ATMOSPHERE_LAYER = FIELD_LAYERS.find(layer => layer.type === 'cloud');
+const PLANET_LAYER = FIELD_LAYERS.find(layer => layer.type === 'planet');
+const HABITAT_LAYER = FIELD_LAYERS.find(layer => layer.type === 'habitat');
 
-function ellipseCoordinates(x, y, layer) {
-  const dx = (x - layer.cx) / Math.max(layer.rx, 0.001);
-  const dy = (y - layer.cy) / Math.max(layer.ry, 0.001);
-  return { dx, dy, radius: Math.hypot(dx, dy), angle: Math.atan2(dy, dx) };
+function ellipseRadius(x, y, layer, rx = layer.rx, ry = layer.ry) {
+  const dx = (x - layer.cx) / Math.max(rx, 0.001);
+  const dy = (y - layer.cy) / Math.max(ry, 0.001);
+  return Math.hypot(dx, dy);
 }
 
 function ellipseRing(x, y, layer, thickness = 0.032) {
-  const { radius } = ellipseCoordinates(x, y, layer);
-  return Math.exp(-Math.abs(radius - 1) / thickness);
+  return Math.exp(-Math.abs(ellipseRadius(x, y, layer) - 1) / thickness);
 }
 
-function ellipseFill(x, y, layer, softness = 0.18) {
-  const { radius } = ellipseCoordinates(x, y, layer);
+function ellipseFillScaled(x, y, layer, rxScale = 0.2, ryScale = 0.44, softness = 0.32) {
+  const rx = Math.min(layer.rx * rxScale, 0.11);
+  const ry = Math.min(layer.ry * ryScale, 0.035);
+  const radius = ellipseRadius(x, y, layer, rx, ry);
   return 1 - smoothstep(Math.max(0, 1 - softness), 1, radius);
 }
 
-function ringNodes(x, y, layer, phase, direction = 1) {
-  if (!layer.nodes) return 0;
-  const { radius, angle } = ellipseCoordinates(x, y, layer);
-  const ring = Math.exp(-Math.abs(radius - 1) / 0.065);
-  const lobes = Math.pow(Math.max(0, Math.cos(angle * layer.nodes - phase * direction)), 18);
-  return ring * lobes;
-}
-
-function radialSpokes(x, y, layer, phase) {
-  if (!layer.spokes) return 0;
-  const { radius, angle } = ellipseCoordinates(x, y, layer);
-  const radialMask = smoothstep(0.12, 0.24, radius) * (1 - smoothstep(0.86, 0.98, radius));
-  const spokes = Math.pow(Math.abs(Math.cos(angle * (layer.spokes / 2) + phase)), 28);
-  return radialMask * spokes;
-}
-
 function fineConcentricRibs(x, y, layer) {
-  const { radius } = ellipseCoordinates(x, y, layer);
-  const ribs = Math.max(
+  const radius = ellipseRadius(x, y, layer);
+  return Math.max(
     Math.exp(-Math.abs(radius - 0.78) / 0.025),
     Math.exp(-Math.abs(radius - 0.88) / 0.02),
     Math.exp(-Math.abs(radius - 1.08) / 0.024),
   );
-  return ribs;
 }
 
 function axisField(x, y, phase) {
@@ -63,22 +51,23 @@ function dataColumn(x, y, phase, seed) {
   return axial * smoothstep(0.72, 0.96, staticNoise * 0.7 + stream * 0.3) * 0.22;
 }
 
-function atmosphereField(x, y, layer, phase, seed) {
-  const { radius } = ellipseCoordinates(x, y, layer);
+function atmosphereField(x, y, phase, seed) {
+  if (!ATMOSPHERE_LAYER) return 0;
+  const radius = ellipseRadius(x, y, ATMOSPHERE_LAYER);
   const mask = 1 - smoothstep(0.72, 1.08, radius);
   const xCell = Math.floor((x + 1) * 92);
   const yCell = Math.floor((y + 1) * 72);
   const n0 = hash21(xCell + seed, yCell);
   const n1 = hash21(Math.floor(xCell * 0.53 + 17), Math.floor(yCell * 0.61 + seed));
   const breathe = 0.88 + 0.12 * (Math.sin(phase * 2) * 0.5 + 0.5);
-  return mask * smoothstep(0.48, 0.92, n0 * 0.67 + n1 * 0.33) * layer.weight * breathe;
+  return mask * smoothstep(0.48, 0.92, n0 * 0.67 + n1 * 0.33) * ATMOSPHERE_LAYER.weight * breathe;
 }
 
-function planetaryField(x, y, layer, seed) {
-  const { radius } = ellipseCoordinates(x, y, layer);
+function planetaryField(x, y, seed) {
+  if (!PLANET_LAYER) return 0;
+  const radius = ellipseRadius(x, y, PLANET_LAYER);
   const rim = Math.exp(-Math.abs(radius - 1) / 0.022);
-  const inside = radius < 1 ? 1 : 0;
-  const surface = inside
+  const surface = radius < 1
     ? smoothstep(0.77, 0.97, hash21(Math.floor((x + 1) * 130 + seed), Math.floor((y + 1) * 90))) * 0.16
     : 0;
   return rim * 0.72 + surface;
@@ -87,11 +76,10 @@ function planetaryField(x, y, layer, seed) {
 /**
  * Reference-grounded ORBITAL CITY field.
  *
- * This is not an image filter and does not embed reference pixels. The field
- * is generated from a normalized topology profile shared with the vector
- * scaffold: atmosphere -> crown -> platforms -> habitat ring -> service
- * orbit -> planetary interface. The ASCII layer therefore resolves the same
- * structural hierarchy that the crisp scaffold draws above it.
+ * No reference pixels are embedded. A normalized topology profile is shared
+ * by this dense microglyph field and the SVG scaffold. Fine nodes and spokes
+ * live in the vector layer instead of being recomputed for every ASCII cell;
+ * that preserves definition while keeping the continuous loop affordable.
  */
 export const holocoreOrbitalRGXScene = Object.freeze({
   id: 'holocore-orbital-rgx',
@@ -110,38 +98,23 @@ export const holocoreOrbitalRGXScene = Object.freeze({
     const sy = y - py;
 
     let architecture = 0;
-    let signals = 0;
-    let atmosphere = 0;
-    let planet = 0;
-
-    FIELD_LAYERS.forEach((layer, index) => {
-      if (layer.type === 'cloud') {
-        atmosphere = Math.max(atmosphere, atmosphereField(sx, sy, layer, phase, seed));
-        return;
-      }
-      if (layer.type === 'planet') {
-        planet = Math.max(planet, planetaryField(sx, sy, layer, seed));
-        return;
-      }
-
+    for (let index = 0; index < STRUCTURAL_LAYERS.length; index += 1) {
+      const layer = STRUCTURAL_LAYERS[index];
       const ring = ellipseRing(sx, sy, layer, layer.type === 'habitat' ? 0.024 : 0.032);
-      const hubLayer = { ...layer, rx: Math.min(layer.rx * 0.2, 0.11), ry: Math.min(layer.ry * 0.44, 0.035) };
-      const hub = ellipseFill(sx, sy, hubLayer, 0.32);
-      const nodes = ringNodes(sx, sy, layer, phase * (index % 2 === 0 ? 2 : 3), index % 2 === 0 ? 1 : -1);
-      const ribs = layer.type === 'habitat' ? fineConcentricRibs(sx, sy, layer) : 0;
-      const spokes = layer.type === 'habitat' ? radialSpokes(sx, sy, layer, -phase) : 0;
-
+      const hub = ellipseFillScaled(sx, sy, layer);
       architecture = Math.max(
         architecture,
         ring * layer.weight,
         hub * Math.min(1, layer.weight + 0.05),
-        ribs * 0.78,
-        spokes * 0.48,
       );
-      signals = Math.max(signals, nodes * 0.88);
-    });
+    }
 
-    // Vertical structural rails inferred from the axial reference hierarchy.
+    // The largest habitat ring keeps a few extra raster ribs; radial spokes
+    // and orbit nodes are drawn once by the SVG scaffold above this field.
+    if (HABITAT_LAYER) {
+      architecture = Math.max(architecture, fineConcentricRibs(sx, sy, HABITAT_LAYER) * 0.76);
+    }
+
     const railGate = smoothstep(-0.64, -0.58, sy) * (1 - smoothstep(0.76, 0.82, sy));
     const rails = Math.max(
       Math.exp(-Math.abs(sx - 0.105) / 0.009),
@@ -152,17 +125,18 @@ export const holocoreOrbitalRGXScene = Object.freeze({
 
     const axis = axisField(sx, sy, phase);
     const stream = dataColumn(sx, sy, phase, seed);
+    const atmosphere = atmosphereField(sx, sy, phase, seed);
+    const planet = planetaryField(sx, sy, seed);
 
-    // Faint technical field keeps empty zones alive without masking the
-    // reference-grounded hierarchy.
-    const gridX = Math.exp(-Math.abs(((sx + 1) * 20) % 1 - 0.5) / 0.028);
-    const gridY = Math.exp(-Math.abs(((sy + 1) * 16) % 1 - 0.5) / 0.028);
-    const technicalGrid = Math.min(gridX, gridY) * 0.035;
+    // Sparse grid signal; the visible fine grid itself is CSS and therefore
+    // does not consume per-cell trigonometric work.
+    const gridX = Math.abs(((sx + 1) * 20) % 1 - 0.5) < 0.035 ? 0.018 : 0;
+    const gridY = Math.abs(((sy + 1) * 16) % 1 - 0.5) < 0.035 ? 0.018 : 0;
+    const technicalGrid = Math.min(gridX, gridY);
 
     return clamp(
-      architecture * 0.9 +
-      signals * 0.68 +
-      rails * 0.44 +
+      architecture * 0.92 +
+      rails * 0.42 +
       axis * 0.68 +
       stream +
       atmosphere * 0.72 +
