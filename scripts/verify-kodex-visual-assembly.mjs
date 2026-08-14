@@ -67,6 +67,7 @@ for (const [indexNumber, component] of registry.components.entries()) {
 
 const visualModes = new Set();
 const referencedVisualIds = new Set();
+const scenePacks = new Map();
 let ocinCandidateCount = 0;
 
 for (const ref of index.packs) {
@@ -76,6 +77,7 @@ for (const ref of index.packs) {
   assert(pack.visual_mode === ref.visual_mode, `${ref.file} visual_mode mismatch`);
   assert(!visualModes.has(pack.visual_mode), `duplicate visual mode ${pack.visual_mode}`);
   visualModes.add(pack.visual_mode);
+  scenePacks.set(pack.visual_mode, pack);
   assert(pack.status === 'EXPERIMENTAL', `${pack.visual_mode} must remain EXPERIMENTAL until accepted`);
   assert(pack.epistemic_status === 'SPECULATIVE', `${pack.visual_mode} epistemic status must remain explicit`);
   assert(pack.runtime_status === 'NOT_IMPLEMENTED_BY_THIS_PACK', `${pack.visual_mode} cannot claim runtime implementation`);
@@ -105,6 +107,53 @@ assert(schema.title === 'KODEX Assembly Candidate v0.2', 'assembly schema title 
 assert(schema.properties?.provenance_check, 'assembly schema must require provenance state');
 assert(schema.properties?.components, 'assembly schema must define governed visual components');
 
+const allowedColorModes = new Set(schema.properties.color_mode.enum);
+const allowedViewports = new Set(schema.properties.viewport.enum);
+const allowedProvenance = new Set(schema.properties.provenance_check.enum);
+
+const validateExample = (file) => {
+  const example = readJson(file);
+  assert(typeof example.example_id === 'string' && example.example_id.length > 0, `${file} missing example_id`);
+  assert(scenePacks.has(example.visual_mode), `${file} references unknown visual mode ${example.visual_mode}`);
+  const pack = scenePacks.get(example.visual_mode);
+  assert(recipeIds.has(example.recipe_id), `${file} references unknown recipe ${example.recipe_id}`);
+  assert(example.recipe_id === pack.recipe_primary || example.recipe_id === pack.recipe_secondary, `${file} recipe is not allowed by ${example.visual_mode}`);
+  assert(Array.isArray(example.hero_media_ids) && example.hero_media_ids.length > 0, `${file} requires hero media`);
+  const allowedWorks = new Set(pack.ocin_candidates.map((work) => work.ocin_id));
+  for (const heroId of example.hero_media_ids) {
+    assert(allowedWorks.has(heroId), `${file} hero ${heroId} is not listed for ${example.visual_mode}`);
+  }
+  assert(Array.isArray(example.components) && example.components.length > 0, `${file} requires governed components`);
+  const allowedComponents = new Map(pack.component_shortlist.map((component) => [component.stable_id, component]));
+  for (const component of example.components) {
+    const registered = registryById.get(component.stable_id);
+    assert(registered, `${file} references unregistered component ${component.stable_id}`);
+    assert(registered.slug === component.slug, `${file} ${component.stable_id} slug mismatch`);
+    assert(allowedComponents.has(component.stable_id), `${file} uses ${component.stable_id} outside the scene shortlist`);
+    for (const coordinate of ['x', 'y', 'w', 'h']) {
+      assert(typeof component[coordinate] === 'number' && component[coordinate] >= 0 && component[coordinate] <= 1, `${file} ${component.stable_id}.${coordinate} must be normalized 0–1`);
+    }
+    if (component.opacity !== undefined) {
+      assert(typeof component.opacity === 'number' && component.opacity >= 0 && component.opacity <= 1, `${file} ${component.stable_id}.opacity must be 0–1`);
+    }
+  }
+  assert(allowedColorModes.has(example.color_mode), `${file} invalid color_mode ${example.color_mode}`);
+  assert(allowedViewports.has(example.viewport), `${file} invalid viewport ${example.viewport}`);
+  assert(allowedProvenance.has(example.provenance_check), `${file} invalid provenance_check ${example.provenance_check}`);
+  assert(example.provenance_check !== 'PASS', `${file} must not claim provenance PASS before canonical source resolution`);
+  assert(example.reduced_motion?.continuous_motion === false, `${file} must declare non-continuous reduced motion`);
+  return example;
+};
+
+const desktopExample = validateExample('examples/threshold-monolith.desktop.json');
+const mobileExample = validateExample('examples/threshold-monolith.mobile.json');
+assert(desktopExample.viewport === 'desktop' && mobileExample.viewport === 'mobile', 'Threshold example pair must cover desktop + mobile');
+assert(desktopExample.recipe_id === mobileExample.recipe_id, 'Threshold example pair must use the same composition recipe');
+assert(desktopExample.hero_media_ids.join('|') === mobileExample.hero_media_ids.join('|'), 'Threshold example pair must resolve the same hero source');
+const desktopGeometry = JSON.stringify(desktopExample.components.map(({ x, y, w, h }) => [x, y, w, h]));
+const mobileGeometry = JSON.stringify(mobileExample.components.map(({ x, y, w, h }) => [x, y, w, h]));
+assert(desktopGeometry !== mobileGeometry, 'mobile must be recomposed rather than copied from desktop geometry');
+
 console.log(JSON.stringify({
   ok: true,
   visualModes: visualModes.size,
@@ -112,6 +161,7 @@ console.log(JSON.stringify({
   componentRegistry: registryById.size,
   referencedVisualIds: referencedVisualIds.size,
   ocinCandidateReferences: ocinCandidateCount,
+  deterministicExamples: 2,
   topologyAuthority: index.topology_authority,
   registryStatus: registry.status,
 }, null, 2));
