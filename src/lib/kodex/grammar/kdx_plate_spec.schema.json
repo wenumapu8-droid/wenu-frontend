@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodex.local/schema/kdx-plate-spec-v0.1.json",
+  "title": "KODEX PlateSpec v0.1",
+  "description": "Deterministic pre-render contract for the three primary KODEX plate physics. Status: IMPLEMENTED_CANDIDATE; schema does not promote visual/canon decisions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "plate_id", "plate_type", "version", "seed", "scene_state", "semantic_node",
+    "observer_lens", "communication_mode", "primary_payload", "macro_signal", "slots",
+    "allowed_element_families", "copy_slots", "motion_profile", "activation_profile",
+    "route_slate", "provenance_refs", "responsive_profile", "fallback_profile", "qa_requirements"
+  ],
+  "properties": {
+    "plate_id": { "type": "string", "pattern": "^KDX-PLATE-[A-Z0-9_-]+$" },
+    "plate_type": { "type": "string", "enum": ["KNOWLEDGE_PLATE", "JUNCTION_PLATE", "ACTIVATOR_PLATE"] },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "seed": { "type": ["string", "integer"] },
+    "scene_state": { "type": "string", "minLength": 2 },
+    "semantic_node": { "type": "string", "minLength": 2 },
+    "observer_lens": { "type": "string", "enum": ["MICROSCOPE", "MAGNIFIER", "NAKED_EYE", "SYSTEM", "TELEPHOTO", "SATELLITE", "TELESCOPE", "META"] },
+    "communication_mode": { "type": "string", "minLength": 2 },
+    "primary_payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["payload_type", "payload_ref", "status"],
+      "properties": {
+        "payload_type": { "type": "string", "enum": ["CONCEPT", "ARTWORK", "DIAGRAM", "DOCUMENT", "OBJECT", "FIELD", "MAP", "TYPE"] },
+        "payload_ref": { "type": "string", "minLength": 2 },
+        "status": { "type": "string", "enum": ["VERIFIED", "CANONICAL", "CANON_CANDIDATE", "IMPLEMENTED_CANDIDATE", "NEEDS_CONFIRMATION"] }
+      }
+    },
+    "macro_signal": { "type": "string", "maxLength": 120 },
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["slot_id", "slot_type", "required", "element_id"],
+        "properties": {
+          "slot_id": { "type": "string", "minLength": 2 },
+          "slot_type": { "type": "string", "minLength": 2 },
+          "required": { "type": "boolean" },
+          "element_id": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "allowed_element_families": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+    "artwork_contract": {
+      "type": ["object", "null"],
+      "properties": {
+        "artwork_id": { "type": "string" },
+        "full_view_required": { "const": true },
+        "preserve_aspect": { "const": true },
+        "crop_allowed": { "const": false },
+        "recolor_source_allowed": { "const": false },
+        "distort_source_allowed": { "const": false },
+        "source_bytes_renderable": { "type": "boolean" }
+      },
+      "required": ["artwork_id", "full_view_required", "preserve_aspect", "crop_allowed", "recolor_source_allowed", "distort_source_allowed", "source_bytes_renderable"],
+      "additionalProperties": false
+    },
+    "copy_slots": {
+      "type": "array",
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "source_ref", "status"],
+        "properties": {
+          "role": { "type": "string", "enum": ["MACRO_SIGNAL", "TITLE", "DECK", "BODY", "LABEL", "EVIDENCE", "CAPTION", "CTA", "TELEMETRY", "SOURCE_NOTE"] },
+          "source_ref": { "type": "string", "minLength": 2 },
+          "status": { "type": "string", "enum": ["VERIFIED", "CANONICAL", "CANON_CANDIDATE", "PROPOSED", "NEEDS_CONFIRMATION"] }
+        }
+      }
+    },
+    "motion_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["element_ids", "high_priority_count"],
+      "properties": {
+        "element_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "high_priority_count": { "type": "integer", "minimum": 0, "maximum": 2 }
+      }
+    },
+    "activation_profile": {
+      "type": ["object", "null"],
+      "properties": {
+        "activation_id": { "type": "string" },
+        "explicit_action_required": { "type": "boolean" },
+        "environment_only": { "type": "boolean" }
+      },
+      "required": ["activation_id", "explicit_action_required", "environment_only"],
+      "additionalProperties": false
+    },
+    "route_slate": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["target_node", "role"],
+        "properties": {
+          "target_node": { "type": "string" },
+          "role": { "type": "string", "enum": ["CONTINUITY", "BRIDGE", "ECHO", "SERENDIPITY", "RETURN"] }
+        }
+      }
+    },
+    "provenance_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } },
+    "responsive_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["desktop", "mobile", "primary_shell"],
+      "properties": {
+        "desktop": { "type": "string" },
+        "mobile": { "type": "string" },
+        "primary_shell": { "const": "100dvh" }
+      }
+    },
+    "fallback_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reduced_motion", "no_webgl"],
+      "properties": {
+        "reduced_motion": { "type": "string" },
+        "no_webgl": { "type": "string" }
+      }
+    },
+    "qa_requirements": {
+      "type": "array",
+      "minItems": 5,
+      "uniqueItems": true,
+      "items": { "type": "string", "enum": ["SCHEMA", "PROVENANCE", "RIGHTS", "NO_CROP", "100DVH", "NO_PAGE_SCROLL", "MOBILE", "KEYBOARD", "FOCUS", "REDUCED_MOTION", "NO_WEBGL_FALLBACK", "PERFORMANCE", "DETERMINISM", "ROUTE_BOUNDS"] }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "plate_type": { "const": "KNOWLEDGE_PLATE" } }, "required": ["plate_type"] },
+      "then": {
+        "properties": {
+          "route_slate": { "maxItems": 5 },
+          "qa_requirements": { "contains": { "const": "PROVENANCE" } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "plate_type": { "const": "JUNCTION_PLATE" } }, "required": ["plate_type"] },
+      "then": {
+        "properties": {
+          "route_slate": { "minItems": 2, "maxItems": 5 },
+          "qa_requirements": { "contains": { "const": "ROUTE_BOUNDS" } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "plate_type": { "const": "ACTIVATOR_PLATE" } }, "required": ["plate_type"] },
+      "then": {
+        "required": ["artwork_contract"],
+        "properties": {
+          "primary_payload": { "properties": { "payload_type": { "const": "ARTWORK" } } },
+          "artwork_contract": { "type": "object" },
+          "activation_profile": { "type": "object", "properties": { "environment_only": { "const": true } } },
+          "qa_requirements": { "contains": { "const": "NO_CROP" } }
+        }
+      }
+    }
+  ],
+  "x-kodex-invariants": {
+    "all": [
+      "All element_id references must resolve to registered ElementContracts before rendering.",
+      "Hard provenance/rights/status gates execute before compatibility scoring.",
+      "Primary journey shell is 100dvh; reading overflow belongs in an explicit reader/overlay state.",
+      "Motion is never required to understand state or navigation.",
+      "high_priority_count <= 2."
+    ],
+    "KNOWLEDGE_PLATE": ["One dominant comprehensible payload.", "Evidence/copy must retain source links."],
+    "JUNCTION_PLATE": ["Expose 2–5 safe meaningful doors.", "Never auto-navigate or manufacture unsafe choices."],
+    "ACTIVATOR_PLATE": ["One intact Ocín artwork dominates at rest.", "Source crop/recolor/distortion are prohibited.", "Activation is an environment/derivative layer, never silent source mutation."]
+  }
+}
