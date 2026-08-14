@@ -1,0 +1,185 @@
+---
+interface Props {
+  id?: string;
+}
+const { id = 'kdx-holocore-renderer-host' } = Astro.props;
+---
+
+<figure class="kdx-host" id={id} data-kdx-holocore-host>
+  <header class="kdx-host__bar" aria-hidden="true">
+    <span>HOLOCORE // RENDERER HOST</span>
+    <span data-host-state>DORMANT</span>
+  </header>
+
+  <div class="kdx-host__viewport" data-host-viewport>
+    <canvas class="kdx-host__canvas" data-host-canvas role="img"></canvas>
+    <div class="kdx-host__grid" aria-hidden="true"></div>
+    <div class="kdx-host__meta" aria-hidden="true">
+      <strong data-host-title>RESOLVING</strong>
+      <span>RENDERER · <b data-host-renderer>—</b></span>
+      <span>MATERIAL · <b data-host-materiality>—</b></span>
+      <span>TIME · <b data-host-temporal>—</b></span>
+      <span>SEAM · <b data-host-seam>—</b></span>
+      <span>SURFACE · <b data-host-surface>—</b></span>
+    </div>
+    <div class="kdx-host__boot" data-host-boot aria-hidden="true"><span>RESOLVING RENDER PLAN</span></div>
+  </div>
+
+  <footer class="kdx-host__footer" aria-hidden="true">
+    <span data-host-id>—</span>
+    <span data-host-mode>MODE —</span>
+    <span data-host-frame>FRAME —</span>
+  </footer>
+
+  <figcaption data-host-caption>
+    Internal KODEX multi-renderer HoloCore host. Renderer selection is a lab proof, not a canonical node assignment.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiFieldAdapter } from '../../../kodex/holocore/renderers/AsciiFieldAdapter.js';
+  import { createRasterSignalAdapter } from '../../../kodex/holocore/renderers/registry.js';
+  import { WebGLSourceShaderRenderer } from '../../../kodex/holocore/renderers/WebGLSourceShaderRenderer.js';
+  import { resolveHoloCoreHostPlan } from '../../../kodex/holocore/renderers/host-plan.js';
+
+  const instances = new WeakMap();
+
+  function requestFromLocation() {
+    const url = new URL(window.location.href);
+    return {
+      rendererId: url.searchParams.get('renderer') || 'ascii-field',
+      specimenId: url.searchParams.get('specimen') || 'orbital-city',
+    };
+  }
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+    const canvas = root.querySelector('[data-host-canvas]');
+    const viewport = root.querySelector('[data-host-viewport]');
+    if (!(canvas instanceof HTMLCanvasElement) || !(viewport instanceof HTMLElement)) return;
+
+    const requested = requestFromLocation();
+    const plan = resolveHoloCoreHostPlan(requested.rendererId, requested.specimenId);
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const stateEl = root.querySelector('[data-host-state]');
+    const titleEl = root.querySelector('[data-host-title]');
+    const rendererEl = root.querySelector('[data-host-renderer]');
+    const materialityEl = root.querySelector('[data-host-materiality]');
+    const temporalEl = root.querySelector('[data-host-temporal]');
+    const seamEl = root.querySelector('[data-host-seam]');
+    const surfaceEl = root.querySelector('[data-host-surface]');
+    const idEl = root.querySelector('[data-host-id]');
+    const modeEl = root.querySelector('[data-host-mode]');
+    const frameEl = root.querySelector('[data-host-frame]');
+    const bootEl = root.querySelector('[data-host-boot]');
+    const captionEl = root.querySelector('[data-host-caption]');
+
+    root.dataset.rendererKind = plan.rendererKind;
+    root.dataset.temporalContract = plan.temporalContract.toLowerCase();
+    root.dataset.seamlessLoopClaim = String(plan.seamlessLoopClaim);
+    root.dataset.reducedMotion = String(reducedMotion);
+    root.style.setProperty('--host-accent', plan.accent);
+
+    if (titleEl) titleEl.textContent = plan.specimenTitle;
+    if (rendererEl) rendererEl.textContent = plan.rendererKind;
+    if (materialityEl) materialityEl.textContent = plan.materiality;
+    if (temporalEl) temporalEl.textContent = plan.temporalContract;
+    if (seamEl) seamEl.textContent = plan.seamlessLoopClaim ? 'CLOSED' : 'NO CLAIM';
+    if (surfaceEl) surfaceEl.textContent = plan.surfaceKind;
+    if (idEl) idEl.textContent = plan.specimenId || plan.rendererKind;
+    if (captionEl) captionEl.textContent = `${plan.specimenTitle}. ${plan.label}. Internal KODEX renderer-host proof; no canonical node assignment is implied.`;
+    canvas.setAttribute('aria-label', `${plan.specimenTitle} rendered with ${plan.label}`);
+
+    const setState = value => {
+      root.dataset.state = value.toLowerCase();
+      if (stateEl) stateEl.textContent = value;
+    };
+
+    setState('RESOLVING');
+
+    let adapter;
+    if (plan.rendererKind === 'ascii-field') {
+      adapter = new AsciiFieldAdapter(canvas, {
+        specimenId: plan.specimenId || 'orbital-city',
+        profile: 'balanced',
+        reducedMotion,
+      });
+    } else if (plan.rendererKind === 'raster2d-lowres') {
+      adapter = createRasterSignalAdapter({ canvas, container: viewport, reducedMotion });
+    } else {
+      adapter = new WebGLSourceShaderRenderer(canvas, { reducedMotion });
+    }
+
+    adapter.start();
+
+    const stableLabel = plan.seamlessLoopClaim ? 'STABLE LOOP' : 'STABLE FIELD';
+    const settleTimer = window.setTimeout(() => {
+      setState(stableLabel);
+      root.classList.add('is-stable');
+      bootEl?.setAttribute('hidden', '');
+    }, reducedMotion ? 260 : 780);
+
+    let metricTimer = 0;
+    const updateMetrics = () => {
+      const adapterMode =
+        plan.rendererKind === 'raster2d-lowres'
+          ? (viewport.dataset.surfaceMode || 'source-canvas')
+          : (adapter.mode || canvas.dataset.rendererMode || plan.rendererKind);
+      root.dataset.rendererMode = adapterMode;
+      if (modeEl) modeEl.textContent = `MODE ${String(adapterMode).toUpperCase()}`;
+      if (frameEl) frameEl.textContent = `FRAME ${canvas.dataset.frameCount || '—'}`;
+      metricTimer = window.setTimeout(updateMetrics, 400);
+    };
+    updateMetrics();
+
+    const destroy = () => {
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(metricTimer);
+      adapter.destroy();
+      instances.delete(root);
+    };
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-holocore-host]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-holocore-host]').forEach(root => instances.get(root)?.destroy());
+  });
+</script>
+
+<style>
+  .kdx-host {
+    --host-accent: #a06cff;
+    --host-line: color-mix(in srgb, var(--host-accent) 35%, #fff 7%);
+    box-sizing: border-box;
+    position: relative;
+    display: grid;
+    grid-template-rows: 30px minmax(0,1fr) 30px;
+    width: 100%; height: 100%; min-height: 0; margin: 0;
+    overflow: hidden; background: #020205; color: #ece7f4;
+    border: 1px solid var(--host-line);
+  }
+  .kdx-host__bar,.kdx-host__footer {
+    z-index: 8; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 10px;
+    font:500 8px/1 'Share Tech Mono',ui-monospace,monospace; letter-spacing:.13em; text-transform:uppercase;
+    color:rgba(235,226,245,.56); background:rgba(2,2,5,.95);
+  }
+  .kdx-host__bar{border-bottom:1px solid var(--host-line)}
+  .kdx-host__footer{border-top:1px solid var(--host-line)}
+  .kdx-host__viewport{position:relative;min-height:0;overflow:hidden;background:#05030b}
+  .kdx-host__canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%;display:block}
+  .kdx-host__viewport[data-surface-mode='webgl-crt'] .kdx-host__canvas{opacity:.2}
+  .kdx-host__grid{position:absolute;z-index:4;inset:0;pointer-events:none;opacity:.075;background-image:linear-gradient(color-mix(in srgb,var(--host-accent) 16%,transparent) 1px,transparent 1px),linear-gradient(90deg,color-mix(in srgb,var(--host-accent) 12%,transparent) 1px,transparent 1px);background-size:36px 36px;mask-image:radial-gradient(circle at center,#000 18%,transparent 90%)}
+  .kdx-host__meta{position:absolute;z-index:6;top:14px;right:14px;display:grid;justify-items:end;gap:5px;max-width:48%;text-align:right;font:500 7px/1.15 'Share Tech Mono',ui-monospace,monospace;letter-spacing:.1em;color:rgba(220,210,235,.52);text-shadow:0 1px 2px #000}
+  .kdx-host__meta strong{color:#f2edf7;font-weight:500}.kdx-host__meta b{color:var(--host-accent);font-weight:500}
+  .kdx-host__boot{position:absolute;z-index:7;inset:0;display:grid;place-items:center;background:#020205;transition:opacity .4s ease}.kdx-host__boot[hidden]{opacity:0;visibility:hidden}.kdx-host__boot span{font:500 9px/1 'Share Tech Mono',ui-monospace,monospace;letter-spacing:.2em;color:var(--host-accent)}
+  .kdx-host>figcaption{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media(max-width:700px){.kdx-host{grid-template-rows:28px minmax(0,1fr) 28px}.kdx-host__bar,.kdx-host__footer{font-size:6px;padding:0 7px}.kdx-host__meta{font-size:6px;top:10px;right:10px;max-width:56%}}
+  @media(prefers-reduced-motion:reduce){.kdx-host__boot{transition:none}}
+</style>
