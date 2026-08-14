@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../docs/kodex/visual-assembly');
-const packsDir = path.join(root, 'scene-packs');
 
 const fail = (message) => {
   console.error(`KODEX Visual Assembly contract FAIL: ${message}`);
@@ -27,6 +26,7 @@ const readJson = (file) => {
 const index = readJson('scene-packs/INDEX.json');
 const recipes = readJson('layout_recipes.json');
 const schema = readJson('assembly_candidate.schema.json');
+const registry = readJson('visual_component_registry.json');
 
 assert(index.schema === 'kdx.visual-scene-pack.v0.2', 'unexpected scene-pack schema');
 assert(index.topology_authority === false, 'visual scene packs must never claim canonical topology authority');
@@ -39,6 +39,30 @@ for (const recipe of recipes) {
   assert(/^RCP-[A-Z0-9-]+$/.test(recipe.id), `invalid recipe ID ${recipe.id}`);
   assert(Array.isArray(recipe.layer_order) && recipe.layer_order.length > 0, `${recipe.id} needs a layer order`);
   assert(recipe.accent_limit === 1, `${recipe.id} must preserve single-accent discipline in v0.2`);
+}
+
+assert(registry.schema === 'kdx.visual-component-registry.v0.2', 'unexpected visual component registry schema');
+assert(registry.status === 'RESERVED_PENDING_CANONICAL_MERGE', 'component registry must remain pending canonical merge');
+assert(registry.component_count === 77, 'v0.2 component registry must contain 77 components');
+assert(Array.isArray(registry.components) && registry.components.length === registry.component_count, 'component_count differs from registry length');
+assert(registry.shared_policy?.source_class === 'GENERATED', 'visual components must remain explicitly GENERATED');
+assert(registry.shared_policy?.epistemic_status === 'SPECULATIVE', 'visual components must remain explicitly SPECULATIVE');
+assert(registry.shared_policy?.production_gate === 'READY_CONDITIONAL', 'visual components must remain READY_CONDITIONAL');
+assert(registry.shared_policy?.forbidden_transformations?.includes('claim_as_traditional_symbol'), 'registry must prohibit traditional-symbol claims');
+assert(registry.shared_policy?.forbidden_transformations?.includes('use_as_scientific_evidence'), 'registry must prohibit scientific-evidence claims');
+
+const registryById = new Map();
+const registrySlugs = new Set();
+for (const [indexNumber, component] of registry.components.entries()) {
+  const expectedId = `KDX-VIS-${String(indexNumber + 1).padStart(4, '0')}`;
+  assert(component.id === expectedId, `component sequence break: expected ${expectedId}, found ${component.id}`);
+  assert(/^KDX-VIS-[0-9]{4}$/.test(component.id), `invalid component ID ${component.id}`);
+  assert(typeof component.slug === 'string' && component.slug.length > 0, `${component.id} missing slug`);
+  assert(typeof component.family === 'string' && component.family.length > 0, `${component.id} missing family`);
+  assert(!registryById.has(component.id), `duplicate component ID ${component.id}`);
+  assert(!registrySlugs.has(component.slug), `duplicate component slug ${component.slug}`);
+  registryById.set(component.id, component);
+  registrySlugs.add(component.slug);
 }
 
 const visualModes = new Set();
@@ -61,6 +85,10 @@ for (const ref of index.packs) {
   for (const component of pack.component_shortlist) {
     assert(/^KDX-VIS-[0-9]{4}$/.test(component.stable_id), `${pack.visual_mode} has invalid KDX-VIS ID ${component.stable_id}`);
     assert(component.production_gate === 'READY_CONDITIONAL', `${component.stable_id} must remain conditional before canonical merge`);
+    const registered = registryById.get(component.stable_id);
+    assert(registered, `${pack.visual_mode} references unregistered component ${component.stable_id}`);
+    assert(registered.slug === component.slug, `${component.stable_id} slug mismatch: pack=${component.slug}, registry=${registered.slug}`);
+    assert(registered.family === component.family, `${component.stable_id} family mismatch: pack=${component.family}, registry=${registered.family}`);
     referencedVisualIds.add(component.stable_id);
   }
   assert(Array.isArray(pack.ocin_candidates), `${pack.visual_mode} ocin_candidates must be an array`);
@@ -81,7 +109,9 @@ console.log(JSON.stringify({
   ok: true,
   visualModes: visualModes.size,
   recipes: recipeIds.size,
+  componentRegistry: registryById.size,
   referencedVisualIds: referencedVisualIds.size,
   ocinCandidateReferences: ocinCandidateCount,
   topologyAuthority: index.topology_authority,
+  registryStatus: registry.status,
 }, null, 2));
