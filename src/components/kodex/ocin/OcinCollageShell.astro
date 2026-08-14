@@ -1,0 +1,100 @@
+---
+import OcinArtworkTile from './OcinArtworkTile.astro';
+import {
+  getOcinCollageAsset,
+  type OcinCollagePage,
+} from '../../../lib/kodex/ocin/collage-pages-v1';
+
+interface Props {
+  page: OcinCollagePage;
+  reviewMode?: boolean;
+}
+
+const { page, reviewMode = false } = Astro.props;
+const hero = getOcinCollageAsset(page.heroId);
+const supporting = page.supportingIds.map(getOcinCollageAsset);
+const publicReady = [hero, ...supporting].every((asset) => Boolean(asset.productionSrc));
+---
+
+<main class="ocx" data-variant={page.variant} data-public-ready={String(publicReady)}>
+  <header class="ocx__topbar">
+    <a class="ocx__brand" href="/kodex/lab/ocin-collage/" aria-label="KODEX Ocín collage lab home">KODEX−∞</a>
+    <span class="ocx__descriptor">A LIVING ARCHIVE OF ORIGINAL SYSTEMS</span>
+    <span class="ocx__slashes" aria-hidden="true">///</span>
+    <span class="ocx__signal"><i aria-hidden="true"></i> SIGNAL / MEMORY / MUTATION</span>
+    <span class="ocx__origin">OCÍN ORIGINALS<br /><strong>ORIGINALS ONLY</strong></span>
+  </header>
+
+  <aside class="ocx__rail" aria-label="Plate metadata">
+    <span>PRIMARY ARCHIVE PLATE</span>
+    <strong>{page.plate}</strong>
+    <span>{page.variant.toUpperCase()}</span>
+  </aside>
+
+  <section class="ocx__intro" aria-labelledby="ocx-title">
+    <p class="ocx__eyebrow">{page.kicker}</p>
+    <h1 id="ocx-title">{page.title}</h1>
+    <p class="ocx__description">{page.description}</p>
+
+    <div class="ocx__state-grid" aria-label="KODEX collage state">
+      <div><span>COLLECTION STATE</span><strong>LIVE ARCHIVE</strong><small>INTACT</small></div>
+      <div><span>ROUTE MODE</span><strong>{page.routeMode}</strong><small>NO ALTERATION</small></div>
+    </div>
+
+    <dl class="ocx__rules">
+      <div><dt>DISPLAY RULE</dt><dd>FIT / PRESERVE ASPECT / FRAME ONLY</dd></div>
+      <div><dt>CONTENT RULE</dt><dd>NO REDRAW / NO RECOLOR / NO GENERATED SUBSTITUTE</dd></div>
+      <div><dt>METADATA</dt><dd>PROVENANCE + NAVIGATION ONLY</dd></div>
+    </dl>
+
+    <a class="ocx__cta" href="#archive-selection">
+      <span>{page.cta}</span><span aria-hidden="true">↗</span>
+    </a>
+  </section>
+
+  <section class="ocx__hero" aria-label={`Featured original: ${hero.title}`}>
+    <OcinArtworkTile asset={hero} reviewMode={reviewMode} hero={true} eager={true} />
+  </section>
+
+  <section id="archive-selection" class="ocx__selection" aria-label="Ocín original artwork selection">
+    <header class="ocx__selection-header">
+      <span>ARCHIVE SELECTION</span>
+      <span>[ {String(supporting.length).padStart(2, '0')} OF ∞ ]</span>
+      <a href="/kodex/lab/ocin-authorial/">VIEW AUTHORIAL REGISTRY ↗</a>
+    </header>
+    <div class="ocx__tiles">
+      {supporting.map((asset, index) => (
+        <OcinArtworkTile asset={asset} reviewMode={reviewMode} index={index + 1} />
+      ))}
+    </div>
+  </section>
+
+  <aside class="ocx__index" aria-label="Archive index">
+    <h2>ARCHIVE INDEX</h2>
+    <ol>
+      {supporting.map((asset, index) => (
+        <li><span>{String(index + 1).padStart(2, '0')}</span><strong>{asset.title}</strong></li>
+      ))}
+    </ol>
+    <div class="ocx__index-rule">
+      <span>DISPLAY</span><strong>FIT / PRESERVE</strong>
+      <span>ORIGIN</span><strong>OCÍN ORIGINALS</strong>
+    </div>
+  </aside>
+
+  <footer class="ocx__footer">
+    <div><span>PLATE</span><strong>{page.plate}</strong><small>{page.title}</small></div>
+    <div><span>ORIGINALS</span><strong>{String(new Set([hero.id, ...supporting.map((asset) => asset.id)]).size).padStart(2, '0')}</strong><small>VERIFIED SOURCE RECORDS</small></div>
+    <div><span>ART STATE</span><strong>LOCKED</strong><small>NO ARTISTIC TRANSFORM</small></div>
+    <div><span>ASSET GATE</span><strong class:list={{ 'ocx__ready': publicReady }}>{publicReady ? 'PUBLIC READY' : 'VENDORING PENDING'}</strong><small>{reviewMode ? 'REVIEW SOURCE ACTIVE' : 'PUBLIC SOURCE ONLY'}</small></div>
+    <div><span>PROVENANCE</span><strong>OCÍN</strong><small>AUTHORIAL SOURCE</small></div>
+  </footer>
+
+  {reviewMode && (
+    <div class="ocx__review-banner" role="status">
+      INTERNAL REVIEW MODE · REMOTE DRIVE SOURCE · NOINDEX · DO NOT SHIP THIS SOURCE MODE
+    </div>
+  )}
+</main>
+
+<link rel="stylesheet" href="/assets/kodex/kodex-tokens.css" />
