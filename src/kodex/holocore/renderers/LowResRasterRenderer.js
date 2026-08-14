@@ -21,10 +21,6 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
 
-function lerp(a, b, t) {
-  return a + (b - a) * t;
-}
-
 function lcg(seed) {
   let state = seed >>> 0;
   return () => {
@@ -125,7 +121,7 @@ export class LowResRasterRenderer {
     this.reducedMotion = options.reducedMotion ?? matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.staticPhaseMs = options.staticPhaseMs ?? 8_880;
     this.frameInterval = 1000 / this.fps;
-    this.lastFrame = -Infinity;
+    this.lastFrame = 0;
     this.running = false;
     this.destroyed = false;
     this.raf = 0;
@@ -165,6 +161,8 @@ export class LowResRasterRenderer {
       this.running = false;
       return;
     }
+    this.lastFrame = performance.now();
+    this.draw(this.lastFrame);
     this.raf = requestAnimationFrame(time => this.render(time));
   }
 
@@ -177,8 +175,9 @@ export class LowResRasterRenderer {
   render(milliseconds) {
     if (!this.running || this.destroyed) return;
     this.raf = requestAnimationFrame(time => this.render(time));
-    if (milliseconds - this.lastFrame < this.frameInterval) return;
-    this.lastFrame = milliseconds - ((milliseconds - this.lastFrame) % this.frameInterval);
+    const elapsed = milliseconds - this.lastFrame;
+    if (elapsed < this.frameInterval) return;
+    this.lastFrame = milliseconds - (elapsed % this.frameInterval);
     this.draw(milliseconds);
   }
 
@@ -191,7 +190,6 @@ export class LowResRasterRenderer {
     ctx.fillStyle = palette[0];
     ctx.fillRect(0, 0, width, height);
 
-    // Deterministic star field: fixed spatial samples, looped intensity/depth only.
     for (const star of this.stars) {
       const travel = (state.phase / TAU) * 18 * star.depth;
       const x = Math.round((star.x + travel) % width);
@@ -207,7 +205,6 @@ export class LowResRasterRenderer {
     const centerX = Math.round(width * (0.5 + state.pointerX * 0.6));
     const centerY = Math.round(height * (0.49 + state.pointerY * 0.5));
 
-    // Raster bars remain secondary; their positions are phase-locked to the exact loop.
     for (let index = 0; index < 5; index += 1) {
       const offset = Math.sin(state.phase * (index % 2 ? 2 : 1) + index * 1.7) * 7;
       const y = Math.round(centerY - 46 + index * 23 + offset);
@@ -218,7 +215,6 @@ export class LowResRasterRenderer {
     }
     ctx.globalAlpha = 1;
 
-    // Central synthetic object: common octahedral geometry, not a copied source model.
     const projected = OCTA_VERTICES.map(vertex => projectVertex(
       vertex,
       state.objectYaw,
@@ -243,7 +239,6 @@ export class LowResRasterRenderer {
     }
     ctx.globalAlpha = 1;
 
-    // Concentric signal cage with integer-snapped radii.
     const ringRadii = [state.ringRadius, state.ringRadius + 9, state.ringRadius + 22];
     ringRadii.forEach((radius, index) => {
       ctx.strokeStyle = palette[index === 0 ? 5 : index === 1 ? 4 : 3];
@@ -254,7 +249,6 @@ export class LowResRasterRenderer {
     });
     ctx.globalAlpha = 1;
 
-    // Local palette-cycle signal markers; deliberately KODEX content, not source typography.
     const markerColor = palette[2 + (state.paletteIndex % 4)];
     ctx.fillStyle = markerColor;
     ctx.font = '8px monospace';
@@ -262,7 +256,6 @@ export class LowResRasterRenderer {
     ctx.fillText(`PH ${String(Math.round((state.phase / TAU) * 999)).padStart(3, '0')}`, 10, height - 12);
     ctx.fillText('320×240 / 15FPS', width - 100, height - 12);
 
-    // One bounded sync line. No rapid flashing; it crosses the frame once per 24 s loop.
     ctx.globalAlpha = 0.22;
     ctx.fillStyle = palette[4];
     ctx.fillRect(0, state.scanY, width, 1);
