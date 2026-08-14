@@ -1,0 +1,343 @@
+---
+interface Props {
+  id?: string;
+  label?: string;
+  specimen?: 'orbital-city';
+  profile?: 'full' | 'balanced' | 'low';
+  accent?: string;
+}
+
+const {
+  id = 'kdx-holocore',
+  label = 'KODEX HoloCore · orbital city signal-resolved specimen',
+  specimen = 'orbital-city',
+  profile = 'balanced',
+  accent = '#a06cff',
+} = Astro.props;
+---
+
+<figure
+  class="kdx-holocore"
+  id={id}
+  data-kdx-holocore
+  data-specimen={specimen}
+  data-profile={profile}
+  style={`--holocore-accent:${accent}`}
+>
+  <header class="kdx-holocore__bar" aria-hidden="true">
+    <span>HOLOCORE // CONCEPT MATERIALIZATION CHAMBER</span>
+    <span data-holocore-state>DORMANT</span>
+  </header>
+
+  <div class="kdx-holocore__viewport">
+    <canvas
+      class="kdx-holocore__canvas"
+      data-holocore-canvas
+      role="img"
+      aria-label={label}
+    ></canvas>
+
+    <div class="kdx-holocore__grid" aria-hidden="true"></div>
+    <div class="kdx-holocore__scan" aria-hidden="true"></div>
+    <div class="kdx-holocore__vignette" aria-hidden="true"></div>
+    <div class="kdx-holocore__axis kdx-holocore__axis--x" aria-hidden="true"></div>
+    <div class="kdx-holocore__axis kdx-holocore__axis--y" aria-hidden="true"></div>
+
+    <span class="kdx-holocore__corner kdx-holocore__corner--tl" aria-hidden="true"></span>
+    <span class="kdx-holocore__corner kdx-holocore__corner--tr" aria-hidden="true"></span>
+    <span class="kdx-holocore__corner kdx-holocore__corner--bl" aria-hidden="true"></span>
+    <span class="kdx-holocore__corner kdx-holocore__corner--br" aria-hidden="true"></span>
+
+    <div class="kdx-holocore__telemetry" aria-hidden="true">
+      <span>ASCII PROJECTION</span>
+      <span>PHASE 24.00 S</span>
+      <span>LOOP ∞</span>
+    </div>
+
+    <div class="kdx-holocore__boot" data-holocore-boot aria-hidden="true">
+      <span>ACQUIRING SIGNAL</span>
+    </div>
+  </div>
+
+  <footer class="kdx-holocore__footer" aria-hidden="true">
+    <span>FORM → SIGNAL → RESOLUTION</span>
+    <span data-holocore-fps>-- FPS</span>
+    <span>BOUNDED VIEWPORT</span>
+  </footer>
+
+  <figcaption class="kdx-holocore__caption">
+    Procedural ASCII visualization. Motion is ambient and does not carry required content.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiRenderer } from '../../../kodex/ascii/engine/AsciiRenderer.js';
+  import { holocoreOrbitalScene } from '../../../kodex/ascii/scenes/holocore-orbital.js';
+
+  const instances = new WeakMap();
+
+  function mountHoloCore(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+
+    const canvas = root.querySelector('[data-holocore-canvas]');
+    const state = root.querySelector('[data-holocore-state]');
+    const fps = root.querySelector('[data-holocore-fps]');
+    const boot = root.querySelector('[data-holocore-boot]');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+
+    const renderer = new AsciiRenderer(canvas, {
+      scene: holocoreOrbitalScene,
+      profile: root.dataset.profile || 'balanced',
+      glyphSet: 'kodex',
+      palette: ['#030208', '#151024', '#33204e', '#613b89', '#a06cff', '#eee7ff'],
+    });
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let fpsTimer = 0;
+    let destroyed = false;
+
+    const setState = value => {
+      root.dataset.state = value.toLowerCase();
+      if (state) state.textContent = value;
+    };
+
+    setState('BOOT');
+    requestAnimationFrame(() => root.classList.add('is-powered'));
+
+    const resolveDelay = reduced ? 0 : 520;
+    window.setTimeout(() => {
+      if (destroyed) return;
+      setState('RESOLVING');
+      renderer.start();
+    }, resolveDelay);
+
+    const stableDelay = reduced ? 0 : 1250;
+    window.setTimeout(() => {
+      if (destroyed) return;
+      setState('STABLE LOOP');
+      root.classList.add('is-stable');
+      boot?.setAttribute('hidden', '');
+    }, stableDelay);
+
+    const updateFps = () => {
+      if (destroyed) return;
+      if (fps) fps.textContent = `${renderer.fps || '--'} FPS`;
+      fpsTimer = window.setTimeout(updateFps, 1000);
+    };
+    updateFps();
+
+    const destroy = () => {
+      destroyed = true;
+      window.clearTimeout(fpsTimer);
+      renderer.destroy();
+      instances.delete(root);
+    };
+
+    instances.set(root, { destroy });
+  }
+
+  function mountAllHoloCores() {
+    document.querySelectorAll('[data-kdx-holocore]').forEach(mountHoloCore);
+  }
+
+  mountAllHoloCores();
+  document.addEventListener('astro:page-load', mountAllHoloCores);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-holocore]').forEach(root => {
+      instances.get(root)?.destroy();
+    });
+  });
+</script>
+
+<style>
+  .kdx-holocore {
+    --holocore-line: color-mix(in srgb, var(--holocore-accent) 38%, #ffffff 8%);
+    --holocore-dim: color-mix(in srgb, var(--holocore-accent) 22%, transparent);
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    color: #ddd7e8;
+    background: #020205;
+    border: 1px solid var(--holocore-line);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.025), 0 0 34px rgba(101,61,145,.08);
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .kdx-holocore__bar,
+  .kdx-holocore__footer {
+    position: relative;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 28px;
+    padding: 0 10px;
+    border-color: var(--holocore-line);
+    font: 500 9px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #8f889a;
+  }
+
+  .kdx-holocore__bar { border-bottom: 1px solid var(--holocore-line); }
+  .kdx-holocore__footer { border-top: 1px solid var(--holocore-line); }
+
+  .kdx-holocore__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: #030208;
+  }
+
+  .kdx-holocore__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    opacity: 0;
+    filter: saturate(.82) contrast(1.08);
+    transform: scale(.985);
+    transition: opacity .55s ease, transform 1.1s cubic-bezier(.2,.75,.15,1), filter .9s ease;
+  }
+
+  .is-powered .kdx-holocore__canvas { opacity: .55; }
+  .is-stable .kdx-holocore__canvas {
+    opacity: 1;
+    transform: scale(1);
+    filter: saturate(1) contrast(1.14) drop-shadow(0 0 6px color-mix(in srgb, var(--holocore-accent) 24%, transparent));
+  }
+
+  .kdx-holocore__grid,
+  .kdx-holocore__scan,
+  .kdx-holocore__vignette,
+  .kdx-holocore__axis,
+  .kdx-holocore__boot {
+    position: absolute;
+    pointer-events: none;
+  }
+
+  .kdx-holocore__grid {
+    inset: 0;
+    z-index: 2;
+    opacity: .14;
+    background-image:
+      linear-gradient(rgba(183,145,255,.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(183,145,255,.08) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse at center, #000 22%, transparent 88%);
+  }
+
+  .kdx-holocore__scan {
+    z-index: 4;
+    left: 0;
+    right: 0;
+    top: -8%;
+    height: 7%;
+    opacity: .24;
+    background: linear-gradient(to bottom, transparent, var(--holocore-accent), transparent);
+    filter: blur(5px);
+    animation: holocore-scan 7s linear infinite;
+  }
+
+  .kdx-holocore__vignette {
+    inset: 0;
+    z-index: 5;
+    box-shadow: inset 0 0 90px 36px rgba(0,0,0,.78);
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,.018) 0,
+      rgba(255,255,255,.018) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+    mix-blend-mode: screen;
+    opacity: .58;
+  }
+
+  .kdx-holocore__axis { z-index: 3; opacity: .18; }
+  .kdx-holocore__axis--x {
+    left: 8%; right: 8%; top: 50%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--holocore-accent), transparent);
+  }
+  .kdx-holocore__axis--y {
+    top: 7%; bottom: 7%; left: 50%; width: 1px;
+    background: linear-gradient(transparent, var(--holocore-accent), transparent);
+  }
+
+  .kdx-holocore__corner {
+    position: absolute;
+    z-index: 7;
+    width: 18px;
+    height: 18px;
+    border-color: color-mix(in srgb, var(--holocore-accent) 54%, #fff 14%);
+    border-style: solid;
+    opacity: .7;
+  }
+  .kdx-holocore__corner--tl { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+  .kdx-holocore__corner--tr { top: 10px; right: 10px; border-width: 1px 1px 0 0; }
+  .kdx-holocore__corner--bl { bottom: 10px; left: 10px; border-width: 0 0 1px 1px; }
+  .kdx-holocore__corner--br { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+
+  .kdx-holocore__telemetry {
+    position: absolute;
+    z-index: 7;
+    top: 14px;
+    right: 14px;
+    display: grid;
+    justify-items: end;
+    gap: 5px;
+    font: 500 8px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .12em;
+    color: rgba(220,209,235,.48);
+  }
+
+  .kdx-holocore__boot {
+    inset: 0;
+    z-index: 9;
+    display: grid;
+    place-items: center;
+    background: #020205;
+    opacity: 1;
+    transition: opacity .6s ease;
+  }
+  .kdx-holocore__boot[hidden] { display: grid; opacity: 0; visibility: hidden; }
+  .kdx-holocore__boot span {
+    font: 500 9px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .24em;
+    color: var(--holocore-accent);
+    animation: holocore-pulse 1.1s steps(2, end) infinite;
+  }
+
+  .kdx-holocore__caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes holocore-scan {
+    from { transform: translateY(0); }
+    to { transform: translateY(1550%); }
+  }
+
+  @keyframes holocore-pulse {
+    0%, 44% { opacity: .35; }
+    45%, 100% { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-holocore__canvas { transition: none; opacity: 1; transform: none; }
+    .kdx-holocore__scan,
+    .kdx-holocore__boot span { animation: none; }
+    .kdx-holocore__scan { top: 48%; opacity: .08; }
+  }
+</style>
