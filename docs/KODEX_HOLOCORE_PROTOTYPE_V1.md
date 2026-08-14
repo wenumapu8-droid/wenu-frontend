@@ -1,27 +1,28 @@
-# KODEX HoloCore Prototype v0.1
+# KODEX HoloCore Prototype v0.2
 
 Date: 2026-08-14  
-Status: **IMPLEMENTED LAB PROTOTYPE / NOT PUBLIC / NOT DEPLOYED**  
+Status: **IMPLEMENTED + BROWSER VERIFIED / CREATOR VISUAL REVIEW PENDING / NOT PUBLIC / NOT DEPLOYED**  
 Route: `/kodex/lab/holocore/`  
-Branch: `feat/kodex-holocore-prototype-v1`
+Branch: `feat/kodex-holocore-prototype-v1`  
+PR: `#63`
 
 ## Purpose
 
-Prove one reusable version of the central KODEX visualization chamber discussed as **HoloCore**: a bounded viewport that boots, resolves a concept as machine-readable signal, maintains an ambient seamless loop, responds lightly to pointer input, and freezes to a stable phase under `prefers-reduced-motion`.
+Prove one reusable central KODEX visualization chamber: a bounded viewport that boots, resolves a concept as machine-readable signal, sustains a seamless ambient loop, reacts lightly to pointer input, and becomes a stable static phase under `prefers-reduced-motion`.
 
-The prototype concept is **ORBITAL CITY**. It is not a factual engineering model. It is a KODEX speculative visualization implemented as a procedural ASCII field.
+Prototype specimen: **ORBITAL CITY**. It is a KODEX speculative visualization, not a factual engineering model.
 
 ## Thesis / design contract
 
-**CANONICAL DIRECTION:** `KODEX does not merely display an object; the HoloCore materializes a reading of it.`
+**CANONICAL FOR THIS PROTOTYPE:** `KODEX does not merely display an object; the HoloCore materializes a reading of it.`
 
 Operational translation:
 
 `CONCEPT → SIGNAL FIELD → ASCII RESOLUTION → BOUNDED PROJECTION → LOOP → INTERACTION → RETURN TO LOOP`
 
-The ASCII layer is not used as generic retro decoration. It is the representation layer through which the machine resolves the specimen.
+The ASCII layer is a representation mechanism, not generic retro decoration.
 
-## Drive evidence used
+## Drive reference and provenance boundary
 
 Source atlas: `07A_KODEX_VISUAL_ATLAS_MASTER — Inventario, Nodos y Conexiones`  
 Spreadsheet ID: `1RLhA2xmApx1YDfHIeWjIqlYz17OHkuxFbfUXejzcS_4`  
@@ -29,149 +30,132 @@ ATLAS row: `103`
 IMAGE_ID: `KDX-ROOT-RAW-009`  
 PRIMARY_CONCEPT: `ASCII REACTOR / ENERGY CORE`  
 SCENE: `MACHINE / LAB`  
-MOTION: `core oscillation; code-field streaming; cage microflex; signal bursts`  
-INTERACTION: `modulate signal density and observe reactor stability without implying physical energy generation`  
-NEXT_ACTION: `Extract ASCII Reactor template and reusable data-dither layer`
+Referenced Drive asset: `KODEX∞ — Production Poster — ASCII Reactor.png` / file ID `1V4jYmlU4YrL-BhiQNW5otQtTVXn0KZ-d`.
 
-Referenced Drive asset: `KODEX∞ — Production Poster — ASCII Reactor.png`  
-Drive file ID: `1V4jYmlU4YrL-BhiQNW5otQtTVXn0KZ-d`.
+The poster was inspected as a **visual/system reference only**. Its pixels, exact cage morphology, labels and composition are not embedded, copied or transformed in the runtime. The implementation extracts abstract system properties: bounded technical viewport, ASCII/data-dither signal language, core/axis behavior, signal streaming, restrained telemetry and looped materialization.
 
-### Provenance boundary
+A Drive trace comment is attached to `ATLAS!S103` with the verified GitHub run and artifact identifiers.
 
-The poster was inspected as a **visual/system reference**. Its pixels are **not embedded in this runtime** and are **not transformed** by the prototype. The implementation extracts only abstract system properties: bounded technical viewport, ASCII/data-dither field, core oscillation, signal streaming, and restrained telemetry. This keeps reference and implementation separate.
-
-## GitHub evidence reused
-
-Existing implementation infrastructure reused rather than replaced:
+## Existing infrastructure reused
 
 - `src/kodex/ascii/engine/AsciiRenderer.js`
 - `src/kodex/ascii/config/glyph-sets.js`
-- existing responsive profile logic and reduced-motion freeze in `AsciiRenderer`
-- existing `/kodex/lab/` internal-route convention
+- existing responsive ASCII profiles
+- existing pointer handling and FPS budget
+- existing reduced-motion behavior
+- existing `/kodex/lab/` noindex convention
 
 No new npm dependency was added.
 
-## Files added
+## Runtime files
 
 - `src/components/kodex/holocore/KodexHoloCore.astro`
-  - bounded emulator shell;
-  - boot → resolving → stable-loop states;
-  - telemetry / grid / scan / CRT surface layer;
-  - reduced-motion CSS;
-  - mounts existing `AsciiRenderer`.
 - `src/kodex/ascii/scenes/holocore-orbital.js`
-  - pure procedural orbital-city field;
-  - 24 second mathematically closed phase;
-  - axial spine, orbital rings, modules, atmosphere and planetary interface;
-  - bounded pointer perturbation.
 - `src/pages/kodex/lab/holocore.astro`
-  - internal 100dvh/no-page-scroll lab plate;
-  - `noindex, nofollow`;
-  - one real HoloCore instance.
 - `scripts/kodex-holocore.test.mjs`
-  - finite/normalized field test;
-  - exact loop-seam contract;
-  - pointer-bound contract.
+- `scripts/kodex-holocore-browser-evidence.mjs`
+
+## HoloCore lifecycle
+
+`DORMANT → BOOT → RESOLVING → STABLE LOOP ∞`
+
+Normal motion waits until the visual settle transition has completed before declaring `STABLE LOOP`.
+
+Reduced motion waits for font readiness, renders a stable procedural phase, stops the renderer, disables the scan/boot animations and then declares the stable state.
+
+## ORBITAL CITY v0.2
+
+The v0.2 field increases conceptual legibility at coarse ASCII resolution while preserving the original runtime contract:
+
+- central tether / transmission axis;
+- five stacked orbital strata;
+- crown, upper, habitat, service and lower rings;
+- filled hubs and horizontal decks;
+- structural inner/mid rails;
+- denser module clusters;
+- counter-moving signal traffic;
+- atmospheric signal field;
+- diagrammatic planetary horizon;
+- bidirectional signal packets.
+
+Every animated term derives from integer multiples of one declared 24 second phase. The exact loop seam remains machine-tested.
+
+## Base reconciliation
+
+The feature branch was reconciled with the current `feat/kodex-observer-scale-route-v1` base through merge commit:
+
+`564eda01cdc0fc23355cbc1f4f1d0fff7be3c3dd`
+
+The current upstream Assembly OS, seeded factory benchmark and Golden Plate gates were preserved. HoloCore validation is additive; the prototype does not remove or bypass newer shared gates.
+
+Current validated head:
+
+`6b23956d4b65c1bc560c10303a822f8ecfff2a1a`
+
+PR #63 is currently **mergeable** but intentionally remains **draft** pending creator visual acceptance.
+
+## Verified CI / browser evidence
+
+KODEX Core Runtime run `31832185056` / run #166: **SUCCESS**.
+
+Passed on the synchronized HoloCore head:
+
+1. `npm ci`.
+2. KODEX core tests.
+3. HoloCore field finite/normalized test.
+4. exact 24 s HoloCore loop-seam test.
+5. bounded pointer perturbation test.
+6. JourneyState / graph / memory / Visible Assembly tests.
+7. Assembly OS contract tests.
+8. seeded factory benchmark.
+9. KODEX integrity audit.
+10. Astro build.
+11. Chromium installation and preview boot.
+12. generic KODEX browser evidence.
+13. deep-navigation browser evidence.
+14. HoloCore desktop 1440×900 browser evidence.
+15. HoloCore mobile 390×844 browser evidence.
+16. HoloCore reduced-motion browser evidence.
+17. rendered Golden Plate benchmark.
+
+Evidence artifact: `kodex-evidence`  
+Artifact ID: `9231178596`  
+Digest: `sha256:2d1a66a046b9296a083c3ea992e20528589390c48dd6dd15cf42fb7ce9835368`
 
 ## Epistemic / production ledger
 
 | Claim | Status | Evidence |
 |---|---|---|
-| HoloCore is the chosen name/direction for this prototype | CANONICAL | user direction + this implementation record |
-| ASCII Reactor is a Drive reference for reusable data-dither / MACHINE-LAB language | VERIFIED | Asset Atlas row 103 |
-| Orbital City is physically plausible as depicted | SPECULATIVE | no engineering validation; not claimed |
-| HoloCore code exists on a feature branch | VERIFIED | files above |
-| 24 s field closes mathematically | IMPLEMENTED / PREVIOUS CI CORE TESTS PASSED | `kodex-holocore.test.mjs` + KODEX Core Runtime run #108 |
-| Desktop 1440×900 bounded/no-scroll proof | PASSED IN FIRST BROWSER RUN | HoloCore evidence artifact from run #108 |
-| Mobile 390×844 browser proof | PATCHED / NEEDS FRESH CI | first harness measured entry `transform: scale()` as layout overflow |
-| Reduced-motion static browser proof | PATCHED / NEEDS FRESH CI | first harness fingerprinted before font/canvas stabilization |
-| Browser/mobile visual quality is accepted | NEEDS_CONFIRMATION | fresh CI + human visual review still required |
-| HoloCore is deployed/public | FALSE / NOT CLAIMED | lab-only branch and noindex route |
+| HoloCore name/direction for this prototype | CANONICAL FOR PROTOTYPE | creator direction + implementation record |
+| ASCII Reactor is a source reference | VERIFIED | Drive atlas row 103 |
+| Source pixels are used by runtime | FALSE / NOT CLAIMED | procedural implementation |
+| Orbital City is physically plausible as depicted | SPECULATIVE / NOT CLAIMED | no engineering validation |
+| 24 s loop closes exactly | VERIFIED | core test + run #166 |
+| Desktop browser containment/living loop | VERIFIED | run #166 |
+| Mobile 390×844 containment | VERIFIED | run #166 |
+| Reduced-motion static phase | VERIFIED | run #166 |
+| Current shared factory / Golden Plate gates still pass | VERIFIED | run #166 |
+| Final visual quality is creator-approved | NEEDS_CONFIRMATION | explicit visual review still required |
+| HoloCore is public/deployed | FALSE / NOT CLAIMED | lab-only, noindex, feature branch |
 
-## Acceptance target
+## Current visual assessment boundary
 
-Before this prototype can be called browser-validated:
+The present v0.2 render is a **working architecture and art-direction proof**. It is more legible than v0.1, with a stronger stacked axial structure, but it is not being declared the final KODEX visual master.
 
-1. `npm ci` succeeds.
-2. `npm run test:kodex:core` succeeds, including HoloCore tests.
-3. `npm run audit:kodex:integrity` succeeds.
-4. Astro build succeeds.
-5. Chromium evidence at 1440×900 confirms bounded 100dvh and no page-level scroll.
-6. Mobile evidence at 390×844 confirms contained viewport and no page-level scroll.
-7. Reduced-motion evidence confirms static phase and no animated scan/pulse.
-8. No public KODEX route is changed.
-9. The feature branch is synchronized or conflict-resolved against its active base before review/merge.
+The remaining decision is qualitative rather than technical: creator review of the actual desktop/mobile render, especially specimen recognizability, scan-field intensity, ASCII density, hierarchy and whether the projection feels sufficiently holographic without becoming generic sci-fi UI.
 
-## Validation update — 2026-08-14
+## Next implementation after creator acceptance
 
-First GitHub Actions run: `KODEX Core Runtime` run #108, head `0d8996fca2d1887205e214df936e4e5100656535`.
+Generalize the hard-coded first specimen into a registry:
 
-Confirmed PASS in that run:
+`concept id → specimen field / asset adapter → behavior profile → glyph profile → palette → surface treatment → fallback`
 
-- `npm ci`;
-- KODEX scene/runtime tests;
-- JourneyState + graph + memory bridge + Visible Assembly tests;
-- Assembly OS contract tests available on that head;
-- KODEX integrity audit;
-- Astro build;
-- Chromium installation and preview boot;
-- general KODEX browser evidence;
-- deep-navigation vertical slice;
-- HoloCore desktop 1440×900 living-loop evidence.
-
-The HoloCore-specific browser step failed only on mobile containment evidence and reduced-motion fingerprint evidence. The runtime itself was not shown to be the cause of those two failures.
-
-Patch applied to `scripts/kodex-holocore-browser-evidence.mjs`:
-
-- wait for `document.fonts.ready`;
-- wait for stable canvas backing/layout dimensions;
-- distinguish CSS layout dimensions from temporary transformed visual bounds;
-- preserve strict document/root overflow checks;
-- re-run reduced-motion fingerprint only after canvas stabilization.
-
-A fresh workflow run has **not** been generated for the patched head through the connector, so these fixes remain `PATCHED / NEEDS FRESH CI`, not green.
-
-## Branch-health update
-
-The base branch `feat/kodex-observer-scale-route-v1` advanced substantially while this prototype was being validated. The HoloCore branch is currently diverged and materially behind the moving base. The shared workflow also gained grammar, factory benchmark and Golden Plate validation on the base.
-
-The HoloCore workflow file was reconciled to a **superset of current base validation + HoloCore validation** so the feature branch does not silently remove newer gates. This does not substitute for an actual branch synchronization/rebase/merge.
-
-Do not mark this PR ready, green or mergeable until:
-
-- branch conflict/synchronization is resolved;
-- a workflow run executes on the synchronized/patched head;
-- HoloCore desktop/mobile/reduced-motion evidence passes;
-- human visual review accepts the plate.
-
-## Visual-fidelity note
-
-The current ORBITAL CITY specimen is an architecture proof, not a high-fidelity reconstruction of `KDX-ROOT-RAW-009 / ASCII REACTOR`.
-
-Observed in the Drive poster:
-
-- black field;
-- dominant white macro typography;
-- high-luminance acid-green central core;
-- reflective/chrome-like cage structure;
-- multicolor ASCII/data-dither clouds;
-- sparse technical callouts.
-
-The current HoloCore proof intentionally uses a lower-contrast violet orbital signal field. Therefore visual fidelity to ASCII Reactor must not be overstated. The next specimen after browser acceptance should test the reference-to-motion method more directly with a stable luminous core, procedural cage proxy, data-dither field and state-bounded signal bursts without copying poster pixels, exact cage morphology, labels or layout.
-
-## Next iteration after acceptance
-
-Generalize the renderer contract from the current `orbital-city` specimen to a registry:
-
-`concept id → specimen field / asset adapter → behavior profile → palette → surface treatment → fallback`
-
-That turns HoloCore from one prototype into the reusable central visualization runtime for KODEX pages.
+This is the step that turns one proven HoloCore into the reusable central visualization runtime for many KODEX concepts.
 
 ## AI production record
 
 Agent/model: OpenAI GPT-5.6 Sol  
 Date: 2026-08-14  
-Input basis: current user direction, GitHub implementation branch, KODEX source/governance docs, Drive Asset Atlas row 103, the referenced ASCII Reactor poster, and GitHub Actions/browser-evidence artifacts from run #108.  
-Output: implementation/test files, evidence-harness patch, workflow-base reconciliation, Drive motion-engine bridge record, and this updated implementation record.  
-Human validation: pending.  
-Uncertainty: mobile/reduced-motion fixes and current branch integration have not been revalidated by fresh CI.
+Inputs: creator direction, KODEX governance/source architecture, Drive Visual Atlas row 103 and referenced poster, existing repo-native ASCII runtime, current observer-scale/Assembly OS branch, GitHub Actions evidence.  
+Output: HoloCore component, ORBITAL CITY v0.2 procedural specimen, lab route, tests, browser harness, current workflow integration, branch reconciliation, Drive trace record and this status document.  
+Human validation: **final visual acceptance pending**.
