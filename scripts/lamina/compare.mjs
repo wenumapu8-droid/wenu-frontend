@@ -295,8 +295,10 @@ console.log(
 );
 if (trazada) {
   console.log("          el puntaje NO es comparable con el de una lámina procedural.");
+  console.log("          GATE: 0 canvas + >8000 paths = rechazada. No cuenta como completa.");
 }
 console.log();
+if (trazada) process.exitCode = 4;
 for (const r of perRegion) {
   console.log(`  ${r.id.padEnd(22)} ${r.pct.toFixed(2).padStart(6)}%  ${bar(r.pct)}`);
 }
