@@ -10,6 +10,7 @@ const index = read('scene-packs/INDEX.json');
 const recipes = read('layout_recipes.json');
 const registry = read('visual_component_registry.json');
 const sourceSnapshot = read('source-snapshots/ocin-a-candidates-2026-08-14.json');
+const specimenExample = read('examples/specimen-viewport.ocn-cir-001.internal.json');
 const packs = new Map(index.packs.map((entry) => {
   const pack = read(path.join('scene-packs', entry.file));
   return [pack.visual_mode, pack];
@@ -49,6 +50,12 @@ if (command === 'summary') {
       registry: sourceSnapshot.source_registry.title,
       aCandidateCount: sourceSnapshot.works.length,
       isLiveRegistry: sourceSnapshot.snapshot_policy.is_live_registry,
+    },
+    specimenViewport: {
+      contract: 'kdx.visual-specimen-viewport.v0.1',
+      runtimeStatus: 'NOT_IMPLEMENTED_BY_THIS_PR',
+      exampleSource: specimenExample.source_resolution.id,
+      executionScope: specimenExample.execution_scope,
     },
     recipes: recipes.map(({ id, name }) => ({ id, name })),
     visualModes: [...packs.keys()],
@@ -117,6 +124,7 @@ if (command === 'summary') {
     ],
     output_contract: 'docs/kodex/visual-assembly/assembly_candidate.schema.json',
     source_resolution_contract: 'docs/kodex/visual-assembly/hero_media_resolution.schema.json',
+    specimen_viewport_contract: 'docs/kodex/visual-assembly/visual_specimen_viewport.schema.json',
     warning: 'This brief constrains assembly. It does not grant source rights, canonical status, runtime implementation, merge approval or deployment approval.',
   });
 } else if (command === 'source') {
@@ -133,6 +141,17 @@ if (command === 'summary') {
     },
     warning: 'This is a dated registry snapshot. It can confirm what the active registry said on the snapshot date but cannot grant later rights or transformations.',
   });
+} else if (command === 'specimen') {
+  const sourceId = rawArg.trim();
+  if (sourceId && sourceId.toUpperCase() !== specimenExample.source_resolution.id.toUpperCase()) {
+    fail(`No governed specimen example for source: ${rawArg}`);
+  }
+  output({
+    ...specimenExample,
+    contract_path: 'docs/kodex/visual-assembly/visual_specimen_viewport.schema.json',
+    architecture_doc: 'docs/kodex/visual-assembly/VISUAL_SPECIMEN_VIEWPORT.md',
+    warning: 'This is an internal-only contract example, not a runtime implementation or public-export authorization.',
+  });
 } else if (command === 'component') {
   const query = rawArg.trim();
   const component = findComponent(query);
@@ -143,5 +162,5 @@ if (command === 'summary') {
   if (!recipe) fail(`Unknown recipe: ${rawArg}`);
   output(recipe);
 } else {
-  fail(`Unknown command: ${command}. Use summary | scene <MODE> | brief <MODE> | source <OCN-ID|title> | component <ID|slug> | recipe <ID|name>`);
+  fail(`Unknown command: ${command}. Use summary | scene <MODE> | brief <MODE> | source <OCN-ID|title> | specimen [OCN-ID] | component <ID|slug> | recipe <ID|name>`);
 }
