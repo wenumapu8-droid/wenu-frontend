@@ -3,45 +3,28 @@ interface Props {
   id?: string;
   label?: string;
   variant?: 'observe' | 'toroidal';
+  forceFallback?: boolean;
 }
 const {
   id = 'kdx-holocore-webgl-source',
   label = 'KODEX internal WebGL source shader rendered as an ambient HoloCore field',
   variant = 'observe',
+  forceFallback = false,
 } = Astro.props;
 const toroidal = variant === 'toroidal';
 ---
 
-<figure class="kdx-webgl-source" id={id} data-kdx-webgl-source data-shader-variant={variant}>
-  <header class="kdx-webgl-source__bar" aria-hidden="true">
-    <span>HOLOCORE // WEBGL SOURCE ADAPTER</span>
-    <span data-webgl-state>DORMANT</span>
-  </header>
-
+<figure class="kdx-webgl-source" id={id} data-kdx-webgl-source data-shader-variant={variant} data-force-fallback={String(forceFallback)}>
+  <header class="kdx-webgl-source__bar" aria-hidden="true"><span>HOLOCORE // WEBGL SOURCE ADAPTER</span><span data-webgl-state>DORMANT</span></header>
   <div class="kdx-webgl-source__viewport">
     <canvas class="kdx-webgl-source__canvas" data-webgl-canvas role="img" aria-label={label}></canvas>
     <div class="kdx-webgl-source__grid" aria-hidden="true"></div>
     <div class="kdx-webgl-source__meta" aria-hidden="true">
-      <strong>{toroidal ? 'TOROIDAL FIELD' : 'OBSERVE SOURCE FIELD'}</strong>
-      <span>RENDERER · WEBGL-SHADER</span>
-      <span>ROLE · SOURCE GENERATOR</span>
-      <span>TIME · <b>AMBIENT / UNCLOSED</b></span>
-      <span>SEAM CLAIM · FALSE</span>
-      <span>FALLBACK · {toroidal ? 'STATIC TORUS' : 'STATIC RETICLE'}</span>
+      <strong>{toroidal ? 'TOROIDAL FIELD' : 'OBSERVE SOURCE FIELD'}</strong><span>RENDERER · WEBGL-SHADER</span><span>ROLE · SOURCE GENERATOR</span><span>TIME · <b>AMBIENT / UNCLOSED</b></span><span>SEAM CLAIM · FALSE</span><span>FALLBACK · {toroidal ? 'STATIC TORUS' : 'STATIC RETICLE'}</span>
     </div>
   </div>
-
-  <footer class="kdx-webgl-source__footer" aria-hidden="true">
-    <span>{toroidal ? 'KDX-HOLO-BENCH-001 · ART / COMP / SPEC' : 'INTERNAL KODEX SHADER REUSE'}</span>
-    <span data-webgl-mode>MODE —</span>
-    <span data-webgl-frame>FRAME —</span>
-  </footer>
-
-  <figcaption>
-    {toroidal
-      ? 'Internal KODEX toroidal perceptual benchmark. Authored visualization; not a scientific field simulation and not claimed to form a mathematically seamless loop.'
-      : 'Internal KODEX shader proof. This field is ambient and is not claimed to form a mathematically seamless loop.'}
-  </figcaption>
+  <footer class="kdx-webgl-source__footer" aria-hidden="true"><span>{toroidal ? 'KDX-HOLO-BENCH-001 · ART / COMP / SPEC' : 'INTERNAL KODEX SHADER REUSE'}</span><span data-webgl-mode>MODE —</span><span data-webgl-frame>FRAME —</span></footer>
+  <figcaption>{toroidal ? 'Internal KODEX toroidal perceptual benchmark. Authored visualization; not a scientific field simulation and not claimed to form a mathematically seamless loop.' : 'Internal KODEX shader proof. This field is ambient and is not claimed to form a mathematically seamless loop.'}</figcaption>
 </figure>
 
 <script>
@@ -49,35 +32,17 @@ const toroidal = variant === 'toroidal';
   const instances = new WeakMap();
   function mount(root) {
     if (!(root instanceof HTMLElement) || instances.has(root)) return;
-    const canvas = root.querySelector('[data-webgl-canvas]');
-    const state = root.querySelector('[data-webgl-state]');
-    const mode = root.querySelector('[data-webgl-mode]');
-    const frame = root.querySelector('[data-webgl-frame]');
+    const canvas = root.querySelector('[data-webgl-canvas]'); const state = root.querySelector('[data-webgl-state]'); const mode = root.querySelector('[data-webgl-mode]'); const frame = root.querySelector('[data-webgl-frame]');
     if (!(canvas instanceof HTMLCanvasElement)) return;
-    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const variant = root.dataset.shaderVariant === 'toroidal' ? 'toroidal' : 'observe';
-    const renderer = new WebGLSourceShaderRenderer(canvas, { reducedMotion, variant });
-    root.dataset.rendererKind = 'webgl-shader';
-    root.dataset.rendererMode = renderer.mode;
-    root.dataset.reducedMotion = String(reducedMotion);
-    root.dataset.temporalContract = renderer.spec.temporalContract.toLowerCase();
-    root.dataset.seamlessLoopClaim = String(renderer.spec.seamlessLoopClaim);
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches; const variant = root.dataset.shaderVariant === 'toroidal' ? 'toroidal' : 'observe'; const forceFallback = root.dataset.forceFallback === 'true';
+    const renderer = new WebGLSourceShaderRenderer(canvas, { reducedMotion, variant, forceFallback });
+    root.dataset.rendererKind = 'webgl-shader'; root.dataset.rendererMode = renderer.mode; root.dataset.reducedMotion = String(reducedMotion); root.dataset.temporalContract = renderer.spec.temporalContract.toLowerCase(); root.dataset.seamlessLoopClaim = String(renderer.spec.seamlessLoopClaim);
     const setState = value => { root.dataset.state = value.toLowerCase(); if (state) state.textContent = value; };
-    setState('RESOLVING'); renderer.start();
-    const settleTimer = window.setTimeout(() => setState('STABLE FIELD'), reducedMotion ? 180 : 520);
-    let metricTimer = 0;
-    const update = () => {
-      if (mode) mode.textContent = `MODE ${renderer.mode.toUpperCase()}`;
-      if (frame) frame.textContent = `FRAME ${canvas.dataset.frameCount || (renderer.mode === 'canvas-fallback' ? 'STATIC' : '—')}`;
-      metricTimer = window.setTimeout(update, 500);
-    };
-    update();
-    const destroy = () => { window.clearTimeout(settleTimer); window.clearTimeout(metricTimer); renderer.destroy(); instances.delete(root); };
-    instances.set(root, { destroy });
+    setState('RESOLVING'); renderer.start(); const settleTimer = window.setTimeout(() => setState('STABLE FIELD'), reducedMotion || forceFallback ? 180 : 520);
+    let metricTimer = 0; const update = () => { if (mode) mode.textContent = `MODE ${renderer.mode.toUpperCase()}`; if (frame) frame.textContent = `FRAME ${canvas.dataset.frameCount || (renderer.mode === 'canvas-fallback' ? 'STATIC' : '—')}`; metricTimer = window.setTimeout(update, 500); }; update();
+    const destroy = () => { window.clearTimeout(settleTimer); window.clearTimeout(metricTimer); renderer.destroy(); instances.delete(root); }; instances.set(root, { destroy });
   }
-  function mountAll(){document.querySelectorAll('[data-kdx-webgl-source]').forEach(mount);}
-  mountAll(); document.addEventListener('astro:page-load', mountAll);
-  document.addEventListener('astro:before-swap',()=>{document.querySelectorAll('[data-kdx-webgl-source]').forEach(root=>instances.get(root)?.destroy());});
+  function mountAll(){document.querySelectorAll('[data-kdx-webgl-source]').forEach(mount);} mountAll(); document.addEventListener('astro:page-load', mountAll); document.addEventListener('astro:before-swap',()=>{document.querySelectorAll('[data-kdx-webgl-source]').forEach(root=>instances.get(root)?.destroy());});
 </script>
 
 <style>
