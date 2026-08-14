@@ -126,21 +126,46 @@ tramos de tinta: x  80..374  versal 51   (KODEX)
 
 Contra lo que declara `src/components/kodex/lamina/u10/Cabecera.astro`:
 
-| prop | declarado | medido | veredicto |
+| prop | declarado | corregido | |
 |---|---|---|---|
-| `titKodex.x` | 79 | 80 | ok |
-| `titKodex.len` | 270 | **295** | 25 px corto |
-| `titKodex.size` | 50 | versal 51 → **≈82** | **muy corto** |
-| `titPalabra.x` / `.len` | 540 / 500 | 540 / 500 | ok |
-| `titPalabra.size` | 50 | versal 49 → **≈78** | **muy corto** |
-| baseline (`y`) | 155 | 157 / 156 | 2 px |
+| `titKodex.size` | 50 | **78,4** | mitad de alto |
+| `titPalabra.size` | 50 | **78,4** | mitad de alto |
+| baseline (`y`) | 155 | **157** | |
+| `titGuion` | (365,118) 15×3 | **(354,132) 21×4** | corrido 11 y 14 px |
+| `titInf` | a=42 b=30 | **a=37,5 b=32** | ancho y bajo |
+| `titBarra` | baja hacia la izq. desde x=494 | **desde x=515** | espejada |
+| `titKodex.len` | 270 | **268** | ya estaba bien |
+| `titPalabra.x` / `.len` | 540 / 500 | 540 / 500 | ya estaba bien |
 
-La relación versal/cuerpo de esta fuente es **0,625**, y no es una suposición:
-`u01/Cabecera.astro` la documenta dos veces con medición propia —cuerpo 88 →
-versal 55, cuerpo 80 → versal 50—. Con cuerpo 50, la versal renderizada es
-~31 px contra 49–51 de la referencia.
+**Resultado medido: cabecera 5,711 % → 4,880 %, global 4,311 % → 4,178 %.**
+Tres ciclos, y ya no es la peor región de la lámina.
 
-O sea: los títulos están **a la mitad de alto**, con `textLength` forzando el
+La relación versal/cuerpo **no se estima**: está en la fuente. Cormorant
+Garamond declara `OS/2.sCapHeight = 625` sobre `head.unitsPerEm = 1000`, o sea
+0,625 exacto — se lee inflando las tablas del `.woff` con `zlib`, quince líneas
+de node. 49 / 0,625 = 78,4. Con cuerpo 50 la versal renderizada es 31 px.
+
+**Los dos títulos son del mismo cuerpo.** El 51 que miden KODEX y COMMONS es el
+rebase de las redondas (O, C, S); las planas —K, D, E, X, T, H, M, N— miden 49
+en las dos palabras. Por eso la versal real es 49 y no 51, y por eso la línea de
+base es 157: las planas terminan en 156 y las redondas en 157.
+
+### Dos trampas que costaron un ciclo cada una
+
+**El hueco de 8 px.** El tramo de tinta `80..374` que devuelve un perfil por
+columnas **incluye el guion**: la palabra sola es `80..346` y el hueco `346→354`
+mide 8 px, así que cualquier agrupador con umbral de 14 los fusiona. Poner
+`len: 295` sobre esa medición estira cada letra ~10 % y la cabecera empeora a
+6,03 %. Antes de usar un tramo, **verificá que sea una sola cosa**.
+
+**Medir el puntaje no es medir el render.** Con cuerpo 82 la cabecera empeoró y
+el número sólo decía "peor". El motivo apareció recién midiendo el render letra
+por letra contra la referencia —alturas 52-53 contra 49—, y con él el número
+correcto. El puntaje te dice que fallaste; el perfil del render te dice por qué.
+`scripts/lamina/out/<slug>/actual.png` está ahí para eso, y se mide con el mismo
+script que la referencia.
+
+O sea: los títulos estaban **a la mitad de alto**, con `textLength` forzando el
 ancho correcto. Las letras salen anchas y bajas. Es el mismo error que el método
 ya tenía anotado como sumidero ③ —"los agentes comprimieron tipografía para que
 su contenido entrara"— sólo que en el otro eje: se cuadró el ancho y nunca se
@@ -151,7 +176,7 @@ lejos lo que más pesa en el diff.
 `CabeceraUniverse.astro`:
 
 ```
-u01 1,52 %   u05 3,60 %   u06 4,53 %   u09 4,67 %   u07 4,97 %   u10 5,71 %
+u01 1,52 %   u05 3,60 %   u06 4,53 %   u09 4,67 %   u07 4,97 %   u10 5,71 % → 4,88 %
 ```
 
 u01 llega a 1,52 % con el mismo componente. El cromo no es el techo: el techo
@@ -160,20 +185,39 @@ son las cotas de la página. Y `u10/Cabecera.astro` es la más flaca de todas �
 slot `sep`, con 15 vars contra las 27 de u01. Hay una lista de trabajo entera
 ahí que no requiere una sola decisión estética: sólo medir y transcribir.
 
-**Lo que valía la pena hacer, en orden:**
+**El orden de trabajo, con el paso 1 ya hecho:**
 
-1. Corregir el cuerpo de los dos títulos y el baseline. Un ciclo. Es la única
-   hipótesis medida sobre la mesa.
+1. ~~Cuerpo y línea de base de los dos títulos, más guion, lemniscata y barra.~~
+   Hecho, commit `d4df938`: 5,711 % → 4,880 %.
 2. Leer `u01/Cabecera.astro` completo y transcribir a u10 lo que u01 tiene y u10
    no: rieles, nodos, glifos de riel, guías de bajada, vars de opacidad. Cada
    uno **remedido sobre la referencia de u10**, nunca heredado — el propio u01
    advierte que copiar cotas de la lámina hermana corre el marco 2 px y el banco
    lo ve en las cuatro esquinas.
-3. Recién después, el héroe. Ahí sí hay criterio.
+3. Recién después el héroe (`hero-center 5,35 %`, ahora la peor región). Ahí sí
+   hay criterio, y ahí sí un agente iterando tiene sentido.
 
-## 6 · Sobre el número que estabas por atacar
+## 6 · Cómo no quemar la cuota
 
-`cabecera 5,711 %` es del run vigente: `score.json` generado 2026-08-13 19:43,
-sobre las cajas re-diagnosticadas de `scripts/lamina/regions/u10-commons.json`.
-Es el **mismo** run que dio `global 4,311 %` y `hero-center 5,346 %`. No es el
-número viejo y no hay que volver a medir.
+Casi todo el gasto de una sesión trancada no es pensar: es reintentar.
+
+**No edites por `ssh` con heredoc.** El intento de
+`ssh mini 'cd ~/kodex-work && python3 <<PYEOF ... '` se rompe solo: las comillas
+simples del código cierran el `'...'` del shell y el archivo llega mutilado.
+Cada reintento cuesta un turno entero. Editá con la herramienta de edición de
+archivos sobre la máquina donde está el repo, o pasá los valores como argumentos
+a un script que ya exista — nunca código dentro de comillas dentro de comillas.
+
+**Un ciclo = un cambio medido.** No agrupes seis cotas y un cambio estético en
+la misma vuelta: si el número sube no sabés cuál fue. Las seis cotas de acá se
+podían agrupar porque las seis eran mediciones, no opiniones.
+
+**Cuando el número empeora, medí el render antes de proponer otra cosa.** Es un
+script de veinte líneas y te da la causa. Proponer a ciegas cuesta un build
+(19 s y 1.558 páginas) por hipótesis.
+
+**No repitas el trabajo de la lámina hermana.** Diez páginas comparten cromo.
+Antes de reconstruir, abrí la que ya puntúa mejor y mirá qué props tiene.
+
+**Y si te quedás sin cuota, que sea con todo commiteado.** Ya se perdió trabajo
+dos veces por eso. Commit WIP en tu rama `wip/...`, siempre.
