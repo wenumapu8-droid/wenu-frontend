@@ -25,11 +25,23 @@ const fail = (name, error) => {
   console.error(message);
 };
 
-const cssTimeListIsZero = (value = '') => String(value)
+// Chromium/Playwright may normalize disabled motion to a 0.01 ms sentinel
+// (`1e-05s`) rather than literal `0s`. Treat <=0.1 ms as effectively zero,
+// while still rejecting any perceptible transition/animation duration.
+const REDUCED_MOTION_EPSILON_MS = 0.1;
+const cssTimeToMs = (token = '') => {
+  const value = String(token).trim();
+  const numeric = Number.parseFloat(value);
+  if (!Number.isFinite(numeric)) return Number.POSITIVE_INFINITY;
+  if (value.endsWith('ms')) return numeric;
+  if (value.endsWith('s')) return numeric * 1000;
+  return numeric;
+};
+const cssTimeListIsEffectivelyZero = (value = '') => String(value)
   .split(',')
   .map((item) => item.trim())
   .filter(Boolean)
-  .every((item) => Number.parseFloat(item) === 0);
+  .every((item) => cssTimeToMs(item) <= REDUCED_MOTION_EPSILON_MS);
 
 async function navigate(page, search = '') {
   const url = new URL(`/kodex/lab/deep-navigation/${search}`, baseURL).toString();
@@ -169,12 +181,12 @@ async function reducedMotionContract() {
       };
     });
     assert(motion.media, `${name}: browser did not expose reduced-motion preference`);
-    const nonZero = motion.styles.filter((style) => !cssTimeListIsZero(style.transitionDuration) || !cssTimeListIsZero(style.animationDuration));
-    assert(nonZero.length === 0, `${name}: effective motion remained enabled under prefers-reduced-motion (${JSON.stringify(nonZero)})`);
+    const nonZero = motion.styles.filter((style) => !cssTimeListIsEffectivelyZero(style.transitionDuration) || !cssTimeListIsEffectivelyZero(style.animationDuration));
+    assert(nonZero.length === 0, `${name}: perceptible motion remained enabled under prefers-reduced-motion (${JSON.stringify(nonZero)})`);
     assertBoundedShell(await shellMetrics(page), name);
     const file = `${name}.png`;
     await page.screenshot({ path: path.join(outputDir, file), fullPage: false, animations: 'allow' });
-    report.acceptance.push({ name, pass: true, motion, screenshot: file });
+    report.acceptance.push({ name, pass: true, epsilonMs: REDUCED_MOTION_EPSILON_MS, motion, screenshot: file });
   } catch (error) {
     fail(name, error);
   } finally {
