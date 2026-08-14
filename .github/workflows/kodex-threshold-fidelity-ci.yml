@@ -67,7 +67,7 @@ jobs:
 
       - name: Browser QA and evidence
         run: |
-          mkdir -p qa-artifacts
+          mkdir -p qa-artifacts qa-artifacts/video-raw
           node --input-type=module <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
@@ -91,6 +91,46 @@ jobs:
               }));
               return { x, y };
             }, { xNorm, yNorm, pointerType: spec.mobile ? 'touch' : 'mouse' });
+          };
+
+          const captureFullMotionVideo = async (spec) => {
+            const videoSize = spec.mobile
+              ? { width: spec.width, height: spec.height }
+              : { width: 960, height: 666 };
+            const context = await browser.newContext({
+              viewport: { width: spec.width, height: spec.height },
+              hasTouch: spec.mobile,
+              isMobile: spec.mobile,
+              recordVideo: {
+                dir: 'qa-artifacts/video-raw',
+                size: videoSize,
+              },
+            });
+            const page = await context.newPage();
+            const video = page.video();
+            await page.goto(url, { waitUntil: 'networkidle' });
+            assert(await page.locator('.threshold-lab').getAttribute('data-motion') === 'full', `${spec.name} motion-video did not start FULL`);
+
+            // ~10 s evidence envelope: dormant → approach → stationary OPEN → local perturbation → decay.
+            await page.waitForTimeout(1400);
+            await dispatchMembranePointer(page, spec, spec.focalX + (spec.mobile ? 0.10 : 0.12), spec.focalY + 0.05);
+            await page.waitForTimeout(1100);
+            await dispatchMembranePointer(page, spec, spec.focalX, spec.focalY);
+            await page.waitForTimeout(3300);
+            const openState = await page.locator('[data-visual-state]').textContent();
+            assert(openState === 'OPEN', `${spec.name} motion-video stationary dwell did not reach OPEN: ${openState}`);
+            await dispatchMembranePointer(page, spec, spec.focalX - (spec.mobile ? 0.09 : 0.11), spec.focalY + 0.02);
+            await page.waitForTimeout(1500);
+            await dispatchMembranePointer(page, spec, spec.focalX + (spec.mobile ? 0.07 : 0.09), spec.focalY - 0.04);
+            await page.waitForTimeout(1300);
+            await dispatchMembranePointer(page, spec, 0.05, 0.90);
+            await page.waitForTimeout(1500);
+
+            await page.close();
+            if (!video) throw new Error(`${spec.name} Playwright video object missing`);
+            await video.saveAs(`qa-artifacts/threshold-${spec.name}-full-motion.webm`);
+            await context.close();
+            trace.push(`${spec.name}:full-motion-video:PASS`);
           };
 
           try {
@@ -158,9 +198,13 @@ jobs:
               await context.close();
             }
 
+            // D13 frontier evidence: explicit 8–12 s FULL-motion captures for desktop + primary mobile width.
+            await captureFullMotionVideo({ name: 'desktop', width: 1440, height: 1000, mobile: false, focalX: 0.60, focalY: 0.46 });
+            await captureFullMotionVideo({ name: '390x844', width: 390, height: 844, mobile: true, focalX: 0.50, focalY: 0.32 });
+
             fs.writeFileSync(
               'qa-artifacts/browser-acceptance.txt',
-              'PASS\ndesktop:focal-sync+stationary-dwell-open\n390x844:focal-sync+stationary-dwell-open\n412x915:focal-sync+stationary-dwell-open\ndesktop:predictable-decay\n390x844:predictable-decay\n412x915:predictable-decay\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\nkeyboard:motion-toggle\nkeyboard:motion-off\nnative-canvas:present\nentry:explicit\n',
+              'PASS\ndesktop:focal-sync+stationary-dwell-open\n390x844:focal-sync+stationary-dwell-open\n412x915:focal-sync+stationary-dwell-open\ndesktop:predictable-decay\n390x844:predictable-decay\n412x915:predictable-decay\ndesktop:no-overflow\n390x844:no-overflow\n412x915:no-overflow\ndesktop:full-motion-video\n390x844:full-motion-video\nkeyboard:motion-toggle\nkeyboard:motion-off\nnative-canvas:present\nentry:explicit\n',
             );
           } catch (error) {
             trace.push(`FAIL:${error instanceof Error ? error.message : String(error)}`);
