@@ -1,3 +1,5 @@
+import { resolveManifestationVisual } from './manifestation-visual-resolver.js';
+
 export const MANIFESTATION_ENGINE_VERSION = 'manifestation-state-v0.1.0';
 
 export const MANIFESTATION_PHASES = Object.freeze([
@@ -179,7 +181,7 @@ export function reduceManifestationState(stateInput = {}, event = {}) {
 
 export function buildManifestationView(stateInput = {}) {
   const state = derive(stateInput);
-  return Object.freeze({
+  const baseView = {
     version: state.version,
     intentId: state.intentId,
     nodeId: state.nodeId,
@@ -192,5 +194,11 @@ export function buildManifestationView(stateInput = {}) {
     canTransform: Boolean(state.intentId && state.signalEmitted && !state.interference.blocked),
     realized: state.phase === 'REALIZED' || state.phase === 'TRACE',
     traced: state.phase === 'TRACE',
+  };
+  const visual = resolveManifestationVisual(baseView);
+  return Object.freeze({
+    ...baseView,
+    visualSpecimenId: visual.specimenId,
+    visualResolutionSource: visual.source,
   });
 }
