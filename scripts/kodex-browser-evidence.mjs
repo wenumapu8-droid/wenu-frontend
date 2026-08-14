@@ -38,6 +38,17 @@ const assert = (condition, message) => {
   if (!condition) throw new Error(message);
 };
 
+const formatPageError = (error) => String(error?.stack || error?.message || error);
+
+async function stableNavigate(page, url) {
+  const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+  await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
+  // KODEX scenes intentionally keep render/audio/asset activity alive. A bounded
+  // settle is deterministic; `networkidle` is not an acceptance requirement.
+  await page.waitForTimeout(500);
+  return response;
+}
+
 async function inspectRoute(checkpoint, profile) {
   const context = await browser.newContext({
     viewport: { width: profile.width, height: profile.height },
@@ -48,17 +59,33 @@ async function inspectRoute(checkpoint, profile) {
   });
   const page = await context.newPage();
   const pageErrors = [];
-  page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
+  page.on('pageerror', (error) => pageErrors.push(formatPageError(error)));
 
   try {
     const url = new URL(checkpoint.href, baseURL).toString();
-    const response = await page.goto(url, { waitUntil: 'networkidle', timeout: 45_000 });
+    let response;
+    try {
+      response = await stableNavigate(page, url);
+    } catch (error) {
+      pushError(`${checkpoint.id}/${profile.key}: navigation ${formatPageError(error)}`);
+      report.cases.push({
+        checkpoint: checkpoint.id,
+        href: checkpoint.href,
+        profile: profile.key,
+        status: 0,
+        screenshot: null,
+        pageErrors,
+        metrics: null,
+      });
+      return;
+    }
+
     const status = response?.status() || 0;
     if (status < 200 || status >= 400) {
       pushError(`${checkpoint.id}/${profile.key}: HTTP ${status} ${url}`);
     }
 
-    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 120 : 450);
+    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 160 : 350);
 
     const metrics = await page.evaluate(() => ({
       title: document.title,
@@ -82,7 +109,7 @@ async function inspectRoute(checkpoint, profile) {
     await page.screenshot({
       path: path.join(outputDir, file),
       fullPage: checkpoint.href.includes('/lab/'),
-      animations: 'disabled',
+      animations: profile.reducedMotion === 'reduce' ? 'allow' : 'disabled',
     });
 
     report.cases.push({
@@ -111,9 +138,11 @@ async function runVisibleAssemblyAcceptance() {
   };
 
   const clear = async (page) => {
-    await page.goto(url, { waitUntil: 'networkidle' });
+    await stableNavigate(page, url);
     await page.evaluate(() => localStorage.clear());
-    await page.reload({ waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 30_000 });
+    await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
+    await page.waitForTimeout(250);
     await stage(page, 'THRESHOLD');
   };
 
@@ -137,9 +166,9 @@ async function runVisibleAssemblyAcceptance() {
       assert(/^KDX-R-[0-9A-F]{8}$/.test(signature), `invalid Return signature: ${signature}`);
       assert((await page.locator('[data-heart-visits]').textContent()) === '0', 'no-Heart route recorded a Heart visit');
       const before = await page.locator('[data-trace-count]').textContent();
-      await page.goBack();
+      await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => {});
       await stage(page, 'ARCHIVE');
-      await page.goForward();
+      await page.goForward({ waitUntil: 'domcontentloaded' }).catch(() => {});
       await stage(page, 'RETURN');
       const after = await page.locator('[data-trace-count]').textContent();
       assert(before === after, `Back/Forward changed trace count: ${before} -> ${after}`);
@@ -147,8 +176,8 @@ async function runVisibleAssemblyAcceptance() {
       await page.screenshot({ path: path.join(outputDir, file), fullPage: true, animations: 'disabled' });
       report.acceptance.push({ name, pass: true, screenshot: file, signature, traceCount: after });
     } catch (error) {
-      pushError(`${name}: ${error.message || error}`);
-      report.acceptance.push({ name, pass: false, error: String(error.message || error) });
+      pushError(`${name}: ${formatPageError(error)}`);
+      report.acceptance.push({ name, pass: false, error: formatPageError(error) });
     } finally {
       await context.close();
     }
@@ -178,8 +207,8 @@ async function runVisibleAssemblyAcceptance() {
       await page.screenshot({ path: path.join(outputDir, file), fullPage: true, animations: 'disabled' });
       report.acceptance.push({ name, pass: true, screenshot: file, overflow });
     } catch (error) {
-      pushError(`${name}: ${error.message || error}`);
-      report.acceptance.push({ name, pass: false, error: String(error.message || error) });
+      pushError(`${name}: ${formatPageError(error)}`);
+      report.acceptance.push({ name, pass: false, error: formatPageError(error) });
     } finally {
       await context.close();
     }
@@ -212,8 +241,8 @@ async function runVisibleAssemblyAcceptance() {
       await page.screenshot({ path: path.join(outputDir, file), fullPage: true, animations: 'disabled' });
       report.acceptance.push({ name, pass: true, screenshot: file, overflow, motion: 'off', webgl: 'disabled' });
     } catch (error) {
-      pushError(`${name}: ${error.message || error}`);
-      report.acceptance.push({ name, pass: false, error: String(error.message || error) });
+      pushError(`${name}: ${formatPageError(error)}`);
+      report.acceptance.push({ name, pass: false, error: formatPageError(error) });
     } finally {
       await context.close();
     }
