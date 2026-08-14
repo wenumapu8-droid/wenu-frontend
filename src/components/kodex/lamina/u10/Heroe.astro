@@ -169,6 +169,68 @@
       g.restore();
     }
 
+    function organismo(g, cx, cy, R, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.9;
+
+      /* Anillos concéntricos medidos sobre el cluster #1. */
+      const rads = [16, 30, 46, 62, 78, 92];
+      for (const r of rads) {
+        g.beginPath();
+        g.arc(0, 0, r, 0, TAU);
+        g.stroke();
+      }
+
+      /* Radios desde el centro, más densos. */
+      const nRadios = 24;
+      for (let k = 0; k < nRadios; k++) {
+        const a = (k / nRadios) * TAU;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(R * Math.cos(a), R * Math.sin(a));
+        g.stroke();
+      }
+
+      /* Nodos en tres niveles del radio. */
+      g.fillStyle = tinta(NUC, alfa * 1.2);
+      for (let k = 0; k < nRadios; k++) {
+        const a = (k / nRadios) * TAU;
+        for (const rr of [0.30, 0.55, 0.80]) {
+          g.beginPath();
+          g.arc(R * rr * Math.cos(a), R * rr * Math.sin(a), 1.6, 0, TAU);
+          g.fill();
+        }
+      }
+
+      /* Red de constelación entre nodos exteriores. */
+      g.lineWidth = 0.55;
+      g.strokeStyle = tinta(VIO, alfa * 0.8);
+      const puntos = [];
+      const re = azar(0x1030);
+      for (let k = 0; k < 36; k++) {
+        const a = (k / 36) * TAU + re() * 0.3;
+        const rr = R * (0.35 + 0.58 * re());
+        puntos.push({ x: rr * Math.cos(a), y: rr * Math.sin(a) });
+      }
+      for (let i = 0; i < puntos.length; i++) {
+        for (let j = i + 1; j < puntos.length; j++) {
+          const dx = puntos[i].x - puntos[j].x;
+          const dy = puntos[i].y - puntos[j].y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < R * 0.45 && d > R * 0.12) {
+            g.beginPath();
+            g.moveTo(puntos[i].x, puntos[i].y);
+            g.lineTo(puntos[j].x, puntos[j].y);
+            g.stroke();
+          }
+        }
+      }
+
+      g.restore();
+    }
+
     function pintarFondo(g) {
       const r = azar(0x1000);
       g.clearRect(0, 0, W, H);
@@ -233,6 +295,9 @@
       anillos(g, CX, CY, [30, 55, 85, 120, 160, 200, 250, 310], 0.14);
       radios(g, CX, CY, 340, 24, 0.10);
       anillos(g, CX, CY, [8, 14], 0.35);
+
+      /* Organismo #1 del hero-center, medido en (530,547) con R≈92. */
+      organismo(g, 530, 547, 92, 0.32);
 
       /* Corazón arriba. */
       corazon(g, CX, CY - 360, 10, 0.35);
