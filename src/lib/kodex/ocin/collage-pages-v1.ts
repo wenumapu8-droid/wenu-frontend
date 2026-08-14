@@ -6,15 +6,9 @@ export type OcinCollageAsset = {
   series: string;
   role: string;
   alt: string;
-  /**
-   * REVIEW ONLY. These URLs are never used by a public route.
-   * The source files are creator-owned originals in the Ocín Drive registry.
-   */
+  /** REVIEW ONLY. Never use this source on public routes. */
   reviewSrc: string;
-  /**
-   * Public same-origin asset path. Keep null until the approved original/derivative
-   * has been vendored into public/assets/kodex/ocin/originals/.
-   */
+  /** Same-origin, checksum-verified public asset path. */
   productionSrc: string | null;
   sourceFilename: string;
   sourceSha256: string;
@@ -41,8 +35,9 @@ export type OcinCollagePage = {
  * the interface may frame, scale and arrange it, but must not redraw, recolor,
  * distort or substitute the work.
  *
- * reviewSrc exists only to make the noindex lab visually reviewable before the
- * originals are vendored. Public routes must call resolveOcinAsset(asset, false).
+ * The production copies below were mirrored from Drive by
+ * scripts/vendor-ocin-collage-assets.mjs and accepted only after the downloaded
+ * bytes matched these source SHA-256 values exactly.
  */
 export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
   {
@@ -52,7 +47,7 @@ export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
     role: 'DESCENT / HERO FIELD',
     alt: 'High-contrast black-and-white optical tunnel of repeated stepped diamonds and concentric bands converging toward a dense center.',
     reviewSrc: 'https://drive.google.com/uc?export=view&id=1csEpt4TfisUuax_OVa5gGEfCMdJIxoIK',
-    productionSrc: null,
+    productionSrc: '/assets/kodex/ocin/originals/OCN-TOR-005.jpg',
     sourceFilename: 'image3A30005_mirror.jpg',
     sourceSha256: '79f907e6fe6a64ec1f6f8bff7d7fb7cbf6b2218f74421f97562bc77a47123e3b',
     width: 1066,
@@ -65,7 +60,7 @@ export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
     role: 'THRESHOLD / PORTAL',
     alt: 'Black-and-white recursive geometric field with mirrored angular motifs shrinking repeatedly toward a dense central aperture.',
     reviewSrc: 'https://drive.google.com/uc?export=view&id=1zHWSdJ0UoHtLW_Oyj72XQQtCcX-Qi-UY',
-    productionSrc: null,
+    productionSrc: '/assets/kodex/ocin/originals/OCN-TOR-001.jpg',
     sourceFilename: 'image3A30006_mirror3.jpg',
     sourceSha256: 'fb6cbb2f89d4846e1fafe08cea16b33d46480d9fb6ebe13d395d900d678791a4',
     width: 1575,
@@ -78,7 +73,7 @@ export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
     role: 'ARCHIVE / FRAME',
     alt: 'Black geometric square border built from mirrored hooked modules surrounding a large empty white center.',
     reviewSrc: 'https://drive.google.com/uc?export=view&id=1fApkVD7HvwuXmpub6EAJChl9AWEusPqs',
-    productionSrc: null,
+    productionSrc: '/assets/kodex/ocin/originals/OCN-SQR-001.jpg',
     sourceFilename: 'image3A30110_mirror.jpg',
     sourceSha256: '552a23b946106c54d77353e62280e1234dfdf2297ca098ce11d37c0e77a43149',
     width: 2048,
@@ -91,7 +86,7 @@ export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
     role: 'ARCHIVE / COSMOLOGY',
     alt: 'Dense black-and-white layered field with repeated geometric bands surrounding a central dark fractal basin filled with curling recursive forms.',
     reviewSrc: 'https://drive.google.com/uc?export=view&id=1zAeyvWCkNleePJPxXfPmqke8iwjTLSMI',
-    productionSrc: null,
+    productionSrc: '/assets/kodex/ocin/originals/OCN-FRC-002.jpg',
     sourceFilename: 'image3A30006_mirror2.jpg',
     sourceSha256: 'ac1153bdd24203a569ebd16f72f80d4fa0f43b8db404b5d3b628e2470d8d5689',
     width: 2048,
@@ -104,7 +99,7 @@ export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
     role: 'THRESHOLD / NAVIGATION',
     alt: 'Tall black-and-white geometric figure composed of stacked triangles, diamonds and mirrored angular modules on a white field.',
     reviewSrc: 'https://drive.google.com/uc?export=view&id=12j8lSrBZmVMziVVGQoeW6Rhdq9fVBSot',
-    productionSrc: null,
+    productionSrc: '/assets/kodex/ocin/originals/OCN-TRI-001.jpg',
     sourceFilename: 'image3A30212_mirror5.jpg',
     sourceSha256: '7df364b4edb7993722b530410723ac3a33d5808cac43bd3295d6788f75e4d087',
     width: 1222,
@@ -117,7 +112,7 @@ export const OCIN_COLLAGE_ASSETS_V1: readonly OcinCollageAsset[] = [
     role: 'THRESHOLD / FOCUS',
     alt: 'Pale grey radial flower with six layered petals and a small star-like center floating in a large white field.',
     reviewSrc: 'https://drive.google.com/uc?export=view&id=1wG4yYd4dpncRfO25XREUUxuEBtjPPqO8',
-    productionSrc: null,
+    productionSrc: '/assets/kodex/ocin/originals/OCN-MND-GRY-002.jpg',
     sourceFilename: 'image3A30213_mirror5.jpg',
     sourceSha256: '53c397f8e9931dc15bf0e6ca1ee6d8c211e775fa84a3f7a3753c8c0477c2b805',
     width: 2048,
@@ -148,7 +143,7 @@ export const OCIN_COLLAGE_PAGES_V1: readonly OcinCollagePage[] = [
     routeMode: 'ARCHIVE / OBSERVER',
     cta: 'ENTER ARCHIVE ATLAS',
     heroId: 'OCN-FRC-002',
-    supportingIds: ['OCN-TOR-001', 'OCN-SQR-001', 'OCN-TRI-001', 'OCN-MND-GRY-002', 'OCN-TOR-005'],
+    supportingIds: ['OCN-TOR-005', 'OCN-TOR-001', 'OCN-SQR-001', 'OCN-FRC-002', 'OCN-TRI-001'],
   },
   {
     id: 'OCIN-COLLAGE-MUSEUM-001',
