@@ -67,9 +67,16 @@ async function shellMetrics(page) {
       bodyScrollHeight: document.body.scrollHeight,
       nodeCount: document.querySelectorAll('*').length,
       urlKeys: [...new Set(params)].sort(),
-      activeElement: document.activeElement?.getAttribute?.('data-node-id') || document.activeElement?.tagName || null,
+      activeElement: document.activeElement?.matches?.('[data-plate]')
+        ? 'ACTIVE_PLATE'
+        : document.activeElement?.getAttribute?.('data-node-id') || document.activeElement?.tagName || null,
     };
   });
+}
+
+async function assertActivePlate(page, label) {
+  await page.waitForFunction(() => document.activeElement?.matches?.('[data-plate]'));
+  assert(await page.locator('[data-plate]').evaluate((el) => el === document.activeElement), `${label}: focus was not restored to the active plate`);
 }
 
 function assertBoundedShell(metrics, label) {
@@ -87,6 +94,7 @@ async function desktopHistoryKeyboard() {
   const page = await context.newPage();
   try {
     await navigate(page, '?node=SCI-BIOLOGY&lens=NAKED_EYE');
+    await assertActivePlate(page, `${name}: initial deep-link`);
     const initial = await shellMetrics(page);
     assertBoundedShell(initial, name);
 
@@ -97,6 +105,7 @@ async function desktopHistoryKeyboard() {
     assert(await firstDoor.evaluate((el) => el === document.activeElement), `${name}: route door did not receive keyboard focus`);
     await page.keyboard.press('Enter');
     await page.waitForFunction((node) => new URL(location.href).searchParams.get('node') !== node, initialNode);
+    await assertActivePlate(page, `${name}: descent`);
 
     const descendedNode = new URL(page.url()).searchParams.get('node');
     const depthAfterEnter = Number(await page.locator('[data-depth]').textContent());
@@ -108,10 +117,12 @@ async function desktopHistoryKeyboard() {
 
     await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.waitForFunction((node) => new URL(location.href).searchParams.get('node') === node, initialNode);
+    await assertActivePlate(page, `${name}: Back`);
     assert(Number(await page.locator('[data-depth]').textContent()) === 0, `${name}: Back did not reconstruct prior depth`);
 
     await page.goForward({ waitUntil: 'domcontentloaded' }).catch(() => {});
     await page.waitForFunction((node) => new URL(location.href).searchParams.get('node') === node, descendedNode);
+    await assertActivePlate(page, `${name}: Forward`);
     assert(Number(await page.locator('[data-depth]').textContent()) === 1, `${name}: Forward did not reconstruct descended depth`);
 
     const beforeLensHistory = await page.evaluate(() => history.length);
