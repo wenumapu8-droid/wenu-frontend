@@ -94,6 +94,10 @@ const {
 
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let fpsTimer = 0;
+    let resolveTimer = 0;
+    let stableTimer = 0;
+    let settledTimer = 0;
+    let freezeTimer = 0;
     let destroyed = false;
 
     const setState = value => {
@@ -101,23 +105,54 @@ const {
       if (state) state.textContent = value;
     };
 
+    const revealStable = () => {
+      if (destroyed) return;
+      root.classList.add('is-stable');
+      boot?.setAttribute('hidden', '');
+    };
+
     setState('BOOT');
     requestAnimationFrame(() => root.classList.add('is-powered'));
 
-    const resolveDelay = reduced ? 0 : 520;
-    window.setTimeout(() => {
-      if (destroyed) return;
-      setState('RESOLVING');
-      renderer.start();
-    }, resolveDelay);
+    if (reduced) {
+      const resolveStaticPhase = async () => {
+        setState('RESOLVING');
+        try {
+          await document.fonts?.ready;
+        } catch {
+          // Font readiness is a visual refinement, not a runtime gate.
+        }
+        if (destroyed) return;
 
-    const stableDelay = reduced ? 0 : 1250;
-    window.setTimeout(() => {
-      if (destroyed) return;
-      setState('STABLE LOOP');
-      root.classList.add('is-stable');
-      boot?.setAttribute('hidden', '');
-    }, stableDelay);
+        renderer.start();
+        revealStable();
+        freezeTimer = window.setTimeout(() => {
+          if (destroyed) return;
+          renderer.stop();
+          setState('STABLE LOOP');
+        }, 180);
+      };
+
+      void resolveStaticPhase();
+    } else {
+      resolveTimer = window.setTimeout(() => {
+        if (destroyed) return;
+        setState('RESOLVING');
+        renderer.start();
+      }, 520);
+
+      stableTimer = window.setTimeout(() => {
+        revealStable();
+      }, 1250);
+
+      // STABLE LOOP is semantic: do not publish it until the 1.1 s canvas
+      // settle transition has actually finished. Browser QA can then measure
+      // the final bounded geometry instead of an in-flight transform.
+      settledTimer = window.setTimeout(() => {
+        if (destroyed) return;
+        setState('STABLE LOOP');
+      }, 2450);
+    }
 
     const updateFps = () => {
       if (destroyed) return;
@@ -129,6 +164,10 @@ const {
     const destroy = () => {
       destroyed = true;
       window.clearTimeout(fpsTimer);
+      window.clearTimeout(resolveTimer);
+      window.clearTimeout(stableTimer);
+      window.clearTimeout(settledTimer);
+      window.clearTimeout(freezeTimer);
       renderer.destroy();
       instances.delete(root);
     };
@@ -156,6 +195,7 @@ const {
     position: relative;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
+    box-sizing: border-box;
     width: 100%;
     height: 100%;
     min-height: 0;
