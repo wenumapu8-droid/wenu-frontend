@@ -75,16 +75,26 @@ const verifyPage = async (page, name) => {
     imageChecks.push(result);
   }
 
-  await page.evaluate(() => window.scrollTo(0, 0));
+  // Evidence should start from the canonical scene state after loading lazy art.
+  await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    document.querySelectorAll('.ocx__tiles').forEach((node) => {
+      node.scrollLeft = 0;
+      node.scrollTop = 0;
+    });
+  });
   await page.waitForTimeout(50);
 
   const layout = await page.evaluate(() => ({
     viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
     scrollWidth: document.documentElement.scrollWidth,
-    overflow: document.documentElement.scrollWidth - window.innerWidth,
     scrollHeight: document.documentElement.scrollHeight,
+    horizontalOverflow: document.documentElement.scrollWidth - window.innerWidth,
+    verticalOverflow: document.documentElement.scrollHeight - window.innerHeight,
   }));
-  assert(layout.overflow <= 1, `${name}: horizontal overflow ${layout.overflow}px`);
+  assert(layout.horizontalOverflow <= 1, `${name}: horizontal page overflow ${layout.horizontalOverflow}px`);
+  assert(layout.verticalOverflow <= 1, `${name}: vertical page overflow ${layout.verticalOverflow}px; KODEX scenes must remain fullscreen`);
 
   // Provenance applies to all declared art records, including intentionally hidden ones.
   const ids = await page.locator('[data-ocin-art]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-ocin-art')));
@@ -100,6 +110,7 @@ let failure;
 try {
   browser = await chromium.launch({ headless: true });
 
+  // Every surface at desktop.
   for (const [name, route] of routes) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const page = await context.newPage();
@@ -109,15 +120,17 @@ try {
     await context.close();
   }
 
-  {
+  // Every surface at the canonical compact mobile viewport.
+  for (const [name, route] of routes) {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
     const page = await context.newPage();
-    await page.goto(`${base}/kodex/lab/ocin-collage/`, { waitUntil: 'domcontentloaded' });
-    report['threshold-390x844'] = await verifyPage(page, 'threshold-390x844');
-    await page.screenshot({ path: `${outDir}/threshold-390x844.png`, fullPage: true });
+    await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded' });
+    report[`${name}-390x844`] = await verifyPage(page, `${name}-390x844`);
+    await page.screenshot({ path: `${outDir}/${name}-390x844.png`, fullPage: true });
     await context.close();
   }
 
+  // Second mobile width + reduced-motion contract.
   {
     const context = await browser.newContext({
       viewport: { width: 412, height: 915 },
