@@ -1,0 +1,51 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import KodexPlateSpecRenderer from '../../../../components/kodex/assembly/KodexPlateSpecRenderer.astro';
+import { KDX_GOLDEN_PLATE_CASES } from '../../../../lib/kodex/grammar/golden-plate-benchmark.v0.1.js';
+import { assemblePlateSpec } from '../../../../lib/kodex/grammar/deterministic-assembler.js';
+import { compilePlateRenderModel } from '../../../../lib/kodex/grammar/plate-render-model.js';
+import { MICRO_UNIVERSE_NODES } from '../../../../lib/kodex/micro-universe.js';
+
+export function getStaticPaths() {
+  return KDX_GOLDEN_PLATE_CASES.map((entry) => {
+    const spec = assemblePlateSpec(entry.node, entry.plate_type, entry.seed);
+    const model = compilePlateRenderModel(spec);
+    const semantic = MICRO_UNIVERSE_NODES[entry.node_id];
+    return {
+      params: { case: entry.case_id },
+      props: {
+        entry,
+        model,
+        title: semantic?.title || entry.node_id,
+        summary: semantic?.summary || entry.node.macro_signal,
+      },
+    };
+  });
+}
+
+const { entry, model, title, summary } = Astro.props;
+---
+
+<Base
+  title={`KODEX Golden Plate — ${entry.case_id}`}
+  description={`Internal deterministic Assembly OS rendered benchmark plate ${entry.case_id}.`}
+  robots="noindex, nofollow"
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <KodexPlateSpecRenderer
+    model={model}
+    title={title}
+    summary={summary}
+    domain={entry.domain}
+    caseId={entry.case_id}
+  />
+  <nav class="kdx-golden-nav" aria-label="Golden Plate benchmark navigation">
+    <a href="/kodex/lab/golden-plates/">ALL 12</a>
+  </nav>
+</Base>
+
+<style>
+  .kdx-golden-nav { position:fixed; right:14px; bottom:54px; z-index:30; }
+  .kdx-golden-nav a { display:block; border:1px solid rgba(242,240,232,.28); background:rgba(5,5,5,.88); color:#f2f0e8; padding:7px 9px; font:8px/1.2 "IBM Plex Mono","Courier New",monospace; letter-spacing:.12em; text-decoration:none; }
+  .kdx-golden-nav a:hover,.kdx-golden-nav a:focus-visible { background:#f2f0e8; color:#050505; outline:none; }
+</style>
