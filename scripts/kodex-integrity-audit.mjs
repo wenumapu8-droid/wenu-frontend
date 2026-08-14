@@ -7,6 +7,7 @@ import {
   validateSceneRegistry,
 } from '../src/lib/kodex/scene-registry.js';
 import { EXPERIENCE_POLICY } from '../src/lib/kodex/experience-engine.js';
+import { validateEvidenceRegistry } from '../src/lib/kodex/evidence-registry.js';
 
 const root = process.cwd();
 const errors = [];
@@ -17,6 +18,9 @@ const read = (rel) => fs.readFileSync(path.join(root, rel), 'utf8');
 
 const report = validateSceneRegistry();
 if (!report.valid) errors.push(...report.errors.map((e) => `registry: ${e}`));
+
+const evidenceReport = validateEvidenceRegistry();
+if (!evidenceReport.valid) errors.push(...evidenceReport.errors.map((e) => `evidence: ${e}`));
 
 const routeFileForHref = (href) => {
   if (href === '/kodex/') return 'src/pages/kodex/index.astro';
@@ -96,11 +100,34 @@ if (heart?.href) {
   }
 }
 
+const evidenceLab = 'src/pages/kodex/lab/archive-evidence.astro';
+if (!exists(evidenceLab)) errors.push('ARCHIVE: evidence lab missing');
+else {
+  const source = read(evidenceLab);
+  if (!source.includes('ARTWORK WITHHELD')) errors.push('ARCHIVE: creator-review gate must remain visible');
+  if (!source.includes('LIMITATIONS + SOURCES')) errors.push('ARCHIVE: source limitation UI missing');
+}
+
+const authorialFiles = [
+  'src/lib/kodex/ocin/authorial-corpus-v0.ts',
+  'src/lib/kodex/ocin/authorial-projects-v0.ts',
+  'src/pages/kodex/lab/ocin-authorial/index.astro',
+  'src/pages/kodex/lab/ocin-authorial/projects/mushroom-elixir/index.astro',
+];
+for (const rel of authorialFiles) {
+  if (!exists(rel)) errors.push(`OCIN: missing reconciled file ${rel}`);
+  else if (/drive\.google\.com|docs\.google\.com/.test(read(rel))) {
+    errors.push(`OCIN: private/raw Drive URL must not render from ${rel}`);
+  }
+}
+
 const output = {
   valid: errors.length === 0,
   coreScenes: report.coreCount,
   orbitals: report.orbitalCount,
   implementedOrbitalRoutes: Object.values(KODEX_ORBITALS).filter((o) => o.href).length,
+  evidenceSources: evidenceReport.sources,
+  evidenceRelations: evidenceReport.relations,
   errors,
   notes,
 };
