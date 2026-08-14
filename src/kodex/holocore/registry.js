@@ -1,6 +1,7 @@
 import { holocoreOrbitalScene } from "../ascii/scenes/holocore-orbital.js";
 import { holocoreSignalCoreScene } from "../ascii/scenes/holocore-signal-core.js";
 import { holocoreInterferencePortalScene } from "../ascii/scenes/holocore-interference-portal.js";
+import { holocoreToroidalFieldScene } from "../ascii/scenes/holocore-toroidal-field.js";
 import {
   holocoreSignalVortexScene,
   holocoreDnaAscentScene,
@@ -251,6 +252,21 @@ const SPECIMENS = Object.freeze({
     archetype: "EMERGENT_SEED",
     topology: "ovoid-nested-chambers",
     epistemic: "COMP / ART / SPEC",
+  }),
+  "toroidal-field": spec({
+    id: "toroidal-field",
+    title: "TOROIDAL FIELD",
+    render: "ASCII TOROIDAL FLOW",
+    scene: holocoreToroidalFieldScene,
+    accent: "#c7a6ff",
+    palette: ["#020205", "#120b1e", "#2d1d47", "#62408c", "#b58af2", "#f7f2ff"],
+    label: "KODEX perceptual toroidal benchmark with laminated flow, central aperture and closed ambient circulation",
+    provenance: "KODEX_SYNTHETIC_PERCEPTUAL_BENCHMARK",
+    sourceRefs: ["KDX-HOLO-BENCH-001"],
+    sourceStatus: "INTERNAL_BENCHMARK",
+    archetype: "TOROIDAL_FLOW",
+    topology: "closed-torus-aperture-field",
+    epistemic: "ART / COMP / SPEC",
   }),
 });
 
