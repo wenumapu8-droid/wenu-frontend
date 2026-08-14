@@ -59,6 +59,50 @@
     const CAL = "224,188,158";
     const NUC = "248,240,250";
     const AQUA = "140,200,210";
+
+    /* PALETA DEL CAMPO, muestreada de la referencia y no elegida.
+       Agrupando por tono y saturacion los pixeles de tinta de
+       `reference/canon/u10-commons.png` entre y 280..1250 y x 100..1030:
+
+         25,9 %  #464645  neutro gris
+          7,3 %  #544861  tono 270 suave
+          5,5 %  #4b455b  tono 255 suave
+          5,4 %  #484d5e  tono 225 suave
+          4,5 %  #46465b  tono 240 suave
+          4,0 %  #594e43  tono  30 suave   <- el calido
+          3,9 %  #47535f  tono 210 suave
+
+       Ni un solo tono VIVO aparece entre los siete primeros: la referencia tinta
+       en gris con matices, no en color. El campo hacia lo contrario — 51,5 % de
+       su tinta era violeta vivo #644e7a y el neutro apenas 21,9 % — y por eso se
+       leia monocromo al lado de la referencia.
+
+       Los valores de abajo son mas claros que los medidos porque lo medido es el
+       compuesto sobre negro, con su antialias; lo que se declara aca es el color
+       del trazo antes de la opacidad. Los pesos si son los medidos. */
+    const PALETA = [
+      ["150,148,145", 25],  // neutro, el dominante
+      ["150,132,180", 11],  // 270
+      ["138,128,175",  8],  // 255
+      ["126,126,172",  7],  // 240
+      ["128,140,178",  8],  // 225
+      ["124,146,172",  6],  // 210
+      ["178,152,128",  8],  // 30, el calido
+      ["140,200,210",  5],  // aqua
+      ["182,142,222", 12],  // violeta vivo
+      ["230,175,120",  4],  // ambar vivo
+      ["120,118,116",  4],  // neutro oscuro
+    ];
+    /* Pesos corregidos por medicion, no por gusto. La primera version dejo
+       44,3 % de tinta neutra y 5,5 % viva; la referencia tiene 30,7 % y 15,2 %.
+       Habia sobrecorregido: al bajar el violeta saturado del 51,5 % original me
+       fui al otro extremo y la lamina quedo mas apagada que su referencia. */
+    const PESO_TOTAL = PALETA.reduce((t, x) => t + x[1], 0);
+    const colorCampo = (u) => {
+      let acc = u * PESO_TOTAL;
+      for (const [c, w] of PALETA) { acc -= w; if (acc <= 0) return c; }
+      return PALETA[0][0];
+    };
     const ROSA = "220,140,180";
     const tinta = (c, a) => "rgba(" + c + "," + a + ")";
 
@@ -202,7 +246,7 @@
         const y = CY + rr * (H / 2 - 8) * Math.sin(a);
         const op = 0.04 + r() * 0.28;
         const s = 0.25 + r() * 0.9;
-        const col = r() < 0.82 ? VIO : (r() < 0.92 ? CAL : AQUA);
+        const col = colorCampo(r());
         g.fillStyle = tinta(col, op);
         g.beginPath();
         g.arc(x, y, s, 0, TAU);
@@ -246,7 +290,7 @@
         }
       }
       for (const e of estrellas) {
-        g.fillStyle = tinta(e.br > 0.75 ? NUC : VIO, 0.3 + e.br * 0.5);
+        g.fillStyle = tinta(e.br > 0.88 ? NUC : colorCampo(e.br), 0.3 + e.br * 0.5);
         g.beginPath();
         g.arc(e.x, e.y, e.r, 0, TAU);
         g.fill();
