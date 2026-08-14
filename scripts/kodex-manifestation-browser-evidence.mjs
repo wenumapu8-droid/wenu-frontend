@@ -107,7 +107,7 @@ async function validateDesktop() {
     await click(page, '[data-action="transform"]');
     await waitPhase(page, 'TRANSFORMING', 'signal-vortex');
     await click(page, '[data-action="realize"]');
-    await waitPhase(page, 'REALIZED', 'living-organism');
+    await waitPhase(page, 'REALIZED', 'interference-portal');
     await click(page, '[data-action="trace"]');
     await waitPhase(page, 'TRACE', 'memory-tree');
 
