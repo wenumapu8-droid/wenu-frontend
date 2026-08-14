@@ -98,10 +98,13 @@ export const holocoreOrbitalScene = {
       (Math.sin(angle * 18 - phase * 4) * 0.5 + 0.5) * 0.55;
 
     // Atmospheric layer: bounded particulate cloud above the structure.
+    // The discrete texture itself stays static; movement comes from the
+    // continuous orbital system so frame 0 and frame 24 cannot disagree due
+    // to floating-point floor boundaries.
     const cloudMask = (1 - smoothstep(0.2, 0.72, Math.abs(sx))) *
       (1 - smoothstep(0.05, 0.22, Math.abs(sy + 0.82)));
     const cloudNoise = hash21(
-      Math.floor((sx + 1) * 52 + Math.sin(phase) * 2),
+      Math.floor((sx + 1) * 52),
       Math.floor((sy + 1) * 44 + seed),
     );
     const atmosphere = cloudMask * smoothstep(0.43, 0.88, cloudNoise) * 0.72;
@@ -111,7 +114,7 @@ export const holocoreOrbitalScene = {
     const horizon = Math.exp(-Math.abs(sy - planetCurve) / 0.018) *
       (1 - smoothstep(0.68, 0.98, Math.abs(sx)));
     const surfaceNoise = sy > planetCurve
-      ? hash21(Math.floor((sx + 1) * 62), Math.floor((sy + phase * 0.02) * 80)) * 0.22
+      ? hash21(Math.floor((sx + 1) * 62), Math.floor(sy * 80)) * 0.22
       : 0;
 
     // Signal packets climb and descend the spine in a closed phase cycle.
