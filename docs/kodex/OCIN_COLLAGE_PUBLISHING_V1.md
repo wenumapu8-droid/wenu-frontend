@@ -1,9 +1,10 @@
 # OCÍN COLLAGE PUBLISHING V1
 
-Status: IMPLEMENTED CANDIDATE / INTERNAL REVIEW
+Status: BUILD + BROWSER VERIFIED / INTERNAL NOINDEX REVIEW
 Creator direction: Ocín / Nicolás Ortega, 2026-08-13
 Branch: `feature/ocin-kodex-collage-pages-v1`
 Parent lineage: `feature/ocin-authorial-lab-v0` / PR #58
+PR: #61 — `KODEX: Ocín original-art collage publishing pages v1`
 
 ## Objective
 
@@ -31,11 +32,11 @@ Responsive scaling is presentation, not modification. Any future animated deriva
 
 | Plate | Route | Surface | Status |
 |---|---|---|---|
-| 00.01 | `/kodex/lab/ocin-collage/` | THRESHOLD collage | IMPLEMENTED CANDIDATE / NOINDEX |
-| 00.02 | `/kodex/lab/ocin-collage/archive/` | ARCHIVE ATLAS | IMPLEMENTED CANDIDATE / NOINDEX |
-| 00.03 | `/kodex/lab/ocin-collage/museum/` | MUSEUM OF SPACE | IMPLEMENTED CANDIDATE / NOINDEX |
+| 00.01 | `/kodex/lab/ocin-collage/` | THRESHOLD collage | BUILD + BROWSER VERIFIED / NOINDEX |
+| 00.02 | `/kodex/lab/ocin-collage/archive/` | ARCHIVE ATLAS | BUILD + BROWSER VERIFIED / NOINDEX |
+| 00.03 | `/kodex/lab/ocin-collage/museum/` | MUSEUM OF SPACE | BUILD + BROWSER VERIFIED / NOINDEX |
 
-Mobile is a responsive state of the same publishing system, not a separate artwork or route.
+Desktop and mobile are states of the same publishing system. Desktop remains a fixed KODEX plate. Mobile is also a fixed `100dvh` scene: no page-level vertical scroll. Supporting originals live in an internal horizontal archive strip so navigation can remain tactile without turning KODEX into a conventional scrolling page.
 
 ## V1 source works
 
@@ -51,44 +52,75 @@ Mobile is a responsive state of the same publishing system, not a separate artwo
 ## Source-mode separation
 
 `reviewSrc`
-- available only to internal/noindex lab pages;
-- currently points at the creator's Drive source for visual review;
-- must never be used by a public route.
+- retains the creator Drive source reference for internal provenance/review only;
+- must never be used as the permanent public runtime image origin.
 
 `productionSrc`
-- must be same-origin or a controlled public asset origin;
-- remains `null` until the approved bytes are vendored;
-- public code must resolve only this field.
+- is populated for all six V1 works;
+- resolves to checksum-verified same-origin files under `public/assets/kodex/ocin/originals/`;
+- is the only source used by the current QA page renders.
 
-This is an explicit integrity gate. A page is not PUBLIC READY while any required `productionSrc` is null.
+The vendoring workflow downloads each source, verifies its registered SHA-256 and refuses to publish changed bytes. The original Drive permissions therefore do not become a runtime dependency.
 
-## Blocking security finding
+## Security finding and resolution
 
-All six inspected Drive source files currently expose an `anyone: writer` permission.
-Do not use those Drive URLs as the permanent public image origin. Correct the permission model or vendor immutable approved copies into the website/CDN first.
+All six inspected Drive provenance files currently expose an `anyone: writer` permission. Those URLs remain unsuitable as permanent public image origins.
 
-## Files added
+V1 resolves that publication risk by vendoring immutable checksum-verified copies into the repository. Drive remains provenance/source storage; public rendering uses controlled same-origin assets. A future Drive permission cleanup is still desirable, but it is no longer a blocker for these vendored bytes.
+
+## Files / contracts added
 
 - `src/lib/kodex/ocin/collage-pages-v1.ts`
 - `src/components/kodex/ocin/OcinArtworkTile.astro`
 - `src/components/kodex/ocin/OcinCollageShell.astro`
 - `src/styles/kodex-ocin-collage.css`
+- `src/styles/kodex-ocin-collage-mobile.css`
 - `src/pages/kodex/lab/ocin-collage/index.astro`
 - `src/pages/kodex/lab/ocin-collage/archive.astro`
 - `src/pages/kodex/lab/ocin-collage/museum.astro`
+- `scripts/vendor-ocin-collage-assets.mjs`
+- `scripts/qa-ocin-collage.mjs`
+- `.github/workflows/ocin-collage-asset-vendor.yml`
+- `.github/workflows/ocin-collage-qa.yml`
 
-## Acceptance gates before public promotion
+## Verified acceptance evidence
 
-1. Vendor approved artwork bytes to `public/assets/kodex/ocin/originals/` or controlled CDN.
-2. Set `productionSrc` for every published work.
+Latest code checkpoint tested before this documentation sync: `272cb9ee495016edf935470c73d3795797264062`.
+
+- KODEX Vertical Slice #145: SUCCESS.
+- Ocín Collage Browser QA #10: SUCCESS.
+- Browser evidence artifact ID: `9209795052`.
+- Evidence digest: `sha256:e6302fec5f4f7d428d4c18b1c1edccbbd8b6e873eb0fc261d84e677bbe00534e`.
+- Desktop: THRESHOLD, ARCHIVE ATLAS and MUSEUM OF SPACE at 1440×1000.
+- Mobile: all three surfaces at 390×844.
+- Reduced-motion: MUSEUM OF SPACE at 412×915.
+- Page-level horizontal overflow: 0 px on every audited viewport.
+- Page-level vertical overflow: 0 px on every audited viewport.
+- Every visible original loaded with `object-fit: contain`, `filter: none`, `transform: none`, `mix-blend-mode: normal`, `clip-path: none`, `opacity: 1`.
+- All declared artwork records retain provenance IDs.
+- Reduced-motion transition and animation duration resolve to 0.001 ms.
+
+## Publication gates
+
+Completed:
+
+1. Vendor approved artwork bytes to `public/assets/kodex/ocin/originals/`.
+2. Set `productionSrc` for every V1 work.
 3. Verify hashes/provenance against the source registry.
-4. Build passes.
-5. Browser evidence at desktop + 390×844 + 412×915.
-6. Reduced-motion evidence.
-7. No horizontal overflow.
-8. No artwork-level filters/transforms/crops.
-9. Creator visual review.
-10. Only then create/replace public routes and change robots to `index, follow`.
+4. Pass Astro production build and runtime checks.
+5. Capture desktop evidence.
+6. Capture 390×844 mobile evidence for all three surfaces.
+7. Capture 412×915 reduced-motion evidence.
+8. Verify zero page overflow and no artwork-level filter/transform/crop.
+
+Still required before public deployment:
+
+9. Ocín visual acceptance of the final plate compositions.
+10. Promote accepted lab/noindex routes into the chosen public KODEX route architecture.
+11. Integrate PR #61 through its parent lineage (PR #58) into the production branch.
+12. Deploy and perform a final public-URL smoke test before marking `DEPLOYED`.
+
+Do not collapse `BUILD VERIFIED`, `BROWSER VERIFIED` and `DEPLOYED` into the same status. V1 is verified code, not a deployed public release.
 
 ## Expansion path
 
