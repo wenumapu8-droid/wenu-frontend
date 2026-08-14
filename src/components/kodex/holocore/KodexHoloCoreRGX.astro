@@ -1,0 +1,459 @@
+---
+import { orbitalCityRGXProfile } from '../../../kodex/holocore/reference-profiles/orbital-city-rgx.js';
+
+interface Props {
+  id?: string;
+  label?: string;
+}
+
+const {
+  id = 'kdx-holocore-rgx-orbital',
+  label = 'Reference-grounded procedural ASCII and vector reconstruction of the KODEX Orbital City concept',
+} = Astro.props;
+
+const toX = (value: number) => value * 100;
+const toY = (value: number) => value * 100;
+const ringLayers = orbitalCityRGXProfile.layers.filter(layer => layer.type === 'ring' || layer.type === 'habitat');
+const atmosphere = orbitalCityRGXProfile.layers.find(layer => layer.type === 'cloud');
+const planet = orbitalCityRGXProfile.layers.find(layer => layer.type === 'planet');
+const habitat = orbitalCityRGXProfile.layers.find(layer => layer.type === 'habitat');
+
+const nodes = ringLayers.flatMap((layer, layerIndex) => {
+  const count = layer.nodes || 0;
+  return Array.from({ length: count }, (_, index) => {
+    const angle = (index / Math.max(count, 1)) * Math.PI * 2;
+    return {
+      id: `${layer.id}-${index}`,
+      layer: layer.id,
+      layerIndex,
+      x: toX(orbitalCityRGXProfile.axisX + Math.cos(angle) * layer.rx),
+      y: toY(layer.y + Math.sin(angle) * layer.ry),
+    };
+  });
+});
+
+const spokes = habitat
+  ? Array.from({ length: habitat.spokes || 0 }, (_, index) => {
+      const angle = (index / Math.max(habitat.spokes || 1, 1)) * Math.PI * 2;
+      return {
+        id: `habitat-spoke-${index}`,
+        x1: 50 + Math.cos(angle) * habitat.rx * 100 * 0.2,
+        y1: habitat.y * 100 + Math.sin(angle) * habitat.ry * 100 * 0.2,
+        x2: 50 + Math.cos(angle) * habitat.rx * 100 * 0.93,
+        y2: habitat.y * 100 + Math.sin(angle) * habitat.ry * 100 * 0.93,
+      };
+    })
+  : [];
+
+const cloudPuffs = atmosphere
+  ? [
+      [0, 0, 1, 1],
+      [-0.13, 0.012, 0.55, 0.72],
+      [0.14, 0.005, 0.58, 0.78],
+      [-0.25, 0.025, 0.38, 0.52],
+      [0.25, 0.022, 0.4, 0.56],
+    ].map(([dx, dy, sx, sy], index) => ({
+      id: `cloud-${index}`,
+      cx: toX(orbitalCityRGXProfile.axisX + atmosphere.rx * dx),
+      cy: toY(atmosphere.y + atmosphere.ry * dy),
+      rx: atmosphere.rx * sx * 100,
+      ry: atmosphere.ry * sy * 100,
+    }))
+  : [];
+---
+
+<figure
+  id={id}
+  class="kdx-holocore-rgx"
+  data-kdx-holocore-rgx
+  data-state="dormant"
+  data-profile={orbitalCityRGXProfile.id}
+>
+  <header class="kdx-holocore-rgx__bar">
+    <span>HOLOCORE RGX // REFERENCE-GROUNDED EXECUTION</span>
+    <span data-rgx-state>DORMANT</span>
+  </header>
+
+  <div class="kdx-holocore-rgx__viewport">
+    <canvas class="kdx-holocore-rgx__canvas" data-rgx-canvas role="img" aria-label={label}></canvas>
+
+    <svg
+      class="kdx-holocore-rgx__scaffold"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      data-rgx-scaffold
+    >
+      <defs>
+        <filter id={`${id}-glow`} x="-40%" y="-40%" width="180%" height="180%">
+          <feGaussianBlur stdDeviation="0.28" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      <g class="rgx-axis" filter={`url(#${id}-glow)`}>
+        <line x1="50" y1="5" x2="50" y2="98" />
+        <line x1="49.45" y1="8" x2="49.45" y2="94" class="rgx-axis__secondary" />
+        <line x1="50.55" y1="8" x2="50.55" y2="94" class="rgx-axis__secondary" />
+      </g>
+
+      <g class="rgx-cloud">
+        {cloudPuffs.map(puff => (
+          <ellipse cx={puff.cx} cy={puff.cy} rx={puff.rx} ry={puff.ry} data-ref-cloud={puff.id} />
+        ))}
+      </g>
+
+      <g class="rgx-rings">
+        {ringLayers.map((layer, index) => (
+          <g data-ref-layer={layer.id} class:list={['rgx-layer', layer.type === 'habitat' && 'rgx-layer--habitat']}>
+            <ellipse
+              cx="50"
+              cy={toY(layer.y)}
+              rx={layer.rx * 100}
+              ry={layer.ry * 100}
+              style={`--rgx-index:${index};`}
+            />
+            <ellipse
+              class="rgx-layer__inner"
+              cx="50"
+              cy={toY(layer.y)}
+              rx={layer.rx * 100 * 0.91}
+              ry={layer.ry * 100 * 0.91}
+            />
+            <ellipse
+              class="rgx-layer__hub"
+              cx="50"
+              cy={toY(layer.y)}
+              rx={Math.max(1.2, layer.rx * 100 * 0.18)}
+              ry={Math.max(0.55, layer.ry * 100 * 0.42)}
+            />
+          </g>
+        ))}
+      </g>
+
+      <g class="rgx-spokes">
+        {spokes.map(spoke => (
+          <line x1={spoke.x1} y1={spoke.y1} x2={spoke.x2} y2={spoke.y2} data-ref-spoke={spoke.id} />
+        ))}
+      </g>
+
+      <g class="rgx-nodes" filter={`url(#${id}-glow)`}>
+        {nodes.map(node => (
+          <g data-ref-node={node.id} style={`--node-index:${node.layerIndex};`}>
+            <circle cx={node.x} cy={node.y} r="0.72" />
+            <circle class="rgx-node__core" cx={node.x} cy={node.y} r="0.22" />
+          </g>
+        ))}
+      </g>
+
+      {planet && (
+        <g class="rgx-planet" data-ref-layer="planetary-interface">
+          <ellipse cx="50" cy={toY(planet.y)} rx={planet.rx * 100} ry={planet.ry * 100} />
+          <ellipse class="rgx-planet__inner" cx="50" cy={toY(planet.y)} rx={planet.rx * 92} ry={planet.ry * 72} />
+        </g>
+      )}
+    </svg>
+
+    <div class="kdx-holocore-rgx__grid" aria-hidden="true"></div>
+    <div class="kdx-holocore-rgx__scan" aria-hidden="true"></div>
+    <div class="kdx-holocore-rgx__vignette" aria-hidden="true"></div>
+
+    <div class="kdx-holocore-rgx__telemetry" aria-hidden="true">
+      <strong>ORBITAL CITY / RGX</strong>
+      <span>STRUCTURE LOCK // REFERENCE TOPOLOGY</span>
+      <span data-rgx-grid>GRID -- × --</span>
+      <span data-rgx-fps>-- FPS</span>
+      <span>LOOP 24.00 S</span>
+    </div>
+  </div>
+
+  <footer class="kdx-holocore-rgx__footer">
+    <span>MICROGLYPH RASTER</span>
+    <span>VECTOR SCAFFOLD</span>
+    <span>NO SOURCE PIXELS</span>
+    <span>SPECULATIVE VISUALIZATION</span>
+  </footer>
+
+  <figcaption>
+    The reference is not displayed. Its structural hierarchy is re-executed as code.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiRenderer } from '../../../kodex/ascii/engine/AsciiRenderer.js';
+  import { holocoreOrbitalRGXScene } from '../../../kodex/ascii/scenes/holocore-orbital-rgx.js';
+  import { orbitalCityRGXProfile } from '../../../kodex/holocore/reference-profiles/orbital-city-rgx.js';
+
+  const instances = new WeakMap();
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+    const canvas = root.querySelector('[data-rgx-canvas]');
+    const state = root.querySelector('[data-rgx-state]');
+    const fps = root.querySelector('[data-rgx-fps]');
+    const grid = root.querySelector('[data-rgx-grid]');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+
+    const renderer = new AsciiRenderer(canvas, {
+      scene: holocoreOrbitalRGXScene,
+      profile: 'rgx',
+      glyphSet: orbitalCityRGXProfile.density.glyphSet,
+      ditherStrength: orbitalCityRGXProfile.density.ditherStrength,
+      palette: ['#020205', '#090711', '#181226', '#34224d', '#7950a8', '#c9a5ff', '#f3edff'],
+    });
+
+    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let destroyed = false;
+    let timerA = 0;
+    let timerB = 0;
+    let metricsTimer = 0;
+
+    const setState = value => {
+      root.dataset.state = value.toLowerCase();
+      if (state) state.textContent = value;
+    };
+
+    const updateMetrics = () => {
+      if (destroyed) return;
+      root.dataset.gridColumns = String(renderer.columns);
+      root.dataset.gridRows = String(renderer.rows);
+      root.dataset.fps = String(renderer.fps || 0);
+      if (grid) grid.textContent = `GRID ${renderer.columns} × ${renderer.rows}`;
+      if (fps) fps.textContent = `${renderer.fps || '--'} FPS`;
+      metricsTimer = window.setTimeout(updateMetrics, 500);
+    };
+
+    setState('BOOT');
+    root.classList.add('is-powered');
+
+    const resolve = async () => {
+      try { await document.fonts?.ready; } catch {}
+      if (destroyed) return;
+      renderer.resize();
+      setState('RESOLVING');
+      renderer.start();
+      timerA = window.setTimeout(() => {
+        if (destroyed) return;
+        root.classList.add('is-stable');
+        setState('STABLE LOOP');
+      }, reduced ? 120 : 1050);
+      if (reduced) {
+        timerB = window.setTimeout(() => renderer.stop(), 190);
+      }
+    };
+
+    void resolve();
+    updateMetrics();
+
+    root.dispatchEvent(new CustomEvent('kdx:holocore:rgx', {
+      bubbles: true,
+      detail: {
+        profile: orbitalCityRGXProfile.id,
+        sourceRefs: orbitalCityRGXProfile.sourceRefs,
+        sourceStatus: orbitalCityRGXProfile.sourceStatus,
+        mode: orbitalCityRGXProfile.renderMode,
+      },
+    }));
+
+    const destroy = () => {
+      destroyed = true;
+      clearTimeout(timerA);
+      clearTimeout(timerB);
+      clearTimeout(metricsTimer);
+      renderer.destroy();
+      instances.delete(root);
+    };
+
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-holocore-rgx]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-holocore-rgx]').forEach(root => instances.get(root)?.destroy());
+  });
+</script>
+
+<style>
+  .kdx-holocore-rgx {
+    --rgx: #aa76ee;
+    box-sizing: border-box;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    display: grid;
+    grid-template-rows: 30px minmax(0, 1fr) 30px;
+    overflow: hidden;
+    color: #eee8f4;
+    background: #020205;
+    border: 1px solid color-mix(in srgb, var(--rgx) 38%, transparent);
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
+  }
+
+  .kdx-holocore-rgx__bar,
+  .kdx-holocore-rgx__footer {
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 10px;
+    font-size: 7px;
+    letter-spacing: .12em;
+    color: rgba(236,228,244,.54);
+    text-transform: uppercase;
+    background: rgba(2,2,5,.88);
+  }
+  .kdx-holocore-rgx__bar { border-bottom: 1px solid rgba(170,118,238,.24); }
+  .kdx-holocore-rgx__footer { border-top: 1px solid rgba(170,118,238,.24); }
+
+  .kdx-holocore-rgx__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    isolation: isolate;
+    background: radial-gradient(circle at 50% 53%, rgba(128,78,185,.08), transparent 48%), #020205;
+  }
+
+  .kdx-holocore-rgx__canvas,
+  .kdx-holocore-rgx__scaffold,
+  .kdx-holocore-rgx__grid,
+  .kdx-holocore-rgx__scan,
+  .kdx-holocore-rgx__vignette {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .kdx-holocore-rgx__canvas {
+    z-index: 1;
+    display: block;
+    opacity: 0;
+    filter: contrast(1.28) saturate(.84);
+    transition: opacity .5s ease;
+  }
+  .is-powered .kdx-holocore-rgx__canvas { opacity: .54; }
+  .is-stable .kdx-holocore-rgx__canvas { opacity: .9; }
+
+  .kdx-holocore-rgx__scaffold {
+    z-index: 3;
+    overflow: visible;
+    fill: none;
+    stroke: rgba(205,171,248,.62);
+    stroke-width: .11;
+    vector-effect: non-scaling-stroke;
+    filter: drop-shadow(0 0 3px rgba(158,93,228,.32));
+    pointer-events: none;
+  }
+
+  .rgx-axis line { stroke-width: .14; stroke: rgba(228,208,255,.72); }
+  .rgx-axis__secondary { stroke-width: .045 !important; opacity: .32; }
+
+  .rgx-cloud ellipse {
+    stroke-width: .055;
+    stroke-dasharray: .3 .55;
+    opacity: .18;
+    animation: rgx-cloud-breathe 24s ease-in-out infinite;
+  }
+
+  .rgx-layer > ellipse:first-child {
+    stroke-dasharray: .9 .42 .12 .36;
+    animation: rgx-dash-orbit 24s linear infinite;
+    animation-delay: calc(var(--rgx-index) * -1.7s);
+  }
+  .rgx-layer__inner { opacity: .34; stroke-width: .06; stroke-dasharray: .18 .38; }
+  .rgx-layer__hub { opacity: .76; stroke-width: .1; }
+  .rgx-layer--habitat > ellipse:first-child { stroke-width: .21; opacity: .96; }
+  .rgx-layer--habitat .rgx-layer__inner { stroke-width: .12; opacity: .62; }
+
+  .rgx-spokes line { stroke-width: .045; opacity: .33; }
+
+  .rgx-nodes circle { stroke-width: .075; opacity: .58; }
+  .rgx-node__core { fill: rgba(223,194,255,.78); stroke: none !important; }
+  .rgx-nodes g { animation: rgx-node-pulse 24s ease-in-out infinite; animation-delay: calc(var(--node-index) * -2.1s); }
+
+  .rgx-planet ellipse { stroke-width: .12; opacity: .64; }
+  .rgx-planet__inner { stroke-width: .045 !important; opacity: .25 !important; stroke-dasharray: .25 .35; }
+
+  .kdx-holocore-rgx__grid {
+    z-index: 2;
+    opacity: .085;
+    background-image:
+      linear-gradient(rgba(177,132,231,.15) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(177,132,231,.12) 1px, transparent 1px);
+    background-size: 20px 20px;
+    mask-image: radial-gradient(ellipse at center, #000 22%, transparent 94%);
+  }
+
+  .kdx-holocore-rgx__scan {
+    z-index: 5;
+    top: -8%;
+    bottom: auto;
+    height: 4%;
+    opacity: .11;
+    background: linear-gradient(transparent, rgba(198,157,248,.85), transparent);
+    filter: blur(5px);
+    animation: rgx-scan 12s linear infinite;
+    pointer-events: none;
+  }
+
+  .kdx-holocore-rgx__vignette {
+    z-index: 6;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.012) 0 1px, transparent 1px 4px);
+    box-shadow: inset 0 0 68px 28px rgba(0,0,0,.72);
+  }
+
+  .kdx-holocore-rgx__telemetry {
+    position: absolute;
+    z-index: 7;
+    top: 12px;
+    right: 12px;
+    display: grid;
+    justify-items: end;
+    gap: 4px;
+    max-width: 42%;
+    font-size: 6px;
+    letter-spacing: .1em;
+    color: rgba(219,202,237,.47);
+    text-align: right;
+    pointer-events: none;
+  }
+  .kdx-holocore-rgx__telemetry strong { color: rgba(237,227,247,.85); font-weight: 500; }
+
+  .kdx-holocore-rgx figcaption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes rgx-dash-orbit { to { stroke-dashoffset: -24; } }
+  @keyframes rgx-node-pulse { 0%, 100% { opacity: .52; } 50% { opacity: 1; } }
+  @keyframes rgx-cloud-breathe { 0%, 100% { transform: scale(1); opacity: .15; } 50% { transform: scale(1.025); opacity: .26; } }
+  @keyframes rgx-scan { from { transform: translateY(0); } to { transform: translateY(2700%); } }
+
+  @media (max-width: 700px) {
+    .kdx-holocore-rgx__bar,
+    .kdx-holocore-rgx__footer { font-size: 5px; padding: 0 6px; gap: 4px; }
+    .kdx-holocore-rgx__telemetry { font-size: 5px; max-width: 58%; }
+    .kdx-holocore-rgx__grid { background-size: 14px 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .rgx-cloud ellipse,
+    .rgx-layer > ellipse:first-child,
+    .rgx-nodes g,
+    .kdx-holocore-rgx__scan { animation: none !important; }
+    .kdx-holocore-rgx__canvas { transition: none; }
+  }
+</style>
