@@ -2,6 +2,10 @@ import { KODEX_RUNTIME } from './motion-config.js';
 import { prefersReducedMotion } from './reduced-motion.js';
 import { getSceneDefinition, resolveSceneId } from './scene-registry.js';
 import { recommendNextScene } from './experience-engine.js';
+import {
+  KODEX_JOURNEY_STATE_EVENT,
+  mountKodexJourneyMemoryBridge,
+} from './runtime/journey-memory-bridge.ts';
 
 export function detectLowPowerMode() {
   const narrow = window.innerWidth <= KODEX_RUNTIME.lowPowerBreakpoint;
@@ -24,6 +28,7 @@ export function createSceneController(root) {
   let dwellReached = false;
   const sessionHistory = [activeScene];
   const listeners = new Set();
+  const journeyBridge = mountKodexJourneyMemoryBridge();
 
   const recommendation = () => recommendNextScene({
     currentScene: activeScene,
@@ -41,6 +46,7 @@ export function createSceneController(root) {
     paused: reduced || !visible,
     dwellReached,
     recommendation: recommendation(),
+    journey: journeyBridge?.getState() || null,
   });
 
   const notify = () => {
@@ -55,6 +61,9 @@ export function createSceneController(root) {
     root.dataset.kdxPaused = String(next.paused);
     root.dataset.kdxDwellReached = String(next.dwellReached);
     root.dataset.kdxRecommendedNext = next.recommendation.selected?.key || '';
+    root.dataset.kdxJourneyCurrent = next.journey?.current || '';
+    root.dataset.kdxJourneyTrace = String(next.journey?.trace?.length ?? 0);
+    root.dataset.kdxHeartVisits = String(next.journey?.heart?.visitCount ?? 0);
 
     root.querySelectorAll('.kx-slide').forEach((slide) => {
       const slideScene = resolveSceneId({
@@ -86,9 +95,11 @@ export function createSceneController(root) {
     dwellReached = true;
     notify();
   };
+  const onJourneyState = () => notify();
 
   const media = window.matchMedia('(prefers-reduced-motion: reduce)');
   document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener(KODEX_JOURNEY_STATE_EVENT, onJourneyState);
   window.addEventListener('resize', onResize, { passive: true });
   media.addEventListener('change', onMedia);
   window.addEventListener('kdx:scene-dwell', onDwell);
@@ -121,6 +132,7 @@ export function createSceneController(root) {
     getState: state,
     getDefinition: () => getSceneDefinition(activeScene),
     getRecommendation: recommendation,
+    getJourneyState: () => journeyBridge?.getState() || null,
     getSessionHistory: () => [...sessionHistory],
     subscribe(listener) {
       listeners.add(listener);
@@ -130,6 +142,7 @@ export function createSceneController(root) {
     syncActiveScene,
     destroy() {
       document.removeEventListener('visibilitychange', onVisibility);
+      document.removeEventListener(KODEX_JOURNEY_STATE_EVENT, onJourneyState);
       window.removeEventListener('resize', onResize);
       window.removeEventListener('hashchange', syncActiveScene);
       window.removeEventListener('kdx:scene-dwell', onDwell);
