@@ -32,7 +32,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -48,3 +48,29 @@ jobs:
         env:
           ALLOW_EMPTY_PRODUCTS: 'true'
         run: npm run build
+      - name: Install Chromium for KODEX evidence
+        run: npx playwright install --with-deps chromium
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4321 > /tmp/kodex-preview.log 2>&1 &
+          echo $! > /tmp/kodex-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-preview.log
+          exit 1
+      - name: Capture KODEX browser evidence
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-browser-evidence.mjs
+      - name: Upload KODEX browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-browser-evidence
+          path: artifacts/kodex-browser-evidence
+          if-no-files-found: warn
+          retention-days: 14
