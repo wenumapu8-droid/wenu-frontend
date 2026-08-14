@@ -41,8 +41,15 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     </section>
 
     <footer class="kdx-deep__footer">
+      <details class="kdx-constellation" data-constellation>
+        <summary>MEMORY CONSTELLATION · <span data-known-count>1</span> KNOWN</summary>
+        <div class="kdx-constellation__panel">
+          <p>VISITED NODES ONLY · CURRENT NODE MARKED · UNKNOWN TOPOLOGY HIDDEN</p>
+          <div class="kdx-constellation__nodes" data-constellation-nodes aria-label="visited nodes"></div>
+        </div>
+      </details>
       <p>12 NODES · BACK/FORWARD LIVE · DEEP LINK SAFE · NO PRIVATE MEMORY IN URL</p>
-      <div>
+      <div class="kdx-deep__controls">
         <button type="button" data-lens-action="APPROACH">← MICRO</button>
         <button type="button" data-reset>RESET</button>
         <button type="button" data-lens-action="RECEDE">MACRO →</button>
@@ -64,6 +71,10 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     enterMicroUniverseNode,
     restoreMicroUniverseHistoryState,
   } from '../../../lib/kodex/micro-universe.js';
+  import {
+    buildMicroUniverseMemoryConstellation,
+    revisitKnownMicroUniverseNode,
+  } from '../../../lib/kodex/memory-constellation.js';
   import { reduceObserverState } from '../../../lib/kodex/deep-navigation-engine.js';
 
   const root = document.querySelector('[data-kdx-deep-lab]');
@@ -80,6 +91,30 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       const url = buildMicroUniverseUrl(state, window.location.pathname);
       if (mode === 'push') window.history.pushState(snapshot, '', url);
       else window.history.replaceState(snapshot, '', url);
+    };
+
+    const renderConstellation = () => {
+      const constellation = buildMicroUniverseMemoryConstellation(state);
+      $('[data-known-count]').textContent = String(constellation.visitedCount);
+      const container = $('[data-constellation-nodes]');
+      container.replaceChildren();
+      for (const memoryNode of constellation.nodes) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'kdx-memory-node';
+        button.dataset.current = memoryNode.isCurrent ? 'true' : 'false';
+        button.dataset.field = memoryNode.field;
+        button.disabled = memoryNode.isCurrent;
+        button.innerHTML = `<span>${memoryNode.isCurrent ? '●' : '○'}</span><strong>${memoryNode.title}</strong><small>${memoryNode.visits}× · ${memoryNode.field}</small>`;
+        button.addEventListener('click', () => {
+          const next = revisitKnownMicroUniverseNode(state, memoryNode.id);
+          if (next.currentNodeId === state.currentNodeId) return;
+          state = next;
+          commitHistory('push');
+          render();
+        });
+        container.append(button);
+      }
     };
 
     const render = () => {
@@ -118,6 +153,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         li.textContent = event.nodeId;
         trace.append(li);
       }
+      renderConstellation();
     };
 
     root.querySelectorAll('[data-lens-action]').forEach((button) => {
@@ -173,9 +209,21 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   .kdx-deep__memory { align-self:stretch; min-width:0; padding:24px 0 24px 18px; border-left:1px solid #343039; display:flex; flex-direction:column; justify-content:center; }
   .kdx-deep__memory ol { margin:12px 0 28px; padding-left:18px; font-size:9px; line-height:1.9; opacity:.7; }
   .kdx-deep__note { max-width:24ch; line-height:1.55; }
-  .kdx-deep__footer { padding-top:12px; border-top:1px solid #343039; }
-  .kdx-deep__footer div { display:flex; gap:6px; }
+  .kdx-deep__footer { position:relative; padding-top:12px; border-top:1px solid #343039; }
+  .kdx-deep__controls { display:flex; gap:6px; }
   .kdx-deep__footer button { padding:8px 10px; color:inherit; background:transparent; border:1px solid #3a3640; font:inherit; font-size:9px; cursor:pointer; }
+  .kdx-constellation { position:relative; flex:0 0 auto; }
+  .kdx-constellation summary { list-style:none; cursor:pointer; font-size:8px; letter-spacing:.13em; opacity:.72; white-space:nowrap; }
+  .kdx-constellation summary::-webkit-details-marker { display:none; }
+  .kdx-constellation[open] summary { opacity:1; }
+  .kdx-constellation__panel { position:absolute; left:0; bottom:calc(100% + 12px); width:min(72vw,720px); max-height:42dvh; overflow:auto; padding:14px; background:#080808f2; border:1px solid #47414d; box-shadow:0 16px 52px #000b; z-index:5; }
+  .kdx-constellation__panel p { margin:0 0 10px; }
+  .kdx-constellation__nodes { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+  :global(.kdx-memory-node) { min-width:0; display:grid; grid-template-columns:auto minmax(0,1fr); gap:2px 8px; align-items:center; padding:9px 10px; color:inherit; text-align:left; background:#0b0b0b; border:1px solid #302d33; cursor:pointer; }
+  :global(.kdx-memory-node strong) { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; }
+  :global(.kdx-memory-node small) { grid-column:2; font-size:7px; opacity:.45; text-transform:uppercase; }
+  :global(.kdx-memory-node[data-current='true']) { border-color:#b8aacd; background:#15121a; cursor:default; }
+  :global(.kdx-memory-node:focus-visible) { outline:1px solid #c6b8db; outline-offset:2px; }
   @media (max-width:760px) {
     .kdx-deep { padding:12px; }
     .kdx-deep__chrome dl { grid-template-columns:repeat(2,minmax(70px,1fr)); gap:8px; }
@@ -185,8 +233,11 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     .kdx-deep__summary { margin:18px 0; }
     .kdx-deep__doors { grid-template-columns:1fr; gap:5px; }
     :global(.kdx-door) { min-height:61px; padding:9px 11px; }
-    .kdx-deep__footer { align-items:flex-end; }
-    .kdx-deep__footer p { max-width:30ch; }
+    .kdx-deep__footer { align-items:flex-end; gap:8px; }
+    .kdx-deep__footer > p { display:none; }
+    .kdx-constellation__panel { width:min(88vw,520px); max-height:50dvh; }
+    .kdx-constellation__nodes { grid-template-columns:1fr; }
+    .kdx-deep__controls { flex-wrap:wrap; justify-content:flex-end; }
   }
   @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
 </style>
