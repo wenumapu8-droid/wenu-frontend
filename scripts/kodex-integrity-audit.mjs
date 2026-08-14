@@ -8,6 +8,7 @@ import {
 } from '../src/lib/kodex/scene-registry.js';
 import { EXPERIENCE_POLICY } from '../src/lib/kodex/experience-engine.js';
 import { validateEvidenceRegistry } from '../src/lib/kodex/evidence-registry.js';
+import { KODEX_V0_CHECKPOINTS, validateV0Manifest } from '../src/lib/kodex/v0-vertical-slice.js';
 
 const root = process.cwd();
 const errors = [];
@@ -21,6 +22,9 @@ if (!report.valid) errors.push(...report.errors.map((e) => `registry: ${e}`));
 
 const evidenceReport = validateEvidenceRegistry();
 if (!evidenceReport.valid) errors.push(...evidenceReport.errors.map((e) => `evidence: ${e}`));
+
+const v0Report = validateV0Manifest();
+if (!v0Report.valid) errors.push(...v0Report.errors.map((e) => `v0: ${e}`));
 
 const routeFileForHref = (href) => {
   if (href === '/kodex/') return 'src/pages/kodex/index.astro';
@@ -54,6 +58,13 @@ for (const node of Object.values(KODEX_ORBITALS)) {
   if (!routeFile || !exists(routeFile)) errors.push(`${node.id}: declared href missing (${node.href})`);
   else notes.push(`${node.id}: ${node.href} -> ${routeFile}`);
 }
+
+for (const checkpoint of KODEX_V0_CHECKPOINTS) {
+  const routeFile = routeFileForHref(checkpoint.href);
+  if (!routeFile || !exists(routeFile)) errors.push(`${checkpoint.id}: V0 route missing for ${checkpoint.href}`);
+}
+
+if (!exists('src/pages/kodex/lab/v0-readiness.astro')) errors.push('V0: readiness control room missing');
 
 if (EXPERIENCE_POLICY.autoNavigate !== false) errors.push('experience policy must never auto-navigate');
 for (const forbidden of ['time-on-site', 'compulsion', 'activity-score', 'spiritual-score']) {
@@ -128,6 +139,7 @@ const output = {
   implementedOrbitalRoutes: Object.values(KODEX_ORBITALS).filter((o) => o.href).length,
   evidenceSources: evidenceReport.sources,
   evidenceRelations: evidenceReport.relations,
+  v0Checkpoints: KODEX_V0_CHECKPOINTS.length,
   errors,
   notes,
 };
