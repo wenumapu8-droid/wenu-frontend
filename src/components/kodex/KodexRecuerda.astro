@@ -1,88 +1,65 @@
 ---
 /**
- * KODEX-∞ · RECUERDA · permanencia
+ * KODEX−∞ · RECUERDA
  *
- * Registra que el visitante SE QUEDÓ, no que pasó.
- *
- * La primera versión de esto también grababa la vista del nodo, y estaba de
- * más: `src/scripts/kodex-engine.js` y `src/layouts/KodexShell.astro` ya
- * graban `{type:'view', work: location.pathname}` desde hace tiempo. Lo
- * descubrí midiendo — el recorrido salía duplicado, «threshold» y «/kodex/»
- * por la misma página— y quité mi parte. Queda anotado porque es la quinta vez
- * en este proyecto que construyo algo que ya existía, y el patrón es siempre
- * el mismo: escribir antes de auditar.
- *
- * Lo que sí faltaba, y nadie registraba: la PERMANENCIA. `memory.js` tiene un
- * evento `signal` que ninguna página emitía, y la Scene Bible lo pide por
- * nombre —«dwell threshold reached»—: pasar por una escena no es lo mismo que
- * quedarse en ella, y sólo lo segundo debería pesar en el espécimen.
- *
- * Uso:
- *   <KodexRecuerda />
- *   <KodexRecuerda umbralPermanencia={4000} />
- *
- * Lo que NO graba, y es deliberado: nada que identifique a la persona. El
- * contrato de privacidad de la Scene Bible es explícito — sin fingerprinting,
- * sin inferencia emocional, sin puntaje espiritual, sin inferencia de salud.
- * Acá sólo hay: por dónde pasaste y si te quedaste. Vive en tu navegador y no
- * sale de ahí.
+ * The RETURN specimen stores route/effect evidence only. Dwell is observable
+ * as a semantic runtime event, but is not persisted or converted into a score.
  */
 interface Props {
-  /**
-   * Milisegundos de permanencia antes de contar una señal. La Scene Bible
-   * llama a esto «dwell threshold»: pasar no es lo mismo que quedarse, y sólo
-   * lo segundo debería pesar en el espécimen.
-   */
   umbralPermanencia?: number;
-  /**
-   * Graba también el paso por la página. Apagado por omisión y a propósito:
-   * `KodexShell.astro:229` ya lo hace, y encenderlo ahí duplicaba el recorrido
-   * —lo vi salir con «threshold» y «/kodex/» por la misma página—.
-   *
-   * Se enciende donde el shell NO llega. El caso que lo motivó: las 1.427
-   * páginas de `vol/` usan `Base` + `KodexChrome`, no el shell, y por eso el
-   * corpus entero era invisible para la memoria. Medido: recorrer un volumen
-   * dejaba el recorrido vacío. Alguien podía leer cincuenta especímenes y su
-   * puerta no cambiaba, que es justo lo contrario de lo que el archivo promete.
-   */
   registraVista?: boolean;
 }
 const { umbralPermanencia = 6000, registraVista = false } = Astro.props;
 ---
 
-<span data-kdx-permanencia={umbralPermanencia} data-kdx-vista={registraVista ? "" : null} hidden></span>
+<span
+  data-kdx-permanencia={umbralPermanencia}
+  data-kdx-vista={registraVista ? "" : null}
+  hidden
+></span>
 
 <script>
   import { record } from "../../kodex/return/memory.js";
 
   const marca = document.querySelector("[data-kdx-permanencia]");
   if (marca) {
-    /* Sólo donde el shell no graba. El guardia mira el DOM en vez de confiar
-       en la prop: si alguna vez el shell aparece en una página que además pide
-       `registraVista`, el recorrido no se duplica. */
     if (marca.hasAttribute("data-kdx-vista") && !document.querySelector(".kxm-nav")) {
       try { record({ type: "view", work: location.pathname }); } catch {}
     }
 
-    /* La señal se cuenta una sola vez por carga, y sólo si la pestaña estuvo
-       visible todo el tiempo. Sin esto, una pestaña abierta y olvidada en el
-       fondo pesaría igual que una escena mirada de verdad. */
     const permanencia = Number(marca.getAttribute("data-kdx-permanencia")) || 6000;
-    let visible = document.visibilityState === "visible";
     let contada = false;
+    let visibleSince = document.visibilityState === "visible" ? performance.now() : null;
+    let accumulated = 0;
+    let timer = null;
 
-    const reloj = setTimeout(() => {
-      if (visible && !contada) {
-        contada = true;
-        record({ type: "signal" });
-      }
-    }, permanencia);
+    const emit = () => {
+      if (contada) return;
+      contada = true;
+      window.dispatchEvent(new CustomEvent("kdx:scene-dwell", {
+        detail: { path: location.pathname, dwellMs: permanencia },
+      }));
+    };
+
+    const schedule = () => {
+      if (contada || document.visibilityState !== "visible") return;
+      const remaining = Math.max(0, permanencia - accumulated);
+      visibleSince = performance.now();
+      timer = window.setTimeout(emit, remaining);
+    };
+
+    const pause = () => {
+      if (visibleSince != null) accumulated += performance.now() - visibleSince;
+      visibleSince = null;
+      if (timer != null) window.clearTimeout(timer);
+      timer = null;
+    };
 
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState !== "visible") {
-        visible = false;
-        clearTimeout(reloj);
-      }
+      if (document.visibilityState === "visible") schedule();
+      else pause();
     });
+
+    schedule();
   }
 </script>
