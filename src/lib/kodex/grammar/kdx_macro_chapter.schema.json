@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodex.local/schema/kdx-macro-chapter-v0.1.json",
+  "title": "KODEX Macro Chapter v0.1",
+  "description": "Production-time chapter graph compiled from contract-validated PlateSpecs while delegating route eligibility and roles to the existing Deep Route Engine. It never authorizes runtime auto-navigation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "chapter_id", "version", "status", "seed", "entry_node", "route_engine_profile",
+    "runtime_auto_navigation", "observer_context", "plates", "pacing_profile",
+    "memory_contract", "validation_state", "provenance_refs"
+  ],
+  "properties": {
+    "chapter_id": { "type": "string", "pattern": "^KDX-CHAPTER-[A-Z0-9_-]+$" },
+    "version": { "const": "0.1.0" },
+    "status": { "const": "IMPLEMENTED_CANDIDATE" },
+    "seed": { "type": ["string", "integer"] },
+    "entry_node": { "type": "string", "minLength": 2 },
+    "route_engine_profile": { "const": "route-slate-v1.1.0" },
+    "runtime_auto_navigation": { "const": false },
+    "observer_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lens", "mode", "memory_signals", "activated_artworks"],
+      "properties": {
+        "lens": { "type": "string" },
+        "mode": { "type": "string" },
+        "memory_signals": { "type": "array", "uniqueItems": true, "items": { "type": "string" } },
+        "activated_artworks": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "plates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node_id", "plate_id", "plate_type", "pacing_role", "route_options", "contract_qa_ref"],
+        "properties": {
+          "node_id": { "type": "string" },
+          "plate_id": { "type": "string" },
+          "plate_type": { "enum": ["KNOWLEDGE_PLATE", "JUNCTION_PLATE", "ACTIVATOR_PLATE"] },
+          "pacing_role": { "enum": ["INFORMATION", "CHOICE", "PAUSE_THRESHOLD"] },
+          "route_options": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["target_node", "target_plate_id", "role"],
+              "properties": {
+                "target_node": { "type": "string" },
+                "target_plate_id": { "type": "string" },
+                "role": { "enum": ["CONTINUITY", "BRIDGE", "ECHO", "SERENDIPITY"] }
+              }
+            }
+          },
+          "contract_qa_ref": { "type": "string", "minLength": 2 }
+        }
+      }
+    },
+    "pacing_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "roles_are_annotations_not_runtime_forcing"],
+      "properties": {
+        "status": { "const": "HYPOTHESIS" },
+        "roles_are_annotations_not_runtime_forcing": { "const": true }
+      }
+    },
+    "memory_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["gates_resolved_by_route_engine", "compile_does_not_mutate_visitor_memory"],
+      "properties": {
+        "gates_resolved_by_route_engine": { "const": true },
+        "compile_does_not_mutate_visitor_memory": { "const": true }
+      }
+    },
+    "validation_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["all_plate_contracts_pass", "rendered_end_to_end", "browser_validated"],
+      "properties": {
+        "all_plate_contracts_pass": { "const": true },
+        "rendered_end_to_end": { "type": "boolean" },
+        "browser_validated": { "type": "boolean" }
+      }
+    },
+    "provenance_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string" } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "validation_state": { "properties": { "rendered_end_to_end": { "const": false } } } } },
+      "then": { "properties": { "validation_state": { "properties": { "browser_validated": { "const": false } } } }
+    }
+  ],
+  "x-kodex-invariants": [
+    "Macro assembly consumes contract-validated plate IDs; it does not invent plate or node identities.",
+    "Route eligibility/roles come from the existing Deep Route Engine; there is no second route algorithm.",
+    "Macro compilation exposes choices but never chooses a runtime route for the visitor.",
+    "Memory-gated routes remain gated by observer context and are not manufactured by chapter compilation.",
+    "Pacing roles are versioned production annotations, not a claim of universal aesthetic truth.",
+    "An unrendered chapter cannot be labeled browser-validated."
+  ]
+}
