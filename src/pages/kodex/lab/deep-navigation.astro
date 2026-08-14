@@ -26,9 +26,9 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         <span>MICRO</span><i></i><span>OBJECT</span><i></i><span>SYSTEM</span><i></i><span>COSMOS</span><i></i><span>META</span>
       </aside>
 
-      <article class="kdx-deep__plate" data-plate>
+      <article class="kdx-deep__plate" data-plate tabindex="-1" aria-labelledby="kdx-deep-title">
         <p class="kdx-deep__eyebrow"><span data-field>SCIENCE</span> · <span data-plate-role>KNOWLEDGE</span></p>
-        <h1 data-title>Living Systems</h1>
+        <h1 id="kdx-deep-title" data-title>Living Systems</h1>
         <p class="kdx-deep__summary" data-summary>Life as nested organization: membrane, organism, ecology.</p>
 
         <section class="kdx-activator" data-activator hidden aria-live="polite">
@@ -111,6 +111,12 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       else window.history.replaceState(snapshot, '', url);
     };
 
+    const focusActivePlate = () => {
+      const plate = $('[data-plate]');
+      if (!(plate instanceof HTMLElement)) return;
+      requestAnimationFrame(() => plate.focus({ preventScroll: true }));
+    };
+
     const renderConstellation = () => {
       const constellation = buildMicroUniverseMemoryConstellation(state);
       $('[data-known-count]').textContent = String(constellation.visitedCount);
@@ -128,7 +134,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
           if (next.currentNodeId === state.currentNodeId) return;
           state = next;
           commitHistory('push');
-          render();
+          render({ restoreFocus: true });
         });
         container.append(button);
       }
@@ -154,7 +160,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       $('[data-activator-stage]').dataset.activated = activated ? 'true' : 'false';
     };
 
-    const render = () => {
+    const render = ({ restoreFocus = false } = {}) => {
       const node = MICRO_UNIVERSE_NODES[state.currentNodeId];
       const frame = buildMicroUniverseFrame(state);
       $('[data-title]').textContent = node.title;
@@ -179,7 +185,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         button.addEventListener('click', () => {
           state = enterMicroUniverseNode(state, route.id, route.role);
           commitHistory('push');
-          render();
+          render({ restoreFocus: true });
         });
         doors.append(button);
       }
@@ -192,6 +198,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         trace.append(li);
       }
       renderConstellation();
+      if (restoreFocus) focusActivePlate();
     };
 
     $('[data-activate-art]').addEventListener('click', () => {
@@ -216,16 +223,16 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     $('[data-reset]').addEventListener('click', () => {
       state = createMicroUniverseState();
       commitHistory('push');
-      render();
+      render({ restoreFocus: true });
     });
 
     window.addEventListener('popstate', (event) => {
       state = restoreMicroUniverseHistoryState(event.state, fallbackFromLocation());
-      render();
+      render({ restoreFocus: true });
     });
 
     commitHistory('replace');
-    render();
+    render({ restoreFocus: true });
   }
 </script>
 
@@ -243,6 +250,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   .kdx-deep__scale { height:min(54dvh,520px); display:flex; flex-direction:column; align-items:center; justify-content:space-between; font-size:7px; letter-spacing:.12em; opacity:.5; }
   .kdx-deep__scale i { width:1px; flex:1; margin:8px 0; background:#4b4650; }
   .kdx-deep__plate { width:min(100%,1040px); justify-self:center; min-width:0; }
+  .kdx-deep__plate:focus { outline:1px solid #5e5568; outline-offset:10px; }
   .kdx-deep__eyebrow { margin:0 0 14px; font-size:10px; letter-spacing:.2em; opacity:.58; }
   .kdx-deep h1 { margin:0; font-size:clamp(42px,8vw,132px); line-height:.8; letter-spacing:-.06em; max-width:11ch; text-wrap:balance; }
   .kdx-deep__summary { max-width:58ch; margin:20px 0; font-size:clamp(12px,1.2vw,16px); line-height:1.5; opacity:.72; }
