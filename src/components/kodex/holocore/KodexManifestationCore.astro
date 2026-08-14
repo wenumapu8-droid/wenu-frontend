@@ -1,0 +1,325 @@
+---
+interface Props {
+  id?: string;
+}
+
+const { id = 'kdx-manifestation-core' } = Astro.props;
+---
+
+<figure class="kdx-manifestation-core" id={id} data-kdx-manifestation-core data-phase="POTENTIAL">
+  <header class="kdx-manifestation-core__bar">
+    <span>MANIFESTATION CORE // CAUSAL STATE</span>
+    <strong data-manifestation-phase>POTENTIAL</strong>
+  </header>
+
+  <div class="kdx-manifestation-core__viewport">
+    <canvas data-manifestation-canvas role="img" aria-label="KODEX manifestation state visualization"></canvas>
+    <div class="kdx-manifestation-core__grid" aria-hidden="true"></div>
+    <div class="kdx-manifestation-core__scan" aria-hidden="true"></div>
+    <div class="kdx-manifestation-core__vignette" aria-hidden="true"></div>
+
+    <div class="kdx-manifestation-core__identity" aria-hidden="true">
+      <strong data-manifestation-specimen>SOURCE CHAMBER</strong>
+      <span data-manifestation-state>STANDBY</span>
+    </div>
+
+    <div class="kdx-manifestation-core__load" aria-hidden="true">
+      <span>CAUSAL LOAD</span>
+      <strong data-manifestation-load>0.00</strong>
+    </div>
+  </div>
+
+  <footer class="kdx-manifestation-core__footer">
+    <span data-manifestation-intent>NO INTENT</span>
+    <span data-manifestation-blockers>0 BLOCKERS</span>
+    <span>EXPLICIT STATE ONLY</span>
+  </footer>
+
+  <figcaption>
+    Software causal-state visualization. It does not claim that thought directly changes physical matter.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiRenderer } from '../../../kodex/ascii/engine/AsciiRenderer.js';
+  import { resolveHoloCoreSpecimen } from '../../../kodex/holocore/registry.js';
+  import {
+    buildManifestationView,
+    createManifestationState,
+    reduceManifestationState,
+  } from '../../../lib/kodex/manifestation-engine.js';
+
+  const instances = new WeakMap();
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+
+    const canvas = root.querySelector('[data-manifestation-canvas]');
+    const phaseLabel = root.querySelector('[data-manifestation-phase]');
+    const specimenLabel = root.querySelector('[data-manifestation-specimen]');
+    const stateLabel = root.querySelector('[data-manifestation-state]');
+    const loadLabel = root.querySelector('[data-manifestation-load]');
+    const intentLabel = root.querySelector('[data-manifestation-intent]');
+    const blockersLabel = root.querySelector('[data-manifestation-blockers]');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let state = createManifestationState();
+    let renderer = null;
+    let specimenId = null;
+    let freezeTimer = 0;
+    let settleTimer = 0;
+    let destroyed = false;
+
+    const setRendererState = value => {
+      root.dataset.rendererState = value.toLowerCase().replaceAll(' ', '-');
+      if (stateLabel) stateLabel.textContent = value;
+    };
+
+    const startSpecimen = nextSpecimenId => {
+      const specimen = resolveHoloCoreSpecimen(nextSpecimenId);
+      if (specimenId === specimen.id && renderer) return;
+
+      window.clearTimeout(freezeTimer);
+      window.clearTimeout(settleTimer);
+      renderer?.destroy();
+      specimenId = specimen.id;
+
+      root.dataset.specimen = specimen.id;
+      root.style.setProperty('--manifest-accent', specimen.accent);
+      canvas.setAttribute('aria-label', `${specimen.title}. ${specimen.label}`);
+      if (specimenLabel) specimenLabel.textContent = specimen.title;
+
+      renderer = new AsciiRenderer(canvas, {
+        scene: specimen.scene,
+        profile: 'balanced',
+        glyphSet: 'kodex',
+        palette: specimen.palette,
+      });
+
+      setRendererState('RESOLVING');
+      renderer.start();
+
+      if (reduced) {
+        freezeTimer = window.setTimeout(() => {
+          renderer?.stop();
+          if (!destroyed) setRendererState('STATIC FRAME');
+        }, 180);
+      } else {
+        settleTimer = window.setTimeout(() => {
+          if (!destroyed) setRendererState('STABLE LOOP');
+        }, 420);
+      }
+    };
+
+    const publish = () => {
+      const view = buildManifestationView(state);
+      root.dataset.phase = view.phase;
+      root.dataset.blocked = String(view.blocked);
+      root.dataset.canTransform = String(view.canTransform);
+      root.dataset.causalLoad = String(view.causalLoad);
+      root.dataset.unresolvedBlockers = String(view.unresolvedBlockerCount);
+
+      if (phaseLabel) phaseLabel.textContent = view.phase;
+      if (loadLabel) loadLabel.textContent = view.causalLoad.toFixed(2);
+      if (intentLabel) intentLabel.textContent = state.intent || 'NO INTENT';
+      if (blockersLabel) blockersLabel.textContent = `${view.unresolvedBlockerCount} BLOCKER${view.unresolvedBlockerCount === 1 ? '' : 'S'}`;
+
+      startSpecimen(view.visualSpecimenId);
+
+      root.dispatchEvent(new CustomEvent('kdx:manifestation:view', {
+        bubbles: true,
+        detail: {
+          ...view,
+          intent: state.intent,
+          traceLength: state.trace.length,
+          visualSpecimenId: view.visualSpecimenId,
+        },
+      }));
+    };
+
+    const onEvent = event => {
+      const detail = event.detail;
+      if (!detail || typeof detail !== 'object') return;
+      state = reduceManifestationState(state, detail);
+      publish();
+    };
+
+    root.addEventListener('kdx:manifestation:event', onEvent);
+    publish();
+
+    const destroy = () => {
+      destroyed = true;
+      window.clearTimeout(freezeTimer);
+      window.clearTimeout(settleTimer);
+      root.removeEventListener('kdx:manifestation:event', onEvent);
+      renderer?.destroy();
+      instances.delete(root);
+    };
+
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-manifestation-core]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-manifestation-core]').forEach(root => {
+      instances.get(root)?.destroy();
+    });
+  });
+</script>
+
+<style>
+  .kdx-manifestation-core {
+    --manifest-accent: #f5df9e;
+    box-sizing: border-box;
+    position: relative;
+    display: grid;
+    grid-template-rows: 32px minmax(0, 1fr) 32px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    isolation: isolate;
+    color: #ece8ef;
+    background: #020205;
+    border: 1px solid color-mix(in srgb, var(--manifest-accent) 38%, #fff 8%);
+  }
+
+  .kdx-manifestation-core__bar,
+  .kdx-manifestation-core__footer {
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 10px;
+    font: 500 8px/1 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(236,232,239,.58);
+  }
+
+  .kdx-manifestation-core__bar {
+    border-bottom: 1px solid color-mix(in srgb, var(--manifest-accent) 32%, transparent);
+  }
+
+  .kdx-manifestation-core__footer {
+    border-top: 1px solid color-mix(in srgb, var(--manifest-accent) 32%, transparent);
+  }
+
+  .kdx-manifestation-core__bar strong {
+    color: var(--manifest-accent);
+    font-weight: 500;
+  }
+
+  .kdx-manifestation-core__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: radial-gradient(circle at center, color-mix(in srgb, var(--manifest-accent) 7%, transparent), transparent 48%), #020205;
+  }
+
+  [data-manifestation-canvas] {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: saturate(1.05) contrast(1.2) drop-shadow(0 0 8px color-mix(in srgb, var(--manifest-accent) 22%, transparent));
+  }
+
+  .kdx-manifestation-core__grid,
+  .kdx-manifestation-core__scan,
+  .kdx-manifestation-core__vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .kdx-manifestation-core__grid {
+    z-index: 2;
+    opacity: .09;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--manifest-accent) 18%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--manifest-accent) 15%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(circle at center, #000 18%, transparent 90%);
+  }
+
+  .kdx-manifestation-core__scan {
+    z-index: 4;
+    inset: -10% 0 auto;
+    height: 8%;
+    opacity: .16;
+    background: linear-gradient(transparent, var(--manifest-accent), transparent);
+    filter: blur(8px);
+    animation: manifestation-scan 9s linear infinite;
+  }
+
+  .kdx-manifestation-core__vignette {
+    z-index: 5;
+    box-shadow: inset 0 0 80px 26px rgba(0,0,0,.75);
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.012) 0 1px, transparent 1px 4px);
+  }
+
+  .kdx-manifestation-core__identity,
+  .kdx-manifestation-core__load {
+    position: absolute;
+    z-index: 7;
+    display: grid;
+    gap: 4px;
+    font: 500 8px/1.15 'Share Tech Mono', ui-monospace, monospace;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+  }
+
+  .kdx-manifestation-core__identity {
+    top: 14px;
+    right: 14px;
+    justify-items: end;
+    text-align: right;
+  }
+
+  .kdx-manifestation-core__load {
+    left: 14px;
+    bottom: 14px;
+  }
+
+  .kdx-manifestation-core__identity strong,
+  .kdx-manifestation-core__load strong {
+    color: var(--manifest-accent);
+    font-weight: 500;
+  }
+
+  .kdx-manifestation-core figcaption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes manifestation-scan {
+    from { transform: translateY(0); }
+    to { transform: translateY(1500%); }
+  }
+
+  @media (max-width: 700px) {
+    .kdx-manifestation-core { grid-template-rows: 28px minmax(0, 1fr) 28px; }
+    .kdx-manifestation-core__bar,
+    .kdx-manifestation-core__footer { padding: 0 7px; gap: 5px; font-size: 6px; }
+    .kdx-manifestation-core__identity,
+    .kdx-manifestation-core__load { font-size: 6px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-manifestation-core__scan { animation: none; top: 48%; opacity: .05; }
+  }
+</style>
