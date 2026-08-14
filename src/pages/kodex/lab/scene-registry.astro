@@ -1,0 +1,142 @@
+---
+import Base from '../../../layouts/Base.astro';
+import {
+  CORE_SCENE_ORDER,
+  KODEX_SCENES,
+  KODEX_ORBITALS,
+  getSceneCandidates,
+  validateSceneRegistry,
+} from '../../../lib/kodex/scene-registry.js';
+import { recommendNextScene, EXPERIENCE_POLICY } from '../../../lib/kodex/experience-engine.js';
+
+const report = validateSceneRegistry();
+const rows = CORE_SCENE_ORDER.map((key) => {
+  const scene = KODEX_SCENES[key];
+  const recommendation = recommendNextScene({
+    currentScene: key,
+    history: CORE_SCENE_ORDER.slice(0, scene.index + 1),
+    seed: 'KODEX-CONTROL-ROOM',
+    allowOrbitals: true,
+  });
+  return {
+    ...scene,
+    candidates: getSceneCandidates(key, { includeOrbitals: true }),
+    recommended: recommendation.selected?.key || '—',
+  };
+});
+---
+
+<Base
+  title="KODEX Lab — Scene Registry"
+  description="Internal KODEX scene registry and experience-runtime control room."
+  robots="noindex, nofollow"
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <main class="kdx-registry">
+    <header class="kdx-registry__header">
+      <div>
+        <p>KODEX−∞ / INTERNAL CONTROL ROOM</p>
+        <h1>SCENE REGISTRY</h1>
+      </div>
+      <dl>
+        <div><dt>CORE</dt><dd>{report.coreCount}</dd></div>
+        <div><dt>ORBITALS</dt><dd>{report.orbitalCount}</dd></div>
+        <div><dt>SCHEMA</dt><dd>{report.valid ? 'PASS' : 'FAIL'}</dd></div>
+        <div><dt>AUTO NAV</dt><dd>{EXPERIENCE_POLICY.autoNavigate ? 'ON' : 'OFF'}</dd></div>
+      </dl>
+    </header>
+
+    {!report.valid && (
+      <section class="kdx-registry__errors" aria-label="registry errors">
+        {report.errors.map((error) => <p>{error}</p>)}
+      </section>
+    )}
+
+    <section class="kdx-registry__journey" aria-label="core scene journey">
+      {rows.map((scene) => (
+        <article class="kdx-scene-card" data-scene={scene.key}>
+          <div class="kdx-scene-card__index">{String(scene.index).padStart(2, '0')}</div>
+          <div class="kdx-scene-card__body">
+            <p class="kdx-scene-card__id">{scene.id}</p>
+            <h2>{scene.label}</h2>
+            <p>{scene.narrativeRole}</p>
+            <dl>
+              <div><dt>DENSITY</dt><dd>{scene.density}/5</dd></div>
+              <div><dt>WORLDS</dt><dd>{scene.worlds.join(' · ')}</dd></div>
+              <div><dt>NEXT CORE</dt><dd>{scene.next.join(' · ')}</dd></div>
+              <div><dt>RECOMMENDED</dt><dd>{scene.recommended}</dd></div>
+              <div><dt>REDUCED</dt><dd>{scene.renderer.reduced}</dd></div>
+              <div><dt>FALLBACK</dt><dd>{scene.renderer.fallback}</dd></div>
+            </dl>
+            <div class="kdx-scene-card__candidates">
+              {scene.candidates.map((candidate) => (
+                <span data-transition={candidate.transitionClass}>{candidate.key}</span>
+              ))}
+            </div>
+            <a href={scene.href}>OPEN SCENE ↗</a>
+          </div>
+        </article>
+      ))}
+    </section>
+
+    <section class="kdx-registry__orbitals" aria-labelledby="orbitals-title">
+      <header>
+        <p>SCENE-DEPENDENT</p>
+        <h2 id="orbitals-title">ORBITAL NODES</h2>
+      </header>
+      <div>
+        {Object.values(KODEX_ORBITALS).map((node) => (
+          <article>
+            <p>{node.id}</p>
+            <h3>{node.label}</h3>
+            <strong>{node.routingStatus}</strong>
+            <small>{node.affinity.join(' · ')}</small>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <footer class="kdx-registry__policy">
+      <p>OBJECTIVE · {EXPERIENCE_POLICY.objective.join(' / ')}</p>
+      <p>PROHIBITED · {EXPERIENCE_POLICY.prohibitedObjectives.join(' / ')}</p>
+      <p>RANDOMNESS · {EXPERIENCE_POLICY.randomness}</p>
+    </footer>
+  </main>
+</Base>
+
+<style>
+  :global(body) { margin: 0; background: #050505; color: #f1efe8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .kdx-registry { min-height: 100dvh; padding: clamp(20px, 4vw, 64px); background: radial-gradient(circle at 50% 0%, #15111f 0, #050505 42%); }
+  .kdx-registry__header { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; padding-bottom: 24px; border-bottom: 1px solid #3b3940; }
+  .kdx-registry__header p, .kdx-registry__id, .kdx-scene-card__id { margin: 0 0 8px; font-size: 11px; letter-spacing: .18em; opacity: .62; }
+  .kdx-registry h1 { margin: 0; font-size: clamp(38px, 8vw, 110px); line-height: .82; letter-spacing: -.06em; }
+  .kdx-registry__header dl { display: grid; grid-template-columns: repeat(4, auto); gap: 18px; margin: 0; }
+  dl div { display: grid; gap: 5px; }
+  dt { font-size: 9px; letter-spacing: .15em; opacity: .5; }
+  dd { margin: 0; font-size: 12px; }
+  .kdx-registry__journey { display: grid; gap: 0; margin-top: 40px; border-top: 1px solid #27252b; }
+  .kdx-scene-card { display: grid; grid-template-columns: minmax(52px, 8vw) 1fr; border-bottom: 1px solid #27252b; }
+  .kdx-scene-card__index { padding: 24px 12px 24px 0; color: #a998ff; font-size: clamp(22px, 4vw, 54px); }
+  .kdx-scene-card__body { padding: 24px 0; }
+  .kdx-scene-card h2 { margin: 0 0 8px; font-size: clamp(26px, 5vw, 64px); letter-spacing: -.04em; }
+  .kdx-scene-card__body > p:not(.kdx-scene-card__id) { margin: 0 0 20px; opacity: .68; text-transform: uppercase; }
+  .kdx-scene-card dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 24px; margin: 0 0 18px; }
+  .kdx-scene-card__candidates { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .kdx-scene-card__candidates span { padding: 5px 8px; border: 1px solid #4a4653; font-size: 10px; text-transform: uppercase; }
+  .kdx-scene-card__candidates span[data-transition='CANONICAL'] { border-color: #a998ff; }
+  .kdx-scene-card a { color: inherit; font-size: 11px; letter-spacing: .12em; }
+  .kdx-registry__orbitals { margin-top: 72px; }
+  .kdx-registry__orbitals > div { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: #27252b; border: 1px solid #27252b; }
+  .kdx-registry__orbitals article { padding: 18px; background: #090909; min-height: 150px; }
+  .kdx-registry__orbitals article p, .kdx-registry__orbitals article small { display: block; margin: 0 0 12px; opacity: .55; font-size: 9px; }
+  .kdx-registry__orbitals h3 { margin: 0 0 16px; }
+  .kdx-registry__orbitals strong { display: block; margin-bottom: 18px; color: #a998ff; font-size: 10px; }
+  .kdx-registry__policy { margin-top: 56px; padding-top: 18px; border-top: 1px solid #3b3940; font-size: 10px; line-height: 1.7; opacity: .65; }
+  .kdx-registry__errors { margin: 20px 0; padding: 16px; border: 1px solid #ff5c68; color: #ff9da4; }
+  @media (max-width: 760px) {
+    .kdx-registry__header { grid-template-columns: 1fr; }
+    .kdx-registry__header dl { grid-template-columns: repeat(2, 1fr); }
+    .kdx-scene-card dl { grid-template-columns: 1fr 1fr; }
+    .kdx-registry__orbitals > div { grid-template-columns: 1fr; }
+  }
+</style>
