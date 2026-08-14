@@ -81,8 +81,11 @@ No new npm dependency was added.
 | ASCII Reactor is a Drive reference for reusable data-dither / MACHINE-LAB language | VERIFIED | Asset Atlas row 103 |
 | Orbital City is physically plausible as depicted | SPECULATIVE | no engineering validation; not claimed |
 | HoloCore code exists on a feature branch | VERIFIED | files above |
-| 24 s field closes mathematically | IMPLEMENTED; test pending CI until workflow runs | `kodex-holocore.test.mjs` |
-| Browser/mobile visual quality is accepted | NEEDS_CONFIRMATION | requires browser evidence |
+| 24 s field closes mathematically | IMPLEMENTED / PREVIOUS CI CORE TESTS PASSED | `kodex-holocore.test.mjs` + KODEX Core Runtime run #108 |
+| Desktop 1440×900 bounded/no-scroll proof | PASSED IN FIRST BROWSER RUN | HoloCore evidence artifact from run #108 |
+| Mobile 390×844 browser proof | PATCHED / NEEDS FRESH CI | first harness measured entry `transform: scale()` as layout overflow |
+| Reduced-motion static browser proof | PATCHED / NEEDS FRESH CI | first harness fingerprinted before font/canvas stabilization |
+| Browser/mobile visual quality is accepted | NEEDS_CONFIRMATION | fresh CI + human visual review still required |
 | HoloCore is deployed/public | FALSE / NOT CLAIMED | lab-only branch and noindex route |
 
 ## Acceptance target
@@ -97,6 +100,64 @@ Before this prototype can be called browser-validated:
 6. Mobile evidence at 390×844 confirms contained viewport and no page-level scroll.
 7. Reduced-motion evidence confirms static phase and no animated scan/pulse.
 8. No public KODEX route is changed.
+9. The feature branch is synchronized or conflict-resolved against its active base before review/merge.
+
+## Validation update — 2026-08-14
+
+First GitHub Actions run: `KODEX Core Runtime` run #108, head `0d8996fca2d1887205e214df936e4e5100656535`.
+
+Confirmed PASS in that run:
+
+- `npm ci`;
+- KODEX scene/runtime tests;
+- JourneyState + graph + memory bridge + Visible Assembly tests;
+- Assembly OS contract tests available on that head;
+- KODEX integrity audit;
+- Astro build;
+- Chromium installation and preview boot;
+- general KODEX browser evidence;
+- deep-navigation vertical slice;
+- HoloCore desktop 1440×900 living-loop evidence.
+
+The HoloCore-specific browser step failed only on mobile containment evidence and reduced-motion fingerprint evidence. The runtime itself was not shown to be the cause of those two failures.
+
+Patch applied to `scripts/kodex-holocore-browser-evidence.mjs`:
+
+- wait for `document.fonts.ready`;
+- wait for stable canvas backing/layout dimensions;
+- distinguish CSS layout dimensions from temporary transformed visual bounds;
+- preserve strict document/root overflow checks;
+- re-run reduced-motion fingerprint only after canvas stabilization.
+
+A fresh workflow run has **not** been generated for the patched head through the connector, so these fixes remain `PATCHED / NEEDS FRESH CI`, not green.
+
+## Branch-health update
+
+The base branch `feat/kodex-observer-scale-route-v1` advanced substantially while this prototype was being validated. The HoloCore branch is currently diverged and materially behind the moving base. The shared workflow also gained grammar, factory benchmark and Golden Plate validation on the base.
+
+The HoloCore workflow file was reconciled to a **superset of current base validation + HoloCore validation** so the feature branch does not silently remove newer gates. This does not substitute for an actual branch synchronization/rebase/merge.
+
+Do not mark this PR ready, green or mergeable until:
+
+- branch conflict/synchronization is resolved;
+- a workflow run executes on the synchronized/patched head;
+- HoloCore desktop/mobile/reduced-motion evidence passes;
+- human visual review accepts the plate.
+
+## Visual-fidelity note
+
+The current ORBITAL CITY specimen is an architecture proof, not a high-fidelity reconstruction of `KDX-ROOT-RAW-009 / ASCII REACTOR`.
+
+Observed in the Drive poster:
+
+- black field;
+- dominant white macro typography;
+- high-luminance acid-green central core;
+- reflective/chrome-like cage structure;
+- multicolor ASCII/data-dither clouds;
+- sparse technical callouts.
+
+The current HoloCore proof intentionally uses a lower-contrast violet orbital signal field. Therefore visual fidelity to ASCII Reactor must not be overstated. The next specimen after browser acceptance should test the reference-to-motion method more directly with a stable luminous core, procedural cage proxy, data-dither field and state-bounded signal bursts without copying poster pixels, exact cage morphology, labels or layout.
 
 ## Next iteration after acceptance
 
@@ -110,7 +171,7 @@ That turns HoloCore from one prototype into the reusable central visualization r
 
 Agent/model: OpenAI GPT-5.6 Sol  
 Date: 2026-08-14  
-Input basis: current user direction, GitHub implementation branch, KODEX source/governance docs, and Drive Asset Atlas row 103 plus the referenced ASCII Reactor poster.  
-Output: four implementation/test files plus this record.  
+Input basis: current user direction, GitHub implementation branch, KODEX source/governance docs, Drive Asset Atlas row 103, the referenced ASCII Reactor poster, and GitHub Actions/browser-evidence artifacts from run #108.  
+Output: implementation/test files, evidence-harness patch, workflow-base reconciliation, Drive motion-engine bridge record, and this updated implementation record.  
 Human validation: pending.  
-Uncertainty: browser composition and performance have not been accepted until CI/browser evidence is available.
+Uncertainty: mobile/reduced-motion fixes and current branch integration have not been revalidated by fresh CI.
