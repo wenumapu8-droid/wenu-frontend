@@ -27,9 +27,10 @@ const EXPECTED_IDS = [
   'return-gate',
   'living-organism',
   'signal-seed',
+  'toroidal-field',
 ];
 
-test('HoloCore registry exposes fourteen unique query-addressable core archetypes', () => {
+test('HoloCore registry exposes fifteen unique query-addressable core archetypes', () => {
   assert.deepEqual(HOLOCORE_SPECIMEN_IDS, EXPECTED_IDS);
 
   const specimens = getHoloCoreSpecimens();
@@ -43,6 +44,14 @@ test('HoloCore registry exposes fourteen unique query-addressable core archetype
     assert.equal(typeof specimen.topology, 'string', `${specimen.id}: missing topology`);
     assert.equal(typeof specimen.epistemic, 'string', `${specimen.id}: missing epistemic layer`);
   }
+});
+
+test('toroidal perceptual benchmark is admitted without inventing a canonical node mapping', () => {
+  const torus = resolveHoloCoreSpecimen('toroidal-field');
+  assert.equal(torus.id, 'toroidal-field');
+  assert.equal(torus.sourceStatus, 'INTERNAL_BENCHMARK');
+  assert.equal(torus.provenance, 'KODEX_SYNTHETIC_PERCEPTUAL_BENCHMARK');
+  assert.equal(Object.values(HOLOCORE_NODE_MAP).includes('toroidal-field'), false);
 });
 
 test('unknown HoloCore specimen IDs fall back deterministically', () => {
