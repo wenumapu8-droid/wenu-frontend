@@ -48,11 +48,22 @@ test('three protected Ocín activators are source-linked, full-view and non-rend
 test('entry frame is bounded, deterministic and never auto-navigates', () => {
   const state = createMicroUniverseState();
   assert.equal(state.currentNodeId, MICRO_UNIVERSE_ENTRY);
+  assert.equal(state.depth,0);
   const a = buildMicroUniverseFrame(state,{ seed:'lab-proof' });
   const b = buildMicroUniverseFrame(state,{ seed:'lab-proof' });
   assert.deepEqual(a.selected.map((x) => [x.id,x.role]), b.selected.map((x) => [x.id,x.role]));
   assert.ok(a.selected.length >= 2 && a.selected.length <= 4);
   assert.equal(a.autoNavigate,false);
+});
+
+test('meaningful route entry increments semantic depth without changing lens', () => {
+  const state = createMicroUniverseState();
+  const next = enterMicroUniverseNode(state,'SCI-PATTERN','CONTINUITY');
+  assert.equal(next.currentNodeId,'SCI-PATTERN');
+  assert.equal(next.depth,1);
+  assert.equal(next.lens,state.lens);
+  const again = enterMicroUniverseNode(next,'SCI-COSMOS','CONTINUITY');
+  assert.equal(again.depth,2);
 });
 
 test('entering an artwork node does not activate it; explicit activation unlocks the memory-conditioned ritual', () => {
@@ -109,6 +120,7 @@ test('history snapshot reconstructs explicit artwork memory without putting it i
   assert.equal(snapshot.kind, MICRO_UNIVERSE_HISTORY_KIND);
   const restored = restoreMicroUniverseHistoryState(snapshot);
   assert.equal(restored.currentNodeId,'ART-IMAGE');
+  assert.equal(restored.depth,2);
   assert.deepEqual(restored.activatedArtworks,state.activatedArtworks);
   assert.deepEqual(restored.routeTrace,state.routeTrace);
 
@@ -125,6 +137,7 @@ test('clean deep links reconstruct only safe public coordinates, not gated memor
   const direct = createMicroUniverseDeepLinkState({ nodeId:'TECH-CITY', lens:'SATELLITE' });
   assert.equal(direct.currentNodeId,'TECH-CITY');
   assert.equal(direct.lens,'SATELLITE');
+  assert.equal(direct.depth,0);
   assert.deepEqual(direct.activatedArtworks,[]);
   assert.equal(direct.routeTrace.filter((event) => event.kind === 'VISIT_NODE').length,1);
 
