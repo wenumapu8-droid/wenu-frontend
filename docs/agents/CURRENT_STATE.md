@@ -62,6 +62,22 @@ Head `2c73c5824461135b9f47e8ee7fd38fb9ddc2b40b` completed run 198 SUCCESS.
 
 RGX materially improves structural density and reference-topology legibility with code-native microglyph + SVG/vector construction and no reference pixels. Actual artifact review still reads primarily as technical diagram/scaffold rather than a volumetric finished object. Creator acceptance remains separate.
 
+### PR #73 — RGX 14-core family expansion
+
+Current head: `0180d28cb6b22020331ba88813772b40c08f9914`. KODEX Core Runtime run 258 is **IN PROGRESS** at this verification point.
+
+This branch expands the RGX proof from one ORBITAL CITY specimen to all 14 semantic HoloCore cores. The implementation remains code-native and reference-grounded, but this is an **EVIDENCE-ONLY / DRAFT expansion** until exact-head browser artifacts are visually reviewed.
+
+Operational hold:
+
+- do not treat a green 42-state desktop/mobile/reduced-motion matrix as creator acceptance;
+- do not promote RGX to canonical/default HoloCore materiality from machine QA;
+- do not expand beyond the existing 14-core scope before visual review;
+- classify the rendered family KEEP / ADAPT / HOLD from actual artifacts before further implementation;
+- PR #70 remains the stronger current volumetric/materiality benchmark; #73 is a structural/reference-fidelity experiment, not the foreground materiality decision.
+
+A convergence review note has been left on PR #73 recording these boundaries.
+
 ### PR #70 — WebGL source adapter + TOROIDAL MATERIALITY benchmark
 
 Branch: `feat/kodex-holocore-webgl-source-adapter-v0`.  
@@ -121,7 +137,8 @@ No toroidal/HoloCore work may weaken these boundaries. The WebGL toroidal work t
 
 Many older KODEX PRs remain open. Open status does not make them equally authoritative.
 
-- #63 = earlier HoloCore prototype; #67/#70/#72 are later descendants/experiments with distinct renderer roles.
+- #63 = earlier HoloCore prototype; #67/#70/#72/#73 are later descendants/experiments with distinct renderer roles.
+- #73 = stacked RGX family expansion; keep evidence-only until rendered family review closes the renderer-level question.
 - #68 = separate authored/static-reference corridor and measurement lane; do not silently substitute it for Assembly OS/HoloCore lineage.
 - #71 = deterministic manifestation/software-state semantics; not a claim that thought changes matter.
 - #64 = governed visual-assembly proposal lane; it must not supersede implemented Assembly OS contracts without explicit reconciliation.
@@ -139,6 +156,7 @@ Primary risks:
 - mistaking browser/CI green for creator acceptance;
 - over-refining a technically successful renderer instead of judging the actual artifact;
 - branch proliferation creating false architectural plurality;
+- scaling a renderer family before its perceptual role is accepted;
 - visual-reference fidelity drifting into pixel copying/false provenance;
 - collapsing science, metaphor, cultural provenance and speculation;
 - treating protected artwork curation as public-use approval.
@@ -152,12 +170,13 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 ## 7. Exact next action
 
 1. Treat PR #70 head `15ba561…` / run 228 as the current browser-validated WebGL toroidal candidate.
-2. Do **not** create another renderer, shader architecture, schema, PlateSpec family or route engine.
-3. Creator/curatorial review must judge the actual WebGL artifact against the intended perceptual bar: volume, aperture, front/back separation, material continuity, object dominance, flow language and mobile readability.
-4. If the creator rejects the current glossy/marbled surface language, make the smallest **shader-only** refinement in this same PR: material/flow/camera scale first, not architecture.
-5. Preserve `ART / COMP / SPEC`, `AMBIENT_UNCLOSED`, `seamlessLoopClaim=false`, reduced-motion freeze, Canvas fallback, noindex and user agency.
-6. After any visual delta: rerun the same browser gate, download the artifact and visually inspect it before making any quality claim.
-7. Creator acceptance remains explicit and separate from machine validity.
+2. Treat PR #73 as evidence-only while run 258 and subsequent artifact review are unresolved; do not expand or promote RGX materiality from CI alone.
+3. Do **not** create another renderer, shader architecture, schema, PlateSpec family or route engine.
+4. Creator/curatorial review must judge actual rendered artifacts against the intended perceptual bar: volume, aperture, front/back separation, material continuity, object dominance, flow language, structural legibility and mobile readability.
+5. If the creator rejects the current #70 glossy/marbled surface language, make the smallest **shader-only** refinement in this same PR: material/flow/camera scale first, not architecture.
+6. Preserve `ART / COMP / SPEC`, temporal truth, reduced-motion, meaningful fallback, noindex and user agency.
+7. After any visual delta: rerun the same browser gate, download the artifact and visually inspect it before making any quality claim.
+8. Creator acceptance remains explicit and separate from machine validity.
 
 ---
 
