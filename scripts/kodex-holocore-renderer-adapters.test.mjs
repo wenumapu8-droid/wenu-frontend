@@ -12,18 +12,14 @@ import {
   HOLOCORE_SURFACE_KINDS,
   RASTER_SIGNAL_RENDERER_SPEC,
   WEBGL_SOURCE_RENDERER_CONTRACT,
+  WEBGL_TOROIDAL_RENDERER_CONTRACT,
   RENDERER_ADAPTER_STATUS,
 } from '../src/kodex/holocore/renderers/registry.js';
 
 test('renderer taxonomy separates content renderers from surface pipelines', () => {
-  assert.deepEqual(HOLOCORE_RENDERER_KINDS, [
-    'ascii-field',
-    'raster2d-lowres',
-    'webgl-shader',
-    'artwork-adapter',
-  ]);
-  assert.deepEqual(IMPLEMENTED_HOLOCORE_RENDERER_KINDS, ['ascii-field', 'raster2d-lowres', 'webgl-shader']);
-  assert.deepEqual(HOLOCORE_SURFACE_KINDS, ['none', 'crt-webgl']);
+  assert.deepEqual(HOLOCORE_RENDERER_KINDS, ['ascii-field','raster2d-lowres','webgl-shader','artwork-adapter']);
+  assert.deepEqual(IMPLEMENTED_HOLOCORE_RENDERER_KINDS, ['ascii-field','raster2d-lowres','webgl-shader']);
+  assert.deepEqual(HOLOCORE_SURFACE_KINDS, ['none','crt-webgl']);
   assert.equal(RENDERER_ADAPTER_STATUS['webgl-shader'], 'IMPLEMENTED_FEATURE_PROOF');
   assert.equal(RENDERER_ADAPTER_STATUS['artwork-adapter'], 'ADMITTED_NOT_YET_ADAPTED');
 });
@@ -38,10 +34,23 @@ test('WebGL source renderer contract refuses an unproved loop claim', () => {
   assert.equal(WEBGL_SOURCE_RENDERER_CONTRACT.provenance, 'KODEX_INTERNAL_SHADER_REUSE');
 });
 
+test('toroidal WebGL benchmark stays perceptual/speculative and refuses an unproved seam', () => {
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.benchmarkId, 'KDX-HOLO-BENCH-001');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.rendererKind, 'webgl-shader');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.shaderRole, 'SOURCE_GENERATOR');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.temporalContract, 'AMBIENT_UNCLOSED');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.seamlessLoopClaim, false);
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.reducedMotion, 'STATIC_TIME_FRAME');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.fallback, 'STATIC_CANVAS_TORUS');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.provenance, 'KODEX_SYNTHETIC_PERCEPTUAL_BENCHMARK');
+  assert.equal(WEBGL_TOROIDAL_RENDERER_CONTRACT.epistemic, 'ART / COMP / SPEC');
+  assert.match(WEBGL_TOROIDAL_RENDERER_CONTRACT.copyBoundary, /NO_EXTERNAL_REFERENCE_PIXELS/);
+});
+
 test('raster signal spec encodes low-resolution-first behavior and fallback', () => {
   assert.equal(RASTER_SIGNAL_RENDERER_SPEC.rendererKind, 'raster2d-lowres');
   assert.equal(RASTER_SIGNAL_RENDERER_SPEC.surfaceKind, 'crt-webgl');
-  assert.deepEqual(RASTER_SIGNAL_RENDERER_SPEC.internalResolution, [320, 240]);
+  assert.deepEqual(RASTER_SIGNAL_RENDERER_SPEC.internalResolution, [320,240]);
   assert.equal(RASTER_SIGNAL_RENDERER_SPEC.visualFps, 15);
   assert.equal(RASTER_SIGNAL_RENDERER_SPEC.loopMs, 24_000);
   assert.equal(RASTER_SIGNAL_RENDERER_SPEC.reducedMotion, 'STATIC_PHASE');
@@ -50,33 +59,16 @@ test('raster signal spec encodes low-resolution-first behavior and fallback', ()
 });
 
 test('phase helper closes exactly at the declared 24 second seam', () => {
-  assert.equal(phaseAt(0), 0);
-  assert.equal(phaseAt(LOW_RES_RASTER_DEFAULTS.loopMs), 0);
-  assert.equal(phaseAt(LOW_RES_RASTER_DEFAULTS.loopMs * 9), 0);
-  assert.ok(Math.abs(phaseAt(12_000) - Math.PI) < 1e-12);
+  assert.equal(phaseAt(0),0); assert.equal(phaseAt(LOW_RES_RASTER_DEFAULTS.loopMs),0); assert.equal(phaseAt(LOW_RES_RASTER_DEFAULTS.loopMs*9),0); assert.ok(Math.abs(phaseAt(12_000)-Math.PI)<1e-12);
 });
 
 test('raster signal state closes and pointer perturbation stays bounded', () => {
-  const pointer = { x: 0.93, y: 0.06, active: true };
-  const start = rasterSignalState(0, pointer);
-  const seam = rasterSignalState(24_000, pointer);
-  for (const key of ['phase', 'pointerX', 'pointerY', 'objectYaw', 'objectPitch', 'ringRadius', 'rasterPhase', 'paletteIndex', 'scanY']) {
-    assert.ok(Math.abs(start[key] - seam[key]) < 1e-12, `${key}: ${start[key]} vs ${seam[key]}`);
-  }
-  assert.ok(Math.abs(start.pointerX) <= 0.045);
-  assert.ok(Math.abs(start.pointerY) <= 0.035);
-  assert.ok(start.scanY >= 0 && start.scanY <= 239);
+  const pointer={x:.93,y:.06,active:true}; const start=rasterSignalState(0,pointer); const seam=rasterSignalState(24_000,pointer);
+  for(const key of ['phase','pointerX','pointerY','objectYaw','objectPitch','ringRadius','rasterPhase','paletteIndex','scanY']) assert.ok(Math.abs(start[key]-seam[key])<1e-12,`${key}: ${start[key]} vs ${seam[key]}`);
+  assert.ok(Math.abs(start.pointerX)<=.045); assert.ok(Math.abs(start.pointerY)<=.035); assert.ok(start.scanY>=0&&start.scanY<=239);
 });
 
 test('deterministic star generator is stable and remains inside the internal raster', () => {
-  const a = makeRasterStars();
-  const b = makeRasterStars();
-  assert.deepEqual(a, b);
-  assert.equal(a.length, 148);
-  for (const star of a) {
-    assert.ok(star.x >= 0 && star.x < 320);
-    assert.ok(star.y >= 0 && star.y < 240);
-    assert.ok(star.depth >= 0.15 && star.depth <= 1);
-    assert.ok(star.size === 1 || star.size === 2);
-  }
+  const a=makeRasterStars(), b=makeRasterStars(); assert.deepEqual(a,b); assert.equal(a.length,148);
+  for(const star of a){assert.ok(star.x>=0&&star.x<320);assert.ok(star.y>=0&&star.y<240);assert.ok(star.depth>=.15&&star.depth<=1);assert.ok(star.size===1||star.size===2);}
 });
