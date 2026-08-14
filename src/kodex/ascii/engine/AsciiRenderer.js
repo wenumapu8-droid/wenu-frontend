@@ -24,6 +24,11 @@ export class AsciiRenderer {
     this.fontFamily = options.fontFamily ?? '"Share Tech Mono", monospace';
     this.profile = options.profile ?? "balanced";
     this.ditherStrength = clamp(options.ditherStrength ?? 1, 0, 1);
+    // RGX uses an SVG/vector scaffold for exact fine geometry. The Canvas is
+    // therefore allowed to skip low-energy raster cells instead of painting
+    // thousands of nearly invisible glyphs. This preserves grid resolution
+    // while reducing fillText pressure on desktop CI/mobile GPUs.
+    this.minDrawValue = clamp(options.minDrawValue ?? (this.profile === "rgx" ? 0.22 : 0), 0, 1);
     this.seed = Math.random() * 100;
     this.pointer = { x: 0.5, y: 0.5, active: false };
     this.width = 0;
@@ -146,6 +151,7 @@ export class AsciiRenderer {
         // reference geometry is not washed out by coarse checkerboard noise.
         const ordered = (((column & 1) + ((row & 1) << 1)) / 12 - 0.10) * this.ditherStrength;
         value = clamp(value + ordered);
+        if (value < this.minDrawValue) continue;
 
         const glyphIndex = Math.floor(value * (this.glyphs.length - 1));
         const glyph = this.glyphs[glyphIndex] ?? " ";
