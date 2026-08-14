@@ -45,14 +45,14 @@ export const holocoreToroidalFieldScene = Object.freeze({
     const tubeDistance = Math.abs(radius - major);
     const bodyMask = 1 - smoothstep(0.105, 0.245, tubeDistance);
 
-    // A continuous low-frequency skin is intentional. v0.1 relied mainly on
-    // contour peaks, which produced sparse beads in the ASCII quantizer. The
-    // skin gives the torus perceptual mass while keeping microglyph texture.
+    // Continuous shell floor: the prior v0.2 skin gained volume but fell below
+    // the ASCII quantizer across the rear arc, producing a U-shaped silhouette.
+    // Keep the full toroidal body visibly present, then layer depth/highlights.
     const crossSection = 1 - smoothstep(0.018, 0.215, tubeDistance);
     const frontness = Math.sin(angle) * 0.5 + 0.5;
     const sideLight = Math.cos(angle - 0.42) * 0.5 + 0.5;
-    const depth = 0.68 + frontness * 0.32;
-    const skin = bodyMask * crossSection * (0.22 + sideLight * 0.16) * depth;
+    const shellFloor = bodyMask * crossSection * (0.44 + sideLight * 0.12);
+    const skin = shellFloor * (0.88 + frontness * 0.12);
 
     // Dense laminated surface. Wider low-amplitude bands form a coherent shell;
     // narrow bands retain the optical "field-line" language at close range.
@@ -61,33 +61,33 @@ export const holocoreToroidalFieldScene = Object.freeze({
       const offset = band * 0.024;
       const breathe = Math.sin(phase + band * 0.48) * 0.004;
       const distance = radius - (major + offset + breathe);
-      const broad = gaussian(distance, 0.020) * (0.22 + (5 - Math.abs(band)) * 0.035);
-      const filament = gaussian(distance, 0.0085) * (0.36 + (5 - Math.abs(band)) * 0.055);
+      const broad = gaussian(distance, 0.020) * (0.24 + (5 - Math.abs(band)) * 0.038);
+      const filament = gaussian(distance, 0.0085) * (0.40 + (5 - Math.abs(band)) * 0.058);
       laminations = Math.max(laminations, broad, filament);
     }
 
     // Longitudinal surface flow. Opposed directions create circulation without
-    // turning the object into a loading spinner. The threshold is lowered from
-    // v0.1 so flow reads as a continuous current rather than isolated packets.
+    // turning the object into a loading spinner. Keep flow continuous and let
+    // frontness modulate intensity rather than erase the rear arc.
     const flowA = Math.sin(angle * 12 - phase * 2 + tubeDistance * 38) * 0.5 + 0.5;
     const flowB = Math.sin(angle * 17 + phase * 1.35 - tubeDistance * 52) * 0.5 + 0.5;
     const flowSignal = Math.max(flowA, flowB * 0.92);
-    const stream = bodyMask * smoothstep(0.56, 0.92, flowSignal) * (0.34 + frontness * 0.34);
+    const stream = bodyMask * smoothstep(0.54, 0.91, flowSignal) * (0.36 + frontness * 0.28);
 
-    // Front/back separation is encoded in luminance, not fake occlusion. Rear
-    // material remains visible, while the near side carries the brightest skin.
-    const rearAttenuation = 0.64 + frontness * 0.36;
-    const surface = Math.max(skin, laminations * 0.88, stream) * bodyMask * rearAttenuation;
+    // Front/back separation is luminance-only. Rear attenuation now has a high
+    // floor so the back half remains materially legible in the glyph renderer.
+    const rearAttenuation = 0.86 + frontness * 0.14;
+    const surface = Math.max(skin, laminations * 0.95, stream) * bodyMask * rearAttenuation;
 
     // Interior throat and two aperture rims create a legible negative-space
-    // opening. The outer rim is weaker so the hole remains open, not filled.
+    // opening. Preserve enough rear-rim energy to close the toroidal silhouette.
     const apertureRadius = 0.255;
-    const apertureInner = gaussian(radius - apertureRadius, 0.014) * (0.48 + frontness * 0.16);
-    const apertureOuter = gaussian(radius - 0.315, 0.025) * 0.15;
+    const apertureInner = gaussian(radius - apertureRadius, 0.014) * (0.56 + frontness * 0.12);
+    const apertureOuter = gaussian(radius - 0.315, 0.025) * 0.18;
     const throat = (1 - smoothstep(0.105, apertureRadius, radius)) * 0.045;
 
-    // Slow circulating packets now sit inside the continuous shell. They provide
-    // a readable flow path but no longer carry the object's entire visual mass.
+    // Slow circulating packets sit inside the continuous shell. They provide a
+    // readable flow path but remain subordinate to the object's material mass.
     let packets = 0;
     for (let i = 0; i < 8; i += 1) {
       const direction = i % 2 === 0 ? 1 : -1;
@@ -98,17 +98,17 @@ export const holocoreToroidalFieldScene = Object.freeze({
       packets = Math.max(packets, Math.exp(-Math.hypot(dx, dy) / 0.050));
     }
 
-    // A restrained surrounding field gives the object spatial context without
+    // Restrained surrounding field gives the object spatial context without
     // competing with it. The torus remains the dominant signal.
     const halo = gaussian(radius - 0.77, 0.045) * 0.10
       + gaussian(radius - 0.91, 0.055) * 0.045;
 
     return clamp(
-      surface * 1.08
+      surface * 1.10
       + apertureInner
       + apertureOuter
       + throat
-      + packets * 0.55
+      + packets * 0.50
       + halo,
     );
   },
