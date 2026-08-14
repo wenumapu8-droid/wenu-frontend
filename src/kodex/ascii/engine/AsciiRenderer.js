@@ -2,6 +2,12 @@ import { getGlyphSet } from "../config/glyph-sets.js";
 import { PALETTES, samplePalette } from "../config/palettes.js";
 import { clamp } from "./math.js";
 
+const RGX_SIGNAL_FLOORS = Object.freeze({
+  "holocore-signal-vortex-rgx": 0.36,
+  "holocore-skull-archive-rgx": 0.34,
+  "holocore-source-chamber-rgx": 0.32,
+});
+
 export class AsciiRenderer {
   constructor(canvas, options = {}) {
     if (!(canvas instanceof HTMLCanvasElement)) {
@@ -26,9 +32,11 @@ export class AsciiRenderer {
     this.ditherStrength = clamp(options.ditherStrength ?? 1, 0, 1);
     // RGX uses an SVG/vector scaffold for exact fine geometry. The Canvas is
     // therefore allowed to skip low-energy raster cells instead of painting
-    // thousands of nearly invisible glyphs. This preserves grid resolution
-    // while reducing fillText pressure on desktop CI/mobile GPUs.
-    this.minDrawValue = clamp(options.minDrawValue ?? (this.profile === "rgx" ? 0.22 : 0), 0, 1);
+    // thousands of nearly invisible glyphs. The three profiles below proved
+    // fillText-heavy in exact-head CI, so their raster signal floor is raised
+    // without changing grid density, SVG topology, source provenance or loop.
+    const rgxFloor = RGX_SIGNAL_FLOORS[this.scene?.id] ?? 0.22;
+    this.minDrawValue = clamp(options.minDrawValue ?? (this.profile === "rgx" ? rgxFloor : 0), 0, 1);
     this.seed = Math.random() * 100;
     this.pointer = { x: 0.5, y: 0.5, active: false };
     this.width = 0;
