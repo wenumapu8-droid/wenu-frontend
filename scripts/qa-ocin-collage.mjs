@@ -32,24 +32,22 @@ const durationToMs = (token) => {
 const verifyPage = async (page, name) => {
   await page.waitForLoadState('networkidle');
 
-  const images = page.locator('[data-ocin-art] img');
+  // Visual assertions apply only to artwork actually presented in this viewport.
+  // Some variants intentionally keep a hero record in the DOM but hide it.
+  const images = page.locator('[data-ocin-art]:visible img');
   const count = await images.count();
-  assert(count > 0, `${name}: no original artwork images rendered`);
+  assert(count > 0, `${name}: no visible original artwork images rendered`);
 
   const imageChecks = [];
   for (let i = 0; i < count; i += 1) {
     const image = images.nth(i);
     await image.scrollIntoViewIfNeeded();
     await image.waitFor({ state: 'visible' });
-    await page.waitForFunction(
-      (index) => {
-        const nodes = document.querySelectorAll('[data-ocin-art] img');
-        const img = nodes[index];
-        return Boolean(img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
-      },
-      i,
-      { timeout: 10000 },
-    );
+    await image.evaluate(async (img) => {
+      if (!img.complete || img.naturalWidth === 0 || img.naturalHeight === 0) {
+        await img.decode();
+      }
+    });
 
     const result = await image.evaluate((img) => {
       const style = getComputedStyle(img);
@@ -88,6 +86,7 @@ const verifyPage = async (page, name) => {
   }));
   assert(layout.overflow <= 1, `${name}: horizontal overflow ${layout.overflow}px`);
 
+  // Provenance applies to all declared art records, including intentionally hidden ones.
   const ids = await page.locator('[data-ocin-art]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-ocin-art')));
   assert(ids.every(Boolean), `${name}: artwork without provenance ID`);
 
