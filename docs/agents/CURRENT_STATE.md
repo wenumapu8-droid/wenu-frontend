@@ -20,7 +20,7 @@ WËNU MAPU production remains Astro/Cloudflare Pages on the existing `redesign-v
 Verified baseline head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.  
 KODEX Core Runtime run 164: **SUCCESS**.
 
-The current baseline already contains and tests:
+The baseline already contains and tests:
 
 - focus restoration + browser history/deep-link acceptance;
 - ElementContract + 28 normalized repo-native elements;
@@ -43,26 +43,18 @@ Truth boundary: `human_curator_acceptance` is separate from machine validity. Pr
 
 ## 3. Current perceptual / HoloCore lane
 
-The highest-leverage unresolved gap is now **perceptual materiality**, not contract architecture.
+The highest-leverage unresolved gap is **creator-level perceptual quality**, not contract architecture.
 
-### PR #67 — HoloCore registry + TOROIDAL FIELD
+### PR #67 — ASCII TOROIDAL FIELD benchmark
 
 Branch: `feat/kodex-holocore-registry-v1`.  
-Current head: `d33714568b49a61ca62758d96d16bb6e9b9a97c9`.
+Latest audited ASCII head: `d33714568b49a61ca62758d96d16bb6e9b9a97c9`, run 202 **SUCCESS**.
 
 `KDX-HOLO-BENCH-001 / TOROIDAL FIELD` remains an internal `ART / COMP / SPEC` benchmark and is deliberately not mapped to a canonical semantic node.
 
-Evidence chain:
+Actual artifact review established the ASCII materiality limit: even after v0.2/v0.2.1 repairs, the torus continued to read as sparse glyph geometry rather than a volumetric finished object. The cause is concrete in `AsciiRenderer`: ordered dithering plus a glyph ramp beginning with blank entries suppresses medium shell energy perceptually.
 
-- v0.1 `e42615e…` → run 192 SUCCESS; visually too sparse/flat/small.
-- v0.2 `e2f204f…` → run 200 SUCCESS; artifact showed a perceptual regression: rear/top arc lost enough weight that the torus read as a U.
-- v0.2.1 `d337145…` → run 202 **SUCCESS** across runtime, Assembly OS, build, browser, Deep Navigation, HoloCore registry, toroidal gate and Golden Plates. Artifact `kodex-evidence` id `9235665736`, digest `sha256:bcef56a59de0f326c16bc5d7744753c3a7d2753476ba59da1cb73551bce57d06`.
-
-Actual v0.2.1 desktop/mobile review: rear arc is somewhat stronger, but the object still reads as sparse glyph geometry rather than a volumetric finished piece. **Creator visual acceptance remains PENDING / benchmark standard NOT MET.**
-
-Renderer-level cause is now concrete: `AsciiRenderer` applies ordered dither (`value + ordered - 0.10`), then quantizes through a glyph ramp whose first two entries are spaces and renders low/mid values with dark palette/alpha. Medium shell energy is therefore intentionally suppressed perceptually.
-
-**Decision for next iteration: stop blind ASCII tuning for the volumetric benchmark.** This is a materiality limitation for the target visual standard, not an Assembly OS failure.
+**Decision: stop ASCII tuning for the volumetric benchmark.** This is a renderer/materiality limitation for the target visual standard, not an Assembly OS failure.
 
 ### PR #72 — RGX reference-fidelity prototype
 
@@ -70,14 +62,43 @@ Head `2c73c5824461135b9f47e8ee7fd38fb9ddc2b40b` completed run 198 SUCCESS.
 
 RGX materially improves structural density and reference-topology legibility with code-native microglyph + SVG/vector construction and no reference pixels. Actual artifact review still reads primarily as technical diagram/scaffold rather than a volumetric finished object. Creator acceptance remains separate.
 
-### Existing renderer adapters
+### PR #70 — WebGL source adapter + TOROIDAL MATERIALITY benchmark
 
-PR #69: low-resolution raster adapter — browser green.  
-PR #70: WebGL source-shader adapter — browser green; WebGL2 + reduced-motion static frame + Canvas fallback; explicit `AMBIENT_UNCLOSED` temporal truth and `seamlessLoopClaim=false` for its current OBSERVE shader.
+Branch: `feat/kodex-holocore-webgl-source-adapter-v0`.  
+Current verified head: `15ba5618f706f7f651532c8952e65a6b651701bb`.  
+KODEX Core Runtime run 228 / `31848941609`: **SUCCESS**.
 
-These are **existing HoloCore renderer capabilities**, not competing architectures.
+The toroidal benchmark was reconciled into the **existing** WebGL adapter lineage as a `SOURCE_GENERATOR` variant of `WebGLSourceShaderRenderer`; no new renderer/runtime/schema/route/assembly architecture was introduced.
 
-**Next toroidal experiment belongs on PR #70's existing WebGL adapter lineage as a SOURCE_GENERATOR variant.** Do not create a fourth renderer/runtime. The toroidal shader must declare its actual temporal contract; do not inherit the ASCII 24 s seamless-loop claim unless mathematically implemented and tested.
+Current contract:
+
+- source shader: `src/kodex/holocore/shaders/toroidal-field.frag.glsl`;
+- internal hero route: `/kodex/lab/holocore-webgl-toroidal/`;
+- epistemic state: `ART / COMP / SPEC`;
+- no scientific field-simulation claim;
+- temporal contract: `AMBIENT_UNCLOSED`;
+- `seamlessLoopClaim=false`;
+- reduced motion: frozen static shader frame;
+- no-WebGL fallback: `STATIC_CANVAS_TORUS`;
+- route remains `noindex, nofollow`;
+- UI remains subordinate to one dominant field.
+
+Run 228 passed runtime/JourneyState, full Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation, HoloCore registry, renderer adapters, existing WebGL source adapter, dedicated toroidal desktop/mobile/reduced-motion/fallback evidence, and rendered Golden Plates.
+
+Evidence artifact: `kodex-evidence`, id `9236969461`, digest `sha256:743a4dc2b9f61ab1acf6eb2d8505eacc06b3bf112f6dca4870f85a676540cf7c`.
+
+Actual run 228 artifact review:
+
+- major materiality jump over ASCII/RGX;
+- torus immediately reads as a closed 3D object;
+- aperture is clearly legible;
+- front/back separation is materially stronger;
+- continuous surface mass survives rendering;
+- Canvas fallback is meaningful as a quiet static toroidal wire field.
+
+**Creator visual acceptance remains PENDING.** The current WebGL surface language is strongly glossy/marbled/psychedelic. Whether that is the correct KODEX field-flow material is a creator/curatorial decision, not machine QA. Do not call this Nurecas-level or final visual canon from CI.
+
+PR #70 remains OPEN / DRAFT / MERGEABLE; NOT MERGED / NOT DEPLOYED.
 
 ---
 
@@ -92,7 +113,7 @@ PR #61 remains the strongest current Ocín-original publishing proof:
 - Drive remains provenance/source storage rather than runtime image origin;
 - creator approval + route promotion + integration/deploy remain separate gates.
 
-No toroidal/HoloCore work may weaken these boundaries.
+No toroidal/HoloCore work may weaken these boundaries. The WebGL toroidal work touches no protected Ocín source bytes and infers no public approval.
 
 ---
 
@@ -100,7 +121,7 @@ No toroidal/HoloCore work may weaken these boundaries.
 
 Many older KODEX PRs remain open. Open status does not make them equally authoritative.
 
-- #63 = earlier HoloCore prototype; #67/#72 are later registry/fidelity descendants.
+- #63 = earlier HoloCore prototype; #67/#70/#72 are later descendants/experiments with distinct renderer roles.
 - #68 = separate authored/static-reference corridor and measurement lane; do not silently substitute it for Assembly OS/HoloCore lineage.
 - #71 = deterministic manifestation/software-state semantics; not a claim that thought changes matter.
 - #64 = governed visual-assembly proposal lane; it must not supersede implemented Assembly OS contracts without explicit reconciliation.
@@ -115,8 +136,8 @@ KODEX now has real route/memory engines, deterministic production contracts, ren
 
 Primary risks:
 
-- visual quality lagging behind system sophistication;
 - mistaking browser/CI green for creator acceptance;
+- over-refining a technically successful renderer instead of judging the actual artifact;
 - branch proliferation creating false architectural plurality;
 - visual-reference fidelity drifting into pixel copying/false provenance;
 - collapsing science, metaphor, cultural provenance and speculation;
@@ -130,14 +151,13 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 
 ## 7. Exact next action
 
-1. Do not spend another iteration tuning the ASCII torus for volumetric fidelity.
-2. Advance the **existing PR #70 WebGL renderer adapter** with one toroidal SOURCE_GENERATOR variant; reuse its WebGL2 lifecycle, reduced-motion frame and Canvas fallback.
-3. Keep `TOROIDAL FIELD` as `ART / COMP / SPEC`; no scientific field-simulation claim.
-4. Add a truthful temporal contract for that shader (`CLOSED_LOOP` only if actually proved; otherwise `AMBIENT_UNCLOSED`).
-5. Capture desktop/mobile/reduced-motion/WebGL-disabled browser evidence.
-6. Download and visually inspect the artifact before any quality claim.
-7. Compare WebGL torus against the ASCII v0.2.1 and RGX artifacts on volume, aperture, front/back separation, material continuity, object dominance and mobile readability.
-8. Keep creator acceptance explicit and separate.
+1. Treat PR #70 head `15ba561…` / run 228 as the current browser-validated WebGL toroidal candidate.
+2. Do **not** create another renderer, shader architecture, schema, PlateSpec family or route engine.
+3. Creator/curatorial review must judge the actual WebGL artifact against the intended perceptual bar: volume, aperture, front/back separation, material continuity, object dominance, flow language and mobile readability.
+4. If the creator rejects the current glossy/marbled surface language, make the smallest **shader-only** refinement in this same PR: material/flow/camera scale first, not architecture.
+5. Preserve `ART / COMP / SPEC`, `AMBIENT_UNCLOSED`, `seamlessLoopClaim=false`, reduced-motion freeze, Canvas fallback, noindex and user agency.
+6. After any visual delta: rerun the same browser gate, download the artifact and visually inspect it before making any quality claim.
+7. Creator acceptance remains explicit and separate from machine validity.
 
 ---
 
