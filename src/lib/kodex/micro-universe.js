@@ -1,6 +1,8 @@
 import { buildRouteFrame, createObserverState, reduceObserverState } from './deep-navigation-engine.js';
 
 export const MICRO_UNIVERSE_ENTRY = 'SCI-BIOLOGY';
+export const MICRO_UNIVERSE_HISTORY_KIND = 'KDX_MICRO_HISTORY_V1';
+export const MICRO_UNIVERSE_LAB_PATH = '/kodex/lab/deep-navigation/';
 
 export const MICRO_UNIVERSE_NODES = Object.freeze({
   'SCI-BIOLOGY': { id:'SCI-BIOLOGY', title:'Living Systems', field:'science', fields:['science','biology'], plate:'KNOWLEDGE', summary:'Life as nested organization: membrane, organism, ecology.', lensAffinity:['MICROSCOPE','NAKED_EYE','SYSTEM'] },
@@ -71,4 +73,41 @@ export function enterMicroUniverseNode(stateInput, nodeId, role = null) {
     state = reduceObserverState(state,{ type:'ACTIVATE_ART', artworkId:'OCN-LAB-KEY' });
   }
   return state;
+}
+
+function deepLinkEligibleNode(nodeId) {
+  const node = MICRO_UNIVERSE_NODES[nodeId];
+  // A clean external/deep-link entry must never manufacture memory required by a gated node.
+  return Boolean(node && !(node.requiredMemory || []).length);
+}
+
+export function createMicroUniverseDeepLinkState(input = {}) {
+  const nodeId = deepLinkEligibleNode(input.nodeId) ? input.nodeId : MICRO_UNIVERSE_ENTRY;
+  let state = createObserverState({ lens: input.lens, routeSignature:'KDX-MICRO-DEEP-LINK' });
+  state = reduceObserverState(state,{ type:'VISIT_NODE', nodeId, fields:MICRO_UNIVERSE_NODES[nodeId].fields });
+  return state;
+}
+
+export function createMicroUniverseHistorySnapshot(stateInput = {}) {
+  const observer = createObserverState(stateInput);
+  return Object.freeze({
+    kind: MICRO_UNIVERSE_HISTORY_KIND,
+    // Session history may carry route memory; URLs deliberately do not.
+    observer,
+  });
+}
+
+export function restoreMicroUniverseHistoryState(snapshot, fallback = {}) {
+  if (snapshot?.kind === MICRO_UNIVERSE_HISTORY_KIND && MICRO_UNIVERSE_NODES[snapshot?.observer?.currentNodeId]) {
+    return createMicroUniverseState(snapshot.observer);
+  }
+  return createMicroUniverseDeepLinkState(fallback);
+}
+
+export function buildMicroUniverseUrl(stateInput = {}, path = MICRO_UNIVERSE_LAB_PATH) {
+  const state = createMicroUniverseState(stateInput);
+  const params = new URLSearchParams();
+  params.set('node', state.currentNodeId || MICRO_UNIVERSE_ENTRY);
+  params.set('lens', state.lens);
+  return `${path}?${params.toString()}`;
 }
