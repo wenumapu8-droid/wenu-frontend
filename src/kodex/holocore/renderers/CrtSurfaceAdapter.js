@@ -25,6 +25,7 @@ export class CrtSurfaceAdapter {
     this.source = source;
     this.container = container;
     this.reducedMotion = reducedMotion ?? matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.freezeTimer = 0;
     this.controller = mountKodexCrt({
       source,
       container,
@@ -43,16 +44,19 @@ export class CrtSurfaceAdapter {
   start() {
     if (!this.controller || this.controller.destroyed) return;
     if (this.reducedMotion) {
-      // One deterministic presentation pass is enough. Any temporal CRT noise,
-      // flicker and persistence are disabled by REDUCED_OVERRIDES.
-      this.controller.render(performance.now());
-      this.controller.stop();
+      // Render a short deterministic settling window so the WebGL CRT surface
+      // contains a real frame, then freeze it. Time-varying noise, flicker and
+      // persistence are disabled by REDUCED_OVERRIDES.
+      this.controller.start();
+      this.freezeTimer = window.setTimeout(() => this.controller?.stop(), 140);
       return;
     }
     this.controller.start();
   }
 
   stop() {
+    if (this.freezeTimer) window.clearTimeout(this.freezeTimer);
+    this.freezeTimer = 0;
     this.controller?.stop();
   }
 
@@ -61,6 +65,7 @@ export class CrtSurfaceAdapter {
   }
 
   destroy() {
+    this.stop();
     this.controller?.destroy();
     this.container.removeAttribute('data-surface-mode');
   }
