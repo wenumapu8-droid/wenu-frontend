@@ -36,12 +36,12 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       <aside class="kdx-deep__memory">
         <p>MEMORY TRACE</p>
         <ol data-trace><li>SCI-BIOLOGY</li></ol>
-        <p class="kdx-deep__note">Synthetic lab only. No public route, no real artwork activation, no deployment.</p>
+        <p class="kdx-deep__note">Synthetic lab only. Session memory stays in history.state; public URL contains node + lens only.</p>
       </aside>
     </section>
 
     <footer class="kdx-deep__footer">
-      <p>12 NODES · 4 FIELDS · 2–4 MEANINGFUL DOORS · DETERMINISTIC SAFETY GATES</p>
+      <p>12 NODES · BACK/FORWARD LIVE · DEEP LINK SAFE · NO PRIVATE MEMORY IN URL</p>
       <div>
         <button type="button" data-lens-action="APPROACH">← MICRO</button>
         <button type="button" data-reset>RESET</button>
@@ -58,15 +58,29 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   import {
     MICRO_UNIVERSE_NODES,
     buildMicroUniverseFrame,
+    buildMicroUniverseUrl,
+    createMicroUniverseHistorySnapshot,
     createMicroUniverseState,
     enterMicroUniverseNode,
+    restoreMicroUniverseHistoryState,
   } from '../../../lib/kodex/micro-universe.js';
   import { reduceObserverState } from '../../../lib/kodex/deep-navigation-engine.js';
 
   const root = document.querySelector('[data-kdx-deep-lab]');
   if (root) {
-    let state = createMicroUniverseState();
     const $ = (selector) => root.querySelector(selector);
+    const fallbackFromLocation = () => {
+      const params = new URLSearchParams(window.location.search);
+      return { nodeId: params.get('node'), lens: params.get('lens') };
+    };
+    let state = restoreMicroUniverseHistoryState(window.history.state, fallbackFromLocation());
+
+    const commitHistory = (mode = 'replace') => {
+      const snapshot = createMicroUniverseHistorySnapshot(state);
+      const url = buildMicroUniverseUrl(state, window.location.pathname);
+      if (mode === 'push') window.history.pushState(snapshot, '', url);
+      else window.history.replaceState(snapshot, '', url);
+    };
 
     const render = () => {
       const node = MICRO_UNIVERSE_NODES[state.currentNodeId];
@@ -91,6 +105,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         button.innerHTML = `<small>${route.role || 'ROUTE'}</small><strong>${target.title}</strong><span>${target.field}</span>`;
         button.addEventListener('click', () => {
           state = enterMicroUniverseNode(state, route.id, route.role);
+          commitHistory('push');
           render();
         });
         doors.append(button);
@@ -109,10 +124,25 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       button.addEventListener('click', () => {
         const action = button.getAttribute('data-lens-action');
         state = reduceObserverState(state, { type: action === 'META' ? 'SET_LENS' : action, lens: action === 'META' ? 'META' : undefined });
+        // Lens changes alter the representation coordinate without polluting Back with micro-adjustments.
+        commitHistory('replace');
         render();
       });
     });
-    $('[data-reset]').addEventListener('click', () => { state = createMicroUniverseState(); render(); });
+
+    $('[data-reset]').addEventListener('click', () => {
+      state = createMicroUniverseState();
+      commitHistory('push');
+      render();
+    });
+
+    window.addEventListener('popstate', (event) => {
+      state = restoreMicroUniverseHistoryState(event.state, fallbackFromLocation());
+      render();
+    });
+
+    // Fresh loads and external deep links become canonical same-document history coordinates.
+    commitHistory('replace');
     render();
   }
 </script>
