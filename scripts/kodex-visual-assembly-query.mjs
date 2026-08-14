@@ -9,6 +9,7 @@ const read = (file) => JSON.parse(fs.readFileSync(path.join(root, file), 'utf8')
 const index = read('scene-packs/INDEX.json');
 const recipes = read('layout_recipes.json');
 const registry = read('visual_component_registry.json');
+const sourceSnapshot = read('source-snapshots/ocin-a-candidates-2026-08-14.json');
 const packs = new Map(index.packs.map((entry) => {
   const pack = read(path.join('scene-packs', entry.file));
   return [pack.visual_mode, pack];
@@ -32,6 +33,10 @@ const findRecipe = (idOrName) => {
   const query = idOrName.trim().toUpperCase();
   return recipes.find((entry) => entry.id === query || entry.name.toUpperCase() === query);
 };
+const findSource = (idOrTitle) => {
+  const query = idOrTitle.trim().toUpperCase();
+  return sourceSnapshot.works.find((entry) => entry.id.toUpperCase() === query || entry.title.toUpperCase() === query);
+};
 
 if (command === 'summary') {
   output({
@@ -39,9 +44,15 @@ if (command === 'summary') {
     topologyAuthority: index.topology_authority,
     registryStatus: registry.status,
     componentCount: registry.component_count,
+    sourceSnapshot: {
+      date: sourceSnapshot.snapshot_date,
+      registry: sourceSnapshot.source_registry.title,
+      aCandidateCount: sourceSnapshot.works.length,
+      isLiveRegistry: sourceSnapshot.snapshot_policy.is_live_registry,
+    },
     recipes: recipes.map(({ id, name }) => ({ id, name })),
     visualModes: [...packs.keys()],
-    note: 'Query output is assembly metadata, not canonical promotion or source-rights resolution.',
+    note: 'Query output is assembly metadata. Source snapshot is dated evidence and cannot grant new rights or replace a fresh authoritative-registry check.',
   });
 } else if (command === 'scene') {
   const key = normalizeScene(rawArg);
@@ -63,6 +74,20 @@ if (command === 'summary') {
       registry_status: registry.status,
     };
   });
+  const sourceEvidence = pack.ocin_candidates.map((candidate) => {
+    const snapshot = findSource(candidate.ocin_id);
+    return {
+      ...candidate,
+      snapshot_evidence: snapshot ? {
+        snapshot_date: sourceSnapshot.snapshot_date,
+        publication_status: snapshot.publication_status,
+        rights_status: snapshot.rights_status,
+        provenance_status: snapshot.provenance_status,
+        public_export_allowed: snapshot.public_export_allowed,
+        allowed_transformations: snapshot.allowed_transformations,
+      } : null,
+    };
+  });
   output({
     schema: 'kdx.visual-agent-brief.v0.1',
     visual_mode: pack.visual_mode,
@@ -77,11 +102,11 @@ if (command === 'summary') {
       motion: pack.motion,
       avoid: pack.avoid,
     },
-    hero_candidates: pack.ocin_candidates,
+    hero_candidates: sourceEvidence,
     governed_components: components,
     hard_rules: pack.hard_rules,
     required_agent_sequence: [
-      'Resolve hero-media provenance/rights from the canonical source registry.',
+      'Resolve hero-media provenance/rights from the canonical source registry; snapshot evidence is advisory and dated.',
       'Choose one primary recipe; do not blend recipes by default.',
       'Use only governed component IDs/slugs returned by this brief.',
       'Keep Ocín master pixels immutable unless the resolved source explicitly grants transformations.',
@@ -94,6 +119,20 @@ if (command === 'summary') {
     source_resolution_contract: 'docs/kodex/visual-assembly/hero_media_resolution.schema.json',
     warning: 'This brief constrains assembly. It does not grant source rights, canonical status, runtime implementation, merge approval or deployment approval.',
   });
+} else if (command === 'source') {
+  const source = findSource(rawArg);
+  if (!source) fail(`Unknown source in 2026-08-14 A-candidate snapshot: ${rawArg}`);
+  output({
+    ...source,
+    snapshot: {
+      schema: sourceSnapshot.schema,
+      date: sourceSnapshot.snapshot_date,
+      source_registry: sourceSnapshot.source_registry,
+      is_live_registry: false,
+      must_recheck_before_public_export: true,
+    },
+    warning: 'This is a dated registry snapshot. It can confirm what the active registry said on the snapshot date but cannot grant later rights or transformations.',
+  });
 } else if (command === 'component') {
   const query = rawArg.trim();
   const component = findComponent(query);
@@ -104,5 +143,5 @@ if (command === 'summary') {
   if (!recipe) fail(`Unknown recipe: ${rawArg}`);
   output(recipe);
 } else {
-  fail(`Unknown command: ${command}. Use summary | scene <MODE> | brief <MODE> | component <ID|slug> | recipe <ID|name>`);
+  fail(`Unknown command: ${command}. Use summary | scene <MODE> | brief <MODE> | source <OCN-ID|title> | component <ID|slug> | recipe <ID|name>`);
 }
