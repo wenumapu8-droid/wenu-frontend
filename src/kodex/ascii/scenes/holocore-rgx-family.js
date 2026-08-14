@@ -14,6 +14,12 @@ function ellipseMetric(u, v, cx, cy, rx, ry) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
+function ellipseMetricSquared(u, v, cx, cy, rx, ry) {
+  const dx = (u - cx) / Math.max(rx, 0.0001);
+  const dy = (v - cy) / Math.max(ry, 0.0001);
+  return dx * dx + dy * dy;
+}
+
 function ellipseRing(u, v, cx, cy, rx, ry, thickness = 0.035) {
   const r = ellipseMetric(u, v, cx, cy, rx, ry);
   return Math.exp(-Math.abs(r - 1) / thickness);
@@ -54,9 +60,9 @@ function boundedPointer(pointer, amountX = 0.015, amountY = 0.01) {
   };
 }
 
-// Fine rings/nodes/spokes live in the SVG scaffold. The Canvas fields below
-// supply signal volume, raster texture and phase motion only. This keeps the
-// 6 px microglyph grid viable while preserving exact topology in code.
+// Exact topology lives in the SVG scaffold. Canvas supplies the moving signal
+// volume only, so microglyph density does not require re-solving fine geometry
+// for every cell on every frame.
 function radialCore(profile, u, v, phase, seed) {
   const p = profile.params;
   const dx = u - 0.5;
@@ -80,18 +86,21 @@ function portal(profile, u, v, phase, seed) {
   return clamp(aperture * 0.9 + tunnel * gate * 0.32 + axis + cheapNoise(u, v, phase, seed, 0.08));
 }
 
-function vortex(profile, u, v, phase, seed) {
+function vortex(profile, u, v, phase) {
   const p = profile.params;
   const dx = u - 0.5;
   const dy = v - 0.5;
-  const r = Math.sqrt(dx * dx + dy * dy);
-  const a = Math.atan2(dy, dx);
-  const gate = 1 - smoothstep(p.outerR * 0.88, p.outerR, r);
-  const core = 1 - smoothstep(p.coreR * 0.42, p.coreR, r);
-  const phaseField = Math.cos(a * p.arms - r * 34 - phase * 1.5) * 0.5 + 0.5;
-  const arms = phaseField * phaseField * phaseField * gate * smoothstep(p.coreR, p.coreR * 1.7, r);
-  const radialBand = (Math.sin(r * 72 + phase * 2) * 0.5 + 0.5) * gate * 0.12;
-  return clamp(core * 0.94 + arms * 0.54 + radialBand + cheapNoise(u, v, phase, seed, 0.11));
+  const r2 = dx * dx + dy * dy;
+  const outer2 = p.outerR * p.outerR;
+  const core2 = p.coreR * p.coreR;
+  const gate = 1 - smoothstep(outer2 * 0.72, outer2, r2);
+  const core = 1 - smoothstep(core2 * 0.2, core2, r2);
+  // The SVG owns the exact five spiral polylines. This cartesian interference
+  // field creates moving microglyph signal without atan2/log per cell.
+  const flow = Math.sin((dx * 31 + dy * 23) - phase * 2) * 0.5 + 0.5;
+  const counter = Math.sin((dx * 17 - dy * 29) + phase * 3) * 0.5 + 0.5;
+  const interference = flow * counter * gate * (1 - smoothstep(core2, core2 * 3.4, r2));
+  return clamp(core * 0.94 + interference * 0.62 + gate * 0.04);
 }
 
 function helix(profile, u, v, phase, seed) {
@@ -121,16 +130,15 @@ function tree(profile, u, v, phase, seed) {
   return clamp(trunk * 0.86 + canopy + roots * 0.5 + cheapNoise(u, v, phase, seed, 0.045));
 }
 
-function skull(profile, u, v, phase, seed) {
+function skull(profile, u, v, phase) {
   const p = profile.params;
-  const skullMetric = ellipseMetric(u, v, p.cx, p.cy, p.skullRx, p.skullRy);
-  const shell = Math.exp(-Math.abs(skullMetric - 1) / 0.055);
-  const fill = (1 - smoothstep(0.62, 0.98, skullMetric)) * 0.12;
-  const eyeL = ellipseFill(u, v, p.cx - p.eyeDx, p.eyeY, 0.06, 0.048, 0.26) * 0.2;
-  const eyeR = ellipseFill(u, v, p.cx + p.eyeDx, p.eyeY, 0.06, 0.048, 0.26) * 0.2;
+  const metric2 = ellipseMetricSquared(u, v, p.cx, p.cy, p.skullRx, p.skullRy);
+  const shell = Math.exp(-Math.abs(metric2 - 1) / 0.1);
+  const fill = (1 - smoothstep(0.4, 0.96, metric2)) * 0.11;
   const scanY = p.cy + Math.sin(phase) * p.skullRy * 0.72;
-  const scan = Math.exp(-Math.abs(v - scanY) / 0.009) * (1 - smoothstep(0.92, 1.04, skullMetric)) * 0.34;
-  return clamp(shell * 0.82 + fill + Math.max(eyeL, eyeR) + scan + cheapNoise(u, v, phase, seed, 0.045));
+  const scan = Math.exp(-Math.abs(v - scanY) / 0.009) * (1 - smoothstep(0.84, 1.08, metric2)) * 0.36;
+  const axial = axialLine(u, p.cx, 0.018) * (1 - smoothstep(0.65, 1, metric2)) * 0.08;
+  return clamp(shell * 0.84 + fill + scan + axial);
 }
 
 function orbitMap(profile, u, v, phase, seed) {
@@ -162,17 +170,18 @@ function heart(profile, u, v, phase, seed) {
   return clamp(body + core + cheapNoise(u, v, phase, seed, 0.065));
 }
 
-function source(profile, u, v, phase, seed) {
+function source(profile, u, v, phase) {
   const p = profile.params;
   const dx = u - 0.5;
   const dy = v - 0.43;
-  const r = Math.sqrt(dx * dx + dy * dy);
-  const breatheR = p.sphereR * (1 + Math.sin(phase) * 0.018);
-  const sphere = circleRingFromR(r, breatheR, 0.014);
-  const glow = Math.exp(-r / 0.14) * (0.28 + (Math.sin(phase * 2) * 0.5 + 0.5) * 0.08);
-  const radialWave = (Math.sin(r * 68 - phase * 2) * 0.5 + 0.5) * (1 - smoothstep(p.sphereR * 0.15, p.sphereR * 1.08, r)) * 0.15;
+  const r2 = dx * dx + dy * dy;
+  const radius = p.sphereR * (1 + Math.sin(phase) * 0.018);
+  const radius2 = radius * radius;
+  const sphere = Math.exp(-Math.abs(r2 - radius2) / 0.009);
+  const glow = 0.34 / (1 + r2 * 32);
+  const radialWave = (Math.sin(r2 * 230 - phase * 2) * 0.5 + 0.5) * (1 - smoothstep(radius2 * 0.08, radius2 * 1.15, r2)) * 0.14;
   const horizon = Math.exp(-Math.abs(v - p.horizonY) / 0.008) * (1 - smoothstep(0.37, 0.5, Math.abs(u - 0.5))) * 0.28;
-  return clamp(sphere * 0.84 + glow + radialWave + horizon + cheapNoise(u, v, phase, seed, 0.04));
+  return clamp(sphere * 0.82 + glow + radialWave + horizon);
 }
 
 function returnGate(profile, u, v, phase, seed) {
@@ -201,14 +210,14 @@ function fieldFor(profile, u, v, phase, seed) {
   switch (profile.motif) {
     case 'radial-core': return radialCore(profile, u, v, phase, seed);
     case 'portal': return portal(profile, u, v, phase, seed);
-    case 'vortex': return vortex(profile, u, v, phase, seed);
+    case 'vortex': return vortex(profile, u, v, phase);
     case 'helix': return helix(profile, u, v, phase, seed);
     case 'tree': return tree(profile, u, v, phase, seed);
-    case 'skull': return skull(profile, u, v, phase, seed);
+    case 'skull': return skull(profile, u, v, phase);
     case 'orbit-map': return orbitMap(profile, u, v, phase, seed);
     case 'eyes': return eyes(profile, u, v, phase, seed);
     case 'heart': return heart(profile, u, v, phase, seed);
-    case 'source': return source(profile, u, v, phase, seed);
+    case 'source': return source(profile, u, v, phase);
     case 'return': return returnGate(profile, u, v, phase, seed);
     case 'organism': return organism(profile, u, v, phase, seed, false);
     case 'seed': return organism(profile, u, v, phase, seed, true);
