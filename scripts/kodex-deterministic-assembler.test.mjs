@@ -62,6 +62,21 @@ const activatorNode = {
   },
 };
 
+const livingFieldNode = {
+  node_id: 'CON-RITUAL',
+  title: 'Threshold Ritual',
+  scene_state: 'COSMOLOGY',
+  observer_lens: 'META',
+  provenance_refs: ['repo:src/lib/kodex/micro-universe.js#CON-RITUAL'],
+  primary_payload: { payload_type: 'FIELD', payload_ref: 'CON-RITUAL', status: 'IMPLEMENTED_CANDIDATE' },
+  artwork_contract: null,
+  activation_profile: {
+    activation_id: 'KDX-FX-006',
+    explicit_action_required: true,
+    environment_only: true,
+  },
+};
+
 function assertRegisteredSpec(spec) {
   const ids = [
     ...(spec.slots || []).map((slot) => slot.element_id).filter(Boolean),
@@ -115,7 +130,7 @@ test('JUNCTION_PLATE preserves prevalidated 2–5 user-choice routes and never i
   assertRegisteredSpec(spec);
 });
 
-test('ACTIVATOR_PLATE copies protected artwork constraints without source mutation', () => {
+test('artwork ACTIVATOR_PLATE copies protected artwork constraints without source mutation', () => {
   const spec = assemblePlateSpec(activatorNode, 'ACTIVATOR_PLATE', 'ocn-protected-seed');
   assert.equal(spec.primary_payload.payload_type, 'ARTWORK');
   assert.equal(spec.primary_payload.payload_ref, 'OCN-TOR-001');
@@ -127,6 +142,18 @@ test('ACTIVATOR_PLATE copies protected artwork constraints without source mutati
   assert.equal(spec.artwork_contract.source_bytes_renderable, false);
   assert.equal(spec.activation_profile.environment_only, true);
   assert.ok(spec.qa_requirements.includes('NO_CROP'));
+  assertRegisteredSpec(spec);
+});
+
+test('living-field ACTIVATOR_PLATE preserves field semantics without fabricating artwork constraints', () => {
+  const spec = assemblePlateSpec(livingFieldNode, 'ACTIVATOR_PLATE', 'field-seed');
+  assert.equal(spec.primary_payload.payload_type, 'FIELD');
+  assert.equal(spec.primary_payload.payload_ref, 'CON-RITUAL');
+  assert.equal(spec.artwork_contract, null);
+  assert.equal(spec.activation_profile.environment_only, true);
+  assert.equal(spec.activation_profile.activation_id, 'KDX-FX-006');
+  assert.ok(registered.has(spec.activation_profile.activation_id));
+  assert.equal(spec.qa_requirements.includes('NO_CROP'), false);
   assertRegisteredSpec(spec);
 });
 
@@ -145,10 +172,10 @@ test('hard failures are structured instead of repaired or improvised', () => {
     (error) => error instanceof KdxAssemblyError && error.code === 'INVALID_ROUTE_BOUNDS',
   );
 
-  const noArtwork = { ...knowledgeNode, node_id: 'ART-MISSING', scene_state: 'COSMOLOGY' };
+  const noActivation = { ...knowledgeNode, node_id: 'ACTIVATOR-MISSING', scene_state: 'COSMOLOGY' };
   assert.throws(
-    () => assemblePlateSpec(noArtwork, 'ACTIVATOR_PLATE', 'x'),
-    (error) => error instanceof KdxAssemblyError && error.code === 'ACTIVATOR_CONTRACT_REQUIRED',
+    () => assemblePlateSpec(noActivation, 'ACTIVATOR_PLATE', 'x'),
+    (error) => error instanceof KdxAssemblyError && error.code === 'ACTIVATION_CONTRACT_BLOCK',
   );
 
   const invalidArt = structuredClone(activatorNode);
@@ -156,6 +183,12 @@ test('hard failures are structured instead of repaired or improvised', () => {
   const result = tryAssemblePlateSpec(invalidArt, 'ACTIVATOR_PLATE', 'x');
   assert.equal(result.ok, false);
   assert.equal(result.error.code, 'ARTWORK_INTEGRITY_BLOCK');
+
+  const fieldWithArt = structuredClone(livingFieldNode);
+  fieldWithArt.artwork_contract = structuredClone(activatorNode.artwork_contract);
+  const fieldResult = tryAssemblePlateSpec(fieldWithArt, 'ACTIVATOR_PLATE', 'x');
+  assert.equal(fieldResult.ok, false);
+  assert.equal(fieldResult.error.code, 'LIVING_FIELD_ARTWORK_CONFLICT');
 });
 
 test('scene incompatibility returns NO_SAFE_ELEMENT rather than inventing an ID', () => {
