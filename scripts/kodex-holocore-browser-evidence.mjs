@@ -33,6 +33,24 @@ async function navigate(page) {
   assert(response?.ok(), `HoloCore route returned ${response?.status()}`);
   await page.locator('[data-kdx-holocore]').waitFor({ state: 'visible', timeout: 10_000 });
   await page.waitForFunction(() => document.querySelector('[data-kdx-holocore]')?.dataset.state === 'stable loop');
+  await page.evaluate(async () => {
+    if (document.fonts?.ready) await document.fonts.ready;
+  });
+}
+
+async function waitForStableCanvas(page) {
+  const canvas = page.locator('[data-holocore-canvas]');
+  let previous = null;
+  let stableSamples = 0;
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const sample = await canvas.evaluate(element => `${element.width}x${element.height}:${element.clientWidth}x${element.clientHeight}`);
+    if (sample === previous) stableSamples += 1;
+    else stableSamples = 0;
+    if (stableSamples >= 1) return;
+    previous = sample;
+    await page.waitForTimeout(100);
+  }
 }
 
 async function metrics(page) {
@@ -56,6 +74,8 @@ async function metrics(page) {
       viewportHeight: viewportRect?.height ?? 0,
       canvasWidth: canvasRect?.width ?? 0,
       canvasHeight: canvasRect?.height ?? 0,
+      canvasLayoutWidth: canvas?.clientWidth ?? 0,
+      canvasLayoutHeight: canvas?.clientHeight ?? 0,
       backingWidth: canvas?.width ?? 0,
       backingHeight: canvas?.height ?? 0,
       state: core?.dataset.state ?? null,
@@ -71,8 +91,10 @@ function assertBounded(value, label) {
   assert(value.scrollHeight <= value.innerHeight + 2, `${label}: document vertical scroll ${value.scrollHeight} > ${value.innerHeight}`);
   assert(value.bodyScrollHeight <= value.innerHeight + 2, `${label}: body vertical scroll ${value.bodyScrollHeight} > ${value.innerHeight}`);
   assert(value.viewportWidth > 100 && value.viewportHeight > 100, `${label}: HoloCore viewport collapsed`);
-  assert(Math.abs(value.canvasWidth - value.viewportWidth) <= 2, `${label}: canvas escaped horizontal viewport`);
-  assert(Math.abs(value.canvasHeight - value.viewportHeight) <= 2, `${label}: canvas escaped vertical viewport`);
+  assert(Math.abs(value.canvasLayoutWidth - value.viewportWidth) <= 2, `${label}: canvas layout width no longer fills the viewport`);
+  assert(Math.abs(value.canvasLayoutHeight - value.viewportHeight) <= 2, `${label}: canvas layout height no longer fills the viewport`);
+  assert(value.canvasWidth <= value.viewportWidth + 2, `${label}: transformed canvas escaped horizontal viewport`);
+  assert(value.canvasHeight <= value.viewportHeight + 2, `${label}: transformed canvas escaped vertical viewport`);
   assert(value.backingWidth > 0 && value.backingHeight > 0, `${label}: canvas backing store is empty`);
   assert(value.state === 'stable loop', `${label}: HoloCore did not reach STABLE LOOP`);
   assert(value.robots?.includes('noindex'), `${label}: lab route is missing noindex`);
@@ -104,6 +126,7 @@ async function desktopLivingLoop() {
   const page = await context.newPage();
   try {
     await navigate(page);
+    await waitForStableCanvas(page);
     const before = await canvasFingerprint(page);
     await page.waitForTimeout(650);
     const after = await canvasFingerprint(page);
@@ -132,6 +155,7 @@ async function mobileBoundedViewport() {
   const page = await context.newPage();
   try {
     await navigate(page);
+    await waitForStableCanvas(page);
     const value = await metrics(page);
     assertBounded(value, name);
     const canvas = page.locator('[data-holocore-canvas]');
@@ -156,6 +180,7 @@ async function reducedMotionStaticPhase() {
   const page = await context.newPage();
   try {
     await navigate(page);
+    await waitForStableCanvas(page);
     const before = await canvasFingerprint(page);
     await page.waitForTimeout(650);
     const after = await canvasFingerprint(page);
