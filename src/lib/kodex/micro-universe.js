@@ -1,4 +1,5 @@
 import { buildRouteFrame, createObserverState, reduceObserverState } from './deep-navigation-engine.js';
+import { getProtectedOcinActivator } from './ocin/protected-activators-v0.js';
 
 export const MICRO_UNIVERSE_ENTRY = 'SCI-BIOLOGY';
 export const MICRO_UNIVERSE_HISTORY_KIND = 'KDX_MICRO_HISTORY_V1';
@@ -11,12 +12,12 @@ export const MICRO_UNIVERSE_NODES = Object.freeze({
   'TECH-NETWORK': { id:'TECH-NETWORK', title:'Network', field:'technology', fields:['technology','network'], plate:'KNOWLEDGE', summary:'Nodes, edges and propagation as operational structure.', lensAffinity:['SYSTEM','TELEPHOTO','META'] },
   'TECH-MACHINE': { id:'TECH-MACHINE', title:'Machine', field:'technology', fields:['technology','machine'], plate:'KNOWLEDGE', summary:'A finite mechanism capable of many observable states.', lensAffinity:['MAGNIFIER','NAKED_EYE','SYSTEM'] },
   'TECH-CITY': { id:'TECH-CITY', title:'Future City', field:'technology', fields:['technology','future-city'], plate:'JUNCTION', summary:'Infrastructure becomes habitat when viewed at system scale.', lensAffinity:['SYSTEM','TELEPHOTO','SATELLITE'] },
-  'ART-FORM': { id:'ART-FORM', title:'Form', field:'art', fields:['art','design'], plate:'ACTIVATOR', summary:'A visual pause where form precedes explanation.', lensAffinity:['MAGNIFIER','NAKED_EYE','SYSTEM'] },
-  'ART-IMAGE': { id:'ART-IMAGE', title:'Image / Signal', field:'art', fields:['art','photography'], plate:'ACTIVATOR', summary:'Image as a protected signal surface. Synthetic lab placeholder only.', lensAffinity:['MAGNIFIER','NAKED_EYE','META'] },
-  'ART-POETRY': { id:'ART-POETRY', title:'Poetic Compression', field:'art', fields:['art','poetry'], plate:'ACTIVATOR', summary:'Meaning can be compressed without becoming a factual claim.', lensAffinity:['NAKED_EYE','SYSTEM','META'] },
+  'ART-FORM': { id:'ART-FORM', title:'Form', field:'art', fields:['art','design'], plate:'ACTIVATOR', summary:'A visual pause where form precedes explanation.', lensAffinity:['MAGNIFIER','NAKED_EYE','SYSTEM'], artworkId:'OCN-SQR-001' },
+  'ART-IMAGE': { id:'ART-IMAGE', title:'Image / Signal', field:'art', fields:['art','photography'], plate:'ACTIVATOR', summary:'Image as a protected signal surface. Activation is explicit; entering the node does not mutate memory.', lensAffinity:['MAGNIFIER','NAKED_EYE','META'], artworkId:'OCN-TOR-001' },
+  'ART-POETRY': { id:'ART-POETRY', title:'Poetic Compression', field:'art', fields:['art','poetry'], plate:'ACTIVATOR', summary:'Meaning can be compressed without becoming a factual claim.', lensAffinity:['NAKED_EYE','SYSTEM','META'], artworkId:'OCN-MND-GRY-002' },
   'CON-MIND': { id:'CON-MIND', title:'Mind', field:'consciousness', fields:['consciousness','philosophy'], plate:'KNOWLEDGE', summary:'A philosophical inquiry into experience, not a scientific conclusion.', lensAffinity:['NAKED_EYE','SYSTEM','META'] },
   'CON-OBSERVER': { id:'CON-OBSERVER', title:'Observer', field:'consciousness', fields:['consciousness','observer'], plate:'JUNCTION', summary:'The runtime changes after interaction; this is computational state, not quantum proof.', lensAffinity:['MAGNIFIER','SYSTEM','META'] },
-  'CON-RITUAL': { id:'CON-RITUAL', title:'Ritual / Return', field:'consciousness', fields:['consciousness','ritual'], plate:'ACTIVATOR', summary:'A memory-conditioned route used only as a lab mechanic.', lensAffinity:['NAKED_EYE','TELEPHOTO','META'], requiredMemory:['art:OCN-LAB-KEY'] },
+  'CON-RITUAL': { id:'CON-RITUAL', title:'Ritual / Return', field:'consciousness', fields:['consciousness','ritual'], plate:'ACTIVATOR', summary:'A memory-conditioned route unlocked only after the visitor explicitly activates the protected Seed Aperture signal.', lensAffinity:['NAKED_EYE','TELEPHOTO','META'], requiredMemory:['art:OCN-TOR-001'] },
 });
 
 export const MICRO_UNIVERSE_GRAPH = Object.freeze({
@@ -68,11 +69,22 @@ export function enterMicroUniverseNode(stateInput, nodeId, role = null) {
   if (!node) return createMicroUniverseState(stateInput);
   let state = reduceObserverState(stateInput,{ type:'CHOOSE_ROUTE', nodeId, role });
   state = reduceObserverState(state,{ type:'VISIT_NODE', nodeId, fields:node.fields });
-  // Synthetic lab key: proves memory-conditioned routing without binding a real Ocín artwork yet.
-  if (nodeId === 'ART-IMAGE' && !state.activatedArtworks.includes('OCN-LAB-KEY')) {
-    state = reduceObserverState(state,{ type:'ACTIVATE_ART', artworkId:'OCN-LAB-KEY' });
-  }
   return state;
+}
+
+export function getMicroUniverseArtwork(nodeId) {
+  const artworkId = MICRO_UNIVERSE_NODES[nodeId]?.artworkId;
+  return artworkId ? getProtectedOcinActivator(artworkId) : null;
+}
+
+export function activateMicroUniverseArtwork(stateInput, artworkId) {
+  const state = createMicroUniverseState(stateInput);
+  const node = MICRO_UNIVERSE_NODES[state.currentNodeId];
+  if (!node?.artworkId || node.artworkId !== artworkId) return state;
+  const protectedRecord = getProtectedOcinActivator(artworkId);
+  if (!protectedRecord || protectedRecord.sourceBytesRenderable) return state;
+  if (state.activatedArtworks.includes(artworkId)) return state;
+  return reduceObserverState(state,{ type:'ACTIVATE_ART', artworkId });
 }
 
 function deepLinkEligibleNode(nodeId) {
