@@ -20,22 +20,14 @@ function assert(check, message) {
 }
 
 for (const profile of cases) {
-  const context = await browser.newContext({
-    viewport: profile.viewport,
-    reducedMotion: profile.reducedMotion,
-  });
+  const context = await browser.newContext({ viewport: profile.viewport, reducedMotion: profile.reducedMotion });
   const page = await context.newPage();
   const consoleErrors = [];
   const httpErrors = [];
-  page.on('console', (message) => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
-  });
+  let navigationDiagnostics = null;
+  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
-  page.on('response', (response) => {
-    if (response.status() >= 400) {
-      httpErrors.push({ status: response.status(), url: response.url() });
-    }
-  });
+  page.on('response', (response) => { if (response.status() >= 400) httpErrors.push({ status: response.status(), url: response.url() }); });
 
   try {
     await page.goto(`${baseURL}/kodex/`, { waitUntil: 'networkidle' });
@@ -49,7 +41,6 @@ for (const profile of cases) {
       stageHeight: document.querySelector('[data-stage-name="THRESHOLD"]')?.getBoundingClientRect().height ?? 0,
       viewportHeight: window.innerHeight,
     }));
-
     assert(geometry.scrollHeight <= geometry.clientHeight + 2, `${profile.id}: page scroll detected`);
     assert(geometry.scrollWidth <= geometry.clientWidth + 2, `${profile.id}: horizontal overflow detected`);
     assert(Math.abs(geometry.stageHeight - geometry.viewportHeight) <= 4, `${profile.id}: THRESHOLD is not viewport-bounded`);
@@ -62,11 +53,9 @@ for (const profile of cases) {
     const portal = page.locator('[data-kdx-portal]');
     await portal.waitFor({ state: 'attached' });
     await page.waitForFunction(() => {
-      const node = document.querySelector('[data-kdx-portal]');
-      const state = node?.getAttribute('data-kdx-portal-state');
+      const state = document.querySelector('[data-kdx-portal]')?.getAttribute('data-kdx-portal-state');
       return state === 'ready' || state === 'unavailable';
     }, null, { timeout: 8000 });
-
     const portalState = await portal.getAttribute('data-kdx-portal-state');
     const portalEvidence = await page.evaluate(() => {
       const node = document.querySelector('[data-kdx-portal]');
@@ -80,19 +69,12 @@ for (const profile of cases) {
       };
     });
     assert(portalState === 'ready' || portalState === 'unavailable', `${profile.id}: portal has no resolved runtime state`);
-    if (portalState === 'ready') {
-      assert(portalEvidence.canvasWidth > 0 && portalEvidence.canvasHeight > 0, `${profile.id}: ready portal has no painted canvas dimensions`);
-    } else {
-      assert(Boolean(portalEvidence.fallbackSrc), `${profile.id}: unavailable portal has no fallback artwork`);
-    }
+    if (portalState === 'ready') assert(portalEvidence.canvasWidth > 0 && portalEvidence.canvasHeight > 0, `${profile.id}: ready portal has no painted canvas dimensions`);
+    else assert(Boolean(portalEvidence.fallbackSrc), `${profile.id}: unavailable portal has no fallback artwork`);
 
     const opener = page.locator('[data-kdx-artifact-open]');
     const panel = page.locator('[data-kdx-artifact-panel]');
-    const artifactControl = {
-      present: (await opener.count()) > 0,
-      visible: false,
-      dialogStatus: 'NOT_APPLICABLE',
-    };
+    const artifactControl = { present: (await opener.count()) > 0, visible: false, dialogStatus: 'NOT_APPLICABLE' };
     if (artifactControl.present) {
       artifactControl.visible = await opener.isVisible();
       if (artifactControl.visible) {
@@ -103,10 +85,6 @@ for (const profile of cases) {
         await close.click();
         await panel.waitFor({ state: 'hidden' });
         assert(await opener.evaluate((node) => document.activeElement === node), `${profile.id}: artifact dialog did not restore focus to opener`);
-        // Closing the artifact intentionally consumes the temporary #artifact
-        // history entry with history.back(). That traversal is asynchronous.
-        // Do not race the next product action against an unsettled same-document
-        // navigation: wait until the canonical THRESHOLD URL is restored.
         await page.waitForFunction(() => location.pathname === '/kodex/' && location.hash === '', null, { timeout: 3000 });
         artifactControl.dialogStatus = 'PASS';
       } else {
@@ -118,42 +96,57 @@ for (const profile of cases) {
     assert(reduced === (profile.reducedMotion === 'reduce'), `${profile.id}: reduced-motion emulation mismatch`);
 
     const journeyBeforeExit = await page.evaluate(() => {
-      try {
-        return JSON.parse(localStorage.getItem('kx-journey') || 'null');
-      } catch {
-        return null;
-      }
+      try { return JSON.parse(localStorage.getItem('kx-journey') || 'null'); } catch { return null; }
     });
-    assert(
-      Array.isArray(journeyBeforeExit?.views) && journeyBeforeExit.views.includes('/kodex/'),
-      `${profile.id}: existing KODEX memory did not register the THRESHOLD visit`,
-    );
+    assert(Array.isArray(journeyBeforeExit?.views) && journeyBeforeExit.views.includes('/kodex/'), `${profile.id}: existing KODEX memory did not register the THRESHOLD visit`);
 
     await page.screenshot({ path: `${outDir}/threshold-${profile.id}.png`, fullPage: true });
 
-    // The destination may keep loading scene assets after the URL has already
-    // committed. Product acceptance is the route change itself, not waiting on
-    // an unrelated late resource before acknowledging navigation.
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 8000, waitUntil: 'commit' }),
-      cta.click(),
-    ]);
-    const navigation = {
-      target: new URL(page.url()).pathname,
-      passed: new URL(page.url()).pathname === '/kodex/folio/i/',
-    };
-    assert(navigation.passed, `${profile.id}: ENTER THE KODEX did not reach folio/i`);
+    await page.evaluate(() => {
+      window.__kdxThresholdNavDiag = { captureDefaultPrevented: null, bubbleDefaultPrevented: null };
+      const markCapture = (event) => {
+        if (event.target?.closest?.('.kx-threshold__cta')) window.__kdxThresholdNavDiag.captureDefaultPrevented = event.defaultPrevented;
+      };
+      const markBubble = (event) => {
+        if (event.target?.closest?.('.kx-threshold__cta')) window.__kdxThresholdNavDiag.bubbleDefaultPrevented = event.defaultPrevented;
+      };
+      document.addEventListener('click', markCapture, { capture: true, once: true });
+      document.addEventListener('click', markBubble, { once: true });
+    });
 
+    await cta.click({ noWaitAfter: true });
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline && new URL(page.url()).pathname !== '/kodex/folio/i/') {
+      await page.waitForTimeout(100);
+    }
+    if (new URL(page.url()).pathname !== '/kodex/folio/i/') {
+      navigationDiagnostics = await page.evaluate(() => {
+        const ritual = document.querySelector('[data-kdx-ritual]');
+        const ctaNode = document.querySelector('.kx-threshold__cta');
+        return {
+          url: location.href,
+          hash: location.hash,
+          bodyOverflow: document.body.style.overflow,
+          activeElement: document.activeElement?.className ?? document.activeElement?.tagName ?? null,
+          ritualActive: ritual?.hasAttribute('data-activo') ?? false,
+          ritualPhase: ritual?.getAttribute('data-fase') ?? null,
+          ritualDurationCss: getComputedStyle(document.documentElement).getPropertyValue('--kdx-m-state-transition').trim(),
+          ritualFunctionPresent: typeof window.__kdxRitual === 'function',
+          ctaPointerEvents: ctaNode ? getComputedStyle(ctaNode).pointerEvents : null,
+          click: window.__kdxThresholdNavDiag ?? null,
+        };
+      });
+      throw new Error(`${profile.id}: ENTER THE KODEX did not reach folio/i; ${JSON.stringify(navigationDiagnostics)}`);
+    }
+
+    const navigation = { target: new URL(page.url()).pathname, passed: true };
     evidence.push({
       profile: profile.id,
       status: 'PASS',
       geometry,
       portal: portalEvidence,
       artifactControl,
-      memory: {
-        thresholdVisitRecorded: true,
-        viewCount: journeyBeforeExit.views.length,
-      },
+      memory: { thresholdVisitRecorded: true, viewCount: journeyBeforeExit.views.length },
       navigation,
       consoleErrors,
       httpErrors,
@@ -165,6 +158,7 @@ for (const profile of cases) {
       status: 'FAIL',
       error: error instanceof Error ? error.message : String(error),
       currentUrl: page.url(),
+      navigationDiagnostics,
       consoleErrors,
       httpErrors,
     });
@@ -176,9 +170,5 @@ for (const profile of cases) {
 
 await browser.close();
 await writeFile(`${outDir}/evidence.json`, JSON.stringify({ baseURL, evidence }, null, 2));
-
-for (const result of evidence) {
-  console.log(`${result.status} ${result.profile}${result.error ? ` — ${result.error}` : ''}`);
-}
-
+for (const result of evidence) console.log(`${result.status} ${result.profile}${result.error ? ` — ${result.error}` : ''}`);
 if (failed) process.exit(1);
