@@ -128,24 +128,12 @@ class Ritual {
     this.raiz.dataset.activo = "";
     this.raiz.dataset.fase = "colapso";
 
-    // La navegación es una invariante funcional; el ritual es una capa de
-    // presentación. requestAnimationFrame puede quedar detenido bajo presión
-    // de GPU/CPU, pestañas throttled o runners headless. El deck ya tenía un
-    // salvavidas equivalente; los enlaces internos directos no. El watchdog
-    // deriva del propio tiempo del preset y evita que una transición visual
-    // pueda encerrar al visitante indefinidamente.
-    const desde = location.href;
-    const watchdog = setTimeout(() => {
-      if (location.href === desde) location.href = url;
-    }, Math.max(1800, ms * 1.25));
-
     // La navegación va en `finally`: si el dibujo del colapso lanza -- un
     // contexto perdido, un canvas de cero -- el visitante igual llega. El
     // ritual es la forma; llegar es la función.
     try {
       await this.animar(0, 1, ms * 0.62);
     } finally {
-      clearTimeout(watchdog);
       location.href = url;
     }
   }
