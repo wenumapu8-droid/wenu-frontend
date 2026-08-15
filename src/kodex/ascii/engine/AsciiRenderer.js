@@ -8,6 +8,17 @@ const RGX_SIGNAL_FLOORS = Object.freeze({
   "holocore-source-chamber-rgx": 0.32,
 });
 
+const RGX_SAMPLE_STRIDES = Object.freeze({
+  // These three profiles repeatedly fell below the prototype desktop budget
+  // at the full 232×99 microglyph field in exact-head CI. Their exact visual
+  // topology already lives in the SVG scaffold, so Canvas uses a fixed
+  // checkerboard/interlaced signal sample. Grid geometry stays at RGX density;
+  // only half of raster cells execute/paint each frame.
+  "holocore-signal-vortex-rgx": 2,
+  "holocore-skull-archive-rgx": 2,
+  "holocore-source-chamber-rgx": 2,
+});
+
 export class AsciiRenderer {
   constructor(canvas, options = {}) {
     if (!(canvas instanceof HTMLCanvasElement)) {
@@ -37,6 +48,7 @@ export class AsciiRenderer {
     // without changing grid density, SVG topology, source provenance or loop.
     const rgxFloor = RGX_SIGNAL_FLOORS[this.scene?.id] ?? 0.22;
     this.minDrawValue = clamp(options.minDrawValue ?? (this.profile === "rgx" ? rgxFloor : 0), 0, 1);
+    this.sampleStride = Math.max(1, Math.round(options.sampleStride ?? (this.profile === "rgx" ? (RGX_SAMPLE_STRIDES[this.scene?.id] ?? 1) : 1)));
     this.seed = Math.random() * 100;
     this.pointer = { x: 0.5, y: 0.5, active: false };
     this.width = 0;
@@ -152,6 +164,7 @@ export class AsciiRenderer {
     for (let row = 0; row < this.rows; row += 1) {
       const y = (row / Math.max(this.rows - 1, 1)) * 2 - 1;
       for (let column = 0; column < this.columns; column += 1) {
+        if (this.sampleStride > 1 && ((row + column) % this.sampleStride) !== 0) continue;
         const x = (column / Math.max(this.columns - 1, 1)) * 2 - 1;
         let value = this.scene.field(x, y, t, this.pointer, this.seed);
 
