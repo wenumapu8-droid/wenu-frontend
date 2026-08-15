@@ -78,7 +78,12 @@ for (const profile of cases) {
     const close = page.locator('[data-kdx-drawer-close]');
     await close.waitFor({ state: 'visible' });
     await close.click();
-    await page.waitForFunction(() => document.querySelector('[data-kdx-drawer]')?.hasAttribute('hidden'), null, { timeout: 1500 });
+    // closeDrawer flips the accessibility state synchronously, then applies
+    // `hidden` after its 220ms visual transition. Assert both. The longer wait
+    // is scheduling tolerance for loaded CI runners, not a relaxation of the
+    // semantic close contract.
+    await page.waitForFunction(() => document.querySelector('[data-kdx-drawer]')?.getAttribute('aria-hidden') === 'true', null, { timeout: 1000 });
+    await page.waitForFunction(() => document.querySelector('[data-kdx-drawer]')?.hasAttribute('hidden'), null, { timeout: 4000 });
     assert(await opener.evaluate((node) => document.activeElement === node), `${profile.id}: protocol drawer did not restore focus to opener`);
 
     const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -106,7 +111,7 @@ for (const profile of cases) {
       status: 'PASS',
       geometry,
       visual,
-      protocolDrawer: { openClose: true, focusRestored: true },
+      protocolDrawer: { openClose: true, semanticCloseImmediate: true, focusRestored: true },
       memory: { prologueVisitRecorded: true, viewCount: journeyBeforeExit.views.length },
       navigation: { target: new URL(page.url()).pathname, passed: true },
       consoleErrors,
