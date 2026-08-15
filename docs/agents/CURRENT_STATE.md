@@ -77,7 +77,7 @@ Current PR #77 head: `1f7bbebcf7573811549b540c573ad4b16919fa46`.
 
 A prior executed MACHINE gate correctly rejected unsourced factual telemetry `INTEGRITY · 98.7%`. The accepted source repair changes only that value and matching readout to `NOT MEASURED`; generator, renderer, routing, memory, artwork and composition are unchanged.
 
-Exact-head revalidation remains blocked outside KODEX. Product Corridor run `31877581094` still reports failure and its latest job (`95021079046`) has no executed steps. The previously inspected GitHub check annotation states that recent account payments failed or the Actions spending limit must be increased in **Billing & plans**.
+Exact-head revalidation remains blocked outside KODEX. Product Corridor run `31877581094` still reports failure and its latest observed job has no executed steps. The previously inspected GitHub check annotation states that recent account payments failed or the Actions spending limit must be increased in **Billing & plans**.
 
 MACHINE remains **IMPLEMENTED TRUTH REPAIR / BROWSER REVALIDATION PENDING**. Do not advance COSMOLOGY around this gate and do not modify product/QA/workflow code to compensate for the account-level blocker.
 
@@ -98,9 +98,11 @@ Live code inspection found a parallel ElementContract dialect:
 
 ### Branch contamination finding — 2026-08-16
 
-A direct compare of `main...feature/holocore-rgx-element-library` shows the branch is **338 commits ahead of main** and carries a very large unrelated repository/rescue payload, including `_macmini-kodex-rescue/**`, settings, documentation, public/product assets and broad application files. This means PR #78 is not a bounded or reviewable convergence vehicle even if its schema dialect were corrected.
+A fresh direct compare of `main...feature/holocore-rgx-element-library` now shows the branch is **343 commits ahead of main** and carries **6,171 changed files** with a very large unrelated repository/rescue payload, including `_macmini-kodex-rescue/**`, settings, documentation, public/product assets and broad application files. This strengthens the conclusion that PR #78 is not a bounded or reviewable convergence vehicle even if its schema dialect were corrected.
 
-A strengthened HOLD comment was added to PR #78. The only currently actionable source observations are the 14 records in `ops/factory/element-library/holocore-rgx-contracts.json`; `element-library.test.js` is useful only to document the branch-local assumptions, not as a canonical validator.
+The PR body itself now begins with **HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY**, so the branch-local 18-field tests can no longer be mistaken for canonical Assembly OS validation.
+
+The only currently actionable source observations are the 14 records in `ops/factory/element-library/holocore-rgx-contracts.json`; `element-library.test.js` is useful only to document the branch-local assumptions, not as a canonical validator.
 
 Do **not** normalize in place on #78 and do not merge its branch into the Assembly OS lineage. Extract useful HoloCore observations and re-express them on a bounded #62-derived delta using the existing ElementContract vocabulary, registry and validators. If a HoloCore exposes a capability the existing schema genuinely cannot express, surface that exact incompatibility before any schema change.
 
