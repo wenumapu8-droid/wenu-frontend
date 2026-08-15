@@ -57,6 +57,28 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
 
 <KodexIndexOverlay />
 
+<!-- Shared dialog focus contract. Folio drawers own their content/open-close
+     behavior; Chrome only remembers the explicit opener and restores focus
+     after the existing drawer has actually become hidden. Guarded selectors
+     make this a no-op on THRESHOLD and pages without a folio drawer. -->
+<script>
+  (() => {
+    const drawer = document.querySelector('[data-kdx-drawer]');
+    if (!drawer) return;
+    let lastDrawerOpener = null;
+    document.addEventListener('click', (event) => {
+      const opener = event.target?.closest?.('[data-kdx-drawer-open]');
+      if (opener instanceof HTMLElement) lastDrawerOpener = opener;
+    });
+    const restore = () => {
+      if (!drawer.hasAttribute('hidden') || !(lastDrawerOpener instanceof HTMLElement) || !lastDrawerOpener.isConnected) return;
+      lastDrawerOpener.focus({ preventScroll: true });
+      lastDrawerOpener = null;
+    };
+    new MutationObserver(restore).observe(drawer, { attributes: true, attributeFilter: ['hidden'] });
+  })();
+</script>
+
 <!-- KODEX analytics — window.kdx() forwards to gtag if loaded (§8) -->
 <script is:inline define:vars={{ sceneCode: scene.code, sceneIndex: scene.index }}>
   (() => {
