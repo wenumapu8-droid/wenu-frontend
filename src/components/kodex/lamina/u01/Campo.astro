@@ -167,6 +167,70 @@
        0,5·(1+G) con G = 5. */
     const G_ALMA = 5;
 
+    /* ------------------------------------------------------- perfil angular
+     * MEDIDO sobre la referencia por `extraer-campo.mjs` (36 sectores de 10°,
+     * anillo 0,18–0,80 del radio, densidad y no conteo para que la forma
+     * rectangular de la región no premie las diagonales). Sector 0 = −180°
+     * —hacia la izquierda—, creciendo en el sentido de `atan2` del lienzo, o
+     * sea hacia abajo.
+     *
+     * ESTE CAMPO NO ES ISÓTROPO y la reproducción lo tenía al revés. Tinta de
+     * la referencia contra la del render, por sector:
+     *
+     *     −120° arriba-izq   4.769   1.604   ← 34 %
+     *      −90° arriba       3.176   1.650   ← 52 %
+     *       60° abajo-der    1.848   3.703   ← 200 %
+     *       90° abajo        1.793   3.619   ← 202 %
+     *
+     * Los nueve racimos que repartían los troncos salían de `azar(0x5b21)`, así
+     * que su posición era una propiedad de la semilla y no de la lámina: se
+     * apilaron abajo, que es justo donde la referencia tiene su mínimo. El
+     * perfil va de 0,0129 a 0,0610 —4,7× entre la dirección más pobre y la más
+     * rica—, o sea que la anisotropía es real y grande, no ruido de medición.
+     *
+     * Los racimos como tales no se pierden: sortear 92 troncos de una densidad
+     * con picos de 4,7× vuelve a producir grumos, sólo que en las direcciones
+     * que mide la referencia en vez de las que sortea la semilla. */
+    const ANG_PERFIL = [
+      0.0258, 0.0144, 0.017, 0.0337, 0.0212, 0.0264, 0.061, 0.0585, 0.0359,
+      0.0328, 0.0301, 0.0208, 0.0175, 0.0129, 0.0318, 0.0387, 0.0257, 0.0362,
+      0.0247, 0.0198, 0.0228, 0.0237, 0.0182, 0.0567, 0.0259, 0.0147, 0.0199,
+      0.0281, 0.0153, 0.0209, 0.052, 0.0209, 0.0217, 0.0249, 0.031, 0.0188,
+    ];
+    const ANG_CDF = (() => {
+      const c = [];
+      let s = 0;
+      for (const v of ANG_PERFIL) { s += v; c.push(s); }
+      return c.map((v) => v / s);
+    })();
+    /** Ángulo sorteado del perfil medido, por inversión de la CDF. Interpola
+        dentro del sector: sin eso los 92 troncos caen en 36 ángulos exactos y
+        el campo se lee como un peine de 36 púas. */
+    function anguloMedido(u) {
+      let k = 0;
+      while (k < ANG_CDF.length - 1 && u > ANG_CDF[k]) k++;
+      const p0 = k > 0 ? ANG_CDF[k - 1] : 0;
+      const t = (u - p0) / Math.max(1e-6, ANG_CDF[k] - p0);
+      return -Math.PI + ((k + t) * TAU) / ANG_PERFIL.length;
+    }
+
+    /* EL PERFIL NO SE EXTRAPOLA HACIA ADENTRO. Está medido en el anillo
+       0,18–0,80 del radio, o sea r=94..416, y el extractor excluye el centro a
+       propósito: el núcleo es isótropo y tan brillante que aplastaría la señal
+       angular. Adentro de R_ANG se sortea parejo, que es lo que mide el núcleo.
+       Los troncos no pasan por acá: nacen en r≈41..83 pero su ángulo decide
+       adónde llegan, y eso sí lo gobierna el perfil.
+
+       MEDIDO, y no es lo que parecía: este recorte vale 0,4 puntos de cobertura
+       en la región del núcleo (89,8 % contra 90,2 %), no los 4,4 que se le
+       habían atribuido. Los 4,4 que perdió el núcleo al pasar al perfil angular
+       son de los TRONCOS, que se agrupan cerca del anillo de nacimiento y
+       ralean el anillo r=60..120 —96 % → 88 %— donde la referencia es isótropa.
+       Se deja igual porque extrapolar una medición fuera de su dominio está
+       mal aunque se note poco, pero el arreglo del anillo no está acá. */
+    const R_ANG = 94;
+    const anguloDeCampo = (u, rad) => (rad < R_ANG ? u * TAU : anguloMedido(u));
+
     /* ------------------------------------------------------------- retícula */
     /* Papel milimetrado de 32,7 × 33,1. La línea par pesa el doble que la impar:
        así es como se lee a 65 px de paso sin que las intermedias desaparezcan. */
@@ -303,24 +367,23 @@
          que más cambió la lectura del héroe.
          Repartidos de a uno el campo sale isótropo: una escarapela de pelos con
          la misma densidad en todas las direcciones. La referencia tiene otra
-         cosa — grumos. Hay tres o cuatro brazos gordos (arriba y a la derecha del
-         núcleo, sobre todo) y entre ellos vacíos donde sólo queda la retícula.
-         Y esto NO se ve en el perfil radial, que promedia sobre la
-         circunferencia y da lo mismo para un campo isótropo que para uno
-         agrumado: dos dibujos muy distintos con la misma envolvente. Se ve
-         comparando los recortes al mismo gamma, y lo paga el diff estructural.
-         Los troncos se reparten en 9 racimos de ancho y peso desiguales. */
-      const RACIMOS = Array.from({ length: 9 }, (_, j) => ({
-        a: (j / 9) * TAU + (r() - 0.5) * 0.28,
-        ancho: 0.16 + r() * 0.34,
-        peso: 0.45 + r() * 0.85,
-      }));
+         cosa — grumos. Hay tres o cuatro brazos gordos y entre ellos vacíos
+         donde sólo queda la retícula. Y esto NO se ve en el perfil radial, que
+         promedia sobre la circunferencia y da lo mismo para un campo isótropo
+         que para uno agrumado: dos dibujos muy distintos con la misma
+         envolvente. Se ve comparando los recortes al mismo gamma, y lo paga el
+         diff estructural.
+
+         DE DÓNDE SALEN LOS GRUMOS, corregido 2026-08-15. Antes eran 9 racimos
+         repartidos parejo con jitter de `azar(0x5b21)`: su posición era una
+         propiedad de la semilla, no de la lámina, y quedaron apilados abajo
+         —donde la referencia tiene su MÍNIMO—, con 202 % de cobertura abajo y
+         34 % arriba-izquierda. Ahora el ángulo se sortea de `ANG_PERFIL`, que
+         es la densidad angular medida. Los grumos siguen saliendo, porque el
+         perfil tiene picos de 4,7×, pero caen donde la referencia los tiene. */
       const N = 92;
       for (let i = 0; i < N; i++) {
-        const rc = RACIMOS[Math.floor(r() * RACIMOS.length)];
-        /* Suma de dos uniformes ≈ triangular: el tronco se apiña en el eje del
-           racimo y se deshilacha en los bordes. */
-        const a = rc.a + (r() + r() - 1) * rc.ancho;
+        const a = anguloMedido(r());
         /* El radio de nacimiento se sortea en una banda de 26 px y no es fijo.
            Con todos los troncos arrancando en el mismo r, la circunferencia de
            nacimiento acumula 52 arranques y el perfil medido salta a 51 donde la
@@ -329,7 +392,10 @@
           a,
           rad: R_NACE + Math.pow(r(), 0.85) * 42,
           giro: (r() - 0.5) * 0.5,
-          peso: rc.peso,
+          /* Antes el peso venía del racimo y lo compartían todos sus troncos.
+             Ahora es por tronco, sobre el mismo rango: la estadística de brillo
+             no se mueve y el agrumado lo aporta el perfil angular. */
+          peso: 0.45 + r() * 0.85,
           gen: 0,
           /* La vida NO es uniforme: es de cola pesada. En la referencia la
              mayoría de los cordones muere antes de r=200 y sólo unos pocos
@@ -473,7 +539,9 @@
            la nube quedaba pelado; medido contra el perfil radial. */
         const u = Math.pow(r(), 1.3);
         const rad = R_NACE + 22 + u * 400;
-        const a0 = r() * TAU;
+        /* Del perfil medido y no uniforme: los travesaños enlazan filamentos
+           vecinos, así que tienen que estar donde están los filamentos. */
+        const a0 = anguloDeCampo(r(), rad);
         const arco = (0.08 + r() * 0.2) * (r() < 0.5 ? -1 : 1);
         const dr = (r() - 0.5) * rad * 0.16;
         const pasos = 7;
@@ -525,7 +593,7 @@
         } else {
           const u = Math.pow(r(), 1.5);
           rad = 60 + u * 375;
-          const a = r() * TAU;
+          const a = anguloDeCampo(r(), rad);
           x = cx + Math.cos(a) * rad;
           y = cy + Math.sin(a) * rad;
         }
@@ -586,7 +654,7 @@
       for (let k = 0; k < 2600; k++) {
         const u = Math.pow(r(), 1.4);
         const rad = 50 + u * 400;
-        const a = r() * TAU;
+        const a = anguloDeCampo(r(), rad);
         const x = cx + Math.cos(a) * rad;
         const y = cy + Math.sin(a) * rad;
         if (x < 3 || x > W - 3 || y < 3 || y > H - 3) continue;
