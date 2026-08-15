@@ -49,6 +49,47 @@ for (const profile of cases) {
     assert(await cta.getAttribute('href') === '/kodex/folio/ii/', `${profile.id}: CTA does not target folio/ii`);
     assert((await cta.textContent())?.trim() === 'BEGIN OBSERVATION', `${profile.id}: CTA label drifted`);
 
+    // Playwright "visible" only means the element has a rendered box. Product
+    // acceptance also requires that the primary action and title actually live
+    // inside the first viewport and are not geometrically covered by the art or
+    // another layer. This closes the blind spot found by screenshot review.
+    const composition = await page.evaluate(() => {
+      const rect = (selector) => {
+        const el = document.querySelector(selector);
+        if (!(el instanceof HTMLElement)) return null;
+        const r = el.getBoundingClientRect();
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+      };
+      const overlaps = (a, b) => !!a && !!b && a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+      const ctaEl = document.querySelector('.kx-os-stage__actions .kx-os-primary');
+      const ctaRect = rect('.kx-os-stage__actions .kx-os-primary');
+      const titleRect = rect('.kx-os-stage__copy h1');
+      const artRect = rect('.kx-os-stage__art');
+      let hitTarget = false;
+      if (ctaEl instanceof HTMLElement && ctaRect) {
+        const x = Math.min(window.innerWidth - 1, Math.max(0, ctaRect.left + ctaRect.width / 2));
+        const y = Math.min(window.innerHeight - 1, Math.max(0, ctaRect.top + ctaRect.height / 2));
+        const hit = document.elementFromPoint(x, y);
+        hitTarget = !!hit && (hit === ctaEl || ctaEl.contains(hit));
+      }
+      return {
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        ctaRect,
+        titleRect,
+        artRect,
+        ctaInViewport: !!ctaRect && ctaRect.left >= 0 && ctaRect.top >= 0 && ctaRect.right <= window.innerWidth && ctaRect.bottom <= window.innerHeight,
+        titleInViewport: !!titleRect && titleRect.left >= 0 && titleRect.top >= 0 && titleRect.right <= window.innerWidth && titleRect.bottom <= window.innerHeight,
+        titleArtOverlap: overlaps(titleRect, artRect),
+        ctaArtOverlap: overlaps(ctaRect, artRect),
+        ctaHitTarget: hitTarget,
+      };
+    });
+    assert(composition.ctaInViewport, `${profile.id}: primary CTA is rendered but not fully inside the first viewport`);
+    assert(composition.titleInViewport, `${profile.id}: macro title is clipped outside the first viewport`);
+    assert(!composition.titleArtOverlap, `${profile.id}: macro title overlaps the dominant artifact`);
+    assert(!composition.ctaArtOverlap, `${profile.id}: primary CTA overlaps the dominant artifact`);
+    assert(composition.ctaHitTarget, `${profile.id}: primary CTA is geometrically covered by another layer`);
+
     const crt = page.locator('.kdx-crt-mount[data-preset="observe"]');
     await crt.waitFor({ state: 'attached' });
     await page.waitForFunction(() => document.querySelector('.kdx-crt-mount[data-preset="observe"]')?.getAttribute('data-mounted') === '1');
@@ -110,6 +151,7 @@ for (const profile of cases) {
       profile: profile.id,
       status: 'PASS',
       geometry,
+      composition,
       visual,
       protocolDrawer: { openClose: true, semanticCloseImmediate: true, focusRestored: true },
       memory: { prologueVisitRecorded: true, viewCount: journeyBeforeExit.views.length },
