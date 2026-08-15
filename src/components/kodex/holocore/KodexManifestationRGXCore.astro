@@ -1,0 +1,453 @@
+---
+interface Props {
+  id?: string;
+}
+
+const { id = 'kdx-manifestation-rgx-core' } = Astro.props;
+---
+
+<figure
+  class="kdx-manifestation-rgx-core"
+  id={id}
+  data-kdx-manifestation-rgx-core
+  data-phase="POTENTIAL"
+  data-renderer-state="dormant"
+>
+  <header class="mrgx__bar">
+    <span>MANIFESTATION × RGX // CAUSAL STATE</span>
+    <strong data-mrgx-phase>POTENTIAL</strong>
+  </header>
+
+  <div class="mrgx__viewport">
+    <canvas data-mrgx-canvas role="img" aria-label="KODEX Manifestation RGX state visualization"></canvas>
+    <svg
+      class="mrgx__scaffold"
+      data-mrgx-scaffold
+      viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid meet"
+      aria-hidden="true"
+    ></svg>
+    <div class="mrgx__grid" aria-hidden="true"></div>
+    <div class="mrgx__scan" aria-hidden="true"></div>
+    <div class="mrgx__vignette" aria-hidden="true"></div>
+
+    <div class="mrgx__identity" aria-hidden="true">
+      <strong data-mrgx-specimen>SOURCE CHAMBER</strong>
+      <span data-mrgx-state>DORMANT</span>
+      <span data-mrgx-resolution>PHASE_MAP → RGX</span>
+    </div>
+
+    <div class="mrgx__load" aria-hidden="true">
+      <span>CAUSAL LOAD</span>
+      <strong data-mrgx-load>0.00</strong>
+    </div>
+  </div>
+
+  <footer class="mrgx__footer">
+    <span data-mrgx-intent>NO INTENT</span>
+    <span data-mrgx-blockers>0 BLOCKERS</span>
+    <span>ONE ACTIVE RENDERER</span>
+    <span>NO SOURCE PIXELS</span>
+  </footer>
+
+  <figcaption>
+    Software causal-state visualization using the code-native RGX HoloCore family. It does not claim that thought directly changes physical matter.
+  </figcaption>
+</figure>
+
+<script>
+  import { AsciiRenderer } from '../../../kodex/ascii/engine/AsciiRenderer.js';
+  import { resolveHoloCoreRGXScene } from '../../../kodex/ascii/scenes/holocore-rgx-family.js';
+  import { buildHoloCoreRGXScaffold } from '../../../kodex/holocore/reference-profiles/rgx-scaffold.js';
+  import {
+    buildManifestationView,
+    createManifestationState,
+    reduceManifestationState,
+  } from '../../../lib/kodex/manifestation-engine.js';
+  import { resolveManifestationRGXVisual } from '../../../lib/kodex/manifestation-rgx-visual-resolver.js';
+  import { manifestationTraceToJourneyAction } from '../../../lib/kodex/manifestation-journey-bridge';
+  import {
+    KODEX_ORGANISM_ACTION_EVENT,
+    mountKodexJourneyMemoryBridge,
+  } from '../../../lib/kodex/runtime/journey-memory-bridge';
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  const instances = new WeakMap();
+
+  const labelFromId = id => String(id || '').replaceAll('-', ' ').toUpperCase();
+
+  function createPrimitiveNode(primitive) {
+    const type = primitive?.type;
+    if (!['ellipse', 'circle', 'line', 'polyline'].includes(type)) return null;
+    const node = document.createElementNS(SVG_NS, type);
+    node.classList.add('mrgx-p', `mrgx-p--${primitive.role || 'structure'}`, `mrgx-p--${type}`);
+    if (primitive.id) node.dataset.rgxPrimitive = primitive.id;
+    if (primitive.role) node.dataset.rgxRole = primitive.role;
+
+    if (type === 'ellipse') {
+      node.setAttribute('cx', String(primitive.cx));
+      node.setAttribute('cy', String(primitive.cy));
+      node.setAttribute('rx', String(primitive.rx));
+      node.setAttribute('ry', String(primitive.ry));
+      if (primitive.rotation) node.setAttribute('transform', `rotate(${primitive.rotation} ${primitive.cx} ${primitive.cy})`);
+    }
+    if (type === 'circle') {
+      node.setAttribute('cx', String(primitive.cx));
+      node.setAttribute('cy', String(primitive.cy));
+      node.setAttribute('r', String(primitive.r));
+    }
+    if (type === 'line') {
+      node.setAttribute('x1', String(primitive.x1));
+      node.setAttribute('y1', String(primitive.y1));
+      node.setAttribute('x2', String(primitive.x2));
+      node.setAttribute('y2', String(primitive.y2));
+    }
+    if (type === 'polyline') {
+      const points = (primitive.points || []).map(([x, y]) => `${Number(x).toFixed(2)},${Number(y).toFixed(2)}`).join(' ');
+      node.setAttribute('points', points);
+    }
+    return node;
+  }
+
+  function renderScaffold(svg, specimenId) {
+    if (!(svg instanceof SVGSVGElement)) return 0;
+    const fragment = document.createDocumentFragment();
+    const primitives = buildHoloCoreRGXScaffold(specimenId);
+    for (const primitive of primitives) {
+      const node = createPrimitiveNode(primitive);
+      if (node) fragment.appendChild(node);
+    }
+    svg.replaceChildren(fragment);
+    svg.dataset.specimen = specimenId;
+    svg.dataset.primitiveCount = String(primitives.length);
+    return primitives.length;
+  }
+
+  function mount(root) {
+    if (!(root instanceof HTMLElement) || instances.has(root)) return;
+
+    const canvas = root.querySelector('[data-mrgx-canvas]');
+    const scaffold = root.querySelector('[data-mrgx-scaffold]');
+    const phaseLabel = root.querySelector('[data-mrgx-phase]');
+    const specimenLabel = root.querySelector('[data-mrgx-specimen]');
+    const stateLabel = root.querySelector('[data-mrgx-state]');
+    const resolutionLabel = root.querySelector('[data-mrgx-resolution]');
+    const loadLabel = root.querySelector('[data-mrgx-load]');
+    const intentLabel = root.querySelector('[data-mrgx-intent]');
+    const blockersLabel = root.querySelector('[data-mrgx-blockers]');
+    if (!(canvas instanceof HTMLCanvasElement) || !(scaffold instanceof SVGSVGElement)) return;
+
+    mountKodexJourneyMemoryBridge();
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let state = createManifestationState();
+    let renderer = null;
+    let specimenId = null;
+    let freezeTimer = 0;
+    let settleTimer = 0;
+    let metricsTimer = 0;
+    let destroyed = false;
+    let lastJourneyActionId = null;
+
+    const setRendererState = value => {
+      const normalized = value.toLowerCase().replaceAll(' ', '-');
+      root.dataset.rendererState = normalized;
+      if (stateLabel) stateLabel.textContent = value;
+    };
+
+    const updateMetrics = () => {
+      if (destroyed) return;
+      root.dataset.fps = String(renderer?.fps || 0);
+      root.dataset.gridColumns = String(renderer?.columns || 0);
+      root.dataset.gridRows = String(renderer?.rows || 0);
+      metricsTimer = window.setTimeout(updateMetrics, 400);
+    };
+
+    const startSpecimen = view => {
+      const visual = resolveManifestationRGXVisual(view);
+      const profile = visual.profile;
+      const nextId = visual.specimenId;
+
+      if (specimenId === nextId && renderer) {
+        root.dataset.visualResolutionSource = visual.source;
+        return;
+      }
+
+      window.clearTimeout(freezeTimer);
+      window.clearTimeout(settleTimer);
+      renderer?.destroy();
+      renderer = null;
+      specimenId = nextId;
+
+      const scene = resolveHoloCoreRGXScene(nextId);
+      root.dataset.specimen = nextId;
+      root.dataset.rgxProfile = profile.id;
+      root.dataset.visualResolutionSource = visual.source;
+      root.dataset.sourcePixels = 'none';
+      root.style.setProperty('--manifest-accent', profile.accent);
+      canvas.setAttribute('aria-label', `${profile.title}. ${profile.motif}. Code-native RGX manifestation state.`);
+      if (specimenLabel) specimenLabel.textContent = profile.title;
+      if (resolutionLabel) resolutionLabel.textContent = `${view.visualResolutionSource || 'PHASE_MAP'} → ${visual.source}`;
+
+      const primitiveCount = renderScaffold(scaffold, nextId);
+      root.dataset.scaffoldPrimitives = String(primitiveCount);
+
+      renderer = new AsciiRenderer(canvas, {
+        scene,
+        profile: 'rgx',
+        glyphSet: profile.density.glyphSet,
+        ditherStrength: profile.density.ditherStrength,
+        palette: profile.palette,
+      });
+
+      setRendererState('RESOLVING');
+      renderer.start();
+
+      if (reduced) {
+        freezeTimer = window.setTimeout(() => {
+          renderer?.stop();
+          if (!destroyed) setRendererState('STATIC FRAME');
+        }, 190);
+      } else {
+        settleTimer = window.setTimeout(() => {
+          if (!destroyed) setRendererState('STABLE LOOP');
+        }, 900);
+      }
+    };
+
+    const publish = () => {
+      const view = buildManifestationView(state);
+      root.dataset.phase = view.phase;
+      root.dataset.blocked = String(view.blocked);
+      root.dataset.canTransform = String(view.canTransform);
+      root.dataset.causalLoad = String(view.causalLoad);
+      root.dataset.unresolvedBlockers = String(view.unresolvedBlockerCount);
+      root.dataset.nodeId = view.nodeId || '';
+
+      if (phaseLabel) phaseLabel.textContent = view.phase;
+      if (loadLabel) loadLabel.textContent = view.causalLoad.toFixed(2);
+      if (intentLabel) intentLabel.textContent = state.intent || 'NO INTENT';
+      if (blockersLabel) blockersLabel.textContent = `${view.unresolvedBlockerCount} BLOCKER${view.unresolvedBlockerCount === 1 ? '' : 'S'}`;
+
+      startSpecimen(view);
+
+      const rgxVisual = resolveManifestationRGXVisual(view);
+      root.dispatchEvent(new CustomEvent('kdx:manifestation:rgx-view', {
+        bubbles: true,
+        detail: {
+          ...view,
+          intent: state.intent,
+          traceLength: state.trace.length,
+          rgxSpecimenId: rgxVisual.specimenId,
+          rgxProfileId: rgxVisual.profile.id,
+          rgxResolutionSource: rgxVisual.source,
+        },
+      }));
+
+      const journeyAction = manifestationTraceToJourneyAction({
+        ...view,
+        traceLength: state.trace.length,
+      });
+      if (journeyAction && journeyAction.id !== lastJourneyActionId) {
+        lastJourneyActionId = journeyAction.id;
+        document.dispatchEvent(new CustomEvent(KODEX_ORGANISM_ACTION_EVENT, { detail: journeyAction }));
+        root.dataset.journeyTraceWritten = 'true';
+      }
+    };
+
+    const onEvent = event => {
+      const detail = event.detail;
+      if (!detail || typeof detail !== 'object') return;
+      state = reduceManifestationState(state, detail);
+      publish();
+    };
+
+    root.addEventListener('kdx:manifestation:event', onEvent);
+    publish();
+    updateMetrics();
+
+    const destroy = () => {
+      destroyed = true;
+      window.clearTimeout(freezeTimer);
+      window.clearTimeout(settleTimer);
+      window.clearTimeout(metricsTimer);
+      root.removeEventListener('kdx:manifestation:event', onEvent);
+      renderer?.destroy();
+      instances.delete(root);
+    };
+    instances.set(root, { destroy });
+  }
+
+  function mountAll() {
+    document.querySelectorAll('[data-kdx-manifestation-rgx-core]').forEach(mount);
+  }
+
+  mountAll();
+  document.addEventListener('astro:page-load', mountAll);
+  document.addEventListener('astro:before-swap', () => {
+    document.querySelectorAll('[data-kdx-manifestation-rgx-core]').forEach(root => instances.get(root)?.destroy());
+  });
+</script>
+
+<style>
+  .kdx-manifestation-rgx-core {
+    --manifest-accent: #f5df9e;
+    box-sizing: border-box;
+    position: relative;
+    display: grid;
+    grid-template-rows: 32px minmax(0, 1fr) 32px;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+    isolation: isolate;
+    color: #ece8ef;
+    background: #020205;
+    border: 1px solid color-mix(in srgb, var(--manifest-accent) 38%, #fff 8%);
+    font-family: 'Share Tech Mono', ui-monospace, monospace;
+  }
+
+  .mrgx__bar,
+  .mrgx__footer {
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 10px;
+    font-size: 7px;
+    line-height: 1;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: rgba(236,232,239,.58);
+    background: rgba(2,2,5,.9);
+  }
+  .mrgx__bar { border-bottom: 1px solid color-mix(in srgb, var(--manifest-accent) 32%, transparent); }
+  .mrgx__footer { border-top: 1px solid color-mix(in srgb, var(--manifest-accent) 32%, transparent); }
+  .mrgx__bar strong { color: var(--manifest-accent); font-weight: 500; }
+
+  .mrgx__viewport {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: radial-gradient(circle at center, color-mix(in srgb, var(--manifest-accent) 8%, transparent), transparent 50%), #020205;
+  }
+
+  [data-mrgx-canvas],
+  .mrgx__grid,
+  .mrgx__scan,
+  .mrgx__vignette {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  [data-mrgx-canvas] {
+    z-index: 1;
+    display: block;
+    opacity: .82;
+    filter: contrast(1.22) saturate(.88);
+  }
+
+  .mrgx__scaffold {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    top: 50%;
+    width: min(88%, calc(100dvh - 90px));
+    height: auto;
+    aspect-ratio: 1 / 1;
+    transform: translate(-50%, -50%);
+    overflow: visible;
+    fill: none;
+    stroke: color-mix(in srgb, var(--manifest-accent) 74%, white 26%);
+    pointer-events: none;
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--manifest-accent) 22%, transparent));
+  }
+
+  .mrgx-p { fill: none; stroke: currentColor; vector-effect: non-scaling-stroke; }
+  .mrgx-p--primary { stroke-width: .2; opacity: .92; }
+  .mrgx-p--ring { stroke-width: .1; opacity: .58; stroke-dasharray: .8 .42 .16 .36; }
+  .mrgx-p--secondary { stroke-width: .06; opacity: .28; stroke-dasharray: .2 .34; }
+  .mrgx-p--axis { stroke-width: .06; opacity: .35; }
+  .mrgx-p--node { stroke-width: .08; opacity: .72; fill: color-mix(in srgb, var(--manifest-accent) 62%, transparent); }
+  .mrgx-p--atmosphere { stroke-width: .05; opacity: .18; stroke-dasharray: .24 .5; }
+  .mrgx-p--planet { stroke-width: .12; opacity: .58; }
+  .mrgx-p--polyline { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+
+  .mrgx__grid {
+    z-index: 2;
+    opacity: .06;
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--manifest-accent) 15%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--manifest-accent) 12%, transparent) 1px, transparent 1px);
+    background-size: 20px 20px;
+    mask-image: radial-gradient(ellipse at center, #000 25%, transparent 94%);
+    pointer-events: none;
+  }
+
+  .mrgx__scan {
+    z-index: 5;
+    top: -8%;
+    bottom: auto;
+    height: 3.5%;
+    opacity: .09;
+    background: linear-gradient(transparent, color-mix(in srgb, var(--manifest-accent) 80%, white 20%), transparent);
+    filter: blur(5px);
+    animation: mrgx-scan 12s linear infinite;
+    pointer-events: none;
+  }
+
+  .mrgx__vignette {
+    z-index: 6;
+    pointer-events: none;
+    background: repeating-linear-gradient(to bottom, rgba(255,255,255,.011) 0 1px, transparent 1px 4px);
+    box-shadow: inset 0 0 68px 28px rgba(0,0,0,.72);
+  }
+
+  .mrgx__identity,
+  .mrgx__load {
+    position: absolute;
+    z-index: 7;
+    display: grid;
+    gap: 4px;
+    font-size: 6px;
+    line-height: 1.15;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    color: rgba(236,232,239,.45);
+    pointer-events: none;
+  }
+  .mrgx__identity { top: 12px; right: 12px; justify-items: end; text-align: right; }
+  .mrgx__load { left: 12px; bottom: 12px; }
+  .mrgx__identity strong,
+  .mrgx__load strong { color: var(--manifest-accent); font-weight: 500; }
+
+  .kdx-manifestation-rgx-core figcaption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @keyframes mrgx-scan {
+    from { transform: translateY(0); }
+    to { transform: translateY(3000%); }
+  }
+
+  @media (max-width: 700px) {
+    .kdx-manifestation-rgx-core { grid-template-rows: 28px minmax(0, 1fr) 28px; }
+    .mrgx__bar, .mrgx__footer { padding: 0 7px; gap: 5px; font-size: 5.5px; }
+    .mrgx__identity, .mrgx__load { font-size: 5.5px; }
+    .mrgx__scaffold { width: min(94%, calc(100dvh - 320px)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .mrgx__scan { animation: none; top: 48%; opacity: .04; filter: none; }
+    .mrgx__scaffold { filter: none; }
+  }
+</style>
