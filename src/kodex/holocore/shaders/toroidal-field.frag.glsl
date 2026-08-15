@@ -83,36 +83,36 @@ void main(){
     float radial=length(q.xz)-1.02;
     float minor=atan(q.y,radial);
 
-    // Broad laminar families keep circulation continuous instead of collapsing
-    // into razor-thin graphic bands. Fine peaks remain as subordinate accents.
-    float waveA=0.5+0.5*cos(major*34.0 + minor*5.0 - phase*2.2);
-    float waveB=0.5+0.5*cos(major*21.0 - minor*9.0 + phase*1.35);
-    float waveC=0.5+0.5*cos(major*8.0 + minor*17.0 - phase*0.75);
-    float filamentA=pow(waveA,5.0);
-    float filamentB=pow(waveB,7.0);
-    float filamentC=pow(waveC,9.0);
-    float filaments=clamp(filamentA*0.58 + filamentB*0.34 + filamentC*0.20,0.0,1.0);
-    float laminar=0.18 + 0.82*smoothstep(0.0,0.72,filaments);
-    float finePeak=pow(max(max(waveA,waveB),waveC),14.0);
+    // Continuous laminar energy carries most of the material read. The field
+    // never drops to zero between streamlines, avoiding graphic dark bands.
+    float broadA=0.5+0.5*cos(major*7.0 + minor*2.0 - phase*0.72);
+    float broadB=0.5+0.5*cos(major*11.0 - minor*3.0 + phase*0.48);
+    float broadC=0.5+0.5*cos(major*4.0 + minor*5.0 - phase*0.31);
+    float laminar=clamp(0.58 + (broadA-0.5)*0.16 + (broadB-0.5)*0.12 + (broadC-0.5)*0.08,0.34,0.82);
+
+    // Fine fibers are additive accents only. They imply circulation without
+    // cutting the torus into large concentric stripes.
+    float strandA=pow(0.5+0.5*cos(major*46.0 + minor*7.0 - phase*2.4),18.0);
+    float strandB=pow(0.5+0.5*cos(major*31.0 - minor*11.0 + phase*1.55),20.0);
+    float strands=clamp(strandA*0.62 + strandB*0.38,0.0,1.0);
 
     float circulation=0.5+0.5*sin(major*2.0 - phase*0.55);
     float frontDepth=smoothstep(-0.85,0.85,q.z);
-    vec3 base=fieldPalette(0.20 + diff*0.34 + circulation*0.10);
-    vec3 flowTint=mix(vec3(0.16,0.13,0.34),vec3(0.31,0.50,0.84),frontDepth);
+    vec3 base=fieldPalette(0.24 + diff*0.32 + circulation*0.08);
+    vec3 flowTint=mix(vec3(0.15,0.14,0.33),vec3(0.30,0.48,0.80),frontDepth);
 
-    // Preserve a luminous material floor across the whole torus, then layer
-    // flowing ribbons over it. This keeps topology readable between peaks.
-    col+=base*(0.15+diff*0.29+laminar*0.12);
-    col+=flowTint*laminar*(0.24+0.18*diff);
-    col+=flowTint*filaments*(0.22+0.16*diff);
-    col+=vec3(0.46,0.29,0.82)*rim*0.58;
-    col+=vec3(0.72,0.80,1.0)*finePeak*rim*0.16;
+    // Material floor first, then subtle laminar modulation and fine fibers.
+    col+=base*(0.27+diff*0.31);
+    col+=flowTint*laminar*(0.18+0.10*diff);
+    col+=mix(vec3(0.28,0.23,0.52),vec3(0.50,0.67,0.98),frontDepth)*strands*(0.12+0.08*diff);
+    col+=vec3(0.45,0.28,0.80)*rim*0.50;
+    col+=vec3(0.74,0.82,1.0)*strands*rim*0.12;
   }
 
   float aperture=exp(-20.0*length(uv*vec2(0.72,1.0)));
-  col+=vec3(0.18,0.08,0.42)*aperture*0.08;
+  col+=vec3(0.18,0.08,0.42)*aperture*0.07;
 
-  col=1.0-exp(-col*1.18);
+  col=1.0-exp(-col*1.16);
   col=pow(col,vec3(0.92));
   fragColor=vec4(col,1.0);
 }
