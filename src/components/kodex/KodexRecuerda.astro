@@ -21,6 +21,12 @@
  *   <KodexRecuerda />
  *   <KodexRecuerda umbralPermanencia={4000} />
  *
+ * Los folios product-facing son la excepción documentada al default: viven en
+ * `Base + KodexChrome`, no en `KodexShell`, así que deben registrar la vista
+ * para que el recorrido no llegue vacío a RETURN. El default se deriva de la
+ * ruta sólo para `/kodex/folio/*`; el guard DOM sigue evitando duplicados si
+ * un folio migra al shell en el futuro.
+ *
  * Lo que NO graba, y es deliberado: nada que identifique a la persona. El
  * contrato de privacidad de la Scene Bible es explícito — sin fingerprinting,
  * sin inferencia emocional, sin puntaje espiritual, sin inferencia de salud.
@@ -35,19 +41,18 @@ interface Props {
    */
   umbralPermanencia?: number;
   /**
-   * Graba también el paso por la página. Apagado por omisión y a propósito:
-   * `KodexShell.astro:229` ya lo hace, y encenderlo ahí duplicaba el recorrido
-   * —lo vi salir con «threshold» y «/kodex/» por la misma página—.
+   * Graba también el paso por la página. Apagado por omisión salvo en los
+   * folios product-facing, que no usan KodexShell. `KodexShell.astro` ya graba
+   * la vista y el guard DOM de abajo impide doble escritura si ambos caminos
+   * llegan a coexistir.
    *
-   * Se enciende donde el shell NO llega. El caso que lo motivó: las 1.427
-   * páginas de `vol/` usan `Base` + `KodexChrome`, no el shell, y por eso el
-   * corpus entero era invisible para la memoria. Medido: recorrer un volumen
-   * dejaba el recorrido vacío. Alguien podía leer cincuenta especímenes y su
-   * puerta no cambiaba, que es justo lo contrario de lo que el archivo promete.
+   * También puede encenderse explícitamente donde el shell NO llega, como las
+   * páginas de `vol/`.
    */
   registraVista?: boolean;
 }
-const { umbralPermanencia = 6000, registraVista = false } = Astro.props;
+const defaultRegistraVista = Astro.url.pathname.startsWith('/kodex/folio/');
+const { umbralPermanencia = 6000, registraVista = defaultRegistraVista } = Astro.props;
 ---
 
 <span data-kdx-permanencia={umbralPermanencia} data-kdx-vista={registraVista ? "" : null} hidden></span>
