@@ -24,6 +24,7 @@
 </style>
 
 <script>
+  import { montarLienzo } from '../kit/lienzo';
   const raiz = document.querySelector('[data-bloque="Heroe"]');
   if (raiz) {
     const W = 1122;
@@ -498,75 +499,13 @@
       g.restore();
     }
 
-    pintarFondo(gf);
-    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const PERIODO = reducido ? 42000 : 12000;
-    const faseDe = (ms) => {
-      const f = (ms / PERIODO) % 1;
-      return f < 0 ? f + 1 : f;
-    };
-    const cuadro = (fase) => pintarVivo(gv, fase);
-    cuadro(0);
-
-    let corriendo = 0;
-    let detenido = true;
-    const parar = () => {
-      detenido = true;
-      if (corriendo) cancelAnimationFrame(corriendo);
-      corriendo = 0;
-    };
-    let congelado = false;
-    let visible = false;
-    const arrancar = () => {
-      if (corriendo || congelado || !visible || document.hidden) return;
-      detenido = false;
-      const t0 = performance.now();
-      const paso = (ahora) => {
-        if (detenido) return;
-        cuadro(faseDe(ahora - t0));
-        corriendo = requestAnimationFrame(paso);
-      };
-      corriendo = requestAnimationFrame(paso);
-    };
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(
-        (es) => {
-          visible = es.some((e) => e.isIntersecting);
-          visible ? arrancar() : parar();
-        },
-        { threshold: 0 },
-      ).observe(raiz);
-    } else {
-      visible = true;
-      arrancar();
-    }
-    document.addEventListener("visibilitychange", () => {
-      document.hidden ? parar() : arrancar();
+    /* El ciclo de vida vive en el kit desde hoy: bucle por fase, contrato de
+       congelado, visibilidad, prefers-reduced-motion y DPR. Eran setenta lineas
+       identicas en dieciseis laminas. Ver kit/lienzo.ts. */
+    montarLienzo({
+      raiz,
+      inicial: () => pintarFondo(gf),
+      cuadro: (fase) => pintarVivo(gv, fase),
     });
-
-    const sumidero = (t = 0) => {
-      congelado = true;
-      parar();
-      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
-    };
-    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
-    bolsa.push(sumidero);
-    const propio = (fn) => bolsa.push(fn);
-    const congelar = (t = 0) => {
-      for (const fn of bolsa.slice()) fn(t);
-      document.documentElement.dataset.kdxFrozen = "1";
-    };
-    let intentos = 0;
-    const registrar = () => {
-      const reg = window.__kdxRegisterFreeze;
-      if (typeof reg === "function" && reg !== propio) {
-        reg(sumidero);
-        return;
-      }
-      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
-      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
-      if (intentos++ < 120) requestAnimationFrame(registrar);
-    };
-    registrar();
   }
 </script>
