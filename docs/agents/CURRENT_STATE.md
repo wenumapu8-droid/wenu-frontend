@@ -121,13 +121,9 @@ A first edit attempt touched unrelated comments in the shared monolithic folio f
 
 KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...`.
 
-It has been attempted three times. All three attempts terminated before executing any workflow step:
+It has now been attempted **four times**. The fourth re-run was requested without any code change and GitHub accepted the request, but job `94996316206` again completed before any workflow step executed; no step list and no product/browser assertion were produced. The prior three attempts likewise terminated before workflow execution with `runner_id=0` / empty steps.
 
-- `runner_id=0`
-- `steps=[]`
-- no runner assigned
-
-Therefore these failures are **GitHub Actions runner/scheduling failures**, not product/browser evidence. MACHINE is currently:
+Therefore these failures remain **GitHub Actions runner/scheduling failures**, not product/browser evidence. MACHINE is currently:
 
 **IMPLEMENTED TRUTH REPAIR / BROWSER REVALIDATION PENDING**
 
