@@ -97,9 +97,20 @@ construidas = construidas.filter((c) => archivos.includes(c.slug));
 for (const c of construidas) {
   try {
     const s = await import(`../../../../scripts/lamina/out/${c.slug}/score.json`);
-    (c as { puntaje?: number | null }).puntaje = (s.default ?? s).global?.pct ?? null;
+    const g = (s.default ?? s).global ?? {};
+    (c as { puntaje?: number | null }).puntaje = g.pct ?? null;
+    /* COBERTURA: cuánta de la tinta de la referencia está puesta. Es el número
+       honesto y el que se muestra. La diferencia promedio —lo que esta tarjeta
+       publicaba como "coincidencia"— no distingue una lámina terminada de una
+       vacía: la referencia de u10 es 93,1 % fondo negro, así que una lámina
+       COMPLETAMENTE EN NEGRO difiere apenas 6,9 % de ella y esta tarjeta la
+       habría anunciado con "93 % de coincidencia".
+       Caso real que estaba publicado: u01-origin-field decía 97,48 % de
+       coincidencia teniendo el 73 % de la tinta. */
+    (c as { cobertura?: number | null }).cobertura = g.cobertura ?? null;
   } catch {
     (c as { puntaje?: number | null }).puntaje = null;
+    (c as { cobertura?: number | null }).cobertura = null;
   }
 }
 
@@ -122,8 +133,10 @@ const pendientes = refs
       <h1>LÁMINAS</h1>
       <p class="lam-idx__lede">
         Reproducciones en código de las láminas de desarrollo visual.
-        Sin imágenes: todo CSS, SVG y canvas. El porcentaje es la diferencia
-        medida contra la referencia, píxel a píxel.
+        Sin imágenes: todo CSS, SVG y canvas. El porcentaje dice cuánta de la
+        tinta de la referencia está efectivamente puesta — no cuánto se parece
+        de lejos. Una lámina vacía difiere poco de su referencia y no por eso
+        está hecha.
       </p>
     </header>
 
@@ -136,9 +149,9 @@ const pendientes = refs
             <span class="lam-idx__s">{c.sub}</span>
             <span class="lam-idx__n">{c.nota}</span>
             <span class="lam-idx__score">
-              {c.puntaje === null
-                ? "sin medir"
-                : `${c.puntaje.toFixed(2)}% de diferencia · ${(100 - c.puntaje).toFixed(2)}% de coincidencia`}
+              {c.cobertura == null
+                ? (c.puntaje === null ? "sin medir" : `${c.puntaje.toFixed(2)}% de diferencia`)
+                : `${c.cobertura.toFixed(0)}% del dibujo puesto${c.cobertura < 85 ? " · incompleta" : ""} · ${c.puntaje?.toFixed(2) ?? "—"}% de diferencia`}
             </span>
           </a>
         </li>
