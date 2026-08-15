@@ -77,7 +77,8 @@ algoritmo, define una transformación o se declara modelo conceptual.
 Todo lo que sigue asume el repo `kodex-work`. Comprobalo primero:
 
 ```bash
-ls scripts/lamina/compare.mjs src/components/kodex/lamina/kit/ 2>/dev/null
+ls scripts/lamina/compare.mjs scripts/lamina/perfil.mjs \
+   src/components/kodex/lamina/kit/ 2>/dev/null
 ```
 
 Si no está, no improvises un banco nuevo — **el banco es el método**. Conseguí
@@ -180,6 +181,46 @@ vacíos**: un agente lo demostró — `MotionNotes` vacío daba 10,04 % y el cor
 El banco también reporta la **forma** (paths, canvas, nodos, bytes) al lado del
 puntaje, para que la diferencia entre trazado y procedural se vea en vez de
 esconderse dentro de un número.
+
+## 5-quater · El puntaje dice que fallaste; el perfil dice por qué
+
+```bash
+node scripts/lamina/perfil.mjs <slug> --banda y0,y1 [--x x0,x1] --comparar
+node scripts/lamina/perfil.mjs <slug> --banda y0,y1 --cuerpo
+```
+
+`--comparar` pone la referencia y el render de la última vuelta uno al lado del
+otro, tramo de tinta por tramo de tinta, con el Δ en x y en alto. Un porcentaje
+no te dice qué mover; esta tabla sí.
+
+**Cuándo es obligatorio: cuando el número EMPEORA.** Ahí la reacción barata es
+proponer otro valor y volver a construir —19 s y 1.558 páginas por hipótesis—.
+El perfil cuesta un segundo y te da la causa. En `u10-commons` el título subido
+a cuerpo 82 empeoró la cabecera a 6,03 % y el puntaje sólo decía «peor»; el
+perfil dijo «alturas 52-53 contra 49» y con eso salió el cuerpo correcto.
+
+**Tipografía: el cuerpo no se estima, se resuelve.** `--cuerpo` mide la versal
+en la referencia y la divide por la razón versal/cuerpo real de la fuente, leída
+de sus propias tablas (`OS/2.sCapHeight` sobre `head.unitsPerEm`; en Cormorant
+Garamond, 625/1000 = 0,625 exacto). Tres cosas que el script ya sabe y conviene
+entender:
+
+- **La versal se saca por moda, no por promedio.** Las redondas (O, C, S, G)
+  rebasan uno o dos píxeles arriba y abajo. Incluirlas en el promedio da cuerpo
+  de más: en u10, medir KODEX con la O da 51 → cuerpo 81,6, y la moda de las
+  planas da 49 → cuerpo 78,4, que es el que calza.
+- **La línea de base son las planas más uno.** Terminan un píxel antes que las
+  redondas, y esa diferencia es la línea de base.
+- **`textLength` clava el ancho, no el alto.** Con `lengthAdjust`
+  `spacingAndGlyphs` un título mal dimensionado sale con el ancho perfecto y la
+  mitad de alto — y nadie lo mira, porque lo que uno revisa es que la palabra
+  llegue donde tiene que llegar. Los dos títulos de u10 vivieron así toda la
+  construcción de la lámina: costaba 0,83 puntos de la cabecera.
+
+**Y verificá que cada tramo sea UNA sola cosa.** El perfil por columnas fusiona
+lo que esté a menos de `--sep` píxeles, y avisa cuáles fusionó. En u10 el tramo
+`80..374` parecía la palabra KODEX y era KODEX más el guion, separados por 8 px;
+usar su ancho como `textLength` estiraba cada letra un 10 %.
 
 ## 5-ter · La métrica se puede hacer trampa. No lo hagas.
 

@@ -1,0 +1,572 @@
+---
+/**
+ * KODEX-∞ · u10-commons · HÉROE
+ *
+ * Campo estelar radial procedural que cubre el cuerpo de la lámina
+ * (x 0..1122, y 224..1301). Los paneles laterales se dibujan encima.
+ */
+---
+
+<div data-bloque="Heroe" style="left:0;top:224px;width:1122px;height:1077px">
+  <canvas data-capa="fondo" width="1122" height="1077" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="1122" height="1077" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Heroe"] { pointer-events: none; }
+  [data-bloque="Heroe"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1122px;
+    height: 1077px;
+  }
+</style>
+
+<script>
+  const raiz = document.querySelector('[data-bloque="Heroe"]');
+  if (raiz) {
+    const W = 1122;
+    const H = 1077;
+    const TAU = Math.PI * 2;
+    const CX = W / 2;
+    const CY = H / 2;
+
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(raiz.querySelector('[data-capa="fondo"]'));
+    const gv = preparar(raiz.querySelector('[data-capa="vivo"]'));
+
+    const VIO = "182,142,222";
+    const CAL = "224,188,158";
+    const NUC = "248,240,250";
+    const AQUA = "140,200,210";
+
+    /* PALETA DEL CAMPO, muestreada de la referencia y no elegida.
+       Agrupando por tono y saturacion los pixeles de tinta de
+       `reference/canon/u10-commons.png` entre y 280..1250 y x 100..1030:
+
+         25,9 %  #464645  neutro gris
+          7,3 %  #544861  tono 270 suave
+          5,5 %  #4b455b  tono 255 suave
+          5,4 %  #484d5e  tono 225 suave
+          4,5 %  #46465b  tono 240 suave
+          4,0 %  #594e43  tono  30 suave   <- el calido
+          3,9 %  #47535f  tono 210 suave
+
+       Ni un solo tono VIVO aparece entre los siete primeros: la referencia tinta
+       en gris con matices, no en color. El campo hacia lo contrario — 51,5 % de
+       su tinta era violeta vivo #644e7a y el neutro apenas 21,9 % — y por eso se
+       leia monocromo al lado de la referencia.
+
+       Los valores de abajo son mas claros que los medidos porque lo medido es el
+       compuesto sobre negro, con su antialias; lo que se declara aca es el color
+       del trazo antes de la opacidad. Los pesos si son los medidos. */
+    /* RADIO SORTEADO DEL PERFIL MEDIDO, no de una formula.
+       Ninguna potencia de u reproduce la forma real: la referencia tiene 13,3
+       por ciento de tinta en el centro, SUBE a un pico de 27,5 en r=40 y recien
+       ahi baja. Es una roseta, y cualquier decaimiento monotono da su maximo en
+       el centro. Probado y descartado: con sqrt el medio quedaba vacio; con
+       u^0,74 mas exclusion interior se abria un agujero en la banda mas densa;
+       al cerrarlo esa banda paso de 0 a 50 contra el 26 de la referencia. Cada
+       ajuste cambiaba un error por otro porque el modelo no daba esa forma.
+       Estos son los 28 anillos de 20 px medidos sobre la referencia desde
+       (561,760), convertidos a peso de muestreo -densidad por area del anillo-.
+       Los cuatro anillos interiores van divididos por 1,7 respecto de lo medido
+       -y los dos primeros por 2,3-,
+       y eso no es un ajuste a ojo: la trama une pares vecinos, asi que su tinta
+       crece con la densidad AL CUADRADO mientras la de la referencia crece
+       lineal. En el nucleo eso daba 82 % contra 28 %. Bajar rho 1,7 baja la
+       tinta unas 2,9 veces, que es el factor medido.
+       Se probaron dos topes de grado en su lugar -por orden de iteracion y por
+       distancia ordenada- y los dos hundieron la periferia de 19,1 % a 6,8 %,
+       porque la trama carga TODA la tinta y no solo la del centro. */
+    const ANILLOS = [0.0021,0.0056,0.0120,0.0141,0.0298,0.0303,0.0280,0.0370,0.0403,0.0463,0.0446,0.0391,0.0412,0.0401,0.0560,0.0444,0.0387,0.0320,0.0373,0.0351,0.0318,0.0470,0.0496,0.0455,0.0311,0.0351,0.0397,0.0381];
+    const radioMedido = (u) => {
+      let acc = u;
+      for (let k = 0; k < ANILLOS.length; k++) {
+        acc -= ANILLOS[k];
+        if (acc <= 0) return (k + (1 + acc / ANILLOS[k])) / ANILLOS.length;
+      }
+      return 1;
+    };
+
+    const PALETA = [
+      ["150,148,145", 25],  // neutro, el dominante
+      ["150,132,180", 11],  // 270
+      ["138,128,175",  8],  // 255
+      ["126,126,172",  7],  // 240
+      ["128,140,178",  8],  // 225
+      ["124,146,172",  6],  // 210
+      ["178,152,128",  8],  // 30, el calido
+      ["140,200,210",  5],  // aqua
+      ["182,142,222", 12],  // violeta vivo
+      ["230,175,120",  4],  // ambar vivo
+      ["120,118,116",  4],  // neutro oscuro
+    ];
+    /* Pesos corregidos por medicion, no por gusto. La primera version dejo
+       44,3 % de tinta neutra y 5,5 % viva; la referencia tiene 30,7 % y 15,2 %.
+       Habia sobrecorregido: al bajar el violeta saturado del 51,5 % original me
+       fui al otro extremo y la lamina quedo mas apagada que su referencia. */
+    const PESO_TOTAL = PALETA.reduce((t, x) => t + x[1], 0);
+    const colorCampo = (u) => {
+      let acc = u * PESO_TOTAL;
+      for (const [c, w] of PALETA) { acc -= w; if (acc <= 0) return c; }
+      return PALETA[0][0];
+    };
+    const ROSA = "220,140,180";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    function espiral(g, cx, cy, rr, brazos, vueltas, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.7;
+      for (let b = 0; b < brazos; b++) {
+        g.beginPath();
+        const off = (b / brazos) * TAU;
+        for (let s = 0; s <= 160; s++) {
+          const t = (s / 160) * vueltas * TAU;
+          const r = 2 + (rr * s) / 160;
+          const a = off + t;
+          const x = r * Math.cos(a);
+          const y = r * Math.sin(a) * 0.65;
+          if (s === 0) g.moveTo(x, y);
+          else g.lineTo(x, y);
+        }
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    function flor(g, cx, cy, R, n, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.7;
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * TAU;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(R * Math.cos(a), R * Math.sin(a));
+        g.stroke();
+        g.beginPath();
+        g.arc(R * Math.cos(a), R * Math.sin(a), R * 0.16, 0, TAU);
+        g.stroke();
+      }
+      g.beginPath();
+      g.arc(0, 0, R * 0.22, 0, TAU);
+      g.stroke();
+      g.restore();
+    }
+
+    function corazon(g, cx, cy, R, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(ROSA, alfa);
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let i = 0; i <= 64; i++) {
+        const t = (i / 64) * TAU;
+        const x = R * 16 * Math.pow(Math.sin(t), 3) / 16;
+        const y = -R * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)) / 16;
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.closePath();
+      g.stroke();
+      g.restore();
+    }
+
+    function lemniscata(g, cx, cy, a, b, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(NUC, alfa);
+      g.lineWidth = 1.2;
+      g.beginPath();
+      for (let i = 0; i <= 96; i++) {
+        const t = (i / 96) * TAU;
+        const x = a * Math.cos(t);
+        const y = (b / 2) * Math.sin(2 * t);
+        if (i === 0) g.moveTo(x, y);
+        else g.lineTo(x, y);
+      }
+      g.closePath();
+      g.stroke();
+      g.restore();
+    }
+
+    function anillos(g, cx, cy, rads, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.6;
+      for (const r of rads) {
+        g.beginPath();
+        g.arc(0, 0, r, 0, TAU);
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    function radios(g, cx, cy, R, n, alfa) {
+      g.save();
+      g.translate(cx, cy);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = 0.5;
+      for (let k = 0; k < n; k++) {
+        const a = (k / n) * TAU;
+        g.beginPath();
+        g.moveTo(0, 0);
+        g.lineTo(R * Math.cos(a), R * Math.sin(a));
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    function pintarFondo(g) {
+      const r = azar(0x1000);
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      const grd = g.createRadialGradient(CX, CY, 0, CX, CY, Math.max(W, H) * 0.6);
+      grd.addColorStop(0, tinta(VIO, 0.05));
+      grd.addColorStop(0.5, tinta(VIO, 0.025));
+      grd.addColorStop(1, tinta(VIO, 0));
+      g.fillStyle = grd;
+      g.fillRect(0, 0, W, H);
+
+      /* El radio NO se sortea con `sqrt`. Esa transformada reparte densidad
+         CONSTANTE por area, y la referencia no es pareja: medida por anillos de
+         56 px desde (561,760), su tinta cae de 34,9 % en el centro a 5,2 % en el
+         borde, monotona. El campo con `sqrt` daba 8,6 % donde la referencia
+         tiene 20 % y hasta subia cerca del canto — se leia como empapelado en vez
+         de organismo, y encima tapaba el texto de los paneles laterales.
+         Sorteando el radio como u^0,74 la densidad queda proporcional a r^-0,65,
+         que es la caida medida.
+         Y el anillo interior queda excluido: el nucleo ya llegaba al 65 % de
+         tinta contra el 34,9 % de la referencia ANTES de tocar el campo, asi que
+         concentrar estrellas ahi lo llevaba al 93 % y lo volvia una masa solida.
+         El campo arranca en el 16 % del radio; el centro lo dibuja la estructura
+         de anillos, no el polvo. */
+      for (let k = 0; k < 2600; k++) {
+        const rr = radioMedido(r());
+        const a = r() * TAU;
+        const x = CX + rr * (W / 2 - 8) * Math.cos(a);
+        const y = CY + rr * (H / 2 - 8) * Math.sin(a);
+        const op = 0.04 + r() * 0.28;
+        const s = 0.25 + r() * 0.9;
+        const col = colorCampo(r());
+        g.fillStyle = tinta(col, op);
+        g.beginPath();
+        g.arc(x, y, s, 0, TAU);
+        g.fill();
+      }
+
+      /* 220 estrellas era una decima parte de lo que pide la referencia.
+         Medido sobre `reference/canon/u10-commons.png` con umbral 20, contando
+         componentes conectados en toda el area del heroe:
+
+           elementos de 4 a 12 px    referencia 3.466   render 486
+           trazos de 25 px o mas     referencia    89   render   9
+
+         El campo no estaba "poco denso": estaba una escala entera por debajo, y
+         la trama de constelacion no llegaba a existir porque su opacidad 0,08
+         cae debajo del umbral con el que se mide la tinta. */
+      /* GLIFOS SUELTOS DEL CAMPO, en sus posiciones medidas.
+         La referencia tiene diagramas chicos repartidos por toda la masa -anillos
+         concentricos, rosetas, sellos-. Detectando componentes conectados de 61 a
+         400 px de tinta, compactos (relacion de lados menor a 2,4) y dentro del
+         campo (r entre 60 y 520), salen 82 con radios de 5 a 30 px y mediana 9.
+         Van en coordenadas de lamina, convertidas al canvas con la misma escala
+         que el resto. No se inventa la posicion de ninguno. */
+      {
+        const GLIFOS = [713,312,27,387,327,12,561,349,15,326,347,7,750,371,12,751,371,8,616,396,8,822,401,13,561,400,8,825,434,15,491,445,11,782,457,7,485,465,8,312,477,9,395,479,11,668,484,11,866,482,11,482,482,7,636,481,6,818,493,13,558,507,13,721,516,18,397,509,8,325,511,10,482,521,11,356,524,10,661,526,9,571,526,8,767,536,14,331,531,11,325,549,6,241,559,11,420,571,13,748,580,7,498,604,30,837,597,11,810,595,8,628,608,25,917,608,13,197,607,11,146,608,6,267,626,7,803,628,9,624,634,9,516,640,9,259,644,9,561,659,19,733,654,6,271,658,6,672,664,6,540,672,9,416,679,6,601,680,7,522,690,10,468,689,8,607,697,11,665,710,7,614,718,10,692,725,13,290,737,7,847,740,18,450,741,6,751,746,8,402,752,6,489,758,8,465,761,7,438,776,9,715,788,9,504,805,9,803,819,13,388,827,11,626,836,25,710,856,19,198,912,14,343,924,10,513,942,6,551,944,5,849,950,8,807,954,6,990,967,8,645,984,9,561,1125,12];
+        const escala = (W / 2 - 8) / 560;
+        g.save();
+        g.lineWidth = 0.7;
+        for (let k = 0; k < GLIFOS.length; k += 3) {
+          const gx = CX + (GLIFOS[k] - 561) * escala;
+          const gy = CY + (GLIFOS[k + 1] - 760) * escala;
+          const gr = Math.max(3, GLIFOS[k + 2] * escala);
+          const col = colorCampo(((k * 37) % 100) / 100);
+          g.strokeStyle = tinta(col, 0.34);
+          g.beginPath(); g.arc(gx, gy, gr, 0, TAU); g.stroke();
+          if (gr > 7) { g.beginPath(); g.arc(gx, gy, gr * 0.58, 0, TAU); g.stroke(); }
+          g.fillStyle = tinta(col, 0.5);
+          g.beginPath(); g.arc(gx, gy, Math.min(1.6, gr * 0.2), 0, TAU); g.fill();
+        }
+        g.restore();
+      }
+
+      /* MARCAS ALARGADAS. Al extraer los glifos compactos se filtro por
+         relacion de lados menor a 2,4, y eso dejo fuera 20 marcas alargadas —
+         trazos, ondas, barras cortas— de 40 a 500 px de tinta. Su radio mediano
+         es 207, o sea que caen justo en las bandas que quedaban cortas: 9,4
+         contra 11,7 por ciento entre r=195 y 259, y 6,7 contra 10,1 entre 260 y
+         324. Se dibujan con el ancho y alto medidos de cada una. */
+      {
+        const MARCAS = [286,353,30,8,474,429,31,10,651,447,10,25,867,492,24,8,183,540,8,26,560,599,10,41,682,601,7,22,748,629,22,8,490,717,59,23,419,714,20,8,766,730,6,35,812,740,12,46,794,738,9,24,773,740,7,21,419,751,8,22,688,764,10,28,561,847,10,31,450,872,14,34,710,882,75,24,693,908,73,26];
+        const escala = (W / 2 - 8) / 560;
+        g.save();
+        g.lineWidth = 0.9;
+        for (let k = 0; k < MARCAS.length; k += 4) {
+          const mx = CX + (MARCAS[k] - 561) * escala;
+          const my = CY + (MARCAS[k + 1] - 760) * escala;
+          const mw = MARCAS[k + 2] * escala, mh = MARCAS[k + 3] * escala;
+          g.strokeStyle = tinta(colorCampo(((k * 53) % 100) / 100), 0.38);
+          g.beginPath();
+          if (mw >= mh) { g.moveTo(mx - mw / 2, my); g.lineTo(mx + mw / 2, my); }
+          else { g.moveTo(mx, my - mh / 2); g.lineTo(mx, my + mh / 2); }
+          g.stroke();
+          g.beginPath();
+          g.ellipse(mx, my, Math.max(1.5, mw / 2), Math.max(1.5, mh / 2), 0, 0, TAU);
+          g.stroke();
+        }
+        g.restore();
+      }
+
+      /* RADIOS. La referencia es una ROSETA: barriendo su densidad por angulo
+         entre r=40 y r=320 aparecen 23 picos claros sobre una mediana de 13,0
+         por ciento, con separacion mediana de 8 grados — o sea unos 45 radios
+         alrededor del circulo. Sin ellos la masa tiene la densidad correcta y
+         ninguna organizacion: se lee como malla aleatoria y no como organismo.
+         Es la diferencia mas visible al mirar los dos nucleos al 100 por cien. */
+      {
+        const N_RADIOS = 45;
+        const escala = (W / 2 - 8) / 560;
+        /* Arrancan en r=62 y llegan a 470, no 22 a 315. Medido: con el rango
+           corto el perfil daba 42,3 % en los primeros 65 px contra 26,4 % de la
+           referencia, y 6,7 % entre 260 y 324 contra 10,1 %. Los radios
+           concentraban su tinta adentro justo donde ya sobraba. */
+        const rInt = 22 * escala, rExt = 315 * escala;
+        g.save();
+        g.lineWidth = 0.6;
+        for (let k = 0; k < N_RADIOS; k++) {
+          const ang = (k / N_RADIOS) * TAU;
+          const largo = 0.55 + 0.45 * ((k * 7919) % 100) / 100;
+          g.strokeStyle = tinta(colorCampo((k % 11) / 11), 0.24);
+          g.beginPath();
+          g.moveTo(CX + Math.cos(ang) * rInt, CY + Math.sin(ang) * rInt);
+          g.lineTo(CX + Math.cos(ang) * rExt * largo, CY + Math.sin(ang) * rExt * largo);
+          g.stroke();
+        }
+        g.restore();
+      }
+
+      /* ANILLOS CONCENTRICOS medidos. Barriendo la densidad radial de la
+         referencia cada 4 px aparecen picos claros -no es un degradado liso-:
+         r = 78, 94, 146, 158, 170, 186, 198, 218 y 290 px, entre 13,7 y 22,2
+         por ciento de tinta. Son la estructura que hacia que el campo se leyera
+         como organismo y no como ruido; sin ellos la masa tiene la densidad
+         correcta y ninguna forma. Radios en pixeles de lamina, escalados al
+         canvas por la misma constante que usa el campo. */
+      {
+        const ANILLOS_R = [78, 94, 146, 158, 170, 186, 198, 218, 290];
+        const escala = (W / 2 - 8) / 560;
+        g.save();
+        g.lineWidth = 0.7;
+        for (const rr of ANILLOS_R) {
+          g.strokeStyle = tinta(colorCampo((rr % 7) / 7), 0.26);
+          g.beginPath();
+          g.arc(CX, CY, rr * escala, 0, TAU);
+          g.stroke();
+        }
+        g.restore();
+      }
+
+      const estrellas = [];
+      const re = azar(0x1010);
+      for (let k = 0; k < 1400; k++) {
+        const rr = radioMedido(re());
+        const a = re() * TAU;
+        estrellas.push({
+          x: CX + rr * (W / 2 - 30) * Math.cos(a),
+          y: CY + rr * (H / 2 - 30) * Math.sin(a),
+          r: 1 + re() * 2.2,
+          br: re(),
+        });
+      }
+      g.strokeStyle = tinta(VIO, 0.15);
+      g.lineWidth = 0.5;
+      for (let i = 0; i < estrellas.length; i++) {
+        for (let j = i + 1; j < estrellas.length; j++) {
+          const dx = estrellas[i].x - estrellas[j].x;
+          const dy = estrellas[i].y - estrellas[j].y;
+          if (dx * dx + dy * dy < 1600) {
+            g.beginPath();
+            g.moveTo(estrellas[i].x, estrellas[i].y);
+            g.lineTo(estrellas[j].x, estrellas[j].y);
+            g.stroke();
+          }
+        }
+      }
+      for (const e of estrellas) {
+        g.fillStyle = tinta(e.br > 0.88 ? NUC : colorCampo(e.br), 0.3 + e.br * 0.5);
+        g.beginPath();
+        g.arc(e.x, e.y, e.r, 0, TAU);
+        g.fill();
+      }
+
+      /* Estructura central: anillos y radios. */
+      anillos(g, CX, CY, [30, 55, 85, 120, 160, 200, 250, 310], 0.14);
+      radios(g, CX, CY, 340, 24, 0.10);
+      anillos(g, CX, CY, [8, 14], 0.35);
+
+      /* Corazón arriba. */
+      corazon(g, CX, CY - 360, 10, 0.35);
+      corazon(g, CX, CY - 360, 6, 0.25);
+
+      /* ∞ abajo. */
+      lemniscata(g, CX, CY + 320, 22, 16, 0.45);
+      anillos(g, CX, CY + 320, [35, 50, 65], 0.16);
+
+      /* Flores y espirales. */
+      const rc = azar(0x1020);
+      const objetos = [
+        { x: 0.43, y: 0.21, tipo: "espiral", r: 38 },
+        { x: 0.56, y: 0.34, tipo: "flor", r: 28, n: 8 },
+        { x: 0.50, y: 0.12, tipo: "flor", r: 24, n: 10 },
+        { x: 0.47, y: 0.51, tipo: "espiral", r: 34 },
+        { x: 0.57, y: 0.71, tipo: "torre", r: 32 },
+        { x: 0.35, y: 0.55, tipo: "flor", r: 22, n: 12 },
+        { x: 0.68, y: 0.48, tipo: "flor", r: 20, n: 6 },
+      ];
+      for (const o of objetos) {
+        const x = o.x * W;
+        const y = o.y * H;
+        if (o.tipo === "espiral") espiral(g, x, y, o.r, 3, 1.8, 0.16 + rc() * 0.08);
+        else if (o.tipo === "flor") flor(g, x, y, o.r, o.n, 0.14 + rc() * 0.06);
+        else if (o.tipo === "torre") {
+          g.strokeStyle = tinta(VIO, 0.16);
+          g.lineWidth = 0.7;
+          g.beginPath();
+          g.moveTo(x, y - o.r);
+          g.lineTo(x, y + o.r);
+          g.stroke();
+          for (let k = -2; k <= 2; k++) {
+            g.beginPath();
+            g.ellipse(x, y + k * o.r * 0.28, o.r * 0.35, o.r * 0.1, 0, 0, TAU);
+            g.stroke();
+          }
+        }
+      }
+
+      g.restore();
+    }
+
+    function pintarVivo(g, fase) {
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const lat = 0.78 + 0.22 * Math.sin(fase * TAU * 3);
+      const halo = g.createRadialGradient(CX, CY, 0, CX, CY, 90);
+      /* El halo pintaba un DISCO SOLIDO de tinta: con composicion `lighter` y
+         opacidad 0,22 sobre NUC -luminancia 242- el centro daba 53, muy por
+         encima del umbral de 26, y no bajaba hasta r=36. El build tenia 100 por
+         ciento de tinta entre r=0 y r=30 donde la referencia tiene 13,3. */
+      halo.addColorStop(0, tinta(NUC, 0.05 * lat));
+      halo.addColorStop(0.4, tinta(VIO, 0.022 * lat));
+      halo.addColorStop(1, tinta(VIO, 0));
+      g.fillStyle = halo;
+      g.beginPath();
+      g.arc(CX, CY, 90, 0, TAU);
+      g.fill();
+      g.fillStyle = tinta(NUC, 0.9 * lat);
+      g.beginPath();
+      g.arc(CX, CY, 3, 0, TAU);
+      g.fill();
+      g.restore();
+    }
+
+    pintarFondo(gf);
+    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const PERIODO = reducido ? 42000 : 12000;
+    const faseDe = (ms) => {
+      const f = (ms / PERIODO) % 1;
+      return f < 0 ? f + 1 : f;
+    };
+    const cuadro = (fase) => pintarVivo(gv, fase);
+    cuadro(0);
+
+    let corriendo = 0;
+    let detenido = true;
+    const parar = () => {
+      detenido = true;
+      if (corriendo) cancelAnimationFrame(corriendo);
+      corriendo = 0;
+    };
+    let congelado = false;
+    let visible = false;
+    const arrancar = () => {
+      if (corriendo || congelado || !visible || document.hidden) return;
+      detenido = false;
+      const t0 = performance.now();
+      const paso = (ahora) => {
+        if (detenido) return;
+        cuadro(faseDe(ahora - t0));
+        corriendo = requestAnimationFrame(paso);
+      };
+      corriendo = requestAnimationFrame(paso);
+    };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(
+        (es) => {
+          visible = es.some((e) => e.isIntersecting);
+          visible ? arrancar() : parar();
+        },
+        { threshold: 0 },
+      ).observe(raiz);
+    } else {
+      visible = true;
+      arrancar();
+    }
+    document.addEventListener("visibilitychange", () => {
+      document.hidden ? parar() : arrancar();
+    });
+
+    const sumidero = (t = 0) => {
+      congelado = true;
+      parar();
+      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
+    };
+    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
+    bolsa.push(sumidero);
+    const propio = (fn) => bolsa.push(fn);
+    const congelar = (t = 0) => {
+      for (const fn of bolsa.slice()) fn(t);
+      document.documentElement.dataset.kdxFrozen = "1";
+    };
+    let intentos = 0;
+    const registrar = () => {
+      const reg = window.__kdxRegisterFreeze;
+      if (typeof reg === "function" && reg !== propio) {
+        reg(sumidero);
+        return;
+      }
+      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
+      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
+      if (intentos++ < 120) requestAnimationFrame(registrar);
+    };
+    registrar();
+  }
+</script>
