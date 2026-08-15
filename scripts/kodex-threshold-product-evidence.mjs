@@ -86,10 +86,6 @@ for (const profile of cases) {
       assert(Boolean(portalEvidence.fallbackSrc), `${profile.id}: unavailable portal has no fallback artwork`);
     }
 
-    // The current THRESHOLD stage-direction intentionally hides the artifact tab
-    // so the portal remains the single dominant object. Do not force-click hidden
-    // UI just to satisfy CI. If a future composition makes the control visible,
-    // this same gate immediately upgrades to dialog close/focus acceptance.
     const opener = page.locator('[data-kdx-artifact-open]');
     const panel = page.locator('[data-kdx-artifact-panel]');
     const artifactControl = {
@@ -130,9 +126,11 @@ for (const profile of cases) {
 
     await page.screenshot({ path: `${outDir}/threshold-${profile.id}.png`, fullPage: true });
 
-    // Product-facing acceptance must exercise the actual door, not only inspect href.
+    // The destination may keep loading scene assets after the URL has already
+    // committed. Product acceptance is the route change itself, not waiting on
+    // an unrelated late resource before acknowledging navigation.
     await Promise.all([
-      page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 8000 }),
+      page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 8000, waitUntil: 'commit' }),
       cta.click(),
     ]);
     const navigation = {
@@ -161,6 +159,7 @@ for (const profile of cases) {
       profile: profile.id,
       status: 'FAIL',
       error: error instanceof Error ? error.message : String(error),
+      currentUrl: page.url(),
       consoleErrors,
       httpErrors,
     });
