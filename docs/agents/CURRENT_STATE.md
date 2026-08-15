@@ -39,6 +39,14 @@ Already implemented and tested there:
 
 `human_curator_acceptance` remains separate from machine validity. Do **not** recreate routing, PlateSpec, assembler, copy, memory, QA or release architecture unless a demonstrated contract gap exists.
 
+### Golden Plate readability audit — run 164
+
+The exact run-164 artifact `kodex-evidence` id `9231076155`, digest `sha256:4bd7761aa06e9c480402b122c4d44dd83766b9177245288a951574a58b0d7180`, has now been downloaded and visually inspected. Browser/contract validity is unchanged and `human_curator_acceptance` remains `NOT_RUN`.
+
+Representative samples expose a bounded curatorial gap rather than a correctness failure: `GP-SCI-01` and `GP-TECH-02` converge on nearly the same sparse circles/links + dossier composition; `GP-CON-03` is legible but remains diagrammatic/scaffold-like; `GP-ART-03` correctly preserves source-withheld protected-art state, so actual artwork materiality/no-crop cannot be visually judged without explicit source-byte authorization. Macro title hierarchy is strong; composition/material/payload differentiation is the limiting issue.
+
+This is agent perceptual/readability evidence, not creator acceptance and not a reason to introduce another renderer, schema, route, memory or factory. Any future Golden refinement should stay on the existing PlateSpec renderer/registered-element architecture and begin with Knowledge-plate differentiation, after exact-head CI can be executed again.
+
 PR #62 remains OPEN / DRAFT / NOT MERGED / NOT DEPLOYED.
 
 ---
@@ -119,13 +127,13 @@ A first edit attempt touched unrelated comments in the shared monolithic folio f
 
 ### Current CI blocker — exact provider cause
 
-KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...` and has now reached **run_attempt=5**.
+KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...`. Live revalidation still shows no later executing workflow for this head.
 
-Attempt 5 job `95002834444` completed in roughly three seconds with `runner_id=0`, no runner name and `steps=[]`. The GitHub Actions check-run exposes one failure annotation with the exact provider message:
+The GitHub Actions check-run exposes the provider cause explicitly:
 
 > The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings.
 
-This supersedes the earlier generic runner/scheduling diagnosis. The current blocker is **GitHub account billing / Actions spending authorization**, not KODEX product code and not MACHINE browser evidence.
+The current blocker is **GitHub account billing / Actions spending authorization**, not KODEX product code and not MACHINE browser evidence.
 
 MACHINE remains:
 
@@ -171,13 +179,14 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 ## 8. Exact next action
 
 1. Preserve PR #62 as the verified Assembly/Deep Navigation baseline. Do not reopen P0.1–P0.10.
-2. Keep PR #77 on exact head `1f7bbeb...`; do **not** advance COSMOLOGY yet.
-3. Resolve the GitHub `Billing & plans` / Actions spending-limit problem outside the codebase. This is an account-level prerequisite, not a KODEX code task.
-4. After billing/spend authorization is restored, re-run the same exact Product Corridor head without product-code changes.
-5. If MACHINE executes and passes, inspect the exact desktop/mobile/reduced-motion artifact before changing its state to browser-accepted.
-6. If MACHINE executes and fails, repair only the measured defect and retain truth/provenance gates.
-7. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
+2. Preserve the run-164 Golden readability finding: Knowledge-plate SCI/TECH differentiation is the next bounded #62 renderer refinement target, but do not mutate it while exact-head Actions validation is unavailable.
+3. Keep PR #77 on exact head `1f7bbeb...`; do **not** advance COSMOLOGY yet.
+4. Resolve the GitHub `Billing & plans` / Actions spending-limit problem outside the codebase. This is an account-level prerequisite, not a KODEX code task.
+5. After billing/spend authorization is restored, re-run the same exact Product Corridor head without product-code changes.
+6. If MACHINE executes and passes, inspect the exact desktop/mobile/reduced-motion artifact before changing its state to browser-accepted.
+7. If MACHINE executes and fails, repair only the measured defect and retain truth/provenance gates.
+8. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
+9. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
 
 ---
 
