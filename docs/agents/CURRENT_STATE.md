@@ -47,7 +47,11 @@ Representative samples expose a bounded curatorial gap rather than a correctness
 
 The SCI/TECH cause is now localized in code. `deterministic-assembler.js` already resolves an eligible registered composition into `slots[].element_id`, and the existing registry already contains differentiated ARCHIVE-compatible Knowledge compositions such as `KDX_G01_ORBITAL_RELIC`, `KDX_G02_SPECIMEN_DOSSIER` and `KDX_G07_ARCHIVE_DOSSIER`. The universal `KodexPlateSpecRenderer.astro`, however, currently renders every KNOWLEDGE_PLATE through the same hard-coded `.kdx-golden__diagram` structure and exposes the selected element mainly as metadata. This is a **renderer-consumption gap**, not a schema/registry/assembler failure.
 
-This is agent perceptual/readability evidence, not creator acceptance and not a reason to introduce another renderer, schema, route, memory or factory. The next bounded #62 refinement is to make the existing universal renderer materially consume the already-selected registered Knowledge composition semantics, then re-run Golden browser evidence. No new element IDs or assembler scoring changes are justified merely to force difference.
+Exact benchmark dispatch is now pinned: with the existing seeds and assembler, `GP-SCI-01 / SCI-BIOLOGY / seed-gp-sci-01` selects **`KDX_G07_ARCHIVE_DOSSIER`**, while `GP-TECH-02 / TECH-MACHINE / seed-gp-tech-02` selects **`KDX_G02_SPECIMEN_DOSSIER`**. Their registry/grid contracts are materially distinct: G07 requires unequal hero/record hierarchy + signal bridge + status cell; G02 is a specimen/provenance dossier with a wider command rail and payload-first narrow-screen recomposition. Their current visual convergence is therefore proof that the renderer collapses distinct selected composition contracts.
+
+The current Golden Playwright gate checks registry-addressable `elementId`, 100dvh/no-scroll, mobile, focus, reduced motion, performance and protected-art boundaries, but it does not yet prove structural dispatch. After Actions execution is available, the bounded #62 change is exactly: consume existing G01/G02/G07 Knowledge composition semantics in `KodexPlateSpecRenderer.astro` and extend `scripts/kodex-golden-plate-browser-evidence.mjs` so selected composition IDs produce explicit distinguishable rendered structure/fingerprints. Do not change assembler scoring or invent IDs to force difference.
+
+This is agent perceptual/readability evidence, not creator acceptance and not a reason to introduce another renderer, schema, route, memory or factory. `human_curator_acceptance` remains `NOT_RUN`.
 
 PR #62 remains OPEN / DRAFT / NOT MERGED / NOT DEPLOYED. Runtime mutation is deferred while exact-head GitHub Actions validation remains blocked at the account billing/spend gate.
 
@@ -129,7 +133,7 @@ A first edit attempt touched unrelated comments in the shared monolithic folio f
 
 ### Current CI blocker — exact provider cause
 
-KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...`. Live revalidation on 2026-08-16 still returns that workflow as `completed / failure`; no later executing Product Corridor run for the head is visible.
+KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...`. Attempt **6**, job `95021079046`, again completed before a workflow step executed: `runner_id=0`, empty runner and `steps=[]`.
 
 The GitHub Actions check-run exposes the provider cause explicitly:
 
@@ -181,13 +185,13 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 ## 8. Exact next action
 
 1. Preserve PR #62 as the verified Assembly/Deep Navigation baseline. Do not reopen P0.1–P0.10.
-2. Preserve the run-164 Golden readability finding and its now-localized cause: KNOWLEDGE_PLATE selected registered elements are not yet materially dispatched by the universal renderer. After exact-head Actions execution is available again, fix this in #62 by consuming existing registered element semantics; do not add another renderer/schema or invent new IDs.
+2. Keep the exact Golden renderer dispatch contract pinned: `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER`; `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`. Their current identical Knowledge markup is a renderer-consumption defect, not assembler diversity failure.
 3. Keep PR #77 on exact head `1f7bbeb...`; do **not** advance COSMOLOGY yet.
 4. Resolve the GitHub `Billing & plans` / Actions spending-limit problem outside the codebase. This is an account-level prerequisite, not a KODEX code task.
 5. After billing/spend authorization is restored, re-run the same exact Product Corridor head without product-code changes.
 6. If MACHINE executes and passes, inspect the exact desktop/mobile/reduced-motion artifact before changing its state to browser-accepted.
 7. If MACHINE executes and fails, repair only the measured defect and retain truth/provenance gates.
-8. After CI availability is restored, advance the bounded #62 Knowledge renderer consumption fix and extend Golden evidence to prove structural differentiation between selected registered compositions.
+8. After CI availability is restored, advance #62 **in place** with the bounded existing-renderer delta only: dispatch existing G01/G02/G07 Knowledge composition semantics and extend Golden browser evidence with structural identity/fingerprint checks proving selected registered compositions no longer collapse to identical DOM structure. No new IDs, no assembler-scoring changes and no parallel renderer.
 9. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
 10. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
 
