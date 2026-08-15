@@ -58,12 +58,15 @@ void main(){
   float haze=0.0;
   float hit=0.0;
   vec3 pos=ro;
-  for(int i=0;i<96;i++){
+  for(int i=0;i<112;i++){
     pos=ro+rd*t;
     float d=mapField(pos);
     haze+=0.007/(0.055+abs(d)*10.0);
-    if(abs(d)<0.0015){hit=1.0;break;}
-    t+=clamp(d*0.76,0.008,0.13);
+    // Treat an entered surface as a hit instead of stepping through it. The
+    // previous fixed 0.008 minimum could overshoot grazing intersections and
+    // create false black bands across an otherwise continuously lit torus.
+    if(d<0.0018){hit=1.0;break;}
+    t+=min(d*0.72,0.13);
     if(t>6.0)break;
   }
 
