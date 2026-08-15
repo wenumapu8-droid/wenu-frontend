@@ -60,6 +60,8 @@ for (const profile of cases) {
       const actionRect = rect('[data-kdx-drawer-open="specimen"]');
       const titleRect = rect('.kx-os-stage__copy > h1');
       const artRect = rect('.kx-os-stage__art');
+      const rail = document.querySelector('.kx-os-stage__rail-top');
+      const railVisible = rail instanceof HTMLElement && getComputedStyle(rail).display !== 'none' && rail.getBoundingClientRect().height > 0;
       let actionHitTarget = false;
       if (action instanceof HTMLElement && actionRect) {
         const x = Math.min(window.innerWidth - 1, Math.max(0, actionRect.left + actionRect.width / 2));
@@ -72,6 +74,7 @@ for (const profile of cases) {
         actionRect,
         titleRect,
         artRect,
+        railVisible,
         actionInViewport: !!actionRect && actionRect.left >= 0 && actionRect.top >= 0 && actionRect.right <= window.innerWidth && actionRect.bottom <= window.innerHeight,
         titleInViewport: !!titleRect && titleRect.left >= 0 && titleRect.top >= 0 && titleRect.right <= window.innerWidth && titleRect.bottom <= window.innerHeight,
         titleArtOverlap: overlaps(titleRect, artRect),
@@ -84,6 +87,11 @@ for (const profile of cases) {
     assert(!composition.titleArtOverlap, `${profile.id}: ARCHIVE macro title overlaps the dominant artifact`);
     assert(!composition.actionArtOverlap, `${profile.id}: OPEN SPECIMEN overlaps the dominant artifact`);
     assert(composition.actionHitTarget, `${profile.id}: OPEN SPECIMEN is geometrically covered`);
+    if (profile.viewport.width <= 520) {
+      assert(!composition.railVisible, `${profile.id}: duplicate ARCHIVE specimen rail is visible in the narrow artifact header`);
+    } else {
+      assert(composition.railVisible, `${profile.id}: ARCHIVE technical rail disappeared outside the narrow-mobile adaptation`);
+    }
 
     const visual = await page.evaluate(() => {
       const hero = document.querySelector('.kx-archive-hero-specimen');
