@@ -1,4 +1,4 @@
-name: KODEX THRESHOLD Product Slice
+name: KODEX Product Corridor Slice
 
 on:
   pull_request:
@@ -7,15 +7,17 @@ on:
       - 'src/components/kodex/**'
       - 'src/kodex/threshold-portal/**'
       - 'src/kodex/return/**'
+      - 'src/kodex/crt/**'
       - 'src/scripts/kodex-engine.js'
       - 'src/styles/kodex*.css'
       - 'scripts/kodex-threshold-product-evidence.mjs'
+      - 'scripts/kodex-prologue-product-evidence.mjs'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/kodex-threshold-product.yml'
 
 jobs:
-  threshold-product-slice:
+  product-corridor-slice:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -34,23 +36,29 @@ jobs:
       - run: npm run build
       - name: Start Astro preview
         run: |
-          npm run preview -- --host 127.0.0.1 > /tmp/kodex-threshold-preview.log 2>&1 &
-          echo $! > /tmp/kodex-threshold-preview.pid
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-product-preview.log 2>&1 &
+          echo $! > /tmp/kodex-product-preview.pid
           for i in {1..30}; do
             if curl -fsS http://127.0.0.1:4321/kodex/ >/dev/null; then exit 0; fi
             sleep 1
           done
-          cat /tmp/kodex-threshold-preview.log
+          cat /tmp/kodex-product-preview.log
           exit 1
       - name: Validate THRESHOLD desktop / mobile / reduced-motion
         env:
           KODEX_PREVIEW_URL: http://127.0.0.1:4321
         run: npm run test:kodex:threshold
-      - name: Upload THRESHOLD evidence
+      - name: Validate PROLOGUE desktop / mobile / reduced-motion
+        env:
+          KODEX_PREVIEW_URL: http://127.0.0.1:4321
+        run: npm run test:kodex:prologue
+      - name: Upload product corridor evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: kodex-threshold-evidence
-          path: artifacts/kodex-threshold-evidence
+          name: kodex-product-corridor-evidence
+          path: |
+            artifacts/kodex-threshold-evidence
+            artifacts/kodex-prologue-evidence
           if-no-files-found: warn
           retention-days: 14
