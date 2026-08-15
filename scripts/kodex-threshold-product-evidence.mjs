@@ -80,16 +80,31 @@ for (const profile of cases) {
       assert(Boolean(portalEvidence.fallbackSrc), `${profile.id}: unavailable portal has no fallback artwork`);
     }
 
+    // The current THRESHOLD stage-direction intentionally hides the artifact tab
+    // so the portal remains the single dominant object. Do not force-click hidden
+    // UI just to satisfy CI. If a future composition makes the control visible,
+    // this same gate immediately upgrades to dialog close/focus acceptance.
     const opener = page.locator('[data-kdx-artifact-open]');
     const panel = page.locator('[data-kdx-artifact-panel]');
-    if (await opener.count()) {
-      await opener.click();
-      await panel.waitFor({ state: 'visible' });
-      const close = page.locator('[data-kdx-artifact-close]');
-      assert(await close.isVisible(), `${profile.id}: artifact dialog has no visible close control`);
-      await close.click();
-      await panel.waitFor({ state: 'hidden' });
-      assert(await opener.evaluate((node) => document.activeElement === node), `${profile.id}: artifact dialog did not restore focus to opener`);
+    const artifactControl = {
+      present: (await opener.count()) > 0,
+      visible: false,
+      dialogStatus: 'NOT_APPLICABLE',
+    };
+    if (artifactControl.present) {
+      artifactControl.visible = await opener.isVisible();
+      if (artifactControl.visible) {
+        await opener.click();
+        await panel.waitFor({ state: 'visible' });
+        const close = page.locator('[data-kdx-artifact-close]');
+        assert(await close.isVisible(), `${profile.id}: artifact dialog has no visible close control`);
+        await close.click();
+        await panel.waitFor({ state: 'hidden' });
+        assert(await opener.evaluate((node) => document.activeElement === node), `${profile.id}: artifact dialog did not restore focus to opener`);
+        artifactControl.dialogStatus = 'PASS';
+      } else {
+        assert(await panel.isHidden(), `${profile.id}: hidden artifact trigger left dialog exposed`);
+      }
     }
 
     const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -102,6 +117,7 @@ for (const profile of cases) {
       status: 'PASS',
       geometry,
       portal: portalEvidence,
+      artifactControl,
       consoleErrors,
     });
   } catch (error) {
