@@ -95,12 +95,12 @@ A run-266 artifact classification note has been added directly to PR #73.
 ### PR #70 — WebGL source adapter + TOROIDAL MATERIALITY benchmark
 
 Branch: `feat/kodex-holocore-webgl-source-adapter-v0`.  
-Current verified head: `15ba5618f706f7f651532c8952e65a6b651701bb`.  
-KODEX Core Runtime run 228 / `31848941609`: **SUCCESS**.
+Current verified head: `cc9759a5e084177c5d9bc99a0b8819e897ff73dd`.  
+KODEX Core Runtime run 269 / `31855218798`: **SUCCESS**.
 
-The toroidal benchmark was reconciled into the **existing** WebGL adapter lineage as a `SOURCE_GENERATOR` variant of `WebGLSourceShaderRenderer`; no new renderer/runtime/schema/route/assembly architecture was introduced.
+The toroidal benchmark continues inside the **existing** WebGL adapter lineage as a `SOURCE_GENERATOR` variant of `WebGLSourceShaderRenderer`; no new renderer/runtime/schema/route/assembly architecture was introduced.
 
-Current contract:
+Current contract remains:
 
 - source shader: `src/kodex/holocore/shaders/toroidal-field.frag.glsl`;
 - internal hero route: `/kodex/lab/holocore-webgl-toroidal/`;
@@ -113,20 +113,21 @@ Current contract:
 - route remains `noindex, nofollow`;
 - UI remains subordinate to one dominant field.
 
-Run 228 passed runtime/JourneyState, full Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation, HoloCore registry, renderer adapters, existing WebGL source adapter, dedicated toroidal desktop/mobile/reduced-motion/fallback evidence, and rendered Golden Plates.
+Run 269 passed runtime/JourneyState, full Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation, HoloCore registry, renderer adapters, WebGL source adapter, dedicated toroidal desktop/mobile/reduced-motion/fallback evidence, and rendered Golden Plates.
 
-Evidence artifact: `kodex-evidence`, id `9236969461`, digest `sha256:743a4dc2b9f61ab1acf6eb2d8505eacc06b3bf112f6dca4870f85a676540cf7c`.
+Evidence artifact: `kodex-evidence`, id `9238883266`, digest `sha256:6707c23fee59b6627696dc1ca8ef549103bd078909fe4f5c28d633e4b753bccc`.
 
-Actual run 228 artifact review:
+v0.3 laminar-field refinement is intentionally shader-only. It removes sinusoidal displacement of the torus SDF, keeps the toroidal geometry clean, moves complexity into circulating filament families over toroidal coordinates, reduces bloom/saturation, and keeps pointer perturbation in field orientation rather than topology deformation.
 
-- major materiality jump over ASCII/RGX;
-- torus immediately reads as a closed 3D object;
-- aperture is clearly legible;
-- front/back separation is materially stronger;
-- continuous surface mass survives rendering;
-- Canvas fallback is meaningful as a quiet static toroidal wire field.
+Actual run-269 artifact review versus run 228:
 
-**Creator visual acceptance remains PENDING.** The current WebGL surface language is strongly glossy/marbled/psychedelic. Whether that is the correct KODEX field-flow material is a creator/curatorial decision, not machine QA. Do not call this Nurecas-level or final visual canon from CI.
+- toroidal silhouette and aperture are cleaner/stabler;
+- the object no longer reads as liquid/marbled psychedelic material;
+- circulation is legible as organized field filaments wrapping the torus;
+- front/back volume remains present;
+- the next visible defect is now narrower: some filament families quantize into hard dark bands, so the surface still reads partly as graphic striping instead of a continuous luminous field.
+
+**Creator visual acceptance remains PENDING.** v0.3 is an improved perceptual candidate, not a claim of Nurecas/Tortoise-level fidelity or final visual canon.
 
 PR #70 remains OPEN / DRAFT / MERGEABLE; NOT MERGED / NOT DEPLOYED.
 
@@ -183,14 +184,14 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 
 ## 7. Exact next action
 
-1. Treat PR #70 head `15ba561…` / run 228 as the current browser-validated volumetric/materiality candidate.
+1. Treat PR #70 head `cc9759a…` / run 269 as the current browser-validated volumetric/materiality candidate.
 2. Treat PR #73 run 266 as a **closed evidence question for this renderer family**: RGX is ADAPT/specialized structural grammar; do not expand it further before a new evidence-backed need exists.
 3. Preserve the strongest RGX topology lessons (especially ORBITAL CITY, DNA ASCENT, INTERFERENCE PORTAL) as reusable structural references, not as a new default renderer mandate.
 4. Do **not** create another renderer, shader architecture, schema, PlateSpec family or route engine.
-5. Creator/curatorial review must judge the actual #70 toroidal artifact against the intended perceptual bar: volume, aperture, front/back separation, material continuity, object dominance, flow language and mobile readability.
-6. If the current #70 glossy/marbled surface language is rejected, make the smallest **shader-only** refinement in this same PR: material/flow/camera scale first, not architecture.
-7. Preserve `ART / COMP / SPEC`, temporal truth, reduced-motion, meaningful fallback, noindex and user agency.
-8. After any visual delta: rerun the same browser gate, download the artifact and visually inspect it before making any quality claim. Creator acceptance remains explicit and separate from machine validity.
+5. For #70, the next bounded perceptual delta—only if continuing the same direction—is shader-only: soften filament banding, increase continuous luminous density, preserve clean torus geometry/aperture/front-back separation, and avoid returning to glossy marble deformation.
+6. Preserve `ART / COMP / SPEC`, temporal truth, reduced-motion, meaningful fallback, noindex and user agency.
+7. After any visual delta: rerun the same browser gate, download the artifact and visually inspect it before making any quality claim.
+8. Creator acceptance remains explicit and separate from machine validity.
 
 ---
 
