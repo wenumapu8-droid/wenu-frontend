@@ -73,6 +73,7 @@
 </style>
 
 <script>
+  import { montarLienzo } from '../kit/lienzo';
   /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
      anotaciones de tipo revientan el build. */
   const raiz = document.querySelector('[data-bloque="Camara"]');
@@ -1110,87 +1111,13 @@
     }
     pintarFondo(gf);
 
-    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    /* Menos movimiento = ritmo más lento, no congelado. */
-    const PERIODO = reducido ? 42000 : 13000;
-    const faseDe = (ms) => {
-      const f = (ms / PERIODO) % 1;
-      return f < 0 ? f + 1 : f;
-    };
-    const cuadro = (fase) => pintarVivo(gv, fase);
-    cuadro(0);
-
-    /* `detenido` no es redundante con cancelAnimationFrame: si el congelado cae
-       mientras corre el callback, éste vuelve a pedir cuadro y el bucle
-       sobrevive al freeze. La bandera se lee DENTRO del callback y corta. */
-    let corriendo = 0;
-    let detenido = true;
-    const parar = () => {
-      detenido = true;
-      if (corriendo) cancelAnimationFrame(corriendo);
-      corriendo = 0;
-    };
-    let congelado = false;
-    let visible = false;
-    const arrancar = () => {
-      if (corriendo || congelado || !visible || document.hidden) return;
-      detenido = false;
-      const t0 = performance.now();
-      const paso = (ahora) => {
-        if (detenido) return;
-        cuadro(faseDe(ahora - t0));
-        corriendo = requestAnimationFrame(paso);
-      };
-      corriendo = requestAnimationFrame(paso);
-    };
-
-    /* Nada de pintar fuera de pantalla ni con la pestaña oculta. */
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(
-        (entradas) => {
-          visible = entradas.some((e) => e.isIntersecting);
-          visible ? arrancar() : parar();
-        },
-        { threshold: 0 },
-      ).observe(raiz);
-    } else {
-      visible = true;
-      arrancar();
-    }
-    document.addEventListener("visibilitychange", () => {
-      document.hidden ? parar() : arrancar();
+    /* Ciclo de vida en kit/lienzo.ts: bucle por fase, contrato de congelado,
+       visibilidad, prefers-reduced-motion y DPR. Eran 70 lineas por lamina. */
+    montarLienzo({
+      raiz: raiz,
+      cuadro: (fase) => pintarVivo(gv, fase),
+      periodo: 13000,
+      periodoReducido: 42000,
     });
-
-    /* El banco captura con animations:disabled, y eso NO congela un canvas con
-       su propio rAF. Por eso el sumidero: fija el cuadro pedido y apaga el
-       bucle. Se registra en la bolsa compartida para que los demás bloques de
-       la lámina cuelguen del mismo __kdxFreeze. */
-    const sumidero = (t = 0) => {
-      congelado = true;
-      parar();
-      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
-    };
-    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
-    bolsa.push(sumidero);
-    const propio = (fn) => bolsa.push(fn);
-    const congelar = (t = 0) => {
-      for (const fn of bolsa.slice()) fn(t);
-      document.documentElement.dataset.kdxFrozen = "1";
-    };
-    /* Registro con reintento: Astro empaqueta el script de la página y el del
-       componente por separado y no garantiza el orden. Si la página instala su
-       propio registrador más tarde, hay que colgarse de ése. */
-    let intentos = 0;
-    const registrar = () => {
-      const reg = window.__kdxRegisterFreeze;
-      if (typeof reg === "function" && reg !== propio) {
-        reg(sumidero);
-        return;
-      }
-      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
-      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
-      if (intentos++ < 120) requestAnimationFrame(registrar);
-    };
-    registrar();
   }
 </script>
