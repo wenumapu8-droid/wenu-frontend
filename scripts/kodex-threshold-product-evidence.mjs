@@ -26,10 +26,16 @@ for (const profile of cases) {
   });
   const page = await context.newPage();
   const consoleErrors = [];
+  const httpErrors = [];
   page.on('console', (message) => {
     if (message.type() === 'error') consoleErrors.push(message.text());
   });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
+  page.on('response', (response) => {
+    if (response.status() >= 400) {
+      httpErrors.push({ status: response.status(), url: response.url() });
+    }
+  });
 
   try {
     await page.goto(`${baseURL}/kodex/`, { waitUntil: 'networkidle' });
@@ -110,7 +116,30 @@ for (const profile of cases) {
     const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
     assert(reduced === (profile.reducedMotion === 'reduce'), `${profile.id}: reduced-motion emulation mismatch`);
 
+    const journeyBeforeExit = await page.evaluate(() => {
+      try {
+        return JSON.parse(localStorage.getItem('kx-journey') || 'null');
+      } catch {
+        return null;
+      }
+    });
+    assert(
+      Array.isArray(journeyBeforeExit?.views) && journeyBeforeExit.views.includes('/kodex/'),
+      `${profile.id}: existing KODEX memory did not register the THRESHOLD visit`,
+    );
+
     await page.screenshot({ path: `${outDir}/threshold-${profile.id}.png`, fullPage: true });
+
+    // Product-facing acceptance must exercise the actual door, not only inspect href.
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 8000 }),
+      cta.click(),
+    ]);
+    const navigation = {
+      target: new URL(page.url()).pathname,
+      passed: new URL(page.url()).pathname === '/kodex/folio/i/',
+    };
+    assert(navigation.passed, `${profile.id}: ENTER THE KODEX did not reach folio/i`);
 
     evidence.push({
       profile: profile.id,
@@ -118,7 +147,13 @@ for (const profile of cases) {
       geometry,
       portal: portalEvidence,
       artifactControl,
+      memory: {
+        thresholdVisitRecorded: true,
+        viewCount: journeyBeforeExit.views.length,
+      },
+      navigation,
       consoleErrors,
+      httpErrors,
     });
   } catch (error) {
     failed = true;
@@ -127,6 +162,7 @@ for (const profile of cases) {
       status: 'FAIL',
       error: error instanceof Error ? error.message : String(error),
       consoleErrors,
+      httpErrors,
     });
     await page.screenshot({ path: `${outDir}/threshold-${profile.id}-FAIL.png`, fullPage: true }).catch(() => {});
   } finally {
