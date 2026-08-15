@@ -103,6 +103,11 @@ for (const profile of cases) {
         await close.click();
         await panel.waitFor({ state: 'hidden' });
         assert(await opener.evaluate((node) => document.activeElement === node), `${profile.id}: artifact dialog did not restore focus to opener`);
+        // Closing the artifact intentionally consumes the temporary #artifact
+        // history entry with history.back(). That traversal is asynchronous.
+        // Do not race the next product action against an unsettled same-document
+        // navigation: wait until the canonical THRESHOLD URL is restored.
+        await page.waitForFunction(() => location.pathname === '/kodex/' && location.hash === '', null, { timeout: 3000 });
         artifactControl.dialogStatus = 'PASS';
       } else {
         assert(await panel.isHidden(), `${profile.id}: hidden artifact trigger left dialog exposed`);
