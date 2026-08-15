@@ -215,3 +215,28 @@ Before editing KODEX, verify:
 8. Is the output implementation, test evidence, hypothesis, reference or deployment?
 
 If these cannot be answered from connected sources, do not guess.
+
+---
+
+## 10. Product-facing corridor convergence gate
+
+PR #68 (`wip/kimi-u10-commons-cabecera`, head `46c8086281df7e144331c7c8493a0f2dfe24e065`) is currently the clearest existing concrete product-facing seven-scene corridor candidate. It remains **OPEN / DRAFT / MERGEABLE** and its production base is still `feature/kodex-depth-engine`; its PR explicitly says no merge/deploy to the production branch.
+
+Live branch comparison establishes a hard lineage constraint before consuming #62/#76:
+
+- #68 → #62 (`1bfc5e4…`): **DIVERGED**, common merge base `c1efe3e362c01754585c0a0c91ba947267a04559`; #62 has 134 commits not in #68, while #68 has 77 commits not in #62.
+- #68 → #76 (`d15bad99…`): **DIVERGED**, same merge base; #76 has 216 commits not in #68, while #68 retains the same 77 independent commits.
+
+This makes **branch convergence an integration blocker**, not an invitation to recreate Deep Navigation, JourneyState, Assembly OS, Manifestation, RGX or HoloCore inside #68. A broad silent cherry-pick or parallel reimplementation would create competing operational truth.
+
+Operational roles now are explicit:
+
+- #62 = verified Assembly / Deep Navigation substrate;
+- #70 = current volumetric/materiality benchmark;
+- #75 = current reference-fidelity creator-review surface for the four targeted RGX specimens;
+- #76 = verified systems-convergence substrate;
+- #68 = concrete product-facing corridor candidate, **not yet lineage-converged** with #62/#76.
+
+**Next integration action:** do not add architecture to #68. The next safe implementation is a bounded branch-convergence slice that brings **one existing #68 scene** onto existing #62/#76 capability while preserving the corridor's authored visual work, user agency, reduced-motion/fallbacks and truth-state boundaries. Selecting which scene changes creative/product meaning and therefore remains creator/curatorial authority; until that selection exists, preserve the verified substrates rather than guessing.
+
+No merge, deployment, permission change, public asset approval, protected-source mutation or canon promotion is authorized by this finding.
