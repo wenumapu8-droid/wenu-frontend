@@ -41,6 +41,8 @@ Already implemented and tested there:
 
 Run-164 artifact review found a bounded renderer-consumption gap, not a contract/assembler failure. The assembler already differentiates benchmark compositions: `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER`; `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`. The existing universal renderer currently collapses KNOWLEDGE_PLATE cases into the same hard-coded diagram structure.
 
+Live code reinspection on 2026-08-16 reconfirmed the gap: `KodexPlateSpecRenderer.astro` exposes the selected `element_id` but renders one generic `.kdx-golden__diagram` for every KNOWLEDGE_PLATE. The existing grid registry already defines distinct G01/G02/G07 composition rules; the browser evidence script validates registered IDs, bounds, focus, mobile, reduced-motion and performance but does not yet assert structural identity.
+
 After Actions execution is available, the bounded #62 delta is: consume existing G01/G02/G07 composition semantics in `KodexPlateSpecRenderer.astro` and extend `scripts/kodex-golden-plate-browser-evidence.mjs` with structural identity/fingerprint checks. Do not invent element IDs or change assembler scoring to force difference.
 
 PR #62 remains OPEN / DRAFT / NOT MERGED / NOT DEPLOYED.
@@ -75,15 +77,15 @@ Current PR #77 head: `1f7bbebcf7573811549b540c573ad4b16919fa46`.
 
 A prior executed MACHINE gate correctly rejected unsourced factual telemetry `INTEGRITY · 98.7%`. The accepted source repair changes only that value and matching readout to `NOT MEASURED`; generator, renderer, routing, memory, artwork and composition are unchanged.
 
-Exact-head revalidation is currently blocked outside KODEX. Product Corridor run `31877581094` attempt 6 ended before a workflow step executed. GitHub's check annotation states that recent account payments failed or the Actions spending limit must be increased in **Billing & plans**.
+Exact-head revalidation remains blocked outside KODEX. Product Corridor run `31877581094` still reports failure and its latest job (`95021079046`) has no executed steps. The previously inspected GitHub check annotation states that recent account payments failed or the Actions spending limit must be increased in **Billing & plans**.
 
 MACHINE remains **IMPLEMENTED TRUTH REPAIR / BROWSER REVALIDATION PENDING**. Do not advance COSMOLOGY around this gate and do not modify product/QA/workflow code to compensate for the account-level blocker.
 
 ---
 
-## 5. New convergence blocker — PR #78 Element Library
+## 5. Convergence blocker — PR #78 Element Library
 
-PR #78 / `feature/holocore-rgx-element-library` is **HOLD / SOURCE NORMALIZATION CANDIDATE — NOT ASSEMBLY OS AUTHORITY** until reconciled with #62.
+PR #78 / `feature/holocore-rgx-element-library` is **HOLD / EXTRACTION-ONLY SOURCE CANDIDATE — NOT ASSEMBLY OS AUTHORITY** until reconciled with #62.
 
 Live code inspection found a parallel ElementContract dialect:
 
@@ -94,7 +96,13 @@ Live code inspection found a parallel ElementContract dialect:
 - #78 family/status values such as `rgx-*` / `production` do not satisfy the existing ElementContract enums.
 - `element-library.test.js` validates only the branch-local 18-field list, so a green result would not prove Assembly OS compatibility.
 
-A blocking reconciliation comment was added to PR #78. Preserve useful HoloCore inventory/provenance observations, but normalize candidate records into the existing #62 ElementContract/registry and reuse its validators. If a HoloCore exposes a capability the existing schema genuinely cannot express, surface that as a concrete schema/validator gap before any schema change. Do not silently fork the contract.
+### Branch contamination finding — 2026-08-16
+
+A direct compare of `main...feature/holocore-rgx-element-library` shows the branch is **338 commits ahead of main** and carries a very large unrelated repository/rescue payload, including `_macmini-kodex-rescue/**`, settings, documentation, public/product assets and broad application files. This means PR #78 is not a bounded or reviewable convergence vehicle even if its schema dialect were corrected.
+
+A strengthened HOLD comment was added to PR #78. The only currently actionable source observations are the 14 records in `ops/factory/element-library/holocore-rgx-contracts.json`; `element-library.test.js` is useful only to document the branch-local assumptions, not as a canonical validator.
+
+Do **not** normalize in place on #78 and do not merge its branch into the Assembly OS lineage. Extract useful HoloCore observations and re-express them on a bounded #62-derived delta using the existing ElementContract vocabulary, registry and validators. If a HoloCore exposes a capability the existing schema genuinely cannot express, surface that exact incompatibility before any schema change.
 
 ---
 
@@ -109,7 +117,7 @@ Open PR status alone does not make a branch authoritative.
 - #76 = verified systems-convergence substrate.
 - #68 = product corridor lineage.
 - #77 = bounded product-corridor acceptance lane.
-- #78 = HoloCore inventory normalization candidate currently held for ElementContract incompatibility.
+- #78 = extraction-only HoloCore source candidate; contaminated branch, not a convergence target.
 
 No standalone current Decision Log was found in the active operational branch or accessible Drive/repo search. Do **not** invent one. Operational truth comes from Drive canon + this Current State + exact active PR heads/CI/artifacts.
 
@@ -125,6 +133,7 @@ Primary risks:
 - adding architecture instead of converging existing systems;
 - fabricating telemetry or letting decorative numbers read as facts;
 - creating parallel registries/schemas/status vocabularies;
+- using contaminated historical/rescue branches as convergence bases;
 - scaling renderer families before their perceptual role is accepted;
 - confusing scientific fact, authored metaphor, cultural provenance, inference, implementation and deployment state;
 - treating protected artwork curation as public-use approval.
@@ -136,13 +145,14 @@ Primary risks:
 ## 8. Exact next action
 
 1. Preserve #62 as the sole verified Assembly/Deep Navigation contract baseline; do not reopen P0.1–P0.10.
-2. Keep #78 on HOLD as source-normalization work until its 14 HoloCore records conform to the existing ElementContract/registry or expose a demonstrated bounded schema gap.
+2. Treat #78 as extraction-only: do not normalize in place or merge the contaminated branch; carry useful HoloCore observations into a bounded #62-derived delta only.
 3. Keep #77 on exact head `1f7bbeb...`; do not advance COSMOLOGY yet.
 4. Resolve GitHub `Billing & plans` / Actions spending authorization outside the codebase.
 5. After Actions is restored, rerun the unchanged #77 MACHINE head; inspect exact desktop/mobile/reduced-motion artifact before changing status.
 6. Then advance #62 in place with only the bounded G01/G02/G07 Knowledge renderer dispatch + structural evidence delta already defined.
-7. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
+7. Only after that bounded renderer delta is browser-green should HoloCore extraction candidates be normalized into #62, one small representative batch at a time, using the canonical schema/validators.
+8. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
+9. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
 
 ---
 
