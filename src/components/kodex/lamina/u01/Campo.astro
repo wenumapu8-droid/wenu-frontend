@@ -72,6 +72,7 @@
 </style>
 
 <script>
+  import { montarLienzo } from '../kit/lienzo';
   /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
      anotaciones de tipo revientan el build. */
   const raiz = document.querySelector('[data-bloque="Campo"]');
@@ -127,6 +128,117 @@
     const R_PICO = 62;
     const env = (r) => (r <= R_PICO ? 1 : Math.pow(R_PICO / r, 1.1));
 
+    /* ------------------------------------------------------- concentración
+     * MEDIDO 2026-08-15 (`scripts/lamina/_u01_histo.mjs`). Al campo medio no le
+     * faltaba luz: la tenía DESPARRAMADA. Histograma del anillo r=260..420,
+     * referencia contra render, sobre 317.135 px:
+     *
+     *                 media   lum 4..14   tinta (>26)   lum>180
+     *     referencia   3,76     10,9 %       2,70 %       96 px
+     *     render       3,19     16,0 %       0,81 %        0 px
+     *
+     * Casi la misma luminancia media y un tercio de la tinta. La referencia
+     * pone su luz en pocos píxeles brillantes; el render la reparte en el doble
+     * de píxeles tenues que NUNCA cruzan el umbral de tinta. Y el umbral es
+     * duro: lum 26 sobre LUZ (225) son alfa 0,115. La pasada ancha de halo
+     * —6,4 px a alfa 0,16— no llega a eso en ningún radio del campo medio, así
+     * que aporta bruma y cero cobertura.
+     *
+     * `conc` transfiere esa luz del halo al alma según el radio. Vale 0 hasta
+     * r=120, donde la referencia SÍ tiene bruma —el anillo r=60..140 ya cubre
+     * 94 % y ahí el halo está bien— y llega a 1 en r=260. La ganancia del alma
+     * sale del umbral, no del gusto: para que un filamento de brillo típico
+     * (0,16) cuente como tinta en r=300, donde `env` vale 0,174, hace falta
+     * k ≥ 4,1 contra el 0,5 de antes.
+     *
+     * Que sólo crucen los filamentos más brillantes es el objetivo, no un
+     * defecto: `brillo` y `peso` reparten sobre un rango de 5×, así que unos
+     * pocos cordones quedan como tinta y el resto como bruma. Eso es
+     * exactamente la estructura escasa-y-brillante que mide la referencia. */
+    /* SE PROBÓ estirar la rampa a 140→320 para bajar el exceso del anillo
+       180..260, que cubre 138–168 % contra la referencia. Baja la diferencia
+       —global 2,767 % → 2,663 %, campo-medio 5,31 % → 4,86 %— pero se lleva
+       puesta la cobertura: global 94,9 % → 85,9 % y la región del núcleo vuelve
+       a 87,6 %, que es exactamente donde empezó. Son 6.400 px de tinta a cambio
+       de una décima de diferencia, y la compuerta decide por cobertura
+       justamente porque la diferencia premia la lámina vacía. Queda anotado
+       para que nadie lo repita creyendo que no se probó. */
+    const conc = (r) => Math.max(0, Math.min(1, (r - 120) / 140));
+
+    /* Ganancia del alma, CALIBRADA contra el conteo de tinta por anillo y no
+       elegida a gusto. Con 9 la cobertura global saltó de 73 % a 128 % y el
+       campo medio a 250 %: el mecanismo andaba y la constante estaba de más.
+       El anillo r=300..320 tiene ~6.400 px de filamento y la referencia pide
+       1.263 de tinta, o sea que debe cruzar el umbral el 20 % más brillante.
+       `brillo` reparte sobre 0,047..0,338, así que ese quintil arranca en 0,22;
+       con env(300)=0,174 el alma necesita k = 0,115/(0,22·0,174) ≈ 3, que es
+       0,5·(1+G) con G = 5. */
+    const G_ALMA = 5;
+
+    /* ------------------------------------------------------- perfil angular
+     * MEDIDO sobre la referencia por `extraer-campo.mjs` (36 sectores de 10°,
+     * anillo 0,18–0,80 del radio, densidad y no conteo para que la forma
+     * rectangular de la región no premie las diagonales). Sector 0 = −180°
+     * —hacia la izquierda—, creciendo en el sentido de `atan2` del lienzo, o
+     * sea hacia abajo.
+     *
+     * ESTE CAMPO NO ES ISÓTROPO y la reproducción lo tenía al revés. Tinta de
+     * la referencia contra la del render, por sector:
+     *
+     *     −120° arriba-izq   4.769   1.604   ← 34 %
+     *      −90° arriba       3.176   1.650   ← 52 %
+     *       60° abajo-der    1.848   3.703   ← 200 %
+     *       90° abajo        1.793   3.619   ← 202 %
+     *
+     * Los nueve racimos que repartían los troncos salían de `azar(0x5b21)`, así
+     * que su posición era una propiedad de la semilla y no de la lámina: se
+     * apilaron abajo, que es justo donde la referencia tiene su mínimo. El
+     * perfil va de 0,0129 a 0,0610 —4,7× entre la dirección más pobre y la más
+     * rica—, o sea que la anisotropía es real y grande, no ruido de medición.
+     *
+     * Los racimos como tales no se pierden: sortear 92 troncos de una densidad
+     * con picos de 4,7× vuelve a producir grumos, sólo que en las direcciones
+     * que mide la referencia en vez de las que sortea la semilla. */
+    const ANG_PERFIL = [
+      0.0258, 0.0144, 0.017, 0.0337, 0.0212, 0.0264, 0.061, 0.0585, 0.0359,
+      0.0328, 0.0301, 0.0208, 0.0175, 0.0129, 0.0318, 0.0387, 0.0257, 0.0362,
+      0.0247, 0.0198, 0.0228, 0.0237, 0.0182, 0.0567, 0.0259, 0.0147, 0.0199,
+      0.0281, 0.0153, 0.0209, 0.052, 0.0209, 0.0217, 0.0249, 0.031, 0.0188,
+    ];
+    const ANG_CDF = (() => {
+      const c = [];
+      let s = 0;
+      for (const v of ANG_PERFIL) { s += v; c.push(s); }
+      return c.map((v) => v / s);
+    })();
+    /** Ángulo sorteado del perfil medido, por inversión de la CDF. Interpola
+        dentro del sector: sin eso los 92 troncos caen en 36 ángulos exactos y
+        el campo se lee como un peine de 36 púas. */
+    function anguloMedido(u) {
+      let k = 0;
+      while (k < ANG_CDF.length - 1 && u > ANG_CDF[k]) k++;
+      const p0 = k > 0 ? ANG_CDF[k - 1] : 0;
+      const t = (u - p0) / Math.max(1e-6, ANG_CDF[k] - p0);
+      return -Math.PI + ((k + t) * TAU) / ANG_PERFIL.length;
+    }
+
+    /* EL PERFIL NO SE EXTRAPOLA HACIA ADENTRO. Está medido en el anillo
+       0,18–0,80 del radio, o sea r=94..416, y el extractor excluye el centro a
+       propósito: el núcleo es isótropo y tan brillante que aplastaría la señal
+       angular. Adentro de R_ANG se sortea parejo, que es lo que mide el núcleo.
+       Los troncos no pasan por acá: nacen en r≈41..83 pero su ángulo decide
+       adónde llegan, y eso sí lo gobierna el perfil.
+
+       MEDIDO, y no es lo que parecía: este recorte vale 0,4 puntos de cobertura
+       en la región del núcleo (89,8 % contra 90,2 %), no los 4,4 que se le
+       habían atribuido. Los 4,4 que perdió el núcleo al pasar al perfil angular
+       son de los TRONCOS, que se agrupan cerca del anillo de nacimiento y
+       ralean el anillo r=60..120 —96 % → 88 %— donde la referencia es isótropa.
+       Se deja igual porque extrapolar una medición fuera de su dominio está
+       mal aunque se note poco, pero el arreglo del anillo no está acá. */
+    const R_ANG = 94;
+    const anguloDeCampo = (u, rad) => (rad < R_ANG ? u * TAU : anguloMedido(u));
+
     /* ------------------------------------------------------------- retícula */
     /* Papel milimetrado de 32,7 × 33,1. La línea par pesa el doble que la impar:
        así es como se lee a 65 px de paso sin que las intermedias desaparezcan. */
@@ -162,6 +274,19 @@
        tendencia (r = 122, 152, 180, 212, 240, 267, 286, 308, 340, 364, 402, 436).
        Repartidos de a uno el disco se lee como diana. */
     const ANILLOS = [
+      /* Los dos primeros salen de `anillos_r` de la receta medida
+         (`scripts/lamina/campo/u01-origin-field.json`), que detecta picos de
+         densidad radial en r = 10, 54, 66, 126, 190, 210, 238, 266. El 10 lo
+         dibuja `nucleo()` y del 126 para afuera ya estaban; los de 54 y 66
+         faltaban, y son justo el anillo de nacimiento, la banda más densa de
+         toda la lámina: la referencia tiene ahí el 39 % de sus píxeles en tinta
+         contra el 20 % del anillo de adentro.
+         Van MUCHO más brillantes que los de afuera y no es capricho. El umbral
+         de tinta son lum 26, o sea alfa 0,175 sobre TENUE: los doce anillos
+         exteriores están entre 0,05 y 0,14, así que aportan forma pero no
+         cobertura. Éstos tienen que cruzar. */
+      [54, 0.3, 1.1, 0],
+      [66, 0.34, 1.2, 0],
       [122, 0.13, 0.7, 0],
       [152, 0.09, 0.6, 1],
       [180, 0.05, 0.6, 0],
@@ -263,24 +388,23 @@
          que más cambió la lectura del héroe.
          Repartidos de a uno el campo sale isótropo: una escarapela de pelos con
          la misma densidad en todas las direcciones. La referencia tiene otra
-         cosa — grumos. Hay tres o cuatro brazos gordos (arriba y a la derecha del
-         núcleo, sobre todo) y entre ellos vacíos donde sólo queda la retícula.
-         Y esto NO se ve en el perfil radial, que promedia sobre la
-         circunferencia y da lo mismo para un campo isótropo que para uno
-         agrumado: dos dibujos muy distintos con la misma envolvente. Se ve
-         comparando los recortes al mismo gamma, y lo paga el diff estructural.
-         Los troncos se reparten en 9 racimos de ancho y peso desiguales. */
-      const RACIMOS = Array.from({ length: 9 }, (_, j) => ({
-        a: (j / 9) * TAU + (r() - 0.5) * 0.28,
-        ancho: 0.16 + r() * 0.34,
-        peso: 0.45 + r() * 0.85,
-      }));
+         cosa — grumos. Hay tres o cuatro brazos gordos y entre ellos vacíos
+         donde sólo queda la retícula. Y esto NO se ve en el perfil radial, que
+         promedia sobre la circunferencia y da lo mismo para un campo isótropo
+         que para uno agrumado: dos dibujos muy distintos con la misma
+         envolvente. Se ve comparando los recortes al mismo gamma, y lo paga el
+         diff estructural.
+
+         DE DÓNDE SALEN LOS GRUMOS, corregido 2026-08-15. Antes eran 9 racimos
+         repartidos parejo con jitter de `azar(0x5b21)`: su posición era una
+         propiedad de la semilla, no de la lámina, y quedaron apilados abajo
+         —donde la referencia tiene su MÍNIMO—, con 202 % de cobertura abajo y
+         34 % arriba-izquierda. Ahora el ángulo se sortea de `ANG_PERFIL`, que
+         es la densidad angular medida. Los grumos siguen saliendo, porque el
+         perfil tiene picos de 4,7×, pero caen donde la referencia los tiene. */
       const N = 92;
       for (let i = 0; i < N; i++) {
-        const rc = RACIMOS[Math.floor(r() * RACIMOS.length)];
-        /* Suma de dos uniformes ≈ triangular: el tronco se apiña en el eje del
-           racimo y se deshilacha en los bordes. */
-        const a = rc.a + (r() + r() - 1) * rc.ancho;
+        const a = anguloMedido(r());
         /* El radio de nacimiento se sortea en una banda de 26 px y no es fijo.
            Con todos los troncos arrancando en el mismo r, la circunferencia de
            nacimiento acumula 52 arranques y el perfil medido salta a 51 donde la
@@ -289,7 +413,10 @@
           a,
           rad: R_NACE + Math.pow(r(), 0.85) * 42,
           giro: (r() - 0.5) * 0.5,
-          peso: rc.peso,
+          /* Antes el peso venía del racimo y lo compartían todos sus troncos.
+             Ahora es por tronco, sobre el mismo rango: la estadística de brillo
+             no se mueve y el agrumado lo aporta el perfil angular. */
+          peso: 0.45 + r() * 0.85,
           gen: 0,
           /* La vida NO es uniforme: es de cola pesada. En la referencia la
              mayoría de los cordones muere antes de r=200 y sólo unos pocos
@@ -397,9 +524,13 @@
              creyendo que no se probó. */
           const brillo = (0.105 + r() * 0.155) * f.peso;
           const ancho = f.gen === 0 ? 0.95 : f.gen === 1 ? 0.75 : 0.6;
-          const k = pasada === 0 ? 0.16 : 0.5;
           for (let i = 0; i < f.n - 1; i++) {
             const rad = f.pts[i * 3 + 2];
+            /* El reparto halo/alma es por TRAMO y no por filamento: un cordón
+               que nace en r=60 y muere en r=400 tiene que empezar con bruma y
+               terminar concentrado. */
+            const c = conc(rad);
+            const k = pasada === 0 ? 0.16 * (1 - 0.82 * c) : 0.5 * (1 + G_ALMA * c);
             const a = brillo * env(rad) * k;
             if (a < 0.008) continue;
             g.lineWidth = pasada === 0 ? ancho * 6.4 : ancho * 1.5;
@@ -429,7 +560,9 @@
            la nube quedaba pelado; medido contra el perfil radial. */
         const u = Math.pow(r(), 1.3);
         const rad = R_NACE + 22 + u * 400;
-        const a0 = r() * TAU;
+        /* Del perfil medido y no uniforme: los travesaños enlazan filamentos
+           vecinos, así que tienen que estar donde están los filamentos. */
+        const a0 = anguloDeCampo(r(), rad);
         const arco = (0.08 + r() * 0.2) * (r() < 0.5 ? -1 : 1);
         const dr = (r() - 0.5) * rad * 0.16;
         const pasos = 7;
@@ -444,10 +577,13 @@
         }
         const base = (0.06 + r() * 0.132) * env(rad);
         const w0 = 0.55 + r() * 0.4;
-        g.strokeStyle = tinta(LUZ, base * 0.2);
+        /* Mismo reparto halo/alma que la trama: los travesaños son la otra
+           mitad de la geometría del campo medio y desparramaban igual. */
+        const c = conc(rad);
+        g.strokeStyle = tinta(LUZ, base * 0.2 * (1 - 0.82 * c));
         g.lineWidth = w0 * 6;
         g.stroke();
-        g.strokeStyle = tinta(LUZ, base * 0.55);
+        g.strokeStyle = tinta(LUZ, base * 0.55 * (1 + G_ALMA * c));
         g.lineWidth = w0 * 1.5;
         g.stroke();
       }
@@ -467,6 +603,11 @@
          abiertos aparecen en el vacío. Sembrados los 700 al azar en polares, el
          campo se llena de puntos que no tocan nada y la trama deja de leerse
          como una red. */
+      /* SE PROBÓ bajarlos a 580 cuando `glifosMedidos` empezó a dibujar los
+         treinta nodos medidos, pensando que las dos poblaciones contaban dos
+         veces la misma marca. No paga: la región del núcleo baja de 103 % a
+         102,5 % de cobertura y su diferencia de 10,291 % a 10,244 %, mientras
+         la cobertura global cae de 98,2 % a 97,5 %. Se quedan los 700. */
       for (let k = 0; k < 700; k++) {
         let x, y, rad;
         if (r() < 0.68 && filamentos.length) {
@@ -478,7 +619,7 @@
         } else {
           const u = Math.pow(r(), 1.5);
           rad = 60 + u * 375;
-          const a = r() * TAU;
+          const a = anguloDeCampo(r(), rad);
           x = cx + Math.cos(a) * rad;
           y = cy + Math.sin(a) * rad;
         }
@@ -531,6 +672,62 @@
       g.restore();
     }
 
+    /* ------------------------------------------------------- glifos medidos
+     * Los treinta diagramas compactos que `extraer-campo.mjs` saca de la
+     * referencia como componentes conectados: `[x, y, radio]` en píxeles de
+     * lámina, acá pasados al origen del bloque (46 · 225). No son decoración
+     * sorteada — son los POTENTIAL NODES que el póster rotula, y hasta ahora no
+     * los dibujaba nadie: los 700 nodos de `nodos` están sembrados al azar
+     * sobre los filamentos y ninguno cae donde están éstos.
+     *
+     * Se TRAZAN, no se dibujan a ojo: posición y radio salen de la medición.
+     * Van como anillo abierto porque eso es lo que dice la propia medición —
+     * componentes de 61 a 400 px de área con radios de 5 a 32, que es la
+     * circunferencia de un aro de 1 a 2 px de trazo y no un disco lleno; un
+     * disco de radio 32 tendría 3.200 px de área y habría caído fuera del
+     * filtro. El alfa cruza el umbral de tinta a propósito: son marcas duras
+     * del original, no bruma. */
+    const GLIFOS = [
+      [518, 130, 11], [423, 195, 10], [664, 225, 5], [431, 233, 11],
+      [438, 249, 7], [449, 266, 14], [455, 282, 7], [449, 291, 12],
+      [718, 335, 13], [704, 360, 12], [462, 383, 14], [644, 389, 32],
+      [589, 402, 14], [630, 404, 9], [580, 420, 10], [589, 429, 12],
+      [607, 438, 15], [433, 441, 14], [452, 442, 10], [439, 459, 10],
+      [596, 457, 8], [429, 475, 18], [456, 482, 8], [393, 489, 11],
+      [562, 501, 12], [473, 503, 10], [555, 540, 9], [432, 571, 31],
+      [221, 678, 9], [686, 697, 10],
+    ];
+
+    function glifosMedidos(g) {
+      const r = azar(0x8e2b);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const [x, y, rad] of GLIFOS) {
+        /* Ninguno igual al de al lado: el peso irregular es lo que separa un
+           trazado de instrumento de una figura de CAD (ver kit/README). */
+        const a = 0.22 + r() * 0.16;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.strokeStyle = tinta(r() < 0.18 ? VIO : NUCLEO, a);
+        g.lineWidth = 0.6 + r() * 0.25;
+        g.stroke();
+        /* Los más grandes llevan aro interior: en la referencia los de radio
+           mayor a 20 son diagramas y no puntos. */
+        if (rad > 20) {
+          g.beginPath();
+          g.arc(x, y, rad * (0.42 + r() * 0.16), 0, TAU);
+          g.strokeStyle = tinta(NUCLEO, a * 0.7);
+          g.lineWidth = 0.8;
+          g.stroke();
+        }
+        g.beginPath();
+        g.arc(x, y, 0.85, 0, TAU);
+        g.fillStyle = tinta(NUCLEO, 0.5);
+        g.fill();
+      }
+      g.restore();
+    }
+
     /* ----------------------------------------------------------------- polvo */
     function polvo(g) {
       const r = azar(0x9a13);
@@ -539,7 +736,7 @@
       for (let k = 0; k < 2600; k++) {
         const u = Math.pow(r(), 1.4);
         const rad = 50 + u * 400;
-        const a = r() * TAU;
+        const a = anguloDeCampo(r(), rad);
         const x = cx + Math.cos(a) * rad;
         const y = cy + Math.sin(a) * rad;
         if (x < 3 || x > W - 3 || y < 3 || y > H - 3) continue;
@@ -767,89 +964,17 @@
       tramaBase(g);
       polvo(g);
       nodosBase(g);
+      glifosMedidos(g);
     }
     pintarFondo(gf);
 
-    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    /* Menos movimiento = ritmo más lento, no congelado. */
-    const PERIODO = reducido ? 48000 : 14000;
-    const faseDe = (ms) => {
-      const f = (ms / PERIODO) % 1;
-      return f < 0 ? f + 1 : f;
-    };
-    const cuadro = (fase) => pintarVivo(gv, fase);
-    cuadro(0);
-
-    /* `detenido` no es redundante con cancelAnimationFrame: si el congelado cae
-       mientras corre el callback, éste vuelve a pedir cuadro y el bucle
-       sobrevive al freeze. La bandera se lee DENTRO del callback y corta. */
-    let corriendo = 0;
-    let detenido = true;
-    const parar = () => {
-      detenido = true;
-      if (corriendo) cancelAnimationFrame(corriendo);
-      corriendo = 0;
-    };
-    let congelado = false;
-    let visible = false;
-    const arrancar = () => {
-      if (corriendo || congelado || !visible || document.hidden) return;
-      detenido = false;
-      const t0 = performance.now();
-      const paso = (ahora) => {
-        if (detenido) return;
-        cuadro(faseDe(ahora - t0));
-        corriendo = requestAnimationFrame(paso);
-      };
-      corriendo = requestAnimationFrame(paso);
-    };
-
-    /* Nada de pintar fuera de pantalla ni con la pestaña oculta. */
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(
-        (entradas) => {
-          visible = entradas.some((e) => e.isIntersecting);
-          visible ? arrancar() : parar();
-        },
-        { threshold: 0 },
-      ).observe(raiz);
-    } else {
-      visible = true;
-      arrancar();
-    }
-    document.addEventListener("visibilitychange", () => {
-      document.hidden ? parar() : arrancar();
+    /* Ciclo de vida en kit/lienzo.ts: bucle por fase, contrato de congelado,
+       visibilidad, prefers-reduced-motion y DPR. Eran 70 lineas por lamina. */
+    montarLienzo({
+      raiz: raiz,
+      cuadro: (fase) => pintarVivo(gv, fase),
+      periodo: 14000,
+      periodoReducido: 48000,
     });
-
-    /* El banco captura con animations:disabled, y eso NO congela un canvas con
-       su propio rAF. Por eso el sumidero: fija el cuadro pedido y apaga el
-       bucle. Se registra en la bolsa compartida para que los demás bloques de
-       la lámina cuelguen del mismo __kdxFreeze. */
-    const sumidero = (t = 0) => {
-      congelado = true;
-      parar();
-      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
-    };
-    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
-    bolsa.push(sumidero);
-    const propio = (fn) => bolsa.push(fn);
-    const congelar = (t = 0) => {
-      for (const fn of bolsa.slice()) fn(t);
-      document.documentElement.dataset.kdxFrozen = "1";
-    };
-    /* Registro con reintento: Astro empaqueta el script de la página y el del
-       componente por separado y no garantiza el orden. */
-    let intentos = 0;
-    const registrar = () => {
-      const reg = window.__kdxRegisterFreeze;
-      if (typeof reg === "function" && reg !== propio) {
-        reg(sumidero);
-        return;
-      }
-      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
-      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
-      if (intentos++ < 120) requestAnimationFrame(registrar);
-    };
-    registrar();
   }
 </script>

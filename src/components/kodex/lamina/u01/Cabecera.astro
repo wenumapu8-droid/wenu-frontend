@@ -48,9 +48,57 @@
  * miniatura los tres parecen del mismo color —y en u02 el lema central sí es
  * violeta, que es de donde venía la suposición—. Pintar la frase de violeta
  * tiñe 486 px de ancho de la franja más visible de la lámina.
+ *
+ * ── BAJADA · segunda pasada, todo medido ───────────────────────────────────
+ * `_u01_bajada_zonas.mjs` reparte los 2.350 píxeles distintos de la región con
+ * la misma métrica que compare.mjs: lema 1.749 · sig 229 · folio 177 · guía
+ * izquierda 110 · guía derecha 85. Con eso el orden de trabajo deja de ser una
+ * opinión. Lo medido, elemento por elemento, sobre la referencia:
+ *
+ *  · LAS GUÍAS NO SON ANILLOS DE r=4,2. La tinta de la referencia ocupa
+ *    x 257..262 a la izquierda y x 866..871 a la derecha —seis columnas, no
+ *    diez—, hueca en el centro: r ≈ 2,05 y 2,08, centros (259,6 · 208,8) y
+ *    (868,6 · 208,7) sacados del baricentro de cada pared. Y NO llevan punto
+ *    interior: los cuatro píxeles del centro miden 0, 0, 0 y 21.
+ *  · LAS RAYAS NO CAEN EN 208,5 SINO EN 209,05. La referencia reparte la misma
+ *    tinta entre las filas 208 y 209 (30/37 a la izquierda, 23/29 a la derecha)
+ *    y el render la ponía entera en la 208 a 70. Un trazo de 1 px en y=209,05
+ *    parte 45/55: eso es exactamente el reparto medido.
+ *  · LAS DOS RAYAS NO TIENEN LA MISMA OPACIDAD. Izquierda 30+37=67 sobre 204 =
+ *    0,33; derecha 23+29=52 = 0,255. Y cada una lleva un nodo en cada punta
+ *    (x 265,8 y 303,3 · x 824,9 y 862,5), ~2,5 px² de tinta extra sobre la
+ *    raya, que es un disco de r=0,9.
+ *  · EL ∞ DE LA SIGNATURA ES ARTE, NO TIPOGRAFÍA. En la referencia mide 16×12
+ *    (x 147..162, y 203..214) con las tres paredes de una lemniscata en 147,2 ·
+ *    154,6 · 161,5; el ∞ de la mono del sistema salía de 9×6. Va trazado con la
+ *    misma `lemniscata()` que el ∞ del título y sale del texto, y al sacarlo el
+ *    `textLength` deja de repartir seis celdas donde hay cinco: con len 52,2 la
+ *    barra cae en 117,6 (medido 117,5) y el guion en 138,5 (medido 138,5),
+ *    contra 120 y 144,7 que daban antes.
+ *  · TINTA DE LOS RÓTULOS, POR INTEGRAL Y NO POR PICO. sig: referencia 9.405
+ *    contra render 6.270 en `A /` — falta la mitad. folio: 21.366 contra 17.338.
+ *    Los colores de tinta llena medidos son rgb(214,187,231) en la signatura y
+ *    rgb(178,155,202) en el folio; con `--cb-vio` a .72 y a .6 el render daba
+ *    124 y 103 de luminancia contra 200 y 167.
+ *  · EL LEMA ARRASTRA MEDIO PÍXEL POR CARÁCTER. Es el 74 % del diff de la
+ *    región y el error no se ve en el extremo de tinta —321..806, que es
+ *    exactamente lo que declaraba `len`— sino en el AVANCE: glifo a glifo el
+ *    render entra clavado en la B y termina 3 y 4 px a la izquierda en las
+ *    últimas nueve letras. Ajustando origen = x + i·avance sobre los caracteres
+ *    0, 21, 44 y 52 de la referencia, el avance medido es 9,218 y no 9,170:
+ *    x = 320,0 y len = 488,6. Clavar el extremo de tinta con `textLength` no
+ *    garantiza el avance, porque el extremo depende también del calce lateral
+ *    del último glifo.
+ *
+ * LO QUE NO SE TOCA, Y POR QUÉ. La forma del glifo del lema queda como está:
+ * la referencia trae la tipografía BLANDA —el contador de la B está relleno a
+ * 68 y 97 donde el render tiene 15 y 18— y sus glifos miden 6 columnas contra 7
+ * del render, 21 % menos tinta. Eso no es una cota: es que la mono del póster
+ * no existe en la máquina y `.cab text` cae en la del sistema. Bajarle la
+ * opacidad para igualar la integral apaga los astiles que hoy sí coinciden.
  */
 import CabeceraUniverse from "../serie-universe/CabeceraUniverse.astro";
-import { rayos, rombo } from "../serie-universe/geom";
+import { lemniscata, rayos, rombo } from "../serie-universe/geom";
 
 /* ── marco exterior ─────────────────────────────────────────────────────── */
 /* Verticales medidas en x=12,5 y x=1109,5; reglas en y=12,5 y y=1388. Las
@@ -108,13 +156,35 @@ const vars = [
   "--cb-tit-inf-op:.82",
   "--cb-tit-op:.88",
   "--cb-tit-fig-op:.8",
-  "--cb-sig-size:15px",
-  "--cb-sig-op:.72",
+  /* Signatura: versal medida 11,6 (ápice 202,85 · base 214,47) contra 11,0 que
+     daba el cuerpo 15, y tinta llena rgb(214,187,231). Con el cuerpo corregido
+     y el ∞ fuera del texto las cuatro formas calzan (Δx ≤ 1, Δalto 0) y las dos
+     medidas de tinta piden lo mismo: la integral quedaba en 0,87 de la
+     referencia y el pico en 180 contra 190. Y aun así la opacidad se queda en
+     .9: medido, la zona da 170 píxeles distintos a .9 y 179 a 1. Igualar el
+     pico cuesta más de lo que paga, porque los glifos del render son una
+     columna más anchos que los de la referencia y esa columna de más se cobra
+     todo el brillo que se le ponga. */
+  "--cb-sig-size:15.8px",
+  "--cb-sig-fill:#d6bbe7",
+  "--cb-sig-op:.9",
   "--cb-lema-size:13.7px",
   "--cb-lema-fill:var(--cb-ink)",
   "--cb-lema-op:.63",
-  "--cb-pag-size:13.7px",
-  "--cb-pag-op:.6",
+  /* Folio: integral de tinta 21.366 en la referencia contra 17.338 en el
+     render, .6 × 21.366/17.338 = .74. Va por integral y no por el pico (167
+     contra 103): el pico cae en el vértice de la A, donde el trazo se cruza.
+     Subir la opacidad SOLA empeoró la zona de 177 a 201 píxeles distintos: con
+     el folio corrido, más tinta es más tinta en el sitio equivocado. Por eso va
+     junto con el avance (9,0 y no 8,571) y con la versal medida, 9,79 contra
+     los 10,0 que renderiza el cuerpo 13,7. */
+  "--cb-pag-size:13.4px",
+  "--cb-pag-op:.74",
+  /* Guías de la bajada: ver cabecera del archivo. Las dos rayas NO comparten
+     opacidad —la derecha se pisa en su propio elemento— y los anillos son la
+     mitad de grandes de lo que estaban declarados. */
+  "--cb-guia-op:.33",
+  "--cb-guia-anillo-op:.63",
   "--cb-riel-op:.085",
   "--cb-micro-op:.12",
   "--cb-folio-op:.42",
@@ -151,9 +221,9 @@ const vars = [
   titInf={[487, 141, 31.2, 25.8]}
   titBarra="M566.9 111.5L571.4 111.5L552.1 167.5L547.6 167.5Z"
   titPalabra={{ x: 592, y: 164.5, size: 80, len: 453, t: "ORIGIN FIELD" }}
-  sig={{ x: 91.5, y: 214, len: 71, t: "A / -∞" }}
-  lema={{ x: 320.5, y: 213.5, len: 486, t: "BEFORE LANGUAGE, THE SIGNAL // BEFORE FORM, POTENTIAL" }}
-  pag={{ x: 973.5, y: 213.5, len: 60, t: "PAGE 01" }}
+  sig={{ x: 91.5, y: 214, len: 52.2, t: "A / -" }}
+  lema={{ x: 320, y: 213.5, len: 488.6, t: "BEFORE LANGUAGE, THE SIGNAL // BEFORE FORM, POTENTIAL" }}
+  pag={{ x: 972.9, y: 213.5, len: 63, t: "PAGE 01" }}
   ejeI={EJE_I}
   ejeD={EJE_D}
   rielIzq={rielIzq}
@@ -167,14 +237,29 @@ const vars = [
   folio={{ x: 1103.5, y: 608.5, len: 14.5, t: "01" }}
 >
   <!-- Guías de la bajada: anillo + raya a cada lado. NO son simétricas respecto
-       del eje del marco (261 y 868 dan centro 564,5), y así están medidas. -->
+       del eje del marco (259,6 y 868,6 dan centro 564,1), y así están medidas.
+       Tampoco lo son entre sí: la raya izquierda va a .33 de opacidad y la
+       derecha a .255, y la izquierda arranca pegada a su anillo mientras que la
+       derecha arranca en un nodo suelto. Cotas y cómo se sacaron: cabecera. -->
   <g slot="sep">
-    <circle class="cab__guia-anillo" cx="260.5" cy="208.5" r="4.2" />
-    <circle class="cab__nodo-f" cx="260.5" cy="208.5" r="1.3" />
-    <path class="cab__guia" d="M266 208.5H305" />
-    <path class="cab__guia" d="M824 208.5H862" />
-    <circle class="cab__guia-anillo" cx="868" cy="208.5" r="4.2" />
-    <circle class="cab__nodo-f" cx="868" cy="208.5" r="1.3" />
+    <circle class="cab__guia-anillo" cx="259.6" cy="208.8" r="2.05" />
+    <path class="cab__guia" d="M265 209.05H303.3" />
+    <circle class="cab__nodo-f" cx="265.8" cy="209.05" r="0.9" />
+    <circle class="cab__nodo-f" cx="303.3" cy="209.05" r="0.9" />
+
+    <path class="cab__guia" style="--cb-guia-op:.255" d="M824 209.05H863.5" />
+    <circle class="cab__nodo-f" cx="824.9" cy="209.05" r="0.9" />
+    <circle class="cab__nodo-f" cx="862.5" cy="209.05" r="0.9" />
+    <circle class="cab__guia-anillo" style="--cb-guia-anillo-op:.58" cx="868.6" cy="208.7" r="2.08" />
+
+    <!-- El ∞ de la signatura, trazado. Mismo criterio que el ∞ del título: la
+         mono del sistema lo resuelve como signo matemático de caja chica —9×6
+         donde la referencia pide 16×12— así que sale del texto y se dibuja.
+         a y b son la línea media, con el grosor del trazo ya descontado. -->
+    <path
+      d={lemniscata(154.4, 208.6, 7.1, 10.2)}
+      style="fill:none;stroke:var(--cb-sig-fill);stroke-width:1;stroke-opacity:var(--cb-sig-op)"
+    />
   </g>
 
   <g class="cab__glifo" slot="glifos">

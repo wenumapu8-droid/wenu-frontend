@@ -25,6 +25,7 @@
  *   anillos_perfil   28 pesos de muestreo del radio (densidad × área del anillo)
  *   anillos_r        radios donde la densidad radial hace pico
  *   radios_n         cantidad de radios de la roseta, de la densidad angular
+ *   angular_perfil   36 pesos de muestreo del ángulo: hacia dónde sale la trama
  *   glifos           [x, y, r] de cada diagrama compacto, en píxeles de lámina
  *   marcas           [x, y, ancho, alto] de cada marca alargada
  *   paleta           colores con su peso, agrupados por tono y saturación
@@ -45,7 +46,13 @@ if (!slug) {
   process.exit(2);
 }
 
-const refPath = join(ROOT, "reference", "canon", `${slug}.png`);
+/* La referencia salía fija de `reference/canon/`, y eso deja fuera las que todavía no
+   son canon. El canon prohíbe por escrito tratar una imagen de referencia como asset
+   canónico sin revisión humana, así que las 54 que aparecieron en Drive viven en
+   `reference/pendientes/` — medibles, pero sin ascenderlas a canon por el solo hecho de
+   medirlas. `KDX_REFDIR` elige el directorio; sin él nada cambia. */
+const REFDIR = process.env.KDX_REFDIR || join("reference", "canon");
+const refPath = join(ROOT, REFDIR, `${slug}.png`);
 if (!existsSync(refPath)) { console.error(`no existe ${refPath}`); process.exit(2); }
 const png = PNG.sync.read(readFileSync(refPath));
 const W = png.width, H = png.height;
@@ -127,6 +134,30 @@ const picosAng = [];
 for (let k = 0; k < NANG; k++) {
   if (da[k] > da[(k - 1 + NANG) % NANG] && da[k] >= da[(k + 1) % NANG] && da[k] > medAng * 1.25) picosAng.push(k);
 }
+/* ── perfil angular: de dónde sortear el ángulo de cada filamento ─────────
+   `radios_n` cuenta los radios de la roseta, que es arte regular. Esto es otra
+   cosa: CUÁNTA tinta hay en cada dirección, que es lo que decide hacia dónde
+   sale la trama. u01 lo necesitaba porque su campo no es isótropo -la
+   referencia pesa 4.769 px hacia arriba-izquierda contra 1.793 hacia abajo- y
+   los racimos sorteados con `azar()` le habían quedado justo al revés: 34 % de
+   cobertura arriba-izquierda y 202 % abajo.
+   Se mide sobre el anillo del campo -0,18 a 0,80 del radio- para no dejar que
+   el núcleo, que es isótropo y muy brillante, aplaste la señal. */
+const NAP = 36;
+const tap = new Array(NAP).fill(0), aap = new Array(NAP).fill(0);
+for (let y = Y0; y < Y1; y++) for (let x = X0; x < X1; x++) {
+  const dx = x - CX, dy = y - CY, d = Math.hypot(dx, dy);
+  if (d < RMAX * 0.18 || d > RMAX * 0.8) continue;
+  const k = Math.floor(((Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI)) * NAP) % NAP;
+  aap[k]++;
+  if (lum(x, y) > T) tap[k]++;
+}
+/* Densidad y no conteo: la región es un rectángulo, así que las direcciones
+   diagonales abarcan más píxeles que las rectas y un conteo crudo las premia. */
+const dap = tap.map((v, k) => (aap[k] ? v / aap[k] : 0));
+const sumAp = dap.reduce((a, b) => a + b, 0) || 1;
+const angular_perfil = dap.map(v => +(v / sumAp).toFixed(4));
+
 let radios_n = 0;
 if (picosAng.length > 2) {
   const sep = [];
@@ -210,7 +241,7 @@ const paleta = [...cubos.entries()]
 const receta = {
   slug, centro: [CX, CY], radio: RMAX, region: { x: X0, y: Y0, w, h },
   tinta_total: tintaTotal,
-  anillos_perfil, anillos_r, radios_n,
+  anillos_perfil, anillos_r, radios_n, angular_perfil,
   glifos, marcas, paleta,
 };
 const outDir = join(ROOT, "scripts", "lamina", "campo");

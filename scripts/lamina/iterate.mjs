@@ -33,7 +33,11 @@ if (!slug) {
 }
 const noBuild = process.argv.includes("--no-build");
 const wantCrops = process.argv.includes("--crops");
-const PORT = 4399;
+/* Puerto configurable por entorno. Estaba fijo en 4399, y eso impide medir dos
+   laminas a la vez: dos agentes en paralelo levantan cada uno su `astro preview`
+   y el segundo choca contra el puerto del primero. Con KDX_PUERTO cada agente
+   corre en el suyo y el paralelismo deja de ser una colision. */
+const PORT = Number(process.env.KDX_PUERTO || 4399);
 
 const run = (cmd, args, opts = {}) =>
   new Promise((res, rej) => {

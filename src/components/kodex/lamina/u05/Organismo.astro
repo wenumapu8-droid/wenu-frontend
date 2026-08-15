@@ -41,6 +41,7 @@
 </style>
 
 <script>
+  import { montarLienzo } from '../kit/lienzo';
   /* Sin TypeScript acá dentro: Astro lo compila como JS. */
   const raiz = document.querySelector('[data-bloque="Organismo"]');
   if (raiz) {
@@ -309,75 +310,13 @@
 
     /* ── montaje: mismo esqueleto de bucle que toda la serie ───────────── */
     pintarFondo(gf);
-    const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const PERIODO = reducido ? 40000 : 11000;
-    const faseDe = (ms) => {
-      const f = (ms / PERIODO) % 1;
-      return f < 0 ? f + 1 : f;
-    };
-    const cuadro = (fase) => pintarVivo(gv, fase);
-    cuadro(0);
-
-    let corriendo = 0;
-    let detenido = true;
-    const parar = () => {
-      detenido = true;
-      if (corriendo) cancelAnimationFrame(corriendo);
-      corriendo = 0;
-    };
-    let congelado = false;
-    let visible = false;
-    const arrancar = () => {
-      if (corriendo || congelado || !visible || document.hidden) return;
-      detenido = false;
-      const t0 = performance.now();
-      const paso = (ahora) => {
-        if (detenido) return;
-        cuadro(faseDe(ahora - t0));
-        corriendo = requestAnimationFrame(paso);
-      };
-      corriendo = requestAnimationFrame(paso);
-    };
-    if ("IntersectionObserver" in window) {
-      new IntersectionObserver(
-        (es) => {
-          visible = es.some((e) => e.isIntersecting);
-          visible ? arrancar() : parar();
-        },
-        { threshold: 0 },
-      ).observe(raiz);
-    } else {
-      visible = true;
-      arrancar();
-    }
-    document.addEventListener("visibilitychange", () => {
-      document.hidden ? parar() : arrancar();
+    /* Ciclo de vida en kit/lienzo.ts: bucle por fase, contrato de congelado,
+       visibilidad, prefers-reduced-motion y DPR. Eran 70 lineas por lamina. */
+    montarLienzo({
+      raiz: raiz,
+      cuadro: (fase) => pintarVivo(gv, fase),
+      periodo: 11000,
+      periodoReducido: 40000,
     });
-
-    /* Sumidero del freeze: compartido con los demás bloques de la lámina. */
-    const sumidero = (t = 0) => {
-      congelado = true;
-      parar();
-      cuadro(faseDe(typeof t === "number" ? t * 1000 : 0));
-    };
-    const bolsa = (window.__kdxSumideros = window.__kdxSumideros || []);
-    bolsa.push(sumidero);
-    const propio = (fn) => bolsa.push(fn);
-    const congelar = (t = 0) => {
-      for (const fn of bolsa.slice()) fn(t);
-      document.documentElement.dataset.kdxFrozen = "1";
-    };
-    let intentos = 0;
-    const registrar = () => {
-      const reg = window.__kdxRegisterFreeze;
-      if (typeof reg === "function" && reg !== propio) {
-        reg(sumidero);
-        return;
-      }
-      if (typeof reg !== "function") window.__kdxRegisterFreeze = propio;
-      if (typeof window.__kdxFreeze !== "function") window.__kdxFreeze = congelar;
-      if (intentos++ < 120) requestAnimationFrame(registrar);
-    };
-    registrar();
   }
 </script>

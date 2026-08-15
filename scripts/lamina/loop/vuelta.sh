@@ -137,14 +137,22 @@ medir() {
   jq_node '
     const s = require(process.argv[1]);
     const r = s.regiones.find(x => x.id === process.argv[2]);
-    console.log(`${s.global.pct} ${r ? r.pct : "NaN"}`);
+    /* COBERTURA, no diferencia. El loop decidia por `pct` -la diferencia
+       promedio-, que es exactamente la metrica que premia las laminas vacias:
+       la referencia de u10 es 93,1 % fondo negro y una lamina completamente
+       vacia difiere apenas 6,9 % de ella. Un agente optimizando eso borra
+       dibujo y el loop se lo aprueba.
+       Se decide por cobertura global -tinta puesta sobre tinta de la
+       referencia-, que no se puede enganar vaciando. La region se sigue
+       informando para saber donde se trabajo. */
+    console.log(`${s.global.cobertura ?? 0} ${r ? (r.cobertura ?? r.pct) : "NaN"}`);
   ' "$REPO/scripts/lamina/out/$SLUG/score.json" "$REGION"
 }
 
 MEDIDA="$(medir)" || { log "no se pudo medir la línea base"; exit 5; }
 read -r G0 R0 <<<"$MEDIDA"
 [[ -n "${R0:-}" && "$R0" != "NaN" ]] || { log "la región $REGION no aparece en score.json"; exit 5; }
-log "base: global $G0 · $REGION $R0"
+log "base: cobertura global $G0% · $REGION $R0%"
 
 # ── el agente ───────────────────────────────────────────────────────────────
 PROMPT="$(jq_node '
@@ -189,8 +197,8 @@ MEDIDA="$(medir)" || { log "no se pudo medir después; se revierte"; git reset -
 read -r G1 R1 <<<"$MEDIDA"
 
 DELTA="$(jq_node 'console.log((Number(process.argv[1]) - Number(process.argv[2])).toFixed(3))' "$R1" "$R0")"
-MEJORA="$(jq_node 'console.log(Number(process.argv[2]) - Number(process.argv[1]) >= Number(process.argv[3]) ? 1 : 0)' "$R1" "$R0" "$UMBRAL")"
-log "después: global $G1 · $REGION $R1  (Δ $DELTA)"
+MEJORA="$(jq_node 'console.log(Number(process.argv[1]) - Number(process.argv[2]) >= Number(process.argv[3]) ? 1 : 0)' "$R1" "$R0" "$UMBRAL")"
+log "después: cobertura global $G1% · $REGION $R1%  (Δ $DELTA)"
 
 if [[ "$MEJORA" == "1" ]]; then
   VEREDICTO="mejora"
