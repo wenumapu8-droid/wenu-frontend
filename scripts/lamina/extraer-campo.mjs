@@ -46,7 +46,13 @@ if (!slug) {
   process.exit(2);
 }
 
-const refPath = join(ROOT, "reference", "canon", `${slug}.png`);
+/* La referencia salía fija de `reference/canon/`, y eso deja fuera las que todavía no
+   son canon. El canon prohíbe por escrito tratar una imagen de referencia como asset
+   canónico sin revisión humana, así que las 54 que aparecieron en Drive viven en
+   `reference/pendientes/` — medibles, pero sin ascenderlas a canon por el solo hecho de
+   medirlas. `KDX_REFDIR` elige el directorio; sin él nada cambia. */
+const REFDIR = process.env.KDX_REFDIR || join("reference", "canon");
+const refPath = join(ROOT, REFDIR, `${slug}.png`);
 if (!existsSync(refPath)) { console.error(`no existe ${refPath}`); process.exit(2); }
 const png = PNG.sync.read(readFileSync(refPath));
 const W = png.width, H = png.height;
