@@ -117,17 +117,21 @@ A first edit attempt touched unrelated comments in the shared monolithic folio f
 
 `NOT MEASURED` is an explicit epistemic state, not substitute telemetry.
 
-### Current CI infrastructure blocker
+### Current CI blocker — exact provider cause
 
-KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...`.
+KODEX Product Corridor run `31877581094` / #32 targets exact head `1f7bbeb...` and has now reached **run_attempt=5**.
 
-It has now been attempted **four times**. The fourth re-run was requested without any code change and GitHub accepted the request, but job `94996316206` again completed before any workflow step executed; no step list and no product/browser assertion were produced. The prior three attempts likewise terminated before workflow execution with `runner_id=0` / empty steps.
+Attempt 5 job `95002834444` completed in roughly three seconds with `runner_id=0`, no runner name and `steps=[]`. The GitHub Actions check-run exposes one failure annotation with the exact provider message:
 
-Therefore these failures remain **GitHub Actions runner/scheduling failures**, not product/browser evidence. MACHINE is currently:
+> The job was not started because recent account payments have failed or your spending limit needs to be increased. Please check the 'Billing & plans' section in your settings.
+
+This supersedes the earlier generic runner/scheduling diagnosis. The current blocker is **GitHub account billing / Actions spending authorization**, not KODEX product code and not MACHINE browser evidence.
+
+MACHINE remains:
 
 **IMPLEMENTED TRUTH REPAIR / BROWSER REVALIDATION PENDING**
 
-Do not call MACHINE browser-accepted and do not modify product code to compensate for runner allocation failure.
+Do not call MACHINE browser-accepted. Do not modify product code, tests, workflow logic or QA thresholds to compensate for this account-level block.
 
 ---
 
@@ -168,11 +172,12 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 
 1. Preserve PR #62 as the verified Assembly/Deep Navigation baseline. Do not reopen P0.1–P0.10.
 2. Keep PR #77 on exact head `1f7bbeb...`; do **not** advance COSMOLOGY yet.
-3. Re-run the existing Product Corridor workflow only when GitHub Actions actually assigns a runner. Do not change code merely to create another run.
-4. If MACHINE executes and passes, inspect the exact desktop/mobile/reduced-motion artifact before changing its state to browser-accepted.
-5. If MACHINE executes and fails, repair only the measured defect and retain truth/provenance gates.
-6. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-7. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
+3. Resolve the GitHub `Billing & plans` / Actions spending-limit problem outside the codebase. This is an account-level prerequisite, not a KODEX code task.
+4. After billing/spend authorization is restored, re-run the same exact Product Corridor head without product-code changes.
+5. If MACHINE executes and passes, inspect the exact desktop/mobile/reduced-motion artifact before changing its state to browser-accepted.
+6. If MACHINE executes and fails, repair only the measured defect and retain truth/provenance gates.
+7. Preserve user agency, keyboard/focus, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
+8. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
 
 ---
 
