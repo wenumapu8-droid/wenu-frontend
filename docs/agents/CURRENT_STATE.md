@@ -209,3 +209,36 @@ Before editing KODEX, verify:
 8. Is the output implementation, test evidence, hypothesis, reference or deployment?
 
 If these cannot be answered from connected sources, do not guess.
+
+---
+
+## 9. Latest convergence update — Manifestation × RGX
+
+PR #76 (`feat/kodex-manifestation-rgx-integration-v1`) is now the verified convergence slice between the deterministic Manifestation/Causal Latency lineage (#71) and the RGX reference-grounded lineage (#73 → #74 → #75). It does **not** replace #70 as the volumetric/materiality benchmark and does not create a new state, memory, route or renderer architecture.
+
+Exact head `d15bad99f52f38f831cd7ec0f2e4bd157e460c26` completed KODEX Core Runtime run 272 / `31856640516`: **SUCCESS**. The dedicated Manifestation × RGX browser gate passed together with Manifestation state/resolver/Assembly adapter tests, JourneyState bridge, Assembly OS contracts, seeded benchmark, integrity audit, Astro build, Deep Navigation, HoloCore/RGX gates and Golden Plates.
+
+Evidence artifact: `kodex-evidence`, id `9239318231`, digest `sha256:d6d3098b767decbf0fa93df4ed06eecfe33c1ddcf2c792d34372c8b129d850cd`.
+
+Verified integration behavior:
+
+- unresolved blocker forces INTERFERENCE and blocks transformation;
+- REALIZED `KDX-NODE-DNA-ASCENT` resolves through the explicit existing `HOLOCORE_NODE_MAP` to DNA ASCENT;
+- TRACE writes semantic memory through the existing JourneyState bridge;
+- one active Canvas + one SVG scaffold only;
+- actual painted RGX signal;
+- mobile 390×844 bounded/no-scroll;
+- reduced-motion static frame;
+- `noindex,nofollow` and no source pixels.
+
+Actual run-272 screenshots were inspected. INTERFERENCE PORTAL is the clearest integrated state and remains legible on mobile. DNA ASCENT is semantically unmistakable but still reads as a clean RGX/vector scaffold rather than a finished volumetric object. MEMORY TREE TRACE is readable as symbolic/structural memory but remains diagrammatic and sparse.
+
+**Conclusion:** #76 closes a systems-convergence question, not the creator-perceptual-quality question. RGX remains **ADAPT / specialized structural grammar**, not default/final HoloCore materiality. Creator visual acceptance remains PENDING.
+
+This section supersedes the earlier section-7 ordering where it conflicts with newer evidence. The current next action is:
+
+1. Keep #76 draft as the tested convergence substrate; do not add another state engine, memory model, route engine, renderer or RGX family expansion.
+2. Do not make further code changes merely because the integration is green. Advance only when a concrete product-facing KODEX scene/route is selected for this substrate or creator review identifies a bounded visual/material delta.
+3. Keep #70 as the separate current volumetric/materiality benchmark; any toroidal refinement remains shader-only and evidence-driven inside #70.
+4. Preserve user agency, reduced-motion/fallbacks, truth-state separation, protected artwork integrity, noindex internal labs, and explicit creator/release gates.
+5. No merge, deploy, permission change or canon promotion is authorized by these results.
