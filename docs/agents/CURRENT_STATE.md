@@ -163,7 +163,7 @@ Many older KODEX PRs remain open. Open status does not make them equally authori
 - #68 = separate static/reference measurement corridor; do not silently substitute for Assembly/HoloCore lineage.
 - #71 = deterministic manifestation/software-state semantics; not metaphysical truth.
 - #64 = governed visual-assembly proposal lane; it does not supersede implemented Assembly OS contracts without reconciliation.
-- #77 = bounded product-corridor convergence slice on the #68 lineage; THRESHOLD + PROLOGUE are browser-validated there, but #77 does not supersede #62/#76 architecture.
+- #77 = bounded product-corridor convergence slice on the #68 lineage; THRESHOLD + PROLOGUE + DESCENT are browser-validated there, but #77 does not supersede #62/#76 architecture.
 
 No standalone current Decision Log was found in the accessible repo/Drive search. Do **not** invent one. Operational truth currently comes from Drive canon + this Current State + exact active PR heads/CI/artifacts.
 
@@ -194,12 +194,13 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 1. Treat PR #62 as the verified Assembly/Deep Navigation baseline; do not reopen P0.1–P0.10 without a demonstrated contract gap.
 2. Treat PR #70 head `0676c9e8…` / run 278 as the current browser-validated volumetric benchmark. The raymarch discontinuity defect is closed.
 3. Treat PR #75 as the current **reference-fidelity creator-review surface** for Heart/Skull/Signal Seed/Living Organism; do not expand RGX family scope or promote it to final/default materiality from this evidence.
-4. Treat PR #77 head `a2dc02ec…` / Product Corridor run 19 as the current browser-validated THRESHOLD + PROLOGUE product slice; creator acceptance remains separate.
+4. Treat PR #77 head `de92084d…` / Product Corridor run 23 as the current browser-validated THRESHOLD + PROLOGUE + DESCENT product slice; creator acceptance remains separate.
 5. **Pause further architecture and renderer-family expansion.** Creator visual acceptance remains the unresolved gate.
 6. If creator review requests another toroidal change, keep it bounded to shader/material/camera inside #70 and rerun the same exact browser/artifact review cycle.
-7. Continue the product corridor only through the smallest evidence-driven next-room slice on #77/#68 lineage; do not recreate #62/#76 systems inside it.
+7. Continue the product corridor only through the smallest evidence-driven ARCHIVE slice on #77/#68 lineage; do not recreate #62/#76 systems inside it.
 8. Preserve user agency, reduced-motion/fallbacks, epistemic labels, cultural/source provenance and protected-artwork integrity.
-9. No merge, deploy, permission change, public asset approval or canon promotion is authorized by these results.
+9. Do not alter shared mobile chrome globally solely to address the DESCENT HUD crowding without cross-room evidence.
+10. No merge, deploy, permission change, public asset approval or canon promotion is authorized by these results.
 
 ---
 
@@ -222,7 +223,7 @@ If these cannot be answered from connected sources, do not guess.
 
 ## 10. Product-facing corridor convergence gate
 
-PR #68 (`wip/kimi-u10-commons-cabecera`, head `46c8086281df7e144331c7c8493a0f2dfe24e065`) is the concrete product-facing seven-scene corridor lineage. It remains separate from #62/#76 and must not silently substitute for their verified systems.
+PR #68 (`wip/kimi-u10-commons-cabecera`, prior compared head `46c8086281df7e144331c7c8493a0f2dfe24e065`) is the concrete product-facing seven-scene corridor lineage. It remains separate from #62/#76 and must not silently substitute for their verified systems.
 
 Live branch comparison previously established the lineage constraint:
 
@@ -233,13 +234,13 @@ This remains an integration constraint, not an invitation to recreate Deep Navig
 
 ---
 
-## 11. Product corridor — THRESHOLD + PROLOGUE exact-head state
+## 11. Product corridor — THRESHOLD + PROLOGUE + DESCENT exact-head state
 
-PR #77 (`feat/kodex-threshold-convergence-v1`) advances the existing #68 corridor without broad lineage merge. It now owns browser acceptance for the first two rooms only.
+PR #77 (`feat/kodex-threshold-convergence-v1`) advances the existing #68 corridor without broad lineage merge. It now owns browser acceptance for the first three rooms only.
 
-Exact current head: `a2dc02ec5546987286cfbfd12618a7ee5f74de61`.  
-KODEX Product Corridor Slice run 19 / `31870522954`: **SUCCESS**.  
-Artifact: `kodex-product-corridor-evidence` id `9243318442`, digest `sha256:1ccb0587a3c2d8acc5a45f9464f8f808f5da6ecdc78168a2c6be7fb374db1f91`.
+Exact current head: `de92084d154f878d2969fc464c8dfa498de5c4b4`.  
+KODEX Product Corridor Slice run 23 / `31870910817`: **SUCCESS**.  
+Artifact: `kodex-product-corridor-evidence` id `9243424225`, digest `sha256:ab2a79c7297484bd530391958a8c7b1fdce1ffb1e37cb426b25e74ac53d847e1`.
 
 ### THRESHOLD
 
@@ -247,25 +248,14 @@ Desktop/mobile/reduced-motion remain 100dvh/no-scroll, preserve existing WebGL p
 
 ### PROLOGUE
 
-A previous mechanically green artifact exposed two composition defects: desktop macro-title collision from generic OS auto-placement and a mobile first composition that did not visibly surface the primary CTA. The fix is presentation-only and scoped to `.kx-os-scene--prologue`; no renderer/state/memory/route/Assembly system was introduced.
+The presentation-only repair remains browser-validated: title and `BEGIN OBSERVATION` are inside the first viewport, do not overlap the dominant artifact, CTA hit-testing is real, observe CRT/fallback remains valid, protocol focus restores, memory is recorded and navigation to `/kodex/folio/ii/` remains explicit.
 
-Current gate requires:
+### DESCENT
 
-- title and `BEGIN OBSERVATION` fully inside the first viewport;
-- no title/art or CTA/art overlap;
-- CTA hit-test ownership rather than DOM visibility alone;
-- 100dvh/no-scroll desktop/mobile/reduced-motion;
-- existing observe CRT painted or source fallback usable;
-- protocol drawer focus restoration;
-- existing memory registration;
-- explicit `BEGIN OBSERVATION → /kodex/folio/ii/` navigation.
+The run-23 gate validates desktop 1440×900, mobile 390×844 and reduced-motion with 100dvh/no-scroll, painted CRT Canvas or usable source fallback, title/action viewport bounds, non-overlap and real action hit-testing.
 
-Run-19 measured evidence:
+The user-agency contract is explicit and verified: local `DESCEND` changes `STRATUM · 01 / 11 / ROOT / DEPTH · -137 M` to `STRATUM · 02 / 11 / FERTILE VOID / DEPTH · -226 M` while staying on `/kodex/folio/ii/`; only the shared explicit NEXT advances to `/kodex/folio/iii/`. Existing `kx-journey` records the visit. Console and HTTP error sets are empty in all three profiles.
 
-- desktop 1440×900: title x=57.6..412.8, artifact x=672.4..1382.4, CTA y=583.7..631.7; overlap checks PASS, hit-test PASS;
-- mobile 390×844: title y=67.8..134.4, CTA y=187.3..229.3, artifact y=490.4..752; all inside first viewport, overlap checks PASS, hit-test PASS;
-- reduced motion preserves the same bounded interaction semantics.
+Actual run-23 screenshots were inspected. Desktop/reduced-motion read as a coherent tunnel/stratum room with a dominant circular field and explicit local action. Mobile keeps the same action hierarchy but shared astronomy/HUD micro-instrumentation crowds the upper ring and repeats DESCENT labels. Treat this as a creator/curatorial presentation flag, not a browser/state failure; the source is shared chrome, so do not mutate it globally without cross-room evidence.
 
-Actual screenshots were inspected: the desktop collision is removed and the mobile CTA is visibly present before the artifact. Mobile retains substantial negative space between protocol controls and the artifact; treat that as creator/curatorial refinement, not a browser-mechanical failure.
-
-**Truth boundary:** THRESHOLD + PROLOGUE are browser-validated product slices on a draft branch. Creator acceptance remains PENDING. No merge/deploy/permission/public-asset/canon approval is implied, and no protected Ocín source original was modified or re-authorized.
+**Truth boundary:** THRESHOLD + PROLOGUE + DESCENT are browser-validated product slices on a draft branch. Creator acceptance remains PENDING. No merge/deploy/permission/public-asset/canon approval is implied, and no protected Ocín source original was modified or re-authorized.
