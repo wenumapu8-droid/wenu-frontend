@@ -59,6 +59,12 @@ export interface OpcionesCampo {
   /** Cuántos puntos de polvo fino. */
   polvo?: number;
   /**
+   * Qué capas dibujar. Existe para poder SUMAR lo que falta a una lámina que ya
+   * tiene su campo, en vez de reemplazarlo: migrar a ciegas rompió seis láminas
+   * una vez y la lección fue no suponer que dos composiciones son la misma.
+   */
+  capas?: Array<"polvo" | "estrellas" | "radios" | "anillos" | "glifos" | "marcas">;
+  /**
    * Cuánto se rebaja la densidad de los anillos interiores. La trama une pares
    * vecinos, así que su tinta crece con la densidad al cuadrado: sin esto el
    * núcleo se satura. 1 = sin rebaja.
@@ -110,6 +116,7 @@ export function pintarCampo(g: CanvasRenderingContext2D, o: OpcionesCampo) {
     return 1;
   };
 
+  const capas = new Set(o.capas ?? ["polvo", "estrellas", "radios", "anillos", "glifos", "marcas"]);
   const RR = Math.min(W, H) / 2 - 8;
   const punto = (u: number, v: number) => {
     const rr = radio(u) * RR;
@@ -117,45 +124,49 @@ export function pintarCampo(g: CanvasRenderingContext2D, o: OpcionesCampo) {
     return [CX + rr * Math.cos(ang), CY + rr * Math.sin(ang)] as const;
   };
 
-  /* ── polvo fino ─────────────────────────────────────────────────────── */
-  const nPolvo = o.polvo ?? 2600;
-  for (let k = 0; k < nPolvo; k++) {
-    const [x, y] = punto(rnd(), rnd());
-    g.fillStyle = tinta(color(rnd()), 0.04 + rnd() * 0.28);
-    g.beginPath();
-    g.arc(x, y, 0.25 + rnd() * 0.9, 0, TAU);
-    g.fill();
-  }
-
-  /* ── estrellas y trama ──────────────────────────────────────────────── */
-  const nEstrellas = o.estrellas ?? 1400;
-  const estrellas: Array<{ x: number; y: number; r: number; br: number }> = [];
-  for (let k = 0; k < nEstrellas; k++) {
-    const [x, y] = punto(rnd(), rnd());
-    estrellas.push({ x, y, r: 1 + rnd() * 2.2, br: rnd() });
-  }
-  g.strokeStyle = tinta(paleta[0].rgb, 0.15);
-  g.lineWidth = 0.5;
-  for (let i = 0; i < estrellas.length; i++) {
-    for (let j = i + 1; j < estrellas.length; j++) {
-      const dx = estrellas[i].x - estrellas[j].x, dy = estrellas[i].y - estrellas[j].y;
-      if (dx * dx + dy * dy < 1600) {
-        g.beginPath();
-        g.moveTo(estrellas[i].x, estrellas[i].y);
-        g.lineTo(estrellas[j].x, estrellas[j].y);
-        g.stroke();
-      }
+  if (capas.has("polvo")) {
+    /* ── polvo fino ─────────────────────────────────────────────────────── */
+    const nPolvo = o.polvo ?? 2600;
+    for (let k = 0; k < nPolvo; k++) {
+      const [x, y] = punto(rnd(), rnd());
+      g.fillStyle = tinta(color(rnd()), 0.04 + rnd() * 0.28);
+      g.beginPath();
+      g.arc(x, y, 0.25 + rnd() * 0.9, 0, TAU);
+      g.fill();
     }
   }
-  for (const e of estrellas) {
-    g.fillStyle = tinta(color(e.br), 0.3 + e.br * 0.5);
-    g.beginPath();
-    g.arc(e.x, e.y, e.r, 0, TAU);
-    g.fill();
+
+  if (capas.has("estrellas")) {
+    /* ── estrellas y trama ──────────────────────────────────────────────── */
+    const nEstrellas = o.estrellas ?? 1400;
+    const estrellas: Array<{ x: number; y: number; r: number; br: number }> = [];
+    for (let k = 0; k < nEstrellas; k++) {
+      const [x, y] = punto(rnd(), rnd());
+      estrellas.push({ x, y, r: 1 + rnd() * 2.2, br: rnd() });
+    }
+    g.strokeStyle = tinta(paleta[0].rgb, 0.15);
+    g.lineWidth = 0.5;
+    for (let i = 0; i < estrellas.length; i++) {
+      for (let j = i + 1; j < estrellas.length; j++) {
+        const dx = estrellas[i].x - estrellas[j].x, dy = estrellas[i].y - estrellas[j].y;
+        if (dx * dx + dy * dy < 1600) {
+          g.beginPath();
+          g.moveTo(estrellas[i].x, estrellas[i].y);
+          g.lineTo(estrellas[j].x, estrellas[j].y);
+          g.stroke();
+        }
+      }
+    }
+    for (const e of estrellas) {
+      g.fillStyle = tinta(color(e.br), 0.3 + e.br * 0.5);
+      g.beginPath();
+      g.arc(e.x, e.y, e.r, 0, TAU);
+      g.fill();
+    }
   }
 
   /* ── radios de la roseta ────────────────────────────────────────────── */
-  if (r.radios_n > 0) {
+  if (capas.has("radios") && r.radios_n > 0) {
     g.lineWidth = 0.6;
     for (let k = 0; k < r.radios_n; k++) {
       const ang = (k / r.radios_n) * TAU;
@@ -168,43 +179,50 @@ export function pintarCampo(g: CanvasRenderingContext2D, o: OpcionesCampo) {
     }
   }
 
-  /* ── anillos concéntricos ───────────────────────────────────────────── */
-  g.lineWidth = 0.7;
-  for (const rr of r.anillos_r) {
-    g.strokeStyle = tinta(color((rr % 7) / 7), 0.26);
-    g.beginPath();
-    g.arc(CX, CY, rr * escala, 0, TAU);
-    g.stroke();
+  if (capas.has("anillos")) {
+    /* ── anillos concéntricos ───────────────────────────────────────────── */
+    g.lineWidth = 0.7;
+    for (const rr of r.anillos_r) {
+      g.strokeStyle = tinta(color((rr % 7) / 7), 0.26);
+      g.beginPath();
+      g.arc(CX, CY, rr * escala, 0, TAU);
+      g.stroke();
+    }
   }
 
-  /* ── glifos, en sus posiciones medidas ──────────────────────────────── */
-  const [RX, RY] = r.centro;
-  g.lineWidth = 0.7;
-  for (let k = 0; k < r.glifos.length; k += 3) {
-    const gx = CX + (r.glifos[k] - RX) * escala;
-    const gy = CY + (r.glifos[k + 1] - RY) * escala;
-    const gr = Math.max(3, r.glifos[k + 2] * escala);
-    const c = color(((k * 37) % 100) / 100);
-    g.strokeStyle = tinta(c, 0.34);
-    g.beginPath(); g.arc(gx, gy, gr, 0, TAU); g.stroke();
-    if (gr > 7) { g.beginPath(); g.arc(gx, gy, gr * 0.58, 0, TAU); g.stroke(); }
-    g.fillStyle = tinta(c, 0.5);
-    g.beginPath(); g.arc(gx, gy, Math.min(1.6, gr * 0.2), 0, TAU); g.fill();
+  if (capas.has("glifos")) {
+    /* ── glifos, en sus posiciones medidas ──────────────────────────────── */
+    const [RX, RY] = r.centro;
+    g.lineWidth = 0.7;
+    for (let k = 0; k < r.glifos.length; k += 3) {
+      const gx = CX + (r.glifos[k] - RX) * escala;
+      const gy = CY + (r.glifos[k + 1] - RY) * escala;
+      const gr = Math.max(3, r.glifos[k + 2] * escala);
+      const c = color(((k * 37) % 100) / 100);
+      g.strokeStyle = tinta(c, 0.34);
+      g.beginPath(); g.arc(gx, gy, gr, 0, TAU); g.stroke();
+      if (gr > 7) { g.beginPath(); g.arc(gx, gy, gr * 0.58, 0, TAU); g.stroke(); }
+      g.fillStyle = tinta(c, 0.5);
+      g.beginPath(); g.arc(gx, gy, Math.min(1.6, gr * 0.2), 0, TAU); g.fill();
+    }
   }
 
-  /* ── marcas alargadas ───────────────────────────────────────────────── */
-  g.lineWidth = 0.9;
-  for (let k = 0; k < r.marcas.length; k += 4) {
-    const mx = CX + (r.marcas[k] - RX) * escala;
-    const my = CY + (r.marcas[k + 1] - RY) * escala;
-    const mw = r.marcas[k + 2] * escala, mh = r.marcas[k + 3] * escala;
-    g.strokeStyle = tinta(color(((k * 53) % 100) / 100), 0.38);
-    g.beginPath();
-    if (mw >= mh) { g.moveTo(mx - mw / 2, my); g.lineTo(mx + mw / 2, my); }
-    else { g.moveTo(mx, my - mh / 2); g.lineTo(mx, my + mh / 2); }
-    g.stroke();
-    g.beginPath();
-    g.ellipse(mx, my, Math.max(1.5, mw / 2), Math.max(1.5, mh / 2), 0, 0, TAU);
-    g.stroke();
+  if (capas.has("marcas")) {
+    /* ── marcas alargadas ───────────────────────────────────────────────── */
+    g.lineWidth = 0.9;
+    for (let k = 0; k < r.marcas.length; k += 4) {
+      const mx = CX + (r.marcas[k] - RX) * escala;
+      const my = CY + (r.marcas[k + 1] - RY) * escala;
+      const mw = r.marcas[k + 2] * escala, mh = r.marcas[k + 3] * escala;
+      g.strokeStyle = tinta(color(((k * 53) % 100) / 100), 0.38);
+      g.beginPath();
+      if (mw >= mh) { g.moveTo(mx - mw / 2, my); g.lineTo(mx + mw / 2, my); }
+      else { g.moveTo(mx, my - mh / 2); g.lineTo(mx, my + mh / 2); }
+      g.stroke();
+      g.beginPath();
+      g.ellipse(mx, my, Math.max(1.5, mw / 2), Math.max(1.5, mh / 2), 0, 0, TAU);
+      g.stroke();
+    }
   }
+
 }
