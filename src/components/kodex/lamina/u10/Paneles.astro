@@ -21,6 +21,44 @@
  * La lámina no tiene paneles enmarcados: tiene un campo abierto con marcas
  * sueltas y texto encima.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+/**
+ * Pega un glifo TRAZADO de `scripts/lamina/glyphs.mjs` en coordenadas de lámina.
+ *
+ * La escritura a mano del centro no se dibuja: se traza. Es letra cursiva y la
+ * tabla del método es explícita —clusters compactos de arte fija se trazan con
+ * `glyphs.mjs`, no se reconstruyen a ojo—; el propio extractor lo dice midiendo
+ * que las reconstrucciones «conservan el peso visual y la silueta» y ahí se
+ * quedan.
+ *
+ * Los archivos salen con `viewBox="0 0 w*8 h*8"` porque el trazador sobremuestrea
+ * ×8, así que se pegan con `scale(0.125)` y quedan en unidades de lámina. Se leen
+ * en tiempo de build y no se transcriben a mano: son 16 KB de `d` y copiarlos es
+ * una fuente de error sin ninguna ventaja.
+ *
+ * La colocación va en un `<g>` que ENVUELVE, y no en un `transform` por `<path>`.
+ * vtracer ya emite su propio `transform="translate(...)"` en cada path, así que
+ * agregarle un segundo atributo del mismo nombre no compone las dos: el parser se
+ * queda con uno y tira el otro. Hecho así los glifos salieron a una fracción de
+ * su tamaño y la región subió de 7,386 % a 7,409 %.
+ */
+const RAIZ = join(process.cwd(), "scripts", "lamina", "glyphs", "u10-commons");
+const trazo = (carpeta: string, id: string, x: number, y: number) =>
+  `<g transform="translate(${x} ${y}) scale(0.125)">` +
+  readFileSync(join(RAIZ, carpeta, `${id}.svg`), "utf8")
+    .replace(/[\s\S]*?<svg[^>]*>/, "")
+    .replace(/<\/svg>\s*$/, "")
+    .replace(/\sfill="[^"]*"/g, "") +
+  "</g>";
+
+/* Las cuatro piezas legibles del bloque, con la caja que devolvió el manifiesto.
+   Se dejan fuera `mano-a/g03`, `mano-b/g01` y `mano-b/g04`: son motas del campo
+   que pasaron el umbral, no escritura, y pintarlas con la tinta de la escritura
+   sería ponerles un color que no tienen. */
+const manoA = ["g01", "g02"].map((id, i) => trazo("mano-a", id, [445, 460][i], [420, 416][i])).join("");
+const manoB = ["g02", "g03"].map((id, i) => trazo("mano-b", id, [463, 473][i], [460, 460][i])).join("");
 ---
 
 <div data-bloque="Paneles" style="inset:0">
@@ -135,6 +173,35 @@
     <g>
       <path class="u10p-esq" d="M696.5 1059.5V1047.5H708.5M1032.5 1047.5H1044.5V1059.5M1044.5 1273.5V1285.5H1032.5M708.5 1285.5H696.5V1273.5" />
     </g>
+
+    <!-- Centro izquierda: la escritura a mano. FALTABA ENTERA, como la frase de
+         arriba. Las franjas y 404..583 de la región daban 6.344 px de tinta en
+         la referencia contra 4.203 en el render, y con la lupa
+         (`_u10_zoom.mjs 450,410,690,500`) se lee «[ came / broken» y «I leave /
+         whole», en cursiva.
+
+         TRAZADA, no dibujada. Es la casilla «arte fija» de la tabla del método:
+           node scripts/lamina/glyphs.mjs u10-commons --band 416,455 --x 445,516 --umbral 62 --out mano-a
+           node scripts/lamina/glyphs.mjs u10-commons --band 456,494 --x 445,516 --umbral 62 --out mano-b
+         El umbral 62 es el que separa la escritura del campo, el mismo que sirvió
+         para las cotas de la frase de arriba. Las cajas son las del manifiesto,
+         no estimadas, y se verificaron rasterizando el trazo contra el recorte de
+         la referencia con `_u10_ver_glifo.mjs` antes de pegarlo: 700 nodos y
+         16 KB no dicen si lo trazado es el dibujo o la trama.
+
+         Las dos líneas van en dos grupos porque tienen DOS tintas distintas, y
+         eso también está medido sobre los píxeles que pasan el mismo umbral 62
+         con el que se trazó —o sea exactamente el área que se está pintando:
+
+           came broken    medio rgb(81,100,91)   verde
+           I leave whole  medio rgb(75,82,99)    azul
+
+         Va la media y no el pico: el pico de esas cajas es una estrella del
+         campo, no el trazo (179 y 192 de luminancia contra 95 y 85 de la media).
+         Y como acá se pinta una forma llena sin antialias, la media de lo que se
+         trazó ES el color que hay que declarar. -->
+    <g class="u10p-mano-a" set:html={manoA} />
+    <g class="u10p-mano-b" set:html={manoB} />
 
     <!-- Centro superior: la frase de apertura del campo. FALTABA ENTERA.
          `comparar-region.mjs u10-commons hero-center` daba 881 px de tinta en la
@@ -278,4 +345,8 @@
      pico rgb(172,144,142) sobre negro. 242·0,72 = 174, 204·0,72 = 147. */
   .u10p-frase { font-size: 9.5px; fill: #f2ccc8; fill-opacity: 0.72; }
   .u10p-ico { fill: none; stroke: #b18ae0; stroke-width: 1; stroke-opacity: 0.5; }
+  /* Escritura trazada. Opacidad 1: el color declarado ya ES el compuesto medido
+     sobre negro de los píxeles que se trazaron. */
+  .u10p-mano-a { fill: rgb(81 100 91); }
+  .u10p-mano-b { fill: rgb(75 82 99); }
 </style>
