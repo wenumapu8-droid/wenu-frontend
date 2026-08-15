@@ -603,6 +603,11 @@
          abiertos aparecen en el vacío. Sembrados los 700 al azar en polares, el
          campo se llena de puntos que no tocan nada y la trama deja de leerse
          como una red. */
+      /* SE PROBÓ bajarlos a 580 cuando `glifosMedidos` empezó a dibujar los
+         treinta nodos medidos, pensando que las dos poblaciones contaban dos
+         veces la misma marca. No paga: la región del núcleo baja de 103 % a
+         102,5 % de cobertura y su diferencia de 10,291 % a 10,244 %, mientras
+         la cobertura global cae de 98,2 % a 97,5 %. Se quedan los 700. */
       for (let k = 0; k < 700; k++) {
         let x, y, rad;
         if (r() < 0.68 && filamentos.length) {
@@ -663,6 +668,62 @@
           g.lineWidth = 0.8;
           g.strokeRect(n.x - n.t / 2, n.y - n.t / 2, n.t, n.t);
         }
+      }
+      g.restore();
+    }
+
+    /* ------------------------------------------------------- glifos medidos
+     * Los treinta diagramas compactos que `extraer-campo.mjs` saca de la
+     * referencia como componentes conectados: `[x, y, radio]` en píxeles de
+     * lámina, acá pasados al origen del bloque (46 · 225). No son decoración
+     * sorteada — son los POTENTIAL NODES que el póster rotula, y hasta ahora no
+     * los dibujaba nadie: los 700 nodos de `nodos` están sembrados al azar
+     * sobre los filamentos y ninguno cae donde están éstos.
+     *
+     * Se TRAZAN, no se dibujan a ojo: posición y radio salen de la medición.
+     * Van como anillo abierto porque eso es lo que dice la propia medición —
+     * componentes de 61 a 400 px de área con radios de 5 a 32, que es la
+     * circunferencia de un aro de 1 a 2 px de trazo y no un disco lleno; un
+     * disco de radio 32 tendría 3.200 px de área y habría caído fuera del
+     * filtro. El alfa cruza el umbral de tinta a propósito: son marcas duras
+     * del original, no bruma. */
+    const GLIFOS = [
+      [518, 130, 11], [423, 195, 10], [664, 225, 5], [431, 233, 11],
+      [438, 249, 7], [449, 266, 14], [455, 282, 7], [449, 291, 12],
+      [718, 335, 13], [704, 360, 12], [462, 383, 14], [644, 389, 32],
+      [589, 402, 14], [630, 404, 9], [580, 420, 10], [589, 429, 12],
+      [607, 438, 15], [433, 441, 14], [452, 442, 10], [439, 459, 10],
+      [596, 457, 8], [429, 475, 18], [456, 482, 8], [393, 489, 11],
+      [562, 501, 12], [473, 503, 10], [555, 540, 9], [432, 571, 31],
+      [221, 678, 9], [686, 697, 10],
+    ];
+
+    function glifosMedidos(g) {
+      const r = azar(0x8e2b);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const [x, y, rad] of GLIFOS) {
+        /* Ninguno igual al de al lado: el peso irregular es lo que separa un
+           trazado de instrumento de una figura de CAD (ver kit/README). */
+        const a = 0.22 + r() * 0.16;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.strokeStyle = tinta(r() < 0.18 ? VIO : NUCLEO, a);
+        g.lineWidth = 0.6 + r() * 0.25;
+        g.stroke();
+        /* Los más grandes llevan aro interior: en la referencia los de radio
+           mayor a 20 son diagramas y no puntos. */
+        if (rad > 20) {
+          g.beginPath();
+          g.arc(x, y, rad * (0.42 + r() * 0.16), 0, TAU);
+          g.strokeStyle = tinta(NUCLEO, a * 0.7);
+          g.lineWidth = 0.8;
+          g.stroke();
+        }
+        g.beginPath();
+        g.arc(x, y, 0.85, 0, TAU);
+        g.fillStyle = tinta(NUCLEO, 0.5);
+        g.fill();
       }
       g.restore();
     }
@@ -903,6 +964,7 @@
       tramaBase(g);
       polvo(g);
       nodosBase(g);
+      glifosMedidos(g);
     }
     pintarFondo(gf);
 
