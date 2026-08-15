@@ -1,0 +1,51 @@
+name: KODEX THRESHOLD Product Slice
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/**'
+      - 'src/components/kodex/**'
+      - 'src/kodex/threshold-portal/**'
+      - 'src/kodex/return/**'
+      - 'src/scripts/kodex-engine.js'
+      - 'src/styles/kodex*.css'
+      - 'scripts/kodex-threshold-product-evidence.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/kodex-threshold-product.yml'
+
+jobs:
+  threshold-product-slice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-threshold-preview.log 2>&1 &
+          echo $! > /tmp/kodex-threshold-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kodex-threshold-preview.log
+          exit 1
+      - name: Validate THRESHOLD desktop / mobile / reduced-motion
+        env:
+          KODEX_PREVIEW_URL: http://127.0.0.1:4321
+        run: npm run test:kodex:threshold
+      - name: Upload THRESHOLD evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-threshold-evidence
+          path: artifacts/kodex-threshold-evidence
+          if-no-files-found: warn
+          retention-days: 14
