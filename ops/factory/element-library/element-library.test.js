@@ -36,7 +36,7 @@ function runTests() {
   
   const elements = data.elements;
   assert.ok(Array.isArray(elements), 'Elements is an array');
-  assert.strictEqual(elements.length, 14, 'Must contain exactly 14 HoloCore RGX functional core entries');
+  assert.strictEqual(elements.length, 17, 'Must contain exactly 17 HoloCore RGX functional core entries');
   
   const seenIds = new Set();
   
@@ -62,7 +62,7 @@ function runTests() {
     assert.ok(Array.isArray(elem.incompatibilities), `Element ${elem.element_id} incompatibilities must be array`);
   }
   
-  console.log('✅ ALL 14 HOLOCORE RGX CONTRACTS PASSED NODE ASSERTION TESTS (18/18 FIELDS VALIDATED).');
+  console.log('✅ ALL 17 HOLOCORE RGX CONTRACTS PASSED NODE ASSERTION TESTS (18/18 FIELDS VALIDATED).');
 }
 
 runTests();

@@ -36,8 +36,8 @@ def validate_contracts():
     elements = data.get('elements', [])
     print(f"Loaded {len(elements)} elements from {CONTRACT_FILE}.")
     
-    if len(elements) != 14:
-        print(f"FAILED: Expected exactly 14 elements, found {len(elements)}")
+    if len(elements) != 17:
+        print(f"FAILED: Expected exactly 17 elements, found {len(elements)}")
         sys.exit(1)
         
     element_ids = set()
@@ -79,7 +79,7 @@ def validate_contracts():
     print("\n=======================================================")
     print("SCHEMA VALIDATION RESULTS: L6 ELEMENT LIBRARY CONTRACTS")
     print("=======================================================")
-    print(f"Total Elements Checked: {len(elements)}/14")
+    print(f"Total Elements Checked: {len(elements)}/17")
     print(f"Required Fields Per Element: {len(REQUIRED_FIELDS)}/18")
     
     if needs_confirmation_fields:
@@ -95,7 +95,7 @@ def validate_contracts():
             print(f"  - {err}")
         sys.exit(1)
     else:
-        print("\n✅ ALL 14 HOLOCORE RGX CONTRACTS STRICTLY VALIDATED (18/18 FIELDS PRESENT).")
+        print("\n✅ ALL 17 HOLOCORE RGX CONTRACTS STRICTLY VALIDATED (18/18 FIELDS PRESENT).")
 
 if __name__ == '__main__':
     validate_contracts()
