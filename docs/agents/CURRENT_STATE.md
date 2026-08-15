@@ -51,17 +51,34 @@ Latest audited ASCII head: `d33714568b49a61ca62758d96d16bb6e9b9a97c9`, run 202 *
 
 `KDX-HOLO-BENCH-001 / TOROIDAL FIELD` remains an internal `ART / COMP / SPEC` benchmark and is deliberately not mapped to a canonical semantic node. Actual artifact review established the ASCII materiality limit: ordered dithering plus a glyph ramp beginning with blank entries suppresses medium shell energy perceptually. **Stop ASCII tuning for the volumetric benchmark.**
 
-### PR #73 — RGX 14-core family evidence
+### PR #73 — RGX 14-core family baseline
 
 Exact reviewed head: `4b209ef711a62442c64f22d898825ca5c5424bd9`. Run 266 / `31852926883`: **SUCCESS**. Artifact `9238188510`, digest `sha256:daf9865bd1b6994e778c92589fd86b09feaf5a4007c2275029aaa41c9d27221c`.
 
-42/42 desktop/mobile/reduced-motion states pass, but actual artifact review classifies RGX as **ADAPT / specialized structural grammar**, not default/final materiality.
+42/42 desktop/mobile/reduced-motion states pass. The #73 artifact established RGX as **ADAPT / specialized structural grammar**, not default/final materiality. Its initial curation classification was:
 
 - KEEP structural/reference grammar: ORBITAL CITY, DNA ASCENT, INTERFERENCE PORTAL.
 - ADAPT before product-facing use: COSMOLOGY ORBIT, FIELD OF EYES, SIGNAL CORE, SIGNAL VORTEX, RETURN GATE.
-- HOLD from further RGX implementation: HEART CHAMBER, MEMORY TREE, LIVING ORGANISM, SIGNAL SEED, SKULL ARCHIVE, SOURCE CHAMBER.
+- HOLD from further ungrounded RGX expansion: HEART CHAMBER, MEMORY TREE, LIVING ORGANISM, SIGNAL SEED, SKULL ARCHIVE, SOURCE CHAMBER.
 
-`HOLD` is an operational convergence hold, not a provenance/rights judgment.
+`HOLD` here is an operational convergence hold, not a provenance/rights judgment. Later targeted reference-grounded work may supersede the readability state of individual held specimens without promoting RGX as a whole.
+
+### PR #75 — RGX canonical-topology overlays for four formerly weak specimens
+
+Exact head: `8959a0568f54bec465601093f62c96a590b49f2f`. KODEX Core Runtime run 270 / `31855817859`: **SUCCESS**. GitHub evidence artifact `9239064392`, digest `sha256:dc613d6b90948b7b20fa24f25acde1ad6cdeda095f8c48621d49358c707d01db`.
+
+#75 is a **targeted source-grounded correction**, not renewed family expansion. It adds a code-native SVG reference-topology overlay only on the noindex RGX creator-review lab for:
+
+- HEART CHAMBER — anatomical/topological heart orientation, major vessels and internal node network;
+- SKULL ARCHIVE — frontal cranium, sockets, nasal cavity, jaw/teeth, fracture/circuit and forensic measurement field;
+- SIGNAL SEED — tilted membrane, compartments and tensile lattice, now clearly differentiated from Living Organism;
+- LIVING ORGANISM — bilateral organic membrane, central core and outward filaments.
+
+All 42 RGX desktop/mobile/reduced-motion states remain green. Source pixels remain **NONE**; source images are reference/provenance only and topology is re-executed in code. Heart/Skull anatomy is kept separate from symbolic/speculative interpretation; Seed/Organism remain visual metaphors, not biological claims.
+
+Perceptual state after exact-source comparison: SIGNAL SEED and LIVING ORGANISM are strong creator-review candidates; HEART and SKULL are materially improved but deliberately schematic. This **supersedes #73's specimen-level readability hold for these four review surfaces only**. It does not promote RGX to default/final HoloCore materiality, does not supersede canonical source assets, and creator visual acceptance remains **PENDING**.
+
+Persistent Drive evidence recorded by #75: `KODEX_HOLOCORE_RGX_REFERENCE_OVERLAYS_PR75_RUN270_EVIDENCE.zip` (`1ldC3nJggx09KSr5i-wl99PDy7ezLTIih`) and canonical comparison plate `KODEX_HOLOCORE_RGX_PR75_CANONICAL_REFERENCE_COMPARISON.jpg` (`1hVU_quRTPPiJ5Fp4OU4ZbnIG8qqCToT0`).
 
 ### PR #70 — WebGL source adapter + TOROIDAL MATERIALITY benchmark
 
@@ -140,7 +157,8 @@ Many older KODEX PRs remain open. Open status does not make them equally authori
 - #62 = verified Deep Navigation + Assembly OS baseline.
 - #67 = ASCII toroidal benchmark whose materiality limit is now known.
 - #70 = current stronger volumetric/materiality benchmark.
-- #73 = completed RGX family evidence; ADAPT/specialized structural grammar, no further family expansion without new need.
+- #73 = completed RGX technical-family baseline; ADAPT/specialized structural grammar, not default materiality.
+- #75 = later targeted canonical-topology correction for Heart/Skull/Signal Seed/Living Organism; creator-review candidate only, not family promotion.
 - #76 = verified systems-convergence substrate, not the volumetric benchmark.
 - #68 = separate static/reference measurement corridor; do not silently substitute for Assembly/HoloCore lineage.
 - #71 = deterministic manifestation/software-state semantics; not metaphysical truth.
@@ -174,11 +192,12 @@ Strategic mode: **convergence + curation + perceptual refinement**.
 
 1. Treat PR #62 as the verified Assembly/Deep Navigation baseline; do not reopen P0.1–P0.10 without a demonstrated contract gap.
 2. Treat PR #70 head `0676c9e8…` / run 278 as the current browser-validated volumetric benchmark. The raymarch discontinuity defect is closed.
-3. **Pause further architecture and renderer-family expansion.** Creator visual acceptance remains the unresolved gate.
-4. If creator review requests another toroidal change, keep it bounded to shader/material/camera inside #70 and rerun the same exact browser/artifact review cycle.
-5. If no further toroidal refinement is required, select a concrete product-facing KODEX scene/route and consume the existing #76 convergence substrate plus #62 Assembly/Deep Navigation contracts rather than building new infrastructure.
-6. Preserve user agency, reduced-motion/fallbacks, noindex internal labs, epistemic labels, cultural/source provenance and protected-artwork integrity.
-7. No merge, deploy, permission change, public asset approval or canon promotion is authorized by these results.
+3. Treat PR #75 as the current **reference-fidelity creator-review surface** for Heart/Skull/Signal Seed/Living Organism; do not expand RGX family scope or promote it to final/default materiality from this evidence.
+4. **Pause further architecture and renderer-family expansion.** Creator visual acceptance remains the unresolved gate.
+5. If creator review requests another toroidal change, keep it bounded to shader/material/camera inside #70 and rerun the same exact browser/artifact review cycle.
+6. If no further toroidal refinement is required, select a concrete product-facing KODEX scene/route and consume the existing #76 convergence substrate plus #62 Assembly/Deep Navigation contracts rather than building new infrastructure.
+7. Preserve user agency, reduced-motion/fallbacks, noindex internal labs, epistemic labels, cultural/source provenance and protected-artwork integrity.
+8. No merge, deploy, permission change, public asset approval or canon promotion is authorized by these results.
 
 ---
 
