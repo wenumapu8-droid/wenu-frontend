@@ -10,12 +10,15 @@
  * abajo entera. Los recortes describen el reparto real; el JSON de paneles es
  * la salida genérica de `andamiar.mjs`, con los tres tercios a altura completa.
  *
- * Dibujo lo que me encargaron y lo que los recortes confirman como mío: los
- * paneles 03 y 04, de y=97 a y=569. NO dibujo el 07 HABITAT ni el 08 MOBILE
- * TILE, que caen dentro de mi caja del JSON pero son de la banda inferior.
- * Queda ANOTADO como el punto dudoso número uno: si nadie toma esa banda, el
- * tercio de abajo de mi caja queda negro y mi puntaje medido con la caja del
- * JSON lo paga entero. Medido con la caja real del recorte, no.
+ * Dibujo los paneles 03 y 04 (y=97..569) Y la banda inferior de mi caja:
+ * el 07 HABITAT / GALLERY MOCKUP y el 08 MOBILE TILE (y=579..866). La banda
+ * estuvo anotada como «punto dudoso número uno» —nadie la dibujaba y cuerpo-der
+ * pagaba la mitad de su tinta (cobertura 46,7 %)—. La fotografía del 07 y el
+ * teléfono del 08 son arte fija con textura fotográfica: van TRAZADOS con
+ * `node scripts/lamina/arte-t01-06-der-banda.mjs` (precedente t01-07, mismo
+ * barrido de parámetros), verificados a 0,12 % / 0,16 % contra la referencia.
+ * Títulos, captions, tabiques y reglas de la banda van compuestos acá, con
+ * cotas de _t0106_hp_probe.mjs y perfil.mjs.
  *
  * ── De dónde salen las medidas ────────────────────────────────────────────
  *
@@ -69,6 +72,8 @@
  *   node scripts/lamina/score-panel.mjs t01-06-ritual-device Derecha --triptico
  */
 import { ARTE } from "./trazos/der";
+import fotoBanda from "./trazos-banda/foto.svg?raw";
+import telefonoBanda from "./trazos-banda/telefono.svg?raw";
 import { rng, p2 } from "../kit/rng";
 import RadialScanner from "../kit/RadialScanner.astro";
 import Waveform from "../kit/Waveform.astro";
@@ -114,7 +119,37 @@ const marcos: [number, number, number, number, string][] = [
   // marco derecho del póster y divisoria contra la banda de abajo
   [651, 0, 1, 778, G(24)], [652, 0, 1, 778, G(52)],
   [0, 491, 651, 1, G(37)],
+
+  // banda inferior — tabiques y bordes medidos (abs: x1017 y579..848 G42,
+  // x1479 y580..847 G47, borde y861 x1013..1666 G42)
+  [4, 491, 1, 270, G(42)],
+  [466, 492, 1, 268, G(47)],
+  [0, 773, 654, 1, G(42)],
 ];
+
+/* regla punteada y=848 del panel 07: los seis tramos medidos (runsx, umbral 22) */
+const reglaBanda: [number, number][] = [
+  [4, 69], [92, 134], [235, 57], [297, 51], [352, 79], [432, 28],
+];
+
+/* ── banda inferior · texto compuesto ─────────────────────────────────────
+   Títulos con la misma versal 8 → cuerpo 12,4 de los paneles 03/04; captions
+   con versal 7 → cuerpo 9,6. Baselines y largos medidos sobre la referencia. */
+const TBANDA: Array<[number, number, string, number, number, string]> = [
+  [13, 508, "07.", 12.4, 17, CY_TIT],
+  [39, 508, "HABITAT / GALLERY MOCKUP", 12.4, 159, INK],
+  [476, 508, "08.", 12.4, 16, CY_TIT],
+  [501, 508, "MOBILE TILE", 12.4, 70, INK],
+];
+const CAPTIONS: Array<[number, number, string, number]> = [
+  [19, 737, "ENVIRONMENT:", 52],
+  [165, 737, "LIGHT:", 23],
+  [348, 737, "SCALE:", 23],
+  [20, 749, "ARCHIVE SANCTUM", 73],
+  [165, 749, "RITUAL / FOCAL", 68],
+  [348, 749, "HUMAN", 24],
+];
+const CAPT_COLOR = "#696c6a"; // pico medido rgb(105,108,106) en las dos filas
 
 /** Caja de 1 px: cuatro tiras en vez de un <rect stroke>, que a 1 px cae
  *  medio píxel fuera de la retícula y el diff estructural lo cobra. */
@@ -293,6 +328,7 @@ const COLOR_CHIP = ["#a473c3", "#35aaad", "#59b9d5", "#4abbcf"];
       {marcos.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
       {cajas.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
       {divGlifos.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+      {reglaBanda.map(([x, w]) => <rect x={x} y={760} width={w} height={1} fill={G(30)} />)}
       <!-- rayita decorativa a la derecha del título del panel 04 -->
       <rect x="504" y="23" width="138" height="1" fill={G(34)} />
       <rect x="504" y="20" width="1" height="4" fill={G(30)} />
@@ -334,6 +370,16 @@ const COLOR_CHIP = ["#a473c3", "#35aaad", "#59b9d5", "#4abbcf"];
     <g class="d6__tx">
       {T04.map(([x, y, s, fs, tl, c]) => (
         <text x={x} y={y} font-size={fs} textLength={tl} lengthAdjust="spacingAndGlyphs" fill={c}>{s}</text>
+      ))}
+    </g>
+
+    <!-- ══ banda inferior · 07 HABITAT / 08 MOBILE TILE ═══════════════ -->
+    <g class="d6__tx">
+      {TBANDA.map(([x, y, s, fs, tl, c]) => (
+        <text x={x} y={y} font-size={fs} textLength={tl} lengthAdjust="spacingAndGlyphs" fill={c}>{s}</text>
+      ))}
+      {CAPTIONS.map(([x, y, s, tl]) => (
+        <text x={x} y={y} font-size="9.6" textLength={tl} lengthAdjust="spacingAndGlyphs" fill={CAPT_COLOR}>{s}</text>
       ))}
     </g>
     <g class="d6__tx" data-symbolic="true">
@@ -486,6 +532,10 @@ const COLOR_CHIP = ["#a473c3", "#35aaad", "#59b9d5", "#4abbcf"];
       </g>
     </g>
   </svg>
+
+  <!-- ── banda inferior · arte fija trazada (arte-t01-06-der-banda.mjs) ── -->
+  <div role="img" aria-label="07. HABITAT / GALLERY MOCKUP — la cámara ritual del archivo: columnas de glifos, el dispositivo encendido y una figura humana a escala." set:html={fotoBanda} />
+  <div data-symbolic="true" role="img" aria-label="08. MOBILE TILE — el dispositivo ritual en la pantalla de un teléfono; STATUS: ACTIVE." set:html={telefonoBanda} />
 
   <!-- ── primitivas del kit, posicionadas sobre la caja ─────────────────── -->
   <!-- 01 GLYPH LOCK: anillos apretados y malla de fondo -->
