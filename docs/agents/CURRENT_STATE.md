@@ -58,46 +58,36 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 
 PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor only. It does not own or replace Assembly OS, Deep Navigation, JourneyState or the existing `kx-journey` / `KodexRecuerda` / `src/kodex/return/memory.js` substrate.
 
-Current head: `e82491c2989fe0266fd8c6e9a009e4843392d90b`.  
+Current head: `1b93ffbe828658c2d0aa62f5e2d86b9a1cb80aad`.  
 PR state: OPEN / DRAFT / MERGEABLE / NOT MERGED / NOT DEPLOYED.
 
-### Exact corridor evidence frontier — run #59
+### Last fully green corridor frontier — run #59
 
-Product Corridor run `31937697342` (#59) executed on exact head `74d6fd653c03196acd5eb249a36de88a7b79d7ca`.
-Artifact: `kodex-product-corridor-evidence` id `9261234192`.
+Product Corridor run `31937697342` (#59) executed on exact head `74d6fd653c03196acd5eb249a36de88a7b79d7ca` and passed build plus THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, ARCHIVE→MACHINE/MACHINE and COSMOLOGY in one chain. RETURN was the sole red product step with the same `RETURN artifact is clipped` assertion across desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion. Artifact id `9261234192`.
 
-One executed run passed:
-- build / preview;
-- THRESHOLD;
-- PROLOGUE;
-- DESCENT;
-- ARCHIVE;
-- ARCHIVE→MACHINE / MACHINE;
-- COSMOLOGY.
+Commit `e82491c2989fe0266fd8c6e9a009e4843392d90b` changes only `src/components/kodex/KodexRecuerda.astro` presentation geometry so the existing RETURN art/CRT/specimen host occupies the measured free first-viewport field. The journey specimen continues to derive from the existing `readSpecimen('RETURN')` / `kx-journey` path with unchanged code/trace/memory/cycle semantics.
 
-COSMOLOGY is therefore closed on exact-head evidence in the same chain as the earlier rooms. Do not keep modifying COSMOLOGY without new regression evidence.
+RETURN therefore remains **IMPLEMENTED MEASURED REPAIR / EXACT-HEAD REVALIDATION PENDING** until its own four-profile gate executes and its artifact is inspected.
 
-RETURN was the **only** red product step. All four profiles — desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion — failed with the same assertion: `RETURN artifact is clipped`. No first-party HTTP/console error accompanied the failure.
+### Run #60 — MACHINE harness race, not product regression
 
-### RETURN root cause and bounded repair
+Product Corridor run `31940178289` (#60) executed on exact RETURN-repair head `e82491c...` and produced artifact `kodex-product-corridor-evidence` id `9261863846`, digest `sha256:43cd8ed66acd101155f6d38d219cd749876ec40105bf5d41c9f3d7cae32850e7`.
 
-RETURN correctly consumes the existing `readSpecimen('RETURN')` / `kx-journey` memory path and materializes the deterministic specimen inside the existing `[data-kdx-art]` host. The four-profile failure is presentation geometry, not a second memory/state/runtime defect.
+THRESHOLD, PROLOGUE, DESCENT and ARCHIVE pass. MACHINE mobile 390×844 and reduced-motion pass the complete current MACHINE contract: bounded interlude and room, explicit ENTER MACHINE, READY state, painted Canvas, `INTEGRITY · NOT MEASURED`, local generation without auto-navigation, output drawer/focus restoration, visit memory and explicit navigation to `/kodex/folio/v/`.
 
-Root cause: the generic three-column folio grid lets RETURN's large closing copy determine an oversized row while the dominant art remains a normal grid item with default/square sizing, pushing the art/CRT/specimen plate beneath the fixed corridor navigation.
+Desktop alone fails before entering MACHINE with Playwright `page.waitForURL: net::ERR_ABORTED; maybe frame was detached?`, while remaining on `/kodex/interlude/archive-machine/` and recording no first-party HTTP/console error. This matches the lifecycle-observer race already isolated in COSMOLOGY; it does **not** demonstrate a MACHINE semantic/layout regression.
 
-Commit `e82491c2989fe0266fd8c6e9a009e4843392d90b` changes only `src/components/kodex/KodexRecuerda.astro`:
-- desktop RETURN art/CRT host is removed from generic row sizing and pinned into the measured right-side free field;
-- mobile preserves outbound actions on the left and a compact artifact at bottom-right above corridor navigation;
-- the specimen remains inside the same host and retains the same deterministic code / trace / memory / cycle semantics;
-- no memory schema, JourneyState, route engine, renderer, ElementContract, PlateSpec, CRT/fallback or protected artwork original changed.
+### Bounded harness repair
 
-Status: **RETURN = IMPLEMENTED MEASURED REPAIR / EXACT-HEAD REVALIDATION IN PROGRESS**.
+Current commit `1b93ffbe828658c2d0aa62f5e2d86b9a1cb80aad` changes only `scripts/kodex-machine-product-evidence.mjs` (+21/−7 versus `e82491c...`). Both corridor transitions tested by MACHINE now:
+- click with `noWaitAfter`;
+- wait for `window.location.pathname` to equal the exact required destination;
+- assert the pathname explicitly.
 
-### Current revalidation
+The mandatory route remains `/kodex/interlude/archive-machine/ → /kodex/folio/iv/ → /kodex/folio/v/`. No MACHINE product code, generator, telemetry truth, renderer, state, memory, artwork, route model or Assembly OS contract changed. This is evidence sampling only.
 
-Natural Product Corridor run `31940178289` (#60) is executing on exact head `e82491c...`. A real runner is assigned; dependency setup is complete and the native build is executing at this verification point. No manual hosted rerun was triggered.
-
-Do not call the seven-room corridor technically complete until run #60 (or KOD-69 SHA-bound local/self-hosted equivalent) reaches RETURN, all four RETURN profiles pass, and the resulting artifact is inspected.
+Status: **MACHINE = PRODUCT SEMANTICS PREVIOUSLY ACCEPTED / HARNESS REPAIR EXACT-HEAD REVALIDATION PENDING**.  
+Status: **RETURN = PRODUCT PRESENTATION REPAIR IMPLEMENTED / ITS GATE STILL NOT REACHED AFTER REPAIR**.
 
 ---
 
@@ -131,11 +121,12 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Let natural Product Corridor run `31940178289` (#60) execute on exact head `e82491c...`; do **not** manually rerun hosted CI.
-2. Require the already-green THRESHOLD→COSMOLOGY chain to remain green and RETURN desktop / 390×844 / 412×915 / reduced-motion to pass unchanged acceptance: 100dvh/no-scroll, artifact containment, deterministic non-curated specimen, CRT/fallback, actions/drawer/focus, memory, no fabricated telemetry and first-party resource health.
-3. Inspect the exact RETURN artifact after machine PASS. Browser PASS does not equal creator acceptance.
-4. If RETURN still fails, repair only the measured RETURN presentation/input/materiality defect inside #77. Do not introduce a new state/memory/renderer architecture.
-5. If RETURN passes and artifact inspection confirms the deterministic journey specimen is materially inside the first viewport, mark the seven-room corridor **technically complete** while keeping creator acceptance and preview publication separate.
-6. Only after corridor closure return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate unless creator review establishes a higher-priority measured defect.
-7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+1. Revalidate exact head `1b93ffbe...` without manually looping hosted reruns; accept natural provider execution or use the KOD-69 Mac mini/self-hosted SHA-bound lane.
+2. Require MACHINE desktop/mobile/reduced-motion to pass unchanged acceptance after the lifecycle-independent pathname sampling repair.
+3. Let the same execution continue through COSMOLOGY and reach RETURN. Do not modify already-green rooms without new measured regression evidence.
+4. Require RETURN desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion to pass: 100dvh/no-scroll, artifact containment, deterministic non-curated specimen, CRT/fallback, actions/drawer/focus, visit memory, no fabricated telemetry and first-party resource health.
+5. Inspect the exact RETURN artifact after machine PASS. Browser PASS does not equal creator acceptance.
+6. Only if RETURN passes and artifact inspection confirms the journey specimen is materially inside the first viewport may the seven-room corridor be called **technically complete**.
+7. Only after corridor closure return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate unless creator review establishes a higher-priority measured defect.
+8. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+9. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
