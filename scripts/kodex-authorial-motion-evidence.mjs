@@ -5,7 +5,7 @@ import { chromium } from 'playwright';
 
 const execFileAsync = promisify(execFile);
 const baseURL = process.env.KODEX_PREVIEW_URL ?? 'http://127.0.0.1:4321';
-const exactSha = process.env.GITHUB_SHA ?? 'LOCAL_UNBOUND';
+const exactSha = process.env.KODEX_HEAD_SHA ?? process.env.GITHUB_SHA ?? 'LOCAL_UNBOUND';
 const outDir = 'artifacts/kodex-authorial-motion-evidence';
 const rawDir = `${outDir}/raw`;
 const clipDir = `${outDir}/clips`;
@@ -49,6 +49,9 @@ async function probeDuration(path) {
 }
 
 async function trimTail(rawPath, outputPath) {
+  // Stream-copy trimming starts at codec keyframes, which made otherwise valid
+  // 10s review windows become 12–14s in run #1. Re-encode the bounded tail so
+  // the evidence duration represents the requested time window, not GOP layout.
   await execFileAsync('ffmpeg', [
     '-y',
     '-sseof', `-${clipSeconds}`,
@@ -56,7 +59,12 @@ async function trimTail(rawPath, outputPath) {
     '-t', String(clipSeconds),
     '-map', '0:v:0',
     '-an',
-    '-c', 'copy',
+    '-c:v', 'libvpx-vp9',
+    '-deadline', 'realtime',
+    '-cpu-used', '6',
+    '-row-mt', '1',
+    '-crf', '32',
+    '-b:v', '0',
     outputPath,
   ]);
   const duration = await probeDuration(outputPath);
