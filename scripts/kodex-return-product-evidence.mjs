@@ -110,10 +110,16 @@ for (const profile of profiles) {
         return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
       };
       const inside = (r) => !!r && r.left >= -1 && r.top >= -1 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1;
+      const overlaps = (a, b, tolerance = 2) => !!a && !!b
+        && a.left < b.right - tolerance
+        && a.right > b.left + tolerance
+        && a.top < b.bottom - tolerance
+        && a.bottom > b.top + tolerance;
       const stage = document.querySelector('[data-stage-name="RETURN"]');
       const specimenRect = rect('[data-kdx-return-specimen]');
       const artRect = rect('[data-kdx-art]');
       const actionsRect = rect('.kx-return-actions');
+      const headlineRect = rect('.kx-os-scene--return .kx-os-stage__copy > h1');
       return {
         scrollHeight: document.documentElement.scrollHeight,
         clientHeight: document.documentElement.clientHeight,
@@ -124,9 +130,13 @@ for (const profile of profiles) {
         specimenRect,
         artRect,
         actionsRect,
+        headlineRect,
         specimenInViewport: inside(specimenRect),
         artInViewport: inside(artRect),
         actionsInViewport: inside(actionsRect),
+        headlineInViewport: inside(headlineRect),
+        headlineActionsOverlap: overlaps(headlineRect, actionsRect),
+        headlineArtOverlap: overlaps(headlineRect, artRect),
       };
     });
     assert(geometry.scrollHeight <= geometry.clientHeight + 2, `${profile.id}: RETURN page scroll detected`);
@@ -135,6 +145,9 @@ for (const profile of profiles) {
     assert(geometry.specimenInViewport, `${profile.id}: journey specimen is clipped outside the first viewport`);
     assert(geometry.artInViewport, `${profile.id}: RETURN artifact is clipped`);
     assert(geometry.actionsInViewport, `${profile.id}: RETURN actions are clipped`);
+    assert(geometry.headlineInViewport, `${profile.id}: RETURN headline is clipped`);
+    assert(!geometry.headlineActionsOverlap, `${profile.id}: RETURN headline overlaps outbound actions`);
+    assert(!geometry.headlineArtOverlap, `${profile.id}: RETURN headline overlaps the material artifact`);
 
     const specimen = await page.evaluate(() => {
       const panel = document.querySelector('[data-kdx-return-specimen]');
