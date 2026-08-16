@@ -1,0 +1,201 @@
+---
+const {
+  seed = 1808,
+  duration = 8,
+  state = 'black',
+  reduced = false,
+  class: className = '',
+} = Astro.props;
+---
+
+<div
+  class={`kdx-signal-vortex-loop ${className}`.trim()}
+  data-kdx-signal-vortex-loop
+  data-seed={String(seed)}
+  data-duration={String(duration)}
+  data-state={state}
+  data-reduced={reduced ? 'true' : 'false'}
+  aria-label="KODEX SIGNAL VORTEX — deterministic visual loop"
+>
+  <canvas aria-hidden="true"></canvas>
+</div>
+
+<style>
+  .kdx-signal-vortex-loop {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    overflow: hidden;
+    background: #050505;
+    isolation: isolate;
+  }
+
+  .kdx-signal-vortex-loop canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+</style>
+
+<script>
+  const TAU = Math.PI * 2;
+
+  const mulberry32 = (initialSeed) => {
+    let a = initialSeed >>> 0;
+    return () => {
+      a |= 0;
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  };
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const boot = (host) => {
+    if (!(host instanceof HTMLElement) || host.dataset.ready === 'true') return;
+    const canvas = host.querySelector('canvas');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+
+    host.dataset.ready = 'true';
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+
+    const seed = Number.parseInt(host.dataset.seed || '1808', 10) || 1808;
+    const duration = Math.max(2, Number.parseFloat(host.dataset.duration || '8') || 8);
+    const explicitReduced = host.dataset.reduced === 'true';
+    const mediaReduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const reduced = () => explicitReduced || mediaReduced.matches;
+    const rng = mulberry32(seed);
+    const isCoarse = matchMedia('(pointer: coarse)').matches;
+    const particleCount = isCoarse ? 150 : 260;
+
+    const particles = Array.from({ length: particleCount }, (_, index) => ({
+      angle0: rng() * TAU,
+      radius0: 0.12 + Math.pow(rng(), 0.72) * 0.88,
+      turns: 1 + (index % 3),
+      radialHarmonic: 1 + (index % 4),
+      wobbleHarmonic: 2 + (index % 5),
+      phaseOffset: rng() * TAU,
+      size: 0.65 + rng() * 1.7,
+      alpha: 0.22 + rng() * 0.72,
+      signalBand: index % 11 === 0,
+    }));
+
+    let width = 1;
+    let height = 1;
+    let dpr = 1;
+    let start = performance.now();
+    let raf = 0;
+
+    const resize = () => {
+      const rect = host.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.max(1, Math.round(width * dpr));
+      canvas.height = Math.max(1, Math.round(height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const draw = (phase) => {
+      const signalState = host.dataset.state === 'signal';
+      const minSide = Math.min(width, height);
+      const cx = width * 0.5;
+      const cy = height * 0.5;
+      const maxRadius = minSide * 0.47;
+
+      ctx.fillStyle = '#050505';
+      ctx.fillRect(0, 0, width, height);
+
+      const globalWave = Math.sin(TAU * phase * 2);
+      const coreRadius = minSide * (0.025 + 0.006 * globalWave);
+      const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxRadius * 0.92);
+      glow.addColorStop(0, signalState ? 'rgba(224,85,155,.20)' : 'rgba(236,232,221,.15)');
+      glow.addColorStop(0.24, 'rgba(120,116,128,.075)');
+      glow.addColorStop(0.7, 'rgba(20,20,24,.025)');
+      glow.addColorStop(1, 'rgba(5,5,5,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      for (let ring = 1; ring <= 7; ring += 1) {
+        const rr = maxRadius * (ring / 7) * (0.985 + 0.015 * Math.sin(TAU * (phase * 2 + ring / 7)));
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, TAU);
+        ctx.strokeStyle = signalState && ring === 3
+          ? 'rgba(224,85,155,.14)'
+          : 'rgba(228,224,214,.055)';
+        ctx.lineWidth = ring === 3 ? 0.9 : 0.55;
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      for (const p of particles) {
+        const radialWave = Math.sin(TAU * p.radialHarmonic * phase + p.phaseOffset);
+        const waveform = Math.sin(TAU * 2 * phase + p.angle0 * 3 + p.phaseOffset);
+        const convergence = 0.58 + 0.34 * (0.5 + 0.5 * radialWave);
+        const radius = maxRadius * p.radius0 * convergence;
+        const wobble = 0.045 * Math.sin(TAU * p.wobbleHarmonic * phase + p.phaseOffset);
+        const theta = p.angle0 + TAU * p.turns * phase + wobble;
+        const elliptic = 0.82 + 0.18 * Math.cos(theta * 2 + p.phaseOffset);
+        const x = cx + Math.cos(theta) * radius;
+        const y = cy + Math.sin(theta) * radius * elliptic;
+        const waveLift = 0.72 + 0.28 * ((waveform + 1) * 0.5);
+        const alpha = clamp(p.alpha * waveLift * (0.42 + 0.58 * (1 - p.radius0 * 0.5)), 0.04, 0.92);
+        const size = p.size * (0.72 + 0.42 * ((waveform + 1) * 0.5));
+
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, TAU);
+        if (signalState && p.signalBand) {
+          ctx.fillStyle = `rgba(224,85,155,${alpha})`;
+        } else {
+          ctx.fillStyle = `rgba(232,228,218,${alpha})`;
+        }
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRadius * 2.8, 0, TAU);
+      ctx.strokeStyle = signalState ? 'rgba(224,85,155,.42)' : 'rgba(235,231,220,.26)';
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRadius, 0, TAU);
+      ctx.fillStyle = signalState ? 'rgba(224,85,155,.95)' : 'rgba(238,234,223,.92)';
+      ctx.fill();
+    };
+
+    const render = (now) => {
+      const phase = reduced() ? 0.25 : (((now - start) / 1000) % duration) / duration;
+      draw(phase);
+      if (!reduced()) raf = requestAnimationFrame(render);
+    };
+
+    const restart = () => {
+      cancelAnimationFrame(raf);
+      start = performance.now();
+      draw(0.25);
+      if (!reduced()) raf = requestAnimationFrame(render);
+    };
+
+    const ro = new ResizeObserver(() => {
+      resize();
+      if (reduced()) draw(0.25);
+    });
+    ro.observe(host);
+    mediaReduced.addEventListener('change', restart);
+    resize();
+    restart();
+  };
+
+  document.querySelectorAll('[data-kdx-signal-vortex-loop]').forEach(boot);
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll('[data-kdx-signal-vortex-loop]').forEach(boot);
+  });
+</script>
