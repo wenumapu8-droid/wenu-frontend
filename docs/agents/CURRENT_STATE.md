@@ -51,7 +51,7 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 - **PR #73** — RGX technical-family baseline; not default/final materiality.
 - **PR #75** — reference-fidelity creator-review surface; source pixels NONE.
 - **PR #76** — verified Manifestation × RGX convergence substrate; reuse, do not fork.
-- **PR #78** — **HOLD / EXTRACTION-ONLY**. Its branch-local visual-grammar/ElementContract dialect is not Assembly OS authority and the branch contains broad unrelated history. Useful observations may later be re-expressed through #62's canonical schema/registry only on a bounded delta.
+- **PR #78** — externally **MERGED/CLOSED on 2026-08-15** despite its own `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Its branch-local 18-field HoloCore dialect remains descriptive material only unless records are explicitly normalized through #62's ElementContract/schema/registry validators on a bounded delta. Reconcile ancestry before using `main` as an Assembly OS convergence base.
 
 ---
 
@@ -59,11 +59,11 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 
 PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor without owning/replacing Assembly OS or Deep Navigation architecture.
 
-### Verified through MACHINE
+### Verified through MACHINE on the latest executed evidence
 
-Product Corridor run `31917742898` / #37 executed on head `7d51a22b278df73f9f7c66dc7edeca5f6e681c34`.
+Product Corridor run `31919010988` executed on head `4acc2cd0fc618157620af9ff3f3770833c6f3a45`.
 
-PASS:
+PASS before the first failure:
 - install/build/preview;
 - THRESHOLD desktop/mobile/reduced-motion;
 - PROLOGUE desktop/mobile/reduced-motion;
@@ -71,34 +71,32 @@ PASS:
 - ARCHIVE desktop/mobile/reduced-motion;
 - ARCHIVE→MACHINE interlude + MACHINE desktop/mobile/reduced-motion.
 
-Artifact `9255492359`; digest `sha256:54d1eef72a5042f55b047a22de85c3b9eaaac3040bec06234c83f9b4cd77ca5d`.
+Artifact `9255841751`; digest `sha256:9be4fe12bb197e4c0d939e777efb492f4047dd3fde7b0fc3bc7f1c51f985f322`.
 
-MACHINE is therefore **browser-revalidated**. The earlier unsourced `INTEGRITY · 98.7%` defect remains repaired to explicit `NOT MEASURED`. Do not describe GitHub billing as the current hard MACHINE blocker.
+MACHINE is **browser-revalidated**. The earlier unsourced `INTEGRITY · 98.7%` defect remains repaired to explicit `NOT MEASURED`. Do not describe billing as a current MACHINE blocker and do not manually loop hosted reruns.
 
-### COSMOLOGY evidence iteration
+### COSMOLOGY — exact measured failure and bounded repair
 
-Run #37 failed only at COSMOLOGY because the existing orbital map overflowed the first viewport on desktop, 390×844, 412×915 and reduced-motion. Code inspection also confirmed six hover-only relation nodes and a promised-but-missing `<640px` fallback.
+On run `31919010988`, COSMOLOGY was the first failing scene. Artifact evidence records four distinct failures:
 
-First bounded repair on head `01ee06f60fa43f5ffe9d4c845bd7c6b56dc2166b`:
-- embedded existing map into the artifact-plate dimensions;
-- keyboard semantics on the same six canonical nodes;
-- real six-node compact mobile fallback as touch surface;
-- stronger Playwright checks for desktop containment, mobile fallback ordering/containment, keyboard + touch activation.
+- desktop: orbital map clipped outside first viewport;
+- mobile 390×844: `REVEAL CONNECTION` outside first viewport;
+- mobile 412×915: touch activation did not prove SIGNAL→MACHINE;
+- reduced-motion desktop: orbital map clipped outside first viewport.
 
-Automatic Product Corridor run `31918660903` / #39 executed that repair. Prior rooms through MACHINE remained green, but COSMOLOGY still failed. Artifact `9255744176`; digest `sha256:3a68c9554044f88a24827857a0f1c98bc98bc0f8fbe0941f8b6c1fc5d40ec894`.
+The six semantic concept controls and six-node compact mobile fallback now exist; the prior hover-only/fallback-missing diagnosis is no longer the current implementation state.
 
-Measured #39 result:
-- desktop/reduced-motion: compact map content existed, but the **generic parent folio art plate** still extended below the first viewport;
-- mobile 390/412: fallback existed, but the generic parent art plate positioned it behind/below corridor navigation.
+The touch failure also exposed a truth-model mismatch in the gate: `SIGNAL → MACHINE` is concept-to-concept. MACHINE is one of the six canonical concept nodes, **not** one of the five ecosystem portals. The old assertion looked for a nonexistent/fabricated `data-organ="machine"` portal.
 
-Current PR #77 head: `4acc2cd0fc618157620af9ff3f3770833c6f3a45`.
+Current PR #77 head after bounded repair: `38fc336c7a3b06c16af1eb7fe32aede628e1cb8d`.
 
-Second repair changes only that measured parent-plate geometry:
-- explicit bounded desktop COSMOLOGY art-plate height;
-- <=640px art plate positioned inside the existing first-viewport free zone above corridor navigation;
-- six concept IDs, five portals, relation semantics, keyboard/touch activation, route, memory and acceptance criteria otherwise unchanged.
+Repair commits:
+- `0561a127db6b00d5ede3e5fa434a28eecf10b229` — anchors the existing desktop map plate in the measured first-viewport free zone, pulls the mobile CTA into the measured gap above compact map/navigation, and separates concept-target relations from ecosystem-organ relations so SIGNAL visibly relates to the canonical MACHINE node;
+- `38fc336c7a3b06c16af1eb7fe32aede628e1cb8d` — strengthens the browser gate to prove MACHINE concept highlighting + the authored `signal-machine` link for pointer/keyboard/touch instead of inventing a sixth ecosystem portal.
 
-Status: **COSMOLOGY IMPLEMENTED REPAIR / EXACT-HEAD BROWSER REVALIDATION PENDING**. Do not advance RETURN until a real automatic or KOD-69 local/self-hosted run closes this gate and its artifact is inspected.
+No test was removed and no alternative renderer/state/router/memory architecture was added.
+
+Status: **COSMOLOGY IMPLEMENTED MEASURED REPAIR / EXACT-HEAD REVALIDATION PENDING**. Do not advance RETURN until the exact current head is executed through automatic provider CI if it occurs naturally or KOD-69 local/self-hosted evidence, and the artifact is inspected.
 
 ---
 
@@ -129,10 +127,11 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Obtain exact-head browser evidence for PR #77 head `4acc2cd...` automatically if provider CI picks it up, otherwise through KOD-69's Mac mini/local lane.
-2. Inspect COSMOLOGY desktop/mobile/reduced-motion artifact; promote only on actual PASS.
-3. If it fails, repair only the measured geometry/input delta; no new architecture and no weakened gate.
+1. Execute PR #77 exact head `38fc336c...` through KOD-69 local/self-hosted evidence if no natural provider run appears; do not manually spam hosted reruns.
+2. Inspect COSMOLOGY desktop/390×844/412×915/reduced-motion artifacts. Promote only on actual PASS.
+3. If it fails, repair only the measured layout/semantic-input delta; no new architecture and no weakened gate.
 4. After COSMOLOGY closes, move the product frontier to RETURN. Existing audit finding that RETURN lacks a finished product-facing visual layer remains diagnosis until implementation + browser QA.
 5. Separately preserve #62 as sole Assembly OS authority; its next bounded renderer delta remains G01/G02/G07 dispatch + structural fingerprint evidence.
-6. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-7. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
+6. Treat merged PR #78 as a reconciliation hazard, not an authority override; normalize any useful HoloCore observations through #62 contracts only.
+7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
+8. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
