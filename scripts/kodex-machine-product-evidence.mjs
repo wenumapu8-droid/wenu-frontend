@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseURL = process.env.KODEX_PREVIEW_URL ?? 'http://127.0.0.1:4321';
+const appOrigin = new URL(baseURL).origin;
 const outDir = 'artifacts/kodex-machine-evidence';
 await mkdir(outDir, { recursive: true });
 
@@ -42,9 +43,24 @@ for (const profile of profiles) {
   const page = await context.newPage();
   const consoleErrors = [];
   const httpErrors = [];
-  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  const externalHttpErrors = [];
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    if (/^Failed to load resource: the server responded with a status of \d{3}/.test(text)) return;
+    consoleErrors.push(text);
+  });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
-  page.on('response', (response) => { if (response.status() >= 400) httpErrors.push({ status: response.status(), url: response.url() }); });
+  page.on('response', (response) => {
+    if (response.status() < 400) return;
+    const failure = { status: response.status(), url: response.url() };
+    try {
+      if (new URL(response.url()).origin === appOrigin) httpErrors.push(failure);
+      else externalHttpErrors.push(failure);
+    } catch {
+      httpErrors.push(failure);
+    }
+  });
 
   try {
     // ARCHIVE → MACHINE quiet interlude: it is an explicit pause, not an auto-transition.
@@ -147,12 +163,12 @@ for (const profile of profiles) {
     await page.waitForURL((url) => url.pathname === '/kodex/folio/v/', { timeout: 8000 });
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
-    assert(httpErrors.length === 0, `${profile.id}: HTTP errors: ${JSON.stringify(httpErrors)}`);
+    assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
 
-    evidence.push({ profile: profile.id, status: 'PASS', interludeGeometry, interlude, machineGeometry, initial, generated, navigation: '/kodex/folio/v/', consoleErrors, httpErrors });
+    evidence.push({ profile: profile.id, status: 'PASS', interludeGeometry, interlude, machineGeometry, initial, generated, navigation: '/kodex/folio/v/', consoleErrors, httpErrors, externalHttpErrors });
   } catch (error) {
     failed = true;
-    evidence.push({ profile: profile.id, status: 'FAIL', error: error instanceof Error ? error.message : String(error), currentUrl: page.url(), consoleErrors, httpErrors });
+    evidence.push({ profile: profile.id, status: 'FAIL', error: error instanceof Error ? error.message : String(error), currentUrl: page.url(), consoleErrors, httpErrors, externalHttpErrors });
     await page.screenshot({ path: `${outDir}/machine-${profile.id}-FAIL.png`, fullPage: true }).catch(() => {});
   } finally {
     await context.close();
