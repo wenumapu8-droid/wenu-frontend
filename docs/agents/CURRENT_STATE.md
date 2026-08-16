@@ -44,17 +44,17 @@ A subsequent renderer-only macro-hierarchy refinement for G07 vs G02 passed run 
 
 Run 287 / `31969167071` on `4a3ba88babfcb8729c75ef55a8f3b64b9ff17b8c` closed the living-field correctness gap. `CON-RITUAL` now uses existing registered `MOTION_03_FIELD_MARBLE` for `ACTIVATOR_PLATE + COSMOLOGY`, and Assembly QA hard-fails registered-but-scene-incompatible FIELD activations through `ACTIVATION_COMPATIBILITY`. Artifact `9269326684`, digest `sha256:e8c752b6e99d5696b13fc19f7f1be68b1452fc87519353d058ece97b5faa2390`.
 
-Current PR #62 exact head: `06e17929b1fe1ff2cb073a17fd8c07f08c8e4ec4`.
+Prior head `06e17929b1fe1ff2cb073a17fd8c07f08c8e4ec4` completed KODEX Core Runtime run 289 / `31971879560`: **SUCCESS**. Artifact `9270036008`, digest `sha256:ae03161ab411cb45f06fa1c4ee512ed47c1cf6f0d245030ca25cb01f526c4e9a`.
 
-KODEX Core Runtime run 289 / `31971879560`: **SUCCESS**. Artifact `kodex-evidence` id `9270036008`, digest `sha256:ae03161ab411cb45f06fa1c4ee512ed47c1cf6f0d245030ca25cb01f526c4e9a`.
+Run-289 proved technical validity but artifact inspection showed the materiality objective remained open: the FIELD still read mainly as concentric/orbital scaffold. Code audit localized the reason to the generic FIELD structure itself: one circular host, three nested ring spans and one central axis.
 
-Run-289 closes technical validation of the GP-CON-03 materiality CSS candidate: full Assembly OS, seeded benchmark, integrity, Astro build, general browser evidence, Deep Navigation and Golden evidence remain green; GP-CON-03 is a bounded COSMOLOGY FIELD activator with explicit activation, no artwork source bytes and no blockers.
+Current PR #62 exact head: `59ead9c657f5b994896dc90f3e86c295520884e5`.
 
-**Perceptual truth remains narrower:** actual GP-CON-03 artifact inspection shows increased density and a luminous central field, but the dominant read still resolves mainly as concentric/orbital scaffold rather than a convincing asymmetric marble/membrane experiential field. Therefore the implementation is browser-valid but the materiality/readability objective is **not closed** at agent-audit level. This is not a contract/schema/assembler/scoring/activation-registry failure and does not justify parallel architecture.
+A bounded presentation-only repair now repurposes the same existing FIELD nodes into three spatially separated membrane lobes with non-coincident centers, an asymmetric membrane host, off-axis luminous nucleus and diagonal tissue seam. It changes only `src/styles/kodex-golden-consciousness-materiality.css`; no ElementContract, PlateSpec, registered/activation ID, assembler/scoring, route, JourneyState/memory, renderer family, registry or Ocín source bytes changed. Explicit activation remains authoritative and reduced motion remains static/meaning-preserving.
 
-If implementation continues before creator review, the only justified target is a bounded **existing-renderer FIELD presentation** change so `MOTION_03_FIELD_MARBLE` materializes as asymmetric membrane/marble structure rather than inheriting the generic concentric scaffold. Preserve `ACTIVATION_COMPATIBILITY`, explicit activation, registered IDs, 100dvh/no-scroll, keyboard/focus/touch, reduced-motion static meaning, provenance/rights and `human_curator_acceptance=NOT_RUN`.
+KODEX Core Runtime run 290 / `31977724505` is **IN PROGRESS** on this exact head. At the last observation, scene/runtime, JourneyState/graph/memory, full Assembly OS contract tests, seeded benchmark, integrity audit and Astro build were PASS; browser/Deep Navigation/Golden stages were still running. Therefore this new structural FIELD repair is **IMPLEMENTED CANDIDATE / EXACT-HEAD QA IN PROGRESS**, not yet browser-validated or perceptually closed.
 
-Protected ART cases remain source-byte WITHHELD. No protected-art materiality/no-crop visual acceptance may be inferred.
+`human_curator_acceptance=NOT_RUN`. Protected ART cases remain source-byte WITHHELD; no protected-art materiality/no-crop visual acceptance may be inferred.
 
 ---
 
@@ -79,7 +79,7 @@ THRESHOLD → PROLOGUE → DESCENT → ARCHIVE → MACHINE → COSMOLOGY → RET
 - **PR #82 / `2a92ce5c...`** — Crystal Receiver lab prototype based on `main`. It introduces its own local Receiver/Signal/Truth/Living-Memory simulator states. Treat as **LAB-ONLY / NON-AUTHORITATIVE** until reconciled with #62/#76 existing state/memory/contract boundaries. Do not wire into production navigation or call its ontology canonical merely because the lab runs.
 - **PR #83 / `09763151...`** — Crystal Receiver device proof based on `main`, also with localStorage and a DORMANT→CRYSTAL state machine. Treat as **DEVICE PROOF / NON-AUTHORITATIVE**. Before any product integration, reconcile whether its state/memory semantics consume existing JourneyState/Assembly contracts instead of becoming a parallel runtime.
 
-The new Receiver proofs are allowed as isolated noindex experiments, but they must not silently become a second KODEX state/memory authority.
+The Receiver proofs are allowed as isolated noindex experiments, but they must not silently become a second KODEX state/memory authority.
 
 ---
 
@@ -96,10 +96,11 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 6. Exact next action
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; P0.1–P0.10 remain closed.
-2. Treat run-289 GP-CON-03 materiality as **browser-validated but perceptually incomplete**. Do not stack more cosmetic CSS blindly. If implementation proceeds, inspect/modify only the existing renderer FIELD structure and re-run exact-head Golden browser evidence.
-3. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review.
-4. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
-5. Keep #77 mechanically closed and draft.
-6. Hold #82/#83 at isolated proof status until their state/memory semantics are explicitly reconciled with existing #62/#76 substrates; no production wiring from those branches yet.
-7. Preserve user agency, keyboard/focus/touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+2. Close run 290 on exact head `59ead9c...`; require existing contract/build/browser/Deep Navigation/Golden evidence to pass without weakening gates.
+3. If run 290 is green, inspect the actual GP-CON-03 artifact before changing perceptual status. The specific question is whether the field now reads as a genuinely asymmetric membrane/marble structure rather than concentric/orbital scaffold.
+4. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review.
+5. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
+6. Keep #77 mechanically closed and draft.
+7. Hold #82/#83 at isolated proof status until their state/memory semantics are explicitly reconciled with existing #62/#76 substrates; no production wiring from those branches yet.
+8. Preserve user agency, keyboard/focus/touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+9. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
