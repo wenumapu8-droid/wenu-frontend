@@ -65,9 +65,12 @@ for (const profile of profiles) {
       };
       const inside = (r) => !!r && r.left >= -1 && r.top >= -1 && r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1;
       const svgRect = rect('.kdx-cosmo__svg');
+      const fallbackRect = rect('.kdx-cosmo__concept-list');
       const readoutRect = rect('[data-kdx-cosmos]');
       const actionRect = rect('[data-cosmo-next]');
       const portalsRect = rect('.kdx-cosmo__portals');
+      const fallback = document.querySelector('.kdx-cosmo__concept-list');
+      const fallbackVisible = fallback instanceof HTMLElement && getComputedStyle(fallback).display !== 'none' && fallbackRect?.width > 1 && fallbackRect?.height > 1;
       return {
         scrollHeight: document.documentElement.scrollHeight,
         clientHeight: document.documentElement.clientHeight,
@@ -76,10 +79,13 @@ for (const profile of profiles) {
         stageHeight: stage?.getBoundingClientRect().height ?? 0,
         viewportHeight: window.innerHeight,
         svgRect,
+        fallbackRect,
         readoutRect,
         actionRect,
         portalsRect,
         svgInViewport: inside(svgRect),
+        fallbackInViewport: inside(fallbackRect),
+        fallbackVisible,
         actionInViewport: inside(actionRect),
         readoutInViewport: inside(readoutRect),
       };
@@ -88,18 +94,25 @@ for (const profile of profiles) {
     assert(geometry.scrollHeight <= geometry.clientHeight + 2, `${profile.id}: page scroll detected`);
     assert(geometry.scrollWidth <= geometry.clientWidth + 2, `${profile.id}: horizontal overflow detected`);
     assert(Math.abs(geometry.stageHeight - geometry.viewportHeight) <= 4, `${profile.id}: COSMOLOGY is not viewport-bounded`);
-    assert(geometry.svgInViewport, `${profile.id}: orbital map is clipped outside the first viewport`);
+    if (profile.hasTouch) {
+      assert(geometry.fallbackVisible && geometry.fallbackInViewport, `${profile.id}: compact concept fallback is not visible inside the first viewport`);
+    } else {
+      assert(geometry.svgInViewport && (geometry.svgRect?.width ?? 0) > 100, `${profile.id}: orbital map is clipped outside the first viewport`);
+    }
     assert(geometry.actionInViewport, `${profile.id}: REVEAL CONNECTION is outside the first viewport`);
     assert(geometry.readoutInViewport, `${profile.id}: cosmology relation readout is clipped`);
 
     const structure = await page.evaluate(() => {
       const nodes = [...document.querySelectorAll('.kdx-cosmo__nodes [data-node]')];
+      const fallbackNodes = [...document.querySelectorAll('.kdx-cosmo__concept-list [data-node]')];
       const portals = [...document.querySelectorAll('.kdx-cosmo__portals [data-organ]')];
       const svg = document.querySelector('.kdx-cosmo__svg');
       const body = document.body.textContent ?? '';
       return {
         nodeCount: nodes.length,
         nodeNames: nodes.map((node) => node.getAttribute('data-node')),
+        fallbackCount: fallbackNodes.length,
+        fallbackNames: fallbackNodes.map((node) => node.getAttribute('data-node')),
         portalCount: portals.length,
         svgRole: svg?.getAttribute('role'),
         svgTitle: svg?.querySelector('title')?.textContent?.trim() ?? '',
@@ -114,6 +127,8 @@ for (const profile of profiles) {
     });
 
     assert(structure.nodeCount === 6, `${profile.id}: expected 6 canonical concept nodes, found ${structure.nodeCount}`);
+    assert(structure.fallbackCount === 6, `${profile.id}: expected 6 fallback concept controls, found ${structure.fallbackCount}`);
+    assert(JSON.stringify(structure.nodeNames) === JSON.stringify(structure.fallbackNames), `${profile.id}: mobile fallback does not preserve canonical concept ordering`);
     assert(structure.portalCount === 5, `${profile.id}: expected 5 ecosystem portals, found ${structure.portalCount}`);
     assert(structure.svgRole === 'img' && structure.svgTitle.length > 0, `${profile.id}: orbital map lacks a semantic image title`);
     assert(!structure.hasUnsourcedPercentTelemetry, `${profile.id}: unsourced percentage telemetry exposed in COSMOLOGY`);
@@ -124,35 +139,43 @@ for (const profile of profiles) {
     const readoutAfter = await page.locator('[data-cosmo-node]').textContent();
     assert(readoutAfter && readoutAfter !== readoutBefore, `${profile.id}: REVEAL CONNECTION did not change the visible relation readout`);
 
-    const signalNode = page.locator('.kdx-cosmo__nodes [data-node="signal"]');
-    await signalNode.hover({ force: true });
-    const pointerRelation = await page.evaluate(() => ({
-      machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
-      signalLink: document.querySelector('[data-link="signal-machine"]')?.getAttribute('stroke') ?? '',
-    }));
-    assert(pointerRelation.machinePulsed, `${profile.id}: pointer activation did not reveal SIGNAL→MACHINE relation`);
-
-    await page.mouse.move(1, 1);
-    const keyboardSemantics = structure.semantics.every((node) => node.tabindex === '0' && node.role === 'button' && !!node.ariaLabel);
-    let keyboardRelation = { attempted: false, machinePulsed: false };
-    if (keyboardSemantics) {
-      await signalNode.focus();
-      await signalNode.press('Enter');
-      keyboardRelation = await page.evaluate(() => ({
+    const svgSignalNode = page.locator('.kdx-cosmo__nodes [data-node="signal"]');
+    const fallbackSignalNode = page.locator('.kdx-cosmo__concept-list [data-node="signal"]');
+    let pointerRelation = { required: !profile.hasTouch, attempted: false, machinePulsed: false };
+    if (!profile.hasTouch) {
+      await svgSignalNode.hover({ force: true });
+      pointerRelation = await page.evaluate(() => ({
+        required: true,
         attempted: true,
         machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
       }));
+      assert(pointerRelation.machinePulsed, `${profile.id}: pointer activation did not reveal SIGNAL→MACHINE relation`);
+      await page.mouse.move(1, 1);
+    }
+
+    const keyboardSemantics = structure.semantics.every((node) => node.tabindex === '0' && node.role === 'button' && !!node.ariaLabel);
+    assert(keyboardSemantics, `${profile.id}: orbital concept nodes are not semantic keyboard controls`);
+    let keyboardRelation = { required: !profile.hasTouch, attempted: false, machinePulsed: false };
+    if (!profile.hasTouch) {
+      await svgSignalNode.focus();
+      await svgSignalNode.press('Enter');
+      keyboardRelation = await page.evaluate(() => ({
+        required: true,
+        attempted: true,
+        machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
+      }));
+      assert(keyboardRelation.machinePulsed, `${profile.id}: keyboard activation did not reveal SIGNAL→MACHINE relation`);
     }
 
     let touchRelation = { required: profile.hasTouch, attempted: false, machinePulsed: false };
     if (profile.hasTouch) {
-      await page.mouse.move(1, 1);
-      await signalNode.tap({ force: true });
+      await fallbackSignalNode.tap();
       touchRelation = await page.evaluate(() => ({
         required: true,
         attempted: true,
         machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
       }));
+      assert(touchRelation.machinePulsed, `${profile.id}: touch activation did not reveal SIGNAL→MACHINE relation`);
     }
 
     const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -164,10 +187,6 @@ for (const profile of profiles) {
     assert(Array.isArray(journey?.views) && journey.views.includes('/kodex/folio/v/'), `${profile.id}: COSMOLOGY visit memory missing`);
 
     await page.screenshot({ path: `${outDir}/cosmology-${profile.id}.png`, fullPage: true });
-
-    assert(keyboardSemantics, `${profile.id}: concept nodes are not semantic keyboard controls`);
-    assert(keyboardRelation.machinePulsed, `${profile.id}: keyboard activation did not reveal SIGNAL→MACHINE relation`);
-    if (profile.hasTouch) assert(touchRelation.machinePulsed, `${profile.id}: touch activation did not reveal SIGNAL→MACHINE relation`);
 
     const next = page.locator('[data-deck-next]');
     await next.waitFor({ state: 'visible' });
