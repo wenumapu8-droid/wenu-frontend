@@ -18,7 +18,7 @@ import {
 
 type UniformMap = Record<string, WebGLUniformLocation | null>;
 type Fbo = { fb: WebGLFramebuffer | null; tex: WebGLTexture | null; width: number; height: number };
-type ProgramDef = { program: WebGLProgram; uniforms: UniformMap };
+type ProgramDef = { program: WebGLProgram; uniforms: UniformMap; shaders: WebGLShader[] };
 
 type Metrics = {
   fps: number;
@@ -108,6 +108,16 @@ class KdxObserveV2Runtime {
   timeouts = new Set<number>();
   forceFallback = false;
   forcedState: KdxObserveV2State | null = null;
+  destroyed = false;
+  /**
+   * Recuerda si el loop estaba corriendo cuando la pestana se oculto.
+   * Sin esto, `visibilitychange` resucitaba runtimes detenidos o destruidos.
+   */
+  resumeOnVisible = false;
+  /** Nodos a los que se engancharon listeners: se guardan para poder soltarlos. */
+  navPrev: HTMLElement | null = null;
+  navNext: HTMLElement | null = null;
+  navIndex: HTMLElement | null = null;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -233,7 +243,7 @@ class KdxObserveV2Runtime {
   }
 
   start() {
-    if (this.running) return;
+    if (this.running || this.destroyed) return;
     this.running = true;
     const loop = (now: number) => {
       if (!this.running) return;
@@ -246,28 +256,132 @@ class KdxObserveV2Runtime {
   stop() {
     this.running = false;
     if (this.raf) cancelAnimationFrame(this.raf);
+    this.raf = 0;
     this.timeouts.forEach((id) => window.clearTimeout(id));
     this.timeouts.clear();
   }
 
   bindEvents() {
-    addEventListener('resize', () => this.resize(), { passive: true });
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.stop();
-      else this.start();
-    });
+    window.addEventListener('resize', this.onResize, { passive: true });
+    document.addEventListener('visibilitychange', this.onVisibilityChange);
     this.root.addEventListener('pointermove', this.onPointerMove, { passive: true });
     this.root.addEventListener('pointerleave', this.onPointerLeave, { passive: true });
     this.root.addEventListener('touchstart', this.onTouchStart, { passive: true });
-    this.root.querySelector('[data-kdx-prev]')?.addEventListener('click', () => this.stepMode(-1));
-    this.root.querySelector('[data-kdx-next]')?.addEventListener('click', () => this.stepMode(1));
-    this.root.querySelector('[data-kdx-index]')?.addEventListener('click', () => { window.location.href = '/kodex/'; });
-    this.dom.primaryCta?.addEventListener('click', () => this.advancePrimary());
-    this.dom.secondaryCta?.addEventListener('click', () => {
-      this.protocolOpen = !this.protocolOpen;
-      this.root.classList.toggle('is-protocol-open', this.protocolOpen);
-      if (this.protocolOpen && this.sceneState.mode === 'idle') this.setMode('aware');
+    this.navPrev = this.root.querySelector('[data-kdx-prev]');
+    this.navNext = this.root.querySelector('[data-kdx-next]');
+    this.navIndex = this.root.querySelector('[data-kdx-index]');
+    this.navPrev?.addEventListener('click', this.onPrevClick);
+    this.navNext?.addEventListener('click', this.onNextClick);
+    this.navIndex?.addEventListener('click', this.onIndexClick);
+    this.dom.primaryCta?.addEventListener('click', this.onPrimaryClick);
+    this.dom.secondaryCta?.addEventListener('click', this.onSecondaryClick);
+  }
+
+  /** Espejo exacto de `bindEvents`: cada alta tiene aqui su baja. */
+  unbindEvents() {
+    window.removeEventListener('resize', this.onResize);
+    document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    this.root.removeEventListener('pointermove', this.onPointerMove);
+    this.root.removeEventListener('pointerleave', this.onPointerLeave);
+    this.root.removeEventListener('touchstart', this.onTouchStart);
+    this.navPrev?.removeEventListener('click', this.onPrevClick);
+    this.navNext?.removeEventListener('click', this.onNextClick);
+    this.navIndex?.removeEventListener('click', this.onIndexClick);
+    this.dom.primaryCta?.removeEventListener('click', this.onPrimaryClick);
+    this.dom.secondaryCta?.removeEventListener('click', this.onSecondaryClick);
+    this.navPrev = null;
+    this.navNext = null;
+    this.navIndex = null;
+  }
+
+  onResize = () => {
+    this.resize();
+  };
+
+  onVisibilityChange = () => {
+    if (document.hidden) {
+      this.resumeOnVisible = this.running;
+      this.stop();
+      return;
+    }
+    // Solo revive lo que estaba vivo: un runtime destruido o detenido a
+    // proposito no vuelve a arrancar por volver a la pestana.
+    if (this.destroyed || !this.resumeOnVisible) return;
+    this.resumeOnVisible = false;
+    this.start();
+  };
+
+  onPrevClick = () => {
+    this.stepMode(-1);
+  };
+
+  onNextClick = () => {
+    this.stepMode(1);
+  };
+
+  onIndexClick = () => {
+    window.location.href = '/kodex/';
+  };
+
+  onPrimaryClick = () => {
+    this.advancePrimary();
+  };
+
+  onSecondaryClick = () => {
+    this.protocolOpen = !this.protocolOpen;
+    this.root.classList.toggle('is-protocol-open', this.protocolOpen);
+    if (this.protocolOpen && this.sceneState.mode === 'idle') this.setMode('aware');
+  };
+
+  /**
+   * Cierre del ciclo `load -> start/stop -> destroy`.
+   * Idempotente: llamarlo dos veces no rompe nada.
+   */
+  destroy() {
+    if (this.destroyed) return;
+    this.destroyed = true;
+    this.resumeOnVisible = false;
+    this.stop();
+    this.unbindEvents();
+    this.destroyGl();
+    mounted.delete(this.root);
+  }
+
+  /** Suelta programas, shaders, buffer y targets, y pierde el contexto. */
+  destroyGl() {
+    const gl = this.gl;
+    if (!gl) return;
+    if (this.programs) {
+      Object.values(this.programs).forEach(({ program, shaders }) => {
+        shaders.forEach((shader) => {
+          gl.detachShader(program, shader);
+          gl.deleteShader(shader);
+        });
+        gl.deleteProgram(program);
+      });
+      this.programs = null;
+    }
+    if (this.quad) {
+      gl.deleteBuffer(this.quad);
+      this.quad = null;
+    }
+    ([
+      'fbSource',
+      'fbDisplace',
+      'fbThreshold',
+      'fbChroma',
+      'fbPrev',
+      'fbNext',
+    ] as const).forEach((key) => {
+      const target = this[key];
+      if (!target) return;
+      if (target.tex) gl.deleteTexture(target.tex);
+      if (target.fb) gl.deleteFramebuffer(target.fb);
+      this[key] = null;
     });
+    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    this.gl = null;
+    this.webglActive = false;
   }
 
   onPointerMove = (event: PointerEvent) => {
@@ -641,7 +755,7 @@ class KdxObserveV2Runtime {
       const info = gl.getActiveUniform(program, index);
       if (info) uniforms[info.name] = gl.getUniformLocation(program, info.name);
     }
-    return { program, uniforms };
+    return { program, uniforms, shaders: [vertex, fragment] };
   }
 
   compile(type: number, source: string) {
@@ -722,7 +836,30 @@ class KdxObserveV2Runtime {
 
 const mounted = new WeakMap<HTMLElement, KdxObserveV2Runtime>();
 
+let swapHookInstalled = false;
+
+/** Runtime montado en un root, si lo hay. Para teardown manual, debug y pruebas. */
+export function getKodexObserveV2Runtime(root: HTMLElement): KdxObserveV2Runtime | null {
+  return mounted.get(root) ?? null;
+}
+
+/**
+ * Desmonta las escenas vivas del documento actual.
+ * Astro reemplaza el elemento en cada navegacion: sin esto el runtime viejo
+ * seguia con su loop, sus listeners y su contexto WebGL mientras el nuevo ya
+ * habia arrancado.
+ */
+export function destroyKodexObserveV2Scenes() {
+  document.querySelectorAll<HTMLElement>('[data-kdx-observe-v2]').forEach((root) => {
+    mounted.get(root)?.destroy();
+  });
+}
+
 export function mountKodexObserveV2Scenes() {
+  if (!swapHookInstalled) {
+    swapHookInstalled = true;
+    document.addEventListener('astro:before-swap', destroyKodexObserveV2Scenes);
+  }
   document.querySelectorAll<HTMLElement>('[data-kdx-observe-v2]').forEach((root) => {
     if (mounted.has(root)) return;
     const runtime = new KdxObserveV2Runtime(root);
