@@ -27,6 +27,11 @@
  * ruta sólo para `/kodex/folio/*`; el guard DOM sigue evitando duplicados si
  * un folio migra al shell en el futuro.
  *
+ * RETURN usa el MISMO memory.js para materializar un resumen visual mínimo del
+ * recorrido. No es otro store, otro JourneyState ni una inferencia sobre la
+ * persona: sólo hace visible la firma determinística que memory.js ya deriva
+ * de views/effects/signal. El mismo rastro produce el mismo specimen code.
+ *
  * Lo que NO graba, y es deliberado: nada que identifique a la persona. El
  * contrato de privacidad de la Scene Bible es explícito — sin fingerprinting,
  * sin inferencia emocional, sin puntaje espiritual, sin inferencia de salud.
@@ -58,7 +63,7 @@ const { umbralPermanencia = 6000, registraVista = defaultRegistraVista } = Astro
 <span data-kdx-permanencia={umbralPermanencia} data-kdx-vista={registraVista ? "" : null} hidden></span>
 
 <script>
-  import { record } from "../../kodex/return/memory.js";
+  import { readSpecimen, record } from "../../kodex/return/memory.js";
 
   const marca = document.querySelector("[data-kdx-permanencia]");
   if (marca) {
@@ -67,6 +72,57 @@ const { umbralPermanencia = 6000, registraVista = defaultRegistraVista } = Astro
        `registraVista`, el recorrido no se duplica. */
     if (marca.hasAttribute("data-kdx-vista") && !document.querySelector(".kxm-nav")) {
       try { record({ type: "view", work: location.pathname }); } catch {}
+    }
+
+    /* RETURN no tenía capa que consumiera la memoria que el propio corredor
+       venía escribiendo. La primera prueba material es deliberadamente pequeña:
+       un sello legible dentro del artefacto existente. Se deriva del store
+       actual, no crea estado nuevo, y evita poner números que aparenten ser
+       mediciones físicas o psicológicas. */
+    if (location.pathname === "/kodex/folio/vi/") {
+      try {
+        const host = document.querySelector("[data-kdx-art]");
+        if (host && !host.querySelector("[data-kdx-return-specimen]")) {
+          const specimen = readSpecimen("RETURN");
+          const panel = document.createElement("section");
+          panel.className = "kdx-return-memory";
+          panel.setAttribute("data-kdx-return-specimen", "");
+          panel.setAttribute("data-return-code", specimen.code);
+          panel.setAttribute("data-return-memory", String(specimen.memory));
+          panel.setAttribute("data-return-cycle", String(specimen.cycle));
+          panel.setAttribute("aria-label", `Journey specimen ${specimen.code}`);
+
+          const mark = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          mark.setAttribute("class", "kdx-return-memory__mark");
+          mark.setAttribute("viewBox", "0 0 100 100");
+          mark.setAttribute("aria-hidden", "true");
+          mark.innerHTML = `
+            <circle cx="50" cy="50" r="33"></circle>
+            <circle cx="50" cy="50" r="21"></circle>
+            <path d="M50 8V27M50 73V92M8 50H27M73 50H92"></path>
+            <path d="M22 22L35 35M65 65L78 78M78 22L65 35M35 65L22 78"></path>
+            <path d="M50 16C69 16 84 31 84 50C84 69 69 84 50 84"></path>
+          `;
+          const angle = specimen.seed % 360;
+          mark.style.setProperty("--kdx-return-angle", `${angle}deg`);
+          mark.style.setProperty("--kdx-return-chirality", specimen.chirality < 0 ? "-1" : "1");
+
+          const copy = document.createElement("div");
+          copy.className = "kdx-return-memory__copy";
+          const label = document.createElement("span");
+          label.textContent = specimen.curated ? "CURATED FALLBACK" : "JOURNEY SPECIMEN";
+          const code = document.createElement("strong");
+          code.textContent = specimen.code;
+          const trace = document.createElement("span");
+          trace.textContent = `TRACE · ${specimen.works.length} / MEMORY · ${specimen.memory} / CYCLE · ${specimen.cycle}`;
+          copy.append(label, code, trace);
+          panel.append(mark, copy);
+          host.append(panel);
+        }
+      } catch {
+        /* RETURN must remain usable even when storage is unavailable. The
+           existing static CRT is the honest fallback; no fake specimen. */
+      }
     }
 
     /* La señal se cuenta una sola vez por carga, y sólo si la pestaña estuvo
@@ -91,3 +147,81 @@ const { umbralPermanencia = 6000, registraVista = defaultRegistraVista } = Astro
     });
   }
 </script>
+
+<style is:global>
+  .kx-os-scene--return [data-kdx-art] {
+    position: relative;
+  }
+
+  .kx-os-scene--return .kdx-return-memory {
+    position: absolute;
+    left: clamp(10px, 1.2vw, 18px);
+    bottom: clamp(10px, 1.2vw, 18px);
+    z-index: 8;
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+    width: min(360px, calc(100% - 20px));
+    padding: 9px 11px;
+    border: 1px solid color-mix(in srgb, var(--kdx-scene-accent, #A7FF00) 55%, transparent);
+    background: color-mix(in srgb, #050706 90%, transparent);
+    color: #e9ece8;
+    font-family: var(--kdx-font-mono, monospace);
+    pointer-events: none;
+    backdrop-filter: blur(4px);
+  }
+
+  .kx-os-scene--return .kdx-return-memory__mark {
+    width: 58px;
+    height: 58px;
+    overflow: visible;
+    transform: rotate(var(--kdx-return-angle, 0deg)) scaleX(var(--kdx-return-chirality, 1));
+    transform-origin: center;
+    fill: none;
+    stroke: var(--kdx-scene-accent, #A7FF00);
+    stroke-width: 1.2;
+    opacity: .92;
+  }
+
+  .kx-os-scene--return .kdx-return-memory__copy {
+    min-width: 0;
+    display: grid;
+    gap: 3px;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+
+  .kx-os-scene--return .kdx-return-memory__copy span {
+    font-size: 8px;
+    opacity: .7;
+  }
+
+  .kx-os-scene--return .kdx-return-memory__copy strong {
+    overflow: hidden;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .05em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 620px) {
+    .kx-os-scene--return .kdx-return-memory {
+      grid-template-columns: 42px minmax(0, 1fr);
+      gap: 8px;
+      width: min(285px, calc(100% - 16px));
+      padding: 7px 8px;
+    }
+    .kx-os-scene--return .kdx-return-memory__mark {
+      width: 42px;
+      height: 42px;
+    }
+    .kx-os-scene--return .kdx-return-memory__copy strong { font-size: 8px; }
+    .kx-os-scene--return .kdx-return-memory__copy span { font-size: 7px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-scene--return .kdx-return-memory__mark { transition: none; }
+  }
+</style>
