@@ -68,12 +68,77 @@ type DomRefs = {
   rightRailB: HTMLElement | null;
   rightRailC: HTMLElement | null;
   rightRailD: HTMLElement | null;
+  fpsReadout: HTMLElement | null;
+  frameTimeReadout: HTMLElement | null;
   waveformBars: HTMLElement[];
   signalBars: HTMLElement[];
   nodes: HTMLElement[];
 };
 
 const MODE_ORDER: KdxObserveV2State[] = ['idle', 'aware', 'locked', 'observing'];
+
+/* ------------------------------------------------------------------ */
+/* Pasaporte epistemico de cada lectura                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Todo valor visible de esta escena cae en una de tres clases. La clase viaja
+ * en `data-kdx-epistemic`, en una marca de texto real (nunca en `content:` de
+ * un pseudo-elemento, que se pierde si se desactiva el CSS y no siempre llega
+ * al arbol de accesibilidad) y en el `aria-label` que escribimos aqui.
+ *
+ *   measured    medido de verdad en este navegador (frame timing, ruta de render).
+ *   state       el modo real de la interfaz. Cierto, pero no mide nada externo.
+ *   atmosphere  compuesto a partir del modo para dar clima. No mide ni detecta nada.
+ *
+ * `atmosphere` es el valor que el canon (`status`: ADMITTED | ATMOSPHERE | BLOCKED)
+ * exige para cualquier respuesta atmosferica, y el canon anade la razon:
+ * "Atmospheric elements must never impersonate data".
+ */
+type Epistemic = 'measured' | 'state' | 'atmosphere';
+
+const EPISTEMIC_MARK: Record<Epistemic, string> = {
+  measured: 'MEASURED',
+  state: 'STATE',
+  atmosphere: 'ATMOSPHERE',
+};
+
+const EPISTEMIC_ARIA: Record<Epistemic, string> = {
+  measured: 'measured value',
+  state: 'interface state',
+  atmosphere: 'atmospheric value, composed for mood, not measured and not detected',
+};
+
+/**
+ * Vocabulario visible del checksum. El enum interno (`latent | pending | verified`)
+ * vive en `observe-v2/config.ts` y lo consume el CSS via `[data-checksum]`, asi que
+ * no se toca; lo que se retira es la palabra "VERIFIED" de la pantalla. Ningun
+ * digest se calcula aqui, de modo que "verificado" seria una afirmacion sin
+ * respaldo, y es la mas fuerte de todas las que mostraba la escena.
+ */
+const CHECKSUM_DISPLAY: Record<ObserveChecksum, string> = {
+  latent: 'LATENT',
+  pending: 'FORMING',
+  verified: 'RESONANT',
+};
+
+/** Escribe una lectura y su pasaporte: texto, clase y alternativa accesible. */
+function setReadout(el: HTMLElement | null, epistemic: Epistemic, value: string) {
+  if (!el) return;
+  el.textContent = value;
+  el.dataset.kdxEpistemic = epistemic;
+  el.setAttribute('aria-label', `${value} — ${EPISTEMIC_ARIA[epistemic]}`);
+}
+
+/**
+ * Igual que `setReadout`, pero para lecturas de una sola linea (chips y rieles)
+ * donde no cabe una marca aparte: la marca se concatena al propio texto, de modo
+ * que no hay hoja de estilo que pueda ocultarla ni scroll que la deje fuera.
+ */
+function setMarkedReadout(el: HTMLElement | null, epistemic: Epistemic, value: string) {
+  if (!el) return;
+  setReadout(el, epistemic, `${value} · ${EPISTEMIC_MARK[epistemic]}`);
+}
 
 class KdxObserveV2Runtime {
   root: HTMLElement;
@@ -158,6 +223,8 @@ class KdxObserveV2Runtime {
       rightRailB: root.querySelector('[data-kdx-right-rail-b]'),
       rightRailC: root.querySelector('[data-kdx-right-rail-c]'),
       rightRailD: root.querySelector('[data-kdx-right-rail-d]'),
+      fpsReadout: root.querySelector('[data-kdx-fps-readout]'),
+      frameTimeReadout: root.querySelector('[data-kdx-frametime-readout]'),
       waveformBars: Array.from(root.querySelectorAll<HTMLElement>('[data-kdx-waveform] i')),
       signalBars: Array.from(root.querySelectorAll<HTMLElement>('[data-kdx-signal-bars] i')),
       nodes: Array.from(root.querySelectorAll<HTMLElement>('[data-kdx-node]')),
@@ -521,6 +588,11 @@ class KdxObserveV2Runtime {
     });
   }
 
+  /** Tiempo real, en ms, que abarca el buffer de muestras de frame. Medido. */
+  sampleWindowMs() {
+    return this.frameSamples.reduce((sum, v) => sum + v, 0);
+  }
+
   measureMetrics(deltaMs: number) {
     this.frameSamples.push(deltaMs);
     this.refreshSamples.push(deltaMs);
@@ -572,34 +644,63 @@ class KdxObserveV2Runtime {
     this.root.classList.toggle('is-webgl-active', this.webglActive);
     this.root.classList.toggle('is-fallback-active', this.fallbackActive);
 
-    if (this.dom.statusChip) this.dom.statusChip.textContent = copy.chip;
-    if (this.dom.profileChip) this.dom.profileChip.textContent = `PROFILE · ${this.profile.toUpperCase()}`;
-    if (this.dom.checksumChip) this.dom.checksumChip.textContent = `CHECKSUM · ${this.sceneState.checksum.toUpperCase()}`;
     if (this.dom.stateCopy) this.dom.stateCopy.textContent = copy.message;
     if (this.dom.hiddenMessage) this.dom.hiddenMessage.textContent = copy.hidden;
     if (this.dom.protocolCopy) this.dom.protocolCopy.textContent = copy.protocol;
     if (this.dom.dossierCopy) this.dom.dossierCopy.textContent = copy.dossier;
     if (this.dom.dossierCopyBlock) this.dom.dossierCopyBlock.textContent = copy.dossier;
     if (this.dom.primaryCta) this.dom.primaryCta.textContent = copy.cta;
-    if (this.dom.signalReadout) this.dom.signalReadout.textContent = `${Math.round(this.sceneState.signalStrength * 100)}%`;
-    if (this.dom.focusReadout) this.dom.focusReadout.textContent = `${Math.round(this.sceneState.focusLevel * 100)}%`;
-    if (this.dom.anomalyReadout) this.dom.anomalyReadout.textContent = `${Math.round(this.sceneState.anomalyLevel * 100)}%`;
-    if (this.dom.nodeReadout) this.dom.nodeReadout.textContent = String(Math.round(this.sceneState.nodeCount)).padStart(2, '0');
-    if (this.dom.latencyReadout) this.dom.latencyReadout.textContent = `${Math.round(this.sceneState.latency)}MS`;
-    if (this.dom.latencyInline) this.dom.latencyInline.textContent = `${Math.round(this.sceneState.latency)}MS`;
-    if (this.dom.checksumReadout) this.dom.checksumReadout.textContent = this.sceneState.checksum.toUpperCase();
-    if (this.dom.checksumFoot) this.dom.checksumFoot.textContent = this.sceneState.checksum.toUpperCase();
-    if (this.dom.signalTag) this.dom.signalTag.textContent = `MODE ${this.sceneState.mode.toUpperCase()} · CORE ${Math.round(this.sceneState.signalStrength * 100)} · NODES ${Math.round(this.sceneState.nodeCount)}`;
-    if (this.dom.telemetryCopy) this.dom.telemetryCopy.textContent = `FOCUS ${Math.round(this.sceneState.focusLevel * 100)} · ANOMALY ${Math.round(this.sceneState.anomalyLevel * 100)} · CHECKSUM ${this.sceneState.checksum.toUpperCase()}`;
-    if (this.dom.metricChip) this.dom.metricChip.textContent = `${this.webglActive ? 'WEBGL ACTIVE' : 'SVG FALLBACK'} · PASS ${this.webglActive ? '06' : '00'} · ${this.metrics.fps || 0} FPS`;
-    if (this.dom.sourceReadout) this.dom.sourceReadout.textContent = this.sceneState.mode === 'idle' ? 'UNKNOWN' : 'RELATIONAL FIELD';
-    if (this.dom.acquisitionReadout) this.dom.acquisitionReadout.textContent = this.sceneState.mode === 'observing' ? 'ACTIVE FEEDBACK' : this.sceneState.mode === 'locked' ? 'TARGET LOCK' : this.sceneState.mode === 'aware' ? 'PRESENCE SWEEP' : 'PASSIVE LISTEN';
-    if (this.dom.confidenceReadout) this.dom.confidenceReadout.textContent = this.sceneState.mode === 'observing' ? 'HIGH' : this.sceneState.mode === 'locked' ? 'STABLE' : this.sceneState.mode === 'aware' ? 'RISING' : 'LOW';
-    if (this.dom.windowReadout) this.dom.windowReadout.textContent = `${Math.max(0.5, this.metrics.averageFrameTime / 10).toFixed(1).padStart(5, '0')}S`;
-    if (this.dom.rightRailA) this.dom.rightRailA.textContent = `SOURCE · ${this.sceneState.mode === 'idle' ? 'UNKNOWN' : 'DETECTED'}`;
-    if (this.dom.rightRailB) this.dom.rightRailB.textContent = `MODE · ${this.sceneState.mode.toUpperCase()}`;
-    if (this.dom.rightRailC) this.dom.rightRailC.textContent = `FIELD · ${this.sceneState.checksum.toUpperCase()}`;
-    if (this.dom.rightRailD) this.dom.rightRailD.textContent = this.webglActive ? 'RENDER · MULTIPASS' : 'RENDER · SVG FALLBACK';
+
+    const checksumWord = CHECKSUM_DISPLAY[this.sceneState.checksum];
+    const signalPct = Math.round(this.sceneState.signalStrength * 100);
+    const focusPct = Math.round(this.sceneState.focusLevel * 100);
+    const anomalyPct = Math.round(this.sceneState.anomalyLevel * 100);
+    const nodeCount = Math.round(this.sceneState.nodeCount);
+
+    /* --- STATE: el modo real de la interfaz --------------------------- */
+    setMarkedReadout(this.dom.statusChip, 'state', copy.chip);
+    setMarkedReadout(this.dom.rightRailB, 'state', `MODE · ${this.sceneState.mode.toUpperCase()}`);
+
+    /* --- MEASURED: cronometrado de verdad en este navegador ----------- */
+    setMarkedReadout(this.dom.profileChip, 'measured', `PROFILE · ${this.profile.toUpperCase()}`);
+    setMarkedReadout(
+      this.dom.metricChip,
+      'measured',
+      `${this.webglActive ? `WEBGL ACTIVE · ${this.metrics.passCount} PASS` : 'SVG FALLBACK'} · ${this.metrics.fps || 0} FPS`,
+    );
+    setMarkedReadout(this.dom.rightRailD, 'measured', this.webglActive ? 'RENDER · MULTIPASS' : 'RENDER · SVG FALLBACK');
+    setReadout(this.dom.fpsReadout, 'measured', `${this.metrics.fps || 0}FPS`);
+    setReadout(this.dom.frameTimeReadout, 'measured', `${this.metrics.averageFrameTime.toFixed(1)}MS`);
+    // Ventana real que cubre el buffer de muestras, en segundos reales. Antes
+    // era `averageFrameTime / 10` con una "S" pegada: una medida real disfrazada
+    // de ventana de adquisicion, que es su propia forma de mentir.
+    setReadout(this.dom.windowReadout, 'measured', `${(this.sampleWindowMs() / 1000).toFixed(1)}S`);
+
+    /* --- ATMOSPHERE: compuesto desde el modo, no mide nada ------------- */
+    setReadout(this.dom.signalReadout, 'atmosphere', `${signalPct}%`);
+    setReadout(this.dom.focusReadout, 'atmosphere', `${focusPct}%`);
+    setReadout(this.dom.anomalyReadout, 'atmosphere', `${anomalyPct}%`);
+    setReadout(this.dom.nodeReadout, 'atmosphere', String(nodeCount).padStart(2, '0'));
+    setReadout(this.dom.latencyReadout, 'atmosphere', `${Math.round(this.sceneState.latency)}MS`);
+    setReadout(this.dom.latencyInline, 'atmosphere', `${Math.round(this.sceneState.latency)}MS`);
+    setReadout(this.dom.checksumReadout, 'atmosphere', checksumWord);
+    setReadout(this.dom.checksumFoot, 'atmosphere', checksumWord);
+    setReadout(this.dom.telemetryCopy, 'atmosphere', `FOCUS ${focusPct} · ANOMALY ${anomalyPct} · CHECKSUM ${checksumWord}`);
+    setReadout(this.dom.sourceReadout, 'atmosphere', this.sceneState.mode === 'idle' ? 'UNKNOWN' : 'RELATIONAL FIELD');
+    setReadout(
+      this.dom.acquisitionReadout,
+      'atmosphere',
+      this.sceneState.mode === 'observing' ? 'ACTIVE FEEDBACK' : this.sceneState.mode === 'locked' ? 'TARGET LOCK' : this.sceneState.mode === 'aware' ? 'PRESENCE SWEEP' : 'PASSIVE LISTEN',
+    );
+    setReadout(
+      this.dom.confidenceReadout,
+      'atmosphere',
+      this.sceneState.mode === 'observing' ? 'HIGH' : this.sceneState.mode === 'locked' ? 'STABLE' : this.sceneState.mode === 'aware' ? 'RISING' : 'LOW',
+    );
+    setMarkedReadout(this.dom.checksumChip, 'atmosphere', `CHECKSUM · ${checksumWord}`);
+    setMarkedReadout(this.dom.signalTag, 'atmosphere', `MODE ${this.sceneState.mode.toUpperCase()} · CORE ${signalPct} · NODES ${nodeCount}`);
+    setMarkedReadout(this.dom.rightRailA, 'atmosphere', `SOURCE · ${this.sceneState.mode === 'idle' ? 'UNKNOWN' : 'DETECTED'}`);
+    setMarkedReadout(this.dom.rightRailC, 'atmosphere', `FIELD · ${checksumWord}`);
     if ((force || this.debugEnabled) && this.dom.debug) this.dom.debug.hidden = !this.debugEnabled;
     this.updateDebug();
   }
