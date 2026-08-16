@@ -5,119 +5,108 @@ Purpose: fast operational truth for agents. This file is **not canon**; re-check
 
 ---
 
-## 1. Repository / release boundary
+## 1. Release / source-of-truth boundary
 
 Primary repository: `wenumapu8-droid/wenu-frontend`.
 
-Git commits or draft PRs do not authorize merge, deployment, permission changes, public asset approval or canon promotion. No protected Ocín source original may be modified, cropped, recolored, distorted or treated as publicly approved merely because it appears in a registry or internal lab.
+Drive canon + exact active PR heads + CI/artifacts are the operational sources of truth. Git commits/draft PRs do not authorize merge, deployment, permission changes, public asset approval or canon promotion. Protected Ocín originals remain immutable unless explicitly re-authorized.
 
-No standalone current Decision Log was found in the active operational branch or accessible Drive/repo search. Do **not** invent one. Operational truth comes from Drive canon + this Current State + exact active PR heads/CI/artifacts.
+No standalone current Decision Log was found in the active operational branch or accessible Drive/repo search. Do **not** invent one.
 
 ---
 
-## 2. Authoritative technical baseline — PR #62
+## 2. Authoritative Deep Navigation + Assembly OS baseline — PR #62
 
-PR #62 / `feat/kodex-observer-scale-route-v1` remains the verified Deep Navigation + Assembly OS baseline.
+PR #62 / `feat/kodex-observer-scale-route-v1` remains the verified architecture baseline.
 
 Verified head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.  
 KODEX Core Runtime run 164: **SUCCESS**.
 
-Already implemented and tested there:
+Already implemented/browser-tested there:
 
-- deliberate browser focus restoration + history/deep-link behavior;
-- one ElementContract schema + 28 normalized existing repo-native elements;
+- focus restoration + history/deep links;
+- one ElementContract schema + 28 normalized existing elements;
 - PlateSpec for KNOWLEDGE_PLATE / JUNCTION_PLATE / ACTIVATOR_PLATE;
-- deterministic seedable registered-ID-only assembler;
-- 12 Golden Plates spanning Science / Technology / Art / Consciousness;
+- deterministic registered-ID-only assembler;
+- 12 Golden Plates across Science / Technology / Art / Consciousness;
 - source-linked copy-role compiler;
-- protected Ocín activation adapter with full-view/no-crop/source-integrity gates;
-- Assembly QA result contract separating CONTRACT from RENDER_BROWSER truth;
-- WorkOrder / StationResult interchange contracts for SCRIPT / AGENT / HUMAN workers;
+- protected Ocín activation adapter;
+- contract/browser QA separation;
+- WorkOrder / StationResult interchange contracts;
 - macro chapter factory reusing Deep Route Engine;
 - seeded factory benchmark;
-- universal PlateSpec renderer + desktop/mobile/reduced-motion Golden browser evidence.
+- universal PlateSpec renderer + desktop/mobile/reduced-motion Golden evidence.
 
-`human_curator_acceptance` remains separate from machine validity. Do **not** recreate routing, PlateSpec, assembler, copy, memory, QA, renderer or release architecture unless a demonstrated contract gap exists.
+P0.1–P0.10 and the focus-restoration/browser gap are technically closed. PR remains OPEN/DRAFT as a release/governance state, not because P0 is unfinished.
 
-### Golden Knowledge renderer gap
+### Known Golden Knowledge renderer-consumption gap
 
-Run-164 artifact review found a bounded renderer-consumption gap, not a contract/assembler failure. The assembler already differentiates benchmark compositions (`GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER`; `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`), while `KodexPlateSpecRenderer.astro` still collapses KNOWLEDGE_PLATE cases into one generic diagram structure.
-
-The future bounded #62 delta remains: consume existing G01/G02/G07 composition semantics in the universal renderer and extend Golden browser evidence with structural identity/fingerprint checks. Do not invent element IDs or change assembler scoring to force difference.
-
-PR #62 remains OPEN / DRAFT / NOT MERGED / NOT DEPLOYED. P0.1–P0.10 and focus-restoration/browser acceptance are technically closed; PR state is a release/governance boundary, not an unfinished P0 claim.
+The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`, but the universal KNOWLEDGE renderer still flattens those IDs into one generic diagram. Future bounded #62 work remains: consume existing G01/G02/G07 composition semantics and add structural-fingerprint browser evidence. Do not invent IDs or change assembler scoring merely to force visual difference.
 
 ---
 
-## 3. Perceptual / HoloCore lanes
+## 3. Parallel/perceptual lanes
 
-- **PR #70** — browser-validated volumetric/materiality benchmark; creator acceptance pending.
-- **PR #73** — RGX technical-family baseline; specialized structural grammar, not default/final materiality.
-- **PR #75** — targeted reference-fidelity creator-review surface; source pixels NONE; creator acceptance pending.
-- **PR #76** — verified Manifestation × RGX systems-convergence substrate; reuses existing state/memory/Assembly/HoloCore systems.
-- **PR #78** — **HOLD / EXTRACTION-ONLY**. Its branch-local visual-grammar/ElementContract dialect is not Assembly OS authority and its branch is heavily contaminated by unrelated history. Useful HoloCore observations may later be re-expressed through #62's canonical ElementContract/registry on a bounded delta; do not normalize #78 in place or merge it as convergence architecture.
+- **PR #70** — volumetric/materiality benchmark; creator acceptance pending.
+- **PR #73** — RGX technical-family baseline; not default/final materiality.
+- **PR #75** — reference-fidelity creator-review surface; source pixels NONE.
+- **PR #76** — verified Manifestation × RGX convergence substrate; reuse, do not fork.
+- **PR #78** — **HOLD / EXTRACTION-ONLY**. Its branch-local visual-grammar/ElementContract dialect is not Assembly OS authority and the branch contains broad unrelated history. Useful observations may later be re-expressed through #62's canonical schema/registry only on a bounded delta.
 
 ---
 
-## 4. Product-facing corridor — PR #77
+## 4. Product corridor — PR #77
 
-PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 corridor in place. It does not own or replace Deep Navigation/Assembly OS architecture.
+PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor without owning/replacing Assembly OS or Deep Navigation architecture.
 
-### Exact browser evidence frontier
+### Verified through MACHINE
 
 Product Corridor run `31917742898` / #37 executed on head `7d51a22b278df73f9f7c66dc7edeca5f6e681c34`.
 
-PASS on that exact head:
+PASS:
+- install/build/preview;
+- THRESHOLD desktop/mobile/reduced-motion;
+- PROLOGUE desktop/mobile/reduced-motion;
+- DESCENT desktop/mobile/reduced-motion;
+- ARCHIVE desktop/mobile/reduced-motion;
+- ARCHIVE→MACHINE interlude + MACHINE desktop/mobile/reduced-motion.
 
-- THRESHOLD — desktop/mobile/reduced-motion;
-- PROLOGUE — desktop/mobile/reduced-motion;
-- DESCENT — desktop/mobile/reduced-motion;
-- ARCHIVE — desktop/mobile/reduced-motion;
-- ARCHIVE→MACHINE interlude + MACHINE — desktop/mobile/reduced-motion;
-- native install/build/preview before those gates.
+Artifact `9255492359`; digest `sha256:54d1eef72a5042f55b047a22de85c3b9eaaac3040bec06234c83f9b4cd77ca5d`.
 
-Artifact: `kodex-product-corridor-evidence` id `9255492359`; digest `sha256:54d1eef72a5042f55b047a22de85c3b9eaaac3040bec06234c83f9b4cd77ca5d`.
+MACHINE is therefore **browser-revalidated**. The earlier unsourced `INTEGRITY · 98.7%` defect remains repaired to explicit `NOT MEASURED`. Do not describe GitHub billing as the current hard MACHINE blocker.
 
-This **closes MACHINE browser revalidation**. The earlier unsourced `INTEGRITY · 98.7%` was repaired to explicit `NOT MEASURED`; run #37 proves that repair under the real browser gate. Do not continue describing billing as the hard MACHINE blocker.
+### COSMOLOGY evidence iteration
 
-### COSMOLOGY measured failure
+Run #37 failed only at COSMOLOGY because the existing orbital map overflowed the first viewport on desktop, 390×844, 412×915 and reduced-motion. Code inspection also confirmed six hover-only relation nodes and a promised-but-missing `<640px` fallback.
 
-The same run failed only at COSMOLOGY. Desktop, 390×844, 412×915 and reduced-motion all reported:
+First bounded repair on head `01ee06f60fa43f5ffe9d4c845bd7c6b56dc2166b`:
+- embedded existing map into the artifact-plate dimensions;
+- keyboard semantics on the same six canonical nodes;
+- real six-node compact mobile fallback as touch surface;
+- stronger Playwright checks for desktop containment, mobile fallback ordering/containment, keyboard + touch activation.
 
-`orbital map is clipped outside the first viewport`
+Automatic Product Corridor run `31918660903` / #39 executed that repair. Prior rooms through MACHINE remained green, but COSMOLOGY still failed. Artifact `9255744176`; digest `sha256:3a68c9554044f88a24827857a0f1c98bc98bc0f8fbe0941f8b6c1fc5d40ec894`.
 
-Artifact inspection showed the existing `CosmologyMap` behaving like a full editorial page inside the viewport-bounded folio-V artifact plate. Code inspection also confirmed two previously audited implementation defects in that same component:
+Measured #39 result:
+- desktop/reduced-motion: compact map content existed, but the **generic parent folio art plate** still extended below the first viewport;
+- mobile 390/412: fallback existed, but the generic parent art plate positioned it behind/below corridor navigation.
 
-- six canonical concept nodes were hover-only (no semantic keyboard/touch activation);
-- the source comment promised a `<640px` list fallback, but no fallback existed.
+Current PR #77 head: `4acc2cd0fc618157620af9ff3f3770833c6f3a45`.
 
-These are bounded component defects, not justification for another renderer, state model, route engine or element schema.
+Second repair changes only that measured parent-plate geometry:
+- explicit bounded desktop COSMOLOGY art-plate height;
+- <=640px art plate positioned inside the existing first-viewport free zone above corridor navigation;
+- six concept IDs, five portals, relation semantics, keyboard/touch activation, route, memory and acceptance criteria otherwise unchanged.
 
-### COSMOLOGY bounded repair — current head
-
-Current PR #77 head: `01ee06f60fa43f5ffe9d4c845bd7c6b56dc2166b`.
-
-Only the existing `CosmologyMap` and its product-evidence gate were advanced:
-
-- embedded map consumes the existing artifact-plate dimensions instead of overflowing it;
-- the same six canonical concept nodes expose keyboard semantics;
-- pointer + keyboard share the existing relation map;
-- a real compact six-node fallback exists below 640px and is the touch surface;
-- five existing ecosystem portals/relation meanings remain unchanged;
-- reduced-motion removes transition dependency without removing semantics;
-- Playwright now proves desktop map containment, mobile fallback containment + canonical ordering, keyboard activation and touch activation.
-
-Automatic exact-head Product Corridor run `31918660903` / #39 is currently the validation frontier. **Do not call COSMOLOGY browser-accepted until that run and its artifact are inspected.**
+Status: **COSMOLOGY IMPLEMENTED REPAIR / EXACT-HEAD BROWSER REVALIDATION PENDING**. Do not advance RETURN until a real automatic or KOD-69 local/self-hosted run closes this gate and its artifact is inspected.
 
 ---
 
-## 5. Execution policy — KOD-69 / KOD-48
+## 5. Execution / preview policy
 
-KOD-69 is the zero-cost evidence lane. If hosted Actions is unavailable, execute the same repository-native build/browser gates locally or self-hosted on the Mac mini and preserve SHA-bound evidence. Hosted green is not itself a quality requirement; the underlying tests/evidence are.
+**KOD-69** is the zero-cost evidence lane. If provider CI is unavailable, run the same repository-native build/browser gates locally or self-hosted on the Mac mini and preserve SHA-bound evidence. Hosted green is not itself the quality requirement. Do not manually loop hosted reruns.
 
-Do **not** manually loop hosted reruns when provider execution is unavailable. The current #39 run was automatic after a bounded code change and is evidence if it executes.
-
-KOD-48 remains the continuous preview lane. Preparing preview workflow/config/artifacts is allowed; actually publishing a noindex/staging URL remains deployment/publishing and is separately gated by the existing explicit authorization policy. Do not claim a preview URL exists unless verified live.
+**KOD-48** remains the continuous preview lane. Preparing preview workflow/config/artifacts is allowed; actually publishing a noindex/staging URL is a separately gated publishing/deployment action. Do not claim a preview URL exists unless verified live and do not publish without the existing explicit authorization policy.
 
 ---
 
@@ -126,15 +115,13 @@ KOD-48 remains the continuous preview lane. Preparing preview workflow/config/ar
 Strategic mode: **convergence + curation + perceptual refinement**.
 
 Primary risks:
-
-- mistaking CI/browser green for creator acceptance;
+- mistaking CI green for creator acceptance;
 - adding architecture instead of converging existing systems;
-- fabricating telemetry or letting decorative numbers read as facts;
-- creating parallel registries/schemas/status vocabularies;
-- using contaminated historical/rescue branches as convergence bases;
-- scaling renderer families before their perceptual role is accepted;
-- confusing scientific fact, authored metaphor, cultural provenance, inference, implementation and deployment state;
-- treating protected artwork curation as public-use approval.
+- fabricated telemetry;
+- parallel schemas/registries/status vocabularies;
+- contaminated historical branches becoming convergence bases;
+- scientific fact / metaphor / cultural provenance / inference / implementation / deployment state collapsing into one label;
+- treating protected-art curation as public-use approval.
 
 `BUILD LESS. CURATE HARDER. LET MEMORY CREATE COMPLEXITY.`
 
@@ -142,27 +129,10 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Inspect Product Corridor run #39 on exact #77 head `01ee06f...`.
-2. If COSMOLOGY passes, inspect desktop/mobile/reduced-motion artifact before promoting the room to browser-accepted.
-3. If COSMOLOGY fails, repair only the measured component/test delta; do not create parallel architecture or weaken acceptance.
-4. After COSMOLOGY is technically closed, move the product corridor frontier to RETURN. Existing audit finding: RETURN still lacks a finished product-facing visual layer; treat that as diagnosis until implemented + browser-tested.
-5. Separately, keep #62 as the sole Assembly OS authority; the next bounded Assembly delta remains G01/G02/G07 Knowledge renderer dispatch + structural fingerprint evidence when product-frontier evidence permits.
+1. Obtain exact-head browser evidence for PR #77 head `4acc2cd...` automatically if provider CI picks it up, otherwise through KOD-69's Mac mini/local lane.
+2. Inspect COSMOLOGY desktop/mobile/reduced-motion artifact; promote only on actual PASS.
+3. If it fails, repair only the measured geometry/input delta; no new architecture and no weakened gate.
+4. After COSMOLOGY closes, move the product frontier to RETURN. Existing audit finding that RETURN lacks a finished product-facing visual layer remains diagnosis until implementation + browser QA.
+5. Separately preserve #62 as sole Assembly OS authority; its next bounded renderer delta remains G01/G02/G07 dispatch + structural fingerprint evidence.
 6. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
 7. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
-
----
-
-## 8. Session-start checks
-
-Before editing KODEX, verify:
-
-1. Which Drive canon applies?
-2. Which PR is the newest verified owner of the capability?
-3. Is the requested delta architectural, semantic, visual, authorial or deployment-related?
-4. Does a reusable implementation already exist?
-5. What exact CI/browser/visual artifact evidence exists for the current head?
-6. Is creator/cultural/public-release approval required?
-7. Does the change preserve user agency, reduced-motion/fallbacks and truth-state separation?
-8. Is the output implementation, test evidence, hypothesis, reference or deployment?
-
-If these cannot be answered from connected sources, do not guess.
