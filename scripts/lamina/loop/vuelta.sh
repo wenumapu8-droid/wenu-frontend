@@ -53,8 +53,15 @@ fi
 # El relevo se apoya en que el estado viva en git y no en la cabeza del agente:
 # cualquier máquina que clone el repo sabe qué ítem se está trabajando, quién lo
 # tomó y cuándo. Sin este pull, dos agentes toman el mismo ítem y se pisan.
+#
+# --autostash: la compuerta de arriba excluye scripts/lamina/out a propósito
+# (la medición final de cada vuelta reescribe score.json DESPUÉS del último
+# commit, así que siempre queda sucio), pero el pull no heredaba la excepción y
+# el loop se mataba a sí mismo en la vuelta siguiente. Pasó dos veces el 15/08
+# (14:56 y 20:27). El autostash guarda eso, rebasa y lo repone; el trabajo a
+# medias DE VERDAD sigue frenando en la compuerta de arriba.
 if git rev-parse --abbrev-ref "@{upstream}" >/dev/null 2>&1; then
-  if ! git pull --rebase --quiet origin "$RAMA"; then
+  if ! git pull --rebase --autostash --quiet origin "$RAMA"; then
     log "COMPUERTA: no se pudo sincronizar con origin/$RAMA. Alguien más está trabajando y hay conflicto."
     git rebase --abort >/dev/null 2>&1
     exit 5

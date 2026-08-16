@@ -202,6 +202,18 @@ export function pesoDeMemoria(): number {
   return Math.min(1, (d.archiveDepth + d.routeDiversity + d.returnCount) / 2.2);
 }
 
+/**
+ * El recorrido visto, para revisarlo — no para puntuarlo.
+ *
+ * Lo pide HEART: "route history appears around the Heart; visitor can choose a
+ * next path; no forced 'correct' route". Devuelve las rutas que `memory.js` ya
+ * venía guardando en `views`, en orden, sin repetidos consecutivos (así las
+ * guarda) y sin ningún juicio encima.
+ */
+export function recorrido(): readonly string[] {
+  return leer().views ?? [];
+}
+
 /** Borra todo. El visitante tiene que poder irse sin dejar nada. */
 export function olvidar(): void {
   if (!hayAlmacen()) return;
