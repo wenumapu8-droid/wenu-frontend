@@ -861,14 +861,29 @@ import "@fontsource/cormorant-garamond/500.css";
      * ((1138/2−8)/561) y el translate lleva su centro (569,569) al centro
      * medido del campo, (561,760) del póster. */
     function campoAlto(g) {
-      g.save();
-      g.globalCompositeOperation = "lighter";
-      g.beginPath();
-      g.rect(250 - OX, 300 - OY, 660, 130);
-      g.clip();
-      g.translate(561 - OX - 569, 760 - OY - 569);
-      pintarCampo(g, { receta, W: 1138, H: 1138, semilla: 0x0404, capas: ["polvo", "estrellas"] });
-      g.restore();
+      /* Dos franjas con densidad propia, medidas con comparar-region: a plena
+       * densidad la franja y 300..349 quedó exacta (+706 px donde faltaban 688)
+       * pero y 350..430 recibió el doble de su déficit (+1194 donde faltaban
+       * 631) porque el perfil radial engorda hacia el centro. Mitad de puntos
+       * en la franja baja. */
+      const franjas = [
+        [300, 50, 2600, 1400, 0x0404],
+        [350, 80, 1300, 700, 0x0405],
+      ];
+      for (const [y0, alto, nPolvo, nEstrellas, semilla] of franjas) {
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        g.beginPath();
+        g.rect(250 - OX, y0 - OY, 660, alto);
+        g.clip();
+        g.translate(561 - OX - 569, 760 - OY - 569);
+        pintarCampo(g, {
+          receta, W: 1138, H: 1138, semilla,
+          polvo: nPolvo, estrellas: nEstrellas,
+          capas: ["polvo", "estrellas"],
+        });
+        g.restore();
+      }
     }
 
     /* ─────────────────────────────────────────────────────────── montaje */
