@@ -9,9 +9,13 @@ const exactSha = process.env.KODEX_HEAD_SHA ?? process.env.GITHUB_SHA ?? 'LOCAL_
 const outDir = 'artifacts/kodex-authorial-transition-evidence';
 const rawDir = `${outDir}/raw`;
 const clipDir = `${outDir}/clips`;
-const clipSeconds = 8;
+const stillDir = `${outDir}/stills`;
+const clipSeconds = 12;
+const sourceHoldMs = 1800;
+const targetHoldMs = 3000;
 await mkdir(rawDir, { recursive: true });
 await mkdir(clipDir, { recursive: true });
+await mkdir(stillDir, { recursive: true });
 
 const profiles = [
   { id: 'desktop-1440x900', viewport: { width: 1440, height: 900 }, hasTouch: false },
@@ -43,17 +47,25 @@ async function probeDuration(path) {
   return Number.parseFloat(stdout.trim());
 }
 
-async function extractWindow(rawPath, outputPath, triggerOffsetSeconds) {
+async function extractTailWindow(rawPath, outputPath) {
   const rawDuration = await probeDuration(rawPath);
-  const desiredStart = Math.max(0, triggerOffsetSeconds - 2);
-  const maxStart = Math.max(0, rawDuration - clipSeconds);
-  const start = Math.min(desiredStart, maxStart);
+  assert(Number.isFinite(rawDuration), `Unable to probe raw transition video ${rawPath}`);
+  assert(rawDuration >= 8, `Raw transition video ${rawDuration.toFixed(3)}s is too short for the 8–12s review contract`);
+  const wanted = Math.min(clipSeconds, rawDuration);
+  const tailStart = Math.max(0, rawDuration - wanted);
 
+  // Do NOT align this trim to Date.now()/performance clocks. Playwright starts
+  // the encoder on its own media timeline, so browser wall-clock offsets can
+  // drift by several seconds from encoded pts. Run #1 proved that a route can
+  // PASS while its exported clip misses the actual crossing. The invariant we
+  // control is the tail: after target readiness we deliberately hold the new
+  // scene for targetHoldMs, so the final 8–12 seconds contain the crossing and
+  // its arrival without relying on cross-clock synchronization.
   await execFileAsync('ffmpeg', [
     '-y',
-    '-ss', start.toFixed(3),
+    '-sseof', `-${wanted.toFixed(3)}`,
     '-i', rawPath,
-    '-t', String(clipSeconds),
+    '-t', wanted.toFixed(3),
     '-map', '0:v:0',
     '-an',
     '-c:v', 'libvpx-vp9',
@@ -67,8 +79,8 @@ async function extractWindow(rawPath, outputPath, triggerOffsetSeconds) {
 
   const duration = await probeDuration(outputPath);
   assert(Number.isFinite(duration), `Unable to probe ${outputPath}`);
-  assert(duration >= 7.5 && duration <= 8.5, `Transition clip ${duration.toFixed(3)}s outside 8s evidence window`);
-  return { duration, rawDuration, trimStart: start };
+  assert(duration >= 8 && duration <= 12.25, `Transition clip ${duration.toFixed(3)}s outside 8–12s review contract`);
+  return { duration, rawDuration, tailStart };
 }
 
 async function waitStage(page, stage) {
@@ -117,6 +129,8 @@ for (const transition of transitions) {
     const firstPartyHttpErrors = [];
     const appOrigin = new URL(baseURL).origin;
     const clipFile = `${transition.id}--${profile.id}--transition.webm`;
+    const sourceStill = `${transition.id}--${profile.id}--source.png`;
+    const targetStill = `${transition.id}--${profile.id}--target.png`;
 
     try {
       context = await browser.newContext({
@@ -140,7 +154,6 @@ for (const transition of transitions) {
         });
       }
 
-      const videoStartMs = Date.now();
       page = await context.newPage();
       page.on('console', (message) => {
         if (message.type() !== 'error') return;
@@ -165,16 +178,19 @@ for (const transition of transitions) {
       assert(!(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)), `${transition.id}/${profile.id}: FULL motion unexpectedly reduced`);
       const trigger = page.locator(transition.trigger).first();
       await trigger.waitFor({ state: 'visible', timeout: 8000 });
-      await page.waitForTimeout(1200);
+      await page.waitForTimeout(sourceHoldMs);
+      await page.screenshot({ path: `${stillDir}/${sourceStill}`, fullPage: true });
 
-      const triggerOffsetSeconds = (Date.now() - videoStartMs) / 1000;
+      const triggerWallClockMs = Date.now();
       await trigger.click({ noWaitAfter: true });
       await page.waitForFunction((target) => location.pathname === target, transition.targetPath, { timeout: 10000 });
       await waitStage(page, transition.targetStage);
       await waitTargetReady(page, transition.targetReady);
       const targetPath = await page.evaluate(() => location.pathname);
       assert(targetPath === transition.targetPath, `${transition.id}/${profile.id}: target route drifted to ${targetPath}`);
-      await page.waitForTimeout(6000);
+      const targetReadyWallClockMs = Date.now();
+      await page.waitForTimeout(targetHoldMs);
+      await page.screenshot({ path: `${stillDir}/${targetStill}`, fullPage: true });
 
       assert(consoleErrors.length === 0, `${transition.id}/${profile.id}: console errors ${JSON.stringify(consoleErrors)}`);
       assert(firstPartyHttpErrors.length === 0, `${transition.id}/${profile.id}: first-party HTTP errors ${JSON.stringify(firstPartyHttpErrors)}`);
@@ -185,7 +201,7 @@ for (const transition of transitions) {
       context = null;
       rawPath = await video.path();
       const clipPath = `${clipDir}/${clipFile}`;
-      const clip = await extractWindow(rawPath, clipPath, triggerOffsetSeconds);
+      const clip = await extractTailWindow(rawPath, clipPath);
       await rm(rawPath, { force: true });
       rawPath = null;
 
@@ -200,9 +216,13 @@ for (const transition of transitions) {
         sourceStage: transition.sourceStage,
         targetStage: transition.targetStage,
         file: `clips/${clipFile}`,
+        sourceStill: `stills/${sourceStill}`,
+        targetStill: `stills/${targetStill}`,
         durationSeconds: Number(clip.duration.toFixed(3)),
-        triggerOffsetSeconds: Number(triggerOffsetSeconds.toFixed(3)),
-        trimStartSeconds: Number(clip.trimStart.toFixed(3)),
+        rawDurationSeconds: Number(clip.rawDuration.toFixed(3)),
+        tailStartSeconds: Number(clip.tailStart.toFixed(3)),
+        windowStrategy: 'ENCODER_TAIL_AFTER_TARGET_READY',
+        wallClockNavigationSeconds: Number(((targetReadyWallClockMs - triggerWallClockMs) / 1000).toFixed(3)),
         interaction: 'INTENTIONAL_ROUTE_TRIGGER',
         seededJourney: Boolean(transition.seededJourney),
         status: 'PASS',
@@ -233,7 +253,7 @@ await browser.close();
 await rm(rawDir, { recursive: true, force: true });
 
 const manifest = {
-  schema: 'KODEX_AUTHORIAL_TRANSITION_EVIDENCE_V1',
+  schema: 'KODEX_AUTHORIAL_TRANSITION_EVIDENCE_V2',
   exactSha,
   baseURL,
   truthBoundary: {
@@ -250,8 +270,14 @@ const manifest = {
     stateClass: 'AUTHORIAL_TRANSITION_STATE',
     motion: 'FULL',
     clipTargetSeconds: clipSeconds,
+    acceptedDurationSeconds: [8, 12.25],
     profiles,
+    sourceHoldMs,
+    targetHoldMs,
     input: 'ONE_EXPLICIT_ROUTE_TRIGGER_PER_BOUNDARY',
+    windowStrategy: 'ENCODER_TAIL_AFTER_TARGET_READY',
+    browserWallClockNotUsedForVideoTrim: true,
+    sourceAndTargetStillsIncluded: true,
     authorialIdleMotionKeptSeparate: true,
     qaStateKeptSeparate: true,
     reviewDimension: 'CINEMATIC_TRANSITION',
