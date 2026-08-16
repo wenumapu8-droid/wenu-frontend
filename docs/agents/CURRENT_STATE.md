@@ -9,7 +9,7 @@ Purpose: fast operational truth for agents. This file is **not canon**; re-check
 
 Primary repository: `wenumapu8-droid/wenu-frontend`.
 
-Drive canon + exact active PR heads + CI/local artifacts are the operational sources of truth. Git commits/draft PRs do not authorize merge, deployment, permission changes, public asset approval or canon promotion. Protected Ocín originals remain immutable unless explicitly re-authorized.
+Drive canon + exact active PR heads + SHA-bound CI/local artifacts are the operational sources of truth. Draft code does not authorize merge, deployment, permission changes, public asset approval or canon promotion. Protected Ocín originals remain immutable unless explicitly re-authorized.
 
 No standalone current Decision Log was found in the active operational branch or accessible Drive/repo search. Do **not** invent one.
 
@@ -36,7 +36,7 @@ Technically closed there:
 - seeded factory benchmark;
 - universal PlateSpec renderer + desktop/mobile/reduced-motion Golden evidence.
 
-P0.1–P0.10 and the focus-restoration/browser gap are technically closed. PR remains OPEN/DRAFT as a release/governance state, not because P0 is unfinished. Do not recreate these contracts or introduce a parallel route/state/memory/renderer/factory architecture.
+P0.1–P0.10 and the focus-restoration/browser gap are technically closed. PR #62 remains OPEN/DRAFT as a release/governance state, not because P0 is unfinished. Do not recreate these contracts or introduce a parallel route/state/memory/renderer/factory architecture.
 
 ### Known bounded Golden Knowledge renderer-consumption gap
 
@@ -50,9 +50,9 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 - **PR #73** — RGX technical-family baseline; not default/final materiality.
 - **PR #75** — reference-fidelity creator-review surface; source pixels NONE.
 - **PR #76** — verified Manifestation × RGX convergence substrate; reuse, do not fork.
-- **PR #79** — composition-only mobile PROLOGUE circuit proof, stacked from an older #77 head; not an architecture authority and not a safe replacement for the current #77 convergence head without explicit reconciliation.
+- **PR #79** — composition-only mobile PROLOGUE proof from an older #77 head; not an architecture authority or safe replacement for current #77 without explicit reconciliation.
 - **PR #80** — composition-only mobile ARCHIVE proof stacked on #79; same boundary.
-- **PR #78** — externally MERGED/CLOSED despite its own `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Normalize useful HoloCore observations through #62 contracts only.
+- **PR #78** — externally MERGED/CLOSED despite its prior `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Normalize useful HoloCore observations through #62 contracts only.
 
 ---
 
@@ -60,43 +60,42 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 
 PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor only. It does not own or replace Assembly OS, Deep Navigation, JourneyState or the existing `kx-journey` / `KodexRecuerda` / `src/kodex/return/memory.js` substrate.
 
-### Exact-head mechanical/browser closure — run #63
+### Corridor rooms already closed on executed evidence
 
-Product Corridor run `31945730175` (#63) completed **SUCCESS** on exact head `6df03fef9baa856073b705f99d5b7cae03a393ed`.
+THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY have exact-head browser evidence covering their required desktop/mobile/reduced-motion/input/state contracts. Do not modify them without new measured regression evidence.
 
-The single job passed, in order:
-- Astro build;
-- THRESHOLD desktop/mobile/reduced-motion;
-- PROLOGUE desktop/mobile/reduced-motion;
-- DESCENT desktop/mobile/reduced-motion;
-- ARCHIVE desktop/mobile/reduced-motion;
-- ARCHIVE→MACHINE + MACHINE desktop/mobile/reduced-motion;
-- COSMOLOGY desktop/mobile/touch/keyboard/reduced-motion;
-- COSMOLOGY→RETURN + RETURN memory specimen desktop/mobile/reduced-motion;
-- evidence upload.
+Product Corridor run #63 / `31945730175` was the first full mechanical green chain including RETURN, but artifact inspection exposed a mobile RETURN headline/action collision that the old gate did not measure. The gate was subsequently strengthened; therefore run #63 is not sufficient to call the current seven-room first-view composition complete.
 
-Evidence artifact: `kodex-product-corridor-evidence` id `9263329996`, digest `sha256:a89d7b28dbbdfd15824cf5d3e8006071f53e93aab932192b9050c26d3151d7bf`.
+### RETURN current evidence frontier — run #71
 
-RETURN machine evidence reports PASS for desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion: 100dvh/no-scroll, deterministic non-curated specimen, existing journey memory, CRT/fallback, action/art/specimen containment, drawer behavior, no fabricated percentage telemetry and clean first-party HTTP/console diagnostics.
+Product Corridor run #71 / `31952372401` executed on exact head `6b19734d36af91671839f4fe8d96a3aa475c7a31`.
 
-### Artifact review exposed a missing QA dimension
+Build + THRESHOLD + PROLOGUE + DESCENT + ARCHIVE + MACHINE + COSMOLOGY: **PASS**.  
+RETURN desktop 1440×900: **PASS**.  
+RETURN reduced-motion 1440×900: **PASS**.  
+RETURN 390×844: **FAIL — `RETURN actions are clipped`**.  
+RETURN 412×915: **FAIL — `RETURN actions are clipped`**.
 
-The actual run-63 mobile screenshots are **not composition-clean** despite machine PASS. On both 390×844 and 412×915, the outbound RETURN action stack visibly crosses the oversized closing headline `THE SIGNAL RETURNS. THE PATTERN REMAINS.`. The old gate only proved that headline/actions/art were each inside the viewport; it did not test overlap between them.
+Artifact: `kodex-product-corridor` id `9265133098`.
 
-This is a measured product/readability defect and a QA blind spot, not merely creator taste. Therefore do **not** call the seven-room product composition complete from run #63 alone and do not jump to the #62 G01/G02/G07 refinement yet.
+Artifact review shows the closing title still carrying inherited positioning behavior while the outbound action container escapes the mobile content box. This is a scene-local presentation defect, not a failure of `kx-journey`, `readSpecimen('RETURN')`, routing, CRT/fallback, protected artwork or Assembly OS.
 
-### Bounded RETURN composition + gate repair now implemented
+### Current bounded repair
 
-Current #77 head: `871a700ac366d92c20acd7015623f75967ca61b5`.
+Current #77 head: `1b9375aab858cb55bd4a2b97b08e62e7e3b8c1e3`.
 
-The repair stays inside the existing corridor:
-- new `public/assets/kodex/kodex-return-composition-v1.css` gives the mobile closing headline its own bounded field above the outbound controls;
-- `KodexChrome.astro` loads that bounded presentation layer;
-- `scripts/kodex-return-product-evidence.mjs` now measures the headline and rejects headline↔actions or headline↔artifact overlap in addition to the existing containment/memory/CRT/route/resource gates.
+Only `public/assets/kodex/kodex-return-composition-v1.css` changed from run #71. Mobile RETURN now:
+- neutralizes inherited `inset`, `transform`, width/max-width and margins on the copy/actions boxes;
+- forces the closing headline into actual static flow;
+- constrains the action grid to the stage content box with `minmax(0,1fr)` and 100% width/max-width;
+- retains all three existing exits;
+- leaves desktop/reduced-motion composition unchanged because those profiles already passed run #71.
 
-No route, action destination, kx-journey memory, deterministic specimen derivation, CRT/fallback, protected artwork behavior, PlateSpec, renderer, Deep Route or Assembly OS contract changed.
+No route, action destination, memory/specimen semantics, CRT/fallback, renderer, PlateSpec, ElementContract, assembler, Deep Route or protected Ocín original changed.
 
-Status: **RUN #63 MECHANICAL/BROWSER PASS ON PRIOR HEAD / RETURN MOBILE COMPOSITION REPAIR IMPLEMENTED / EXACT-HEAD REVALIDATION PENDING**.
+Status: **RETURN = IMPLEMENTED MEASURED MOBILE FLOW-CONTAINMENT REPAIR / EXACT-HEAD REVALIDATION PENDING**.
+
+The seven-room corridor is **not** product-composition complete until the current head passes RETURN desktop/390/412/reduced-motion and its exact artifact is visually inspected.
 
 ---
 
@@ -106,7 +105,7 @@ Status: **RUN #63 MECHANICAL/BROWSER PASS ON PRIOR HEAD / RETURN MOBILE COMPOSIT
 
 **KOD-48** remains the continuous preview lane. Preparing preview workflow/config/artifacts is allowed; actually publishing a noindex/staging URL is a separately gated publishing/deployment action. Do not claim a preview URL exists unless verified live and do not publish without the existing explicit authorization policy (`APROBAR DEPLOY`).
 
-Audit findings are not scene completion. A room changes technical state only through implementation plus the required evidence.
+Audit findings are not scene completion. A room changes technical state only through implementation plus required evidence.
 
 ---
 
@@ -115,7 +114,7 @@ Audit findings are not scene completion. A room changes technical state only thr
 Strategic mode: **convergence + curation + perceptual refinement**.
 
 Primary risks:
-- mistaking CI green for creator acceptance or even for perceptually valid composition when the gate does not measure overlap/readability;
+- mistaking CI green for creator acceptance or perceptually valid composition when the gate misses overlap/readability;
 - adding architecture instead of converging existing systems;
 - fabricated telemetry;
 - parallel schemas/registries/status vocabularies;
@@ -130,11 +129,11 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Revalidate exact #77 head `871a700ac366d92c20acd7015623f75967ca61b5` without manually looping hosted reruns; accept natural provider execution or use KOD-69 Mac mini/self-hosted SHA-bound evidence.
-2. Require the strengthened RETURN gate to pass desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion, including headline containment and explicit non-overlap against outbound actions and material artifact.
-3. Inspect the exact mobile RETURN screenshots after machine PASS. Browser PASS still does not equal creator acceptance.
+1. Revalidate exact #77 head `1b9375aab858cb55bd4a2b97b08e62e7e3b8c1e3` without manually looping hosted reruns; accept natural provider execution or use KOD-69 Mac mini/self-hosted SHA-bound evidence.
+2. Require RETURN desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion to pass containment, hit-testing, deterministic journey specimen, first-party resource health and explicit headline↔actions / headline↔artifact non-overlap.
+3. Inspect the exact 390/412 screenshots after machine PASS. Browser PASS still does not equal creator acceptance.
 4. Do not modify THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE or COSMOLOGY without new measured regression evidence.
-5. Only after the repaired RETURN first viewport is composition-clean may the seven-room corridor be called mechanically/browser-complete at the current acceptance level.
+5. Only after RETURN is clean may the seven-room corridor be called mechanically/browser-complete at the current acceptance level.
 6. Then return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate unless creator review establishes a higher-priority measured defect.
 7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
 8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
