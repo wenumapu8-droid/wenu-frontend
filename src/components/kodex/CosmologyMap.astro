@@ -139,7 +139,8 @@
   .kdx-cosmo__nodes g circle{ transition:r .2s, fill .2s; }
   .kdx-cosmo__nodes g:hover circle,
   .kdx-cosmo__nodes g:focus circle,
-  .kdx-cosmo__nodes g[aria-pressed="true"] circle{ r:9; fill:var(--kdx-magenta,#FF00C8); }
+  .kdx-cosmo__nodes g[aria-pressed="true"] circle,
+  .kdx-cosmo__nodes g.is-related circle{ r:9; fill:var(--kdx-magenta,#FF00C8); }
   .kdx-cosmo__nodes g:focus-visible circle{ stroke:var(--kdx-dust-white,#EDEDED); stroke-width:2; }
   .kdx-cosmo__links line{ transition:stroke .2s, stroke-opacity .2s; }
 
@@ -149,7 +150,8 @@
     font:700 10px/1.2 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:.16em; text-align:left; }
   .kdx-cosmo__concept-list button span{ color:var(--kdx-magenta,#FF00C8); font-size:8px; letter-spacing:.08em; }
   .kdx-cosmo__concept-list button:focus-visible,
-  .kdx-cosmo__concept-list button[aria-pressed="true"]{ outline:1px solid var(--kdx-magenta,#FF00C8); outline-offset:-1px; background:rgba(255,0,200,.08); }
+  .kdx-cosmo__concept-list button[aria-pressed="true"],
+  .kdx-cosmo__concept-list button.is-related{ outline:1px solid var(--kdx-magenta,#FF00C8); outline-offset:-1px; background:rgba(255,0,200,.08); }
 
   .kdx-cosmo__portals{ list-style:none; padding:0; margin:0; display:grid; gap:1px;
     background:var(--kdx-line,rgba(237,237,237,.15)); border:1px solid var(--kdx-line,rgba(237,237,237,.15)); }
@@ -181,14 +183,19 @@
   .kx-os-stage__cosmo .kdx-portal__state{ font-size:7px; }
   .kx-os-stage__cosmo .kdx-portal__dom{ font-size:8px; line-height:1.1; }
 
-  /* The generic folio art plate was still taller/lower than the remaining
-     first-viewport slot. Bound the existing plate itself; this is layout, not
-     a second COSMOLOGY renderer. */
+  /* COSMOLOGY is an instrument panel inside a bounded scene, not another
+     scrolling page. Anchor the existing art plate in the measured free zone
+     above the corridor navigation so the orbital map is fully inspectable. */
   .kx-os-scene--cosmology .kx-os-stage__art{
-    height:min(34vh,300px);
+    position:absolute;
+    right:clamp(18px,4vw,64px);
+    bottom:clamp(88px,11vh,110px);
+    left:auto;
+    width:min(54vw,680px);
+    height:min(48vh,420px);
     max-height:none;
     aspect-ratio:auto;
-    align-self:end;
+    z-index:6;
   }
 
   @media (max-width:640px){
@@ -216,6 +223,17 @@
     .kx-os-stage__cosmo .kdx-portal__eye{ font-size:6px; letter-spacing:.04em; }
     .kx-os-stage__cosmo .kdx-portal__state{ font-size:5px; letter-spacing:.04em; }
     .kx-os-stage__cosmo .kdx-portal__dom{ display:none; }
+
+    /* The generic copy column places the scene CTA below the first viewport on
+       390px devices. Pull only that existing control into the measured gap
+       above the compact map; the readout remains in its authored location. */
+    .kx-os-scene--cosmology .kx-cosmo-readout{ position:static; }
+    .kx-os-scene--cosmology [data-cosmo-next]{
+      position:absolute;
+      left:12px;
+      bottom:calc(82px + min(26svh,220px) + env(safe-area-inset-bottom));
+      z-index:8;
+    }
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -231,21 +249,37 @@
     const links = document.querySelectorAll('.kdx-cosmo__links [data-link]');
     const portals = document.querySelectorAll('.kdx-cosmo__portals [data-organ]');
     if (!nodes.length) return;
-    const map = {
-      signal: ['machine'],
+
+    // Concept-to-concept and concept-to-organ relations are separate truths.
+    // SIGNAL→MACHINE is a relation between canonical concept nodes; MACHINE is
+    // not one of the five ecosystem portals and must not be fabricated as one.
+    const organMap = {
+      signal: [],
       matter: ['wenumapu'],
       body: ['wenumapu'],
       memory: ['serpent'],
       territory: ['soma'],
       machine: ['practice'],
     };
+    const conceptMap = {
+      signal: ['machine'],
+      matter: [],
+      body: [],
+      memory: [],
+      territory: [],
+      machine: [],
+    };
     let activeNode = null;
     const paintPressed = (node) => {
-      nodes.forEach((control) => control.setAttribute('aria-pressed', String(control.dataset.node === node)));
+      nodes.forEach((control) => {
+        const isActive = control.dataset.node === node;
+        control.setAttribute('aria-pressed', String(isActive));
+        control.classList.toggle('is-related', (conceptMap[node] || []).includes(control.dataset.node));
+      });
     };
     const pulse = (node) => {
       activeNode = node;
-      const organs = map[node] || [];
+      const organs = organMap[node] || [];
       paintPressed(node);
       portals.forEach((p) => p.parentElement.classList.toggle('is-pulse', organs.includes(p.dataset.organ)));
       links.forEach((l) => l.setAttribute('stroke', l.dataset.link?.startsWith(node) ? '#FF00C8' : 'rgba(183,112,255,.28)'));
