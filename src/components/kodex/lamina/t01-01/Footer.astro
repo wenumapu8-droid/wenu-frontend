@@ -1,0 +1,105 @@
+---
+/**
+ * KODEX-∞ · t01-01 THRESHOLD PORTAL · PIE (0,880 · 1672×61)
+ *
+ * La caja empieza en y=880, así que las y de este archivo están corridas −880
+ * respecto del póster. Las x sí son las del póster.
+ *
+ * Mismo criterio que la cabecera: el logotipo, los dos lemas y el emblema salen
+ * TRAZADOS del original (arte.ts) y no dibujados, el código de barras es la
+ * luminancia por columna del original, y lo único que va como texto de verdad
+ * es la línea de versión, porque lleva cifras.
+ *
+ * El emblema del pie NO es el de la cabecera a otra escala: mide 170×30 contra
+ * 90×26, y su proporción es 5,7 contra 3,5. Son dos dibujos, y por eso hay dos
+ * trazados. Lo que se comparte —que es lo que pedía no repetirse— es el pintor
+ * (Trazo.astro), no la silueta.
+ *
+ * Todo el pie es tinta muy tenue: el pico de su pieza más brillante es 113 de
+ * luminancia sobre negro y la más apagada, el emblema, 76. Eso importa para
+ * medir: con la tolerancia del banco (0,12) un negro y un gris #4C4C4C cuentan
+ * como iguales, así que el porcentaje de este panel es casi insensible a que la
+ * tinta esté o no. Lo que se usó para afinarlo fue el error absoluto medio.
+ */
+import Trazo from "./Trazo.astro";
+import { rotulo } from "./tipografia";
+import { ftrMarca, ftrLema, ftrPpp, ftrAla, ftrBarras } from "./arte";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* "VISUAL DEVELOPMENT BOARD v1.0": primer píxel de tinta en x=184, cima de la
+   versal en y=902 —o sea 22 en coordenadas de la caja— y 201 px de tinta hasta
+   x=384. El paso por carácter da 7,00 px medido sobre la posición de arranque
+   de cada uno (184 · 192 · 199 · 205 · 212 · 220 …), pero lo que se le pasa al
+   <text> es el ancho total: a este cuerpo Chromium redondea el avance al píxel
+   y con paso libre la línea salía 13 px larga. */
+const VERSION = "VISUAL DEVELOPMENT BOARD v1.0";
+---
+
+<div data-box style={box} class="ftr">
+  <svg class="ftr__art" viewBox="0 0 1672 61" width="1672" height="61" aria-hidden="true">
+    <!-- Regla que separa el pie de la banda de paneles. Cae en y=879,6 del
+         póster —medio píxel por encima del borde de la caja— y por eso sale
+         apenas de ella: el original la tiene ahí, y no hay ningún panel en esa
+         franja. Corre de x=12 a x=1657, o sea de riel a riel del marco. -->
+    <rect class="ftr__regla" x="12" y="-0.4" width="1646" height="1" />
+
+    <!-- Cierre del marco del póster: los dos rieles bajan desde la cabecera y
+         mueren en el filo inferior, en y=934,25. -->
+    <rect class="ftr__riel" x="5.6" y="0" width="1" height="54.75" />
+    <rect class="ftr__riel ftr__riel--der" x="1665.8" y="0" width="2.4" height="54.75" />
+    <rect class="ftr__filo" x="8" y="54.25" width="1658" height="1" />
+
+    <!-- "KODEX−∞". El pie repite la marca sin volver a gritarla: la misma
+         silueta que arriba pero a un tercio del brillo. -->
+    <Trazo glifos={ftrMarca} etiqueta="KODEX−∞" />
+
+    <!-- Código de barras: la luminancia media por columna del original entre
+         x=408 y x=568, comprimida por tramos. -->
+    <g class="ftr__barras">
+      {ftrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={ftrBarras.y} width={w} height={ftrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- Lema, consigna y emblema, los tres trazados. El texto real de cada uno
+         queda en su aria-label, así que la lámina se lee sin verla. -->
+    <Trazo glifos={ftrLema} etiqueta="BUILT FOR ARCHIVES THAT REMEMBER." />
+    <Trazo glifos={ftrPpp} etiqueta="PATTERN. PROTECT. PERPETUATE." />
+    <Trazo glifos={ftrAla} etiqueta="Emblema alado KODEX−∞" />
+
+    <!-- "v1.0" es el rótulo de versión ficticio del póster, no la versión real
+         de ningún sistema: de ahí data-symbolic. Va como texto y no trazado
+         porque lleva cifras. -->
+    <text class="ftr__version" data-symbolic="true" {...rotulo(184, 22, 8, 202)}>{VERSION}</text>
+  </svg>
+</div>
+
+<style>
+  /* La regla de arriba sale medio píxel de la caja a propósito (ver cabecera
+     del archivo). Entre la banda inferior —que muere en y=866— y el pie no hay
+     ningún panel. */
+  .ftr { overflow: visible; font-family: var(--lam-mono); }
+
+  .ftr__art { position: absolute; left: 0; top: 0; overflow: visible; }
+
+  /* Tinta medida sobre el PNG. Las cuatro reglas del marco tienen brillos
+     distintos en el original (49 · 35 · 50 · 29) y van una por una. */
+  .ftr__regla { fill: #313131; }
+  .ftr__riel { fill: #323232; }
+  .ftr__riel--der { fill: #1d1d1d; }
+  .ftr__filo { fill: #232323; }
+
+  .ftr__version {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    fill: #5a5a5a;
+    /* Un píxel de desenfoque reproduce el derrame del raster del póster, que
+       deja medio píxel más de tinta por lado que el rasterizador del navegador.
+       Por debajo de 0,8 px Chromium colapsa el núcleo a una caja de 1 px y el
+       filtro no hace nada: medido, 0 · 0,4 · 0,7 px dan la misma captura. */
+    filter: blur(1px);
+  }
+</style>

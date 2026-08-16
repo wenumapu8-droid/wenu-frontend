@@ -12,7 +12,12 @@
  * viva y se va llenando.
  */
 import Base from '../../../layouts/Base.astro';
+import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import KodexChrome from '../../../components/KodexChrome.astro';
+import KodexRecuerda from "../../../components/kodex/KodexRecuerda.astro";
+import KodexOrganismo from "../../../components/kodex/organismo/KodexOrganismo.astro";
+import { organismoDe } from "../../../components/kodex/organismo/organismos.js";
 import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
 import KodexField from '../../../components/kodex/field/KodexField.astro';
 import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
@@ -47,13 +52,26 @@ const coverFor = (vol: VolumenResuelto) => {
   return assetUrl(src, 'hero');
 };
 const heroSrc = coverFor(v);
+
+// El organismo sale de las resonancias del volumen, y la semilla de su slug:
+// dos volumenes distintos con el mismo organismo no dan el mismo dibujo.
+const organismo = organismoDe(v.resonancias);
+const semillaVol = [...v.slug].reduce((a, c) => ((a * 31 + c.charCodeAt(0)) >>> 0), 7);
 const r = razon(v.hero?.aspecto);
 // La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
 const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
 const checksum = v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
 const assetKey = (v.hero?.src?.match(/^art\/([^/]+)\//)?.[1] ?? v.slug).replace(/[^a-z0-9-]/gi, '-').toLowerCase();
-const wallpaperDesktop = `/kodex-content/free/wallpapers/${assetKey}-desktop.webp`;
-const wallpaperMobile = `/kodex-content/free/wallpapers/${assetKey}-mobile.webp`;
+/* Mismo caso que en /kodex/works/: el fondo de pantalla no existe para 250 de
+   los 1.427 volumenes —conviven dos esquemas de nombre y ademas hay claves que
+   salen vacias—, asi que estos dos enlaces eran 404 publicados. Se comprueba
+   contra el disco en tiempo de build y, si no esta, no se ofrece la descarga.
+   Un boton que no baja nada es peor que no tener boton. */
+const wallpapersDir = fileURLToPath(new URL('../../../../public/kodex-content/free/wallpapers', import.meta.url));
+const wallpapers = existsSync(wallpapersDir) ? new Set(readdirSync(wallpapersDir)) : new Set();
+const wallpaperSi = (n) => (wallpapers.has(n) ? `/kodex-content/free/wallpapers/${n}` : null);
+const wallpaperDesktop = wallpaperSi(`${assetKey}-desktop.webp`);
+const wallpaperMobile = wallpaperSi(`${assetKey}-mobile.webp`);
 const collectUrl = `/kodex/store/?signal=${encodeURIComponent(v.slug)}#editions`;
 const verifyUrl = `/kodex/verify/?code=KDX-${v.numero}-${encodeURIComponent(v.slug)}`;
 const treatmentByType = {
@@ -230,8 +248,8 @@ const marcoTexto = {
         {v.slug === 'book-ocin-arte-digital-ritual' && <a class="kx-vol__enlace" href="/kodex/libro/">OPEN 81-PAGE VIEWER →</a>}
         {v.tipo === 'libro' && <a class="kx-vol__enlace" href="/kodex/libro/">READ BOOK SURFACE →</a>}
         <nav class="kx-vol__actions" aria-label="volume actions">
-          <a href={wallpaperDesktop} download data-kdx-action="download">DESCARGAR DESKTOP</a>
-          <a href={wallpaperMobile} download data-kdx-action="download">DESCARGAR MOBILE</a>
+          {wallpaperDesktop && <a href={wallpaperDesktop} download data-kdx-action="download">DESCARGAR DESKTOP</a>}
+          {wallpaperMobile && <a href={wallpaperMobile} download data-kdx-action="download">DESCARGAR MOBILE</a>}
           <a href={collectUrl} data-kdx-action="collect">COLECCIONAR</a>
           <a href={verifyUrl} data-kdx-action="verify">VERIFY</a>
         </nav>
@@ -260,6 +278,19 @@ const marcoTexto = {
             ))}
           </nav>
         )}
+        {/* El organismo no se elige: lo nombra el propio volumen en sus
+            `resonancias`, que ya venían en el manifiesto. Si no nombra ninguno
+            conocido, no se monta nada — asignarle uno a dedo sería asignar
+            canon, y eso lo decide el creador. */}
+        {organismo && (
+          <section class="kx-vol__organismo">
+            <KodexOrganismo
+              organismo={organismo}
+              semilla={semillaVol}
+              etiqueta={`resonancia · ${v.slug}`}
+            />
+          </section>
+        )}
         <KodexEje posicion={0.5} accent={v.color} class="kx-vol__eje" />
         <nav class="kx-vol__nav">
           <a href={prev ? `/kodex/vol/${prev.slug}/` : '/kodex/works/'}>‹ {prev ? 'PREV' : 'ARCHIVE'}</a>
@@ -277,6 +308,7 @@ const marcoTexto = {
       />
     </article>
   </div>
+  <KodexRecuerda registraVista />
 </Base>
 
 <style>

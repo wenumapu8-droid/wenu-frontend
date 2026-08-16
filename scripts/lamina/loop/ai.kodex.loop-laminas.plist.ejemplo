@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  KODEX-∞ · loop de láminas como servicio
+
+  Para que produzca de día y de noche: launchd lo levanta al arrancar la
+  máquina y lo vuelve a levantar si se cae. El loop ya sabe esperar la cuota
+  solo, así que esto NO es un cron que lo dispara cada tanto — es un proceso
+  que vive, y launchd sólo se encarga de que siga vivo.
+
+  Instalar en la máquina donde corre el agente (el iMac):
+
+    cp ai.kodex.loop-laminas.plist.ejemplo ~/Library/LaunchAgents/ai.kodex.loop-laminas.plist
+    # ajustar las rutas de abajo a las de esa máquina
+    launchctl load -w ~/Library/LaunchAgents/ai.kodex.loop-laminas.plist
+
+  Parar:
+    touch <repo>/scripts/lamina/loop/PARAR      # termina la vuelta y sale
+    launchctl unload -w ~/Library/LaunchAgents/ai.kodex.loop-laminas.plist
+
+  Ver qué hizo:
+    tail -f <repo>/scripts/lamina/loop/registro/loop.log
+
+  NO va en el crontab de Sinergia-Industrial. Ese es de Galvazinc y KODEX no se
+  mezcla ahí.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>ai.kodex.loop-laminas</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/user1/wenu-frontend/scripts/lamina/loop/loop.sh</string>
+    <string>--siempre</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/user1/wenu-frontend</string>
+
+  <!-- launchd arranca con un PATH mínimo. Sin esto no encuentra node, git ni el
+       CLI del agente, y el loop muere en la primera vuelta sin decir por qué. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/user1/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <!-- Que se vuelva a levantar si se cae, pero no si salió por su cuenta: un
+       PARAR, una compuerta violada o doce horas sin cuota son decisiones, no
+       accidentes, y relanzarlas en bucle es justo lo que no queremos. -->
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+
+  <!-- Colchón entre relanzados, para que un fallo repetido no gire en vacío. -->
+  <key>ThrottleInterval</key>
+  <integer>300</integer>
+
+  <key>StandardOutPath</key>
+  <string>/Users/user1/wenu-frontend/scripts/lamina/loop/registro/loop.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/user1/wenu-frontend/scripts/lamina/loop/registro/loop.log</string>
+</dict>
+</plist>

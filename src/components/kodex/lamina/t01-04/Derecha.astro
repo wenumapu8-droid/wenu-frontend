@@ -1,0 +1,270 @@
+---
+/**
+ * KODEX-∞ · t01-04 ARCHIVE TREE · DERECHA (1010,88 · 658×778)
+ *
+ * La caja del andamiaje es más ancha que los tres paneles del encargo: de
+ * x=1010 a x=1667 y de y=88 a y=866 entran enteros el 03 GROWTH STATES, el 04
+ * SIGNAL & SPECTRUM y el 05 BRANCH DETAIL, pero también la banda de abajo —el
+ * jirón derecho del 09 MOBILE TILE, y completos el 10 ARCHIVE STRIPS y el 11
+ * GLYPH LIBRARY—. El banco puntúa la caja, no el encargo, así que se pinta la
+ * caja entera: dejar el tercio inferior negro es tinta perdida y la métrica ya
+ * no premia el vacío.
+ *
+ * ── De dónde salen las medidas ────────────────────────────────────────────
+ *
+ * Nada acá está estimado. Los marcos se buscaron barriendo la caja fila por
+ * fila y columna por columna y quedándose con las que tienen tinta en más del
+ * 80 % de su largo:
+ *
+ *   filas    109/110 (regla del 03) · 360 (pie del 03) · 368/369 (techo del
+ *            04 y del 05) · 391/392 (sus reglas) · 585/586 (sus pies) ·
+ *            596 (techo de la banda de abajo) · 619 (sus reglas) · 849 (su
+ *            pie) · 865 (la divisoria del póster)
+ *   columnas 1141/1142 · 1294/1295 · 1470/1471 (las tres divisorias de las
+ *            tarjetas del 03, y NO están repartidas parejo: 147, 152, 175 y
+ *            180 px) · 1298/1299 (canto derecho del 04) · 1306/1307 (canto
+ *            izquierdo del 05) · 1145 · 1153/1154 · 1421/1422 · 1429 ·
+ *            1650/1651 · 1667 (el marco del póster)
+ *
+ * Ningún par de líneas comparte brillo y por eso van una por una: el canto
+ * izquierdo de una divisoria pesa 11 y el derecho 77. Emparejarlas se lee como
+ * una hoja de cálculo y aplana la lámina.
+ *
+ * El borde IZQUIERDO del 03 (x=992) y el del 04 (x=991) caen fuera de la caja:
+ * los dibuja el vecino, no yo. Salirme para "completarlos" le sube el puntaje a
+ * los dos.
+ *
+ * ── Todo el arte va TRAZADA ───────────────────────────────────────────────
+ *
+ * Los cuatro árboles, el racimo de nodos, las ondas, el espectro, el disco, los
+ * veinte glifos, los sellos y hasta los renglones de texto salen de
+ * scripts/lamina/arte-t01-04-derecha.mjs, que los saca del original con vtracer
+ * sobre máscara de color sobremuestreada ×8. Dos cosas que ese script hace y el
+ * trazador general no:
+ *
+ *  · separa la tinta POR COLOR (verde g>r · gris neutro · rojo r≫g) en vez de
+ *    por luminancia, porque «05. BRANCH DETAIL» y «// NODE CLUSTER» comparten
+ *    renglón con dos tintas distintas y partir por x es frágil;
+ *  · traza los organismos en varias CAPAS de umbral creciente y las pinta de
+ *    oscura a clara, porque un árbol no es línea: es halo con núcleo. Con un
+ *    umbral solo hay que elegir entre perder el halo o empastar el núcleo.
+ *
+ * Donde no hay rojo en la caja, las capas usan la máscara «pálido» (todo lo que
+ * no es rojo) y no la verde. Esto costó dos vueltas: el árbol de la ficha móvil
+ * y los núcleos del racimo llegan a rgb(253,255,158), donde el verde ya no
+ * domina al rojo, así que la máscara verde dejaba afuera justo la parte más
+ * brillante del dibujo y el árbol salía comido. Con la corrección, ese trozo
+ * pasó de 16,5 a 6,4 de error absoluto medio.
+ *
+ * El relleno de cada capa lo eligió un barrido, no el ojo, y se mide sobre la
+ * REGIÓN VISIBLE de la capa —lo que no le tapa ninguna capa posterior—. Medido
+ * sobre la capa entera, el halo se elegía con píxeles que después quedan
+ * tapados por el núcleo y salía demasiado claro: la retícula de recuadros del
+ * panel 11 terminaba a brillo de glifo. La tabla está en la cabecera del .ts.
+ *
+ * Los CÓDIGOS DE BARRAS del panel 10 no pasan por vtracer: se leen columna por
+ * columna. El contorno les inventa esquinas y les come tinta.
+ *
+ * Lo que acá NO va: el píxel de desenfoque de la cabecera. Ahí corrige el
+ * derrame de la tinta contra un <text> que el navegador rasteriza limpio; acá
+ * el barrido de relleno ya se midió contra el trazo SIN desenfoque, así que
+ * agregarlo lo descalibra. Probado: 0,78 % → 2,66 %.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-04-archive-tree Derecha --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-04-derecha.mjs
+ */
+import { ARTE, BARRAS } from "./trazos/arte-derecha";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera —todas sus
+ * capas, de la más oscura a la más clara— con un <svg> anidado por glifo, con
+ * viewBox propio y sin conservar proporción: lo que hay que clavar es la caja
+ * medida, no la del contorno.
+ *
+ * El transform de cada path se conserva; el trazador emite uno por contorno y
+ * perderlo desarma el dibujo.
+ */
+const pinta = (...ids: string[]) =>
+  ids
+    .flatMap((id) => ARTE[id] ?? [])
+    .map((capa) =>
+      capa.g
+        .map(
+          (g) =>
+            `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+            g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${capa.fill}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+/**
+ * Marcos y reglas: [x, y, ancho, alto, relleno]. Coordenadas relativas al
+ * origen de la caja (1010, 88). Los brillos son el promedio medido de cada
+ * línea sobre la referencia.
+ */
+const marcos: [number, number, number, number, string][] = [
+  // 03 GROWTH STATES — el único panel con marco verde
+  [0, 21, 642, 1, "#171b04"],
+  [0, 22, 642, 1, "#303607"],
+  [0, 271, 642, 1, "#111500"],
+  [0, 272, 642, 1, "#3d4706"],
+  [641, 0, 1, 23, "#2c2d28"],
+  [641, 23, 1, 250, "#3c4419"],
+  [640, 25, 1, 248, "#232703"],
+  [131, 21, 1, 252, "#262d03"],
+  [132, 21, 1, 252, "#323e03"],
+  [284, 21, 1, 252, "#1d2400"],
+  [285, 21, 1, 252, "#384503"],
+  [460, 21, 1, 252, "#0b0e00"],
+  [461, 21, 1, 252, "#4d5a09"],
+
+  // 04 SIGNAL & SPECTRUM ANALYSIS — marco neutro
+  [0, 280, 290, 1, "#0f0f0e"],
+  [0, 281, 290, 1, "#1f1f1e"],
+  [0, 303, 290, 1, "#0f0f0b"],
+  [0, 304, 290, 1, "#21211b"],
+  [0, 497, 290, 1, "#242419"],
+  [288, 281, 1, 217, "#141413"],
+  [289, 281, 1, 217, "#1b1b1a"],
+
+  // 05 BRANCH DETAIL — neutro arriba y abajo, verde en el canto izquierdo
+  [296, 280, 346, 1, "#100f0d"],
+  [296, 281, 346, 1, "#22211b"],
+  [296, 303, 346, 1, "#12130d"],
+  [296, 304, 346, 1, "#1c1c14"],
+  [296, 497, 346, 1, "#1f1f1a"],
+  [296, 498, 346, 1, "#090806"],
+  [296, 281, 1, 217, "#1a1c09"],
+  [297, 281, 1, 217, "#272c0c"],
+  [641, 281, 1, 216, "#2e2f29"],
+
+  // 09 MOBILE TILE — sólo el jirón que cae en la caja
+  [0, 508, 136, 1, "#171716"],
+  [0, 531, 136, 1, "#131312"],
+  [0, 761, 136, 1, "#100f0e"],
+  [135, 508, 1, 254, "#1f1f1f"],
+
+  // 10 ARCHIVE STRIPS
+  [143, 508, 270, 1, "#191918"],
+  [143, 531, 270, 1, "#161615"],
+  [143, 761, 270, 1, "#181816"],
+  [143, 508, 1, 254, "#181817"],
+  [144, 508, 1, 254, "#201f1e"],
+  [411, 508, 1, 254, "#131212"],
+  [412, 508, 1, 254, "#1c1c1c"],
+
+  // 11 GLYPH LIBRARY
+  [419, 508, 223, 1, "#1b1b1a"],
+  [419, 531, 223, 1, "#181917"],
+  [419, 761, 223, 1, "#1d1c1a"],
+  [419, 508, 1, 254, "#2a2b2a"],
+  [640, 508, 1, 254, "#1e1e1c"],
+  [641, 508, 1, 254, "#212220"],
+
+  // Divisoria del póster contra el pie, y su marco derecho. El marco lo abre la
+  // cabecera y lo cierra el pie; el tramo de en medio es de esta caja.
+  [0, 777, 651, 1, "#171717"],
+  [656, 0, 1, 778, "#060505"],
+  [657, 0, 1, 778, "#1f1f1f"],
+];
+---
+
+<div data-box style={box} class="d4">
+  <svg class="d4__art" viewBox="0 0 658 778" width="658" height="778" aria-hidden="true">
+    <g class="d4__marcos">
+      {marcos.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+    </g>
+
+    <!-- 03 · GROWTH STATES. Cuatro tarjetas: rótulo verde, glosa gris, el árbol
+         en esa etapa sobre su elipse de raíz, dos líneas de glosa y una onda.
+         Las flechas entre tarjetas viven dentro del mismo trazo del organismo:
+         son de la misma tinta y caen en la misma banda. -->
+    <g
+      role="img"
+      aria-label="03. GROWTH STATES — 01. SEED / INITIATE: DORMANT, POTENTIAL. 02. ROOT / CONNECT: SEEK, ABSORB. 03. BLOOM / EXPAND: THRIVE, DISTRIBUTE. 04. TRANSMIT / REMEMBER: TRANSMIT, ARCHIVE."
+      set:html={pinta("p3tit", "p3cab", "p3sub", "p3art", "p3g1", "p3g2", "p3wav")}
+    />
+
+    <!-- 04 · SIGNAL & SPECTRUM ANALYSIS. Onda y espectro apilados, y a la
+         derecha el disco con SIGNAL QUALITY HIGH e INTERFERENCE LOW. El renglón
+         emborronado entre HIGH y INTERFERENCE está así en el original: son dos
+         líneas impresas una encima de la otra, y se traza como está. -->
+    <g
+      role="img"
+      aria-label="04. SIGNAL & SPECTRUM ANALYSIS — WAVEFORM, SPECTRUM (10Hz a 100kHz). SIGNAL QUALITY: HIGH. INTERFERENCE: LOW."
+      data-symbolic="true"
+      set:html={pinta(
+        "p4tit", "p4lb1", "p4wav", "p4lb2", "p4spe", "p4axi",
+        "p4dsc", "p4dscR", "p4q1", "p4q2", "p4q3", "p4q4", "p4q5", "p4q6"
+      )}
+    />
+
+    <!-- 05 · BRANCH DETAIL // NODE CLUSTER. El racimo, la ficha y la fila de
+         glifos con el sello rojo. Las cifras de la ficha son ficción del
+         póster: el grupo va marcado como simbólico. -->
+    <g
+      role="img"
+      aria-label="05. BRANCH DETAIL // NODE CLUSTER — NODE ID BR-07A. SUB NODES 12.842. DENSITY HIGH. FLOW RATE 93.1%. TYPE DATA RELAY. FUNCTION DISTRIBUTE. STATUS STABLE."
+      data-symbolic="true"
+      set:html={pinta(
+        "p5titV", "p5titG", "p5img", "p5tabV", "p5tabG",
+        "p5glf", "p5sel", "p5selG", "p5lst", "p5lstG"
+      )}
+    />
+
+    <!-- 09 · MOBILE TILE (jirón derecho) -->
+    <g role="img" aria-label="09. MOBILE TILE" set:html={pinta("p09v", "p09r")} />
+
+    <!-- 10 · ARCHIVE STRIPS. Los códigos de barras van aparte, leídos columna
+         por columna: [x, ancho, brillo]. Trazarlos con el contorno les inventa
+         esquinas y pierde el 38 % de la tinta. -->
+    <g
+      role="img"
+      aria-label="10. ARCHIVE STRIPS — ARCHIVE ROOT // PRIMARY SEED, KX∞-R01. BRANCH CLUSTER // DISTRIBUTE LAYER, KX∞-B07A. LEAF NODE // MEMORY PACKET, KX∞-L12F. TRANSMIT LOG // SIGNAL OUTBOUND, KX∞-TX09."
+      data-symbolic="true"
+    >
+      <g
+        set:html={pinta("p10tit", "p10lbV", "p10lbG", "p10caj", "p10cajG", "p10cod", "p10mrcR", "p10glfV", "p10glfR")}
+      />
+      {Object.values(BARRAS).map((b) =>
+        b.tramos.map(([x, w, v]) => (
+          <rect x={x} y={b.y} width={w} height={b.h} fill={`rgb(${v},${v},${v})`} />
+        ))
+      )}
+    </g>
+
+    <!-- 11 · GLYPH LIBRARY. Veinte glifos en retícula, el sello rojo y las dos
+         líneas del pie. -->
+    <g
+      role="img"
+      aria-label="11. GLYPH LIBRARY — EACH GLYPH IS A FUNCTION. EACH FUNCTION IS A PROMISE."
+      set:html={pinta("p11tit", "p11gr", "p11r4", "p11r4R")}
+    />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que se sale de la caja pisa al vecino y le
+     sube el puntaje a los dos. */
+  .d4 {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+    font-family: var(--lam-mono);
+  }
+
+  .d4__art { position: absolute; left: 0; top: 0; }
+
+  /* shape-rendering crispEdges en los marcos: son líneas de 1 px alineadas a la
+     grilla y el antialias las convierte en dos líneas grises de medio brillo,
+     que es exactamente el error que el diff estructural castiga. */
+  .d4__marcos { shape-rendering: crispEdges; }
+</style>

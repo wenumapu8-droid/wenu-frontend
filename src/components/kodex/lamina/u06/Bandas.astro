@@ -1,0 +1,391 @@
+---
+/**
+ * KODEX-∞ · u06-memory · BANDAS — RE-ENTRY (y 796..953) y TEMPORAL TIMELINE
+ * (y 970..1093), las dos de x 82..1026. Medido:
+ *  · eje punteado de la banda RE-ENTRY en y=873; vesica en x≈228; K en
+ *    (455,873) y K' en (674,873) con anillos r≈42 y corona a trazos; el
+ *    puente tejido corre entre x 497..632; corazón geométrico en (855,875);
+ *  · cabecera "K → K'" montada sobre el borde superior (base ~812);
+ *  · línea de tiempo: eje y=1039 de x 92 a la flecha en 1005, eventos en
+ *    x 147/267/390/508/628/745/843 y un ECO grande sin rótulo en x=688 —
+ *    es el elemento más brillante de la banda;
+ *  · rótulos E0..E6 arriba (base 1012) y nombres abajo (base 1082).
+ *
+ * Tejido del puente, motas y anillos: rng con semilla fija.
+ */
+import { rng, p2 } from "../kit/rng";
+import { rombo } from "../serie-universe/geom";
+
+/* ── puente K↔K': hilos sinusoidales que se cruzan en el medio ──────────── */
+const puente = (() => {
+  const r = rng(0x06b1);
+  const hilos = [];
+  for (let k = 0; k < 13; k++) {
+    const amp = 3 + r() * 24;
+    const lado = k % 2 ? 1 : -1;
+    const ciclos = 1 + Math.floor(r() * 2);
+    let d = `M497 873`;
+    for (let s = 1; s <= 26; s++) {
+      const t = s / 26;
+      const x = 497 + t * 135;
+      const y = 873 + lado * amp * Math.sin(Math.PI * t * ciclos) * Math.sin(Math.PI * t);
+      d += `L${p2(x)} ${p2(y)}`;
+    }
+    hilos.push({ d, op: p2(0.22 + r() * 0.34) });
+  }
+  const motas = [];
+  for (let k = 0; k < 18; k++) {
+    motas.push({ x: p2(500 + r() * 130), y: p2(873 + (r() * 2 - 1) * 18), r: p2(0.5 + r() * 0.9), op: p2(0.4 + r() * 0.5) });
+  }
+  return { hilos, motas };
+})();
+
+/* Polvo de la banda: la referencia tiene grano por toda la franja (L media 9
+   contra los 3,5 de la primera vuelta — el negro liso era el error). */
+const polvo = (() => {
+  const r = rng(0x06b7);
+  const out = [];
+  for (let k = 0; k < 300; k++) {
+    out.push({
+      x: p2(90 + r() * 928),
+      y: p2(804 + r() * 142),
+      r: p2(0.4 + r() * 0.8),
+      op: p2(0.16 + r() * 0.44),
+      nuc: r() < 0.22,
+    });
+  }
+  return out;
+})();
+const polvoTL = (() => {
+  const r = rng(0x06b8);
+  const out = [];
+  for (let k = 0; k < 140; k++) {
+    out.push({
+      x: p2(90 + r() * 928),
+      y: p2(976 + r() * 112),
+      r: p2(0.4 + r() * 0.7),
+      op: p2(0.14 + r() * 0.4),
+      nuc: r() < 0.2,
+    });
+  }
+  return out;
+})();
+
+/* ── retícula interior de los círculos K / K': cuerdas + puntos de borde ── */
+const sistema = (cx: number, semilla: number) => {
+  const r = rng(semilla);
+  const cuerdas = [];
+  for (let k = 0; k < 13; k++) {
+    const a1 = r() * Math.PI * 2;
+    const a2 = r() * Math.PI * 2;
+    const r1 = 20 + r() * 22;
+    const r2 = 20 + r() * 22;
+    cuerdas.push(
+      `M${p2(cx + r1 * Math.cos(a1))} ${p2(873 + r1 * Math.sin(a1))}L${p2(cx + r2 * Math.cos(a2))} ${p2(873 + r2 * Math.sin(a2))}`,
+    );
+  }
+  const borde = [];
+  for (let k = 0; k < 9; k++) {
+    const a = r() * Math.PI * 2;
+    borde.push({ x: p2(cx + 42 * Math.cos(a)), y: p2(873 + 42 * Math.sin(a)), r: p2(0.7 + r() * 0.9) });
+  }
+  return { cuerdas: cuerdas.join(""), borde };
+};
+const sisK = sistema(455, 0x06c5);
+const sisK2 = sistema(674, 0x06c6);
+
+/* ── corazón geométrico (855,875): curva cardioide + retícula interior ──── */
+const corazon = (() => {
+  const cx = 855;
+  const cy = 875;
+  const k = 1.85;
+  let d = "";
+  for (let i = 0; i <= 44; i++) {
+    const a = (i / 44) * Math.PI * 2;
+    const hx = 16 * Math.pow(Math.sin(a), 3);
+    const hy = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+    d += `${i ? "L" : "M"}${p2(cx + hx * k)} ${p2(cy + hy * k)}`;
+  }
+  const r = rng(0x06b2);
+  const cuerdas = [];
+  for (let i = 0; i < 24; i++) {
+    const a1 = r() * Math.PI * 2;
+    const a2 = r() * Math.PI * 2;
+    const rr = 12 + r() * 18;
+    cuerdas.push(
+      `M${p2(cx + rr * Math.cos(a1))} ${p2(cy - 3 + rr * 0.9 * Math.sin(a1))}L${p2(cx + rr * Math.cos(a2))} ${p2(cy - 3 + rr * 0.9 * Math.sin(a2))}`,
+    );
+  }
+  return { d: d + "Z", cuerdas: cuerdas.join(""), cx, cy };
+})();
+
+/* ── eventos de la línea de tiempo ──────────────────────────────────────── */
+const AXIS = 1039;
+const eventos = [
+  { x: 147, cod: "E0", nom: "ORIGIN", anillos: [3.5, 8, 13, 19] },
+  { x: 267, cod: "E1", nom: "IMPRINT", anillos: [3.5, 8, 14] },
+  { x: 390, cod: "E2", nom: "DECAY", anillos: [3, 7, 11] },
+  { x: 508, cod: "E3", nom: "OBSCURATION", anillos: [3, 9, 16, 22], difuso: true },
+  { x: 628, cod: "E4", nom: "RE-ENTRY", anillos: [3.5, 8, 13] },
+  { x: 745, cod: "E5", nom: "", anillos: [4, 9, 15] },
+  { x: 843, cod: "E6", nom: "RESONANCE", anillos: [3.5, 8, 13, 18], rayos: true },
+];
+/* Motas del evento difuso (OBSCURATION) y del eco grande. */
+const difuso = (() => {
+  const r = rng(0x06b3);
+  const out = [];
+  for (let k = 0; k < 26; k++) {
+    const a = r() * Math.PI * 2;
+    const rr = 4 + r() * 22;
+    out.push({ x: p2(508 + rr * Math.cos(a)), y: p2(AXIS + rr * Math.sin(a)), r: p2(0.5 + r() * 0.7), op: p2(0.2 + r() * 0.4) });
+  }
+  return out;
+})();
+
+const izqTxt = ["TO RETURN IS TO", "RE-OPEN THE PAST.", "NEW CONTEXT.", "NEW QUESTIONS.", "NEW MEANING."];
+const derTxt = ["EVERY REVISIT", "LEAVES A MARK.", "THE FUTURE IS", "INFLUENCED BY", "REMEMBERING."];
+const CH = 6;
+---
+
+<div data-bloque="Bandas" style="inset:0">
+  <svg class="u6b" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <defs>
+      <!-- Los resplandores van con gradiente radial: el lavado plano de la
+           primera vuelta se leía como una mancha gris con borde, no como luz. -->
+      <radialGradient id="u6bGlow">
+        <stop offset="0" stop-color="#b18ae0" stop-opacity="0.3" />
+        <stop offset="0.5" stop-color="#b18ae0" stop-opacity="0.1" />
+        <stop offset="1" stop-color="#b18ae0" stop-opacity="0" />
+      </radialGradient>
+      <radialGradient id="u6bNudo">
+        <stop offset="0" stop-color="#f6f0fa" stop-opacity="0.75" />
+        <stop offset="0.35" stop-color="#cfa9f2" stop-opacity="0.3" />
+        <stop offset="1" stop-color="#b18ae0" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+    <!-- ═══ RE-ENTRY ═══ -->
+    <rect class="u6b-caja" x="82.5" y="796.5" width="943.5" height="156.5" />
+    <g class="u6b-polvo">
+      {polvo.map((m) => (
+        <circle class={m.nuc ? "u6b-polvo--nuc" : undefined} cx={m.x} cy={m.y} r={m.r} fill-opacity={m.op} />
+      ))}
+    </g>
+    <path class="u6b-eje" d="M86 873H1022" stroke-dasharray="1 4" />
+    <text class="u6b-hdr" x="92" y="820" textLength="72" lengthAdjust="spacing">RE-ENTRY</text>
+    {izqTxt.map((t, i) => (
+      <text class="u6b-txt" x="92" y={843 + i * 17} textLength={t.length * CH}>{t}</text>
+    ))}
+
+    <!-- vesica -->
+    <g class="u6b-vesica">
+      <circle cx="228" cy="873" r="34" style="fill:url(#u6bGlow);stroke:none" />
+      <ellipse cx="228" cy="873" rx="25" ry="52" stroke-opacity="0.5" />
+      <ellipse cx="228" cy="873" rx="14" ry="40" stroke-opacity="0.38" />
+      <ellipse cx="228" cy="873" rx="6" ry="26" stroke-opacity="0.3" />
+      <path d="M228 815V931" stroke-opacity="0.24" />
+      <path d={rombo(228, 873, 58, 96)} stroke-opacity="0.16" />
+      <circle cx="228" cy="873" r="9" style="fill:url(#u6bNudo);stroke:none" />
+      <circle class="u6b-nuc" cx="228" cy="873" r="2.6" />
+      <circle class="u6b-halo" cx="228" cy="873" r="7" />
+      <circle class="u6b-mota" cx="228" cy="838" r="1" />
+      <circle class="u6b-mota" cx="228" cy="908" r="1" />
+      <circle class="u6b-mota" cx="212" cy="855" r="0.8" />
+      <circle class="u6b-mota" cx="245" cy="893" r="0.8" />
+    </g>
+
+    <text class="u6b-lab" x="297" y="858">re-entry</text>
+    <path class="u6b-eje" d="M297 873H364" stroke-dasharray="1 4" />
+    <path class="u6b-dia" d={rombo(371, 873, 8, 8)} />
+    <text class="u6b-txt" x="293" y="890" textLength={66}>(ACTIVATED)</text>
+
+    <!-- K → K' de cabecera -->
+    <g class="u6b-kk">
+      <text x="462" y="812">K</text>
+      <path class="u6b-flecha" d="M535 803H588M588 803l-6 -3.4M588 803l-6 3.4" />
+      <text x="612" y="812">K′</text>
+    </g>
+
+    <!-- sistema K -->
+    <g class="u6b-sys">
+      <circle cx="455" cy="873" r="62" style="fill:url(#u6bGlow);stroke:none" />
+      <path class="u6b-cuerdas" d={sisK.cuerdas} />
+      {sisK.borde.map((m) => <circle class="u6b-mota" cx={m.x} cy={m.y} r={m.r} />)}
+      <circle cx="455" cy="873" r="42" stroke-opacity="0.68" />
+      <circle cx="455" cy="873" r="34" stroke-opacity="0.3" />
+      <circle cx="455" cy="873" r="50" stroke-opacity="0.42" stroke-dasharray="4 5" />
+      <circle cx="455" cy="873" r="58" stroke-opacity="0.2" stroke-dasharray="1 5" />
+      <circle class="u6b-mota" cx="455" cy="831" r="1.4" />
+      <circle class="u6b-mota" cx="413" cy="873" r="1.4" />
+      <circle class="u6b-mota" cx="484" cy="905" r="1.1" />
+      <text class="u6b-letra" x="455" y="890" text-anchor="middle">K</text>
+    </g>
+    <!-- puente -->
+    <g class="u6b-puente">
+      {puente.hilos.map((h) => <path d={h.d} stroke-opacity={h.op} />)}
+      {puente.motas.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill-opacity={m.op} />)}
+      <!-- El nudo: donde los hilos se pinzan brilla blanco, como en el póster. -->
+      <circle cx="565" cy="873" r="20" style="fill:url(#u6bNudo);stroke:none" />
+    </g>
+    <!-- sistema K' -->
+    <g class="u6b-sys">
+      <circle cx="674" cy="873" r="62" style="fill:url(#u6bGlow);stroke:none" />
+      <path class="u6b-cuerdas" d={sisK2.cuerdas} />
+      {sisK2.borde.map((m) => <circle class="u6b-mota" cx={m.x} cy={m.y} r={m.r} />)}
+      <circle cx="674" cy="873" r="42" stroke-opacity="0.72" />
+      <circle cx="674" cy="873" r="30" stroke-opacity="0.3" />
+      <circle cx="674" cy="873" r="50" stroke-opacity="0.44" stroke-dasharray="4 5" />
+      <circle class="u6b-mota" cx="674" cy="831" r="1.4" />
+      <circle class="u6b-mota" cx="716" cy="873" r="1.4" />
+      <circle class="u6b-mota" cx="646" cy="905" r="1.1" />
+      <text class="u6b-letra" x="676" y="890" text-anchor="middle">K′</text>
+    </g>
+
+    <text class="u6b-est" x="455" y="945" text-anchor="middle" letter-spacing="1.6">ORIGINAL STATE</text>
+    <text class="u6b-txt" x="455" y="960" text-anchor="middle" letter-spacing="1.2">AS IT WAS RECORDED.</text>
+    <text class="u6b-est" x="674" y="945" text-anchor="middle" letter-spacing="1.6">REVISITED STATE</text>
+    <text class="u6b-txt" x="674" y="960" text-anchor="middle" letter-spacing="1.2">AS IT IS REMEMBERED.</text>
+
+    <!-- corazón -->
+    <g class="u6b-cor">
+      <circle cx={corazon.cx} cy={corazon.cy - 2} r="40" style="fill:url(#u6bGlow);stroke:none" />
+      <path d={corazon.d} stroke-opacity="0.85" />
+      <path d={corazon.cuerdas} stroke-opacity="0.44" />
+      <!-- Flor interior: seis círculos a 60° — la retícula sagrada del póster. -->
+      {Array.from({ length: 6 }, (_, k) => {
+        const a = (k * Math.PI) / 3;
+        return <circle class="u6b-flor" cx={p2(corazon.cx + 14 * Math.cos(a))} cy={p2(corazon.cy - 3 + 14 * 0.9 * Math.sin(a))} r="14" stroke-opacity="0.32" />;
+      })}
+      <circle class="u6b-flor" cx={corazon.cx} cy={corazon.cy - 3} r="26" stroke-opacity="0.36" />
+      <circle cx={corazon.cx} cy={corazon.cy - 2} r="12" style="fill:url(#u6bNudo);stroke:none" />
+      <circle class="u6b-nuc" cx={corazon.cx} cy={corazon.cy - 2} r="2.6" />
+    </g>
+
+    <text class="u6b-hdr" x="1016" y="820" text-anchor="end" textLength="180" lengthAdjust="spacing">REMEMBERED CONSEQUENCE</text>
+    {derTxt.map((t, i) => (
+      <text class="u6b-txt" x="928" y={843 + i * 17} textLength={t.length * CH}>{t}</text>
+    ))}
+    <path class="u6b-garabato" d="M928 925h10l2 -4l2 4l3 -7l3 7h8m5 0h6m4 0h9" />
+
+    <!-- ═══ TEMPORAL TIMELINE ═══ -->
+    <rect class="u6b-caja" x="82.5" y="970.5" width="943.5" height="122.5" />
+    <g class="u6b-polvo">
+      {polvoTL.map((m) => (
+        <circle class={m.nuc ? "u6b-polvo--nuc" : undefined} cx={m.x} cy={m.y} r={m.r} fill-opacity={m.op} />
+      ))}
+    </g>
+    <text class="u6b-hdr" x="92" y="993" textLength="150" lengthAdjust="spacing">TEMPORAL TIMELINE</text>
+    <text class="u6b-txt u6b-txt--nota" x="275" y="991" textLength={44 * 5.3}>EVENTS ARE NOT POINTS. THEY ARE ECHO FIELDS.</text>
+    <path class="u6b-linea" d="M92 1039H1000M1005 1039l-7 -4M1005 1039l-7 4" />
+    <text class="u6b-est" x="955" y="1020" letter-spacing="1.6">FUTURE</text>
+
+    {eventos.map((e) => (
+      <g>
+        <text class="u6b-cod" x={e.x} y="1012" text-anchor="middle">{e.cod}</text>
+        <path class="u6b-tic" d={`M${e.x} 1024V1054`} />
+        <!-- El campo de eco: la nota de la banda lo dice — no son puntos. -->
+        <ellipse class="u6b-eco" cx={e.x} cy="1039" rx="36" ry="13" />
+        <ellipse class="u6b-eco" cx={e.x} cy="1039" rx="21" ry="7.5" />
+        <circle cx={e.x} cy="1039" r="16" style="fill:url(#u6bGlow);stroke:none" />
+        {e.difuso
+          ? difuso.map((m) => <circle class="u6b-motav" cx={m.x} cy={m.y} r={m.r} fill-opacity={m.op} />)
+          : e.anillos.map((rr, k) => (
+              <circle class="u6b-anillo" cx={e.x} cy="1039" r={rr} stroke-opacity={0.5 - k * 0.08} />
+            ))}
+        {e.rayos && (
+          <path
+            class="u6b-anillo"
+            d={Array.from({ length: 8 }, (_, k) => {
+              const a = (k * Math.PI) / 4;
+              return `M${p2(e.x + 20 * Math.cos(a))} ${p2(1039 + 20 * Math.sin(a))}L${p2(e.x + 25 * Math.cos(a))} ${p2(1039 + 25 * Math.sin(a))}`;
+            }).join("")}
+            stroke-opacity="0.3"
+          />
+        )}
+        <circle class="u6b-nucv" cx={e.x} cy="1039" r="1.6" />
+      </g>
+    ))}
+    <!-- El eco grande sin rótulo, x=688: lo más vivo de la banda. -->
+    <g>
+      <circle cx="688" cy="1039" r="38" style="fill:url(#u6bGlow);stroke:none" />
+      <circle cx="688" cy="1039" r="15" style="fill:url(#u6bNudo);stroke:none" />
+      {[6, 12, 18, 25, 32].map((rr, k) => (
+        <circle class="u6b-anillo" cx="688" cy="1039" r={rr} stroke-opacity={0.72 - k * 0.11} />
+      ))}
+      <circle class="u6b-halo" cx="688" cy="1039" r="14" />
+      <circle class="u6b-nuc" cx="688" cy="1039" r="2.8" />
+    </g>
+    {eventos.filter((e) => e.nom).map((e) => (
+      <text class="u6b-txt u6b-txt--nom" x={e.x} y="1082" text-anchor="middle" letter-spacing="1">{e.nom}</text>
+    ))}
+    <!-- Va anclado al ARRANQUE en x=700: centrado pisaba a RE-ENTRY, y la
+         referencia también lo corre a la derecha de su eco. -->
+    <text class="u6b-txt u6b-txt--nom" x="700" y="1082" letter-spacing="1">RECONTEXTUALIZE</text>
+  </svg>
+</div>
+
+<style is:global>
+  .u6b {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .u6b text {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  .u6b-caja { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.12; }
+  .u6b-hdr { font-size: 11.5px; fill: #b18ae0; fill-opacity: 0.55; }
+  .u6b-txt { font-size: 9.5px; fill: #d8d4d0; fill-opacity: 0.4; }
+  .u6b-txt--nota { font-size: 8.5px; fill-opacity: 0.34; }
+  .u6b-txt--nom { font-size: 9px; fill-opacity: 0.48; }
+  .u6b-lab { font-size: 10px; fill: #d8d4d0; fill-opacity: 0.55; }
+  .u6b-est { font-size: 9.5px; fill: #b18ae0; fill-opacity: 0.55; }
+  .u6b-cod { font-size: 10px; fill: #d8d4d0; fill-opacity: 0.55; }
+  .u6b-eje { fill: none; stroke: #d8d4d0; stroke-width: 0.8; stroke-opacity: 0.14; }
+  .u6b-linea { fill: none; stroke: #d8d4d0; stroke-width: 0.8; stroke-opacity: 0.3; }
+  .u6b-tic { fill: none; stroke: #d8d4d0; stroke-width: 0.7; stroke-opacity: 0.22; }
+  .u6b-dia { fill: none; stroke: #b18ae0; stroke-width: 0.9; stroke-opacity: 0.5; }
+  .u6b-vesica ellipse, .u6b-vesica path { fill: none; stroke: #b18ae0; stroke-width: 0.9; }
+  .u6b-sys circle { fill: none; stroke: #b18ae0; stroke-width: 0.9; }
+  .u6b-cuerdas { fill: none; stroke: #b18ae0; stroke-width: 0.55; stroke-opacity: 0.24; }
+  /* Los resplandores van con `style` EN LÍNEA en el marcado, y no acá, por
+     dos motivos medidos: (1) los selectores de grupo (`.u6b-puente circle`)
+     pisan el atributo de pintura — así salió el nudo del puente como bola
+     blanca maciza en la vuelta 3 — y (2) `fill: url(#id)` desde una hoja
+     EXTERNA resuelve contra la URL de la hoja (Astro las saca a /_astro/*.css),
+     el paint server no existe ahí y Chromium pinta NEGRO — así salió el
+     corazón como disco negro en la vuelta 4. En línea gana la cascada y el
+     fragmento resuelve contra el documento. */
+  .u6b-polvo circle { fill: #b18ae0; }
+  .u6b-polvo .u6b-polvo--nuc { fill: #f2ecf6; }
+  .u6b-eco { fill: none; stroke: #b18ae0; stroke-width: 0.6; stroke-opacity: 0.22; }
+  .u6b-sys .u6b-mota, .u6b-vesica .u6b-mota { fill: #f2ecf6; fill-opacity: 0.7; stroke: none; }
+  .u6b-letra {
+    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif !important;
+    font-size: 46px;
+    fill: #d6d4d0;
+    fill-opacity: 0.82;
+  }
+  .u6b-kk text {
+    font-family: "Cormorant Garamond", "Cormorant", Didot, "Times New Roman", serif !important;
+    font-size: 26px;
+    fill: #d6d4d0;
+    fill-opacity: 0.7;
+  }
+  .u6b-flecha { fill: none; stroke: #b18ae0; stroke-width: 0.9; stroke-opacity: 0.55; }
+  .u6b-puente path { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6b-puente circle { fill: #f2ecf6; }
+  .u6b-cor path { fill: none; stroke: #b18ae0; stroke-width: 0.8; }
+  /* SIN «.u6b-cor circle»: en SVG un círculo sin regla se RELLENA NEGRO por
+     defecto — la flor del corazón salió silueta negra en la vuelta 5 — pero
+     una regla de grupo (0,1,1) pisaría a `.u6b-nuc` (0,1,0), que es el bug
+     documentado de la cabecera. Cada círculo lleva su clase. */
+  .u6b-flor { fill: none; stroke: #b18ae0; stroke-width: 0.7; }
+  .u6b-halo { fill: #b18ae0; fill-opacity: 0.3; }
+  .u6b-nuc { fill: #f2ecf6; fill-opacity: 0.9; }
+  .u6b-anillo { fill: none; stroke: #b18ae0; stroke-width: 0.8; }
+  .u6b-nucv { fill: #f2ecf6; fill-opacity: 0.75; }
+  .u6b-motav { fill: #b18ae0; }
+  .u6b-garabato { fill: none; stroke: #d8d4d0; stroke-width: 0.7; stroke-opacity: 0.28; }
+</style>

@@ -1,0 +1,82 @@
+---
+/**
+ * KIT · MEDIDOR DE BARRAS
+ *
+ * La barra de progreso de las láminas NO es una barra sólida: es una tira de
+ * marcas verticales de anchos irregulares. Sólida se ve como un `<progress>` de
+ * navegador; con las marcas se lee como instrumento. Es el detalle que separa
+ * DESCENT PROGRESS y SIGNAL STRENGTH de una barra cualquiera.
+ *
+ * `valor` es el porcentaje lleno. Va marcado como simbólico desde el
+ * componente: la regla de canon prohíbe presentar telemetría generada como
+ * estado real, y así el que lo use no tiene que acordarse.
+ */
+import { rng, p2 } from "./rng";
+
+interface Props {
+  w: number;
+  h: number;
+  valor: number;
+  semilla?: number;
+  color?: string;
+  /** color del tramo vacío; por defecto una versión apagada del lleno */
+  vacio?: string;
+  /** marco alrededor */
+  marco?: boolean;
+  /** ancho medio de cada marca, en px */
+  paso?: number;
+  /** Cuando el valor viene de una medición real del motor, poner false. */
+  simbolico?: boolean;
+  clase?: string;
+}
+const {
+  w, h,
+  valor,
+  semilla = 3,
+  color = "currentColor",
+  vacio = "",
+  marco = false,
+  paso = 3,
+  simbolico = true,
+  clase = "",
+} = Astro.props;
+
+const r = rng(semilla);
+const lleno = (w * Math.max(0, Math.min(100, valor))) / 100;
+
+// Anchos irregulares acumulados: si todas las marcas miden lo mismo el patrón
+// se lee como trama regular y delata que es CSS.
+const marcas: Array<{ x: number; w: number; on: boolean }> = [];
+let x = 0;
+while (x < w) {
+  const bw = paso * (0.45 + r() * 0.75);
+  marcas.push({ x: p2(x), w: p2(Math.max(0.7, bw)), on: x < lleno });
+  x += bw + paso * (0.28 + r() * 0.5);
+}
+---
+
+<div
+  class={`kit-bm ${marco ? "kit-bm--marco" : ""} ${clase}`}
+  style={`width:${w}px;height:${h}px`}
+  data-symbolic={simbolico ? "true" : undefined}
+>
+  <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden="true">
+    {marcas.map((m) => (
+      <rect
+        x={m.x} y="0" width={m.w} height={h}
+        fill={m.on ? color : vacio || color}
+        opacity={m.on ? 1 : 0.16}
+      />
+    ))}
+  </svg>
+</div>
+
+<style>
+  .kit-bm { position: relative; display: block; }
+  .kit-bm svg { display: block; }
+  .kit-bm--marco {
+    box-sizing: content-box;
+    padding: 1px;
+    border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  }
+</style>

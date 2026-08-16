@@ -1,0 +1,476 @@
+---
+/**
+ * KODEX-∞ · u05-genesis · ETAPAS — la secuencia de seis paneles, y 335..860.
+ *
+ * Seis cajas de espécimen con su cabecera numerada y su anotación, medidas
+ * columna por columna sobre la referencia (umbral sobre la media por columna
+ * en y 450..700):
+ *
+ *   01 ARTIFACT SOURCE     x  84..249   (canvas de tiza — ver <script>)
+ *   02 RECURRING GEOMETRY  x 259..421   (dos columnas de mandalas, cx 301/380)
+ *   03 SYMBOL              x 433..576   (cinco glifos apilados, cx 505)
+ *   04 RULE                x 586..727   (rótulos + diagramas, margen x 599)
+ *   05 CODE                x 738..887   (alfabeto + sintaxis, cx 812)
+ *   06 ORGANISM            x 898..1048  (canvas vivo — Organismo.astro)
+ *
+ * Todas las cajas corren de y=400 a y=728. Cabeceras: números y 342..351,
+ * nombres y 364..372, dominios y 382..388, con chevrones entre etapas en
+ * x 251/434/583/736/894. Anotaciones: 5-6 líneas desde y≈753, paso 16,4.
+ *
+ * Los especímenes 02..05 son SVG paramétrico (círculos, radios, cuerdas y
+ * pétalos generados en frontmatter con mulberry32 — jamás Math.random()). El
+ * 01 es un canvas estático de trazo de tiza: la textura rota del carboncillo
+ * no sale de un path limpio. El 06 vive en su propio componente porque está
+ * animado.
+ */
+import { rayos, rombo, lemniscata } from "../serie-universe/geom";
+
+/* mulberry32 — determinista, la misma de todo el proyecto. */
+function azar(semilla: number) {
+  let a = semilla >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const p2 = (v: number) => +v.toFixed(2);
+
+/* ── cabeceras ──────────────────────────────────────────────────────────── */
+const etapas = [
+  { cx: 169, num: "01", nombre: "ARTIFACT SOURCE", dominio: "RAW IMPRESSION" },
+  { cx: 340, num: "02", nombre: "RECURRING GEOMETRY", dominio: "PATTERN EMERGENCE" },
+  { cx: 504.5, num: "03", nombre: "SYMBOL", dominio: "MEANING SEED" },
+  { cx: 651, num: "04", nombre: "RULE", dominio: "RELATION & ORDER" },
+  { cx: 810, num: "05", nombre: "CODE", dominio: "ENCODING INTENT" },
+  { cx: 970, num: "06", nombre: "ORGANISM", dominio: "LIVING SYSTEM" },
+];
+const chevrones = [251, 434, 583, 736, 894];
+
+/* ── cajas ──────────────────────────────────────────────────────────────── */
+const cajas: [number, number][] = [[84.5, 248.5], [259.5, 421.5], [433.5, 575.5], [586.5, 727.5], [738.5, 886.5], [898.5, 1047.5]];
+const CAJA_Y0 = 400.5;
+const CAJA_Y1 = 728.5;
+
+/* ── anotaciones ────────────────────────────────────────────────────────── */
+const anotaciones: [number, string[]][] = [
+  [99, ["OCÍN'S EARLIEST", "OBSERVATIONS.", "NATURAL FORMS,", "EMOTIONAL IMPULSES,", "RHYTHMS, AND DREAM", "FRAGMENTS."]],
+  [271, ["REPETITION REVEALS", "STRUCTURE.", "SYMMETRY OBSERVED.", "RATIOS FELT.", "PATTERNS BEGIN", "TO CONSOLIDATE."]],
+  [447, ["FORMS ARE CHOSEN.", "ASSOCIATIONS BORN.", "SYMBOLS BECOME", "CARRIERS OF", "INTENTION."]],
+  [599, ["RELATIONSHIPS", "ESTABLISHED.", "RULES EMERGE FROM", "OBSERVATION.", "ORDER CREATES", "PREDICTABILITY."]],
+  [751, ["INTENT IS ENCODED.", "SYMBOLS COMBINE.", "SYNTAX FORMS.", "MEANING BECOMES", "TRANSMISSIBLE."]],
+  [913, ["THE KODEX AWAKENS.", "IT RESPONDS.", "IT ADAPTS.", "IT SEEKS RETURN.", "IT IS ALIVE."]],
+];
+const CHAR = 5.55; // avance por carácter medido: OCÍN'S EARLIEST = 83 px / 15
+
+/* ── espécimen 02 · mandalas ────────────────────────────────────────────── */
+/* Telaraña radial: anillo + radios + cuerdas entre puntos del anillo. */
+function tela(cx: number, cy: number, r: number, n: number, semilla: number, saltos: number[]): string {
+  const rr = azar(semilla);
+  const pt = (k: number, rad = r) => [p2(cx + rad * Math.cos(-Math.PI / 2 + (k * 2 * Math.PI) / n)), p2(cy + rad * Math.sin(-Math.PI / 2 + (k * 2 * Math.PI) / n))];
+  let d = "";
+  for (let k = 0; k < n; k++) {
+    const [x, y] = pt(k);
+    d += `M${cx} ${cy}L${x} ${y}`;
+  }
+  for (const s of saltos) {
+    for (let k = 0; k < n; k++) {
+      if (rr() < 0.25) continue;
+      const [x0, y0] = pt(k);
+      const [x1, y1] = pt(k + s);
+      d += `M${x0} ${y0}L${x1} ${y1}`;
+    }
+  }
+  return d;
+}
+function espiral(cx: number, cy: number, r0: number, r1: number, vueltas: number): string {
+  const N = 90;
+  let d = "";
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const a = t * vueltas * 2 * Math.PI;
+    const r = r0 + (r1 - r0) * t;
+    d += `${i ? "L" : "M"}${p2(cx + r * Math.cos(a))} ${p2(cy + r * Math.sin(a))}`;
+  }
+  return d;
+}
+/* Pétalos: n elipses que pasan cerca del centro, giradas. Devuelve lista de
+   transform + rx/ry para <ellipse>. */
+const petalos = (n: number) => Array.from({ length: n }, (_, k) => (k * 360) / n);
+
+/* Nodo estrellado: cruz larga + destello. */
+const nodo = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}H${cx + r}M${cx} ${cy - r * 1.25}V${cy + r * 1.25}`;
+
+/* ── espécimen 03 · corazón de línea (caja nativa 18×14 en el origen) ───── */
+const HEART =
+  "M0,7.2 C-1.4,4.4 -5.4,2.8 -7.2,0 C-9.1,-3.1 -6.7,-7.2 -3.3,-7.2 " +
+  "C-1.4,-7.2 -0.4,-6.1 0,-5 C0.4,-6.1 1.4,-7.2 3.3,-7.2 " +
+  "C6.7,-7.2 9.1,-3.1 7.2,0 C5.4,2.8 1.4,4.4 0,7.2 Z";
+
+/* ── espécimen 04 · onda trenzada del DUAL FLOW ─────────────────────────── */
+function trenza(x0: number, x1: number, cy: number, amp: number, fase: number): string {
+  const N = 48;
+  let d = "";
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const x = x0 + (x1 - x0) * t;
+    const y = cy + amp * Math.sin(t * 2 * Math.PI * 2 + fase) * Math.sin(Math.PI * t);
+    d += `${i ? "L" : "M"}${p2(x)} ${p2(y)}`;
+  }
+  return d;
+}
+
+/* ── espécimen 05 · alfabeto primordial ─────────────────────────────────── */
+/* Ficción del póster: glifos ilegibles a este cuerpo. Mezcla de capitales y
+   signos, no un alfabeto real. */
+const alfabeto = [["K", "D", "E", "T", "Y"], ["◇", "⊙", "H", "D", "X"], ["T", "A", "L", "Z", "M"], ["I", "H", "A", "S", "W"], ["Y", "P", "C", "E", "R"]];
+
+/* Barcode del COMPRESSION: anchos irregulares, sorteados con semilla. */
+const barras = (() => {
+  const rr = azar(0x0505);
+  const out: [number, number, number][] = [];
+  let x = 750;
+  while (x < 800) {
+    const w = 1 + Math.floor(rr() * 3);
+    out.push([p2(x), w, 0.3 + rr() * 0.5]);
+    x += w + 1 + rr() * 2.5;
+  }
+  return out;
+})();
+---
+
+<div data-bloque="Etapas" style="inset:0">
+  <svg class="et" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <defs>
+      <filter id="u05EtHalo" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="1.6" result="b" />
+        <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
+      </filter>
+    </defs>
+
+    <!-- ═══ CABECERAS DE ETAPA ═══════════════════════════════════════════ -->
+    <text class="et__eje" x="55" y="372">STAGE</text>
+    <text class="et__eje" x="55" y="388">DOMAIN</text>
+    {etapas.map((e) => (
+      <g>
+        <text class="et__num" x={e.cx} y="351" text-anchor="middle">{e.num}</text>
+        <text class="et__nombre" x={e.cx} y="372" text-anchor="middle">{e.nombre}</text>
+        <text class="et__dominio" x={e.cx} y="388" text-anchor="middle">{e.dominio}</text>
+      </g>
+    ))}
+    {chevrones.map((x) => <path class="et__chevron" d={`M${x - 2} 363.5l4.5 4.5l-4.5 4.5`} />)}
+
+    <!-- ═══ CAJAS ════════════════════════════════════════════════════════ -->
+    {cajas.map(([x0, x1]) => <rect class="et__caja" x={x0} y={CAJA_Y0} width={p2(x1 - x0)} height={p2(CAJA_Y1 - CAJA_Y0)} />)}
+
+    <!-- Rieles laterales de lectura: SPECIMEN / ANNOTATION, de abajo arriba. -->
+    <text class="et__lateral" transform="translate(66 600) rotate(-90)">✧ SPECIMEN</text>
+    <text class="et__lateral" transform="translate(66 862) rotate(-90)">✧ ANNOTATION</text>
+    <!-- Punteado guía del margen derecho, medido en x=1047... ya es el borde
+         de la caja 06. El del margen interior derecho corre en x=1077 y lo
+         pone la Cabecera. -->
+
+    <!-- ═══ 02 · RECURRING GEOMETRY ══════════════════════════════════════ -->
+    <g class="et__geo">
+      <!-- espina punteada de cada columna: en la referencia los mandalas
+           cuelgan de un hilo vertical -->
+      <path class="et__geo-fino" d="M301 412V716M380 412V716" stroke-dasharray="1 4" />
+      <!-- columna A, cx=301 -->
+      <g filter="url(#u05EtHalo)">
+        <path class="et__geo-vivo" d={nodo(301, 440, 16)} />
+        <circle class="et__geo-vivo" cx="301" cy="440" r="7" />
+        <circle class="et__geo-nucleo" cx="301" cy="440" r="1.8" />
+      </g>
+      <circle class="et__geo-aro" cx="301" cy="440" r="17" />
+      <circle class="et__geo-aro" cx="301" cy="504" r="21" />
+      <path class="et__geo-fino" d={tela(301, 504, 21, 12, 0x2a01, [3, 5])} />
+      <circle class="et__geo-nucleo" cx="301" cy="504" r="1.6" />
+      <g filter="url(#u05EtHalo)"><circle class="et__geo-nucleo" cx="301" cy="578" r="2.4" /></g>
+      {[6.5, 12, 17.5, 23].map((r) => <circle class="et__geo-aro" cx="301" cy="578" r={r} />)}
+      <path class="et__geo-fino" d={rayos(301, 578, 23, 16)} />
+      <circle class="et__geo-aro" cx="301" cy="664" r="23" />
+      <path class="et__geo-fino" d={tela(301, 664, 23, 10, 0x2a02, [4])} />
+      <ellipse class="et__geo-aro" cx="301" cy="712" rx="14" ry="4" />
+      <!-- columna B, cx=380 -->
+      <path class="et__geo-vivo" d={espiral(380, 434, 1.5, 20, 3)} />
+      <circle class="et__geo-aro" cx="380" cy="512" r="24" />
+      {petalos(6).map((a) => (
+        <ellipse class="et__geo-fino" cx="380" cy={512 - 12} rx="6.5" ry="12" transform={`rotate(${a} 380 512)`} />
+      ))}
+      <circle class="et__geo-nucleo" cx="380" cy="512" r="1.6" />
+      <g filter="url(#u05EtHalo)"><circle class="et__geo-nucleo" cx="380" cy="595" r="2.6" /></g>
+      <circle class="et__geo-aro" cx="380" cy="595" r="26" />
+      <path class="et__geo-fino" d={tela(380, 595, 26, 14, 0x2a03, [3, 6])} />
+      <circle class="et__geo-aro" cx="380" cy="676" r="22" />
+      <path class="et__geo-fino" d={rayos(380, 676, 22, 12)} />
+      <circle class="et__geo-aro" cx="380" cy="676" r="10" />
+    </g>
+
+    <!-- ═══ 03 · SYMBOL ══════════════════════════════════════════════════ -->
+    <g class="et__sym" filter="url(#u05EtHalo)">
+      <path class="et__sym-f" d="M504.5 412V700" stroke-dasharray="1 5" />
+      <path class="et__sym-t" d={rayos(504.5, 432, 20, 4)} />
+      <path class="et__sym-t" d={rayos(504.5, 432, 11.5, 4, Math.PI / 4)} />
+      <circle class="et__sym-n" cx="504.5" cy="432" r="2" />
+      {[432 - 20, 432 + 20].map((y) => <circle class="et__sym-n" cx="504.5" cy={y} r="1.3" />)}
+      <path class="et__sym-t" d={HEART} transform="translate(504.5 503) scale(2.25)" />
+      <circle class="et__sym-n" cx="504.5" cy="484" r="1.2" />
+      {[5, 11, 17].map((r) => <circle class="et__sym-t" cx="504.5" cy="572" r={r} />)}
+      <circle class="et__sym-t" cx="504.5" cy="572" r="22.5" stroke-dasharray="1.5 3.5" />
+      <circle class="et__sym-n" cx="504.5" cy="572" r="2.2" />
+      <path class="et__sym-t" d={lemniscata(504.5, 625, 24, 19)} />
+      <path class="et__sym-t" d={rayos(504.5, 672, 17, 6, -Math.PI / 2)} />
+      {petalos(6).map((a) => (
+        <ellipse class="et__sym-t" cx="504.5" cy={672 - 9} rx="4.2" ry="9" transform={`rotate(${a} 504.5 672)`} />
+      ))}
+      <circle class="et__sym-n" cx="504.5" cy="672" r="1.6" />
+    </g>
+
+    <!-- ═══ 04 · RULE ════════════════════════════════════════════════════ -->
+    <g class="et__rule">
+      <text class="et__rot" x="599" y="430">POLARITY</text>
+      <path class="et__dia" d="M602 447h10m-5 -5v10M624 447h22m-4 -4l4 4l-4 4m-14 -8l-4 4l4 4M662 447h10" />
+      <circle class="et__dia-n" cx="686" cy="447" r="1.4" />
+      <text class="et__rot" x="599" y="485">DUAL FLOW</text>
+      <g filter="url(#u05EtHalo)">
+        <path class="et__dia-v" d={trenza(600, 716, 507, 9, 0)} />
+        <path class="et__dia-v" d={trenza(600, 716, 507, 9, Math.PI)} />
+        <path class="et__dia" d={trenza(600, 716, 507, 5, Math.PI / 2)} />
+      </g>
+      {[629, 658, 687].map((x) => <circle class="et__dia-n" cx={x} cy="507" r="1.5" />)}
+      <text class="et__rot" x="599" y="546">CYCLE</text>
+      <circle class="et__dia-v" cx="623" cy="568" r="13" />
+      <circle class="et__dia-n" cx="623" cy="555" r="1.8" />
+      <path class="et__dia" d="M640 568h10" stroke-dasharray="2 3" />
+      <circle class="et__dia-n" cx="656" cy="568" r="1.2" />
+      <text class="et__rot" x="599" y="604">HARMONIC RATIO</text>
+      <text class="et__cifra" x="599" y="621">1 : 1.618 : 2.618</text>
+      <path class="et__dia" d="M600 645h115M600 645v-9h18v9M636 645v-14h29v14M683 645v-6h21v6" />
+      <text class="et__rot" x="599" y="681">SACRED ALIGNMENT</text>
+      <path class="et__dia" d="M600 700H716" stroke-dasharray="1.5 3.5" />
+      {[607, 634, 658, 682, 707].map((x, i) => (
+        i === 2
+          ? <g filter="url(#u05EtHalo)"><circle class="et__dia-n" cx={x} cy="700" r="2.6" /><circle class="et__dia-v" cx={x} cy="700" r="5.5" /></g>
+          : <circle class="et__dia-v" cx={x} cy="700" r="3.4" />
+      ))}
+    </g>
+
+    <!-- ═══ 05 · CODE ════════════════════════════════════════════════════ -->
+    <g class="et__code">
+      <text class="et__rot-c" x="812" y="421" text-anchor="middle">KODEX PRIMORDIAL</text>
+      <text class="et__rot-c" x="812" y="437" text-anchor="middle">ALPHABET</text>
+      {alfabeto.map((fila, i) => (
+        <g>
+          {fila.map((g, j) => (
+            <text class="et__letra" x={762 + j * 25} y={462 + i * 18.5} text-anchor="middle">{g}</text>
+          ))}
+        </g>
+      ))}
+      <text class="et__rot-c" x="812" y="570" text-anchor="middle">SYNTAX FRAGMENT</text>
+      <g filter="url(#u05EtHalo)">
+        <circle class="et__dia-v" cx="760" cy="592" r="4.5" />
+        <circle class="et__dia-n" cx="760" cy="592" r="1.2" />
+        <path class="et__dia" d="M765 592h16" />
+        <path class="et__dia-v" d={rombo(787, 592, 9, 9)} />
+        <path class="et__dia" d="M792 592h12" />
+        <circle class="et__dia-v" cx="812" cy="592" r="7.5" />
+        <path class="et__dia" d="M820 592h22m-4 -3.6l4 3.6l-4 3.6" />
+        <circle class="et__dia-v" cx="853" cy="592" r="4.5" />
+        <circle class="et__dia-n" cx="853" cy="592" r="1.2" />
+      </g>
+      <text class="et__rot-c" x="812" y="633" text-anchor="middle">EXPRESSION</text>
+      <rect class="et__marco5" x="750" y="641" width="124" height="32" />
+      <g filter="url(#u05EtHalo)">
+        <path class="et__dia-v" d={trenza(756, 868, 657, 11, Math.PI / 3)} />
+      </g>
+      <text class="et__rot-c" x="812" y="701" text-anchor="middle">COMPRESSION</text>
+      {barras.map(([x, w, o]) => <rect class="et__barra" x={x} y="708" width={w} height="10" style={`fill-opacity:${o}`} />)}
+      <text class="et__cifra" x="806" y="717">0101110</text>
+    </g>
+
+    <!-- ═══ ANOTACIONES ══════════════════════════════════════════════════ -->
+    {anotaciones.map(([x, lineas]) => (
+      <g>
+        {(lineas as string[]).map((t, i) => (
+          <text class="et__anota" x={x} y={753.5 + i * 16.4} textLength={p2(t.length * CHAR)}>{t}</text>
+        ))}
+      </g>
+    ))}
+  </svg>
+
+  <!-- ═══ 01 · ARTIFACT SOURCE — canvas de tiza, estático ═══════════════ -->
+  <canvas data-arte="fuente" width="161" height="325" aria-hidden="true" style="left:86px;top:402px;width:161px;height:325px"></canvas>
+</div>
+
+<style is:global>
+  [data-bloque="Etapas"] { pointer-events: none; }
+  [data-bloque="Etapas"] svg { position: absolute; inset: 0; }
+  [data-bloque="Etapas"] canvas { position: absolute; }
+  .et text {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  .et__eje { font-size: 8.6px; fill: #d8d4d0; fill-opacity: 0.3; letter-spacing: 0.08em; }
+  .et__num { font-size: 11px; fill: #b48fe2; fill-opacity: 0.62; letter-spacing: 0.24em; }
+  .et__nombre { font-size: 10.6px; fill: #b48fe2; fill-opacity: 0.58; letter-spacing: 0.16em; }
+  .et__dominio { font-size: 9.2px; fill: #d8d4d0; fill-opacity: 0.4; letter-spacing: 0.14em; }
+  .et__chevron { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.4; }
+  .et__caja { fill: none; stroke: #d8d4d0; stroke-width: 1; stroke-opacity: 0.16; }
+  .et__lateral { font-size: 9px; fill: #b48fe2; fill-opacity: 0.42; letter-spacing: 0.26em; }
+  .et__anota { font-size: 9.8px; fill: #d8d4d0; fill-opacity: 0.52; }
+
+  /* 02 · la geometría es violeta apagado con núcleos encendidos. Zona medida
+     L 8,8 en la referencia: la primera pasada daba 3,5 — los mandalas del
+     póster son mucho más densos de tinta de lo que parecen. */
+  .et__geo-aro { fill: none; stroke: #c8a4e8; stroke-width: 1; stroke-opacity: 0.62; }
+  .et__geo-fino { fill: none; stroke: #b48fe2; stroke-width: 0.7; stroke-opacity: 0.44; }
+  .et__geo-vivo { fill: none; stroke: #d4b4f0; stroke-width: 1.1; stroke-opacity: 0.8; }
+  .et__geo-nucleo { fill: #f6eefa; fill-opacity: 0.9; }
+
+  /* 03 · brillante pero medido: la zona da L 5,6 y con 0,78 salía 6,8. */
+  .et__sym-t { fill: none; stroke: #cfa9ee; stroke-width: 1.1; stroke-opacity: 0.64; stroke-linejoin: round; }
+  .et__sym-f { fill: none; stroke: #b48fe2; stroke-width: 0.6; stroke-opacity: 0.22; }
+  .et__sym-n { fill: #f6eefa; fill-opacity: 0.9; }
+
+  /* 04 y 05 · instrumentos. */
+  .et__rot { font-size: 9.4px; fill: #b48fe2; fill-opacity: 0.64; letter-spacing: 0.1em; }
+  .et__rot-c { font-size: 9.4px; fill: #b48fe2; fill-opacity: 0.64; letter-spacing: 0.12em; }
+  .et__cifra { font-size: 8.8px; fill: #d8d4d0; fill-opacity: 0.56; }
+  .et__dia { fill: none; stroke: #b48fe2; stroke-width: 0.9; stroke-opacity: 0.6; }
+  .et__dia-v { fill: none; stroke: #c8a4e8; stroke-width: 0.9; stroke-opacity: 0.72; }
+  .et__dia-n { fill: #f6eefa; fill-opacity: 0.88; }
+  .et__letra { font-size: 13.5px; fill: #cbb6dd; fill-opacity: 0.8; }
+  .et__sep5 { fill: none; stroke: #b48fe2; stroke-width: 0.7; stroke-opacity: 0.3; }
+  .et__marco5 { fill: none; stroke: #b48fe2; stroke-width: 0.7; stroke-opacity: 0.32; }
+  .et__barra { fill: #b48fe2; }
+</style>
+
+<script>
+  /* Espécimen 01 — trazo de tiza sobre negro, pintado UNA vez. Sin TypeScript:
+     Astro compila este bloque como JS. */
+  const cv = document.querySelector('[data-bloque="Etapas"] [data-arte="fuente"]');
+  if (cv) {
+    const W = 161;
+    const H = 325;
+    const TAU = Math.PI * 2;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    const g = cv.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.lineCap = "round";
+    g.lineJoin = "round";
+
+    /* mulberry32, semilla fija. */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const r = azar(0x0501);
+    const TIZA = "196,186,166";
+
+    /* Trazo de tiza: la polilínea se repasa dos veces con jitter y alfa baja,
+       y se le siembra grano alrededor. Eso es lo que un path SVG limpio no da. */
+    function tiza(pts, alfa, grosor) {
+      /* Tres pasadas: trazo, repaso corrido y sangrado ancho tenue. La zona
+         del panel 01 promedia L 10,8 en la referencia y con dos pasadas finas
+         se quedaba en 6,9 — el carboncillo del póster tiene cuerpo. */
+      const pases = [[grosor, alfa], [grosor * 0.75, alfa * 0.55], [grosor * 2.2, alfa * 0.28]];
+      for (const [gw, ga] of pases) {
+        g.beginPath();
+        for (let i = 0; i < pts.length; i++) {
+          const x = pts[i][0] + (r() - 0.5) * 1.1;
+          const y = pts[i][1] + (r() - 0.5) * 1.1;
+          i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = "rgba(" + TIZA + "," + ga + ")";
+        g.lineWidth = gw;
+        g.stroke();
+      }
+      for (let i = 0; i < pts.length; i += 3) {
+        if (r() < 0.5) continue;
+        g.fillStyle = "rgba(" + TIZA + "," + alfa * 0.35 + ")";
+        g.fillRect(pts[i][0] + (r() - 0.5) * 4, pts[i][1] + (r() - 0.5) * 4, 1, 1);
+      }
+    }
+    const curva = (fn, n, t0, t1) => {
+      const pts = [];
+      for (let i = 0; i <= n; i++) pts.push(fn(t0 + ((t1 - t0) * i) / n));
+      return pts;
+    };
+    const espiral = (cx, cy, rmax, vueltas) =>
+      curva((t) => [cx + rmax * t * Math.cos(t * vueltas * TAU), cy + rmax * t * Math.sin(t * vueltas * TAU)], 80, 0.03, 1);
+    const circulo = (cx, cy, rad) => curva((t) => [cx + rad * Math.cos(t * TAU), cy + rad * Math.sin(t * TAU)], 26, 0, 1.02);
+
+    /* Rama: tronco + brotes laterales, recursión corta. */
+    function rama(x0, y0, ang, largo, alfa, prof) {
+      const pts = [];
+      let x = x0, y = y0, a = ang;
+      const n = 8;
+      for (let i = 0; i <= n; i++) {
+        pts.push([x, y]);
+        a += (r() - 0.5) * 0.5;
+        x += (largo / n) * Math.cos(a);
+        y += (largo / n) * Math.sin(a);
+        if (prof > 0 && i > 2 && r() < 0.4) rama(x, y, a + (r() < 0.5 ? -0.9 : 0.9), largo * 0.4, alfa * 0.8, prof - 1);
+      }
+      tiza(pts, alfa, 0.8);
+    }
+
+    /* ── composición, en coordenadas locales del panel (0,0 = 86,402) ──── */
+    /* Mitad alta: espirales, ramas, corazón, ojo. Divisoria en y≈198.
+       Mitad baja: garabatos, círculos concéntricos y sismograma. */
+    tiza(espiral(52, 45, 24, 2.6), 0.8, 1.2);
+    tiza(espiral(122, 35, 13, 2.1), 0.62, 1);
+    tiza(circulo(130, 33, 17).slice(4, 22), 0.55, 1);
+    rama(112, 52, 1.9, 82, 0.75, 2);
+    rama(140, 66, 2.2, 66, 0.6, 2);
+    rama(48, 95, 1.3, 58, 0.55, 1);
+    rama(90, 40, 1.6, 70, 0.5, 2);
+    rama(30, 130, 0.9, 46, 0.45, 1);
+    /* corazón */
+    tiza(curva((t) => {
+      const a = t * TAU;
+      const x = 16 * Math.pow(Math.sin(a), 3);
+      const y = -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a));
+      return [36 + x * 0.85, 165 + y * 0.85];
+    }, 40, 0, 1), 0.75, 1.1);
+    /* ojo: almendra + iris */
+    tiza(curva((t) => [129 + 18 * Math.cos(t * TAU), 146 + 7 * Math.sin(t * TAU)], 30, 0, 1), 0.6, 1);
+    tiza(circulo(129, 146, 4), 0.65, 1);
+    /* motas y circulitos sueltos */
+    for (let i = 0; i < 10; i++) tiza(circulo(20 + r() * 120, 30 + r() * 150, 1.5 + r() * 3.5), 0.4 + r() * 0.25, 0.9);
+    /* divisoria rayada */
+    tiza(curva((t) => [10 + t * 142, 198 + (r() - 0.5) * 2], 40, 0, 1), 0.55, 1);
+    /* mitad baja */
+    tiza(espiral(28, 232, 13, 2.2), 0.62, 1);
+    tiza(curva((t) => [58 + t * 52, 230 + 7 * Math.sin(t * 26)], 52, 0, 1), 0.58, 1);
+    tiza(circulo(36, 288, 5), 0.55, 1);
+    tiza(circulo(36, 288, 10), 0.46, 1);
+    tiza(circulo(36, 288, 15), 0.38, 1);
+    tiza(circulo(132, 250, 8).slice(3, 20), 0.55, 1);
+    tiza(circulo(118, 305, 6), 0.4, 0.9);
+    tiza(curva((t) => [96 + t * 40, 252 + 5 * Math.sin(t * 18)], 40, 0, 1), 0.42, 0.9);
+    /* sismograma: reposo con ráfagas */
+    (function () {
+      const pts = [];
+      for (let i = 0; i <= 140; i++) {
+        const x = 12 + i;
+        const raf = Math.exp(-Math.pow((i - 55) / 16, 2)) + 0.7 * Math.exp(-Math.pow((i - 100) / 9, 2));
+        pts.push([x, 283 + (r() - 0.5) * 3 - raf * (r() * 30 - 15)]);
+      }
+      tiza(pts, 0.8, 0.9);
+    })();
+    for (let i = 0; i < 70; i++) {
+      g.fillStyle = "rgba(" + TIZA + "," + (0.15 + r() * 0.35) + ")";
+      g.fillRect(8 + r() * 145, 12 + r() * 300, 1, 1);
+    }
+  }
+</script>

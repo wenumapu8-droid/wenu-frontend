@@ -1,0 +1,1064 @@
+---
+/**
+ * KODEX-∞ · u02-threshold · PORTAL (héroe de la lámina)
+ *
+ * Reproducción procedural del centro de `reference/canon/u02-threshold.png`
+ * (región x 30–910, y 255–1075 de la lámina de 1122×1402).
+ *
+ * Medido sobre la referencia antes de dibujar, no estimado a ojo:
+ *   · eje de simetría en x=560 (pico de luminancia 132 en la columna central);
+ *   · muro interior de la cámara en x=493 y x=627 → semiancho 67;
+ *   · borde exterior de las jambas en x=421 y x=699 → semiancho 139;
+ *   · emblema ∞ centrado en (561, 346), anillo exterior r≈41;
+ *   · vértice del arco exterior en y≈370, cámara en y≈409;
+ *   · tarima escalonada de y≈851 a y≈946, semiancho final ≈154;
+ *   · lazo de infinito grande centrado en y≈628, y ES UNO SOLO: mide 92 de alto
+ *     por 18 de ancho (ramas en x=553 y x=570, vértices en y=588 y y=680), o
+ *     sea esbelto y con los lóbulos en punta. Lo que hay arriba y abajo de él
+ *     en la referencia son NODOS, no lazos.
+ * De ahí el sistema local: el bloque arranca en (30,255) y mide 880×820, así que
+ * el eje cae en x=530 y el lazo en y=373.
+ *
+ * JERARQUÍA — arco > eje > campo > base
+ * Es una restricción, no un gusto, y no la cuida el puntaje: el banco mide
+ * fidelidad PROMEDIO y un error de jerarquía se compensa solo. Esta lámina
+ * llegó a medir 4,68 % con el arco convertido en un halo de anillos tenues, el
+ * eje en una cadena de cuatro lemniscatas, el campo con el doble de píxeles
+ * blancos que la referencia y seis terrazas macizas peleándole el ojo al
+ * portal: el promedio estaba bien y la lectura estaba rota. Los cuatro
+ * quedaron atados a un número medible, y ese número es el que hay que mirar
+ * antes de tocar alfas — media de luminancia por zona, referencia contra
+ * captura:
+ *   · arco   x 400–720 / y 280–700   ref 21,9   ← el elemento MÁS leído
+ *   · eje    x 520–600 / y 380–1020  ref 40,0
+ *   · campo  x  60–520 / y 380–780   ref 13,1 · y 1.018 px casi acromáticos
+ *                                      sobre L 150 (esto es lo que delata el
+ *                                      destello blanco; la media sola no)
+ *   · base   x 330–790 / y 830–1080  ref 11,0   ← el que va último
+ * Subir una zona porque «mejora el puntaje» sin mirar las otras tres es cómo
+ * se llegó al estado anterior.
+ *
+ * CONTRATO
+ * - Todo es canvas 2D paramétrico. Ni un bitmap, ni un SVG calcado.
+ * - El azar es `azar()` (mulberry32) con semilla fija. Nunca Math.random(): el
+ *   banco de fotocopia compara captura contra referencia y con azar real dos
+ *   capturas de la misma página dan puntajes distintos — se mide ruido.
+ * - El bucle va POR FASE, no por tiempo: `fase` recorre 0→1 y vuelve a 0 sin
+ *   costura porque cada término temporal es sin/cos de un múltiplo entero de
+ *   `fase·TAU`, y las envolventes de paquete/onda valen 0 en los dos extremos.
+ *   Un `t` creciente deja salto al cerrar el ciclo.
+ * - `prefers-reduced-motion` alarga el período (baja el ritmo); no congela.
+ * - Fuera de pantalla o pestaña oculta no se pinta (IntersectionObserver +
+ *   visibilitychange).
+ * - `window.__kdxFreeze(t)` fija el cuadro y APAGA el rAF: Playwright con
+ *   `animations:"disabled"` no congela un canvas que corre su propio bucle.
+ *
+ * DOS LIENZOS
+ *   `fondo` — arco, tarima, piso, polvo y trazo base de los filamentos. Se pinta
+ *             una sola vez; es lo caro y no se mueve.
+ *   `vivo`  — eje luminoso, lazos, nodos, paquetes que viajan por los filamentos
+ *             y ondas de la tarima. Se repinta por cuadro.
+ */
+---
+
+<div data-bloque="Portal" style="left:30px;top:255px;width:880px;height:820px">
+  <canvas data-capa="fondo" width="880" height="820" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="880" height="820" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Portal"] {
+    pointer-events: none;
+  }
+  [data-bloque="Portal"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 880px;
+    height: 820px;
+  }
+</style>
+
+<script>
+  import { montarLienzo } from '../kit/lienzo';
+  /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
+     anotaciones de tipo revientan el build. */
+  const raiz = document.querySelector('[data-bloque="Portal"]');
+  if (raiz) {
+    const W = 880;
+    const H = 820;
+    const TAU = Math.PI * 2;
+
+    /* Eje del portal y alturas clave, ya en coordenadas locales del bloque. */
+    const cx = 530;
+    const yEmblema = 91; // ∞ suspendido sobre el arco
+    const yVerticeExt = 118; // vértice del arco exterior
+    const yBaseJamba = 630; // donde la jamba entra en la tarima
+    const yLazo = 373; // lazo de infinito grande = foco del abanico
+    const yTarima = 596; // superficie del primer escalón
+    const yPiso = 655; // centro de la elipse del piso
+
+    const FONDO = "5,3,8";
+    const LUZ = "167,124,240";
+    const HONDO = "109,75,176";
+    const NUCLEO = "242,236,255";
+    /* CANTO es el gris-lavanda de la arquitectura, y hace falta como color
+       aparte porque en la referencia los bordes del portal NO son violeta
+       saturado. Perfil horizontal sobre la referencia: el muro de la cámara en
+       x=493,y=520 da [239,222,246] (L 227) y el canto exterior de la jamba en
+       x=433,y=600 da [211,183,235] (L 193). Dibujarlos con HONDO al 0,4 —lo que
+       había— los dejaba en L≈37 contra L≈190–227: por eso el arco se leía como
+       un halo de anillos concéntricos y no como una puerta. */
+    const CANTO = "231,214,246";
+    const PALETA_ARCO = [HONDO, LUZ, CANTO];
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    /* mulberry32. Determinista a propósito — ver cabecera. */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /* ---------------------------------------------------------------- lienzos */
+    const cFondo = raiz.querySelector('[data-capa="fondo"]');
+    const cVivo = raiz.querySelector('[data-capa="vivo"]');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(cFondo);
+    const gv = preparar(cVivo);
+
+    /* ------------------------------------------------------- geometría del arco
+     * Arco apuntado por dos arcos de circunferencia con centros separados: el
+     * izquierdo tiene centro en (cx+d) y radio hw+d, de modo que arranca
+     * horizontal en la línea de imposta y llega al eje con pendiente — eso es lo
+     * que da la punta. `punta`=0 devuelve el medio punto. */
+    function contorno(hw, yVertice, yPie, punta) {
+      const d = hw * punta;
+      const R = hw + d;
+      const subida = Math.sqrt(R * R - d * d);
+      const yImposta = yVertice + subida;
+      const izq = [];
+      const N = 44;
+      const a0 = Math.PI;
+      const a1 = Math.acos(-d / R);
+      izq.push([cx - hw, yPie]);
+      for (let i = 0; i <= N; i++) {
+        const a = a0 + (a1 - a0) * (i / N);
+        izq.push([cx + d + R * Math.cos(a), yImposta - R * Math.sin(a)]);
+      }
+      const pts = izq.slice();
+      for (let i = izq.length - 2; i >= 0; i--) pts.push([2 * cx - izq[i][0], izq[i][1]]);
+      return { pts, yImposta };
+    }
+
+    function trazar(g, pts) {
+      g.beginPath();
+      g.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+    }
+
+    /* Anillos concéntricos del arco: semiancho, altura del vértice, pie, punta,
+       grosor, alfa y tono (índice en PALETA_ARCO). La lectura de la referencia
+       da nueve, del canto exterior al muro de la cámara — pero NO son nueve
+       líneas equivalentes, y ahí estaba el error: pintadas todas parejas y
+       tenues la suma leía como halo concéntrico en vez de puerta.
+       El peso va ADENTRO, no afuera, que es como está en la referencia: a
+       y=600 (global) el canto exterior en x=421 da apenas L 23 mientras el muro
+       de la cámara en x=493 da L 227, y a x=620 la banda brillante del arco es
+       la de semiancho 88 (L 210), no las de 120 ni 139. Así que los dos cantos
+       de arquitectura (tono 2) son el muro y esa banda; el resto son molduras.
+       La jerarquía de la lámina es arco > eje > campo > base, y el arco la
+       encabeza por el muro y por el detalle de la jamba, no por el halo. */
+    const ANILLOS = [
+      [139, 118, 630, 0.1, 1.0, 0.34, 1],
+      [131, 124, 628, 0.1, 0.7, 0.2, 0],
+      [120, 132, 626, 0.11, 1.1, 0.38, 1],
+      [113, 137, 624, 0.11, 0.7, 0.24, 0],
+      [101, 146, 620, 0.12, 1.1, 0.4, 1],
+      [88, 155, 618, 0.12, 1.5, 0.62, 2],
+      [76, 163, 616, 0.13, 1.0, 0.36, 1],
+      [67, 170, 614, 0.13, 1.8, 0.82, 2],
+      [58, 177, 612, 0.14, 0.9, 0.32, 1],
+    ];
+
+    /* Rieles de la jamba, medidos y no sorteados. El pilar de la referencia no
+       es un hueco entre dos líneas: tiene una decena de verticales y varias son
+       tan claras como el canto. Perfil horizontal a y=600 (global) sobre la
+       referencia: x=433 → L 193, x=461 → 169, x=469 → 194, x=481 → 146,
+       x=493 → 127; con el eje en x=560 eso da semianchos 127, 99, 91, 79 y 67.
+       [semiancho, y0, y1, grosor, alfa, tono], ya en coordenadas locales. */
+    const RIELES = [
+      [127, 272, 620, 1.3, 0.5, 2],
+      [122, 300, 560, 0.7, 0.16, 0],
+      [115, 285, 470, 0.8, 0.2, 1],
+      [107, 330, 618, 0.8, 0.18, 0],
+      [99, 276, 612, 1.2, 0.44, 2],
+      [91, 278, 624, 1.3, 0.54, 2],
+      [87, 380, 600, 0.7, 0.2, 1],
+      [83, 300, 430, 0.7, 0.22, 0],
+      [79, 305, 626, 1.1, 0.38, 2],
+      [76, 290, 350, 0.7, 0.18, 1],
+      [71, 420, 610, 0.8, 0.24, 1],
+    ];
+
+    function arco(g) {
+      const r = azar(0x51d3);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      for (let i = 0; i < ANILLOS.length; i++) {
+        const [hw, yv, yp, punta, grosor, alfa, tono] = ANILLOS[i];
+        const c = contorno(hw, yv, yp, punta);
+        trazar(g, c.pts);
+        g.lineWidth = grosor;
+        g.strokeStyle = tinta(PALETA_ARCO[tono], alfa);
+        g.stroke();
+        /* Segundo pase fino sobre los tres cantos: un filo claro por dentro de
+           la línea ancha. A esta escala es lo que separa "canto" de "brillo" —
+           una sola pasada ancha se lee difusa por el antialias. */
+        if (tono === 2) {
+          trazar(g, c.pts);
+          g.lineWidth = grosor * 0.4;
+          g.strokeStyle = tinta(NUCLEO, alfa * 0.5);
+          g.stroke();
+        }
+
+        /* Capitel: tick horizontal donde la curva se despega de la vertical. */
+        g.beginPath();
+        g.moveTo(cx - hw - 6, c.yImposta);
+        g.lineTo(cx - hw + 6, c.yImposta);
+        g.moveTo(cx + hw - 6, c.yImposta);
+        g.lineTo(cx + hw + 6, c.yImposta);
+        g.strokeStyle = tinta(tono === 2 ? CANTO : LUZ, alfa * 0.85);
+        g.lineWidth = 1.1;
+        g.stroke();
+      }
+
+      /* Línea de imposta: cruza el espesor entero de la jamba a la altura donde
+         el arco exterior arranca a curvar. Corta el pilar en dos y le da altura
+         leíble; sin ella los rieles flotan uno al lado del otro. */
+      const imposta = contorno(139, 118, 630, 0.1).yImposta;
+      for (const dy of [0, 5]) {
+        g.beginPath();
+        for (const s of [-1, 1]) {
+          g.moveTo(cx + s * 139, imposta + dy);
+          g.lineTo(cx + s * 67, imposta + dy);
+        }
+        g.strokeStyle = tinta(dy ? HONDO : CANTO, dy ? 0.22 : 0.4);
+        g.lineWidth = dy ? 0.7 : 1;
+        g.stroke();
+      }
+
+      /* Muescas: travesaños cortos que cruzan el espesor de la jamba. Son lo que
+         convierte dos verticales en una estructura. */
+      for (let k = 0; k < 34; k++) {
+        const y = 288 + k * 9.9 + r() * 4;
+        const a = 67 + Math.floor(r() * 3) * 12;
+        const b = a + 14 + r() * 46;
+        const al = 0.16 + r() * 0.34;
+        g.strokeStyle = tinta(k % 4 === 0 ? CANTO : LUZ, al);
+        g.lineWidth = k % 4 === 0 ? 1 : 0.8;
+        g.beginPath();
+        g.moveTo(cx - b, y);
+        g.lineTo(cx - a, y);
+        g.moveTo(cx + a, y);
+        g.lineTo(cx + b, y);
+        g.stroke();
+      }
+
+      /* Placas: rectángulos con esquina cortada, incrustados en la jamba. */
+      for (let k = 0; k < 7; k++) {
+        const y = 250 + k * 52 + r() * 18;
+        const x = 74 + r() * 44;
+        const an = 16 + r() * 22;
+        const al = 10 + r() * 16;
+        const ch = 4;
+        /* El brillo se sortea UNA vez y sirve a los dos lados: el portal de la
+           referencia es simétrico, y sortear dentro del bucle dejaba cada placa
+           con una cara más clara que la otra. */
+        const brillo = 0.34 + r() * 0.26;
+        for (const s of [-1, 1]) {
+          const x0 = cx + s * (x + an);
+          const x1 = cx + s * x;
+          g.beginPath();
+          g.moveTo(x0, y);
+          g.lineTo(x1 - s * ch, y);
+          g.lineTo(x1, y + ch);
+          g.lineTo(x1, y + al);
+          g.lineTo(x0, y + al);
+          g.closePath();
+          /* Cuerpo tenue: sin él la placa es un contorno flotando, con él es una
+             chapa incrustada en el pilar. */
+          g.fillStyle = tinta(HONDO, 0.09);
+          g.fill();
+          g.strokeStyle = tinta(CANTO, brillo);
+          g.lineWidth = 0.9;
+          g.stroke();
+        }
+      }
+
+      /* Rieles verticales de la jamba (tabla RIELES, medida sobre la
+         referencia), con un tramo cortado en los tres claros. */
+      for (const [dx, y0, y1, grosor, alfa, tono] of RIELES) {
+        g.lineWidth = grosor;
+        g.strokeStyle = tinta(PALETA_ARCO[tono], alfa);
+        for (const s of [-1, 1]) {
+          g.beginPath();
+          g.moveTo(cx + s * dx, y0);
+          g.lineTo(cx + s * dx, y1);
+          g.stroke();
+        }
+        if (tono === 2) {
+          const yc = y0 + (y1 - y0) * (0.3 + r() * 0.4);
+          const largo = 7 + r() * 9;
+          g.globalCompositeOperation = "source-over";
+          g.strokeStyle = tinta(FONDO, 0.92);
+          g.lineWidth = grosor + 1.2;
+          for (const s of [-1, 1]) {
+            g.beginPath();
+            g.moveTo(cx + s * dx, yc);
+            g.lineTo(cx + s * dx, yc + largo);
+            g.stroke();
+          }
+          g.globalCompositeOperation = "lighter";
+        }
+      }
+
+      /* Lluvia de hilos verticales dentro de la cámara: es lo que le da cuerpo
+         al interior del portal en la referencia. Son finísimos y desparejos. */
+      for (let k = 0; k < 96; k++) {
+        const dx = (r() - 0.5) * 118;
+        const y0 = 200 + r() * 300;
+        const y1 = y0 + 40 + r() * 320;
+        g.beginPath();
+        g.moveTo(cx + dx, y0);
+        g.lineTo(cx + dx, Math.min(y1, 606));
+        g.strokeStyle = tinta(r() < 0.12 ? NUCLEO : LUZ, 0.04 + r() * 0.11);
+        g.lineWidth = 0.55;
+        g.stroke();
+      }
+
+      /* Nervios internos de la cámara: curvas que siguen el arco hacia abajo. */
+      for (let k = 0; k < 5; k++) {
+        const hw = 24 + k * 9;
+        const c = contorno(hw, 200 + k * 9, 600, 0.16);
+        trazar(g, c.pts);
+        g.lineWidth = 0.7;
+        g.strokeStyle = tinta(k === 4 ? LUZ : HONDO, 0.2 + k * 0.04);
+        g.stroke();
+      }
+
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------- el emblema */
+    /* Lemniscata de Bernoulli normalizada: lóbulos redondos y cruce en punta,
+       que es la forma del 8 de la referencia. Gerono, que fue el primer intento,
+       da lóbulos pellizcados y el lazo salía con cara de reloj de arena.
+       `ex`/`ey` son los semiejes ya en píxeles; `giro` la pone vertical. */
+    const LEM_V = 0.3535533906; // máximo de sin t·cos t/(1+sin²t)
+    function lemniscata(g, x, y, ex, ey, giro) {
+      g.beginPath();
+      const N = 140;
+      for (let i = 0; i <= N; i++) {
+        const t = (i / N) * TAU;
+        const d = 1 + Math.sin(t) * Math.sin(t);
+        const u = Math.cos(t) / d;
+        const v = (Math.sin(t) * Math.cos(t)) / d / LEM_V;
+        const qx = giro ? ex * v : ex * u;
+        const qy = giro ? ey * u : ey * v;
+        if (i === 0) g.moveTo(x + qx, y + qy);
+        else g.lineTo(x + qx, y + qy);
+      }
+    }
+
+    function emblema(g) {
+      const r = azar(0x2b19);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* Hexágono suspendido: el marco geométrico del emblema, con nodo en cada
+         vértice, tal como aparece detrás del anillo en la referencia. */
+      const rh = 52;
+      g.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i / 6) * TAU;
+        const x = cx + Math.cos(a) * rh;
+        const y = yEmblema + Math.sin(a) * rh;
+        i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.closePath();
+      g.strokeStyle = tinta(HONDO, 0.32);
+      g.lineWidth = 0.8;
+      g.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i / 6) * TAU;
+        g.beginPath();
+        g.arc(cx + Math.cos(a) * rh, yEmblema + Math.sin(a) * rh, 2.6, 0, TAU);
+        g.strokeStyle = tinta(LUZ, 0.4);
+        g.lineWidth = 0.8;
+        g.stroke();
+      }
+
+      /* Anillo exterior + anillo interior. */
+      g.beginPath();
+      g.arc(cx, yEmblema, 41, 0, TAU);
+      g.strokeStyle = tinta(LUZ, 0.72);
+      g.lineWidth = 1.2;
+      g.stroke();
+      g.beginPath();
+      g.arc(cx, yEmblema, 31, 0, TAU);
+      g.strokeStyle = tinta(LUZ, 0.5);
+      g.lineWidth = 0.9;
+      g.stroke();
+
+      /* Radios cortos entre los dos anillos. */
+      for (let i = 0; i < 24; i++) {
+        const a = (i / 24) * TAU;
+        const l = i % 4 === 0 ? 9 : 4;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * 31, yEmblema + Math.sin(a) * 31);
+        g.lineTo(cx + Math.cos(a) * (31 + l), yEmblema + Math.sin(a) * (31 + l));
+        g.strokeStyle = tinta(HONDO, 0.3 + r() * 0.2);
+        g.lineWidth = 0.7;
+        g.stroke();
+      }
+
+      /* Antenas: líneas finas que salen del emblema hacia el arco. */
+      for (let i = 0; i < 14; i++) {
+        const a = r() * TAU;
+        const l = 55 + r() * 90;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * 43, yEmblema + Math.sin(a) * 43);
+        g.lineTo(cx + Math.cos(a) * (43 + l), yEmblema + Math.sin(a) * (43 + l) * 0.9);
+        g.strokeStyle = tinta(HONDO, 0.1 + r() * 0.14);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+
+      /* El ∞. */
+      lemniscata(g, cx, yEmblema, 20, 11, false);
+      g.strokeStyle = tinta(NUCLEO, 0.92);
+      g.lineWidth = 2.2;
+      g.stroke();
+      lemniscata(g, cx, yEmblema, 20, 11, false);
+      g.strokeStyle = tinta(LUZ, 0.4);
+      g.lineWidth = 5;
+      g.stroke();
+
+      g.restore();
+    }
+
+    /* ---------------------------------------------------------- piso y tarima */
+    function piso(g) {
+      const r = azar(0x9c41);
+      const k = 0.3;
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* El plano en perspectiva sube un punto justo cuando la tarima baja tres:
+         el peso de la base no se borra, se corre del escalón macizo al plano,
+         que es donde lo tiene la referencia. */
+      for (let i = 1; i <= 10; i++) {
+        const rr = 120 + i * 44;
+        g.beginPath();
+        g.ellipse(cx, yPiso, rr, rr * k, 0, 0, TAU);
+        g.strokeStyle = tinta(HONDO, 0.26 - i * 0.014);
+        g.lineWidth = 0.75;
+        g.stroke();
+      }
+
+      for (let j = 0; j < 56; j++) {
+        const a = (j / 56) * TAU;
+        const frente = Math.sin(a) > 0;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * 110, yPiso + Math.sin(a) * 110 * k);
+        g.lineTo(cx + Math.cos(a) * 560, yPiso + Math.sin(a) * 560 * k);
+        g.strokeStyle = tinta(HONDO, frente ? 0.21 : 0.09);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+
+      /* Motas en los cruces de la retícula: el piso respira por los nodos. */
+      for (let i = 1; i <= 10; i++) {
+        const rr = 120 + i * 44;
+        for (let j = 0; j < 56; j++) {
+          if (r() > 0.28) continue;
+          const a = (j / 56) * TAU;
+          const x = cx + Math.cos(a) * rr;
+          const y = yPiso + Math.sin(a) * rr * k;
+          g.beginPath();
+          g.arc(x, y, 0.9, 0, TAU);
+          g.fillStyle = tinta(LUZ, Math.sin(a) > 0 ? 0.5 : 0.2);
+          g.fill();
+        }
+      }
+      g.restore();
+    }
+
+    /* La tarima va ÚLTIMA en la jerarquía (arco > eje > campo > base), y eso se
+       paga en alfa y en grosor, no en geometría: los seis escalones siguen
+       midiendo lo mismo que en la referencia, pero pintados con LUZ al 0,26–0,51
+       y 1 px leían como seis placas macizas que le competían el ojo al portal.
+       En la referencia son ondas elípticas tenues sobre un plano en
+       perspectiva, así que el peso se le devuelve al piso (ver `piso`) y se le
+       saca al escalón. */
+    function tarima(g) {
+      const r = azar(0x77af);
+      g.save();
+      /* De abajo hacia arriba: cada escalón tapa al anterior, que es el orden en
+         que un zigurat se ve desde arriba. */
+      for (let k = 5; k >= 0; k--) {
+        const rx = 58 + k * 20;
+        const ry = rx * 0.235;
+        const cy = yTarima + k * 19;
+
+        g.beginPath();
+        g.ellipse(cx, cy, rx, ry, 0, 0, TAU);
+        /* 0,86 en vez de 0,94: la retícula del piso se transparenta apenas bajo
+           el escalón y la tarima deja de ser un tapón opaco. */
+        g.fillStyle = tinta(FONDO, 0.86);
+        g.fill();
+        g.globalCompositeOperation = "lighter";
+        /* La huella no se ilumina pareja: la enciende la columna, así que
+           brilla contra el eje y se apaga hacia el canto. Medido en la
+           referencia sobre la zona de la base, la franja x=530 da L 37,7 y la
+           x=630 da L 8,9 — un factor cuatro entre centro y borde. Con alfa
+           plano (lo que había) el escalón entero pesaba igual y las seis
+           terrazas leían como placas macizas compitiéndole al portal. */
+        const grdPaso = g.createLinearGradient(cx - rx, 0, cx + rx, 0);
+        grdPaso.addColorStop(0, tinta(HONDO, 0.05));
+        grdPaso.addColorStop(0.3, tinta(HONDO, 0.15));
+        grdPaso.addColorStop(0.5, tinta(LUZ, 0.44 + k * 0.03));
+        grdPaso.addColorStop(0.7, tinta(HONDO, 0.15));
+        grdPaso.addColorStop(1, tinta(HONDO, 0.05));
+        g.strokeStyle = grdPaso;
+        g.lineWidth = 0.85;
+        g.stroke();
+
+        /* Canto del escalón: sólo el arco delantero, con el mismo desvanecido. */
+        g.beginPath();
+        g.ellipse(cx, cy + 7, rx, ry, 0, 0.12, Math.PI - 0.12);
+        const grdCanto = g.createLinearGradient(cx - rx, 0, cx + rx, 0);
+        grdCanto.addColorStop(0, tinta(HONDO, 0.06));
+        grdCanto.addColorStop(0.5, tinta(HONDO, 0.42));
+        grdCanto.addColorStop(1, tinta(HONDO, 0.06));
+        g.strokeStyle = grdCanto;
+        g.lineWidth = 0.6;
+        g.stroke();
+
+        /* Anillos finos sobre la huella del escalón. */
+        for (let j = 1; j <= 2; j++) {
+          const f = 1 - j * 0.12;
+          g.beginPath();
+          g.ellipse(cx, cy, rx * f, ry * f, 0, 0, TAU);
+          g.strokeStyle = tinta(HONDO, 0.13);
+          g.lineWidth = 0.5;
+          g.stroke();
+        }
+
+        /* Marcas de sector sobre la huella. */
+        for (let j = 0; j < 10; j++) {
+          if (r() > 0.55) continue;
+          const a = r() * TAU;
+          g.beginPath();
+          g.moveTo(cx + Math.cos(a) * rx * 0.86, cy + Math.sin(a) * ry * 0.86);
+          g.lineTo(cx + Math.cos(a) * rx * 0.99, cy + Math.sin(a) * ry * 0.99);
+          g.strokeStyle = tinta(HONDO, 0.12 + r() * 0.14);
+          g.lineWidth = 0.6;
+          g.stroke();
+        }
+        g.globalCompositeOperation = "source-over";
+      }
+
+      /* Derrame de la columna sobre la tarima. En la referencia la luz del eje
+         no se corta en el suelo: baña los escalones hasta y≈930 (global) y ahí
+         está la mitad del brillo de toda la base —perfil por filas: L 24,8 a
+         y=855 y L 10,7 a y=930, contra 15,0 y 5,3 sin esto—. Es luz derramada,
+         no materia: pesa sin dibujar bordes, que es justo lo que la base
+         necesita para quedar al final de la jerarquía. */
+      g.globalCompositeOperation = "lighter";
+      const derrame = g.createRadialGradient(cx, 625, 0, cx, 625, 168);
+      derrame.addColorStop(0, tinta(LUZ, 0.34));
+      derrame.addColorStop(0.4, tinta(HONDO, 0.14));
+      derrame.addColorStop(1, tinta(HONDO, 0));
+      g.save();
+      g.translate(cx, 625);
+      g.scale(1, 0.55);
+      g.translate(-cx, -625);
+      g.fillStyle = derrame;
+      g.beginPath();
+      g.arc(cx, 625, 168, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* Marcador central bajo el arco. */
+      const ym = 677;
+      g.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i / 6) * TAU;
+        const x = cx + Math.cos(a) * 11;
+        const y = ym + Math.sin(a) * 11;
+        i === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+      }
+      g.closePath();
+      g.strokeStyle = tinta(LUZ, 0.5);
+      g.lineWidth = 0.9;
+      g.stroke();
+      g.beginPath();
+      g.arc(cx, ym, 5.4, 0, TAU);
+      g.strokeStyle = tinta(NUCLEO, 0.48);
+      g.lineWidth = 0.9;
+      g.stroke();
+      g.beginPath();
+      g.arc(cx, ym, 1.8, 0, TAU);
+      g.fillStyle = tinta(NUCLEO, 0.85);
+      g.fill();
+      g.beginPath();
+      g.moveTo(cx - 30, ym);
+      g.lineTo(cx - 14, ym);
+      g.moveTo(cx + 14, ym);
+      g.lineTo(cx + 30, ym);
+      g.moveTo(cx, ym + 13);
+      g.lineTo(cx, 762);
+      g.strokeStyle = tinta(LUZ, 0.32);
+      g.lineWidth = 0.8;
+      g.stroke();
+      g.beginPath();
+      g.moveTo(cx, 762);
+      g.lineTo(cx + 5, 767);
+      g.lineTo(cx, 772);
+      g.lineTo(cx - 5, 767);
+      g.closePath();
+      g.strokeStyle = tinta(LUZ, 0.5);
+      g.lineWidth = 0.8;
+      g.stroke();
+      g.restore();
+    }
+
+    /* ------------------------------------------------------------ filamentos
+     * Decenas de curvas que salen del lazo y se abren en abanico hacia la
+     * izquierda. Cada una es una polilínea precalculada: la traza tenue vive en
+     * el lienzo estático y sobre ella viaja un paquete de luz en el vivo. */
+    const filamentos = (() => {
+      const r = azar(0x7ea1);
+      const N = 58;
+      const salida = [];
+      for (let i = 0; i < N; i++) {
+        const u = N === 1 ? 0.5 : i / (N - 1);
+        const destino = -1 + 2 * u;
+        const largo = 235 + r() * 265 + (1 - Math.abs(destino)) * 70;
+        const abre = destino * (140 + r() * 115);
+        const amp = 9 + r() * 28;
+        const frec = 1.1 + r() * 2.1;
+        const desfase = r() * TAU;
+        const oy = yLazo + (r() - 0.5) * 24;
+        const M = 56;
+        const pts = new Float64Array((M + 1) * 2);
+        for (let k = 0; k <= M; k++) {
+          const s = k / M;
+          pts[k * 2] = cx - 8 - Math.pow(s, 0.92) * largo;
+          pts[k * 2 + 1] =
+            oy + abre * Math.pow(s, 1.35) + amp * Math.pow(s, 1.5) * Math.sin(frec * s * TAU + desfase);
+        }
+        /* Nodos redondos sobre el recorrido y algún anillo abierto. */
+        const nodos = [];
+        const cuantos = 3 + Math.floor(r() * 5);
+        for (let k = 0; k < cuantos; k++) nodos.push([0.22 + r() * 0.76, 0.8 + r() * 1.0]);
+        const anillos = [];
+        if (r() < 0.42) anillos.push([0.3 + r() * 0.6, 3.4 + r() * 5.4]);
+        if (r() < 0.16) anillos.push([0.4 + r() * 0.5, 2.6 + r() * 3]);
+        salida.push({
+          pts,
+          M,
+          nodos,
+          anillos,
+          /* El campo recupera cuerpo por el VIOLETA del trazo, no por el blanco
+             de los nodos: es la misma luminancia media con la mitad de píxeles
+             acromáticos, que es exactamente la diferencia que separaba esta
+             versión de la referencia. */
+          brillo: 0.23 + r() * 0.33,
+          vel: 1 + Math.floor(r() * 3),
+          fase0: r(),
+          punta: r() < 0.35,
+        });
+      }
+      return salida;
+    })();
+
+    function puntoFil(f, s) {
+      const q = Math.max(0, Math.min(1, s)) * f.M;
+      const i = Math.min(f.M - 1, Math.floor(q));
+      const t = q - i;
+      const x = f.pts[i * 2] + (f.pts[i * 2 + 2] - f.pts[i * 2]) * t;
+      const y = f.pts[i * 2 + 1] + (f.pts[i * 2 + 3] - f.pts[i * 2 + 1]) * t;
+      return [x, y];
+    }
+
+    function filamentosBase(g) {
+      const r = azar(0x3f27);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (const f of filamentos) {
+        g.beginPath();
+        g.moveTo(f.pts[0], f.pts[1]);
+        for (let k = 1; k <= f.M; k++) g.lineTo(f.pts[k * 2], f.pts[k * 2 + 1]);
+        g.strokeStyle = tinta(LUZ, f.brillo);
+        g.lineWidth = 0.95;
+        g.stroke();
+
+        /* Los nodos del campo son violeta con algún blanco suelto, no una
+           perdigonada blanca: medido en la zona x 60–520 / y 380–780, la
+           referencia tiene 1.018 píxeles casi acromáticos por encima de L 150 y
+           esta versión llegó a tener 2.770. El promedio de luminancia coincidía
+           igual — por eso el puntaje no lo veía y el ojo sí. */
+        for (const [s, rad] of f.nodos) {
+          const [x, y] = puntoFil(f, s);
+          g.beginPath();
+          g.arc(x, y, rad, 0, TAU);
+          g.fillStyle = tinta(r() < 0.26 ? NUCLEO : LUZ, 0.34 + r() * 0.26);
+          g.fill();
+        }
+        for (const [s, rad] of f.anillos) {
+          const [x, y] = puntoFil(f, s);
+          g.beginPath();
+          g.arc(x, y, rad, 0, TAU);
+          g.strokeStyle = tinta(LUZ, 0.42);
+          g.lineWidth = 0.9;
+          g.stroke();
+        }
+        /* Punta de flecha en algunos extremos, como en la referencia. */
+        if (f.punta) {
+          const [x1, y1] = puntoFil(f, 1);
+          const [x0, y0] = puntoFil(f, 0.96);
+          const a = Math.atan2(y1 - y0, x1 - x0);
+          g.beginPath();
+          g.moveTo(x1, y1);
+          g.lineTo(x1 - Math.cos(a - 0.4) * 6, y1 - Math.sin(a - 0.4) * 6);
+          g.moveTo(x1, y1);
+          g.lineTo(x1 - Math.cos(a + 0.4) * 6, y1 - Math.sin(a + 0.4) * 6);
+          g.strokeStyle = tinta(LUZ, 0.5);
+          g.lineWidth = 0.8;
+          g.stroke();
+        }
+      }
+      g.restore();
+    }
+
+    /* ------------------------------------------------------- polvo y abanicos */
+    function abanico(g) {
+      const r = azar(0x1d3f);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 190; i++) {
+        const a = r() * TAU;
+        const l = 130 + r() * 420;
+        g.beginPath();
+        g.moveTo(cx + Math.cos(a) * 40, yLazo + Math.sin(a) * 34);
+        g.lineTo(cx + Math.cos(a) * l, yLazo + Math.sin(a) * l * 0.86);
+        g.strokeStyle = tinta(HONDO, 0.047 + r() * 0.08);
+        g.lineWidth = 0.6;
+        g.stroke();
+      }
+      g.restore();
+    }
+
+    function polvo(g) {
+      const r = azar(0x6d0b);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 620; i++) {
+        /* Suma de tres uniformes ≈ campana: la mota se apiña cerca del portal. */
+        const x = cx + (r() + r() + r() - 1.5) * 300;
+        const y = yLazo + (r() + r() + r() - 1.5) * 330;
+        if (x < 4 || x > W - 4 || y < 4 || y > H - 4) continue;
+        const rad = 0.5 + r() * 0.9;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        g.fillStyle = tinta(r() < 0.15 ? NUCLEO : LUZ, 0.12 + r() * 0.4);
+        g.fill();
+      }
+      g.restore();
+    }
+
+    /* ---------------------------------------------------------------- lo vivo */
+    /* Nodos del eje: puntos discretos sobre la columna de luz. Los de y=248,
+       468 y 546 eran lazos y ahí estaba el error de lectura — cuatro
+       lemniscatas apiladas se leen como cadena, y la referencia tiene UNA sola
+       a media altura sobre una columna fina con nodos pequeños. */
+    const NODOS_EJE = [
+      /* El de arriba es el segundo foco de la lámina: en la referencia hay una
+         estrella grande a y=458 (global) sobre la boca de la cámara, y la fila
+         medía L 43,6 contra 19,8 acá. */
+      [203, 4.6],
+      [248, 2.6],
+      [262, 2.2],
+      [318, 2.6],
+      [430, 2.4],
+      [468, 2.4],
+      [487, 3.0],
+      [545, 2.0],
+    ];
+    /* [y, semialto, ancho total, peso]. Medido sobre la referencia y no
+       estimado: el 8 grande va de y=588 a y=680 en global y sus dos ramas caen
+       en x=553 y x=570 con el eje en x=561 — o sea 92 de alto por 18 de ancho,
+       esbelto y con los lóbulos en punta. El valor que había (110×40) lo dejaba
+       redondo y gordo, del doble de ancho que el original. */
+    const LAZOS = [[373, 46, 18, 1.0]];
+    const chispas = (() => {
+      const r = azar(0x4c8e);
+      const out = [];
+      for (let i = 0; i < 70; i++) {
+        out.push([
+          cx + (r() + r() + r() - 1.5) * 280,
+          yLazo + (r() + r() + r() - 1.5) * 300,
+          0.7 + r() * 1.4,
+          1 + Math.floor(r() * 3),
+          r() * TAU,
+        ]);
+      }
+      return out;
+    })();
+
+    function estrella(g, x, y, rad, a) {
+      const grd = g.createRadialGradient(x, y, 0, x, y, rad * 3.6);
+      grd.addColorStop(0, tinta(NUCLEO, a));
+      grd.addColorStop(0.22, tinta(LUZ, a * 0.5));
+      grd.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = grd;
+      g.beginPath();
+      g.arc(x, y, rad * 3.6, 0, TAU);
+      g.fill();
+      /* Brazo superlineal en el radio: los nodos chicos tienen que leerse como
+         PUNTOS y sólo los grandes como estrella. Con brazo proporcional
+         (rad·3,4) los ocho nodos del eje salían todos como cruces del mismo
+         tamaño y la columna quedaba con cara de escalera. */
+      const brazo = rad * (1.2 + rad * 0.5);
+      g.strokeStyle = tinta(NUCLEO, a * 0.75);
+      g.lineWidth = 0.8;
+      g.beginPath();
+      g.moveTo(x - brazo, y);
+      g.lineTo(x + brazo, y);
+      g.moveTo(x, y - brazo * 1.3);
+      g.lineTo(x, y + brazo * 1.3);
+      g.stroke();
+    }
+
+    function pintarVivo(g, fase) {
+      const ang = fase * TAU;
+      g.clearRect(0, 0, W, H);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+
+      /* 0 · bruma de la cámara: el interior del arco no es negro, es violeta. */
+      const bruma = g.createRadialGradient(cx, 400, 0, cx, 400, 220);
+      bruma.addColorStop(0, tinta(LUZ, 0.15 * (0.85 + 0.15 * Math.sin(ang))));
+      bruma.addColorStop(0.55, tinta(HONDO, 0.06));
+      bruma.addColorStop(1, tinta(HONDO, 0));
+      g.save();
+      g.translate(cx, 400);
+      g.scale(0.42, 1);
+      g.translate(-cx, -400);
+      g.fillStyle = bruma;
+      g.beginPath();
+      g.arc(cx, 400, 220, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* 1 · columna de luz: cinco anchos apilados dan el degradado lateral. */
+      const yTop = 168;
+      const yBot = 618;
+      const anchos = [66, 34, 16, 7, 3];
+      /* Los dos anchos intermedios subieron: medido a x=568 y x=584 (global) la
+         referencia da L 49 y 28 y esta columna daba 30 y 18. El núcleo ya
+         estaba bien; lo que faltaba era el cuerpo. */
+      const alfas = [0.055, 0.1, 0.17, 0.25, 0.46];
+      for (let i = 0; i < anchos.length; i++) {
+        const pulso = 0.76 + 0.24 * Math.sin(ang * 2 + i * 1.1);
+        const grd = g.createLinearGradient(0, yTop, 0, yBot);
+        grd.addColorStop(0, tinta(LUZ, 0));
+        grd.addColorStop(0.1, tinta(LUZ, alfas[i] * 0.65 * pulso));
+        grd.addColorStop(0.55, tinta(i < 3 ? LUZ : NUCLEO, alfas[i] * pulso));
+        grd.addColorStop(0.93, tinta(NUCLEO, alfas[i] * 1.3 * pulso));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.fillRect(cx - anchos[i] / 2, yTop, anchos[i], yBot - yTop);
+      }
+
+      /* 2 · hélices que trenzan la columna. */
+      for (let h = 0; h < 3; h++) {
+        g.beginPath();
+        for (let y = 175; y <= 600; y += 4) {
+          const s = (y - 175) / 425;
+          const amp = 5 + 27 * Math.sin(s * Math.PI);
+          const x = cx + amp * Math.sin(s * 9 + ang + (h * TAU) / 3);
+          y === 175 ? g.moveTo(x, y) : g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(LUZ, 0.26);
+        g.lineWidth = 1;
+        g.stroke();
+      }
+
+      /* 3 · lazos de infinito, con una cabeza de luz recorriendo cada uno. */
+      for (let i = 0; i < LAZOS.length; i++) {
+        const [y, semialto, ancho, peso] = LAZOS[i];
+        const ex = ancho / 2;
+        lemniscata(g, cx, y, ex, semialto, true);
+        /* Trazo fino: con 18 px de ancho, los 2,1 px de antes eran una manguera
+           y el lazo perdía el hueco de los lóbulos. */
+        g.strokeStyle = tinta(NUCLEO, 0.18 + 0.62 * peso * peso);
+        g.lineWidth = 0.7 + peso * 0.8;
+        g.stroke();
+        lemniscata(g, cx, y, ex, semialto, true);
+        g.strokeStyle = tinta(LUZ, 0.14 * peso);
+        g.lineWidth = 4.5 * peso;
+        g.stroke();
+        /* Cabeza de luz recorriendo el lazo: t avanza con la fase, así que da
+           una vuelta exacta por ciclo. */
+        const t = ang + (i * TAU) / 4;
+        const d = 1 + Math.sin(t) * Math.sin(t);
+        const hx = cx + (ex * ((Math.sin(t) * Math.cos(t)) / d)) / LEM_V;
+        const hy = y + (semialto * Math.cos(t)) / d;
+        estrella(g, hx, hy, 1.6 * peso + 0.6, 0.4 + 0.4 * peso);
+      }
+
+      /* 3bis · el foco: donde el abanico se cierra contra el eje hay un núcleo
+         de luz. Sin esto los filamentos parecen nacer de la nada. */
+      const foco = g.createRadialGradient(cx - 6, yLazo, 0, cx - 6, yLazo, 74);
+      foco.addColorStop(0, tinta(NUCLEO, 0.3 * (0.8 + 0.2 * Math.sin(ang))));
+      foco.addColorStop(0.16, tinta(LUZ, 0.15));
+      foco.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = foco;
+      g.beginPath();
+      g.arc(cx - 6, yLazo, 74, 0, TAU);
+      g.fill();
+
+      /* 4 · nodos del eje. */
+      for (const [y, rad] of NODOS_EJE) {
+        const p = 0.55 + 0.45 * Math.sin(ang * 2 + y * 0.03);
+        estrella(g, cx, y, rad, 0.5 + 0.4 * p);
+      }
+      estrella(g, cx, 596, 5, 0.6 + 0.3 * Math.sin(ang));
+
+      /* 5 · paquetes que viajan por los filamentos. La envolvente sin(π·p) vale
+         0 en los dos extremos, así que el ciclo cierra sin costura. */
+      for (const f of filamentos) {
+        const p = (fase * f.vel + f.fase0) % 1;
+        const env = Math.sin(p * Math.PI);
+        if (env <= 0.02) continue;
+        const s0 = Math.max(0, p - 0.07);
+        const s1 = Math.min(1, p + 0.07);
+        const k0 = Math.floor(s0 * f.M);
+        const k1 = Math.ceil(s1 * f.M);
+        g.beginPath();
+        const [ax, ay] = puntoFil(f, s0);
+        g.moveTo(ax, ay);
+        for (let k = k0 + 1; k < k1; k++) g.lineTo(f.pts[k * 2], f.pts[k * 2 + 1]);
+        const [bx, by] = puntoFil(f, s1);
+        g.lineTo(bx, by);
+        g.strokeStyle = tinta(LUZ, 0.5 * env);
+        g.lineWidth = 1.3;
+        g.stroke();
+        const [hx, hy] = puntoFil(f, p);
+        const grd = g.createRadialGradient(hx, hy, 0, hx, hy, 5);
+        grd.addColorStop(0, tinta(NUCLEO, 0.5 * env));
+        grd.addColorStop(0.34, tinta(LUZ, 0.24 * env));
+        grd.addColorStop(1, tinta(LUZ, 0));
+        g.fillStyle = grd;
+        g.beginPath();
+        g.arc(hx, hy, 5, 0, TAU);
+        g.fill();
+      }
+
+      /* 6 · ondas sobre la tarima. */
+      for (let i = 0; i < 3; i++) {
+        const p = (fase + i / 3) % 1;
+        const rx = 46 + p * 132;
+        const cy = 598 + p * 72;
+        const a = 0.36 * (1 - p) * Math.min(1, p * 6);
+        g.beginPath();
+        g.ellipse(cx, cy, rx, rx * 0.235, 0, 0, TAU);
+        /* La onda sí queda: en la referencia la base ES esto —anillos elípticos
+           sobre el plano— y no el escalón macizo. Lo que se le sacó al escalón
+           se le devuelve acá, que es donde la referencia pone la lectura. */
+        g.strokeStyle = tinta(NUCLEO, a * 0.88);
+        g.lineWidth = 1.1;
+        g.stroke();
+      }
+
+      /* 7 · charco de luz donde el eje toca el suelo. */
+      const respiro = 0.72 + 0.28 * Math.sin(ang);
+      const pool = g.createRadialGradient(cx, 600, 0, cx, 600, 120);
+      pool.addColorStop(0, tinta(NUCLEO, 0.34 * respiro));
+      pool.addColorStop(0.2, tinta(LUZ, 0.16 * respiro));
+      pool.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = pool;
+      g.save();
+      g.translate(cx, 600);
+      g.scale(1, 0.32);
+      g.translate(-cx, -600);
+      g.beginPath();
+      g.arc(cx, 600, 120, 0, TAU);
+      g.fill();
+      g.restore();
+
+      /* Fogonazo horizontal en la línea de contacto. */
+      const flash = g.createLinearGradient(cx - 150, 0, cx + 150, 0);
+      flash.addColorStop(0, tinta(LUZ, 0));
+      flash.addColorStop(0.5, tinta(NUCLEO, 0.34 * respiro));
+      flash.addColorStop(1, tinta(LUZ, 0));
+      g.fillStyle = flash;
+      g.fillRect(cx - 150, 598, 300, 2.2);
+
+      /* 8 · destellos sueltos. */
+      for (const [x, y, rad, k, ph] of chispas) {
+        const a = Math.max(0, Math.sin(ang * k + ph));
+        if (a <= 0.02) continue;
+        g.beginPath();
+        g.arc(x, y, rad, 0, TAU);
+        /* El color sale de `ph`, que es fijo por chispa, y NO de `a`: elegirlo
+           por brillo hacía que la chispa saltara de violeta a blanco a mitad de
+           ciclo. La fase no tiene costura pero el color sí la tendría. */
+        g.fillStyle = tinta(ph < 1.6 ? NUCLEO : LUZ, 0.48 * a);
+        g.fill();
+      }
+
+      g.restore();
+    }
+
+    /* --------------------------------------------------------------- montaje */
+    function pintarFondo(g) {
+      g.clearRect(0, 0, W, H);
+      abanico(g);
+      polvo(g);
+      piso(g);
+      arco(g);
+      tarima(g);
+      filamentosBase(g);
+      emblema(g);
+    }
+    pintarFondo(gf);
+
+    /* Ciclo de vida en kit/lienzo.ts: bucle por fase, contrato de congelado,
+       visibilidad, prefers-reduced-motion y DPR. Eran 70 lineas por lamina. */
+    montarLienzo({
+      raiz: raiz,
+      cuadro: (fase) => pintarVivo(gv, fase),
+      periodo: 12000,
+      periodoReducido: 42000,
+    });
+  }
+</script>

@@ -1,0 +1,258 @@
+---
+/**
+ * KODEX-∞ · LÁMINAS
+ *
+ * Índice de las láminas reproducidas en código. Existe para que dejen de ser
+ * páginas sueltas que sólo encuentra quien sabe la URL.
+ *
+ * Cada tarjeta muestra el puntaje real medido contra su referencia. No es
+ * decoración: es el estado de la reproducción, y baja cuando el trabajo mejora.
+ */
+import "../../../styles/kodex-lamina.css";
+import manifiesto from "../../../../reference/MANIFEST.json";
+
+// Los puntajes salen del banco, no de números escritos a mano: si falta el
+// archivo, la tarjeta lo dice en vez de mentir con un valor viejo.
+let construidas = [
+  {
+    slug: "t01-03-descent-tunnel",
+    titulo: "DESCENT TUNNEL",
+    sub: "TANDA 01 · organismo 03 · descenso",
+    nota: "Único héroe 100 % procedural de las 17. Costó 3,4 M de tokens y tres vueltas: con ella se construyó la fábrica.",
+  },
+  {
+    slug: "t01-06-ritual-device",
+    titulo: "RITUAL DEVICE",
+    sub: "TANDA 01 · organismo 06 · artefacto ceremonial",
+    nota: "La primera con el contrato corregido: héroe procedural con máquina de estados. 6 canvas, 2,7 MB.",
+  },
+  {
+    slug: "t01-04-archive-tree",
+    titulo: "ARCHIVE TREE",
+    sub: "TANDA 01 · organismo 04 · memoria viva",
+    nota: "La mejor de las cinco. Su bloque izquierdo llegó a 0,28 %.",
+  },
+  {
+    slug: "t01-02-observation-eye",
+    titulo: "OBSERVATION EYE",
+    sub: "TANDA 01 · organismo 02 · detecta y reconoce",
+    nota: "Producida entre dos sesiones: tres de sus agentes murieron por límite y otros seis la terminaron.",
+  },
+  {
+    slug: "t01-01-threshold-portal",
+    titulo: "THRESHOLD PORTAL",
+    sub: "TANDA 01 · organismo 01 · umbral de acceso",
+    nota: "Tercera con el método v2. La mejor de las tres, en una sola vuelta.",
+  },
+  {
+    slug: "t01-08-signal-bloom",
+    titulo: "SIGNAL BLOOM",
+    sub: "TANDA 01 · organismo 08 · transmisión",
+    nota: "Primera con el método nuevo: cajas medidas, arte trazada, kit calibrado. Llegó al mismo puntaje en UNA vuelta con 4 agentes.",
+  },
+  {
+    slug: "u01-origin-field",
+    titulo: "U01 ORIGIN FIELD",
+    sub: "UNIVERSE · origen · el campo antes de la forma",
+    nota: "Era la más floja de las dieciocho. Su campo no es parejo —la referencia pesa 4.769 px hacia arriba-izquierda contra 1.793 hacia abajo— y estaba sorteado justo al revés. Medido y dado vuelta: 73 % a 98 %.",
+  },
+  {
+    slug: "u10-commons",
+    titulo: "U10 COMMONS",
+    sub: "UNIVERSE · el común · rastro colectivo",
+    nota: "Entró vacía: tenía el 34 % de la tinta y el banco la anunciaba con 4 % de diferencia. La reveló el número nuevo. Su campo no se modela con una fórmula: se sortea del perfil radial medido.",
+  },
+];
+
+/**
+ * De acá abajo el índice se descubre solo.
+ *
+ * Antes la lista de arriba ERA el índice, y eso rompía la integración
+ * progresiva: el cron produce una lámina a las 3 de la mañana y la página no
+ * aparecía hasta que alguien editaba este archivo a mano. Una lámina sin
+ * enlazar no existe —hoy encontré once rutas construidas con cero enlaces
+ * entrantes, incluido este mismo índice—, así que el descubrimiento no puede
+ * depender de que alguien se acuerde.
+ *
+ * Ahora la lista de arriba es sólo la CURADURÍA: título y nota escritos a
+ * mano. Los archivos mandan. Una lámina nueva entra sola con un título
+ * derivado del slug, y cuando alguien le escriba su nota, la toma.
+ */
+const excluidas: Record<string, string> = {
+  "t01-05-specimen-skull": "trazada, 0 canvas — espera decisión del creador",
+  "t01-07-cosmology-core": "trazada, 0 canvas — espera decisión del creador",
+  "t01-06-izq-solo": "fragmento de trabajo, no es una lámina",
+};
+
+const archivos = Object.keys(import.meta.glob("./[tu]*.astro"))
+  .map((r) => r.replace(/^\.\//, "").replace(/\.astro$/, ""))
+  .filter((s) => !(s in excluidas));
+
+const curadas = new Set(construidas.map((c) => c.slug));
+// Las curadas primero y en su orden; las nuevas se agregan al final.
+for (const slug of archivos) {
+  if (curadas.has(slug)) continue;
+  construidas.push({
+    slug,
+    titulo: slug.replace(/^t\d+-\d+-/, "").replace(/-/g, " ").toUpperCase(),
+    sub: "sin curaduría todavía",
+    nota: "Entró sola al índice. Falta escribirle su nota.",
+  });
+}
+// Y si una curada perdió su archivo, no se anuncia una página que no existe.
+const huerfanasCuradas = construidas.filter((c) => !archivos.includes(c.slug)).map((c) => c.slug);
+if (huerfanasCuradas.length) {
+  console.warn(`[kodex] láminas con curaduría y sin archivo, quedan fuera: ${huerfanasCuradas.join(", ")}`);
+}
+construidas = construidas.filter((c) => archivos.includes(c.slug));
+
+for (const c of construidas) {
+  try {
+    const s = await import(`../../../../scripts/lamina/out/${c.slug}/score.json`);
+    const g = (s.default ?? s).global ?? {};
+    (c as { puntaje?: number | null }).puntaje = g.pct ?? null;
+    /* COBERTURA: cuánta de la tinta de la referencia está puesta. Es el número
+       honesto y el que se muestra. La diferencia promedio —lo que esta tarjeta
+       publicaba como "coincidencia"— no distingue una lámina terminada de una
+       vacía: la referencia de u10 es 93,1 % fondo negro, así que una lámina
+       COMPLETAMENTE EN NEGRO difiere apenas 6,9 % de ella y esta tarjeta la
+       habría anunciado con "93 % de coincidencia".
+       Caso real que estaba publicado: u01-origin-field decía 97,48 % de
+       coincidencia teniendo el 73 % de la tinta. */
+    (c as { cobertura?: number | null }).cobertura = g.cobertura ?? null;
+  } catch {
+    (c as { puntaje?: number | null }).puntaje = null;
+    (c as { cobertura?: number | null }).cobertura = null;
+  }
+}
+
+const refs = (manifiesto as { referencias: Array<{ archivo: string; tipo: string; titulo: string }> }).referencias;
+const pendientes = refs
+  .filter((r) => r.tipo !== "indice" && !construidas.some((c) => r.archivo.startsWith(c.slug)))
+  .map((r) => ({ archivo: r.archivo.replace(/\.png$/, ""), titulo: r.titulo, tipo: r.tipo }));
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · láminas</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam lam-idx">
+    <header>
+      <p class="kdx-eyebrow">KODEX−∞ · sistema visual</p>
+      <h1>LÁMINAS</h1>
+      <p class="lam-idx__lede">
+        Reproducciones en código de las láminas de desarrollo visual.
+        Sin imágenes: todo CSS, SVG y canvas. El porcentaje dice cuánta de la
+        tinta de la referencia está efectivamente puesta — no cuánto se parece
+        de lejos. Una lámina vacía difiere poco de su referencia y no por eso
+        está hecha.
+      </p>
+    </header>
+
+    <h2>Construidas</h2>
+    <ul class="lam-idx__grid">
+      {construidas.map((c) => (
+        <li>
+          <a href={`/kodex/lamina/${c.slug}/`}>
+            <span class="lam-idx__t">{c.titulo}</span>
+            <span class="lam-idx__s">{c.sub}</span>
+            <span class="lam-idx__n">{c.nota}</span>
+            <span class="lam-idx__score">
+              {c.cobertura == null
+                ? (c.puntaje === null ? "sin medir" : `${c.puntaje.toFixed(2)}% de diferencia`)
+                : `${c.cobertura.toFixed(0)}% del dibujo puesto${c.cobertura < 85 ? " · incompleta" : ""} · ${c.puntaje?.toFixed(2) ?? "—"}% de diferencia`}
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+
+    <h2>Pendientes <em>· {pendientes.length}</em></h2>
+    <ul class="lam-idx__lista">
+      {pendientes.map((p) => (
+        <li><span class="kdx-dim">{p.tipo}</span> {p.titulo}</li>
+      ))}
+    </ul>
+
+    {/* Estas tres colgaban de ninguna parte: construidas, medidas y sin un
+        solo enlace entrante en todo el sitio. Pertenecen a esta capa —son
+        gramática visual, no escenas— y por eso viven acá y no en el índice de
+        las siete. */}
+    <h2>De la misma capa <em>· 3</em></h2>
+    <ul class="lam-idx__lista">
+      <li>
+        <a href="/kodex/lamina/kit/">KIT</a>
+        <span class="kdx-dim">· las seis primitivas calibradas con las constantes que salieron de medir las láminas</span>
+      </li>
+      <li>
+        <a href="/kodex/m/descent/">DESCENSO</a>
+        <span class="kdx-dim">· página viva, no reproducción: máquina de estados, arrastre y telemetría derivada del motor</span>
+      </li>
+      <li>
+        <a href="/kodex/m/ritual/">DISPOSITIVO RITUAL</a>
+        <span class="kdx-dim">· la segunda viva. Las dos son las páginas más rápidas del códice: dibujan en vez de cargar</span>
+      </li>
+    </ul>
+
+    <p class="lam-idx__pie">
+      Los pósters de TANDA 02 declaran «OF 12» y sólo existen 8.
+      Faltan cuatro láminas que no están en el set.
+    </p>
+
+    <style is:global>
+      html, body { margin: 0; background: #000; }
+      .lam-idx {
+        --lam-accent: #ff5a1f;
+        min-height: 100vh;
+        padding: clamp(24px, 5vw, 64px);
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .lam-idx h1 {
+        font-family: var(--lam-display);
+        font-size: clamp(34px, 8vw, 68px);
+        letter-spacing: -0.03em;
+        line-height: 0.9;
+        margin: 6px 0 14px;
+      }
+      .lam-idx h2 {
+        font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase;
+        color: var(--lam-accent); margin: 40px 0 14px;
+        border-bottom: 1px solid var(--lam-rule); padding-bottom: 8px;
+      }
+      .lam-idx h2 em { font-style: normal; color: var(--lam-dim); }
+      .lam-idx__lede { color: var(--lam-dim); max-width: 62ch; margin: 0; }
+      .lam-idx__grid {
+        list-style: none; padding: 0; margin: 0;
+        display: grid; gap: 14px;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      }
+      .lam-idx__grid a {
+        display: grid; gap: 5px; padding: 16px;
+        border: 1px solid var(--lam-rule);
+        color: inherit; text-decoration: none;
+      }
+      .lam-idx__grid a:hover,
+      .lam-idx__grid a:focus-visible {
+        border-color: var(--lam-accent);
+        outline: none;
+        background: color-mix(in srgb, var(--lam-accent) 6%, transparent);
+      }
+      .lam-idx__t { font-family: var(--lam-display); font-size: 22px; letter-spacing: -0.01em; }
+      .lam-idx__s { color: var(--lam-accent); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; }
+      .lam-idx__n { color: var(--lam-dim); }
+      .lam-idx__score {
+        margin-top: 6px; padding-top: 8px;
+        border-top: 1px dotted var(--lam-faint);
+        font-variant-numeric: tabular-nums;
+      }
+      .lam-idx__lista { list-style: none; padding: 0; margin: 0; columns: 2; column-gap: 32px; }
+      .lam-idx__lista li { color: var(--lam-ink); break-inside: avoid; padding: 2px 0; }
+      .lam-idx__pie { margin-top: 40px; color: var(--lam-dim); border-left: 2px solid var(--lam-accent); padding-left: 14px; max-width: 62ch; }
+      @media (max-width: 560px) { .lam-idx__lista { columns: 1; } }
+    </style>
+  </body>
+</html>

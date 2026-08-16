@@ -1,0 +1,427 @@
+---
+/**
+ * t01-03 · HEADER — franja superior (1672×88).
+ *
+ * Todas las coordenadas de este archivo salen de medir la referencia píxel a
+ * píxel (reference/canon/t01-03-descent-tunnel.png), y como la caja del panel
+ * arranca en 0,0 las coordenadas del póster y las del panel son las mismas.
+ * Por eso acá hay números crudos y no un layout flex: la franja no tiene ritmo
+ * regular — las celdas miden 109, 120, 92, 96 y 110 px — y cualquier regla de
+ * distribución que inventara sería más falsa que la lista de medidas.
+ */
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ── LOGOTIPO ────────────────────────────────────────────────────────────
+ *
+ * El logotipo va dibujado como polígonos, no como texto con una tipografía.
+ *
+ * La razón no es purismo: la letra de la referencia es un grotesco cuadrado
+ * con las esquinas cortadas a 45° (mirá la O y la D ampliadas — no hay una
+ * sola curva), y ninguna familia que el proyecto tenga instalada se le
+ * parece. Puesto como <text>, el ancho además depende de qué fuente resuelva
+ * el sistema, así que la misma página mide distinto en dos máquinas. Como
+ * polígono, cada asta y cada chaflán están donde los midió la referencia y no
+ * dependen de nada.
+ *
+ * Dos cajas tipográficas distintas, medidas: la grande ocupa de y=21.5 a 57.5
+ * con asta de 7 px y chaflán de 7; la chica de y=26.5 a 55.5 con asta de 5 y
+ * chaflán de 4.
+ */
+type Caja = { y0: number; y1: number; s: number; c: number; ci: number; mid: number };
+const BIG:   Caja = { y0: 21.5, y1: 57.5, s: 7, c: 7, ci: 3, mid: 3 };
+const CHICA: Caja = { y0: 26.5, y1: 55.5, s: 5, c: 4, ci: 2, mid: 2 };
+
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const P = (...pts: number[][]) => "M" + pts.map((p) => `${r2(p[0])} ${r2(p[1])}`).join("L") + "Z";
+const rect = (x0: number, y0: number, x1: number, y1: number) =>
+  P([x0, y0], [x1, y0], [x1, y1], [x0, y1]);
+
+/** Rectángulo con las cuatro esquinas cortadas a 45°: la forma base de la familia. */
+const cham = (x0: number, y0: number, x1: number, y1: number, c: number) =>
+  P([x0 + c, y0], [x1 - c, y0], [x1, y0 + c], [x1, y1 - c],
+    [x1 - c, y1], [x0 + c, y1], [x0, y1 - c], [x0, y0 + c]);
+
+/* Cada glifo es UN solo path. Los subtrazos que se unen (el asta y los brazos
+   de la K) van con el mismo sentido de giro y los contraformas (O, D, ∞) con el
+   sentido contrario, así que la regla nonzero resuelve las dos cosas sola. La
+   alternativa —evenodd— agujerearía la K donde el brazo pisa el asta, y partir
+   el glifo en varios <path> dejaría una costura clara cuando se le pone el
+   filo metálico, que es un trazo sobre el contorno. */
+type Glifo = string;
+
+/** El mismo polígono al revés: es lo que convierte un contorno en contraforma. */
+const Pr = (...pts: number[][]) => P(...pts.slice().reverse());
+
+const chamR = (x0: number, y0: number, x1: number, y1: number, c: number) =>
+  P([x0, y0 + c], [x0, y1 - c], [x0 + c, y1], [x1 - c, y1],
+    [x1, y1 - c], [x1, y0 + c], [x1 - c, y0], [x0 + c, y0]);
+
+const gO = (x0: number, x1: number, g: Caja): Glifo =>
+  cham(x0, g.y0, x1, g.y1, g.c) + chamR(x0 + g.s, g.y0 + g.s, x1 - g.s, g.y1 - g.s, g.ci);
+
+const gD = (x0: number, x1: number, g: Caja): Glifo =>
+  P([x0, g.y0], [x1 - g.c, g.y0], [x1, g.y0 + g.c], [x1, g.y1 - g.c], [x1 - g.c, g.y1], [x0, g.y1]) +
+  Pr([x0 + g.s, g.y0 + g.s], [x1 - g.s - g.ci, g.y0 + g.s], [x1 - g.s, g.y0 + g.s + g.ci],
+     [x1 - g.s, g.y1 - g.s - g.ci], [x1 - g.s - g.ci, g.y1 - g.s], [x0 + g.s, g.y1 - g.s]);
+
+const gE = (x0: number, x1: number, g: Caja): Glifo => {
+  const ym = g.y0 + (g.y1 - g.y0 - g.s) / 2 + 0.5; // la barra del medio va medio píxel bajo el centro
+  return P([x0, g.y0], [x1, g.y0], [x1, g.y0 + g.s], [x0 + g.s, g.y0 + g.s],
+    [x0 + g.s, ym], [x1 - g.mid, ym], [x1 - g.mid, ym + g.s], [x0 + g.s, ym + g.s],
+    [x0 + g.s, g.y1 - g.s], [x1, g.y1 - g.s], [x1, g.y1], [x0, g.y1]);
+};
+
+const gN = (x0: number, x1: number, g: Caja): Glifo =>
+  rect(x0, g.y0, x0 + g.s, g.y1) +
+  rect(x1 - g.s, g.y0, x1, g.y1) +
+  P([x0, g.y0], [x0 + g.s, g.y0], [x1, g.y1], [x1 - g.s, g.y1]);
+
+const gT = (x0: number, x1: number, g: Caja): Glifo => {
+  const cx = (x0 + x1) / 2;
+  return rect(x0, g.y0, x1, g.y0 + g.s) + rect(cx - g.s / 2, g.y0, cx + g.s / 2, g.y1);
+};
+
+const gL = (x0: number, x1: number, g: Caja): Glifo =>
+  P([x0, g.y0], [x0 + g.s, g.y0], [x0 + g.s, g.y1 - g.s], [x1, g.y1 - g.s], [x1, g.y1], [x0, g.y1]);
+
+const gU = (x0: number, x1: number, g: Caja): Glifo =>
+  P([x0, g.y0], [x0, g.y1 - g.c], [x0 + g.c, g.y1], [x1 - g.c, g.y1], [x1, g.y1 - g.c], [x1, g.y0],
+    [x1 - g.s, g.y0], [x1 - g.s, g.y1 - g.s - g.ci], [x1 - g.s - g.ci, g.y1 - g.s],
+    [x0 + g.s + g.ci, g.y1 - g.s], [x0 + g.s, g.y1 - g.s - g.ci], [x0 + g.s, g.y0]);
+
+/** C: anillo chaflanado con la boca abierta a la derecha; m es el alto del muñón. */
+const gC = (x0: number, x1: number, g: Caja): Glifo => {
+  const m = g.s + 4;
+  return P([x0 + g.c, g.y0], [x1 - g.c, g.y0], [x1, g.y0 + g.c], [x1, g.y0 + m], [x1 - g.s, g.y0 + m],
+      [x1 - g.s, g.y0 + g.s + g.ci], [x1 - g.s - g.ci, g.y0 + g.s], [x0 + g.s + g.ci, g.y0 + g.s],
+      [x0 + g.s, g.y0 + g.s + g.ci], [x0 + g.s, g.y1 - g.s - g.ci], [x0 + g.s + g.ci, g.y1 - g.s],
+      [x1 - g.s - g.ci, g.y1 - g.s], [x1 - g.s, g.y1 - g.s - g.ci], [x1 - g.s, g.y1 - m],
+    [x1, g.y1 - m], [x1, g.y1 - g.c], [x1 - g.c, g.y1], [x0 + g.c, g.y1], [x0, g.y1 - g.c],
+    [x0, g.y0 + g.c]);
+};
+
+/** S: los dos cuencos más la banda del medio, que baja a la derecha 5 px cada 13. */
+const gS = (x0: number, x1: number, g: Caja): Glifo => {
+  const m = g.s + 4;
+  const b0 = g.y0 + 12;        // arranque de la banda sobre el asta izquierda
+  const b1 = g.y1 - 13.5;      // arranque del canto de abajo de la misma banda
+  return P([x0 + g.c, g.y0], [x1 - g.c, g.y0], [x1, g.y0 + g.c], [x1, g.y0 + m], [x1 - g.s, g.y0 + m],
+      [x1 - g.s, g.y0 + g.s + g.ci], [x1 - g.s - g.ci, g.y0 + g.s], [x0 + g.s + g.ci, g.y0 + g.s],
+      [x0 + g.s, g.y0 + g.s + g.ci], [x0 + g.s, b0], [x1, b0 + 5],
+      [x1, g.y1 - g.c], [x1 - g.c, g.y1], [x0 + g.c, g.y1], [x0, g.y1 - g.c], [x0, g.y1 - m],
+      [x0 + g.s, g.y1 - m], [x0 + g.s, g.y1 - g.s - g.ci], [x0 + g.s + g.ci, g.y1 - g.s],
+    [x1 - g.s - g.ci, g.y1 - g.s], [x1 - g.s, g.y1 - g.s - g.ci], [x1 - g.s, b1 + 5],
+    [x0, b1], [x0, g.y0 + g.c]);
+};
+
+/* K, X e ∞ aparecen una sola vez: van con las coordenadas medidas, sin
+   generalizar. La K de esta familia no es simétrica — el brazo de arriba cae
+   más parado que la pierna — y una fórmula lo perdería. */
+const gK: Glifo =
+  rect(19, BIG.y0, 26.2, BIG.y1) +
+  P([39.5, 21.5], [48.5, 21.5], [25.8, 46], [25.8, 38.5]) +
+  P([25.8, 36], [33.5, 36], [48.5, 57.5], [39.5, 57.5]);
+const gX: Glifo =
+  P([151.5, 21.5], [158.5, 21.5], [182.5, 57.5], [175.5, 57.5]) +
+  P([175.5, 21.5], [182.5, 21.5], [158.5, 57.5], [151.5, 57.5]);
+/* Los dos lóbulos del ∞ no son óvalos: son cuñas de lados rectos que se juntan
+   en punta en x≈237.75, con la tapa de arriba y la de abajo planas. */
+const gInf: Glifo =
+  P([221, 30.5], [232, 30.5], [241.5, 41.5], [232, 52.5], [221, 52.5], [216, 47.5], [216, 35.5]) +
+  Pr([221.5, 35.5], [230.5, 35.5], [236, 41.5], [230.5, 47.5], [221.5, 47.5]) +
+  P([243.5, 30.5], [254.5, 30.5], [259.5, 35.5], [259.5, 47.5], [254.5, 52.5], [243.5, 52.5], [234, 41.5]) +
+  Pr([245, 35.5], [254, 35.5], [254, 47.5], [245, 47.5], [239.5, 41.5]);
+
+// "KODEX−∞": cada par es el borde izquierdo y derecho del glifo en la referencia.
+const marcaA: string[] = [
+  gK,
+  gO(51, 80, BIG),
+  gD(86, 113, BIG),
+  gE(120, 146, BIG),
+  gX,
+  rect(186, 38.8, 209, 43.8),  // el guion va 1 px sobre el centro óptico
+  gInf,
+];
+
+// "/ DESCENT TUNNEL"
+const marcaB: string[] = [
+  P([288.5, 24.5], [293.5, 24.5], [280.5, 56.5], [275.5, 56.5]),  // la barra excede la caja arriba y abajo
+  gD(309, 327, CHICA),
+  gE(333, 349, CHICA),
+  gS(354, 372, CHICA),
+  gC(377, 394, CHICA),
+  gE(400, 416, CHICA),
+  gN(421, 439, CHICA),
+  gT(443, 461, CHICA),
+  gT(475, 493, CHICA),
+  gU(497, 514, CHICA),
+  gN(520, 537, CHICA),
+  gN(543, 560, CHICA),
+  gE(565, 582, CHICA),
+  gL(587, 603, CHICA),
+];
+
+/* ── EMBLEMA ALADO ──────────────────────────────────────────────────────
+ *
+ * Coordenadas locales del <svg>, que se planta en (1497, 24).
+ *
+ * Cinco nervios salen de la punta y se abren hacia la raíz; entre nervio y
+ * nervio van costillas inclinadas que arman la retícula de plumas.
+ *
+ * Los nervios son cuadráticas, no rectas. Con rectas el ala queda una cuña
+ * uniforme y la referencia no lo es: cae rápido apenas pasa la punta y después
+ * se aplana, que es lo que le da el perfil largo y bajo. El canto de arriba, en
+ * cambio, es una horizontal de punta a punta: medido, baja 1 px en 71.
+ */
+const ALA_PUNTA = [1.5, 0.5];
+const ALA_NERVIOS: { c: number[]; e: number[] }[] = [
+  { c: [37, 1],   e: [73, 1.5] },
+  { c: [30, 6],   e: [71, 8] },
+  { c: [26, 12],  e: [68, 14] },
+  { c: [21, 18],  e: [65, 21] },
+  { c: [16, 24],  e: [62, 27.5] },
+];
+const r2p = (p: number[]) => `${r2(p[0])} ${r2(p[1])}`;
+const seg = (a: number[], b: number[]) => `M${r2p(a)}L${r2p(b)}`;
+/** Punto de una cuadrática con origen en la punta del ala. */
+const qp = (n: { c: number[]; e: number[] }, t: number) => {
+  const u = 1 - t;
+  return [
+    u * u * ALA_PUNTA[0] + 2 * u * t * n.c[0] + t * t * n.e[0],
+    u * u * ALA_PUNTA[1] + 2 * u * t * n.c[1] + t * t * n.e[1],
+  ];
+};
+
+const alaTrazos: string[] = ALA_NERVIOS.map((n) => `M${r2p(ALA_PUNTA)}Q${r2p(n.c)} ${r2p(n.e)}`);
+for (let b = 0; b < ALA_NERVIOS.length - 1; b++) {
+  for (let k = 1; k <= 6; k++) {
+    // la costilla toca el nervio de abajo medio paso más adentro: así la celda
+    // queda romboidal y no rectangular, como en la referencia
+    alaTrazos.push(seg(qp(ALA_NERVIOS[b], k / 7), qp(ALA_NERVIOS[b + 1], (k - 0.5) / 7)));
+  }
+}
+alaTrazos.push(seg(ALA_NERVIOS[0].e, ALA_NERVIOS[4].e));                      // canto de la raíz
+---
+
+<div data-box style={box} class="hdr">
+  <!-- Marco exterior del póster: sólo entra su arranque superior. Se dibuja alto
+       y se recorta con overflow para no invadir la fila de paneles de abajo. -->
+  <div class="hdr__marco"></div>
+
+  <svg class="hdr__mark" viewBox="0 0 620 88" width="620" height="88"
+       aria-label="KODEX−∞ / DESCENT TUNNEL" role="img">
+    <defs>
+      <linearGradient id="t0103hdrMetal" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0"    stop-color="#c6c3bf" />
+        <stop offset="0.45" stop-color="#b7b4b0" />
+        <stop offset="1"    stop-color="#a9a6a2" />
+      </linearGradient>
+    </defs>
+    <g class="hdr__mark-a">
+      {marcaA.map((d) => <path d={d} />)}
+    </g>
+    <g class="hdr__mark-b">
+      {marcaB.map((d) => <path d={d} />)}
+    </g>
+  </svg>
+
+  <!-- La bajada va partida en dos porque en la referencia el hueco alrededor de
+       la barra es más ancho que un espacio y el avance de cada mitad no es el
+       mismo: en una sola línea el error se acumula hasta 7 px en el medio. -->
+  <span class="hdr__bajada hdr__bajada--1">DEPTH PROTOCOL</span>
+  <span class="hdr__bajada hdr__bajada--2">/ DESCENSO</span>
+
+  <!-- Tira de metadatos. data-symbolic: TANDA, SEED, BUILD, DATE y SIGNATURE son
+       texto de ficción del póster, no una medición del sistema. -->
+  <div class="hdr__meta" data-symbolic="true">
+    <span class="hdr__tanda">TANDA 01</span>
+
+    <i class="hdr__linea hdr__linea--sup"></i>
+    <i class="hdr__linea hdr__linea--inf"></i>
+    <i class="hdr__sep" style="left:758px"></i>
+    <i class="hdr__sep" style="left:867px"></i>
+    <i class="hdr__sep" style="left:987px"></i>
+    <i class="hdr__sep" style="left:1080px"></i>
+    <i class="hdr__sep" style="left:1176px"></i>
+
+    <span class="hdr__k" style="left:778px">SEED</span>
+    <span class="hdr__v" style="left:778px">01.00.00</span>
+    <span class="hdr__k" style="left:882px">CORE STYLE SEED</span>
+    <span class="hdr__v" style="left:882px">TANDA-01A</span>
+    <span class="hdr__k" style="left:1003px">BUILD</span>
+    <span class="hdr__v" style="left:1003px">TANDA-01A</span>
+    <span class="hdr__k" style="left:1095px">DATE</span>
+    <span class="hdr__v" style="left:1095px">2025-05-21</span>
+    <span class="hdr__k" style="left:1191px">SIGNATURE</span>
+    <span class="hdr__v" style="left:1191px">TREE/UV/01</span>
+  </div>
+
+  <i class="hdr__div"></i>
+
+  <span class="hdr__lema hdr__lema--1">PATTERN. PROTECT. PERPETUATE.</span>
+  <span class="hdr__lema hdr__lema--2">// DO NOT FORGET TO DESCEND.</span>
+
+  <svg class="hdr__ala" viewBox="0 0 156 42" width="156" height="42" aria-hidden="true">
+    <defs>
+      <g id="t0103hdrAla">{alaTrazos.map((d) => <path d={d} />)}</g>
+    </defs>
+    <g class="hdr__ala-g">
+      <use href="#t0103hdrAla" />
+      <use href="#t0103hdrAla" transform="translate(156,0) scale(-1,1)" />
+
+      <!-- Escudo central: almendra rematada en punta hacia abajo. -->
+      <path d="M78 7 C86 9 89 18 86 27 C83 34 80 38 78 41 C76 38 73 34 70 27 C67 18 70 9 78 7 Z" />
+      <!-- Cuernos: dos arcos por lado, que es lo que hace la media luna gruesa. -->
+      <path d="M71 5 C63 11 63 25 72 31" />
+      <path d="M72.5 7 C66 12 66 24 73.5 29" />
+      <path d="M87 5 C95 11 95 25 86 31" />
+      <path d="M85.5 7 C92 12 92 24 84.5 29" />
+      <!-- Disco con la estrella de seis puntas. -->
+      <circle cx="78" cy="16" r="6.5" />
+      <path d="M78 7.5 V24.5 M70.6 11.8 L85.4 20.2 M70.6 20.2 L85.4 11.8" />
+      <circle cx="78" cy="16" r="1" />
+      <!-- Las dos barras y el travesaño bajo el disco. -->
+      <path d="M72 24 H84 M74 27.5 H82 M78 23 V30" />
+    </g>
+  </svg>
+
+  <!-- Regla inferior de la franja: va de x=13 a x=1658, por dentro del marco. -->
+  <i class="hdr__regla"></i>
+</div>
+
+<style>
+  .hdr {
+    overflow: hidden;
+    color: var(--lam-ink);
+  }
+
+  .hdr__marco {
+    position: absolute;
+    left: 6px;
+    top: 7px;
+    width: 1661px;
+    height: 200px;
+    border: 1px solid rgba(216, 212, 204, 0.075);
+    border-bottom: 0;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+
+  .hdr__mark { position: absolute; left: 0; top: 0; }
+  /* Dos cosas medidas en la referencia y no supuestas: el logotipo grande sale
+     ~12 % más claro que "/ DESCENT TUNNEL", y el borde de cada asta sale más
+     claro que su centro —es metal biselado, no una silueta plana—. El filo se
+     hace con un trazo finito sobre el mismo contorno, que de paso engorda el
+     asta el medio píxel que le faltaba. */
+  .hdr__mark-a path {
+    fill: url(#t0103hdrMetal);
+    stroke: #cbc8c4;
+    stroke-width: 0.55;
+  }
+  .hdr__mark-b path {
+    fill: #a7a5a2;
+    stroke: #bebcb8;
+    stroke-width: 0.5;
+  }
+
+  /* line-height:0 en un bloque absoluto deja la línea base a ~0.35em del top en
+     cualquier mono razonable. Es la forma menos dependiente de métricas que hay
+     de clavar una línea base medida en la referencia. */
+  .hdr span {
+    position: absolute;
+    line-height: 0;
+    white-space: nowrap;
+    font-variant-ligatures: none;
+  }
+
+  .hdr__bajada {
+    top: 76.45px;          /* base 81 */
+    font-size: 13px;
+    /* El naranja de la bajada no llega al acento pleno en la referencia: pica
+       en 230, no en 255. */
+    color: color-mix(in srgb, var(--lam-accent) 90%, #000);
+  }
+  .hdr__bajada--1 { left: 23px;  letter-spacing: 3.2px; }   /* avance medido 11.0 px */
+  .hdr__bajada--2 { left: 191px; letter-spacing: 3.87px; }  /* avance medido 11.67 px */
+
+  /* La mono de la referencia es condensada: a igual ancho de columna, la
+     mayúscula le sale ~12 % más alta que a cualquier mono del sistema. Se
+     reproduce agrandando el cuerpo y comprimiendo en X lo mismo que se agrandó;
+     el avance queda idéntico y la altura, la medida. Sin esto todo el texto de
+     la franja queda un píxel bajo y un píxel corto. */
+  .hdr__tanda,
+  .hdr__k,
+  .hdr__v,
+  .hdr__lema { transform-origin: 0 0; }
+
+  .hdr__tanda {
+    left: 642px;
+    top: 45.28px;          /* base 52 */
+    font-size: 19.2px;
+    letter-spacing: -0.24px;
+    transform: scaleX(0.833);
+    color: #cbc9c4;
+  }
+
+  .hdr__k,
+  .hdr__v {
+    font-size: 12.4px;
+    transform: scaleX(0.889);
+  }
+  .hdr__k {
+    top: 36.66px;          /* base 41 */
+    letter-spacing: -0.675px;
+    color: #6a6b67;
+  }
+  .hdr__v {
+    top: 54.66px;          /* base 59 */
+    letter-spacing: -0.34px;
+    color: color-mix(in srgb, var(--lam-accent) 85%, #000);
+  }
+
+  .hdr__lema {
+    left: 1304.5px;
+    font-size: 12.4px;
+    letter-spacing: -0.49px;
+    transform: scaleX(0.889);
+    color: #7c7d79;
+  }
+  .hdr__lema--1 { top: 36.66px; }  /* base 41 */
+  .hdr__lema--2 { top: 53.66px; }  /* base 58 */
+
+  .hdr__linea,
+  .hdr__sep,
+  .hdr__div,
+  .hdr__regla { position: absolute; display: block; }
+
+  .hdr__linea--sup {
+    left: 778px; top: 26px; width: 480px; height: 1px;
+    background: rgba(216, 212, 204, 0.055);
+  }
+  .hdr__linea--inf {
+    left: 625px; top: 67px; width: 649px; height: 1px;
+    background: rgba(216, 212, 204, 0.08);
+  }
+  .hdr__sep {
+    top: 27px; width: 1px; height: 36px;
+    background: rgba(216, 212, 204, 0.09);
+  }
+  .hdr__div {
+    left: 1286px; top: 26px; width: 1px; height: 42px;
+    background: rgba(216, 212, 204, 0.2);
+  }
+  .hdr__regla {
+    left: 13px; top: 86px; width: 1646px; height: 1px;
+    background: rgba(216, 212, 204, 0.115);
+  }
+
+  .hdr__ala { position: absolute; left: 1497px; top: 24px; }
+  .hdr__ala-g {
+    fill: none;
+    stroke: rgba(216, 212, 204, 0.3);
+    stroke-width: 0.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+</style>

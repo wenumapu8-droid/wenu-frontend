@@ -1,0 +1,129 @@
+---
+/**
+ * KIT · ONDA
+ *
+ * Aparece en las 17 láminas y casi nunca es la misma: hay ondas de peine
+ * (agujas apretadas), de trazo continuo y de barras. Un solo componente con
+ * `variante` en vez de tres, porque comparten la serie y la caja.
+ *
+ * Determinista por `semilla`: dos renders dan el mismo dibujo, que es lo que
+ * permite medir contra la referencia sin perseguir ruido.
+ */
+import { serieSuave, rng, p2 } from "./rng";
+
+interface Props {
+  w: number;
+  h: number;
+  semilla?: number;
+  /** peine = agujas verticales · linea = trazo continuo · barras = columnas */
+  variante?: "peine" | "linea" | "barras";
+  /** cuántas muestras. Más muestras = señal más apretada. */
+  n?: number;
+  color?: string;
+  grosor?: number;
+  /** 0 = ruido blanco · 0.9 = señal con deriva */
+  inercia?: number;
+  /** Recorta la amplitud contra los bordes de la caja. */
+  margen?: number;
+  /**
+   * 0 = la aguja más alta puede aparecer en cualquier parte · 1 = la señal se
+   * agrupa en ráfagas, con tramos casi planos entre medio.
+   *
+   * Sin esto el peine sale parejo de punta a punta y se lee como una trama, no
+   * como una señal registrada: los monitores de las referencias (SIGNAL FEED,
+   * VISUAL SIGNAL, NEURAL FEED) tienen todos ese contorno de ráfagas. Es una
+   * segunda serie lenta que multiplica la amplitud de la primera.
+   */
+  envolvente?: number;
+  clase?: string;
+}
+const {
+  w, h,
+  semilla = 1,
+  variante = "peine",
+  n = variante === "barras" ? Math.floor(w / 3) : Math.floor(w / 1.6),
+  color = "currentColor",
+  grosor = 0.8,
+  inercia = variante === "peine" ? 0.2 : 0.82,
+  margen = 1,
+  envolvente = 0,
+  clase = "",
+} = Astro.props;
+
+const alto = h - margen * 2;
+const medio = h / 2;
+const base = serieSuave(semilla, n, inercia, 0.06, 1);
+/* La envolvente se NORMALIZA a [0,1] antes de usarse. Sin eso no sirve para
+   nada: una AR(1) con inercia 0,955 tiene desviación 0,04 y se queda entre 0,46
+   y 0,54, así que el peine sale igual de parejo que sin envolvente. Medido —
+   costó dos vueltas creer que el parámetro estaba puesto y no hacía nada.
+   El exponente es lo que separa ráfaga de silencio. */
+const crudo = envolvente > 0 ? serieSuave(semilla ^ 0x2f6d, n, 0.955, 0, 1) : null;
+const env = crudo
+  ? (() => {
+      const lo = Math.min(...crudo), hi = Math.max(...crudo);
+      const d = hi - lo || 1;
+      return crudo.map((v) => Math.pow((v - lo) / d, 1.7));
+    })()
+  : null;
+const vals = env
+  ? base.map((v, i) => v * (1 - envolvente + envolvente * env[i]))
+  : base;
+const r = rng(semilla ^ 0x9e37);
+
+// El peine es la variante más común y la que más se nota si se hace mal: en la
+// referencia las agujas NO son simétricas respecto del eje — cada una sale
+// desplazada. Simétricas se leen como ecualizador, no como señal.
+const paso = w / (n - 1 || 1);
+
+let d = "";
+if (variante === "linea") {
+  d = vals
+    .map((v, i) => `${i ? "L" : "M"}${p2(i * paso)} ${p2(medio + (v - 0.5) * alto)}`)
+    .join("");
+}
+---
+
+<svg
+  class={`kit-wf kit-wf--${variante} ${clase}`}
+  viewBox={`0 0 ${w} ${h}`}
+  width={w}
+  height={h}
+  aria-hidden="true"
+>
+  {variante === "linea" && (
+    <path d={d} fill="none" stroke={color} stroke-width={grosor} stroke-linejoin="round" />
+  )}
+
+  {variante === "peine" && vals.map((v, i) => {
+    const a = (v * alto) / 2;
+    /* Con envolvente, el desplazamiento de cada aguja va con SU propia altura.
+       Si no, el jitter fijo de 0,18·alto rellena los silencios con una banda de
+       ruido y la ráfaga deja de leerse — que es exactamente lo que anulaba la
+       envolvente en la primera prueba. Sin envolvente se mantiene el
+       comportamiento de siempre, para no mover las láminas ya medidas. */
+    const off = (r() - 0.5) * alto * 0.18 * (env ? 0.2 + 0.8 * v : 1);
+    return (
+      <line
+        x1={p2(i * paso)} y1={p2(medio - a + off)}
+        x2={p2(i * paso)} y2={p2(medio + a + off)}
+        stroke={color} stroke-width={grosor}
+      />
+    );
+  })}
+
+  {variante === "barras" && vals.map((v, i) => {
+    const bh = p2(v * alto);
+    return (
+      <rect
+        x={p2(i * paso)} y={p2(h - margen - bh)}
+        width={p2(Math.max(0.8, paso * 0.55))} height={bh}
+        fill={color}
+      />
+    );
+  })}
+</svg>
+
+<style>
+  .kit-wf { display: block; overflow: visible; }
+</style>

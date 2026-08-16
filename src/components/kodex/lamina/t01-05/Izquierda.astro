@@ -1,0 +1,248 @@
+---
+/**
+ * KODEX-∞ · t01-05 SPECIMEN SKULL · BLOQUE IZQUIERDA (4,88 · 295×778)
+ *
+ * La caja arranca en 4,88 del póster: todas las coordenadas de este archivo y
+ * de arte-izq.ts están corridas −4,−88 respecto de la referencia, y por eso
+ * cada comentario cita también la y del póster.
+ *
+ * El encargo hablaba de un panel. Son TRES. La caja medida llega hasta y=866 y
+ * la banda inferior de la lámina empieza en y=595: los paneles «05. MOTION &
+ * SCAN PROTOCOLS» (y 595-698) y «06. AUTHENTICATION / SEAL» (y 702-845) meten
+ * sus primeros 295 px —rótulos, el disco SCAN entero, el disco ISOLATE entero,
+ * la flecha, y el sello hexagonal KODEX-∞ completo con su caja— dentro de este
+ * bloque. Nadie más puede alcanzarlos sin salirse de su caja, así que van acá.
+ *
+ * Qué se midió y qué no está estimado:
+ *
+ *  · TODA la tinta figurativa va TRAZADA del original (arte-izq.ts): el
+ *    logotipo, los rótulos, la ficha, el emblema del árbol, los dos sellos de
+ *    contención, el disco SCAN, el disco ISOLATE, la flecha y el sello
+ *    hexagonal. Ningún relleno está elegido a ojo — cada pieza se rasteriza
+ *    sobre negro y un descenso por coordenadas busca la luminancia que menos
+ *    error absoluto medio deja contra la referencia; el TONO sale del promedio
+ *    RGB de la tinta real de esa ventana, reescalado a esa luminancia. La tabla
+ *    con las 28 piezas, sus umbrales, sus rellenos y su MAE está en arte-izq.ts.
+ *
+ *  · Los ORGANISMOS van por CAPAS. El emblema del árbol, los dos sellos de
+ *    contención, los discos SCAN e ISOLATE y el sello hexagonal se trazan con
+ *    seis umbrales (9..135) y se apilan: halo tenue abajo, núcleo brillante
+ *    arriba. Es lo que mide el diff estructural por bloques de 8×8, que no ve
+ *    siluetas sino medias locales.
+ *
+ *  · EL CHROME SE LEE, no se ajusta. En t01-04 cada filo era un rectángulo de
+ *    posición y ancho fraccionarios resuelto contra las medias de columna. Acá
+ *    no alcanza y se midió por qué: la regla de y=276 es una LÍNEA DE GUIONES
+ *    (31-44, 53-70, 81-98, 106-113, 119-272), el filo inferior de la tarjeta
+ *    del panel 05 llega entero hasta x=131 y después se apaga, y las reglas de
+ *    y=298 y y=310 cruzan el emblema del árbol. Un rectángulo uniforme les
+ *    inventa tinta donde no hay. Cada filo se lee A LO LARGO —fila por fila, un
+ *    píxel de alto, tramos de brillo parecido— con el mismo criterio con el que
+ *    se leen los códigos de barras, y se pinta DESPUÉS del arte: donde una
+ *    regla cruza un organismo, el valor leído es el correcto y repinta el trazo.
+ *
+ *  · Las filas de un mismo filo NO comparten brillo: y=131 vale 10 y y=132
+ *    vale 34; y=573 vale 10 y y=574 vale 20. Promediarlas en un rectángulo de
+ *    1,5 px de alto deja las dos mal. Van como dos tiras de 1 px.
+ *
+ *  · El canto izquierdo del póster son DOS líneas (x=6 y x=8) con un valle en
+ *    x=7, no un borde de 2 px. La cabecera lo abre y el pie lo cierra desde
+ *    y=866: la franja del medio no es de nadie más y se dibuja acá, igual que
+ *    la regla de cierre de la banda en y=858-859.
+ *
+ *  · La retícula punteada de fondo NO se modela. Medida por percentil 30 sobre
+ *    el cuerpo del panel, sus líneas valen 1-2 de luminancia: menos de 0,1 % de
+ *    diferencia sobre el bloque. Dibujarla sería inventar precisión.
+ *
+ * Cifras del póster: son ficción y por eso cada pieza que lleva una vive dentro
+ * de un contenedor con data-symbolic="true", con su texto literal en el
+ * aria-label. No van como <text> real porque acá ninguna cifra está sola —vive
+ * dentro de una cadena («SUBJECT: X-X-07», «CORE FREQ: 13.610 THZ», «C-4»)
+ * cuyo resto igual habría que trazar— y a 8 px de versal la mono del póster no
+ * existe en ninguna máquina: medido en la lámina 1, el mismo rótulo dejaba
+ * 8,83 % como texto contra 2,71 % trazado.
+ *
+ * Puntaje del bloque:
+ *   node scripts/lamina/score-panel.mjs t01-05-specimen-skull Izquierda --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-05-izq.mjs
+ * Y el encuadre de cada ventana se verifica con:
+ *   node scripts/lamina/arte-t01-05-izq.mjs --cajas
+ */
+import * as A from "./arte-izq";
+import type { Capa, Tira } from "./arte-izq";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque
+ * lo que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo — la contraforma de la D queda fuera de sitio y la
+ * letra sale maciza.
+ *
+ * Las capas se pintan en orden de umbral creciente: la masa tenue primero, el
+ * núcleo brillante encima.
+ */
+const pinta = (capas: Capa[]) =>
+  capas
+    .map(({ c, g }) =>
+      g
+        .map(
+          (p) =>
+            `<svg x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.vw} ${p.vh}" preserveAspectRatio="none">` +
+            p.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${c}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+/**
+ * Chrome leído: una tira es un filo del póster recorrido a lo largo, con un
+ * píxel de espesor exacto y un rectángulo por tramo de brillo parecido. Las
+ * tiras con `color` guardan el RGB medido y no la luminancia — la regla bajo el
+ * logotipo (póster y=187-188) es roja y sale plomiza si se guarda como gris.
+ */
+const pintaTira = (t: Tira) =>
+  t.tramos
+    .map(([q, n, a, b, c]) => {
+      const f = t.color ? `rgb(${a},${b},${c})` : `rgb(${a},${a},${a})`;
+      return t.eje === "h"
+        ? `<rect x="${q}" y="${t.p}" width="${n}" height="1" fill="${f}"/>`
+        : `<rect x="${t.p}" y="${q}" width="1" height="${n}" fill="${f}"/>`;
+    })
+    .join("");
+
+const chrome = A.reglas.map(pintaTira).join("");
+---
+
+<div data-box style={box} class="izq">
+  <svg class="izq__art" viewBox="0 0 295 778" width="295" height="778" aria-hidden="false">
+    <!-- ── 01. SUBJECT CLASSIFICATION · póster y 101..587 ──────────────── -->
+    <g data-symbolic="true" role="img" aria-label="01. SUBJECT CLASSIFICATION">
+      <g set:html={pinta(A.p01Num)} />
+      <g set:html={pinta(A.p01Titulo)} />
+    </g>
+
+    <!-- El logotipo no es tipografía plana: su relleno tiene grano y por eso va
+         con cinco capas. Aplanarlo a un blanco puntúa parecido y pierde el
+         desgaste, que es la mitad del carácter de la lámina. -->
+    <g role="img" aria-label="KODEX−∞" set:html={pinta(A.p01Marca)} />
+
+    <g data-symbolic="true">
+      <g role="img" aria-label="SUBJECT: X-X-07" set:html={pinta(A.p01Subject)} />
+      <g
+        role="img"
+        aria-label="CLASS: CYBER-ORGANIC PATTERN · TYPE: CRANIAL SPECIMEN · ORIGIN: UNKNOWN · STATUS: ACTIVE / CONTAINED"
+        set:html={pinta(A.p01Ficha)}
+      />
+    </g>
+
+    <!-- Caja THREAT LEVEL · póster x 31..130, y 310..398 -->
+    <g data-symbolic="true">
+      <g role="img" aria-label="THREAT LEVEL" set:html={pinta(A.p01Threat)} />
+      <g role="img" aria-label="C-4" set:html={pinta(A.p01C4)} />
+      <g role="img" aria-label="EXTREME / ACTIVE" set:html={pinta(A.p01Extremo)} />
+    </g>
+
+    <!-- El emblema circular del árbol: seis capas trazadas del original, de
+         halo a núcleo. Es el organismo del panel y no se apaga ni se aplana
+         para ganarle al número. -->
+    <g
+      role="img"
+      aria-label="Emblema circular: árbol de copa y raíces con el lazo del infinito al centro, dentro de dos anillos de marcas"
+      set:html={pinta(A.p01Emblema)}
+    />
+
+    <!-- Caja IDENTITY ANCHORS · póster y 409..574 -->
+    <g role="img" aria-label="IDENTITY ANCHORS" set:html={pinta(A.p01IdRot)} />
+    <g
+      data-symbolic="true"
+      role="img"
+      aria-label="SIGNAL NATURE: BIO-SYNTHETIC · PATTERN ID: SKULL-PRIME-07 · ANCHOR TYPE: CRANIAL MATRIX · CORE FREQ: 13.610 THZ · SIGNAL INTENT: UNKNOWN · BEHAVIOR: ADAPTIVE / HOSTILE"
+      set:html={pinta(A.p01Filas)}
+    />
+
+    <g role="img" aria-label="CONTAINMENT PROTOCOL" set:html={pinta(A.p01Contain)} />
+    <g
+      role="img"
+      aria-label="DO NOT ESTABLISH DIRECT LINK. ISOLATE. OBSERVE. ARCHIVE."
+      set:html={pinta(A.p01Nota)}
+    />
+    <g role="img" aria-label="Dos sellos rojos de contención" set:html={pinta(A.p01Sellos)} />
+
+    <!-- ── 05. MOTION & SCAN PROTOCOLS (mitad izquierda) · y 595..698 ──── -->
+    <g data-symbolic="true" role="img" aria-label="05. MOTION & SCAN PROTOCOLS">
+      <g set:html={pinta(A.p05Num)} />
+      <g set:html={pinta(A.p05Titulo)} />
+    </g>
+
+    <g role="img" aria-label="Disco de barrido: polígono rojo con radios">
+      <g set:html={pinta(A.p05Scan)} />
+    </g>
+    <g role="img" aria-label="SCAN" set:html={pinta(A.p05ScanRot)} />
+    <g role="img" aria-label="Acquire data. Layer sweep." set:html={pinta(A.p05ScanTxt)} />
+    <g role="img" aria-label="Flecha de secuencia" set:html={pinta(A.p05Flecha)} />
+
+    <g role="img" aria-label="Disco de aislamiento: forma de señal cian dentro de un anillo">
+      <g set:html={pinta(A.p05Isolate)} />
+    </g>
+    <g role="img" aria-label="ISOLATE" set:html={pinta(A.p05IsoRot)} />
+    <g role="img" aria-label="Lock subject. Filter noise." set:html={pinta(A.p05IsoTxt)} />
+
+    <!-- ── 06. AUTHENTICATION / SEAL (mitad izquierda) · y 702..845 ────── -->
+    <g data-symbolic="true" role="img" aria-label="06. AUTHENTICATION / SEAL">
+      <g set:html={pinta(A.p06Num)} />
+      <g set:html={pinta(A.p06Titulo)} />
+    </g>
+
+    <g
+      role="img"
+      aria-label="Sello hexagonal KODEX−∞: NODE VERIFIED, VERIFIED & SEALED"
+      set:html={pinta(A.p06Sello)}
+    />
+    <g role="img" aria-label="SIGNATURE HASH" set:html={pinta(A.p06FirmaRot)} />
+    <g
+      data-symbolic="true"
+      role="img"
+      aria-label="SIG: TREE#7A19-SK01 · HASH: 3FA7-7E8C-9D2B · VALID: 2025-05-22 · BY: KODEX−∞ CORE"
+      set:html={pinta(A.p06Firma)}
+    />
+
+    <!-- Chrome: marcos, filos y reglas leídos del original, un píxel de espesor
+         y un rectángulo por tramo de brillo. Va ÚLTIMO a propósito: donde una
+         regla cruza un organismo —y=298 y y=310 cruzan el emblema— el valor
+         leído es el correcto y repinta el trazo vectorial. -->
+    <g set:html={chrome} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. Las
+     dos columnas de texto del panel 05 («Lock subject.», «Filter noise.») y las
+     cuatro filas de la firma del panel 06 siguen más allá de x=299 —así están
+     en el póster— y las recorta esto. Se trazan hasta x=308 y no hasta el corte
+     porque cortar la VENTANA al medio de un glifo lo deforma en el trazador,
+     mientras que recortar el dibujo ya trazado corta en el píxel exacto. */
+  .izq {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .izq__art {
+    position: absolute;
+    left: 0;
+    top: 0;
+    /* Sin desenfoque: el trazo binarizado ya se queda con parte del halo del
+       antialias adentro, y en 10 de 12 piezas trazadas el banco puntúa mejor
+       sin él. Chromium además redondea feGaussianBlur a cajas de
+       floor(sigma·1,88+0,5), así que todo sigma bajo 0,8 no haría nada. */
+    shape-rendering: geometricPrecision;
+  }
+</style>

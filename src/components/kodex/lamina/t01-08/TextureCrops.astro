@@ -1,0 +1,215 @@
+---
+/**
+ * KODEX-∞ · t01-08 · panel 03 — TEXTURE CROPS / MATERIALES DE SEÑAL
+ *
+ * Cuatro recortes de material con su hex debajo. Medido sobre la referencia:
+ *
+ *   regla de título   y 15-16          separadores  x 116 · 237 · 358 (y 23→146)
+ *   rótulos           y 24→31, avance 5,7 px, centrados en 59,5 · 176 · 293,5 · 413,5
+ *   marcos            y 36→145, x [8,108] [125,226] [244,347] [366,474]
+ *   filete del hex    y 129
+ *   hex               y 133→140, avance 6,4 px (más ancho que el rótulo)
+ *
+ * Los cuatro materiales son la misma sustancia con distinto orden: motas
+ * (BITMAP), motas ordenadas en filas (PIXEL SORT), filas rotas en dos canales
+ * (GLITCH) y motas colapsadas a un punto de fuga (CRT). Por eso se generan con
+ * dos funciones y no con cuatro dibujos.
+ *
+ * Los hex son ficción del póster: van marcados como simbólicos.
+ */
+import { rng, p2 } from "../kit/rng";
+import { motas, polvo, tiras, ramificar } from "./_signal";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+type Recorte = {
+  key: string;
+  rotulo: string;
+  hex: string;
+  x: number;      // borde izquierdo del marco
+  w: number;      // ancho del marco
+  cxLab: number;  // centro medido del rótulo
+  cxHex: number;  // centro medido del hex
+  borde: string;
+  hexColor: string;
+  /** ganancia de la textura, calibrada contra la media rgb de la referencia */
+  gan: number;
+};
+
+const recortes: Recorte[] = [
+  { key: "bitmap", rotulo: "BITMAP NOISE", hex: "#FF00FF", x: 8, w: 101, cxLab: 59.5, cxHex: 59, borde: "#2a0520", hexColor: "#c93f88", gan: 2.0 },
+  { key: "sort", rotulo: "PIXEL SORT", hex: "#A500FF", x: 125, w: 102, cxLab: 176, cxHex: 176.5, borde: "#1a0c20", hexColor: "#a855c9", gan: 0.58 },
+  { key: "glitch", rotulo: "GLITCH MODE", hex: "#FF2A6D", x: 244, w: 104, cxLab: 293.5, cxHex: 296.5, borde: "#171717", hexColor: "#cc2a4c", gan: 0.46 },
+  { key: "crt", rotulo: "CRT SCANLINES", hex: "#00E5FF", x: 366, w: 109, cxLab: 413.5, cxHex: 419.5, borde: "#181818", hexColor: "#3ab5c4", gan: 3.1 },
+];
+
+/* Caja útil de material: y 37→128 dentro del panel = 92 px de alto. */
+const TH = 92;
+
+/* 1 · BITMAP NOISE — telaraña de motas con un nudo denso descentrado a la
+   izquierda-abajo, que es donde la referencia concentra el brillo. */
+const bmFilamentos = ramificar(44, 52, { troncos: 20, giro: -70, largo: 14, niveles: 5, merma: 0.82, abre: 58, ruido: 44, grosor: 0.85, op: 0.6 }, 6101);
+const bmMotasNudo = motas(44, 52, 380, 1, 36, 6203, 1, 1.7);
+const bmMotasCampo = motas(50, 46, 380, 10, 66, 6301, 0.92, 0.75);
+const bmPlano = polvo(99, TH, 300, 6357);
+
+/* 2 · PIXEL SORT — el mismo polvo, pero barrido en filas. Anchos muy
+   irregulares: con anchos parejos se lee como código de barras. */
+const psTiras = tiras(100, TH, 430, 6401, { minW: 3, maxW: 40, alto: 0.85, filas: 42 });
+const psMotas = motas(48, 44, 120, 4, 40, 6469, 0.8, 1.4);
+const psPlano = polvo(100, TH, 130, 6491, 0.8);
+
+/* 3 · GLITCH MODE — dos canales desplazados: el magenta lleva la señal y el
+   azul-cian es el canal que se corrió. En la referencia el frío es minoría
+   (uno de cada cinco bloques) pero es lo que hace que se lea como rotura. */
+const gmCal = tiras(102, TH, 310, 6521, { minW: 4, maxW: 40, alto: 1, filas: 34 });
+const gmPlano = polvo(102, TH, 150, 6689, 0.8);
+const gmFrio = tiras(102, TH, 90, 6607, { minW: 5, maxW: 28, alto: 1.1, filas: 34 });
+
+/* 4 · CRT SCANLINES — el organismo colapsado a un punto de fuga: radios que
+   salen de un núcleo blanco, más las líneas de barrido encima. */
+const rC = rng(6701);
+/* La referencia NO es una estrella de rayos largos: es la misma telaraña del
+   BITMAP colapsada hacia un punto de fuga. Los tramos son cortos y encadenados,
+   y lo que da la sensación de rayo es que todos apuntan al núcleo, no que
+   lleguen hasta el borde. */
+const crtTela = ramificar(54, 44, { troncos: 30, giro: -90, largo: 15, niveles: 4, merma: 0.8, abre: 30, ruido: 26, grosor: 0.7, op: 0.6 }, 6701);
+const crtRadios = Array.from({ length: 150 }, () => {
+  const a = rC() * Math.PI * 2;
+  const r0 = 3 + rC() * 12;
+  const r1 = r0 + 3 + Math.pow(rC(), 1.8) * 26;
+  return {
+    d: `M${p2(54 + Math.cos(a) * r0)} ${p2(44 + Math.sin(a) * r0)}L${p2(54 + Math.cos(a) * r1)} ${p2(44 + Math.sin(a) * r1)}`,
+    o: p2(0.1 + Math.pow(rC(), 1.8) * 0.55),
+    w: p2(0.28 + rC() * 0.5),
+  };
+});
+const crtMotas = motas(54, 44, 340, 3, 64, 6803, 0.95, 1.15);
+const crtPlano = polvo(107, TH, 230, 6857, 0.9);
+const crtScan = Array.from({ length: 30 }, (_, i) => p2(i * 3.1 + 1));
+---
+
+<div data-box style={box} class="txc">
+  <i class="txc__gutter"></i>
+
+  <div class="txc__title">
+    <span class="txc__title-a">03. TEXTURE CROPS</span><span class="txc__title-b"> / MATERIALES DE SEÑAL</span>
+  </div>
+  <i class="txc__rule"></i>
+
+  <i class="txc__sep" style="left:116px"></i>
+  <i class="txc__sep" style="left:237px"></i>
+  <i class="txc__sep" style="left:358px"></i>
+
+  {recortes.map((c) => (
+    <div class="txc__cell" style={`--b:${c.borde};--h:${c.hexColor}`}>
+      <div class="txc__label" style={`left:${c.cxLab - 70}px`}>{c.rotulo}</div>
+
+      <div class="txc__frame" style={`left:${c.x}px;width:${c.w}px`}>
+        <div class="txc__mat" style={`filter:brightness(${c.gan})`} aria-hidden="true">
+          <svg viewBox={`0 0 ${c.w - 2} ${TH}`} preserveAspectRatio="none">
+            {c.key === "bitmap" && (
+              <g>
+                {bmPlano.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#b016c0" opacity={m.o * 0.5} />)}
+                {bmMotasCampo.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#c018cc" opacity={m.o * 0.55} />)}
+                <g stroke="#dc22e8" fill="none" stroke-linecap="round">
+                  {bmFilamentos.map((t) => <path d={t.d} stroke-width={t.w} opacity={t.o * 0.85} />)}
+                </g>
+                {bmMotasNudo.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#d62ade" opacity={m.o * 0.85} />)}
+              </g>
+            )}
+
+            {c.key === "sort" && (
+              <g>
+                {psPlano.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#ff17a6" opacity={m.o * 0.5} />)}
+                {psTiras.map((t) => <rect x={t.x} y={t.y} width={t.w} height={t.h} fill="#ff17a6" opacity={t.o * 0.85} />)}
+                {psMotas.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#ff8fd6" opacity={m.o * 0.5} />)}
+              </g>
+            )}
+
+            {c.key === "glitch" && (
+              <g>
+                {gmPlano.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#f0227a" opacity={m.o * 0.5} />)}
+                {gmCal.map((t) => <rect x={t.x} y={t.y} width={t.w} height={t.h} fill="#f0227a" opacity={t.o * 0.82} />)}
+                {gmFrio.map((t) => <rect x={t.x} y={t.y} width={t.w} height={t.h} fill="#4fa8e8" opacity={t.o * 0.8} />)}
+              </g>
+            )}
+
+            {c.key === "crt" && (
+              <g>
+                <g stroke="#e04af0" fill="none" stroke-linecap="round">
+                  {crtTela.map((t) => <path d={t.d} stroke-width={t.w} opacity={t.o * 0.6} />)}
+                  {crtRadios.map((s) => <path d={s.d} stroke-width={s.w} opacity={s.o * 0.7} />)}
+                </g>
+                {crtPlano.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#c73ad4" opacity={m.o * 0.45} />)}
+                {crtMotas.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#cf3ce0" opacity={m.o * 0.42} />)}
+                <circle cx="54" cy="44" r="26" fill="#c03ad0" opacity="0.12" />
+                <circle cx="54" cy="44" r="9" fill="#f07af6" opacity="0.3" />
+                <circle cx="54" cy="44" r="3" fill="#fff0ff" opacity="0.92" />
+                <g stroke="#000" stroke-width="1.1" opacity="0.3">
+                  {crtScan.map((y) => <line x1="0" y1={y} x2={c.w} y2={y} />)}
+                </g>
+              </g>
+            )}
+          </svg>
+        </div>
+
+        <i class="txc__cut"></i>
+        <div class="txc__hex" style={`left:${c.cxHex - c.x - 60}px`} data-symbolic="true">{c.hex}</div>
+      </div>
+    </div>
+  ))}
+</div>
+
+<style>
+  /* `position:absolute` explícito: el estilo con ámbito del componente gana
+     por orden de cascada a `.kdx-lam [data-box]`, y con `relative` el panel se
+     acomoda en el flujo y aparece desplazado por la altura de los anteriores. */
+  .txc { position: absolute; overflow: hidden; }
+
+  .txc__gutter { position: absolute; left: 0; top: 0; width: 1px; height: 100%; background: #141414; }
+
+  .txc__title {
+    position: absolute; left: 10px; top: 1px; height: 12px; line-height: 12px;
+    font-size: 10px; letter-spacing: -0.1px; white-space: nowrap;
+  }
+  .txc__title-a { color: #cf3d86; }
+  .txc__title-b { color: #6a6c6b; }
+
+  .txc__rule {
+    position: absolute; left: 5px; top: 15px; width: 477px; height: 1px;
+    background: #1b1a19; box-shadow: 0 1px 0 #0d0d0c;
+  }
+
+  .txc__sep { position: absolute; top: 23px; width: 1px; height: 124px; background: #171616; }
+
+  .txc__label {
+    position: absolute; top: 22px; width: 140px; height: 13px; line-height: 13px;
+    text-align: center;
+    font-size: 10px; letter-spacing: -0.3px;
+    color: #7c7d7d;
+  }
+
+  /* y 36→145 en el panel. El marco lleva el material arriba y el hex abajo,
+     separados por un filete a y 129. */
+  .txc__frame {
+    position: absolute; top: 36px; height: 110px;
+    border: 1px solid var(--b);
+    box-sizing: border-box;
+    background: #000;
+    overflow: hidden;
+  }
+
+  .txc__mat { position: absolute; left: 1px; right: 1px; top: 1px; height: 92px; }
+  .txc__mat svg { display: block; width: 100%; height: 100%; }
+
+  .txc__cut { position: absolute; left: 0; right: 0; top: 93px; height: 1px; background: color-mix(in srgb, var(--b) 60%, #262626); }
+
+  .txc__hex {
+    position: absolute; top: 95px; width: 120px; height: 12px; line-height: 12px;
+    text-align: center;
+    font-size: 10.7px; letter-spacing: 0;
+    color: color-mix(in srgb, var(--h) 82%, #000);
+  }
+</style>

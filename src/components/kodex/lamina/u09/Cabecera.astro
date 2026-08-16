@@ -1,0 +1,220 @@
+---
+/**
+ * KODEX-∞ · u09-source · CABECERA
+ *
+ * Marco exterior, rieles verticales, regla superior, título y bajada de
+ * `reference/canon/u09-source.png` (1122×1402). Todo trazado en SVG por código:
+ * ni un bitmap.
+ *
+ * El cromo lo pone `serie-universe/CabeceraUniverse.astro`. Las coordenadas de
+ * acá salieron de barrer el PNG fila por fila y columna por columna con umbral
+ * de luminancia (sonda propia, no estimación a ojo). Lo que conviene saber
+ * antes de tocar nada:
+ *
+ *  · MARCO. Verticales en x=10,5 y x=1017,5; reglas en y=10,5 e y=1381,5, las
+ *    dos recortadas por chaflanes de ~12 px en las cuatro esquinas. El póster NO
+ *    está centrado en el lienzo: a la derecha quedan ~100 px de negro que están
+ *    en la referencia. El eje de simetría del marco es x=514.
+ *  · MARCO INTERIOR. Verticales en x=49 y x=978, de y≈100 a y≈1289, y una regla
+ *    horizontal en y=1288,5 que es el techo del pie.
+ *  · REGLA SUPERIOR. Cruces violeta en x=39 y x=990 (y=39,5). "KODEX-∞ UNIVERSE"
+ *    ocupa x 56..231 y "OBSERVE. DECIPHER. TRANSCEND." x 735..966, las dos con
+ *    versal de 9 px. El hexágono NO cae en el eje del marco: su centro medido es
+ *    x=511, tres píxeles a la izquierda. Está así en la referencia.
+ *  · TÍTULO. Y acá el hallazgo que separa esta lámina de la 02: KODEX y SOURCE
+ *    SÍ comparten cuerpo. Las dos versales miden 93..153 —60 px exactos— así que
+ *    va un solo cuerpo de 96 px (60 / 0,625 de altura de versal de Cormorant) y
+ *    ninguno de los dos condensado. El reparto sigue en tres piezas porque el ∞,
+ *    el guion y la barra van dibujados.
+ *  · BAJADA. "TRUTH CHAMBER" ocupa x 352..694 con versal de 15 px, flanqueada
+ *    por dos flechas de doble punta (216..320 y 725..828) que son simétricas
+ *    respecto de x=522 — o sea que la bajada tiene su propio eje, ocho píxeles a
+ *    la derecha del eje del marco. Medido, no elegido.
+ *
+ * LA PALETA NO ES LA DE u02. Medido sobre esta referencia, el violeta de los
+ * rótulos tiene pico rgb(173,157,203) —r/b = 0,85— contra el 0,70 del #a77cf0
+ * de la lámina 02: es un violeta MÁS GRIS. Y el texto de las celdas de la tabla
+ * no es violeta en absoluto, su pico es rgb(122,127,126), un gris neutro. Usar
+ * la paleta de u02 tiñe de lila toda la retícula.
+ *
+ * El peso del título es 300 y no 400: con 400 las astas engordan y el bloque
+ * sale 2,5 puntos de luminancia por encima de la referencia.
+ */
+import CabeceraUniverse from "../serie-universe/CabeceraUniverse.astro";
+import { rayos, rombo, hexPuntos, flechaDoble } from "../serie-universe/geom";
+
+/* ── marco exterior ─────────────────────────────────────────────────────── */
+/* Chaflán de 12 px sobre la diagonal en las cuatro esquinas, en sentido horario
+   desde arriba a la izquierda. */
+const chaflanes = [
+  "M10.5 23L23 10.5",
+  "M1005 10.5L1017.5 23",
+  "M1017.5 1369L1005 1381.5",
+  "M23 1381.5L10.5 1369",
+];
+
+/* Los rieles no son una línea continua: alternan tramos macizos, tramos de
+   puntos y huecos, y no caen igual a izquierda y derecha.
+   [y0, y1, macizo?] — medido segmento por segmento. */
+const rielIzq: [number, number, boolean][] = [
+  [26, 64, true], [112, 165, false], [198, 267, false], [365, 699, true],
+  [868, 1170, true], [1173, 1230, false], [1234, 1294, true],
+  [1298, 1334, false], [1338, 1366, true],
+];
+const rielDer: [number, number, boolean][] = [
+  [26, 64, true], [120, 163, false], [285, 305, true], [310, 525, true],
+  [571, 718, true], [753, 1167, true], [1171, 1228, false],
+  [1253, 1295, true], [1298, 1335, false], [1338, 1366, true],
+];
+
+const EJE_I = 11;
+const EJE_D = 1017;
+
+/* Nodos sueltos de los rieles. */
+const nodosIzq = [265.5, 358.5, 701.5, 711.5, 754.5, 863.5];
+const nodosDer = [191.5, 214.5, 302.5, 563.5];
+
+/* Calibrado contra la referencia caja por caja: la regla superior estaba 3,4
+   puntos de luminancia POR DEBAJO y el resto de la franja 2-3 por encima. */
+const vars = [
+  "--cb-ink:#cfcfd2",
+  "--cb-vio:#b07ecd",
+  "--cb-tit:#dcd9e2",
+  /* Mediana de luminancia de la regla superior en la ref: 36 → 36/207 = .174.
+     La inferior mide mediana 24 (el .115 de siempre): va aparte, vía tenue. */
+  "--cb-marco-op:.174",
+  "--cb-marco-tenue-op:.115",
+  "--cb-fantasma-op:.03",
+  "--cb-interior-op:.05",
+  "--cb-interior-esq-op:.12",
+  "--cb-regla-op:.42",
+  "--cb-regla-der-op:.36",
+  "--cb-cruz-op:.4",
+  "--cb-nodo-op:.3",
+  "--cb-nodo-f-op:.42",
+  "--cb-punteo-op:.09",
+  "--cb-hex-borde-op:.1",
+  "--cb-hex-tic-sw:1.3",
+  "--cb-hex-tic-op:.18",
+  "--cb-inf-sw:1.7",
+  "--cb-inf-op:.72",
+  "--cb-tit-inf-sw:4.6",
+  "--cb-tit-inf-op:.82",
+  "--cb-tit-peso:400",
+  /* Astas de la ref: mediana 148 (KODEX) / 137 (SOURCE); con peso 400 y op .98
+     el render daba 201/199 → .98 × 148/201 = .72. */
+  "--cb-tit-op:.72",
+  "--cb-tit-fig-op:.8",
+  /* Rótulos de la regla: versal ref 8px terminando en y=42; con el 12.3px
+     default salían 9px hasta y=43. 12.3 × 8/9 = 10.9. */
+  "--cb-regla-size:10.9px",
+  "--cb-sig-size:15px",
+  "--cb-sig-op:.44",
+  /* Versal del lema en la ref: y175..191 (~16px); con 20.5px salía ~14.7
+     (y177..191). 20.5 × 16/14.7 = 22.3. Baseline 191 coincide. */
+  "--cb-lema-size:22.3px",
+  "--cb-lema-op:.5",
+  "--cb-pag-size:13px",
+  "--cb-pag-op:.44",
+  "--cb-nota-size:11.8px",
+  "--cb-nota-op:.31",
+  "--cb-riel-op:.085",
+  /* Glifos de riel medidos en la ref: mediana 42 (izq) y 43 (der); con .2 el
+     render daba 20/34 y el izq quedaba bajo el umbral 26 de cobertura. */
+  "--cb-glifo-op:.3",
+  "--cb-micro-size:7px",
+  "--cb-micro-op:.13",
+  "--cb-folio-size:11px",
+  "--cb-folio-op:.3",
+].join(";");
+---
+
+<CabeceraUniverse
+  gradId="u09"
+  grad={["#f0eef3", "#dcd9e2", "#a9a3b6"]}
+  ariaLabel="KODEX-∞ / SOURCE — página 09 · Truth chamber · Epistemic layers and provenance archive."
+  vars={vars}
+  marcoSup="M23 10.5H470M553 10.5H1005"
+  marcoInf={{ d: "M23 1381.5H458M571 1381.5H1005", tenue: true }}
+  fantasma="M10.5 23V1369M1017.5 23V1369"
+  chaflanes={chaflanes}
+  interior="M49.5 100V1289M978.5 100V1289"
+  interiorRegla="M49.5 1288.5H978.5"
+  interiorEsq="M49.5 224.5H66M978.5 224.5H962"
+  cruces={[[39, 39.5], [990, 39.5]]}
+  reglaIzq={{ x: 55, y: 43, len: 177, t: "KODEX-∞ UNIVERSE" }}
+  reglaDer={{ x: 734, y: 43, len: 233, t: "OBSERVE. DECIPHER. TRANSCEND." }}
+  reglaCy={39.5}
+  puntosRegla={[253.5, 309, 321.5, 468.5, 552.5, 710.5]}
+  puntosReglaR={1.5}
+  nodosRegla={[369, 394, 489.5, 532.5]}
+  nodosReglaR={1.9}
+  punteo={{ d: "M262 39.5H360M402 39.5H482M540 39.5H620M660 39.5H703M718 39.5H726", dash: "16 3" }}
+  hex={{
+    poligono: hexPuntos(511, 39.5, 24),
+    tics: "M491 28.5h4M527 28.5h4M491 50.5h4M527 50.5h4",
+    inf: [511, 40, 11.2, 8.4],
+  }}
+  titKodex={{ x: 90.4, y: 153.5, size: 97.6, len: 348, t: "KODEX", ajuste: "spacing" }}
+  titGuion={{ x: 448, y: 124, w: 20, h: 4 }}
+  titInf={[523.5, 124.5, 33.2, 28.5]}
+  titBarra="M606 91L611 91L591 155L586 155Z"
+  titPalabra={{ x: 628.5, y: 153.5, size: 97.6, len: 316, t: "SOURCE" }}
+  sig={{ x: 85, y: 191.5, len: 64, t: "A / -∞" }}
+  lema={{ x: 351, y: 191.5, len: 344, t: "TRUTH CHAMBER" }}
+  pag={{ x: 893, y: 191.5, len: 56, t: "PAGE 09" }}
+  ejeI={EJE_I}
+  ejeD={EJE_D}
+  rielIzq={rielIzq}
+  rielDer={rielDer}
+  rielDash="1 5"
+  nodosIzq={nodosIzq}
+  nodosIzqR={1.4}
+  nodosDer={nodosDer}
+  micro={[
+    { transform: "translate(13.6 852) rotate(-90)", len: 57, t: "XX KDX WEISSE" },
+    { transform: "translate(1019.6 1167) rotate(-90)", len: 414, t: "KDX / 09 · 09 · 09   ·   TRUTH CHAMBER   ·   KDX / 09 · 09 · 09" },
+  ]}
+  folio={{ x: 1011, y: 548.5, len: 12.5, t: "09" }}
+>
+  <!-- Flechas de doble punta, simétricas respecto de x=522. En la ref viven
+       en y=187.5 (nodos 187..188, cabezas 184..191) con cabezas de ~9 px. -->
+  <g class="cab__flecha" slot="sep">
+    <path d={flechaDoble(216, 320, 187.5, 9)} />
+    <path d={flechaDoble(725, 829, 187.5, 9)} />
+    <circle class="cab__nodo-f" cx="323.5" cy="187.5" r="1.8" />
+    <circle class="cab__nodo-f" cx="720.5" cy="187.5" r="1.8" />
+  </g>
+
+  <Fragment slot="nota">
+    <path class="cab__punteo" d="M80 216.5H318M737 216.5H953" stroke-dasharray="2 6" />
+    <g class="cab__nodo">
+      <circle cx="73.5" cy="216.5" r="1.6" />
+      <circle cx="326.5" cy="216.5" r="1.9" />
+      <circle cx="731.5" cy="216.5" r="1.9" />
+      <circle cx="959.5" cy="216.5" r="1.6" />
+    </g>
+    <text class="cab__nota" x="347" y="219.5" textLength="361" lengthAdjust="spacing">EPISTEMIC LAYERS &amp; PROVENANCE ARCHIVE</text>
+  </Fragment>
+
+  <g class="cab__glifo" slot="glifos">
+    <!-- Riel izquierdo · racimo alto -->
+    <path d={rayos(EJE_I, 183, 5.2, 8)} />
+    <path d={rayos(EJE_I, 282, 5.2, 8, Math.PI / 8)} />
+    <circle cx={EJE_I} cy="296.5" r="4.2" />
+    <path d="M8 311.5H14L11 318.5ZM11 318.5V320" />
+    <path d={rombo(EJE_I, 330, 10, 8)} />
+    <path d={rayos(EJE_I, 343.5, 4.2, 6, Math.PI / 2)} />
+    <!-- Riel izquierdo · racimo bajo -->
+    <path d={rayos(EJE_I, 726, 4, 6)} />
+    <path d={rombo(EJE_I, 740, 9, 8)} />
+    <!-- Riel derecho -->
+    <path d={rayos(EJE_D, 179, 4, 4, Math.PI / 4)} />
+    <path d={rayos(EJE_D, 202.5, 4, 4)} />
+    <path d={rombo(EJE_D, 225, 8, 10)} />
+    <path d={rayos(EJE_D, 252, 4, 6)} />
+    <path d="M1017 257L1021.5 259.5V264.5L1017 267L1012.5 264.5V259.5Z" />
+    <path d={rayos(EJE_D, 272.5, 4, 8)} />
+    <path d={rayos(EJE_D, 729, 5, 8)} />
+  </g>
+</CabeceraUniverse>

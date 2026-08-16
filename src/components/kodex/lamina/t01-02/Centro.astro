@@ -1,0 +1,1232 @@
+---
+/**
+ * KODEX-∞ · t01-02 · BLOQUE CENTRO
+ * 04. OBSERVATION EYE / CORE INTERFACE  ·  07. OBSERVATION LOGS
+ * 08. SHADER LOGIC (izquierda del panel)  ·  tira de 05/06 que cae dentro de la caja
+ *
+ * Caja del bloque: ref (468,88) 712×778. TODO acá es LOCAL a esa caja:
+ * a cualquier coordenada de la referencia restarle 468 en x y 88 en y.
+ *
+ * ── Lo medido (perfiles de tinta sobre reference/canon/t01-02-observation-eye.png)
+ *
+ * El andamiaje parte en x=1180, que NO es un marco: el marco real de la banda
+ * derecha está en x=1122. Por eso este bloque termina con 58 px de los paneles
+ * 05 y 06 adentro. Se dibujan acá porque el vecino no puede alcanzarlos sin
+ * salirse de su caja.
+ *
+ *   marcos      04: x 468→1113 · y 93→579      (regla de título y 118)
+ *               07: x 468→828  · y 584→844     (regla de título y 608)
+ *               08: x 837→…    · y 584→844     (regla de título y 607)
+ *               05: x 1122→…   · y 93→319      06: x 1122→… · y 336→579
+ *   regla SUBJECT  y 551, ancho completo del panel 04
+ *   HUD izquierdo  barra en x 481; rótulo x 490; valor x 490
+ *                  grupos (tope de caja alta del rótulo): 151 · 206 · 259 ·
+ *                  409 · 462 · 514 — hay un HUECO en el medio: el ojo se come
+ *                  la franja 290-400 y ahí no hay rótulos.
+ *   HUD derecho    mismas filas, x 1055/1062/1067 según largo del rótulo
+ *   chips          ojo x 970→1017 y 103→138 (violeta) · OBSERVE MODE
+ *                  x 1026→1103 y 103→137 (marco gris, ACTIVE en cian)
+ *
+ * ── El ojo
+ *
+ * Centro en (816, 341) = local (348, 253). Salió del cruce de la columna y la
+ * fila de mayor energía; NO es el centro de la caja (322, 243). Correrlo al
+ * medio mueve las veinte coronas a la vez.
+ *
+ * El organismo no se dibuja «a ojo»: se dibuja contra el PERFIL RADIAL MEDIDO
+ * (`PERFIL`, luminancia media por radio, 0..360 px, excluyendo ±14° de la
+ * horizontal para que la raya de barrido no contamine el promedio). Cada capa
+ * —filamentos, coronas, anillos de datos— toma su alfa de ese perfil. Eso es
+ * lo que hace que el diff estructural por bloques de 8×8 cierre: la media de
+ * cada anillo es la de la referencia por construcción, no por tanteo.
+ *
+ * Hitos del perfil, que son los que se ven:
+ *   r 9-23    pupila negra (lum 5-11)
+ *   r 24-44   collar quemado, pico en r=33 (88)
+ *   r 45-67   valle de fibra media (22-43)
+ *   r 68-77   anillo limbal, pico en r=72 (106) — el más brillante del ojo
+ *   r 78-135  filamento largo, cae 63 → 8
+ *   r 136-245 anillos de datos, crestas en 143 · 159 · 168 · 189 · 214 · 225
+ *   r 246-360 coronas exteriores tenues (5-11)
+ *
+ * La raya de barrido es aparte: fila 341 con media 110 sobre TODO el ancho del
+ * panel, halo de 326 a 352. Es lo que le da al panel su eje.
+ *
+ * ── Reglas de la casa que se respetaron
+ *
+ * · Cero imágenes: un solo <canvas> pinta ojo, códigos de barras, miniaturas,
+ *   ondas y sello; el cromo y la tipografía van en HTML.
+ * · El código de barras se lee COLUMNA POR COLUMNA (`BARRAS`), no se traza con
+ *   contornos — el contorno le inventa esquinas y pierde tinta.
+ * · Todos los números son ficción del póster: los contenedores llevan
+ *   data-symbolic="true".
+ * · El panel es estático a propósito, pero registra __kdxRegisterFreeze porque
+ *   es el contrato de la página.
+ */
+import { rng } from "../kit/rng";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ══ HUD ═══════════════════════════════════════════════════════════════════
+   [rótulo, valor, y del rótulo, y del valor, x, barra?] — coordenadas locales. */
+const HUD_IZQ = [
+  ["AZIMUTH", "180.00°", 63, 75, 59],
+  ["ELEVATION", "+00.42°", 118, 129, 114],
+  ["ZOOM", "x 3.75", 171, 182, 167],
+  ["FOCUS", "MANUAL", 321, 335, 317],
+  ["IRIS", "AUTO", 374, 388, 371],
+  ["APERTURE", "f/2.8", 426, 438, 421],
+] as const;
+
+const HUD_DER = [
+  ["SIGNAL", "STR 87%", 63, 75, 599, 59],
+  ["NOISE", "LOW", 118, 129, 599, 114],
+  ["SYNC", "LOCKED", 172, 184, 599, 168],
+  ["RESOLUTION", "4096 x 1728", 324, 337, 584, 0],
+  ["BIT DEPTH", "16-BIT", 376, 389, 594, 372],
+  ["COLOR SPACE", "ACEScg", 426, 439, 584, 422],
+] as const;
+
+/* ══ 07. OBSERVATION LOGS ══════════════════════════════════════════════════ */
+const LOG_COLS = [14, 89, 192, 306];          /* x local de cada columna */
+const LOGS = [
+  ["00:00:01.12", "SIGNAL ACQUIRED", "WEAK PATTERN DETECTED", "72%", "ojo", "#9a9a98"],
+  ["00:00:02.08", "FOCUS ADJUST", "ZOOM + CALIBRATION", "81%", "onda", "#9a9a98"],
+  ["00:00:03.21", "PATTERN MATCH", "K-X-07 / PARTIAL", "91%", "mira", "#9a9a98"],
+  ["00:00:04.17", "THREAT EVAL", "LEVEL C-4 CONFIRMED", "98%", "craneo", "#b6b6b4"],
+  ["00:00:05.02", "TRACKING", "SUBJECT MOVEMENT LOCK", "87%", "rosa", "#9a9a98"],
+  ["00:00:06.11", "ANOMALY", "GLITCH SPIKE DETECTED", "65%", "estrella", "#b4342a"],
+  ["00:00:07.09", "SIGNAL STABILIZED", "LINK INTEGRITY NOMINAL", "93%", "nodo", "#159fae"],
+] as const;
+
+/* ══ 08. SHADER LOGIC ══════════════════════════════════════════════════════
+   [palabra clave, cuerpo] — cuerpo vacío = renglón de separación (la pastilla
+   redondeada que la referencia usa como línea en blanco). */
+const CODIGO = [
+  ["float", "scan = sin(_Time.y * SCAN_SPEED);"],
+  ["float", "pulse = smoothstep(0.2, 0.8, abs(sin(_Time.y * PULSE_SPEED)));"],
+  ["float", "noise = tex3D(_NoiseTex, uv * NOISE_SCALE + _Time.y).r;"],
+  ["float", "iris = length(uv - 0.5);"],
+  ["float", "ring = smoothstep(IRIS_INNER, IRIS_OUTER, iris);"],
+  ["float", "glitch = step(0.995, noise) * rand(uv + _Time.y);"],
+  ["", ""],
+  ["float", "intensity = (1.0 - ring) * (0.6 + pulse * 0.4);"],
+  ["float", "scanLine = step(frac(uv.y * SCAN_DENSITY + scan), 0.02);"],
+  ["float", "color = lerp(COLOR_BASE, COLOR_HIGHLIGHT, intensity);"],
+  ["color", "+= scanLine * COLOR_SCAN;"],
+  ["color", "+= glitch * COLOR_GLITCH;"],
+  ["", ""],
+  ["return", "float4(color, 1.0);"],
+] as const;
+
+const UNIFORMES = [
+  ["SCAN_SPEED", "1.25", 389, 398],
+  ["PULSE_SPEED", "2.40", 455, 467],
+  ["SCAN_DENSITY", "1024.0", 531, 537],
+  ["IRIS_INNER", "0.12", 607, 619],
+  ["NOISE_SCALE", "2.75", 670, 682],
+] as const;
+
+/* ══ 06. SIGNAL WAVEFORMS — la tira que cae dentro de esta caja ═══════════ */
+const ONDAS = [
+  ["VISUAL SIGNAL", 282, 42, "#8a4fb8", 0x51a3],
+  ["NEURAL FEED", 325, 44, "#0f97a4", 0x77c1],
+  ["ENERGY FIELD", 370, 45, "#763a9a", 0x2e05],
+  ["SPECTRAL RANGE", 416, 63, "#8a4fb8", 0x64bb],
+] as const;
+
+/* Semillas fijas para el micro-detalle del cromo (regla de determinismo). */
+const rTicks = rng(0x0402);
+const TICKS_04 = Array.from({ length: 26 }, () => ({
+  x: Math.round(6 + rTicks() * 632),
+  w: 1 + Math.round(rTicks() * 3),
+}));
+---
+
+<div data-box style={box} class="oe4">
+  <canvas class="oe4__lienzo" width="712" height="778" aria-hidden="true"></canvas>
+
+  <!-- ══ 04. OBSERVATION EYE ══════════════════════════════════════════ -->
+  <i class="oe4__marco oe4__marco--p04" aria-hidden="true"></i>
+  <i class="oe4__regla" style="left:0;top:30px;width:645px" aria-hidden="true"></i>
+  <i class="oe4__regla oe4__regla--sub" style="left:0;top:463px;width:645px" aria-hidden="true"></i>
+  <p class="oe4__tit oe4__tit--hero" style="left:10px;top:13px">04. OBSERVATION EYE / CORE INTERFACE</p>
+  {TICKS_04.map((t) => (
+    <i class="oe4__tick" style={`left:${t.x}px;top:5px;width:${t.w}px`} aria-hidden="true"></i>
+  ))}
+
+  <!-- chip del ojo -->
+  <i class="oe4__caja oe4__caja--ojo" aria-hidden="true"></i>
+  <svg class="oe4__ico-ojo" viewBox="0 0 40 26" aria-hidden="true">
+    <path d="M2 13C8 3.4 32 3.4 38 13C32 22.6 8 22.6 2 13Z" fill="none" stroke="currentColor" stroke-width="1.15" />
+    <circle cx="20" cy="13" r="6.4" fill="none" stroke="currentColor" stroke-width="1.15" />
+    <circle cx="20" cy="13" r="2.5" fill="currentColor" opacity="0.85" />
+    <path d="M20 3.2V0.6M20 25.4V23M6.5 20.6L4.8 22.4M33.5 20.6L35.2 22.4" stroke="currentColor" stroke-width="0.7" opacity="0.55" />
+    <path d="M9 19.5C13 22 27 22 31 19.5" stroke="currentColor" stroke-width="0.55" opacity="0.4" fill="none" stroke-dasharray="1.6 1.8" />
+  </svg>
+
+  <!-- chip OBSERVE MODE -->
+  <i class="oe4__caja oe4__caja--modo" aria-hidden="true"></i>
+  <p class="oe4__modo">OBSERVE MODE</p>
+  <p class="oe4__modo oe4__modo--on">ACTIVE &#8722;</p>
+
+  <!-- HUD -->
+  <div class="oe4__hud" data-symbolic="true">
+    {HUD_IZQ.map(([rot, val, yr, yv, yb]) => (
+      <>
+        <i class="oe4__barra" style={`left:13px;top:${yb}px`}></i>
+        <p class="oe4__rot" style={`left:22px;top:${yr - 1}px`}>{rot}</p>
+        <p class="oe4__val" style={`left:22px;top:${yv - 1.5}px`}>{val}</p>
+      </>
+    ))}
+    {HUD_DER.map(([rot, val, yr, yv, x, yb]) => (
+      <>
+        {yb > 0 && <i class="oe4__barra" style={`left:583px;top:${yb}px`}></i>}
+        <p class="oe4__rot" style={`left:${x}px;top:${yr - 1}px`}>{rot}</p>
+        <p class={val.length > 8 ? "oe4__val oe4__val--largo" : "oe4__val"} style={`left:${x}px;top:${yv - 1.5}px`}>{val}</p>
+      </>
+    ))}
+  </div>
+
+  <!-- fila SUBJECT -->
+  <div class="oe4__subj" data-symbolic="true">
+    <p class="oe4__val" style="left:11px;top:470.5px">SUBJECT:</p>
+    <p class="oe4__val oe4__val--fuerte" style="left:66px;top:470.5px">UNKNOWN</p>
+    <i class="oe4__regla oe4__regla--corta" style="left:150px;top:476px;width:16px"></i>
+    <p class="oe4__val oe4__val--tenue" style="left:457px;top:470.5px">OBS LOG:</p>
+    <p class="oe4__val oe4__val--tenue" style="left:515px;top:470.5px">000047.22</p>
+  </div>
+
+  <!-- ══ 07. OBSERVATION LOGS ═════════════════════════════════════════ -->
+  <i class="oe4__marco oe4__marco--p07" aria-hidden="true"></i>
+  <i class="oe4__regla" style="left:0;top:520px;width:361px" aria-hidden="true"></i>
+  <p class="oe4__tit" style="left:10px;top:503px">07. OBSERVATION LOGS</p>
+  <div class="oe4__tabla" data-symbolic="true">
+    {LOG_COLS.slice(1).map((x) => (
+      <i class="oe4__vsep" style={`left:${x - 9}px;top:527px;height:224px`}></i>
+    ))}
+    <p class="oe4__rot" style="left:14px;top:529px">TIMECODE</p>
+    <p class="oe4__rot" style="left:89px;top:529px">EVENT</p>
+    <p class="oe4__rot" style="left:192px;top:529px">DETAILS</p>
+    <p class="oe4__rot" style="left:306px;top:529px">CONFIDENCE</p>
+    <i class="oe4__regla oe4__regla--fina" style="left:8px;top:542px;width:345px"></i>
+    {LOGS.map(([tc, ev, det, conf], i) => (
+      <>
+        <p class="oe4__log oe4__log--tc" style={`left:32px;top:${549.5 + i * 22.05}px`}>{tc}</p>
+        <p class="oe4__log" style={`left:89px;top:${549.5 + i * 22.05}px`}>{ev}</p>
+        <p class="oe4__log" style={`left:192px;top:${549.5 + i * 22.05}px`}>{det}</p>
+        <p class="oe4__log oe4__log--pct" style={`left:329px;top:${549.5 + i * 22.05}px`}>{conf}</p>
+        {i < 6 && <i class="oe4__hair" style={`top:${565.7 + i * 22.05}px`}></i>}
+      </>
+    ))}
+  </div>
+
+  <!-- ══ 08. SHADER LOGIC ═════════════════════════════════════════════ -->
+  <i class="oe4__marco oe4__marco--p08" aria-hidden="true"></i>
+  <i class="oe4__regla" style="left:369px;top:519px;width:343px" aria-hidden="true"></i>
+  <p class="oe4__tit" style="left:379px;top:503px">08. SHADER LOGIC (PSEUDO-CODE)</p>
+  <div class="oe4__cod" data-symbolic="true">
+    {CODIGO.map(([kw, cuerpo], i) => (
+      kw === ""
+        ? <i class="oe4__nula" style={`top:${529.5 + i * 12.35}px`}></i>
+        : <>
+            <p class="oe4__kw" style={`left:379px;top:${527 + i * 12.35}px`}>{kw}</p>
+            <p class="oe4__src" style={`left:418px;top:${527 + i * 12.35}px`}>{cuerpo}</p>
+          </>
+    ))}
+    <i class="oe4__regla oe4__regla--fina" style="left:369px;top:703px;width:343px"></i>
+    <p class="oe4__rot oe4__rot--big" style="left:379px;top:709px">UNIFORMS</p>
+    {UNIFORMES.map(([nom, val, xn, xv], i) => (
+      <>
+        {i > 0 && <i class="oe4__vsep" style={`left:${xn - 12}px;top:720px;height:32px`}></i>}
+        <p class="oe4__rot oe4__rot--uni" style={`left:${xn}px;top:721px`}>{nom}</p>
+        <p class="oe4__val" style={`left:${xv}px;top:737px`}>{val}</p>
+      </>
+    ))}
+  </div>
+
+  <!-- ══ tira de 05 / 06 que cae dentro de esta caja ══════════════════ -->
+  <div class="oe4__tira" data-symbolic="true">
+    <i class="oe4__marco oe4__marco--p05" aria-hidden="true"></i>
+    <i class="oe4__regla" style="left:654px;top:28px;width:58px"></i>
+    <p class="oe4__tit" style="left:664px;top:13px">05. EYE FRAGMENTS &#38; TREATMENT CROPS</p>
+    <i class="oe4__crop" style="top:41px;height:70px"></i>
+    <p class="oe4__rot oe4__rot--crop" style="left:674px;top:130px">HALFTONE</p>
+    <i class="oe4__crop" style="top:147px;height:77px"></i>
+
+    <i class="oe4__marco oe4__marco--p06" aria-hidden="true"></i>
+    <i class="oe4__regla" style="left:654px;top:270px;width:58px"></i>
+    <p class="oe4__tit" style="left:664px;top:255px">06. SIGNAL WAVEFORMS / SPECTRAL READOUT</p>
+    {ONDAS.map(([rot, y, h, col]) => (
+      <>
+        <i class="oe4__ondabox" style={`top:${y}px;height:${h}px`}></i>
+        <p class="oe4__rot" style={`left:668px;top:${y + 8}px;color:${col}`}>{rot}</p>
+      </>
+    ))}
+  </div>
+</div>
+
+<style>
+  .oe4 {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+    font-family: var(--lam-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+    line-height: 1;
+    letter-spacing: 0;
+    color: #6f6c68;
+    --pu: #a45fd8;
+    --tit: #a05fce;
+  }
+  .oe4 i, .oe4 p, .oe4 svg, .oe4 canvas { position: absolute; }
+  .oe4 p { margin: 0; white-space: nowrap; }
+  .oe4 > div i, .oe4 > div p { position: absolute; }
+  .oe4__lienzo { left: 0; top: 0; width: 712px; height: 778px; }
+
+  /* ── cromo ─────────────────────────────────────────────────────────── */
+  .oe4__marco { border: 1px solid #201f20; box-sizing: border-box; }
+  .oe4__marco--p04 { left: 0; top: 5px; width: 645px; height: 486px; border-color: #232224; }
+  .oe4__marco--p07 { left: 0; top: 496px; width: 361px; height: 261px; border-color: #1e1e1d; }
+  .oe4__marco--p08 { left: 369px; top: 496px; width: 343px; height: 261px; border-color: #1e1e1d; border-right: 0; }
+  .oe4__marco--p05 { left: 654px; top: 5px; width: 58px; height: 227px; border-color: #232224; border-right: 0; }
+  .oe4__marco--p06 { left: 654px; top: 248px; width: 58px; height: 243px; border-color: #232224; border-right: 0; }
+
+  .oe4__regla { height: 1px; background: #17161a; }
+  .oe4__regla--sub { background: #131315; }
+  .oe4__regla--fina { background: #131213; }
+  .oe4__regla--corta { background: #4a4a4a; }
+  .oe4__tick { top: 5px; height: 1px; background: #2c2a2f; }
+  .oe4__hair { left: 8px; width: 345px; height: 1px; background: #090909; }
+  .oe4__vsep { width: 1px; background: #0d0c0e; }
+
+  /* ── tipografía ────────────────────────────────────────────────────────
+     El póster no usa una monoespaciada real: los avances medidos (6,8 px en
+     títulos, 5,0 en rótulos, 6,4 en valores) no se corresponden con la altura
+     de caja de ninguna mono del sistema. Se fija el AVANCE, que es lo que se
+     ve, con letter-spacing negativo. */
+  .oe4__tit {
+    font-size: 12.4px; letter-spacing: -0.66px; color: var(--tit);
+  }
+  /* El título del héroe va un pelo más apretado que los de sección: medido,
+     6,54 px de avance contra 6,95. */
+  .oe4__tit--hero { letter-spacing: -0.97px; }
+  .oe4__rot {
+    font-size: 9.6px; letter-spacing: -1.22px; color: #6d706e;
+  }
+  .oe4__rot--uni { color: #7a7d7b; font-size: 10.2px; letter-spacing: -1.17px; }
+  .oe4__rot--big { font-size: 11px; letter-spacing: -1.05px; }
+  .oe4__rot--crop { font-size: 10.2px; letter-spacing: -1.05px; color: #8f8f8d; }
+  .oe4__val {
+    font-size: 11.4px; letter-spacing: -0.95px; color: #909292;
+  }
+  .oe4__val--fuerte { color: #a6a8a8; }
+  .oe4__val--tenue { color: #7d7f7f; }
+  .oe4__val--largo { font-size: 10.4px; letter-spacing: -0.72px; }
+
+  .oe4__barra { width: 1px; height: 32px; background: #45444a; }
+
+  /* ── chips ─────────────────────────────────────────────────────────── */
+  .oe4__caja { box-sizing: border-box; }
+  .oe4__caja--ojo { left: 502px; top: 15px; width: 48px; height: 35px; border: 1px solid #5e2c8a; }
+  .oe4__ico-ojo { left: 506px; top: 20px; width: 40px; height: 26px; color: #8544b0; }
+  .oe4__caja--modo { left: 558px; top: 15px; width: 78px; height: 35px; border: 1px solid #4e4e4e; }
+  .oe4__modo {
+    left: 566px; top: 22.5px;
+    font-size: 9.4px; letter-spacing: -0.32px; color: #8259a6;
+  }
+  .oe4__modo--on { top: 34.5px; color: #10a89c; }
+
+  /* ── 07 ────────────────────────────────────────────────────────────── */
+  .oe4__log {
+    font-size: 9.9px; letter-spacing: -0.86px; color: #625f5c;
+  }
+  .oe4__log--tc { font-size: 9.2px; letter-spacing: -1.62px; color: #5f5e5c; }
+  .oe4__log--pct { color: #858481; font-size: 10.6px; letter-spacing: -0.09px; }
+
+  /* ── 08 ────────────────────────────────────────────────────────────── */
+  .oe4__kw { font-size: 9.6px; letter-spacing: -1.24px; color: #563d68; }
+  .oe4__src { font-size: 9.6px; letter-spacing: -1.24px; color: #4c4b4d; }
+  .oe4__nula {
+    left: 379px; width: 15px; height: 6px;
+    border: 1px solid #3d3b3e; border-radius: 3px;
+  }
+
+  /* ── tira 05 / 06 ──────────────────────────────────────────────────── */
+  .oe4__crop { left: 661px; width: 51px; border: 1px solid #2b2830; box-sizing: border-box; }
+  .oe4__ondabox { left: 660px; width: 52px; border: 1px solid #241f2a; box-sizing: border-box; }
+</style>
+
+<script>
+  /* ══════════════════════════════════════════════════════════════════════
+     PERFIL RADIAL MEDIDO del ojo de la referencia (luminancia media por radio,
+     0..360 px, excluyendo ±14° de la horizontal). Es el contrato entre este
+     dibujo y el póster: cada capa toma su alfa de acá.
+     ══════════════════════════════════════════════════════════════════════ */
+  const PERFIL = [
+    0, 73.8, 45.7, 29.6, 29.3, 21.6, 29.9, 25.7, 17.7, 6.3, 4.8, 5.1, 5.0, 5.5,
+    5.8, 6.2, 6.8, 8.3, 9.2, 10.6, 10.9, 11.3, 11.5, 9.1, 19.1, 41.2, 53.6, 46.6,
+    43.0, 46.0, 49.7, 62.5, 80.9, 87.7, 80.1, 73.1, 69.8, 63.6, 55.9, 54.1, 52.5,
+    50.0, 50.5, 53.8, 53.5, 39.3, 37.7, 36.4, 37.2, 39.0, 40.8, 43.7, 43.2, 37.9,
+    34.4, 29.8, 29.4, 25.3, 21.9, 21.7, 26.0, 27.4, 27.3, 29.1, 25.2, 22.1, 27.8,
+    40.1, 57.8, 73.8, 86.3, 95.6, 105.6, 104.9, 89.1, 78.6, 74.9, 70.8, 58.4,
+    54.7, 56.9, 56.3, 55.3, 56.6, 57.4, 59.1, 60.4, 60.7, 60.2, 62.8, 63.2, 60.8,
+    60.2, 58.8, 55.4, 56.2, 53.4, 51.4, 48.9, 47.3, 46.2, 44.2, 42.6, 39.8, 38.2,
+    37.5, 34.4, 31.7, 28.0, 27.2, 25.5, 22.9, 22.0, 21.2, 20.5, 17.3, 17.2, 16.3,
+    15.5, 15.2, 15.2, 14.8, 12.9, 12.6, 12.1, 10.5, 9.4, 8.9, 8.9, 8.4, 8.4, 9.9,
+    8.9, 9.1, 8.6, 8.0, 10.0, 11.3, 10.0, 8.4, 9.3, 11.0, 12.9, 14.1, 13.8, 14.0,
+    13.7, 11.7, 11.6, 13.6, 12.4, 12.8, 13.8, 12.0, 10.1, 10.4, 11.5, 13.2, 15.1,
+    16.4, 15.0, 12.7, 13.1, 15.3, 16.5, 16.7, 15.3, 20.6, 23.0, 21.3, 19.9, 19.4,
+    15.7, 9.6, 6.4, 8.5, 11.7, 12.5, 10.8, 10.6, 12.9, 8.2, 6.2, 6.7, 7.7, 8.8,
+    7.8, 7.0, 11.0, 14.9, 13.9, 9.4, 6.7, 6.2, 6.4, 4.8, 3.2, 4.2, 5.0, 4.6, 4.7,
+    7.4, 8.1, 7.9, 8.3, 6.7, 7.1, 8.3, 7.6, 6.8, 8.1, 7.8, 10.8, 15.2, 17.3, 16.5,
+    10.9, 8.2, 8.8, 8.8, 8.9, 9.2, 10.1, 14.0, 14.3, 14.9, 15.4, 11.1, 8.0, 7.0,
+    6.6, 6.4, 7.2, 7.6, 7.0, 5.6, 5.6, 6.3, 7.5, 9.0, 8.8, 8.2, 9.3, 8.4, 7.4,
+    4.4, 4.6, 4.4, 3.8, 4.0, 4.4, 4.7, 5.5, 5.1, 5.3, 5.7, 5.2, 5.4, 5.6, 5.8,
+    6.1, 6.0, 6.2, 6.5, 6.6, 6.9, 6.8, 6.6, 7.0, 6.6, 6.8, 6.2, 5.8, 5.6, 6.6,
+    6.4, 7.0, 7.9, 7.7, 6.4, 5.9, 5.5, 6.4, 6.2, 5.8, 6.7, 6.5, 6.4, 6.3, 6.4,
+    6.0, 5.5, 7.1, 7.0, 5.4, 6.6, 7.0, 6.5, 5.9, 5.5, 5.9, 6.4, 6.8, 6.5, 6.6,
+    6.1, 5.9, 6.5, 5.6, 6.3, 6.5, 6.1, 5.9, 7.3, 7.1, 7.4, 6.8, 7.3, 7.0, 6.5,
+    7.2, 7.9, 7.2, 8.2, 8.3, 8.4, 7.1, 7.8, 9.5, 7.4, 6.6, 7.4, 9.4, 11.2, 10.7,
+    9.1, 9.3, 8.9, 7.8, 9.5, 9.6, 9.2, 10.6, 9.0, 9.6, 9.4, 10.0, 11.3, 11.4, 9.3,
+    9.9, 10.7, 10.7, 9.5, 9.2, 10.7, 10.2, 9.0, 7.8, 8.7, 7.9,
+  ];
+
+  /* Código de barras leído COLUMNA POR COLUMNA de la referencia (x 636→810,
+     y 555→574). Con vtracer el contorno inventa esquinas y pierde ~38 % de la
+     tinta; por eso va como cadena de bits y no como trazo. */
+  const BARRAS =
+    "000000000011100110110111111110010100111110011011011011111101111111111001011011101001101101101110011011011001111101011011111111101111101111111111110110111111101001100000000000";
+
+  /* rng determinista (mismo generador que el kit: el banco compara píxel a
+     píxel y con Math.random dos capturas de la misma página no coinciden). */
+  function rng(semilla) {
+    let s = semilla >>> 0 || 1;
+    return function () {
+      s ^= s << 13; s >>>= 0;
+      s ^= s >> 17;
+      s ^= s << 5; s >>>= 0;
+      return s / 4294967296;
+    };
+  }
+
+  /* Corrección por banda. Aunque cada capa saque su alfa del perfil, el modo
+     `lighter` no es lineal: donde se apilan tres capas el resultado satura por
+     encima de lo medido y donde hay una sola queda corto. Estos factores son la
+     RAZÓN medida entre el perfil radial de la captura y el de la referencia,
+     banda por banda; se aplican al alfa, no al perfil, para que el perfil siga
+     siendo el dato crudo. */
+  const AJUSTE = [[24, 0.08], [55, 0.66], [72, 0.29], [90, 0.26], [118, 0.52],
+                  [150, 0.43], [190, 1.04], [228, 0.69], [270, 0.74], [330, 0.30]];
+  function ajuste(r) {
+    if (r <= AJUSTE[0][0]) return AJUSTE[0][1];
+    for (let i = 1; i < AJUSTE.length; i++) {
+      if (r <= AJUSTE[i][0]) {
+        const [x0, y0] = AJUSTE[i - 1], [x1, y1] = AJUSTE[i];
+        return y0 + ((y1 - y0) * (r - x0)) / (x1 - x0);
+      }
+    }
+    return AJUSTE[AJUSTE.length - 1][1];
+  }
+
+  const perfil = (r) => {
+    if (r <= 0) return PERFIL[0];
+    if (r >= 360) return PERFIL[360];
+    const i = Math.floor(r), f = r - i;
+    return PERFIL[i] * (1 - f) + PERFIL[i + 1] * f;
+  };
+
+  /* Ganancia angular medida: el ojo NO es isótropo. En el anillo r 112-135 la
+     media va de 5 (arriba a la derecha) a 72 (a la izquierda, sobre el eje) y
+     el lado izquierdo pesa ~1.4 veces el derecho. Sin esto el organismo sale
+     como una diana perfecta y pierde la lectura de «ojo mirando». */
+  function ganancia(a) {
+    const c = Math.cos(a);
+    /* El sesgo hacia la izquierda que se midió al principio resultó ser de la
+       RAYA DE BARRIDO, no del iris: con izq=1.34 y exponente 2.6 el cuadrante
+       135°-195° salía 1,5 veces la referencia y los 0°/180° cortos. La curva
+       angular del iris es estrecha y simétrica; el ala la pone el barrido. */
+    return (0.80 + 0.85 * Math.pow(Math.abs(c), 8)) * (c < 0 ? 1.05 : 1.0);
+  }
+
+  const CX = 348, CY = 253;              /* centro del ojo, local */
+  /* El organismo NO llega hasta el fondo del panel: la regla de SUBJECT (y=551
+     ref, 463 local) lo corta. Medido: en la fila 550 todavía hay anillos, en la
+     560 sólo hay tipografía. Sin este corte las coronas cruzan la fila SUBJECT
+     y ensucian el código de barras. */
+  const P04 = { x: 1, y: 6, w: 643, h: 457 };
+
+  function ctx2d(cv, w, h) {
+    const dpr = 2;
+    cv.width = w * dpr;
+    cv.height = h * dpr;
+    const c = cv.getContext("2d");
+    c.scale(dpr, dpr);
+    return c;
+  }
+
+  /* ── retícula de fondo ────────────────────────────────────────────────
+     Medida: en los rincones sin organismo la media de luminancia es 0.4-0.6,
+     lo que corresponde a una línea de ~8 de luminancia cada 15.5 px. Es casi
+     invisible y aun así es lo que separa el negro del panel del negro del
+     papel en el diff estructural. */
+  function reticula(ctx) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(P04.x, P04.y, P04.w, P04.h);
+    ctx.clip();
+    ctx.strokeStyle = "rgba(150,96,205,0.026)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let x = P04.x + 4.5; x < P04.x + P04.w; x += 15.5) { ctx.moveTo(x, P04.y); ctx.lineTo(x, P04.y + P04.h); }
+    for (let y = P04.y + 6.5; y < P04.y + P04.h; y += 15.5) { ctx.moveTo(P04.x, y); ctx.lineTo(P04.x + P04.w, y); }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── capa base ────────────────────────────────────────────────────────
+     Descomposición: BASE = promedio angular medido (el perfil), DETALLE = la
+     textura encima. Sin la base, los huecos entre penacho y penacho quedan en
+     negro puro mientras la referencia los tiene en violeta oscuro, y eso es lo
+     que castigaba el diff estructural por bloques de 8×8 — el bloque promedia
+     y el promedio de «pelo sobre negro» no es el de «pelo sobre violeta».
+
+     Se pinta por sectores de 15° porque el ojo NO es isótropo: a r 112-135 la
+     referencia va de 5 (arriba a la derecha) a 72 (a la izquierda). Un
+     gradiente radial puro aplana justo lo que hace que el ojo mire. */
+  function base(ctx) {
+    const S = 24, paso = (Math.PI * 2) / S;
+    for (let i = 0; i < S; i++) {
+      const a0 = i * paso, g = ganancia(a0 + paso / 2);
+      for (let rad = 3; rad <= 150; rad += 2.5) {
+        const alfa = (perfil(rad) / 255) * g * 0.68;
+        if (alfa < 0.006) continue;
+        ctx.strokeStyle = `rgba(150,86,205,${alfa.toFixed(3)})`;
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.arc(CX, CY, rad, a0, a0 + paso * 1.04);
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* ── anillos de datos y coronas exteriores ───────────────────────────
+     Un anillo por radio entero de 136 a 360, con el alfa que dice el perfil.
+     Así las crestas medidas (143 · 159 · 168 · 189 · 214 · 225) aparecen solas
+     y los valles quedan vacíos, sin tener que listar radios a mano. Los arcos
+     se cortan: la referencia casi no tiene circunferencias enteras. */
+  function anillos(ctx) {
+    const r = rng(0x5e17);
+    for (let rad = 136; rad <= 360; rad++) {
+      const v = perfil(rad);
+      if (v < 4.2) continue;
+      const a = Math.min(0.95, (v - 3.0) / 62) * ajuste(rad) * (rad > 300 ? 0.32 : rad > 240 ? 0.48 : 1);
+      /* En las crestas del perfil la referencia tiene la circunferencia casi
+         entera; en los valles, esquirlas. Repartir siempre en trocitos sueltos
+         deja el campo exterior lechoso y sin los aros que se leen. */
+      const cresta = v > (rad > 205 ? 6.4 : 11);
+      const n = cresta ? 1 : 1 + Math.floor(r() * 3);
+      for (let k = 0; k < n; k++) {
+        const a0 = r() * Math.PI * 2;
+        const arc = cresta ? (1.35 + r() * 0.6) * Math.PI : (0.35 + r() * 1.5) * Math.PI / n;
+        ctx.strokeStyle = `rgba(178,120,226,${(a * (0.72 + r() * 0.6)).toFixed(3)})`;
+        ctx.lineWidth = r() < 0.18 ? 1.5 : 0.85;
+        ctx.beginPath();
+        ctx.arc(CX, CY, rad, a0, a0 + arc);
+        ctx.stroke();
+      }
+      /* puntos sobre el anillo: la referencia los tiene punteados, no continuos */
+      if (r() < 0.34) {
+        const paso = 0.05 + r() * 0.14;
+        ctx.fillStyle = `rgba(198,146,240,${(a * 0.9).toFixed(3)})`;
+        for (let t = 0; t < Math.PI * 2; t += paso) {
+          ctx.fillRect(CX + Math.cos(t) * rad - 0.5, CY + Math.sin(t) * rad - 0.5, 1.1, 1.1);
+        }
+      }
+    }
+  }
+
+  /* ── filamentos del iris ──────────────────────────────────────────────
+     El iris no son anillos: son agujas radiales. Se recorre cada aguja en
+     pasos de 2 px tomando el alfa del perfil, de modo que la media por radio
+     sea la medida. La cantidad de agujas se eligió para que la cobertura
+     angular ronde 1 en r≈80 (2πr / ancho de trazo). */
+  function filamentos(ctx, n, r0min, r0max, r1min, r1max, semilla, gan, ancho) {
+    const r = rng(semilla);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + (r() - 0.5) * 0.02;
+      const deriva = (r() - 0.5) * 0.06;
+      const ra = r0min + r() * (r0max - r0min);
+      const rb = r1min + r() * (r1max - r1min);
+      const g = ganancia(a) * (0.45 + r() * 1.05) * gan;
+      const w = ancho * (0.6 + r() * 0.9);
+      let prevX = CX + Math.cos(a) * ra;
+      let prevY = CY + Math.sin(a) * ra;
+      for (let rad = ra + 2; rad <= rb; rad += 2) {
+        const ang = a + deriva * ((rad - ra) / (rb - ra));
+        const x = CX + Math.cos(ang) * rad;
+        const y = CY + Math.sin(ang) * rad;
+        const alfa = Math.min(0.92, (perfil(rad) / 168) * g * ajuste(rad));
+        if (alfa > 0.012 && r() > 0.3) {
+          ctx.strokeStyle = `rgba(186,128,232,${alfa.toFixed(3)})`;
+          ctx.lineWidth = w;
+          ctx.beginPath();
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+        prevX = x; prevY = y;
+      }
+    }
+  }
+
+  /* ── aros finos del iris ──────────────────────────────────────────────
+     Un arco por radio entero, con el alfa que dicta el perfil y el peso
+     irregular que pide el kit (no hay dos anillos con el mismo brillo). */
+  function aroFino(ctx, r0, r1, semilla) {
+    const r = rng(semilla);
+    for (let rad = r0; rad <= r1; rad++) {
+      const v = perfil(rad);
+      const a = Math.min(0.5, (v / 320) * (0.4 + r() * 1.2) * ajuste(rad));
+      if (a < 0.02) continue;
+      const n = 1 + Math.floor(r() * 3);
+      for (let k = 0; k < n; k++) {
+        const a0 = r() * Math.PI * 2;
+        ctx.strokeStyle = `rgba(176,116,226,${a.toFixed(3)})`;
+        ctx.lineWidth = 0.55 + (r() < 0.2 ? 0.7 : 0);
+        ctx.beginPath();
+        ctx.arc(CX, CY, rad, a0, a0 + (0.5 + r() * 2.2));
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* ── engranaje ────────────────────────────────────────────────────────
+     La banda entre la pupila y el anillo limbal (r 24-66) no es un degradado:
+     en la referencia es un enrejado de dientes radiales finos con un collar
+     partido en r≈33. Con sólo el degradado la zona quedaba lisa y el ojo
+     perdía la lectura de mecanismo. */
+  function engranaje(ctx) {
+    const r = rng(0x4d19);
+    for (const [n, ra, rb, esc] of [[210, 25, 46, 0.42], [150, 40, 63, 0.9], [96, 26, 34, 0.38]]) {
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + (r() - 0.5) * 0.012;
+        const g = ganancia(a);
+        const r0 = ra + r() * 2.5;
+        const r1 = r0 + (rb - ra) * (0.45 + r() * 0.6);
+        const alfa = Math.min(0.7, (perfil((r0 + r1) / 2) / 255) * g * esc * (0.3 + r() * 1.1) * 0.42);
+        if (alfa < 0.02) continue;
+        ctx.strokeStyle = `rgba(${r() < 0.1 ? "234,212,255" : "182,124,230"},${alfa.toFixed(3)})`;
+        ctx.lineWidth = 0.5 + r() * 0.8;
+        ctx.beginPath();
+        ctx.moveTo(CX + Math.cos(a) * r0, CY + Math.sin(a) * r0);
+        ctx.lineTo(CX + Math.cos(a) * r1, CY + Math.sin(a) * r1);
+        ctx.stroke();
+      }
+    }
+    /* collar partido: tramos de arco brillante sobre r=33, no un aro continuo */
+    for (let k = 0; k < 46; k++) {
+      const a0 = r() * Math.PI * 2;
+      const alfa = 0.028 + r() * 0.12;
+      ctx.strokeStyle = `rgba(226,190,255,${alfa.toFixed(3)})`;
+      ctx.lineWidth = 0.8 + r() * 1.4;
+      ctx.beginPath();
+      ctx.arc(CX, CY, 32 + r() * 4, a0, a0 + 0.06 + r() * 0.22);
+      ctx.stroke();
+    }
+  }
+
+  /* ── plumas ───────────────────────────────────────────────────────────
+     El fleco exterior del iris (r 78-142) NO es pelo parejo: son ~64 penachos
+     con calle negra entre uno y otro, cada uno con su propia punta. Repartir
+     las agujas en ángulo uniforme daba una alfombra y era el error de textura
+     más grande que quedaba después de casar el perfil radial. */
+  function plumas(ctx, n, semilla) {
+    const r = rng(semilla);
+    for (let i = 0; i < n; i++) {
+      const centro = (i / n) * Math.PI * 2 + (r() - 0.5) * 0.03;
+      const abre = ((Math.PI * 2) / n) * (0.52 + r() * 0.3);
+      const punta = 118 + r() * 26;
+      const g = ganancia(centro) * (0.55 + r() * 0.9);
+      const agujas = 9 + Math.floor(r() * 9);
+      for (let k = 0; k < agujas; k++) {
+        const u = (k + 0.5) / agujas;
+        const a = centro + (u - 0.5) * abre;
+        const borde = 1 - Math.pow(Math.abs(u - 0.5) * 2, 1.7);
+        const ra = 62 + r() * 22;
+        const rb = 88 + borde * (punta - 88) + r() * 8;
+        let px = CX + Math.cos(a) * ra, py = CY + Math.sin(a) * ra;
+        for (let rad = ra + 2.4; rad <= rb; rad += 2.4) {
+          const x = CX + Math.cos(a) * rad, y = CY + Math.sin(a) * rad;
+          const alfa = Math.min(0.85, (perfil(rad) / 168) * g * ajuste(rad) * (0.35 + borde));
+          if (alfa > 0.015 && r() > 0.2) {
+            ctx.strokeStyle = `rgba(184,126,230,${alfa.toFixed(3)})`;
+            ctx.lineWidth = 0.8 + r() * 1.5;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+          }
+          px = x; py = y;
+        }
+      }
+    }
+  }
+
+  /* ── tejas ────────────────────────────────────────────────────────────
+     El error que quedaba después de casar el perfil radial era de TEXTURA: el
+     iris de la referencia no es pelo fino, son tramos rectangulares cosidos en
+     anillos —bloques de dato— y el diff estructural por bloques de 8×8 mide
+     justo eso. Cada anillo lleva n tejas repartidas con salteo, no continuas.  */
+  function tejas(ctx, r0, r1, paso, densidad, semilla, esc) {
+    const r = rng(semilla);
+    for (let rad = r0; rad <= r1; rad += paso) {
+      const v = perfil(rad) * ajuste(rad);
+      if (v < 3) continue;
+      const n = Math.max(6, Math.round((Math.PI * 2 * rad) / (7 + r() * 6)));
+      for (let i = 0; i < n; i++) {
+        if (r() > densidad) continue;
+        const a = (i / n) * Math.PI * 2 + (r() - 0.5) * 0.02;
+        const g = ganancia(a);
+        const alfa = Math.min(0.85, (v / 190) * (0.25 + r() * 1.3) * g * esc);
+        if (alfa < 0.02) continue;
+        const largo = 1.6 + r() * (r() < 0.16 ? 9 : 4.4);
+        const ancho = 1 + r() * 2.6;
+        ctx.save();
+        ctx.translate(CX + Math.cos(a) * rad, CY + Math.sin(a) * rad);
+        ctx.rotate(a);
+        ctx.fillStyle = `rgba(${r() < 0.12 ? "236,214,255" : "178,120,228"},${alfa.toFixed(3)})`;
+        ctx.fillRect(-largo / 2, -ancho / 2, largo, ancho);
+        ctx.restore();
+      }
+    }
+  }
+
+  /* ── coronas quemadas ─────────────────────────────────────────────────
+     Los dos picos del perfil: r=33 (collar de la pupila, 88) y r=72 (anillo
+     limbal, 106 — el punto más brillante del organismo). Van en tres pasadas
+     de ancho decreciente, que es lo que da el borde quemado sin glow difuso. */
+  function coronas(ctx) {
+    const capas = [
+      [33, [[7.5, "rgba(150,86,205,0.022)"], [4.0, "rgba(186,124,235,0.04)"], [1.5, "rgba(226,190,255,0.055)"]]],
+      [72.5, [[10.0, "rgba(150,86,205,0.040)"], [5.0, "rgba(196,140,242,0.072)"], [2.0, "rgba(236,208,255,0.13)"]]],
+      [95, [[6.0, "rgba(140,80,195,0.087)"], [1.6, "rgba(200,152,244,0.14)"]]],
+      [120, [[4.0, "rgba(130,74,182,0.118)"], [1.2, "rgba(190,140,236,0.177)"]]],
+    ];
+    for (const [rad, pasadas] of capas) {
+      for (const [lw, col] of pasadas) {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = lw;
+        ctx.beginPath();
+        ctx.arc(CX, CY, rad, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    /* dientes del collar: 128 marcas cortas justo afuera de la pupila */
+    const r = rng(0x33a1);
+    for (let i = 0; i < 128; i++) {
+      const a = (i / 128) * Math.PI * 2;
+      const g = ganancia(a);
+      const ra = 25 + r() * 2;
+      const rb = ra + 5 + r() * 9;
+      ctx.strokeStyle = `rgba(214,168,250,${(0.039 + r() * 0.17 * g).toFixed(3)})`;
+      ctx.lineWidth = 0.55 + r() * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(CX + Math.cos(a) * ra, CY + Math.sin(a) * ra);
+      ctx.lineTo(CX + Math.cos(a) * rb, CY + Math.sin(a) * rb);
+      ctx.stroke();
+    }
+  }
+
+  /* ── pupila e infinito ────────────────────────────────────────────────
+     Pupila negra hasta r=23.5 (perfil 5-11: es negro, no gris). Al centro el
+     símbolo ∞, medido en 15 px de ancho por 8 de alto: lemniscata de
+     Bernoulli, no dos círculos pegados. */
+  function pupila(ctx) {
+    ctx.globalCompositeOperation = "source-over";
+    /* La pupila TAPA: el aditivo de las capas de abajo le mete brillo y medido
+       daba 1,7 veces la referencia. Va un disco opaco hasta r=21 y un borde
+       degradado hasta 25, que es donde arranca el collar. */
+    ctx.fillStyle = "#0b0512";
+    ctx.beginPath();
+    ctx.arc(CX, CY, 21, 0, Math.PI * 2);
+    ctx.fill();
+    const g = ctx.createRadialGradient(CX, CY, 21, CX, CY, 26);
+    g.addColorStop(0, "#0b0512");
+    g.addColorStop(1, "rgba(11,5,18,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(CX, CY, 26, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = "rgba(198,124,242,0.78)";
+    ctx.lineWidth = 1.15;
+    ctx.beginPath();
+    const a = 6.9;
+    for (let i = 0; i <= 96; i++) {
+      const t = (i / 96) * Math.PI * 2;
+      const d = 1 + Math.sin(t) * Math.sin(t);
+      const x = CX + (a * Math.cos(t)) / d;
+      const y = CY + (a * Math.sin(t) * Math.cos(t)) / d;
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  /* ── raya de barrido ──────────────────────────────────────────────────
+     Fila 341 (local 253): media 110 sobre TODO el ancho del panel, con halo
+     de 326 a 352 y bloques de ruido rectangular a los costados de la pupila.
+     Es el elemento que más tinta aporta del panel y el que le da el eje. */
+  function barrido(ctx) {
+    const r = rng(0x7a41);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(P04.x, P04.y, P04.w, P04.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = "lighter";
+
+    /* halo */
+    const g = ctx.createLinearGradient(0, CY - 28, 0, CY + 28);
+    g.addColorStop(0, "rgba(150,86,205,0)");
+    g.addColorStop(0.5, "rgba(160,96,215,0.115)");
+    g.addColorStop(1, "rgba(150,86,205,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(P04.x, CY - 28, P04.w, 56);
+
+    /* bloques de ruido de escaneo: se apilan cerca del eje y se apagan al
+       alejarse; los de la izquierda son más densos (medido). */
+    for (let i = 0; i < 1500; i++) {
+      const x = P04.x + r() * P04.w;
+      const dy = (r() - 0.5) * 2;
+      const y = CY + Math.sign(dy) * Math.pow(Math.abs(dy), 2.1) * 42;
+      const d = Math.abs(x - CX);
+      if (d < 26 && Math.abs(y - CY) < 24) continue;
+      const cerca = 1 - Math.min(1, Math.abs(y - CY) / 44);
+      const lado = x < CX ? 1.25 : 1.0;
+      const a = Math.pow(cerca, 1.6) * (0.04 + r() * 0.215) * lado;
+      if (a < 0.03) continue;
+      const w = 1 + r() * (r() < 0.14 ? 22 : 6);
+      const h = r() < 0.8 ? 1 : 2;
+      ctx.fillStyle = r() < 0.22
+        ? `rgba(244,228,255,${a.toFixed(3)})`
+        : `rgba(176,116,226,${a.toFixed(3)})`;
+      ctx.fillRect(x, y, w, h);
+    }
+
+    /* núcleo de la raya: tramos brillantes de ancho irregular en y = CY */
+    let x = P04.x;
+    while (x < P04.x + P04.w) {
+      const w = 3 + r() * 34;
+      const hueco = r() < 0.18;
+      if (!hueco && !(x + w > CX - 24 && x < CX + 24)) {
+        const a = 0.21 + r() * 0.19;
+        ctx.fillStyle = `rgba(250,240,255,${a.toFixed(3)})`;
+        ctx.fillRect(x, CY, w, 1);
+        ctx.fillStyle = `rgba(198,150,242,${(a * 0.5).toFixed(3)})`;
+        ctx.fillRect(x, CY - 1, w, 1);
+      }
+      x += w + r() * 5;
+    }
+    ctx.restore();
+  }
+
+  /* ── ejes y miras ─────────────────────────────────────────────────────
+     Eje vertical en x=816 (local 348) de tope a tope del panel, con rombos de
+     mira sobre las coronas. La referencia también cuelga una marca del borde
+     superior: es lo que ata el organismo al marco. */
+  function ejes(ctx) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(P04.x, P04.y, P04.w, P04.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.strokeStyle = "rgba(206,166,244,0.20)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([9, 5]);
+    ctx.beginPath();
+    ctx.moveTo(CX + 0.5, P04.y);
+    ctx.lineTo(CX + 0.5, P04.y + P04.h);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.strokeStyle = "rgba(226,196,252,0.38)";
+    ctx.beginPath();
+    ctx.moveTo(CX + 0.5, P04.y);
+    ctx.lineTo(CX + 0.5, P04.y + 26);
+    ctx.moveTo(CX + 0.5, P04.y + P04.h - 26);
+    ctx.lineTo(CX + 0.5, P04.y + P04.h);
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(196,142,240,0.34)";
+    for (const rad of [33, 72.5, 120, 168, 214]) {
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(CX, CY + s * rad - 3);
+        ctx.lineTo(CX + 3, CY + s * rad);
+        ctx.lineTo(CX, CY + s * rad + 3);
+        ctx.lineTo(CX - 3, CY + s * rad);
+        ctx.closePath();
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ── micro-glifos del campo ───────────────────────────────────────────
+     Las marcas sueltas que la referencia siembra fuera del iris: cuadraditos
+     de dato, cruces de registro y arcos rotos. Sin ellas el campo exterior
+     queda liso y el diff estructural lo castiga por bloque vacío. */
+  function glifos(ctx) {
+    const r = rng(0x1d3c);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(P04.x, P04.y, P04.w, P04.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = "lighter";
+    for (let i = 0; i < 330; i++) {
+      const a = r() * Math.PI * 2;
+      const rad = 140 + Math.pow(r(), 0.75) * 205;
+      const x = CX + Math.cos(a) * rad;
+      const y = CY + Math.sin(a) * rad * 0.98;
+      if (x < P04.x || x > P04.x + P04.w || y < P04.y || y > P04.y + P04.h) continue;
+      const a0 = 0.04 + r() * 0.17;
+      ctx.strokeStyle = `rgba(180,124,228,${a0.toFixed(3)})`;
+      ctx.fillStyle = `rgba(180,124,228,${a0.toFixed(3)})`;
+      ctx.lineWidth = 0.7;
+      const k = r();
+      if (k < 0.42) {
+        ctx.fillRect(x, y, 1 + r() * 4, 1 + r() * 2);
+      } else if (k < 0.66) {
+        ctx.strokeRect(x, y, 3 + r() * 7, 3 + r() * 5);
+      } else if (k < 0.84) {
+        ctx.beginPath();
+        ctx.moveTo(x - 3, y); ctx.lineTo(x + 3, y);
+        ctx.moveTo(x, y - 3); ctx.lineTo(x, y + 3);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.arc(x, y, 2 + r() * 5, 0, 1 + r() * 3);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  /* ── el ojo entero ────────────────────────────────────────────────── */
+  function ojo(ctx) {
+    reticula(ctx);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(P04.x, P04.y, P04.w, P04.h);
+    ctx.clip();
+    ctx.globalCompositeOperation = "lighter";
+    base(ctx);
+    anillos(ctx);
+    /* Cuatro pasadas de filamento. La primera versión usaba pocas agujas muy
+       largas y salió un ESTALLIDO de rayos: la referencia no tiene rayos, tiene
+       pluma. Lo que la arregla es más agujas, más cortas, con menos alfa cada
+       una y con deriva angular — el fleco de la referencia muere en r≈135. */
+    filamentos(ctx, 520, 25, 29, 48, 70, 0xa11f, 0.42, 0.62);
+    filamentos(ctx, 720, 30, 48, 70, 104, 0xb327, 0.46, 0.62);
+    engranaje(ctx);
+    plumas(ctx, 64, 0xc435);
+    /* Circunferencias finas DENTRO del iris: la referencia teje la pluma con
+       aros concéntricos y sin ellos quedan calles negras entre aguja y aguja. */
+    aroFino(ctx, 24, 140, 0x6b2c);
+    tejas(ctx, 26, 142, 3.1, 0.55, 0x77e3, 1.0);
+    tejas(ctx, 145, 250, 5.3, 0.34, 0x88f4, 0.85);
+    tejas(ctx, 252, 350, 8.7, 0.22, 0x9905, 0.7);
+    coronas(ctx);
+    ctx.restore();
+    glifos(ctx);
+    barrido(ctx);
+    ejes(ctx);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(P04.x, P04.y, P04.w, P04.h);
+    ctx.clip();
+    pupila(ctx);
+    ctx.restore();
+    ctx.globalCompositeOperation = "source-over";
+  }
+
+  /* ── código de barras ─────────────────────────────────────────────────
+     Columna por columna desde la lectura de la referencia: cada bit es 1 px
+     de ancho. Trazarlo con contornos pierde ~38 % de la tinta. */
+  function barcode(ctx) {
+    ctx.fillStyle = "#3f4141";
+    for (let i = 0; i < BARRAS.length; i++) {
+      if (BARRAS[i] === "1") ctx.fillRect(168 + i, 467, 1, 19);
+    }
+  }
+
+  /* ── sello ────────────────────────────────────────────────────────────
+     El emblema alado de la esquina, en versión de 30 px: dos aros con texto
+     ilegible entre medio (micrografía: a 2 px nada es legible y poner texto
+     real sería inventar contenido) y el ala al centro. */
+  function sello(ctx) {
+    const cx = 614, cy = 477, r = rng(0x9c02);
+    ctx.strokeStyle = "rgba(150,80,200,0.48)";
+    ctx.lineWidth = 0.8;
+    for (const rad of [14.5, 11.5]) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(168,102,214,0.42)";
+    for (let i = 0; i < 54; i++) {
+      const a = (i / 54) * Math.PI * 2;
+      const rad = 13;
+      ctx.fillRect(cx + Math.cos(a) * rad - 0.5, cy + Math.sin(a) * rad - 0.9, 1, 1.8 + r() * 0.6);
+    }
+    ctx.strokeStyle = "rgba(186,124,232,0.66)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 8, cy - 2);
+    ctx.lineTo(cx, cy - 5.5);
+    ctx.lineTo(cx + 8, cy - 2);
+    ctx.moveTo(cx - 6, cy + 1.5);
+    ctx.lineTo(cx, cy - 1.5);
+    ctx.lineTo(cx + 6, cy + 1.5);
+    ctx.moveTo(cx, cy - 5.5);
+    ctx.lineTo(cx, cy + 5.5);
+    ctx.stroke();
+  }
+
+  /* ── iconos de la tabla 07 ───────────────────────────────────────────
+     Siete marcas de 15 px, una por evento. No son siete dibujos distintos:
+     son el mismo trazo de instrumento con distinto núcleo. */
+  function iconos(ctx) {
+    const y0 = 554.5;
+    for (let i = 0; i < 7; i++) {
+      const cy = y0 + i * 22.05;
+      const cx = 18;
+      const col = i === 5 ? "rgba(180,52,42,0.9)" : i === 6 ? "rgba(21,159,174,0.9)" : "rgba(150,150,146,0.85)";
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 0.85;
+      const r = rng(0x2200 + i * 37);
+      if (i === 0) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy);
+        ctx.quadraticCurveTo(cx, cy - 6, cx + 8, cy);
+        ctx.quadraticCurveTo(cx, cy + 6, cx - 8, cy);
+        ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 2.6, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 1.1, 0, Math.PI * 2); ctx.fill();
+      } else if (i === 1) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 9, cy);
+        for (let k = 0; k < 18; k++) {
+          const x = cx - 9 + k;
+          const h = k > 4 && k < 13 ? (r() - 0.5) * 11 : (r() - 0.5) * 2.5;
+          ctx.lineTo(x, cy + h);
+        }
+        ctx.stroke();
+      } else if (i === 2) {
+        ctx.beginPath(); ctx.arc(cx, cy, 7, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, 3.4, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 9, cy); ctx.lineTo(cx + 9, cy);
+        ctx.moveTo(cx, cy - 9); ctx.lineTo(cx, cy + 9);
+        ctx.stroke();
+      } else if (i === 3) {
+        ctx.beginPath();
+        ctx.arc(cx, cy - 1.5, 5.2, Math.PI, 0);
+        ctx.lineTo(cx + 5.2, cy + 2);
+        ctx.lineTo(cx - 5.2, cy + 2);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillRect(cx - 3.4, cy - 2.4, 2, 2);
+        ctx.fillRect(cx + 1.4, cy - 2.4, 2, 2);
+        ctx.fillRect(cx - 2.6, cy + 3.2, 5.2, 2.6);
+      } else if (i === 4 || i === 5) {
+        const n = i === 4 ? 4 : 8;
+        for (let k = 0; k < n; k++) {
+          const a = (k / n) * Math.PI * 2 + (i === 5 ? 0.2 : 0.78);
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(a) * 2.5, cy + Math.sin(a) * 2.5);
+          ctx.lineTo(cx + Math.cos(a) * 9, cy + Math.sin(a) * 9);
+          ctx.stroke();
+        }
+        ctx.beginPath(); ctx.arc(cx, cy, 2.4, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy + 4); ctx.lineTo(cx, cy - 6); ctx.lineTo(cx + 8, cy + 4);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy); ctx.lineTo(cx + 8, cy);
+        ctx.moveTo(cx - 5, cy + 6); ctx.lineTo(cx + 5, cy + 6);
+        ctx.stroke();
+      }
+    }
+  }
+
+  /* ── tira de señal del pie de 07 ──────────────────────────────────────
+     No es un peine simétrico (eso se lee como ecualizador): es una serie con
+     racimos de picos altos y valles largos, con la mancha densa a la
+     izquierda del panel, como en la referencia. */
+  function tiraSenal(ctx) {
+    const r = rng(0x4411);
+    const base = 741, x0 = 10, x1 = 351;
+    for (let x = x0; x < x1; x += 1) {
+      const t = (x - x0) / (x1 - x0);
+      const racimo = Math.pow(Math.max(0, Math.sin(t * 17.3) * 0.5 + 0.5), 2.4);
+      const h = (1.2 + r() * 5) + racimo * (2 + r() * 22) * (r() < 0.06 ? 2.2 : 1);
+      const a = 0.09 + r() * 0.26;
+      ctx.fillStyle = `rgba(168,110,220,${a.toFixed(3)})`;
+      ctx.fillRect(x, base - h, 1, h);
+      if (r() < 0.5) {
+        ctx.fillStyle = `rgba(150,96,206,${(a * 0.7).toFixed(3)})`;
+        ctx.fillRect(x, base, 1, 1 + r() * 5);
+      }
+    }
+    ctx.fillStyle = "rgba(120,74,168,0.5)";
+    for (let x = x0; x < x1; x += 9.7) ctx.fillRect(Math.round(x), 749, 1, 3);
+  }
+
+  /* ── miniaturas y ondas de la tira 05/06 ─────────────────────────────
+     Sólo se ve la primera columna de recortes: el marco real de esa banda
+     está en x=1122 y esta caja llega hasta 1180. */
+  function tira(ctx) {
+    /* Los dos recortes de 05 que caen en esta caja. No son la misma textura:
+       el de arriba es un fragmento de iris «tratado» —vetas largas y diagonales
+       con brillos, como piedra rota— y el de abajo es el pase HALFTONE, gris,
+       con fibra radial alrededor de una pupila negra corrida a la derecha.
+       Resolverlos con el mismo salpicado daba dos manchas iguales y ninguna se
+       parecía a la referencia. */
+    {
+      const r = rng(0x8801);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(662, 42, 50, 68);
+      ctx.clip();
+      ctx.fillStyle = "#05030a";
+      ctx.fillRect(662, 42, 50, 68);
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 190; i++) {
+        const x = 660 + r() * 54, y = 40 + r() * 72;
+        const ang = -0.5 + (r() - 0.5) * 1.5;
+        const largo = 3 + r() * (r() < 0.2 ? 22 : 9);
+        const al = 0.04 + r() * 0.28;
+        ctx.strokeStyle = `rgba(${r() < 0.14 ? "236,222,255" : "158,96,206"},${al.toFixed(3)})`;
+        ctx.lineWidth = 0.6 + r() * 2.4;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(ang) * largo, y + Math.sin(ang) * largo);
+        ctx.stroke();
+      }
+      for (let i = 0; i < 90; i++) {
+        const x = 660 + r() * 54, y = 40 + r() * 72;
+        ctx.fillStyle = `rgba(202,150,244,${(0.05 + r() * 0.28).toFixed(3)})`;
+        ctx.fillRect(x, y, 1 + r() * 4, 1 + r() * 3);
+      }
+      ctx.restore();
+    }
+    {
+      const r = rng(0x8802);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(662, 148, 50, 75);
+      ctx.clip();
+      ctx.fillStyle = "#050505";
+      ctx.fillRect(662, 148, 50, 75);
+      ctx.globalCompositeOperation = "lighter";
+      const cx = 716, cy = 187;
+      for (let i = 0; i < 2300; i++) {
+        const a2 = r() * Math.PI * 2;
+        const rad = 22 + Math.pow(r(), 0.7) * 62;
+        const x = cx + Math.cos(a2) * rad, y = cy + Math.sin(a2) * rad * 0.92;
+        const al = (0.075 + r() * 0.75) * (1 - Math.min(1, (rad - 22) / 78));
+        ctx.fillStyle = `rgba(216,216,218,${al.toFixed(3)})`;
+        ctx.fillRect(x, y, 0.7 + r() * 2.2, 0.6 + r() * 1.1);
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(cx, cy, 19, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    /* ondas de 06 */
+    const conf = [
+      [283, 41, "168,96,222", 0x51a3, 1.0],
+      [326, 43, "18,182,198", 0x77c1, 0.95],
+      [371, 44, "141,70,184", 0x2e05, 0.6],
+      [417, 62, "164,95,216", 0x64bb, 1.2],
+    ];
+    for (const [y, h, col, sem, gan] of conf) {
+      const r = rng(sem);
+      const base = y + h - 9;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(661, y + 12, 51, h - 13);
+      ctx.clip();
+      if (sem === 0x64bb) {
+        /* SPECTRAL RANGE es un espectro, no un peine: picos anchos con falda */
+        for (let x = 661; x < 712; x++) {
+          const t = (x - 661) / 51;
+          const p = Math.pow(Math.max(0, Math.sin(t * 9.1 + 0.4)), 6) + Math.pow(Math.max(0, Math.sin(t * 4.3)), 9);
+          const hh = 1.8 + p * 23 + r() * 2.8;
+          ctx.fillStyle = `rgba(${col},${(0.12 + r() * 0.34).toFixed(3)})`;
+          ctx.fillRect(x, base - hh, 1, hh);
+        }
+      } else {
+        for (let x = 661; x < 712; x++) {
+          const t = (x - 661) / 51;
+          const env = Math.pow(Math.max(0, Math.sin(t * 11.7 + sem % 7)), 3);
+          const hh = (0.6 + r() * 1.5) + env * (1.6 + r() * 8) * gan;
+          const a = 0.11 + r() * 0.28;
+          ctx.fillStyle = `rgba(${col},${a.toFixed(3)})`;
+          ctx.fillRect(x, base - hh, 1, hh * 2);
+        }
+        ctx.fillStyle = `rgba(${col},0.3)`;
+        ctx.fillRect(661, base, 51, 1);
+      }
+      ctx.restore();
+    }
+  }
+
+  function pintar(cv) {
+    const ctx = ctx2d(cv, 712, 778);
+    ctx.clearRect(0, 0, 712, 778);
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, 712, 778);
+    ojo(ctx);
+    barcode(ctx);
+    sello(ctx);
+    iconos(ctx);
+    tiraSenal(ctx);
+    tira(ctx);
+  }
+
+  function arrancar() {
+    const cv = document.querySelector(".oe4__lienzo");
+    if (cv && cv.dataset.pintado !== "1") {
+      cv.dataset.pintado = "1";
+      pintar(cv);
+    }
+  }
+
+  arrancar();
+
+  /* El panel es estático a propósito — el banco compara píxel a píxel y un rAF
+     propio le hace medir ruido. Aun así se registra el congelador, que es el
+     contrato que espera la página. */
+  const w = window;
+  const congelar = () => arrancar();
+  if (typeof w.__kdxRegisterFreeze === "function") {
+    w.__kdxRegisterFreeze(congelar);
+  } else {
+    let n = 0;
+    const id = setInterval(() => {
+      if (typeof w.__kdxRegisterFreeze === "function") {
+        clearInterval(id);
+        w.__kdxRegisterFreeze(congelar);
+      } else if (++n > 200) clearInterval(id);
+    }, 25);
+  }
+</script>

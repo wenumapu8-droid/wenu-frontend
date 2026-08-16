@@ -1,0 +1,351 @@
+---
+/**
+ * KODEX-∞ · u01-origin-field · PANELES
+ *
+ * Los tres instrumentos de la banda inferior de
+ * `reference/canon/u01-origin-field.png` (1122×1402):
+ *
+ *   FIELD DIAGNOSTICS   marco x  81– 293  y 1008–1215
+ *   ENTRY VECTOR        emblema centrado en (561 · 1107), rótulos en 1208/1229
+ *   SYSTEM NOTICE       marco x 832–1041  y 1008–1215
+ *
+ * Los dos marcos son EXACTAMENTE del mismo alto (207 px) y de ancho casi igual
+ * (212 y 209): están alineados por arriba y por abajo, no centrados en sus
+ * columnas. Se comprobó barriendo las cuatro reglas por separado.
+ *
+ * LAS FILAS DEL DIAGNÓSTICO SON UNA SOLA CADENA, no tres cajas con un relleno
+ * de puntos en medio. Se ve midiendo los extremos de tinta: 263, 279, 281, 257,
+ * 268 y 271 — no están alineados a la derecha. Si el valor fuese una columna
+ * propia, lo estarían. Lo que hay es texto mono corrido con un número distinto
+ * de puntos por fila (13, 10, 9, 8, 14 y 15), y los puntos caen en la misma
+ * rejilla de 5,9 px que las letras. Componerlo con `flex` + guía de puntos
+ * —que es como se resolvió en u02, donde SÍ estaban alineados— deja las seis
+ * filas cerrando en el mismo x y el banco lo ve fila por fila.
+ *
+ * SYSTEM NOTICE va CENTRADO en x=936,5 y con un avance mayor (7,7 contra 5,9),
+ * o sea otro cuerpo: 11 px contra 9,6. Son dos paneles con la misma caja y dos
+ * tipografías distintas, y ésa es la diferencia que los separa a la vista.
+ *
+ * TELEMETRÍA SIMBÓLICA. `COHERENCE 0.7%`, `ENTROPY RISING` y el resto son
+ * ficción del póster, no estado de ningún sistema. Van marcados
+ * `data-symbolic="true"` como manda el canon.
+ *
+ * No hay bloque `<script>` a propósito: en este repo Astro compila el contenido
+ * de `<script>` como JS puro y cualquier anotación de tipo lo rompe. Nada de
+ * esta región necesita runtime — lo vivo está en `Campo.astro`.
+ */
+
+/* ── 1 · FIELD DIAGNOSTICS ─────────────────────────────────────────────── */
+
+const PIZQ = { x: 81, y: 1008, w: 212, h: 207 };
+const PDER = { x: 832, y: 1008, w: 209, h: 207 };
+
+/**
+ * Filas del diagnóstico. El número de puntos NO es decorativo: sale de contar
+ * la rejilla de 5,9 px entre el final del rótulo y el arranque del valor en la
+ * referencia, fila por fila.
+ */
+const DIAG = [
+  ["COHERENCE", 13, "0.7%"],
+  ["STRUCTURE", 10, "INCOMPLETE"],
+  ["STABILITY", 9, "FLUCTUATING"],
+  ["SIGNAL DENSITY", 8, "LOW"],
+  ["ENTROPY", 14, "RISING"],
+  ["STATE", 15, "UNKNOWN"],
+] as const;
+/* Interlínea medida: 22,6 px exactos entre las seis líneas de base. */
+const filaY = (i: number) => 1068.5 + i * 22.6;
+
+/* ── 2 · SYSTEM NOTICE ─────────────────────────────────────────────────── */
+
+const AVISO = [
+  "THIS IS NOT A MAP.",
+  "THIS IS AN INVITATION.",
+  "THE KODEX IS NOT FOUND.",
+  "IT IS REMEMBERED.",
+];
+const AVISO_EJE = 936.5;
+const avisoY = (i: number) => 1067.5 + i * 22.6;
+
+/* ── 3 · ROSA DE LOS VIENTOS ───────────────────────────────────────────── */
+/**
+ * La misma construcción paramétrica que el sello del pie, a otra escala y
+ * centrada en (935 · 1178). Los ocho brazos NO son iguales, y esa desigualdad
+ * es lo que la separa de un asterisco tipográfico:
+ *   · las cuatro DIAGONALES son trazo corto con cuadradito en la punta;
+ *   · los dos EJES son mucho más largos y salen del anillo, no del núcleo;
+ *   · entre medio, ocho pelos a 22,5° que cierran la rueda.
+ */
+const ROSA = { cx: 935, cy: 1178, R: 16.5 };
+const pol = (r: number, a: number) => [
+  ROSA.cx + r * Math.cos((a * Math.PI) / 180),
+  ROSA.cy + r * Math.sin((a * Math.PI) / 180),
+];
+const rosaBrazos = Array.from({ length: 8 }, (_, k) => {
+  const a = k * 45;
+  const eje = k % 2 === 0;
+  const [x1, y1] = pol(eje ? 3.2 : 2.6, a);
+  const [x2, y2] = pol(eje ? 17 : 11, a);
+  return { eje, d: `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}` };
+});
+const rosaPelos = Array.from({ length: 8 }, (_, k) => {
+  const a = 22.5 + k * 45;
+  const [x1, y1] = pol(3.4, a);
+  const [x2, y2] = pol(8.2, a);
+  return `M${x1.toFixed(2)} ${y1.toFixed(2)}L${x2.toFixed(2)} ${y2.toFixed(2)}`;
+});
+
+/* ── 4 · ENTRY VECTOR ──────────────────────────────────────────────────── */
+
+const EMB = { cx: 561, cy: 1107 };
+/** Radios medidos sobre el perfil radial del emblema: 22, 28, 40 y 48. */
+const EMB_ANILLOS: [number, number, number][] = [
+  [22, 0.62, 0.9],
+  [28, 0.5, 0.85],
+  [40, 0.34, 0.75],
+  [48, 0.44, 0.85],
+];
+
+/**
+ * Lemniscata de Bernoulli normalizada: lóbulos redondos y cruce en punta, que
+ * es la forma del 8 de la referencia. La de Gerono da lóbulos pellizcados y el
+ * lazo sale con cara de reloj de arena.
+ */
+const LEM_V = 0.3535533906;
+const lemniscata = (cx: number, cy: number, ex: number, ey: number, pasos = 120) =>
+  Array.from({ length: pasos + 1 }, (_, i) => {
+    const t = (i / pasos) * Math.PI * 2;
+    const d = 1 + Math.sin(t) * Math.sin(t);
+    const x = cx + (ex * Math.cos(t)) / d;
+    const y = cy + (ey * ((Math.sin(t) * Math.cos(t)) / d)) / LEM_V;
+    return `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`;
+  }).join("");
+
+/** Esquina en L de los marcos: cuatro brazos, uno por vértice. */
+const ESQ = 15;
+const esquinas = (p: { x: number; y: number; w: number; h: number }) =>
+  [
+    [p.x, p.y, 1, 1],
+    [p.x + p.w, p.y, -1, 1],
+    [p.x, p.y + p.h, 1, -1],
+    [p.x + p.w, p.y + p.h, -1, -1],
+  ].map(([x, y, sx, sy]) => `M${x + sx * ESQ} ${y}H${x}V${y + sy * ESQ}`);
+---
+
+<div data-bloque="Paneles" style="inset:0">
+  <svg class="pan" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <!-- ═══ 1 · MARCOS ═══════════════════════════════════════════════════ -->
+    {
+      [PIZQ, PDER].map((p) => (
+        <g>
+          <rect class="pan-marco" x={p.x} y={p.y} width={p.w} height={p.h} />
+          {esquinas(p).map((d) => <path class="pan-marco__esq" d={d} />)}
+          {/* Hilo interior con un punto en cada vértice: son 9 px hacia adentro
+              y es lo que le da doble borde al panel. */}
+          <rect class="pan-marco__hilo" x={p.x + 9} y={p.y + 10} width={p.w - 18} height={p.h - 20} />
+          {[
+            [p.x + 9, p.y + 10], [p.x + p.w - 9, p.y + 10],
+            [p.x + 9, p.y + p.h - 10], [p.x + p.w - 9, p.y + p.h - 10],
+          ].map(([x, y]) => <circle class="pan-marco__pto" cx={x} cy={y} r="1.1" />)}
+        </g>
+      ))
+    }
+
+    <!-- ═══ 2 · FIELD DIAGNOSTICS ════════════════════════════════════════ -->
+    <text class="pan-t pan-t--tit" x="99" y="1037.5">FIELD DIAGNOSTICS</text>
+    <g data-symbolic="true">
+      {
+        /* La cadena va PEGADA a las etiquetas y en una sola línea. Con
+           `white-space: pre` —que hace falta para que la mono no colapse los
+           espacios— el salto de línea y la sangría del marcado entran como
+           texto: medido, metían 7 px de espacio delante y corrían las seis filas
+           de x=99 a x=106. Es la misma trampa que ya había mordido en u02. */
+        DIAG.map(([rotulo, puntos, valor], i) => (
+          <text class="pan-t pan-t--fila" x="99" y={filaY(i)}>{`${rotulo} ${".".repeat(puntos)} ${valor}`}</text>
+        ))
+      }
+    </g>
+
+    <!-- ═══ 3 · SYSTEM NOTICE ════════════════════════════════════════════ -->
+    <text class="pan-t pan-t--tit pan-t--tit--aviso" x="880" y="1037.5">SYSTEM NOTICE</text>
+    {
+      AVISO.map((linea, i) => (
+        <text class="pan-t pan-t--aviso" x={AVISO_EJE} y={avisoY(i)}>{linea}</text>
+      ))
+    }
+
+    <g class="pan-rosa">
+      <circle class="pan-rosa__aro" cx={ROSA.cx} cy={ROSA.cy} r="8.6" />
+      {rosaPelos.map((d) => <path class="pan-rosa__pelo" d={d} />)}
+      {
+        rosaBrazos.map((b) => (
+          <path class={b.eje ? "pan-rosa__eje" : "pan-rosa__diag"} d={b.d} />
+        ))
+      }
+      <circle class="pan-rosa__nucleo" cx={ROSA.cx} cy={ROSA.cy} r="2.4" />
+    </g>
+
+    <!-- ═══ 4 · ENTRY VECTOR ═════════════════════════════════════════════ -->
+    <g class="pan-emb">
+      <!-- Cruz de puntería punteada, por debajo de los anillos. -->
+      <path class="pan-emb__cruz" d={`M483 ${EMB.cy}H639M${EMB.cx} 1052V1177`} />
+      <circle class="pan-emb__hito" cx="483" cy={EMB.cy} r="1.5" />
+      <circle class="pan-emb__hito" cx="639" cy={EMB.cy} r="1.5" />
+      <circle class="pan-emb__hito" cx={EMB.cx} cy="1177" r="1.9" />
+
+      {
+        EMB_ANILLOS.map(([r, o, w]) => (
+          <circle class="pan-emb__anillo" cx={EMB.cx} cy={EMB.cy} r={r} opacity={o} stroke-width={w} />
+        ))
+      }
+
+      <!-- El ∞: tinta medida x=535..588 · y=1099..1115, o sea 53×16 de caja. -->
+      <path class="pan-emb__inf" d={lemniscata(EMB.cx, EMB.cy, 25, 7.6)} />
+    </g>
+
+    <!-- Ninguno de los dos rótulos está centrado en el eje del emblema: la tinta
+         de ENTRY VECTOR va de 512 a 624 (eje 568) y la de // PRESS TO INITIATE de
+         484 a 643 (eje 563,5). Colgados los dos de 561 quedan 7 y 3 px a la
+         izquierda de donde los tiene la referencia. -->
+    <text class="pan-t pan-t--entry" x="568" y="1208.5">ENTRY VECTOR</text>
+    <text class="pan-t pan-t--press" x="563.5" y="1229.5">// PRESS TO INITIATE</text>
+  </svg>
+</div>
+
+<style>
+  .pan {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+  }
+
+  .pan-t {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+
+  /* Título de panel: versal 9 px → cuerpo 12; avance medido 8,125. */
+  .pan-t--tit {
+    font-size: 12px;
+    letter-spacing: 0.077em;
+    fill: #b79ee0;
+    opacity: 0.62;
+  }
+  /* SYSTEM NOTICE va más suelto que FIELD DIAGNOSTICS: avance 8,5 contra 8,125
+     con la misma versal. Los dos paneles tienen la misma caja y no la misma
+     tipografía. */
+  .pan-t--tit--aviso { letter-spacing: 0.108em; }
+  /* Filas del diagnóstico: versal 7 px → cuerpo 9,6; avance medido 5,9, que es
+     casi el avance natural de la mono. */
+  .pan-t--fila {
+    font-size: 9.6px;
+    letter-spacing: 0.015em;
+    fill: #cfccc6;
+    opacity: 0.48;
+  }
+  /* Aviso: versal 8 px → cuerpo 11; avance 7,7. Centrado, con media letra de
+     corrección porque el interletrado sobra también al final. */
+  .pan-t--aviso {
+    font-size: 11px;
+    letter-spacing: 0.085em;
+    text-anchor: middle;
+    fill: #cfccc6;
+    opacity: 0.5;
+    transform: translateX(0.55px);
+  }
+  .pan-t--entry {
+    font-size: 14px;
+    letter-spacing: 0.093em;
+    text-anchor: middle;
+    fill: #b79ee0;
+    opacity: 0.76;
+    transform: translateX(0.65px);
+  }
+  .pan-t--press {
+    font-size: 11px;
+    letter-spacing: 0.142em;
+    text-anchor: middle;
+    fill: #cfccc6;
+    opacity: 0.53;
+    transform: translateX(0.78px);
+  }
+
+  /* ── marcos ─────────────────────────────────────────────────────────── */
+  .pan-marco {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1;
+    opacity: 0.15;
+  }
+  .pan-marco__esq {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1.1;
+    opacity: 0.5;
+  }
+  .pan-marco__hilo {
+    fill: none;
+    stroke: #6f5a96;
+    stroke-width: 1;
+    opacity: 0.3;
+  }
+  .pan-marco__pto {
+    fill: #cfccc6;
+    opacity: 0.4;
+  }
+
+  /* ── rosa ───────────────────────────────────────────────────────────── */
+  .pan-rosa__aro {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 1.1;
+    opacity: 0.6;
+  }
+  .pan-rosa__eje {
+    stroke: #cfccc6;
+    stroke-width: 1.2;
+    opacity: 0.72;
+  }
+  .pan-rosa__diag {
+    stroke: #cfccc6;
+    stroke-width: 1.5;
+    opacity: 0.6;
+  }
+  .pan-rosa__pelo {
+    stroke: #cfccc6;
+    stroke-width: 0.7;
+    opacity: 0.45;
+  }
+  .pan-rosa__nucleo {
+    fill: none;
+    stroke: #cfccc6;
+    stroke-width: 0.9;
+    opacity: 0.7;
+  }
+
+  /* ── emblema ────────────────────────────────────────────────────────── */
+  .pan-emb__cruz {
+    fill: none;
+    stroke: #b79ee0;
+    stroke-width: 0.9;
+    stroke-dasharray: 2 4.5;
+    opacity: 0.5;
+  }
+  .pan-emb__hito {
+    fill: #b79ee0;
+    opacity: 0.75;
+  }
+  .pan-emb__anillo {
+    fill: none;
+    stroke: #b79ee0;
+  }
+  .pan-emb__inf {
+    fill: none;
+    stroke: #d6c4f2;
+    stroke-width: 2.1;
+    stroke-linejoin: round;
+    opacity: 0.92;
+  }
+</style>

@@ -1,0 +1,1006 @@
+---
+/**
+ * KODEX-∞ · t01-06 RITUAL DEVICE · BLOQUE CENTRO
+ *
+ * Caja medida: x 620→1013, y 88→866 (393×778). El corte en x=620 NO es un
+ * número redondo: es la columna del marco derecho del panel 02, que tiene 400
+ * filas de tinta continua. El de la derecha, x=1013, cae en el hueco entre el
+ * héroe (termina en 1011) y el marco del panel 03 (empieza en 1014), y sirve
+ * igual para la banda inferior (panel 06 termina en 1010, el 07 arranca en
+ * 1017). O sea: el bloque tiene un borde real arriba y otro abajo.
+ *
+ * QUÉ HAY ADENTRO
+ * ---------------
+ *   · EL HÉROE, el dispositivo ritual (y 88→567). Va **procedural**: un solo
+ *     canvas 2D de 393×496. Anillos toroidales, tubo de vidrio, árbol de luz,
+ *     cristal romboidal, plato base y quince órbitas — todo parametrizado.
+ *     Nada trazado: sin canvas no hay organismo, ni estados, ni respuesta.
+ *   · El trozo del panel 06 UNIFORM MAP / PSEUDO-CODE que cae de x=620 para
+ *     la derecha (y 579→849). Eso es CHROME: marco, rótulos, la tabla de
+ *     capas y la clave uniforme. Los dieciséis glifos de esas dos tablas van
+ *     TRAZADOS de la referencia — son marca fija, no tienen estados.
+ *
+ * MEDIDO, NO ESTIMADO
+ * -------------------
+ *   · Eje de simetría del héroe en x=836,5 (mínimo de la diferencia espejada
+ *     barriendo 830→846 sobre 470 filas). En caja: 216,5.
+ *   · El tubo de vidrio: paredes brillantes en x=779/894 (±57,5) constantes
+ *     entre y=250 y y=400; carcasa exterior en ±72.
+ *   · La corona se ensancha hacia abajo: ±86 en y=120, ±99 en y=170. No es un
+ *     cilindro con tapa, es un toroide acampanado.
+ *   · Cristal centrado en (837, 343); lente violeta de rx 51 · ry 38.
+ *   · El plato base llega a ±100 entre y=430 e y=470 y se cierra en ±66.
+ *   · Líneas verticales de fondo en x=653, 673, 723, 950 y 999. Las tres del
+ *     medio NO son simetría del héroe (836,5−723=113,5 pero 836,5+113,5=950
+ *     sí lo es): son retícula técnica del póster, y por eso van al fondo y no
+ *     al organismo.
+ *   · Panel 06: marco superior en y=579, regla del rótulo en 602/603, fondo en
+ *     848/849; tabla de capas x 773→1001, y 621→755, con la regla de cabecera
+ *     en 653 y los tabiques en 829,5 · 884 · 942; clave uniforme x 773→1001,
+ *     y 763→834 con su regla en 783. La regla de pliego, en y=861.
+ *
+ * LO QUE NO PUDE RESOLVER SOLO — está en el informe:
+ *   El panel 06 queda a caballo del corte. Su código fuente empieza en x=514,
+ *   o sea 106 px DENTRO del bloque Izquierda, y las colas de nueve líneas
+ *   cruzan a este lado. Se dibujan acá el bloque de código entero corrido
+ *   −106 px y recortado por la caja, para que la costura caiga exactamente en
+ *   620 en los dos bloques. Si el agente de Izquierda usa otra métrica de
+ *   fuente, en x=620 va a verse el empalme.
+ *
+ * Medir: node scripts/lamina/score-panel.mjs t01-06-ritual-device Centro --triptico
+ */
+import capa1 from "./trazos-centro/capa1.svg?raw";
+import capa2 from "./trazos-centro/capa2.svg?raw";
+import capa3 from "./trazos-centro/capa3.svg?raw";
+import capa4 from "./trazos-centro/capa4.svg?raw";
+import key1 from "./trazos-centro/key1.svg?raw";
+import key2 from "./trazos-centro/key2.svg?raw";
+import key3 from "./trazos-centro/key3.svg?raw";
+import key4 from "./trazos-centro/key4.svg?raw";
+import key5 from "./trazos-centro/key5.svg?raw";
+import key6 from "./trazos-centro/key6.svg?raw";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ── panel 06 · pseudocódigo ────────────────────────────────────────────
+   Las llaves van en datos y no en el markup a propósito: en Astro `{` abre
+   una expresión, y escaparlas glifo por glifo en catorce líneas es la clase
+   de detalle que se rompe en la primera edición.
+
+   `x` e `y` son coordenadas ABSOLUTAS del póster; el render las corre a la
+   caja. Las catorce filas salen de medir dónde empieza y termina la tinta de
+   cada renglón entre x=500 y x=705. */
+const CODIGO: Array<{ y: number; x: number; t: string; c?: string }> = [
+  { y: 616, x: 514, t: "// KODEX-∞ RITUAL DEVICE PROTOCOL", c: "com" },
+  { y: 634, x: 514, t: "DEFINE CORE_SEED = KX_TA01_ORITUAL;", c: "def" },
+  { y: 647, x: 514, t: "INITIALIZE FIELD LATTICE;" },
+  { y: 667, x: 514, t: "WHILE (DEVICE.ACTIVE) {" },
+  { y: 681, x: 526, t: "CHARGE_AMBIENT();" },
+  { y: 693, x: 526, t: "ALIGN_GLYPHS();" },
+  { y: 708, x: 526, t: "IF (LOCK.ACHIEVED) {" },
+  { y: 721, x: 538, t: "RESONATE_CORE();" },
+  { y: 734, x: 538, t: "EMIT_SIGNAL();" },
+  { y: 747, x: 538, t: "ARCHIVE.WRITE(PATTERN);" },
+  { y: 761, x: 526, t: "}", c: "com" },
+  { y: 774, x: 526, t: "MAINTAIN_STABILITY();" },
+  { y: 788, x: 514, t: "}", c: "com" },
+  { y: 814, x: 514, t: "SHUTDOWN.SEQUENCE();", c: "com" },
+];
+
+/* Las cuatro capas de la tabla. El glifo va trazado; el rótulo es texto. */
+const CAPAS = [
+  { n: "LAYER 1", w: "AXIS", svg: capa1, x: 783, gw: 36 },
+  { n: "LAYER 2", w: "GLYPH", svg: capa2, x: 837, gw: 40 },
+  { n: "LAYER 3", w: "SIGNAL", svg: capa3, x: 894, gw: 40 },
+  { n: "LAYER 4", w: "MANIFEST", svg: capa4, x: 952, gw: 39 },
+];
+/* Tabiques verticales de la tabla, en absoluto. */
+const TABIQUES = [829.5, 884, 942];
+
+/* Clave uniforme: seis iconos trazados con su rótulo. `x`/`y`/`w`/`h` son la
+   caja exacta que reportó el extractor, así que no hay que centrar nada. */
+const CLAVE = [
+  { svg: key1, x: 787, y: 791, w: 22, h: 30, r: "AXIS", tono: "hueso" },
+  { svg: key2, x: 823, y: 791, w: 22, h: 30, r: "GLYPH", tono: "violeta" },
+  { svg: key3, x: 858, y: 791, w: 21, h: 30, r: "NODE", tono: "cian" },
+  { svg: key4, x: 894, y: 792, w: 23, h: 29, r: "FLOW", tono: "cian" },
+  { svg: key5, x: 932, y: 791, w: 19, h: 30, r: "LOCK", tono: "hueso" },
+  { svg: key6, x: 968, y: 792, w: 21, h: 29, r: "EMIT", tono: "hueso" },
+];
+
+/* De coordenada del póster a coordenada de la caja. */
+const bx = (x: number) => x - 620;
+const by = (y: number) => y - 88;
+---
+
+<div data-box style={box} class="rd6" data-hero-t0106>
+  <!-- EL HÉROE. Procedural, un solo canvas. -->
+  <canvas class="rd6__cv" width="393" height="496" aria-hidden="true"></canvas>
+
+  <!-- ── panel 06 · la parte que cae de este lado del corte ───────────── -->
+  <div class="rd6__p06">
+    <i class="rd6__marco" style={`top:${by(579)}px`}></i>
+    <i class="rd6__regla" style={`top:${by(602)}px`}></i>
+    <i class="rd6__marco rd6__marco--pie" style={`top:${by(848)}px`}></i>
+    <i class="rd6__borde" style={`top:${by(579)}px;height:${848 - 579 + 2}px`}></i>
+
+    <span class="rd6__rotulo" style={`left:${bx(504)}px;top:${by(585)}px`}
+      >06. UNIFORM MAP / PSEUDO-CODE</span
+    >
+
+    <!-- retícula técnica tenue bajo el código -->
+    <i class="rd6__malla" style={`top:${by(605)}px;height:${240}px`}></i>
+
+    <!-- el diagrama radial violeta: concéntricas y una elipse de canto -->
+    <svg class="rd6__radial" viewBox="0 0 120 120" width="120" height="120"
+      style={`left:${bx(712) - 60}px;top:${by(726) - 60}px`} aria-hidden="true">
+      <g fill="none" stroke="#7d5aa8">
+        <path d="M60 5 V115 M5 60 H115" stroke="#3a2b52" stroke-width="0.7" stroke-dasharray="2 3" />
+        <circle cx="60" cy="60" r="8.5" stroke-opacity="0.85" stroke-width="0.9" />
+        <circle cx="60" cy="60" r="18" stroke-opacity="0.7" stroke-width="0.8" />
+        <circle cx="60" cy="60" r="27.5" stroke-opacity="0.5" stroke-width="0.8" />
+        <circle cx="60" cy="60" r="37" stroke-opacity="0.62" stroke-width="0.9" />
+        <circle cx="60" cy="60" r="44.5" stroke-opacity="0.78" stroke-width="1" />
+        <ellipse cx="60" cy="60" rx="18.5" ry="6.2" stroke-opacity="0.9" stroke-width="1" />
+        <ellipse cx="60" cy="60" rx="11" ry="3.6" stroke-opacity="0.55" stroke-width="0.7" />
+      </g>
+      <circle cx="60" cy="60" r="2.6" fill="#8fa6f0" />
+      <circle cx="60" cy="60" r="1.2" fill="#e8eeff" />
+    </svg>
+
+    <!-- pseudocódigo. Corrido −106 px y recortado por la caja: la costura con
+         el bloque Izquierda cae exactamente en x=620. -->
+    <div class="rd6__cod">
+      {
+        CODIGO.map((l) => (
+          <span class={`rd6__lin${l.c ? " rd6__lin--" + l.c : ""}`}
+            style={`left:${bx(l.x)}px;top:${by(l.y)}px`}>{l.t}</span>
+        ))
+      }
+    </div>
+
+    <!-- tabla de capas -->
+    <div class="rd6__tabla" style={`left:${bx(773)}px;top:${by(621)}px;width:${1001 - 773}px;height:${755 - 621}px`}>
+      <i class="rd6__thr"></i>
+      {TABIQUES.map((t) => <i class="rd6__tab" style={`left:${t - 773}px`} />)}
+    </div>
+    {
+      CAPAS.map((c) => (
+        <>
+          <span class="rd6__capa" style={`left:${bx(c.x - 4)}px;top:${by(626)}px`}>{c.n}</span>
+          <span class="rd6__capa rd6__capa--w" style={`left:${bx(c.x - 4)}px;top:${by(638)}px`}>{c.w}</span>
+          <i class="rd6__gl rd6__gl--cian" style={`left:${bx(c.x)}px;top:${by(662)}px;width:${c.gw}px;height:88px`} set:html={c.svg} />
+        </>
+      ))
+    }
+
+    <!-- clave uniforme -->
+    <div class="rd6__tabla rd6__tabla--clave" style={`left:${bx(773)}px;top:${by(763)}px;width:${1001 - 773}px;height:${834 - 763}px`}>
+      <i class="rd6__thr rd6__thr--clave"></i>
+    </div>
+    <span class="rd6__capa rd6__capa--w" style={`left:${bx(781)}px;top:${by(769)}px`}>UNIFORM KEY</span>
+    {
+      CLAVE.map((k) => (
+        <>
+          <i class={`rd6__gl rd6__gl--${k.tono}`} style={`left:${bx(k.x)}px;top:${by(k.y)}px;width:${k.w}px;height:${k.h}px`} set:html={k.svg} />
+          <span class="rd6__rot" style={`left:${bx(k.x + k.w / 2)}px;top:${by(818)}px`}>{k.r}</span>
+        </>
+      ))
+    }
+  </div>
+
+  <!-- regla de pliego -->
+  <i class="rd6__pliego" style={`top:${by(861)}px`}></i>
+</div>
+
+<style>
+  .rd6 {
+    overflow: hidden;
+    background: #000;
+    font-family: var(--lam-mono);
+  }
+  .rd6__cv { position: absolute; left: 0; top: 0; }
+
+  .rd6__p06 { position: absolute; inset: 0; overflow: hidden; }
+
+  /* marco del panel: la referencia lo tiene gris muy apagado, no acento */
+  .rd6__marco {
+    position: absolute; left: 0; width: 391px; height: 1px; background: #2e2b2c;
+  }
+  .rd6__marco--pie { height: 2px; background: #17161a; }
+  .rd6__regla { position: absolute; left: 0; width: 391px; height: 2px; background: #1c1a1b; }
+  .rd6__borde { position: absolute; left: 390px; width: 1px; background: #2b2a2b; }
+  .rd6__pliego { position: absolute; left: 0; top: 0; width: 393px; height: 1px; background: #292828; }
+
+  .rd6__rotulo {
+    position: absolute; white-space: nowrap;
+    font-size: 11px; line-height: 1; color: #17909f; letter-spacing: 0;
+  }
+
+  /* Retícula del fondo del panel: en la referencia es una cuadrícula de ~12 px
+     casi apagada. Sin ella el bloque de código flota sobre negro puro y el
+     término estructural lo nota. */
+  .rd6__malla {
+    position: absolute; left: 0; width: 391px; opacity: 0.5;
+    background-image:
+      linear-gradient(#141516 1px, transparent 1px),
+      linear-gradient(90deg, #141516 1px, transparent 1px);
+    background-size: 24px 22px;
+    background-position: 3px 1px;
+  }
+
+  .rd6__radial { position: absolute; }
+
+  /* ── pseudocódigo ───────────────────────────────────────────────────── */
+  .rd6__cod { position: absolute; inset: 0; }
+  .rd6__lin {
+    position: absolute; white-space: pre;
+    font-size: 9px; line-height: 1; letter-spacing: 0;
+    color: #2f8d95;
+  }
+  .rd6__lin--com { color: #4a4a4a; }
+  .rd6__lin--def { color: #7f56b8; }
+
+  /* ── tablas ─────────────────────────────────────────────────────────── */
+  .rd6__tabla {
+    position: absolute;
+    border: 1px solid #24282a;
+    border-left-width: 2px;
+    border-right-width: 2px;
+  }
+  .rd6__thr {
+    position: absolute; left: 0; right: 0; top: 31px; height: 1px; background: #0f3a44;
+  }
+  .rd6__thr--clave { top: 19px; }
+  .rd6__tab { position: absolute; top: 0; bottom: 0; width: 1.5px; background: #14535c; }
+
+  .rd6__capa {
+    position: absolute; white-space: nowrap;
+    font-size: 9px; line-height: 1; letter-spacing: 0.02em; color: #7d817f;
+  }
+  .rd6__capa--w { color: #9aa0a0; }
+  .rd6__rot {
+    position: absolute; transform: translateX(-50%); white-space: nowrap;
+    font-size: 8px; line-height: 1; letter-spacing: 0.04em; color: #6d7271;
+  }
+
+  /* ── glifos trazados ────────────────────────────────────────────────── */
+  .rd6__gl { position: absolute; display: block; }
+  .rd6__gl :global(svg) { display: block; width: 100%; height: 100%; }
+  /* el trazo sale relleno en negro; el color lo pone la lámina */
+  .rd6__gl :global(path) { fill: currentColor; }
+  .rd6__gl--cian { color: #1f9fb4; }
+  .rd6__gl--violeta { color: #8b5cc9; }
+  .rd6__gl--hueso { color: #9aa0a0; }
+</style>
+
+<script>
+  /**
+   * EL DISPOSITIVO RITUAL — canvas 2D, sin un solo bitmap.
+   *
+   * El modelo es un instrumento, no una ilustración: cinco piezas apiladas
+   * sobre un eje (corona toroidal, tubo de vidrio, cristal, plato base, campo
+   * orbital) y cada una es una función de sus parámetros. Por eso puede
+   * animarse, responder y cambiar de estado; una vectorización de la lámina
+   * no puede hacer ninguna de las tres cosas.
+   *
+   * Coordenadas: la caja empieza en el póster en (620, 88). Todo lo que sigue
+   * ya está corrido, así que `AX = 216.5` es el x=836,5 medido.
+   */
+  const host = document.querySelector("[data-hero-t0106]");
+  const cv = host && host.querySelector("canvas");
+  const ctx = cv && cv.getContext("2d");
+
+  if (cv && ctx) {
+    const W = 393;
+    const H = 496;
+    const AX = 216.5;
+    const TAU = Math.PI * 2;
+
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+
+    /* Determinista: el banco compara píxel a píxel y con Math.random dos
+       capturas de la misma página dan puntajes distintos. */
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const cy = (a) => `rgba(38,214,246,${a.toFixed(3)})`;
+    const cyd = (a) => `rgba(16,120,150,${a.toFixed(3)})`;
+    const vi = (a) => `rgba(150,96,224,${a.toFixed(3)})`;
+    const vid = (a) => `rgba(96,58,150,${a.toFixed(3)})`;
+    const wh = (a) => `rgba(226,248,255,${a.toFixed(3)})`;
+
+    /* ── campo orbital ─────────────────────────────────────────────────
+       Quince elipses concéntricas al eje. Los centros y los radios salen de
+       las columnas de cruce medidas en x=640, 655, 670, 975 y 995; no están
+       repartidas parejo ni tienen el mismo peso, que es justo lo que separa
+       un instrumento de una diana. */
+    const ORB = [
+      [52, 168, 28, 1.0, 0.3, 0],
+      [78, 194, 34, 1.1, 0.4, 0],
+      [104, 150, 24, 1.0, 0.38, 1],
+      [150, 196, 32, 1.1, 0.42, 1],
+      [204, 164, 26, 1.0, 0.34, 0],
+      [258, 178, 28, 0.9, 0.24, 0],
+      [290, 156, 23, 1.3, 0.5, 1],
+      [352, 152, 26, 1.2, 0.44, 1],
+      [404, 186, 28, 1.0, 0.38, 0],
+      [452, 154, 26, 0.9, 0.22, 0],
+      [432, 112, 21, 0.9, 0.32, 0],
+      [432, 62, 12, 0.9, 0.36, 0],
+      [432, 32, 6, 0.8, 0.4, 0],
+    ];
+
+    function orbitas(t, frente, k) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < ORB.length; i++) {
+        const [yc, rx, ry, lw, al, bright] = ORB[i];
+        if (!!bright !== frente) continue;
+        /* Respiración: cada órbita late a su propio ritmo. Amplitud chica —
+           es un campo estable, no una animación de carga. */
+        const k = 1 + 0.012 * Math.sin(t * TAU + i * 1.7);
+        ctx.beginPath();
+        ctx.ellipse(AX, yc, rx * k, ry * k, 0, 0, TAU);
+        ctx.strokeStyle = bright ? cy(al * k) : cyd(al * 1.25 * k);
+        ctx.lineWidth = lw;
+        ctx.stroke();
+        /* El arco encendido: un tramo corto de la elipse a brillo pleno que
+           gira. Es lo que convierte un anillo en una órbita recorrida. */
+        const a0 = (t * TAU * (0.3 + (i % 5) * 0.11) + i * 0.9) % TAU;
+        ctx.beginPath();
+        ctx.ellipse(AX, yc, rx * k, ry * k, 0, a0, a0 + 0.55);
+        ctx.strokeStyle = cy(Math.min(0.85, al * 1.9 * k));
+        ctx.lineWidth = lw + 0.4;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /* ── fondo técnico ────────────────────────────────────────────────── */
+    const VLIN = [33, 53, 103, 330, 379];
+    function fondo() {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, W, H);
+
+      /* Niebla del núcleo. La primera versión no la tenía y el mapa de bloques
+         de 16×16 salió corrido HACIA ABAJO en casi toda la caja: el organismo
+         de la referencia no está recortado sobre negro, flota en un campo. */
+      const g = ctx.createRadialGradient(AX, 250, 8, AX, 250, 250);
+      g.addColorStop(0, "rgba(40,110,170,0.13)");
+      g.addColorStop(0.35, "rgba(26,74,124,0.09)");
+      g.addColorStop(0.7, "rgba(16,44,80,0.05)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+
+      /* dos focos secundarios: la corona y el plato tienen luz propia */
+      for (const [cyy, rr, col] of [[60, 130, "rgba(34,96,150,0.09)"], [370, 150, "rgba(52,44,140,0.12)"]]) {
+        const gg = ctx.createRadialGradient(AX, cyy, 4, AX, cyy, rr);
+        gg.addColorStop(0, col);
+        gg.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gg;
+        ctx.fillRect(0, cyy - rr, W, rr * 2);
+      }
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(26,74,88,0.19)";
+      ctx.lineWidth = 1;
+      for (const x of VLIN) {
+        ctx.beginPath();
+        ctx.moveTo(x + 0.5, 0);
+        ctx.lineTo(x + 0.5, 480);
+        ctx.stroke();
+      }
+      /* retícula muy tenue: cuadrícula de 24×22 como en el resto del póster */
+      ctx.strokeStyle = "rgba(20,54,64,0.10)";
+      for (let x = 9; x < W; x += 24) {
+        ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, 480); ctx.stroke();
+      }
+      for (let y = 6; y < 480; y += 22) {
+        ctx.beginPath(); ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); ctx.stroke();
+      }
+      ctx.restore();
+
+      /* motas de datos: puntitos deterministas, la sal del fondo */
+      const r = mulberry32(0x6c0d);
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 320; i++) {
+        const x = r() * W;
+        const y = r() * 478;
+        const a = 0.05 + r() * 0.2;
+        ctx.fillStyle = r() < 0.25 ? vi(a) : cy(a);
+        ctx.fillRect(x, y, r() < 0.15 ? 2 : 1, 1);
+      }
+      ctx.restore();
+    }
+
+    /* ── una banda toroidal: elipse con cara, canto y reflejo ─────────── */
+    function banda(y, rx, ry, alto, col, brillo) {
+      /* El canto va OPACO y oscuro: es lo que tapa el tubo por detrás y lo que
+         deja los huecos negros entre anillo y anillo. Sin opacidad la corona se
+         leía como una cúpula maciza en vez de una pila de toroides. */
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(AX, y, rx, ry, 0, 0, Math.PI);
+      ctx.ellipse(AX, y + alto, rx, ry, 0, Math.PI, 0, true);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(7,10,20,0.94)";
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.beginPath();
+      ctx.ellipse(AX, y, rx, ry, 0, 0, Math.PI);
+      ctx.ellipse(AX, y + alto, rx, ry, 0, Math.PI, 0, true);
+      ctx.closePath();
+      ctx.fillStyle = col(0.07);
+      ctx.fill();
+      /* Sólo se enciende el arco DE FRENTE. Estrujar la elipse entera fue lo
+         que convirtió la corona en una cúpula y el plato en un cuenco: el aro
+         de atrás queda tapado por el propio anillo y no devuelve luz. */
+      ctx.beginPath();
+      ctx.ellipse(AX, y + alto, rx, ry, 0, 0.12, Math.PI - 0.12);
+      ctx.strokeStyle = col(Math.min(0.95, brillo * 1.5));
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(AX, y, rx, ry, 0, 0.3, Math.PI - 0.3);
+      ctx.strokeStyle = col(brillo * 0.55);
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* Muescas radiales sobre una elipse: los segmentos mecanizados del anillo.
+       Van en progresión irregular para que no se lean como engranaje. */
+    function muescas(y, rx, ry, n, largo, col, a, fase) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = col(a);
+      ctx.lineWidth = 1;
+      for (let i = 0; i < n; i++) {
+        const th = (i / n) * TAU + fase;
+        const x0 = AX + Math.cos(th) * rx;
+        const y0 = y + Math.sin(th) * ry;
+        const x1 = AX + Math.cos(th) * (rx - largo);
+        const y1 = y + Math.sin(th) * (ry - largo * (ry / rx));
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y1);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /* ── corona toroidal (A. CROWN SEAL) ──────────────────────────────── */
+    const CORONA = [
+      [10, 56, 10, 8, 0.5],
+      [28, 78, 14, 11, 0.58],
+      [48, 96, 18, 15, 0.62],
+      [68, 100, 20, 14, 0.44],
+      [86, 80, 15, 12, 0.5],
+    ];
+    function corona(t) {
+      /* La tapa: un plato elíptico opaco con su cara superior visible. */
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(AX, 10, 56, 10, 0, 0, TAU);
+      ctx.fillStyle = "rgba(9,14,26,0.96)";
+      ctx.fill();
+      ctx.restore();
+
+      for (const [y, rx, ry, alto, br] of CORONA) banda(y, rx, ry, alto, cyd, br);
+      muescas(62, 100, 20, 20, 11, cy, 0.4, t * 0.6);
+      muescas(26, 76, 14, 12, 6, cy, 0.3, -t * 0.9);
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      /* aros encendidos de la tapa: dos arcos frontales, no la elipse entera */
+      for (const [y, rx, ry, a, lw] of [[14, 54, 9, 0.9, 2.2], [30, 74, 13, 0.6, 1.6], [56, 96, 18, 0.7, 1.8]]) {
+        ctx.beginPath();
+        ctx.ellipse(AX, y, rx, ry, 0, 0.18, Math.PI - 0.18);
+        ctx.strokeStyle = cy(a);
+        ctx.lineWidth = lw;
+        ctx.stroke();
+      }
+      /* cuñas mecanizadas en los flancos, donde la campana es más ancha */
+      ctx.strokeStyle = wh(0.42);
+      ctx.lineWidth = 1;
+      for (const s of [-1, 1]) {
+        for (const [y, dx, w2, h2] of [[44, 92, 12, 14], [66, 96, 10, 12]]) {
+          ctx.beginPath();
+          ctx.moveTo(AX + s * dx, y);
+          ctx.lineTo(AX + s * (dx - w2), y + h2 * 0.4);
+          ctx.lineTo(AX + s * (dx - w2 * 0.4), y + h2);
+          ctx.closePath();
+          ctx.stroke();
+        }
+      }
+      /* Cantos verticales de la campana. El mapa de bloques los pedía a gritos:
+         en x=AX±97 la referencia tiene tinta y el bloque estaba 16 niveles por
+         debajo mientras sobraba luz en el centro. Es donde el metal devuelve. */
+      for (const s of [-1, 1]) {
+        const gg = ctx.createLinearGradient(0, 28, 0, 100);
+        gg.addColorStop(0, "rgba(120,190,235,0)");
+        gg.addColorStop(0.3, "rgba(150,215,245,0.75)");
+        gg.addColorStop(0.75, "rgba(110,175,220,0.5)");
+        gg.addColorStop(1, "rgba(90,150,200,0)");
+        ctx.strokeStyle = gg;
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.moveTo(AX + s * 97, 30);
+        ctx.bezierCurveTo(AX + s * 100, 52, AX + s * 98, 76, AX + s * 86, 98);
+        ctx.stroke();
+      }
+      /* rim violeta donde la corona entrega al tubo */
+      ctx.beginPath();
+      ctx.ellipse(AX, 100, 68, 13, 0, 0, TAU);
+      ctx.strokeStyle = vi(0.6);
+      ctx.lineWidth = 1.3;
+      ctx.stroke();
+      ctx.restore();
+
+      /* Luz propia de la corona, RECORTADA a su silueta. Medido por zonas: la
+         campana de la referencia promedia 34 de luminancia y la versión sin
+         esto daba 21. Un resplandor suelto sobre el fondo subía el número y
+         ensuciaba el negro de alrededor; recortado, la luz se queda donde el
+         objeto está. */
+      ctx.save();
+      ctx.beginPath();
+      for (const [y, rx, ry, alto] of CORONA) {
+        ctx.moveTo(AX + rx, y);
+        ctx.ellipse(AX, y, rx, ry, 0, 0, Math.PI);
+        ctx.ellipse(AX, y + alto, rx, ry, 0, Math.PI, 0, true);
+        ctx.closePath();
+      }
+      ctx.clip();
+      ctx.globalCompositeOperation = "lighter";
+      const gc = ctx.createLinearGradient(AX - 100, 0, AX + 100, 0);
+      gc.addColorStop(0, "rgba(120,190,235,0.5)");
+      gc.addColorStop(0.2, "rgba(40,90,140,0.3)");
+      gc.addColorStop(0.5, "rgba(28,62,104,0.34)");
+      gc.addColorStop(0.8, "rgba(40,90,140,0.3)");
+      gc.addColorStop(1, "rgba(120,190,235,0.5)");
+      ctx.fillStyle = gc;
+      ctx.fillRect(AX - 102, 0, 204, 106);
+      ctx.restore();
+
+      /* Estriado de la campana: la referencia no es plana bajo las luces, tiene
+         una decena de juntas mecanizadas. Sin ellas la campana promedia 27 de
+         luminancia contra los 34 medidos, y el término estructural lo paga. */
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const r = mulberry32(0x51ac);
+      for (let i = 0; i < 14; i++) {
+        const y = 12 + i * 6.4;
+        const rx = 54 + Math.min(46, i * 4.2) - Math.max(0, (i - 10) * 7);
+        ctx.beginPath();
+        ctx.ellipse(AX, y, rx, rx * 0.19, 0, 0.1 + r() * 0.3, Math.PI - 0.1 - r() * 0.3);
+        ctx.strokeStyle = cyd(0.16 + r() * 0.2);
+        ctx.lineWidth = 0.9;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /* ── tubo de vidrio (B/C: anillo de contención y cámara) ──────────── */
+    const CY0 = 96;
+    const CY1 = 330;
+    function tubo() {
+      ctx.save();
+      /* El tubo TAPA. Mientras el relleno fue translúcido las quince órbitas
+         se veían cruzándolo por dentro y el organismo se leía como alambre;
+         en la referencia la cámara es un volumen y lo de atrás no pasa. */
+      ctx.beginPath();
+      ctx.ellipse(AX, CY0, 58, 11, 0, Math.PI, TAU);
+      ctx.rect(AX - 58, CY0, 116, CY1 - CY0);
+      ctx.fillStyle = "rgba(6,9,20,0.93)";
+      ctx.fill();
+
+      /* volumen interior: gradiente frío, más claro contra las paredes */
+      const g = ctx.createLinearGradient(AX - 58, 0, AX + 58, 0);
+      g.addColorStop(0, "rgba(52,116,166,0.55)");
+      g.addColorStop(0.18, "rgba(20,38,72,0.2)");
+      g.addColorStop(0.5, "rgba(16,24,54,0.12)");
+      g.addColorStop(0.82, "rgba(20,38,72,0.2)");
+      g.addColorStop(1, "rgba(52,116,166,0.55)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.ellipse(AX, CY0, 58, 11, 0, Math.PI, TAU);
+      ctx.rect(AX - 58, CY0, 116, CY1 - CY0);
+      ctx.fill();
+
+      ctx.globalCompositeOperation = "lighter";
+      /* paredes: la interior brillante en ±57,5 y la carcasa en ±72 */
+      for (const [dx, a, lw] of [[57.5, 0.95, 1.6], [72, 0.3, 1]]) {
+        for (const s of [-1, 1]) {
+          ctx.beginPath();
+          ctx.moveTo(AX + s * dx, CY0 + (dx > 65 ? 30 : 0));
+          ctx.lineTo(AX + s * dx, CY1 - (dx > 65 ? 8 : 0));
+          ctx.strokeStyle = wh(a);
+          ctx.lineWidth = lw;
+          ctx.stroke();
+        }
+      }
+      /* tapas del tubo */
+      for (const [y, rx, ry, a] of [[CY0, 58, 11, 0.4], [CY1, 58, 12, 0.55], [CY1 - 74, 58, 11, 0.2]]) {
+        ctx.beginPath();
+        ctx.ellipse(AX, y, rx, ry, 0, 0, TAU);
+        ctx.strokeStyle = cy(a);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      /* Estriado interno de la cámara: juntas horizontales muy tenues. Es lo
+         que separa un tubo dibujado de un tubo construido, y de paso sube la
+         luminancia media de la cámara a los 29 medidos. */
+      const rr = mulberry32(0x3d17);
+      for (let i = 0; i < 16; i++) {
+        const y = CY0 + 8 + i * 14;
+        if (y > CY1 - 6) break;
+        const w2 = 24 + rr() * 32;
+        const s = rr() < 0.5 ? -1 : 1;
+        ctx.beginPath();
+        ctx.moveTo(AX + s * 20, y);
+        ctx.lineTo(AX + s * (20 + w2), y);
+        ctx.strokeStyle = cyd(0.1 + rr() * 0.22);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      /* abrazaderas del anillo de contención: cuatro, dos por pared */
+      ctx.strokeStyle = wh(0.34);
+      ctx.lineWidth = 1;
+      for (const s of [-1, 1]) {
+        for (const y of [196, 292]) {
+          const x = AX + s * 62;
+          ctx.beginPath();
+          ctx.moveTo(x - s * 10, y);
+          ctx.lineTo(x, y + 3);
+          ctx.lineTo(x, y + 40);
+          ctx.lineTo(x - s * 10, y + 43);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    }
+
+    /* ── árbol de luz (dentro de la cámara) ───────────────────────────── */
+    function rama(x, y, ang, len, ancho, prof, r, t) {
+      if (prof === 0 || len < 2) return;
+      const sway = Math.sin(t * TAU + prof * 1.3 + x * 0.05) * 0.02 * (6 - prof);
+      const x1 = x + Math.cos(ang + sway) * len;
+      const y1 = y + Math.sin(ang + sway) * len;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x1, y1);
+      ctx.lineWidth = ancho;
+      ctx.strokeStyle = vi(0.26 + prof * 0.075);
+      ctx.stroke();
+      const n = prof > 5 ? 2 : r() < 0.3 ? 3 : 2;
+      for (let i = 0; i < n; i++) {
+        const d = (i - (n - 1) / 2) * (0.56 + r() * 0.34) + (r() - 0.5) * 0.16;
+        rama(x1, y1, ang + d, len * (0.7 + r() * 0.12), ancho * 0.7, prof - 1, r, t);
+      }
+    }
+    function arbol(t) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.lineCap = "round";
+      const r = mulberry32(0x7a31);
+      /* Halo violeta de la cámara: el árbol de la referencia no es un dibujo
+         de líneas sobre negro, es una copa encendida que tiñe la cámara. */
+      const g = ctx.createRadialGradient(AX, 145, 6, AX, 145, 72);
+      g.addColorStop(0, "rgba(126,76,200,0.26)");
+      g.addColorStop(0.5, "rgba(90,52,160,0.11)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(AX - 58, 96, 116, 130);
+
+      /* tronco: sube desde el cristal hacia la tapa */
+      ctx.beginPath();
+      ctx.moveTo(AX, 216);
+      ctx.lineTo(AX, 186);
+      ctx.lineWidth = 2.4;
+      ctx.strokeStyle = wh(0.85);
+      ctx.stroke();
+      rama(AX, 186, -Math.PI / 2, 30, 2.4, 7, r, t);
+      ctx.restore();
+    }
+
+    /* ── cristal romboidal (D. CORE CRYSTAL) ──────────────────────────── */
+    const KY = 255;
+    function estrella(rx, ry, k) {
+      ctx.beginPath();
+      ctx.moveTo(AX, KY - ry);
+      ctx.quadraticCurveTo(AX + rx * k, KY - ry * k, AX + rx, KY);
+      ctx.quadraticCurveTo(AX + rx * k, KY + ry * k, AX, KY + ry);
+      ctx.quadraticCurveTo(AX - rx * k, KY + ry * k, AX - rx, KY);
+      ctx.quadraticCurveTo(AX - rx * k, KY - ry * k, AX, KY - ry);
+      ctx.closePath();
+    }
+    function cristal(t, kNuc) {
+      const pulso = kNuc * (1 + 0.03 * Math.sin(t * TAU * 2));
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      /* halo: el resplandor que baña media cámara */
+      const g = ctx.createRadialGradient(AX, KY, 2, AX, KY, 92);
+      g.addColorStop(0, "rgba(150,236,255,0.55)");
+      g.addColorStop(0.18, "rgba(60,170,230,0.22)");
+      g.addColorStop(0.55, "rgba(70,60,180,0.10)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(AX - 100, KY - 100, 200, 200);
+
+      /* lente violeta: vesica de rx 51 · ry 38 medida sobre la referencia */
+      ctx.beginPath();
+      ctx.moveTo(AX, KY - 45);
+      ctx.bezierCurveTo(AX + 42, KY - 40, AX + 51, KY - 12, AX + 51, KY);
+      ctx.bezierCurveTo(AX + 51, KY + 22, AX + 30, KY + 40, AX, KY + 45);
+      ctx.bezierCurveTo(AX - 30, KY + 40, AX - 51, KY + 22, AX - 51, KY);
+      ctx.bezierCurveTo(AX - 51, KY - 12, AX - 42, KY - 40, AX, KY - 45);
+      ctx.closePath();
+      ctx.strokeStyle = vi(0.62);
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+
+      /* aro cian interior */
+      ctx.beginPath();
+      ctx.ellipse(AX, KY, 40, 33, 0, 0, TAU);
+      ctx.strokeStyle = cy(0.5);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      /* gota inferior: la señal que baja al plato */
+      ctx.beginPath();
+      ctx.moveTo(AX, KY + 45);
+      ctx.bezierCurveTo(AX + 19, KY + 56, AX + 19, KY + 78, AX, KY + 84);
+      ctx.bezierCurveTo(AX - 19, KY + 78, AX - 19, KY + 56, AX, KY + 45);
+      ctx.strokeStyle = cy(0.5);
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+
+      /* el cristal: tres estrellas anidadas de lados cóncavos */
+      estrella(38 * pulso, 25 * pulso, 0.2);
+      ctx.strokeStyle = cy(0.9);
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      estrella(24 * pulso, 16 * pulso, 0.24);
+      ctx.strokeStyle = wh(0.75);
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+      estrella(11 * pulso, 8 * pulso, 0.28);
+      ctx.fillStyle = wh(0.9);
+      ctx.fill();
+
+      /* rayos: los cuatro ejes del cristal se prolongan */
+      ctx.strokeStyle = cy(0.55);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(AX - 74, KY); ctx.lineTo(AX + 74, KY);
+      ctx.stroke();
+
+      /* aro violeta de resonancia sobre el cristal */
+      ctx.beginPath();
+      ctx.ellipse(AX, 200, 46, 7, 0, 0, TAU);
+      ctx.strokeStyle = vi(0.55);
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* ── plato base (E/F: bobina y placa nova) ────────────────────────── */
+    function base(t, kEmi) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+
+      /* cara superior violeta con sus anillos concéntricos */
+      ctx.beginPath();
+      ctx.ellipse(AX, 332, 100, 24, 0, 0, TAU);
+      ctx.fillStyle = "rgba(52,18,86,0.34)";
+      ctx.fill();
+      ctx.strokeStyle = vi(0.85);
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      for (const [rr, a] of [[90, 0.4], [76, 0.26], [60, 0.32], [46, 0.22], [30, 0.28], [16, 0.4]]) {
+        ctx.beginPath();
+        ctx.ellipse(AX, 332, rr, rr * 0.24, 0, 0, TAU);
+        ctx.strokeStyle = vi(a);
+        ctx.lineWidth = 0.9;
+        ctx.stroke();
+      }
+      muescas(332, 92, 22, 26, 12, vi, 0.36, -t * 0.5);
+
+      /* cantos apilados */
+      banda(332, 100, 24, 11, vid, 0.85);
+      banda(346, 100, 23, 9, cyd, 0.5);
+      banda(358, 92, 20, 11, cyd, 0.55);
+
+      /* Misma luz recortada que en la corona. Por zonas el plato mide 33 de
+         luminancia en la referencia y 27 sin esto. */
+      ctx.save();
+      ctx.beginPath();
+      for (const [y, rx, ry, alto] of [[332, 100, 24, 11], [346, 100, 23, 9], [358, 92, 20, 11], [392, 64, 13, 9]]) {
+        ctx.moveTo(AX + rx, y);
+        ctx.ellipse(AX, y, rx, ry, 0, 0, Math.PI);
+        ctx.ellipse(AX, y + alto, rx, ry, 0, Math.PI, 0, true);
+        ctx.closePath();
+      }
+      ctx.clip();
+      ctx.globalCompositeOperation = "lighter";
+      const gb = ctx.createLinearGradient(AX - 102, 0, AX + 102, 0);
+      gb.addColorStop(0, "rgba(160,120,235,0.34)");
+      gb.addColorStop(0.22, "rgba(56,50,120,0.16)");
+      gb.addColorStop(0.5, "rgba(40,52,104,0.17)");
+      gb.addColorStop(0.78, "rgba(56,50,120,0.16)");
+      gb.addColorStop(1, "rgba(160,120,235,0.34)");
+      ctx.fillStyle = gb;
+      ctx.fillRect(AX - 104, 320, 208, 96);
+      ctx.restore();
+
+      ctx.globalCompositeOperation = "lighter";
+      /* cantos verticales del plato, donde vuelve toda la luz */
+      ctx.globalCompositeOperation = "lighter";
+      for (const s of [-1, 1]) {
+        const gg = ctx.createLinearGradient(0, 326, 0, 392);
+        gg.addColorStop(0, "rgba(150,110,240,0)");
+        gg.addColorStop(0.3, "rgba(180,150,250,0.7)");
+        gg.addColorStop(0.7, "rgba(90,180,230,0.6)");
+        gg.addColorStop(1, "rgba(60,150,210,0)");
+        ctx.strokeStyle = gg;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(AX + s * 99, 328);
+        ctx.bezierCurveTo(AX + s * 102, 344, AX + s * 96, 360, AX + s * 84, 374);
+        ctx.stroke();
+      }
+
+      /* la banda encendida: el rasgo más brillante de todo el plato */
+      ctx.beginPath();
+      ctx.ellipse(AX, 384, 74, 16, 0, 0.15, Math.PI - 0.15);
+      ctx.strokeStyle = cy(0.92);
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(AX, 384, 74, 16, 0, 0, TAU);
+      ctx.strokeStyle = cy(0.28);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      banda(392, 64, 13, 9, cyd, 0.45);
+
+      /* punto de emisión y ondas del suelo */
+      const g = ctx.createRadialGradient(AX, 418, 1, AX, 418, 28);
+      g.addColorStop(0, "rgba(190,246,255,0.8)");
+      g.addColorStop(0.28, "rgba(50,180,235,0.14)");
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(AX - 30, 390, 60, 60);
+
+      /* Ondas del suelo: se expanden y se apagan. Es la única pieza que se
+         mueve de verdad — el campo emitido saliendo del plato. */
+      const fase = (t % 1);
+      for (let i = 0; i < 6; i++) {
+        const u = (i / 6 + fase) % 1;
+        const rr = 12 + u * 120;
+        ctx.beginPath();
+        ctx.ellipse(AX, 432, rr, rr * 0.2, 0, 0, TAU);
+        ctx.strokeStyle = cy(0.34 * (1 - u) * kEmi);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    /* ── el eje ───────────────────────────────────────────────────────── */
+    function eje(kNuc) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      const g = ctx.createLinearGradient(AX - 9, 0, AX + 9, 0);
+      g.addColorStop(0, "rgba(0,0,0,0)");
+      g.addColorStop(0.5, `rgba(70,190,240,${(0.34 * kNuc).toFixed(3)})`);
+      g.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = g;
+      ctx.fillRect(AX - 9, 0, 18, 432);
+      ctx.beginPath();
+      ctx.moveTo(AX, 0);
+      ctx.lineTo(AX, 430);
+      ctx.strokeStyle = wh(0.85);
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /**
+     * LOS CUATRO ESTADOS — 01 CHARGE · 02 ALIGN · 03 RESONATE · 04 EMIT.
+     *
+     * No son decoración: son los que el panel 02 de esta misma lámina declara,
+     * y son la razón de que el héroe sea código y no un trazado. Un SVG
+     * vectorizado del póster no puede estar en ninguno de ellos.
+     *
+     * El estado sale del mismo reloj que el dibujo, así que en t=0 el
+     * dispositivo está en CHARGE con todos los modificadores en 1: el cuadro
+     * que congela el banco es exactamente el de reposo y ningún estado puede
+     * ensuciar la medición.
+     */
+    const ESTADOS = ["CHARGE", "ALIGN", "RESONATE", "EMIT"];
+    let estado = -1;
+    function draw(t) {
+      const e = Math.floor(t * 4) % 4;
+      if (e !== estado) {
+        estado = e;
+        if (host) host.dataset.estado = ESTADOS[e];
+      }
+      /* u = avance dentro del estado, 0 en el instante en que entra */
+      const u = t * 4 - Math.floor(t * 4);
+      /* Modificadores. Todos valen 1 en u=0, que es donde congela el banco. */
+      const kOrb = e === 1 ? 1 - 0.5 * Math.sin(u * Math.PI) : 1;
+      const kNuc = e === 2 ? 1 + 0.45 * Math.sin(u * Math.PI) : 1;
+      const kEmi = e === 3 ? 1 + 0.7 * Math.sin(u * Math.PI) : 1;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      fondo();
+      orbitas(t, false, kOrb);
+      corona(t);
+      tubo();
+      arbol(t);
+      base(t, kEmi);
+      cristal(t, kNuc);
+      eje(kNuc);
+      orbitas(t, true, kOrb);
+    }
+
+    /* ── ciclo ────────────────────────────────────────────────────────── */
+    let raf = 0;
+    let frozen = false;
+    const T = 14000; // el ciclo entero: lento, es un instrumento en reposo
+    const t0 = performance.now();
+    const loop = () => {
+      if (frozen) return;
+      draw(((performance.now() - t0) % T) / T);
+      raf = requestAnimationFrame(loop);
+    };
+
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    /* El congelador puede no existir todavía según cómo Astro ordene los
+       scripts empaquetados: se reintenta en vez de asumir el orden. */
+    const freeze = (t) => {
+      frozen = true;
+      if (raf) cancelAnimationFrame(raf);
+      draw(t || 0);
+    };
+    const w = window;
+    if (typeof w.__kdxRegisterFreeze === "function") {
+      w.__kdxRegisterFreeze(freeze);
+    } else {
+      let tries = 0;
+      const id = setInterval(() => {
+        if (typeof w.__kdxRegisterFreeze === "function") {
+          clearInterval(id);
+          w.__kdxRegisterFreeze(freeze);
+        } else if (++tries > 240) clearInterval(id);
+      }, 25);
+    }
+
+    if (reduced) {
+      frozen = true;
+      draw(0);
+    } else {
+      draw(0);
+      raf = requestAnimationFrame(loop);
+    }
+  }
+</script>

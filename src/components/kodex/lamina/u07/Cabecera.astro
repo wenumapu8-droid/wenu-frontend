@@ -1,0 +1,195 @@
+---
+/**
+ * KODEX-∞ · u07-observer · CABECERA
+ *
+ * Franja superior (y 0..245) más los dos rieles verticales que corren de canto
+ * a canto y el marco interior que encuadra toda la lámina. Todo trazado en SVG
+ * por código: ni un bitmap.
+ *
+ * El cromo lo pone `serie-universe/CabeceraUniverse.astro` —la misma armadura
+ * de las cinco láminas de la serie—, así que acá quedan sólo las cotas y el
+ * calibrado de ESTA página, y ninguna está estimada a ojo: salieron de barrer
+ * `reference/canon/u07-observer.png` fila por fila y columna por columna con
+ * umbral de luminancia.
+ *
+ * Lo que la medición corrigió respecto de la lámina hermana:
+ *
+ *  · La regla superior baja a y=11 (u02: 12,5) y la inferior sube a y=1380
+ *    (u02: 1389,5). Nueve píxeles y medio de diferencia — heredar la cota de la
+ *    u02 dejaba las dos reglas fuera de sitio en toda su longitud.
+ *  · El marco interior de esta página SÍ tiene travesaño superior, en y=74,
+ *    partido en x 531..657. La u02 no lo tiene y se comprobó midiendo la fila.
+ *  · KODEX-∞ y OBSERVER están casi al mismo cuerpo (versal 56 y 55) mientras
+ *    que en la u02 el segundo bloque venía condensado. Acá el separador no es
+ *    una barra vertical sino una BARRA INCLINADA, más angosta y más alta.
+ *  · La bajada "MIRROR CHAMBER" es simétrica respecto de x=560,25: sus rombos
+ *    caen en 416 y 704,5. El eje de esta lámina es 560, igual que el de la u02.
+ *
+ * CALIBRADO CONTRA LA REFERENCIA, NO ELEGIDO. La regla de y=11 da 38 de
+ * luminancia sobre negro (más un halo de 15 en la fila de arriba) y el primer
+ * valor —0,1— daba 20: la mitad. Y las reglas del original NO son de un píxel:
+ * dejan halo arriba y abajo, o sea que la energía por columna es 56 y no 38. Un
+ * trazo limpio de un píxel puede clavar el pico y quedarse en dos tercios de la
+ * tinta; por eso va el segundo trazo ancho y tenue (`marcoHalo`), que es más
+ * barato y más predecible que un filtro de desenfoque.
+ */
+import CabeceraUniverse from "../serie-universe/CabeceraUniverse.astro";
+import { rayos, rombo } from "../serie-universe/geom";
+
+/* ── marco exterior ─────────────────────────────────────────────────────── */
+/* Chaflán de 14 px en las cuatro esquinas, medido sobre la diagonal. */
+const chaflanes = [
+  "M13.5 25.5L29 11.5",
+  "M1091 11.5L1106.5 25.5",
+  "M1106.5 1366.5L1091 1380.5",
+  "M29 1380.5L13.5 1366.5",
+];
+
+/* Los rieles no son una línea continua: alternan tramos macizos y tramos de
+   puntos. [y0, y1, macizo?] — medido segmento por segmento sobre la referencia
+   (barrido de la columna x=13 y x=1107 con umbral 8). */
+const rielIzq: [number, number, boolean][] = [
+  [26, 183, true], [194, 204, false], [215, 293, true],
+  [392, 773, true], [874, 936, false], [949, 1366, true],
+];
+const rielDer: [number, number, boolean][] = [
+  [26, 173, true], [239, 290, false], [346, 567, true],
+  [628, 799, true], [830, 1366, true],
+];
+
+const EJE_I = 13.5;
+const EJE_D = 1106.5;
+
+/* Puntos y micropunteo de los rieles: posiciones explícitas, no aleatorias. */
+const puntosIzq = [313.5, 344, 361, 377, 798, 813.5, 860.5];
+const puntosDer = [303.5, 319, 334.5, 590, 610, 812];
+const micropunteo: [number, number][] = [[328, 340], [348, 357], [364, 373]];
+
+/* El borde del hexágono da 47 en la referencia; con el 0,085 de la u02 daba 17.
+   La vertical del marco interior da 28..30 con un halo de 17..20 a su
+   izquierda; con 0,045 daba 9. Las astas del título dan 168..199 de luminancia
+   y con opacidad 1 esta serif daba 218. */
+const vars = [
+  "--cb-ink:#cfc6e8",
+  "--cb-vio:#a77cf0",
+  "--cb-tit:#d8d3e6",
+  "--cb-marco-op:.13",
+  "--cb-interior-op:.09",
+  "--cb-hex-borde-op:.15",
+  "--cb-tit-inf-sw:4.4",
+  "--cb-tit-inf-op:.82",
+  "--cb-tit-op:.78",
+  "--cb-tit-fig-op:.8",
+  /* LA BAJADA DE ESTA LÁMINA NO VA EN EL VIOLETA DE ACENTO, y es la clase de
+     cosa que sólo aparece midiendo. Los picos de tinta de la referencia dan
+     A / -∞ rgb(182,161,200), MIRROR CHAMBER rgb(200,176,225), PAGE 07
+     rgb(163,141,187) y el folio rgb(113,92,132): relación r/b de 0,86 a 0,91,
+     que es la del ink (#cfc6e8, 0,89) y no la del acento (#a77cf0, 0,70).
+     El CSS viejo declaraba `--u07-vio` para los cuatro y NUNCA se veía, porque
+     el bug de especificidad de `.cab text` lo pisaba con el ink: la página se
+     calibró contra lo que se renderizaba, no contra lo que estaba escrito.
+     Corregida la especificidad, la declaración equivocada habría empezado a
+     verse — y midió peor (4,394 % contra 4,390 %). Va el color medido. */
+  "--cb-sig-fill:var(--cb-ink)",
+  "--cb-lema-fill:var(--cb-ink)",
+  "--cb-pag-fill:var(--cb-ink)",
+  "--cb-folio-fill:var(--cb-ink)",
+  "--cb-lema-op:.52",
+  "--cb-nota-size:12.6px",
+  "--cb-nota-op:.4",
+  "--cb-folio-op:.22",
+].join(";");
+---
+
+<CabeceraUniverse
+  gradId="u07"
+  grad={["#f3f0f8", "#e2ddee", "#bcb5cf"]}
+  ariaLabel="KODEX-∞ / OBSERVER — página 07 · Mirror chamber · The observer is not outside the system."
+  vars={vars}
+  marcoHalo="M30 11.5H502M620 11.5H1085M30 1380.5H501M621 1380.5H1089"
+  marcoSup="M30 11.5H502M620 11.5H1085"
+  marcoInf={{ d: "M30 1380.5H501M621 1380.5H1089", tenue: false }}
+  fantasma="M13.5 25.5V1366.5M1106.5 25.5V1366.5"
+  chaflanes={chaflanes}
+  nodosSup={[
+    { x: 509.5, y: 11.5 },
+    { x: 613.5, y: 11.5 },
+    { x: 507, y: 1380.5, r: 1.4 },
+    { x: 625.5, y: 1380.5, r: 1.4 },
+  ]}
+  interiorHalo="M55.5 85V1245M1063.5 89V1230"
+  interior="M55.5 85V1245M1063.5 89V1230"
+  interiorTra="M55.5 74.5H531M657 74.5H1064.5"
+  interiorEsq="M55.5 85.5H89.5M1063.5 89.5H1029.5"
+  cruces={[[40, 42.5], [1082, 42.5]]}
+  reglaIzq={{ x: 64.5, y: 46.5, len: 183, t: "KODEX-∞ UNIVERSE" }}
+  reglaDer={{ x: 801, y: 46.5, len: 261, t: "OBSERVE. DECIPHER. TRANSCEND." }}
+  reglaCy={42.5}
+  puntosRegla={[272, 332, 347]}
+  nodosRegla={[516, 607, 780]}
+  punteo={{ d: "M378 42.5H494M631 42.5H773", dash: "17 3" }}
+  hex={{
+    borde: "M561.5 16L585.5 29V52L561.5 65L537.5 52V29Z",
+    tics: "M538 27.5h4M581 27.5h4M538 53.5h4M581 53.5h4",
+    tallo: "M561.5 64.5V70",
+    inf: [561.5, 41, 12.95, 10.4],
+  }}
+  titKodex={{ x: 89, y: 165.5, size: 90, len: 338, t: "KODEX" }}
+  titGuion={{ x: 426, y: 136.8, w: 19, h: 3.6 }}
+  titInf={[499.5, 139, 34.4, 26.8]}
+  titBarra="M580.5 109L586 109L568 165.5L562.5 165.5Z"
+  titPalabra={{ x: 605, y: 165.5, size: 88, len: 424, t: "OBSERVER" }}
+  sig={{ x: 92, y: 209.5, len: 73, t: "A / -∞" }}
+  lema={{ x: 442, y: 209.5, len: 238, t: "MIRROR CHAMBER" }}
+  pag={{ x: 964, y: 209.5, len: 65, t: "PAGE 07" }}
+  ejeI={EJE_I}
+  ejeD={EJE_D}
+  rielIzq={rielIzq}
+  rielDer={rielDer}
+  nodosIzq={puntosIzq}
+  nodosDer={puntosDer}
+  micropunteo={micropunteo}
+  micro={[
+    { transform: "translate(1103.6 420) rotate(-90)", len: 185, t: "XX XX PDX-07 / OBSERVER XX" },
+    { transform: "translate(11 1010) rotate(-90)", len: 178, t: "XX KDX-U07 REFLECT // XX XX" },
+  ]}
+  folio={{ x: 1100.5, y: 604.5, len: 14.5, t: "07" }}
+>
+  <Fragment slot="marco-extra">
+    <path class="cab__sep-r" d={rombo(561, 1380.5, 12, 10)} />
+    <!-- Aspas de las esquinas inferiores: la referencia las tiene y son lo que
+         cierra el marco sin dibujar un ángulo recto. -->
+    <path class="cab__aspa" d="M15 1364l9 9m0 -9l-9 9M1096 1364l9 9m0 -9l-9 9" />
+  </Fragment>
+
+  <!-- Separadores de la bajada: simétricos respecto de x=560,25. Los rombos
+       caen en 416 y 704,5 y de ahí sale el eje de la lámina. -->
+  <g class="cab__sep" slot="sep">
+    <path d={rombo(416, 204, 11, 9)} />
+    <path d={rombo(704.5, 204, 11, 9)} />
+    <path class="cab__punteo" d="M262 204H406M711 204H856" stroke-dasharray="9 4" />
+    <circle class="cab__nodo-f" cx="405.5" cy="204" r="1.7" />
+    <circle class="cab__nodo-f" cx="716.5" cy="204" r="1.7" />
+    <circle class="cab__nodo-f" cx="258" cy="204" r="1.4" />
+    <circle class="cab__nodo-f" cx="860" cy="204" r="1.4" />
+  </g>
+
+  <text class="cab__nota" slot="nota" x="368" y="232.5" textLength="413" lengthAdjust="spacing">"THE OBSERVER IS NOT OUTSIDE THE SYSTEM."</text>
+
+  <g class="cab__glifo" slot="glifos">
+    <!-- Riel izquierdo · racimo alto (y 300..392) -->
+    <circle cx={EJE_I} cy="299.5" r="4.7" />
+    <path d={rayos(EJE_I, 320.5, 5, 8)} />
+    <path d={rayos(EJE_I, 352.5, 3.4, 6, Math.PI / 2)} />
+    <path d="M8.8 384H18.2L13.5 391ZM13.5 391V393" />
+    <!-- Riel izquierdo · racimo bajo (y 794..936) -->
+    <path d={rayos(EJE_I, 805.5, 4, 6)} />
+    <path d={rombo(EJE_I, 837, 12, 9)} />
+    <circle cx={EJE_I} cy="837" r="1.6" />
+    <path d={rayos(EJE_I, 905, 4, 8, Math.PI / 8)} />
+    <!-- Riel derecho -->
+    <path d="M1106.5 297L1111.6 299.5V304.5L1106.5 307L1101.4 304.5V299.5Z" />
+    <path d={rayos(EJE_D, 326, 2.4, 4)} />
+    <circle cx={EJE_D} cy="600" r="3.4" />
+  </g>
+</CabeceraUniverse>

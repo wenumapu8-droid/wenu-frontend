@@ -1,0 +1,334 @@
+---
+/**
+ * KODEX-∞ · t01-04 ARCHIVE TREE · BLOQUE IZQUIERDA (4,88 · 396×778)
+ *
+ * La caja arranca en 4,88 del póster: todas las coordenadas de este archivo y
+ * de arte-izq.ts están corridas −4,−88 respecto de la referencia, y por eso
+ * cada comentario cita también la y del póster.
+ *
+ * El encargo hablaba de dos paneles. Son TRES: la caja medida llega hasta
+ * y=866 y el panel «07. MOTION NOTES & BEHAVIOR» empieza en y=595, así que sus
+ * primeros 380 px de ancho —título, tres columnas y media de conducta y cuatro
+ * miniaturas— caen dentro de este bloque. Nadie más puede dibujarlos sin salirse
+ * de su caja y pisar ésta, así que van acá. El corte cae en x=399, dentro de la
+ * cuarta miniatura; el resto es de Centro.
+ *
+ * Qué se midió y qué no está estimado:
+ *
+ *  · TODA la tinta figurativa va TRAZADA del original (arte-izq.ts): la cabeza
+ *    de ramas, las seis miniaturas, el sello, los iconos, los rótulos y los
+ *    textos. Ningún relleno está elegido a ojo — cada pieza se rasteriza sobre
+ *    negro y un descenso por coordenadas busca la luminancia que menos error
+ *    absoluto medio deja contra la referencia; el TONO sale del promedio RGB de
+ *    la tinta real de esa ventana, reescalado a esa luminancia. La tabla con las
+ *    34 piezas, sus umbrales, sus rellenos y su MAE está en arte-izq.ts.
+ *
+ *  · Los ORGANISMOS van por CAPAS, no en un solo tono. La cabeza y las cuatro
+ *    miniaturas del panel 07 se trazan con cinco umbrales (13/26/45/75/120) y se
+ *    apilan: halo tenue abajo, núcleo brillante arriba. Aplanadas a un gris
+ *    daban 5,19 de MAE; por capas, 3,79. Es exactamente lo que mide el diff
+ *    estructural por bloques de 8×8, que no ve siluetas sino medias locales.
+ *
+ *  · Los tres CÓDIGOS DE BARRAS y las dos reglas rojas del panel 07 se leen
+ *    COLUMNA POR COLUMNA, no se trazan: el contorno les inventa esquinas y les
+ *    come tinta. El QR se lee celda por celda sobre su retícula medida (34×22
+ *    px, 21×13 módulos) y conserva el brillo de cada módulo, que en el original
+ *    no es binario.
+ *
+ *  · Los MARCOS y las REGLAS no se trazan: son rectángulos de 1 px con posición
+ *    fraccionaria y luminancia medida una por una. No comparten brillo —el filo
+ *    inferior del panel 06 pica en 43 y el superior en 26— y emparejarlos aplana
+ *    la lámina. El canto izquierdo del panel 07 vale 57 y el de los otros dos,
+ *    40: son tres cajas distintas, no una.
+ *
+ *  · El canto izquierdo del marco del póster (x=4) se dibuja acá. La cabecera lo
+ *    abre pero su caja recorta en y=88, y el pie lo cierra desde y=866: la franja
+ *    del medio no es de nadie más. Lo mismo con la regla de cierre de la banda
+ *    en y=865, que el pie deja anotada como ajena a propósito.
+ *
+ * Cifras del póster: son ficción y por eso cada pieza que lleva una vive dentro
+ * de un contenedor con data-symbolic="true", con su texto literal en el
+ * aria-label. No van como <text> real porque acá ninguna cifra está sola: viven
+ * dentro de una cadena («01. SPECIMEN DOSSIER», «ID: KX-AT-0001-01», «98.7%»)
+ * cuyo resto igual habría que trazar, y a 7 px de versal la mono del póster no
+ * existe en ninguna máquina — medido en la lámina 1, el mismo rótulo dejaba
+ * 8,83 % como texto contra 2,71 % trazado.
+ *
+ * Puntaje del bloque:
+ *   node scripts/lamina/score-panel.mjs t01-04-archive-tree Izquierda --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-04-izq.mjs
+ * Y el encuadre de cada banda se verifica con:
+ *   node scripts/lamina/arte-t01-04-izq.mjs --cajas
+ */
+import * as A from "./arte-izq";
+import type { Capa, Barras, Retabla } from "./arte-izq";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque
+ * lo que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo — la contraforma de la D queda fuera de sitio y la
+ * letra sale maciza.
+ *
+ * Las capas se pintan en orden de umbral creciente: la masa tenue primero, el
+ * núcleo brillante encima.
+ */
+const pinta = (capas: Capa[]) =>
+  capas
+    .map(({ c, g }) =>
+      g
+        .map(
+          (p) =>
+            `<svg x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.vw} ${p.vh}" preserveAspectRatio="none">` +
+            p.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${c}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+/** Código de barras leído: una tira de rectángulos de ancho y brillo medidos. */
+const pintaBarras = (b: Barras) =>
+  b.tramos
+    .map(([x, w, r, g, bl]) =>
+      `<rect x="${x}" y="${b.y}" width="${w}" height="${b.h}" fill="${
+        b.color ? `rgb(${r},${g},${bl})` : `rgb(${r},${r},${r})`
+      }"/>`
+    )
+    .join("");
+
+/**
+ * QR leído: tramos horizontales de un píxel de alto con su brillo medido. Las
+ * celdas van en coordenadas enteras a propósito — con módulos fraccionarios dos
+ * rectángulos vecinos no suman su cobertura y el bloque salía 19 % más oscuro.
+ */
+const pintaQr = (q: Retabla) =>
+  q.celdas
+    .map(([c, r, w, v]) => `<rect x="${q.x + c}" y="${q.y + r}" width="${w}" height="1" fill="rgb(${v},${v},${v})"/>`)
+    .join("");
+
+/**
+ * Marcos y reglas: [x, y, ancho, alto, luminancia, nota].
+ *
+ * Nada de esto es un borde de 1 px. Cada filo del póster reparte su tinta entre
+ * dos o tres líneas de la retícula y casi nunca por igual: el canto izquierdo
+ * del panel 01 promedia 15,1 · 34,8 · 3,5 en las columnas 15, 16 y 17. La
+ * posición, el ancho y el relleno de cada rectángulo salen de RESOLVER ese
+ * reparto —relleno = el máximo, cobertura de cada línea = su media dividida por
+ * el máximo, ancho = la suma de las coberturas— sobre las medias de columna y de
+ * fila medidas en la referencia. No hay ningún número elegido acá.
+ *
+ * Dos cosas que ese ajuste deja a la vista y a ojo no se ven:
+ *
+ *  · el mismo canto CAMBIA de sitio a lo largo de la lámina. El filo derecho
+ *    del panel 01 está en 391,37 en el cuerpo y en 391,88 en la franja del
+ *    rótulo, veintiún píxeles más arriba: van dos rectángulos, no uno estirado.
+ *  · las tres cajas tienen tres brillos. El canto izquierdo del panel 07 vale
+ *    52 y el de los otros dos, 36 y 40. Emparejarlos aplana la lámina.
+ *
+ * Todas las y son las del póster menos 88 y las x, menos 4.
+ */
+const reglas: [number, number, number, number, number, string][] = [
+  // marco del póster: la cabecera lo abre y el pie lo cierra, esta franja es de acá
+  [0, 0, 1, 778, 29, "canto izquierdo del póster · x=4"],
+
+  // ── 01. SPECIMEN DOSSIER · póster y 88..446 ────────────────────────────
+  [12.005, 0, 1.5, 21, 39, "canto izquierdo, franja del rótulo · 38,6·19,6"],
+  [11.576, 21, 1.5, 337, 36, "canto izquierdo, cuerpo · 15,1·34,8·3,5"],
+  [387.878, 0, 1.5, 21, 29, "canto derecho, franja del rótulo · 3,5·28,0·11,5"],
+  [387.365, 21, 1.5, 337, 33, "canto derecho, cuerpo · 21,2·28,9"],
+  [12, 20.593, 377, 1.815, 33, "regla bajo el rótulo · y=109 · 13,4·32,9·13,4"],
+  [12, 357.764, 376, 1.401, 28, "filo inferior · y=446 · 6,7·28,4·4,7"],
+  [252, 53.24, 136, 1.765, 18, "filo superior de la ficha · y=142"],
+  [249.9, 54, 1.2, 198, 26, "canto izquierdo de la ficha · x=254"],
+  [255, 177.573, 133, 1.494, 16, "regla sobre las miniaturas · y=266"],
+  [255, 235.436, 133, 1.841, 20, "regla bajo las miniaturas · y=324"],
+  [12, 327.739, 376, 1.64, 11, "regla sobre el código de barras · y=416"],
+
+  // ── 06. DATA TAGS & INDEX · póster y 455..587 ──────────────────────────
+  [10.678, 367, 1.405, 132, 40, "canto izquierdo · 12,8·39,7·3,3 (una columna a la izquierda del panel 01)"],
+  [387, 367, 1.951, 132, 27, "canto derecho · 26,5·25,2"],
+  [12, 367, 376, 2.004, 27, "filo superior · y 455-456 · 22,7·27,4·4,8"],
+  [12, 496.986, 376, 1.412, 36, "filo inferior · y=586 · 11,0·36,4·3,5"],
+  [12, 391.996, 376, 1.57, 25, "regla bajo el título · y=481 · 10,8·24,9·3,3"],
+  [120.35, 393, 1.3, 77, 24, "divisoria de columnas · x 124,4"],
+  [273.9, 393, 1.5, 77, 34, "divisoria de columnas · x 277,9"],
+  [12, 468.918, 376, 1.849, 15, "separador sobre el código · y 557-558 · 10,9·14,6"],
+
+  // ── 07. MOTION NOTES & BEHAVIOR · póster y 595..850 ────────────────────
+  // El canto derecho de este panel vive en x≈460, fuera de la caja: es de Centro.
+  [10.965, 507, 1.194, 255, 52, "canto izquierdo · 1,8·51,6·8,2 — vale 52, no 36"],
+  [12, 507, 384, 2.095, 22, "filo superior · y 595-596 · 21,4·22,2·2,9"],
+  [12, 760, 384, 1.822, 26, "filo inferior · y=849 · 5,7·25,9·15,6"],
+  [12, 530, 384, 1.77, 24, "regla bajo el título · y=619 · 11,2·24,4·7,6"],
+
+  // cierre de la banda de bloques (el pie la deja anotada como ajena)
+  [2, 776, 394, 1.184, 24, "regla de cierre · y=865 · 4,5·24,4"],
+];
+
+/**
+ * Marcos de las cuatro miniaturas del panel 07: [x, ancho, relleno] del canto
+ * izquierdo y del derecho, ajustados igual que las reglas contra las medias de
+ * columna sobre y 683..780.
+ *
+ * No están a paso fijo —100,9 / 102,4 / 100,0 entre cantos— ni comparten brillo:
+ * el canto izquierdo de la cuarta pica en 33 y el de la tercera en 17. El cuarto
+ * marco se va de la caja en x=399 y lo recorta el overflow; su canto derecho es
+ * de Centro.
+ */
+const minis: [number, number, number, number, number, number][] = [
+  [18, 1.966, 18, 118.921, 1.723, 20],
+  [126, 1.594, 22, 228, 1.63, 21],
+  [235, 1.936, 17, 334.989, 1.744, 18],
+  [343, 1.794, 33, 445, 1.7, 20],
+];
+const MINI_Y = 593;        // filo superior, póster y=681 · 17,5·16,0·6,0
+const MINI_GRUESO = 2.257; // alto de ese filo, resuelto igual que las reglas
+const MINI_PIE = 692.874;  // filo inferior, póster y=782 · 10,3·23,9
+const MINI_ALTO = 101.5;   // de un filo al otro
+
+const gris = (v: number) => `rgb(${v},${v},${v})`;
+---
+
+<div data-box style={box} class="izq">
+  <svg class="izq__art" viewBox="0 0 396 778" width="396" height="778" aria-hidden="false">
+    <!-- Marcos y reglas. Cada uno con su brillo medido: emparejarlos se lee
+         como una hoja de cálculo, no como un instrumento. -->
+    {reglas.map(([x, y, w, h, v]) => <rect x={x} y={y} width={w} height={h} fill={gris(v)} />)}
+
+    {minis.map(([xi, wi, vi, xd, wd, vd]) => (
+      <>
+        <rect x={xi} y={MINI_Y} width={wi} height={MINI_ALTO} fill={gris(vi)} />
+        <rect x={xd} y={MINI_Y} width={wd} height={MINI_ALTO} fill={gris(vd)} />
+        <rect x={xi} y={MINI_Y} width={xd - xi + wd} height={MINI_GRUESO} fill={gris(18)} />
+        <rect x={xi} y={MINI_PIE} width={xd - xi + wd} height={1.556} fill={gris(24)} />
+      </>
+    ))}
+
+    <!-- ── 01. SPECIMEN DOSSIER ─────────────────────────────────────────
+         El rótulo del panel vive ARRIBA de su marco (y 93..102 del póster,
+         seis filas por encima de la regla de y=109): no es un título dentro
+         de la caja como los de los paneles 06 y 07. -->
+    <g data-symbolic="true" role="img" aria-label="01. SPECIMEN DOSSIER" set:html={pinta(A.p01Titulo)} />
+
+    <g role="img" aria-label="KODEX−∞ · ARCHIVE TREE // LIVING MEMORY NODE">
+      <g set:html={pinta(A.p01Marca)} />
+      <g set:html={pinta(A.p01Sub)} />
+    </g>
+
+    <!-- La cabeza de perfil formada por ramas: cinco capas trazadas del
+         original, de halo a núcleo. Es el organismo del panel y no se apaga
+         ni se baja de brillo para ganarle al número. -->
+    <g role="img" aria-label="Cabeza humana de perfil formada por ramas: el organismo de memoria" set:html={pinta(A.p01Cabeza)} />
+
+    <!-- Ficha del espécimen. Los rótulos son verdes y los valores grises: van
+         como dos piezas con dos tonos medidos, no como una tabla de un color. -->
+    <g data-symbolic="true">
+      <g role="img" aria-label="SUBJECT: TANDA 01" set:html={pinta(A.p01Subject)} />
+      <g role="img" aria-label="ORIGIN: · CLASS: · TYPE: · RANK: · STATUS:" set:html={pinta(A.p01Rot)} />
+      <g role="img" aria-label="UNKNOWN · MEMORY ORGANISM · ARCHIVAL INTELLIGENCE · PRIME NODE · ACTIVE" set:html={pinta(A.p01Val)} />
+      <g role="img" aria-label="THREAT LVL:" set:html={pinta(A.p01Threat)} />
+      <g role="img" aria-label="C-5" set:html={pinta(A.p01C5)} />
+    </g>
+
+    <!-- Las tres miniaturas de la ficha: retícula orgánica, columna de marcas
+         y traza de señal. Son tres masas distintas con tres paletas distintas
+         —oliva, ámbar y gris— y por eso son tres piezas. -->
+    <g role="img" aria-label="Miniaturas de análisis: retícula orgánica, columna de marcas y traza de señal">
+      <g set:html={pinta(A.p01MiniA)} />
+      <g set:html={pinta(A.p01MiniB)} />
+      <g set:html={pinta(A.p01MiniC)} />
+    </g>
+
+    <g data-symbolic="true">
+      <g role="img" aria-label="ID: KX-AT-0001-01" set:html={pinta(A.p01Id)} />
+      <g role="img" aria-label="Código de barras del espécimen" set:html={pintaBarras(A.p01Barras)} />
+    </g>
+    <g role="img" aria-label="Sello rojo del archivo" set:html={pinta(A.p01Sello)} />
+
+    <g
+      role="img"
+      aria-label="NOTES: HOUSES PATTERNS, IMPRINTS, AND SIGNALS ACROSS TIME. ROOTS TAP INTO THE UNSEEN. BRANCHES DISTRIBUTE MEMORY. EVERY LEAF IS AN ARCHIVE."
+      set:html={pinta(A.p01Notas)}
+    />
+    <g role="img" aria-label="Código de barras del dossier" set:html={pintaBarras(A.p01BarrasG)} />
+
+    <!-- ── 06. DATA TAGS & INDEX ────────────────────────────────────────── -->
+    <g data-symbolic="true" role="img" aria-label="06. DATA TAGS & INDEX" set:html={pinta(A.p06Titulo)} />
+
+    <g role="img" aria-label="Marcas de advertencia y de coordenada">
+      <g set:html={pinta(A.p06Marcas)} />
+      <g set:html={pinta(A.p06IcoA)} />
+      <g set:html={pinta(A.p06IcoC)} />
+    </g>
+    <g role="img" aria-label="ARCHIVE · SIGNAL · COORD · SYNC" set:html={pinta(A.p06RotA)} />
+    <g role="img" aria-label="LAYER · ACCESS · ADDRESS · SYNC" set:html={pinta(A.p06RotC)} />
+    <g data-symbolic="true">
+      <g role="img" aria-label="CLASS MEM-NODE · STATUS ACTIVE" set:html={pinta(A.p06RotB)} />
+      <g role="img" aria-label="N. 0.0000° E. 0.0000° · ACCESS / RESTRICTED · A7F3.8C56.XX∞ · 98.7%" set:html={pinta(A.p06ValC)} />
+      <!-- Los dos guiones rojos junto a «98.7%»: tinta media 4, invisibles con
+           el umbral de los demás rótulos y setenta píxeles de ancho. -->
+      <g set:html={pinta(A.p06Rayas)} />
+    </g>
+
+    <g role="img" aria-label="DO NOT TRANSMIT // REMEMBER ONLY" set:html={pinta(A.p06Aviso)} />
+    <g set:html={pinta(A.p06Ico)} />
+    <g role="img" aria-label="Código de barras del índice" set:html={pintaBarras(A.p06Barras)} />
+    <g role="img" aria-label="Código QR del índice" set:html={pintaQr(A.p06Qr)} />
+
+    <!-- ── 07. MOTION NOTES & BEHAVIOR (mitad izquierda) ─────────────────── -->
+    <g data-symbolic="true" role="img" aria-label="07. MOTION NOTES & BEHAVIOR" set:html={pinta(A.p07Titulo)} />
+
+    <g role="img" aria-label="BREATHE · PULSE · GROW · ARCHIVE" set:html={pinta(A.p07Iconos)} />
+    <g
+      role="img"
+      aria-label="RHYTHMIC EXPANSION. INTAKE & RELEASE. · SIGNAL THROBS. SYNC WITH ROOT. · STRUCTURAL ADAPTATION. · WRITE TO LEAVES. STORE & SEAL."
+      set:html={pinta(A.p07Texto)}
+    />
+
+    <g role="img" aria-label="Cuatro miniaturas de conducta del organismo">
+      <g set:html={pinta(A.p07ThumbA)} />
+      <g set:html={pinta(A.p07ThumbB)} />
+      <g set:html={pinta(A.p07ThumbC)} />
+      <g set:html={pinta(A.p07ThumbD)} />
+    </g>
+
+    <!-- Las dos reglas rojas son 2 px de alto y tinta de 9 a 16: se leen
+         columna por columna con el RGB medido, no como luminancia, o salen
+         plomizas. -->
+    <g set:html={pintaBarras(A.p07Rojo1)} />
+    <g data-symbolic="true" role="img" aria-label="2 - 4 SEC · 1 - 2 SEC · 3 - 8 SEC · 2 - 6 SEC" set:html={pinta(A.p07Sec)} />
+    <g role="img" aria-label="NATURAL FLOW · HEARTBEAT SYNC · ORGANIC GROWTH · DATA COMMIT" set:html={pinta(A.p07Nombre)} />
+    <g set:html={pintaBarras(A.p07Rojo2)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. La
+     cuarta miniatura del panel 07 y las dos reglas rojas se van por la derecha
+     a propósito —así están en el póster— y las recorta esto. */
+  .izq {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .izq__art {
+    position: absolute;
+    left: 0;
+    top: 0;
+    /* La tinta del póster no es un trazo limpio: derrama medio píxel por lado
+       más que el rasterizador del navegador. El trazo binarizado ya se queda
+       con parte de ese halo adentro, así que acá no se desenfoca nada: el
+       desenfoque sí hace falta cuando el glifo lo dibuja una fuente, no cuando
+       viene del propio original. */
+    shape-rendering: geometricPrecision;
+  }
+</style>

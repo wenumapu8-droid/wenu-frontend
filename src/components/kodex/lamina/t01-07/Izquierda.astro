@@ -1,0 +1,206 @@
+---
+/**
+ * KODEX-∞ · t01-07 COSMOLOGY CORE · BLOQUE IZQUIERDA (4,88 · 404×778)
+ *
+ * La caja arranca en 4,88 del póster: todas las coordenadas de este archivo y de
+ * arte-izq.ts están corridas −4,−88 respecto de la referencia, y por eso cada
+ * comentario cita también la y del póster.
+ *
+ * El encargo hablaba de tres paneles y son tres, enteros: el corte del andamiaje
+ * en x=408 cae en el aire —el canto derecho de los tres paneles está en 392-394 y
+ * la regla de separación entre bloques en x=403— así que acá no hay ninguna
+ * frontera ambigua que discutir con el bloque Centro. Sí entran, arriba, los
+ * catorce píxeles que la cabecera deja sin cerrar: el filo inferior del chip rosa
+ * (y 88-92) y el tramo de su canto vertical en x=99. Su caja recorta en y=88 y
+ * nadie más los alcanza.
+ *
+ * Qué se midió y qué no está estimado:
+ *
+ *  · TODA la tinta figurativa va TRAZADA del original (arte-izq.ts): rótulos,
+ *    cifras, los siete iconos de la leyenda, las cuatro miniaturas del mapa
+ *    orbital y los cuatro diagramas de movimiento. Ningún relleno está elegido a
+ *    ojo — cada pieza se rasteriza sobre negro y un descenso por coordenadas
+ *    busca la luminancia que menos error absoluto medio deja contra la
+ *    referencia; el TONO sale del promedio RGB de la tinta real de esa ventana,
+ *    reescalado a esa luminancia. La tabla con las 39 piezas, sus umbrales, sus
+ *    rellenos y su MAE está en la cabecera de arte-izq.ts.
+ *
+ *  · Los ORGANISMOS van por OCHO CAPAS, no en un solo tono. Las cuatro
+ *    miniaturas de SCENE STATES y los cuatro diagramas de MOTION NOTES se
+ *    trazan con umbrales 10/17/28/45/70/105/155/205 y se apilan: el polvo de
+ *    estrellas abajo, el núcleo blanco arriba. Seis capas dejaban el núcleo de REVEAL saturado y
+ *    el diff lo marcaba como una mancha; la séptima y la octava lo abren. Es lo
+ *    que mide el diff estructural por bloques de 8×8, que no ve siluetas sino
+ *    medias locales.
+ *
+ *  · La RETÍCULA se LEE, no se resuelve. Son 3604 tramos en 32 tiras, cada uno
+ *    con su RGB medido: se recorre la tira línea por línea y se comprime por
+ *    tramos de color parecido —con tolerancia 2, medida: con 5 el bloque daba
+ *    0,25 % y con 1, 0,23 % igual que con 2 pero con 5424 tramos—, igual que un
+ *    código de barras pero en las dos orientaciones. Importa que sea color y no
+ *    luminancia porque acá los marcos NO son grises: el de MAP es fucsia, el de ORBIT cian, el de ALIGN violeta y
+ *    el de REVEAL magenta, y los cuatro llevan el halo del organismo encima.
+ *    Un gris común para todos aplanaría la mitad de la lámina.
+ *
+ *  · El canto izquierdo de los paneles va en TRES tramos y no en uno. Los
+ *    rótulos «01.», «02.» y «03.» empiezan en x=13, la misma columna que el filo
+ *    del panel 02: una tira continua se comería sus dos primeras letras y las
+ *    pintaría del tono del marco.
+ *
+ * Cifras del póster: son ficción y por eso cada pieza que lleva una vive dentro
+ * de un contenedor con data-symbolic="true", con su texto literal en el
+ * aria-label. No van como <text> real porque acá ninguna cifra está sola —vive
+ * dentro de «+17.382°», «DRIFT: 0.00087%», «EPOCH: 2025.142»— y a 7 px de versal
+ * la mono del póster no existe en ninguna máquina: medido en la lámina 1, el
+ * mismo rótulo dejaba 8,83 % como texto contra 2,71 % trazado.
+ *
+ * Puntaje del bloque:
+ *   node scripts/lamina/score-panel.mjs t01-07-cosmology-core Izquierda --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-07-izq.mjs
+ * Y el encuadre de cada banda y cada tira se verifica con:
+ *   node scripts/lamina/arte-t01-07-izq.mjs --cajas
+ */
+import * as A from "./arte-izq";
+import type { Capa } from "./arte-izq";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque lo
+ * que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo — la contraforma de la D queda fuera de sitio y la
+ * letra sale maciza.
+ *
+ * Las capas se pintan en orden de umbral creciente: la masa tenue primero, el
+ * núcleo brillante encima.
+ */
+const pinta = (capas: Capa[]) =>
+  capas
+    .map(({ c, g }) =>
+      g
+        .map(
+          (p) =>
+            `<svg x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" viewBox="0 0 ${p.vw} ${p.vh}" preserveAspectRatio="none">` +
+            p.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${c}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+/** Retícula leída: un rectángulo por tramo, con el RGB medido de esa línea. */
+const reticula = A.reticula
+  .map(([x, y, w, h, r, g, b]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="rgb(${r},${g},${b})"/>`)
+  .join("");
+---
+
+<div data-box style={box} class="izq">
+  <svg class="izq__art" viewBox="0 0 404 778" width="404" height="778" aria-hidden="false">
+    <!-- Marcos, reglas y el resto del chip de la cabecera. Cada tramo con su
+         color medido: emparejarlos se lee como una hoja de cálculo, no como un
+         instrumento. -->
+    <g set:html={reticula} />
+
+    <!-- ── 01. NAVIGATION PANEL · póster y 109..356 ───────────────────────── -->
+    <g role="img" aria-label="01. NAVIGATION PANEL" set:html={pinta(A.p01Titulo)} />
+
+    <g role="img" aria-label="COORDINATE READOUT" set:html={pinta(A.p01TitA)} />
+    <g data-symbolic="true" role="img" aria-label="X 0.000° N +17.382° · Y 0.000° E −41.707° · Z 0.000° Ω +06.618°" set:html={pinta(A.p01Coord)} />
+
+    <g role="img" aria-label="NAV STATUS" set:html={pinta(A.p01TitB)} />
+    <g data-symbolic="true" role="img" aria-label="SIGNAL: STRONG · ORIGIN: KX-T01-01A · VECTOR: STABLE · DRIFT: 0.00087% · PARALLAX: 7 LAYERS" set:html={pinta(A.p01Nav)} />
+
+    <g role="img" aria-label="ORBITAL REFERENCE" set:html={pinta(A.p01TitC)} />
+    <g data-symbolic="true" role="img" aria-label="PLANE: ECLIPTIC-7 · EPOCH: 2025.142 · FRAME: KODEX INERTIAL · GRID: HEX / TRIAD · UNIT: ASTRAL" set:html={pinta(A.p01Orb)} />
+
+    <g role="img" aria-label="LEGEND / GLYPH KEY" set:html={pinta(A.p01TitD)} />
+    <!-- Los siete iconos son siete tintas distintas y por eso son siete piezas:
+         una sola promediaría fucsia, cian, violeta, magenta y azul en un malva
+         que no está en el póster. -->
+    <g role="img" aria-label="Glifos de la leyenda: núcleo, planeta, satélite, nodo, portal, vector y anomalía">
+      <g set:html={pinta(A.p01Ico1)} />
+      <g set:html={pinta(A.p01Ico2)} />
+      <g set:html={pinta(A.p01Ico3)} />
+      <g set:html={pinta(A.p01Ico4)} />
+      <g set:html={pinta(A.p01Ico5)} />
+      <g set:html={pinta(A.p01Ico6)} />
+      <g set:html={pinta(A.p01Ico7)} />
+    </g>
+    <g
+      role="img"
+      aria-label="CORE / NÚCLEO · PLANET / MUNDO · SATELLITE / LUNA · NODE / NODO · GATE / PORTAL · VECTOR / RUTA · ANOMALY / ANOMALÍA"
+      set:html={pinta(A.p01LegTxt)}
+    />
+
+    <!-- ── 02. SCENE STATES · póster y 360..583 ───────────────────────────── -->
+    <g role="img" aria-label="02. SCENE STATES" set:html={pinta(A.p02Titulo)} />
+
+    <!-- Nombre y regleta de cada estado van juntos: comparten tinta y tono. -->
+    <g role="img" aria-label="MAP" set:html={pinta(A.p02NomMap)} />
+    <g role="img" aria-label="ORBIT" set:html={pinta(A.p02NomOrb)} />
+    <g role="img" aria-label="ALIGN" set:html={pinta(A.p02NomAli)} />
+    <g role="img" aria-label="REVEAL" set:html={pinta(A.p02NomRev)} />
+    <g
+      role="img"
+      aria-label="Reveal the field. Layer scan. Establish scale. · Follow the path. Track movement. Read the nodes. · Synchronize vectors. Lock the geometry. Stabilize the core. · Break the seal. Surface the truth. Transmit the signal."
+      set:html={pinta(A.p02Glosa)}
+    />
+
+    <!-- Las cuatro miniaturas del mapa orbital son el organismo de este bloque.
+         Van por seis capas y no se aplanan: aplanarlas mejora el número —el
+         diff estructural compara dos texturas no correlacionadas contra su
+         media— y borra el campo de estrellas, que es lo que las hace un mapa. -->
+    <g role="img" aria-label="Cuatro estados del mapa orbital: campo, órbitas, alineación y revelación">
+      <g set:html={pinta(A.p02ArtMap)} />
+      <g set:html={pinta(A.p02ArtOrb)} />
+      <g set:html={pinta(A.p02ArtAli)} />
+      <g set:html={pinta(A.p02ArtRev)} />
+    </g>
+
+    <!-- ── 03. MOTION NOTES · póster y 599..832 ───────────────────────────── -->
+    <g role="img" aria-label="03. MOTION NOTES" set:html={pinta(A.p03Titulo)} />
+
+    <g role="img" aria-label="ORBIT" set:html={pinta(A.p03Nom1)} />
+    <g role="img" aria-label="Continuous rotation. Elliptical paths. Parallax shift. Inertia dampened." set:html={pinta(A.p03Txt1)} />
+    <g role="img" aria-label="TRANSMIT" set:html={pinta(A.p03Nom2)} />
+    <g role="img" aria-label="Signal outbound. Pulse along route. Data leaves trail. Echo return." set:html={pinta(A.p03Txt2)} />
+    <g role="img" aria-label="EXPAND" set:html={pinta(A.p03Nom3)} />
+    <g role="img" aria-label="Field grows. Rings unfold. New nodes awaken. Scale increases." set:html={pinta(A.p03Txt3)} />
+    <g role="img" aria-label="CONTRACT" set:html={pinta(A.p03Nom4)} />
+    <g role="img" aria-label="Field collapses. Paths converge. Energy draws in. Core stabilizes." set:html={pinta(A.p03Txt4)} />
+
+    <g role="img" aria-label="Cuatro diagramas de movimiento: órbita, transmisión, expansión y contracción">
+      <g set:html={pinta(A.p03Dia1)} />
+      <g set:html={pinta(A.p03Dia2)} />
+      <g set:html={pinta(A.p03Dia3)} />
+      <g set:html={pinta(A.p03Dia4)} />
+    </g>
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .izq {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .izq__art {
+    position: absolute;
+    left: 0;
+    top: 0;
+    /* La tinta del póster no es un trazo limpio: derrama medio píxel por lado
+       más que el rasterizador del navegador. El trazo binarizado ya se queda con
+       parte de ese halo adentro, así que acá no se desenfoca nada — y Chromium
+       redondea feGaussianBlur a cajas de floor(sigma·1,88+0,5), o sea que todo
+       sigma bajo 0,8 no haría nada de todos modos. */
+    shape-rendering: geometricPrecision;
+  }
+</style>

@@ -1,0 +1,583 @@
+---
+/**
+ * KODEX-∞ · u07-observer · PANELES
+ *
+ * Los diez instrumentos que rodean la cámara, más los dos rótulos OBSERVE /
+ * REFLECT que se apoyan sobre el héroe. Cajas medidas sobre la referencia
+ * (barrido de bordes con umbral 6, no estimación a ojo):
+ *
+ *   PERCEPTION            x  79– 240   y  248– 457
+ *   OBSERVER IN SYSTEM    x  78– 238   y  532– 717
+ *   FOCUS                 x  78– 241   y  757– 983
+ *   REFLECTION            x 879–1038   y  248– 482
+ *   STATE SHIFT           x 879–1038   y  532– 718
+ *   FEEDBACK LOOP         x 879–1038   y  758– 983
+ *   OBSERVATION IMPACT    x  78– 300   y 1005–1200
+ *   PERCEPTION LATTICE    x 321– 518   y 1005–1200
+ *   STATE SHIFT LOG       x 539– 761   y 1005–1200
+ *   MIRROR CHAMBER DIAGRAM x 783–1037  y 1005–1200
+ *
+ * TRES COSAS QUE LA MEDICIÓN CORRIGIÓ Y NO SE VEÍAN A OJO:
+ *
+ *  1. La columna izquierda va ALINEADA A LA IZQUIERDA y la derecha CENTRADA —
+ *     salvo FEEDBACK LOOP, que rompe la regla y vuelve a la izquierda. Se ve en
+ *     los arranques de tinta: 95/96/100 a la izquierda contra centros en 956,5
+ *     a la derecha, y 898 en FEEDBACK LOOP.
+ *  2. Los seis paneles laterales NO comparten alto. 209, 185 y 226 a la
+ *     izquierda; 234, 186 y 225 a la derecha. Componerlos con una altura común
+ *     deja tres bordes fuera de sitio.
+ *  3. La fila de nodos de los diagramas circulares no es concéntrica pareja:
+ *     en FOCUS los nodos caen en ±19, ±39 y ±51,5 del centro. Eso es paso
+ *     creciente, no una diana de paso constante.
+ *
+ * TIPOGRAFÍA CON `textLength`. La mono del póster no existe en ninguna máquina,
+ * así que el avance no se puede heredar. Cada rótulo lleva el ancho de tinta
+ * medido y `lengthAdjust="spacing"`: el extremo cae donde lo tiene la
+ * referencia sea cual sea la fuente que resuelva.
+ *
+ * EL KIT ANTES QUE EL LÁPIZ. Las dos señales y el histograma son `kit/Waveform`
+ * y los dos discos son `kit/RadialScanner`: dibujan con `rng(semilla)` de
+ * `kit/rng.ts` y jamás con Math.random(). Con azar real dos capturas de la misma
+ * página dan puntajes distintos y el banco mide ruido en vez de convergencia
+ * (`kit/README.md`). Redibujarlos acá habría sido el enésimo juego de medidores
+ * del proyecto, que es la razón por la que el kit existe.
+ *
+ * TELEMETRÍA SIMBÓLICA. `OBSERVATION IMPACT`, `STATE SHIFT LOG` y las señales
+ * son ficción del póster, no estado de ningún sistema: van marcados
+ * `data-symbolic="true"` como manda el canon.
+ *
+ * CONTENIDO. Todos los textos son transcripción literal de la referencia. No se
+ * agregó ninguno, y en particular ninguno que sugiera que el sistema lee el
+ * estado mental, la emoción o la calidad de atención de nadie.
+ *
+ * No hay bloque `<script>` a propósito: en este repo Astro compila el contenido
+ * de `<script>` como JS puro y cualquier anotación de tipo lo rompe. Nada de
+ * esta región necesita runtime.
+ */
+import Waveform from "../kit/Waveform.astro";
+import RadialScanner from "../kit/RadialScanner.astro";
+import { p2 } from "../kit/rng";
+
+/* ── marcos ──────────────────────────────────────────────────────────────
+   Rectángulo tenue + escuadras en L en las cuatro esquinas. Las escuadras son
+   lo único de los marcos que se lee a distancia normal: el rectángulo está a
+   una décima parte de su brillo. */
+type Caja = { x: number; y: number; w: number; h: number };
+const MARCOS: Caja[] = [
+  { x: 79.5, y: 248.5, w: 161, h: 209 },
+  { x: 78.5, y: 532.5, w: 160, h: 185 },
+  { x: 78.5, y: 757.5, w: 163, h: 226 },
+  { x: 879.5, y: 248.5, w: 159, h: 234 },
+  { x: 879.5, y: 532.5, w: 159, h: 186 },
+  { x: 879.5, y: 758.5, w: 159, h: 225 },
+  { x: 78.5, y: 1005.5, w: 222, h: 195 },
+  { x: 321.5, y: 1005.5, w: 197, h: 195 },
+  { x: 539.5, y: 1005.5, w: 222, h: 195 },
+  { x: 783.5, y: 1005.5, w: 254, h: 195 },
+];
+const ESQ = 12;
+const escuadras = (c: Caja) =>
+  [
+    [c.x + 4, c.y + 4, 1, 1],
+    [c.x + c.w - 4, c.y + 4, -1, 1],
+    [c.x + 4, c.y + c.h - 4, 1, -1],
+    [c.x + c.w - 4, c.y + c.h - 4, -1, -1],
+  ].map(([x, y, sx, sy]) => `M${x + sx * ESQ} ${y}H${x}V${y + sy * ESQ}`);
+
+/* ── cuerpos de texto ────────────────────────────────────────────────────
+   [texto, x, ancho de tinta]. La línea de base se calcula con el paso medido
+   de cada panel; los anchos salen de barrer cada banda con umbral 45. */
+type Linea = [string, number, number];
+
+const PERCEPCION: Linea[] = [
+  ["PERCEPTION IS THE", 100, 103],
+  ["EVENT.", 100, 36],
+  ["WHAT IS SEEN", 100, 73],
+  ["RECONFIGURES", 100, 71],
+  ["WHAT CAN BE SEEN.", 100, 102],
+];
+const OBSERVADOR: Linea[] = [
+  ["THE OBSERVER IS", 95, 91],
+  ["EMBEDDED WITHIN", 95, 95],
+  ["THE KODEX MATRIX.", 95, 105],
+];
+const OBSERVADOR2: Linea[] = [
+  ["NO OUTSIDE.", 95, 67],
+  ["ONLY RELATION.", 95, 87],
+];
+const FOCO: Linea[] = [
+  ["FOCUS COLLAPSES", 96, 94],
+  ["POTENTIALS INTO", 96, 99],
+  ["PERCEIVED STATE.", 96, 99],
+  ["NARROWING CREATES", 96, 107],
+  ["REALITY TUNNELS.", 96, 99],
+];
+const REFLEJO: Linea[] = [
+  ["THE MIRROR DOES NOT", 899, 116],
+  ["COPY. IT RESPONDS.", 901, 111],
+  ["EACH REFLECTION", 909, 95],
+  ["IS MODULATED BY", 910, 94],
+  ["THE OBSERVER'S STATE.", 892, 129],
+];
+const CAMBIO: Linea[] = [
+  ["OBSERVATION", 924, 68],
+  ["INTRODUCES VARIANCE.", 896, 124],
+  ["VARIANCE BECOMES", 908, 100],
+  ["TRANSFORMATION.", 909, 93],
+];
+const BUCLE: Linea[] = [
+  ["PERCEPTION FEEDS", 898, 102],
+  ["REFLECTION.", 898, 69],
+  ["REFLECTION REWRITES", 898, 122],
+  ["PERCEPTION.", 898, 69],
+];
+
+/* ── OBSERVATION IMPACT ──────────────────────────────────────────────────
+   Cinco filas clave/valor con guía de puntos. El valor va alineado a la
+   derecha contra x=278; la guía arranca donde termina la clave y muere donde
+   empieza el valor, así que su largo lo fija la fila y no una constante. */
+const IMPACTO: [string, number, string, number, boolean][] = [
+  ["COHERENCE", 55, "93.1%", 31, false],
+  ["STABILITY", 55, "71.4%", 31, false],
+  ["VARIANCE", 49, "28.6%", 31, false],
+  ["INTEGRITY", 55, "88.7%", 31, false],
+  ["ADAPTIVE RESPONSE", 106, "ACTIVE", 37, true],
+];
+
+/* ── STATE SHIFT LOG ─────────────────────────────────────────────────── */
+const BITACORA: [string, string, number][] = [
+  ["00:00:01", "FOCUS ENGAGED", 87],
+  ["00:00:02", "REALITY NARROWS", 99],
+  ["00:00:03", "REFLECTION RESPONDS", 124],
+  ["00:00:04", "STATE DISPLACED", 99],
+  ["00:00:05", "NEW CONFIGURATION", 111],
+];
+
+/* ── PERCEPTION LATTICE ──────────────────────────────────────────────────
+   NO es una flor de la vida y no se dibuja a ojo. Es una rosa: N círculos de
+   radio ρ con los centros sobre una circunferencia del mismo radio ρ, así que
+   todos pasan por el origen y cada par vecino deja un pétalo con la punta en el
+   centro. Encima va un polígono estrellado {12/5} y una corona de rayos.
+   Medido: núcleo en (419, 1112), borde exterior en r=70. */
+const LAT = { cx: 419, cy: 1112, R: 70 };
+const N_LAT = 12;
+const RHO_LAT = 24;
+const rosa = (n: number, rho: number, giro = -Math.PI / 2) =>
+  Array.from({ length: n }, (_, k) => {
+    const a = giro + (k * 2 * Math.PI) / n;
+    return { x: p2(Math.cos(a) * rho), y: p2(Math.sin(a) * rho), a };
+  });
+const petalos = rosa(N_LAT, RHO_LAT);
+const petalosInt = rosa(8, 15.5);
+/* Polígono estrellado {12/5}: se recorre saltando de 5 en 5 y se cierra solo
+   porque mcd(12,5)=1. Con salto 2 o 3 salen dos y tres triángulos sueltos. */
+const estrellado = (n: number, salto: number, r: number, giro = -Math.PI / 2) =>
+  Array.from({ length: n + 1 }, (_, k) => {
+    const a = giro + (((k * salto) % n) * 2 * Math.PI) / n;
+    return `${p2(Math.cos(a) * r)},${p2(Math.sin(a) * r)}`;
+  }).join(" ");
+const RAYOS_LAT = Array.from({ length: 12 }, (_, k) => {
+  const a = -Math.PI / 2 + (k * 2 * Math.PI) / 12;
+  return { x: p2(Math.cos(a) * LAT.R), y: p2(Math.sin(a) * LAT.R), grande: k % 3 === 0 };
+});
+
+/* ── MIRROR CHAMBER DIAGRAM ──────────────────────────────────────────────
+   El esquema del héroe: dos aros elípticos, la vesica central y los dos discos
+   laterales. Medido sobre la referencia — núcleo en (910, 1111), discos
+   laterales en ±81, aros en ±53 de altura. */
+const DIA = { cx: 910, cy: 1111 };
+
+/* ── FEEDBACK LOOP · lemniscata ──────────────────────────────────────────
+   Bernoulli normalizada: lóbulos redondos y cruce en punta, que es la forma del
+   8 de la referencia. Gerono da lóbulos pellizcados y el lazo sale con cara de
+   reloj de arena. */
+const LEM_V = 0.3535533906;
+const lemniscata = (cx: number, cy: number, ex: number, ey: number, n = 160) =>
+  Array.from({ length: n + 1 }, (_, i) => {
+    const t = (i / n) * Math.PI * 2;
+    const d = 1 + Math.sin(t) * Math.sin(t);
+    const x = p2(cx + (ex * Math.cos(t)) / d);
+    const y = p2(cy + (ey * ((Math.sin(t) * Math.cos(t)) / d)) / LEM_V);
+    return `${i ? "L" : "M"}${x} ${y}`;
+  }).join("");
+const puntoLem = (cx: number, cy: number, ex: number, ey: number, t: number) => {
+  const d = 1 + Math.sin(t) * Math.sin(t);
+  return [p2(cx + (ex * Math.cos(t)) / d), p2(cy + (ey * ((Math.sin(t) * Math.cos(t)) / d)) / LEM_V)];
+};
+const BUCLE_C = { cx: 957, cy: 835 };
+const nodosBucle = Array.from({ length: 10 }, (_, k) =>
+  puntoLem(BUCLE_C.cx, BUCLE_C.cy, 60, 27, (k / 10) * Math.PI * 2),
+);
+---
+
+<div data-bloque="Paneles" style="inset:0">
+  <svg class="pan" viewBox="0 0 1122 1402" width="1122" height="1402" aria-hidden="true">
+    <defs>
+      <!-- Núcleo encendido: se repite en los cinco diagramas y siempre es el
+           mismo degradado, así que va una vez. -->
+      <radialGradient id="u07Nuc">
+        <stop offset="0" stop-color="#ffffff" stop-opacity="0.98" />
+        <stop offset="0.28" stop-color="#d9c8ff" stop-opacity="0.7" />
+        <stop offset="1" stop-color="#a77cf0" stop-opacity="0" />
+      </radialGradient>
+    </defs>
+
+    <!-- ═══ MARCOS ═══════════════════════════════════════════════════════ -->
+    <g class="pan__marco">
+      {MARCOS.map((c) => <rect x={c.x} y={c.y} width={c.w} height={c.h} />)}
+    </g>
+    <g class="pan__esq">
+      {MARCOS.flatMap((c) => escuadras(c)).map((d) => <path d={d} />)}
+    </g>
+
+    <!-- ═══ RÓTULOS DEL HÉROE ════════════════════════════════════════════
+         Las dos cajitas que se apoyan sobre la cámara. Medidas: x 494..627,
+         y 257..282 arriba y 945..970 abajo. Son simétricas respecto del plano
+         de espejo con medio píxel de error, igual que todo el héroe. -->
+    {[
+      { y: 257.5, h: 25, t: "OBSERVE", ty: 273.5 },
+      { y: 945.5, h: 25, t: "REFLECT", ty: 961.5 },
+    ].map((r) => (
+      <g class="pan__rot">
+        <rect x="494" y={r.y} width="133.5" height={r.h} />
+        <path d={`M494 ${r.y}h9M627.5 ${r.y}h-9M494 ${r.y + r.h}h9M627.5 ${r.y + r.h}h-9`} />
+        <text class="pan__t pan__t--rot" x="535.5" y={r.ty} textLength="49" lengthAdjust="spacing">{r.t}</text>
+      </g>
+    ))}
+
+    <!-- ═══ 1 · PERCEPTION ═══════════════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="100" y="273.5" textLength="78" lengthAdjust="spacing">PERCEPTION</text>
+    {PERCEPCION.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(300.5 + i * 18.25)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+
+    <!-- ═══ 2 · OBSERVER IN SYSTEM ═══════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="95" y="554.5" textLength="128" lengthAdjust="spacing">OBSERVER IN SYSTEM</text>
+    {OBSERVADOR.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(580.5 + i * 17.5)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+    {OBSERVADOR2.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(638.5 + i * 17)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+    <!-- Sello hexagonal + guía punteada, y 677..702. El hexágono lleva anillo
+         interior y núcleo: sin ellos se lee como una tuerca. -->
+    <g class="pan__sello" transform="translate(107.5 689.5)">
+      <polygon points="0,-13 11.3,-6.5 11.3,6.5 0,13 -11.3,6.5 -11.3,-6.5" />
+      <polygon class="pan__sello--int" points="0,-7 6.1,-3.5 6.1,3.5 0,7 -6.1,3.5 -6.1,-3.5" />
+      <path d="M-11.3 0H-6.1M6.1 0H11.3M0 -13V-7M0 7V13" />
+      <circle class="pan__nuc" cx="0" cy="0" r="3" />
+    </g>
+    <path class="pan__guia" d="M130 689.5H227" stroke-dasharray="1.4 6.5" />
+
+    <!-- ═══ 3 · FOCUS ════════════════════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="96" y="783.5" textLength="38" lengthAdjust="spacing">FOCUS</text>
+    <!-- Ejes del disco: en la referencia sobresalen de los anillos y llevan
+         cuentas en ±19, ±39 y ±51,5 — paso CRECIENTE, no una diana. -->
+    <g class="pan__eje">
+      <path d="M107 833H213M160 782V884" stroke-dasharray="6 3" />
+    </g>
+    <g class="pan__cuenta">
+      {[19, 39, 51.5].map((d, i) => [
+        <circle cx={160 - d} cy="833" r={i === 2 ? 2.1 : 1.5} />,
+        <circle cx={160 + d} cy="833" r={i === 2 ? 2.1 : 1.5} />,
+      ])}
+      {[16, 33, 46].map((d, i) => [
+        <circle cx="160" cy={833 - d} r={i === 2 ? 2.1 : 1.4} />,
+        <circle cx="160" cy={833 + d} r={i === 2 ? 2.1 : 1.4} />,
+      ])}
+    </g>
+    <circle class="pan__nuc" cx="160" cy="833" r="4.6" />
+    <circle cx="160" cy="833" r="9" fill="url(#u07Nuc)" />
+    {FOCO.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(898.5 + i * 17.2)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+
+    <!-- ═══ 4 · REFLECTION ═══════════════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="918" y="273.5" textLength="77" lengthAdjust="spacing">REFLECTION</text>
+    {REFLEJO.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(300.5 + i * 18.25)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+    <g class="pan__eje">
+      <path d="M906 430H1007M956.5 390V471" stroke-dasharray="6 3" />
+    </g>
+    <g class="pan__cuenta">
+      {[18, 31, 50.5].map((d, i) => [
+        <circle cx={956.5 - d} cy="430" r={i === 2 ? 2 : 1.4} />,
+        <circle cx={956.5 + d} cy="430" r={i === 2 ? 2 : 1.4} />,
+      ])}
+      {[15, 26, 40].map((d, i) => [
+        <circle cx="956.5" cy={430 - d} r={i === 2 ? 2 : 1.4} />,
+        <circle cx="956.5" cy={430 + d} r={i === 2 ? 2 : 1.4} />,
+      ])}
+    </g>
+    <circle class="pan__nuc" cx="956.5" cy="430" r="4.4" />
+    <circle cx="956.5" cy="430" r="9" fill="url(#u07Nuc)" />
+
+    <!-- ═══ 5 · STATE SHIFT ══════════════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="916" y="555.5" textLength="81" lengthAdjust="spacing">STATE SHIFT</text>
+    {CAMBIO.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(580.5 + i * 17.7)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+    <path class="pan__reposo" d="M896 679H1022" />
+
+    <!-- ═══ 6 · FEEDBACK LOOP ════════════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="899" y="782.5" textLength="104" lengthAdjust="spacing">FEEDBACK LOOP</text>
+    <g class="pan__bucle">
+      <!-- Tres lemniscatas coaxiales: la de trazo, la punteada exterior y una
+           interior tenue. El póster tiene las tres y sin la punteada el 8 queda
+           flotando sin campo. -->
+      <path class="pan__bucle--pto" d={lemniscata(BUCLE_C.cx, BUCLE_C.cy, 64, 40)} stroke-dasharray="1.3 4.6" />
+      <path class="pan__bucle--pto" d={lemniscata(BUCLE_C.cx, BUCLE_C.cy, 60, 32)} stroke-dasharray="1.3 4.6" />
+      <path class="pan__bucle--fil" d={lemniscata(BUCLE_C.cx, BUCLE_C.cy, 45, 22)} />
+      <path class="pan__bucle--fil" d={lemniscata(BUCLE_C.cx, BUCLE_C.cy, 30, 13)} />
+    </g>
+    <g class="pan__cuenta">
+      {nodosBucle.map(([x, y]) => <circle cx={x} cy={y} r="1.6" />)}
+    </g>
+    <!-- Rombo del cruce: el punto donde el bucle se muerde la cola. -->
+    <path class="pan__eje" d={`M${BUCLE_C.cx} ${BUCLE_C.cy - 12}L${BUCLE_C.cx + 11} ${BUCLE_C.cy}L${BUCLE_C.cx} ${BUCLE_C.cy + 12}L${BUCLE_C.cx - 11} ${BUCLE_C.cy}Z`} />
+    <circle class="pan__nuc" cx={BUCLE_C.cx} cy={BUCLE_C.cy} r="4.4" />
+    <circle cx={BUCLE_C.cx} cy={BUCLE_C.cy} r="9" fill="url(#u07Nuc)" />
+    {BUCLE.map(([t, x, w], i) => (
+      <text class="pan__t pan__t--cuerpo" x={x} y={p2(900.5 + i * 18.3)} textLength={w} lengthAdjust="spacing">{t}</text>
+    ))}
+
+    <!-- ═══ 7 · OBSERVATION IMPACT ═══════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="95" y="1027.5" textLength="140" lengthAdjust="spacing">OBSERVATION IMPACT</text>
+    <g data-symbolic="true">
+      {IMPACTO.map(([clave, wc, valor, wv, acento], i) => {
+        const y = p2(1054.5 + i * 18);
+        return (
+          <g>
+            <text class="pan__t pan__t--cuerpo" x="96" y={y} textLength={wc} lengthAdjust="spacing">{clave}</text>
+            <path class="pan__guia" d={`M${96 + wc + 7} ${y - 3}H${278 - wv - 7}`} stroke-dasharray="1.4 5" />
+            <text
+              class={`pan__t pan__t--cuerpo${acento ? " pan__t--activo" : ""}`}
+              x={278 - wv}
+              y={y}
+              textLength={wv}
+              lengthAdjust="spacing"
+            >{valor}</text>
+          </g>
+        );
+      })}
+    </g>
+
+    <!-- ═══ 8 · PERCEPTION LATTICE ═══════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="349" y="1027.5" textLength="139" lengthAdjust="spacing">PERCEPTION LATTICE</text>
+    <g class="pan__lat" transform={`translate(${LAT.cx} ${LAT.cy})`}>
+      <circle class="pan__lat--aro" cx="0" cy="0" r={LAT.R} />
+      <polygon class="pan__lat--tra" points={estrellado(12, 5, 58)} />
+      <polygon class="pan__lat--tra" points={estrellado(8, 3, 50)} />
+      <polygon class="pan__lat--tra" points={estrellado(4, 1, 46)} />
+      {petalos.map((c) => <circle class="pan__lat--pet" cx={c.x} cy={c.y} r={RHO_LAT} />)}
+      {petalosInt.map((c) => <circle class="pan__lat--pet2" cx={c.x} cy={c.y} r={15.5} />)}
+      <circle class="pan__lat--aro" cx="0" cy="0" r="24" />
+      {RAYOS_LAT.map((n) => [
+        <line class="pan__lat--rayo" x1={p2(n.x * 0.34)} y1={p2(n.y * 0.34)} x2={n.x} y2={n.y} />,
+        <circle class="pan__cuenta-p" cx={n.x} cy={n.y} r={n.grande ? 2.3 : 1.6} />,
+      ])}
+      <circle class="pan__nuc" cx="0" cy="0" r="5" />
+      <circle cx="0" cy="0" r="14" fill="url(#u07Nuc)" />
+    </g>
+
+    <!-- ═══ 9 · STATE SHIFT LOG ══════════════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="604" y="1027.5" textLength="108" lengthAdjust="spacing">STATE SHIFT LOG</text>
+    <g data-symbolic="true">
+      {BITACORA.map(([sello, texto, w], i) => {
+        const y = p2(1054.5 + i * 20.75);
+        return (
+          <g>
+            <text class="pan__t pan__t--sello" x="557" y={y} textLength="48" lengthAdjust="spacing">{sello}</text>
+            <text class="pan__t pan__t--cuerpo" x="624" y={y} textLength={w} lengthAdjust="spacing">{texto}</text>
+          </g>
+        );
+      })}
+    </g>
+    <path class="pan__regla" d="M555 1155H750" />
+    <!-- Rombo doble del aviso: contorno + rombo interior + punto. -->
+    <g class="pan__aviso">
+      <path d="M586 1168L595.5 1177.5L586 1187L576.5 1177.5Z" />
+      <path d="M586 1173L590.5 1177.5L586 1182L581.5 1177.5Z" />
+      <circle class="pan__nuc" cx="586" cy="1177.5" r="1.3" />
+    </g>
+    <text class="pan__t pan__t--aviso" x="612" y="1182.5" textLength="110" lengthAdjust="spacing">SHIFT DETECTED</text>
+
+    <!-- ═══ 10 · MIRROR CHAMBER DIAGRAM ══════════════════════════════════ -->
+    <text class="pan__t pan__t--tit" x="824" y="1027.5" textLength="170" lengthAdjust="spacing">MIRROR CHAMBER DIAGRAM</text>
+    <g class="pan__dia">
+      <!-- Envolvente y ejes. Radios medidos, no supuestos: el aro brillante da
+           879..942 en su fila (rx 32) y no los 44 que sugiere el aro tenue que
+           lo rodea; los discos laterales caen en ±81 con anillos en 11 y 24; el
+           eje punteado muere en ±106. -->
+      <circle class="pan__dia--aro" cx={DIA.cx} cy={DIA.cy} r="68" />
+      <path class="pan__dia--eje" d={`M${DIA.cx - 106} ${DIA.cy}H${DIA.cx + 106}M${DIA.cx} ${DIA.cy - 66}V${DIA.cy + 66}`} stroke-dasharray="5 3" />
+      <!-- Paredes del cilindro -->
+      <path class="pan__dia--muro" d={`M${DIA.cx - 32} ${DIA.cy - 55}V${DIA.cy + 55}M${DIA.cx + 32} ${DIA.cy - 55}V${DIA.cy + 55}`} />
+      <!-- Los dos aros, arriba y abajo, con su canto -->
+      {[-55, 55].map((dy) => (
+        <g>
+          <ellipse class="pan__dia--rim" cx={DIA.cx} cy={DIA.cy + dy} rx="32" ry="7" />
+          <ellipse class="pan__dia--rim2" cx={DIA.cx} cy={DIA.cy + dy} rx="42" ry="9" />
+          <path class="pan__dia--canto" d={`M${DIA.cx - 42} ${DIA.cy + dy}a42 9 0 0 0 84 0`} />
+        </g>
+      ))}
+      <!-- Vesica central: intersección de dos círculos, no una elipse. Con
+           elipse el esquema pierde la punta y se lee como una cápsula. -->
+      <path
+        class="pan__dia--vesica"
+        d={`M${DIA.cx} ${DIA.cy - 47}A56.7 56.7 0 0 1 ${DIA.cx} ${DIA.cy + 47}A56.7 56.7 0 0 1 ${DIA.cx} ${DIA.cy - 47}Z`}
+      />
+      <path
+        class="pan__dia--vesica2"
+        d={`M${DIA.cx} ${DIA.cy - 38}A45 45 0 0 1 ${DIA.cx} ${DIA.cy + 38}A45 45 0 0 1 ${DIA.cx} ${DIA.cy - 38}Z`}
+      />
+      <!-- Discos laterales: tres anillos y núcleo, en ±81 -->
+      {[-81, 81].map((dx) => (
+        <g>
+          <circle class="pan__dia--aro" cx={DIA.cx + dx} cy={DIA.cy} r="24" />
+          <circle class="pan__dia--rim" cx={DIA.cx + dx} cy={DIA.cy} r="15" />
+          <circle class="pan__dia--rim2" cx={DIA.cx + dx} cy={DIA.cy} r="8" />
+          <circle class="pan__nuc" cx={DIA.cx + dx} cy={DIA.cy} r="2.6" />
+        </g>
+      ))}
+      <g class="pan__cuenta">
+        {[22.5, 32.5, 57].map((d) => [
+          <circle cx={DIA.cx - d} cy={DIA.cy} r="1.4" />,
+          <circle cx={DIA.cx + d} cy={DIA.cy} r="1.4" />,
+        ])}
+        {[-55, 55].map((dy) => [
+          <circle cx={DIA.cx - 42} cy={DIA.cy + dy} r="1.5" />,
+          <circle cx={DIA.cx + 42} cy={DIA.cy + dy} r="1.5" />,
+          <circle cx={DIA.cx} cy={DIA.cy + dy} r="1.9" />,
+        ])}
+      </g>
+      <circle class="pan__nuc" cx={DIA.cx} cy={DIA.cy} r="4.6" />
+      <circle cx={DIA.cx} cy={DIA.cy} r="12" fill="url(#u07Nuc)" />
+    </g>
+  </svg>
+
+  <!-- ═══ INSTRUMENTOS DEL KIT ═══════════════════════════════════════════
+       Fuera del SVG porque cada pieza del kit trae el suyo. Deterministas por
+       semilla: el mismo dibujo en cada render. -->
+  <div class="pan__wf" data-symbolic="true" style="left:95px;top:410px;width:131px;height:32px">
+    <Waveform w={131} h={32} semilla={0x45b8} variante="peine" n={70}
+      color="#b98cff" grosor={0.55} inercia={0.1} envolvente={0.985} margen={1} />
+  </div>
+
+  <div class="pan__wf" data-symbolic="true" style="left:895px;top:656px;width:130px;height:46px">
+    <Waveform w={130} h={46} semilla={0x1ff0} variante="peine" n={72}
+      color="#d3b8ff" grosor={0.6} inercia={0.1} envolvente={0.98} margen={1} />
+  </div>
+
+  <div class="pan__wf pan__wf--barras" data-symbolic="true" style="left:91px;top:1145px;width:197px;height:42px">
+    <Waveform w={197} h={42} semilla={0x7d2} variante="barras" n={58}
+      color="#e0cbff" inercia={0.18} envolvente={0.93} margen={1} />
+  </div>
+
+  <!-- Los dos discos son del kit: anillos en progresión geométrica y brillo
+       desparejo, que es lo que separa un instrumento de una figura de CAD. -->
+  <div class="pan__disco" style="left:105px;top:778px;width:110px;height:110px">
+    <RadialScanner w={110} h={110} semilla={0x0f07} anillos={7} radios={24}
+      rmax={49} razon={0.8} color="#cfc6e8" frio="#a77cf0" pesoRadios={1.4} ticks={24} />
+  </div>
+  <div class="pan__disco" style="left:906px;top:388px;width:101px;height:84px">
+    <RadialScanner w={101} h={84} semilla={0x0f04} anillos={6} radios={20}
+      rmax={40} razon={0.78} excentricidad={0.98} color="#cfc6e8" frio="#a77cf0" pesoRadios={1.1} />
+  </div>
+</div>
+
+<style>
+  /* La lámina fija la mono y el color base; acá van los cuerpos, los pesos y los
+     tonos propios de esta región. */
+  [data-bloque="Paneles"] {
+    --u07-ink: #cfc6e8;
+    --u07-acc: #a77cf0;
+    --u07-deep: #3d2c5e;
+    --u07-ok: #6fe3e8;
+    pointer-events: none;
+  }
+  .pan {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+  }
+
+  .pan__t {
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-ligatures: none;
+    white-space: pre;
+    fill: var(--u07-ink);
+  }
+  /* Versal medida: 9 px en los títulos y 7 en los cuerpos. Con la razón de
+     JetBrains Mono (cap 0,73 em) eso da 12,3 y 9,6 de cuerpo. */
+  .pan__t--tit { font-size: 12.3px; fill: #b98cff; fill-opacity: 0.78; }
+    /* Medido: la tinta del cuerpo de la referencia llega a 124 de luminancia y su
+     percentil 5 está en 87. Con 0,8 de opacidad esta mono daba 159 y 135 — una
+     página entera de texto un tercio más brillante de lo que debe. */
+  .pan__t--cuerpo { font-size: 9.6px; fill-opacity: 0.56; }
+  .pan__t--sello { font-size: 9.6px; fill-opacity: 0.5; }
+  .pan__t--aviso { font-size: 11.5px; fill: var(--u07-acc); fill-opacity: 0.8; }
+  .pan__t--rot { font-size: 10.5px; fill-opacity: 0.7; }
+  /* El único valor de otro color de toda la lámina: la referencia lo saca del
+     violeta y lo lleva al cian. Es el remate del panel y no debe fundirse. */
+  .pan__t--activo { fill: var(--u07-ok); fill-opacity: 0.95; }
+
+  /* ── marcos ────────────────────────────────────────────────────────────
+     El rectángulo va casi apagado —medido, no pasa de 24 de luminancia— y toda
+     la lectura la cargan las escuadras. Subirle el brillo al rectángulo
+     convierte diez instrumentos en diez cajas. */
+  .pan__marco rect { fill: none; stroke: var(--u07-deep); stroke-width: 1; stroke-opacity: 0.3; }
+  .pan__esq path { fill: none; stroke: var(--u07-ink); stroke-width: 1; stroke-opacity: 0.42; }
+
+  .pan__rot rect { fill: #000; fill-opacity: 0.72; stroke: var(--u07-ink); stroke-width: 1; stroke-opacity: 0.3; }
+  .pan__rot path { fill: none; stroke: var(--u07-ink); stroke-width: 1.2; stroke-opacity: 0.6; }
+
+  /* ── piezas comunes ──────────────────────────────────────────────────── */
+  .pan__nuc { fill: #f2ecff; fill-opacity: 0.95; }
+  .pan__cuenta circle, .pan__cuenta-p { fill: var(--u07-ink); fill-opacity: 0.62; }
+  .pan__eje { fill: none; stroke: var(--u07-ink); stroke-width: 0.7; stroke-opacity: 0.28; }
+  .pan__guia { fill: none; stroke: var(--u07-ink); stroke-width: 1; stroke-opacity: 0.32; }
+  .pan__regla { stroke: var(--u07-ink); stroke-width: 0.9; stroke-opacity: 0.4; }
+  .pan__reposo { stroke: var(--u07-acc); stroke-width: 0.7; stroke-opacity: 0.4; }
+
+  .pan__sello polygon { fill: none; stroke: var(--u07-acc); stroke-width: 1; stroke-opacity: 0.66; }
+  .pan__sello--int { stroke-opacity: 0.55 !important; stroke-width: 0.8 !important; }
+  .pan__sello path { fill: none; stroke: var(--u07-acc); stroke-width: 0.9; stroke-opacity: 0.7; }
+
+  .pan__aviso path { fill: none; stroke: var(--u07-ink); stroke-width: 1; stroke-opacity: 0.8; }
+
+  /* ── FEEDBACK LOOP ────────────────────────────────────────────────────── */
+  .pan__bucle path { fill: none; }
+  .pan__bucle--pto { stroke: var(--u07-ink); stroke-width: 0.75; stroke-opacity: 0.34; }
+  .pan__bucle--fil { stroke: var(--u07-acc); stroke-width: 1.05; stroke-opacity: 0.5; }
+
+  /* ── PERCEPTION LATTICE ──────────────────────────────────────────────── */
+  .pan__lat--aro { fill: none; stroke: var(--u07-ink); stroke-width: 0.65; stroke-opacity: 0.22; }
+  .pan__lat--tra { fill: none; stroke: var(--u07-ink); stroke-width: 0.5; stroke-opacity: 0.13; }
+  .pan__lat--pet { fill: none; stroke: var(--u07-acc); stroke-width: 0.55; stroke-opacity: 0.17; }
+  .pan__lat--pet2 { fill: none; stroke: #c9a8ff; stroke-width: 0.7; stroke-opacity: 0.26; }
+  .pan__lat--rayo { stroke: var(--u07-ink); stroke-width: 0.45; stroke-opacity: 0.16; }
+
+  /* ── MIRROR CHAMBER DIAGRAM ──────────────────────────────────────────── */
+  .pan__dia--aro { fill: none; stroke: var(--u07-ink); stroke-width: 0.65; stroke-opacity: 0.26; }
+  .pan__dia--eje { fill: none; stroke: var(--u07-ink); stroke-width: 0.65; stroke-opacity: 0.24; }
+  .pan__dia--muro { fill: none; stroke: var(--u07-acc); stroke-width: 0.75; stroke-opacity: 0.32; }
+  .pan__dia--rim { fill: none; stroke: #d9c8ff; stroke-width: 1.2; stroke-opacity: 0.6; }
+  .pan__dia--rim2 { fill: none; stroke: var(--u07-acc); stroke-width: 0.9; stroke-opacity: 0.4; }
+  .pan__dia--canto { fill: none; stroke: var(--u07-acc); stroke-width: 0.75; stroke-opacity: 0.26; }
+  .pan__dia--vesica { fill: none; stroke: #d9c8ff; stroke-width: 1.3; stroke-opacity: 0.66; }
+  .pan__dia--vesica2 { fill: none; stroke: var(--u07-acc); stroke-width: 0.85; stroke-opacity: 0.36; }
+
+  /* ── instrumentos del kit ────────────────────────────────────────────── */
+    /* Las señales de la referencia NO son una trama pareja: su percentil 5 está en
+     52 y su pico en 158 —una relación de 1 a 3— mientras que la primera pasada
+     daba 65 y 78, o sea una banda de ruido plana. La diferencia no se arregla
+     con opacidad sino con `envolvente`: agrupa las agujas en ráfagas y aplana
+     los tramos callados contra la línea de reposo. Lo mismo vale para el
+     histograma, cuyo pico medido es 183. */
+  .pan__wf { position: absolute; color: var(--u07-acc); opacity: 0.95; }
+  .pan__wf--barras { opacity: 0.8; }
+  .pan__disco { position: absolute; opacity: 0.42; }
+</style>

@@ -1,0 +1,713 @@
+---
+/**
+ * KODEX-∞ · u09-source · DIAGRAMAS
+ *
+ * Toda la LUZ de la lámina, en canvas 2D paramétrico. Ni un bitmap.
+ *
+ * QUÉ VIVE ACÁ Y POR QUÉ. La referencia tiene trece figuras radiales —el
+ * estallido del protocolo, el sello de procedencia, los cinco emblemas de clase,
+ * los cinco diagramas de la columna EVIDENCE y el medallón del juramento— y
+ * todas comparten la misma propiedad: son manchas de luz con halo, no contornos.
+ * En SVG el halo cuesta un `feGaussianBlur` por figura (trece filtros de pantalla
+ * completa) y aun así no acumula bien donde los trazos se solapan. En canvas, un
+ * gradiente radial es una llamada y el solapamiento se suma solo, que es
+ * exactamente como se comporta la referencia: el brillo del centro de cada rosa
+ * NO está pintado, sale de que ahí se cruzan todos los radios.
+ *
+ * La geometría CRUJIENTE —el tilde, el signo de interrogación, las letras de los
+ * sellos, los hexágonos de la leyenda, los marcos— NO está acá: va en SVG, en
+ * `Tabla`, `Paneles` y `Pie`. Canvas para la luz, SVG para el filo.
+ *
+ * CONTRATO
+ * - `azar()` es mulberry32 con semilla fija. NUNCA Math.random(): el banco de
+ *   fotocopia compara captura contra referencia y con azar real dos capturas de
+ *   la misma página dan puntajes distintos — se mide ruido, no convergencia.
+ * - El bucle va POR FASE, no por tiempo: `fase` recorre 0→1 y vuelve a 0 sin
+ *   costura porque cada término temporal es sin/cos de un múltiplo ENTERO de
+ *   `fase·TAU`. Un `t` creciente deja salto al cerrar el ciclo.
+ * - `prefers-reduced-motion` alarga el período (baja el ritmo); no congela.
+ * - Fuera de pantalla o pestaña oculta no se pinta (IntersectionObserver +
+ *   visibilitychange).
+ * - `window.__kdxFreeze(t)` fija el cuadro y APAGA el rAF: Playwright con
+ *   `animations:"disabled"` no congela un canvas que corre su propio bucle.
+ *
+ * DOS LIENZOS
+ *   `fondo` — anillos, radios, retículas y sellos. Se pinta una sola vez: es lo
+ *             caro y no se mueve.
+ *   `vivo`  — núcleos encendidos, halos y las coronas de puntos que giran. Se
+ *             repinta por cuadro.
+ *
+ * CENTROS Y RADIOS, TODOS MEDIDOS sobre `reference/canon/u09-source.png`:
+ *   estallido TRUTH PROTOCOL   (140,5 · 312)   radio de púa 66 h / 49 v
+ *   sello PROVENANCE           (139,5 · 904)   radio exterior 66
+ *   emblemas de clase          (303 · 339,5 / 492,5 / 639 / 792,5 / 936)
+ *   diagramas EVIDENCE         (657 · 349 / 503 / 653 / 803 / 946)
+ *   medallón del juramento     (424 · 1238)    radio exterior 47
+ */
+---
+
+<div data-bloque="Diagramas" style="inset:0">
+  <canvas data-capa="fondo" width="1122" height="1402" aria-hidden="true"></canvas>
+  <canvas data-capa="vivo" width="1122" height="1402" aria-hidden="true"></canvas>
+</div>
+
+<style>
+  [data-bloque="Diagramas"] { pointer-events: none; }
+  [data-bloque="Diagramas"] canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1122px;
+    height: 1402px;
+  }
+</style>
+
+<script>
+  /* Sin TypeScript acá dentro: Astro compila este bloque como JS puro y las
+     anotaciones de tipo revientan el build. */
+  const raiz = document.querySelector('[data-bloque="Diagramas"]');
+  if (raiz) {
+    const W = 1122;
+    const H = 1402;
+    const TAU = Math.PI * 2;
+
+    /* Paleta medida sobre la referencia. El violeta de esta lámina es MÁS GRIS
+       que el de u02: pico rgb(173,157,203) contra rgb(167,124,240). Copiar la
+       paleta de la lámina 02 le sube la saturación a las trece figuras. */
+    const VIO = "180,154,216";
+    const NEB = "146,108,198";
+    const LUZ = "238,231,255";
+    const tinta = (c, a) => "rgba(" + c + "," + a + ")";
+
+    /* mulberry32. Determinista a propósito — ver cabecera. */
+    function azar(semilla) {
+      let a = semilla >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    /* ---------------------------------------------------------------- lienzos */
+    const cFondo = raiz.querySelector('[data-capa="fondo"]');
+    const cVivo = raiz.querySelector('[data-capa="vivo"]');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function preparar(cv) {
+      cv.width = Math.round(W * dpr);
+      cv.height = Math.round(H * dpr);
+      const g = cv.getContext("2d");
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      return g;
+    }
+    const gf = preparar(cFondo);
+    const gv = preparar(cVivo);
+
+    /* ------------------------------------------------------------ primitivas */
+
+    function anillo(g, cx, cy, r, alfa, ancho, guion) {
+      g.save();
+      g.beginPath();
+      g.arc(cx, cy, r, 0, TAU);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = ancho || 0.7;
+      if (guion) g.setLineDash(guion);
+      g.stroke();
+      g.restore();
+    }
+
+    function radio(g, cx, cy, a, r0, r1, alfa, ancho) {
+      g.beginPath();
+      g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0);
+      g.lineTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = ancho || 0.6;
+      g.stroke();
+    }
+
+    function punto(g, x, y, r, alfa, color) {
+      g.beginPath();
+      g.arc(x, y, r, 0, TAU);
+      g.fillStyle = tinta(color || LUZ, alfa);
+      g.fill();
+    }
+
+    /**
+     * Halo. Es la pieza que hace que esto NO se pueda hacer razonablemente en
+     * SVG: tres paradas de gradiente radial, aditivo por composición.
+     */
+    function halo(g, cx, cy, r, alfa, color) {
+      const grad = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+      grad.addColorStop(0, tinta(color || LUZ, alfa));
+      grad.addColorStop(0.28, tinta(NEB, alfa * 0.45));
+      grad.addColorStop(1, tinta(NEB, 0));
+      g.fillStyle = grad;
+      g.beginPath();
+      g.arc(cx, cy, r, 0, TAU);
+      g.fill();
+    }
+
+    /** Polígono regular de n lados con vértice arriba. */
+    function poligono(g, cx, cy, r, n, giro, alfa, ancho) {
+      g.beginPath();
+      for (let k = 0; k < n; k++) {
+        const a = giro - Math.PI / 2 + (k * TAU) / n;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        if (k === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.closePath();
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = ancho || 0.7;
+      g.stroke();
+    }
+
+    /** Estrella de cuerda {n/m}: une cada vértice con el que está m pasos. */
+    function estrella(g, cx, cy, r, n, m, giro, alfa, ancho) {
+      g.beginPath();
+      for (let k = 0; k <= n; k++) {
+        const a = giro - Math.PI / 2 + (((k * m) % n) * TAU) / n;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        if (k === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.strokeStyle = tinta(VIO, alfa);
+      g.lineWidth = ancho || 0.6;
+      g.stroke();
+    }
+
+    /* ============================================================== FONDO ==== */
+
+    /**
+     * ESTALLIDO DEL PROTOCOLO (panel TRUTH PROTOCOL).
+     * Ocho púas largas sobre cuatro anillos concéntricos, con cuentas en los
+     * cruces. Las púas horizontales llegan más lejos que las verticales — 66
+     * contra 49 — y eso NO es descuido: está medido, y es lo que le da al
+     * emblema el aire de rosa de los vientos en vez de asterisco.
+     */
+    function estallido(g, cx, cy, rh, rv, vivo, fase) {
+      const r = azar(0x9013);
+      /* Alfas calibradas: la caja del estallido salía 6 puntos de luminancia por
+         encima de la referencia, casi el doble. */
+      for (const [rad, al] of [[30, 0.17], [41, 0.13], [50, 0.11], [58, 0.08]]) {
+        anillo(g, cx, cy, rad, al, 0.6);
+      }
+      anillo(g, cx, cy, 47, 0.06, 0.5, [1.4, 3]);
+      for (let k = 0; k < 8; k++) {
+        const a = (k * TAU) / 8;
+        const largo = k % 2 === 0 ? (k % 4 === 0 ? rh : rv) : rv * 0.86;
+        radio(g, cx, cy, a, 3, largo, k % 2 === 0 ? 0.24 : 0.17, k % 2 === 0 ? 1 : 0.6);
+        punto(g, cx + Math.cos(a) * largo, cy + Math.sin(a) * largo, 1.5, 0.45);
+      }
+      /* Pelos finos entre púa y púa: 32 hilos de largo irregular. Con largo
+         parejo se lee como abanico de CAD. */
+      for (let k = 0; k < 32; k++) {
+        const a = (k * TAU) / 32 + 0.098;
+        radio(g, cx, cy, a, 6, 22 + r() * 30, 0.06, 0.45);
+      }
+      for (let k = 0; k < 22; k++) {
+        const a = r() * TAU;
+        const d = 14 + r() * 46;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.7, 0.2 + r() * 0.2);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy, 30 + p * 5, 0.34 + p * 0.14);
+        punto(g, cx, cy, 2.1 + p * 0.5, 0.98);
+      }
+    }
+
+    /**
+     * SELLO DE PROCEDENCIA (panel PROVENANCE SEAL).
+     * Tres anillos exteriores con una banda de glifos entre los dos primeros, un
+     * octagrama {8/3} adentro y un disco central. Los glifos de la banda son
+     * marcas, no texto: a 6 px nada es legible y poner letras de verdad sería
+     * inventar contenido (ver kit/README.md).
+     */
+    function sello(g, cx, cy, R, vivo, fase) {
+      const r = azar(0x0917);
+      anillo(g, cx, cy, R, 0.3, 0.8);
+      anillo(g, cx, cy, R - 5, 0.16, 0.5);
+      anillo(g, cx, cy, R - 25, 0.34, 0.8);
+      anillo(g, cx, cy, R - 30, 0.15, 0.5);
+      anillo(g, cx, cy, R - 45, 0.2, 0.6);
+
+      /* Banda de glifos: barras verticales de altura irregular sobre el anillo
+         medio, giradas para seguir la tangente. */
+      const nG = 46;
+      for (let k = 0; k < nG; k++) {
+        const a = (k * TAU) / nG - Math.PI / 2;
+        const rr = R - 15;
+        const h = 3 + r() * 4;
+        const w = 0.9 + r() * 1.6;
+        g.save();
+        g.translate(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+        g.rotate(a + Math.PI / 2);
+        g.fillStyle = tinta(VIO, 0.2 + r() * 0.3);
+        g.fillRect(-w / 2, -h / 2, w, h);
+        g.restore();
+      }
+
+      estrella(g, cx, cy, R - 30, 8, 3, 0, 0.26, 0.6);
+      estrella(g, cx, cy, R - 30, 8, 2, 0, 0.18, 0.5);
+      poligono(g, cx, cy, R - 30, 8, 0, 0.14, 0.5);
+      for (let k = 0; k < 8; k++) {
+        const a = -Math.PI / 2 + (k * TAU) / 8;
+        punto(g, cx + Math.cos(a) * (R - 30), cy + Math.sin(a) * (R - 30), 1.7, 0.7);
+        radio(g, cx, cy, a, R - 45, R - 5, 0.12, 0.5);
+      }
+      anillo(g, cx, cy, 22, 0.4, 0.9);
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy, 26, 0.18 + p * 0.06);
+      }
+    }
+
+    /* --------------------------------------------- emblemas de clase (col. 1) */
+
+    /** 1 · VERIFIED — disco de anillos con cuentas cardinales. */
+    function embVerified(g, cx, cy, vivo, fase) {
+      const r = azar(0x1a01);
+      anillo(g, cx, cy, 44, 0.14, 0.5, [1.4, 3.4]);
+      anillo(g, cx, cy, 37, 0.22, 0.6);
+      anillo(g, cx, cy, 30, 0.34, 0.7);
+      anillo(g, cx, cy, 24, 0.5, 1.1);
+      for (let k = 0; k < 8; k++) {
+        const a = (k * TAU) / 8;
+        radio(g, cx, cy, a, 24, k % 2 === 0 ? 52 : 40, k % 2 === 0 ? 0.24 : 0.14, 0.55);
+        punto(g, cx + Math.cos(a) * (k % 2 === 0 ? 52 : 40), cy + Math.sin(a) * (k % 2 === 0 ? 52 : 40), 1.5, 0.7);
+      }
+      for (let k = 0; k < 18; k++) {
+        const a = r() * TAU;
+        const d = 30 + r() * 22;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.65, 0.3 + r() * 0.35);
+      }
+      if (vivo) halo(g, cx, cy, 22, 0.1 + 0.04 * Math.sin(fase * TAU));
+    }
+
+    /** 2 · CANONICAL — hexágono con hexagrama y núcleo encendido. */
+    function embCanonical(g, cx, cy, vivo, fase) {
+      const r = azar(0x1a02);
+      poligono(g, cx, cy, 46, 6, 0, 0.3, 0.8);
+      poligono(g, cx, cy, 38, 6, 0, 0.14, 0.5);
+      for (let k = 0; k < 6; k++) {
+        const a = -Math.PI / 2 + (k * TAU) / 6;
+        for (let j = 0; j < 6; j++) {
+          if (j === k) continue;
+          const b = -Math.PI / 2 + (j * TAU) / 6;
+          g.beginPath();
+          g.moveTo(cx + Math.cos(a) * 46, cy + Math.sin(a) * 46);
+          g.lineTo(cx + Math.cos(b) * 46, cy + Math.sin(b) * 46);
+          g.strokeStyle = tinta(VIO, 0.11);
+          g.lineWidth = 0.45;
+          g.stroke();
+        }
+        punto(g, cx + Math.cos(a) * 46, cy + Math.sin(a) * 46, 1.6, 0.68);
+      }
+      anillo(g, cx, cy, 15, 0.45, 1);
+      for (let k = 0; k < 14; k++) {
+        const a = r() * TAU;
+        const d = 18 + r() * 24;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.3 + r() * 0.3);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy, 17 + p * 3, 0.62 + p * 0.2);
+        for (let k = 0; k < 8; k++) radio(g, cx, cy, (k * TAU) / 8, 2, 13, 0.5, 0.8);
+        punto(g, cx, cy, 1.9, 0.98);
+      }
+    }
+
+    /** 3 · INFERRED — triángulo sobre círculo: la figura de la deducción. */
+    function embInferred(g, cx, cy, vivo, fase) {
+      const r = azar(0x1a03);
+      anillo(g, cx, cy, 33, 0.22, 0.6);
+      poligono(g, cx, cy + 6, 42, 3, 0, 0.42, 1.1);
+      poligono(g, cx, cy + 6, 27, 3, 0, 0.16, 0.5);
+      for (let k = 0; k < 3; k++) {
+        const a = -Math.PI / 2 + (k * TAU) / 3;
+        radio(g, cx, cy + 6, a, 0, 42, 0.16, 0.5);
+        punto(g, cx + Math.cos(a) * 42, cy + 6 + Math.sin(a) * 42, 1.6, 0.66);
+      }
+      for (let k = 0; k < 14; k++) {
+        const a = r() * TAU;
+        const d = 12 + r() * 26;
+        punto(g, cx + Math.cos(a) * d, cy + 6 + Math.sin(a) * d, 0.6, 0.3 + r() * 0.3);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy + 6, 12, 0.4 + p * 0.15);
+        punto(g, cx, cy + 6, 1.7, 0.95);
+      }
+    }
+
+    /** 4 · SPECULATIVE — campo de puntos en anillos: la nube de hipótesis. */
+    function embSpeculative(g, cx, cy, vivo, fase) {
+      const r = azar(0x1a04);
+      for (let anilloIdx = 0; anilloIdx < 6; anilloIdx++) {
+        const rad = 10 + anilloIdx * 7.6;
+        anillo(g, cx, cy, rad, 0.1, 0.4);
+        const n = 8 + anilloIdx * 4;
+        for (let k = 0; k < n; k++) {
+          const a = (k * TAU) / n + anilloIdx * 0.21;
+          punto(g, cx + Math.cos(a) * rad, cy + Math.sin(a) * rad, 0.7, 0.3 + r() * 0.4);
+        }
+      }
+      for (let k = 0; k < 24; k++) {
+        const a = (k * TAU) / 24;
+        radio(g, cx, cy, a, 8, 44 + r() * 8, 0.09, 0.4);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy, 20 + p * 4, 0.62 + p * 0.2);
+        punto(g, cx, cy, 2, 0.98);
+      }
+    }
+
+    /**
+     * 5 · NEEDS CONFIRMATION — anillos cortados: nada cierra.
+     * Es el emblema MÁS CHICO de la columna, y eso está medido: sus anillos
+     * llegan a 30 px contra los 46 de CANONICAL. La primera versión los puso del
+     * mismo tamaño que los otros cuatro y la fila entera se descuadró. Lo que sí
+     * sale del disco son los dos ejes punteados, que se van sin cerrar en ningún
+     * lado: la figura apunta a datos que todavía no están.
+     */
+    function embNeeds(g, cx, cy, vivo, fase) {
+      const r = azar(0x1a05);
+      anillo(g, cx, cy, 30, 0.16, 0.5, [2, 4]);
+      anillo(g, cx, cy, 25, 0.3, 0.8);
+      anillo(g, cx, cy, 19.5, 0.34, 0.8);
+      anillo(g, cx, cy, 14, 0.14, 0.5, [3, 3]);
+      for (let k = 0; k < 4; k++) {
+        const a = (k * TAU) / 4;
+        g.save();
+        g.setLineDash([2, 3.5]);
+        radio(g, cx, cy, a, 14, 46, 0.22, 0.6);
+        g.restore();
+        punto(g, cx + Math.cos(a) * 46, cy + Math.sin(a) * 46, 1.2, 0.5);
+      }
+      for (let k = 0; k < 14; k++) {
+        const a = r() * TAU;
+        const d = 20 + r() * 24;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.22 + r() * 0.3);
+      }
+      if (vivo) halo(g, cx, cy, 17, 0.13 + 0.05 * Math.sin(fase * TAU));
+    }
+
+    /* ------------------------------------------- diagramas EVIDENCE (col. 4) */
+
+    /**
+     * 1 · red de evidencias cruzadas. Ocho vértices y cuerdas CURVAS: la
+     * referencia no une los vértices con rectas sino con arcos que se hunden
+     * hacia el centro, y eso es lo que la hace leer como red tensada y no como
+     * estrella de compás. Cada cuerda es una cuadrática cuyo punto de control
+     * cae a 0,42 del radio — probado contra el recorte a ×5.
+     */
+    function evRed(g, cx, cy, vivo, fase) {
+      const r = azar(0x2b01);
+      const R = 46;
+      const N = 8;
+      const v = (k) => {
+        const a = -Math.PI / 2 + (k * TAU) / N;
+        return [cx + Math.cos(a) * R, cy + Math.sin(a) * R];
+      };
+      anillo(g, cx, cy, R, 0.16, 0.5);
+      anillo(g, cx, cy, R + 4, 0.09, 0.45);
+      for (const m of [3, 2]) {
+        for (let k = 0; k < N; k++) {
+          const [x1, y1] = v(k);
+          const [x2, y2] = v((k + m) % N);
+          g.beginPath();
+          g.moveTo(x1, y1);
+          g.quadraticCurveTo(cx + (x1 + x2 - 2 * cx) * 0.42, cy + (y1 + y2 - 2 * cy) * 0.42, x2, y2);
+          g.strokeStyle = tinta(VIO, m === 3 ? 0.3 : 0.2);
+          g.lineWidth = 0.55;
+          g.stroke();
+        }
+      }
+      /* Eje horizontal largo con cuentas: sale del disco a los dos lados. */
+      radio(g, cx, cy, 0, 6, R + 12, 0.22, 0.5);
+      radio(g, cx, cy, Math.PI, 6, R + 12, 0.22, 0.5);
+      for (let k = 0; k < N; k++) {
+        const [x, y] = v(k);
+        punto(g, x, y, 1.5, 0.75);
+      }
+      punto(g, cx + R + 12, cy, 1.4, 0.7);
+      punto(g, cx - R - 12, cy, 1.4, 0.7);
+      for (let k = 0; k < 22; k++) {
+        const a = r() * TAU;
+        const d = 10 + r() * 44;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.65, 0.3 + r() * 0.35);
+      }
+      if (vivo) {
+        halo(g, cx, cy, 11, 0.7 + 0.2 * Math.sin(fase * TAU));
+        punto(g, cx, cy, 1.9, 0.98);
+      }
+    }
+
+    /** 2 · diana de fidelidad: anillos concéntricos y ejes con cuentas. */
+    function evDiana(g, cx, cy, vivo, fase) {
+      const r = azar(0x2b02);
+      for (const [rad, al] of [[47, 0.12], [40, 0.2], [32, 0.26], [24, 0.2], [16, 0.3]]) {
+        anillo(g, cx, cy, rad, al, 0.6);
+      }
+      anillo(g, cx, cy, 44, 0.1, 0.45, [1.5, 3.5]);
+      for (let k = 0; k < 12; k++) {
+        const a = (k * TAU) / 12;
+        radio(g, cx, cy, a, 10, k % 3 === 0 ? 50 : 40, k % 3 === 0 ? 0.2 : 0.11, 0.5);
+        punto(g, cx + Math.cos(a) * (k % 3 === 0 ? 50 : 40), cy + Math.sin(a) * (k % 3 === 0 ? 50 : 40), 1.1, 0.5);
+      }
+      /* Barrido horizontal: la referencia tiene una tira de puntos sobre el eje
+         que sale del disco a los dos lados. */
+      for (let k = 0; k < 14; k++) {
+        const d = 50 + k * 3.4;
+        punto(g, cx + d, cy, 0.65, 0.34 - k * 0.02);
+        punto(g, cx - d, cy, 0.65, 0.34 - k * 0.02);
+      }
+      for (let k = 0; k < 14; k++) {
+        const a = r() * TAU;
+        const d = 18 + r() * 30;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.25 + r() * 0.3);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        anillo(g, cx, cy, 9, 0.7, 1.2);
+        halo(g, cx, cy, 13 + p * 2, 0.55 + p * 0.2);
+        punto(g, cx, cy, 1.7, 0.98);
+      }
+    }
+
+    /**
+     * 3 · señal inferida: malla polar de fondo. La ONDA no está acá — la dibuja
+     * `kit/Waveform` en variante peine desde `Tabla`, que es exactamente este
+     * instrumento y ya viene con la envolvente ajustada contra las referencias.
+     * Redibujarla en este canvas habría sido el juego de medidores número
+     * catorce del proyecto, que es la razón por la que el kit existe
+     * (kit/README.md). Acá queda sólo lo que el kit no hace: el halo.
+     */
+    function evSenal(g, cx, cy, vivo, fase) {
+      const r = azar(0x2b03);
+      anillo(g, cx, cy, 46, 0.1, 0.45);
+      anillo(g, cx, cy, 34, 0.08, 0.4);
+      for (let k = 0; k < 8; k++) radio(g, cx, cy, (k * TAU) / 8, 6, 46, 0.07, 0.4);
+      for (let k = 0; k < 18; k++) {
+        const a = r() * TAU;
+        const d = 20 + r() * 28;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.22 + r() * 0.3);
+      }
+      if (vivo) halo(g, cx, cy, 16, 0.1 + 0.04 * Math.sin(fase * TAU));
+    }
+
+    /**
+     * 4 · espiral de especulación. Cuatro brazos logarítmicos de puntos: es la
+     * única figura de la lámina que NO cierra sobre sí misma, y eso es el punto
+     * — lo especulativo se aleja del centro.
+     */
+    function evEspiral(g, cx, cy, vivo, fase) {
+      const r = azar(0x2b04);
+      const brazos = 4;
+      for (let b = 0; b < brazos; b++) {
+        const a0 = (b * TAU) / brazos;
+        g.beginPath();
+        for (let i = 0; i <= 70; i++) {
+          const t = i / 70;
+          const ang = a0 + t * 3.3;
+          const rad = 4 + Math.exp(t * 2.62) * 3.1;
+          const x = cx + Math.cos(ang) * rad;
+          const y = cy + Math.sin(ang) * rad;
+          if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+        }
+        g.strokeStyle = tinta(VIO, 0.2);
+        g.lineWidth = 0.5;
+        g.stroke();
+        for (let i = 3; i < 26; i++) {
+          const t = i / 26;
+          const ang = a0 + t * 3.3;
+          const rad = 4 + Math.exp(t * 2.62) * 3.1;
+          punto(g, cx + Math.cos(ang) * rad, cy + Math.sin(ang) * rad, 0.7, 0.55 - t * 0.25);
+        }
+      }
+      for (let k = 0; k < 20; k++) {
+        const a = r() * TAU;
+        const d = 20 + r() * 30;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.2 + r() * 0.3);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy, 15 + p * 3, 0.6 + p * 0.2);
+        punto(g, cx, cy, 1.8, 0.98);
+      }
+    }
+
+    /**
+     * 5 · lo que falta confirmar. NO es una nube de puntos sueltos —eso fue el
+     * primer intento y el recorte a ×5 lo desmiente—: son CUATRO circunferencias
+     * que se solapan, con los nodos encendidos en dos de los centros y en el
+     * cruce del medio, más un eje vertical que entra y sale del dibujo. La
+     * figura está construida y es simétrica; lo que le falta no es orden, es
+     * evidencia, y eso se dice con los dos nodos apagados de arriba.
+     */
+    function evNube(g, cx, cy, vivo, fase) {
+      const r = azar(0x2b05);
+      anillo(g, cx, cy, 46, 0.16, 0.55);
+      anillo(g, cx, cy, 38, 0.08, 0.4);
+      const centros = [[-17, -8], [17, -8], [-17, 12], [17, 12]];
+      for (const [dx, dy] of centros) anillo(g, cx + dx, cy + dy, 23, 0.13, 0.5);
+      /* Eje vertical: entra por arriba y sale por abajo. */
+      radio(g, cx, cy, -Math.PI / 2, 4, 46, 0.28, 0.6);
+      radio(g, cx, cy, Math.PI / 2, 4, 48, 0.28, 0.6);
+      radio(g, cx, cy, 0, 20, 44, 0.14, 0.5);
+      radio(g, cx, cy, Math.PI, 20, 44, 0.14, 0.5);
+      for (let k = 0; k < 30; k++) {
+        const a = r() * TAU;
+        const d = 12 + r() * 36;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.6, 0.2 + r() * 0.25);
+      }
+      punto(g, cx, cy - 44, 1.7, 0.8);
+      punto(g, cx, cy + 46, 1.9, 0.95);
+      punto(g, cx - 46, cy, 1.7, 0.85);
+      punto(g, cx + 46, cy, 1.7, 0.85);
+      punto(g, cx - 17, cy - 8, 1.5, 0.55);
+      punto(g, cx + 17, cy - 8, 1.5, 0.55);
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        /* Los dos núcleos bajos son los que respiran: son las dos mitades del
+           dato que todavía no se cruzaron. */
+        halo(g, cx - 17, cy + 12, 9 + p * 2, 0.6);
+        halo(g, cx + 17, cy + 12, 9 + p * 2, 0.6);
+        halo(g, cx, cy - 3, 7 + p * 2, 0.45 + p * 0.15);
+        punto(g, cx, cy - 3, 1.6, 0.95);
+      }
+    }
+
+    /* ------------------------------------------ medallón del juramento (pie) */
+
+    const CORAZON =
+      "M0,7.2 C-1.4,4.4 -5.4,2.8 -7.2,0 C-9.1,-3.1 -6.7,-7.2 -3.3,-7.2 " +
+      "C-1.4,-7.2 -0.4,-6.1 0,-5 C0.4,-6.1 1.4,-7.2 3.3,-7.2 " +
+      "C6.7,-7.2 9.1,-3.1 7.2,0 C5.4,2.8 1.4,4.4 0,7.2 Z";
+    const corazonPath = new Path2D(CORAZON);
+
+    function medallon(g, cx, cy, vivo, fase) {
+      const r = azar(0x0c0a);
+      /* Al revés que el estallido: el medallón salía 8 puntos de luminancia POR
+         DEBAJO. Es la figura más encendida de la lámina y hay que dársela. */
+      for (const [rad, al] of [[47, 0.26], [40, 0.34], [33, 0.44], [26, 0.5]]) {
+        anillo(g, cx, cy, rad, al, 0.8);
+      }
+      anillo(g, cx, cy, 44, 0.2, 0.6, [1.4, 3.4]);
+      anillo(g, cx, cy, 20, 0.36, 0.7);
+      anillo(g, cx, cy, 14, 0.3, 0.6);
+      for (let k = 0; k < 4; k++) {
+        const a = (k * TAU) / 4;
+        radio(g, cx, cy, a, 26, 58, 0.22, 0.6);
+        punto(g, cx + Math.cos(a) * 58, cy + Math.sin(a) * 58, 1.3, 0.5);
+      }
+      for (let k = 0; k < 40; k++) {
+        const a = r() * TAU;
+        const d = 14 + r() * 34;
+        punto(g, cx + Math.cos(a) * d, cy + Math.sin(a) * d, 0.7, 0.25 + r() * 0.3);
+      }
+      if (vivo) {
+        const p = 0.5 + 0.5 * Math.sin(fase * TAU);
+        halo(g, cx, cy, 32 + p * 4, 0.7 + p * 0.12);
+        g.save();
+        g.translate(cx, cy);
+        g.scale(1.75, 1.75);
+        g.strokeStyle = tinta(LUZ, 0.98);
+        g.lineWidth = 1.15;
+        g.stroke(corazonPath);
+        g.restore();
+      }
+    }
+
+    /* --------------------------------------------------------- composición */
+
+    /* Centros medidos sobre la referencia. */
+    const CLASES = [339.5, 492.5, 639, 792.5, 936];
+    const EVID = [349, 503, 653, 803, 946];
+    const embFn = [embVerified, embCanonical, embInferred, embSpeculative, embNeeds];
+    const evFn = [evRed, evDiana, evSenal, evEspiral, evNube];
+
+    function pintar(g, vivo, fase) {
+      estallido(g, 140.5, 312, 66, 49, vivo, fase);
+      sello(g, 139.5, 904, 66, vivo, fase);
+      for (let i = 0; i < 5; i++) {
+        embFn[i](g, 303, CLASES[i], vivo, fase);
+        evFn[i](g, 657, EVID[i], vivo, fase);
+      }
+      medallon(g, 424, 1238, vivo, fase);
+    }
+
+    /* El fondo se pinta UNA vez: es lo caro y no se mueve. */
+    gf.globalCompositeOperation = "lighter";
+    pintar(gf, false, 0);
+
+    /* ------------------------------------------------------------ el bucle */
+    /* PERÍODO, no velocidad. Con `prefers-reduced-motion` el ciclo se alarga —
+       el dibujo sigue vivo, sólo respira más lento. Congelarlo sería quitarle la
+       vida a quien pidió menos movimiento, que no es lo que pidió. */
+    const menosMovimiento = matchMedia("(prefers-reduced-motion: reduce)");
+    const periodo = () => (menosMovimiento.matches ? 34000 : 11000);
+
+    let rafId = 0;
+    let visible = true;
+    let congelado = false;
+    let faseFija = 0;
+
+    function cuadro(ahora) {
+      rafId = 0;
+      /* fase ∈ [0,1). Todo término temporal es sin/cos de fase·TAU, así que
+         el cuadro de fase 1 es idénticamente el de fase 0: el bucle cierra sin
+         salto. Un `t` creciente no puede dar eso. */
+      const fase = congelado ? faseFija : ((ahora % periodo()) / periodo());
+      gv.clearRect(0, 0, W, H);
+      gv.save();
+      gv.globalCompositeOperation = "lighter";
+      pintar(gv, true, fase);
+      gv.restore();
+      if (!congelado && visible) rafId = requestAnimationFrame(cuadro);
+    }
+
+    function arrancar() {
+      if (!rafId && !congelado && visible) rafId = requestAnimationFrame(cuadro);
+    }
+    function parar() {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+
+    /* Fuera de pantalla no se pinta. */
+    const obs = new IntersectionObserver((entradas) => {
+      visible = entradas.some((e) => e.isIntersecting);
+      if (visible) arrancar(); else parar();
+    }, { threshold: 0 });
+    obs.observe(raiz);
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) parar(); else arrancar();
+    });
+
+    /**
+     * Playwright con `animations:"disabled"` congela CSS y Web Animations pero
+     * NO un canvas que corre su propio rAF. Sin esto, dos corridas del banco
+     * dan puntajes distintos y el equipo persigue ruido.
+     */
+    window.__kdxFreeze = (t) => {
+      congelado = true;
+      faseFija = typeof t === "number" ? ((t % 1) + 1) % 1 : 0;
+      parar();
+      cuadro(0);
+    };
+    window.__kdxUnfreeze = () => {
+      congelado = false;
+      arrancar();
+    };
+
+    cuadro(0);
+    arrancar();
+  }
+</script>

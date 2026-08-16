@@ -2,6 +2,8 @@
 // KODEX −∞ · ARCHIVE — 118 real volumes from the manifest.
 import KodexShell from '../../layouts/KodexShell.astro';
 import { leerManifiesto, resolver, assetUrl } from '../../lib/kodex/volumenes';
+import { existsSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const manifest = await leerManifiesto();
 const volumes = resolver(manifest);
@@ -13,7 +15,20 @@ const coverFor = (v) => {
   return assetUrl(src, 'thumb');
 };
 const actionKey = (v) => (v.hero?.src?.match(/^art\/([^/]+)\//)?.[1] ?? v.slug).replace(/[^a-z0-9-]/gi, '-').toLowerCase();
-const downloadHref = (v) => `/kodex-content/free/wallpapers/${actionKey(v)}-desktop.webp`;
+
+/* El boton DESCARGAR se ofrecia siempre, y para 250 de los 1.427 volumenes el
+   fondo de pantalla no existe: son 250 enlaces a 404 publicados. La causa es
+   que conviven dos esquemas de nombre —los generados se llaman
+   `0050aebb-49347-desktop.webp` y estos piden
+   `2f660098-20260725-1554105625864270327315830-desktop.webp`—, mas los casos
+   en que la clave sale vacia y el enlace queda en `--desktop.webp`.
+   No se inventa el archivo: se comprueba en tiempo de build contra el disco y,
+   si no esta, no se ofrece la descarga. Un boton que no baja nada es peor que
+   no tener boton. */
+const wallpapersDir = fileURLToPath(new URL('../../../public/kodex-content/free/wallpapers', import.meta.url));
+const wallpapers = existsSync(wallpapersDir) ? new Set(readdirSync(wallpapersDir)) : new Set();
+const downloadFile = (v) => `${actionKey(v)}-desktop.webp`;
+const downloadHref = (v) => (wallpapers.has(downloadFile(v)) ? `/kodex-content/free/wallpapers/${downloadFile(v)}` : null);
 const collectHref = (v) => `/kodex/store/?signal=${encodeURIComponent(v.slug)}#editions`;
 const verifyHref = (v) => `/kodex/verify/?code=KDX-${v.numero}-${encodeURIComponent(v.slug)}`;
 
@@ -137,15 +152,24 @@ const displayVolumes = [...volumes].sort((a, b) => {
           >
             <a class="ar-cell__main" href={`/kodex/vol/${v.slug}/`} aria-label={`Open ${v.titulo_es}`}>
               <span class="ar-cell__frame">
-                {cover ? <img src={cover} loading="eager" alt={`${v.titulo_es} cover`} /> : <span class="ar-cell__glyphs">{v.glifos}</span>}
+                {/* Diferida a proposito: son 1.334 portadas. Con `eager` el
+                    navegador las pedia TODAS al abrir y el evento `load` no
+                    llegaba ni a los 30 s -- medido. El indice existia y estaba
+                    bien construido; lo que lo volvia inusable era este atributo. */}
+                {cover ? <img src={cover} loading="lazy" decoding="async" alt={`${v.titulo_es} cover`} /> : <span class="ar-cell__glyphs">{v.glifos}</span>}
               </span>
             </a>
             <span class="ar-cell__idx">KDX/{v.numero}</span>
             <span class="ar-cell__tag">{marcoLabel(v.marco)} · {v.tipo.toUpperCase()}</span>
             <span class="ar-cell__n">{v.titulo_es}</span>
             <span class="ar-cell__fx">{tomoLabel(v)} · {v.estratoTitulo}</span>
+            {v.resonancias && v.resonancias.length > 0 && (
+              <span class="ar-cell__reson" data-reson title={v.resonancias.join(" ")}>
+                {v.resonancias.slice(0, 3).join(" · ")}{v.resonancias.length > 3 ? ` +${v.resonancias.length - 3}` : ""}
+              </span>
+            )}
             <span class="ar-cell__actions">
-              <a href={downloadHref(v)} download>DESCARGAR</a>
+              {downloadHref(v) && <a href={downloadHref(v)} download>DESCARGAR</a>}
               <a href={collectHref(v)}>COLECCIONAR</a>
               <a href={verifyHref(v)}>VERIFY</a>
             </span>
@@ -173,7 +197,13 @@ const displayVolumes = [...volumes].sort((a, b) => {
     .ar-title{grid-area:title;margin:0;max-width:7.2ch;font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;font-size:clamp(5rem,10vw,11rem);line-height:.78;text-transform:uppercase;letter-spacing:0;}
     .ar-lede{grid-area:lede;width:min(54ch,calc(100vw - 36px));max-width:100%;margin:0;font-family:'Inter Tight',system-ui,sans-serif;font-size:clamp(1rem,1.5vw,1.3rem);line-height:1.45;color:rgba(240,237,232,.72);}
     .ar-feature{grid-area:feature;align-self:center;display:grid;gap:14px;width:100%;box-sizing:border-box;padding:14px;border:1px solid color-mix(in srgb,var(--acc) 62%,transparent);background:rgba(8,8,8,.72);box-shadow:18px 18px 0 color-mix(in srgb,var(--acc) 10%,transparent);}
-    .ar-feature__cover{aspect-ratio:1;display:grid;place-items:center;overflow:hidden;background:var(--feature-cover) center / cover no-repeat,#050505;border:1px solid rgba(230,230,230,.08);}
+    /* `grid-template-rows` explícito, no por contenido: la caja mide 390 px de
+       alto por `aspect-ratio`, pero la fila se dimensionaba por su contenido
+       —la portada de 599x900 daba 583 px— y entonces el `height:100%` de la
+       imagen resolvía contra 583 y no contra 390. La portada se pasaba 193 px,
+       `overflow:hidden` la cortaba, y el título de abajo quedaba montado sobre
+       el recorte. Medido en el navegador: contenedor 390x390, imagen 388x583. */
+    .ar-feature__cover{aspect-ratio:1;display:grid;grid-template-rows:minmax(0,1fr);grid-template-columns:minmax(0,1fr);place-items:center;overflow:hidden;background:var(--feature-cover) center / cover no-repeat,#050505;border:1px solid rgba(230,230,230,.08);}
     .ar-feature__cover img{width:100%;height:100%;object-fit:cover;filter:contrast(1.04) saturate(.9);opacity:.98;}
     .ar-feature__cover span{font-size:3rem;letter-spacing:.25em;color:var(--acc);}
     .ar-feature__body{display:grid;gap:8px;}
@@ -211,6 +241,7 @@ const displayVolumes = [...volumes].sort((a, b) => {
     .ar-cell__tag{font-size:8px;letter-spacing:.2em;color:var(--acc);}
     .ar-cell__n{font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;font-size:clamp(1.5rem,2.1vw,2.2rem);line-height:.9;color:#f0ede8;text-transform:uppercase;}
     .ar-cell__fx{align-self:end;font-size:8.5px;letter-spacing:.13em;color:rgba(240,237,232,.45);}
+    .ar-cell__reson{align-self:end;font-size:7.5px;letter-spacing:.08em;color:var(--acc);opacity:.7;text-transform:lowercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
     .ar-cell__actions{display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:2px;background:rgba(230,230,230,.12);}
     .ar-cell__actions a{min-height:28px;display:grid;place-items:center;background:#050506;color:rgba(240,237,232,.64);font-size:7px;letter-spacing:.13em;}
     .ar-cell__actions a:nth-child(2){color:var(--acc);}

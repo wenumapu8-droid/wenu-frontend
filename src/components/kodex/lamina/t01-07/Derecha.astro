@@ -1,0 +1,197 @@
+---
+/**
+ * KODEX-∞ · t01-07 COSMOLOGY CORE · DERECHA (1175,88 · 493×778)
+ *
+ * La caja del andamiaje trae más que el encargo. Además de «05 DIAGRAM
+ * STUDIES», «06 CONSTELLATION GLYPHS», «07 SIGNAL CHARTS» y «SPECTRUM
+ * READOUT», entera cae adentro la banda de abajo: el jirón derecho del panel
+ * del árbol (de x=1175 a su marco en x=1327) y COMPLETO el «11 MOBILE SCENE
+ * TILE» —el teléfono, la ficha STATUS/LOCATION/DEPTH/CORE SYNC, el código de
+ * barras y el gráfico de la esquina—. El banco puntúa la caja y no el encargo,
+ * así que se pinta la caja entera: dejar el tercio de abajo negro es tinta
+ * perdida y la métrica ya no premia el vacío.
+ *
+ * ── De dónde salen las medidas ────────────────────────────────────────────
+ *
+ * Nada está estimado. Los marcos se buscaron barriendo la caja fila por fila y
+ * columna por columna (scripts/lamina/_t0107_der_marcos.mjs) y quedándose con
+ * los tramos de más de 90 px con cobertura > 0,9 que son PICO de brillo contra
+ * sus dos vecinas a ±2 px. Las bandas internas salieron del perfil de tinta
+ * (scripts/lamina/_t0107_der_perfil.mjs):
+ *
+ *   filas    105 (regla del 05) · 230/231 (su pie) · 235 (techo del 06) ·
+ *            258/259 (su regla) · 355 (su pie) · 362/363 (techo del 07 y del
+ *            SPECTRUM) · 386 (sus reglas) · 468 · 521 (divisorias internas del
+ *            07) · 580/581 (pie de las cajas internas) · 587 (pie de ambos
+ *            paneles) · 588 (techo del 11) · 605/606 · 613/614 · 638 · 795 ·
+ *            859 (el panel del árbol, que arranca 17 px más abajo que el 11) ·
+ *            611 · 618/619 · 655 · 709/710 · 747/748 · 787 · 848 (la ficha) ·
+ *            864 (la divisoria del póster contra el pie)
+ *   columnas 1177/1178 (canto izquierdo del 05-06 y del 07) · 1302/1303 ·
+ *            1420/1421 · 1543/1544 (las tres divisorias del 05, repartidas
+ *            125/118/123/123 px, que NO es parejo) · 1246 · 1315 · 1384 ·
+ *            1454 · 1523 · 1594 (las seis del 06) · 1184 y 1497 (la caja
+ *            interna del 07) · 1505/1506 (canto entre el 07 y el SPECTRUM) ·
+ *            1511 y 1660 (su caja interna) · 1327/1328 (canto entre el árbol y
+ *            el 11) · 1534/1535 y 1656 (la ficha) · 1666/1667 (marco del
+ *            póster)
+ *
+ * Ningún par de líneas comparte brillo, y por eso van una por una con su color
+ * medido: el canto izquierdo de una divisoria del 06 pesa 16 y el derecho 39.
+ * Emparejarlas se lee como una hoja de cálculo y aplana la lámina.
+ *
+ * FRONTERA IZQUIERDA. El panel del árbol no es mío: su marco izquierdo está en
+ * x≈1015, dentro del bloque Centro. Lo único que dibujo de él es lo que cae a
+ * la derecha de x=1175 —la vertical de x=1175 (y 645-859) incluida, porque el
+ * corte del andamiaje pasa justo por ella—. Es el único píxel de la caja sobre
+ * el que puede haber dos verdades; queda anotado en vez de resuelto por las
+ * dudas, que es lo que en OBSERVATION EYE hizo que dos agentes dibujaran los
+ * mismos 58 px.
+ *
+ * ── Todo el arte va TRAZADA ───────────────────────────────────────────────
+ *
+ * Las cuatro miniaturas, las siete constelaciones, las tres ondas, el disco
+ * polar, el árbol, el teléfono y hasta los renglones de texto salen de
+ * scripts/lamina/arte-t01-07-derecha.mjs, que los saca del original con vtracer
+ * sobre máscara de clase de color sobremuestreada ×8.
+ *
+ * Lo que ese script hace distinto del trazador general y del de t01-04: esta
+ * lámina no tiene tres tintas separables por dominancia de canal, tiene un
+ * DEGRADADO continuo magenta → violeta → azul, y encima mete texto gris neutro
+ * dentro del organismo (SUB-ASTRAL…BEYOND caen dentro del gráfico de bandas,
+ * así que partir por x no sirve). La máscara parte el color en cuatro clases
+ * que sí son una partición —neutro por saturación baja, magenta r>b·1,15, azul
+ * b>r·1,15, violeta el resto— y cada clase se traza en tres o cuatro umbrales.
+ *
+ * Las capas se pintan INTERCALADAS POR UMBRAL, no agrupadas por color. Un nodo
+ * blanco de constelación con halo violeta necesita que el halo vaya antes que
+ * el núcleo aunque sean de clases distintas; agrupando por color, la capa baja
+ * de violeta tapaba núcleos blancos ya pintados.
+ *
+ * El relleno de cada capa lo eligió un barrido sobre la región VISIBLE de la
+ * capa —lo que no le tapa ninguna posterior—, no el ojo. La tabla de MAE por
+ * pieza está en la cabecera del .ts generado.
+ *
+ * El CÓDIGO DE BARRAS de la ficha no pasa por vtracer: se lee columna por
+ * columna. El contorno le inventa esquinas y le come tinta.
+ *
+ * Lo que acá NO va: desenfoque. Chromium redondea feGaussianBlur a cajas de
+ * floor(sigma·1,88+0,5), así que todo sigma bajo 0,8 no hace nada; y el barrido
+ * de relleno ya se midió contra el trazo SIN desenfoque, así que agregarlo lo
+ * descalibra.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-07-cosmology-core Derecha --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-07-derecha.mjs
+ */
+import { ARTE, BARRAS, MARCOS } from "./trazos/arte-derecha";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera —todas sus
+ * capas, de la más oscura a la más clara— con un <svg> anidado por glifo, con
+ * viewBox propio y sin conservar proporción: lo que hay que clavar es la caja
+ * medida, no la del contorno.
+ *
+ * El transform de cada path se conserva; el trazador emite uno por contorno y
+ * perderlo desarma el dibujo.
+ */
+const pinta = (...ids: string[]) =>
+  ids
+    .flatMap((id) => ARTE[id] ?? [])
+    .map((capa) =>
+      capa.g
+        .map(
+          (g) =>
+            `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+            g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${capa.fill}"/>`).join("") +
+            `</svg>`
+        )
+        .join("")
+    )
+    .join("");
+
+const cod = BARRAS.b11cod;
+---
+
+<div data-box style={box} class="d7">
+  <svg class="d7__art" viewBox="0 0 493 778" width="493" height="778" aria-hidden="true">
+    <g class="d7__marcos">
+      {MARCOS.map(([x, y, w, h, f]) => <rect x={x} y={y} width={w} height={h} fill={f} />)}
+    </g>
+
+    <!-- 05 · DIAGRAM STUDIES. Cuatro miniaturas con rótulo gris y dibujo
+         violeta o magenta; cada una lleva su propia micrografía en los cantos,
+         que viene dentro del mismo trazo porque es la misma tinta. -->
+    <g
+      role="img"
+      aria-label="05. DIAGRAM STUDIES — ORBITAL GEOMETRY, VECTOR WEB, NODE STRUCTURE, GATE ARCHETYPE."
+      set:html={pinta("t5tit", "t5lab", "b5c1", "b5c2", "b5c3", "b5c4")}
+    />
+
+    <!-- 06 · CONSTELLATION GLYPHS. Siete celdas: nombre arriba y un patrón de
+         nodos unidos por líneas finas. Los nodos son blancos y las líneas
+         grises salvo en THE ANCHOR, que es violeta. -->
+    <g
+      role="img"
+      aria-label="06. CONSTELLATION GLYPHS — THE SEED, THE WITNESS, THE SPIRAL, THE MIRROR, THE LATTICE, THE VOID, THE ANCHOR."
+      set:html={pinta("t6tit", "t6lab", "b6c1", "b6c2", "b6c3", "b6c4", "b6c5", "b6c6", "b6c7")}
+    />
+
+    <!-- 07 · SIGNAL CHARTS. FREQUENCY BANDS con su escala rotulada 0.1 · 1 ·
+         10 · 100 · 1K · 10K · 100K —decorativa, no logarítmica de verdad— y la
+         onda que va de magenta a azul y vuelve; debajo SIGNAL STRENGTH en
+         magenta con 87.6 % y CORE RESONANCE en azul con Ψ 0.618. Las cifras
+         son ficción del póster: el grupo va marcado como simbólico. -->
+    <g
+      role="img"
+      aria-label="07. SIGNAL CHARTS — FREQUENCY BANDS de 0.1 a 100K: SUB-ASTRAL, ASTRAL, ETHEREAL, CELESTIAL, BEYOND. SIGNAL STRENGTH 87.6%. CORE RESONANCE Ψ 0.618."
+      data-symbolic="true"
+      set:html={pinta("t7tit", "t7l1", "t7esc", "b7wav", "t7l2", "b7sig", "t7l3", "b7cor")}
+    />
+
+    <!-- SPECTRUM READOUT. Disco polar: anillos en progresión geométrica, radios
+         y un núcleo de nudo. -->
+    <g role="img" aria-label="SPECTRUM READOUT — disco polar del espectro." set:html={pinta("tspt", "bspt")} />
+
+    <!-- Jirón derecho del panel del árbol: el medallón y el gráfico de abajo.
+         Su marco izquierdo lo abre el bloque vecino. -->
+    <g role="img" aria-label="Medallón del árbol y su diagrama." set:html={pinta("btre", "bmic")} />
+
+    <!-- 11 · MOBILE SCENE TILE (9:16). El teléfono con la escena de órbita y,
+         al lado, la ficha. Las barras van aparte, leídas columna por columna:
+         [x, ancho, luminancia]. -->
+    <g
+      role="img"
+      aria-label="11. MOBILE SCENE TILE (9:16) — KODEX-∞ / ORBIT MAP con SCAN, ORBIT, ALIGN, REVEAL. STATUS SIGNAL ACTIVE. LOCATION SECTOR 02, VOID SERPENTIS. DEPTH LAYER 5/7. CORE SYNC 98.2%."
+      data-symbolic="true"
+    >
+      <g set:html={pinta("t11t", "b11p", "b11f", "b11g")} />
+      {cod.tramos.map(([x, w, v]) => (
+        <rect x={x} y={cod.y} width={w} height={cod.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que se sale de la caja pisa al vecino y le
+     sube el puntaje a los dos. */
+  .d7 {
+    position: absolute;
+    overflow: hidden;
+    background: #000;
+    font-family: var(--lam-mono);
+  }
+
+  .d7__art { position: absolute; left: 0; top: 0; }
+
+  /* shape-rendering crispEdges en los marcos: son líneas de 1 px alineadas a la
+     grilla y el antialias las convierte en dos líneas grises de medio brillo,
+     que es exactamente el error que el diff estructural castiga. */
+  .d7__marcos { shape-rendering: crispEdges; }
+</style>

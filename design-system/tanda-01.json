@@ -1,0 +1,188 @@
+{
+  "_schema": "kodex/tanda-01/v1",
+  "_nota": "8 ORGANISMOS VISUALES. Transcripcion de reference/canon/t00-pliego-maestro.png y de cada board t01-*.png. Los estados y los verbos salen de la referencia, no de mi criterio.",
+  "_generado": "2026-08-09",
+  "_canon_abierto": "La relacion entre estos 8 organismos y las 7 escenas del viaje (threshold/prologue/descent/archive/machine/cosmology/return) NO esta decidida. Este archivo NO la decide: `escena_viaje` queda null salvo donde el solape es literal por nombre. Asignarlo es canon y le toca al creador.",
+
+  "motor": {
+    "nombre": "MOTOR CENTRAL COMPARTIDO",
+    "tecnologia": ["WebGL2", "GLSL", "Multipass", "Audio Reactive", "Feedback"],
+    "fases_genericas": ["DORMANT", "AWARE", "ACTIVE", "OPEN"],
+    "_nota_fases": "El pliego define 4 fases del motor. Cada organismo las renombra a su vocabulario en `estados`. El motor razona en fases; la UI muestra la etiqueta del organismo.",
+    "entradas_globales": {
+      "tiempo": { "uniforms": ["u_kdxTime", "u_time", "u_delta"], "estado": "implementado" },
+      "puntero_touch": { "uniforms": ["u_pointer", "u_pointerVelocity"], "estado": "implementado" },
+      "audio": { "uniforms": ["u_audio", "u_audioLow", "u_audioMid", "u_audioHigh"], "estado": "implementado" },
+      "estado_progreso": { "uniforms": ["u_state", "u_sceneProgress", "u_scrollProgress", "u_transition"], "estado": "implementado" },
+      "texturas_mascaras": { "uniforms": [], "estado": "FALTA", "_nota": "unica entrada global del pliego sin implementar en KodexField" }
+    }
+  },
+
+  "organismos": [
+    {
+      "id": "threshold-portal",
+      "numero": 1,
+      "titulo": "THRESHOLD PORTAL",
+      "subtitulo": "Entrada al sistema / Umbral de acceso",
+      "referencia": "reference/canon/t01-01-threshold-portal.png",
+      "estados": ["DORMANT", "AWARE", "OPEN"],
+      "verbos": ["respira", "recuerda", "se abre"],
+      "entradas": ["audio:low", "touch", "feedback"],
+      "paleta": ["#FF1A0A", "#FF5A00", "#FFB000", "#FF2E2E", "#FF004B", "#DADADA", "#1A1A1A"],
+      "pasadas_declaradas": ["field distortion", "glyph overlay", "energy veins", "bloom + chroma", "scanlines + CRT"],
+      "uniforms_declarados": ["u_time", "u_resolution", "u_signal", "u_coherence", "u_gateOpen", "u_colorPrimary"],
+      "codigo": {
+        "estado": "COMPLETO",
+        "runtime": "src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js",
+        "shaders": ["thresholdPortalSource.frag", "thresholdPortalFeedback.frag", "thresholdPortalComposite.frag"],
+        "pagina": "/kodex/lab",
+        "maquina_estados": true
+      },
+      "escena_viaje": "threshold"
+    },
+    {
+      "id": "observation-eye",
+      "numero": 2,
+      "titulo": "OBSERVATION EYE",
+      "subtitulo": "Detecta y reconoce / Ojo de observacion",
+      "referencia": "reference/canon/t01-02-observation-eye.png",
+      "estados": ["IDLE", "TRACK", "LOCK"],
+      "verbos": ["sigue", "escanea", "bloquea"],
+      "entradas": ["audio:mid", "audio:high", "pointer"],
+      "paleta_dominante": "violeta",
+      "uniforms_declarados": {
+        "scan_speed": 1.25, "pulse_speed": 2.40, "scan_density": 1024.0, "iris_inner": 0.12, "noise_scale": 2.75
+      },
+      "comportamientos": {
+        "blink": { "duracion_frames": [4, 6], "conducta": "quick close, single frame hold, subtle glitch" },
+        "scan":  { "duracion_frames": [10, 24], "conducta": "rotational sweep, data line trace, spectral shift" },
+        "pulse": { "duracion_frames": [6, 12], "conducta": "iris expansion, core brightness, energy ripple" }
+      },
+      "codigo": {
+        "estado": "PARCIAL",
+        "runtime": "src/kodex/observe-v2/",
+        "shaders": ["source", "threshold", "feedback", "displace", "chroma", "crt"],
+        "pagina": "/kodex/lab/observe-v2",
+        "maquina_estados": false,
+        "falta": "maquina IDLE/TRACK/LOCK"
+      },
+      "escena_viaje": null
+    },
+    {
+      "id": "descent-tunnel",
+      "numero": 3,
+      "titulo": "DESCENT TUNNEL",
+      "subtitulo": "Profundidad infinita / Descenso",
+      "referencia": "reference/canon/t01-03-descent-tunnel.png",
+      "estados": ["SURFACE", "DROP", "DEEP", "VOID"],
+      "verbos": ["acelera", "distorsiona", "absorbe"],
+      "entradas": ["audio:low-mid", "velocidad"],
+      "paleta_dominante": "naranja",
+      "pseudo_glsl": "vec2 polarDistort(vec2 uv, float depth){ vec2 p = uv*2.0-1.0; float r=length(p); float a=atan(p.y,p.x); float k=1.0/(1.0+r*depth); float rd=pow(r,k); vec2 q=vec2(cos(a),sin(a))*rd; return q*0.5+0.5; }",
+      "tratamientos_declarados": ["neon wire", "bloom core", "data dust", "glitch layer", "depth fog"],
+      "codigo": {
+        "estado": "PARCIAL",
+        "shaders": ["src/kodex/shaders/lab/split-corridor.frag"],
+        "maquina_estados": false
+      },
+      "escena_viaje": "descent"
+    },
+    {
+      "id": "archive-tree",
+      "numero": 4,
+      "titulo": "ARCHIVE TREE",
+      "subtitulo": "Memoria y conexion / Arbol de archivo",
+      "referencia": "reference/canon/t01-04-archive-tree.png",
+      "estados": ["SEED", "ROOT", "BLOOM", "TRANSMIT"],
+      "estados_glosa": { "SEED": "initiate / dormant potential", "ROOT": "connect / seek absorb", "BLOOM": "expand / thrive distribute", "TRANSMIT": "remember / transmit archive" },
+      "verbos": ["crece", "conecta", "transmite"],
+      "entradas": ["audio:low", "audio:mid", "feedback"],
+      "paleta_dominante": "verde acido",
+      "ritmos_declarados": { "breathe": "2-4 s natural flow", "pulse": "1-2 s heartbeat sync", "grow": "3-8 s organic growth", "archive": "2-6 s data commit" },
+      "capas": ["canopy / data distribution", "trunk / signal processing", "roots / memory ingestion"],
+      "codigo": { "estado": "NO EXISTE", "maquina_estados": false },
+      "escena_viaje": null
+    },
+    {
+      "id": "specimen-skull",
+      "numero": 5,
+      "titulo": "SPECIMEN SKULL",
+      "subtitulo": "Dossier biologico / Craneo especimen",
+      "referencia": "reference/canon/t01-05-specimen-skull.png",
+      "estados": ["SCAN", "ISOLATE", "REVEAL", "GLITCH", "ARCHIVE"],
+      "verbos": ["escanea", "lee", "clasifica"],
+      "entradas": ["audio:mid", "audio:high", "distortion"],
+      "paleta_dominante": "rojo",
+      "modos_de_tratamiento_declarados": ["x-ray", "linework", "bitmap", "thermal", "glitch"],
+      "_nota": "Sus 5 'treatment modes (live crops)' son exactamente 5 tratamientos de TANDA 02 aplicados al mismo organismo. Es la demostracion de que la cadena de tratamientos es real y no decorativa.",
+      "codigo": { "estado": "NO EXISTE", "maquina_estados": false },
+      "escena_viaje": null
+    },
+    {
+      "id": "ritual-device",
+      "numero": 6,
+      "titulo": "RITUAL DEVICE",
+      "subtitulo": "Artefacto ceremonial / Dispositivo ritual",
+      "referencia": "reference/canon/t01-06-ritual-device.png",
+      "estados": ["CHARGE", "ALIGN", "RESONATE", "EMIT"],
+      "estados_glosa": { "CHARGE": "draws ambient noise, charges core lattice", "ALIGN": "seeks pattern lock, aligns glyphs", "RESONATE": "amplifies signal, resonance cascade", "EMIT": "releases encoded field, broadcasts archive" },
+      "verbos": ["carga", "resuena", "activa"],
+      "entradas": ["audio:mid", "audio:high", "touch"],
+      "paleta_dominante": "cian",
+      "componentes": ["crown seal", "containment ring", "signal chamber", "core crystal", "stabilizer spool", "base nova plate"],
+      "capas": ["axis", "glyph", "signal", "manifest"],
+      "codigo": { "estado": "NO EXISTE", "maquina_estados": false },
+      "escena_viaje": null
+    },
+    {
+      "id": "cosmology-core",
+      "numero": 7,
+      "titulo": "COSMOLOGY CORE",
+      "subtitulo": "Relaciones planetarias / Nucleo cosmologico",
+      "referencia": "reference/canon/t01-07-cosmology-core.png",
+      "estados": ["MAP", "ORBIT", "ALIGN", "REVEAL"],
+      "verbos": ["orbita", "conecta", "expande"],
+      "entradas": ["audio:mid", "audio:high", "parallax"],
+      "paleta_dominante": "magenta",
+      "capas_parallax": 7,
+      "codigo": {
+        "estado": "PARCIAL",
+        "shaders": ["src/kodex/shaders/lab/archive-orbit.frag"],
+        "componentes": ["src/components/kodex/CosmologyMap.astro"],
+        "maquina_estados": false
+      },
+      "escena_viaje": "cosmology"
+    },
+    {
+      "id": "signal-bloom",
+      "numero": 8,
+      "titulo": "SIGNAL BLOOM",
+      "subtitulo": "Transmision y expansion / Floracion de senal",
+      "referencia": "reference/canon/t01-08-signal-bloom.png",
+      "estados": ["IDLE", "BUILD", "BLOOM", "DISPERSE"],
+      "estados_glosa": { "IDLE": "background hum, stable field, low energy", "BUILD": "amplitude rise, pattern formation, energy accumulation", "BLOOM": "signal peak, structure blooms, transmission active", "DISPERSE": "signal fractures, data scatters, field returns" },
+      "umbrales": { "IDLE": 0.80, "BUILD": 0.55, "BLOOM": 0.30, "DISPERSE": 0.75 },
+      "verbos": ["pulsa", "expande", "corrompe"],
+      "entradas": ["audio:high", "feedback", "glitch"],
+      "paleta": ["#FF00FF", "#8000FF", "#6A00FF", "#00C5FF", "#FF2A2A", "#FFFFFF"],
+      "pseudo_glsl": [
+        "float pulse = sin(time * BPM) * 0.5 + 0.5;",
+        "float n = fbm(uv * 3.0 + time * 0.1);",
+        "float bloom = pow(max(n - THRESHOLD, 0.0), 2.0);",
+        "float field = length(uv) * 2.0;",
+        "field += sin(field * 8.0 - time) * 0.1;",
+        "vec3 col = mix(COLOR_A, COLOR_B, bloom);",
+        "col += vec3(pulse) * 0.2;",
+        "col = glitch(col, uv, time);",
+        "col = scanlines(col, uv, 1024.0);"
+      ],
+      "codigo": {
+        "estado": "PARCIAL",
+        "shaders": ["src/kodex/shaders/lab/signal-bloom.frag"],
+        "montado_en": "KodexField",
+        "maquina_estados": false
+      },
+      "escena_viaje": null
+    }
+  ]
+}

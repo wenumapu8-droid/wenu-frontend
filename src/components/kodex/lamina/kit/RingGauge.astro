@@ -1,0 +1,81 @@
+---
+/**
+ * KIT · DONA / ANILLO DE ESTADO
+ *
+ * La dona de SIGNAL COMPOSITION, los anillos de porcentaje, los medidores
+ * circulares. Se dibuja con `stroke-dasharray` sobre un círculo y no con arcos
+ * de path: un arco por segmento son cuatro comandos y un cálculo trigonométrico
+ * por gajo, y a 40 px de diámetro no se nota la diferencia.
+ *
+ * `segmentos` acepta valores sueltos (una dona de composición) o uno solo (un
+ * medidor de porcentaje).
+ */
+import { p2 } from "./rng";
+
+interface Props {
+  /** diámetro exterior */
+  d: number;
+  /** grosor del anillo */
+  grosor?: number;
+  /** [{valor, color}] — los valores se normalizan solos */
+  segmentos: Array<{ valor: number; color: string }>;
+  /** hueco entre gajos, en grados */
+  hueco?: number;
+  /** color del resto del anillo cuando los segmentos no suman 100 */
+  resto?: string;
+  /** arranca arriba (-90) por defecto, como en las referencias */
+  desde?: number;
+  simbolico?: boolean;
+  clase?: string;
+}
+const {
+  d,
+  grosor = Math.max(3, d * 0.22),
+  segmentos,
+  hueco = 0,
+  resto = "",
+  desde = -90,
+  simbolico = true,
+  clase = "",
+} = Astro.props;
+
+const R = (d - grosor) / 2;
+const C = 2 * Math.PI * R;
+const total = segmentos.reduce((a, s) => a + s.valor, 0) || 1;
+
+// Se acumula el desfase para encadenar los gajos. dashoffset corre en sentido
+// horario negativo, de ahí el signo.
+let acc = 0;
+const gajos = segmentos.map((s) => {
+  const frac = s.valor / total;
+  const largo = C * frac - (hueco / 360) * C;
+  const off = -C * acc;
+  acc += frac;
+  return { color: s.color, dash: `${p2(Math.max(0, largo))} ${p2(C)}`, off: p2(off) };
+});
+---
+
+<svg
+  class={`kit-rg ${clase}`}
+  viewBox={`0 0 ${d} ${d}`}
+  width={d}
+  height={d}
+  data-symbolic={simbolico ? "true" : undefined}
+  aria-hidden="true"
+>
+  <g transform={`rotate(${desde} ${d / 2} ${d / 2})`} fill="none" stroke-width={grosor}>
+    {resto && <circle cx={d / 2} cy={d / 2} r={p2(R)} stroke={resto} opacity="0.22" />}
+    {gajos.map((g) => (
+      <circle
+        cx={d / 2} cy={d / 2} r={p2(R)}
+        stroke={g.color}
+        stroke-dasharray={g.dash}
+        stroke-dashoffset={g.off}
+      />
+    ))}
+  </g>
+</svg>
+
+<style>
+  .kit-rg { display: block; }
+</style>

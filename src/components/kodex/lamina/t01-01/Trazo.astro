@@ -1,0 +1,48 @@
+---
+/**
+ * KODEX-∞ · t01-01 · PINTOR DE ARTE TRAZADA
+ *
+ * Una sola pieza para todo el arte fija del bloque: logotipos, emblemas, lemas,
+ * bajada e iconos. El emblema alado aparece en la cabecera y en el pie, y los
+ * ICON CLUSTERS repiten el mismo gesto treinta y cuatro veces; escribir el
+ * bucle de pintado una vez por panel fue exactamente lo que hizo que la lámina
+ * 1 terminara con trece dialectos del mismo dibujo.
+ *
+ * Va DENTRO de un <svg> del panel, no lo abre: cada panel ya tiene el suyo con
+ * su viewBox, y anidar otro obligaría a repetir la caja en dos sitios.
+ *
+ * El color viene EN cada glifo (arte.ts) y no como propiedad de la pieza: en
+ * los iconos conviven rojos y grises en la misma fila y un color por pieza los
+ * aplanaría a todos.
+ */
+import type { Glifo } from "./arte";
+
+interface Props {
+  glifos: Glifo[];
+  /** Texto real de la pieza. Va al aria-label: la lámina se lee aunque no se vea. */
+  etiqueta: string;
+  /**
+   * Encogido en píxeles por lado. El trazador binariza, así que devuelve la
+   * silueta CON el halo de antialias incluido y la tinta sale ~1 px más ancha
+   * que el núcleo del original. Sólo sirve en tipografía de cuerpo grande: en
+   * los emblemas y los iconos los trazos miden 1 px y encogerlos los borra.
+   */
+  encoge?: number;
+}
+const { glifos, etiqueta, encoge = 0 } = Astro.props;
+---
+
+<g role="img" aria-label={etiqueta}>
+  {glifos.map((g) => (
+    <svg
+      x={g.x + encoge}
+      y={g.y + encoge}
+      width={Math.max(0.5, g.w - 2 * encoge)}
+      height={Math.max(0.5, g.h - 2 * encoge)}
+      viewBox={`0 0 ${g.vw} ${g.vh}`}
+      preserveAspectRatio="none"
+    >
+      {g.d.map(([d, tr]) => <path d={d} transform={tr} fill={g.c} />)}
+    </svg>
+  ))}
+</g>

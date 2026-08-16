@@ -1,0 +1,154 @@
+---
+/**
+ * KODEX-∞ · t01-08 SIGNAL BLOOM · 05. AUTHENTICATION / AUTENTICACIÓN
+ *
+ * Caja medida: 1181,87 485×325.
+ *
+ * Éste es el panel donde más rinde el trazador y menos rinde el criterio: son
+ * cuatro sellos con texto en la circunferencia, veintiocho glifos de veinte
+ * píxeles, un ojo, un código de barras y un QR. Nada de eso se dibuja. Todo
+ * sale de contornear el original y el umbral de cada grupo se eligió barriendo
+ * y midiendo correlación cruzada, no a ojo:
+ *
+ *      sellos  T=32  err 0,12      glifos   T=45  err 0,09
+ *      logo    T=60  err 0,06      ojo      T=26  err 0,18
+ *      barras  T=60  err 0,10      QR       T=60  err 0,08
+ *
+ * El ojo es el peor de los seis y se entiende: es una telaraña violeta muy
+ * tenue (pico 212,190,227 sobre un fondo casi negro) y un contorno binario no
+ * puede reproducir un degradado. Los otros cinco están en el suelo del método.
+ *
+ * Estructura medida por bandas de tinta (umbral 45):
+ *      y  89..97   título            y 234..241  GLYPH LIBRARY
+ *      y 111..118  AUTH SEALS        y 252..272  fila 1 de glifos (14)
+ *      y 127..229  los cuatro sellos y 285..305  fila 2 de glifos (14)
+ *      y 320..327  IDENTITY ANCHORS  y 337..396  las cuatro cajas ancla
+ *
+ * Los cuatro sellos caen en x 1193 / 1308 / 1423 / 1536, de 97 px: paso 114,5 y
+ * no un reparto parejo del ancho.
+ *
+ * El filo superior del marco vive en y=81, CINCO píxeles por encima de la caja
+ * medida, así que este panel dibuja izquierda, derecha y base pero no techo.
+ */
+import Art from "./trazos/AuthArt.astro";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+const ADV = 7.0;
+const CAP = 1.3;
+const sx = (paso: number) => +(paso / ADV).toFixed(4);
+const P = 5.94;    // rótulos de sección
+/* Los rótulos de las cajas ancla no van al paso de los de sección: medidos uno
+   por uno dan 5,16 · 5,19 · 5,08, y el de dentro de la caja (PRIMARY ANCHOR)
+   baja a 4,78 con versal más chica. Igualarlos los desalinea con las cajas. */
+const PL = 5.14;
+const PP = 4.78;
+
+/* Rótulo centrado bajo una caja: con scaleX y transform-origin 0 0 no sirve
+   text-align, así que el borde izquierdo se calcula del paso medido. */
+const centrado = (texto: string, centro: number, paso: number) => +(centro - (texto.length * paso) / 2).toFixed(2);
+
+const cajas = [
+  { x: 13,  w: 113 },
+  { x: 147, w: 91 },
+  { x: 257, w: 101 },
+  { x: 376, w: 90 },
+];
+const rotulos = [
+  { t: "VISUAL ANCHOR", i: 1 },
+  { t: "DATA ANCHOR", i: 2 },
+  { t: "SIGNAL ANCHOR", i: 3 },
+];
+---
+
+<div data-box style={box} class="auth" data-symbolic="true">
+  <i class="auth__edge auth__edge--l"></i>
+  <i class="auth__edge auth__edge--r"></i>
+  <i class="auth__edge auth__edge--b"></i>
+
+  <h2 class="auth__title" style={`left:10px;top:${2 - CAP}px;transform:scaleX(${sx(5.80)})`}>
+    <span class="auth__num">05. AUTHENTICATION</span><span class="auth__sub"> / AUTENTICACIÓN</span>
+  </h2>
+  <i class="auth__rule auth__rule--head" style="left:6px;top:15px;width:470px"></i>
+
+  <h3 class="auth__sec" style={`left:10px;top:${24 - CAP}px;transform:scaleX(${sx(P)})`}>AUTH SEALS</h3>
+  <i class="auth__rule auth__rule--sec" style="left:81px;top:26px;width:386px"></i>
+
+  <h3 class="auth__sec" style={`left:10px;top:${147 - CAP}px;transform:scaleX(${sx(P)})`}>GLYPH LIBRARY</h3>
+  <i class="auth__rule" style="left:94px;top:151px;width:372px"></i>
+
+  <h3 class="auth__sec" style={`left:11px;top:${233 - CAP}px;transform:scaleX(${sx(P)})`}>IDENTITY ANCHORS</h3>
+  <i class="auth__rule auth__rule--dim" style="left:115px;top:235px;width:352px"></i>
+
+  {cajas.map((c) => <i class="auth__box" style={`left:${c.x}px;top:250px;width:${c.w}px;height:60px`}></i>)}
+
+  <span class="auth__cap" style={`left:${centrado("PRIMARY ANCHOR", 66.5, PP)}px;top:${295 - 1.25}px;transform:scaleX(${+(PP / (10.5 * (ADV / 11))).toFixed(4)})`}>PRIMARY ANCHOR</span>
+  {rotulos.map((r) => (
+    <span class="auth__lab" style={`left:${centrado(r.t, cajas[r.i].x + cajas[r.i].w / 2, PL)}px;top:${314 - CAP}px;transform:scaleX(${sx(PL)})`}>{r.t}</span>
+  ))}
+
+  <Art />
+</div>
+
+<style>
+  .auth {
+    --a-mag: #d2337f;
+    --a-sub: #8d8d8b;
+    --a-sec: #8e8e8c;
+    --a-cap: #8a8b8b;
+    --a-lab: #757676;
+    --a-frame: #1a191a;
+    font-family: var(--lam-mono);
+  }
+
+  .auth__edge { position: absolute; background: var(--a-frame); }
+  .auth__edge--l { left: 0; top: 0; bottom: 0; width: 1px; }
+  .auth__edge--r { left: 476px; top: 0; bottom: 0; width: 1px; }
+  .auth__edge--b { left: 0; width: 477px; top: 324px; height: 1px; }
+
+  /* Las tres reglas de sección no tienen el mismo peso en la referencia: la de
+     AUTH SEALS mide 21 de luma, la de GLYPH LIBRARY 13 y la de IDENTITY
+     ANCHORS 10. Uniformarlas es lo primero que delata un redibujo. */
+  .auth__rule { position: absolute; height: 1px; background: #0e0e0e; }
+  .auth__rule--head { height: 2px; background: #0a0a0a; }
+  .auth__rule--sec { height: 2px; background: #141314; }
+  .auth__rule--dim { background: #0b0b0b; }
+
+  .auth__box {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--a-frame);
+  }
+
+  .auth__title,
+  .auth__sec,
+  .auth__cap,
+  .auth__lab {
+    position: absolute;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1;
+    white-space: nowrap;
+    transform-origin: 0 0;
+    /* La tinta del original no es un trazo limpio: barriendo una fila de texto
+       la referencia da 8·50·82·63·9 donde nosotros damos 4·80·72·26·0 — el
+       mismo pico pero con medio píxel más de derrame a cada lado, que es como
+       rasteriza el póster. 1 px de desenfoque reproduce ese derrame. Medido
+       sobre DATA TAGS: sin desenfoque 6,59 %, con 0,8 px 5,89 %, con 1 px
+       5,17 %. Más allá de 1 px sigue bajando el número pero el texto deja de
+       leerse, y eso ya no es reproducir la lámina. */
+    filter: blur(1px);
+    /* El color de cada texto es el PICO medido en la referencia, que es el
+       núcleo del trazo. Pero al añadirle el derrame de 1 px se cuenta dos veces
+       la misma tinta: el bloque queda con la masa correcta y el brillo alto.
+       Este factor la devuelve a su sitio. Barrido 1 / 0,85 / 0,72 / 0,6: 6,13 · 6,05 · 6,04 · 6,07 %. */
+    opacity: 0.78;
+  }
+  .auth__num { color: var(--a-mag); }
+  .auth__sub { color: var(--a-sub); }
+  .auth__sec { color: var(--a-sec); }
+  .auth__cap { color: var(--a-cap); font-size: 10.5px; }
+  .auth__lab { color: var(--a-lab); }
+</style>

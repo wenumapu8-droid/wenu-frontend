@@ -1,0 +1,148 @@
+---
+/**
+ * KIT · SCANNER RADIAL
+ *
+ * La pieza más repetida de las 17 láminas: el disco de anillos y radios que
+ * aparece como diagrama de estado, mira, mapa polar, rosa de los vientos y
+ * fondo de casi todo.
+ *
+ * Dos cosas que los agentes acertaron midiendo y que quedan aquí de fábrica,
+ * para que nadie las vuelva a descubrir:
+ *
+ *  · Los anillos NO se reparten parejo. Van en progresión geométrica, que es lo
+ *    que los agrupa hacia el centro y da sensación de profundidad. Repartidos
+ *    de a uno se ve como una diana, no como un instrumento.
+ *  · No hay dos anillos con el mismo brillo. El peso irregular es lo que
+ *    distingue un trazado de instrumento de una figura de CAD.
+ *
+ * `excentricidad` achata el disco: 1 es circular, 0.5 es una elipse de túnel
+ * visto de frente.
+ */
+import { rng, p2 } from "./rng";
+
+interface Props {
+  w: number;
+  h: number;
+  semilla?: number;
+  /** cuántos anillos */
+  anillos?: number;
+  /** cuántos radios */
+  radios?: number;
+  /** radio del anillo exterior, en unidades del viewBox */
+  rmax?: number;
+  /** razón de la progresión: <1 aprieta hacia el centro */
+  razon?: number;
+  /** 1 = círculo · <1 = elipse achatada */
+  excentricidad?: number;
+  /** centro, en fracción de la caja */
+  cx?: number;
+  cy?: number;
+  color?: string;
+  /** color frío de contrapunto; en las referencias siempre hay unos pocos trazos */
+  frio?: string;
+  /** radio del núcleo oscuro (el punto de fuga). 0 lo desactiva. */
+  nucleo?: number;
+  /** marcas cortas sobre el anillo exterior */
+  ticks?: number;
+  /**
+   * Multiplica el peso de los radios.
+   *
+   * De fábrica los radios son una trama de fondo (opacidad 0,08–0,34): así es
+   * como aparecen en la mayoría de las referencias, donde el disco es un
+   * diagrama de anillos con una malla debajo. Pero hay instrumentos —el FIELD
+   * DENSITY de RITUAL DEVICE es el caso claro— donde los radios SON el dibujo:
+   * un estallido de rayos desde un núcleo encendido, con los anillos apenas
+   * insinuados. Sin esta perilla ese medidor sale como una diana apagada, que
+   * es como salió en la primera pasada (11,49 % con el brillo a 6,9 contra 17,1
+   * de la referencia).
+   */
+  pesoRadios?: number;
+  /** grosor de los radios; el de los anillos lo fija cada anillo */
+  grosorRadios?: number;
+  clase?: string;
+}
+const {
+  w, h,
+  semilla = 7,
+  anillos = 12,
+  radios = 32,
+  rmax = Math.min(w, h) * 0.46,
+  // 0.82 colapsaba: con 14 anillos el más chico queda en el 7 % del radio y el
+  // disco se lee como diana con un punto brillante. Medido contra el héroe, la
+  // razón real ronda 0.93 — los anillos se juntan hacia el centro, pero
+  // despacio, y eso es lo que da profundidad en vez de concentricidad.
+  razon = 0.93,
+  excentricidad = 1,
+  cx = 0.5,
+  cy = 0.5,
+  color = "currentColor",
+  frio = "",
+  nucleo = 0,
+  ticks = 0,
+  pesoRadios = 1,
+  grosorRadios = 0.3,
+  clase = "",
+} = Astro.props;
+
+const CX = w * cx;
+const CY = h * cy;
+const r = rng(semilla);
+
+const rs = Array.from({ length: anillos }, (_, i) => {
+  const rad = rmax * Math.pow(razon, i);
+  return {
+    r: p2(rad),
+    // Peso irregular, pero acotado: por debajo de 0.16 el anillo desaparece y
+    // el disco se ve mordido en vez de trazado.
+    o: p2(0.16 + r() * 0.7),
+    gr: p2(0.28 + (r() < 0.22 ? 0.5 : 0)),
+    frio: !!frio && r() < 0.14,
+  };
+});
+
+const sp = Array.from({ length: radios }, (_, i) => {
+  const a = (i * 2 * Math.PI) / radios;
+  // Los radios no arrancan en el centro: dejan libre el núcleo.
+  const r0 = rmax * (nucleo ? nucleo / rmax + 0.06 : 0.14);
+  const r1 = rmax * (0.86 + r() * 0.2);
+  return {
+    x1: p2(CX + Math.cos(a) * r0), y1: p2(CY + Math.sin(a) * r0 * excentricidad),
+    x2: p2(CX + Math.cos(a) * r1), y2: p2(CY + Math.sin(a) * r1 * excentricidad),
+    o: p2(Math.min(1, (0.08 + r() * 0.26) * pesoRadios)),
+  };
+});
+
+const tk = Array.from({ length: ticks }, (_, i) => {
+  const a = (i * 2 * Math.PI) / ticks;
+  const r0 = rmax * 1.02;
+  const r1 = rmax * (i % 5 === 0 ? 1.14 : 1.07);
+  return {
+    x1: p2(CX + Math.cos(a) * r0), y1: p2(CY + Math.sin(a) * r0 * excentricidad),
+    x2: p2(CX + Math.cos(a) * r1), y2: p2(CY + Math.sin(a) * r1 * excentricidad),
+  };
+});
+---
+
+<svg class={`kit-rs ${clase}`} viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-hidden="true">
+  <g fill="none" stroke={color} stroke-width="0.3">
+    {sp.map((s) => (
+      <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} opacity={s.o} stroke-width={grosorRadios} />
+    ))}
+    {rs.map((a) => (
+      <ellipse
+        cx={p2(CX)} cy={p2(CY)}
+        rx={a.r} ry={p2(a.r * excentricidad)}
+        opacity={a.o} stroke-width={a.gr}
+        stroke={a.frio ? frio : color}
+      />
+    ))}
+    {tk.map((t) => <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} opacity="0.5" stroke-width="0.4" />)}
+  </g>
+  {nucleo > 0 && (
+    <ellipse cx={p2(CX)} cy={p2(CY)} rx={p2(nucleo)} ry={p2(nucleo * excentricidad)} fill="#000" />
+  )}
+</svg>
+
+<style>
+  .kit-rs { display: block; }
+</style>

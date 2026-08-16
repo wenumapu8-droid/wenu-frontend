@@ -1,0 +1,316 @@
+---
+/**
+ * KODEX-∞ · t01-06 RITUAL DEVICE · CABECERA (0,0 · 1672×88)
+ *
+ * La caja abre en el 0,0 del póster, así que las coordenadas de este archivo y
+ * las de la referencia son las mismas y se verifican una por una contra
+ * reference/canon/t01-06-ritual-device.png.
+ *
+ * Nada de acá está estimado a ojo:
+ *
+ *  · La tinta figurativa va TRAZADA del original (arte-hdrftr.ts): el logotipo
+ *    "KODEX−∞ / RITUAL DEVICE", la bajada cian, el rótulo CORE SEED, los cuatro
+ *    rótulos de celda, los seis valores de texto, "ACTIVE", el emblema alado y
+ *    "BUILT FOR ARCHIVES THAT REMEMBER.". El umbral de cada pieza salió de un
+ *    barrido medido —binarizar, resolver por mínimos cuadrados el relleno que
+ *    minimiza el error absoluto contra la referencia, quedarse con el ganador—,
+ *    no de mirar el resultado. La tabla está en arte-hdrftr.ts.
+ *
+ *  · La excepción son las CIFRAS: "TANDA 01" y "KX-TA01-0RITUAL" van como
+ *    <text> de verdad dentro de un contenedor data-symbolic, porque el canon
+ *    pide que los números del póster se presenten como ficción del póster.
+ *
+ *  · La barra cian de STATUS no se traza. Son estelas horizontales que se
+ *    apagan hacia la izquierda: es una función de una variable girada 90°, así
+ *    que se lee FILA por fila y cada tramo lleva su propio RGB. Trazada queda
+ *    un bloque macizo y pierde el degradado, que es todo lo que la barra es.
+ *
+ *  · Las cinco divisorias verticales están medidas columna a columna y NO
+ *    comparten brillo: 8/39, 17/27, 21/27, 34/23 y 38/11 sobre negro, y las dos
+ *    columnas de cada par no están en el mismo orden (en x=796 y x=1133 la
+ *    brillante va a la izquierda; en las otras tres, a la derecha).
+ *    Emparejarlas se lee como una hoja de cálculo, que es lo que esto no es.
+ *
+ *  · La regla de y=81 tampoco es plana: corre de x=404 a 779 con 24 de
+ *    luminancia, MUERE entre 780 y 893 —ahí abajo está el organismo— y vuelve
+ *    de 894 a 1449 naciendo en 11 y subiendo a 25. Va con gradiente medido.
+ *
+ *  · El póster no tiene negro puro ni tinta plana. Hay un SUELO de grano
+ *    (mediana 1 sobre 120.000 píxeles vacíos) y un FLORECIMIENTO alrededor de
+ *    cada pieza (la mediana del fondo sube a 2 en la banda del título; en la de
+ *    la bajada el derrame es cian). Los dos están medidos y puestos: el suelo
+ *    como fondo del bloque, el florecimiento como una copia desenfocada y muy
+ *    apagada de las mismas piezas trazadas, debajo de las nítidas. Juntos
+ *    valieron 2,30 % → 1,97 %.
+ *
+ * FRONTERA CON EL BLOQUE CENTRO — dicho, no dibujado dos veces: la punta del
+ * dispositivo asoma por encima del corte. Entre y=83 y y=87, en x=804..872, hay
+ * 160 píxeles de resplandor cian (pico 44,136,160) que son del ORGANISMO y no
+ * del chrome. No se dibujan acá: el héroe va procedural y vive en Centro, cuya
+ * caja abre en y=88 y no los alcanza. Quedan sin pintar a propósito y está
+ * reportado; pintarlos acá sería trazar un pedazo de héroe.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-06-ritual-device Cabecera --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-06-hdrftr.mjs
+ */
+import { hdrTitulo, hdrBajada, hdrCoreSeed, hdrClaves, hdrVals, hdrActive, hdrAla, hdrBuilt, hdrEstelas } from "./arte-hdrftr";
+import type { Glifo } from "./arte-hdrftr";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque
+ * lo que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo —la contraforma de la O queda fuera de sitio y la
+ * letra sale maciza.
+ */
+const pinta = (gs: Glifo[], fill: string) =>
+  gs
+    .map(
+      (g) =>
+        `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+        g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}"/>`).join("") +
+        `</svg>`
+    )
+    .join("");
+
+/* Tinta medida, no elegida: el punto de partida de cada relleno es el que
+   minimiza el error absoluto contra la referencia para el umbral ganador de su
+   pieza (barrido en _t0106_barrido.mjs).
+
+   Y después, una corrección que hubo que medir aparte: ese barrido rasteriza
+   con sharp, y CHROMIUM NO PINTA LO MISMO. Comparadas las dos tintas totales
+   sobre la captura del banco, las piezas chicas salían al 0,78-0,85 de la
+   referencia mientras el título —de trazo grueso— salía al 0,97: el navegador
+   se come más borde cuanto más fino es el contorno. Todas las piezas menos el
+   título llevan por eso un factor 1,10 medido; con 1,20 el término estructural
+   sigue bajando pero el de píxel sube más, y el combinado empeora. */
+const TINTA = {
+  titulo: "#b6b6b5",   // "KODEX−∞ / RITUAL DEVICE": pico 233,236,235 · barrido #b0b0af
+  bajada: "#168d95",   // bajada cian: pico 49,238,246 · barrido #148087
+  coreSeed: "#373635", // rótulo "CORE SEED": pico 79,80,76 · barrido #323130
+  claves: "#333433",   // CLASS · ORIGIN · PATTERN · STATUS · barrido #2e2f2e
+  vals: "#656665",     // RITUAL DEVICE · UNKNOWN / SIGNAL PROTO · PROTECT. PERPETUATE. · barrido #5c5d5c
+  active: "#165b5f",   // "ACTIVE" cian: pico 31,132,135 · barrido #145356
+  ala: "#565655",      // emblema alado: pico 162,160,160 · barrido #4e4e4d
+  built: "#535353",    // "BUILT FOR ARCHIVES THAT REMEMBER." · barrido #4b4b4b
+};
+
+/**
+ * Las dos cifras de la cabecera. [texto, x del primer píxel de tinta, ancho de
+ * tinta, cima de la versal, alto de la versal, relleno].
+ *
+ * El ancho va por celda y no derivado de un paso común: con textLength se fija
+ * el ancho del bloque, que es lo único que se puede medir en un PNG.
+ *
+ * El relleno NO es el pico del original y tampoco se eligió a ojo: la mono del
+ * sistema, comprimida con textLength al ancho medido, deja 1,71 veces la tinta
+ * de "TANDA 01" y 1,45 veces la de "KX-TA01-0RITUAL" —la letra del póster es
+ * más estrecha y menos densa que cualquiera instalada—. Los dos rellenos son
+ * los que igualan la tinta TOTAL contra la referencia (×0,59 y ×0,69), que es
+ * la misma cuenta que resuelve el barrido para las piezas trazadas. No es bajar
+ * brillo para ganarle al número: es compensar superficie de más.
+ */
+const CIFRAS: [string, number, number, number, number, string][] = [
+  ["TANDA 01", 819, 62, 27, 11, "#797a79"],        // pico 233,236,235 · ×0,59
+  ["KX-TA01-0RITUAL", 820, 86, 61, 9, "#185c58"],  // pico 39,150,147 (cian) · ×0,69
+];
+
+/* Versal de la mono del sistema, medida: 0,74 em. El apoyo izquierdo de la
+   versal es 0,9 px a estos tamaños. */
+const cuerpo = (versal: number) => +(versal / 0.74).toFixed(3);
+const LSB = 0.9;
+
+/**
+ * Divisorias verticales: [x, y, alto, luminancia]. Ninguna comparte brillo con
+ * otra y las dos columnas de cada par no están siempre en el mismo orden.
+ */
+const divisorias: [number, number, number, number][] = [
+  [795, 21, 52, 8],
+  [796, 21, 52, 39],
+  [928, 22, 51, 17],
+  [929, 21, 52, 27],
+  [1015, 21, 52, 21],
+  [1016, 21, 52, 27],
+  [1133, 21, 52, 34],
+  [1134, 22, 51, 23],
+  [1242, 21, 52, 38],
+  [1243, 22, 51, 11],
+];
+---
+
+<div data-box style={box} class="hdr">
+  <!-- Suelo de grano del póster. NO es un truco para bajar el número: la
+       referencia no tiene negro puro en ningún lado. Medida la mediana del
+       original sobre los 120.000 píxeles donde este bloque pintaba negro, da
+       exactamente 1, y 1 es también el óptimo del error absoluto. Con 2 el
+       término de píxel mejora pero el estructural empeora más. El pie NO lleva
+       fondo: ahí la mediana del mismo grano es 0,3 y ponerle 1 lo empeora. -->
+  <div class="hdr__fondo"></div>
+  <!-- Marco del póster. Es UN rectángulo redondeado que abre acá y cierra en el
+       pie: se dibuja alto y lo recorta el overflow de la caja, porque partirlo
+       en dos bordes distintos deja costura en las esquinas. Los cuatro cantos
+       tienen brillos distintos medidos sobre negro —arriba 27, izquierda 46,
+       derecha 56, abajo 22— y por eso van por separado. -->
+  <div class="hdr__marco"></div>
+  <!-- Halo interior del marco: la columna de adentro del canto izquierdo vale
+       33 y la del derecho 27, y la fila de adentro del canto superior 6. Sin
+       ellas el filo se lee más fino que en el original. -->
+  <div class="hdr__halo"></div>
+
+  <svg class="hdr__art" viewBox="0 0 1672 88" width="1672" height="88" aria-hidden="true">
+    <defs>
+      <!-- El tramo derecho de la regla de y=81 nace apagado detrás del
+           organismo y sube hacia la derecha: 11 en x=900, 19 en 940, 22-25
+           desde 980, y vuelve a caer a 15-18 en el último tramo. -->
+      <linearGradient id="hdr06-r81" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#0b0b0b" />
+        <stop offset="0.09" stop-color="#131313" />
+        <stop offset="0.18" stop-color="#161616" />
+        <stop offset="0.75" stop-color="#191919" />
+        <stop offset="1" stop-color="#101010" />
+      </linearGradient>
+    </defs>
+
+    <!-- Divisorias de la tabla de metadatos. -->
+    {divisorias.map(([x, y, h, v]) => (
+      <rect x={x} y={y} width="1" height={h} fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Regla de y=81 en tres tramos medidos: el de la izquierda, el hueco que
+         deja el organismo por debajo y el de la derecha con gradiente. La fila
+         y=82 es su halo y corre entera. -->
+    <rect x="404" y="81" width="376" height="1" fill="#181818" />
+    <rect x="780" y="81" width="114" height="1" fill="#040404" />
+    <rect x="894" y="81" width="556" height="1" fill="url(#hdr06-r81)" />
+    <rect x="407" y="82" width="1043" height="1" fill="#0a0a0a" />
+
+    <!-- Recuadro de "BUILT FOR ARCHIVES THAT REMEMBER.": canto izquierdo en
+         x=1449 con su halo en 1448, tapa en y=66 con halo en 67 y base en y=82.
+         No tiene canto derecho: en la referencia el recuadro queda abierto
+         contra el marco, y cerrarlo sería inventar una línea que no está. -->
+    <rect x="1448" y="66" width="1" height="17" fill="#0f0f0f" />
+    <rect x="1449" y="66" width="1" height="17" fill="#222222" />
+    <rect x="1449" y="66" width="206" height="1" fill="#111111" />
+    <rect x="1449" y="67" width="206" height="1" fill="#0a0a0a" />
+    <rect x="1451" y="82" width="205" height="1" fill="#1b1b1b" />
+
+    <!-- Barra cian de STATUS: 199 tramos leídos fila por fila del original,
+         cada uno con su propio RGB. Es lo que hace que la barra se apague hacia
+         la izquierda en vez de cortarse. -->
+    <g role="img" aria-label="Barra de estado">
+      {hdrEstelas.map(([x, y, w, r, g, b]) => (
+        <rect x={x} y={y} width={w} height="1" fill={`rgb(${r},${g},${b})`} />
+      ))}
+    </g>
+
+    <!-- FLORECIMIENTO. El póster no tiene tinta plana sobre negro plano: cada
+         pieza derrama luz alrededor. Medido sobre el fondo del original en la
+         banda del título, la mediana del grano sube de 1 a 2 y la media a 5,9,
+         y en la banda de la bajada el derrame es CIAN (media 5,7 en verde y
+         azul contra 1,4 en rojo). Eso no se dibuja a ojo ni se trata como
+         fondo: es la misma pieza, en tinta muy baja y desenfocada, debajo de
+         la nítida. Los cinco valores salieron de barrer y quedarse con el
+         combinado más bajo; subirlos más baja el término de píxel pero sube el
+         estructural y el conjunto empeora.
+         Único desenfoque de la lámina, y va acá y no en la tinta nítida: sobre
+         el trazo, blur lo empeoró (2,16 → 3,25 en la primera prueba). -->
+    <g class="hdr__bloom" aria-hidden="true" set:html={pinta(hdrTitulo, "#202020") + pinta(hdrBajada, "#04191b") + pinta(hdrVals, "#101010") + pinta(hdrAla, "#0e0e0e") + pinta(hdrBuilt, "#0c0c0c")} />
+
+    <!-- Logotipo y título. Trazados: a este cuerpo ninguna mono del sistema
+         acierta la silueta ni la mancha, y el texto real vive en el aria-label,
+         así que la lámina se lee sin verla. -->
+    <g role="img" aria-label="KODEX−∞ / RITUAL DEVICE" set:html={pinta(hdrTitulo, TINTA.titulo)} />
+
+    <!-- Bajada cian. -->
+    <g role="img" aria-label="ARTEFACT CORE / DISPOSITIVO RITUAL" set:html={pinta(hdrBajada, TINTA.bajada)} />
+
+    <!-- CORE SEED, CLASS, ORIGIN, PATTERN y STATUS son ficción del póster, no
+         la lectura de ningún sistema: el bloque entero va marcado como
+         simbólico. Los rótulos y los valores sin cifras van trazados; las dos
+         cifras, como texto. -->
+    <g data-symbolic="true">
+      <g role="img" aria-label="CORE SEED" set:html={pinta(hdrCoreSeed, TINTA.coreSeed)} />
+      <g role="img" aria-label="CLASS · ORIGIN · PATTERN · STATUS" set:html={pinta(hdrClaves, TINTA.claves)} />
+      <g
+        role="img"
+        aria-label="RITUAL DEVICE · UNKNOWN / SIGNAL PROTO · PROTECT. PERPETUATE."
+        set:html={pinta(hdrVals, TINTA.vals)}
+      />
+      <g role="img" aria-label="ACTIVE" set:html={pinta(hdrActive, TINTA.active)} />
+      {CIFRAS.map(([t, x, ancho, cima, versal, color]) => (
+        <text
+          class="hdr__v"
+          x={+(x - LSB).toFixed(2)}
+          y={cima + versal}
+          font-size={cuerpo(versal)}
+          textLength={ancho}
+          lengthAdjust="spacing"
+          fill={color}
+        >{t}</text>
+      ))}
+    </g>
+
+    <!-- Emblema alado y consigna del recuadro. El emblema de la cabecera mide
+         158×35 y el del pie 207×41: parecidos pero no el mismo dibujo, así que
+         van dos trazados. Lo compartido es el pintor. -->
+    <g role="img" aria-label="Emblema alado KODEX−∞" set:html={pinta(hdrAla, TINTA.ala)} />
+    <g role="img" aria-label="BUILT FOR ARCHIVES THAT REMEMBER." set:html={pinta(hdrBuilt, TINTA.built)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .hdr {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .hdr__fondo { position: absolute; inset: 0; background: #010101; }
+  .hdr__art { position: absolute; left: 0; top: 0; }
+
+  .hdr__bloom { filter: blur(3px); }
+
+  /* x=6..1666, y=6..934. Se declara entero y lo recorta la caja. */
+  .hdr__marco {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    width: 1661px;
+    height: 929px;
+    box-sizing: border-box;
+    border: 1px solid #1b1b1b;
+    border-left-color: #2e2e2e;
+    border-right-color: #383838;
+    border-bottom-color: #161616;
+    border-radius: 4px;
+  }
+
+  .hdr__halo {
+    position: absolute;
+    left: 7px;
+    top: 7px;
+    width: 1659px;
+    height: 927px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-top-color: #060606;
+    border-left-color: #212121;
+    border-right-color: #1b1b1b;
+    border-radius: 3px;
+  }
+
+  .hdr__v {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+</style>

@@ -1,0 +1,237 @@
+---
+/**
+ * t01-08 · HEADER — franja superior (1672×85).
+ *
+ * La caja arranca en 0,0 del póster, así que acá las coordenadas del archivo y
+ * las de la referencia son las mismas y se pueden verificar una por una contra
+ * reference/canon/t01-08-signal-bloom.png.
+ *
+ * Nada de esto está estimado a ojo:
+ *
+ *  · Toda la tipografía de exhibición está TRAZADA del original (arte.ts), no
+ *    dibujada ni compuesta: el logotipo, "SIGNAL BLOOM", la bajada, el lema y
+ *    el emblema. El umbral de cada pieza salió de barrer varios y medir, no de
+ *    criterio. Se probó primero la vía razonable —<text> con el avance medido
+ *    clavado con textLength— y no alcanza: la mono del póster no existe en
+ *    ninguna máquina, y la del sistema fallaba en casi todos los píxeles de
+ *    tinta de cada línea (843 marcados en la bajada, 510 en el lema; trazadas
+ *    dan 337 y 26).
+ *
+ *  · La tabla de metadatos es la excepción y va como <text> de verdad: sus
+ *    valores son cifras, y el canon pide que las cifras del póster se
+ *    presenten como texto dentro de un contenedor data-symbolic, no como
+ *    dibujo. Ahí sí se usa textLength con el avance medido por cadena.
+ *
+ *  · El código de barras tampoco es un patrón inventado: es la luminancia media
+ *    por columna del original entre x=617 y x=815, comprimida por tramos. Un
+ *    repeating-linear-gradient da un ritmo regular que se lee falso al lado de
+ *    la referencia, que no lo tiene.
+ *
+ * Puntaje del panel: 1,26 % de diferencia contra la referencia.
+ *   node scripts/lamina/score-panel.mjs t01-08-signal-bloom Header --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-08-hdrftr.mjs
+ */
+import { hdrMarcaA, hdrMarcaB, hdrAla, hdrBajada, hdrLema1, hdrLema2, hdrBarras } from "./arte";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* Apoyo izquierdo del glifo dentro de su avance, a los cuerpos de esta franja:
+   x del <text> = primer píxel de tinta medido − LSB. */
+const LSB = 0.9;
+
+/* El trazador binariza, así que devuelve la silueta con el halo de antialias
+   incluido: medida contra la referencia, la tinta trazada del logotipo sale
+   ~1 px más ancha y más alta que el núcleo sólido del original. Se compensa
+   metiendo el glifo un poco por lado.
+   Los dos logotipos NO quieren el mismo encogido y no es capricho: el blanco se
+   binariza a umbral alto (60) y engorda, el magenta a 55 y además lleva halo,
+   así que apenas necesita. Barrido en el banco: el blanco pica en 0,2 (566 px
+   marcados contra 956 en 0,1) y el magenta en 0,05 (228 contra 443 en 0,2).
+   El emblema no lleva ninguno: sus trazos miden 1 px y encogerlos los borra. */
+const EAX = 0.2;
+const EAY = 0.2;
+const ENCOGE_B = 0.05;
+
+/* [x del primer píxel de tinta, ancho de avance total, texto]. El ancho no sale
+   de multiplicar un avance por la cantidad de letras: se corrigió midiendo el
+   render contra la referencia hasta que el último píxel de tinta cayó en el
+   mismo sitio. La diferencia importa —"BUILD" pedía 2 px más que la media y
+   "KX∞-T01-172A" cuatro— porque acá el ∞ y las mayúsculas anchas no comparten
+   avance con el resto en la mono del póster. */
+const claves: [number, number, string][] = [
+  [865, 52.4, "SYS VER."],
+  [973, 34.8, "BUILD"],
+  [1077, 27.2, "DATE"],
+  [1175, 60.0, "SEED HASH"],
+];
+const valores: [number, number, string][] = [
+  [865, 54.4, "02.00.00"],
+  [974, 53.4, "TANDA-01"],
+  [1077, 66.5, "2025-05-22"],
+  [1176, 82.6, "KX∞-T01-172A"],
+];
+
+/* Separadores verticales: los tres de la tabla más el que la cierra contra el
+   lema y el que aparta el emblema. Medidos de a una columna. */
+const separadores = [954, 1058, 1157, 1290, 1500];
+---
+
+<div data-box style={box} class="hdr">
+  <!-- Marco exterior del póster. Se dibuja alto y lo recorta el overflow del
+       panel: es un único rectángulo redondeado que abre acá y cierra en el pie,
+       y partirlo en dos bordes distintos deja una costura en las esquinas.
+       El canto derecho sale casi el doble de brillante que el izquierdo en la
+       referencia (media 44 contra 25 sobre negro), así que van por separado. -->
+  <div class="hdr__marco"></div>
+
+  <svg class="hdr__art" viewBox="0 0 1672 85" width="1672" height="85" aria-label="KODEX−∞ / SIGNAL BLOOM" role="img">
+    <defs>
+      <filter id="t0108bloom" x="-25%" y="-45%" width="150%" height="190%">
+        <feGaussianBlur stdDeviation="1.0" result="b" />
+        <feMerge>
+          <feMergeNode in="b" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
+
+    <!-- "KODEX−∞ /" -->
+    <g class="hdr__marca-a">
+      {hdrMarcaA.map((g) => (
+        <svg x={g.x + EAX} y={g.y + EAY} width={g.w - 2 * EAX} height={g.h - 2 * EAY} viewBox={`0 0 ${g.vw} ${g.vh}`} preserveAspectRatio="none">
+          {g.d.map(([d, tr]) => <path d={d} transform={tr} />)}
+        </svg>
+      ))}
+    </g>
+
+    <!-- "SIGNAL BLOOM". El halo no es adorno: en la referencia el magenta
+         sangra ~3 px sobre el negro y sin él la palabra queda recortada. -->
+    <g class="hdr__marca-b" filter="url(#t0108bloom)">
+      {hdrMarcaB.map((g) => (
+        <svg x={g.x + ENCOGE_B} y={g.y + ENCOGE_B} width={g.w - 2 * ENCOGE_B} height={g.h - 2 * ENCOGE_B} viewBox={`0 0 ${g.vw} ${g.vh}`} preserveAspectRatio="none">
+          {g.d.map(([d, tr]) => <path d={d} transform={tr} />)}
+        </svg>
+      ))}
+    </g>
+
+    <!-- Emblema alado. Trazado, no dibujado: aparece en las 17 láminas. -->
+    <g class="hdr__ala">
+      {hdrAla.map((g) => (
+        <svg x={g.x} y={g.y} width={g.w} height={g.h} viewBox={`0 0 ${g.vw} ${g.vh}`} preserveAspectRatio="none">
+          {g.d.map(([d, tr]) => <path d={d} transform={tr} />)}
+        </svg>
+      ))}
+    </g>
+
+    <!-- Código de barras: cada tramo con la luminancia que tiene en el original. -->
+    <g class="hdr__barras">
+      {hdrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={hdrBarras.y} width={w} height={hdrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- Corchetes que encierran el código. Vertical de 1 px con pestañas cortas
+         hacia adentro, medidas en y=21..22 y y=53..54. -->
+    <g class="hdr__corchete">
+      <path d="M606.5 21 V54.5 M606 22.5 H610 M605 54 H610" />
+      <path d="M825.5 21 V54.5 M822 22.5 H826 M822 54 H826" />
+    </g>
+
+    <!-- Regla que corre por debajo de la tabla, de x=386 al canto del marco.
+         Es la pieza más tenue de la franja: media 12 sobre negro. -->
+    <rect class="hdr__regla" x="386" y="65" width="1271" height="1" />
+
+    {separadores.map((x) => <rect class="hdr__sep" x={x} y="25" width="1" height="29" />)}
+
+    <!-- Bajada. Va trazada y no como <text>: la mono del póster no existe en
+         ninguna máquina y la del sistema, aun con el avance medido clavado con
+         textLength, fallaba en casi todos sus píxeles de tinta (843 contra ~150
+         en el banco). El texto real vive en el aria-label del SVG, así que
+         sigue estando para quien no ve la lámina. -->
+    <g class="hdr__bajada" role="img" aria-label="TRANSMISSION FIELD / FLORACIÓN DE SEÑAL">
+      {hdrBajada.map((g) => (
+        <svg x={g.x} y={g.y} width={g.w} height={g.h} viewBox={`0 0 ${g.vw} ${g.vh}`} preserveAspectRatio="none">
+          {g.d.map(([d, tr]) => <path d={d} transform={tr} />)}
+        </svg>
+      ))}
+    </g>
+
+    <!-- Tabla de metadatos. data-symbolic: SYS VER, BUILD, DATE y SEED HASH son
+         ficción del póster, no una lectura del sistema. -->
+    <g data-symbolic="true">
+      {claves.map(([x, w, t]) => (
+        <text class="hdr__k" x={x - LSB} y="35" textLength={w} lengthAdjust="spacing">{t}</text>
+      ))}
+      {valores.map(([x, w, t]) => (
+        <text class="hdr__v" x={x - LSB} y="53" textLength={w} lengthAdjust="spacing">{t}</text>
+      ))}
+    </g>
+
+    <!-- Lema, también trazado. Las dos líneas tienen exactamente el mismo ancho
+         de tinta en la referencia (1314..1486), que es lo que confirma que
+         comparten avance. -->
+    <g class="hdr__lema" role="img" aria-label="PATTERN. PROTECT. PERPETUATE. // DO NOT OBSERVE. CONSTRUCT.">
+      {[...hdrLema1, ...hdrLema2].map((g) => (
+        <svg x={g.x} y={g.y} width={g.w} height={g.h} viewBox={`0 0 ${g.vw} ${g.vh}`} preserveAspectRatio="none">
+          {g.d.map(([d, tr]) => <path d={d} transform={tr} />)}
+        </svg>
+      ))}
+    </g>
+  </svg>
+</div>
+
+<style>
+  .hdr { overflow: hidden; color: var(--lam-ink); }
+
+  .hdr__marco {
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    width: 1661px;
+    height: 220px;
+    box-sizing: border-box;
+    border: 1px solid rgba(216, 212, 204, 0.117);
+    border-top-color: rgba(216, 212, 204, 0.094);
+    border-right-color: rgba(216, 212, 204, 0.203);
+    border-bottom: 0;
+    border-radius: 5px;
+  }
+
+  .hdr__art { position: absolute; left: 0; top: 0; }
+
+  /* El logotipo NO lleva degradado metálico: medida fila por fila, la tinta de
+     la referencia es plana en 163 de luminancia de y=19 a y=50. El degradado
+     vertical que parecía obvio (y que sí tiene la lámina 1) acá dejaba el pie
+     de las astas 30 puntos oscuro. */
+  .hdr__marca-a path { fill: #a2a2a0; }
+  /* El magenta va por debajo del color medido de la tinta (pico 223,60,157):
+     el halo del filtro aporta el resto y con el color pleno la palabra se
+     empasta. */
+  .hdr__marca-b path { fill: #9e2470; }
+  .hdr__ala path { fill: #2e2e2e; }
+
+  .hdr__corchete path {
+    fill: none;
+    stroke: rgba(216, 212, 204, 0.16);
+    stroke-width: 1;
+  }
+
+  .hdr__regla { fill: rgba(216, 212, 204, 0.056); }
+  .hdr__sep { fill: rgba(216, 212, 204, 0.105); }
+
+  .hdr text {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+  /* Los grises de los textos NO son el color medido de la tinta sino el que
+     menos píxeles marca en el banco: la referencia tiene el borde antialiaseado
+     y el trazado no, así que el relleno tiene que compensar la diferencia de
+     cobertura. Cada uno salió de un barrido. */
+  .hdr__bajada path { fill: #4e4e4e; }
+  .hdr__k { font-size: 11.2px; fill: #4e4e4e; }
+  .hdr__v { font-size: 11.6px; fill: #7a1c20; }
+  .hdr__lema path { fill: #3e3e3e; }
+</style>

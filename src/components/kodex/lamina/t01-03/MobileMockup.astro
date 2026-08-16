@@ -1,0 +1,621 @@
+---
+/**
+ * KODEX-∞ · t01-03 · 10. MOBILE MOCKUP
+ *
+ * El teléfono va APAISADO, no vertical. Es fácil asumir lo contrario y construir
+ * un mockup en retrato: en la referencia el aparato está acostado, el túnel
+ * ocupa la pantalla a lo ancho, la columna de sellos va contra el borde derecho
+ * y la barra de datos abajo. La isla de sensores queda sobre el canto corto
+ * izquierdo, que es el "arriba" del aparato.
+ *
+ * Todas las coordenadas salen de medir el recorte píxel a píxel. Van crudas y
+ * absolutas por la misma razón que en Header: el mockup no tiene ritmo, tiene
+ * posiciones. Referidas al origen de la caja (1110, 692 del póster):
+ *   · chasis        x 64→534   y 19→174   (radio de esquina ≈ 25)
+ *   · pantalla      x 100→495  y 31→166
+ *   · placa marca   x 121→208  y 32→65
+ *   · barra baja    x 107→454  y 129→164   (divisor en x=199)
+ *   · riel de sellos x 460→491, cuatro cajas de 31 px cada 33,5
+ *   · punto de fuga del túnel en (313, 81)
+ *
+ * El túnel de adentro es el mismo dibujo que el héroe a otra escala, y por eso
+ * se reusa su modelo —anillos r = RBASE·e^(−0,075·n)— y no una elipse por
+ * anillo: se midieron los anillos brillantes del recorte sobre el eje
+ * horizontal en r = 58, 66 y 79, y los tres caen en n = 21, 19, 17 de esa misma
+ * escalera con RBASE = 280 (o sea 509 × 0,55). Es el mismo túnel visto más de
+ * cerca, no otro dibujo, así que copiar el modelo sale más barato que inventar
+ * una perspectiva nueva que igual no calzaría.
+ *
+ * Se dibuja en canvas 2D y no en SVG por densidad: a 353×133 px la referencia
+ * tiene ~70 anillos × 64 sectores más la micrografía, y eso en SVG son miles de
+ * nodos por un panel de 177 px de alto.
+ */
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* Relleno del progreso: la referencia canta 73 % y el riel mide 140 px. */
+const PROG = 73;
+const RIEL = 140;
+---
+
+<div data-box style={box} class="mm3" data-mockup-t0103>
+  <span class="mm3__ttl">10. MOBILE MOCKUP</span>
+  <i class="mm3__ttlrule"></i>
+
+  <div class="mm3__phone">
+    <!-- Doble contorno: el chasis tiene un filo claro y un segundo trazo más
+         apagado por dentro, no un borde grueso. -->
+    <i class="mm3__bezel"></i>
+
+    <!-- Pulsadores de los cantos largos. Los de abajo apenas llegan a luma 35
+         en la referencia, así que van bastante más apagados que los de arriba. -->
+    <i class="mm3__key mm3__key--t1"></i>
+    <i class="mm3__key mm3__key--t2"></i>
+    <i class="mm3__key mm3__key--b1"></i>
+    <i class="mm3__key mm3__key--b2"></i>
+
+    <!-- Isla de sensores del canto corto izquierdo. -->
+    <i class="mm3__sensor"></i>
+    <i class="mm3__cam"></i>
+    <i class="mm3__spk"></i>
+
+    <div class="mm3__screen">
+      <canvas class="mm3__cv" width="353" height="133" aria-hidden="true"></canvas>
+
+      <!-- Riel de sellos: fondo negro plano, el túnel no pasa por debajo. -->
+      <i class="mm3__strip"></i>
+      <i class="mm3__sep"></i>
+
+      <div class="mm3__plate">
+        <!-- SVG y no HTML: textLength fija los anchos medidos (74,7 y 70,7 px)
+             sea cual sea la tipografía que resuelva el sistema. Mismo criterio
+             que el wordmark de la cabecera. -->
+        <svg class="mm3__mark" viewBox="0 0 87 33" aria-label="KODEX−∞ · DESCENT PROTOCOL">
+          <text
+            class="mm3__mark-a"
+            x="7"
+            y="15.7"
+            textLength="74.7"
+            lengthAdjust="spacingAndGlyphs">KODEX−∞</text>
+          <text
+            class="mm3__mark-b"
+            x="7"
+            y="26.9"
+            textLength="70.7"
+            lengthAdjust="spacingAndGlyphs">DESCENT PROTOCOL</text>
+        </svg>
+      </div>
+
+      <div class="mm3__rail">
+        <!-- Los cuatro sellos son distintos entre sí en la referencia. El
+             primero es el activo: va sin caja y su círculo muerde los bordes. -->
+        <i class="mm3__box mm3__box--on"></i>
+        <i class="mm3__box"></i>
+        <i class="mm3__box"></i>
+        <i class="mm3__box"></i>
+
+        <svg class="mm3__sig mm3__sig--a" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="10.6" stroke-dasharray="1.2 1.4" />
+          <circle cx="12" cy="12" r="7.4" stroke-dasharray="0.8 1.6" />
+          <path d="M1.4 12h21.2M12 1.4v21.2" />
+          <path d="M12 5.6v11.8M7.2 9.4 12 13.4l4.8-4M9.4 15.4h5.2" />
+        </svg>
+        <svg class="mm3__sig mm3__sig--b" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.2" />
+          <path d="M12 4v16M4 12h16M6.4 6.4l11.2 11.2M17.6 6.4 6.4 17.6" />
+          <path d="M12 9.4v5.2M9.4 12h5.2" stroke-width="2.6" />
+        </svg>
+        <svg class="mm3__sig mm3__sig--c" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.2" />
+          <path d="M12 3.2v16.6M5.2 13h13.6M7.2 9.2l9.4 8.2M16.8 9.2l-9.4 8.2" />
+          <path d="M12 11.2v3.6M10.2 13h3.6" stroke-width="2.4" />
+        </svg>
+        <svg class="mm3__sig mm3__sig--d" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="9.2" />
+          <path d="M12 3.8v16.4M6.2 12.2h11.6" />
+          <circle cx="8.2" cy="14.4" r="1.9" />
+          <circle cx="16" cy="12.6" r="2.1" />
+          <circle cx="12" cy="16.8" r="1.6" />
+        </svg>
+      </div>
+
+      <!-- Telemetría simbólica: DEPTH INDEX 7.3821e+03 y PROGRESS 73 % son
+           números de ficción del póster, no una medición de este sistema. -->
+      <div class="mm3__bar" data-symbolic="true">
+        <i class="mm3__div"></i>
+
+        <span class="mm3__k mm3__k--d">DEPTH INDEX</span>
+        <span class="mm3__v mm3__v--d">7.3821e+03</span>
+        <i class="mm3__dots"></i>
+
+        <span class="mm3__k mm3__k--p">PROGRESS</span>
+        <span class="mm3__v mm3__v--p">73%</span>
+
+        <i class="mm3__track"></i>
+        <i class="mm3__fill" style={`width:${(RIEL * PROG) / 100}px`}></i>
+        <i class="mm3__ticks"></i>
+
+        <!-- Cajita al final del riel: en el original lleva un texto de 3 px de
+             alto que no se puede leer. Se deja como tres guiones. -->
+        <i class="mm3__cap"><i></i><i></i><i></i></i>
+
+        <svg class="mm3__rose" viewBox="0 0 28 28" aria-hidden="true">
+          <circle class="mm3__rose-o" cx="14" cy="14" r="13.2" />
+          <circle class="mm3__rose-i" cx="14" cy="14" r="9.6" />
+          <path class="mm3__rose-i" d="M14 1.6v24.8M1.6 14h24.8" />
+          <path class="mm3__rose-i" d="M14 6.6 20.4 14 14 21.4 7.6 14z" />
+          <circle class="mm3__rose-c" cx="14" cy="14" r="2.6" />
+        </svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .mm3 {
+    --mm3-chasis: #4a4a4c;
+    --mm3-chasis-2: #242525;
+    --mm3-txt: #6d6a66;
+    color: var(--lam-ink);
+  }
+
+  .mm3 i { display: block; position: absolute; }
+
+  /* ── título montado sobre su regla ─────────────────────────────────────── */
+  .mm3__ttl {
+    position: absolute;
+    left: 63px;
+    top: 1px;
+    font-size: 11.6px;
+    line-height: 12px;
+    letter-spacing: 0.03em;
+    color: #d8360a;
+    white-space: nowrap;
+  }
+  .mm3__ttlrule {
+    left: 179px;
+    top: 7px;
+    width: 281px;
+    height: 1px;
+    background: #3a1508;
+  }
+
+  /* ── chasis ────────────────────────────────────────────────────────────── */
+  .mm3__phone {
+    position: absolute;
+    left: 64px;
+    top: 19px;
+    width: 470px;
+    height: 155px;
+    border: 1px solid var(--mm3-chasis);
+    border-radius: 25px;
+    background: #050505;
+  }
+  .mm3__bezel {
+    inset: 4px;
+    border: 1px solid var(--mm3-chasis-2);
+    border-radius: 21px;
+  }
+
+  .mm3__key { background: #3a3a3e; border-radius: 1.5px; }
+  .mm3__key--t1 { left: 147px; top: -3.5px; width: 39px; height: 4px; }
+  .mm3__key--t2 { left: 391px; top: -3.5px; width: 30px; height: 4px; }
+  .mm3__key--b1 { left: 76px; bottom: -3px; width: 11px; height: 3.5px; background: #232326; }
+  .mm3__key--b2 { left: 308px; bottom: -3px; width: 18px; height: 3.5px; background: #232326; }
+
+  .mm3__sensor {
+    left: 14.5px; top: 55.5px;
+    width: 9.5px; height: 12px;
+    border-radius: 4.5px;
+    background: #2b2b2e;
+  }
+  .mm3__cam {
+    left: 15.5px; top: 69.5px;
+    width: 8.5px; height: 8.5px;
+    border-radius: 50%;
+    background: #0a0a0b;
+    box-shadow: 0 0 0 1.2px #333338;
+  }
+  .mm3__spk {
+    left: 16.5px; top: 79px;
+    width: 4.4px; height: 21px;
+    border-radius: 2.2px;
+    background: #3d3d41;
+  }
+
+  /* ── pantalla ──────────────────────────────────────────────────────────── */
+  .mm3__screen {
+    position: absolute;
+    left: 35px; top: 11px;
+    width: 395px; height: 135px;
+    border: 1px solid #341710;
+    background: #000;
+    overflow: hidden;
+  }
+  /* El ancho CSS va fijo: el script reescribe cv.width por devicePixelRatio y
+     sin esto el canvas se maquetaría al tamaño del buffer, no al de la pantalla. */
+  .mm3__cv { position: absolute; left: 0; top: 0; display: block; width: 353px; height: 133px; }
+  .mm3__strip { left: 354px; top: 0; width: 39px; height: 133px; background: #000; }
+  .mm3__sep { left: 353px; top: 0; width: 1px; height: 133px; background: #2f1209; }
+
+  /* ── placa de marca ────────────────────────────────────────────────────── */
+  .mm3__plate {
+    position: absolute;
+    left: 20px; top: 0;
+    width: 87px; height: 33px;
+    border: 1px solid #34322f;
+    background: #08080a;
+  }
+  .mm3__mark { display: block; width: 87px; height: 33px; }
+  .mm3__mark-a {
+    font-family: var(--lam-display);
+    font-weight: 700;
+    font-size: 14.6px;
+    fill: #c3c0bb;
+  }
+  .mm3__mark-b {
+    font-family: var(--lam-mono);
+    font-size: 6.8px;
+    fill: #bf3a12;
+  }
+
+  /* ── riel de sellos ────────────────────────────────────────────────────── */
+  .mm3__rail { position: absolute; left: 359px; top: 0; width: 32px; height: 133px; }
+
+  .mm3__box {
+    left: 0;
+    width: 31px; height: 31px;
+    border: 1px solid #3d1709;
+    background: #060302;
+  }
+  .mm3__box:nth-of-type(1) { top: 1.5px; }
+  .mm3__box:nth-of-type(2) { top: 35px; }
+  .mm3__box:nth-of-type(3) { top: 68.5px; }
+  .mm3__box:nth-of-type(4) { top: 102px; }
+  .mm3__box--on { border-color: transparent; }
+
+  .mm3__sig {
+    position: absolute;
+    left: 4.5px;
+    width: 22px; height: 22px;
+    fill: none;
+    stroke: #8c3011;
+    stroke-width: 1.1;
+  }
+  /* El sello activo es más grande y más brillante que los otros tres. */
+  .mm3__sig--a { left: 1.5px; top: 3.5px; width: 27px; height: 27px; stroke: #a03a15; }
+  .mm3__sig--b { top: 39.5px; }
+  .mm3__sig--c { top: 73px; }
+  .mm3__sig--d { top: 106.5px; }
+
+  /* ── barra inferior ────────────────────────────────────────────────────── */
+  .mm3__bar {
+    position: absolute;
+    left: 6px; top: 97px;
+    width: 347px; height: 35px;
+    border: 1px solid #3a1207;
+    background: rgba(3, 1, 0, 0.86);
+  }
+  .mm3__div { left: 91px; top: 3px; width: 1px; height: 29px; background: #210904; }
+
+  .mm3__k {
+    position: absolute;
+    top: 5.5px;
+    font-size: 6.6px;
+    line-height: 7px;
+    letter-spacing: 0.09em;
+    color: var(--mm3-txt);
+  }
+  .mm3__k--d { left: 9.5px; }
+  .mm3__k--p { left: 97.8px; }
+
+  .mm3__v {
+    position: absolute;
+    top: 16px;
+    font-size: 13px;
+    line-height: 13px;
+    letter-spacing: -0.015em;
+    color: #b93a10;
+  }
+  .mm3__v--d { left: 8px; }
+  .mm3__v--p { left: 98.7px; }
+
+  /* Marcas de 1 px bajo la cifra: en la referencia hay cuatro, muy separadas. */
+  .mm3__dots {
+    left: 8px; top: 31px;
+    width: 68px; height: 1px;
+    background-image: repeating-linear-gradient(90deg, #561b09 0 1px, transparent 1px 22px);
+  }
+
+  /* El riel vacío son líneas sueltas; el relleno es un bloque naranja con
+     estrías oscuras, que es como se lee el medidor a 10 px de alto. */
+  .mm3__track {
+    left: 132px; top: 18px;
+    width: 140px; height: 10px;
+    background-image: repeating-linear-gradient(90deg, #6b2209 0 1px, transparent 1px 5px);
+  }
+  .mm3__fill {
+    left: 132px; top: 18px;
+    height: 10px;
+    background-image:
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.5) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.3) 0 1px, transparent 1px 7px),
+      linear-gradient(180deg, #e05614, #ac3308);
+  }
+  .mm3__ticks {
+    left: 132px; top: 29.5px;
+    width: 141px; height: 2px;
+    background-image: repeating-linear-gradient(90deg, #4e1907 0 1px, transparent 1px 35px);
+  }
+
+  .mm3__cap { left: 277px; top: 17px; width: 23px; height: 11px; border: 1px solid #431708; }
+  .mm3__cap i { top: 5px; width: 2px; height: 1px; background: #7d2a0c; }
+  .mm3__cap i:nth-child(1) { left: 6px; }
+  .mm3__cap i:nth-child(2) { left: 10px; }
+  .mm3__cap i:nth-child(3) { left: 14px; }
+
+  .mm3__rose {
+    position: absolute;
+    left: 310px; top: 7px;
+    width: 28px; height: 28px;
+    fill: none;
+    stroke-width: 1.1;
+  }
+  /* El anillo exterior de la rosa es acero azulado: es el único punto frío de
+     todo el mockup, y sin él la esquina se lee como una mancha naranja más. */
+  .mm3__rose-o { stroke: #33484f; }
+  .mm3__rose-i { stroke: #96350f; }
+  .mm3__rose-c { stroke: #6d2a10; fill: #060202; }
+</style>
+
+<script>
+  /**
+   * Túnel del mockup: el modelo del héroe (escalera logarítmica de anillos más
+   * radios y micrografía) a escala 0,55, con el punto de fuga corrido hacia
+   * arriba porque el recorte apaisado del teléfono ve menos suelo.
+   *
+   * Va en JavaScript liso, sin anotaciones de tipo: este bloque lo tocan varias
+   * pasadas del andamiaje y las firmas TypeScript no sobrevivían enteras.
+   */
+  const host = document.querySelector("[data-mockup-t0103]");
+  const cv = host && host.querySelector("canvas");
+  const ctx = cv && cv.getContext("2d");
+
+  if (cv && ctx) {
+    const W = 353, H = 133, VX = 212, VY = 49;
+    const S = 0.075;      // mismo paso logarítmico que el héroe
+    const RBASE = 280;    // 509 × 0,55: los anillos medidos (58, 66, 79) caen acá
+    const NR = 70;
+    const NS = 64;
+    const TAU = Math.PI * 2;
+
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return () => {
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const ora = (a) => `rgba(255,104,38,${a.toFixed(3)})`;
+    const cya = (a) => `rgba(70,158,178,${a.toFixed(3)})`;
+
+    /* Niebla y caída lejana: los radios del héroe multiplicados por 0,55. */
+    const fog = (r) => {
+      const v = (r - 3.3) / 30.8;
+      return v <= 0 ? 0 : v >= 1 ? 1 : Math.pow(v, 1.5);
+    };
+    const far = (r) => (r > 90 ? Math.min(1.5, Math.pow(r / 90, 0.5)) : 1);
+    /* El suelo manda: en el recorte la mitad de abajo trae bastante más trazo
+       que el techo, y sin eso el mockup se lee como un tubo hueco. */
+    const floorW = (sin) => 1 + 0.7 * Math.max(0, sin);
+
+    const rnd = mulberry32(0xc0de);
+
+    /* Micrografía indexada por (anillo, sector) y nunca por posición: así viaja
+       con su anillo cuando el túnel avanza y el bucle cierra sin costura. */
+    const cells = [];
+    for (let n = 0; n < NR; n++) {
+      for (let k = 0; k < NS; k++) {
+        const p = rnd();
+        if (p > 0.26) continue;
+        cells.push({
+          n, k,
+          kind: p < 0.075 ? 0 : p < 0.145 ? 1 : p < 0.205 ? 2 : 3,
+          cyan: rnd() < 0.085,
+          a: rnd(),
+          b: rnd(),
+        });
+      }
+    }
+
+    const ringR = (n, frac) => RBASE * Math.exp(-(n + frac) * S);
+
+    function draw(t) {
+      const frac = ((t / 14000) % 1 + 1) % 1;
+
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = "#030202";
+      ctx.fillRect(0, 0, W, H);
+      ctx.lineCap = "butt";
+
+      // ── anillos ───────────────────────────────────────────────────────────
+      for (let n = 0; n < NR; n++) {
+        const r = ringR(n, frac);
+        if (r < 1) continue;
+        const f = fog(r) * far(r);
+        if (f < 0.005) continue;
+        /* Los anillos marcados del recorte caen todos en el racimo r = 58-79,
+           o sea n = 17, 19 y 21; más adentro no hay ninguno destacado. */
+        const hero = n === 17 || n === 19 || n === 21;
+        const major = n % 4 === 1;
+        const base = hero ? 0.26 : major ? 0.15 : 0.085;
+        ctx.lineWidth = hero ? 0.9 : major ? 0.75 : 0.6;
+        ctx.strokeStyle = ora(Math.min(1, base * f));
+        ctx.beginPath();
+        ctx.arc(VX, VY, r, 0, TAU);
+        ctx.stroke();
+        // repaso de la mitad inferior: el suelo del túnel viene más marcado
+        ctx.strokeStyle = ora(Math.min(1, base * f * 0.34));
+        ctx.beginPath();
+        ctx.arc(VX, VY, r, 0, Math.PI);
+        ctx.stroke();
+      }
+
+      // ── radios ────────────────────────────────────────────────────────────
+      const STEPS = 13;
+      for (let k = 0; k < NS; k++) {
+        const ang = (k * TAU) / NS;
+        const c = Math.cos(ang), s = Math.sin(ang);
+        const cardinal = k % 16 === 0;
+        const base = cardinal ? 0.2 : k % 4 === 0 ? 0.12 : 0.06;
+        ctx.lineWidth = cardinal ? 0.85 : 0.6;
+        for (let i = 0; i < STEPS; i++) {
+          const ra = 4 * Math.pow(330 / 4, i / STEPS);
+          const rb = 4 * Math.pow(330 / 4, (i + 1) / STEPS);
+          const rm = (ra + rb) / 2;
+          const f = fog(rm) * far(rm) * floorW(s);
+          if (f < 0.01) continue;
+          ctx.strokeStyle = ora(Math.min(1, base * f));
+          ctx.beginPath();
+          ctx.moveTo(VX + ra * c, VY + ra * s);
+          ctx.lineTo(VX + rb * c, VY + rb * s);
+          ctx.stroke();
+        }
+      }
+
+      // ── micrografía sobre la retícula ─────────────────────────────────────
+      const dk = TAU / NS;
+      for (const cl of cells) {
+        const r = ringR(cl.n, frac);
+        if (r < 2.5 || r > 340) continue;
+        const ang = cl.k * dk;
+        const f = fog(r) * far(r) * floorW(Math.sin(ang));
+        if (f < 0.02) continue;
+        const col = cl.cyan ? cya : ora;
+        const c = Math.cos(ang), s = Math.sin(ang);
+
+        if (cl.kind === 0) {
+          ctx.strokeStyle = col(Math.min(1, (cl.cyan ? 0.32 : 0.28) * f));
+          ctx.lineWidth = 0.9;
+          ctx.beginPath();
+          ctx.arc(VX, VY, r, ang, ang + dk * (0.5 + cl.a * 1.9));
+          ctx.stroke();
+        } else if (cl.kind === 1) {
+          const r2 = r * Math.exp(-S * (0.6 + cl.a * 1.6));
+          ctx.strokeStyle = col(Math.min(1, 0.26 * f));
+          ctx.lineWidth = 0.7;
+          ctx.beginPath();
+          ctx.moveTo(VX + r * c, VY + r * s);
+          ctx.lineTo(VX + r2 * c, VY + r2 * s);
+          ctx.stroke();
+        } else if (cl.kind === 2) {
+          const w = 1 + cl.a * 1.8;
+          ctx.fillStyle = col(Math.min(1, 0.42 * f));
+          ctx.save();
+          ctx.translate(VX + r * c, VY + r * s);
+          ctx.rotate(ang);
+          ctx.fillRect(-w / 2, -0.7, w, 1.4);
+          ctx.restore();
+        } else {
+          const r2 = r * Math.exp(-S * 0.34);
+          ctx.strokeStyle = col(Math.min(1, 0.16 * f));
+          ctx.lineWidth = 0.5;
+          const sp = dk * (1 + cl.b * 3);
+          ctx.beginPath();
+          ctx.arc(VX, VY, r, ang, ang + sp);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(VX, VY, r2, ang, ang + sp);
+          ctx.stroke();
+        }
+      }
+
+      // ── destellos donde los anillos mayores cruzan los ejes ───────────────
+      ctx.globalCompositeOperation = "lighter";
+      for (let n = 0; n < NR; n++) {
+        if (n % 4 !== 1) continue;
+        const r = ringR(n, frac);
+        const f = fog(r) * far(r);
+        if (f < 0.08 || r > 260) continue;
+        const hero = n === 17 || n === 19 || n === 21;
+        const rad = hero ? 5 : 3.5;
+        for (let q = 0; q < 4; q++) {
+          const ang = (q * Math.PI) / 2;
+          const x = VX + r * Math.cos(ang), y = VY + r * Math.sin(ang);
+          const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+          g.addColorStop(0, `rgba(255,196,150,${(hero ? 0.12 : 0.06) * f})`);
+          g.addColorStop(0.45, `rgba(255,110,40,${(hero ? 0.06 : 0.03) * f})`);
+          g.addColorStop(1, "rgba(255,90,31,0)");
+          ctx.fillStyle = g;
+          ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+        }
+      }
+      const halo = ctx.createRadialGradient(VX, VY, 22, VX, VY, 170);
+      halo.addColorStop(0, "rgba(80,24,6,0)");
+      halo.addColorStop(0.42, "rgba(104,32,10,0.17)");
+      halo.addColorStop(1, "rgba(50,15,5,0)");
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "source-over";
+
+      // ── fondo del pozo y viñeta ───────────────────────────────────────────
+      const core = ctx.createRadialGradient(VX, VY, 0, VX, VY, 53);
+      core.addColorStop(0, "rgba(0,0,0,0.96)");
+      core.addColorStop(0.3, "rgba(0,0,0,0.62)");
+      core.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = core;
+      ctx.fillRect(0, 0, W, H);
+
+      const vg = ctx.createRadialGradient(VX, VY, 150, VX, VY, 330);
+      vg.addColorStop(0, "rgba(0,0,0,0)");
+      vg.addColorStop(1, "rgba(0,0,0,0.38)");
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    let raf = 0;
+    let frozen = false;
+
+    const loop = (ts) => {
+      if (frozen) return;
+      draw(ts);
+      raf = requestAnimationFrame(loop);
+    };
+
+    /* El congelador de la página puede definirse después que este módulo según
+       cómo Astro ordene los scripts empaquetados: se reintenta hasta que exista
+       en vez de asumir el orden. */
+    const freeze = (t) => {
+      frozen = true;
+      if (raf) cancelAnimationFrame(raf);
+      draw(t || 0);
+    };
+    if (typeof window.__kdxRegisterFreeze === "function") {
+      window.__kdxRegisterFreeze(freeze);
+    } else {
+      let tries = 0;
+      const id = setInterval(() => {
+        if (typeof window.__kdxRegisterFreeze === "function") {
+          clearInterval(id);
+          window.__kdxRegisterFreeze(freeze);
+        } else if (++tries > 240) clearInterval(id);
+      }, 25);
+    }
+
+    if (reduced) {
+      frozen = true;
+      draw(0);
+    } else {
+      draw(0);
+      raf = requestAnimationFrame(loop);
+    }
+  }
+</script>

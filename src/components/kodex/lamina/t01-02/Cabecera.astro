@@ -1,0 +1,351 @@
+---
+/**
+ * KODEX-∞ · t01-02 OBSERVATION EYE · CABECERA (0,0 · 1672×88)
+ *
+ * La caja arranca en el 0,0 del póster, así que las coordenadas de este archivo
+ * y las de la referencia son las mismas y se pueden verificar una por una
+ * contra reference/canon/t01-02-observation-eye.png.
+ *
+ * Nada de lo que hay acá está estimado a ojo:
+ *
+ *  · Toda la tipografía de exhibición va TRAZADA del original (arte.ts): el
+ *    árbol, "KODEX−∞ /", "OBSERVATION EYE", las dos mitades de la bajada, los
+ *    rótulos de la tabla, el lema y el emblema alado. El umbral de cada trazo y
+ *    su relleno salieron de un barrido por mínimos cuadrados sobre la referencia
+ *    (scripts/lamina/arte-t01-02-cabpie.mjs), no de criterio.
+ *
+ *  · Ese ajuste minimiza el residuo cuadrático, que NO es lo que mide el banco:
+ *    el banco promedia diff de píxel con diff estructural por bloques de 8×8. Lo
+ *    que llega a este archivo —desenfoque, encogido, corrimiento y ganancia de
+ *    cada pieza— es lo que ganó un segundo barrido contra ESA métrica, con
+ *    scripts/lamina/_t0102_barrido.mjs. Ahí se vieron dos cosas que no se
+ *    adivinan: que el desenfoque del ajuste sobra en casi todas las piezas (el
+ *    trazo ya trae el halo de antialias binarizado adentro), y que "KODEX−∞ /"
+ *    cae medio píxel a la derecha de donde el trazador la dejó.
+ *
+ *  · El desenfoque no es continuo: Chromium aproxima feGaussianBlur con tres
+ *    cajas de ancho floor(sigma·1,88+0,5), así que todo sigma por debajo de 0,8
+ *    colapsa a una caja de 1 px y no hace NADA. Medido: 0,2 · 0,5 · 0,7 dan la
+ *    misma captura píxel por píxel, y 0,9 y 1,3 también. Por eso `sigma: 0`
+ *    quiere decir sin filtro y no "un poquito".
+ *
+ *  · Los VALORES de la tabla son lo único que va como texto de verdad, porque
+ *    son cifras y el canon pide que las cifras del póster vayan como texto
+ *    dentro de un contenedor data-symbolic. Sus rótulos —SCENE ID, BUILD, DATE,
+ *    RES, SYS VER.— no llevan cifras y van trazados con el resto del arte fija.
+ *
+ *  · El código de barras no se traza con vtracer: el contorno le inventa
+ *    esquinas y le come tinta. Es la media por columna del original entre
+ *    x=1529 y x=1657, comprimida por tramos de color parecido.
+ *
+ *  · Las cinco divisorias de la tabla NO comparten brillo (40 · 28 · 18 · 27 ·
+ *    12 sobre negro, medidas de a una columna) y van una por una. Emparejarlas
+ *    la convierte en una tabla de hoja de cálculo, que es justo lo que la
+ *    referencia no es. Lo mismo con las dos reglas horizontales, que además
+ *    caen de brillo hacia la derecha y por eso llevan degradado.
+ *
+ *  · El marco del póster es UNO SOLO y se abre acá: corre de y=4,2 a y=935,8 con
+ *    esquinas de radio 6,5 y muere en el filo del pie. Partirlo por panel deja
+ *    costura en las cuatro esquinas. Cae en x=3,9..5,4 y x=1665,8..1668,6, fuera
+ *    del contenido de todos los paneles de la lámina (la primera columna de
+ *    tinta de la banda central está en x=12).
+ *
+ * Puntaje del bloque: 1,35 % de diferencia contra la referencia.
+ *   node scripts/lamina/score-panel.mjs t01-02-observation-eye Cabecera --triptico
+ * Regenerar el arte trazada:
+ *   node scripts/lamina/arte-t01-02-cabpie.mjs
+ */
+import {
+  cabArbol, cabArbolTinta,
+  cabMarcaA, cabMarcaATinta,
+  cabMarcaB, cabMarcaBTinta,
+  cabBajA, cabBajATinta,
+  cabBajB, cabBajBTinta,
+  cabClaves, cabClavesTinta,
+  cabLema, cabLemaTinta,
+  cabAla, cabAlaTinta,
+  cabBarras,
+} from "./arte";
+import type { Glifo } from "./arte";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Piezas trazadas, en el orden en que se pintan. `tinta` es el relleno que salió
+ * del ajuste por mínimos cuadrados; los otros cuatro campos son la corrección
+ * que ganó el barrido contra la métrica del banco, uno por pieza y no un valor
+ * común, porque cada trazo se binarizó a un umbral distinto y engorda distinto:
+ *
+ *   sigma   desenfoque en px; 0 = sin filtro (ver la nota de Chromium arriba)
+ *   encoge  cuánto se mete el glifo por lado, para descontar el halo binarizado
+ *   dx, dy  corrimiento del trazo entero; el trazador emite cajas enteras y la
+ *           tinta del póster no está en esa retícula
+ *   gain    multiplicador del relleno; sube la media de tinta hacia la del
+ *           original cuando el trazo cubre menos superficie que la referencia
+ *
+ * El texto real de cada pieza va al aria-label, así que la lámina se lee aunque
+ * no se vea.
+ */
+type Pieza = { g: Glifo[]; tinta: string; sigma: number; encoge: number; dx: number; dy: number; gain: number; et: string };
+const trazos: Pieza[] = [
+  { g: cabArbol, tinta: cabArbolTinta, sigma: 0.9, encoge: 0, dx: 0, dy: 0, gain: 1.1, et: "Árbol KODEX−∞ · TANDA-01" },
+  { g: cabMarcaA, tinta: cabMarcaATinta, sigma: 0, encoge: 0, dx: -0.2, dy: 0, gain: 1, et: "KODEX−∞ /" },
+  { g: cabMarcaB, tinta: cabMarcaBTinta, sigma: 0.9, encoge: 0, dx: 0, dy: 0, gain: 1, et: "OBSERVATION EYE" },
+  { g: cabBajA, tinta: cabBajATinta, sigma: 0, encoge: 0.2, dx: 0, dy: 0, gain: 1.1, et: "SCAN PROTOCOL /" },
+  { g: cabBajB, tinta: cabBajBTinta, sigma: 0, encoge: 0, dx: 0, dy: 0.3, gain: 1, et: "OJO DE OBSERVACIÓN" },
+  { g: cabClaves, tinta: cabClavesTinta, sigma: 0, encoge: 0.2, dx: 0, dy: 0, gain: 1.1, et: "SCENE ID · BUILD · DATE · RES · SYS VER." },
+  { g: cabLema, tinta: cabLemaTinta, sigma: 0, encoge: 0.2, dx: 0, dy: 0, gain: 1, et: "PATTERN. PROTECT. PERPETUATE." },
+  { g: cabAla, tinta: cabAlaTinta, sigma: 0, encoge: 0, dx: 0, dy: 0, gain: 1, et: "Emblema alado KODEX−∞" },
+];
+
+/** Un filtro por desenfoque distinto de la tabla, y no uno por pieza. */
+const idFiltro = (sg: number) => `cabB${String(sg).replace(".", "")}`;
+const sigmas = [...new Set(trazos.map((p) => p.sigma))].filter((sg) => sg > 0);
+
+/** rgb(a,b,c) × gain, recortado a 255. */
+function ganar(tinta: string, k: number) {
+  const m = tinta.match(/(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!m || k === 1) return tinta;
+  const v = [1, 2, 3].map((i) => Math.min(255, Math.round(+m[i] * k)));
+  return `rgb(${v[0]},${v[1]},${v[2]})`;
+}
+
+/* Divisorias de la tabla: [x del borde izquierdo, ancho, luminancia]. Ninguna
+   comparte brillo con la de al lado y ninguna mide lo mismo: 801 es una columna
+   sola y 907 y 1013 se derraman sobre dos. Corren de y=35,5 a y=59,5. */
+const divisorias: [number, number, number][] = [
+  [800.55, 1.0, 40],
+  [906.3, 1.6, 28],
+  [1012.35, 1.6, 18],
+  [1117.5, 1.1, 27],
+  [1223.55, 1.0, 12],
+];
+
+/**
+ * Valores de la tabla: [texto, x del primer píxel de tinta, ancho de tinta,
+ * relleno]. Cada celda lleva su propio ancho porque el póster no es parejo:
+ * "TANDA-01" y "01.00.00" tienen ocho caracteres cada uno y el primero avanza
+ * 6,75 px por carácter contra 6,13 del segundo — está compuesto más pesado, y
+ * de hecho es la única celda de la fila que va en negrita (pico 228 de
+ * luminancia contra 132-149 de las demás). "KX∞-V2.0" ni siquiera es
+ * monoespaciado: su ∞ ocupa el doble que una versal. Con textLength eso da
+ * igual — se fija el ancho del bloque, que es lo que se puede medir.
+ */
+const valores: [string, number, number, string][] = [
+  ["TANDA-01", 714, 55, "#9c9c9a"],
+  ["01.00.00", 817, 50, "#ff262e"],
+  ["2025-05-22", 921, 63, "#949492"],
+  ["16:9 / 4K", 1027, 56, "#727274"],
+  ["KX∞-V2.0", 1134, 58, "#828277"],
+];
+
+/* El generador leyó el código de barras en la ventana y=72..87 y el original lo
+   tiene medio píxel más abajo: barrido en el banco, +0,5 baja el bloque de 1,37
+   a 1,35 % y ±1 lo empeora. La altura no se toca: 16 px es lo que mide. */
+const BARRAS_DY = 0.5;
+
+/* Cima de la versal de la fila de valores y su altura, medidas en filas de
+   tinta: la fila arranca en y=50,6 y la versal mide 8. */
+const VERSAL = 8.0;
+const CIMA = 50.6;
+/* Apoyo izquierdo de la versal dentro de su avance a este cuerpo. */
+const LSB = 0.9;
+
+/**
+ * Marcas de la regla que corre bajo la tabla, medidas de a una: centro de cada
+ * trazo. No están a paso constante —el póster las tiene con jitter de ±1 px
+ * sobre un paso de 13,2— así que van las 21 posiciones medidas y no un bucle.
+ * Las dos de los extremos son más gruesas: abren y cierran la regla.
+ */
+const marcas: [number, number][] = [
+  [687.4, 20], [701.0, 13], [713.5, 14], [727.0, 13], [740.0, 13],
+  [753.3, 14], [765.4, 13], [773.0, 11], [786.0, 13], [799.0, 13],
+  [812.0, 13], [826.0, 13], [839.5, 13], [853.0, 14], [866.0, 13],
+  [879.0, 12], [891.5, 13], [904.3, 13], [917.5, 14], [931.0, 13],
+  [951.4, 17],
+];
+---
+
+<div data-box style={box} class="cab">
+  <!-- Marco del póster. Va como borde de un div y no como cuatro rects porque
+       las cuatro esquinas son curvas de radio 6,5 y un rect por lado deja
+       costura; el borde con radio las resuelve solo. Los cuatro lados tienen
+       brillo y grosor distintos medidos sobre el PNG (arriba 8,5 / izquierda 14
+       / derecha 15,5 sobre 2,8 px / abajo 9), así que van uno por uno. Se abre
+       acá y baja hasta el filo del pie: es un único rectángulo. -->
+  <div class="cab__marco"></div>
+
+  <svg class="cab__art" viewBox="0 0 1672 88" width="1672" height="88" aria-hidden="true">
+    <defs>
+      <!-- color-interpolation-filters="sRGB" no es decoración: por defecto el
+           desenfoque opera en linearRGB y ahí blur(k·máscara) ≠ k·blur(máscara).
+           El ajuste que fijó estos colores supone lo segundo, así que sin esta
+           línea el relleno que sale del ajuste no es el que el navegador pinta. -->
+      {sigmas.map((sg) => (
+        <filter id={idFiltro(sg)} x="-30%" y="-60%" width="160%" height="220%" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation={sg} />
+        </filter>
+      ))}
+
+      <!-- Las dos reglas de la tabla pierden brillo hacia la derecha (22 → 13 la
+           de arriba, 16 → 10 la de abajo, medidas en cuatro puntos). Plana, la
+           de arriba queda cinco puntos oscura sobre la celda de SCENE ID. -->
+      <linearGradient id="cabReglaA" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="rgb(25,25,25)" />
+        <stop offset="0.32" stop-color="rgb(14,14,14)" />
+        <stop offset="0.65" stop-color="rgb(17,17,17)" />
+        <stop offset="1" stop-color="rgb(15,15,15)" />
+      </linearGradient>
+      <linearGradient id="cabReglaB" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="rgb(17,17,17)" />
+        <stop offset="0.6" stop-color="rgb(14,14,14)" />
+        <stop offset="1" stop-color="rgb(10,10,10)" />
+      </linearGradient>
+      <!-- La cruz de registro se abre hacia abajo: 10 de luminancia arriba y 15
+           en el cruce. -->
+      <linearGradient id="cabCruz" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="rgb(10,10,10)" />
+        <stop offset="0.7" stop-color="rgb(11,11,11)" />
+        <stop offset="1" stop-color="rgb(16,16,16)" />
+      </linearGradient>
+    </defs>
+
+    <!-- Recuadro del árbol: x 13..91, y 15..82. El filo izquierdo va casi al
+         doble de brillo que los otros tres (52 contra 27-36) y por eso lleva un
+         rect propio encima del recuadro. -->
+    <rect class="cab__caja" x="13" y="15.5" width="78" height="66" rx="4" />
+    <rect class="cab__caja-izq" x="12.85" y="19" width="1.2" height="59" />
+
+    <!-- Cruz de registro. Es la marca que ancla la tabla: la vertical corre de
+         y=21 a y=63 en x=677 y la horizontal cruza a y=57. -->
+    <rect x="677" y="20.8" width="1.3" height="42.5" fill="url(#cabCruz)" />
+    <rect x="666.8" y="56.4" width="20.5" height="1.3" fill="rgb(12,12,12)" />
+
+    <!-- Recuadro de la tabla de metadatos. Está ABIERTO a la derecha: las dos
+         reglas mueren en x=1645 sin ningún filo que las cierre (barrido de
+         x=1636 a 1650 entre y=30 y 65: cero tinta). Sólo el flanco izquierdo
+         curva, con radio 6. -->
+    <rect x="703" y="28.35" width="942" height="1.5" fill="url(#cabReglaA)" />
+    <rect x="703" y="66.05" width="942" height="1.9" fill="url(#cabReglaB)" />
+    <path class="cab__tablaizq" d="M710 28.9 A6 6 0 0 0 704 34.9 V60.9 A6 6 0 0 0 710 66.9" />
+
+    {divisorias.map(([x, w, v]) => (
+      <rect x={x} y="35.5" width={w} height="24" fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Regla de marcas bajo la tabla, en y=78..82. Debajo corre además una
+         hebra continua que arranca tenue (2 de luminancia) y se afirma a 7 a
+         partir de x=1057, así que son dos tramos y no uno. -->
+    <rect x="432" y="79.2" width="620" height="1.5" fill="rgb(3,3,3)" />
+    <rect x="1057" y="79.2" width="611" height="1.5" fill="rgb(8,8,8)" />
+    {marcas.map(([x, v]) => (
+      <rect x={x - 0.75} y="78.3" width="1.5" height="3.9" fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Arte fija. Cada pieza con el desenfoque, el encogido y el corrimiento
+         que ganaron su barrido; las que llevan sigma 0 van sin filtro. -->
+    {trazos.map((p) => (
+      <g role="img" aria-label={p.et} filter={p.sigma > 0 ? `url(#${idFiltro(p.sigma)})` : undefined}>
+        {p.g.map((g) => (
+          <svg
+            x={g.x + p.encoge + p.dx}
+            y={g.y + p.encoge + p.dy}
+            width={Math.max(0.5, g.w - 2 * p.encoge)}
+            height={Math.max(0.5, g.h - 2 * p.encoge)}
+            viewBox={`0 0 ${g.vw} ${g.vh}`}
+            preserveAspectRatio="none"
+          >
+            {g.d.map(([d, tr]) => <path d={d} transform={tr} fill={ganar(p.tinta, p.gain)} />)}
+          </svg>
+        ))}
+      </g>
+    ))}
+
+    <!-- Código de barras: cada tramo con el color que tiene en el original. -->
+    <g class="cab__barras" role="img" aria-label="Código de barras KODEX−∞">
+      {cabBarras.tramos.map(([x, w, r, g, b]) => (
+        <rect x={x} y={cabBarras.y + BARRAS_DY} width={w} height={cabBarras.h} fill={`rgb(${r},${g},${b})`} />
+      ))}
+    </g>
+
+    <!-- SCENE ID, BUILD, DATE, RES y SYS VER. son ficción del póster, no una
+         lectura de ningún sistema: por eso el bloque va marcado como simbólico.
+         Los rótulos ya fueron trazados arriba; acá van sólo los valores, que
+         son los que llevan cifras. -->
+    <g data-symbolic="true">
+      {valores.map(([t, x, ancho, tinta]) => (
+        <text
+          class={`cab__v${t === "TANDA-01" ? " cab__v--fuerte" : ""}`}
+          x={x - LSB}
+          y={CIMA + VERSAL}
+          textLength={ancho}
+          lengthAdjust="spacing"
+          font-size={+(VERSAL / 0.74).toFixed(2)}
+          fill={tinta}
+        >{t}</text>
+      ))}
+      <!-- El punto suelto que cierra la celda de SCENE ID. Va como rect y no
+           como carácter porque no comparte avance con la cadena: cae en x=772,
+           cinco píxeles después del último trazo del "1". -->
+      <rect x="771.9" y="56.5" width="2.7" height="2.7" fill="#8c8c8a" />
+    </g>
+  </svg>
+</div>
+
+<style>
+  /* `position: absolute` explícito: el estilo con ámbito del componente le gana
+     por orden de cascada a `.kdx-lam [data-box]`, y con `relative` el bloque se
+     acomoda en el flujo y aparece corrido.
+     `overflow: visible` es a propósito: el marco del póster se dibuja desde acá
+     y baja hasta y=935,8 (ver cabecera del archivo). No hay ningún panel en
+     x=3,9..5,4 ni en x=1665,8..1668,6. */
+  .cab {
+    position: absolute;
+    overflow: visible;
+    font-family: var(--lam-mono);
+  }
+
+  .cab__art { position: absolute; left: 0; top: 0; overflow: visible; }
+
+  .cab__marco {
+    position: absolute;
+    left: 3.9px;
+    top: 4.2px;
+    width: 1664.7px;
+    height: 931.6px;
+    box-sizing: border-box;
+    border-style: solid;
+    border-top-width: 1.5px;
+    border-right-width: 2.8px;
+    border-bottom-width: 1.4px;
+    border-left-width: 1.5px;
+    border-top-color: rgb(9, 9, 9);
+    border-right-color: rgb(15, 15, 15);
+    border-bottom-color: rgb(9, 9, 9);
+    border-left-color: rgb(14, 14, 14);
+    border-radius: 6.5px;
+  }
+
+  /* Tinta medida sobre el PNG, no elegida. El recuadro del árbol es violeta
+     apagado, no gris: su filo izquierdo mide rgb(52,50,55). */
+  .cab__caja { fill: none; stroke: rgb(34, 32, 38); stroke-width: 1.5; }
+  .cab__caja-izq { fill: rgb(56, 53, 61); }
+  .cab__tablaizq { fill: none; stroke: rgb(25, 25, 25); stroke-width: 1.8; }
+
+  .cab__v {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+    /* La tinta del póster no es un trazo limpio: barriendo una fila de texto
+       deja medio píxel más de derrame por lado que el rasterizador del
+       navegador. Un píxel de desenfoque reproduce ese derrame: barrido en el
+       banco, 0 y 1,4 px dejan el bloque en 1,352 y 1,363 % contra 1,351 % de
+       1 px. Por debajo de 0,8 px el filtro no hace nada (ver la nota de
+       Chromium en la cabecera del archivo). */
+    filter: blur(1px);
+  }
+  /* "TANDA-01" es la única celda compuesta en negrita: pico 228 de luminancia
+     contra 132-149 del resto de la fila, y 6,75 px de avance contra 6,13. */
+  .cab__v--fuerte { font-weight: 700; }
+</style>

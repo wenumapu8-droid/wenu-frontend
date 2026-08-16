@@ -180,7 +180,21 @@ export function initKx() {
     // la formula de escena pide: colapsa, navega y la lamina siguiente se
     // recompone. El desvanecido de abajo queda como respaldo -- si el modulo
     // no cargo, la navegacion no puede quedarse trabada.
-    if (typeof window.__kdxRitual === 'function') { window.__kdxRitual(url); return; }
+    if (typeof window.__kdxRitual === 'function') {
+      const desde = location.href;
+      window.__kdxRitual(url);
+      /* SALVAVIDAS. `turning` ya quedo en true arriba, asi que si el ritual no
+         navega el lector queda encerrado: todo clic posterior se ignora para
+         siempre. Eso pasaba en los dos interludios — medido, el clic no navegaba
+         ni despues de diez segundos y sin un solo error de JS—, y cortaba el
+         corredor a la mitad: MACHINE, COSMOLOGY y RETURN quedaban inalcanzables
+         caminando, tres de las siete escenas, con la cadena de `data-next-url`
+         completa y correcta.
+         El ritual es un adorno; llegar a la escena siguiente no lo es. Si en
+         1,2 s no navego, navegamos nosotros. */
+      setTimeout(() => { if (location.href === desde) location.href = url; }, 1200);
+      return;
+    }
     root.style.transition = 'opacity .55s ease'; root.style.opacity = '0';
     setTimeout(() => { location.href = url; }, 480);
   };

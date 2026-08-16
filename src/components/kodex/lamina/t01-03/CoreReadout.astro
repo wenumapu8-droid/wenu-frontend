@@ -1,0 +1,601 @@
+---
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * 09. CORE READOUT STRIP
+ *
+ * Siete celdas medidas sobre la referencia. Con la caja ya corregida (x429
+ * y717 610×152) los separadores del póster caen, en coordenadas de caja, en
+ * 0 · 106 · 213 · 313.5 · 419 · 512.5 · 610 · 716.5 — es decir anchos de
+ * 106/107/100.5/105.5/93.5/97.5/106.5 px. NO son iguales y NO son
+ * proporcionales al ancho disponible: son PIXELES FIJOS medidos, por eso van
+ * como `flex: 0 0 Npx` y no como `flex-grow`. Repartir por proporción es lo
+ * que hacía que los seis separadores cayeran corridos y que "7.3821e+03" y
+ * "1.618x" se pisaran entre celdas.
+ *
+ * Consecuencia medida, y es deliberada: la tira del póster mide 716.5 px pero
+ * la caja mide 610, así que MEMORY FRAGMENTS empieza justo en el borde
+ * derecho (x 610 = 1039 canónico) y queda fuera del recorte, exactamente como
+ * en la referencia, donde dentro de esta caja sólo se ven seis celdas
+ * completas. La celda sigue existiendo en el markup con su ancho real; la
+ * recorta `overflow:hidden` de la tira para no invadir el panel vecino.
+ * Comprimir las siete dentro de 610 sería achicar cada glifo un 15 % y correr
+ * los seis separadores hasta 90 px de su sitio.
+ *
+ * Todo lo que se dibuja acá es SVG generado en build. Los generadores usan un
+ * PRNG con semilla fija porque el banco de pruebas compara capturas: con
+ * Math.random() dos builds del mismo panel dan diffs distintos y el puntaje
+ * persigue ruido.
+ */
+
+function rng(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const n2 = (v: number) => Math.round(v * 100) / 100;
+const poly = (pts: number[][]) => pts.map(([x, y]) => `${n2(x)},${n2(y)}`).join(" ");
+
+/* ── 01 · HEARTBEAT ─────────────────────────────────────────────────── */
+/* En la referencia el ECG NO es un peine de agujas: son ~22 crestas anchas
+   (un vértice cada ~2.1 unidades, arriba/abajo alternado) con una cresta alta
+   cada 3-5 picos. Medido: la banda ocupa 23 px de alto, no 20. */
+const ecgR = rng(0x5ea15);
+const ecgPts: number[][] = [];
+{
+  const N = 44;
+  let nextTall = 2 + Math.floor(ecgR() * 3);
+  for (let i = 0; i <= N; i++) {
+    const x = (i * 93) / N;
+    let y: number;
+    if (i % 2 === 0) {
+      const tall = i / 2 >= nextTall;
+      if (tall) nextTall = i / 2 + 3 + Math.floor(ecgR() * 3);
+      y = tall ? 3.4 + ecgR() * 3 : 9.6 + ecgR() * 4;
+    } else {
+      y = 18.8 + ecgR() * 4.6;
+    }
+    ecgPts.push([x, y]);
+  }
+}
+/* 38 barras (no 46) de paso 2.45 y ancho 1.5: en el póster tienen aire entre
+   sí y la más alta llega a 17.5 de 18.4. */
+const barR = rng(0x8a12);
+const bpmBars: number[][] = [];
+for (let i = 0; i < 38; i++) bpmBars.push([1 + i * 2.42, 5.5 + barR() * 12]);
+
+/* ── 02 · DEPTH INDEX · malla polar distorsionada ───────────────────── */
+/* Dos centros distintos, y ahí está toda la rareza del dibujo: los ARCOS son
+   elipses centradas casi al pie de la caja (cy 55.3) que se achatan hacia
+   adentro —ry 48.4→11.6 mientras rx apenas baja 48.4→43—, pero los RADIOS
+   salen de un nodo a media altura (y 30), que es el punto brillante donde
+   convergen en la referencia. Medido sobre el crop, no inventado. */
+const depthArcs: string[] = [];
+const DCX = 46, DCY = 55.3, DNODE = 30;
+for (let i = 0; i < 6; i++) {
+  const t = i / 5;
+  const rx = 48.4 - 5.4 * t;
+  const ry = 48.4 - 36.8 * t;
+  const pts: number[][] = [];
+  for (let k = 0; k <= 64; k++) {
+    const a = Math.PI + (Math.PI * k) / 64;
+    pts.push([DCX + rx * Math.cos(a), DCY + ry * Math.sin(a)]);
+  }
+  depthArcs.push(poly(pts));
+}
+const depthRadials: number[][] = [];
+for (let k = 0; k < 17; k++) {
+  const a = ((143 + (254 * k) / 16) * Math.PI) / 180;
+  const c = Math.cos(a), s = Math.sin(a);
+  depthRadials.push([DCX + 2.4 * c, DNODE + 2.4 * s, DCX + 62 * c, DNODE + 62 * s]);
+}
+const depthGrid =
+  Array.from({ length: 6 }, (_, i) => `M${n2((i + 1) * 13)} 0V59`).join(" ") +
+  " " +
+  Array.from({ length: 4 }, (_, i) => `M0 ${n2((i + 1) * 11.8)}H90`).join(" ");
+
+/* ── 03 · GRAVITY · escalera ascendente ─────────────────────────────── */
+/* La rejilla del póster es el doble de fina de lo que estaba: 15 columnas de
+   ~6 px y 10 filas de ~5.6 px sobre una caja de 91×56, y la escalera sube un
+   peldaño por columna. */
+const GW = 91, GH = 56;
+const steps = [0.18, 0.18, 0.26, 0.3, 0.34, 0.4, 0.45, 0.5, 0.55, 0.6, 0.66, 0.71, 0.77, 0.82, 0.87];
+const stepW = GW / steps.length;
+let gravD = `M0 ${GH}`;
+const gravDots: number[][] = [];
+steps.forEach((h, i) => {
+  const y = n2(GH - h * GH);
+  gravD += ` L${n2(i * stepW)} ${y} L${n2((i + 1) * stepW)} ${y}`;
+  gravDots.push([i * stepW + 0.5, y]);
+  if (i) gravDots.push([i * stepW - 0.5, y]);
+});
+gravD += ` L${GW} ${GH} Z`;
+const gravGrid =
+  Array.from({ length: 14 }, (_, i) => `M${n2(((i + 1) * GW) / 15)} 0V${GH}`).join(" ") +
+  " " +
+  Array.from({ length: 9 }, (_, i) => `M0 ${n2(((i + 1) * GH) / 10)}H${GW}`).join(" ");
+
+/* ── 07 · MEMORY FRAGMENTS · maraña de crestas superpuestas ─────────── */
+/* Cada línea es la misma cordillera con otra fase y otra amplitud; las de
+   atrás desbordan la caja por arriba, igual que en el póster. El cruce entre
+   capas es lo que produce la maraña — una sola serie por capa se vería peine. */
+const memR = rng(0x4a11c);
+const memLines: string[] = [];
+for (let i = 0; i < 20; i++) {
+  const yb = 62 - i * 1.2;
+  const amp = 16 + i * 2.4;
+  const ph = memR() * 6.283;
+  const sh = (memR() - 0.5) * 0.07;
+  const pts: number[][] = [];
+  for (let j = 0; j <= 52; j++) {
+    const t = j / 52;
+    const u = Math.min(1, Math.max(0, t + sh));
+    const hill = u < 0.08 ? 0.14 : u > 0.8 ? 0.86 : 0.14 + 0.72 * Math.pow((u - 0.08) / 0.72, 1.25);
+    const spike = 0.3 * Math.exp(-Math.pow((u - 0.63) / 0.055, 2));
+    const wob =
+      Math.sin(u * 13 + ph) * 3 + Math.sin(u * 29 + ph * 1.7) * 1.6 + Math.sin(u * 7 + ph * 0.6) * 2.4;
+    pts.push([t * 88, yb - amp * (hill + spike) + wob]);
+  }
+  memLines.push(poly(pts));
+}
+
+/* Radios de las rosetas: se generan para no escribir ocho <line> a mano. */
+const spokes = (cx: number, cy: number, r0: number, r1: number, n = 8, off = 0) =>
+  Array.from({ length: n }, (_, i) => {
+    const a = off + (i * 2 * Math.PI) / n;
+    const c = Math.cos(a), s = Math.sin(a);
+    return [cx + r0 * c, cy + r0 * s, cx + r1 * c, cy + r1 * s];
+  });
+const onRing = (cx: number, cy: number, r: number, degs: number[]) =>
+  degs.map((d) => {
+    const a = (d * Math.PI) / 180;
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  });
+
+/* ENTROPY: caja 90×60, centro (48,30) —medido: el eje vertical brillante cae
+   en 0.53 del ancho de celda—, anillo exterior r 31. Los radios MUEREN en el
+   anillo (antes lo cruzaban y sobresalían, que es lo que se veía de más). */
+const entSpokes = spokes(48, 30, 4, 31);
+const entDots = onRing(48, 30, 31, [-90, -35, 12, 60, 118, 160, 205, 250]).concat(
+  onRing(48, 30, 34.5, [-64, 8, 96, 176, 232]),
+);
+/* Marcas cortas fuera del anillo: en la referencia hay un plumeado tenue
+   alrededor, no dibujo duro. */
+const entTicks = Array.from({ length: 10 }, (_, i) => {
+  const a = ((-84 + i * 36) * Math.PI) / 180;
+  const c = Math.cos(a), s = Math.sin(a);
+  return [48 + 33 * c, 30 + 33 * s, 48 + 38 * c, 30 + 38 * s];
+});
+
+/* COHERENCE: viewBox 78×66 sobre una caja de 78×60 px, así el círculo r 33 sale
+   ovalado 33×30 —que es como está medido en el póster— sin usar <ellipse>. */
+const cohSpokes = spokes(39.8, 33, 3, 33, 12);
+const cohDots = onRing(39.8, 33, 33, [-90, -50, -14, 26, 62, 100, 145, 190, 236]).concat(
+  onRing(39.8, 33, 25, [-70, 20, 130, 210]),
+);
+/* El núcleo es un asterisco de 12 rayos del mismo naranja que el resto: en la
+   referencia NO hay ningún punto blanco en esta celda. */
+const cohCore = Array.from({ length: 12 }, (_, i) => {
+  const a = (i * Math.PI) / 6;
+  const c = Math.cos(a), s = Math.sin(a);
+  return [39.8 + 1.4 * c, 33 + 1.4 * s, 39.8 + 7.4 * c, 33 + 7.4 * s];
+});
+
+/* PHASE SHIFT: mismo truco de viewBox (82×71 sobre 82×60 px) para que el
+   círculo grande mida 32×27, un 30 % más que lo que había. */
+const phTicks = Array.from({ length: 14 }, (_, i) => {
+  const a = ((-96 + i * 26) * Math.PI) / 180;
+  const c = Math.cos(a), s = Math.sin(a);
+  return [38.5 + 22 * c, 33.7 + 22 * s, 38.5 + 30 * c, 33.7 + 30 * s];
+});
+---
+
+<div data-box style={box} class="kdx-panel crs">
+  <div class="kdx-panel__title">09. Core Readout Strip</div>
+
+  <!-- TELEMETRÍA SIMBÓLICA: ninguno de estos números mide nada del sistema.
+       Son los valores literales del póster; el contenedor queda marcado para
+       que nada aguas abajo los lea como lectura real. -->
+  <div class="crs__strip" data-symbolic="true">
+
+    <!-- 01 · HEARTBEAT ─ único formato distinto: dos gráficos apilados y el
+         valor abajo, centrado, con la unidad en gris. -->
+    <div class="crs__cell crs__cell--hb" style="flex:0 0 105px">
+      <span class="crs__label">HEARTBEAT</span>
+
+      <svg class="crs__ecg" viewBox="0 0 93 27" preserveAspectRatio="none" aria-hidden="true">
+        <polyline points={poly(ecgPts)} />
+      </svg>
+
+      <svg class="crs__bars" viewBox="0 0 93 19" preserveAspectRatio="none" aria-hidden="true">
+        {bpmBars.map(([x, h]) => <rect x={n2(x)} y={n2(18.4 - h)} width="1.5" height={n2(h)} />)}
+        <line x1="0" y1="18.4" x2="93" y2="18.4" class="crs__barbase" />
+      </svg>
+
+      <span class="crs__bpm"><em>120</em> BPM</span>
+      <span class="crs__hbrule"></span>
+    </div>
+
+    <!-- 02 · DEPTH INDEX -->
+    <div class="crs__cell" style="flex:0 0 107px">
+      <span class="crs__label">DEPTH INDEX</span>
+      <span class="crs__val">7.3821e+03</span>
+      <svg class="crs__chart crs__chart--depth" viewBox="0 0 90 59" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <clipPath id="crsDepthClip"><ellipse cx="46" cy="55.3" rx="48.4" ry="48.4" /></clipPath>
+        </defs>
+        <g class="crs__gridcool">
+          <rect x="0.5" y="0.5" width="89" height="58" />
+          <path d={depthGrid} />
+        </g>
+        <g clip-path="url(#crsDepthClip)" class="crs__mesh">
+          {depthRadials.map(([x1, y1, x2, y2]) => (
+            <line x1={n2(x1)} y1={n2(y1)} x2={n2(x2)} y2={n2(y2)} />
+          ))}
+          {depthArcs.map((p) => <polyline points={p} />)}
+        </g>
+        <line class="crs__axis" x1="46" y1="0" x2="46" y2="59" />
+        <circle class="crs__nodedot" cx="46" cy="30" r="1.3" />
+        <circle class="crs__axisdot" cx="46" cy="57.4" r="1" />
+      </svg>
+    </div>
+
+    <!-- 03 · GRAVITY -->
+    <div class="crs__cell" style="flex:0 0 100.5px">
+      <span class="crs__label">GRAVITY</span>
+      <span class="crs__val">1.618x</span>
+      <svg class="crs__chart crs__chart--grav" viewBox="0 0 91 56" preserveAspectRatio="none" aria-hidden="true">
+        <defs><clipPath id="crsGravClip"><path d={gravD} /></clipPath></defs>
+        <g class="crs__gridwarm">
+          <rect x="0.4" y="0.4" width="90.2" height="55.2" />
+          <path d={gravGrid} />
+        </g>
+        <path d={gravD} class="crs__gravfill" />
+        <g clip-path="url(#crsGravClip)" class="crs__gridhot">
+          <path d={gravGrid} />
+        </g>
+        <path d={gravD} class="crs__gravline" />
+        {gravDots.map(([x, y]) => <rect x={n2(x - 0.65)} y={n2(y - 0.65)} width="1.3" height="1.3" class="crs__dot" />)}
+      </svg>
+    </div>
+
+    <!-- 04 · ENTROPY -->
+    <div class="crs__cell" style="flex:0 0 105.5px">
+      <span class="crs__label">ENTROPY</span>
+      <span class="crs__val">0.84</span>
+      <svg class="crs__chart crs__chart--ent" viewBox="0 0 90 60" preserveAspectRatio="none" aria-hidden="true">
+        <g class="crs__rose">
+          <circle cx="48" cy="30" r="31" />
+          <circle cx="48" cy="30" r="25.5" class="crs__dash" />
+          <circle cx="48" cy="30" r="20" class="crs__dash" />
+          <circle cx="48" cy="30" r="14.5" class="crs__dash" />
+          <circle cx="48" cy="30" r="9" class="crs__dash" />
+          <circle cx="48" cy="30" r="5.2" />
+          {entSpokes.map(([x1, y1, x2, y2]) => (
+            <line x1={n2(x1)} y1={n2(y1)} x2={n2(x2)} y2={n2(y2)} />
+          ))}
+          <line x1="0" y1="30" x2="90" y2="30" />
+          <!-- ojo del centro: lente horizontal con pupila, la única forma
+               figurativa de la tira -->
+          <path d="M44.4 30 Q48 27.2 51.6 30 Q48 32.8 44.4 30 Z" />
+          <circle cx="48" cy="30" r="1.15" class="crs__solid" />
+        </g>
+        <g class="crs__rosetick">
+          {entTicks.map(([x1, y1, x2, y2]) => (
+            <line x1={n2(x1)} y1={n2(y1)} x2={n2(x2)} y2={n2(y2)} />
+          ))}
+        </g>
+        <g class="crs__rosedots">
+          {entDots.map(([x, y]) => <circle cx={n2(x)} cy={n2(y)} r="0.8" />)}
+        </g>
+      </svg>
+    </div>
+
+    <!-- 05 · COHERENCE -->
+    <div class="crs__cell" style="flex:0 0 93.5px">
+      <span class="crs__label">COHERENCE</span>
+      <span class="crs__val">92%</span>
+      <svg class="crs__chart crs__chart--coh" viewBox="0 0 78 66" preserveAspectRatio="none" aria-hidden="true">
+        <g class="crs__rose">
+          <circle cx="39.8" cy="33" r="33" />
+          <circle cx="39.8" cy="33" r="27.5" class="crs__dash" />
+          <circle cx="39.8" cy="33" r="22" class="crs__dash" />
+          <circle cx="39.8" cy="33" r="16.5" class="crs__dash" />
+          <circle cx="39.8" cy="33" r="11" class="crs__dash" />
+          {cohSpokes.map(([x1, y1, x2, y2]) => (
+            <line x1={n2(x1)} y1={n2(y1)} x2={n2(x2)} y2={n2(y2)} />
+          ))}
+          <line x1="0" y1="33" x2="78" y2="33" />
+        </g>
+        <g class="crs__rosedots">
+          {cohDots.map(([x, y]) => <circle cx={n2(x)} cy={n2(y)} r="0.9" />)}
+        </g>
+        <!-- núcleo: asterisco, NO disco blanco. Medido sobre la referencia, el
+             píxel más brillante de esta celda es el mismo naranja del resto. -->
+        <g class="crs__coreburst">
+          {cohCore.map(([x1, y1, x2, y2]) => (
+            <line x1={n2(x1)} y1={n2(y1)} x2={n2(x2)} y2={n2(y2)} />
+          ))}
+        </g>
+      </svg>
+    </div>
+
+    <!-- 06 · PHASE SHIFT -->
+    <div class="crs__cell" style="flex:0 0 97.5px">
+      <span class="crs__label">PHASE SHIFT</span>
+      <span class="crs__val">+137°</span>
+      <svg class="crs__chart crs__chart--phase" viewBox="0 0 82 71" preserveAspectRatio="none" aria-hidden="true">
+        <g class="crs__astro">
+          <circle cx="38.5" cy="33.7" r="32" />
+          <line x1="0" y1="33.7" x2="82" y2="33.7" class="crs__dash" />
+          <line x1="4" y1="63" x2="73" y2="4" class="crs__dash" />
+          <line x1="7" y1="5" x2="72" y2="62" class="crs__dash" />
+          <g class="crs__tick">
+            {phTicks.map(([x1, y1, x2, y2]) => (
+              <line x1={n2(x1)} y1={n2(y1)} x2={n2(x2)} y2={n2(y2)} />
+            ))}
+          </g>
+          <circle cx="38.5" cy="33.7" r="15" class="crs__solid2" />
+          <circle cx="38.5" cy="33.7" r="13" />
+          <circle cx="38.5" cy="33.7" r="11" class="crs__dash" />
+          <circle cx="38.5" cy="33.7" r="9" class="crs__dash" />
+          <circle cx="38.5" cy="33.7" r="7" class="crs__dash" />
+          <circle cx="38.5" cy="33.7" r="5" />
+          <path d="M38.5 29.4 L42 33.7 L38.5 38 L35 33.7 Z" />
+          <!-- satélites: círculo con cola a la izquierda, lente a la derecha -->
+          <circle cx="15.5" cy="52.7" r="5.4" />
+          <path d="M11.6 56.6 L7 61.5" />
+          <path d="M13.2 51.4 A2.7 2.7 0 1 1 17.3 53.6" />
+          <path d="M58.5 53.9 L62.5 50.2 L66 53.9 L62.5 57.6 Z" />
+          <circle cx="62.4" cy="53.9" r="1.3" />
+        </g>
+      </svg>
+    </div>
+
+    <!-- 07 · MEMORY FRAGMENTS ─ las crestas desbordan por arriba de la caja,
+         igual que en la referencia; por eso este gráfico no lleva recorte. -->
+    <div class="crs__cell" style="flex:0 0 106.5px">
+      <span class="crs__label">MEMORY FRAGMENTS</span>
+      <span class="crs__val">2048</span>
+      <svg class="crs__chart crs__chart--bleed" viewBox="0 0 88 62" preserveAspectRatio="none" aria-hidden="true">
+        <g class="crs__gridwarm">
+          <path d="M1 0V62 M23 0V44 M45 0V30 M1 3H67 M1 16H60 M1 29H50" />
+        </g>
+        <g class="crs__ridge">
+          {memLines.map((p) => <polyline points={p} />)}
+        </g>
+      </svg>
+    </div>
+
+  </div>
+</div>
+
+<style>
+  /* En la referencia los marcos de este panel son gris neutro (~#232323), no
+     el naranja de --lam-rule. Se corrige acá y no en la primitiva porque el
+     resto de la lámina sí usa el marco con tinte.
+     Muestreando el crop: el marco exterior del panel es #141414, los
+     separadores verticales #282828 y los bordes horizontales de la tira mucho
+     más apagados que los verticales. No son todos el mismo gris. */
+  .crs {
+    --crs-line: #282828;
+    --crs-label: color-mix(in srgb, var(--lam-ink) 20%, #6a6d6a);
+    /* naranja del póster: (198,60,19), no el #ff5a1f del token. Todo el panel
+       cuelga de acá para no repetir el color a mano en cada trazo. */
+    --crs-hot: color-mix(in srgb, var(--lam-accent) 62%, #6a0a00);
+    --crs-draw: color-mix(in srgb, var(--crs-hot) 76%, #000);
+    border-color: #151515;
+    /* Medido en la referencia: el borde superior de la tira cae en y 9 de la
+       caja y el inferior en y 132, así que el relleno es 8 arriba / 18 abajo
+       (1 px de cada lado se lo come el marco del panel). Horizontal a 0: la
+       tira arranca pegada al marco, como en el póster. */
+    padding: 8px 0 18px;
+    overflow: visible;
+  }
+  .crs :global(.kdx-panel__title) { letter-spacing: 0.16em; }
+
+  .crs__strip {
+    display: flex;
+    /* border-box o el `height:100%` suma los 2 px de marco y el borde inferior
+       de la tira se va a y 134 en vez de y 132. */
+    box-sizing: border-box;
+    height: 100%;
+    border: 1px solid var(--crs-line);
+    border-top-color: #111;
+    border-bottom-color: #191919;
+    /* El margen negativo mete los bordes laterales de la tira encima del marco
+       del panel: en la referencia ese trazo es UNO solo, no dos. */
+    margin: 0 -1px;
+    /* La tira mide 716.5 px de contenido contra 610 de caja: lo que sobra
+       (MEMORY FRAGMENTS) se recorta acá y no invade al panel vecino. */
+    overflow: hidden;
+  }
+
+  /* Anchos medidos, no repartidos: ver la nota del frontmatter. Sin
+     flex-shrink, o el navegador vuelve a comprimirlos y los números se pisan. */
+  .crs__cell {
+    position: relative;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  /* El separador se apaga hacia arriba en el póster; con borde plano la tira
+     se ve más dura de lo que es. Va en left:0 (no -1) porque la columna del
+     separador medida en la referencia pertenece a la celda de la derecha. */
+  .crs__cell + .crs__cell::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, #101010, var(--crs-line) 45%);
+  }
+
+  /* Medido: los rótulos ocupan 7 px de alto y avanzan 5.2 px por carácter
+     ("DEPTH INDEX" = 56 px). Eso es 8.5 px de cuerpo con tracking casi nulo,
+     no 8 px con tracking abierto. */
+  .crs__label {
+    position: absolute;
+    left: 9px;
+    top: 8px;
+    color: var(--crs-label);
+    font-size: 8.5px;
+    line-height: 10px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  /* El póster usa una mono condensada: dígitos de 12 px de alto y avance de
+     8.8 px por carácter ("7.3821e+03" = 86 px de ancho total). Con la mono del
+     sistema eso sólo se consigue apretando el tracking. Con el avance viejo
+     (9.0) la cadena de DEPTH INDEX medía 90 px y ya rozaba el separador. */
+  .crs__val {
+    position: absolute;
+    left: 10px;
+    top: 31px;
+    color: var(--crs-hot);
+    font-size: 16.5px;
+    line-height: 17px;
+    letter-spacing: -0.066em;
+    white-space: nowrap;
+  }
+
+  /* Cada gráfico tiene su propia caja medida sobre la referencia (bordes del
+     dibujo, no de la celda). Con la celda ya en su ancho real no hay una sola
+     caja que sirva para las seis: las rosetas son más anchas que las rejillas
+     y ninguna está centrada en su celda. */
+  .crs__chart {
+    position: absolute;
+    display: block;
+  }
+  .crs__chart--depth  { left: 9px;   right: 7px;   top: 56px; height: 63px; }
+  .crs__chart--grav   { left: 9px;   right: 9.5px; top: 57px; height: 57px; }
+  .crs__chart--ent    { left: 5px;   right: 4px;   top: 56px; height: 60px; }
+  .crs__chart--coh    { left: 5px;   right: 7px;   top: 54px; height: 60px; }
+  .crs__chart--phase  { left: 4px;   right: 1px;   top: 55px; height: 61px; }
+  .crs__chart--bleed  { left: 7px;   right: 3px;   top: 56px; height: 60px; overflow: visible; }
+
+  /* ── celda HEARTBEAT ─────────────────────────────────────────────── */
+  /* Medido en la referencia (coords de caja): ECG x 7→100 · y 35→63,
+     barras x 7→99 · y 74→96 con la base en 96, "120 BPM" con los dígitos en
+     y 109→119. La celda arranca en y 10, de ahí los offsets de abajo. */
+  .crs__ecg {
+    position: absolute;
+    left: 6px;
+    right: 5px;
+    top: 25px;
+    height: 29px;
+    display: block;
+    fill: none;
+    stroke: var(--crs-draw);
+    stroke-width: 0.8;
+    stroke-linejoin: round;
+  }
+  .crs__bars {
+    position: absolute;
+    left: 6px;
+    right: 5px;
+    top: 64px;
+    height: 23px;
+    display: block;
+    fill: color-mix(in srgb, var(--crs-hot) 60%, #000);
+  }
+  .crs__barbase {
+    stroke: color-mix(in srgb, var(--crs-hot) 74%, #000);
+    stroke-width: 0.9;
+  }
+  .crs__bpm {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 96px;
+    text-align: center;
+    /* "BPM" es gris neutro (120,122,121) en el póster, no hueso casi blanco */
+    color: color-mix(in srgb, var(--lam-ink) 12%, #6e716e);
+    /* "120 BPM" mide 51 px en la referencia: 7.35 px de avance por carácter. */
+    font-size: 14px;
+    line-height: 15px;
+    letter-spacing: -0.075em;
+  }
+  .crs__bpm em { font-style: normal; color: var(--crs-hot); }
+  .crs__hbrule {
+    position: absolute;
+    left: 4px;
+    right: 3px;
+    bottom: 2px;
+    height: 1.5px;
+    background: color-mix(in srgb, var(--crs-hot) 28%, #000);
+  }
+
+  /* ── rejillas ───────────────────────────────────────────────────── */
+  /* La rejilla de DEPTH INDEX es gris frío, no naranja: es la única del panel
+     que no comparte el acento. */
+  .crs__gridcool { fill: none; stroke: rgba(150, 178, 178, 0.15); stroke-width: 0.7; }
+  /* La rejilla de GRAVITY duplicó su densidad, así que cada línea tiene que
+     pesar la mitad: medido, la línea "caliente" del póster suma un tercio de
+     lo que sumaba acá y el relleno bajo la escalera es casi negro. */
+  .crs__gridwarm { fill: none; stroke: color-mix(in srgb, var(--crs-hot) 11%, transparent); stroke-width: 0.6; }
+  .crs__gridhot  { fill: none; stroke: color-mix(in srgb, var(--crs-hot) 26%, transparent); stroke-width: 0.6; }
+
+  .crs__mesh {
+    fill: none;
+    stroke: color-mix(in srgb, var(--crs-draw) 78%, #000);
+    stroke-width: 0.7;
+  }
+  .crs__mesh line { stroke-width: 0.6; }
+  .crs__axis { stroke: rgba(216, 212, 204, 0.3); stroke-width: 0.8; }
+  .crs__axisdot { fill: rgba(216, 212, 204, 0.5); }
+  .crs__nodedot { fill: var(--crs-hot); }
+
+  .crs__gravfill { fill: color-mix(in srgb, var(--crs-hot) 5%, transparent); stroke: none; }
+  .crs__gravline {
+    fill: none;
+    stroke: var(--crs-draw);
+    stroke-width: 0.7;
+  }
+  .crs__dot { fill: color-mix(in srgb, var(--crs-hot) 88%, #ffb27a); }
+
+  /* ── rosetas ────────────────────────────────────────────────────── */
+  .crs__rose {
+    fill: none;
+    stroke: color-mix(in srgb, var(--crs-draw) 92%, #000);
+    stroke-width: 0.75;
+  }
+  .crs__rose .crs__dash { stroke-dasharray: 2.2 1.7; }
+  .crs__rose .crs__solid { fill: var(--crs-hot); stroke: none; }
+  .crs__rosetick {
+    fill: none;
+    stroke: color-mix(in srgb, var(--crs-draw) 45%, #000);
+    stroke-width: 0.7;
+  }
+  .crs__rosedots { fill: var(--crs-hot); stroke: none; }
+
+  .crs__coreburst {
+    fill: none;
+    stroke: var(--crs-hot);
+    stroke-width: 1.3;
+    stroke-linecap: round;
+  }
+
+  .crs__astro {
+    fill: none;
+    stroke: color-mix(in srgb, var(--crs-draw) 88%, #000);
+    stroke-width: 0.75;
+    stroke-linecap: round;
+  }
+  .crs__astro .crs__dash { stroke-dasharray: 3.2 2.2; }
+  .crs__astro .crs__solid2 { stroke-width: 1.2; }
+  .crs__astro .crs__tick { stroke-width: 0.7; opacity: 0.75; }
+
+  .crs__ridge {
+    fill: none;
+    stroke: color-mix(in srgb, var(--crs-draw) 88%, #000);
+    stroke-width: 0.75;
+    stroke-linejoin: round;
+  }
+</style>

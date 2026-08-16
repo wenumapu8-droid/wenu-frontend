@@ -1,0 +1,319 @@
+---
+/**
+ * KODEX-∞ · t01-07 COSMOLOGY CORE · CABECERA (0,0 · 1672×88)
+ *
+ * La caja abre en el 0,0 del póster, así que las coordenadas de este archivo y
+ * las de la referencia son las mismas y se verifican una por una contra
+ * reference/canon/t01-07-cosmology-core.png.
+ *
+ * Nada de acá está estimado a ojo:
+ *
+ *  · Toda la tinta figurativa va TRAZADA del original (arte-hdrftr.ts) y no
+ *    dibujada ni compuesta con una fuente: "KODEX−∞ / COSMOLOGY CORE", la bajada
+ *    magenta, el árbol del chip, los cinco rótulos de la tabla, las dos líneas
+ *    del lema y el emblema alado. El umbral de cada pieza salió de un barrido
+ *    medido —binarizar la caja, elegir el relleno que minimiza el error absoluto
+ *    medio contra la referencia, quedarse con el umbral ganador—, no de mirar el
+ *    resultado. La tabla con los once ganadores está en arte-hdrftr.ts.
+ *
+ *  · La excepción son las CIFRAS: "TANDA 01" del chip y los cinco valores de la
+ *    tabla van como <text> de verdad dentro de contenedores data-symbolic,
+ *    porque el canon pide que los números del póster se presenten como texto
+ *    ficticio y no como dibujo.
+ *
+ *  · El código de barras NO se traza. Un código de barras es una función de una
+ *    variable: se lee columna por columna del original y se comprime por tramos,
+ *    cada uno con SU luminancia. Pasarlo por el contorno le inventa esquinas y
+ *    le come tinta.
+ *
+ *  · La retícula del chrome está medida columna a columna y NO comparte brillo.
+ *    El canto del chip vale 36 sobre negro; las cinco divisorias de la tabla
+ *    valen 30 · 23 · 12 · 21 · 22 y la sexta (x=1167, la que cierra BUILD) 12 y
+ *    arranca 20 px más abajo que las otras. Emparejarlas se lee como una hoja de
+ *    cálculo, que es justo lo que el póster no es.
+ *
+ *  · Las dos reglas horizontales tampoco son planas. La de y=56 nace en la nada
+ *    hacia x=110 y sube hasta 16-20 pasando x=760; la de y=81-82 corre entera de
+ *    x=99 a 1660 pero pierde brillo hacia la derecha (19 → 13). Van con
+ *    gradiente medido, no con un gris único.
+ *
+ * FRONTERA CON EL BLOQUE IZQUIERDA — dicho, no dibujado dos veces: el chip rosa
+ * del emblema mide y=16..92 y esta caja recorta en y=87, así que sus últimas
+ * cinco filas (88..92) y el tramo de su canto x=99 por debajo de 88 caen dentro
+ * de la caja de Izquierda. NO se dibujan acá: el rectángulo del chip se declara
+ * con su alto real y lo recorta el overflow, y en OBSERVATION EYE ya pasó que
+ * dos agentes pintaran los mismos píxeles por las dudas. El bloque Izquierda
+ * declara en su cabecera que los toma.
+ *
+ * Puntaje del panel:
+ *   node scripts/lamina/score-panel.mjs t01-07-cosmology-core Cabecera --triptico
+ * El arte se regenera con:
+ *   node scripts/lamina/arte-t01-07-hdrftr.mjs
+ */
+import { hdrTitulo, hdrBajada, hdrArbol, hdrClaves, hdrLema1, hdrLema2, hdrAla, hdrBarras } from "./arte-hdrftr";
+import type { Glifo } from "./arte-hdrftr";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/**
+ * Pintor de arte trazada. Devuelve el marcado de una pieza entera: un <svg>
+ * anidado por glifo, con su viewBox propio y sin conservar proporción, porque lo
+ * que hay que clavar es la caja medida y no la del contorno.
+ *
+ * El transform de cada path se conserva: el trazador emite uno por contorno y
+ * perderlo desarma el glifo —la contraforma de la O queda fuera de sitio y la
+ * letra sale maciza.
+ */
+const pinta = (gs: Glifo[], fill: string) =>
+  gs
+    .map(
+      (g) =>
+        `<svg x="${g.x}" y="${g.y}" width="${g.w}" height="${g.h}" viewBox="0 0 ${g.vw} ${g.vh}" preserveAspectRatio="none">` +
+        g.d.map(([d, tr]) => `<path d="${d}"${tr ? ` transform="${tr}"` : ""} fill="${fill}"/>`).join("") +
+        `</svg>`
+    )
+    .join("");
+
+/* Tinta medida, no elegida: el TONO sale del píxel más brillante de la pieza y
+   el BRILLO del barrido de umbral. El trazo binarizado se queda el halo de
+   antialias adentro, así que cubre más superficie que el original y necesita
+   menos luz — los dos números juntos dan estos rellenos. */
+const TINTA = {
+  titulo: "#999b9a", // "KODEX−∞ / COSMOLOGY CORE": pico 211,213,212 · relleno 154
+  bajada: "#873463", // bajada magenta: pico 244,94,179 · relleno 82
+  arbol: "#6b2842",  // árbol del chip: pico 234,88,145 · relleno 63
+  claves: "#373737", // rótulos de la tabla: pico 90-113 gris · relleno 53
+  lema1: "#3c3c3b",  // "PATTERN. PROTECT. PERPETUATE.": pico 123 · relleno 60
+  lema2: "#363737",  // "BUILT FOR ARCHIVES THAT REMEMBER.": pico 117 · relleno 55
+  ala: "#313130",    // emblema alado: pico 118 · relleno 49
+};
+
+/**
+ * Valores de la tabla: [texto, x del primer píxel de tinta, ancho de tinta,
+ * relleno]. El ancho va uno por celda y no derivado de un paso común porque el
+ * póster no es parejo: "KX-T01-01A" tiene diez caracteres en 68 px y
+ * "2025-05-22" también diez, en 71. Con textLength eso da igual: se fija el
+ * ancho del bloque, que es lo único que se puede medir en un PNG.
+ * Los cinco comparten cima de versal en y=37 y versal de 9 px.
+ */
+const VAL_CIMA = 37;
+const VAL_VERSAL = 9;
+const valores: [string, number, number, string][] = [
+  ["TANDA-01", 715, 61, "#de2f8a"],
+  ["KX-T01-01A", 821, 68, "#993274"],
+  ["2025-05-22", 916, 71, "#7d8080"],
+  ["v2.0.0", 1024, 40, "#6e706e"],
+  ["T01A-CORE", 1094, 60, "#c51c74"],
+];
+
+/* Versal de la mono del sistema, medida: 0,74 em. El cuerpo se despeja de ahí y
+   el apoyo izquierdo de la versal es 0,9 px a estos tamaños. */
+const CUERPO = +(VAL_VERSAL / 0.74).toFixed(3);
+const LSB = 0.9;
+
+/* "TANDA 01" dentro del chip: x=23..81, cima y=79, versal 8. */
+const TANDA_CUERPO = +(8 / 0.74).toFixed(3);
+
+/**
+ * Divisorias verticales: [x, y, alto, luminancia]. Ninguna comparte brillo con
+ * otra. Las cinco de la tabla mueren en y=56 con la regla; la de x=1167 además
+ * NACE en y=26, veinte píxeles más abajo, y la del chip (x=99) sigue de largo
+ * hacia abajo hasta y=103 —fuera de esta caja, la toma el bloque Izquierda.
+ */
+const divisorias: [number, number, number, number][] = [
+  [99, 5, 83, 36],
+  [100, 5, 83, 21],
+  [703, 6, 51, 30],
+  [704, 6, 51, 14],
+  [809, 6, 51, 23],
+  [903, 6, 51, 12],
+  [904, 6, 51, 14],
+  [1012, 6, 51, 21],
+  [1082, 6, 51, 22],
+  [1167, 26, 31, 12],
+  [1168, 26, 31, 17],
+];
+---
+
+<div data-box style={box} class="hdr">
+  <!-- Marco del póster. Es UN rectángulo redondeado que abre acá y cierra en el
+       pie: se dibuja alto y lo recorta el overflow de la caja, porque partirlo
+       en dos bordes distintos deja costura en las esquinas. Los cuatro cantos
+       tienen brillos distintos medidos sobre negro —arriba 37, izquierda 32,
+       derecha 38, abajo 22— y por eso van por separado. -->
+  <div class="hdr__marco"></div>
+  <!-- Halo del marco: la columna de afuera (x=4) vale 11 y la de adentro del
+       canto derecho (x=1667) vale 20. Sin ellas el filo se lee más fino que en
+       el original. -->
+  <div class="hdr__halo"></div>
+
+  <!-- Chip del emblema: x=16..87, y=16..92. El canto izquierdo son DOS columnas
+       llenas (92,18,58 y 85,11,48) y el derecho una sola brillante con una
+       apagada por dentro, así que los bordes no son simétricos. Sin borde
+       inferior: cae en y=91, fuera de esta caja. -->
+  <div class="hdr__chip"></div>
+
+  <svg class="hdr__art" viewBox="0 0 1672 88" width="1672" height="88" aria-hidden="true">
+    <defs>
+      <!-- La regla de y=56 no existe a la izquierda del título y aparece
+           creciendo: 0 en x=110, 11 pasando x=440, 16-20 desde x=760. -->
+      <linearGradient id="hdr-r56" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#000000" />
+        <stop offset="0.21" stop-color="#0b0b0b" />
+        <stop offset="0.42" stop-color="#111111" />
+        <stop offset="1" stop-color="#101010" />
+      </linearGradient>
+      <!-- La de y=81-82 corre entera pero se apaga hacia la derecha. -->
+      <linearGradient id="hdr-r81" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#131313" />
+        <stop offset="0.25" stop-color="#111111" />
+        <stop offset="1" stop-color="#0d0d0d" />
+      </linearGradient>
+    </defs>
+
+    <!-- Dos columnas apagadas del chip que no son borde de caja: la fila de
+         adentro del canto superior y la columna de adentro del derecho. -->
+    <rect x="18" y="17" width="68" height="1" fill="#1f0912" />
+    <rect x="86" y="18" width="1" height="70" fill="#1f0314" />
+
+    {divisorias.map(([x, y, h, v]) => (
+      <rect x={x} y={y} width="1" height={h} fill={`rgb(${v},${v},${v})`} />
+    ))}
+
+    <!-- Reglas horizontales. La de y=55 es la mitad apagada de la de y=56 y no
+         un segundo trazo: se lee en el original con 3-7 de luminancia. -->
+    <rect x="380" y="55" width="1281" height="1" fill="#050505" />
+    <rect x="110" y="56" width="1551" height="1" fill="url(#hdr-r56)" />
+    <rect x="99" y="81" width="1562" height="2" fill="url(#hdr-r81)" />
+
+    <!-- Logotipo y título. Trazados: a este cuerpo ninguna mono del sistema
+         acierta la silueta ni la mancha, y el texto real vive en el aria-label,
+         así que la lámina se lee sin verla. -->
+    <g role="img" aria-label="KODEX−∞ / COSMOLOGY CORE" set:html={pinta(hdrTitulo, TINTA.titulo)} />
+
+    <!-- Bajada magenta. -->
+    <g role="img" aria-label="ORBIT MAP / NÚCLEO COSMOLÓGICO" set:html={pinta(hdrBajada, TINTA.bajada)} />
+
+    <!-- Árbol del chip: un solo glifo trazado, no un dibujo. Sus ramas y raíces
+         son doscientos trazos de 1 px y a ojo salen o macizas o peladas. -->
+    <g role="img" aria-label="Árbol KODEX−∞" set:html={pinta(hdrArbol, TINTA.arbol)} />
+
+    <!-- "TANDA 01" lleva cifra: va como texto dentro de un contenedor simbólico. -->
+    <g data-symbolic="true">
+      <text
+        class="hdr__t"
+        x={+(23 - LSB).toFixed(2)}
+        y="87"
+        font-size={TANDA_CUERPO}
+        textLength="59"
+        lengthAdjust="spacing"
+        fill="#e12a82"
+      >TANDA 01</text>
+    </g>
+
+    <!-- CORE STYLE SEED, ARCHIVE ID, DATE, SYS VER. y BUILD son ficción del
+         póster, no la lectura de ningún sistema: el bloque entero va marcado
+         como simbólico. Los rótulos van trazados —no llevan cifras— y los cinco
+         valores como texto. -->
+    <g data-symbolic="true">
+      <g
+        role="img"
+        aria-label="CORE STYLE SEED · ARCHIVE ID · DATE · SYS VER. · BUILD"
+        set:html={pinta(hdrClaves, TINTA.claves)}
+      />
+      {valores.map(([t, x, ancho, color]) => (
+        <text
+          class="hdr__v"
+          x={+(x - LSB).toFixed(2)}
+          y={VAL_CIMA + VAL_VERSAL}
+          font-size={CUERPO}
+          textLength={ancho}
+          lengthAdjust="spacing"
+          fill={color}
+        >{t}</text>
+      ))}
+    </g>
+
+    <!-- Código de barras: la luminancia media por columna del original entre
+         x=1181 y x=1288, comprimida por tramos, cada uno con SU valor. -->
+    <g>
+      {hdrBarras.tramos.map(([x, w, v]) => (
+        <rect x={x} y={hdrBarras.y} width={w} height={hdrBarras.h} fill={`rgb(${v},${v},${v})`} />
+      ))}
+    </g>
+
+    <!-- Lema en dos líneas y emblema alado. El de la cabecera mide 160×36 y el
+         del pie 158×33: parecidos pero no el mismo dibujo, así que van dos
+         trazados. Lo compartido es el pintor. -->
+    <g role="img" aria-label="PATTERN. PROTECT. PERPETUATE. // BUILT FOR ARCHIVES THAT REMEMBER.">
+      <g set:html={pinta(hdrLema1, TINTA.lema1)} />
+      <g set:html={pinta(hdrLema2, TINTA.lema2)} />
+    </g>
+    <g role="img" aria-label="Emblema alado KODEX−∞" set:html={pinta(hdrAla, TINTA.ala)} />
+  </svg>
+</div>
+
+<style>
+  /* position y overflow explícitos: el estilo con ámbito del componente le gana
+     a la clase heredada, y todo lo que sale de la caja pisa a los vecinos. */
+  .hdr {
+    position: absolute;
+    overflow: hidden;
+    font-family: var(--lam-mono);
+  }
+
+  .hdr__art { position: absolute; left: 0; top: 0; }
+
+  /* x=5..1666, y=5..936. Se declara entero y lo recorta la caja. */
+  .hdr__marco {
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    width: 1662px;
+    height: 932px;
+    box-sizing: border-box;
+    border: 1px solid #252525;
+    border-left-color: #202020;
+    border-right-color: #262626;
+    border-bottom-color: #161616;
+    border-radius: 4px;
+  }
+
+  .hdr__halo {
+    position: absolute;
+    left: 4px;
+    top: 5px;
+    width: 1664px;
+    height: 932px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-left-color: #0b0b0b;
+    border-right-color: #141414;
+    border-radius: 5px;
+  }
+
+  /* Chip del emblema. Borde izquierdo de 2 px porque en la referencia son dos
+     columnas llenas; sin borde inferior, que cae en y=91, fuera de la caja. */
+  .hdr__chip {
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    width: 72px;
+    height: 76px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    border-top-color: #782044;
+    border-right-color: #681341;
+    border-left: 2px solid #580e35;
+    border-bottom: 0;
+    border-radius: 3px;
+  }
+
+  .hdr__v,
+  .hdr__t {
+    font-family: var(--lam-mono);
+    font-variant-ligatures: none;
+    white-space: pre;
+  }
+</style>

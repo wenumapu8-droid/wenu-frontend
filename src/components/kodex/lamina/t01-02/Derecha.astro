@@ -1,0 +1,1131 @@
+---
+/**
+ * KODEX-∞ · t01-02 · BLOQUE DERECHA
+ * 05. EYE FRAGMENTS & TREATMENT CROPS · 06. SIGNAL WAVEFORMS / SPECTRAL READOUT
+ * 09. MOBILE SCENE TILES (16:9 PREVIEW)
+ *
+ * Caja del bloque: ref (1180,88) 488×778. Todo lo de acá va en coordenadas
+ * LOCALES: restar 1180 en x y 88 en y a cualquier coordenada de la referencia.
+ *
+ * OJO CON EL CORTE VERTICAL. El andamiaje parte en x=1180, pero el marco de las
+ * secciones 05 y 06 empieza en x=1122 — 58 px dentro del bloque Centro. No es
+ * un error de medición: la sección 08 (SHADER LOGIC) es más angosta que la 04,
+ * así que la columna derecha de la lámina no tiene un solo borde a toda la
+ * altura. Los paneles se dibujan en su sitio real (left negativo) y el
+ * `overflow:hidden` del bloque recorta lo que cae en territorio del vecino, que
+ * es lo contrario de pisarlo. La 09 sí empieza dentro (x=1278).
+ *
+ * MEDIDO sobre reference/canon/t01-02-observation-eye.png con perfiles de tinta
+ * por fila y por columna. Los marcos de esta lámina pican entre 20 y 30 de
+ * luminancia y los filetes interiores bajan a 8, así que el barrido va con
+ * umbral 6 y cobertura 0,55 — con el umbral por defecto la columna sale entera
+ * sin paneles.
+ *
+ *   marcos de sección   x 1122→1658 · y 93→319 · 336→580   |   09: x 1278→1658, y 583→843
+ *   filete bajo título  y 117 · 359 · 606        (lum 37 · 43 · 35: van bajando)
+ *   retícula de 05      x 1129 + i·88, ancho 84, i = 0…5    (los seis bordes: 1129 1217
+ *                       1305 1393 1481 1569, derechas 1213 1301 1389 1477 1565 1653)
+ *   fila 1 de 05        y 129→201; la primera miniatura ocupa DOS celdas (1129→1295)
+ *                       y las otras cuatro van en las celdas 2…5
+ *   rótulos de 05       y 213→234 · miniaturas fila 2  y 236→313
+ *   caja de ondas       x 1129→1400, y 369→567; particiones y 414 · 459 · 503
+ *   columna espectral   x 1418→1657: gráfico y 369→474 · cifras y 487→528
+ *                       (particiones x 1490 · 1572) · tira y 535→568
+ *   tira de espectro    el degradado real va de x 1424 a 1655, y 542→561
+ *   teléfono            x 1284→1652, y 616→798; pantalla 1297→1639, 625→789
+ *   pie de la 09        casilla+texto y 803→816 · y 822→833
+ *
+ * Densidad objetivo (tinta >18 y media rgb), que es contra lo que mide el banco
+ * desde que entró el diff estructural:
+ *
+ *   bloque entero      media 15,8  9,4 22,6  ·  19,9 %
+ *   sección 05         media 27,4 14,1 39,4  ·  33,8 %
+ *   sección 06         media 13,2  9,2 20,2  ·  17,8 %
+ *   sección 09         media 11,8  7,8 15,8  ·  14,9 %
+ *   HALFTONE           media 21,5 21,3 21,0  ·  40,1 %   (gris puro)
+ *   NEON ENERGY        media 65,0 16,3 93,0  ·  64,9 %   (la más encendida)
+ *   PIXEL SORT         media 25,5  7,6 49,6  ·  36,7 %
+ *   GLITCH MAP         media 42,0 15,2 71,6  ·  48,7 %
+ *   SCANLINE           media 27,6 15,7 44,0  ·  37,1 %
+ *   BITMAP NOISE       media 42,2 23,8 57,6  ·  55,7 %
+ *
+ * Las once miniaturas NO son once dibujos. Son ONCE RECORTES del mismo
+ * organismo — igual que los tres iris de la 01 son el mismo `iris()` con otra
+ * ganancia. El organismo vive en un espacio propio centrado en (0,0) y cada
+ * miniatura elige su `viewBox`: la fila 1 son encuadres del ojo entero o del
+ * limbo, la fila 2 son los mismos encuadres con un tratamiento encima. Eso es
+ * literalmente lo que dice el rótulo de la sección: «treatment crops».
+ *
+ * Para no meter 15.000 nodos en el DOM, cada capa del organismo se agrupa en
+ * cinco cubos de opacidad y sale como CINCO <path>. El grosor va correlacionado
+ * con la opacidad (regla del kit: no hay dos trazos con el mismo peso).
+ *
+ * Todos los números de esta lámina son ficción del póster: los contenedores que
+ * los muestran van con data-symbolic.
+ *
+ * DOS COSAS QUE COSTARON VUELTAS Y ESTÁN ANOTADAS DONDE PASAN:
+ *
+ * 1 · La proporción pupila/limbo, no el brillo, es lo que hace que un recorte
+ *     se lea como ojo y no como estallido de estrella. Con la densidad clavada
+ *     y la pupila a 0,28 del limbo las once miniaturas seguían pareciendo
+ *     soles; a 0,55 (que es lo que mide el original) el dibujo cambia entero.
+ *     Lo segundo del mismo orden: el campo exterior son filamentos CORTADOS,
+ *     con huecos, no radios continuos.
+ *
+ * 2 · `envolvente` del kit no hacía nada hasta que se normalizó. Una AR(1) con
+ *     inercia 0,955 tiene desviación 0,04 — se queda entre 0,46 y 0,54 — así
+ *     que multiplicar por ella deja el peine igual de parejo. Y aun
+ *     normalizada seguía sin verse, porque el jitter vertical del peine era
+ *     proporcional a la caja y rellenaba los silencios con una banda de ruido.
+ *     Las dos correcciones están en kit/Waveform.astro, la segunda sólo activa
+ *     cuando se pide envolvente, para no mover las láminas ya medidas.
+ *
+ * Estado al entregar: 8,59 % combinado (píxel 14,33 · estructural 2,84).
+ */
+import { rng, serieSuave, p2 } from "../kit/rng";
+import Waveform from "../kit/Waveform.astro";
+import Micrografia from "../kit/Micrografia.astro";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AGRUPADOR — N marcas → 5 <path>, uno por cubo de opacidad
+   ══════════════════════════════════════════════════════════════════════════ */
+
+type Marca = { d: string; o: number; w: number };
+
+function cubos(marcas: Marca[], n = 5) {
+  const out = Array.from({ length: n }, () => ({ d: "", o: 0, w: 0, k: 0 }));
+  for (const m of marcas) {
+    const i = Math.min(n - 1, Math.floor(m.o * n));
+    out[i].d += m.d;
+    out[i].o += m.o;
+    out[i].w += m.w;
+    out[i].k += 1;
+  }
+  return out
+    .filter((c) => c.k > 0)
+    .map((c) => ({ d: c.d, o: p2(c.o / c.k), w: p2(c.w / c.k) }));
+}
+
+const seg = (x1: number, y1: number, x2: number, y2: number) =>
+  `M${p2(x1)} ${p2(y1)}L${p2(x2)} ${p2(y2)}`;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EL ORGANISMO — un solo ojo, once encuadres
+   ══════════════════════════════════════════════════════════════════════════ */
+
+function organismo(semilla: number) {
+  const r = rng(semilla);
+
+  /* Fibras del iris: del borde de la pupila (11) hasta ~38. La longitud va con
+     raíz para que se apelmacen cerca del núcleo, como en la referencia.
+     MUCHAS y CORTAS: la primera versión salió con 1.150 rayos largos y el tile
+     se leía como estallido de estrella, no como un iris. Lo que separa las dos
+     lecturas es la relación entre el largo de la fibra y su separación, no el
+     brillo. */
+  const fib: Marca[] = [];
+  for (let i = 0; i < 2400; i++) {
+    const a = r() * Math.PI * 2;
+    const r0 = 15.4 + Math.pow(r(), 1.6) * 4;
+    const r1 = Math.min(27, r0 + 1.6 + Math.pow(r(), 0.8) * 10);
+    /* Caída de brillo hacia afuera: sin ella el iris no tiene borde y las
+       fibras se leen como rayos de sol. El limbo del ojo es un LÍMITE. */
+    const caida = 1 - 0.42 * ((r1 - 16) / 11);
+    const o = (0.05 + Math.pow(r(), 1.15) * 0.82) * caida;
+    fib.push({
+      d: seg(Math.cos(a) * r0, Math.sin(a) * r0, Math.cos(a) * r1, Math.sin(a) * r1),
+      o, w: p2(0.22 + o * 0.6 + r() * 0.18),
+    });
+  }
+
+  /* Radios exteriores: del limbo (27) hacia afuera, largos y separados. Son las
+     «grietas» de GLITCH MAP y los rayos de NEON ENERGY — la misma capa.
+     La proporción que importa es pupila/limbo ≈ 0,55: medida en la referencia,
+     el disco negro central pesa la mitad del anillo brillante. Con la pupila a
+     0,28 (primera pasada) las once miniaturas se leían como soles y no como
+     ojos, por mucho que la densidad total diera bien. */
+  const cor: Marca[] = [];
+  for (let i = 0; i < 330; i++) {
+    const a0 = (i / 330) * Math.PI * 2 + (r() - 0.5) * 0.08;
+    const fin = 30 + 4 + Math.pow(r(), 0.7) * 26;
+    const oo = 0.06 + Math.pow(r(), 1.25) * 0.74;
+    /* CORTADO, no continuo. Un radio entero de 27 a 55 dibuja un rayo de sol;
+       el campo exterior de la referencia son filamentos rotos, con huecos y con
+       la dirección desviándose un poco a cada tramo. La diferencia entre las
+       dos lecturas es sólo esta: dónde se corta la línea. */
+    let rad = 26.5 + r() * 3;
+    let a = a0;
+    while (rad < fin) {
+      const largo = 1.6 + Math.pow(r(), 0.8) * 7;
+      const a2 = a + (r() - 0.5) * 0.05;
+      const o = oo * (0.45 + r() * 0.85) * (1 - 0.35 * ((rad - 27) / 30));
+      cor.push({
+        d: seg(Math.cos(a) * rad, Math.sin(a) * rad,
+               Math.cos(a2) * (rad + largo), Math.sin(a2) * (rad + largo)),
+        o: Math.max(0.02, Math.min(0.96, o)), w: p2(0.3 + o * 1.15 + r() * 0.3),
+      });
+      rad += largo + (0.4 + Math.pow(r(), 1.6) * 5.5);
+      a = a2;
+    }
+  }
+
+  /* Halo: marcas cortas TANGENCIALES fuera de la corona. Son las que dan grano
+     al campo exterior; sin ellas los aros quedan solos y la textura se ve
+     radial de punta a punta. */
+  const hal: Marca[] = [];
+  for (let i = 0; i < 900; i++) {
+    const a = r() * Math.PI * 2;
+    const rad = 40 + Math.pow(r(), 0.75) * 100;
+    const dl = (0.02 + r() * 0.06) * (r() < 0.5 ? 1 : -1);
+    const o = 0.04 + Math.pow(r(), 1.5) * 0.5;
+    hal.push({
+      d: seg(Math.cos(a) * rad, Math.sin(a) * rad * 0.9,
+             Math.cos(a + dl) * rad, Math.sin(a + dl) * rad * 0.9),
+      o, w: p2(0.25 + o * 0.7),
+    });
+  }
+
+  /* Salpicadura: lo que da la mancha fuera del iris. Cuadraditos, no círculos:
+     un <circle> por mota son 1.900 nodos y esto es un solo path. */
+  const mot: Marca[] = [];
+  for (let i = 0; i < 2600; i++) {
+    const a = r() * Math.PI * 2;
+    const rad = 17 + Math.pow(r(), 0.75) * 128;
+    const s = p2(0.4 + Math.pow(r(), 2.2) * 1.6);
+    const x = p2(Math.cos(a) * rad), y = p2(Math.sin(a) * rad * 0.88);
+    mot.push({ d: `M${x} ${y}h${s}v${s}h-${s}z`, o: 0.04 + Math.pow(r(), 1.4) * 0.66, w: 0 });
+  }
+
+  /* Aros punteados en progresión geométrica 0.93 (regla del kit; repartidos de
+     a uno se leen como diana). Llegan a 172 porque en la pantalla del teléfono
+     los aros salen del encuadre por los cuatro lados. */
+  const aros: { r: number; o: number; w: number; g: string }[] = [];
+  let rr = 172;
+  for (let i = 0; i < 22; i++) {
+    aros.push({
+      r: p2(rr), o: p2(0.08 + r() * 0.42), w: p2(0.28 + (r() < 0.28 ? 0.42 : 0)),
+      g: `${p2(0.5 + r() * 3.4)} ${p2(0.9 + r() * 4.2)}`,
+    });
+    rr *= 0.93;
+  }
+
+  /* La veta: el ojo sale por los dos lados como una onda tumbada. */
+  const veta: Marca[] = [];
+  for (let i = 0; i < 230; i++) {
+    const x = -150 + (i * 300) / 229;
+    const d = Math.abs(x);
+    const g = d < 13 ? 0.35 : Math.max(0, 1 - (d - 13) / 135);
+    const h = (0.5 + r() * 5.2) * g * (r() < 0.12 ? 2.5 : 1);
+    const o = 0.12 + r() * 0.8;
+    veta.push({ d: seg(x, -h, x, h), o, w: p2(0.35 + o * 0.9) });
+  }
+
+  /* Venas / párpado: arcos larguísimos de radio grande, los que cruzan la
+     primera miniatura de lado a lado. */
+  const ven: Marca[] = [];
+  for (let i = 0; i < 11; i++) {
+    const R = 62 + r() * 105;
+    const a0 = r() * Math.PI * 2;
+    const sp = 0.5 + r() * 1.7;
+    const cx = (r() - 0.5) * 70, cy = (r() - 0.5) * 46;
+    const pts: string[] = [];
+    for (let k = 0; k <= 18; k++) {
+      const a = a0 + (sp * k) / 18;
+      pts.push(`${k ? "L" : "M"}${p2(cx + Math.cos(a) * R)} ${p2(cy + Math.sin(a) * R * 0.82)}`);
+    }
+    const o = 0.08 + r() * 0.42;
+    ven.push({ d: pts.join(""), o, w: p2(0.45 + o * 2.2) });
+  }
+
+  /* Arcos de instrumento: tramos de circunferencia CONTINUOS y brillantes, no
+     aros enteros. Son la firma que distingue las miniaturas de la referencia de
+     un simple estallido — cada recorte tiene dos o tres arcos gruesos cruzando
+     el encuadre. Sin ellos el tile se lee como estrella y el diff estructural
+     lo cobra en los bloques de 8×8 del borde. */
+  const arc: Marca[] = [];
+  for (let i = 0; i < 20; i++) {
+    const R = 26 + Math.pow(r(), 0.8) * 120;
+    const a0 = r() * Math.PI * 2;
+    const sp = 0.7 + r() * 2.6;
+    const pts: string[] = [];
+    for (let k = 0; k <= 26; k++) {
+      const a = a0 + (sp * k) / 26;
+      pts.push(`${k ? "L" : "M"}${p2(Math.cos(a) * R)} ${p2(Math.sin(a) * R * 0.9)}`);
+    }
+    const o = 0.16 + Math.pow(r(), 0.9) * 0.72;
+    arc.push({ d: pts.join(""), o, w: p2(0.4 + o * 1.5) });
+  }
+
+  return {
+    fib: cubos(fib), cor: cubos(cor), hal: cubos(hal, 4), mot: cubos(mot, 4),
+    aros, arc: cubos(arc, 4), veta: cubos(veta), ven: cubos(ven, 3),
+  };
+}
+
+const OJO = organismo(2207);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   05 · LAS ONCE MINIATURAS
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Rejilla medida: x = 1129 + i·88, ancho 84. Local = ref − 1180. */
+const COL = (i: number) => 1129 + i * 88 - 1180;
+const ANCHO = 84;
+
+/**
+ * Cada encuadre es `viewBox` sobre el mismo organismo. La relación de aspecto
+ * del viewBox iguala la de la caja: deformar el ojo se ve enseguida.
+ */
+type Tile = {
+  id: string; x: number; y: number; w: number; h: number;
+  vb: [number, number, number, number];
+  capas: string;          // qué capas del organismo entran
+  clase: string;          // paleta / tratamiento
+  fondo: string;
+  ganancia: number;       // multiplicador de opacidad
+  reticula?: number;      // paso de la retícula interna, si la tiene
+  cruz?: boolean;         // cruz de mira
+};
+
+/**
+ * Ganancias y fondos NO están elegidos a ojo: salen de medir la media rgb y la
+ * densidad de cada miniatura del original y del render, y dividir. La primera
+ * pasada quedó entre 2× y 3,5× más encendida que la referencia en todas menos
+ * una (`f-pupila`, que dio 100 contra 97 de suma rgb y quedó tal cual).
+ */
+/* fila 1 — y 129→201 (local 41), la primera ocupa dos celdas */
+const fila1: Tile[] = [
+  {
+    id: "f-eye", x: COL(0), y: 41, w: 166, h: 72, vb: [-112, -48.6, 224, 97.2],
+    capas: "vahmcfps", clase: "t--iris", fondo: "radial-gradient(58% 128% at 53% 48%, #1f0b31 0%, #100418 46%, #040106 100%)",
+    ganancia: 0.68, reticula: 0,
+  },
+  {
+    id: "f-limbo", x: COL(2), y: 41, w: ANCHO, h: 72, vb: [-76, -33.4, 78, 66.9],
+    capas: "ahmcfs", clase: "t--limbo", fondo: "radial-gradient(90% 120% at 78% 50%, #200a3a 0%, #0d0417 55%, #030105 100%)",
+    ganancia: 0.7, reticula: 15,
+  },
+  {
+    id: "f-pupila", x: COL(3), y: 41, w: ANCHO, h: 72, vb: [-30, -33.4, 78, 66.9],
+    capas: "ahmcps", clase: "t--pupila", fondo: "radial-gradient(60% 110% at 42% 46%, #180726 0%, #0a0311 58%, #020004 100%)",
+    ganancia: 0.66, reticula: 0, cruz: true,
+  },
+  {
+    id: "f-nucleo", x: COL(4), y: 41, w: ANCHO, h: 72, vb: [-50, -33.4, 78, 66.9],
+    capas: "vahmcfps", clase: "t--nucleo", fondo: "radial-gradient(70% 120% at 36% 48%, #120620 55%, #040108 100%)",
+    ganancia: 0.32, reticula: 0,
+  },
+  {
+    id: "f-malla", x: COL(5), y: 41, w: ANCHO, h: 72, vb: [14, -33.4, 78, 66.9],
+    capas: "ahms", clase: "t--malla", fondo: "linear-gradient(180deg, #0e0e12 0%, #08080b 100%)",
+    ganancia: 0.78, cruz: true, reticula: 13,
+  },
+];
+
+/* fila 2 — rótulos y 213→234 (local 125), miniaturas y 236→313 (local 148) */
+const fila2: Tile[] = [
+  {
+    id: "t-half", x: COL(0), y: 148, w: ANCHO, h: 77, vb: [-39, -35.8, 78, 71.5],
+    capas: "hms", clase: "t--half", fondo: "radial-gradient(58% 58% at 50% 50%, #0a0a0a 0%, #050505 62%, #020202 100%)",
+    ganancia: 0.42,
+  },
+  {
+    id: "t-neon", x: COL(1), y: 148, w: ANCHO, h: 77, vb: [-39, -35.8, 78, 71.5],
+    capas: "acfps", clase: "t--neon", fondo: "radial-gradient(62% 62% at 50% 50%, #1c0429 0%, #0c0215 58%, #040006 100%)",
+    ganancia: 0.56,
+  },
+  {
+    id: "t-pixel", x: COL(2), y: 148, w: ANCHO, h: 77, vb: [-39, -35.8, 78, 71.5],
+    capas: "", clase: "t--pixel", fondo: "linear-gradient(90deg, #030108 0%, #05020c 60%, #020004 100%)",
+    ganancia: 1, reticula: 15,
+  },
+  {
+    id: "t-glitch", x: COL(3), y: 148, w: ANCHO, h: 77, vb: [-36, -33, 78, 71.5],
+    capas: "ahcfs", clase: "t--glitch", fondo: "radial-gradient(64% 64% at 52% 50%, #1a052a 0%, #0b0210 60%, #030004 100%)",
+    ganancia: 0.58,
+  },
+  {
+    id: "t-scan", x: COL(4), y: 148, w: ANCHO, h: 77, vb: [-62, -56.8, 110, 100.8],
+    capas: "ahmcs", clase: "t--scan", fondo: "radial-gradient(66% 66% at 50% 50%, #170623 0%, #0a0313 62%, #030105 100%)",
+    ganancia: 0.9,
+  },
+  {
+    id: "t-bitmap", x: COL(5), y: 148, w: ANCHO, h: 77, vb: [-39, -35.8, 78, 71.5],
+    capas: "ahmcfps", clase: "t--bitmap", fondo: "radial-gradient(60% 60% at 50% 50%, #0d0415 0%, #06020a 60%, #020004 100%)",
+    ganancia: 0.25,
+  },
+];
+
+const rotulos = ["HALFTONE", "NEON ENERGY", "PIXEL SORT", "GLITCH MAP", "SCANLINE", "BITMAP NOISE"];
+
+/* PIXEL SORT no es un recorte del ojo: es el ojo arrastrado en horizontal.
+   Filas de barras de largo irregular que caen desde la silueta del iris. */
+function pixelSort(semilla: number, w: number, h: number) {
+  const r = rng(semilla);
+  const filas: { y: number; x: number; w: number; o: number; c: number; alto: number }[] = [];
+  const cy = h * 0.52, rx = w * 0.34, ry = h * 0.42;
+  for (let y = 1; y < h - 1; y += 1) {
+    const t = (y - cy) / ry;
+    if (Math.abs(t) > 1) continue;
+    const media = Math.sqrt(1 - t * t) * rx;
+    const n = 2 + Math.floor(r() * 4);
+    for (let k = 0; k < n; k++) {
+      const x0 = w * 0.04 + r() * media * 1.1;
+      const largo = media * (0.14 + r() * 0.85) * (r() < 0.12 ? 2.1 : 1);
+      filas.push({
+        y: p2(y), x: p2(x0), w: p2(Math.min(largo, w - x0 - 1)),
+        o: p2(0.18 + r() * 0.78), c: r(), alto: r() < 0.2 ? 2 : 1,
+      });
+    }
+  }
+  return filas;
+}
+const PIXELS = pixelSort(4409, ANCHO, 77);
+
+/* SCANLINE lleva encima las bandas horizontales que le dan el nombre. */
+const SCANLINES = Array.from({ length: 26 }, (_, i) => p2(1.5 + i * 2.9));
+
+/* BITMAP NOISE: trama de puntos ordenada (Bayer-ish) recortada por el iris. */
+function trama(semilla: number, w: number, h: number) {
+  const r = rng(semilla);
+  const p: string[] = [];
+  for (let y = 1; y < h; y += 2) {
+    for (let x = 1 + (y % 4 === 1 ? 0 : 1); x < w; x += 2) {
+      const dx = (x - w * 0.5) / (w * 0.46), dy = (y - h * 0.5) / (h * 0.46);
+      const d = Math.hypot(dx, dy);
+      if (d > 1.05) continue;
+      if (r() > 0.28 + 0.55 * Math.abs(Math.sin(d * 5.4))) continue;
+      p.push(`M${x} ${y}h1v1h-1z`);
+    }
+  }
+  return p.join("");
+}
+const TRAMA = trama(5501, ANCHO, 77);
+
+/* HALFTONE: el mismo ojo pero resuelto en puntos de tamaño variable. */
+function halftone(semilla: number, w: number, h: number) {
+  const r = rng(semilla);
+  const p: { d: string; o: number }[] = [];
+  for (let y = 1.2; y < h; y += 1.9) {
+    for (let x = 1.2; x < w; x += 1.9) {
+      const dx = (x - w * 0.5) / (w * 0.42), dy = (y - h * 0.5) / (h * 0.42);
+      const d = Math.hypot(dx, dy);
+      if (d > 1.25) continue;
+      /* anillo brillante entre 0,45 y 0,95: el iris. Pupila negra. */
+      const v = d < 0.4 ? 0.02 : Math.max(0, 1 - Math.abs(d - 0.8) / 0.62) * (0.4 + r() * 0.9);
+      if (v < 0.12) continue;
+      const s = p2(0.5 + v * 1.7);
+      p.push({ d: `M${p2(x)} ${p2(y)}h${s}v${s}h-${s}z`, o: p2(Math.min(0.95, v)) });
+    }
+  }
+  return cubos(p.map((q) => ({ ...q, w: 0 })), 4);
+}
+const HALFTONE = halftone(6607, ANCHO, 77);
+
+/* ══════════════════════════════════════════════════════════════════════════
+   06 · ONDAS Y LECTURA ESPECTRAL
+   ══════════════════════════════════════════════════════════════════════════ */
+
+const ondas = [
+  { rot: "VISUAL SIGNAL", y: 281, h: 45, lbl: 288, cy: 313, sem: 3101, n: 142, env: 0.9, amp: 36, k: "vis" },
+  { rot: "NEURAL FEED", y: 326, h: 45, lbl: 333, cy: 352, sem: 3203, n: 148, env: 0.9, amp: 32, k: "neu" },
+  { rot: "ENERGY FIELD", y: 371, h: 44, lbl: 378, cy: 396, sem: 3307, n: 152, env: 0.9, amp: 29, k: "ene" },
+];
+
+/* SPECTRAL RANGE no es un peine centrado: es un espectro apoyado en la base,
+   con picos agrupados a la izquierda y una cola de puntos a la derecha. */
+function espectroBanda(semilla: number, w: number, base: number, altoMax: number) {
+  const r = rng(semilla);
+  /* Al cuadrado, igual que la envolvente del kit: la referencia tiene racimos
+     de picos y tramos de silencio, no una empalizada pareja. */
+  const crudo = serieSuave(semilla ^ 0x77, 210, 0.93, 0, 1);
+  const lo = Math.min(...crudo), hi = Math.max(...crudo);
+  const env = crudo.map((v) => 0.1 + 0.9 * Math.pow((v - lo) / (hi - lo || 1), 1.4));
+  const barras: Marca[] = [];
+  for (let i = 0; i < 210; i++) {
+    const x = p2((i * w) / 209);
+    const caida = 1 - Math.pow(i / 209, 0.8) * 0.78;
+    const h = env[i] * altoMax * caida * (r() < 0.1 ? 2.1 : 0.55 + r() * 0.95);
+    if (h < 0.7) continue;
+    const o = 0.14 + r() * 0.72;
+    barras.push({ d: seg(x, base, x, base - h), o, w: p2(0.35 + o * 0.7) });
+  }
+  const motas: Marca[] = [];
+  for (let i = 0; i < 320; i++) {
+    const x = p2(r() * w);
+    const t = x / w;
+    const y = p2(base - Math.pow(r(), 1.6) * altoMax * (1 - t * 0.5));
+    motas.push({ d: `M${x} ${y}h0.8v0.8h-0.8z`, o: 0.1 + r() * 0.65, w: 0 });
+  }
+  return { barras: cubos(barras), motas: cubos(motas, 3) };
+}
+const ESPECTRAL = espectroBanda(3407, 267, 62, 50);
+
+/**
+ * SPECTRUM ANALYSIS · cresta apilada.
+ *
+ * No es un gráfico de barras: son ~24 perfiles espectrales dibujados uno detrás
+ * del otro, cada uno un poco más arriba y a la izquierda, del fondo al frente.
+ * El color no va por capa sino por posición horizontal — turquesa a la
+ * izquierda, blanco en el pico central, violeta y azul a la derecha — así que
+ * todos comparten un degradado horizontal.
+ */
+function crestas(semilla: number, w: number, h: number, n: number) {
+  const r = rng(semilla);
+  const M = 150;
+  /* perfil común: dónde están los picos del espectro */
+  const picos = [
+    { c: 0.09, a: 0.62, s: 0.016 }, { c: 0.15, a: 0.3, s: 0.02 },
+    { c: 0.24, a: 0.44, s: 0.022 }, { c: 0.3, a: 0.98, s: 0.012 },
+    { c: 0.33, a: 0.55, s: 0.018 }, { c: 0.37, a: 0.7, s: 0.014 },
+    { c: 0.43, a: 0.42, s: 0.026 }, { c: 0.52, a: 0.3, s: 0.03 },
+    { c: 0.62, a: 0.26, s: 0.034 }, { c: 0.73, a: 0.28, s: 0.03 },
+    { c: 0.84, a: 0.2, s: 0.036 },
+  ];
+  const capas: { d: string; o: number; w: number }[] = [];
+  for (let k = n - 1; k >= 0; k--) {
+    const dx = -k * 0.34;
+    const base = h - 2 - k * 0.42;
+    const cima = base;
+    const g = 1 - k / (n + 5);
+    const pts: string[] = [`M${p2(dx)} ${p2(base)}`];
+    for (let i = 0; i <= M; i++) {
+      const t = i / M;
+      let v = 0.012;
+      for (const p of picos) {
+        const u = (t - p.c - k * 0.0016) / p.s;
+        v += p.a * Math.exp(-u * u * 0.5) * (0.55 + 0.75 * r());
+      }
+      v += Math.pow(r(), 3) * 0.06;
+      v *= g * (0.5 + 0.85 * Math.exp(-Math.pow((t - 0.3) / 0.36, 2)));
+      pts.push(`L${p2(dx + t * w)} ${p2(Math.max(2, cima - v * (h - 8)))}`);
+    }
+    pts.push(`L${p2(dx + w)} ${p2(base)}Z`);
+    capas.push({ d: pts.join(""), o: p2(0.14 + g * 0.34), w: p2(0.28 + g * 0.34) });
+  }
+  return capas;
+}
+const CRESTAS = crestas(3511, 214, 76, 24);
+
+const cifras = [
+  { k: "PEAK", v: "612.4 nm", x: 6, w: 72 },
+  { k: "BANDWIDTH", v: "124.7 nm", x: 78, w: 82 },
+  { k: "INTENSITY", v: "87.2%", x: 160, w: 79 },
+];
+
+/* ══════════════════════════════════════════════════════════════════════════
+   09 · TELÉFONO
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* La pantalla en coordenadas propias: 342×164, y el organismo entero adentro.
+   El HUD son bloques de micrografía en los dos flancos, medidos del original. */
+const hudIzq = [
+  { x: 23, y: 20, w: 34, h: 14, s: 7001, r: 3.1, m: 1, p: 4.4 },
+  { x: 25, y: 47, w: 22, h: 9, s: 7013, r: 3.2, m: 1, p: 4.0 },
+  { x: 25, y: 62, w: 20, h: 15, s: 7017, r: 3.6, m: 1, p: 4.0 },
+  { x: 21, y: 80, w: 52, h: 18, s: 7019, r: 3.4, m: 1, p: 5.6 },
+  { x: 22, y: 104, w: 47, h: 19, s: 7027, r: 3.5, m: 1, p: 5.2 },
+  { x: 76, y: 60, w: 30, h: 30, s: 7031, r: 3.4, m: 1, p: 3.6 },
+  { x: 78, y: 108, w: 26, h: 14, s: 7037, r: 3.4, m: 1, p: 3.4 },
+];
+const hudDer = [
+  { x: 285, y: 6, w: 26, h: 8, s: 7103, r: 3.2, m: 1, p: 3.6 },
+  { x: 285, y: 27, w: 30, h: 7, s: 7107, r: 3.2, m: 1, p: 4.6 },
+  { x: 275, y: 44, w: 46, h: 34, s: 7109, r: 3.5, m: 1, p: 5.0 },
+  { x: 280, y: 88, w: 42, h: 24, s: 7113, r: 3.5, m: 1, p: 4.8 },
+  { x: 280, y: 150, w: 42, h: 11, s: 7121, r: 3.4, m: 1, p: 4.6 },
+  { x: 246, y: 62, w: 24, h: 22, s: 7129, r: 3.4, m: 1, p: 3.4 },
+  { x: 244, y: 112, w: 26, h: 12, s: 7151, r: 3.4, m: 1, p: 3.4 },
+];
+const cajasIzq = [
+  { x: 21, y: 4, w: 51, h: 13 },
+  { x: 22, y: 44, w: 25, h: 14 },
+  { x: 21, y: 131, w: 27, h: 30 },
+  { x: 52, y: 131, w: 22, h: 30 },
+];
+const cajasDer = [
+  { x: 281, y: 3, w: 38, h: 13, cy: true },
+  { x: 281, y: 24, w: 39, h: 11 },
+  { x: 297, y: 129, w: 24, h: 18 },
+];
+
+/* Los dos instrumentos de abajo a la izquierda: un disco de radios y un sello
+   circular. Van chicos y con poco contraste; a este tamaño no son legibles y no
+   deben serlo. */
+const dialRadios = Array.from({ length: 26 }, (_, i) => {
+  const a = (i / 26) * Math.PI * 2;
+  return { x1: p2(Math.cos(a) * 4.5), y1: p2(Math.sin(a) * 4.5),
+           x2: p2(Math.cos(a) * 9.5), y2: p2(Math.sin(a) * 9.5), o: p2(0.2 + ((i * 7) % 11) / 16) };
+});
+
+/* Retícula de la pantalla: las verticales/horizontales tenues del área segura. */
+const safeV = [0.16, 0.33, 0.5, 0.67, 0.84];
+const safeH = [0.22, 0.5, 0.78];
+---
+
+<div data-box style={box} class="oe2">
+  {/* ══════════════ 05 · EYE FRAGMENTS & TREATMENT CROPS ══════════════ */}
+  <div class="oe2__frame" style="left:-58px;top:5px;width:536px;height:226px"></div>
+  <div class="oe2__h1" style="left:-50px;top:12px">05. EYE FRAGMENTS &amp; TREATMENT CROPS</div>
+  <i class="oe2__rule oe2__rule--a" style="left:-58px;top:29px;width:536px"></i>
+
+  {[...fila1, ...fila2].map((t) => (
+    <div
+      class={`oe2__tile ${t.clase}`}
+      style={`left:${t.x}px;top:${t.y}px;width:${t.w}px;height:${t.h}px;background:${t.fondo}`}
+      data-symbolic="true"
+      aria-hidden="true"
+    >
+      <svg viewBox={t.vb.join(" ")} width={t.w} height={t.h}>
+        {t.reticula ? (
+          <g class="oe2__ret">
+            {Array.from({ length: 13 }, (_, i) => p2(t.vb[0] + i * t.reticula)).map((gx) => (
+              <line x1={gx} y1={t.vb[1]} x2={gx} y2={p2(t.vb[1] + t.vb[3])} />
+            ))}
+            {Array.from({ length: 11 }, (_, i) => p2(t.vb[1] + i * t.reticula)).map((gy) => (
+              <line x1={t.vb[0]} y1={gy} x2={p2(t.vb[0] + t.vb[2])} y2={gy} />
+            ))}
+          </g>
+        ) : null}
+
+        <g fill="none" stroke="currentColor" stroke-linecap="round">
+          {t.capas.includes("v") && OJO.ven.map((c) => (
+            <path d={c.d} stroke-width={c.w} opacity={p2(Math.min(1, c.o * t.ganancia))} />
+          ))}
+          {t.capas.includes("a") && OJO.aros.map((a) => (
+            <ellipse
+              cx="0" cy="0" rx={a.r} ry={p2(a.r * 0.9)}
+              stroke-width={a.w} stroke-dasharray={a.g}
+              opacity={p2(Math.min(1, a.o * t.ganancia))}
+            />
+          ))}
+          {t.capas.includes("s") && OJO.arc.map((c) => (
+            <path d={c.d} stroke-width={c.w} opacity={p2(Math.min(1, c.o * t.ganancia))} />
+          ))}
+          {t.capas.includes("h") && OJO.hal.map((c) => (
+            <path d={c.d} stroke-width={c.w} opacity={p2(Math.min(1, c.o * t.ganancia))} />
+          ))}
+          {t.capas.includes("c") && OJO.cor.map((c) => (
+            <path d={c.d} stroke-width={c.w} opacity={p2(Math.min(1, c.o * t.ganancia))} />
+          ))}
+          {t.capas.includes("f") && OJO.fib.map((c) => (
+            <path d={c.d} stroke-width={c.w} opacity={p2(Math.min(1, c.o * t.ganancia))} />
+          ))}
+          {t.capas.includes("p") && OJO.veta.map((c) => (
+            <path d={c.d} stroke-width={c.w} opacity={p2(Math.min(1, c.o * t.ganancia * 0.9))} />
+          ))}
+        </g>
+
+        {t.capas.includes("m") && OJO.mot.map((c) => (
+          <path d={c.d} fill="currentColor" opacity={p2(Math.min(1, c.o * t.ganancia))} />
+        ))}
+
+        {/* núcleo: la pupila y su reflejo */}
+        {t.capas.includes("f") && (
+          <g>
+            <circle cx="0" cy="0" r="26.6" fill="none" stroke="currentColor" stroke-width="1.1" opacity={p2(Math.min(1, 0.7 * t.ganancia * 1.6))} />
+            <circle cx="0" cy="0" r="15" fill="#040108" />
+            <circle cx="0" cy="0" r="15" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.6" />
+            <circle cx="5.2" cy="-4.8" r="2.6" class="oe2__spec" />
+          </g>
+        )}
+
+        {t.cruz && (
+          <g class="oe2__cruz">
+            <line x1={t.vb[0]} y1="0" x2={p2(t.vb[0] + t.vb[2])} y2="0" />
+            <line x1="6" y1={t.vb[1]} x2="6" y2={p2(t.vb[1] + t.vb[3])} />
+          </g>
+        )}
+      </svg>
+
+      {t.id === "t-half" && (
+        <svg class="oe2__ov" viewBox={`0 0 ${ANCHO} 77`} width={ANCHO} height="77">
+          {HALFTONE.map((c) => <path d={c.d} fill="#b4b4b0" opacity={p2(c.o * 0.3)} />)}
+          <circle cx={ANCHO / 2} cy="38.5" r="15" fill="#050505" />
+        </svg>
+      )}
+
+      {t.id === "t-pixel" && (
+        <svg class="oe2__ov" viewBox={`0 0 ${ANCHO} 77`} width={ANCHO} height="77">
+          {PIXELS.map((f) => (
+            <rect
+              x={f.x} y={f.y} width={f.w} height={f.alto}
+              fill={f.c < 0.34 ? "#1c1e6e" : f.c < 0.7 ? "#7a24c8" : "#b545e8"}
+              opacity={f.o}
+            />
+          ))}
+        </svg>
+      )}
+
+      {t.id === "t-scan" && (
+        <svg class="oe2__ov" viewBox={`0 0 ${ANCHO} 77`} width={ANCHO} height="77">
+          {SCANLINES.map((y, i) => (
+            <line x1="0" y1={y} x2={ANCHO} y2={y} stroke="#000" stroke-width="1.5" opacity={i % 3 === 0 ? 0.62 : 0.42} />
+          ))}
+        </svg>
+      )}
+
+      {t.id === "t-bitmap" && (
+        <svg class="oe2__ov" viewBox={`0 0 ${ANCHO} 77`} width={ANCHO} height="77">
+          <path d={TRAMA} fill="#c89ce4" opacity="0.22" />
+          <circle cx="46" cy="36" r="3.2" fill="#e8d4f8" opacity="0.62" />
+        </svg>
+      )}
+
+      {t.id === "t-glitch" && (
+        <svg class="oe2__ov" viewBox="-36 -33 78 71.5" width={ANCHO} height="77">
+          <circle cx="5" cy="0" r="21" fill="none" stroke="#b84cf0" stroke-width="2.4" opacity="0.92" />
+          <circle cx="5" cy="0" r="21" fill="#08010e" opacity="0.9" />
+          <circle cx="5" cy="0" r="24" fill="none" stroke="#8a2fc0" stroke-width="0.8" opacity="0.42" />
+        </svg>
+      )}
+
+      {t.id === "t-neon" && (
+        <svg class="oe2__ov" viewBox="-39 -35.8 78 71.5" width={ANCHO} height="77">
+          <circle cx="0" cy="0" r="27" fill="none" stroke="#e04cff" stroke-width="1.4" opacity="0.8" />
+          <circle cx="0" cy="0" r="16.5" fill="none" stroke="#c93ce8" stroke-width="0.8" opacity="0.45" />
+          <rect x="-14" y="-13" width="28" height="26" rx="3" fill="#0d0114" opacity="0.95" />
+          <circle cx="0" cy="0" r="1.6" fill="#ff62ff" opacity="0.95" />
+          <line x1="-58" y1="0" x2="58" y2="0" stroke="#c94ce8" stroke-width="0.7" opacity="0.6" />
+        </svg>
+      )}
+    </div>
+  ))}
+
+  {rotulos.map((r, i) => (
+    <div class="oe2__lbl" style={`left:${COL(i)}px;top:125px;width:${ANCHO}px;height:21px`}>{r}</div>
+  ))}
+
+  {/* ══════════════ 06 · SIGNAL WAVEFORMS / SPECTRAL READOUT ══════════════ */}
+  <div class="oe2__frame oe2__frame--b" style="left:-58px;top:248px;width:536px;height:244px"></div>
+  <div class="oe2__h1" style="left:-50px;top:255px">06. SIGNAL WAVEFORMS / SPECTRAL READOUT</div>
+  <i class="oe2__rule oe2__rule--b" style="left:-58px;top:271px;width:536px"></i>
+
+  {/* — caja de ondas — */}
+  <div class="oe2__box" style="left:-51px;top:281px;width:271px;height:198px"></div>
+  <i class="oe2__hair" style="left:-51px;top:326px;width:271px"></i>
+  <i class="oe2__hair" style="left:-51px;top:371px;width:271px"></i>
+  <i class="oe2__hair" style="left:-51px;top:415px;width:271px"></i>
+
+  {ondas.map((o) => (
+    <>
+      <div class={`oe2__wlbl oe2__wlbl--${o.k}`} style={`left:-42px;top:${o.lbl}px`}>{o.rot}</div>
+      <div class={`oe2__wave oe2__wave--${o.k}`} style={`left:-49px;top:${o.cy - o.amp / 2}px`} data-symbolic="true" aria-hidden="true">
+        <Waveform
+          w={267} h={o.amp} semilla={o.sem} variante="peine" n={o.n}
+          inercia={0.07} envolvente={o.env} grosor={0.72} margen={0}
+        />
+      </div>
+      <i class={`oe2__base oe2__base--${o.k}`} style={`left:-49px;top:${o.cy}px;width:267px`}></i>
+    </>
+  ))}
+
+  <div class="oe2__wlbl oe2__wlbl--spe" style="left:-42px;top:422px">SPECTRAL RANGE</div>
+  <div class="oe2__band" style="left:-49px;top:414px" data-symbolic="true" aria-hidden="true">
+    <svg viewBox="0 0 267 64" width="267" height="64">
+      <g class="oe2__ret oe2__ret--b">
+        {Array.from({ length: 11 }, (_, i) => p2(i * 26.7)).map((gx) => (
+          <line x1={gx} y1="4" x2={gx} y2="62" />
+        ))}
+      </g>
+      <g fill="none" stroke="currentColor" stroke-linecap="round">
+        {ESPECTRAL.barras.map((c) => <path d={c.d} stroke-width={c.w} opacity={c.o} />)}
+      </g>
+      {ESPECTRAL.motas.map((c) => <path d={c.d} fill="currentColor" opacity={c.o} />)}
+      <line x1="0" y1="62" x2="267" y2="62" stroke="currentColor" stroke-width="0.5" opacity="0.5" />
+    </svg>
+  </div>
+
+  {/* — columna espectral — */}
+  <div class="oe2__box" style="left:238px;top:281px;width:239px;height:105px"></div>
+  <div class="oe2__slbl" style="left:247px;top:288px">SPECTRUM ANALYSIS</div>
+  <div class="oe2__crest" style="left:245px;top:303px" data-symbolic="true" aria-hidden="true">
+    <svg viewBox="0 0 221 80" width="221" height="80">
+      <defs>
+        <linearGradient id="oe2-esp" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#0f9fb8" />
+          <stop offset="14%" stop-color="#37b6c8" />
+          <stop offset="26%" stop-color="#c9c6d8" />
+          <stop offset="34%" stop-color="#e6e2ee" />
+          <stop offset="44%" stop-color="#a94ce0" />
+          <stop offset="58%" stop-color="#7a34d0" />
+          <stop offset="74%" stop-color="#2f52c8" />
+          <stop offset="88%" stop-color="#4a2fb0" />
+          <stop offset="100%" stop-color="#7a2fb8" />
+        </linearGradient>
+        <linearGradient id="oe2-espf" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7a3cb8" stop-opacity="0.26" />
+          <stop offset="60%" stop-color="#5a1f96" stop-opacity="0.1" />
+          <stop offset="100%" stop-color="#28063c" stop-opacity="0.02" />
+        </linearGradient>
+      </defs>
+      <g class="oe2__ret oe2__ret--c">
+        {Array.from({ length: 8 }, (_, i) => p2(4 + i * 30)).map((gx) => (
+          <line x1={gx} y1="2" x2={gx} y2="78" />
+        ))}
+        {Array.from({ length: 5 }, (_, i) => p2(8 + i * 17)).map((gy) => (
+          <line x1="2" y1={gy} x2="219" y2={gy} />
+        ))}
+      </g>
+      {CRESTAS.map((c) => (
+        <path d={c.d} fill="url(#oe2-espf)" stroke="url(#oe2-esp)" stroke-width={c.w} opacity={c.o} />
+      ))}
+    </svg>
+  </div>
+
+  {/* — cifras — */}
+  <div class="oe2__box" style="left:238px;top:399px;width:239px;height:41px"></div>
+  <i class="oe2__vdiv" style="left:310px;top:400px;height:39px"></i>
+  <i class="oe2__vdiv" style="left:392px;top:400px;height:39px"></i>
+  {cifras.map((c) => (
+    <>
+      <div class="oe2__ck" style={`left:${238 + c.x}px;top:406px`}>{c.k}</div>
+      <div class="oe2__cv" style={`left:${238 + c.x}px;top:418px`} data-symbolic="true">{c.v}</div>
+    </>
+  ))}
+
+  {/* — tira de espectro — */}
+  <div class="oe2__box" style="left:238px;top:447px;width:239px;height:33px"></div>
+  <div class="oe2__tira" style="left:244px;top:454px;width:231px;height:20px" data-symbolic="true" aria-hidden="true">
+    <i class="oe2__tira-lin"></i>
+  </div>
+
+  {/* ══════════════ 09 · MOBILE SCENE TILES (16:9 PREVIEW) ══════════════ */}
+  <div class="oe2__frame oe2__frame--c" style="left:98px;top:495px;width:380px;height:260px"></div>
+  <div class="oe2__h1 oe2__h1--c" style="left:107px;top:502px">09. MOBILE SCENE TILES (16:9 PREVIEW)</div>
+  <i class="oe2__rule oe2__rule--c" style="left:98px;top:518px;width:380px"></i>
+
+  <div class="oe2__fono" style="left:104px;top:528px;width:368px;height:182px">
+    <i class="oe2__fono-alt"></i>
+    <i class="oe2__fono-btn"></i>
+    <div class="oe2__pant" data-symbolic="true" aria-hidden="true">
+      <svg viewBox="-85.5 -41 171 82" width="342" height="164">
+        <g class="oe2__ret oe2__ret--d">
+          {safeV.map((f) => (
+            <line x1={p2(-85.5 + f * 171)} y1="-41" x2={p2(-85.5 + f * 171)} y2="41" />
+          ))}
+          {safeH.map((f) => (
+            <line x1="-85.5" y1={p2(-41 + f * 82)} x2="85.5" y2={p2(-41 + f * 82)} />
+          ))}
+        </g>
+
+        {/* La pantalla es la vista MÁS lejana del mismo organismo: los aros
+            salen del encuadre y el iris ocupa un tercio del ancho. Ganancia
+            0,45 medida contra la media del original (14/8/19). */}
+        <g class="oe2__org" fill="none" stroke="currentColor" stroke-linecap="round">
+          {OJO.ven.map((c) => <path d={c.d} stroke-width={c.w} opacity={p2(c.o * 0.18)} />)}
+          {OJO.aros.map((a) => (
+            <ellipse cx="0" cy="0" rx={a.r} ry={p2(a.r * 0.9)} stroke-width={a.w} stroke-dasharray={a.g} opacity={p2(a.o * 0.7)} />
+          ))}
+          {OJO.hal.map((c) => <path d={c.d} stroke-width={c.w} opacity={p2(c.o * 0.16)} />)}
+          {OJO.cor.map((c) => <path d={c.d} stroke-width={c.w} opacity={p2(c.o * 0.1)} />)}
+          {OJO.fib.map((c) => <path d={c.d} stroke-width={c.w} opacity={p2(c.o * 0.14)} />)}
+          {OJO.veta.map((c) => <path d={c.d} stroke-width={c.w} opacity={p2(c.o * 0.42)} />)}
+        </g>
+        <g class="oe2__org">
+          {OJO.mot.map((c) => <path d={c.d} fill="currentColor" opacity={p2(c.o * 0.22)} />)}
+        </g>
+        <g class="oe2__org" fill="none" stroke="currentColor" transform="scale(0.5)">
+          {OJO.fib.map((c) => <path d={c.d} stroke-width={p2(c.w * 2)} opacity={p2(c.o * 0.2)} />)}
+        </g>
+        <circle cx="0" cy="0" r="6" fill="#030106" />
+        <circle cx="0" cy="0" r="6" fill="none" stroke="#c07ce8" stroke-width="0.4" opacity="0.5" />
+        <text x="0" y="1.4" class="oe2__inf">&#8734;</text>
+      </svg>
+
+      {cajasIzq.map((c) => (
+        <i class="oe2__hud" style={`left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px`}></i>
+      ))}
+      {cajasDer.map((c) => (
+        <i class={`oe2__hud ${c.cy ? "oe2__hud--cy" : ""}`} style={`left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px`}></i>
+      ))}
+      <div class="oe2__wm">KODEX-&#8734;</div>
+
+      <svg class="oe2__dial" style="left:23px;top:135px" viewBox="-13 -12 26 24" width="24" height="22" aria-hidden="true">
+        <g stroke="currentColor" fill="none">
+          {dialRadios.map((d) => (
+            <line x1={d.x1} y1={d.y1} x2={d.x2} y2={d.y2} stroke-width="0.5" opacity={d.o} />
+          ))}
+          <circle cx="0" cy="0" r="10.5" stroke-width="0.5" opacity="0.55" />
+          <circle cx="0" cy="0" r="4" stroke-width="0.5" opacity="0.8" />
+          <path d="M-10.5 6.5 A10.5 10.5 0 0 0 10.5 6.5" stroke-width="0.7" opacity="0.75" />
+        </g>
+      </svg>
+      <svg class="oe2__dial" style="left:54px;top:134px" viewBox="-11 -11 22 22" width="19" height="19" aria-hidden="true">
+        <g stroke="currentColor" fill="none">
+          <circle cx="0" cy="0" r="8.6" stroke-width="0.6" opacity="0.7" />
+          <circle cx="0" cy="0" r="6.2" stroke-width="0.5" opacity="0.45" />
+          <path d="M-3.4 -2.2 A4 4 0 1 1 3.4 2.6" stroke-width="0.8" opacity="0.85" />
+          <line x1="0" y1="-8.6" x2="0" y2="-6" stroke-width="0.7" opacity="0.8" />
+        </g>
+      </svg>
+
+      {hudIzq.map((b) => (
+        <div class="oe2__mg" style={`left:${b.x}px;top:${b.y}px`}>
+          <Micrografia w={b.w} h={b.h} semilla={b.s} renglon={b.r} marca={b.m} palabra={b.p} densidad={0.66} opacidad={0.62} huecos={0.14} />
+        </div>
+      ))}
+      {hudDer.map((b) => (
+        <div class="oe2__mg" style={`left:${b.x}px;top:${b.y}px`}>
+          <Micrografia w={b.w} h={b.h} semilla={b.s} renglon={b.r} marca={b.m} palabra={b.p} densidad={0.62} opacidad={0.58} huecos={0.16} />
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* — pie de la 09 — */}
+  <i class="oe2__cb oe2__cb--d" style="left:106px;top:715px"></i>
+  <i class="oe2__cb oe2__cb--b" style="left:118px;top:715px"></i>
+  <div class="oe2__ui" style="left:133px;top:716px">SAFE AREA GRID ON</div>
+
+  <i class="oe2__cb oe2__cb--p" style="left:106px;top:734px"></i>
+  <div class="oe2__ui oe2__ui--b" style="left:123px;top:735px">UI LAYERS: DATA / SCAN / ALERT / FRAME</div>
+  <i class="oe2__cb oe2__cb--v" style="left:362px;top:734px"></i>
+  <i class="oe2__cb oe2__cb--f" style="left:377px;top:734px"></i>
+
+  <i class="oe2__pin" style="left:396px;top:721px"></i>
+  <svg class="oe2__mira" style="left:414px;top:730px" viewBox="-9 -7 18 14" width="18" height="14" aria-hidden="true">
+    <g stroke="currentColor" fill="none" stroke-width="0.8">
+      <line x1="-8" y1="0" x2="8" y2="0" opacity="0.75" />
+      <line x1="0" y1="-6.5" x2="0" y2="6.5" opacity="0.75" />
+      <rect x="-2.6" y="-2.2" width="5.2" height="4.4" opacity="0.5" />
+    </g>
+  </svg>
+  <svg class="oe2__mat" style="left:447px;top:730px" viewBox="0 0 20 14" width="20" height="14" aria-hidden="true">
+    <g fill="currentColor">
+      {[0, 1, 2, 3].map((row) =>
+        [0, 1, 2, 3, 4].map((cel) => (
+          <rect
+            x={p2(cel * 4)} y={p2(row * 3.4)}
+            width={(row * 5 + cel) % 3 === 0 ? 3 : 1.6} height="1.6"
+            opacity={(row + cel) % 2 ? 0.75 : 0.4}
+          />
+        ))
+      )}
+    </g>
+  </svg>
+</div>
+
+<style>
+  /* `position:absolute` explícito: el estilo con ámbito del componente le gana
+     por orden de cascada a `.kdx-lam [data-box]`, y con `relative` el bloque se
+     acomoda en el flujo y aparece desplazado. */
+  .oe2 {
+    position: absolute;
+    overflow: hidden;
+    box-sizing: border-box;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: #6f6c68;
+    --pu: #a45fd8;
+    --cy: #12b6c6;
+    --mg: #c34ae0;
+  }
+  .oe2 :global(*) { box-sizing: border-box; }
+
+  /* ── marcos y filetes ─────────────────────────────────────────────────── */
+  /* El filete de las tres secciones no tiene el mismo peso: 37 · 43 · 35 de
+     luminancia medidos en la referencia. Es el gradiente de la lámina. */
+  .oe2__frame {
+    position: absolute;
+    border: 1px solid #1b191a;
+    border-left-width: 2px;
+    border-left-color: #232323;
+  }
+  .oe2__frame--b { border-color: #191818; border-left-color: #242424; }
+  .oe2__frame--c { border-color: #141314; border-left-color: #202020; }
+
+  .oe2__rule { position: absolute; height: 1px; }
+  .oe2__rule--a { background: #201f1e; box-shadow: 0 -1px 0 #131212; }
+  .oe2__rule--b { background: #262523; }
+  .oe2__rule--c { background: #1c1b1b; }
+
+  .oe2__box { position: absolute; border: 1px solid #211f22; }
+  .oe2__hair { position: absolute; height: 1px; background: #1a181b; }
+  .oe2__vdiv { position: absolute; width: 1px; background: #1c1a1d; }
+
+  /* ── títulos ──────────────────────────────────────────────────────────── */
+  .oe2__h1 {
+    position: absolute;
+    font-size: 11px; line-height: 12px; letter-spacing: -0.25px;
+    color: #9c62cc; white-space: nowrap;
+  }
+  .oe2__h1--c { color: #8f5abb; }
+
+  /* ── 05 · miniaturas ──────────────────────────────────────────────────── */
+  .oe2__tile { position: absolute; overflow: hidden; border: 1px solid #2b2530; }
+  .oe2__tile svg { position: absolute; left: 0; top: 0; display: block; }
+  .oe2__ov { position: absolute; left: 0; top: 0; }
+  .oe2__ret { stroke: #ffffff; stroke-width: 0.35; fill: none; opacity: 0.06; }
+  .oe2__ret--b { stroke: #7a4aa8; opacity: 0.12; }
+  .oe2__ret--c { stroke: #4a3a6a; opacity: 0.2; }
+  .oe2__ret--d { stroke: #6a4a90; opacity: 0.16; }
+  .oe2__cruz { stroke: #d8a8f0; stroke-width: 0.7; opacity: 0.55; }
+  .oe2__spec { fill: #ffffff; opacity: 0.9; }
+
+  .t--iris { color: #b06ae0; }
+  .t--limbo { color: #b877ea; }
+  .t--pupila { color: #a848dc; }
+  .t--nucleo { color: #c185ee; }
+  .t--malla { color: #a6a4b4; }
+  .t--malla .oe2__ret { opacity: 0.16; }
+  .t--malla .oe2__cruz { stroke: #b8b6be; opacity: 0.4; }
+
+  .t--half { color: #b6b6b2; }
+  .t--neon { color: #e04cff; }
+  .t--pixel { color: #7a3cd0; }
+  .t--glitch { color: #b452ec; }
+  .t--scan { color: #b98ae0; }
+  .t--bitmap { color: #c98cf0; }
+
+  .oe2__lbl {
+    position: absolute;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid #1e1c20;
+    font-size: 9.5px; line-height: 10px; letter-spacing: 0.15px;
+    color: #96958f; white-space: nowrap;
+  }
+
+  /* ── 06 · ondas ───────────────────────────────────────────────────────── */
+  .oe2__wlbl {
+    position: absolute;
+    font-size: 9.5px; line-height: 10px; letter-spacing: -0.3px;
+    white-space: nowrap;
+  }
+  .oe2__wlbl--vis { color: #9a5cc8; }
+  .oe2__wlbl--neu { color: #14a2b0; }
+  .oe2__wlbl--ene { color: #ab4cd8; }
+  .oe2__wlbl--spe { color: #9f5ccb; }
+
+  .oe2__wave { position: absolute; display: block; }
+  .oe2__wave--vis { color: #a838e8; }
+  .oe2__wave--neu { color: #12b6c6; }
+  .oe2__wave--ene { color: #c33cf2; }
+  .oe2__wave :global(svg) { display: block; }
+
+  .oe2__base { position: absolute; height: 1px; opacity: 0.55; }
+  .oe2__base--vis { background: #6c2c92; }
+  .oe2__base--neu { background: #0d7a86; }
+  .oe2__base--ene { background: #7e2ca0; }
+
+  .oe2__band { position: absolute; color: #b84ef5; }
+  .oe2__band svg { display: block; }
+
+  .oe2__slbl {
+    position: absolute;
+    font-size: 8.8px; line-height: 10px; letter-spacing: 0.2px;
+    color: #78777a; white-space: nowrap;
+  }
+  .oe2__crest { position: absolute; }
+  .oe2__crest svg { display: block; }
+
+  .oe2__ck {
+    position: absolute;
+    font-size: 8.6px; line-height: 9px; letter-spacing: -0.1px;
+    color: #726f6d; white-space: nowrap;
+  }
+  .oe2__cv {
+    position: absolute;
+    font-size: 11px; line-height: 12px; letter-spacing: -0.15px;
+    color: #9a9997; white-space: nowrap;
+  }
+
+  /* La tira es un espectro real muestreado del original cada 8 px. */
+  .oe2__tira {
+    position: absolute;
+    background: linear-gradient(
+      90deg,
+      #08041f 0%, #0c0421 2%, #1e0429 5%, #250428 8%,
+      #3e0429 12%, #500428 19%, #760425 24%, #a10622 26%,
+      #bd0622 30%, #bb1420 33%, #bc251e 36%, #9e3a1e 38%,
+      #a4721c 40%, #b0971c 44%, #99b410 47%, #84b50f 50%,
+      #51a820 54%, #1ca152 57%, #06a974 61%, #039ea7 64%,
+      #039cb5 68%, #0378ca 71%, #0458cb 74%, #081ab7 78%,
+      #1a0a9c 81%, #260582 84%, #320459 88%, #2f0443 92%,
+      #290436 95%, #1e0322 100%
+    );
+  }
+  .oe2__tira-lin {
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, rgba(0,0,0,0.1) 0 1px, transparent 1px 15px);
+  }
+
+  /* ── 09 · teléfono ────────────────────────────────────────────────────── */
+  .oe2__fono {
+    position: absolute;
+    border: 1.6px solid #857f7a;
+    border-radius: 17px;
+    background: #050505;
+    box-shadow: inset 0 0 0 2.4px #0b0b0b, inset 0 0 0 3.4px #2a2724;
+  }
+  .oe2__fono-alt {
+    position: absolute; left: 74px; top: -1px; width: 48px; height: 4px;
+    border-radius: 0 0 3px 3px; background: #3a3733;
+  }
+  .oe2__fono-btn {
+    position: absolute; left: -0.5px; top: 62px; width: 3px; height: 44px;
+    border-radius: 2px; background: #1c1a18;
+  }
+
+  .oe2__pant {
+    position: absolute; left: 13px; top: 9px; width: 342px; height: 164px;
+    overflow: hidden;
+    background: radial-gradient(42% 90% at 50% 50%, #0a0413 0%, #04010a 52%, #010003 100%);
+    color: #b26ce6;
+  }
+  .oe2__pant > svg { position: absolute; left: 0; top: 0; display: block; }
+  .oe2__org { color: #a95fdd; }
+  .oe2__inf {
+    fill: #c9a2ea; font-size: 7px; text-anchor: middle;
+    font-family: ui-monospace, Menlo, monospace;
+  }
+
+  .oe2__hud {
+    position: absolute; display: block;
+    border: 1px solid #4c2870; opacity: 0.55;
+  }
+  .oe2__hud--cy { border-color: #11626e; opacity: 0.7; }
+  .oe2__mg { position: absolute; color: #a45cd8; opacity: 0.7; }
+  .oe2__mg :global(svg) { display: block; }
+  .oe2__wm {
+    position: absolute; left: 26px; top: 6px;
+    font-size: 10px; line-height: 10px; letter-spacing: 0.4px;
+    color: #cfc6d8; white-space: nowrap;
+  }
+
+  /* ── pie de la 09 ─────────────────────────────────────────────────────── */
+  .oe2__cb {
+    position: absolute; width: 11px; height: 11px;
+    border: 1px solid #3d3a40;
+  }
+  .oe2__cb--b { border-color: #4a464c; }
+  .oe2__cb--d::after, .oe2__cb--p::after {
+    content: ""; position: absolute; left: 2px; top: 4px;
+    width: 5px; height: 1px; background: #6d6a6f;
+  }
+  .oe2__cb--p::after { left: 3.5px; top: 3.5px; width: 3px; height: 3px; }
+  .oe2__cb { box-sizing: border-box; }
+  .oe2__cb--v { width: 10px; height: 10px; border-color: #7a3cb0; }
+  .oe2__cb--f {
+    width: 10px; height: 10px;
+    border-color: #12b6c6; background: #0d5b66;
+  }
+  /* Dos cuerpos distintos, medidos aparte: la primera línea corre a 6,76 px por
+     carácter en el original y la segunda a 6,16. No es capricho del póster —
+     con un solo cuerpo una de las dos se pasa de la caja. */
+  .oe2__ui {
+    position: absolute;
+    font-size: 11px; line-height: 11px; letter-spacing: 0.08px;
+    color: #74736f; white-space: nowrap;
+  }
+  .oe2__ui--b { font-size: 10px; line-height: 10px; letter-spacing: 0.1px; }
+  .oe2__dial { position: absolute; display: block; color: #a45cd8; opacity: 0.8; }
+  .oe2__pin {
+    position: absolute; width: 2px; height: 26px;
+    background: linear-gradient(180deg, #d06ff0, #6a2c90);
+    opacity: 0.85;
+  }
+  .oe2__mira { position: absolute; display: block; color: #c04ce0; }
+  .oe2__mat { position: absolute; display: block; color: #12b6c6; }
+</style>

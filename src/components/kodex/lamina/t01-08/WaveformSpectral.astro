@@ -1,0 +1,295 @@
+---
+/**
+ * KODEX-∞ · t01-08 · panel 04 — WAVEFORM & SPECTRAL ANALYSIS
+ *
+ * El panel más denso de la columna. Medido sobre la referencia:
+ *
+ *   filete superior      y 0 (a sangre)
+ *   regla de título      y 20-21, x 5→324   ·   y 20-21, x 408→477
+ *   «SPECTRAL MAP»       x 331→401, y 17→25
+ *   cajas de la izquierda x 8→220, filetes horizontales en y 28 · 73 · 130 · 202
+ *   SIGNAL METRICS       x 228→324, y 27→148; renglones cada 14,6 px
+ *   SPECTRAL MAP         x 330→477, y 27→201; disco centrado en (407,114) r≈62
+ *   regla del pie        y 209-210, x 8→478
+ *   eje de frecuencia    y 217, x 14→476, con marcas en los extremos
+ *
+ * Las cifras de SIGNAL METRICS son las de la referencia y son ficción del
+ * póster: la tabla va con data-symbolic, igual que los tres gráficos.
+ */
+import { rng, p2 } from "../kit/rng";
+import { envolvente } from "./_signal";
+
+interface Props { box: string }
+const { box } = Astro.props;
+
+/* ── 1 · WAVEFORM ─────────────────────────────────────────────────────────
+   Onda de audio: dos ráfagas fuertes al principio y una cola que se apaga.
+   Se dibuja como peine relleno (arriba y abajo del eje) y NO simétrico: cada
+   aguja sale corrida, que es lo que la distingue de un ecualizador. */
+const WW = 156, WH = 30;
+const ampl = envolvente(196, 9101, [0.08, 0.17, 0.27, 0.36, 0.47]);
+const rW = rng(9137);
+const agujas = ampl.map((v, i) => {
+  const x = p2((i * WW) / (ampl.length - 1));
+  const a = v * (WH / 2 - 1);
+  const off = (rW() - 0.5) * 2.2;
+  return { x, y1: p2(WH / 2 - a + off), y2: p2(WH / 2 + a * (0.72 + rW() * 0.5) + off) };
+});
+
+/* ── 2 · SPECTRUM ─────────────────────────────────────────────────────────
+   Barras verticales apoyadas en la base. El perfil de la referencia no decae
+   parejo: cae hasta el 55 % y vuelve a levantar cerca del 70 %. */
+const SW = 157, SH = 47;
+const rS = rng(9203);
+const barras = Array.from({ length: 84 }, (_, i) => {
+  const t = i / 83;
+  const env = 0.92 * Math.exp(-t * 2.6) + 0.45 * Math.exp(-(((t - 0.72) / 0.16) ** 2)) + 0.12;
+  const v = Math.min(1, env * (0.18 + Math.pow(rS(), 0.7) * 1.25));
+  return { x: p2(t * (SW - 1.6)), h: p2(Math.max(0.8, v * (SH - 3))) };
+});
+
+/* ── 3 · PHASE FIELD ──────────────────────────────────────────────────────
+   Un disco visto casi de canto: elipses muy achatadas más una malla de
+   cuerdas entre puntos del anillo. La excentricidad medida ronda 0,3. */
+const PW = 162, PH = 46;
+const rF = rng(9311);
+const elipses = Array.from({ length: 9 }, (_, i) => ({
+  rx: p2(74 * Math.pow(0.855, i)),
+  ry: p2(74 * Math.pow(0.855, i) * 0.3),
+  o: p2(0.16 + rF() * 0.62),
+  w: p2(0.35 + (rF() < 0.3 ? 0.6 : 0)),
+}));
+const cuerdas = Array.from({ length: 44 }, () => {
+  const a1 = rF() * Math.PI * 2, a2 = rF() * Math.PI * 2;
+  const r1 = 30 + rF() * 44, r2 = 30 + rF() * 44;
+  return {
+    d: `M${p2(Math.cos(a1) * r1)} ${p2(Math.sin(a1) * r1 * 0.3)}L${p2(Math.cos(a2) * r2)} ${p2(Math.sin(a2) * r2 * 0.3)}`,
+    o: p2(0.1 + rF() * 0.32),
+  };
+});
+const motasFase = Array.from({ length: 190 }, () => {
+  const a = rF() * Math.PI * 2, rad = 8 + Math.pow(rF(), 0.8) * 76;
+  return { x: p2(Math.cos(a) * rad), y: p2(Math.sin(a) * rad * 0.34), r: p2(0.3 + rF() * 0.6), o: p2(0.16 + rF() * 0.6) };
+});
+
+/* ── 4 · SPECTRAL MAP ─────────────────────────────────────────────────────
+   Disco polar a color. El barrido de matiz es lo único que lo distingue de
+   los otros discos de la lámina: el resto del vocabulario (anillos en
+   progresión geométrica, brillo irregular por anillo, radios que no llegan al
+   núcleo) es el mismo del kit. */
+const MR = 62;
+const rM = rng(9403);
+
+/* El matiz NO recorre la rueda de color: se midió sector a sector sobre la
+   referencia (12 sectores de 30°, radios 6-26) y da violeta a la derecha, azul
+   abajo-izquierda, cian a la izquierda, verde y amarillo arriba, y vuelve a
+   violeta. El salto de amarillo a violeta entre 315° y 345° es real y es lo que
+   impide reproducirlo con una interpolación circular de HSL.
+   `luz` es la luminancia medida de cada sector, que también es irregular. */
+const HUE = [272, 268, 262, 256, 240, 200, 186, 115, 48, 44, 32, 278];
+const LUZ = [0.54, 0.36, 0.24, 0.44, 0.6, 0.7, 1, 1, 0.9, 0.7, 0.45, 0.5];
+const enAng = (deg: number, tabla: number[]) => tabla[Math.floor(((deg % 360) + 360) % 360 / 30) % 12];
+
+/* El perfil radial medido cae rápido: rgb 89 en r<6, 36 en r 26-30, 12 en r 46.
+   Por eso el disco se arma en dos coronas y no en un relleno parejo. */
+const SEG = 36;
+const punto = (deg: number, r: number) =>
+  `${p2(Math.cos((deg * Math.PI) / 180) * r)} ${p2(Math.sin((deg * Math.PI) / 180) * r)}`;
+const cuna = (a0: number, a1: number, r0: number, r1: number) =>
+  `M${punto(a0, r0)}A${p2(r0)} ${p2(r0)} 0 0 1 ${punto(a1, r0)}L${punto(a1, r1)}A${p2(r1)} ${p2(r1)} 0 0 0 ${punto(a0, r1)}Z`;
+
+const sectores = [
+  ...Array.from({ length: SEG }, (_, i) => {
+    const a0 = (i * 360) / SEG, a1 = a0 + 360 / SEG + 0.4;
+    return { d: cuna(a0, a1, 1, 27 * (0.86 + rM() * 0.3)), c: `hsl(${enAng(a0 + 5, HUE)} 82% 48%)`, o: p2(0.3 * enAng(a0 + 5, LUZ) + rM() * 0.1) };
+  }),
+  ...Array.from({ length: SEG }, (_, i) => {
+    const a0 = (i * 360) / SEG, a1 = a0 + 360 / SEG + 0.4;
+    return { d: cuna(a0, a1, 26, 50 * (0.82 + rM() * 0.34)), c: `hsl(${enAng(a0 + 5, HUE)} 78% 44%)`, o: p2(0.08 * enAng(a0 + 5, LUZ) + rM() * 0.05) };
+  }),
+];
+
+const arcos = Array.from({ length: 15 }, (_, i) => {
+  const rad = MR * Math.pow(0.885, i);
+  return { r: p2(rad), o: p2(0.18 + rM() * 0.52), w: p2(0.35 + (rM() < 0.3 ? 0.7 : 0)), c: `hsl(${p2(300 - i * 5)} 76% ${p2(34 + i * 1.6)}%)` };
+});
+const radiosMapa = Array.from({ length: 40 }, (_, i) => {
+  const deg = (i * 360) / 40;
+  const a = (deg * Math.PI) / 180;
+  const r0 = 5 + rM() * 4, r1 = MR * (0.7 + rM() * 0.42);
+  return {
+    x1: p2(Math.cos(a) * r0), y1: p2(Math.sin(a) * r0),
+    x2: p2(Math.cos(a) * r1), y2: p2(Math.sin(a) * r1),
+    o: p2((0.1 + rM() * 0.3) * enAng(deg, LUZ)),
+    c: `hsl(${enAng(deg, HUE)} 80% 58%)`,
+  };
+});
+const motasMapa = Array.from({ length: 420 }, () => {
+  const deg = rM() * 360;
+  const a = (deg * Math.PI) / 180;
+  const rad = Math.pow(rM(), 0.55) * MR * 1.3;
+  return {
+    x: p2(Math.cos(a) * rad), y: p2(Math.sin(a) * rad),
+    r: p2(0.3 + rM() * 0.8),
+    o: p2((0.12 + rM() * 0.5) * enAng(deg, LUZ)),
+    c: `hsl(${enAng(deg, HUE)} 82% 56%)`,
+  };
+});
+
+/* ── SIGNAL METRICS ───────────────────────────────────────────────────────
+   Cifras textuales de la referencia. No se inventan valores nuevos. */
+const metricas: [string, string][] = [
+  ["FREQ:", "13.37 Hz"],
+  ["AMP:", "0.87"],
+  ["PHASE:", "229.4°"],
+  ["HARM:", "07"],
+  ["NOISE:", "0.12"],
+  ["DRIFT:", "-0.003"],
+  ["SYNC:", "91.2%"],
+];
+---
+
+<div data-box style={box} class="wsp">
+  <i class="wsp__gutter"></i>
+  <i class="wsp__top"></i>
+
+  <div class="wsp__title">04. WAVEFORM &amp; SPECTRAL ANALYSIS</div>
+  <i class="wsp__rule" style="left:5px;width:320px"></i>
+  <div class="wsp__maplab">SPECTRAL MAP</div>
+  <i class="wsp__rule" style="left:408px;width:70px"></i>
+
+  {/* ── columna izquierda: tres gráficos apilados ─────────────────────── */}
+  <i class="wsp__hl" style="top:28px"></i>
+  <i class="wsp__hl" style="top:73px"></i>
+  <i class="wsp__hl" style="top:130px"></i>
+  <i class="wsp__hl" style="top:202px"></i>
+  <i class="wsp__vl" style="left:8px"></i>
+  <i class="wsp__vl" style="left:220px"></i>
+
+  <div class="wsp__lab" style="left:13px;top:40px">WAVEFORM</div>
+  <svg class="wsp__g" style="left:62px;top:36px;filter:brightness(.8)" width={WW} height={WH} viewBox={`0 0 ${WW} ${WH}`} data-symbolic="true" aria-hidden="true">
+    <g stroke="#e82fae" stroke-width="0.85">
+      {agujas.map((a) => <line x1={a.x} y1={a.y1} x2={a.x} y2={a.y2} />)}
+    </g>
+  </svg>
+
+  <div class="wsp__lab" style="left:12px;top:86px">SPECTRUM</div>
+  <svg class="wsp__g" style="left:60px;top:79px;filter:brightness(.72)" width={SW} height={SH} viewBox={`0 0 ${SW} ${SH}`} data-symbolic="true" aria-hidden="true">
+    <g fill="#8a2bb8">
+      {barras.map((b) => <rect x={b.x} y={p2(SH - 1 - b.h)} width="1.1" height={b.h} />)}
+    </g>
+    <rect x="0" y={SH - 1} width={SW} height="0.6" fill="#8a2bb8" opacity="0.5" />
+  </svg>
+
+  <div class="wsp__lab" style="left:13px;top:137px">PHASE FIELD</div>
+  <svg class="wsp__g" style="left:34px;top:151px;filter:brightness(3.1)" width={PW} height={PH} viewBox={`${-PW / 2} ${-PH / 2} ${PW} ${PH}`} data-symbolic="true" aria-hidden="true">
+    <g stroke="#c02ce8" fill="none">
+      {cuerdas.map((c) => <path d={c.d} stroke-width="0.35" opacity={c.o} />)}
+      {elipses.map((e) => <ellipse cx="0" cy="0" rx={e.rx} ry={e.ry} stroke-width={e.w} opacity={e.o} />)}
+    </g>
+    {motasFase.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill="#cf4aee" opacity={m.o} />)}
+    <ellipse cx="0" cy="0" rx="5" ry="2" fill="#e79bf5" opacity="0.5" />
+  </svg>
+
+  {/* ── SIGNAL METRICS ───────────────────────────────────────────────── */}
+  <div class="wsp__metrics" data-symbolic="true">
+    <div class="wsp__mtitle">SIGNAL METRICS</div>
+    {metricas.map((m, i) => (
+      <div class="wsp__mrow" style={`top:${p2(20.3 + i * 14.67)}px`}>
+        <span class="wsp__mk">{m[0]}</span><span class="wsp__mv">{m[1]}</span>
+      </div>
+    ))}
+  </div>
+
+  {/* ── SPECTRAL MAP ─────────────────────────────────────────────────── */}
+  <div class="wsp__map">
+    <svg viewBox="-74 -87 148 175" preserveAspectRatio="none" data-symbolic="true" aria-hidden="true">
+      <defs>
+        <radialGradient id="wsp-core" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#b48cff" stop-opacity="0.8" />
+          <stop offset="55%" stop-color="#8f5ad8" stop-opacity="0.16" />
+          <stop offset="100%" stop-color="#000" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <g transform="translate(0,0)">
+        {sectores.map((s) => <path d={s.d} fill={s.c} opacity={s.o} />)}
+        {radiosMapa.map((s) => <line x1={s.x1} y1={s.y1} x2={s.x2} y2={s.y2} stroke={s.c} stroke-width="0.4" opacity={s.o} />)}
+        {arcos.map((a) => <circle cx="0" cy="0" r={a.r} fill="none" stroke={a.c} stroke-width={a.w} opacity={a.o} />)}
+        {motasMapa.map((m) => <circle cx={m.x} cy={m.y} r={m.r} fill={m.c} opacity={m.o} />)}
+        <circle cx="0" cy="0" r="16" fill="url(#wsp-core)" />
+        <circle cx="0" cy="0" r="1.8" fill="#e2d6ff" opacity="0.9" />
+        <line x1="0" y1="-84" x2="0" y2="84" stroke="#b8407a" stroke-width="0.45" opacity="0.55" />
+      </g>
+    </svg>
+    <div class="wsp__mapnums" data-symbolic="true">
+      <span>100</span><span>200</span><span>300</span><span>10A</span>
+    </div>
+  </div>
+
+  {/* ── eje de frecuencia ────────────────────────────────────────────── */}
+  <i class="wsp__foot"></i>
+  <i class="wsp__tick" style="left:14px"></i>
+  <i class="wsp__tick" style="left:474px"></i>
+  <i class="wsp__axis"></i>
+</div>
+
+<style>
+  /* `position:absolute` explícito: el estilo con ámbito del componente gana
+     por orden de cascada a `.kdx-lam [data-box]`, y con `relative` el panel se
+     acomoda en el flujo y aparece desplazado por la altura de los anteriores. */
+  .wsp { position: absolute; overflow: hidden; }
+
+  .wsp__gutter { position: absolute; left: 0; top: 0; width: 1px; height: 100%; background: #141414; }
+  .wsp__top { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: #0f0e0f; }
+
+  .wsp__title {
+    position: absolute; left: 10px; top: 7px; height: 12px; line-height: 12px;
+    font-size: 10px; letter-spacing: 0.2px; white-space: nowrap;
+    color: #e23a80;
+  }
+  .wsp__rule { position: absolute; top: 20px; height: 1px; background: #1b1a19; box-shadow: 0 1px 0 #0d0d0c; }
+
+  .wsp__maplab {
+    position: absolute; left: 330px; top: 15px; height: 12px; line-height: 12px;
+    font-size: 10px; letter-spacing: -0.1px; color: #8a8b8b; white-space: nowrap;
+  }
+
+  .wsp__hl { position: absolute; left: 8px; width: 213px; height: 1px; background: #131313; }
+  .wsp__vl { position: absolute; top: 28px; width: 1px; height: 175px; background: #131313; }
+
+  .wsp__lab {
+    position: absolute; height: 12px; line-height: 12px;
+    font-size: 9.4px; letter-spacing: -0.55px; color: #6f716f; white-space: nowrap;
+  }
+
+  .wsp__g { position: absolute; display: block; }
+
+  /* SIGNAL METRICS: caja x 228→324, y 27→148. */
+  .wsp__metrics {
+    position: absolute; left: 228px; top: 27px; width: 97px; height: 122px;
+    border: 1px solid #191919; box-sizing: border-box;
+  }
+  .wsp__mtitle {
+    position: absolute; left: 7px; top: 3px; height: 12px; line-height: 12px;
+    font-size: 9.4px; letter-spacing: -0.55px; color: #6d6f6d; white-space: nowrap;
+  }
+  .wsp__mrow { position: absolute; left: 7px; right: 2px; height: 12px; line-height: 12px; font-size: 9.4px; letter-spacing: -0.55px; white-space: nowrap; }
+  .wsp__mk { color: #5f615f; }
+  .wsp__mv { position: absolute; left: 37px; color: #6d6f6d; }
+
+  /* SPECTRAL MAP: caja x 330→477, y 27→201. */
+  .wsp__map {
+    position: absolute; left: 330px; top: 27px; width: 148px; height: 175px;
+    border: 1px solid #16141a; box-sizing: border-box; overflow: hidden;
+  }
+  .wsp__map svg { display: block; width: 100%; height: 100%; filter: brightness(2.05); }
+  .wsp__mapnums {
+    position: absolute; right: 4px; bottom: 8px;
+    display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
+    font-size: 5.6px; letter-spacing: 0.04em; color: #8c8f8d;
+  }
+
+  .wsp__foot { position: absolute; left: 8px; width: 470px; top: 209px; height: 1px; background: #232323; box-shadow: 0 1px 0 #1a1a1a; }
+  .wsp__tick { position: absolute; top: 215px; width: 2px; height: 2px; background: #4a4a4a; }
+  .wsp__axis { position: absolute; left: 14px; width: 463px; top: 217px; height: 1px; background: #454544; }
+</style>
