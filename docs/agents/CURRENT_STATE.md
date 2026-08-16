@@ -77,7 +77,7 @@ Unchanged across this refinement: ElementContract, registry, PlateSpec, determin
 
 Status: **G07-vs-G02 MACRO-HIERARCHY REFINEMENT = EXACT-HEAD BROWSER-VALIDATED IMPLEMENTATION EVIDENCE / ARTIFACT INSPECTED**. `human_curator_acceptance = NOT_RUN`; this is not creator approval.
 
-### Living-field activation compatibility repair — exact-head CI pending
+### Living-field activation compatibility repair — exact-head closed
 
 A correctness gap was found while auditing `GP-CON-03 / CON-RITUAL`. The Golden living-field fixture used `activation_id=KDX-FX-006` with `scene_state=COSMOLOGY`. `KDX-FX-006` is registered and ACTIVATOR-compatible, but its ElementContract permits scene roles `DESCENT / RETURN` only. Prior QA checked registry existence but did not validate the living-field `activation_profile.activation_id` against current plate + scene compatibility.
 
@@ -87,11 +87,15 @@ PR #62 was advanced **in place** to current exact head `4a3ba88babfcb8729c75ef55
 - deterministic assembler tests now prove the living-field fixture is registered + plate/scene-compatible;
 - Assembly QA includes a negative regression that substitutes `KDX-FX-006` and requires `ACTIVATION_COMPATIBILITY=FAIL`.
 
+KODEX Core Runtime run 287 / `31969167071`: **SUCCESS** on exact head `4a3ba88...`. The validate job passed scene/runtime, JourneyState/graph/memory/Visible Assembly, the complete Assembly OS contract suite including the new activation-compatibility regression, seeded factory benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and rendered Golden Plate benchmark.
+
+Artifact: `kodex-evidence` id `9269326684`; digest `sha256:e8c752b6e99d5696b13fc19f7f1be68b1452fc87519353d058ece97b5faa2390`.
+
 This changes no PlateSpec schema, deterministic selection/scoring, Deep Route, JourneyState, protected-art adapter, Ocín source originals or human-curator state. It is a validator/fixture correction against already-registered ElementContract truth, not a new activation architecture or canon decision.
 
-Status: **IMPLEMENTED CANDIDATE / EXACT-HEAD KODEX CORE RUNTIME EVIDENCE PENDING**. Do not call this delta TESTED until a containing run on `4a3ba88...` completes SUCCESS.
+Status: **LIVING-FIELD ACTIVATION COMPATIBILITY = EXACT-HEAD TESTED IMPLEMENTATION EVIDENCE**.
 
-`GP-CON-03` remains a separate perceptual/materiality concern after correctness is revalidated. Do not solve its scaffold-like appearance by weakening activation compatibility or inventing a parallel activation registry.
+`GP-CON-03` remains a separate perceptual/materiality concern after correctness closure. Do not solve its scaffold-like appearance by weakening `ACTIVATION_COMPATIBILITY` or inventing a parallel activation registry.
 
 `GP-ART-03` remains source-byte WITHHELD; no protected-art materiality or no-crop visual acceptance may be inferred from that placeholder.
 
@@ -165,10 +169,9 @@ Primary risks:
 ## 7. Exact next action
 
 1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
-2. Keep #62 as sole Assembly OS authority; P0.1–P0.10, registered-composition dispatch, structural fingerprint and run-283 G07/G02 macro-hierarchy refinement remain verified evidence.
-3. Let exact-head KODEX Core Runtime execute on `4a3ba88...`; verify the new living-field activation compatibility contract plus the full Golden/browser chain before calling the repair TESTED.
-4. If green, return to `GP-CON-03` as a separate perceptual/materiality problem. Do not weaken `ACTIVATION_COMPATIBILITY`, alter assembler scoring or invent a parallel activation registry to improve appearance.
-5. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review occurs.
-6. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
-7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+2. Keep #62 as sole Assembly OS authority; P0.1–P0.10, registered-composition dispatch, structural fingerprint, run-283 G07/G02 macro-hierarchy refinement and run-287 living-field activation compatibility are exact-head tested evidence.
+3. Return to `GP-CON-03` only as a separate perceptual/materiality problem. Do not weaken `ACTIVATION_COMPATIBILITY`, alter assembler scoring or invent a parallel activation registry to improve appearance.
+4. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review occurs.
+5. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
+6. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+7. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
