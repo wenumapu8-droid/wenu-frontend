@@ -53,15 +53,21 @@ for (const slug of slugs) {
   const regiones = JSON.parse(fs.readFileSync(path.join(dirReg, slug + ".json"), "utf8")).regions.map(r => r.id);
   for (const r of s.regiones ?? []) {
     if (!regiones.includes(r.id)) continue;          // la regla dura, otra vez
-    if (r.pct <= meta) continue;                     // ya llegó a la meta
+    /* COBERTURA, no pct. Elegir por diferencia repitió acá el bug que ya se
+       enterró en la compuerta: pct premia el vacío y además encola regiones
+       SATURADAS — la noche del 15 gastó 6 de 12 vueltas en regiones al
+       103-136% de cobertura, donde no hay nada que ganar. Se propone sólo lo
+       que está por debajo del 95%, y lo más bajo primero. */
+    const cob = r.cobertura;
+    if (cob == null || cob >= 95) continue;          // saturada o sin medir: no se propone
     const id = `${slug}-${r.id}-auto`;
     if (yaEsta.has(`${slug}·${r.id}`)) continue;      // ya hay un ítem para esa región
-    candidatos.push({ slug, region: r.id, pct: r.pct, id, prioridad: slug === enCurso ? 0 : 1 });
+    candidatos.push({ slug, region: r.id, cob, id, prioridad: slug === enCurso ? 0 : 1 });
   }
 }
 
-// Peor primero, dentro de la lámina en curso antes que en las demás.
-candidatos.sort((a, b) => a.prioridad - b.prioridad || b.pct - a.pct);
+// La más VACÍA primero, dentro de la lámina en curso antes que en las demás.
+candidatos.sort((a, b) => a.prioridad - b.prioridad || a.cob - b.cob);
 const nuevos = candidatos.slice(0, max);
 
 if (!nuevos.length) {
@@ -77,9 +83,9 @@ for (const n of nuevos) {
     umbral: 0.05,
     estado: "pendiente",
     origen: "reponer.sh",
-    objetivo: `Región ${n.region} de ${n.slug}, hoy en ${n.pct} %. Corré _medir_region_components.mjs y CLASIFICÁ los clusters con la tabla de KIMI-BRIEF-LAMINAS.md antes de tocar nada: arte fija se traza, información se compone desde el kit, y sólo lo que exige criterio se itera. Si el número empeora, medí el render con perfil.mjs --comparar antes de proponer otro valor.`,
+    objetivo: `Región ${n.region} de ${n.slug}, hoy en ${n.cob} % de COBERTURA — falta dibujo. La receta medida del campo está en scripts/lamina/campo/${n.slug}.json (si falta, extraerla: node scripts/lamina/extraer-campo.mjs ${n.slug}); pintarCampo de kit/campo.ts acepta CAPAS para sumar sin reemplazar. Corré _medir_region_components.mjs y CLASIFICÁ los clusters con la tabla de KIMI-BRIEF-LAMINAS.md antes de tocar nada: arte fija se traza, información se compone desde el kit, y sólo lo que exige criterio se itera. Si el número empeora, medí el render con perfil.mjs --comparar antes de proponer otro valor.`,
   });
-  console.log(`  + ${n.id}  (${n.pct} %)`);
+  console.log(`  + ${n.id}  (cobertura ${n.cob} %)`);
 }
 fs.writeFileSync(cola, JSON.stringify(c, null, 2) + "\n");
 ' "$COLA" "$REPO" "$META" "$MAX"
