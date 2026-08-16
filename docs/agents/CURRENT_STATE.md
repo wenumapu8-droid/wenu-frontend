@@ -51,7 +51,7 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 - **PR #73** — RGX technical-family baseline; not default/final materiality.
 - **PR #75** — reference-fidelity creator-review surface; source pixels NONE.
 - **PR #76** — verified Manifestation × RGX convergence substrate; reuse, do not fork.
-- **PR #78** — externally **MERGED/CLOSED on 2026-08-15** despite its own `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Its branch-local 18-field HoloCore dialect remains descriptive material only unless records are explicitly normalized through #62's ElementContract/schema/registry validators on a bounded delta. Reconcile ancestry before using `main` as an Assembly OS convergence base.
+- **PR #78** — externally **MERGED/CLOSED on 2026-08-15** despite its own `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Its branch-local HoloCore dialect remains descriptive material only unless records are explicitly normalized through #62's ElementContract/schema/registry validators on a bounded delta. Reconcile ancestry before using `main` as an Assembly OS convergence base.
 
 ---
 
@@ -67,27 +67,41 @@ Artifact `9255841751`; digest `sha256:9be4fe12bb197e4c0d939e777efb492f4047dd3fde
 
 MACHINE is **browser-revalidated**. The earlier unsourced `INTEGRITY · 98.7%` defect remains repaired to explicit `NOT MEASURED`. Do not describe billing as a current MACHINE blocker and do not manually loop hosted reruns.
 
-### COSMOLOGY — exact remaining pointer defect isolated
+### COSMOLOGY — semantic/input repairs implemented
 
-The prior bounded repairs introduced a real six-node compact touch fallback, semantic keyboard controls, viewport-bounded orbital-map geometry and a truthful relation model that separates concept targets from five ecosystem portals. `SIGNAL → MACHINE` is concept-to-concept; MACHINE is not a fabricated sixth portal.
+The current COSMOLOGY component has six canonical concept nodes, five ecosystem portals, semantic keyboard controls and a real six-node compact touch fallback. `SIGNAL → MACHINE` is concept-to-concept; MACHINE is not a fabricated sixth portal.
 
-Product Corridor run `31925233229` (#43) executed on head `7f3eb45c7998c3e199fdc66966e852f46ba6afe2`. Artifact `9257704746`; digest `sha256:c9dc4b718cf5be71af33b3dff734ef59f065929b01d239bb2109dd7a6d62fb86`.
+Product Corridor run `31925233229` on head `7f3eb45c7998c3e199fdc66966e852f46ba6afe2`, artifact `9257704746`, digest `sha256:c9dc4b718cf5be71af33b3dff734ef59f065929b01d239bb2109dd7a6d62fb86`, reduced the remaining COSMOLOGY failure to desktop/reduced-motion pointer activation. Mobile 390×844 and 412×915 passed, including touch SIGNAL→MACHINE.
 
-Exact profile result from artifact `evidence.json`:
-- mobile 390×844: **PASS**;
-- mobile 412×915: **PASS**, including touch SIGNAL→MACHINE concept relation;
-- desktop 1440×900: **FAIL only at pointer activation of SIGNAL→MACHINE**;
-- reduced-motion 1440×900: **FAIL only at the same pointer activation**.
+The bounded repair `5a4ab173cf79cf67f7e4812a24d26251f85a9abe` changes only `src/components/kodex/CosmologyMap.astro`: semantic SVG concept groups use `pointer-events: bounding-box`, making the existing label+dot bounding area one reliable pointer target. Visual geometry, six concepts, five portals, relation semantics, keyboard/touch behavior, routing, memory, reduced-motion and Assembly OS contracts are unchanged.
 
-The CTA/layout repair from `7f3eb45...` succeeded; layout is no longer the failing surface. Inspection of the component + gate isolates the pointer defect to SVG hit testing: each concept `<g>` visually contains a 6px dot plus label, but SVG groups hit-test their painted descendants, leaving an unreliable pointer target even though keyboard and compact touch controls work.
+### Run #44 — PROLOGUE evidence attribution bug, not product regression
 
-Current PR #77 head: `5a4ab173cf79cf67f7e4812a24d26251f85a9abe`.
+Natural Product Corridor run `31930350111` (#44) executed on `5a4ab173...`. Build and THRESHOLD passed, then PROLOGUE reported failure before later gates could run.
 
-Bounded repair `5a4ab173...` changes only `src/components/kodex/CosmologyMap.astro`: concept groups now use `pointer-events: bounding-box`, making the existing label+dot bounding area one pointer target. Visual geometry, six concepts, five portals, relation semantics, keyboard/touch behavior, routing, memory, reduced-motion and Assembly OS contracts are unchanged. Compare versus `7f3eb45...`: one file, +4/−1.
+Artifact `9259110102`; digest `sha256:f26e47aca8ad1cbccbaff3f1b4ff7c554fe7382fc1041ef014ba68b62d8a5528`.
 
-A natural Product Corridor run `31930350111` (#44) started on exact head `5a4ab173...`; it was **IN PROGRESS** at last check. No manual rerun was triggered.
+Exact artifact inspection shows:
+- PROLOGUE mobile: **PASS**;
+- PROLOGUE reduced-motion: **PASS**;
+- desktop completed bounded geometry, CRT/fallback, protocol drawer focus restoration, visit memory and `BEGIN OBSERVATION` navigation;
+- failure was recorded only after the page had already reached `/kodex/folio/ii/`, when an external `fonts.gstatic.com` Inter Tight `.woff2` request returned HTTP 404.
 
-Status: **COSMOLOGY POINTER HIT-TARGET REPAIR / EXACT-HEAD REVALIDATION IN PROGRESS**. Do not advance RETURN until PASS + artifact inspection.
+Exact compare `7f3eb45... → 5a4ab173...` changes only `src/components/kodex/CosmologyMap.astro` (+4/-1), proving no PROLOGUE product code changed. The harness was attributing destination-page console/HTTP errors back to the source room because it asserted its accumulated arrays only after route transition.
+
+### Current head — bounded evidence-ownership repair
+
+Current PR #77 head: `5a60ba7c8b450675907b65b1f36e0d7db29c9643`.
+
+Only `scripts/kodex-prologue-product-evidence.mjs` changed (+16/-5 versus `5a4ab173...`). It now:
+- asserts PROLOGUE source-room console/HTTP health before crossing the CTA route boundary;
+- preserves exact `BEGIN OBSERVATION → /kodex/folio/ii/` navigation acceptance;
+- records post-transition errors as `transitionDiagnostics` rather than retroactively failing PROLOGUE;
+- does not ignore/filter source-room errors or weaken geometry/focus/memory/navigation criteria.
+
+Natural Product Corridor run `31932682697` (#48) is **IN PROGRESS** on this exact head at last check. No manual hosted rerun was triggered.
+
+Status: **COSMOLOGY REVALIDATION PENDING BEHIND A REPAIRED PROLOGUE EVIDENCE-ATTRIBUTION BOUNDARY**. RETURN remains blocked until COSMOLOGY itself passes and the exact artifact is inspected.
 
 ---
 
@@ -109,6 +123,7 @@ Primary risks:
 - fabricated telemetry;
 - parallel schemas/registries/status vocabularies;
 - contaminated historical branches becoming convergence bases;
+- cross-route evidence attribution that makes one room fail for another room's resource/runtime errors;
 - scientific fact / metaphor / cultural provenance / inference / implementation / deployment state collapsing into one label;
 - treating protected-art curation as public-use approval.
 
@@ -118,11 +133,12 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Let natural Product Corridor run `31930350111` finish on exact head `5a4ab173...`; do not manually spam hosted reruns.
-2. Inspect COSMOLOGY desktop/390×844/412×915/reduced-motion artifact. Promote only on actual PASS.
-3. If pointer activation still fails, repair only the measured hit-testing/input delta; no new architecture and no weakened gate.
-4. After COSMOLOGY closes, move the product frontier to RETURN. Existing audit finding that RETURN lacks a finished product-facing visual layer remains diagnosis until implementation + browser QA.
-5. Separately preserve #62 as sole Assembly OS authority; its next bounded renderer delta remains G01/G02/G07 dispatch + structural fingerprint evidence.
-6. Treat merged PR #78 as a reconciliation hazard, not an authority override; normalize any useful HoloCore observations through #62 contracts only.
-7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
+1. Let natural Product Corridor run `31932682697` finish on exact head `5a60ba7...`; do not manually spam hosted reruns.
+2. Inspect the exact artifact. Confirm PROLOGUE source-room health remains green and post-transition diagnostics are correctly scoped.
+3. Inspect COSMOLOGY desktop/390×844/412×915/reduced-motion. Promote only on actual PASS.
+4. If COSMOLOGY still fails, repair only the measured input/layout delta; no new architecture and no weakened gate.
+5. After COSMOLOGY closes, move the product frontier to RETURN. Existing finding that RETURN lacks a finished product-facing visual layer remains diagnosis until implementation + browser QA.
+6. Separately preserve #62 as sole Assembly OS authority; its next bounded renderer delta remains G01/G02/G07 dispatch + structural fingerprint evidence.
+7. Treat merged PR #78 as a reconciliation hazard, not an authority override; normalize any useful HoloCore observations through #62 contracts only.
+8. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
+9. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
