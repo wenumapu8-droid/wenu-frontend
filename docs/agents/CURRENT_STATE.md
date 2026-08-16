@@ -9,7 +9,7 @@ Purpose: fast operational truth for agents. This file is **not canon**; re-check
 
 Primary repository: `wenumapu8-droid/wenu-frontend`.
 
-Drive canon + exact active PR heads + CI/artifacts are the operational sources of truth. Git commits/draft PRs do not authorize merge, deployment, permission changes, public asset approval or canon promotion. Protected Ocín originals remain immutable unless explicitly re-authorized.
+Drive canon + exact active PR heads + CI/local artifacts are the operational sources of truth. Git commits/draft PRs do not authorize merge, deployment, permission changes, public asset approval or canon promotion. Protected Ocín originals remain immutable unless explicitly re-authorized.
 
 No standalone current Decision Log was found in the active operational branch or accessible Drive/repo search. Do **not** invent one.
 
@@ -50,59 +50,65 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 - **PR #73** — RGX technical-family baseline; not default/final materiality.
 - **PR #75** — reference-fidelity creator-review surface; source pixels NONE.
 - **PR #76** — verified Manifestation × RGX convergence substrate; reuse, do not fork.
-- **PR #78** — externally MERGED/CLOSED despite its own `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Normalize any useful HoloCore observations through #62 contracts only.
+- **PR #78** — externally MERGED/CLOSED despite its own `HOLD — EXTRACTION-ONLY / NOT ASSEMBLY OS AUTHORITY` warning. Do not reinterpret that merge as Assembly OS canon promotion. Normalize useful HoloCore observations through #62 contracts only.
 
 ---
 
 ## 4. Product corridor — PR #77
 
-PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor without owning/replacing Assembly OS or Deep Navigation architecture.
+PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor only. It does not own or replace Assembly OS, Deep Navigation, JourneyState or the existing `kx-journey` / `KodexRecuerda` / `src/kodex/return/memory.js` substrate.
 
-### Exact corridor acceptance through COSMOLOGY
+### Accepted product evidence before RETURN
 
 Product Corridor run `31932682697` (#48) completed **SUCCESS** on exact head `5a60ba7c8b450675907b65b1f36e0d7db29c9643`.
-
 Artifact `9259831730`; digest `sha256:c5b75d94cd07114cad77020368fcab5a294c6f4a847e737aee49ba698aaa87d4`.
 
-One executed run passed build + preview plus THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY across required desktop/mobile/reduced-motion surfaces. COSMOLOGY evidence confirms exactly six concept nodes and five ecosystem portals, 100dvh/no page scroll, canonical SIGNAL→MACHINE on pointer+keyboard desktop/reduced-motion and touch mobile, visit memory, explicit navigation to `/kodex/interlude/cosmology-return/`, no unsourced percentage telemetry and zero first-party HTTP/console errors. Creator/perceptual acceptance remains separate.
+That exact run passed build/preview plus THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY across required desktop/mobile/reduced-motion surfaces. COSMOLOGY proved six concepts / five portals, canonical SIGNAL→MACHINE input parity, 100dvh/no-scroll, visit memory, explicit cosmology→return route, no unsourced percentage telemetry and zero first-party console/HTTP errors. Creator/perceptual acceptance remains separate.
 
-### RETURN — memory-derived product slice / viewport repair
+### RETURN material memory slice
 
-RETURN consumes the **existing** `kx-journey` / `src/kodex/return/memory.js` substrate instead of creating another state model. On `/kodex/folio/vi/`, `readSpecimen('RETURN')` materializes a compact deterministic journey-specimen seal inside the existing RETURN artifact. It exposes specimen code + trace/memory/cycle counts and a seeded visual mark. It does not infer identity, emotion, health or spiritual score, does not display fabricated percentage telemetry, and leaves the existing static RETURN CRT as honest fallback if storage is unavailable.
+RETURN consumes the existing `kx-journey` / `readSpecimen('RETURN')` path and materializes the deterministic journey specimen inside the existing RETURN scene. It does not add a second state model or infer identity, emotion, health or spiritual score.
 
-Product Corridor run `31933274977` (#53) on exact head `6d6b10863da511a7c5f42fb8bb64017c12a9da39` passed build plus THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY; RETURN alone failed. Artifact `9260008716` isolated one repeated defect across desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion: **journey specimen clipped outside the first viewport**. No first-party console/HTTP errors were present.
+Run `31933274977` (#53) isolated one repeated RETURN defect across desktop 1440×900, 390×844, 412×915 and reduced-motion: the journey specimen was clipped outside the first viewport. Commit `bf9f664e0bf6d5186d14de2df68a38cb9c500d10` changed only `KodexRecuerda.astro`, re-anchoring the same specimen to the top of the existing art plate and reducing only its mobile footprint. RETURN exact-head revalidation remains pending because later corridor runs stopped earlier.
 
-Root cause was geometric, not architectural: `.kdx-return-memory` was bottom-anchored inside a RETURN art plate that begins low in the 100dvh frame. Commit `bf9f664e0bf6d5186d14de2df68a38cb9c500d10` changes only `src/components/kodex/KodexRecuerda.astro`: re-anchor the same specimen overlay to the top of the existing art plate and reduce only its mobile footprint. Same `readSpecimen('RETURN')`, specimen code, trace/memory/cycle semantics, CRT, routes, artwork and acceptance gate.
+### Run #58 — current exact evidence boundary
 
-### Run #56 — COSMOLOGY harness race, not product regression
+Product Corridor run `31935072132` (#58) completed on exact head `3d94b8df2fa18444ac047a591f65a309c153b000`.
+Artifact `9260491050`; digest `sha256:37dca161dd423700219f6e73126a4524ffbcc865cec0d73472eb775a908fb97b`.
 
-Natural Product Corridor run `31934081886` (#56) on exact head `bf9f664e...` did not reach RETURN because COSMOLOGY desktop failed at its final navigation wait.
+Exact result:
+- THRESHOLD: PASS;
+- PROLOGUE: PASS;
+- DESCENT: PASS;
+- ARCHIVE: PASS;
+- MACHINE: PASS;
+- COSMOLOGY: FAIL on desktop only at final navigation observation;
+- RETURN: NOT RUN.
 
-Artifact `9260220065`; digest `sha256:e17ac3e65a59138c5e7a28302f08b635cd6b3f7948b219d577160eed36d967f8`.
+COSMOLOGY evidence on #58:
+- mobile 390×844: PASS;
+- mobile 412×915: PASS;
+- reduced-motion 1440×900: PASS;
+- desktop geometry, 6-concept/5-portal structure, pointer + keyboard SIGNAL→MACHINE, memory and source-room resource checks had already completed before the final failure;
+- desktop failed only with `page.waitForURL: Timeout 8000ms exceeded`;
+- the desktop failure screenshot already shows the destination `TERRAIN MEMORY / BEFORE RETURN` interlude rendered, while the Playwright lifecycle observer still reports the outgoing `/kodex/folio/v/` page URL.
 
-Evidence proved this was **not** a COSMOLOGY product regression: mobile 390×844, mobile 412×915 and reduced-motion desktop passed; desktop failed only with `page.waitForURL: net::ERR_ABORTED; maybe frame was detached?` after navigation began, with zero first-party console/HTTP errors.
+This is evidence of a navigation-lifecycle sampling race, not a demonstrated COSMOLOGY visual/interaction regression.
 
-Commit `28323dbe63710c104f91c0e487dfd44a6c7bf50b` changes only `scripts/kodex-cosmology-product-evidence.mjs`: navigation observation is armed before click with `Promise.all([waitForURL(..., waitUntil:'domcontentloaded'), click()])`. The exact destination remains `/kodex/interlude/cosmology-return/`; no product geometry, semantic relation, memory, rights, telemetry or acceptance criterion was weakened.
+### Current #77 head — bounded COSMOLOGY harness repair
 
-### Run #57 — PROLOGUE semantic-close sampling race
+Current head: `74d6fd653c03196acd5eb249a36de88a7b79d7ca`.
 
-Natural Product Corridor run `31934539781` (#57) executed on exact head `28323dbe...`. Build + THRESHOLD passed, but the workflow stopped in PROLOGUE before RETURN. Artifact `9260288470` was downloaded and inspected.
+Commit `74d6fd653c...` changes only `scripts/kodex-cosmology-product-evidence.mjs` (+16/-15 vs `3d94b8df...`). It does **not** modify product code.
 
-Measured result:
-- mobile PROLOGUE: PASS;
-- reduced-motion PROLOGUE: PASS;
-- desktop: FAIL only after protocol close with `page.waitForFunction: Timeout 1000ms exceeded`;
-- the desktop failure screenshot already shows the protocol drawer visually closed and composition intact.
+The gate now:
+1. clicks the existing shared NEXT control with `noWaitAfter` so the click itself does not inherit Playwright's navigation lifecycle race;
+2. waits for the browser's actual `window.location.pathname`;
+3. explicitly asserts that pathname equals `/kodex/interlude/cosmology-return/`.
 
-Code audit confirms `closeDrawer()` writes `aria-hidden="true"` synchronously in the click handler and applies `hidden` after the existing 220ms visual transition. The old gate polled the synchronous ARIA mutation through a 1s page-function wait, which can be starved by the loaded desktop CRT/main thread even after the mutation happened.
+The destination contract is unchanged. Geometry, six concepts/five portals, SIGNAL→MACHINE semantics, pointer/keyboard/touch parity, visit memory, telemetry checks, product routes and Ocín assets are untouched.
 
-Current PR #77 head: `3d94b8df2fa18444ac047a591f65a309c153b000`.
-
-Commit `3d94b8df…` changes only `scripts/kodex-prologue-product-evidence.mjs`: after close click, the gate reads `aria-hidden` directly and still waits up to 4s for the asynchronous `hidden` transition before requiring focus restoration. Title/CTA geometry, CTA hit testing, CRT/fallback, visit memory, reduced-motion, exact `/kodex/folio/ii/` navigation and source-room first-party error checks remain mandatory.
-
-Natural Product Corridor run `31935072132` (#58) is **IN PROGRESS** on exact head `3d94b8df…`. No manual hosted rerun was triggered.
-
-RETURN remains **VIEWPORT REPAIR IMPLEMENTED / EXACT-HEAD PRODUCT REVALIDATION PENDING** because #57 stopped before RETURN.
+Status: **HARNESS REPAIR IMPLEMENTED / EXACT-HEAD REVALIDATION PENDING**. Do not call COSMOLOGY newly accepted from this commit until SHA-bound evidence executes. RETURN remains **VIEWPORT REPAIR IMPLEMENTED / PRODUCT REVALIDATION PENDING** because #58 never reached it.
 
 ---
 
@@ -110,7 +116,7 @@ RETURN remains **VIEWPORT REPAIR IMPLEMENTED / EXACT-HEAD PRODUCT REVALIDATION P
 
 **KOD-69** is the zero-cost evidence lane. If provider CI is unavailable, run the same repository-native build/browser gates locally or self-hosted on the Mac mini and preserve SHA-bound evidence. Hosted green is not itself the quality requirement. Do not manually loop hosted reruns.
 
-**KOD-48** remains the continuous preview lane. Preparing preview workflow/config/artifacts is allowed; actually publishing a noindex/staging URL is a separately gated publishing/deployment action. Do not claim a preview URL exists unless verified live and do not publish without the existing explicit authorization policy.
+**KOD-48** remains the continuous preview lane. Preparing preview workflow/config/artifacts is allowed; actually publishing a noindex/staging URL is a separately gated publishing/deployment action. Do not claim a preview URL exists unless verified live and do not publish without the existing explicit authorization policy (`APROBAR DEPLOY`).
 
 ---
 
@@ -124,9 +130,8 @@ Primary risks:
 - fabricated telemetry;
 - parallel schemas/registries/status vocabularies;
 - contaminated historical branches becoming convergence bases;
-- cross-route evidence attribution or browser-navigation races producing false room failures;
-- main-thread scheduling races producing false evidence failures despite already-applied DOM state;
-- scientific fact / metaphor / cultural provenance / inference / implementation / deployment state collapsing into one label;
+- browser lifecycle/scheduling races producing false room failures;
+- science / metaphor / cultural provenance / inference / implementation / testing / deployment collapsing into one truth label;
 - treating protected-art curation as public-use approval.
 
 `BUILD LESS. CURATE HARDER. LET MEMORY CREATE COMPLEXITY.`
@@ -135,12 +140,11 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Let natural Product Corridor run #58 finish on exact head `3d94b8df…`; do not manually spam hosted reruns.
-2. If provider execution becomes unavailable, use KOD-69 local/self-hosted evidence against the exact same SHA and gates.
-3. Confirm PROLOGUE semantic-close evidence passes without weakening focus/geometry/memory/navigation acceptance.
-4. If the run reaches RETURN, inspect RETURN evidence and screenshots at desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion after machine PASS.
-5. If RETURN still fails, repair only the measured viewport/memory/materiality/input delta inside #77; do not create a new memory/runtime/renderer architecture.
-6. If RETURN passes and artifact inspection confirms the journey specimen is actually inside the first viewport, mark the seven-room product corridor technically complete through RETURN while keeping creator visual acceptance and preview publication separate.
-7. Only then return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate, unless creator review establishes a higher-priority defect.
-8. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-9. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+1. Revalidate exact head `74d6fd653c...` using the natural Product Corridor execution if it runs, or KOD-69 Mac mini local/self-hosted execution if provider CI is unavailable. Do **not** manually spam hosted reruns.
+2. Require COSMOLOGY desktop + 390×844 + 412×915 + reduced-motion PASS with the unchanged exact destination `/kodex/interlude/cosmology-return/`.
+3. If COSMOLOGY passes, require the same execution to reach RETURN and inspect RETURN desktop/390/412/reduced-motion artifact after the `bf9f664e...` viewport repair.
+4. If RETURN fails, repair only its measured memory/materiality/viewport/input delta inside #77. Do not introduce a new state/memory/renderer architecture.
+5. If RETURN passes and artifact inspection confirms the journey specimen is inside the first viewport and deterministic, mark the seven-room corridor technically complete while keeping creator acceptance and preview publication separate.
+6. Only after corridor closure return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate unless creator review establishes a higher-priority defect.
+7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
