@@ -192,8 +192,20 @@ for (const profile of profiles) {
 
     const next = page.locator('[data-deck-next]');
     await next.waitFor({ state: 'visible' });
-    await next.click({ noWaitAfter: true });
-    await page.waitForURL((url) => url.pathname === '/kodex/interlude/cosmology-return/', { timeout: 8000 });
+    // Arm the navigation observer before the click. The previous sequence used
+    // `noWaitAfter` and only started `waitForURL` after the transition had
+    // already begun; on a fast desktop run Playwright could attach to the
+    // outgoing document and report net::ERR_ABORTED/frame detached even though
+    // the destination route was correct. Promise.all keeps the same strict
+    // destination contract without turning a browser scheduling race into a
+    // false product failure.
+    await Promise.all([
+      page.waitForURL((url) => url.pathname === '/kodex/interlude/cosmology-return/', {
+        timeout: 8000,
+        waitUntil: 'domcontentloaded',
+      }),
+      next.click(),
+    ]);
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
     assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
