@@ -59,17 +59,27 @@ Benchmark anchors are preserved exactly: `GP-SCI-01 → G07` and `GP-TECH-02 →
 
 Status: **G01/G02/G07 REGISTERED-COMPOSITION DISPATCH + STRUCTURAL FINGERPRINT = BROWSER-VALIDATED IMPLEMENTATION CANDIDATE**. Human curator acceptance remains NOT_RUN. Protected artwork source bytes remain WITHHELD.
 
-### Golden curator/readability audit — perceptual residue identified
+### Golden curator/readability audit — macro hierarchy refinement now implemented candidate
 
 Exact run-281 artifact `9267004535` was inspected as a perceptual/readability surface after the mechanical structural-fingerprint PASS.
 
-The remaining issue is narrower than the previous renderer bug: `GP-SCI-01 / G07` and `GP-TECH-02 / G02` are structurally distinct, but they still share too much macro-template hierarchy — an oversized dominant title, similar central negative-space mass and similar lower framing/bands. This is a renderer hierarchy/materiality issue, not evidence for changing ElementContract, PlateSpec, assembler scoring or registered IDs.
+The remaining issue was narrower than the previous renderer bug: `GP-SCI-01 / G07` and `GP-TECH-02 / G02` were structurally distinct, but still shared too much macro-template hierarchy — an oversized dominant title, similar central negative-space mass and similar lower framing/bands. This is a renderer hierarchy/materiality issue, not evidence for changing ElementContract, PlateSpec, assembler scoring or registered IDs.
+
+Existing #62 branch was advanced in place to current candidate head `067ada580d72d7bf4118bfd92f395645168ea77f`. The delta is presentation-only:
+- new `src/styles/kodex-golden-curatorial.css` scoped by existing `data-knowledge-structure` semantics;
+- existing Golden case route imports that stylesheet;
+- `G07 / ARCHIVE_DOSSIER` becomes a full-width unequal archive hero/record field with subordinate horizontal metadata;
+- `G02 / SPECIMEN_DOSSIER` becomes a narrower vertical specimen/provenance dossier with smaller headline and tall metadata column;
+- `<=760px` explicitly returns both to the prior bounded mobile stack;
+- G01 is intentionally unchanged in this cycle.
+
+Unchanged: ElementContract, registry, PlateSpec, deterministic assembler/scoring, structural fingerprint semantics, copy compiler, Deep Route, JourneyState/memory, provenance/rights and protected Ocín contracts.
+
+KODEX Core Runtime run 283 / `31965803870` is currently **IN PROGRESS** on exact candidate head `067ada580...`. At the latest check, scene/runtime, JourneyState/graph/memory, full Assembly OS contracts, seeded factory benchmark, integrity audit and Astro build are PASS; general browser evidence is executing, with Deep Navigation and Golden evidence still pending. Do not call this hierarchy refinement browser-validated until the run completes SUCCESS and the new Golden screenshots are inspected.
 
 `GP-CON-03` remains legible but diagrammatic/scaffold-like rather than creator-finished experiential materiality. `GP-ART-03` remains source-byte WITHHELD; no protected-art materiality or no-crop visual acceptance may be inferred from that placeholder.
 
-Truth boundary: `human_curator_acceptance = NOT_RUN`. This is an implementation/readability diagnosis, not creator approval.
-
-Next bounded code candidate, if/when edited: refine only the existing G07/G02/G01 renderer hierarchy while preserving registered IDs, PlateSpec, deterministic assembly, provenance/rights, user agency, JourneyState and protected Ocín contracts; require exact-head Golden browser evidence afterward. Do not add another visual grammar or renderer architecture.
+Truth boundary: `human_curator_acceptance = NOT_RUN`. This is an implementation/readability refinement candidate, not creator approval.
 
 ---
 
@@ -140,10 +150,12 @@ Primary risks:
 ## 7. Exact next action
 
 1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
-2. Treat #62 G01/G02/G07 dispatch + structural fingerprint as browser-validated; do not add another schema/renderer/assembler merely to increase visual variety.
-3. Treat the run-281 Golden perceptual audit as the active delta: SCI/G07 and TECH/G02 are structurally distinct but still too similar at the macro-hierarchy level.
-4. If implementing, change only the existing universal renderer hierarchy/materiality for G07/G02/G01 and preserve all registered semantics/contracts; re-run exact-head Golden browser evidence afterward.
-5. Keep `human_curator_acceptance=NOT_RUN` until actual creator review; do not convert this audit into aesthetic approval.
-6. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
-7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+2. Keep #62 as sole Assembly OS authority; P0.1–P0.10 and G01/G02/G07 structural dispatch/fingerprint remain closed baselines.
+3. Treat current #62 head `067ada580...` as **IMPLEMENTED CANDIDATE / EXACT-HEAD REVALIDATION IN PROGRESS**, not browser-validated yet.
+4. Let run 283 complete naturally, or use the KOD-69 equivalent only if provider execution becomes unavailable; do not manually loop reruns.
+5. If run 283 is green, inspect `GP-SCI-01 / G07` versus `GP-TECH-02 / G02` on desktop/mobile/reduced-motion and verify the new macro hierarchy materially separates archive-field versus specimen-dossier reading without regression.
+6. Only after exact-head evidence and artifact inspection decide whether G01 needs a matching hierarchy/materiality pass; do not broaden scope pre-emptively.
+7. Keep `human_curator_acceptance=NOT_RUN` until actual creator review; do not convert this agent audit into aesthetic approval.
+8. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD.
+9. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+10. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
