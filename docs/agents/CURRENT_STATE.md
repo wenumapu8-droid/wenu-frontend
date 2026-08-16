@@ -59,44 +59,33 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 
 PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor without owning/replacing Assembly OS or Deep Navigation architecture.
 
-### Verified through MACHINE on the latest executed evidence
+### Verified through MACHINE
 
-Product Corridor run `31919010988` executed on head `4acc2cd0fc618157620af9ff3f3770833c6f3a45`.
-
-PASS before the first failure:
-- install/build/preview;
-- THRESHOLD desktop/mobile/reduced-motion;
-- PROLOGUE desktop/mobile/reduced-motion;
-- DESCENT desktop/mobile/reduced-motion;
-- ARCHIVE desktop/mobile/reduced-motion;
-- ARCHIVE→MACHINE interlude + MACHINE desktop/mobile/reduced-motion.
+Product Corridor run `31919010988` on head `4acc2cd0fc618157620af9ff3f3770833c6f3a45` passed install/build/preview plus THRESHOLD, PROLOGUE, DESCENT, ARCHIVE and ARCHIVE→MACHINE/MACHINE across their required product profiles before COSMOLOGY became the first failure.
 
 Artifact `9255841751`; digest `sha256:9be4fe12bb197e4c0d939e777efb492f4047dd3fde7b0fc3bc7f1c51f985f322`.
 
 MACHINE is **browser-revalidated**. The earlier unsourced `INTEGRITY · 98.7%` defect remains repaired to explicit `NOT MEASURED`. Do not describe billing as a current MACHINE blocker and do not manually loop hosted reruns.
 
-### COSMOLOGY — exact measured failure and bounded repair
+### COSMOLOGY — run #42 narrows the remaining gap
 
-On run `31919010988`, COSMOLOGY was the first failing scene. Artifact evidence records four distinct failures:
+The prior bounded repairs introduced a real six-node compact touch fallback, semantic keyboard controls, viewport-bounded orbital-map geometry and a truthful relation model that separates concept targets from five ecosystem portals. `SIGNAL → MACHINE` is concept-to-concept; MACHINE is not a fabricated sixth portal.
 
-- desktop: orbital map clipped outside first viewport;
-- mobile 390×844: `REVEAL CONNECTION` outside first viewport;
-- mobile 412×915: touch activation did not prove SIGNAL→MACHINE;
-- reduced-motion desktop: orbital map clipped outside first viewport.
+Product Corridor run `31920807127` (#42) executed on head `38fc336c7a3b06c16af1eb7fe32aede628e1cb8d` and produced artifact `9256372881`, digest `sha256:2452bcf64f1c409baf4db9fa5b75b7fdb68546f636b6e0f8a52522883e0301b6`.
 
-The six semantic concept controls and six-node compact mobile fallback now exist; the prior hover-only/fallback-missing diagnosis is no longer the current implementation state.
+Exact profile result:
+- mobile 390×844: **PASS**;
+- mobile 412×915: **PASS**, including touch SIGNAL→MACHINE concept relation;
+- desktop 1440×900: **FAIL only because `REVEAL CONNECTION` is outside the first viewport**;
+- reduced-motion 1440×900: **FAIL only for the same CTA viewport geometry**.
 
-The touch failure also exposed a truth-model mismatch in the gate: `SIGNAL → MACHINE` is concept-to-concept. MACHINE is one of the six canonical concept nodes, **not** one of the five ecosystem portals. The old assertion looked for a nonexistent/fabricated `data-organ="machine"` portal.
+The orbital map and relation semantics are therefore no longer the failing surfaces on this evidence.
 
-Current PR #77 head after bounded repair: `38fc336c7a3b06c16af1eb7fe32aede628e1cb8d`.
+Current PR #77 head: `7f3eb45c7998c3e199fdc66966e852f46ba6afe2`.
 
-Repair commits:
-- `0561a127db6b00d5ede3e5fa434a28eecf10b229` — anchors the existing desktop map plate in the measured first-viewport free zone, pulls the mobile CTA into the measured gap above compact map/navigation, and separates concept-target relations from ecosystem-organ relations so SIGNAL visibly relates to the canonical MACHINE node;
-- `38fc336c7a3b06c16af1eb7fe32aede628e1cb8d` — strengthens the browser gate to prove MACHINE concept highlighting + the authored `signal-machine` link for pointer/keyboard/touch instead of inventing a sixth ecosystem portal.
+Bounded repair `7f3eb45...` changes only `src/components/kodex/CosmologyMap.astro`: desktop width >=641px positions the existing COSMOLOGY readout/CTA inside the measured open left field. It does not change the six concept relations, five ecosystem portals, mobile fallback, routing, memory, evidence criterion, renderer, schema or Assembly architecture.
 
-No test was removed and no alternative renderer/state/router/memory architecture was added.
-
-Status: **COSMOLOGY IMPLEMENTED MEASURED REPAIR / EXACT-HEAD REVALIDATION PENDING**. Do not advance RETURN until the exact current head is executed through automatic provider CI if it occurs naturally or KOD-69 local/self-hosted evidence, and the artifact is inspected.
+Status: **COSMOLOGY BOUNDED PRESENTATION REPAIR / EXACT-HEAD REVALIDATION PENDING**. Do not advance RETURN until this exact head has SHA-bound browser evidence and its artifact is inspected.
 
 ---
 
@@ -127,7 +116,7 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Execute PR #77 exact head `38fc336c...` through KOD-69 local/self-hosted evidence if no natural provider run appears; do not manually spam hosted reruns.
+1. Revalidate PR #77 exact head `7f3eb45c...` through a natural provider run if one occurs or KOD-69 local/self-hosted evidence; do not manually spam hosted reruns.
 2. Inspect COSMOLOGY desktop/390×844/412×915/reduced-motion artifacts. Promote only on actual PASS.
 3. If it fails, repair only the measured layout/semantic-input delta; no new architecture and no weakened gate.
 4. After COSMOLOGY closes, move the product frontier to RETURN. Existing audit finding that RETURN lacks a finished product-facing visual layer remains diagnosis until implementation + browser QA.
