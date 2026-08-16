@@ -1,0 +1,161 @@
+---
+/**
+ * KODEX−∞ · SERIE ARCHIVO · SELLO DE CLASIFICACIÓN
+ *
+ * El sello de esquina inferior + el texto vertical al canto.
+ *
+ * MEDIDO sobre reference/pendientes/a28-silence-engine.png:
+ * · Sello (esquina inferior derecha): línea 1 "KX − ∞ − 28" en banda
+ *   y1462..1471 (versal 10 px → cuerpo 16 px), línea 2
+ *   "CLASSIFIED / ECHOLESS" en y1484..1492 (versal 9 → 14 px), las dos
+ *   alineadas contra una barra vertical de acento pegada al borde.
+ * · Canto: columna de texto rotado 90° a la derecha del marco
+ *   (x≈1150..1210), que se lee de abajo hacia arriba: "IN SILENCE, ALL
+ *   INTERFERENCE CEASES." / "ONLY ESSENCE REMAINS." con "ESSENCE" en
+ *   acento. Flanqueado por reglas punteadas con puntos terminales.
+ *   Los glifos del canto (φ circulado, estrella de ocho puntas, ∞) son
+ *   geometría por lámina y quedan FUERA de este componente — si la
+ *   página los quiere, los dibuja ella.
+ *
+ * POSICIONAMIENTO: el canto se ancla con position:absolute al borde
+ * del ancestro posicionado más cercano — colocá este componente como
+ * hijo directo del marco (position:relative) de la lámina.
+ *
+ * REGLA DURA: código, clasificación y texto del canto son del creador —
+ * transcritos de la referencia, sin defaults de contenido.
+ */
+export interface SegmentoCanto {
+  /** Texto transcrito de la referencia. */
+  t: string;
+  /** true si en la referencia ese tramo va en color de acento. */
+  acento?: boolean;
+}
+interface Props {
+  /** Código del sello, ej. "KX − ∞ − 28". */
+  codigo: string;
+  /** Clasificación, ej. "CLASSIFIED / ECHOLESS". */
+  clasificacion: string;
+  /** Lado de la barra de acento y del canto. a28: derecha. */
+  lado?: "izq" | "der";
+  /** Líneas del texto vertical al canto (opcional). */
+  canto?: SegmentoCanto[][];
+}
+const { codigo, clasificacion, lado = "der", canto } = Astro.props;
+---
+
+<div class:list={["arch-sello", `arch-sello--${lado}`]}>
+  <div class="arch-sello__texto">
+    <p class="arch-sello__codigo">{codigo}</p>
+    <p class="arch-sello__clasif">{clasificacion}</p>
+  </div>
+  <span class="arch-sello__barra" aria-hidden="true"></span>
+</div>
+
+{canto && (
+  <div class:list={["arch-sello__canto", `arch-sello__canto--${lado}`]}>
+    <span class="arch-sello__punteada" aria-hidden="true"></span>
+    <div class="arch-sello__canto-lineas">
+      {canto.map((linea) => (
+        <p class="arch-sello__canto-verso">
+          {linea.map((s) =>
+            s.acento ? <em class="arch-sello__acento">{s.t}</em> : <span>{s.t}</span>
+          )}
+        </p>
+      ))}
+    </div>
+    <span class="arch-sello__punteada" aria-hidden="true"></span>
+  </div>
+)}
+
+<style>
+  .arch-sello {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    color: var(--arch-ink, #d8d4d0);
+  }
+  .arch-sello--izq {
+    flex-direction: row-reverse;
+  }
+  .arch-sello__texto {
+    text-align: right;
+  }
+  .arch-sello--izq .arch-sello__texto {
+    text-align: left;
+  }
+  .arch-sello__texto p {
+    margin: 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .arch-sello__codigo {
+    /* 16 px = versal medida 10 / 0,625; interlínea 22 medida entre bandas. */
+    font-size: var(--arch-sello-cod-size, 16px);
+    line-height: 22px;
+    letter-spacing: 0.3em;
+  }
+  .arch-sello__clasif {
+    font-size: var(--arch-sello-clasif-size, 14px);
+    line-height: 22px;
+    letter-spacing: 0.14em;
+    opacity: 0.88;
+  }
+  .arch-sello__barra {
+    width: 2px;
+    background: var(--arch-acento, #cdbcf3);
+    opacity: 0.85;
+  }
+
+  /* ── canto ─────────────────────────────────────────────────────── */
+  .arch-sello__canto {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    color: var(--arch-ink, #d8d4d0);
+    pointer-events: none;
+  }
+  .arch-sello__canto--der {
+    right: var(--arch-canto-margen, 22px);
+  }
+  .arch-sello__canto--izq {
+    left: var(--arch-canto-margen, 22px);
+  }
+  .arch-sello__punteada {
+    width: 1px;
+    flex: 0 1 150px;
+    background-image: repeating-linear-gradient(
+      to bottom,
+      currentColor 0 2px,
+      transparent 2px 7px
+    );
+    opacity: 0.5;
+  }
+  .arch-sello__canto-lineas {
+    display: flex;
+    /* Rotado 180°, la primera línea queda del lado del canto, como en
+       la referencia (se lee de abajo hacia arriba). */
+    flex-direction: row-reverse;
+    gap: 6px;
+  }
+  .arch-sello__canto-verso {
+    margin: 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-weight: 600;
+    font-size: var(--arch-canto-size, 13px);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+  .arch-sello__acento {
+    font-style: normal;
+    color: var(--arch-acento-pie, #b4a9c7);
+  }
+</style>
