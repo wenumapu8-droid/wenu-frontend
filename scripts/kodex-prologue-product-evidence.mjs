@@ -119,11 +119,16 @@ for (const profile of cases) {
     const close = page.locator('[data-kdx-drawer-close]');
     await close.waitFor({ state: 'visible' });
     await close.click();
-    // closeDrawer flips the accessibility state synchronously, then applies
-    // `hidden` after its 220ms visual transition. Assert both. The longer wait
-    // is scheduling tolerance for loaded CI runners, not a relaxation of the
-    // semantic close contract.
-    await page.waitForFunction(() => document.querySelector('[data-kdx-drawer]')?.getAttribute('aria-hidden') === 'true', null, { timeout: 1000 });
+    // closeDrawer writes aria-hidden synchronously in the click handler, then
+    // applies `hidden` after its 220ms visual transition. Read the synchronous
+    // semantic state directly after Playwright has completed the click dispatch
+    // instead of polling it through a 1s waitForFunction. A loaded desktop CRT
+    // can starve page-function polling even though the DOM mutation already
+    // happened; the artifact from run 31934539781 showed the drawer visibly
+    // closed while that polling window expired. The hidden-state wait remains
+    // bounded because it represents the actual asynchronous transition.
+    const closeAriaHidden = await drawer.getAttribute('aria-hidden');
+    assert(closeAriaHidden === 'true', `${profile.id}: protocol drawer did not synchronously expose aria-hidden=true on close`);
     await page.waitForFunction(() => document.querySelector('[data-kdx-drawer]')?.hasAttribute('hidden'), null, { timeout: 4000 });
     assert(await opener.evaluate((node) => document.activeElement === node), `${profile.id}: protocol drawer did not restore focus to opener`);
 
