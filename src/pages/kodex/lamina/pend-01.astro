@@ -458,28 +458,44 @@ import "../../../styles/kodex-lamina.css";
           gf.restore();
         }
 
-        /* ── tronco tejido (encima de raíces y base de ramas) ───────── */
-        for (let s = 0; s < 7; s++) {
-          const off = (s - 3) * 4.4;
-          gf.strokeStyle = tinta(s % 2 ? ORO_MED : ORO_HI, 0.55 + (s % 2 ? 0 : 0.2));
-          gf.lineWidth = 2.6;
-          gf.lineCap = "round";
+        /* ── tronco tejido (encima de raíces y base de ramas) ────────
+           En la referencia el tronco es una columna GRUESA de hebras
+           trenzadas (~44 px en la base) que baja hasta fundirse con el
+           nudo. Hebras claras y oscuras alternadas + borde oscuro. */
+        gf.lineCap = "round";
+        for (let s = 0; s < 11; s++) {
+          const off = (s - 5) * 4.2;
+          const borde = s === 0 || s === 10;
+          gf.strokeStyle = borde
+            ? tinta(ORO_BAJO, 0.9)
+            : s % 2 ? tinta(ORO_MED, 0.9) : tinta(ORO_HI, 0.85);
+          gf.lineWidth = borde ? 2 : 3.2;
           gf.beginPath();
-          for (let y = 530; y >= 432; y -= 6) {
-            const f = (530 - y) / 98;
-            const ancho = 1 - f * 0.35;
-            const x = CX + off * ancho + Math.sin(y * 0.09 + s * 1.7) * 3.4;
-            if (y === 530) gf.moveTo(x, y); else gf.lineTo(x, y);
+          for (let y = 540; y >= 424; y -= 6) {
+            const f = (540 - y) / 116;
+            const ancho = 1 - f * 0.3;
+            const x = CX + off * ancho + Math.sin(y * 0.085 + s * 1.7) * 3.6;
+            if (y === 540) gf.moveTo(x, y); else gf.lineTo(x, y);
           }
           gf.stroke();
         }
+        /* lomo de luz del tronco */
+        gf.strokeStyle = tinta(ORO_LUZ, 0.55);
+        gf.lineWidth = 2.4;
+        gf.beginPath();
+        for (let y = 536; y >= 428; y -= 6) {
+          const x = CX - 4 + Math.sin(y * 0.085) * 3.2;
+          if (y === 536) gf.moveTo(x, y); else gf.lineTo(x, y);
+        }
+        gf.stroke();
 
-        /* ── nudo ∞ trenzado (lo más brillante de la plancha) ───────── */
+        /* ── nudo ∞ trenzado (lo más brillante de la plancha) ─────────
+           Banda sólida ~26 px: hebras interiores gruesas alternadas,
+           bordes oscuros que la recortan del fondo, y especular. */
         const paso = 0.02;
-        for (let s = 0; s < 9; s++) {
-          const d = (s - 4) * 2.6;
-          gf.strokeStyle = s % 2 ? tinta(ORO_MED, 0.85) : tinta(ORO_HI, 0.9);
-          gf.lineWidth = 2.4;
+        const hebra = (d: number, color: string, lw: number) => {
+          gf.strokeStyle = color;
+          gf.lineWidth = lw;
           gf.beginPath();
           let primero = true;
           for (let t = 0; t <= Math.PI * 2 + paso; t += paso) {
@@ -492,16 +508,55 @@ import "../../../styles/kodex-lamina.css";
             if (primero) { gf.moveTo(px, py); primero = false; } else gf.lineTo(px, py);
           }
           gf.stroke();
+        };
+        /* banda sólida: contorno oscuro → cuerpo medio → lomo claro */
+        hebra(0, tinta(ORO_BAJO, 0.95), 27);
+        hebra(0, tinta(ORO_MED, 0.98), 22);
+        hebra(0, tinta(ORO_HI, 0.95), 13);
+        hebra(-3, tinta(ORO_LUZ, 0.5), 5);
+        /* grabado: vetas finas que siguen la banda */
+        hebra(-8, tinta(ORO_BAJO, 0.5), 1.1);
+        hebra(-4, tinta(ORO_BAJO, 0.35), 1);
+        hebra(4, tinta(ORO_BAJO, 0.45), 1.1);
+        hebra(8, tinta(ORO_BAJO, 0.55), 1.2);
+        /* trenza: sombras diagonales tenues que cruzan la banda */
+        gf.strokeStyle = tinta(ORO_BAJO, 0.35);
+        gf.lineWidth = 1.4;
+        for (let t = 0; t < Math.PI * 2; t += 0.2) {
+          const [x, y] = lemni(t);
+          const [x2, y2] = lemni(t + paso);
+          const nx = -(y2 - y), ny = x2 - x;
+          const nl = Math.hypot(nx, ny) || 1;
+          gf.beginPath();
+          gf.moveTo(x - (nx / nl) * 10 + 2.5, y - (ny / nl) * 10);
+          gf.lineTo(x + (nx / nl) * 10 - 2.5, y + (ny / nl) * 10);
+          gf.stroke();
         }
+        /* el cruce teje: el ramal que sube a la derecha pasa ENCIMA */
+        gf.save();
+        gf.beginPath();
+        gf.rect(KX - 30, KY - 32, 60, 64);
+        gf.clip();
+        gf.lineCap = "round";
+        gf.strokeStyle = tinta(ORO_BAJO, 0.95);
+        gf.lineWidth = 27;
+        gf.beginPath(); gf.moveTo(KX - 26, KY + 24); gf.lineTo(KX + 26, KY - 24); gf.stroke();
+        gf.strokeStyle = tinta(ORO_MED, 0.98);
+        gf.lineWidth = 22;
+        gf.beginPath(); gf.moveTo(KX - 26, KY + 24); gf.lineTo(KX + 26, KY - 24); gf.stroke();
+        gf.strokeStyle = tinta(ORO_HI, 0.95);
+        gf.lineWidth = 13;
+        gf.beginPath(); gf.moveTo(KX - 26, KY + 24); gf.lineTo(KX + 26, KY - 24); gf.stroke();
+        gf.restore();
         /* luz especular en los lomos superiores del nudo */
-        gf.strokeStyle = tinta(ORO_LUZ, 0.8);
-        gf.lineWidth = 2;
+        gf.strokeStyle = tinta(ORO_LUZ, 0.85);
+        gf.lineWidth = 2.6;
         for (const [t0, t1] of [[Math.PI * 0.62, Math.PI * 0.95], [Math.PI * 1.55, Math.PI * 1.9]]) {
           gf.beginPath();
           let primero = true;
           for (let t = t0; t <= t1; t += paso) {
             const [x, y] = lemni(t);
-            if (primero) { gf.moveTo(x, y - 3); primero = false; } else gf.lineTo(x, y - 3);
+            if (primero) { gf.moveTo(x, y - 4); primero = false; } else gf.lineTo(x, y - 4);
           }
           gf.stroke();
         }
