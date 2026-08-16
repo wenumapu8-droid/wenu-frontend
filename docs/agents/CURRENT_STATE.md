@@ -60,44 +60,41 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 
 PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor only. It does not own or replace Assembly OS, Deep Navigation, JourneyState or the existing `kx-journey` / `KodexRecuerda` / `src/kodex/return/memory.js` substrate.
 
-### Corridor rooms already closed on executed evidence
+### Rooms closed on executed evidence
 
-THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY have exact-head browser evidence covering their required desktop/mobile/reduced-motion/input/state contracts. Do not modify them without new measured regression evidence.
+THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY have exact-head browser evidence covering required desktop/mobile/reduced-motion/input/state contracts. Do not modify them without new measured regression evidence.
 
-Product Corridor run #63 / `31945730175` was the first full mechanical green chain including RETURN, but artifact inspection exposed a mobile RETURN headline/action collision that the old gate did not measure. The gate was subsequently strengthened; therefore run #63 is not sufficient to call the current seven-room first-view composition complete.
+### RETURN run #72 — machine/browser green, visual blind spot found
 
-### RETURN evidence frontier — run #71
+Product Corridor run #72 / `31953124693` completed **SUCCESS** on exact head `e878bb482274fe06a67b4750cf1d0ac1d7444a85`.
 
-Product Corridor run #71 / `31952372401` executed on exact head `6b19734d36af91671839f4fe8d96a3aa475c7a31`.
+Build + THRESHOLD + PROLOGUE + DESCENT + ARCHIVE + MACHINE + COSMOLOGY + RETURN: **PASS** under the then-current machine/browser gates.
 
-Build + THRESHOLD + PROLOGUE + DESCENT + ARCHIVE + MACHINE + COSMOLOGY: **PASS**.  
-RETURN desktop 1440×900: **PASS**.  
-RETURN reduced-motion 1440×900: **PASS**.  
-RETURN 390×844: **FAIL — `RETURN actions are clipped`**.  
-RETURN 412×915: **FAIL — `RETURN actions are clipped`**.
+Artifact: `kodex-product-corridor-evidence` id `9265346747`; digest `sha256:c2a0ee22d9df0aef1d2398e5e18f8e64248790890c5b7e2eb7208384150b8d63`.
 
-Artifact: `kodex-product-corridor` id `9265133098`.
+Actual screenshot review found one acceptance blind spot in RETURN mobile:
+- 390×844: outbound secondary actions cross into the right-side CRT / journey-specimen material field;
+- 412×915: same action↔artifact collision;
+- headline↔actions, headline↔artifact and headline↔DataStrip are clean;
+- desktop/reduced-motion remain visually bounded for this measured dimension.
 
-Artifact review shows the closing title still carrying inherited positioning behavior while the outbound action container escapes the mobile content box. This is a scene-local presentation defect, not a failure of `kx-journey`, `readSpecimen('RETURN')`, routing, CRT/fallback, protected artwork or Assembly OS.
+Therefore run #72 is a truthful PASS for its prior gate, but the seven-room corridor is **not product-composition complete** yet. Machine green does not override a visible overlap that the gate failed to measure.
 
-### Current bounded repair / exact validation SHA
+### Current bounded repair / validation SHA
 
-Current #77 head: `e878bb482274fe06a67b4750cf1d0ac1d7444a85`.
+Current #77 head: `6387ae29cd4827ec73a96caa23863941b3891674`.
 
-This head contains the same bounded scene-local repair derived from run #71:
-- mobile copy/actions boxes neutralize inherited `inset`, `transform`, width/max-width and margins;
-- closing headline is forced into actual static flow;
-- action grid is constrained to the stage content box with `minmax(0,1fr)` and 100% width/max-width;
-- all three existing exits remain present;
-- desktop/reduced-motion composition remains intentionally unchanged because those profiles already passed run #71.
+One bounded commit changes exactly two existing surfaces:
+- `public/assets/kodex/kodex-return-composition-v1.css` reserves the left 48% of the narrow mobile stage for the complete outbound-action group, preserving the right half for the existing CRT/specimen field;
+- `scripts/kodex-return-product-evidence.mjs` adds explicit `actionsArtOverlap` measurement and fails any profile where outbound actions intersect the material artifact.
+
+Existing checks remain: 100dvh/no-scroll, specimen/art/actions/headline/DataStrip containment, headline↔actions, headline↔artifact, headline↔DataStrip, deterministic journey specimen replay, existing `kx-journey` memory, CRT/fallback, action semantics, drawer behavior, reduced-motion, exact routes and first-party resource health.
 
 No route, action destination, memory/specimen semantics, CRT/fallback, renderer, PlateSpec, ElementContract, assembler, Deep Route or protected Ocín original changed.
 
-Natural Product Corridor run #72 / `31953124693` is **IN PROGRESS** on exact head `e878bb...`. No manual hosted rerun was triggered.
+Status: **RETURN = MACHINE-PASS PRIOR HEAD / MEASURED MOBILE ACTION↔ARTIFACT REPAIR IMPLEMENTED / EXACT-HEAD REVALIDATION PENDING**.
 
-Status: **RETURN = IMPLEMENTED MEASURED MOBILE FLOW-CONTAINMENT REPAIR / EXACT-HEAD REVALIDATION IN PROGRESS**.
-
-The seven-room corridor is **not** product-composition complete until this exact head passes RETURN desktop/390/412/reduced-motion and its artifact is visually inspected.
+The seven-room corridor becomes mechanically/browser-complete at the current acceptance level only after `6387ae29...` passes desktop 1440×900 / 390×844 / 412×915 / reduced-motion and the exact screenshots confirm action↔artifact separation. Creator acceptance remains separate.
 
 ---
 
@@ -131,8 +128,8 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Let natural Product Corridor run #72 / `31953124693` finish on exact head `e878bb482274fe06a67b4750cf1d0ac1d7444a85`; do not manually loop hosted reruns. Use KOD-69 Mac mini/self-hosted SHA-bound evidence only if provider execution becomes unavailable.
-2. Require RETURN desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion to pass containment, hit-testing, deterministic journey specimen, first-party resource health and explicit headline↔actions / headline↔artifact non-overlap.
+1. Do not manually trigger hosted reruns. Accept natural exact-head execution for #77 head `6387ae29...`, or use KOD-69 local/self-hosted SHA-bound execution if provider CI is unavailable.
+2. Require RETURN desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion to pass all prior gates plus the new explicit outbound-actions↔material-artifact non-overlap assertion.
 3. Inspect the exact 390/412 screenshots after machine PASS. Browser PASS still does not equal creator acceptance.
 4. Do not modify THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE or COSMOLOGY without new measured regression evidence.
 5. Only after RETURN is clean may the seven-room corridor be called mechanically/browser-complete at the current acceptance level.
