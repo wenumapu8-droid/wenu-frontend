@@ -44,9 +44,7 @@ Evidence from the rendered Golden benchmark showed that the assembler differenti
 
 Renderer dispatch head `7c915df4652376847a80af0b102adcfc7cb9c48d` completed KODEX Core Runtime run 280 / `31956937243`: **SUCCESS**. `KodexPlateSpecRenderer.astro` now consumes the already-selected registered GRID element for the bounded existing set G01/G02/G07, with explicit GENERIC fallback for other safe Knowledge compositions.
 
-Current verified #62 refinement head: `172562fd92dedc6a28e8c235cc0d763239bf2b61`.
-
-KODEX Core Runtime run 281 / `31959985612`: **SUCCESS** across scene/runtime, JourneyState/graph/memory, full Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and strengthened Golden browser evidence.
+Structural-fingerprint head `172562fd92dedc6a28e8c235cc0d763239bf2b61` completed KODEX Core Runtime run 281 / `31959985612`: **SUCCESS** across scene/runtime, JourneyState/graph/memory, full Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and strengthened Golden browser evidence.
 
 Artifact: `kodex-evidence` id `9267004535`; digest `sha256:79d82a0b9aef87592d59d3467d5437e8b39101dd88e418e67ea8fb63daffc160`.
 
@@ -55,31 +53,31 @@ The strengthened Golden report records `renderer_status=BROWSER_EVIDENCE_PASS`, 
 - `KDX_G01_ORBITAL_RELIC → ORBITAL_RELIC|orbital-relic|chamber,rail`;
 - `KDX_G02_SPECIMEN_DOSSIER → SPECIMEN_DOSSIER|specimen-dossier|provenance,specimen`.
 
-Benchmark anchors are preserved exactly: `GP-SCI-01 → G07` and `GP-TECH-02 → G02`. Their desktop screenshots were inspected and are materially distinct compositions rather than metadata-only differences. This closes the specific renderer-consumption/structural-diversity blind spot.
+Benchmark anchors are preserved exactly: `GP-SCI-01 → G07` and `GP-TECH-02 → G02`. This closes the specific renderer-consumption/structural-diversity blind spot.
 
-Status: **G01/G02/G07 REGISTERED-COMPOSITION DISPATCH + STRUCTURAL FINGERPRINT = BROWSER-VALIDATED IMPLEMENTATION CANDIDATE**. Human curator acceptance remains NOT_RUN. Protected artwork source bytes remain WITHHELD.
+### Golden macro-hierarchy refinement — exact-head browser validated
 
-### Golden curator/readability audit — macro hierarchy refinement now implemented candidate
+Run-281 artifact review found a narrower perceptual residue: SCI/G07 and TECH/G02 were structurally distinct but still shared too much macro-template hierarchy — oversized title, similar central negative-space mass and similar lower framing. This was localized to presentation hierarchy, not ElementContract, PlateSpec, assembler scoring or registered IDs.
 
-Exact run-281 artifact `9267004535` was inspected as a perceptual/readability surface after the mechanical structural-fingerprint PASS.
-
-The remaining issue was narrower than the previous renderer bug: `GP-SCI-01 / G07` and `GP-TECH-02 / G02` were structurally distinct, but still shared too much macro-template hierarchy — an oversized dominant title, similar central negative-space mass and similar lower framing/bands. This is a renderer hierarchy/materiality issue, not evidence for changing ElementContract, PlateSpec, assembler scoring or registered IDs.
-
-Existing #62 branch was advanced in place to current candidate head `067ada580d72d7bf4118bfd92f395645168ea77f`. The delta is presentation-only:
-- new `src/styles/kodex-golden-curatorial.css` scoped by existing `data-knowledge-structure` semantics;
+Existing #62 branch was advanced in place to current exact head `067ada580d72d7bf4118bfd92f395645168ea77f`. The delta is presentation-only:
+- new `src/styles/kodex-golden-curatorial.css`, scoped by existing `data-knowledge-structure` semantics;
 - existing Golden case route imports that stylesheet;
-- `G07 / ARCHIVE_DOSSIER` becomes a full-width unequal archive hero/record field with subordinate horizontal metadata;
-- `G02 / SPECIMEN_DOSSIER` becomes a narrower vertical specimen/provenance dossier with smaller headline and tall metadata column;
-- `<=760px` explicitly returns both to the prior bounded mobile stack;
-- G01 is intentionally unchanged in this cycle.
+- `G07 / ARCHIVE_DOSSIER` becomes a broad full-width unequal archive hero/record field with subordinate horizontal metadata;
+- `G02 / SPECIMEN_DOSSIER` becomes a narrower vertical specimen/provenance dossier with a smaller headline and tall metadata column;
+- `<=760px` explicitly returns both structures to the prior bounded mobile stack;
+- G01 remains unchanged in this cycle.
 
-Unchanged: ElementContract, registry, PlateSpec, deterministic assembler/scoring, structural fingerprint semantics, copy compiler, Deep Route, JourneyState/memory, provenance/rights and protected Ocín contracts.
+KODEX Core Runtime run 283 / `31965803870`: **SUCCESS** on exact head `067ada580...`. All stages passed: runtime/JourneyState, full Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and rendered Golden Plate evidence.
 
-KODEX Core Runtime run 283 / `31965803870` is currently **IN PROGRESS** on exact candidate head `067ada580...`. At the latest check, scene/runtime, JourneyState/graph/memory, full Assembly OS contracts, seeded factory benchmark, integrity audit and Astro build are PASS; general browser evidence is executing, with Deep Navigation and Golden evidence still pending. Do not call this hierarchy refinement browser-validated until the run completes SUCCESS and the new Golden screenshots are inspected.
+Artifact: `kodex-evidence` id `9268478660`; digest `sha256:1d247892007253474aa9d6e150721c145ee5174340d37d975105d1f8d5fbd92a`.
+
+Golden report retains `knowledge_structure_dispatch.pass=true`, zero errors, and three unique registered Knowledge IDs → three unique structural fingerprints. Actual run-283 desktop captures were inspected: `GP-SCI-01 / G07` now reads as a large archive field with dominant hero/record mass, while `GP-TECH-02 / G02` reads as a smaller centered specimen/provenance dossier with a separate tall metadata column. The prior macro-template similarity is materially reduced at agent-audit level.
+
+Unchanged across this refinement: ElementContract, registry, PlateSpec, deterministic assembler/scoring, copy compiler, Deep Route, JourneyState/memory, provenance/rights and protected Ocín contracts.
+
+Status: **G07-vs-G02 MACRO-HIERARCHY REFINEMENT = EXACT-HEAD BROWSER-VALIDATED IMPLEMENTATION EVIDENCE / ARTIFACT INSPECTED**. `human_curator_acceptance = NOT_RUN`; this is not creator approval.
 
 `GP-CON-03` remains legible but diagrammatic/scaffold-like rather than creator-finished experiential materiality. `GP-ART-03` remains source-byte WITHHELD; no protected-art materiality or no-crop visual acceptance may be inferred from that placeholder.
-
-Truth boundary: `human_curator_acceptance = NOT_RUN`. This is an implementation/readability refinement candidate, not creator approval.
 
 ---
 
@@ -150,12 +148,10 @@ Primary risks:
 ## 7. Exact next action
 
 1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
-2. Keep #62 as sole Assembly OS authority; P0.1–P0.10 and G01/G02/G07 structural dispatch/fingerprint remain closed baselines.
-3. Treat current #62 head `067ada580...` as **IMPLEMENTED CANDIDATE / EXACT-HEAD REVALIDATION IN PROGRESS**, not browser-validated yet.
-4. Let run 283 complete naturally, or use the KOD-69 equivalent only if provider execution becomes unavailable; do not manually loop reruns.
-5. If run 283 is green, inspect `GP-SCI-01 / G07` versus `GP-TECH-02 / G02` on desktop/mobile/reduced-motion and verify the new macro hierarchy materially separates archive-field versus specimen-dossier reading without regression.
-6. Only after exact-head evidence and artifact inspection decide whether G01 needs a matching hierarchy/materiality pass; do not broaden scope pre-emptively.
-7. Keep `human_curator_acceptance=NOT_RUN` until actual creator review; do not convert this agent audit into aesthetic approval.
-8. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD.
-9. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-10. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+2. Keep #62 as sole Assembly OS authority; P0.1–P0.10, registered-composition dispatch, structural fingerprint and run-283 G07/G02 macro-hierarchy refinement are exact-head browser-validated implementation evidence.
+3. Do not broaden G01 automatically. The measured G07-vs-G02 defect is closed at agent-audit/browser level; further code requires a specific remaining readability/materiality weakness.
+4. Next useful step is actual creator/readability review of the run-283 Golden artifact. Keep `human_curator_acceptance=NOT_RUN` until that happens.
+5. Keep `GP-CON-03` as a separate scaffold/materiality concern rather than conflating it with SCI/TECH hierarchy; any future CON repair must be bounded to measured evidence.
+6. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
+7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
