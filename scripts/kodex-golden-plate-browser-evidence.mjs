@@ -15,6 +15,23 @@ const CASES = [
 const SCREENSHOT_CASES = new Set(['GP-SCI-01', 'GP-TECH-02', 'GP-ART-03', 'GP-CON-03']);
 const REDUCED_MOTION_CASES = new Set(['GP-SCI-01', 'GP-TECH-02', 'GP-ART-03']);
 const REDUCED_MOTION_EPSILON_MS = 0.1;
+const KNOWLEDGE_STRUCTURE_CONTRACTS = new Map([
+  ['KDX_G01_ORBITAL_RELIC', {
+    knowledgeStructure: 'ORBITAL_RELIC',
+    structureRole: 'orbital-relic',
+    structureParts: ['chamber', 'rail'],
+  }],
+  ['KDX_G02_SPECIMEN_DOSSIER', {
+    knowledgeStructure: 'SPECIMEN_DOSSIER',
+    structureRole: 'specimen-dossier',
+    structureParts: ['provenance', 'specimen'],
+  }],
+  ['KDX_G07_ARCHIVE_DOSSIER', {
+    knowledgeStructure: 'ARCHIVE_DOSSIER',
+    structureRole: 'archive-dossier',
+    structureParts: ['hero', 'record', 'signal-bridge'],
+  }],
+]);
 
 const report = {
   generated_at: new Date().toISOString(),
@@ -25,8 +42,10 @@ const report = {
     renderer_status: 'UNDER_TEST',
     human_curator_acceptance: 'NOT_RUN',
     protected_artwork_rule: 'WITHHELD source bytes remain PARTIAL for artwork visual/no-crop evidence.',
+    knowledge_structure_dispatch: 'UNDER_TEST',
   },
   cases: [],
+  knowledge_structure_dispatch: null,
   performance: null,
   errors: [],
 };
@@ -63,6 +82,13 @@ async function metrics(page) {
     const root = document.querySelector('[data-kdx-golden-plate]');
     const renderer = document.querySelector('[data-kdx-golden-renderer]');
     const plate = document.querySelector('[data-active-plate]');
+    const knowledgePayload = document.querySelector('[data-knowledge-payload]');
+    const structureRole = knowledgePayload?.querySelector('[data-structure-role]')?.getAttribute('data-structure-role') || null;
+    const structureParts = [...(knowledgePayload?.querySelectorAll('[data-structure-part]') || [])]
+      .map((el) => el.getAttribute('data-structure-part'))
+      .filter(Boolean)
+      .sort();
+    const knowledgeStructure = renderer?.getAttribute('data-knowledge-structure') || null;
     const rect = root?.getBoundingClientRect();
     const nav = performance.getEntriesByType('navigation')[0];
     return {
@@ -80,6 +106,12 @@ async function metrics(page) {
       sceneState: renderer?.getAttribute('data-scene-state') || null,
       semanticNode: renderer?.getAttribute('data-semantic-node') || null,
       elementId: renderer?.getAttribute('data-primary-element-id') || null,
+      knowledgeStructure,
+      structureRole,
+      structureParts,
+      structuralFingerprint: knowledgeStructure
+        ? `${knowledgeStructure}|${structureRole || 'NONE'}|${structureParts.join(',') || 'NONE'}`
+        : null,
       artworkSource: renderer?.getAttribute('data-artwork-source') || null,
       payloadType: document.querySelector('[data-primary-payload]')?.getAttribute('data-payload-type') || null,
       routeCount: Number(document.querySelector('[data-route-count]')?.getAttribute('data-route-count') || 0),
@@ -191,6 +223,52 @@ try {
 } finally {
   await browser.close();
 }
+
+const knowledgeDispatchSamples = report.cases
+  .filter((entry) => entry.desktop?.plateType === 'KNOWLEDGE_PLATE' && KNOWLEDGE_STRUCTURE_CONTRACTS.has(entry.desktop?.elementId))
+  .map((entry) => ({
+    case_id: entry.case_id,
+    element_id: entry.desktop.elementId,
+    knowledge_structure: entry.desktop.knowledgeStructure,
+    structure_role: entry.desktop.structureRole,
+    structure_parts: entry.desktop.structureParts,
+    structural_fingerprint: entry.desktop.structuralFingerprint,
+  }));
+
+for (const sample of knowledgeDispatchSamples) {
+  const expected = KNOWLEDGE_STRUCTURE_CONTRACTS.get(sample.element_id);
+  if (!expected) continue;
+  try {
+    assert(sample.knowledge_structure === expected.knowledgeStructure, `${sample.case_id}: ${sample.element_id} resolved wrong knowledge structure (${sample.knowledge_structure})`);
+    assert(sample.structure_role === expected.structureRole, `${sample.case_id}: ${sample.element_id} resolved wrong structure role (${sample.structure_role})`);
+    assert(JSON.stringify(sample.structure_parts) === JSON.stringify(expected.structureParts), `${sample.case_id}: ${sample.element_id} resolved wrong structure parts (${sample.structure_parts.join(',')})`);
+  } catch (error) {
+    report.errors.push(`knowledge-dispatch: ${String(error?.message || error)}`);
+  }
+}
+
+for (let left = 0; left < knowledgeDispatchSamples.length; left += 1) {
+  for (let right = left + 1; right < knowledgeDispatchSamples.length; right += 1) {
+    const a = knowledgeDispatchSamples[left];
+    const b = knowledgeDispatchSamples[right];
+    if (a.element_id === b.element_id) continue;
+    if (a.structural_fingerprint === b.structural_fingerprint) {
+      report.errors.push(`knowledge-dispatch: distinct registered elements ${a.element_id} (${a.case_id}) and ${b.element_id} (${b.case_id}) collapsed to the same structural fingerprint ${a.structural_fingerprint}`);
+    }
+  }
+}
+
+report.knowledge_structure_dispatch = {
+  contracts: [...KNOWLEDGE_STRUCTURE_CONTRACTS.keys()],
+  observed_samples: knowledgeDispatchSamples,
+  unique_element_ids: [...new Set(knowledgeDispatchSamples.map((sample) => sample.element_id))],
+  unique_structural_fingerprints: [...new Set(knowledgeDispatchSamples.map((sample) => sample.structural_fingerprint))],
+  pass: knowledgeDispatchSamples.length > 0
+    && new Set(knowledgeDispatchSamples.map((sample) => sample.element_id)).size === new Set(knowledgeDispatchSamples.map((sample) => sample.structural_fingerprint)).size
+    && !report.errors.some((error) => error.startsWith('knowledge-dispatch:')),
+};
+if (!report.knowledge_structure_dispatch.pass) report.errors.push('knowledge-dispatch: structural fingerprint contract did not pass');
+report.truth_boundary.knowledge_structure_dispatch = report.knowledge_structure_dispatch.pass ? 'BROWSER_EVIDENCE_PASS' : 'FAIL';
 
 const sorted = [...perfSamples].sort((a, b) => a - b);
 const p95 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)] : null;
