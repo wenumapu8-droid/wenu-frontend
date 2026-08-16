@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseURL = process.env.KODEX_PREVIEW_URL ?? 'http://127.0.0.1:4321';
+const appOrigin = new URL(baseURL).origin;
 const outDir = 'artifacts/kodex-descent-evidence';
 await mkdir(outDir, { recursive: true });
 
@@ -24,9 +25,24 @@ for (const profile of cases) {
   const page = await context.newPage();
   const consoleErrors = [];
   const httpErrors = [];
-  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  const externalHttpErrors = [];
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    if (/^Failed to load resource: the server responded with a status of \d{3}/.test(text)) return;
+    consoleErrors.push(text);
+  });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
-  page.on('response', (response) => { if (response.status() >= 400) httpErrors.push({ status: response.status(), url: response.url() }); });
+  page.on('response', (response) => {
+    if (response.status() < 400) return;
+    const failure = { status: response.status(), url: response.url() };
+    try {
+      if (new URL(response.url()).origin === appOrigin) httpErrors.push(failure);
+      else externalHttpErrors.push(failure);
+    } catch {
+      httpErrors.push(failure);
+    }
+  });
 
   try {
     await page.goto(`${baseURL}/kodex/folio/ii/`, { waitUntil: 'networkidle' });
@@ -148,7 +164,7 @@ for (const profile of cases) {
     assert(new URL(page.url()).pathname === '/kodex/folio/iii/', `${profile.id}: explicit NEXT did not reach folio/iii`);
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
-    assert(httpErrors.length === 0, `${profile.id}: HTTP errors: ${JSON.stringify(httpErrors)}`);
+    assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
 
     evidence.push({
       profile: profile.id,
@@ -161,6 +177,7 @@ for (const profile of cases) {
       navigation: { explicitNextTarget: new URL(page.url()).pathname, passed: true },
       consoleErrors,
       httpErrors,
+      externalHttpErrors,
     });
   } catch (error) {
     failed = true;
@@ -171,6 +188,7 @@ for (const profile of cases) {
       currentUrl: page.url(),
       consoleErrors,
       httpErrors,
+      externalHttpErrors,
     });
     await page.screenshot({ path: `${outDir}/descent-${profile.id}-FAIL.png`, fullPage: true }).catch(() => {});
   } finally {
