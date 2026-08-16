@@ -59,7 +59,7 @@ Benchmark anchors are preserved exactly: `GP-SCI-01 → G07` and `GP-TECH-02 →
 
 Run-281 artifact review found a narrower perceptual residue: SCI/G07 and TECH/G02 were structurally distinct but still shared too much macro-template hierarchy — oversized title, similar central negative-space mass and similar lower framing. This was localized to presentation hierarchy, not ElementContract, PlateSpec, assembler scoring or registered IDs.
 
-Existing #62 branch was advanced in place to current exact head `067ada580d72d7bf4118bfd92f395645168ea77f`. The delta is presentation-only:
+Existing #62 branch was advanced in place to exact head `067ada580d72d7bf4118bfd92f395645168ea77f`. The delta is presentation-only:
 - new `src/styles/kodex-golden-curatorial.css`, scoped by existing `data-knowledge-structure` semantics;
 - existing Golden case route imports that stylesheet;
 - `G07 / ARCHIVE_DOSSIER` becomes a broad full-width unequal archive hero/record field with subordinate horizontal metadata;
@@ -77,7 +77,23 @@ Unchanged across this refinement: ElementContract, registry, PlateSpec, determin
 
 Status: **G07-vs-G02 MACRO-HIERARCHY REFINEMENT = EXACT-HEAD BROWSER-VALIDATED IMPLEMENTATION EVIDENCE / ARTIFACT INSPECTED**. `human_curator_acceptance = NOT_RUN`; this is not creator approval.
 
-`GP-CON-03` remains legible but diagrammatic/scaffold-like rather than creator-finished experiential materiality. `GP-ART-03` remains source-byte WITHHELD; no protected-art materiality or no-crop visual acceptance may be inferred from that placeholder.
+### Living-field activation compatibility repair — exact-head CI pending
+
+A correctness gap was found while auditing `GP-CON-03 / CON-RITUAL`. The Golden living-field fixture used `activation_id=KDX-FX-006` with `scene_state=COSMOLOGY`. `KDX-FX-006` is registered and ACTIVATOR-compatible, but its ElementContract permits scene roles `DESCENT / RETURN` only. Prior QA checked registry existence but did not validate the living-field `activation_profile.activation_id` against current plate + scene compatibility.
+
+PR #62 was advanced **in place** to current exact head `4a3ba88babfcb8729c75ef55a8f3b64b9ff17b8c` with a bounded contract repair:
+- Golden benchmark v0.1.3 now uses existing registered `MOTION_03_FIELD_MARBLE` for `CON-RITUAL`; that element allows `ACTIVATOR_PLATE + COSMOLOGY`, has VERIFIED project provenance/rights, reduced-motion fallback and meaning preserved without motion;
+- Assembly QA v0.1.1 adds FIELD-only `ACTIVATION_COMPATIBILITY` as a hard contract check: activation ID must resolve to the normalized registry and satisfy eligible status, VERIFIED provenance, PROJECT_SOURCE rights, current plate compatibility, current scene compatibility and motion-independent fallback/accessibility;
+- deterministic assembler tests now prove the living-field fixture is registered + plate/scene-compatible;
+- Assembly QA includes a negative regression that substitutes `KDX-FX-006` and requires `ACTIVATION_COMPATIBILITY=FAIL`.
+
+This changes no PlateSpec schema, deterministic selection/scoring, Deep Route, JourneyState, protected-art adapter, Ocín source originals or human-curator state. It is a validator/fixture correction against already-registered ElementContract truth, not a new activation architecture or canon decision.
+
+Status: **IMPLEMENTED CANDIDATE / EXACT-HEAD KODEX CORE RUNTIME EVIDENCE PENDING**. Do not call this delta TESTED until a containing run on `4a3ba88...` completes SUCCESS.
+
+`GP-CON-03` remains a separate perceptual/materiality concern after correctness is revalidated. Do not solve its scaffold-like appearance by weakening activation compatibility or inventing a parallel activation registry.
+
+`GP-ART-03` remains source-byte WITHHELD; no protected-art materiality or no-crop visual acceptance may be inferred from that placeholder.
 
 ---
 
@@ -136,6 +152,7 @@ Primary risks:
 - adding architecture instead of converging existing systems;
 - fabricated telemetry;
 - parallel schemas/registries/status vocabularies;
+- registered IDs being treated as compatible without plate/scene/fallback validation;
 - contaminated historical branches becoming convergence bases;
 - browser lifecycle/scheduling races producing false room failures;
 - science / metaphor / cultural provenance / inference / implementation / testing / deployment collapsing into one truth label;
@@ -148,10 +165,10 @@ Primary risks:
 ## 7. Exact next action
 
 1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
-2. Keep #62 as sole Assembly OS authority; P0.1–P0.10, registered-composition dispatch, structural fingerprint and run-283 G07/G02 macro-hierarchy refinement are exact-head browser-validated implementation evidence.
-3. Do not broaden G01 automatically. The measured G07-vs-G02 defect is closed at agent-audit/browser level; further code requires a specific remaining readability/materiality weakness.
-4. Next useful step is actual creator/readability review of the run-283 Golden artifact. Keep `human_curator_acceptance=NOT_RUN` until that happens.
-5. Keep `GP-CON-03` as a separate scaffold/materiality concern rather than conflating it with SCI/TECH hierarchy; any future CON repair must be bounded to measured evidence.
+2. Keep #62 as sole Assembly OS authority; P0.1–P0.10, registered-composition dispatch, structural fingerprint and run-283 G07/G02 macro-hierarchy refinement remain verified evidence.
+3. Let exact-head KODEX Core Runtime execute on `4a3ba88...`; verify the new living-field activation compatibility contract plus the full Golden/browser chain before calling the repair TESTED.
+4. If green, return to `GP-CON-03` as a separate perceptual/materiality problem. Do not weaken `ACTIVATION_COMPATIBILITY`, alter assembler scoring or invent a parallel activation registry to improve appearance.
+5. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review occurs.
 6. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
 7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
 8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
