@@ -2,7 +2,7 @@ import { MICRO_UNIVERSE_GRAPH, MICRO_UNIVERSE_NODES } from '../micro-universe.js
 import { buildProtectedOcinActivationInput } from './protected-activation-adapter.js';
 
 export const KDX_GOLDEN_PLATE_BENCHMARK_PROFILE = Object.freeze({
-  version: 'golden-plate-benchmark-v0.1.2',
+  version: 'golden-plate-benchmark-v0.1.3',
   status: 'IMPLEMENTED_CANDIDATE',
   plateCount: 12,
   domains: Object.freeze(['science', 'technology', 'art', 'consciousness']),
@@ -23,7 +23,7 @@ const NATURAL_PLATE_TYPE = Object.freeze({
 });
 
 const ROUTE_ROLES = Object.freeze(['CONTINUITY', 'BRIDGE', 'ECHO', 'SERENDIPITY']);
-const LIVING_FIELD_ACTIVATION_ID = 'KDX-FX-006';
+const LIVING_FIELD_ACTIVATION_ID = 'MOTION_03_FIELD_MARBLE';
 
 function routeSlateFor(nodeId) {
   return (MICRO_UNIVERSE_GRAPH[nodeId] || []).slice(0, 4).map((target_node, index) => ({
