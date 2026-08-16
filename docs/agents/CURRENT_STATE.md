@@ -42,11 +42,11 @@ P0.1–P0.10 and the focus-restoration/browser gap are technically closed. PR #6
 
 Evidence from the rendered Golden benchmark showed that the assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`, while the prior universal KNOWLEDGE renderer flattened those IDs into one generic diagram.
 
-The seven-room product corridor is now technically composition-closed (see §4), so this is again the permitted Assembly OS frontier.
+The seven-room product corridor is technically composition-closed (see §4), so this is again the permitted Assembly OS frontier.
 
-Current #62 implementation head after the first bounded renderer-consumption delta: `7c915df4652376847a80af0b102adcfc7cb9c48d`.
+Renderer dispatch head `7c915df4652376847a80af0b102adcfc7cb9c48d` completed KODEX Core Runtime run 280 / `31956937243`: **SUCCESS**. This closes exact-head validation of the bounded G01/G02/G07 renderer dispatch itself.
 
-`KodexPlateSpecRenderer.astro` now consumes the already-selected primary registered GRID element for the existing bounded set:
+`KodexPlateSpecRenderer.astro` consumes the already-selected primary registered GRID element for the existing bounded set:
 - `KDX_G01_ORBITAL_RELIC → ORBITAL_RELIC`;
 - `KDX_G02_SPECIMEN_DOSSIER → SPECIMEN_DOSSIER`;
 - `KDX_G07_ARCHIVE_DOSSIER → ARCHIVE_DOSSIER`;
@@ -54,7 +54,13 @@ Current #62 implementation head after the first bounded renderer-consumption del
 
 These are distinct DOM structures (orbital rail/chamber, specimen frame/provenance record, archive hero/signal bridge/record hierarchy), not new semantic IDs or assembler choices. PlateSpec, assembler scoring/selection, registry IDs, provenance/rights, route/memory and protected-art contracts are unchanged.
 
-Status: **IMPLEMENTED CANDIDATE / EXACT-HEAD VALIDATION PENDING**. The remaining required delta from Drive §40 is the Golden browser structural-fingerprint assertion proving that different registered Knowledge composition IDs cannot collapse to identical rendered structure. Do not call the readability gap closed until that assertion and exact-head browser evidence pass. Human curator acceptance remains NOT_RUN.
+Current #62 head after evidence hardening: `172562fd92dedc6a28e8c235cc0d763239bf2b61`.
+
+Only `scripts/kodex-golden-plate-browser-evidence.mjs` changed on this head. The Golden gate now records `knowledgeStructure`, `structureRole`, sorted `structureParts` and a structural fingerprint, validates the existing G01/G02/G07 structure semantics, and fails if distinct known registered composition IDs collapse to identical rendered fingerprints. No product renderer/assembler/schema/registry change is part of this commit.
+
+KODEX Core Runtime run 281 / `31959985612` is **IN PROGRESS** on exact head `172562fd...`. At last observation scene/runtime, JourneyState/graph/memory, Assembly OS contracts, seeded benchmark, integrity audit and Astro build were PASS; browser evidence was running and the strengthened Golden stage remained pending.
+
+Status: **STRUCTURAL FINGERPRINT GATE IMPLEMENTED / EXACT-HEAD BROWSER VALIDATION IN PROGRESS**. Do not call the readability blind spot mechanically closed until run 281 completes SUCCESS and its Golden report confirms the benchmark anchors/fingerprints. Human curator acceptance remains NOT_RUN.
 
 ---
 
@@ -125,10 +131,9 @@ Primary risks:
 ## 7. Exact next action
 
 1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
-2. Advance #62 in place only through the bounded Knowledge renderer-consumption contract already documented in Drive §40.
-3. Add the Golden browser structural-fingerprint assertion: GP-SCI-01 must report/render G07 ARCHIVE_DOSSIER and GP-TECH-02 G02 SPECIMEN_DOSSIER, and different known registered composition IDs must not share an identical Knowledge structural fingerprint.
-4. Revalidate exact #62 head through contract tests, Astro build, desktop/mobile/focus/reduced-motion Golden browser evidence; use KOD-69 locally/self-hosted if provider CI is unavailable.
-5. Inspect actual Golden screenshots after machine PASS. Browser structural diversity is still not human curator acceptance.
-6. Do not change assembler scoring, invent new element IDs, create a second renderer/schema/registry, or weaken protected-art source-withheld/no-crop rules.
-7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+2. Let KODEX Core Runtime run 281 finish on exact #62 head `172562fd...`; do not weaken or bypass the strengthened Golden gate.
+3. Inspect the Golden report and confirm the benchmark anchors remain `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`, with distinct Knowledge structural fingerprints and the expected registered structure roles/parts.
+4. If the exact-head Golden gate is green, inspect the SCI/TECH screenshots. Mechanical structural diversity is still not human curator/readability acceptance.
+5. If evidence fails, repair only the measured renderer/evidence defect on #62; do not change assembler scoring, invent new element IDs, create a second renderer/schema/registry, or weaken protected-art source-withheld/no-crop rules.
+6. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+7. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
