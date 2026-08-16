@@ -41,7 +41,9 @@ if (!slug) {
 const urlArg = process.argv.indexOf("--url");
 const url = urlArg > -1 ? process.argv[urlArg + 1] : `http://localhost:4321/kodex/lamina/${slug}/`;
 
-const refPath = join(ROOT, "reference", "canon", `${slug}.png`);
+/* Mismo KDX_REFDIR que extraer-campo.mjs: las referencias de Drive pendientes
+   de revisión se miden desde reference/pendientes/ sin ascenderlas a canon. */
+const refPath = join(ROOT, process.env.KDX_REFDIR || join("reference", "canon"), `${slug}.png`);
 if (!existsSync(refPath)) {
   console.error(`no existe la referencia: ${refPath}`);
   process.exit(2);
