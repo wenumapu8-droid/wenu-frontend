@@ -241,9 +241,12 @@ import "../../../styles/kodex-lamina.css";
       type Hoja = { x: number; y: number; a: number; s: number };
       const ramas: Rama[] = [];
       const hojas: Hoja[] = [];
+      /* La copa es una ELIPSE (866,368) rx 255 ry 188: el follaje de la
+         referencia queda a ±250 del eje, adentro del anillo, y el
+         lateral no baja de y≈556. */
       const dentroCopa = (x: number, y: number) => {
-        const dx = x - CX, dy = y - 400;
-        return dx * dx + dy * dy < 282 * 282 && y > 168;
+        const dx = (x - CX) / 255, dy = (y - 368) / 188;
+        return dx * dx + dy * dy < 1 && y > 178;
       };
       const rama = (x: number, y: number, ang: number, len: number, lw: number, prof: number) => {
         if (prof <= 0 || len < 8) return;
@@ -258,32 +261,36 @@ import "../../../styles/kodex-lamina.css";
         const yc = y + Math.sin(ang + curva) * len * 0.55;
         ramas.push({ x0: x, y0: y, x1, y1, xc, yc, lw, prof });
         if (prof <= 3) {
-          /* hojas a lo largo del tramo final y en la punta */
-          const nh = prof === 1 ? 2 : 1;
+          /* hojas gordas en el tramo final y en la punta; también
+             adentro de la copa, no sólo en la cáscara */
+          const nh = prof <= 2 ? 1 : rnd() < 0.35 ? 1 : 0;
           for (let k = 0; k <= nh; k++) {
-            const f = 0.6 + 0.4 * (k / Math.max(1, nh));
+            if (rnd() < 0.3) continue;                       // aire entre hojas
+            const f = 0.55 + 0.45 * (k / Math.max(1, nh));
             hojas.push({
-              x: x + (x1 - x) * f + (rnd() - 0.5) * 6,
-              y: y + (y1 - y) * f + (rnd() - 0.5) * 6,
+              x: x + (x1 - x) * f + (rnd() - 0.5) * 7,
+              y: y + (y1 - y) * f + (rnd() - 0.5) * 7,
               a: ang + (rnd() - 0.5) * 1.6,
-              s: 0.75 + rnd() * 0.5,
+              s: 0.85 + rnd() * 0.5,
             });
           }
         }
         const nh = prof > 4 ? 3 : 2;
         for (let k = 0; k < nh; k++) {
           const abre = (k - (nh - 1) / 2) * (0.42 + rnd() * 0.2) + (rnd() - 0.5) * 0.22;
-          rama(x1, y1, ang + abre, len * (0.6 + rnd() * 0.14), Math.max(0.6, lw * 0.62), prof - 1);
+          /* candelabro: las puntas se enroscan hacia arriba */
+          const hija = (ang + abre) * 0.86 + -Math.PI / 2 * 0.14;
+          rama(x1, y1, hija, len * (0.6 + rnd() * 0.14), Math.max(0.7, lw * 0.66), prof - 1);
         }
       };
       /* tronco: fan de miembros desde la boca superior del nudo */
-      rama(CX, 452, -Math.PI / 2, 96, 7, 7);                 // líder central
-      rama(CX - 6, 458, -Math.PI / 2 - 0.55, 88, 6, 6);      // miembros medios
-      rama(CX + 6, 458, -Math.PI / 2 + 0.55, 88, 6, 6);
-      rama(CX - 10, 466, -Math.PI / 2 - 0.95, 80, 5, 6);     // miembros bajos
-      rama(CX + 10, 466, -Math.PI / 2 + 0.95, 80, 5, 6);
-      rama(CX - 12, 474, -Math.PI - 0.35, 62, 4, 5);         // brazos casi horizontales
-      rama(CX + 12, 474, 0.35, 62, 4, 5);
+      rama(CX, 452, -Math.PI / 2, 96, 9, 7);                 // líder central
+      rama(CX - 6, 458, -Math.PI / 2 - 0.55, 88, 7.5, 6);    // miembros medios
+      rama(CX + 6, 458, -Math.PI / 2 + 0.55, 88, 7.5, 6);
+      rama(CX - 10, 466, -Math.PI / 2 - 0.95, 80, 6, 6);     // miembros bajos
+      rama(CX + 10, 466, -Math.PI / 2 + 0.95, 80, 6, 6);
+      rama(CX - 12, 474, -Math.PI - 0.35, 62, 5, 5);         // brazos casi horizontales
+      rama(CX + 12, 474, 0.35, 62, 5, 5);
 
       /* ── raíces: trenzadas hacia abajo desde el nudo ─────────────────── */
       type Trazo = { pts: Array<[number, number]>; lw: number; o: number };
@@ -450,20 +457,22 @@ import "../../../styles/kodex-lamina.css";
           gf.save();
           gf.translate(h.x, h.y);
           gf.rotate(h.a);
-          const L = 12 * h.s, W2 = 4.6 * h.s;
+          const L = 13 * h.s, W2 = 4.8 * h.s;
           const grad = gf.createLinearGradient(0, 0, L, 0);
-          grad.addColorStop(0, tinta(ORO_MED, 0.75));
-          grad.addColorStop(1, tinta(ORO_HI, 0.9));
+          grad.addColorStop(0, tinta(ORO_BAJO, 0.85));
+          grad.addColorStop(0.55, tinta(ORO_MED, 0.85));
+          grad.addColorStop(1, tinta(ORO_HI, 0.8));
           gf.fillStyle = grad;
           gf.beginPath();
           gf.moveTo(0, 0);
           gf.quadraticCurveTo(L * 0.5, -W2, L, 0);
           gf.quadraticCurveTo(L * 0.5, W2, 0, 0);
           gf.fill();
-          gf.strokeStyle = tinta(ORO_BAJO, 0.6);
-          gf.lineWidth = 0.5;
+          gf.strokeStyle = tinta("40,26,12", 0.7);           // rima oscura: relieve
+          gf.lineWidth = 0.7;
           gf.stroke();
-          gf.strokeStyle = tinta(ORO_LUZ, 0.5);
+          gf.strokeStyle = tinta(ORO_HI, 0.6);
+          gf.lineWidth = 0.6;
           gf.beginPath(); gf.moveTo(L * 0.12, 0); gf.lineTo(L * 0.88, 0); gf.stroke();
           gf.restore();
         }
