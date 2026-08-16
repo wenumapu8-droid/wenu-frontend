@@ -67,25 +67,27 @@ Artifact `9255841751`; digest `sha256:9be4fe12bb197e4c0d939e777efb492f4047dd3fde
 
 MACHINE is **browser-revalidated**. The earlier unsourced `INTEGRITY · 98.7%` defect remains repaired to explicit `NOT MEASURED`. Do not describe billing as a current MACHINE blocker and do not manually loop hosted reruns.
 
-### COSMOLOGY — run #42 narrows the remaining gap
+### COSMOLOGY — exact remaining pointer defect isolated
 
 The prior bounded repairs introduced a real six-node compact touch fallback, semantic keyboard controls, viewport-bounded orbital-map geometry and a truthful relation model that separates concept targets from five ecosystem portals. `SIGNAL → MACHINE` is concept-to-concept; MACHINE is not a fabricated sixth portal.
 
-Product Corridor run `31920807127` (#42) executed on head `38fc336c7a3b06c16af1eb7fe32aede628e1cb8d` and produced artifact `9256372881`, digest `sha256:2452bcf64f1c409baf4db9fa5b75b7fdb68546f636b6e0f8a52522883e0301b6`.
+Product Corridor run `31925233229` (#43) executed on head `7f3eb45c7998c3e199fdc66966e852f46ba6afe2`. Artifact `9257704746`; digest `sha256:c9dc4b718cf5be71af33b3dff734ef59f065929b01d239bb2109dd7a6d62fb86`.
 
-Exact profile result:
+Exact profile result from artifact `evidence.json`:
 - mobile 390×844: **PASS**;
 - mobile 412×915: **PASS**, including touch SIGNAL→MACHINE concept relation;
-- desktop 1440×900: **FAIL only because `REVEAL CONNECTION` is outside the first viewport**;
-- reduced-motion 1440×900: **FAIL only for the same CTA viewport geometry**.
+- desktop 1440×900: **FAIL only at pointer activation of SIGNAL→MACHINE**;
+- reduced-motion 1440×900: **FAIL only at the same pointer activation**.
 
-The orbital map and relation semantics are therefore no longer the failing surfaces on this evidence.
+The CTA/layout repair from `7f3eb45...` succeeded; layout is no longer the failing surface. Inspection of the component + gate isolates the pointer defect to SVG hit testing: each concept `<g>` visually contains a 6px dot plus label, but SVG groups hit-test their painted descendants, leaving an unreliable pointer target even though keyboard and compact touch controls work.
 
-Current PR #77 head: `7f3eb45c7998c3e199fdc66966e852f46ba6afe2`.
+Current PR #77 head: `5a4ab173cf79cf67f7e4812a24d26251f85a9abe`.
 
-Bounded repair `7f3eb45...` changes only `src/components/kodex/CosmologyMap.astro`: desktop width >=641px positions the existing COSMOLOGY readout/CTA inside the measured open left field. It does not change the six concept relations, five ecosystem portals, mobile fallback, routing, memory, evidence criterion, renderer, schema or Assembly architecture.
+Bounded repair `5a4ab173...` changes only `src/components/kodex/CosmologyMap.astro`: concept groups now use `pointer-events: bounding-box`, making the existing label+dot bounding area one pointer target. Visual geometry, six concepts, five portals, relation semantics, keyboard/touch behavior, routing, memory, reduced-motion and Assembly OS contracts are unchanged. Compare versus `7f3eb45...`: one file, +4/−1.
 
-Status: **COSMOLOGY BOUNDED PRESENTATION REPAIR / EXACT-HEAD REVALIDATION PENDING**. Do not advance RETURN until this exact head has SHA-bound browser evidence and its artifact is inspected.
+A natural Product Corridor run `31930350111` (#44) started on exact head `5a4ab173...`; it was **IN PROGRESS** at last check. No manual rerun was triggered.
+
+Status: **COSMOLOGY POINTER HIT-TARGET REPAIR / EXACT-HEAD REVALIDATION IN PROGRESS**. Do not advance RETURN until PASS + artifact inspection.
 
 ---
 
@@ -116,9 +118,9 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Revalidate PR #77 exact head `7f3eb45c...` through a natural provider run if one occurs or KOD-69 local/self-hosted evidence; do not manually spam hosted reruns.
-2. Inspect COSMOLOGY desktop/390×844/412×915/reduced-motion artifacts. Promote only on actual PASS.
-3. If it fails, repair only the measured layout/semantic-input delta; no new architecture and no weakened gate.
+1. Let natural Product Corridor run `31930350111` finish on exact head `5a4ab173...`; do not manually spam hosted reruns.
+2. Inspect COSMOLOGY desktop/390×844/412×915/reduced-motion artifact. Promote only on actual PASS.
+3. If pointer activation still fails, repair only the measured hit-testing/input delta; no new architecture and no weakened gate.
 4. After COSMOLOGY closes, move the product frontier to RETURN. Existing audit finding that RETURN lacks a finished product-facing visual layer remains diagnosis until implementation + browser QA.
 5. Separately preserve #62 as sole Assembly OS authority; its next bounded renderer delta remains G01/G02/G07 dispatch + structural fingerprint evidence.
 6. Treat merged PR #78 as a reconciliation hazard, not an authority override; normalize any useful HoloCore observations through #62 contracts only.
