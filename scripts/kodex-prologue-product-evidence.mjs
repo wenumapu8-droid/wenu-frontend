@@ -137,15 +137,22 @@ for (const profile of cases) {
 
     await page.screenshot({ path: `${outDir}/prologue-${profile.id}.png`, fullPage: true });
 
+    // Attribute resource/console health to the scene under test before crossing
+    // the route boundary. The destination has its own product gate; errors that
+    // occur after BEGIN OBSERVATION must not retroactively make PROLOGUE fail.
+    const sourceConsoleErrors = [...consoleErrors];
+    const sourceHttpErrors = [...httpErrors];
+    assert(sourceConsoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(sourceConsoleErrors)}`);
+    assert(sourceHttpErrors.length === 0, `${profile.id}: HTTP errors: ${JSON.stringify(sourceHttpErrors)}`);
+    const transitionConsoleStart = consoleErrors.length;
+    const transitionHttpStart = httpErrors.length;
+
     await cta.click({ noWaitAfter: true });
     const deadline = Date.now() + 8000;
     while (Date.now() < deadline && new URL(page.url()).pathname !== '/kodex/folio/ii/') {
       await page.waitForTimeout(100);
     }
     assert(new URL(page.url()).pathname === '/kodex/folio/ii/', `${profile.id}: BEGIN OBSERVATION did not reach folio/ii`);
-
-    assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
-    assert(httpErrors.length === 0, `${profile.id}: HTTP errors: ${JSON.stringify(httpErrors)}`);
 
     evidence.push({
       profile: profile.id,
@@ -156,8 +163,12 @@ for (const profile of cases) {
       protocolDrawer: { openClose: true, semanticCloseImmediate: true, focusRestored: true },
       memory: { prologueVisitRecorded: true, viewCount: journeyBeforeExit.views.length },
       navigation: { target: new URL(page.url()).pathname, passed: true },
-      consoleErrors,
-      httpErrors,
+      consoleErrors: sourceConsoleErrors,
+      httpErrors: sourceHttpErrors,
+      transitionDiagnostics: {
+        consoleErrors: consoleErrors.slice(transitionConsoleStart),
+        httpErrors: httpErrors.slice(transitionHttpStart),
+      },
     });
   } catch (error) {
     failed = true;
