@@ -19,7 +19,7 @@ No standalone current Decision Log was found in the active operational branch or
 
 PR #62 / `feat/kodex-observer-scale-route-v1` remains the sole verified architecture baseline.
 
-Verified head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.  
+Verified baseline head: `1bfc5e4bd0b2fca1d7529dbfffee7b44b6334f20`.  
 KODEX Core Runtime run 164: **SUCCESS**.
 
 Technically closed there:
@@ -38,9 +38,23 @@ Technically closed there:
 
 P0.1–P0.10 and the focus-restoration/browser gap are technically closed. PR #62 remains OPEN/DRAFT as a release/governance state, not because P0 is unfinished. Do not recreate these contracts or introduce a parallel route/state/memory/renderer/factory architecture.
 
-### Known bounded Golden Knowledge renderer-consumption gap
+### Active bounded Golden Knowledge renderer-consumption refinement
 
-The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`, but the universal KNOWLEDGE renderer still flattens those IDs into one generic diagram. After the product corridor composition closes, the next permitted #62 refinement is to consume existing G01/G02/G07 composition semantics and add structural-fingerprint browser evidence. Do not invent IDs or change assembler scoring merely to force visual difference.
+Evidence from the rendered Golden benchmark showed that the assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and `GP-TECH-02 → KDX_G02_SPECIMEN_DOSSIER`, while the prior universal KNOWLEDGE renderer flattened those IDs into one generic diagram.
+
+The seven-room product corridor is now technically composition-closed (see §4), so this is again the permitted Assembly OS frontier.
+
+Current #62 implementation head after the first bounded renderer-consumption delta: `7c915df4652376847a80af0b102adcfc7cb9c48d`.
+
+`KodexPlateSpecRenderer.astro` now consumes the already-selected primary registered GRID element for the existing bounded set:
+- `KDX_G01_ORBITAL_RELIC → ORBITAL_RELIC`;
+- `KDX_G02_SPECIMEN_DOSSIER → SPECIMEN_DOSSIER`;
+- `KDX_G07_ARCHIVE_DOSSIER → ARCHIVE_DOSSIER`;
+- unknown safe Knowledge compositions retain an explicit `GENERIC` fallback.
+
+These are distinct DOM structures (orbital rail/chamber, specimen frame/provenance record, archive hero/signal bridge/record hierarchy), not new semantic IDs or assembler choices. PlateSpec, assembler scoring/selection, registry IDs, provenance/rights, route/memory and protected-art contracts are unchanged.
+
+Status: **IMPLEMENTED CANDIDATE / EXACT-HEAD VALIDATION PENDING**. The remaining required delta from Drive §40 is the Golden browser structural-fingerprint assertion proving that different registered Knowledge composition IDs cannot collapse to identical rendered structure. Do not call the readability gap closed until that assertion and exact-head browser evidence pass. Human curator acceptance remains NOT_RUN.
 
 ---
 
@@ -60,41 +74,23 @@ The assembler already differentiates `GP-SCI-01 → KDX_G07_ARCHIVE_DOSSIER` and
 
 PR #77 / `feat/kodex-threshold-convergence-v1` advances the existing #68 product corridor only. It does not own or replace Assembly OS, Deep Navigation, JourneyState or the existing `kx-journey` / `KodexRecuerda` / `src/kodex/return/memory.js` substrate.
 
-### Rooms closed on executed evidence
+### Seven-room technical composition close — run #73
 
-THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY have exact-head browser evidence covering required desktop/mobile/reduced-motion/input/state contracts. Do not modify them without new measured regression evidence.
+Current exact corridor head: `6387ae29cd4827ec73a96caa23863941b3891674`.
 
-### RETURN run #72 — machine/browser green, visual blind spot found
+Product Corridor run #73 / `31954166230`: **SUCCESS**.
 
-Product Corridor run #72 / `31953124693` completed **SUCCESS** on exact head `e878bb482274fe06a67b4750cf1d0ac1d7444a85`.
+Build + THRESHOLD + PROLOGUE + DESCENT + ARCHIVE + MACHINE + COSMOLOGY + RETURN all pass the strengthened current browser gates on the same exact head.
 
-Build + THRESHOLD + PROLOGUE + DESCENT + ARCHIVE + MACHINE + COSMOLOGY + RETURN: **PASS** under the then-current machine/browser gates.
+Artifact: `kodex-product-corridor-evidence` id `9265613767`; digest `sha256:7209b5c10fc566bcc74ce90a563f74eaebd201051fa80302a81045060d7e1b45`.
 
-Artifact: `kodex-product-corridor-evidence` id `9265346747`; digest `sha256:c2a0ee22d9df0aef1d2398e5e18f8e64248790890c5b7e2eb7208384150b8d63`.
+RETURN passes desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion for the existing 100dvh/no-scroll, deterministic non-curated journey specimen, `kx-journey` memory, CRT/fallback, route/action, resource-health and overlap checks, including the strengthened `actionsArtOverlap=false` assertion.
 
-Actual screenshot review found one acceptance blind spot in RETURN mobile:
-- 390×844: outbound secondary actions cross into the right-side CRT / journey-specimen material field;
-- 412×915: same action↔artifact collision;
-- headline↔actions, headline↔artifact and headline↔DataStrip are clean;
-- desktop/reduced-motion remain visually bounded for this measured dimension.
+Artifact inspection closes the prior mobile blind spot rather than relying on machine PASS alone. In the 390×844 evidence, outbound actions end at x≈187.19 while the CRT/specimen artifact begins at x≈198.61; the 412×915 capture also shows the action lane materially separated from the right-side artifact field. Headline/action and other previously measured overlaps remain clean.
 
-Therefore run #72 is a truthful PASS for its prior gate, but the seven-room corridor is **not product-composition complete** yet. Machine green does not override a visible overlap that the gate failed to measure.
+Status: **SEVEN-ROOM CORRIDOR = MECHANICALLY/BROWSER-COMPOSITION COMPLETE AT CURRENT ACCEPTANCE LEVEL**.
 
-### Current bounded repair / validation SHA
-
-Current #77 head: `6387ae29cd4827ec73a96caa23863941b3891674`.
-
-One bounded commit changes exactly two existing surfaces:
-- `public/assets/kodex/kodex-return-composition-v1.css` reserves the left 48% of the narrow mobile stage for the complete outbound-action group, preserving the right half for the existing CRT/specimen field;
-- `scripts/kodex-return-product-evidence.mjs` adds explicit `actionsArtOverlap` measurement and fails any profile where outbound actions intersect the material artifact.
-
-Existing checks remain: 100dvh/no-scroll, specimen/art/actions/headline/DataStrip containment, headline↔actions, headline↔artifact, headline↔DataStrip, deterministic journey specimen replay, existing `kx-journey` memory, CRT/fallback, action semantics, drawer behavior, reduced-motion, exact routes and first-party resource health.
-
-No route, action destination, memory/specimen semantics, CRT/fallback, renderer, PlateSpec, ElementContract, assembler, Deep Route or protected Ocín original changed.
-
-Status: **RETURN = MACHINE-PASS PRIOR HEAD / MEASURED MOBILE ACTION↔ARTIFACT REPAIR IMPLEMENTED / EXACT-HEAD REVALIDATION PENDING**.
-
-The seven-room corridor becomes mechanically/browser-complete at the current acceptance level only after `6387ae29...` passes desktop 1440×900 / 390×844 / 412×915 / reduced-motion and the exact screenshots confirm action↔artifact separation. Creator acceptance remains separate.
+This does **not** mean creator aesthetic acceptance, canon promotion, merge, deployment, public preview publication or production readiness. PR #77 remains OPEN/DRAFT. Do not modify the seven rooms without new measured regression evidence or creator-requested bounded refinement.
 
 ---
 
@@ -128,11 +124,11 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Do not manually trigger hosted reruns. Accept natural exact-head execution for #77 head `6387ae29...`, or use KOD-69 local/self-hosted SHA-bound execution if provider CI is unavailable.
-2. Require RETURN desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion to pass all prior gates plus the new explicit outbound-actions↔material-artifact non-overlap assertion.
-3. Inspect the exact 390/412 screenshots after machine PASS. Browser PASS still does not equal creator acceptance.
-4. Do not modify THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE or COSMOLOGY without new measured regression evidence.
-5. Only after RETURN is clean may the seven-room corridor be called mechanically/browser-complete at the current acceptance level.
-6. Then return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate unless creator review establishes a higher-priority measured defect.
+1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
+2. Advance #62 in place only through the bounded Knowledge renderer-consumption contract already documented in Drive §40.
+3. Add the Golden browser structural-fingerprint assertion: GP-SCI-01 must report/render G07 ARCHIVE_DOSSIER and GP-TECH-02 G02 SPECIMEN_DOSSIER, and different known registered composition IDs must not share an identical Knowledge structural fingerprint.
+4. Revalidate exact #62 head through contract tests, Astro build, desktop/mobile/focus/reduced-motion Golden browser evidence; use KOD-69 locally/self-hosted if provider CI is unavailable.
+5. Inspect actual Golden screenshots after machine PASS. Browser structural diversity is still not human curator acceptance.
+6. Do not change assembler scoring, invent new element IDs, create a second renderer/schema/registry, or weaken protected-art source-withheld/no-crop rules.
 7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
 8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
