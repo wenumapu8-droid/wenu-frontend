@@ -39,15 +39,26 @@ test('protected artwork contract failures cannot be hidden behind unrun browser 
   assert.ok(qa.blockers.includes('ARTWORK_INTEGRITY'));
 });
 
-test('living-field activator does not receive fabricated NO_CROP semantics', () => {
+test('living-field activator requires a registered activation compatible with its plate and scene', () => {
   const entry = KDX_GOLDEN_PLATE_CASES.find((item) => item.node_id === 'CON-RITUAL');
   const spec = assemblePlateSpec(entry.node, entry.plate_type, entry.seed);
   const qa = auditUnrenderedPlateSpec(spec, 'test:living-field');
   const artCheck = qa.contract_checks.find((check) => check.check_id === 'ARTWORK_INTEGRITY');
+  const activationCheck = qa.contract_checks.find((check) => check.check_id === 'ACTIVATION_COMPATIBILITY');
   assert.equal(spec.primary_payload.payload_type, 'FIELD');
   assert.equal(spec.artwork_contract, null);
+  assert.equal(spec.activation_profile.activation_id, 'MOTION_03_FIELD_MARBLE');
   assert.equal(artCheck.status, 'NOT_APPLICABLE');
+  assert.equal(activationCheck.status, 'PASS');
   assert.equal(qa.contract_status, 'PASS');
+
+  const incompatible = structuredClone(spec);
+  incompatible.activation_profile.activation_id = 'KDX-FX-006';
+  const failed = auditUnrenderedPlateSpec(incompatible, 'test:living-field-incompatible');
+  const failedActivation = failed.contract_checks.find((check) => check.check_id === 'ACTIVATION_COMPATIBILITY');
+  assert.equal(failedActivation.status, 'FAIL');
+  assert.equal(failed.contract_status, 'FAIL');
+  assert.ok(failed.blockers.includes('ACTIVATION_COMPATIBILITY'));
 });
 
 test('browser promotion requires explicit evidence and all required browser gates', () => {
