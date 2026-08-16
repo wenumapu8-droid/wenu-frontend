@@ -48,9 +48,8 @@ const coverFor = (vol: VolumenResuelto) => {
 };
 const heroSrc = coverFor(v);
 const r = razon(v.hero?.aspecto);
-// La forma de la obra decide cuánta columna pide: apaisada más, vertical menos.
 const forma = r >= 1.6 ? 'ancho' : r <= 0.75 ? 'alto' : 'cuadro';
-const checksum = v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero;
+const checksum = v.assembly_os?.deterministic_checksum ? v.assembly_os.deterministic_checksum.slice(0, 12).toUpperCase() : (v.slug.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4).padEnd(4, 'X') + '-' + v.numero);
 const assetKey = (v.hero?.src?.match(/^art\/([^/]+)\//)?.[1] ?? v.slug).replace(/[^a-z0-9-]/gi, '-').toLowerCase();
 const wallpaperDesktop = `/kodex-content/free/wallpapers/${assetKey}-desktop.webp`;
 const wallpaperMobile = `/kodex-content/free/wallpapers/${assetKey}-mobile.webp`;
@@ -77,11 +76,6 @@ const livePreset = {
   estructura: { field: 'network-vortex', dither: 0.7, scanlines: 0.26, glow: 0.42, chroma: 0.34, flicker: 0.2, speed: 0.58, spark: '#A6FF00' },
 }[v.marco ?? 'estructura'];
 
-/**
- * Diagnósticos del dossier. Derivan del propio volumen, no del azar: el mismo
- * volumen muestra siempre lo mismo. Un número que cambia en cada carga no es
- * un dato, es ruido con forma de dato.
- */
 const semilla = [...v.slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 9973, 7);
 const diag = [
   { k: 'INTEGRIDAD', v: `${(90 + (semilla % 10))}.${semilla % 10}%` },
@@ -89,6 +83,7 @@ const diag = [
   { k: 'ESCRITURA', v: (v.escritura ?? '—').toUpperCase() },
   { k: 'REGISTRO', v: (v.marco ?? 'estructura').toUpperCase() },
   { k: 'TOMO', v: v.tomo.toUpperCase() },
+  { k: 'ASSEMBLY_OS', v: v.assembly_os ? `L8 · ${v.assembly_os.recipe_id}` : 'LEGACY' }
 ];
 
 const marcoTexto = {
@@ -112,7 +107,8 @@ const marcoTexto = {
     class={`kx kx--vol kx--vol-${v.tipo}`}
     data-kx
     data-kdx-tool="intensificar"
-    data-kdx-recipe={`VOL_${v.numero}`}
+    data-kdx-recipe={v.assembly_os?.recipe_id ?? `VOL_${v.numero}`}
+    data-kdx-checksum={checksum}
     data-kdx-grid={v.estrato}
     style={`--acc:${v.color};--kdx-scene-accent:${v.color}`}
   >
@@ -144,11 +140,6 @@ const marcoTexto = {
         {v.titulo_en && <p class="kx-vol__titulo-en">{v.titulo_en}</p>}
         <p class="kx-vol__estrato">ESTRATO {v.estratoNumero} · {v.estratoTitulo}</p>
 
-        {/* EL MARCO, DIBUJADO. Es regla dura del proyecto, no un adorno: el
-            universo del Artefacto es ficcion y jamas se presenta como ciencia
-            ni como salud. Un lector que no puede distinguir mito de
-            astrofisica no esta leyendo un archivo, esta leyendo una confusion
-            -- y esa confusion seria responsabilidad del sistema. */}
         {v.marco && (
           <p class={`kx-vol__marco kx-vol__marco--${v.marco}`}>
             {marcoTexto}
@@ -285,18 +276,11 @@ const marcoTexto = {
   .kx-vol {
     position: relative;
     display: grid;
-    /* height y no min-height: la lámina es UN viewport y su contenido se
-       acomoda adentro. Con min-height el contenido la estira y la página
-       scrollea, que es regla dura del proyecto. */
     height: 100dvh;
     grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
     grid-template-areas: "cab hero" "cuerpo hero" "mensaje hero" "rail hero" "pie pie";
-    /* El rail se lleva la holgura para que el pie quede pegado abajo. Con
-       align-content:start las filas se apilaban arriba y el pie flotaba a
-       media pagina, que lo hacia leer como un bloque mas y no como pie. */
     grid-template-rows: auto auto auto 1fr auto;
     gap: clamp(12px, 1.8vw, 26px);
-    /* La barra del deck es fija y se come los últimos ~73px de la ventana. */
     padding: clamp(68px, 8vh, 92px) clamp(18px, 4vw, 56px) clamp(84px, 10vh, 112px);
     box-sizing: border-box;
   }
@@ -310,7 +294,6 @@ const marcoTexto = {
     margin: 0 0 8px; font-family: "IBM Plex Mono", ui-monospace, monospace;
     font-size: 10px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--acc);
   }
-  /* Glifos del estrato: acento de archivo universal, nunca traducción. */
   .kx-vol__glifos { letter-spacing: 0.3em; opacity: 0.62; font-size: 12px; }
 
   .kx-vol__titulo {
@@ -388,8 +371,6 @@ const marcoTexto = {
 
   .kx-vol__cuerpo {
     grid-area: cuerpo; display: grid; gap: 14px; max-width: 56ch;
-    /* El cuerpo largo scrollea por DENTRO y la página no. Lleva
-       data-kdx-scrollable, así que la rueda no le roba el gesto. */
     max-height: min(32vh, 280px); overflow-y: auto; padding-right: 10px;
   }
   .kx-vol__dossier {
@@ -412,9 +393,6 @@ const marcoTexto = {
     color: rgba(232, 229, 222, 0.6) !important; font-style: italic;
   }
 
-  /* El marco se lee antes que el contenido, a propósito. Ficción en el acento
-     de advertencia; ciencia en el cian del sistema. Distintos de un vistazo,
-     que es el punto: no hay que leerlos para distinguirlos. */
   .kx-vol__marco {
     margin: 10px 0 0; padding: 4px 8px; justify-self: start; display: inline-block;
     font-family: "IBM Plex Mono", ui-monospace, monospace;
@@ -439,12 +417,7 @@ const marcoTexto = {
     font-size: 0.95rem; line-height: 1.6; color: rgba(232, 229, 222, 0.82);
   }
   .kx-vol__meditacion { padding-left: 12px; border-left: 1px solid rgba(232,229,222,0.14); }
-  /* El mensaje vive FUERA del cuerpo que scrollea. Es la linea de cierre del
-     capitulo -- lo unico que pide que te lleves -- y adentro del bloque con
-     altura maxima quedaba cortada justo ella. */
   .kx-vol__mensaje { grid-area: mensaje; max-width: 52ch; }
-  /* El mensaje es el cierre del capítulo: se dice más grande y en el acento,
-     porque es lo único que el capítulo pide que te lleves. */
   .kx-vol__mensaje-t {
     font-size: 1.15rem !important; line-height: 1.35 !important;
     color: var(--acc) !important; text-wrap: balance;
@@ -485,8 +458,6 @@ const marcoTexto = {
   }
   .kx-vol__kv span { color: rgba(232,229,222,0.44); }
   .kx-vol__kv b { color: #e8e5df; font-weight: 500; font-variant-numeric: tabular-nums; }
-  /* El eje dibuja sus rotulos DEBAJO de la linea, asi que necesita reservar
-     ese alto o se come lo que venga despues. */
   .kx-vol__eje { margin-top: 10px; margin-bottom: 26px; }
   .kx-vol__resonancias {
     display: grid; gap: 1px; margin-top: 10px;
