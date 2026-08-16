@@ -1,0 +1,67 @@
+name: KODEX AUTHORIAL_MOTION Evidence
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/**'
+      - 'src/components/kodex/**'
+      - 'src/kodex/threshold-portal/**'
+      - 'src/kodex/return/**'
+      - 'src/kodex/crt/**'
+      - 'src/scripts/kodex-engine.js'
+      - 'src/styles/kodex*.css'
+      - 'scripts/kodex-authorial-motion-evidence.mjs'
+      - '.github/workflows/kodex-authorial-motion.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+jobs:
+  authorial-motion-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      # KODEX-only browser evidence follows the existing CI escape hatch and
+      # does not authorize an empty production catalog or a deployment.
+      ALLOW_EMPTY_PRODUCTS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Ensure ffmpeg is available for deterministic 10s tail trims
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+      - run: npm run build
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-authorial-motion-preview.log 2>&1 &
+          echo $! > /tmp/kodex-authorial-motion-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kodex-authorial-motion-preview.log
+          exit 1
+      - name: Capture seven-scene FULL-motion authorial evidence
+        env:
+          KODEX_PREVIEW_URL: http://127.0.0.1:4321
+        run: node scripts/kodex-authorial-motion-evidence.mjs
+      - name: Upload AUTHORIAL_MOTION evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-authorial-motion-evidence
+          path: artifacts/kodex-authorial-motion-evidence
+          if-no-files-found: warn
+          retention-days: 14
