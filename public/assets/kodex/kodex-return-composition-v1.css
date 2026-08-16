@@ -9,6 +9,10 @@
      but measured headline ↔ actions overlap on 390×844 and 412×915.
    - Product Corridor #70 / artifact 9264984574 proved that changing the mobile
      absolute bottom offset does not solve the underlying relationship.
+   - Product Corridor #71 / artifact 9265133098 proved desktop/reduced-motion
+     are clean and isolated mobile failure to the RETURN action block exceeding
+     the viewport. The screenshot also showed the title still carrying inherited
+     positioning behavior despite the flow-driven wrapper.
 
    This layer changes presentation only. Route, memory, specimen, CRT, action
    semantics and the shared scene/runtime architecture remain untouched. */
@@ -20,7 +24,7 @@
 }
 
 /* Desktop / reduced motion: keep the monumental close, but bound it explicitly
-   above the fixed journey navigation. This contract passed #69 and #70. */
+   above the fixed journey navigation. This contract passed #69–#71. */
 @media (min-width: 901px) {
   .kx-os-scene--return .kx-os-stage__copy > h1 {
     position: absolute;
@@ -38,21 +42,28 @@
 }
 
 @media (max-width: 900px) {
-  /* Mobile is content-driven. The previous absolute title survived changes in
-     metadata height by colliding with whichever action moved underneath it.
-     Put the close back in document flow so title and actions negotiate one
-     actual block rather than two unrelated coordinate systems. */
+  /* Mobile is content-driven. Do not merely change `position`: the shared scene
+     shell and earlier RETURN passes have assigned offsets/transforms/widths to
+     these same boxes. Neutralize the complete positioning contract so the copy
+     participates in the stage grid's actual content box. */
   .kx-os-scene--return .kx-os-stage__copy {
-    position: relative;
+    position: relative !important;
+    inset: auto !important;
+    transform: none !important;
     z-index: 6;
     align-self: start;
-    max-width: none;
-    width: 100%;
+    min-width: 0;
+    max-width: none !important;
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
   }
 
   .kx-os-scene--return .kx-os-stage__copy > h1 {
-    position: relative;
-    inset: auto;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
     z-index: 5;
     width: 100%;
     max-width: 100%;
@@ -61,6 +72,7 @@
     line-height: .88;
     letter-spacing: -.04em;
     text-wrap: balance;
+    box-sizing: border-box;
   }
 
   /* Preserve the four canonical RETURN metadata rows. The secondary depth
@@ -77,16 +89,28 @@
   }
 
   /* Keep all three exits. The primary stays full-width; the two secondary
-     actions share one row. This reduces vertical debt without removing choice
-     or changing semantics. */
+     actions share one row. Reset inherited positioning and constrain the grid
+     to the stage content box so 390/412 widths cannot leak past the viewport. */
   .kx-os-scene--return .kx-return-actions {
-    position: relative;
+    position: static !important;
+    inset: auto !important;
+    transform: none !important;
     z-index: 7;
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 7px;
-    margin-top: 4px;
-    width: 100%;
+    min-width: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 4px 0 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .kx-os-scene--return .kx-return-actions > * {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .kx-os-scene--return .kx-return-actions > p,
@@ -97,6 +121,7 @@
   .kx-os-scene--return .kx-return-actions .kx-os-primary,
   .kx-os-scene--return .kx-return-actions .kx-os-ghost {
     min-width: 0;
+    width: 100%;
     min-height: 42px;
     padding-inline: 8px;
     font-size: 9px;
