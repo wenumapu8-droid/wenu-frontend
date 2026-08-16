@@ -80,20 +80,29 @@ Natural Product Corridor run `31934081886` (#56) on exact head `bf9f664e...` did
 
 Artifact `9260220065`; digest `sha256:e17ac3e65a59138c5e7a28302f08b635cd6b3f7948b219d577160eed36d967f8`.
 
-Evidence proves this was **not** a COSMOLOGY product regression:
-- mobile 390×844: PASS;
-- mobile 412×915: PASS;
-- reduced-motion desktop: PASS;
-- desktop: FAIL only with `page.waitForURL: net::ERR_ABORTED; maybe frame was detached?` after the interaction/navigation began;
-- zero first-party console/HTTP errors.
+Evidence proved this was **not** a COSMOLOGY product regression: mobile 390×844, mobile 412×915 and reduced-motion desktop passed; desktop failed only with `page.waitForURL: net::ERR_ABORTED; maybe frame was detached?` after navigation began, with zero first-party console/HTTP errors.
 
-Root cause was a Playwright ordering race: the harness clicked `[data-deck-next]` with `noWaitAfter: true` and armed `waitForURL` only afterward. Fast desktop navigation could detach the outgoing frame before the observer attached.
+Commit `28323dbe63710c104f91c0e487dfd44a6c7bf50b` changes only `scripts/kodex-cosmology-product-evidence.mjs`: navigation observation is armed before click with `Promise.all([waitForURL(..., waitUntil:'domcontentloaded'), click()])`. The exact destination remains `/kodex/interlude/cosmology-return/`; no product geometry, semantic relation, memory, rights, telemetry or acceptance criterion was weakened.
 
-Current PR #77 head: `28323dbe63710c104f91c0e487dfd44a6c7bf50b`.
+### Run #57 — PROLOGUE semantic-close sampling race
 
-Commit `28323dbe…` changes only `scripts/kodex-cosmology-product-evidence.mjs`: navigation observation is armed before click with `Promise.all([waitForURL(..., waitUntil:'domcontentloaded'), click()])`. The exact destination remains `/kodex/interlude/cosmology-return/`; no product geometry, semantic relation, memory, rights, telemetry or acceptance criterion was weakened.
+Natural Product Corridor run `31934539781` (#57) executed on exact head `28323dbe...`. Build + THRESHOLD passed, but the workflow stopped in PROLOGUE before RETURN. Artifact `9260288470` was downloaded and inspected.
 
-RETURN remains **VIEWPORT REPAIR IMPLEMENTED / EXACT-HEAD PRODUCT REVALIDATION PENDING** because run #56 stopped before RETURN. No manual hosted rerun was triggered.
+Measured result:
+- mobile PROLOGUE: PASS;
+- reduced-motion PROLOGUE: PASS;
+- desktop: FAIL only after protocol close with `page.waitForFunction: Timeout 1000ms exceeded`;
+- the desktop failure screenshot already shows the protocol drawer visually closed and composition intact.
+
+Code audit confirms `closeDrawer()` writes `aria-hidden="true"` synchronously in the click handler and applies `hidden` after the existing 220ms visual transition. The old gate polled the synchronous ARIA mutation through a 1s page-function wait, which can be starved by the loaded desktop CRT/main thread even after the mutation happened.
+
+Current PR #77 head: `3d94b8df2fa18444ac047a591f65a309c153b000`.
+
+Commit `3d94b8df…` changes only `scripts/kodex-prologue-product-evidence.mjs`: after close click, the gate reads `aria-hidden` directly and still waits up to 4s for the asynchronous `hidden` transition before requiring focus restoration. Title/CTA geometry, CTA hit testing, CRT/fallback, visit memory, reduced-motion, exact `/kodex/folio/ii/` navigation and source-room first-party error checks remain mandatory.
+
+Natural Product Corridor run `31935072132` (#58) is **IN PROGRESS** on exact head `3d94b8df…`. No manual hosted rerun was triggered.
+
+RETURN remains **VIEWPORT REPAIR IMPLEMENTED / EXACT-HEAD PRODUCT REVALIDATION PENDING** because #57 stopped before RETURN.
 
 ---
 
@@ -116,6 +125,7 @@ Primary risks:
 - parallel schemas/registries/status vocabularies;
 - contaminated historical branches becoming convergence bases;
 - cross-route evidence attribution or browser-navigation races producing false room failures;
+- main-thread scheduling races producing false evidence failures despite already-applied DOM state;
 - scientific fact / metaphor / cultural provenance / inference / implementation / deployment state collapsing into one label;
 - treating protected-art curation as public-use approval.
 
@@ -125,12 +135,12 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Await natural exact-head execution on `28323dbe…`; do not manually spam hosted reruns.
-2. If hosted execution is unavailable, use KOD-69 local/self-hosted evidence against the exact same SHA and gates.
-3. Confirm COSMOLOGY navigation race is gone without weakening its contract, then execute RETURN.
-4. Inspect RETURN artifact desktop/390×844/412×915/reduced-motion after machine PASS; do not promote from CI status alone.
+1. Let natural Product Corridor run #58 finish on exact head `3d94b8df…`; do not manually spam hosted reruns.
+2. If provider execution becomes unavailable, use KOD-69 local/self-hosted evidence against the exact same SHA and gates.
+3. Confirm PROLOGUE semantic-close evidence passes without weakening focus/geometry/memory/navigation acceptance.
+4. If the run reaches RETURN, inspect RETURN evidence and screenshots at desktop 1440×900, mobile 390×844, mobile 412×915 and reduced-motion after machine PASS.
 5. If RETURN still fails, repair only the measured viewport/memory/materiality/input delta inside #77; do not create a new memory/runtime/renderer architecture.
-6. If RETURN passes, mark the seven-room product corridor technically complete through RETURN while keeping creator visual acceptance and preview publication separate.
-7. Then return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate, unless creator review establishes a higher-priority defect.
+6. If RETURN passes and artifact inspection confirms the journey specimen is actually inside the first viewport, mark the seven-room product corridor technically complete through RETURN while keeping creator visual acceptance and preview publication separate.
+7. Only then return the Assembly OS frontier to #62's bounded G01/G02/G07 renderer dispatch + structural fingerprint gate, unless creator review establishes a higher-priority defect.
 8. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, cultural/source provenance and Ocín artwork integrity.
-9. No merge, deploy, permission change, public asset approval or canon promotion is authorized.
+9. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
