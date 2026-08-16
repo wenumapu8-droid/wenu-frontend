@@ -101,6 +101,8 @@ import "@fontsource/cormorant-garamond/500.css";
 
 <script>
   import { montarLienzo } from '../kit/lienzo';
+  import { pintarCampo } from '../kit/campo';
+  import receta from '../../../../../scripts/lamina/campo/u04-alphabet.json';
   /* Sin TypeScript acá dentro: Astro compila este bloque como JS y las
      anotaciones de tipo revientan el build. */
   const raiz = document.querySelector('[data-bloque="Grafo"]');
@@ -850,9 +852,29 @@ import "@fontsource/cormorant-garamond/500.css";
       g.restore();
     }
 
+    /* ───────────────────────────────────────────── campo medido (hero-alto)
+     * `comparar-region` da hero-alto con −21 % de tinta y el déficit entero en
+     * la franja y 300..430 del póster (y 250..299 ya tiene tinta de más). Es
+     * campo difuso de los flancos, no nodos: se suma con la receta medida de
+     * `extraer-campo` recortada a esa franja. Canvas virtual de 1138×1138
+     * porque así la escala interna de pintarCampo queda exactamente 1
+     * ((1138/2−8)/561) y el translate lleva su centro (569,569) al centro
+     * medido del campo, (561,760) del póster. */
+    function campoAlto(g) {
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.beginPath();
+      g.rect(250 - OX, 300 - OY, 660, 130);
+      g.clip();
+      g.translate(561 - OX - 569, 760 - OY - 569);
+      pintarCampo(g, { receta, W: 1138, H: 1138, semilla: 0x0404, capas: ["polvo", "estrellas"] });
+      g.restore();
+    }
+
     /* ─────────────────────────────────────────────────────────── montaje */
     function pintarFondo(g) {
       g.clearRect(0, 0, W, H);
+      campoAlto(g);
       polvo(g);
       envolvente(g);
       ejes(g);
