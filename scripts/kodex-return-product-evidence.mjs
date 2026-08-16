@@ -88,7 +88,10 @@ for (const profile of profiles) {
     const next = page.locator('[data-deck-next]');
     await next.waitFor({ state: 'visible' });
     await next.click({ noWaitAfter: true });
-    await page.waitForURL((url) => url.pathname === '/kodex/folio/vi/', { timeout: 8000 });
+    // The deck engine can replace the document before Playwright's lifecycle
+    // observer attaches. Correctness is the destination pathname, not a
+    // particular browser lifecycle event; inspect the real location directly.
+    await page.waitForFunction(() => window.location.pathname === '/kodex/folio/vi/', null, { timeout: 8000 });
     await page.waitForSelector('[data-kx][data-stage-name="RETURN"]');
     await page.waitForSelector('[data-kdx-return-specimen]');
 
