@@ -71,7 +71,7 @@ const livingFieldNode = {
   primary_payload: { payload_type: 'FIELD', payload_ref: 'CON-RITUAL', status: 'IMPLEMENTED_CANDIDATE' },
   artwork_contract: null,
   activation_profile: {
-    activation_id: 'KDX-FX-006',
+    activation_id: 'MOTION_03_FIELD_MARBLE',
     explicit_action_required: true,
     environment_only: true,
   },
@@ -145,14 +145,19 @@ test('artwork ACTIVATOR_PLATE copies protected artwork constraints without sourc
   assertRegisteredSpec(spec);
 });
 
-test('living-field ACTIVATOR_PLATE preserves field semantics without fabricating artwork constraints', () => {
+test('living-field ACTIVATOR_PLATE preserves field semantics with a scene-compatible registered activation', () => {
   const spec = assemblePlateSpec(livingFieldNode, 'ACTIVATOR_PLATE', 'field-seed');
   assert.equal(spec.primary_payload.payload_type, 'FIELD');
   assert.equal(spec.primary_payload.payload_ref, 'CON-RITUAL');
   assert.equal(spec.artwork_contract, null);
   assert.equal(spec.activation_profile.environment_only, true);
-  assert.equal(spec.activation_profile.activation_id, 'KDX-FX-006');
-  assert.ok(registered.has(spec.activation_profile.activation_id));
+  assert.equal(spec.activation_profile.activation_id, 'MOTION_03_FIELD_MARBLE');
+  const activation = registered.get(spec.activation_profile.activation_id);
+  assert.ok(activation);
+  assert.ok(activation.allowed_plate_types.includes(spec.plate_type));
+  assert.ok(activation.allowed_scene_roles.includes(spec.scene_state));
+  assert.equal(activation.provenance?.status, 'VERIFIED');
+  assert.equal(activation.rights, 'PROJECT_SOURCE');
   assert.equal(spec.qa_requirements.includes('NO_CROP'), false);
   assertRegisteredSpec(spec);
 });
