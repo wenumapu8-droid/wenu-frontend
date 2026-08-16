@@ -20,6 +20,15 @@ function assert(check, message) {
   if (!check) throw new Error(message);
 }
 
+async function waitForPath(page, pathname, timeout = 8000) {
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    if (new URL(page.url()).pathname === pathname) return;
+    await page.waitForTimeout(100);
+  }
+  assert(new URL(page.url()).pathname === pathname, `navigation did not reach ${pathname}`);
+}
+
 async function boundedGeometry(page, selector, profileId) {
   const geometry = await page.evaluate((stageSelector) => {
     const stage = document.querySelector(stageSelector);
@@ -93,7 +102,7 @@ for (const profile of profiles) {
     const interludeNext = page.locator('[data-deck-next]');
     await interludeNext.waitFor({ state: 'visible' });
     await interludeNext.click({ noWaitAfter: true });
-    await page.waitForURL((url) => url.pathname === '/kodex/folio/iv/', { timeout: 8000 });
+    await waitForPath(page, '/kodex/folio/iv/');
 
     // MACHINE: generation is local state; navigation remains a separate explicit NEXT.
     await page.waitForSelector('[data-kx][data-stage-name="MACHINE"]');
@@ -160,7 +169,7 @@ for (const profile of profiles) {
     const next = page.locator('[data-deck-next]');
     await next.waitFor({ state: 'visible' });
     await next.click({ noWaitAfter: true });
-    await page.waitForURL((url) => url.pathname === '/kodex/folio/v/', { timeout: 8000 });
+    await waitForPath(page, '/kodex/folio/v/');
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
     assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
