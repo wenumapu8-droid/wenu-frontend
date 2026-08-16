@@ -1,0 +1,57 @@
+name: KODEX AUTHORIAL_STATE Evidence
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/**'
+      - 'src/components/kodex/**'
+      - 'src/kodex/threshold-portal/**'
+      - 'src/kodex/return/**'
+      - 'src/kodex/crt/**'
+      - 'src/scripts/kodex-engine.js'
+      - 'src/styles/kodex*.css'
+      - 'scripts/kodex-authorial-state-evidence.mjs'
+      - '.github/workflows/kodex-authorial-state.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+jobs:
+  authorial-state-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Same KODEX-only build escape hatch as the product-corridor QA lane.
+      # It does not change catalog behavior and does not authorize deployment.
+      ALLOW_EMPTY_PRODUCTS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-authorial-preview.log 2>&1 &
+          echo $! > /tmp/kodex-authorial-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kodex-authorial-preview.log
+          exit 1
+      - name: Capture seven-scene AUTHORIAL_STATE still evidence
+        env:
+          KODEX_PREVIEW_URL: http://127.0.0.1:4321
+        run: node scripts/kodex-authorial-state-evidence.mjs
+      - name: Upload AUTHORIAL_STATE evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-authorial-state-evidence
+          path: artifacts/kodex-authorial-state-evidence
+          if-no-files-found: error
+          retention-days: 14
