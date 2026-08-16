@@ -1,7 +1,7 @@
 import elementRegistry from './kdx_element_registry.v0.1.json' with { type: 'json' };
 
 export const KDX_ASSEMBLY_QA_PROFILE = Object.freeze({
-  version: 'assembly-qa-v0.1.0',
+  version: 'assembly-qa-v0.1.1',
   status: 'IMPLEMENTED_CANDIDATE',
   contractBeforeRender: true,
   humanAcceptanceInferred: false,
@@ -12,6 +12,7 @@ const REQUIRED_QA_DECLARATIONS = Object.freeze([
   'SCHEMA', 'PROVENANCE', 'RIGHTS', '100DVH', 'MOBILE', 'KEYBOARD', 'FOCUS',
   'REDUCED_MOTION', 'NO_WEBGL_FALLBACK', 'PERFORMANCE', 'DETERMINISM',
 ]);
+const BLOCKED_ELEMENT_STATUSES = new Set(['HOLD', 'DEPRECATED', 'REJECT_FOR_NOW']);
 
 const check = (check_id, status, message, evidence_ref = null, lane = 'CONTRACT') => Object.freeze({
   check_id, lane, status, message, evidence_ref,
@@ -28,6 +29,31 @@ function selectedElementIds(spec) {
     ...(spec?.slots || []).map((slot) => slot?.element_id).filter(Boolean),
     ...(spec?.motion_profile?.element_ids || []).filter(Boolean),
   ])];
+}
+
+function livingFieldActivationCheck(spec) {
+  if (spec?.plate_type !== 'ACTIVATOR_PLATE' || spec?.primary_payload?.payload_type !== 'FIELD') {
+    return check('ACTIVATION_COMPATIBILITY', 'NOT_APPLICABLE', 'Registered living-field activation compatibility applies only to FIELD activators.');
+  }
+
+  const activationId = spec?.activation_profile?.activation_id;
+  const element = registered.get(activationId);
+  if (!element) {
+    return check('ACTIVATION_COMPATIBILITY', 'FAIL', `Living-field activation_id does not resolve to the normalized registry: ${activationId || 'MISSING'}.`, 'registry:kdx_element_registry.v0.1.json');
+  }
+
+  const statusOk = !BLOCKED_ELEMENT_STATUSES.has(element.status);
+  const provenanceOk = element.provenance?.status === 'VERIFIED' && element.rights === 'PROJECT_SOURCE';
+  const plateOk = element.allowed_plate_types?.includes(spec.plate_type) === true;
+  const sceneOk = element.allowed_scene_roles?.includes(spec.scene_state) === true;
+  const fallbackOk = element.accessibility?.meaning_preserved_without_motion === true && Boolean(element.fallback);
+  const compatible = statusOk && provenanceOk && plateOk && sceneOk && fallbackOk;
+
+  const detail = compatible
+    ? `${activationId} is registered and compatible with ${spec.plate_type} / ${spec.scene_state}, with verified provenance, project rights and motion-independent fallback.`
+    : `${activationId} fails living-field activation gates: status=${statusOk}, provenance_rights=${provenanceOk}, plate=${plateOk}, scene=${sceneOk}, fallback_accessibility=${fallbackOk}.`;
+
+  return check('ACTIVATION_COMPATIBILITY', compatible ? 'PASS' : 'FAIL', detail, `registry:${activationId}`);
 }
 
 function contractChecks(spec) {
@@ -50,9 +76,11 @@ function contractChecks(spec) {
 
   const rightsProblems = ids.filter((id) => {
     const element = registered.get(id);
-    return element && (element.rights !== 'PROJECT_SOURCE' || element.provenance?.status !== 'VERIFIED' || ['HOLD', 'DEPRECATED', 'REJECT_FOR_NOW'].includes(element.status));
+    return element && (element.rights !== 'PROJECT_SOURCE' || element.provenance?.status !== 'VERIFIED' || BLOCKED_ELEMENT_STATUSES.has(element.status));
   });
   checks.push(check('RIGHTS_STATUS', rightsProblems.length ? 'FAIL' : 'PASS', rightsProblems.length ? `Blocked rights/status/provenance: ${rightsProblems.join(', ')}` : 'Selected elements satisfy project-source / verified / eligible status gates.', 'registry:kdx_element_registry.v0.1.json'));
+
+  checks.push(livingFieldActivationCheck(spec));
 
   const shellOk = spec?.responsive_profile?.primary_shell === '100dvh';
   checks.push(check('100DVH_DECLARATION', shellOk ? 'PASS' : 'FAIL', shellOk ? 'Primary shell declares 100dvh.' : 'Primary shell does not declare 100dvh.'));
@@ -110,7 +138,7 @@ function renderChecksNotRun() {
   ]);
 }
 
-export function auditUnrenderedPlateSpec(spec, provenanceRef = 'runtime:assembly-qa-v0.1.0') {
+export function auditUnrenderedPlateSpec(spec, provenanceRef = 'runtime:assembly-qa-v0.1.1') {
   const contract_checks = contractChecks(spec);
   const contractFailed = contract_checks.some((item) => item.status === 'FAIL');
   const render_checks = renderChecksNotRun();
@@ -119,7 +147,7 @@ export function auditUnrenderedPlateSpec(spec, provenanceRef = 'runtime:assembly
     : ['RENDER_BROWSER_EVIDENCE_NOT_RUN'];
   return Object.freeze({
     qa_result_id: `KDX-QA-${cleanId(spec?.plate_id || spec?.semantic_node || 'UNKNOWN')}`,
-    version: '0.1.0',
+    version: '0.1.1',
     target_id: spec?.plate_id || spec?.semantic_node || 'UNKNOWN',
     target_kind: 'PLATE_SPEC',
     validation_scope: 'CONTRACT_ONLY',
