@@ -66,7 +66,7 @@ THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE and COSMOLOGY have exact-head bro
 
 Product Corridor run #63 / `31945730175` was the first full mechanical green chain including RETURN, but artifact inspection exposed a mobile RETURN headline/action collision that the old gate did not measure. The gate was subsequently strengthened; therefore run #63 is not sufficient to call the current seven-room first-view composition complete.
 
-### RETURN current evidence frontier — run #71
+### RETURN evidence frontier — run #71
 
 Product Corridor run #71 / `31952372401` executed on exact head `6b19734d36af91671839f4fe8d96a3aa475c7a31`.
 
@@ -80,22 +80,24 @@ Artifact: `kodex-product-corridor` id `9265133098`.
 
 Artifact review shows the closing title still carrying inherited positioning behavior while the outbound action container escapes the mobile content box. This is a scene-local presentation defect, not a failure of `kx-journey`, `readSpecimen('RETURN')`, routing, CRT/fallback, protected artwork or Assembly OS.
 
-### Current bounded repair
+### Current bounded repair / exact validation SHA
 
-Current #77 head: `1b9375aab858cb55bd4a2b97b08e62e7e3b8c1e3`.
+Current #77 head: `e878bb482274fe06a67b4750cf1d0ac1d7444a85`.
 
-Only `public/assets/kodex/kodex-return-composition-v1.css` changed from run #71. Mobile RETURN now:
-- neutralizes inherited `inset`, `transform`, width/max-width and margins on the copy/actions boxes;
-- forces the closing headline into actual static flow;
-- constrains the action grid to the stage content box with `minmax(0,1fr)` and 100% width/max-width;
-- retains all three existing exits;
-- leaves desktop/reduced-motion composition unchanged because those profiles already passed run #71.
+This head contains the same bounded scene-local repair derived from run #71:
+- mobile copy/actions boxes neutralize inherited `inset`, `transform`, width/max-width and margins;
+- closing headline is forced into actual static flow;
+- action grid is constrained to the stage content box with `minmax(0,1fr)` and 100% width/max-width;
+- all three existing exits remain present;
+- desktop/reduced-motion composition remains intentionally unchanged because those profiles already passed run #71.
 
 No route, action destination, memory/specimen semantics, CRT/fallback, renderer, PlateSpec, ElementContract, assembler, Deep Route or protected Ocín original changed.
 
-Status: **RETURN = IMPLEMENTED MEASURED MOBILE FLOW-CONTAINMENT REPAIR / EXACT-HEAD REVALIDATION PENDING**.
+Natural Product Corridor run #72 / `31953124693` is **IN PROGRESS** on exact head `e878bb...`. No manual hosted rerun was triggered.
 
-The seven-room corridor is **not** product-composition complete until the current head passes RETURN desktop/390/412/reduced-motion and its exact artifact is visually inspected.
+Status: **RETURN = IMPLEMENTED MEASURED MOBILE FLOW-CONTAINMENT REPAIR / EXACT-HEAD REVALIDATION IN PROGRESS**.
+
+The seven-room corridor is **not** product-composition complete until this exact head passes RETURN desktop/390/412/reduced-motion and its artifact is visually inspected.
 
 ---
 
@@ -129,7 +131,7 @@ Primary risks:
 
 ## 7. Exact next action
 
-1. Revalidate exact #77 head `1b9375aab858cb55bd4a2b97b08e62e7e3b8c1e3` without manually looping hosted reruns; accept natural provider execution or use KOD-69 Mac mini/self-hosted SHA-bound evidence.
+1. Let natural Product Corridor run #72 / `31953124693` finish on exact head `e878bb482274fe06a67b4750cf1d0ac1d7444a85`; do not manually loop hosted reruns. Use KOD-69 Mac mini/self-hosted SHA-bound evidence only if provider execution becomes unavailable.
 2. Require RETURN desktop 1440×900 / mobile 390×844 / mobile 412×915 / reduced-motion to pass containment, hit-testing, deterministic journey specimen, first-party resource health and explicit headline↔actions / headline↔artifact non-overlap.
 3. Inspect the exact 390/412 screenshots after machine PASS. Browser PASS still does not equal creator acceptance.
 4. Do not modify THRESHOLD, PROLOGUE, DESCENT, ARCHIVE, MACHINE or COSMOLOGY without new measured regression evidence.
