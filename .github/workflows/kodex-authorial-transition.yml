@@ -1,0 +1,64 @@
+name: KODEX AUTHORIAL_TRANSITION Evidence
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/**'
+      - 'src/components/kodex/**'
+      - 'src/kodex/threshold-portal/**'
+      - 'src/kodex/return/**'
+      - 'src/kodex/crt/**'
+      - 'src/scripts/kodex-engine.js'
+      - 'src/styles/kodex*.css'
+      - 'scripts/kodex-authorial-transition-evidence.mjs'
+      - '.github/workflows/kodex-authorial-transition.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+jobs:
+  authorial-transition-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+      KODEX_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Ensure ffmpeg is available
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1 || ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+      - run: npm run build
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-authorial-transition-preview.log 2>&1 &
+          echo $! > /tmp/kodex-authorial-transition-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kodex-authorial-transition-preview.log
+          exit 1
+      - name: Capture explicit cinematic transition evidence
+        env:
+          KODEX_PREVIEW_URL: http://127.0.0.1:4321
+        run: node scripts/kodex-authorial-transition-evidence.mjs
+      - name: Upload AUTHORIAL_TRANSITION evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-authorial-transition-evidence
+          path: artifacts/kodex-authorial-transition-evidence
+          if-no-files-found: warn
+          retention-days: 14
