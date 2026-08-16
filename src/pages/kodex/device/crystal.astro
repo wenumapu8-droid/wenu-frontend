@@ -22,12 +22,13 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
 >
   <main class="crystal" data-crystal-device data-state="DORMANT">
     <div class="crystal__noise" aria-hidden="true"></div>
+
     <header class="crystal__header">
       <div>
         <p class="crystal__eyebrow">KODEX−∞ // DEVICE 01</p>
         <h1>CRYSTAL RECEIVER</h1>
       </div>
-      <div class="crystal__status" aria-live="polite">
+      <div class="crystal__status" aria-live="polite" aria-atomic="true">
         <span>STATE</span>
         <strong data-state-label>DORMANT</strong>
       </div>
@@ -44,19 +45,26 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
       </aside>
 
       <section class="crystal__core" aria-labelledby="receiver-title">
-        <div class="crystal__field" data-field aria-hidden="true">
-          <span class="crystal__orbit crystal__orbit--a"></span>
-          <span class="crystal__orbit crystal__orbit--b"></span>
-          <span class="crystal__orbit crystal__orbit--c"></span>
-          <span class="crystal__axis crystal__axis--x"></span>
-          <span class="crystal__axis crystal__axis--y"></span>
-          <span class="crystal__diamond crystal__diamond--matter">M</span>
-          <span class="crystal__diamond crystal__diamond--signal">S</span>
-          <span class="crystal__diamond crystal__diamond--observer">O</span>
-          <button class="crystal__heart" type="button" data-activate aria-describedby="receiver-instruction">
-            <span>◈</span>
+        <div class="crystal__field" data-field>
+          <span class="crystal__orbit crystal__orbit--a" aria-hidden="true"></span>
+          <span class="crystal__orbit crystal__orbit--b" aria-hidden="true"></span>
+          <span class="crystal__orbit crystal__orbit--c" aria-hidden="true"></span>
+          <span class="crystal__axis crystal__axis--x" aria-hidden="true"></span>
+          <span class="crystal__axis crystal__axis--y" aria-hidden="true"></span>
+          <span class="crystal__diamond crystal__diamond--matter" aria-hidden="true"><b>M</b></span>
+          <span class="crystal__diamond crystal__diamond--signal" aria-hidden="true"><b>S</b></span>
+          <span class="crystal__diamond crystal__diamond--observer" aria-hidden="true"><b>O</b></span>
+          <button
+            class="crystal__heart"
+            type="button"
+            data-activate
+            aria-label="Activate Crystal Receiver or open signal capture"
+            aria-describedby="receiver-instruction"
+          >
+            <span aria-hidden="true">◈</span>
           </button>
         </div>
+
         <h2 id="receiver-title">MATTER × SIGNAL × OBSERVER</h2>
         <p id="receiver-instruction" class="crystal__instruction" data-instruction>
           ACTIVATE RECEIVER. RECORD FIRST. INTERPRET LATER.
@@ -65,20 +73,20 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
 
       <aside class="crystal__rail crystal__rail--right" aria-label="Epistemic state">
         <p class="crystal__rail-title">TRUTH LAYER</p>
-        {truthStates.map((state, index) => (
-          <div class="crystal__truth" data-truth={state} data-active={index === 0 ? 'true' : 'false'}>
+        {truthStates.map((truthState, index) => (
+          <div class="crystal__truth" data-truth={truthState} data-active={index === 0 ? 'true' : 'false'}>
             <span>{String(index + 1).padStart(2, '0')}</span>
-            <strong>{state}</strong>
+            <strong>{truthState}</strong>
           </div>
         ))}
       </aside>
     </section>
 
-    <section class="crystal__capture" data-capture hidden>
+    <section class="crystal__capture" data-capture hidden aria-labelledby="capture-title">
       <div class="crystal__capture-head">
         <div>
           <p class="crystal__eyebrow">SIGNAL CAPTURE</p>
-          <h2>WHAT APPEARED?</h2>
+          <h2 id="capture-title">WHAT APPEARED?</h2>
         </div>
         <button type="button" data-close-capture>CLOSE</button>
       </div>
@@ -90,7 +98,7 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
       </div>
 
       <label class="crystal__label">
-        RAW SIGNAL
+        RAW SIGNAL // RECEIVED
         <textarea data-raw rows="5" placeholder="Describe only what appeared: word, image, geometry, sensation, direction, sound, number…"></textarea>
       </label>
 
@@ -106,9 +114,14 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
         <label>CLARITY <output data-clarity-output>50</output><input data-clarity type="range" min="0" max="100" value="50" /></label>
       </div>
 
+      <label class="crystal__label crystal__interpretation" data-interpretation-field hidden>
+        INTERPRETATION // INTERPRETED
+        <textarea data-interpretation rows="3" placeholder="What do you think it may mean? Keep this separate from the raw signal."></textarea>
+      </label>
+
       <div class="crystal__actions">
         <button type="button" class="crystal__primary" data-record>COMMIT TO MEMORY</button>
-        <button type="button" data-mark-interpretation>ADD INTERPRETATION LAYER</button>
+        <button type="button" data-mark-interpretation aria-pressed="false">ADD INTERPRETATION LAYER</button>
       </div>
     </section>
 
@@ -139,6 +152,7 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
       const $ = (selector) => root.querySelector(selector);
       const $$ = (selector) => [...root.querySelectorAll(selector)];
       const storageKey = 'kodex.crystal.receiver.v0';
+
       let state = 'DORMANT';
       let selectedMode = 'VOICE';
       let interpretationLayer = false;
@@ -161,12 +175,17 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
       const number = $('[data-number]');
       const intensity = $('[data-intensity]');
       const clarity = $('[data-clarity]');
+      const interpretation = $('[data-interpretation]');
+      const interpretationField = $('[data-interpretation-field]');
+      const interpretationToggle = $('[data-mark-interpretation]');
       const memoryList = $('[data-memory-list]');
 
       function setState(next) {
         state = next;
         root.dataset.state = next;
         stateLabel.textContent = next;
+
+        if (next === 'DORMANT') instruction.textContent = 'ACTIVATE RECEIVER. RECORD FIRST. INTERPRET LATER.';
         if (next === 'AWARE') instruction.textContent = 'RECEIVER OPEN. OBSERVE WITHOUT EXPLAINING.';
         if (next === 'RECORDING') instruction.textContent = 'CAPTURE THE SIGNAL BEFORE INTERPRETATION.';
         if (next === 'COHERENT') instruction.textContent = 'PATTERN RECURRENCE DETECTED.';
@@ -193,11 +212,18 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
         const recurrences = records.reduce((sum, record, index) => {
           return sum + recurrenceFor(record, records.slice(0, index));
         }, 0);
-        const avgClarity = count ? records.reduce((sum, r) => sum + Number(r.clarity || 0), 0) / count : 0;
+        const avgClarity = count ? records.reduce((sum, record) => sum + Number(record.clarity || 0), 0) / count : 0;
         const coherence = Math.min(1, (avgClarity / 100) * 0.45 + Math.min(recurrences / 6, 1) * 0.55);
         const density = count === 0 ? 0 : Math.min(8, 1 + Math.floor(count / 2) + Math.floor(recurrences / 2));
         const spin = Math.max(-1, Math.min(1, ((recurrences * 0.17) + (count * 0.03)) % 2 - 1));
         return { count, recurrences, coherence, density, spin };
+      }
+
+      function stableState(m = metrics()) {
+        if (m.count === 0) return 'DORMANT';
+        if (m.count >= 5 && m.recurrences >= 4 && m.coherence >= 0.72) return 'CRYSTAL';
+        if (m.count >= 3 && m.recurrences >= 2 && m.coherence >= 0.55) return 'COHERENT';
+        return 'AWARE';
       }
 
       function updateTelemetry() {
@@ -209,9 +235,16 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
         $('[data-memory]').textContent = String(m.count).padStart(2, '0');
         root.style.setProperty('--crystal-coherence', String(m.coherence));
         root.style.setProperty('--crystal-spin', `${m.spin * 18}deg`);
+        setState(stableState(m));
+      }
 
-        if (m.count >= 3 && m.recurrences >= 2 && m.coherence >= 0.55) setState('COHERENT');
-        if (m.count >= 5 && m.recurrences >= 4 && m.coherence >= 0.72) setState('CRYSTAL');
+      function escapeHtml(value) {
+        return String(value ?? '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
       }
 
       function renderMemory() {
@@ -224,30 +257,42 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
         memoryList.innerHTML = records.slice().reverse().map((record, reverseIndex) => {
           const index = records.length - reverseIndex;
           const rec = recurrenceFor(record, records.filter((_, i) => i !== index - 1));
-          const tags = [record.symbol, record.color, record.number].filter(Boolean).map((tag) => `<span>${escapeHtml(tag)}</span>`).join('');
+          const tags = [record.symbol, record.color, record.number]
+            .filter(Boolean)
+            .map((tag) => `<span>${escapeHtml(tag)}</span>`)
+            .join('');
+          const interpretationMarkup = record.interpretation
+            ? `<p class="crystal__record-interpretation"><span>INTERPRETED</span>${escapeHtml(record.interpretation)}</p>`
+            : '';
+
           return `<article class="crystal__record">
             <div class="crystal__record-index">${String(index).padStart(3, '0')}</div>
             <div>
               <p><strong>${escapeHtml(record.mode)}</strong> // ${new Date(record.timestamp).toLocaleString()}</p>
-              <h3>${escapeHtml(record.raw || 'UNNAMED SIGNAL')}</h3>
+              <h3><span class="crystal__received-label">RECEIVED</span>${escapeHtml(record.raw || 'UNNAMED SIGNAL')}</h3>
+              ${interpretationMarkup}
               <div class="crystal__tags">${tags}</div>
             </div>
             <div class="crystal__record-meta">
               <span>REC ${String(rec).padStart(2, '0')}</span>
-              <span>${record.interpretation ? 'INTERPRETED' : 'RECEIVED'}</span>
+              <span>${record.interpretation ? 'RECEIVED + INTERPRETED' : 'RECEIVED'}</span>
             </div>
           </article>`;
         }).join('');
+
         updateTelemetry();
       }
 
-      function escapeHtml(value) {
-        return String(value ?? '')
-          .replaceAll('&', '&amp;')
-          .replaceAll('<', '&lt;')
-          .replaceAll('>', '&gt;')
-          .replaceAll('"', '&quot;')
-          .replaceAll("'", '&#039;');
+      function resetInterpretationLayer() {
+        interpretationLayer = false;
+        interpretation.value = '';
+        interpretationField.hidden = true;
+        interpretationToggle.dataset.active = 'false';
+        interpretationToggle.setAttribute('aria-pressed', 'false');
+        interpretationToggle.textContent = 'ADD INTERPRETATION LAYER';
+        $$('[data-truth]').forEach((item) => {
+          item.dataset.active = String(item.dataset.truth === 'RECEIVED');
+        });
       }
 
       $('[data-activate]').addEventListener('click', () => {
@@ -255,6 +300,7 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
           setState('AWARE');
           return;
         }
+
         capture.hidden = false;
         setState('RECORDING');
         raw.focus();
@@ -262,23 +308,31 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
 
       $('[data-close-capture]').addEventListener('click', () => {
         capture.hidden = true;
-        setState(records.length ? 'AWARE' : 'DORMANT');
+        resetInterpretationLayer();
+        updateTelemetry();
       });
 
       $$('[data-mode]').forEach((button) => {
         button.addEventListener('click', () => {
           selectedMode = button.dataset.mode;
-          $$('[data-mode]').forEach((item) => item.dataset.selected = String(item === button));
+          $$('[data-mode]').forEach((item) => {
+            item.dataset.selected = String(item === button);
+          });
         });
       });
 
-      $('[data-mark-interpretation]').addEventListener('click', (event) => {
+      interpretationToggle.addEventListener('click', () => {
         interpretationLayer = !interpretationLayer;
-        event.currentTarget.dataset.active = String(interpretationLayer);
-        event.currentTarget.textContent = interpretationLayer ? 'INTERPRETATION LAYER: ON' : 'ADD INTERPRETATION LAYER';
+        interpretationField.hidden = !interpretationLayer;
+        interpretationToggle.dataset.active = String(interpretationLayer);
+        interpretationToggle.setAttribute('aria-pressed', String(interpretationLayer));
+        interpretationToggle.textContent = interpretationLayer ? 'INTERPRETATION LAYER: ON' : 'ADD INTERPRETATION LAYER';
+
         $$('[data-truth]').forEach((item) => {
           item.dataset.active = String(item.dataset.truth === (interpretationLayer ? 'INTERPRETED' : 'RECEIVED'));
         });
+
+        if (interpretationLayer) interpretation.focus();
       });
 
       intensity.addEventListener('input', () => $('[data-intensity-output]').textContent = intensity.value);
@@ -293,6 +347,7 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
         }
         raw.removeAttribute('aria-invalid');
 
+        const interpretationValue = interpretationLayer ? interpretation.value.trim() : '';
         const record = {
           id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
           timestamp: new Date().toISOString(),
@@ -304,30 +359,31 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
           number: number.value.trim(),
           intensity: Number(intensity.value),
           clarity: Number(clarity.value),
-          interpretation: interpretationLayer,
-          epistemic: interpretationLayer ? 'INTERPRETED' : 'RECEIVED',
+          epistemic: 'RECEIVED',
+          interpretation: interpretationValue,
+          interpretationEpistemic: interpretationValue ? 'INTERPRETED' : null,
           source: 'UNKNOWN'
         };
 
         records.push(record);
         localStorage.setItem(storageKey, JSON.stringify(records));
+
         [raw, symbol, color, body, number].forEach((input) => input.value = '');
         intensity.value = '50';
         clarity.value = '50';
         $('[data-intensity-output]').textContent = '50';
         $('[data-clarity-output]').textContent = '50';
-        interpretationLayer = false;
         capture.hidden = true;
-        $$('[data-truth]').forEach((item) => item.dataset.active = String(item.dataset.truth === 'RECEIVED'));
+        resetInterpretationLayer();
         renderMemory();
-        if (!['COHERENT', 'CRYSTAL'].includes(state)) setState('AWARE');
       });
 
       $('[data-clear-memory]').addEventListener('click', () => {
         records = [];
         localStorage.removeItem(storageKey);
+        capture.hidden = true;
+        resetInterpretationLayer();
         renderMemory();
-        setState('DORMANT');
       });
 
       setInterval(() => {
@@ -371,31 +427,33 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
     .crystal__axis--x { width: 86%; height: 1px; }
     .crystal__axis--y { height: 86%; width: 1px; }
     .crystal__diamond { position: absolute; width: 42px; height: 42px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.36); transform: rotate(45deg); font-size: 10px; }
-    .crystal__diamond::first-letter { transform: rotate(-45deg); }
+    .crystal__diamond b { display: block; transform: rotate(-45deg); font-weight: 500; }
     .crystal__diamond--matter { left: 4%; bottom: 18%; }
     .crystal__diamond--signal { right: 4%; bottom: 18%; }
     .crystal__diamond--observer { top: 3%; }
     .crystal__heart { width: clamp(90px, 10vw, 140px); aspect-ratio: 1; border: 1px solid rgba(255,255,255,.75); background: rgba(0,0,0,.72); color: #fff; transform: rotate(45deg); cursor: pointer; transition: box-shadow .6s ease, background .6s ease, transform .6s ease; }
     .crystal__heart span { display: block; transform: rotate(-45deg); font-size: clamp(30px, 4vw, 54px); }
+    .crystal button:focus-visible, .crystal textarea:focus-visible, .crystal input:focus-visible { outline: 1px solid #f3f1e8; outline-offset: 3px; }
     .crystal[data-state="AWARE"] .crystal__heart, .crystal[data-state="RECORDING"] .crystal__heart { box-shadow: 0 0 50px rgba(255,255,255,.12); }
     .crystal[data-state="COHERENT"] .crystal__heart { box-shadow: 0 0 80px rgba(255,255,255,.24); background: rgba(255,255,255,.05); }
     .crystal[data-state="CRYSTAL"] .crystal__heart { box-shadow: 0 0 120px rgba(255,255,255,.4), inset 0 0 45px rgba(255,255,255,.12); background: rgba(255,255,255,.09); }
     .crystal[data-state="CRYSTAL"] .crystal__orbit { border-color: rgba(255,255,255,.72); }
     .crystal__instruction { margin-top: 10px !important; max-width: 680px; opacity: .55; font-size: 11px; letter-spacing: .14em; }
     .crystal__capture { margin: 18px 0; padding: 18px; border: 1px solid rgba(255,255,255,.32); background: rgba(8,8,8,.96); }
-    .crystal__capture[hidden] { display: none; }
+    .crystal__capture[hidden], .crystal__interpretation[hidden] { display: none; }
     .crystal button { font: inherit; color: inherit; }
     .crystal__capture-head button, .crystal__memory-head button, .crystal__modes button, .crystal__actions button { border: 1px solid rgba(255,255,255,.24); background: transparent; padding: 9px 11px; font-size: 9px; letter-spacing: .12em; cursor: pointer; }
     .crystal__modes { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0; }
     .crystal__modes button[data-selected="true"], .crystal__actions button[data-active="true"], .crystal__primary { background: #f3f1e8 !important; color: #050505 !important; }
     .crystal__label { display: grid; gap: 8px; }
+    .crystal__interpretation { margin-top: 18px; }
     .crystal textarea, .crystal input { width: 100%; box-sizing: border-box; border: 1px solid rgba(255,255,255,.18); background: #090909; color: #f3f1e8; padding: 11px; font: inherit; border-radius: 0; }
     .crystal textarea[aria-invalid="true"] { border-color: #fff; box-shadow: 0 0 0 1px #fff; }
     .crystal__fields { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
     .crystal__fields label, .crystal__sliders label { display: grid; gap: 6px; }
     .crystal__sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 18px 0; }
     .crystal__sliders label { grid-template-columns: auto 1fr auto; align-items: center; }
-    .crystal__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .crystal__actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
     .crystal__memory { margin: 34px 0 20px; }
     .crystal__memory-head { border-bottom: 1px solid rgba(255,255,255,.24); padding-bottom: 10px; }
     .crystal__memory-list { display: grid; }
@@ -403,11 +461,14 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
     .crystal__record { display: grid; grid-template-columns: 70px 1fr auto; gap: 18px; padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,.11); align-items: start; }
     .crystal__record-index { font-size: 24px; opacity: .25; }
     .crystal__record p { font-size: 9px; letter-spacing: .12em; opacity: .45; }
-    .crystal__record h3 { margin-top: 6px; font-size: 14px; font-weight: 500; }
+    .crystal__record h3 { margin-top: 6px; font-size: 14px; font-weight: 500; display: grid; gap: 5px; }
+    .crystal__received-label, .crystal__record-interpretation span { font-size: 8px; letter-spacing: .14em; opacity: .45; }
+    .crystal__record-interpretation { margin-top: 9px !important; display: grid; gap: 4px; opacity: .72 !important; font-size: 11px !important; letter-spacing: .02em !important; }
     .crystal__tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     .crystal__tags span { border: 1px solid rgba(255,255,255,.18); padding: 4px 6px; font-size: 9px; text-transform: uppercase; }
     .crystal__record-meta { display: grid; text-align: right; gap: 6px; opacity: .42; }
     .crystal__footer { padding: 10px 0 0; opacity: .55; }
+
     @media (max-width: 820px) {
       .crystal { padding: 12px; }
       .crystal__grid { grid-template-columns: 1fr; }
@@ -420,6 +481,14 @@ const signalModes = ['VOICE', 'GLYPH', 'COLOR', 'BODY', 'MOTION', 'NUMBER', 'DRE
       .crystal__record { grid-template-columns: 42px 1fr; }
       .crystal__record-meta { grid-column: 2; text-align: left; display: flex; gap: 10px; }
     }
+
+    @media (max-width: 480px) {
+      .crystal__header, .crystal__footer, .crystal__memory-head, .crystal__capture-head { align-items: flex-start; }
+      .crystal__fields, .crystal__sliders { grid-template-columns: 1fr; }
+      .crystal__rail--left { grid-template-columns: repeat(2, 1fr); }
+      .crystal__field { width: min(88vw, 420px); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .crystal *, .crystal *::before, .crystal *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
     }
