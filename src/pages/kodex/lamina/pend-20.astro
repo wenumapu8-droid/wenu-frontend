@@ -1,0 +1,413 @@
+---
+/**
+ * KODEX-∞ · PEND-20 (la plancha no se nombra: sin texto en toda la lámina)
+ *
+ * Reproducción en código de `reference/pendientes/pend-20.png` (1024×1536).
+ * Figura esquelética con cabeza-estrella suspendida dentro de una cápsula
+ * de alambre con domos toroidales arriba y abajo.
+ *
+ * MEDIDO de la referencia (pngjs, umbrales 60/150/170):
+ *   · fondo rgb(4,4,4) con grano de película; línea media rgb(139,139,137);
+ *     tinta clara rgb(221,218,211);
+ *   · eje x=511; paredes de la cápsula x=256 y x=766 (y 335..1300);
+ *     verticales punteadas interiores en ±92, ±124, ±177 del eje;
+ *   · domo superior: ecuador y≈335, rx 255, ápice y≈150;
+ *     domo inferior: ecuador y≈1300, ápice abajo y≈1440;
+ *   · destellos del eje: (512,130) arriba, (512,1203) bajo los pies,
+ *     (512,1418) en el ápice inferior; rayo del eje y 45..1530;
+ *   · abanico de rayos finos que converge en (512,462) bajo el domo;
+ *   · estrella-cabeza centro (513,556): puntas medidas izq x=414,
+ *     der x=613, arriba y=470, abajo y=626 — 8 puntas con espinas;
+ *   · esqueleto: hombros y≈655 (±74), costillar 660..805, manos en
+ *     (±170, 858) con dedos en abanico (alcance x 341..681),
+ *     pelvis 805..885, piernas 885..1170, pies en punta hasta y≈1200;
+ *   · anillos punteados r 42,130,282 centrados en (512,833) y 13 radios
+ *     punteados de la roseta (receta pend-20.json);
+ *   · glifos de la receta = chispas de 4 puntas EN SUS COORDENADAS;
+ *     marcas = vetas de luz en sus cajas medidas.
+ *
+ * No hay texto legible en ninguna zona (verificado con zoom por recortes):
+ * todo lo puntual va como marca no-textual.
+ */
+import "../../../styles/kodex-lamina.css";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · PEND-20</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam">
+    <div class="lam" data-lam="pend-20">
+      <canvas id="p20-fondo" width="1024" height="1536" style="position:absolute;inset:0;"></canvas>
+      <canvas id="p20-vivo" width="1024" height="1536" style="position:absolute;inset:0;"></canvas>
+
+      <svg viewBox="0 0 1024 1536" style="position:absolute;inset:0;" aria-hidden="true">
+        <!-- paredes de la cápsula, medidas en x=256 y x=766 -->
+        <line x1="256" y1="335" x2="256" y2="1300" class="p-pared" />
+        <line x1="766" y1="335" x2="766" y2="1300" class="p-pared" />
+        <!-- verticales punteadas interiores: pares medidos a ±92, ±124, ±177 -->
+        {[92, 124, 177].map((dx) => (
+          <g class="p-vert">
+            <line x1={511 - dx} y1="420" x2={511 - dx} y2="1250" />
+            <line x1={511 + dx} y1="420" x2={511 + dx} y2="1250" />
+          </g>
+        ))}
+        <!-- rayo del eje, punteado fino de punta a punta -->
+        <line x1="511.5" y1="46" x2="511.5" y2="1530" class="p-eje" />
+      </svg>
+    </div>
+
+    <style is:global>
+      html, body { margin: 0; background: #000; }
+      .lam {
+        position: relative;
+        width: 1024px; height: 1536px;
+        background: #040404;
+        transform-origin: 0 0;
+      }
+      .p-pared { stroke: #3e403e; stroke-width: 1.2; stroke-dasharray: 5 3; }
+      .p-vert { stroke: #2f312f; stroke-width: 1; stroke-dasharray: 2 6; }
+      .p-eje { stroke: #8b8b89; stroke-width: 1; stroke-dasharray: 3 4; opacity: .5; }
+    </style>
+
+    <script>
+      import { montarLienzo, tinta } from "../../../components/kodex/lamina/kit/lienzo";
+      import { rng } from "../../../components/kodex/lamina/kit/rng";
+      import receta from "../../../../scripts/lamina/campo/pend-20.json";
+
+      const fondo = document.getElementById("p20-fondo") as HTMLCanvasElement;
+      const vivo = document.getElementById("p20-vivo") as HTMLCanvasElement;
+      const raiz = document.querySelector("[data-lam]") as HTMLElement;
+      const gf = fondo.getContext("2d")!;
+      const gv = vivo.getContext("2d")!;
+
+      const EJE = 511;
+      const rnd = rng(0x20e5);
+
+      /* ── grano de película, fijo ─────────────────────────────────────── */
+      const grano = Array.from({ length: 1500 }, () => ({
+        x: rnd() * 1024, y: rnd() * 1536, r: rnd() < 0.85 ? 0.6 : 1.2, o: 0.06 + rnd() * 0.2,
+      }));
+
+      /* glifos medidos: chispas de 4 puntas [x,y,tam]*n */
+      const chispas: Array<[number, number, number]> = [];
+      for (let i = 0; i < receta.glifos.length; i += 3) {
+        chispas.push([receta.glifos[i], receta.glifos[i + 1], receta.glifos[i + 2]]);
+      }
+      /* marcas medidas: vetas de luz [x,y,w,h]*n */
+      const marcas: Array<[number, number, number, number]> = [];
+      for (let i = 0; i < receta.marcas.length; i += 4) {
+        marcas.push([receta.marcas[i], receta.marcas[i + 1], receta.marcas[i + 2], receta.marcas[i + 3]]);
+      }
+
+      /* ── domo toroidal de alambre (melón): latitudes + longitudes ────── */
+      const domo = (cx: number, cy: number, RX: number, RY: number, tapa: number) => {
+        /* longitudes: elipses completas con rx variable */
+        for (let k = 0; k < 9; k++) {
+          const rx = RX * Math.cos((k / 9) * Math.PI * 0.5);
+          gf.strokeStyle = tinta("150,150,148", 0.5 - k * 0.03);
+          gf.lineWidth = 0.9;
+          gf.beginPath(); gf.ellipse(cx, cy, Math.max(6, rx), RY, 0, 0, Math.PI * 2); gf.stroke();
+        }
+        /* latitudes: elipses achatadas apiladas hacia el ápice */
+        for (let k = 0; k < 7; k++) {
+          const s = Math.sin(((k + 1) / 8) * Math.PI * 0.5);
+          const rx = RX * Math.cos(((k + 1) / 8) * Math.PI * 0.5);
+          gf.strokeStyle = tinta("150,150,148", 0.42 - k * 0.03);
+          gf.lineWidth = 0.8;
+          gf.beginPath(); gf.ellipse(cx, cy - tapa * RY * s, rx, rx * 0.24, 0, 0, Math.PI * 2); gf.stroke();
+          /* réplica punteada del hemisferio opuesto, más tenue */
+          gf.setLineDash([2, 5]);
+          gf.strokeStyle = tinta("140,140,138", 0.2 - k * 0.02);
+          gf.beginPath(); gf.ellipse(cx, cy + tapa * RY * s, rx, rx * 0.24, 0, 0, Math.PI * 2); gf.stroke();
+          gf.setLineDash([]);
+        }
+        /* ecuador remarcado */
+        gf.strokeStyle = tinta("170,170,168", 0.55);
+        gf.lineWidth = 1.1;
+        gf.beginPath(); gf.ellipse(cx, cy, RX, RY * 0.3, 0, 0, Math.PI * 2); gf.stroke();
+      };
+
+      /* ── esqueleto: trazo simétrico, decidido UNA vez ────────────────── */
+      const esq = () => {
+        const L = (x0: number, y0: number, x1: number, y1: number, o = 0.8, w = 1.6) => {
+          gf.strokeStyle = tinta("230,227,221", o); gf.lineWidth = w;
+          gf.beginPath(); gf.moveTo(x0, y0); gf.lineTo(x1, y1); gf.stroke();
+        };
+        const Q = (x0: number, y0: number, cx: number, cy: number, x1: number, y1: number, o = 0.8, w = 1.6) => {
+          gf.strokeStyle = tinta("230,227,221", o); gf.lineWidth = w;
+          gf.beginPath(); gf.moveTo(x0, y0); gf.quadraticCurveTo(cx, cy, x1, y1); gf.stroke();
+        };
+        const O = (x: number, y: number, rx: number, ry: number, rot = 0, o = 0.7, w = 1.3) => {
+          gf.strokeStyle = tinta("230,227,221", o); gf.lineWidth = w;
+          gf.beginPath(); gf.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2); gf.stroke();
+        };
+
+        /* cuello espinoso que sube hacia la estrella */
+        for (const s of [-1, 1]) {
+          Q(EJE + s * 12, 628, EJE + s * 20, 642, EJE + s * 26, 652, 0.75, 1.4);
+          Q(EJE + s * 26, 652, EJE + s * 52, 650, EJE + s * 74, 658, 0.8, 1.6); // trapecio→hombro
+        }
+        /* punteado del cuello (estípula de la referencia) */
+        for (let k = 0; k < 46; k++) {
+          const yy = 620 + rnd() * 44, xx = EJE + (rnd() - 0.5) * (16 + (yy - 620) * 0.9);
+          gf.fillStyle = tinta("226,223,217", 0.35 + rnd() * 0.4);
+          gf.beginPath(); gf.arc(xx, yy, 0.9, 0, Math.PI * 2); gf.fill();
+        }
+
+        /* clavículas y esternón */
+        for (const s of [-1, 1]) Q(EJE, 672, EJE + s * 40, 662, EJE + s * 72, 668, 0.8, 1.6);
+        L(EJE, 668, EJE, 775, 0.85, 2);
+
+        /* costillar: 8 pares de arcos + contorno de huevo */
+        for (let i = 0; i < 8; i++) {
+          const y0 = 676 + i * 14;
+          const ancho = 34 + i * 4.4 - (i > 5 ? (i - 5) * 9 : 0);
+          for (const s of [-1, 1]) {
+            Q(EJE + s * 4, y0, EJE + s * ancho, y0 + 2, EJE + s * (ancho * 0.62), y0 + 14, 0.72, 1.4);
+          }
+        }
+        O(EJE, 726, 64, 58, 0, 0.45, 1.2);
+
+        /* columna lumbar: vértebras */
+        for (let y = 780; y < 816; y += 9) {
+          L(EJE - 7, y, EJE + 7, y, 0.8, 2.6);
+        }
+
+        /* brazos: húmero, antebrazo doble, articulaciones */
+        for (const s of [-1, 1]) {
+          for (const d of [-2.6, 2.6]) {
+            Q(EJE + s * (74 + d * 0.4), 664, EJE + s * (102 + d), 712, EJE + s * (118 + d), 762, 0.7, 1.3);
+            Q(EJE + s * (120 + d), 770, EJE + s * (142 + d), 808, EJE + s * (158 + d * 0.6), 845, 0.7, 1.3);
+          }
+          O(EJE + s * 76, 664, 5, 5, 0, 0.75); // hombro
+          O(EJE + s * 119, 766, 4.5, 4.5, 0, 0.75); // codo
+          O(EJE + s * 159, 849, 4, 4, 0, 0.75); // muñeca
+          /* mano: 5 dedos en abanico hacia abajo-afuera */
+          for (let f = 0; f < 5; f++) {
+            const a = Math.PI * 0.5 + s * (0.52 - f * 0.2);
+            const mx = EJE + s * 163, my = 855;
+            const lg = 26 + (f === 2 ? 8 : f === 1 || f === 3 ? 5 : 0);
+            const px = mx + Math.cos(a) * lg * 0.6 * (s > 0 ? 1 : -1) * s, py = my + Math.sin(a) * lg;
+            Q(mx, my, mx + s * Math.cos(a - s * 0.2) * lg * 0.5, my + lg * 0.55, mx + s * Math.abs(Math.cos(a)) * lg * (f - 2) * 0.24 + s * 8, py, 0.78, 1.4);
+            void px;
+          }
+        }
+
+        /* pelvis: alas ilíacas + sacro */
+        for (const s of [-1, 1]) {
+          O(EJE + s * 35, 828, 30, 23, s * 0.3, 0.7, 1.4);
+          O(EJE + s * 30, 822, 15, 11, s * 0.3, 0.55, 1.1);
+          O(EJE + s * 42, 858, 7, 7, 0, 0.7); // cadera
+        }
+        gf.strokeStyle = tinta("230,227,221", 0.7); gf.lineWidth = 1.4;
+        gf.beginPath(); gf.moveTo(EJE - 10, 812); gf.lineTo(EJE + 10, 812); gf.lineTo(EJE, 848); gf.closePath(); gf.stroke();
+
+        /* piernas: fémur y tibia+peroné */
+        for (const s of [-1, 1]) {
+          for (const d of [-2.4, 2.4]) {
+            Q(EJE + s * (42 + d), 862, EJE + s * (38 + d), 930, EJE + s * (31 + d), 998, 0.7, 1.3);
+            Q(EJE + s * (30 + d), 1008, EJE + s * (28 + d), 1070, EJE + s * (26 + d), 1128, 0.7, 1.3);
+          }
+          O(EJE + s * 31, 1002, 6, 6, 0, 0.75); // rodilla
+          O(EJE + s * 26, 1132, 5, 5, 0, 0.75); // tobillo
+          /* pie en punta hacia abajo: empeine + 5 dedos */
+          Q(EJE + s * 26, 1136, EJE + s * 36, 1152, EJE + s * 38, 1168, 0.78, 1.5);
+          for (let f = 0; f < 5; f++) {
+            const bx = EJE + s * (18 + f * 6.5), by = 1156 + f * 2;
+            Q(bx, by, bx + s * 2, by + 22, bx - s * 2 + s * f, 1186 + (f === 2 ? 12 : f * 3), 0.75, 1.3);
+          }
+        }
+      };
+
+      /* ── abanico que converge bajo el domo, medido en (512,462) ──────── */
+      const abanico = () => {
+        for (let k = 0; k < 42; k++) {
+          const a = -Math.PI / 2 + (k / 41 - 0.5) * 2.1;
+          const R0 = 60 + (k % 4) * 20, R1 = 190 + (k % 5) * 30;
+          gf.strokeStyle = tinta("165,165,163", 0.2);
+          gf.lineWidth = 0.6;
+          gf.beginPath();
+          gf.moveTo(512 + Math.cos(a) * R0 * 0.16, 462 + Math.sin(a) * R0 * 0.4);
+          gf.lineTo(512 + Math.cos(a) * R1, 462 + Math.sin(a) * R1 * 0.62);
+          gf.stroke();
+        }
+        /* gota en el punto de convergencia */
+        gf.fillStyle = tinta("235,232,226", 0.85);
+        gf.beginPath();
+        gf.moveTo(512, 444);
+        gf.quadraticCurveTo(517, 456, 512, 466);
+        gf.quadraticCurveTo(507, 456, 512, 444);
+        gf.fill();
+      };
+
+      const pintarFondo = () => {
+        gf.clearRect(0, 0, 1024, 1536);
+
+        for (const p of grano) {
+          gf.fillStyle = tinta("120,120,118", p.o);
+          gf.beginPath(); gf.arc(p.x, p.y, p.r, 0, Math.PI * 2); gf.fill();
+        }
+
+        /* roseta medida: anillos punteados r 42,130,282 en (512,833) */
+        gf.setLineDash([1.5, 6]);
+        for (const r of receta.anillos_r) {
+          gf.strokeStyle = tinta("150,150,148", r > 200 ? 0.3 : 0.2);
+          gf.lineWidth = 1;
+          gf.beginPath(); gf.arc(512, 833, r, 0, Math.PI * 2); gf.stroke();
+        }
+        /* 13 radios punteados de la roseta */
+        for (let k = 0; k < receta.radios_n; k++) {
+          const a = (k / receta.radios_n) * Math.PI * 2 + 0.24;
+          gf.strokeStyle = tinta("140,140,138", 0.22);
+          gf.lineWidth = 0.8;
+          gf.beginPath();
+          gf.moveTo(512 + Math.cos(a) * 60, 833 + Math.sin(a) * 60);
+          gf.lineTo(512 + Math.cos(a) * 470, 833 + Math.sin(a) * 470);
+          gf.stroke();
+        }
+        gf.setLineDash([]);
+
+        /* domos medidos: ecuadores y=335 y y=1300, rx 255 */
+        domo(511, 335, 255, 190, 1);
+        domo(511, 1300, 255, 140, -1);
+
+        abanico();
+        esq();
+
+        /* chispas de 4 puntas en las coordenadas de la receta */
+        for (const [x, y, t] of chispas) {
+          const r = Math.max(4, t * 0.9);
+          gf.strokeStyle = tinta("232,229,223", 0.8);
+          gf.lineWidth = 1;
+          gf.beginPath(); gf.moveTo(x, y - r); gf.lineTo(x, y + r); gf.stroke();
+          gf.beginPath(); gf.moveTo(x - r * 0.62, y); gf.lineTo(x + r * 0.62, y); gf.stroke();
+          gf.fillStyle = tinta("240,238,233", 0.9);
+          gf.beginPath(); gf.arc(x, y, 1.3, 0, Math.PI * 2); gf.fill();
+        }
+
+        /* marcas medidas: manojos de hebras dentro de su caja */
+        for (const [x, y, w, h] of marcas) {
+          const a = w >= h ? 0 : Math.PI / 2;
+          const largo = Math.max(w, h), grosor = Math.min(w, h);
+          const n = Math.max(2, Math.round(largo / 11));
+          for (let k = 0; k < n; k++) {
+            const d = (k / Math.max(1, n - 1) - 0.5) * grosor;
+            const jl = 0.5 + rnd() * 0.5, jc = (rnd() - 0.5) * largo * 0.3;
+            gf.strokeStyle = tinta("225,222,218", 0.14 + rnd() * 0.12);
+            gf.lineWidth = 0.7;
+            gf.beginPath();
+            gf.moveTo(x + jc - Math.cos(a) * (largo / 2) * jl + Math.sin(a) * d, y - Math.sin(a) * (largo / 2) * jl + Math.cos(a) * d);
+            gf.lineTo(x + jc + Math.cos(a) * (largo / 2) * jl + Math.sin(a) * d, y + Math.sin(a) * (largo / 2) * jl + Math.cos(a) * d);
+            gf.stroke();
+          }
+        }
+      };
+
+      /* ── capa viva: estrella-cabeza y tres destellos del eje ─────────── */
+
+      /* destello: rayo vertical largo + corona de rayos finos */
+      const destello = (x: number, y: number, R: number, brillo: number, sem: number) => {
+        const rl = rng(sem);
+        const gr = gv.createRadialGradient(x, y, 0, x, y, R * 1.6);
+        gr.addColorStop(0, tinta("244,242,236", 0.85 * brillo));
+        gr.addColorStop(0.3, tinta("190,188,183", 0.28 * brillo));
+        gr.addColorStop(1, tinta("120,120,118", 0));
+        gv.fillStyle = gr;
+        gv.beginPath(); gv.arc(x, y, R * 1.6, 0, Math.PI * 2); gv.fill();
+        gv.strokeStyle = tinta("240,238,233", 0.9 * brillo);
+        gv.lineWidth = 1.2;
+        gv.beginPath(); gv.moveTo(x, y - R * 3.2); gv.lineTo(x, y + R * 3.2); gv.stroke();
+        gv.lineWidth = 1;
+        gv.beginPath(); gv.moveTo(x - R * 1.9, y); gv.lineTo(x + R * 1.9, y); gv.stroke();
+        for (let k = 0; k < 26; k++) {
+          const a = (k / 26) * Math.PI * 2 + 0.12;
+          const lg = R * (0.7 + rl() * 1.5);
+          gv.strokeStyle = tinta("225,223,218", 0.35 * brillo);
+          gv.lineWidth = 0.6;
+          gv.beginPath();
+          gv.moveTo(x + Math.cos(a) * R * 0.3, y + Math.sin(a) * R * 0.3);
+          gv.lineTo(x + Math.cos(a) * lg, y + Math.sin(a) * lg);
+          gv.stroke();
+        }
+        gv.fillStyle = tinta("250,249,246", 0.95 * brillo);
+        gv.beginPath(); gv.arc(x, y, Math.max(1.6, R * 0.16), 0, Math.PI * 2); gv.fill();
+      };
+
+      /* estrella-cabeza de 8 puntas, medida: centro (513,556) */
+      const CX = 513, CY = 556;
+      const puntas: Array<[number, number, number]> = [
+        [-Math.PI / 2, 88, 15], [Math.PI / 2, 72, 15],
+        [Math.PI, 99, 12], [0, 100, 12],
+        [-Math.PI * 0.75, 54, 8], [-Math.PI * 0.25, 56, 8],
+        [Math.PI * 0.75, 50, 8], [Math.PI * 0.25, 52, 8],
+      ];
+      const estrella = (brillo: number) => {
+        const rl = rng(0x57a2);
+        /* halo suave */
+        const gr = gv.createRadialGradient(CX, CY, 0, CX, CY, 120);
+        gr.addColorStop(0, tinta("235,232,226", 0.22 * brillo));
+        gr.addColorStop(1, tinta("120,120,118", 0));
+        gv.fillStyle = gr;
+        gv.beginPath(); gv.arc(CX, CY, 120, 0, Math.PI * 2); gv.fill();
+
+        /* cuerpo: puntas como cometas rellenas */
+        for (const [a, lg, base] of puntas) {
+          const tx = CX + Math.cos(a) * lg, ty = CY + Math.sin(a) * lg;
+          const px = Math.cos(a + Math.PI / 2), py = Math.sin(a + Math.PI / 2);
+          gv.fillStyle = tinta("236,233,227", 0.92 * brillo);
+          gv.beginPath();
+          gv.moveTo(CX + px * base, CY + py * base);
+          gv.quadraticCurveTo(CX + px * base * 0.3 + Math.cos(a) * lg * 0.42, CY + py * base * 0.3 + Math.sin(a) * lg * 0.42, tx, ty);
+          gv.quadraticCurveTo(CX - px * base * 0.3 + Math.cos(a) * lg * 0.42, CY - py * base * 0.3 + Math.sin(a) * lg * 0.42, CX - px * base, CY - py * base);
+          gv.closePath();
+          gv.fill();
+          /* espinas a lo largo de los bordes de la punta */
+          for (let k = 0; k < 9; k++) {
+            const f = 0.2 + (k / 9) * 0.75;
+            for (const s of [-1, 1]) {
+              const bx = CX + s * px * base * (1 - f) + Math.cos(a) * lg * f;
+              const by = CY + s * py * base * (1 - f) + Math.sin(a) * lg * f;
+              const el = 4 + rl() * 9;
+              gv.strokeStyle = tinta("228,225,219", (0.3 + rl() * 0.3) * brillo);
+              gv.lineWidth = 0.7;
+              gv.beginPath();
+              gv.moveTo(bx, by);
+              gv.lineTo(bx + s * px * el + Math.cos(a) * el * 0.4, by + s * py * el + Math.sin(a) * el * 0.4);
+              gv.stroke();
+            }
+          }
+        }
+        /* núcleo blanco con banda oscura en X (medido en el recorte) */
+        gv.fillStyle = tinta("248,247,243", 0.96 * brillo);
+        gv.beginPath(); gv.ellipse(CX, CY, 20, 16, 0, 0, Math.PI * 2); gv.fill();
+        gv.strokeStyle = tinta("30,28,26", 0.8);
+        gv.lineWidth = 1.6;
+        gv.beginPath(); gv.moveTo(CX - 46, CY - 8); gv.quadraticCurveTo(CX, CY + 4, CX + 46, CY - 8); gv.stroke();
+        gv.beginPath(); gv.moveTo(CX - 40, CY + 10); gv.quadraticCurveTo(CX, CY - 2, CX + 40, CY + 10); gv.stroke();
+      };
+
+      const pintarVivo = (fase: number) => {
+        gv.clearRect(0, 0, 1024, 1536);
+        const b0 = 0.86 + 0.14 * Math.cos(fase * Math.PI * 2);
+        const b1 = 0.84 + 0.16 * Math.cos((fase + 1 / 3) * Math.PI * 2);
+        const b2 = 0.84 + 0.16 * Math.cos((fase + 2 / 3) * Math.PI * 2);
+        destello(512, 130, 30, b1, 0xd1);
+        destello(512, 1203, 26, b2, 0xd2);
+        destello(512, 1418, 30, b1, 0xd3);
+        estrella(b0);
+      };
+
+      montarLienzo({
+        raiz,
+        inicial: pintarFondo,
+        cuadro: pintarVivo,
+        periodo: 18000,
+        periodoReducido: 60000,
+      });
+    </script>
+  </body>
+</html>
