@@ -38,6 +38,24 @@ async function boundedGeometry(page, selector, profileId) {
   return geometry;
 }
 
+async function clickAndRequirePath(page, locator, expectedPath, profileId) {
+  await locator.waitFor({ state: 'visible' });
+  // Correctness belongs to the exact browser pathname, not Playwright's
+  // navigation lifecycle observer. The corridor can replace the document
+  // quickly enough that waitForURL reports ERR_ABORTED/frame-detached even
+  // when the destination is already loading/rendered. Sampling pathname keeps
+  // the route contract strict without coupling PASS to that observer race.
+  await locator.click({ noWaitAfter: true });
+  await page.waitForFunction(
+    (path) => window.location.pathname === path,
+    expectedPath,
+    { timeout: 8000 },
+  );
+  const pathname = await page.evaluate(() => window.location.pathname);
+  assert(pathname === expectedPath, `${profileId}: expected ${expectedPath}, got ${pathname}`);
+  return pathname;
+}
+
 for (const profile of profiles) {
   const context = await browser.newContext({ viewport: profile.viewport, reducedMotion: profile.reducedMotion });
   const page = await context.newPage();
@@ -91,9 +109,7 @@ for (const profile of profiles) {
 
     await page.screenshot({ path: `${outDir}/archive-machine-interlude-${profile.id}.png`, fullPage: true });
     const interludeNext = page.locator('[data-deck-next]');
-    await interludeNext.waitFor({ state: 'visible' });
-    await interludeNext.click({ noWaitAfter: true });
-    await page.waitForURL((url) => url.pathname === '/kodex/folio/iv/', { timeout: 8000 });
+    await clickAndRequirePath(page, interludeNext, '/kodex/folio/iv/', `${profile.id}/interlude`);
 
     // MACHINE: generation is local state; navigation remains a separate explicit NEXT.
     await page.waitForSelector('[data-kx][data-stage-name="MACHINE"]');
@@ -158,14 +174,12 @@ for (const profile of profiles) {
     assert(Array.isArray(machineJourney?.views) && machineJourney.views.includes('/kodex/folio/iv/'), `${profile.id}: MACHINE visit memory missing`);
 
     const next = page.locator('[data-deck-next]');
-    await next.waitFor({ state: 'visible' });
-    await next.click({ noWaitAfter: true });
-    await page.waitForURL((url) => url.pathname === '/kodex/folio/v/', { timeout: 8000 });
+    const navigation = await clickAndRequirePath(page, next, '/kodex/folio/v/', `${profile.id}/machine`);
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
     assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
 
-    evidence.push({ profile: profile.id, status: 'PASS', interludeGeometry, interlude, machineGeometry, initial, generated, navigation: '/kodex/folio/v/', consoleErrors, httpErrors, externalHttpErrors });
+    evidence.push({ profile: profile.id, status: 'PASS', interludeGeometry, interlude, machineGeometry, initial, generated, navigation, consoleErrors, httpErrors, externalHttpErrors });
   } catch (error) {
     failed = true;
     evidence.push({ profile: profile.id, status: 'FAIL', error: error instanceof Error ? error.message : String(error), currentUrl: page.url(), consoleErrors, httpErrors, externalHttpErrors });
