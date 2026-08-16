@@ -160,7 +160,6 @@ for (const transition of transitions) {
 
       await page.goto(`${baseURL}${transition.sourcePath}`, { waitUntil: 'networkidle' });
       await waitStage(page, transition.sourceStage);
-      assert(location !== undefined, 'runtime guard');
       const sourcePath = await page.evaluate(() => location.pathname);
       assert(sourcePath === transition.sourcePath, `${transition.id}/${profile.id}: source route drifted to ${sourcePath}`);
       assert(!(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)), `${transition.id}/${profile.id}: FULL motion unexpectedly reduced`);
