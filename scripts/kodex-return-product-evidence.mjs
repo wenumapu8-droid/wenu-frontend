@@ -141,6 +141,7 @@ for (const profile of profiles) {
         headlineActionsOverlap: overlaps(headlineRect, actionsRect),
         headlineArtOverlap: overlaps(headlineRect, artRect),
         headlineStripOverlap: overlaps(headlineRect, stripRect),
+        actionsArtOverlap: overlaps(actionsRect, artRect),
       };
     });
     assert(geometry.scrollHeight <= geometry.clientHeight + 2, `${profile.id}: RETURN page scroll detected`);
@@ -154,6 +155,7 @@ for (const profile of profiles) {
     assert(!geometry.headlineActionsOverlap, `${profile.id}: RETURN headline overlaps outbound actions`);
     assert(!geometry.headlineArtOverlap, `${profile.id}: RETURN headline overlaps the material artifact`);
     assert(!geometry.headlineStripOverlap, `${profile.id}: RETURN data strip occludes the closing headline`);
+    assert(!geometry.actionsArtOverlap, `${profile.id}: RETURN outbound actions overlap the material artifact`);
 
     const specimen = await page.evaluate(() => {
       const panel = document.querySelector('[data-kdx-return-specimen]');
