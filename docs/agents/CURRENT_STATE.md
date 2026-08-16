@@ -59,6 +59,18 @@ Benchmark anchors are preserved exactly: `GP-SCI-01 → G07` and `GP-TECH-02 →
 
 Status: **G01/G02/G07 REGISTERED-COMPOSITION DISPATCH + STRUCTURAL FINGERPRINT = BROWSER-VALIDATED IMPLEMENTATION CANDIDATE**. Human curator acceptance remains NOT_RUN. Protected artwork source bytes remain WITHHELD.
 
+### Golden curator/readability audit — perceptual residue identified
+
+Exact run-281 artifact `9267004535` was inspected as a perceptual/readability surface after the mechanical structural-fingerprint PASS.
+
+The remaining issue is narrower than the previous renderer bug: `GP-SCI-01 / G07` and `GP-TECH-02 / G02` are structurally distinct, but they still share too much macro-template hierarchy — an oversized dominant title, similar central negative-space mass and similar lower framing/bands. This is a renderer hierarchy/materiality issue, not evidence for changing ElementContract, PlateSpec, assembler scoring or registered IDs.
+
+`GP-CON-03` remains legible but diagrammatic/scaffold-like rather than creator-finished experiential materiality. `GP-ART-03` remains source-byte WITHHELD; no protected-art materiality or no-crop visual acceptance may be inferred from that placeholder.
+
+Truth boundary: `human_curator_acceptance = NOT_RUN`. This is an implementation/readability diagnosis, not creator approval.
+
+Next bounded code candidate, if/when edited: refine only the existing G07/G02/G01 renderer hierarchy while preserving registered IDs, PlateSpec, deterministic assembly, provenance/rights, user agency, JourneyState and protected Ocín contracts; require exact-head Golden browser evidence afterward. Do not add another visual grammar or renderer architecture.
+
 ---
 
 ## 3. Other lanes / authority boundaries
@@ -129,8 +141,9 @@ Primary risks:
 
 1. Keep #77 draft and mechanically closed unless new measured evidence appears; do not reopen corridor architecture.
 2. Treat #62 G01/G02/G07 dispatch + structural fingerprint as browser-validated; do not add another schema/renderer/assembler merely to increase visual variety.
-3. Run/record real curator/readability review across the 12 rendered Golden plates. Machine validity and structural diversity are necessary but do not equal human aesthetic acceptance.
-4. Use the inspected SCI/TECH artifacts as the first comparison pair. If review identifies a specific readability/materiality/hierarchy weakness, implement only that bounded delta in the existing renderer using registered semantics.
-5. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
-6. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
-7. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+3. Treat the run-281 Golden perceptual audit as the active delta: SCI/G07 and TECH/G02 are structurally distinct but still too similar at the macro-hierarchy level.
+4. If implementing, change only the existing universal renderer hierarchy/materiality for G07/G02/G01 and preserve all registered semantics/contracts; re-run exact-head Golden browser evidence afterward.
+5. Keep `human_curator_acceptance=NOT_RUN` until actual creator review; do not convert this audit into aesthetic approval.
+6. Keep protected-art visual/no-crop review blocked while source bytes are WITHHELD; do not infer visual approval from contract integrity.
+7. Preserve user agency, keyboard/focus, touch parity, reduced-motion/fallbacks, 100dvh/no-scroll, provenance and Ocín artwork integrity.
+8. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
