@@ -32,10 +32,5 @@ const zona = (nombre, x0, x1, y0, y1, piso = 12) => {
   console.log(`${nombre}\n  ref: ${st(vs.ref)}\n  act: ${st(vs.act)}`);
 };
 
-zona("regla superior y 10..12 (x 23..1005)", 23, 1005, 10, 12);
-zona("regla inferior y 1380..1382 (x 23..1005)", 23, 1005, 1380, 1382);
-zona("chaflan sup-izq (9..25, 9..25)", 9, 25, 9, 25);
-zona("chaflan sup-der (1003..1019, 9..25)", 1003, 1019, 9, 25);
-zona("chaflan inf-izq (9..25, 1367..1383)", 9, 25, 1367, 1383);
-zona("chaflan inf-der (1003..1019, 1367..1383)", 1003, 1019, 1367, 1383);
-zona("hueco regla sup ref x 470..553 y 10..12", 470, 553, 10, 12);
+zona("titulo KODEX x 94..437 y 100..150", 94, 437, 100, 150, 60);
+zona("titulo SOURCE x 632..942 y 100..150", 632, 942, 100, 150, 60);
