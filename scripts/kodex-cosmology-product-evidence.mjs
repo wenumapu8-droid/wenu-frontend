@@ -141,41 +141,43 @@ for (const profile of profiles) {
 
     const svgSignalNode = page.locator('.kdx-cosmo__nodes [data-node="signal"]');
     const fallbackSignalNode = page.locator('.kdx-cosmo__concept-list [data-node="signal"]');
-    let pointerRelation = { required: !profile.hasTouch, attempted: false, machinePulsed: false };
+    const readSignalMachineRelation = () => page.evaluate(() => {
+      const target = document.querySelector('.kdx-cosmo__nodes [data-node="machine"]');
+      const compactTarget = document.querySelector('.kdx-cosmo__concept-list [data-node="machine"]');
+      const link = document.querySelector('.kdx-cosmo__links [data-link="signal-machine"]');
+      return {
+        machineRelated: target?.classList.contains('is-related') ?? false,
+        compactMachineRelated: compactTarget?.classList.contains('is-related') ?? false,
+        linkHighlighted: link?.getAttribute('stroke') === '#FF00C8',
+      };
+    });
+
+    let pointerRelation = { required: !profile.hasTouch, attempted: false, machineRelated: false, linkHighlighted: false };
     if (!profile.hasTouch) {
       await svgSignalNode.hover({ force: true });
-      pointerRelation = await page.evaluate(() => ({
-        required: true,
-        attempted: true,
-        machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
-      }));
-      assert(pointerRelation.machinePulsed, `${profile.id}: pointer activation did not reveal SIGNAL→MACHINE relation`);
+      const relation = await readSignalMachineRelation();
+      pointerRelation = { required: true, attempted: true, ...relation };
+      assert(relation.machineRelated && relation.linkHighlighted, `${profile.id}: pointer activation did not reveal canonical SIGNAL→MACHINE relation`);
       await page.mouse.move(1, 1);
     }
 
     const keyboardSemantics = structure.semantics.every((node) => node.tabindex === '0' && node.role === 'button' && !!node.ariaLabel);
     assert(keyboardSemantics, `${profile.id}: orbital concept nodes are not semantic keyboard controls`);
-    let keyboardRelation = { required: !profile.hasTouch, attempted: false, machinePulsed: false };
+    let keyboardRelation = { required: !profile.hasTouch, attempted: false, machineRelated: false, linkHighlighted: false };
     if (!profile.hasTouch) {
       await svgSignalNode.focus();
       await svgSignalNode.press('Enter');
-      keyboardRelation = await page.evaluate(() => ({
-        required: true,
-        attempted: true,
-        machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
-      }));
-      assert(keyboardRelation.machinePulsed, `${profile.id}: keyboard activation did not reveal SIGNAL→MACHINE relation`);
+      const relation = await readSignalMachineRelation();
+      keyboardRelation = { required: true, attempted: true, ...relation };
+      assert(relation.machineRelated && relation.linkHighlighted, `${profile.id}: keyboard activation did not reveal canonical SIGNAL→MACHINE relation`);
     }
 
-    let touchRelation = { required: profile.hasTouch, attempted: false, machinePulsed: false };
+    let touchRelation = { required: profile.hasTouch, attempted: false, machineRelated: false, compactMachineRelated: false, linkHighlighted: false };
     if (profile.hasTouch) {
       await fallbackSignalNode.tap();
-      touchRelation = await page.evaluate(() => ({
-        required: true,
-        attempted: true,
-        machinePulsed: document.querySelector('[data-organ="machine"]')?.parentElement?.classList.contains('is-pulse') ?? false,
-      }));
-      assert(touchRelation.machinePulsed, `${profile.id}: touch activation did not reveal SIGNAL→MACHINE relation`);
+      const relation = await readSignalMachineRelation();
+      touchRelation = { required: true, attempted: true, ...relation };
+      assert(relation.machineRelated && relation.compactMachineRelated && relation.linkHighlighted, `${profile.id}: touch activation did not reveal canonical SIGNAL→MACHINE relation`);
     }
 
     const reduced = await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches);
