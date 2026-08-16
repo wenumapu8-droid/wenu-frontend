@@ -1,7 +1,8 @@
-import { mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdir, writeFile, rm, readdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 
 const execFileAsync = promisify(execFile);
 const baseURL = process.env.KODEX_PREVIEW_URL ?? 'http://127.0.0.1:4321';
@@ -10,12 +11,18 @@ const outDir = 'artifacts/kodex-authorial-transition-evidence';
 const rawDir = `${outDir}/raw`;
 const clipDir = `${outDir}/clips`;
 const stillDir = `${outDir}/stills`;
+const scanDir = `${outDir}/scan`;
 const clipSeconds = 12;
 const sourceHoldMs = 1800;
 const targetHoldMs = 3000;
+const scanFps = 4;
+const signatureWidth = 160;
+const signatureHeight = 100;
+const likenessMargin = 0.8;
 await mkdir(rawDir, { recursive: true });
 await mkdir(clipDir, { recursive: true });
 await mkdir(stillDir, { recursive: true });
+await mkdir(scanDir, { recursive: true });
 
 const profiles = [
   { id: 'desktop-1440x900', viewport: { width: 1440, height: 900 }, hasTouch: false },
@@ -37,6 +44,8 @@ function assert(check, message) {
   if (!check) throw new Error(message);
 }
 
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
 async function probeDuration(path) {
   const { stdout } = await execFileAsync('ffprobe', [
     '-v', 'error',
@@ -47,23 +56,100 @@ async function probeDuration(path) {
   return Number.parseFloat(stdout.trim());
 }
 
-async function extractTailWindow(rawPath, outputPath) {
+async function visualSignature(path) {
+  const { data } = await sharp(path)
+    .resize(signatureWidth, signatureHeight, { fit: 'fill' })
+    .grayscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return data;
+}
+
+function meanAbsoluteDifference(a, b) {
+  assert(a.length === b.length, 'Visual signatures have different lengths');
+  let sum = 0;
+  for (let i = 0; i < a.length; i += 1) sum += Math.abs(a[i] - b[i]);
+  return sum / a.length;
+}
+
+async function locateVisualCrossing(rawPath, sourceStillPath, targetStillPath, scanKey) {
+  const dir = `${scanDir}/${scanKey}`;
+  await mkdir(dir, { recursive: true });
+  await execFileAsync('ffmpeg', [
+    '-y', '-loglevel', 'error',
+    '-i', rawPath,
+    '-vf', `fps=${scanFps}`,
+    '-q:v', '5',
+    `${dir}/%04d.jpg`,
+  ]);
+
+  const source = await visualSignature(sourceStillPath);
+  const target = await visualSignature(targetStillPath);
+  const files = (await readdir(dir)).filter((name) => name.endsWith('.jpg')).sort();
+  assert(files.length >= scanFps * 4, `${scanKey}: not enough encoded frames to locate a crossing`);
+
+  const series = [];
+  for (let i = 0; i < files.length; i += 1) {
+    const sig = await visualSignature(`${dir}/${files[i]}`);
+    const sourceDistance = meanAbsoluteDifference(sig, source);
+    const targetDistance = meanAbsoluteDifference(sig, target);
+    series.push({
+      index: i,
+      time: i / scanFps,
+      sourceDistance,
+      targetDistance,
+      sourceLike: sourceDistance <= targetDistance * likenessMargin,
+      targetLike: targetDistance <= sourceDistance * likenessMargin,
+    });
+  }
+
+  // A usable authorial-transition clip needs positive evidence of BOTH rooms.
+  // Find a stable source run first, then the first stable target run after it.
+  // This rejects the failure mode discovered in V2 where a clip was perfectly
+  // valid video but began after the visible crossing.
+  let sourceRunEnd = -1;
+  for (let i = 0; i <= series.length - 3; i += 1) {
+    if (series.slice(i, i + 3).every((frame) => frame.sourceLike)) {
+      sourceRunEnd = i + 2;
+      break;
+    }
+  }
+  assert(sourceRunEnd >= 0, `${scanKey}: encoded video has no stable source-state evidence`);
+
+  let targetRunStart = -1;
+  for (let i = sourceRunEnd + 1; i <= series.length - 3; i += 1) {
+    if (series.slice(i, i + 3).every((frame) => frame.targetLike)) {
+      targetRunStart = i;
+      break;
+    }
+  }
+  assert(targetRunStart >= 0, `${scanKey}: encoded video has no stable target-state evidence after source state`);
+
+  const crossingTime = series[targetRunStart].time;
+  return {
+    crossingTime,
+    sourceRunEndTime: series[sourceRunEnd].time,
+    targetRunStartTime: crossingTime,
+    sourceEvidenceFrames: series.filter((frame) => frame.sourceLike).length,
+    targetEvidenceFrames: series.filter((frame) => frame.targetLike).length,
+    scannedFrames: series.length,
+  };
+}
+
+async function extractCenteredWindow(rawPath, outputPath, crossingTime) {
   const rawDuration = await probeDuration(rawPath);
   assert(Number.isFinite(rawDuration), `Unable to probe raw transition video ${rawPath}`);
   assert(rawDuration >= 8, `Raw transition video ${rawDuration.toFixed(3)}s is too short for the 8–12s review contract`);
   const wanted = Math.min(clipSeconds, rawDuration);
-  const tailStart = Math.max(0, rawDuration - wanted);
+  const maxStart = Math.max(0, rawDuration - wanted);
+  // Aim for two seconds of stable source before the target becomes the closer
+  // visual state. If the event is near an edge, preserve the full legal clip
+  // and let eventInClipSeconds expose its actual position for review.
+  const start = clamp(crossingTime - 2, 0, maxStart);
 
-  // Do NOT align this trim to Date.now()/performance clocks. Playwright starts
-  // the encoder on its own media timeline, so browser wall-clock offsets can
-  // drift by several seconds from encoded pts. Run #1 proved that a route can
-  // PASS while its exported clip misses the actual crossing. The invariant we
-  // control is the tail: after target readiness we deliberately hold the new
-  // scene for targetHoldMs, so the final 8–12 seconds contain the crossing and
-  // its arrival without relying on cross-clock synchronization.
   await execFileAsync('ffmpeg', [
     '-y',
-    '-sseof', `-${wanted.toFixed(3)}`,
+    '-ss', start.toFixed(3),
     '-i', rawPath,
     '-t', wanted.toFixed(3),
     '-map', '0:v:0',
@@ -79,8 +165,11 @@ async function extractTailWindow(rawPath, outputPath) {
 
   const duration = await probeDuration(outputPath);
   assert(Number.isFinite(duration), `Unable to probe ${outputPath}`);
-  assert(duration >= 8 && duration <= 12.25, `Transition clip ${duration.toFixed(3)}s outside 8–12s review contract`);
-  return { duration, rawDuration, tailStart };
+  assert(duration >= 8 && duration <= 12.05, `Transition clip ${duration.toFixed(3)}s outside 8–12s review contract`);
+  const eventInClipSeconds = crossingTime - start;
+  assert(eventInClipSeconds >= 0.75, `Visual crossing occurs too close to clip start (${eventInClipSeconds.toFixed(3)}s)`);
+  assert(eventInClipSeconds <= duration - 0.75, `Visual crossing occurs too close to clip end (${eventInClipSeconds.toFixed(3)}s)`);
+  return { duration, rawDuration, start, eventInClipSeconds };
 }
 
 async function waitStage(page, stage) {
@@ -131,6 +220,7 @@ for (const transition of transitions) {
     const clipFile = `${transition.id}--${profile.id}--transition.webm`;
     const sourceStill = `${transition.id}--${profile.id}--source.png`;
     const targetStill = `${transition.id}--${profile.id}--target.png`;
+    const scanKey = `${transition.id}--${profile.id}`;
 
     try {
       context = await browser.newContext({
@@ -200,8 +290,15 @@ for (const transition of transitions) {
       await context.close();
       context = null;
       rawPath = await video.path();
+
+      const crossing = await locateVisualCrossing(
+        rawPath,
+        `${stillDir}/${sourceStill}`,
+        `${stillDir}/${targetStill}`,
+        scanKey,
+      );
       const clipPath = `${clipDir}/${clipFile}`;
-      const clip = await extractTailWindow(rawPath, clipPath);
+      const clip = await extractCenteredWindow(rawPath, clipPath, crossing.crossingTime);
       await rm(rawPath, { force: true });
       rawPath = null;
 
@@ -220,8 +317,15 @@ for (const transition of transitions) {
         targetStill: `stills/${targetStill}`,
         durationSeconds: Number(clip.duration.toFixed(3)),
         rawDurationSeconds: Number(clip.rawDuration.toFixed(3)),
-        tailStartSeconds: Number(clip.tailStart.toFixed(3)),
-        windowStrategy: 'ENCODER_TAIL_AFTER_TARGET_READY',
+        trimStartSeconds: Number(clip.start.toFixed(3)),
+        visualCrossingSecondsRaw: Number(crossing.crossingTime.toFixed(3)),
+        visualCrossingSecondsClip: Number(clip.eventInClipSeconds.toFixed(3)),
+        sourceEvidenceFrames: crossing.sourceEvidenceFrames,
+        targetEvidenceFrames: crossing.targetEvidenceFrames,
+        scannedFrames: crossing.scannedFrames,
+        scanFps,
+        likenessMargin,
+        windowStrategy: 'SOURCE_TARGET_VISUAL_CROSSING',
         wallClockNavigationSeconds: Number(((targetReadyWallClockMs - triggerWallClockMs) / 1000).toFixed(3)),
         interaction: 'INTENTIONAL_ROUTE_TRIGGER',
         seededJourney: Boolean(transition.seededJourney),
@@ -251,14 +355,16 @@ for (const transition of transitions) {
 
 await browser.close();
 await rm(rawDir, { recursive: true, force: true });
+await rm(scanDir, { recursive: true, force: true });
 
 const manifest = {
-  schema: 'KODEX_AUTHORIAL_TRANSITION_EVIDENCE_V2',
+  schema: 'KODEX_AUTHORIAL_TRANSITION_EVIDENCE_V3',
   exactSha,
   baseURL,
   truthBoundary: {
     browserPassIsCreatorAcceptance: false,
     transitionPresenceIsTransitionQuality: false,
+    visualSimilarityIsAestheticScore: false,
     interactionIsIntentionalEvidenceInput: true,
     productBehaviorModified: false,
     stateStoreModified: false,
@@ -270,12 +376,18 @@ const manifest = {
     stateClass: 'AUTHORIAL_TRANSITION_STATE',
     motion: 'FULL',
     clipTargetSeconds: clipSeconds,
-    acceptedDurationSeconds: [8, 12.25],
+    acceptedDurationSeconds: [8, 12.05],
     profiles,
     sourceHoldMs,
     targetHoldMs,
     input: 'ONE_EXPLICIT_ROUTE_TRIGGER_PER_BOUNDARY',
-    windowStrategy: 'ENCODER_TAIL_AFTER_TARGET_READY',
+    windowStrategy: 'SOURCE_TARGET_VISUAL_CROSSING',
+    visualCrossing: {
+      scanFps,
+      signature: `${signatureWidth}x${signatureHeight}_GRAYSCALE_MAD`,
+      likenessMargin,
+      stableRunFrames: 3,
+    },
     browserWallClockNotUsedForVideoTrim: true,
     sourceAndTargetStillsIncluded: true,
     authorialIdleMotionKeptSeparate: true,
