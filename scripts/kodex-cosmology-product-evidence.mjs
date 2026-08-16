@@ -192,20 +192,21 @@ for (const profile of profiles) {
 
     const next = page.locator('[data-deck-next]');
     await next.waitFor({ state: 'visible' });
-    // Arm the navigation observer before the click. The previous sequence used
-    // `noWaitAfter` and only started `waitForURL` after the transition had
-    // already begun; on a fast desktop run Playwright could attach to the
-    // outgoing document and report net::ERR_ABORTED/frame detached even though
-    // the destination route was correct. Promise.all keeps the same strict
-    // destination contract without turning a browser scheduling race into a
-    // false product failure.
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === '/kodex/interlude/cosmology-return/', {
-        timeout: 8000,
-        waitUntil: 'domcontentloaded',
-      }),
-      next.click(),
-    ]);
+    const destinationPath = '/kodex/interlude/cosmology-return/';
+    // Do not bind correctness to Playwright's navigation lifecycle observer.
+    // Run #58 proved desktop had already rendered the destination interlude
+    // while waitForURL still timed out on the outgoing navigation lifecycle.
+    // We still require the exact browser pathname; this changes sampling, not
+    // the route contract. `noWaitAfter` prevents click() from inheriting the
+    // same lifecycle race that this assertion is specifically meant to avoid.
+    await next.click({ noWaitAfter: true });
+    await page.waitForFunction(
+      (expectedPath) => window.location.pathname === expectedPath,
+      destinationPath,
+      { timeout: 8000 },
+    );
+    const navigation = await page.evaluate(() => window.location.pathname);
+    assert(navigation === destinationPath, `${profile.id}: expected ${destinationPath}, got ${navigation}`);
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
     assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
@@ -220,7 +221,7 @@ for (const profile of profiles) {
       keyboardRelation,
       touchRelation,
       memory: { cosmologyVisitRecorded: true, viewCount: journey.views.length },
-      navigation: '/kodex/interlude/cosmology-return/',
+      navigation,
       consoleErrors,
       httpErrors,
       externalHttpErrors,
