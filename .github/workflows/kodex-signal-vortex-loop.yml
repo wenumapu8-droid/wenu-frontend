@@ -1,0 +1,52 @@
+name: KODEX Visual Systems — SIGNAL Loop 01
+
+on:
+  pull_request:
+    paths:
+      - 'src/components/kodex/visual-systems/SignalVortexLoop.astro'
+      - 'src/pages/kodex/lab/visual-systems/signal-vortex.astro'
+      - 'scripts/kodex-signal-vortex-seam-contract.mjs'
+      - 'scripts/kodex-signal-vortex-browser-evidence.mjs'
+      - '.github/workflows/kodex-signal-vortex-loop.yml'
+  workflow_dispatch:
+
+jobs:
+  signal-vortex-loop-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Build exact head
+        run: npm run build
+      - name: Validate deterministic seam
+        run: node scripts/kodex-signal-vortex-seam-contract.mjs
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-signal-vortex-preview.log 2>&1 &
+          echo $! > /tmp/kodex-signal-vortex-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/visual-systems/signal-vortex/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/kodex-signal-vortex-preview.log
+          exit 1
+      - name: Capture BLACK / SIGNAL / reduced-motion evidence
+        env:
+          KODEX_PREVIEW_URL: http://127.0.0.1:4321
+        run: node scripts/kodex-signal-vortex-browser-evidence.mjs
+      - name: Upload SIGNAL Loop 01 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-signal-vortex-loop-01-evidence
+          path: artifacts/kodex-signal-vortex-loop-01
+          if-no-files-found: warn
+          retention-days: 14
