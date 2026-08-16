@@ -39,6 +39,19 @@ type BusDeAudio = { activo: boolean; low: number; mid: number; high: number };
 
 const REDUCIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/**
+ * Envolvente de reposo: la respiracion que corre cuando NO hay sonido.
+ *
+ * Esto es una animacion, no una medicion. Se declara aparte y con nombre propio
+ * porque antes entraba por `setBass`, es decir por un canal que dice "graves
+ * medidos", y ahi nadie aguas abajo podia distinguir una lectura real del
+ * analizador de un seno inventado. Los numeros son los mismos de siempre: para
+ * el visitante la lamina silenciosa se ve exactamente igual; para quien lee el
+ * codigo ahora es evidente que no viene de ningun microfono.
+ */
+const animacionDeReposo = (segundos: number): number =>
+  0.22 + Math.sin(segundos * 0.55) * 0.16;
+
 class KodexPortal {
   private readonly root: HTMLElement;
   private readonly runtime: any;
@@ -109,11 +122,16 @@ class KodexPortal {
   }
 
   /**
-   * Los graves, por cuadro.
+   * Dos canales por cuadro, y nunca los dos a la vez.
    *
-   * Se lee el bus que publica el motor de audio. Si el visitante no encendió el
-   * sonido, el bus dice `activo: false` y el portal respira solo, con su
-   * envolvente lenta: la lámina no puede quedarse quieta esperando permiso.
+   * Se lee el bus que publica el motor de audio. Con sonido encendido, y solo
+   * entonces, `setBass` transporta la salida del analizador tal cual; el
+   * ornamento se apaga. Sin sonido el canal medido se declara ausente con
+   * `clearBass()` -- no se rellena con nada -- y la lámina respira por
+   * `setIdleAnimation`, que es lo que realmente es: movimiento generado.
+   *
+   * La lámina no puede quedarse quieta esperando permiso; lo que no puede es
+   * fingir que lo que la mueve es sonido.
    */
   private alimentar(): void {
     const paso = () => {
@@ -121,13 +139,12 @@ class KodexPortal {
       const bus = (window as unknown as { __kxAudio?: BusDeAudio }).__kxAudio;
       if (bus?.activo) {
         this.runtime.setBass(bus.low);
-        // Con sonido, el portal despierta solo: pasa a AWARE cuando la música
-        // tiene cuerpo. No hace falta que nadie lo toque.
+        this.runtime.setIdleAnimation(0);
         // El sonido ya no decide la fase: la decide la maquina de estados.
         // Lo que el sonido mueve es el brillo, no el estado.
       } else {
-        const t = performance.now() / 1000;
-        this.runtime.setBass(0.22 + Math.sin(t * 0.55) * 0.16);
+        this.runtime.clearBass();
+        this.runtime.setIdleAnimation(animacionDeReposo(performance.now() / 1000));
       }
       this.raf = requestAnimationFrame(paso);
     };
