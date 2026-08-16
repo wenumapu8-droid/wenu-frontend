@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseURL = process.env.KODEX_PREVIEW_URL ?? 'http://127.0.0.1:4321';
+const appOrigin = new URL(baseURL).origin;
 const outDir = 'artifacts/kodex-prologue-evidence';
 await mkdir(outDir, { recursive: true });
 
@@ -24,9 +25,28 @@ for (const profile of cases) {
   const page = await context.newPage();
   const consoleErrors = [];
   const httpErrors = [];
-  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+  const externalHttpErrors = [];
+
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    // Chromium mirrors HTTP failures into a generic URL-less console error.
+    // The response listener below is authoritative so failures can be attributed
+    // to first-party product resources versus third-party dependencies.
+    if (/^Failed to load resource: the server responded with a status of \d{3}/.test(text)) return;
+    consoleErrors.push(text);
+  });
   page.on('pageerror', (error) => consoleErrors.push(error.message));
-  page.on('response', (response) => { if (response.status() >= 400) httpErrors.push({ status: response.status(), url: response.url() }); });
+  page.on('response', (response) => {
+    if (response.status() < 400) return;
+    const failure = { status: response.status(), url: response.url() };
+    try {
+      if (new URL(response.url()).origin === appOrigin) httpErrors.push(failure);
+      else externalHttpErrors.push(failure);
+    } catch {
+      httpErrors.push(failure);
+    }
+  });
 
   try {
     await page.goto(`${baseURL}/kodex/folio/i/`, { waitUntil: 'networkidle' });
@@ -143,14 +163,16 @@ for (const profile of cases) {
     await page.screenshot({ path: `${outDir}/prologue-${profile.id}.png`, fullPage: true });
 
     // Attribute resource/console health to the scene under test before crossing
-    // the route boundary. The destination has its own product gate; errors that
-    // occur after BEGIN OBSERVATION must not retroactively make PROLOGUE fail.
+    // the route boundary. First-party failures block acceptance. Third-party
+    // failures remain evidence but do not misclassify PROLOGUE product behavior.
     const sourceConsoleErrors = [...consoleErrors];
     const sourceHttpErrors = [...httpErrors];
+    const sourceExternalHttpErrors = [...externalHttpErrors];
     assert(sourceConsoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(sourceConsoleErrors)}`);
-    assert(sourceHttpErrors.length === 0, `${profile.id}: HTTP errors: ${JSON.stringify(sourceHttpErrors)}`);
+    assert(sourceHttpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(sourceHttpErrors)}`);
     const transitionConsoleStart = consoleErrors.length;
     const transitionHttpStart = httpErrors.length;
+    const transitionExternalHttpStart = externalHttpErrors.length;
 
     await cta.click({ noWaitAfter: true });
     const deadline = Date.now() + 8000;
@@ -170,9 +192,11 @@ for (const profile of cases) {
       navigation: { target: new URL(page.url()).pathname, passed: true },
       consoleErrors: sourceConsoleErrors,
       httpErrors: sourceHttpErrors,
+      externalHttpErrors: sourceExternalHttpErrors,
       transitionDiagnostics: {
         consoleErrors: consoleErrors.slice(transitionConsoleStart),
         httpErrors: httpErrors.slice(transitionHttpStart),
+        externalHttpErrors: externalHttpErrors.slice(transitionExternalHttpStart),
       },
     });
   } catch (error) {
@@ -184,6 +208,7 @@ for (const profile of cases) {
       currentUrl: page.url(),
       consoleErrors,
       httpErrors,
+      externalHttpErrors,
     });
     await page.screenshot({ path: `${outDir}/prologue-${profile.id}-FAIL.png`, fullPage: true }).catch(() => {});
   } finally {
