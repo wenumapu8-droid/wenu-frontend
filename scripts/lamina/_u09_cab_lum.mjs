@@ -34,6 +34,8 @@ const zona = (nombre, x0, x1, y0, y1, piso = 12) => {
 
 zona("regla superior y 10..12 (x 23..1005)", 23, 1005, 10, 12);
 zona("regla inferior y 1380..1382 (x 23..1005)", 23, 1005, 1380, 1382);
-zona("glifo riel izq y 160..195 (x 3..19)", 3, 19, 160, 195);
-zona("glifo riel der y 170..232 (x 1009..1025)", 1009, 1025, 170, 232);
-zona("titulo K asta x 94..100 y 100..150", 94, 100, 100, 150);
+zona("chaflan sup-izq (9..25, 9..25)", 9, 25, 9, 25);
+zona("chaflan sup-der (1003..1019, 9..25)", 1003, 1019, 9, 25);
+zona("chaflan inf-izq (9..25, 1367..1383)", 9, 25, 1367, 1383);
+zona("chaflan inf-der (1003..1019, 1367..1383)", 1003, 1019, 1367, 1383);
+zona("hueco regla sup ref x 470..553 y 10..12", 470, 553, 10, 12);
