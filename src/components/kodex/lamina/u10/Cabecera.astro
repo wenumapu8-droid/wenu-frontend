@@ -33,7 +33,25 @@
  * referencia baja desde x=515 hasta x=494.
  */
 import CabeceraUniverse from "../serie-universe/CabeceraUniverse.astro";
+import { lemniscata, rombo } from "../serie-universe/geom";
 
+/* SEGUNDA PASADA (2026-08-15) · cobertura 81,4 % — faltaba dibujo, no ajuste.
+   Todas las opacidades de abajo salieron de medir la luminancia p95 de la caja
+   correspondiente en la referencia y dividirla por la de la tinta llena
+   (#d8d4d0 = 212 · violeta 153): scripts/lamina/crops/u10-commons/
+   medir-lum-cajas.mjs y medir-color-x.mjs. Lo que estaba y no se veia:
+   · reglas: ref p95 93/83 contra 51/42 del render -> op .44/.39; y la banda de
+     tinta va de y40 a y48 (versal 9 -> cuerpo 12,3), x 65..247 y 804..1054.
+   · borde del hexagono: op .085 = lum 18, bajo el umbral de tinta (26). La
+     referencia lo tiene a 45 -> op .21. El infinito de adentro esta centrado
+     en cy=42 (cluster 27x13 en y36..48), no en 37,5, y mide 27x13 -> a=12,7
+     b=11,4, con pico violeta 197 -> op .83.
+   · rieles: la cabecera de la referencia tiene tramo macizo (izq y44..77 lum
+     41, der y30..77 y y84..111) y tramo punteado con periodo ~5,6 px (izq
+     y121..185, der y114..176). El op por defecto (.075 = 16) era invisible:
+     medido .19.
+   · el lema es VIOLETA CLARO rgb(198,185,222), no el violeta base: pico 223
+     contra 153 que rinde --cb-vio a op 1. Va con fill propio. */
 const vars = [
   "--cb-ink:#d8d4d0",
   /* Medida, no elegida: la referencia tiene el marco superior en y=13 con
@@ -44,18 +62,36 @@ const vars = [
   "--cb-marco-op:.21",
   "--cb-vio:#b18ae0",
   "--cb-tit:#e0dcd4",
-  "--cb-regla-size:11.5px",
-  "--cb-regla-op:0.24",
-  "--cb-regla-der-op:0.2",
-  "--cb-lema-size:17px",
-  "--cb-lema-op:0.68",
+  "--cb-regla-size:12.3px",
+  "--cb-regla-op:0.46",
+  "--cb-regla-der-op:0.41",
+  /* Versal del lema medida 16..17 px (y181..197) contra 13 que daba el cuerpo
+     17: 22,2 px. Y el color es el violeta claro medido, no --cb-vio. El op se
+     calza contra el PICO (p95 142 a .75 contra 126 de la referencia -> .67) y
+     no contra la integral: los glifos de la mono pintan ~21 % mas columnas que
+     los del poster y compensarlo con opacidad apaga lo que si coincide (mismo
+     caso documentado en u01). */
+  "--cb-lema-size:22.2px",
+  "--cb-lema-fill:#c6b9de",
+  "--cb-lema-op:0.67",
   "--cb-sig-size:13.5px",
-  "--cb-sig-op:0.6",
+  "--cb-sig-op:0.9",
   "--cb-pag-size:13.5px",
-  "--cb-pag-op:0.56",
-  "--cb-nota-size:12.6px",
-  "--cb-nota-op:0.4",
+  "--cb-pag-op:0.65",
+  /* La nota de la referencia es texto diminuto: a cuerpo 12,6 el render ponia
+     1.257 px donde la referencia tiene 768. Con cuerpo 10 la integral calza
+     (~790) y el pico se repone con la opacidad: p95 69 a .35 -> 75 con .38. */
+  "--cb-nota-size:10px",
+  "--cb-nota-op:0.38",
   "--cb-cruz-op:0.4",
+  "--cb-hex-borde-op:.21",
+  "--cb-hex-tallo-op:.3",
+  /* ∞ del hexagono: bbox 27x13 clavado, pero 232 px de tinta contra 138 de la
+     referencia con trazo 1,6 -> el trazo de la referencia es mas fino. */
+  "--cb-inf-sw:1.2",
+  "--cb-inf-op:.76",
+  "--cb-riel-op:.19",
+  "--cb-glifo-op:.26",
 ].join(";");
 ---
 
@@ -64,48 +100,111 @@ const vars = [
   grad={["#e8e4dc", "#d8d4d0", "#a8a49c"]}
   ariaLabel="KODEX-∞ / THE COMMONS — página 10 · Collective trace."
   vars={vars}
-  marcoSup="M31 13.5H467M597 13.5H1084"
+  marcoSup="M31 13.5H503M620 13.5H1084"
   marcoInf={{ d: "M31 211.5H1084", tenue: true }}
   fantasma="M13.5 26.5V196.5M1106.5 26.5V196.5"
   chaflanes={[
     "M13.5 26.5L30 12.5",
     "M1094 12.5L1106.5 26.5",
   ]}
-  nodosSup={[{ x: 472.5, y: 12.5, r: 1.6 }, { x: 481, y: 12.5, r: 1.6 }, { x: 584.5, y: 12.5, r: 1.6 }, { x: 593, y: 12.5, r: 1.6 }]}
+  nodosSup={[{ x: 508.5, y: 12.5, r: 1.8 }, { x: 613.5, y: 12.5, r: 1.8 }]}
   interior="M47.5 59.5H1077.5V196.5H47.5Z"
   interiorEsq="M47.5 73.5V59.5H61.5M1063.5 59.5H1077.5V73.5M1077.5 182.5V196.5H1063.5M61.5 196.5H47.5V182.5"
-  cruces={[[35.5, 44], [1082.5, 44]]}
-  reglaIzq={{ x: 57, y: 48, len: 156, t: "KODEX-∞ UNIVERSE" }}
-  reglaDer={{ x: 778, y: 48, len: 220, t: "OBSERVE. DECIPHER. TRANSCEND." }}
+  cruces={[[40, 44], [1082.5, 44]]}
+  reglaIzq={{ x: 65, y: 49, len: 182, t: "KODEX-∞ UNIVERSE" }}
+  reglaDer={{ x: 804, y: 49, len: 250, t: "OBSERVE. DECIPHER. TRANSCEND." }}
   reglaCy={44}
-  puntosRegla={[278, 308, 1021.5, 1034.5]}
-  nodosRegla={[348.5, 737.5, 756.5]}
-  punteo={{ d: "M232 44H312M1015 44H1042", dash: "14 4" }}
+  puntosRegla={[1021.5, 1034.5]}
+  nodosRegla={[]}
   hex={{
     borde: "M561.5 15L581.5 26V49L561.5 60L541.5 49V26Z",
     tics: "M542 24.5h4M577.5 24.5h4M542 50.5h4M577.5 50.5h4",
-    tallo: "M561.5 59.5V65",
-    inf: [561.5, 37.5, 11.5, 9.5],
+    tallo: "M561.5 59.5V68",
+    inf: [561.5, 42, 12.7, 11.4],
   }}
   titKodex={{ x: 79, y: 157, size: 78.4, len: 268, t: "KODEX" }}
   titGuion={{ x: 354, y: 132, w: 21, h: 4 }}
   titInf={[427, 129.5, 37.5, 32]}
   titBarra="M514 104L516.5 104L496.5 157L494 157Z"
   titPalabra={{ x: 540, y: 157, size: 78.4, len: 500, t: "THE COMMONS" }}
-  sig={{ x: 75, y: 192, len: 58, t: "A / -∞" }}
-  lema={{ x: 390, y: 195, len: 342, t: "COLLECTIVE TRACE" }}
-  pag={{ x: 986, y: 192, len: 61, t: "PAGE 10" }}
+  sig={{ x: 86, y: 199, len: 47, t: "A / -" }}
+  lema={{ x: 376, y: 198, len: 372, t: "COLLECTIVE TRACE" }}
+  pag={{ x: 970, y: 200, len: 66, t: "PAGE 10" }}
   ejeI={13.5}
   ejeD={1106.5}
-  rielIzq={[[409, 600, true], [602, 780, true], [966, 1235, true]]}
-  rielDer={[[350, 565, true], [635, 800, true], [849, 1239, true]]}
+  rielIzq={[[44, 77, true], [121, 185, false], [409, 600, true], [602, 780, true], [966, 1235, true]]}
+  rielDer={[[30, 77, true], [84, 111, true], [114, 176, false], [350, 565, true], [635, 800, true], [849, 1239, true]]}
+  rielDash="2 3.6"
   micro={[
     { transform: "translate(1103.6 315) rotate(-90)", len: 78, t: "KDXC // 10 // 8B" },
     { transform: "translate(11 950) rotate(-90)", len: 58, t: "1531313166" },
   ]}
   folio={{ x: 1096.5, y: 665, len: 14.5, t: "10" }}
 >
+  <!-- Marcas medidas de la banda de reglas y de la bajada. Las que estaban
+       ([278,308] de puntosRegla, [348.5,737.5,756.5] de nodosRegla y el punteo
+       14/4) NO estan en la referencia: lo que hay es un nodo brillante en
+       (271,44) con pico 180, dos rayas en x330..337,5 y 345,5..347,5, y dos
+       puntos en (777,5·44) y (785,5·44) con p95 74. -->
+  <g slot="sep">
+    <circle cx="271" cy="44" r="1.3" style="fill:var(--cb-ink);fill-opacity:.7" />
+    <path d="M330 44.5H337.5M345.5 44.5H347.5" style="fill:none;stroke:var(--cb-ink);stroke-width:1.3;stroke-opacity:.26" />
+    <circle cx="777.5" cy="44" r="1.1" style="fill:var(--cb-ink);fill-opacity:.35" />
+    <circle cx="785.5" cy="44" r="1.3" style="fill:var(--cb-ink);fill-opacity:.35" />
+
+    <!-- Ornamentos que flanquean el lema, simetricos respecto del eje: rombo +
+         dos rayas por lado (izq x267..277 · 306..310 · 331..339, der espejado),
+         tinta gris rgb(122,114,128). Las rayas de la referencia tienen 2-3
+         filas de alto: con trazo 1 sobre fila entera el antialias partia la
+         tinta en dos mitades de lum 29 (p95 medido) contra 56..61 del poster;
+         trazo 2 la repone. -->
+    <g style="fill:none;stroke:var(--cb-ink);stroke-opacity:.3">
+      <path d={rombo(272, 189.5, 10, 5)} style="stroke-width:1.4" />
+      <path d="M306 190H310.5M331 190H339.5" style="stroke-width:2" />
+      <path d="M781 190H790.5M812 190H816.5" style="stroke-width:2" />
+      <path d={rombo(847.5, 189.5, 9, 5)} style="stroke-width:1.4" />
+    </g>
+
+    <!-- El ∞ de la signatura es arte, no tipografia (mismo caso que u01): la
+         mono lo da de 9×6 y la referencia lo tiene de 17×12 en x138..154,
+         y190..201, p95 violeta 124 (el render con trazo 1 a .8 daba 90). -->
+    <path
+      d={lemniscata(146, 196, 8, 11)}
+      style="fill:none;stroke:var(--cb-vio);stroke-width:1.15;stroke-opacity:1"
+    />
+  </g>
+
+  <!-- Glifos de riel y guias, todos medidos sobre la referencia con
+       medir-rieles-cab.mjs / medir-color-x.mjs (runs de tinta por columna). -->
+  <g class="cab__glifo" slot="glifos">
+    <!-- nodos altos de los rieles (picos 142 y 121 en y24..28) -->
+    <circle cx="13.5" cy="25.5" r="1.3" style="fill:var(--cb-ink);fill-opacity:.5;stroke:none" />
+    <circle cx="1106.5" cy="26" r="1.3" style="fill:var(--cb-ink);fill-opacity:.5;stroke:none" />
+    <!-- nodo del vertice alto del hexagono (x559..564, y17..21, pico 98) -->
+    <circle cx="561.5" cy="19" r="1.8" style="fill:var(--cb-ink);fill-opacity:.4;stroke:none" />
+    <!-- anillos junto al marco interior con su linea de bajada: los centros
+         (58·80,5) y (1061·81) y las lineas x54/x1065 son simetricos respecto
+         del eje 559,5. Las lineas siguen hasta y1248/y1236 en la referencia
+         (medir-lineas-ext.mjs) y el render no las tenia en ninguna region. -->
+    <circle cx="58" cy="80.5" r="4.3" />
+    <circle cx="1061" cy="81" r="4.3" />
+    <path d="M54 173V1248" style="stroke-opacity:.14" />
+    <path d="M1065 109V1236" style="stroke-opacity:.16" />
+    <!-- barras del pie del riel izquierdo (y196..207, ancho 8, media 58) -->
+    <path d="M9.5 197H17.5M9.5 202H17.5" style="stroke-width:1.8;stroke-opacity:.27" />
+    <path d="M9.5 206.25H17.5" style="stroke-width:2.4;stroke-opacity:.27" />
+    <!-- barras del riel derecho (y188..199 y y215..223, ancho 6-7, media 43) -->
+    <path d="M1103.5 189.5H1109.5M1103.5 197.5H1110" style="stroke-width:3;stroke-opacity:.2" />
+    <path d="M1103.5 193.5H1109.5" style="stroke-width:1.6;stroke-opacity:.2" />
+    <path d="M1103.5 216.5H1110" style="stroke-width:3.4;stroke-opacity:.2" />
+    <path d="M1103.5 222H1109.5" style="stroke-width:2.6;stroke-opacity:.2" />
+  </g>
+
+  <!-- La nota NO va en y212: la referencia la tiene como texto diminuto en
+       y219..223, x293..821 (perfil de la banda 200..224), con p95 75 en gris
+       neutro rgb(131,133,132) -> op .35. En y203..211 el render ponia 1.400 px
+       de tinta que la referencia no tiene ahi. -->
   <Fragment slot="nota">
-    <text class="cab__nota" x="290" y="212" textLength="542" lengthAdjust="spacing">OPTIONAL POST-RETURN SURFACE // BUILT BY MANY, HELD BY ALL.</text>
+    <text class="cab__nota" x="293" y="224" textLength="528" lengthAdjust="spacing">OPTIONAL POST-RETURN SURFACE // BUILT BY MANY, HELD BY ALL.</text>
   </Fragment>
 </CabeceraUniverse>
