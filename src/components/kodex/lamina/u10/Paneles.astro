@@ -59,6 +59,27 @@ const trazo = (carpeta: string, id: string, x: number, y: number) =>
    sería ponerles un color que no tienen. */
 const manoA = ["g01", "g02"].map((id, i) => trazo("mano-a", id, [445, 460][i], [420, 416][i])).join("");
 const manoB = ["g02", "g03"].map((id, i) => trazo("mano-b", id, [463, 473][i], [460, 460][i])).join("");
+
+/* Las cuatro piezas de arte del campo izquierdo. `comparar-region.mjs
+   u10-commons hero-left` las devolvía como los cuatro clusters más grandes de
+   la referencia SIN correspondencia en el render (áreas 1165, 1010, 962 y 475
+   contra nada), con la región a 77,5 % de cobertura y el déficit concentrado
+   en sus franjas: y 180..269 daba 1236 px de tinta contra 3369 de la
+   referencia. Son arte fija —una galaxia espiral, una figura alada, un cetro y
+   una rosa—, así que se trazan, no se dibujan:
+     node scripts/lamina/glyphs.mjs u10-commons --band 397,452 --x 227,300 --umbral 30 --out galaxia
+     node scripts/lamina/glyphs.mjs u10-commons --band 395,442 --x 360,397 --umbral 30 --out angel
+     node scripts/lamina/glyphs.mjs u10-commons --band 632,740 --x 341,396 --umbral 30 --out cetro
+     node scripts/lamina/glyphs.mjs u10-commons --band 950,1004 --x 352,420 --umbral 26 --out rosa
+   Las cajas de los manifiestos coinciden con las del audit a ±1 px. La rosa va
+   con umbral 26 porque su tinta es la más oscura de las cuatro (media 53 de
+   luminancia) y a 30 perdía los pétalos exteriores. */
+const arteIzq = [
+  ["galaxia", 227, 397],
+  ["angel", 361, 395],
+  ["cetro", 341, 632],
+  ["rosa", 352, 950],
+].map(([c, x, y]) => `<g class="u10p-arte-${c}">${trazo(c as string, "g01", x as number, y as number)}</g>`).join("");
 ---
 
 <div data-bloque="Paneles" style="inset:0">
@@ -202,6 +223,10 @@ const manoB = ["g02", "g03"].map((id, i) => trazo("mano-b", id, [463, 473][i], [
          trazó ES el color que hay que declarar. -->
     <g class="u10p-mano-a" set:html={manoA} />
     <g class="u10p-mano-b" set:html={manoB} />
+
+    <!-- Arte del campo izquierdo, trazado. Ver el bloque `arteIzq` del
+         frontmatter: cotas del manifiesto y tintas medidas, nada estimado. -->
+    <g set:html={arteIzq} />
 
     <!-- Centro superior: la frase de apertura del campo. FALTABA ENTERA.
          `comparar-region.mjs u10-commons hero-center` daba 881 px de tinta en la
@@ -349,4 +374,11 @@ const manoB = ["g02", "g03"].map((id, i) => trazo("mano-b", id, [463, 473][i], [
      sobre negro de los píxeles que se trazaron. */
   .u10p-mano-a { fill: rgb(81 100 91); }
   .u10p-mano-b { fill: rgb(75 82 99); }
+  /* Media de los píxeles que pasan el umbral con el que se trazó cada pieza
+     (`_u10_heroleft_color.mjs`), igual que las dos manos: forma llena sin
+     antialias, la media de lo trazado ES el color a declarar. */
+  .u10p-arte-galaxia { fill: rgb(79 59 70); }
+  .u10p-arte-angel { fill: rgb(70 60 60); }
+  .u10p-arte-cetro { fill: rgb(59 65 86); }
+  .u10p-arte-rosa { fill: rgb(42 55 70); }
 </style>
