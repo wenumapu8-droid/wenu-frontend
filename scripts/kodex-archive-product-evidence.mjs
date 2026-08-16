@@ -29,10 +29,6 @@ for (const profile of cases) {
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
     const text = message.text();
-    // Chromium mirrors HTTP resource failures into console as a URL-less generic
-    // error. The response listener below is the authoritative classifier: local
-    // application failures block acceptance; third-party failures remain visible
-    // evidence without misclassifying ARCHIVE product behavior.
     if (/^Failed to load resource: the server responded with a status of \d{3}/.test(text)) return;
     consoleErrors.push(text);
   });
@@ -109,6 +105,8 @@ for (const profile of cases) {
     assert(composition.actionHitTarget, `${profile.id}: OPEN SPECIMEN is geometrically covered`);
     if (profile.viewport.width <= 520) {
       assert(!composition.railVisible, `${profile.id}: duplicate ARCHIVE specimen rail is visible in the narrow artifact header`);
+      assert((composition.artRect?.width ?? 0) >= profile.viewport.width * 0.80, `${profile.id}: ARCHIVE artwork is too narrow to dominate the mobile viewport`);
+      assert((composition.artRect?.height ?? 0) >= profile.viewport.height * 0.38, `${profile.id}: ARCHIVE artwork is too short to read as the primary specimen`);
     } else {
       assert(composition.railVisible, `${profile.id}: ARCHIVE technical rail disappeared outside the narrow-mobile adaptation`);
     }
