@@ -1,0 +1,432 @@
+---
+/**
+ * KODEX−∞ · LAB · CROMO DE ARCHIVO
+ *
+ * Demostración de los seis componentes del cromo de la serie de archivo
+ * (src/components/kodex/archivo/) armando la página a28-silence-engine.
+ * Entra como lab —mismo precedente que heart.astro—: noindex hasta que
+ * el creador la mire.
+ *
+ * TODO el texto visible está TRANSCRITO de
+ * reference/pendientes/a28-silence-engine.png. Nada se inventa: la
+ * regla dura de la serie es que aforismos y rótulos son del creador.
+ *
+ * El organismo central NO se reproduce: en la referencia es imagen
+ * renderizada (la cámara del silencio con su esfera oscura) y la
+ * decisión de qué placa va ahí es del creador. Queda un marco vacío
+ * rotulado. Solo el cromo es DOM/SVG.
+ *
+ * La lámina se dibuja a tamaño fijo 1229×1536 (el de su referencia) y
+ * se escala con transform calculado en JS — `100vw / 1229` en CSS da
+ * una longitud y scale() quiere un número (trampa documentada).
+ */
+import CabeceraArchivo from "../../../components/kodex/archivo/CabeceraArchivo.astro";
+import TituloBilingue from "../../../components/kodex/archivo/TituloBilingue.astro";
+import TarjetaMetrica from "../../../components/kodex/archivo/TarjetaMetrica.astro";
+import RielMetricas from "../../../components/kodex/archivo/RielMetricas.astro";
+import AforismoPie from "../../../components/kodex/archivo/AforismoPie.astro";
+import SelloClasificacion from "../../../components/kodex/archivo/SelloClasificacion.astro";
+import Waveform from "../../../components/kodex/lamina/kit/Waveform.astro";
+import { rng } from "../../../components/kodex/lamina/kit/rng";
+
+/* Diagramas del riel: geometría determinista (nunca Math.random(); el
+   azar con semilla viene del kit, misma regla que las láminas).
+   Formas transcritas de la referencia: onda de ruido (NOISE FLOOR),
+   anillos concéntricos con motas orbitales (STILLNESS DEPTH), dos
+   senoidales opuestas (PHASE CANCELLATION), flor de la vida
+   (COHERENCE). */
+
+/* PHASE CANCELLATION: dos ondas en oposición exacta (180°), con
+   envolvente senoidal para que se cierren en los extremos como en la
+   referencia. */
+const onda = (fase: number) =>
+  Array.from({ length: 81 }, (_, i) => {
+    const u = i / 80;
+    const x = u * 170;
+    const y = 40 + 30 * Math.sin(u * Math.PI * 4 + fase) * Math.sin(u * Math.PI);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+const faseA = onda(0);
+const faseB = onda(Math.PI);
+
+/* STILLNESS DEPTH: motas sobre los anillos, en ángulos con semilla. */
+const rMotas = rng(28);
+const motas = [40, 52, 62].flatMap((radio) =>
+  Array.from({ length: 4 }, () => {
+    const ang = rMotas() * Math.PI * 2;
+    return {
+      x: 85 + radio * Math.cos(ang),
+      y: 64 + radio * 0.8 * Math.sin(ang),
+    };
+  })
+);
+
+/* COHERENCE: flor de la vida — seis pétalos alrededor del centro. */
+const petalos = Array.from({ length: 6 }, (_, i) => {
+  const ang = (i / 6) * Math.PI * 2 - Math.PI / 2;
+  return { x: 85 + 22 * Math.cos(ang), y: 59 + 22 * Math.sin(ang) };
+});
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · SILENCE ENGINE · PAGE 28</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam">
+    <div class="lam arch-marco" data-lam="silence-engine" style="width:1229px;height:1536px;">
+      {/* ── cabecera: esquinas medidas de a28 ─────────────────────── */}
+      <div class="arch-caja arch-caja--cabecera">
+        <CabeceraArchivo marca="KODEX−∞" lema="UNIVERSAL ARCHIVE" rotuloPagina="PAGE" pagina="28">
+          {/* Adorno central de a28: regla con círculo y eje vertical. */}
+          <svg slot="adorno" width="560" height="44" viewBox="0 0 560 44" fill="none" aria-hidden="true">
+            <line x1="0" y1="16" x2="560" y2="16" stroke="currentColor" stroke-opacity="0.5" />
+            <line x1="280" y1="0" x2="280" y2="44" stroke="currentColor" stroke-opacity="0.6" />
+            <circle cx="280" cy="16" r="8" stroke="currentColor" stroke-opacity="0.8" />
+            <line x1="252" y1="16" x2="308" y2="16" stroke="currentColor" stroke-opacity="0.8" />
+          </svg>
+        </CabeceraArchivo>
+      </div>
+
+      {/* ── título: banda medida y134..298 ────────────────────────── */}
+      <div class="arch-caja arch-caja--titulo">
+        <TituloBilingue titulo="SILENCE ENGINE" subtitulo="MOTOR DEL SILENCIO" />
+      </div>
+
+      {/* ── riel izquierdo: caja medida x35..225, y299..1430 ──────── */}
+      <div class="arch-caja arch-caja--riel">
+        <RielMetricas ancho={190} rotulo="métricas del motor del silencio">
+          <TarjetaMetrica tituloEn="NOISE FLOOR" tituloEs="PISO DE RUIDO" valor="−112.6 dB" etiqueta="RELATIVE TO UNITY">
+            <Waveform w={166} h={78} semilla={28} variante="peine" envolvente={0.7} grosor={0.9} clase="arch-demo-onda" />
+          </TarjetaMetrica>
+
+          <TarjetaMetrica tituloEn="STILLNESS DEPTH" tituloEs="PROFUNDIDAD DEL SILENCIO" valor="∞.00" etiqueta="DEPTH INDEX">
+            <svg width="170" height="128" viewBox="0 0 170 128" fill="none" aria-hidden="true">
+              <defs>
+                <radialGradient id="arch-quietud" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#e9e2f8" stop-opacity="0.95" />
+                  <stop offset="40%" stop-color="#cdbcf3" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="#cdbcf3" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              {[26, 40, 52, 62].map((r) => (
+                <ellipse cx="85" cy="64" rx={r} ry={r * 0.8} stroke="currentColor" stroke-opacity="0.4" />
+              ))}
+              <ellipse cx="85" cy="64" rx="14" ry="12" stroke="currentColor" stroke-opacity="0.6" />
+              <circle cx="85" cy="64" r="20" fill="url(#arch-quietud)" />
+              <circle cx="85" cy="64" r="3" fill="#efece7" />
+              {motas.map((m) => (
+                <circle cx={m.x.toFixed(1)} cy={m.y.toFixed(1)} r="1.4" fill="currentColor" fill-opacity="0.8" />
+              ))}
+            </svg>
+          </TarjetaMetrica>
+
+          <TarjetaMetrica tituloEn="PHASE CANCELLATION" tituloEs="CANCELACIÓN DE FASE" valor="180.00°" etiqueta="OPPOSED / PERFECT">
+            <svg width="170" height="80" viewBox="0 0 170 80" fill="none" aria-hidden="true">
+              <line x1="0" y1="40" x2="170" y2="40" stroke="currentColor" stroke-opacity="0.25" />
+              <polyline points={faseA} stroke="currentColor" stroke-opacity="0.75" stroke-width="1" />
+              <polyline points={faseB} stroke="#cdbcf3" stroke-opacity="0.7" stroke-width="1" />
+              <circle cx="85" cy="8" r="2" fill="currentColor" fill-opacity="0.8" />
+              <circle cx="85" cy="72" r="2" fill="currentColor" fill-opacity="0.8" />
+            </svg>
+          </TarjetaMetrica>
+
+          <TarjetaMetrica tituloEn="COHERENCE" tituloEs="COHERENCIA" valor="1.000" etiqueta="MAXIMUM">
+            <svg width="170" height="118" viewBox="0 0 170 118" fill="none" aria-hidden="true">
+              <circle cx="85" cy="59" r="46" stroke="currentColor" stroke-opacity="0.5" />
+              <circle cx="85" cy="59" r="22" stroke="currentColor" stroke-opacity="0.55" />
+              {petalos.map((p) => (
+                <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="22" stroke="currentColor" stroke-opacity="0.45" />
+              ))}
+              <circle cx="85" cy="59" r="12" fill="url(#arch-quietud)" />
+              <circle cx="85" cy="59" r="2.4" fill="#efece7" />
+            </svg>
+          </TarjetaMetrica>
+        </RielMetricas>
+      </div>
+
+      {/* ── hueco del organismo central ────────────────────────────
+          En la referencia acá va la imagen renderizada de la cámara.
+          Queda vacío a propósito: la placa la decide el creador. */}
+      {/* ── LA CÁMARA, procedural — el precedente de ANATOMICAL STAR:
+          un render pictórico se reproduce en código, no se calca. ── */}
+      <canvas class="arch-caja arch-caja--placa" id="se-camara" width="790" height="1050" aria-hidden="true"></canvas>
+
+      {/* ── pie: aforismo + rótulo de cámara, bandas y1450..1506 ──── */}
+      <div class="arch-caja arch-caja--pie">
+        <AforismoPie
+          rotuloEn="CHAMBER OF NULLITY"
+          rotuloEs="CAMARA DE NULIDAD"
+          lineas={[
+            [{ t: "SILENCE IS NOT ABSENCE." }],
+            [{ t: "IT IS " }, { t: "PERFECT ORDER.", acento: true }],
+          ]}
+        >
+          {/* Emblema medido: círculo Ø ~52 px con espada/cruz vertical. */}
+          <svg slot="emblema" width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+            <circle cx="28" cy="28" r="25" stroke="currentColor" stroke-opacity="0.7" />
+            <circle cx="28" cy="28" r="20" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="2 5" />
+            <line x1="28" y1="12" x2="28" y2="44" stroke="currentColor" stroke-opacity="0.85" />
+            <line x1="21" y1="20" x2="35" y2="20" stroke="currentColor" stroke-opacity="0.85" />
+            <circle cx="28" cy="16" r="2" stroke="currentColor" stroke-opacity="0.85" />
+          </svg>
+        </AforismoPie>
+      </div>
+
+      {/* ── sello + canto: hijo directo del marco a propósito —
+          el canto se ancla al borde del ancestro posicionado. ─────── */}
+      <SelloClasificacion
+        codigo="KX − ∞ − 28"
+        clasificacion="CLASSIFIED / ECHOLESS"
+        lado="der"
+        canto={[
+          [{ t: "IN SILENCE, ALL INTERFERENCE CEASES." }],
+          [{ t: "ONLY " }, { t: "ESSENCE", acento: true }, { t: " REMAINS." }],
+        ]}
+      />
+    </div>
+  </body>
+</html>
+
+<style>
+  html, body { margin: 0; background: #000; }
+  .arch-marco {
+    position: relative;
+    background: #000;
+    overflow: hidden;
+    transform-origin: 0 0;
+    /* Paleta medida sobre a28: tinta #d8d4d0 de la familia del sistema,
+       título con pico blanco, acento violeta claro rgb(205,188,243) y
+       acento apagado del aforismo rgb(180,169,199). */
+    --arch-ink: #d8d4d0;
+    --arch-ink-titulo: #efece7;
+    --arch-acento: #cdbcf3;
+    --arch-acento-pie: #b4a9c7;
+  }
+  .arch-caja {
+    position: absolute;
+    box-sizing: border-box;
+  }
+  /* Posiciones medidas sobre la referencia (perfil de tinta):
+     cabecera y31..80 · título y134..298 · riel x35..225 y299..1430 ·
+     pie y1450..1506 · sello y1462..1492. */
+  .arch-caja--cabecera { top: 26px; left: 35px; right: 35px; }
+  .arch-caja--titulo { top: 100px; left: 0; right: 0; }
+  /* Altura medida del riel: y299..1430 = 1131 px. El contenido se
+     reparte a lo alto de la caja como en la referencia. */
+  .arch-caja--riel { top: 299px; left: 35px; height: 1131px; }
+  .arch-caja--riel > :global(.arch-riel) {
+    height: 100%;
+    justify-content: space-between;
+  }
+  .arch-caja--placa {
+    top: 330px;
+    left: 278px;
+    width: 790px;
+    height: 1050px;
+  }
+  /* La regla del pie va en y≈1450 medido: con la fila del emblema de
+     56 px y el aforismo de 68 px debajo, el fondo de la caja queda en 2. */
+  .arch-caja--pie { left: 35px; right: 35px; bottom: 2px; }
+  /* El sello va sobre el pie, esquina inferior derecha (medido y1462). */
+  .arch-marco > :global(.arch-sello) {
+    position: absolute;
+    right: 35px;
+    bottom: 40px;
+  }
+  /* El canto no invade cabecera ni pie: en la referencia el texto
+     vertical vive entre el título y el sello. */
+  .arch-marco > :global(.arch-sello__canto) {
+    top: 130px;
+    bottom: 150px;
+  }
+  :global(.arch-demo-onda) {
+    color: #d8d4d0;
+  }
+</style>
+
+<script>
+  import { montarLienzo, tinta } from "../../../components/kodex/lamina/kit/lienzo";
+  import { rng } from "../../../components/kodex/lamina/kit/rng";
+  import { montarEscala } from "../../../components/kodex/lamina/kit/escala";
+
+  const canvas = document.getElementById("se-camara") as HTMLCanvasElement;
+  const raiz = document.querySelector("[data-lam]") as HTMLElement;
+  const g = canvas.getContext("2d")!;
+  const rnd = rng(0x5e28);
+  const W = 790, H = 1050;
+  const CX = W / 2;
+
+  /* grano pictórico del muro, fijo (≈9000 puntos) */
+  const grano: Array<{x:number;y:number;s:number;o:number;c:string}> = [];
+  for (let k = 0; k < 9000; k++) {
+    const x = rnd() * W, y = rnd() * H;
+    const enHaz = Math.abs(x - CX) < 140 && y > 140 && y < 900;
+    grano.push({ x, y, s: 0.8 + rnd() * 1.4,
+      o: (enHaz ? 0.14 : 0.08) + rnd() * (enHaz ? 0.26 : 0.16),
+      c: rnd() < 0.2 ? "205,188,243" : "168,158,170" });
+  }
+
+  /* motas de polvo en el haz, fijas */
+  const motas = Array.from({ length: 90 }, () => ({
+    x: CX + (rnd() - 0.5) * 130, y: 120 + rnd() * 700,
+    r: 0.5 + rnd() * 1.2, o: 0.15 + rnd() * 0.5, v: rnd(),
+  }));
+
+  const pintar = (fase: number) => {
+    g.clearRect(0, 0, W, H);
+    const luz = 0.86 + 0.14 * Math.cos(fase * Math.PI * 2);
+
+    /* muro y arco */
+    const muro = g.createLinearGradient(0, 0, 0, H);
+    muro.addColorStop(0, "#171320");
+    muro.addColorStop(0.55, "#120f18");
+    muro.addColorStop(1, "#141019");
+    g.fillStyle = muro;
+    g.fillRect(0, 0, W, H);
+    /* la luz de la cámara: zona central iluminada con viñeta a negro en los
+       bordes — así es la referencia: piedra visible al centro, sombra al canto */
+    const ambiente = g.createRadialGradient(CX, 520, 60, CX, 520, 470);
+    ambiente.addColorStop(0, tinta("84,74,100", 0.42));
+    ambiente.addColorStop(0.55, tinta("58,50,72", 0.16));
+    ambiente.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = ambiente;
+    g.fillRect(0, 0, W, H);
+    g.strokeStyle = tinta("216,212,208", 0.14);
+    g.lineWidth = 1.2;
+    /* arco del vano */
+    g.beginPath();
+    g.moveTo(56, H - 60); g.lineTo(56, 300);
+    g.quadraticCurveTo(56, 130, CX, 118);
+    g.quadraticCurveTo(W - 56, 130, W - 56, 300);
+    g.lineTo(W - 56, H - 60);
+    g.stroke();
+    /* costuras de paneles del muro */
+    for (const x of [20, 38, W - 38, W - 20]) {
+      g.strokeStyle = tinta("216,212,208", 0.07);
+      g.beginPath(); g.moveTo(x, 80); g.lineTo(x, H - 40); g.stroke();
+    }
+    for (const y of [300, 640, 980]) {
+      g.strokeStyle = tinta("216,212,208", 0.05);
+      g.beginPath(); g.moveTo(20, y); g.lineTo(56, y); g.moveTo(W - 56, y); g.lineTo(W - 20, y); g.stroke();
+    }
+
+    /* textura pictórica del muro: grano fijo por semilla — la referencia es
+       un render con paredes VIVAS, no negro plano */
+    for (const t of grano) {
+      g.fillStyle = tinta(t.c, t.o * (0.7 + 0.3 * luz));
+      g.fillRect(t.x, t.y, t.s, t.s);
+    }
+    /* resplandor ambiente de los laterales del vano */
+    for (const lado of [-1, 1]) {
+      const gl = g.createLinearGradient(CX + lado * 340, 0, CX + lado * 180, 0);
+      gl.addColorStop(0, "rgba(0,0,0,0)");
+      gl.addColorStop(1, tinta("120,105,140", 0.10 * luz));
+      g.fillStyle = gl;
+      g.fillRect(lado < 0 ? 56 : CX + 180, 140, CX - 236, H - 200);
+    }
+
+    /* óculo */
+    const OY = 150;
+    g.fillStyle = tinta("233,226,248", 0.75 * luz);
+    g.beginPath(); g.ellipse(CX, OY, 96, 26, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = tinta("205,188,243", 0.5);
+    g.beginPath(); g.ellipse(CX, OY, 116, 34, 0, 0, Math.PI * 2); g.stroke();
+
+    /* haz de luz: trapecio aditivo + estrías */
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    const haz = g.createLinearGradient(0, OY, 0, 900);
+    haz.addColorStop(0, tinta("236,230,250", 0.5 * luz));
+    haz.addColorStop(0.6, tinta("205,188,243", 0.22 * luz));
+    haz.addColorStop(1, tinta("205,188,243", 0.03));
+    g.fillStyle = haz;
+    g.beginPath();
+    g.moveTo(CX - 60, OY); g.lineTo(CX + 60, OY);
+    g.lineTo(CX + 130, 900); g.lineTo(CX - 130, 900);
+    g.closePath(); g.fill();
+    for (let k = 0; k < 7; k++) {
+      const off = (k - 3) * 26;
+      g.strokeStyle = tinta("236,230,250", (0.05 + (k % 3) * 0.03) * luz);
+      g.lineWidth = 5 - (k % 3);
+      g.beginPath();
+      g.moveTo(CX + off * 0.5, OY + 8);
+      g.lineTo(CX + off, 890);
+      g.stroke();
+    }
+    /* motas en el haz */
+    for (const m of motas) {
+      const y = m.y + Math.sin(fase * Math.PI * 2 + m.v * 6.28) * 6;
+      g.fillStyle = tinta("236,230,250", m.o * luz);
+      g.beginPath(); g.arc(m.x, y, m.r, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+
+    /* grabado de anillos tras el orbe */
+    const BY = 430;
+    for (const r of [150, 190, 232, 276]) {
+      g.strokeStyle = tinta("205,188,243", 0.1);
+      g.lineWidth = 0.8;
+      g.beginPath(); g.arc(CX, BY, r, 0, Math.PI * 2); g.stroke();
+    }
+    for (let k = 0; k < 48; k++) {
+      const a = (k / 48) * Math.PI * 2;
+      g.strokeStyle = tinta("205,188,243", 0.12);
+      g.beginPath();
+      g.moveTo(CX + Math.cos(a) * 276, BY + Math.sin(a) * 276);
+      g.lineTo(CX + Math.cos(a) * (k % 4 ? 282 : 292), BY + Math.sin(a) * (k % 4 ? 282 : 292));
+      g.stroke();
+    }
+
+    /* EL ORBE: vacío negro con borde violeta encendido */
+    const halo = g.createRadialGradient(CX, BY, 78, CX, BY, 150);
+    halo.addColorStop(0, tinta("205,188,243", 0.5 * luz));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = halo;
+    g.beginPath(); g.arc(CX, BY, 190, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#020103";
+    g.beginPath(); g.arc(CX, BY, 104, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = tinta("226,214,248", 0.85 * luz);
+    g.lineWidth = 2;
+    g.beginPath(); g.arc(CX, BY, 106, 0, Math.PI * 2); g.stroke();
+
+    /* dais escalonado con pedestal */
+    const DY = 850;
+    const gradas: Array<[number, number, number]> = [[260, 56, 0.16], [206, 44, 0.2], [150, 34, 0.26]];
+    gradas.forEach(([rx, ry, o], i) => {
+      const y = DY + i * -26 + 52;
+      g.fillStyle = tinta("22,19,28", 0.96);
+      g.beginPath(); g.ellipse(CX, y, rx, ry, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = tinta("216,212,208", o * luz);
+      g.lineWidth = 1.1;
+      g.beginPath(); g.ellipse(CX, y, rx, ry, 0, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = tinta("205,188,243", o * 0.8 * luz);
+      g.beginPath(); g.ellipse(CX, y - 4, rx * 0.98, ry * 0.94, 0, Math.PI * 1.15, Math.PI * 1.85); g.stroke();
+    });
+    /* pedestal */
+    g.fillStyle = tinta("10,9,12", 0.95);
+    g.fillRect(CX - 26, DY - 66, 52, 66);
+    g.strokeStyle = tinta("236,230,250", 0.5 * luz);
+    g.strokeRect(CX - 26, DY - 66, 52, 66);
+    g.fillStyle = tinta("236,230,250", 0.75 * luz);
+    g.fillRect(CX - 26, DY - 66, 52, 4);
+
+    /* suelo: anillos y punteado */
+    for (const [rx, o] of [[330, 0.12], [360, 0.08]] as const) {
+      g.strokeStyle = tinta("205,188,243", o);
+      g.beginPath(); g.ellipse(CX, DY + 92, rx, rx * 0.22, 0, 0, Math.PI * 2); g.stroke();
+    }
+    for (let k = 0; k < 90; k++) {
+      const a = (k / 90) * Math.PI * 2;
+      g.fillStyle = tinta("205,188,243", 0.1 + (k % 5) * 0.03);
+      g.beginPath();
+      g.arc(CX + Math.cos(a) * 344, DY + 92 + Math.sin(a) * 74, 1, 0, Math.PI * 2);
+      g.fill();
+    }
+  };
+
+  montarLienzo({ raiz, cuadro: pintar, periodo: 20000, periodoReducido: 56000 });
+  montarEscala();
+</script>
