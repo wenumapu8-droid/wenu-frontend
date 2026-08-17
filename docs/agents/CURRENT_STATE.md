@@ -42,7 +42,7 @@ Living-field correctness is also closed: `CON-RITUAL` uses registered `MOTION_03
 
 ### GP-CON-03 exact-head materiality close
 
-Last fully validated PR #62 head: `70d8a756a2c46227179fac01c9835e8e1d358be7`.
+Last fully validated renderer/materiality head: `70d8a756a2c46227179fac01c9835e8e1d358be7`.
 
 KODEX Core Runtime run #292 / `31985966672`: **SUCCESS**.
 
@@ -61,11 +61,15 @@ Do not continue iterative GP-CON-03 styling without a new bounded defect from cr
 
 Fresh inspection of run #292 exposed an evidence-coverage gap rather than a product failure: the Golden browser gate validates all 12 cases, but its retained artifact only contains desktop screenshots for four representative cases (`GP-SCI-01`, `GP-TECH-02`, `GP-ART-03`, `GP-CON-03`). That is insufficient for the declared next gate: creator/readability review of the complete 12-plate benchmark.
 
-Current PR #62 implementation head: `ebbf682d1c10f47785d0188f15be86ad610965f2`.
+Current PR #62 head: `ebbf682d1c10f47785d0188f15be86ad610965f2`.
 
 This head adds only `scripts/kodex-golden-curator-capture.mjs`, a **non-gating review-evidence exporter**. It targets all 12 cases × desktop 1440×900 + mobile 390×844 = 24 initial-state captures plus a machine-readable review manifest. Mechanical correctness remains owned by the existing Golden browser evidence script. The exporter explicitly keeps `human_curator_acceptance=NOT_RUN` and `creator_visual_acceptance=NOT_RUN`.
 
-State: **IMPLEMENTED CANDIDATE / SHA-BOUND EXPORTER EXECUTION PENDING**. Do not infer exact-head QA PASS from the commit alone. Execute it through the existing KOD-69 local/self-hosted lane if necessary and preserve the 24 captures + manifest before starting full creator review.
+KODEX Core Runtime run #293 / `31992733562`: **SUCCESS** on exact head `ebbf682d...`. Artifact `9275887667`. This establishes no regression of the existing runtime / Assembly OS / build / Deep Navigation / Golden mechanical gates after adding the exporter.
+
+Important evidence boundary: the current workflow does **not** invoke the new curator exporter. Therefore run #293 does not produce the required 24 review captures and does not complete creator/readability evidence.
+
+State: **EXACT-HEAD NO-REGRESSION PASS / SHA-BOUND CURATOR EXPORTER EXECUTION PENDING**. Execute the exporter through KOD-69 local/self-hosted evidence and preserve the 24 captures + manifest before starting full creator review.
 
 ---
 
@@ -107,9 +111,9 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 6. Exact next action
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; P0.1–P0.10 remain closed.
-2. Preserve `70d8a756...` / run #292 as the last fully validated technical truth for the renderer/materiality state.
+2. Treat `ebbf682d...` / run #293 as exact-head no-regression truth; do not confuse it with execution of the new curator exporter.
 3. Execute `scripts/kodex-golden-curator-capture.mjs` against exact head `ebbf682d...`, binding `KODEX_HEAD_SHA`, and preserve 24 screenshots + `review-manifest.json` as SHA-bound evidence.
-4. Use KOD-69 / Mac mini if provider CI does not naturally execute this review exporter; do not loop hosted reruns.
+4. Use KOD-69 / Mac mini for this review capture; do not loop hosted reruns merely to obtain screenshots.
 5. Perform actual creator/readability review across the rendered 12-plate set only after 12/12 evidence exists. Keep `human_curator_acceptance=NOT_RUN` until that review occurs.
 6. Make another renderer/material/composition change only if review identifies a specific bounded defect, then re-run exact-head evidence.
 7. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
