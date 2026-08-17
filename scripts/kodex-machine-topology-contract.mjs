@@ -41,17 +41,24 @@ function assertTopology(topology) {
   for (const node of topology.nodes) {
     assert.ok(node.x >= 0 && node.x <= topology.width, `${node.id} x must stay in bounds`);
     assert.ok(node.y >= 0 && node.y <= topology.height, `${node.id} y must stay in bounds`);
+    assert.ok(['core', 'junction', 'port'].includes(node.kind), `${node.id} node kind must be governed`);
   }
 
   for (const edge of topology.edges) {
     assert.ok(nodeIds.has(edge.from), `${edge.id} from endpoint must exist`);
     assert.ok(nodeIds.has(edge.to), `${edge.id} to endpoint must exist`);
     assert.notEqual(edge.from, edge.to, `${edge.id} must not self-loop`);
+    assert.ok(Array.isArray(edge.path) && edge.path.length >= 3, `${edge.id} must expose a routed path`);
+    for (const point of edge.path) {
+      assert.ok(point.x >= 0 && point.x <= topology.width, `${edge.id} path x must stay in bounds`);
+      assert.ok(point.y >= 0 && point.y <= topology.height, `${edge.id} path y must stay in bounds`);
+    }
   }
 
   for (const cell of topology.cells) {
     assert.ok(cell.x >= 0 && cell.x + cell.width <= topology.width + 1, `${cell.id} x must stay in bounds`);
     assert.ok(cell.y >= 0 && cell.y + cell.height <= topology.height + 1, `${cell.id} y must stay in bounds`);
+    assert.ok(['processor', 'memory-cell'].includes(cell.kind), `${cell.id} cell kind must be governed`);
   }
 }
 
