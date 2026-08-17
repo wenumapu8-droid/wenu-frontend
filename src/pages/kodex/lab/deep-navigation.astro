@@ -134,8 +134,13 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       applyScenePhase();
     };
 
+    // Doc 38 section 19 acceptance: "wheel/trackpad progress is controllable
+    // and reversible before commit." OPEN is a reveal state, not a commit —
+    // only an explicit door choice commits (doors stay clickable throughout,
+    // see CSS). So progress keeps integrating past the OPEN threshold and a
+    // reverse gesture can bring the scene back down to AWARE/DORMANT right
+    // up until that explicit choice is made.
     const advanceSceneProgress = (rawDelta) => {
-      if (scenePhase === 'open') return;
       setSceneProgress(accumulateSceneProgress(sceneProgress, rawDelta));
     };
 
@@ -279,7 +284,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     const stage = root.querySelector('.kdx-deep__stage');
     if (stage instanceof HTMLElement) {
       stage.addEventListener('wheel', (event) => {
-        if (scenePhase === 'open' || reducedMotionQuery.matches) return;
+        if (reducedMotionQuery.matches) return;
         event.preventDefault();
         advanceSceneProgress(event.deltaY);
       }, { passive: false });
@@ -289,7 +294,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         touchStartY = event.touches[0] ? event.touches[0].clientY : null;
       }, { passive: true });
       stage.addEventListener('touchmove', (event) => {
-        if (scenePhase === 'open' || reducedMotionQuery.matches || touchStartY === null) return;
+        if (reducedMotionQuery.matches || touchStartY === null) return;
         const currentY = event.touches[0] ? event.touches[0].clientY : touchStartY;
         const delta = touchStartY - currentY;
         touchStartY = currentY;
