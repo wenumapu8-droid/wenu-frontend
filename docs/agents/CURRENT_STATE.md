@@ -42,21 +42,21 @@ Living-field correctness is also closed: `CON-RITUAL` uses registered `MOTION_03
 
 ### GP-CON-03 current frontier
 
-Run 290 / `31977724505` completed **SUCCESS** on exact head `59ead9c657f5b994896dc90f3e86c295520884e5`.
-
-Artifact: `9271528031`  
-Digest: `sha256:f75a0c388aa72b14e63910e40b294da6a2b0c19d75156f0a1ab6d703fccf3f80`
-
-Contract/build/browser/Deep Navigation/Golden gates are green. Direct artifact inspection of `gp-con-03-desktop.png` shows the v2 asymmetry repair is mechanically valid but the perceptual objective remains open: the field still reads primarily as several large closed orbital contours rather than a marble/membrane field.
-
 Current PR #62 exact head: `e83673be5615ef7cd2974e60c711c758c0ae715c`.
 
-This bounded v3 follow-up changes only `src/styles/kodex-golden-consciousness-materiality.css`. The same existing FIELD DOM nodes are reused, but complete ellipse/perimeter reads are removed in favor of open tissue arcs, torn membrane patches, a filled lower tissue island, displaced nucleus and diagonal tissue seam.
+KODEX Core Runtime run #291 / `31980392530`: **SUCCESS**.
 
-No ElementContract, PlateSpec, registered/activation ID, assembler/scoring, route, JourneyState/memory, renderer family, registry or Ocín source bytes changed.
+Artifact: `9272203841`  
+Digest: `sha256:970341dc90224670269f770c69023fe2c45349da18ccf3b6f37f3549ca72ed1b`.
 
-State: **IMPLEMENTED CANDIDATE / EXACT-HEAD QA PENDING**.  
+Contract/build/browser/Deep Navigation/Golden gates are green. Direct inspection of `gp-con-03-desktop.png` confirms the v3 structural repair materially reduced the previous closed-orbit reading: the displaced nucleus, irregular membrane mass, torn patch and lower tissue island are visible and the field no longer reads as several complete enclosing circles.
+
+Residual perceptual defect remains: several long smooth internal arcs still suggest orbital/trajectory language. The remaining problem is now line/material language, not contract, activation, registry or layout architecture.
+
+State: **BROWSER-VALIDATED / PERCEPTUAL DEFECT REDUCED BUT OPEN**.  
 `human_curator_acceptance=NOT_RUN`. Protected ART cases remain source-byte WITHHELD; no protected-art materiality/no-crop visual acceptance may be inferred.
+
+If another refinement is justified before creator review, modify only the existing GP-CON-03 presentation layer so those smooth trajectory-like arcs become subordinate or break into more irregular tissue/seam language. No new schema, IDs, renderer family, activation registry, memory or route system.
 
 ---
 
@@ -97,9 +97,9 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 6. Exact next action
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; P0.1–P0.10 remain closed.
-2. Wait for exact-head validation on `e83673be...` or run the same native gates through KOD-69 if provider CI does not execute.
-3. If green, inspect the actual GP-CON-03 artifact. The question is whether the field now reads as open membrane/tissue rather than closed orbital loops.
-4. If that perceptual defect persists, repair only the existing GP-CON-03 presentation layer; do not add schema, IDs, renderer family, memory or route architecture.
+2. Treat run #291 on `e83673be...` as the current exact-head technical truth for GP-CON-03.
+3. The only open GP-CON-03 defect is residual orbital/trajectory line language in the artifact; do not reinterpret it as a contract or architecture gap.
+4. If refinement proceeds before creator review, change only the existing GP-CON-03 presentation layer, then rerun Golden evidence and inspect the artifact.
 5. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review.
 6. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
 7. Keep #77 mechanically closed and draft.
