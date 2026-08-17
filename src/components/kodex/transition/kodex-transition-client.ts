@@ -4,16 +4,37 @@
  * Colapsar, navegar, recomponer. Los tres tiempos del preset
  * MOTION_12_STATE_TRANSITION.
  *
- * El colapso son bandas horizontales que se cierran hacia el centro, como una
- * pantalla que pierde sincronía y se recoge. No es un fundido: un fundido dice
- * "esto terminó" y acá no termina nada -- se pasa a otra lámina del mismo
- * archivo. La recomposición al llegar es el mismo gesto al revés, y por eso la
- * escena siguiente se siente como continuación y no como página nueva.
+ * KOD-74 keeps one shared ritual/runtime and varies only the spatial grammar
+ * for two evidence-backed boundaries. Route, state, memory and navigation
+ * authority remain unchanged.
  */
 import { estadoEscena, montarEstadoEscena } from "../../../lib/kodex/estado";
 import { montarRueda } from "../../../lib/kodex/scroll";
 
 const REDUCIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+type VarianteRitual = "default" | "descent" | "cosmology";
+
+const RUTA_PROLOGUE = "/kodex/folio/i/";
+const RUTA_DESCENT = "/kodex/folio/ii/";
+const RUTA_MACHINE = "/kodex/folio/iv/";
+const RUTA_COSMOLOGY = "/kodex/folio/v/";
+
+function rutaCanonica(pathname: string): string {
+  return pathname.endsWith("/") ? pathname : `${pathname}/`;
+}
+
+/**
+ * Small bounded mapping from an already-selected corridor boundary to the
+ * presentation variant of the existing ritual. This never chooses a route.
+ */
+function resolverVariante(desde: string, hasta: string): VarianteRitual {
+  const from = rutaCanonica(desde);
+  const to = rutaCanonica(hasta);
+  if (from === RUTA_PROLOGUE && to === RUTA_DESCENT) return "descent";
+  if (from === RUTA_MACHINE && to === RUTA_COSMOLOGY) return "cosmology";
+  return "default";
+}
 
 /** Cuánto dura, leído de la gramática con respaldo dentro del rango del preset. */
 function duracion(): number {
@@ -30,22 +51,120 @@ class Ritual {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D | null;
   private corriendo = false;
+  private variante: VarianteRitual = "default";
 
   constructor(raiz: HTMLElement) {
     this.raiz = raiz;
     this.canvas = raiz.querySelector("[data-kdx-ritual-canvas]") as HTMLCanvasElement;
     this.ctx = this.canvas?.getContext("2d") ?? null;
+    this.aplicarVariante("default");
     this.medir();
     addEventListener("resize", () => this.medir(), { passive: true });
   }
 
+  private aplicarVariante(variante: VarianteRitual): void {
+    this.variante = variante;
+    this.raiz.dataset.variante = variante;
+  }
+
   private medir(): void {
     if (!this.canvas) return;
-    // Media resolución a propósito: las bandas son bloques duros, no dibujo
-    // fino, y esto corre justo cuando la página siguiente empieza a cargar.
+    // Media resolución a propósito: este canvas sólo define masa/ritual.
     const d = Math.min(devicePixelRatio || 1, 1.5) * 0.5;
     this.canvas.width = Math.max(2, Math.round(innerWidth * d));
     this.canvas.height = Math.max(2, Math.round(innerHeight * d));
+  }
+
+  /** Ritual base: bandas horizontales del sistema existente. */
+  private pintarDefault(t: number, accent: string): void {
+    const { ctx, canvas } = this;
+    if (!ctx) return;
+    const { width: w, height: h } = canvas;
+    const bandas = 22;
+    const alto = h / bandas;
+    for (let i = 0; i < bandas; i++) {
+      const dist = Math.abs(i - (bandas - 1) / 2) / ((bandas - 1) / 2);
+      const retraso = dist * 0.45;
+      const local = Math.max(0, Math.min(1, (t - retraso) / (1 - retraso || 1)));
+      if (local <= 0) continue;
+      const ancho = (w / 2) * local;
+      ctx.fillStyle = "#050507";
+      ctx.fillRect(0, i * alto, ancho, alto + 1);
+      ctx.fillRect(w - ancho, i * alto, ancho, alto + 1);
+      if (local < 0.98) {
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(ancho - 2, i * alto, 2, alto + 1);
+        ctx.fillRect(w - ancho, i * alto, 2, alto + 1);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  /**
+   * PROLOGUE → DESCENT: the target is revealed as descending strata, not as
+   * another aperture. Black rises to close the source; on recomposition the
+   * same staggered curtain falls away, revealing the target from top to bottom.
+   */
+  private pintarDescenso(t: number, accent: string): void {
+    const { ctx, canvas } = this;
+    if (!ctx) return;
+    const { width: w, height: h } = canvas;
+    const columnas = 18;
+    const ancho = w / columnas;
+    for (let i = 0; i < columnas; i++) {
+      const centro = Math.abs(i - (columnas - 1) / 2) / ((columnas - 1) / 2);
+      const retraso = centro * 0.22 + (i % 3) * 0.025;
+      const local = Math.max(0, Math.min(1, (t - retraso) / (1 - retraso || 1)));
+      if (local <= 0) continue;
+      const alto = h * local;
+      const y = h - alto;
+      ctx.fillStyle = "#050507";
+      ctx.fillRect(i * ancho, y, ancho + 1, alto + 1);
+      if (local < 0.985) {
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.72;
+        ctx.fillRect(i * ancho, Math.max(0, y - 1), ancho + 1, 2);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  /**
+   * MACHINE → COSMOLOGY: computation contracts to one point, then the target
+   * field expands from that same point. One arrival, not ritual + second reveal.
+   */
+  private pintarCosmologia(t: number, accent: string): void {
+    const { ctx, canvas } = this;
+    if (!ctx) return;
+    const { width: w, height: h } = canvas;
+    const cx = w * 0.5;
+    const cy = h * 0.5;
+    const maxR = Math.hypot(w, h) * 0.56;
+    const radioVisible = maxR * (1 - t);
+
+    ctx.fillStyle = "#050507";
+    ctx.fillRect(0, 0, w, h);
+
+    if (radioVisible > 0.5) {
+      ctx.save();
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(cx, cy, radioVisible, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (radioVisible > 2 && radioVisible < maxR * 0.985) {
+      ctx.save();
+      ctx.strokeStyle = accent;
+      ctx.globalAlpha = 0.72;
+      ctx.lineWidth = Math.max(1, Math.min(w, h) * 0.004);
+      ctx.beginPath();
+      ctx.arc(cx, cy, radioVisible, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   /**
@@ -55,34 +174,19 @@ class Ritual {
   private pintar(t: number, accent: string): void {
     const { ctx, canvas } = this;
     if (!ctx) return;
-    const { width: w, height: h } = canvas;
-    ctx.clearRect(0, 0, w, h);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = "source-over";
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Las bandas no cierran todas a la vez: cada una tiene su propio retraso
-    // según su distancia al centro. Cerrando juntas se ve como una persiana;
-    // escalonadas se ve como una señal que se pierde.
-    const bandas = 22;
-    const alto = h / bandas;
-    for (let i = 0; i < bandas; i++) {
-      const dist = Math.abs(i - (bandas - 1) / 2) / ((bandas - 1) / 2);
-      const retraso = dist * 0.45;
-      const local = Math.max(0, Math.min(1, (t - retraso) / (1 - retraso || 1)));
-      if (local <= 0) continue;
-      // Desde los dos lados hacia el centro de la banda.
-      const ancho = (w / 2) * local;
-      ctx.fillStyle = "#050507";
-      ctx.fillRect(0, i * alto, ancho, alto + 1);
-      ctx.fillRect(w - ancho, i * alto, ancho, alto + 1);
-      // Filo de acento en la cabeza de cada banda: es lo que hace legible el
-      // movimiento. Sin él, el negro sobre negro no se ve avanzar.
-      if (local < 0.98) {
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.85;
-        ctx.fillRect(ancho - 2, i * alto, 2, alto + 1);
-        ctx.fillRect(w - ancho, i * alto, 2, alto + 1);
-        ctx.globalAlpha = 1;
-      }
+    if (this.variante === "descent") {
+      this.pintarDescenso(t, accent);
+      return;
     }
+    if (this.variante === "cosmology") {
+      this.pintarCosmologia(t, accent);
+      return;
+    }
+    this.pintarDefault(t, accent);
   }
 
   private acento(): string {
@@ -103,7 +207,6 @@ class Ritual {
       const t0 = performance.now();
       const paso = (ahora: number) => {
         const k = Math.min(1, (ahora - t0) / ms);
-        // Suavizado en la salida: el colapso arranca decidido y se asienta.
         const e = 1 - Math.pow(1 - k, 3);
         this.pintar(desde + (hasta - desde) * e, accent);
         if (k < 1) requestAnimationFrame(paso);
@@ -117,7 +220,19 @@ class Ritual {
   async ir(url: string): Promise<void> {
     if (this.corriendo || !url) return;
     this.corriendo = true;
-    try { sessionStorage.setItem("kdx-ritual-pending", "1"); } catch (_) {}
+
+    let destino: URL;
+    try {
+      destino = new URL(url, location.href);
+    } catch (_) {
+      destino = new URL(location.href);
+    }
+    const variante = resolverVariante(location.pathname, destino.pathname);
+    this.aplicarVariante(variante);
+    try {
+      sessionStorage.setItem("kdx-ritual-pending", "1");
+      sessionStorage.setItem("kdx-ritual-variant", variante);
+    } catch (_) {}
 
     // Antes de colapsar, la escena se abre. Es el momento en que el portal, el
     // campo y el sonido se van juntos -- un solo estado, tres capas.
@@ -128,9 +243,6 @@ class Ritual {
     this.raiz.dataset.activo = "";
     this.raiz.dataset.fase = "colapso";
 
-    // La navegación va en `finally`: si el dibujo del colapso lanza -- un
-    // contexto perdido, un canvas de cero -- el visitante igual llega. El
-    // ritual es la forma; llegar es la función.
     try {
       await this.animar(0, 1, ms * 0.62);
     } finally {
@@ -139,7 +251,8 @@ class Ritual {
   }
 
   /** Al llegar: el mismo gesto al revés, para que se lea como continuación. */
-  async recomponer(): Promise<void> {
+  async recomponer(variante: VarianteRitual = "default"): Promise<void> {
+    this.aplicarVariante(variante);
     if (REDUCIDO) return;
     const ms = duracion();
     this.raiz.dataset.activo = "";
@@ -148,6 +261,7 @@ class Ritual {
     await this.animar(1, 0, ms * 0.5);
     delete this.raiz.dataset.activo;
     delete this.raiz.dataset.fase;
+    this.aplicarVariante("default");
   }
 }
 
@@ -157,20 +271,15 @@ const montar = () => {
   const raiz = document.querySelector<HTMLElement>("[data-kdx-ritual]");
   if (!raiz) return;
   montarEstadoEscena();
-  // La rueda se monta desde acá y no desde el campo: el ritual está en las
-  // siete láminas y el campo no. Montarla desde el campo dejaba sin
-  // herramienta a las escenas sin organismo -- ARCHIVE y RETURN -- y la regla
-  // de "el scroll es una herramienta" no admite excepciones por escena.
   montarRueda();
   ritual = new Ritual(raiz);
 
-  // Se expone para que el motor del deck lo use en vez de su desvanecido.
+  // El motor sólo entrega el destino. El ritual deriva la variante desde la
+  // frontera origen→destino; elegir la ruta sigue perteneciendo al deck/router.
   (window as unknown as { __kdxRitual?: (u: string) => void }).__kdxRitual = (u) => {
     void ritual?.ir(u);
   };
 
-  // Y se interceptan los enlaces del propio KODEX. Sólo los internos: un
-  // enlace que sale del archivo no merece el ritual del archivo.
   document.addEventListener(
     "click",
     (e) => {
@@ -180,13 +289,6 @@ const montar = () => {
       if (url.origin !== location.origin) return;
       if (!url.pathname.startsWith("/kodex/")) return;
       if (url.pathname === location.pathname) return;
-
-      // Sólo se toma el control si hay ritual que ejecutarlo. Antes se llamaba
-      // a preventDefault() y después se intentaba `ritual?.ir(...)`: si el
-      // ritual no había montado -- root ausente, módulo que no cargó, error
-      // temprano -- el enlace quedaba MUERTO. El museo entero depende de estos
-      // clics, y un enlace que no navega es infinitamente peor que un enlace
-      // sin transición.
       if (!ritual) return;
       e.preventDefault();
       void ritual.ir(url.href);
@@ -195,11 +297,15 @@ const montar = () => {
   );
 
   let pendiente = false;
+  let variantePendiente: VarianteRitual = "default";
   try {
     pendiente = sessionStorage.getItem("kdx-ritual-pending") === "1";
+    const almacenada = sessionStorage.getItem("kdx-ritual-variant");
+    if (almacenada === "descent" || almacenada === "cosmology") variantePendiente = almacenada;
     if (pendiente) sessionStorage.removeItem("kdx-ritual-pending");
+    sessionStorage.removeItem("kdx-ritual-variant");
   } catch (_) {}
-  if (pendiente) void ritual.recomponer();
+  if (pendiente) void ritual.recomponer(variantePendiente);
 };
 
 if (document.readyState === "loading") {
