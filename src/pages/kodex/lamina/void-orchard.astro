@@ -1056,6 +1056,26 @@ const motasSemillas = Array.from({ length: 26 }, (_, i) => {
     { x: 614,  y: 1390, rx: 28, ry: 42, tono: "violeta", br: 0.5,  f: 0.15 },
   ];
 
+  /* ── LAS BURBUJAS ───────────────────────────────────────────────────
+     Las esferas de vidrio que flotan por todo el centro de la referencia:
+     interior oscuro, canto encendido y un punto de brillo arriba. Son la
+     mitad del contraste local que faltaba — medido, la banda central de la
+     referencia tiene desviación típica 35 y la lámina 23, y una burbuja
+     aporta las dos cosas a la vez: una masa oscura y un filo claro. */
+  const burbujas = Array.from({ length: 13 }, () => {
+    const x = 268 + rnd() * 686;
+    const y = 360 + rnd() * 880;
+    /* lejos del eje de la vaina mayor: en la referencia las burbujas
+       rodean el foco, no lo tapan */
+    const fuera = Math.abs(x - 614) < 120 && y < 620;
+    return {
+      x, y: fuera ? y + 300 : y,
+      r: 13 + rnd() * 28,
+      o: 0.3 + rnd() * 0.34,
+      violeta: rnd() < 0.7,
+    };
+  });
+
   /* motas del haz central, ascendentes */
   const motas = Array.from({ length: 70 }, () => ({
     x: CX + (rnd() - 0.5) * 60, o: 0.2 + rnd() * 0.5,
@@ -1241,20 +1261,54 @@ const motasSemillas = Array.from({ length: 26 }, (_, i) => {
       gF.beginPath(); gF.arc(gt.x + 3, gt.y0 + gt.l, 1.2, 0, Math.PI * 2); gF.fill();
     }
 
-    /* anillo grabado tras la vaina mayor (y≈462 medido) */
-    for (const r of [70, 100, 128, 150]) {
-      gF.strokeStyle = tinta("205,181,121", 0.14);
-      gF.lineWidth = 0.8;
+    /* ── GEOMETRÍA SAGRADA TRAS LA VAINA MAYOR ─────────────────────────
+       En la referencia es el elemento más legible de la lámina después del
+       título: anillos de oro NÍTIDOS de radio 70..160 alrededor de y462,
+       con arcos de compás cruzados y púas en el borde. Iban al 0,14 de alfa
+       —invisibles a tamaño real— y el foco de la lámina quedaba sin marco. */
+    for (const [r, o] of [[74, 0.34], [104, 0.3], [132, 0.26], [158, 0.4]] as const) {
+      gF.strokeStyle = tinta("205,181,121", o);
+      gF.lineWidth = r === 158 ? 1.1 : 0.9;
       gF.beginPath(); gF.arc(CX, 462, r, 0, Math.PI * 2); gF.stroke();
     }
-    for (let k = 0; k < 36; k++) {
-      const a = (k / 36) * Math.PI * 2;
-      gF.strokeStyle = tinta("205,181,121", 0.16);
+    /* arcos de compás: seis circunferencias del mismo radio centradas en el
+       anillo — la construcción de la flor, como en la referencia */
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 - Math.PI / 2;
+      gF.strokeStyle = tinta("205,181,121", 0.18);
+      gF.lineWidth = 0.8;
       gF.beginPath();
-      gF.moveTo(CX + Math.cos(a) * 150, 462 + Math.sin(a) * 150);
-      gF.lineTo(CX + Math.cos(a) * (k % 3 ? 155 : 162), 462 + Math.sin(a) * (k % 3 ? 155 : 162));
+      gF.arc(CX + Math.cos(a) * 104, 462 + Math.sin(a) * 104, 104, 0, Math.PI * 2);
       gF.stroke();
     }
+    for (let k = 0; k < 48; k++) {
+      const a = (k / 48) * Math.PI * 2;
+      gF.strokeStyle = tinta("205,181,121", k % 4 ? 0.24 : 0.45);
+      gF.lineWidth = k % 4 ? 0.8 : 1.1;
+      gF.beginPath();
+      gF.moveTo(CX + Math.cos(a) * 158, 462 + Math.sin(a) * 158);
+      gF.lineTo(CX + Math.cos(a) * (k % 4 ? 164 : 172), 462 + Math.sin(a) * (k % 4 ? 164 : 172));
+      gF.stroke();
+    }
+    /* marco ojival de la vaina mayor: el arco apuntado negro que la abraza */
+    gF.strokeStyle = tinta("188,164,112", 0.42);
+    gF.lineWidth = 2;
+    gF.beginPath();
+    gF.moveTo(CX, 372);
+    gF.quadraticCurveTo(CX + 62, 420, CX + 60, 486);
+    gF.quadraticCurveTo(CX + 58, 552, CX, 574);
+    gF.quadraticCurveTo(CX - 58, 552, CX - 60, 486);
+    gF.quadraticCurveTo(CX - 62, 420, CX, 372);
+    gF.stroke();
+    gF.strokeStyle = tinta("188,164,112", 0.2);
+    gF.lineWidth = 1;
+    gF.beginPath();
+    gF.moveTo(CX, 386);
+    gF.quadraticCurveTo(CX + 52, 428, CX + 50, 486);
+    gF.quadraticCurveTo(CX + 48, 544, CX, 562);
+    gF.quadraticCurveTo(CX - 48, 544, CX - 50, 486);
+    gF.quadraticCurveTo(CX - 52, 428, CX, 386);
+    gF.stroke();
 
     /* EL ÁRBOL: silueta oscura con canto apenas iluminado */
     trazar(gF, ramas, "8,5,11", 0.95);
@@ -1476,6 +1530,28 @@ const motasSemillas = Array.from({ length: 26 }, (_, i) => {
         gF.quadraticCurveTo(rx + (rnd() - 0.5) * 20, isla.y + 40, rx + (rnd() - 0.5) * 30, isla.y + 46 + rnd() * 40);
         gF.stroke();
       }
+    }
+
+    /* BURBUJAS: delante de la ramazón, como en la referencia */
+    for (const b of burbujas) {
+      const rim = b.violeta ? "186,158,232" : "206,196,152";
+      const gr = gF.createRadialGradient(b.x, b.y, b.r * 0.1, b.x, b.y, b.r);
+      gr.addColorStop(0, "rgba(10,7,14,0.72)");
+      gr.addColorStop(0.72, "rgba(16,11,22,0.42)");
+      gr.addColorStop(1, tinta(rim, 0.16 * b.o));
+      gF.fillStyle = gr;
+      gF.beginPath(); gF.arc(b.x, b.y, b.r, 0, Math.PI * 2); gF.fill();
+      gF.strokeStyle = tinta(rim, 0.34 * b.o);
+      gF.lineWidth = 0.9;
+      gF.beginPath(); gF.arc(b.x, b.y, b.r, 0, Math.PI * 2); gF.stroke();
+      /* filo encendido del cuarto inferior derecho + reflejo de arriba */
+      gF.strokeStyle = tinta(rim, 0.55 * b.o);
+      gF.lineWidth = 1.2;
+      gF.beginPath(); gF.arc(b.x, b.y, b.r, Math.PI * 0.15, Math.PI * 0.72); gF.stroke();
+      gF.fillStyle = tinta("236,228,250", 0.34 * b.o);
+      gF.beginPath();
+      gF.ellipse(b.x - b.r * 0.36, b.y - b.r * 0.44, b.r * 0.18, b.r * 0.1, -0.6, 0, Math.PI * 2);
+      gF.fill();
     }
 
     /* CHISPAS: van DESPUÉS del árbol y de la roca, porque en la referencia
