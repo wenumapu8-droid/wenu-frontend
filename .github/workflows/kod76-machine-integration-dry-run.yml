@@ -1,0 +1,68 @@
+name: KODEX KOD-76 Machine Integration Dry Run
+
+on:
+  push:
+    branches:
+      - wenumapu8/kod-76-machine-causal-assembly-proof-01
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify pure deterministic topology contract
+        run: node scripts/kodex-machine-topology-contract.mjs
+
+      - name: Apply guarded KOD-76 integration patch in workspace only
+        run: node scripts/apply-kod76-machine-integration.mjs
+
+      - name: Enforce bounded product diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          mapfile -t changed < <(git diff --name-only)
+          printf 'Workspace-only changed files after patch:\n%s\n' "${changed[*]}"
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = 'src/pages/kodex/folio/[folio].astro'
+          grep -q "buildMachineTopology" 'src/pages/kodex/folio/[folio].astro'
+          grep -q "ASSEMBLY/TRACE/CELL" 'src/pages/kodex/folio/[folio].astro'
+          grep -q "kodex-machine-assembly.css" 'src/pages/kodex/folio/[folio].astro'
+
+      - name: Build patched product
+        run: npm run build
+
+      - name: Save exact ephemeral integration diff
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p .kodex-evidence/kod76
+          git diff -- 'src/pages/kodex/folio/[folio].astro' > .kodex-evidence/kod76/integration.patch || true
+          git rev-parse HEAD > .kodex-evidence/kod76/source-sha.txt
+
+      - name: Upload dry-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kod76-machine-integration-dry-run-${{ github.sha }}
+          path: .kodex-evidence/kod76
+          if-no-files-found: error
