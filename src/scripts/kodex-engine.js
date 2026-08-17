@@ -241,8 +241,12 @@ export function initKx() {
       }
       if (bPrev) bPrev.style.visibility = (cur > 0 || prevUrl) ? 'visible' : 'hidden';
     };
-    const goNext = () => { try { window.kdx && window.kdx('next_scene', { from: cur + 1 }); } catch (_) {} if (cur < slides.length - 1) activate(cur + 1); else if (nextUrl) turn(nextUrl); };
-    const goPrev = () => { try { window.kdx && window.kdx('previous_scene', { from: cur + 1 }); } catch (_) {} if (cur > 0) activate(cur - 1); else if (prevUrl) turn(prevUrl); };
+    // La vuelta de pagina tarda ~3s (transicion). Sin feedback inmediato el boton
+    // parece muerto — fue el hallazgo #7 de la auditoria y la fuente principal de
+    // falsos "no funciona". El boton acusa recibo ANTES de la transicion.
+    const acusar = (b) => { if (b) { b.disabled = true; b.textContent = '· · ·'; b.style.opacity = '.5'; } };
+    const goNext = () => { try { window.kdx && window.kdx('next_scene', { from: cur + 1 }); } catch (_) {} if (cur < slides.length - 1) activate(cur + 1); else if (nextUrl) { acusar(bNext); turn(nextUrl); } };
+    const goPrev = () => { try { window.kdx && window.kdx('previous_scene', { from: cur + 1 }); } catch (_) {} if (cur > 0) activate(cur - 1); else if (prevUrl) { acusar(bPrev); turn(prevUrl); } };
     bNext?.addEventListener('click', goNext);
     bPrev?.addEventListener('click', goPrev);
     addEventListener('keydown', (e) => {
