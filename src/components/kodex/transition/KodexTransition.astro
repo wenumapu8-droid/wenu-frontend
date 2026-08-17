@@ -12,6 +12,50 @@
   <span class="kdx-ritual__linea"></span>
 </div>
 
+{/*
+  PRE-PAINT HANDOFF
+
+  The module runtime is deferred. Without this tiny parser-time handoff the
+  target document can paint once at full visibility before recomposition mounts;
+  on MACHINE→COSMOLOGY that produced the exact double-arrival KOD-74 exists to
+  remove: full target → circular mask → full target again.
+
+  This script does not choose a route or create state. It only consumes the
+  already-existing one-navigation `sessionStorage` handoff and paints the same
+  transition canvas black before the rest of the target scene can reach first
+  paint. The module immediately takes ownership of this canvas and recomposes it.
+*/}
+<script is:inline>
+  (() => {
+    try {
+      if (sessionStorage.getItem('kdx-ritual-pending') !== '1') return;
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const script = document.currentScript;
+      const root = script?.previousElementSibling;
+      if (!(root instanceof HTMLElement) || !root.matches('[data-kdx-ritual]')) return;
+
+      const stored = sessionStorage.getItem('kdx-ritual-variant');
+      const variant = stored === 'descent' || stored === 'cosmology' ? stored : 'default';
+      root.dataset.variante = variant;
+      root.dataset.activo = '';
+      root.dataset.fase = 'recomposicion';
+
+      const canvas = root.querySelector('[data-kdx-ritual-canvas]');
+      if (!(canvas instanceof HTMLCanvasElement)) return;
+      const d = Math.min(devicePixelRatio || 1, 1.5) * 0.5;
+      canvas.width = Math.max(2, Math.round(innerWidth * d));
+      canvas.height = Math.max(2, Math.round(innerHeight * d));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.fillStyle = '#050507';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } catch (_) {
+      // Transition evidence must never turn a normal navigation into a dead end.
+    }
+  })();
+</script>
+
 <script>
   import "./kodex-transition-client.ts";
 </script>
