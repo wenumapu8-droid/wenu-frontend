@@ -926,9 +926,9 @@ const sigD = peine(0x24f, 130, 236, 78);
     prof: Math.sin(ang),
   });
   const anillos = [
-    { f: 1.0, n: 10, off: Math.PI / 10, torres: (i: number) => true, h: 88 },
-    { f: 0.72, n: 10, off: 0, torres: (i: number) => i % 2 === 0, h: 72 },
-    { f: 0.44, n: 8, off: Math.PI / 8, torres: (i: number) => i % 2 === 0, h: 58 },
+    { f: 1.0, n: 10, off: Math.PI / 10, torres: (i: number) => true, h: 56 },
+    { f: 0.72, n: 10, off: 0, torres: (i: number) => true, h: 44 },
+    { f: 0.44, n: 8, off: Math.PI / 8, torres: (i: number) => i % 2 === 0, h: 38 },
   ];
   const nodos: Nodo[][] = anillos.map((a, ai) =>
     Array.from({ length: a.n }, (_, i) => {
@@ -976,12 +976,12 @@ const sigD = peine(0x24f, 130, 236, 78);
     /* halo aditivo */
     g.save();
     g.globalCompositeOperation = "lighter";
-    const halo = g.createRadialGradient(x, y - h * 0.55, 2, x, y - h * 0.55, h * 0.85);
-    halo.addColorStop(0, tinta("140,175,255", 0.34 * luz * cerca));
-    halo.addColorStop(0.5, tinta("120,130,230", 0.1 * luz * cerca));
+    const halo = g.createRadialGradient(x, y - h * 0.55, 2, x, y - h * 0.55, h * 0.95);
+    halo.addColorStop(0, tinta("155,190,255", 0.5 * luz * cerca));
+    halo.addColorStop(0.5, tinta("125,135,235", 0.16 * luz * cerca));
     halo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = halo;
-    g.beginPath(); g.arc(x, y - h * 0.55, h * 0.85, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(x, y - h * 0.55, h * 0.95, 0, Math.PI * 2); g.fill();
     /* cuerpo del cristal */
     const grad = g.createLinearGradient(x, y - h, x, y);
     grad.addColorStop(0, tinta("235,244,255", 0.95 * cerca));
@@ -1072,7 +1072,7 @@ const sigD = peine(0x24f, 130, 236, 78);
     const dib = (filtro: (p: number) => boolean, cerca: number) => {
       /* aros de la retícula: sólo tramo correspondiente */
       for (const a of anillos) {
-        g.strokeStyle = tinta("205,200,190", 0.3 * cerca);
+        g.strokeStyle = tinta("205,200,190", 0.45 * cerca);
         g.lineWidth = 1;
         g.beginPath();
         g.ellipse(CX, CY, RXO * a.f, RYO * a.f, 0, filtro(-1) ? Math.PI : 0, filtro(-1) ? Math.PI * 2 : Math.PI);
@@ -1091,8 +1091,10 @@ const sigD = peine(0x24f, 130, 236, 78);
         }
       }
       /* órbitas punteadas intermedias */
+      elipse(0.93, tinta("170,180,215", 0.16 * cerca), 0.8, [2, 5]);
       elipse(0.86, tinta("170,180,215", 0.2 * cerca), 0.8, [2, 5]);
       elipse(0.58, tinta("170,180,215", 0.18 * cerca), 0.8, [2, 5]);
+      elipse(0.5, tinta("170,180,215", 0.15 * cerca), 0.8, [1, 4]);
 
       /* cuerdas y radios */
       for (let ai = 0; ai < nodos.length; ai++) {
@@ -1101,19 +1103,33 @@ const sigD = peine(0x24f, 130, 236, 78);
           const nd = ring[i];
           if (!filtro(nd.prof)) continue;
           /* radio al centro */
-          linea(nd, { x: CX, y: CY }, tinta("190,195,215", 0.14 * cerca), 0.7);
-          /* al vecino del mismo anillo */
+          linea(nd, { x: CX, y: CY }, tinta("190,195,215", 0.28 * cerca), 0.7);
+          /* al vecino del mismo anillo: viga doble en el exterior */
           const vec = ring[(i + 1) % ring.length];
-          linea(nd, vec, tinta("205,200,190", 0.26 * cerca), 0.9);
+          linea(nd, vec, tinta("205,200,190", 0.5 * cerca), ai === 0 ? 1.2 : 0.9);
+          if (ai === 0) {
+            linea({ x: nd.x, y: nd.y + 5 }, { x: vec.x, y: vec.y + 5 }, tinta("205,200,190", 0.28 * cerca), 0.8);
+            linea({ x: nd.x, y: nd.y + 2.5 }, { x: vec.x, y: vec.y + 2.5 }, tinta("205,200,190", 0.2 * cerca), 0.6, [1, 4]);
+          }
           /* al anillo interior */
           if (ai < nodos.length - 1) {
             const inner = nodos[ai + 1];
             const j = Math.round((i / ring.length) * inner.length) % inner.length;
-            linea(nd, inner[j], tinta("170,185,225", 0.18 * cerca), 0.7, [3, 4]);
+            linea(nd, inner[j], tinta("170,185,225", 0.34 * cerca), 0.7, [3, 4]);
+            linea(nd, inner[(j + 1) % inner.length], tinta("170,185,225", 0.2 * cerca), 0.6);
           }
-          /* cuerda larga (i → i+3 del exterior) */
-          if (ai === 0 && i % 2 === 0) {
-            linea(nd, ring[(i + 3) % ring.length], tinta("160,170,210", 0.12 * cerca), 0.6, [1, 4]);
+          /* cuerdas largas del anillo exterior */
+          if (ai === 0) {
+            linea(nd, ring[(i + 3) % ring.length], tinta("160,170,210", 0.2 * cerca), 0.6, [1, 4]);
+            if (i % 2 === 0) linea(nd, ring[(i + 4) % ring.length], tinta("160,170,210", 0.15 * cerca), 0.6);
+          }
+          /* motas de luz sobre la viga */
+          if (ai === 0) {
+            for (const t of [0.3, 0.62, 0.85]) {
+              const mx = nd.x + (vec.x - nd.x) * t, my = nd.y + (vec.y - nd.y) * t;
+              g.fillStyle = tinta("225,235,255", 0.6 * cerca);
+              g.beginPath(); g.arc(mx, my, 1, 0, Math.PI * 2); g.fill();
+            }
           }
         }
       }
@@ -1139,9 +1155,23 @@ const sigD = peine(0x24f, 130, 236, 78);
     dib((p) => p < 0, 0.55);
 
     /* ── centro: rosetón de anillos + eje + gran cristal ── */
-    for (const [f, o] of [[0.3, 0.35], [0.24, 0.3], [0.17, 0.4], [0.1, 0.35]] as const) {
+    for (const [f, o] of [
+      [0.32, 0.3], [0.28, 0.25], [0.24, 0.35], [0.2, 0.3],
+      [0.165, 0.45], [0.13, 0.35], [0.095, 0.45], [0.06, 0.4],
+    ] as const) {
       elipse(f, tinta("205,200,190", o), 1);
     }
+    elipse(0.36, tinta("170,185,225", 0.22), 0.8, [2, 4]);
+    /* aro encendido del rosetón */
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    g.strokeStyle = tinta("150,180,255", 0.45 * luz);
+    g.lineWidth = 3;
+    g.beginPath(); g.ellipse(CX, CY, RXO * 0.135, RYO * 0.135, 0, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = tinta("170,195,255", 0.3 * luz);
+    g.lineWidth = 1.4;
+    g.beginPath(); g.ellipse(CX, CY, RXO * 0.2, RYO * 0.2, 0, 0, Math.PI * 2); g.stroke();
+    g.restore();
     /* peine de marcas del rosetón */
     for (let k = 0; k < 40; k++) {
       const a = (k / 40) * Math.PI * 2;
@@ -1166,12 +1196,12 @@ const sigD = peine(0x24f, 130, 236, 78);
     cristal(CX, CY + 8, 150, luz, 1);
     g.save();
     g.globalCompositeOperation = "lighter";
-    const nucleo = g.createRadialGradient(CX, CY - 60, 4, CX, CY - 60, 130);
-    nucleo.addColorStop(0, tinta("200,222,255", 0.5 * luz));
-    nucleo.addColorStop(0.5, tinta("130,150,235", 0.16 * luz));
+    const nucleo = g.createRadialGradient(CX, CY - 60, 4, CX, CY - 60, 150);
+    nucleo.addColorStop(0, tinta("210,228,255", 0.6 * luz));
+    nucleo.addColorStop(0.5, tinta("135,155,240", 0.2 * luz));
     nucleo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = nucleo;
-    g.beginPath(); g.arc(CX, CY - 60, 130, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(CX, CY - 60, 150, 0, Math.PI * 2); g.fill();
     g.restore();
     /* cristal colgante bajo el centro */
     g.strokeStyle = tinta("160,180,230", 0.4);
