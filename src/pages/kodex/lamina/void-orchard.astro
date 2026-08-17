@@ -1118,19 +1118,66 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
       gF.stroke();
     }
 
-    /* LA ISLA principal: masa rocosa colgante */
+    /* LA ISLA principal: en la referencia NO es una lasca plana, es un CONO
+       INVERTIDO de roca que baja casi 200 px hasta una punta, con la meseta
+       arriba y la masa colgando. La versión plana dejaba pasar toda la
+       nebulosa por debajo: centro-isla marcaba 158 % de cobertura, la región
+       con más luz de más de la lámina. La isla es el tapón de esa región. */
     gF.fillStyle = "rgba(8,5,10,0.97)";
     gF.beginPath();
-    gF.moveTo(390, 1044);
-    for (let x = 390; x <= 845; x += 24) {
+    gF.moveTo(378, 1044);
+    for (let x = 378; x <= 855; x += 22) {
       gF.lineTo(x, 1036 + Math.sin(x * 0.05) * 6 + (rnd() - 0.5) * 8);
     }
-    for (let x = 845; x >= 390; x -= 20) {
-      const prof = 1 - Math.abs(x - 617) / 260;
-      gF.lineTo(x, 1050 + prof * 96 + (rnd() - 0.5) * 26);
+    /* la caída: de la meseta a la punta, con la roca quebrada en escalones */
+    for (let x = 855; x >= 378; x -= 17) {
+      const u = 1 - Math.abs(x - 617) / 240;          // 0 en los bordes, 1 al eje
+      const prof = Math.pow(Math.max(0, u), 0.7) * 196;
+      gF.lineTo(x, 1046 + prof + (rnd() - 0.5) * 30);
     }
     gF.closePath();
     gF.fill();
+    /* estalactitas del vientre: los hilos negros con cuenta de oro */
+    for (let i = 0; i < 46; i++) {
+      const x = 386 + rnd() * 462;
+      const u = 1 - Math.abs(x - 617) / 240;
+      const y0 = 1046 + Math.pow(Math.max(0, u), 0.7) * 190;
+      const l = 26 + rnd() * 130;
+      gF.strokeStyle = "rgba(7,5,10,0.94)";
+      gF.lineWidth = 1 + rnd() * 2.4;
+      gF.beginPath();
+      gF.moveTo(x, y0 - 6);
+      gF.quadraticCurveTo(x + (rnd() - 0.5) * 22, y0 + l * 0.55, x + (rnd() - 0.5) * 16, y0 + l);
+      gF.stroke();
+      if (rnd() < 0.45) {
+        gF.fillStyle = tinta("214,182,110", 0.4);
+        gF.beginPath(); gF.arc(x, y0 + l, 1.4, 0, Math.PI * 2); gF.fill();
+      }
+    }
+    /* LA RED DE ORO: hilos del canto de la isla a un nodo bajo el eje, con
+       cuentas — es lo que en la referencia dibuja la retícula sobre la roca */
+    const nodo = { x: 614, y: 1186 };
+    gF.lineWidth = 0.7;
+    for (let i = 0; i < 22; i++) {
+      const x0 = 392 + (i / 21) * 452;
+      gF.strokeStyle = tinta("206,176,108", 0.24);
+      gF.beginPath();
+      gF.moveTo(x0, 1044);
+      gF.quadraticCurveTo((x0 + nodo.x) / 2, 1044 + (nodo.y - 1044) * 0.72, nodo.x, nodo.y);
+      gF.stroke();
+      for (const t of [0.35, 0.62, 0.84]) {
+        const mx = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * ((x0 + nodo.x) / 2) + t * t * nodo.x;
+        const my = (1 - t) * (1 - t) * 1044 + 2 * (1 - t) * t * (1044 + (nodo.y - 1044) * 0.72) + t * t * nodo.y;
+        gF.fillStyle = tinta("226,198,124", 0.42);
+        gF.beginPath(); gF.arc(mx, my, 1.1, 0, Math.PI * 2); gF.fill();
+      }
+    }
+    for (const r of [30, 46]) {
+      gF.strokeStyle = tinta("214,182,110", 0.34);
+      gF.beginPath(); gF.arc(nodo.x, nodo.y, r, 0, Math.PI * 2); gF.stroke();
+    }
+    gF.fillStyle = tinta("246,232,190", 0.85);
+    gF.beginPath(); gF.arc(nodo.x, nodo.y, 2.6, 0, Math.PI * 2); gF.fill();
     /* canto superior iluminado de la isla */
     gF.strokeStyle = tinta("205,181,121", 0.32);
     gF.lineWidth = 1.2;
@@ -1164,7 +1211,11 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
       }
       for (let i = 12; i >= 0; i--) {
         const u = i / 12;
-        gF.lineTo(isla.x - isla.r + u * isla.r * 2, isla.y + 12 + Math.sin(u * 5) * (isla.r * 0.4) * Math.sin(u * Math.PI));
+        /* mismas cuñas invertidas que la isla mayor, no lascas planas */
+        gF.lineTo(
+          isla.x - isla.r + u * isla.r * 2,
+          isla.y + 10 + (isla.r * 1.15) * Math.pow(Math.sin(u * Math.PI), 0.75) + Math.sin(u * 7) * 8
+        );
       }
       gF.closePath();
       gF.fill();
