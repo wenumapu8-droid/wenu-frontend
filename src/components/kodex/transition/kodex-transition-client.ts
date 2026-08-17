@@ -253,10 +253,22 @@ class Ritual {
   /** Al llegar: el mismo gesto al revés, para que se lea como continuación. */
   async recomponer(variante: VarianteRitual = "default"): Promise<void> {
     this.aplicarVariante(variante);
-    if (REDUCIDO) return;
     const ms = duracion();
     this.raiz.dataset.activo = "";
     this.raiz.dataset.fase = "recomposicion";
+
+    // Reduced motion keeps the same semantic target cue without animating it.
+    // Keeping the static end-state for a short bounded interval makes the
+    // boundary legible and observable on the destination document, while the
+    // CSS media query keeps the canvas and accent edge disabled.
+    if (REDUCIDO) {
+      await new Promise<void>((listo) => setTimeout(listo, Math.min(240, ms * 0.5)));
+      delete this.raiz.dataset.activo;
+      delete this.raiz.dataset.fase;
+      this.aplicarVariante("default");
+      return;
+    }
+
     this.pintar(1, this.acento());
     await this.animar(1, 0, ms * 0.5);
     delete this.raiz.dataset.activo;
