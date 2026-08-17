@@ -40,25 +40,23 @@ Knowledge dispatch/fingerprint and G07-vs-G02 hierarchy are browser-validated. `
 
 Living-field correctness is also closed: `CON-RITUAL` uses registered `MOTION_03_FIELD_MARBLE`, and `ACTIVATION_COMPATIBILITY` hard-fails scene/plate-incompatible FIELD activators.
 
-### GP-CON-03 current frontier
+### GP-CON-03 exact-head materiality close
 
-Last fully verified PR #62 head: `e83673be5615ef7cd2974e60c711c758c0ae715c`.
+Current exact PR #62 head: `70d8a756a2c46227179fac01c9835e8e1d358be7`.
 
-KODEX Core Runtime run #291 / `31980392530`: **SUCCESS**.
+KODEX Core Runtime run #292 / `31985966672`: **SUCCESS**.
 
-Artifact: `9272203841`  
-Digest: `sha256:970341dc90224670269f770c69023fe2c45349da18ccf3b6f37f3549ca72ed1b`.
+Artifact: `9273811118`  
+Digest: `sha256:0dad58e09c3651f613cddd0f29c5c9f8aea86603093bc21e36f1993995700516`.
 
-Contract/build/browser/Deep Navigation/Golden gates are green on that verified SHA. Direct inspection of `gp-con-03-desktop.png` confirmed the v3 structural repair materially reduced the previous closed-orbit reading, but several long smooth internal arcs still suggested orbital/trajectory language.
+The full technical chain is green on this exact SHA: scene/runtime, JourneyState/graph/memory, Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and rendered Golden Plate evidence.
 
-Current implementation candidate head: `70d8a756a2c46227179fac01c9835e8e1d358be7`.
+Direct artifact inspection of `GP-CON-03` confirms the v4 line-language repair crossed the specific target identified in runs 289–291: the field now reads primarily as fractured membrane / irregular tissue rather than an orbital or trajectory system. Broken seams, discontinuous striations, angular torn folds, displaced nucleus and asymmetric field mass materially subordinate the residual circular lineage.
 
-The v4 delta changes only `src/styles/kodex-golden-consciousness-materiality.css`: continuous arc borders are replaced by fractured polygon seams, short discontinuous striations, angular torn folds and a broken diagonal tissue seam. The same FIELD DOM nodes, displaced nucleus, asymmetric membrane mass, explicit activation and reduced-motion static semantics are preserved.
+State: **BROWSER-VALIDATED / SPECIFIC AGENT-AUDIT PERCEPTUAL DEFECT CLOSED**.  
+`human_curator_acceptance=NOT_RUN`. This is not creator approval or final visual canon. Protected ART cases remain source-byte WITHHELD; no protected-art materiality/no-crop visual acceptance may be inferred.
 
-KODEX Core Runtime run #292 / `31985966672` is **QUEUED** on this exact candidate SHA. Do not promote v4 to TESTED/BROWSER-VALIDATED until that run completes and its GP-CON-03 artifact is inspected.
-
-State: **IMPLEMENTED CANDIDATE / EXACT-HEAD QA PENDING**.  
-`human_curator_acceptance=NOT_RUN`. Protected ART cases remain source-byte WITHHELD; no protected-art materiality/no-crop visual acceptance may be inferred.
+Do not continue iterative GP-CON-03 styling without a new bounded defect from creator/readability review.
 
 ---
 
@@ -99,12 +97,12 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 6. Exact next action
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; P0.1–P0.10 remain closed.
-2. Treat run #291 on `e83673be...` as the last fully verified technical truth for GP-CON-03.
-3. Treat `70d8a756...` as a bounded presentation candidate only until exact-head QA completes.
-4. Allow run #292 to execute naturally; if provider execution becomes unavailable, use KOD-69 with the same SHA-bound gates rather than looping hosted reruns.
-5. If #292 is green, inspect the GP-CON-03 artifact specifically for whether orbital/trajectory line language has yielded to irregular membrane/seam language before any further edit.
-6. Keep `human_curator_acceptance=NOT_RUN` until actual creator/readability review.
-7. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
-8. Keep #77 mechanically closed and draft.
-9. Keep #82/#83 isolated until their state/memory semantics are reconciled with existing #62/#76 substrates.
+2. Treat `70d8a756...` / run #292 as the current exact-head technical truth for GP-CON-03.
+3. Treat the specific residual orbital/trajectory line-language defect as closed at agent-audit implementation level; do not keep styling by inertia.
+4. Move the Golden benchmark to actual creator/readability review across the rendered 12-plate set; `human_curator_acceptance` remains `NOT_RUN` until that happens.
+5. Make another renderer/material/composition change only if review identifies a specific bounded defect, then re-run exact-head evidence.
+6. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
+7. Keep #77 mechanically closed and draft.
+8. Keep #82/#83 isolated until their state/memory semantics are reconciled with existing #62/#76 substrates.
+9. Use KOD-69 rather than looping hosted reruns if provider CI becomes unavailable.
 10. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
