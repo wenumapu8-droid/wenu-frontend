@@ -25,7 +25,7 @@ assert.deepEqual(
   'local PRNG must replay exactly',
 );
 
-for (const topology of [a, b]) {
+function assertTopology(topology) {
   assert.ok(
     topology.nodes.length >= 20 && topology.nodes.length <= 49,
     `bounded node count: ${topology.nodes.length}`,
@@ -55,6 +55,27 @@ for (const topology of [a, b]) {
   }
 }
 
+assertTopology(a);
+assertTopology(b);
+
+// A bounded deterministic sweep protects the topology model against seeds that
+// accidentally collapse the lattice or push geometry outside the canvas. It is
+// intentionally pure/fast; browser and creator evidence remain separate gates.
+const sweep = [];
+for (let i = 0; i < 256; i += 1) {
+  const left = ((i * 7919) >>> 0).toString(16).toUpperCase().padStart(8, '0').slice(0, 4);
+  const right = ((i * 104729) >>> 0).toString(16).toUpperCase().padStart(8, '0').slice(-4);
+  const seed = `${left}-${right}`;
+  const topology = buildMachineTopology(seed, options);
+  assertTopology(topology);
+  assert.deepEqual(
+    topology,
+    buildMachineTopology(seed, options),
+    `sweep seed ${seed} must replay exactly`,
+  );
+  sweep.push({ nodes: topology.nodes.length, edges: topology.edges.length });
+}
+
 console.log(JSON.stringify({
   status: 'PASS',
   version: a.version,
@@ -62,4 +83,11 @@ console.log(JSON.stringify({
   seedB: { nodes: b.nodes.length, edges: b.edges.length, cells: b.cells.length },
   sameSeedExact: JSON.stringify(a) === JSON.stringify(replayA),
   differentSeedDifferent: JSON.stringify(a) !== JSON.stringify(b),
+  sweep: {
+    samples: sweep.length,
+    minNodes: Math.min(...sweep.map((sample) => sample.nodes)),
+    maxNodes: Math.max(...sweep.map((sample) => sample.nodes)),
+    minEdges: Math.min(...sweep.map((sample) => sample.edges)),
+    maxEdges: Math.max(...sweep.map((sample) => sample.edges)),
+  },
 }, null, 2));
