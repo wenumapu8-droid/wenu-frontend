@@ -40,11 +40,6 @@ async function boundedGeometry(page, selector, profileId) {
 
 async function clickAndRequirePath(page, locator, expectedPath, profileId) {
   await locator.waitFor({ state: 'visible' });
-  // Correctness belongs to the exact browser pathname, not Playwright's
-  // navigation lifecycle observer. The corridor can replace the document
-  // quickly enough that waitForURL reports ERR_ABORTED/frame-detached even
-  // when the destination is already loading/rendered. Sampling pathname keeps
-  // the route contract strict without coupling PASS to that observer race.
   await locator.click({ noWaitAfter: true });
   await page.waitForFunction(
     (path) => window.location.pathname === path,
@@ -63,15 +58,17 @@ async function machineCanvasSignature(page) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
     const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    // Deterministic sampled FNV-1a fingerprint. This is evidence of rendered
-    // equality/difference only, not a cryptographic or aesthetic score.
+    // Deterministic sampled FNV-1a fingerprint. Hash RGBA channels separately:
+    // collapsing one pixel with XOR can alias visibly different assembly frames.
+    // This remains equality/difference evidence, never an aesthetic score.
     let hash = 0x811c9dc5;
     let paintedSamples = 0;
     for (let i = 0; i < pixels.length; i += 16) {
-      const value = pixels[i] ^ pixels[i + 1] ^ pixels[i + 2] ^ pixels[i + 3];
       if (pixels[i] || pixels[i + 1] || pixels[i + 2] || pixels[i + 3]) paintedSamples += 1;
-      hash ^= value;
-      hash = Math.imul(hash, 0x01000193) >>> 0;
+      for (let channel = 0; channel < 4; channel += 1) {
+        hash ^= pixels[i + channel];
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+      }
     }
     return {
       width: canvas.width,
@@ -107,7 +104,6 @@ for (const profile of profiles) {
   });
 
   try {
-    // ARCHIVE → MACHINE quiet interlude: it is an explicit pause, not an auto-transition.
     await page.goto(`${baseURL}/kodex/interlude/archive-machine/`, { waitUntil: 'networkidle' });
     await page.waitForSelector('[data-kx][data-stage-name="QUIET FRAME"]');
     const interludeGeometry = await boundedGeometry(page, '[data-stage-name="QUIET FRAME"]', `${profile.id}/interlude`);
@@ -137,7 +133,6 @@ for (const profile of profiles) {
     const interludeNext = page.locator('[data-deck-next]');
     await clickAndRequirePath(page, interludeNext, '/kodex/folio/iv/', `${profile.id}/interlude`);
 
-    // MACHINE: generation is local state; navigation remains a separate explicit NEXT.
     await page.waitForSelector('[data-kx][data-stage-name="MACHINE"]');
     const machineGeometry = await boundedGeometry(page, '[data-stage-name="MACHINE"]', `${profile.id}/machine`);
     const initial = await page.evaluate(() => {
@@ -170,7 +165,6 @@ for (const profile of profiles) {
     assert(readySignature?.paintedSamples > 0, `${profile.id}: READY canvas fingerprint has no painted samples`);
     await page.screenshot({ path: `${outDir}/machine-${profile.id}-ready.png`, fullPage: true });
 
-    // Truth boundary: decorative percentages cannot masquerade as verified runtime telemetry.
     assert(!/^\d+(?:\.\d+)?%$/.test(initial.integrity ?? ''), `${profile.id}: UNSOURCED_TELEMETRY — MACHINE exposes literal INTEGRITY ${initial.integrity} without a verified runtime measurement source`);
 
     const generate = page.locator('[data-machine-generate]');
@@ -223,9 +217,6 @@ for (const profile of profiles) {
     });
     assert(Array.isArray(machineJourney?.views) && machineJourney.views.includes('/kodex/folio/iv/'), `${profile.id}: MACHINE visit memory missing`);
 
-    // Browser-level deterministic replay: reload the canonical MACHINE route,
-    // which restores its canonical seed, and require the rendered canvas to
-    // reproduce the exact READY fingerprint observed before GENERATE.
     await page.goto(`${baseURL}/kodex/folio/iv/`, { waitUntil: 'networkidle' });
     await page.waitForSelector('[data-kx][data-stage-name="MACHINE"]');
     const replay = await page.evaluate(() => ({
