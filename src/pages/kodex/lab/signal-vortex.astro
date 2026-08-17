@@ -1,0 +1,189 @@
+---
+/**
+ * KODEX-∞ · KOD-72 · SIGNAL VORTEX — prototipo interno
+ * KDX-SCREEN-SIGNAL-014 · Signal Vortex / Translation Field
+ *
+ * ESTADO DE DERECHOS, primero y en mayúsculas porque el marco lo exige:
+ * INTERNAL_PRODUCTION_ONLY / RIGHTS_NEEDS_CONFIRMATION. Esto NO es un SKU.
+ * Es el primer organismo del carril Visual Systems / Pack 001 — SIGNAL, y
+ * existe para demostrar la cadena SOURCE → IMPLEMENTED → EXPORT sin HUD.
+ *
+ * Lo que el ticket pide, y cómo se cumple acá:
+ *   · loop DETERMINISTA — semilla fija, y BUCLE PERFECTO: todo movimiento es
+ *     función de la fase en [0,1) con armónicos ENTEROS, así que el cuadro de
+ *     fase 0.999 empalma con el de fase 0 sin costura. Un loop de VJ que
+ *     "salta" al cerrar no sirve; éste no salta por construcción.
+ *   · campo de vórtice + partículas — espirales logarítmicas hacia el centro,
+ *     cada partícula con su ciclo desfasado y fundido en los extremos.
+ *   · waveform — anillo con desplazamiento radial armónico.
+ *   · BLACK state / SIGNAL state — ?state=signal o el conmutador del HUD.
+ *   · reduced-motion — el kit alarga el período; no se apaga.
+ *   · EXPORT LIMPIO — ?export=1 quita TODO el cromo: queda el organismo solo,
+ *     listo para capturar. El HUD es periférico y desechable por diseño
+ *     (compuerta autoral 2: HUD periférico; compuerta 3: standalone visual).
+ */
+import "../../../styles/kodex-lamina.css";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · SIGNAL VORTEX · KDX-SCREEN-SIGNAL-014</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam">
+    <div
+      class="sv"
+      data-lam="signal-vortex"
+      data-kdx-id="KDX-SCREEN-SIGNAL-014"
+      data-kdx-rights="INTERNAL_PRODUCTION_ONLY"
+      data-kdx-chain="IMPLEMENTED"
+    >
+      <canvas id="sv-campo"></canvas>
+
+      <header class="sv-hud" data-sv-hud>
+        <div>
+          <strong>KDX-SCREEN-SIGNAL-014</strong>
+          <span>SIGNAL VORTEX / TRANSLATION FIELD</span>
+        </div>
+        <div class="sv-hud-der">
+          <button type="button" data-sv-state aria-pressed="false">STATE · BLACK</button>
+          <span class="sv-rights">INTERNAL ONLY · RIGHTS NEEDS CONFIRMATION</span>
+        </div>
+      </header>
+    </div>
+
+    <style is:global>
+      html, body { margin: 0; background: #000; height: 100%; }
+      .sv { position: fixed; inset: 0; background: #020203; font-family: var(--lam-mono); }
+      #sv-campo { position: absolute; inset: 0; width: 100%; height: 100%; }
+      .sv-hud {
+        position: absolute; top: 0; left: 0; right: 0; z-index: 1;
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        padding: 16px 20px; color: #cfd4d6; font-size: 11px; letter-spacing: .16em;
+        pointer-events: none;
+      }
+      .sv-hud strong { display: block; font-size: 12px; }
+      .sv-hud span { display: block; color: #6d7478; margin-top: 3px; }
+      .sv-hud-der { text-align: right; }
+      .sv-hud button {
+        pointer-events: auto; cursor: pointer; font: inherit; letter-spacing: .18em;
+        color: #cfd4d6; background: rgba(255,255,255,.05);
+        border: 1px solid rgba(255,255,255,.25); padding: 7px 14px;
+      }
+      .sv-hud button[aria-pressed="true"] { color: #0a0a0a; background: #ff2733; border-color: #ff2733; }
+      .sv-rights { color: #8a5c20 !important; font-size: 10px; }
+      .sv[data-export] .sv-hud { display: none; } /* export limpio: cero cromo */
+    </style>
+
+    <script>
+      import { montarLienzo, tinta } from "../../../components/kodex/lamina/kit/lienzo";
+      import { rng } from "../../../components/kodex/lamina/kit/rng";
+
+      const raiz = document.querySelector("[data-lam]") as HTMLElement;
+      const canvas = document.getElementById("sv-campo") as HTMLCanvasElement;
+      const q = new URLSearchParams(location.search);
+      if (q.has("export")) raiz.dataset.export = "1";
+
+      /* señal: BLACK = monocromo; SIGNAL = el rojo del sistema sobre cian frío */
+      let señal = q.get("state") === "signal";
+      const boton = document.querySelector<HTMLButtonElement>("[data-sv-state]");
+      const pintarEstado = () => {
+        if (boton) {
+          boton.textContent = señal ? "STATE · SIGNAL" : "STATE · BLACK";
+          boton.setAttribute("aria-pressed", señal ? "true" : "false");
+        }
+        raiz.dataset.state = señal ? "signal" : "black";
+      };
+      boton?.addEventListener("click", () => { señal = !señal; pintarEstado(); });
+      pintarEstado();
+
+      /* lienzo a pantalla completa con DPR acotado (regla del kit) */
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      let W = 0, H = 0, CX = 0, CY = 0, R = 0;
+      const medir = () => {
+        W = innerWidth; H = innerHeight;
+        canvas.width = W * dpr; canvas.height = H * dpr;
+        const g0 = canvas.getContext("2d")!;
+        g0.setTransform(dpr, 0, 0, dpr, 0, 0);
+        CX = W / 2; CY = H / 2; R = Math.min(W, H) * 0.46;
+      };
+      medir();
+      addEventListener("resize", medir);
+      const g = canvas.getContext("2d")!;
+
+      /* ── las partículas del vórtice, decididas UNA vez ──────────────
+         Cada una vive un ciclo radial desfasado: nace en el borde, espirala
+         al centro y se funde en ambos extremos (sin costura al reciclar).
+         `vueltas` y `ciclos` son ENTEROS: eso ES el bucle perfecto. */
+      const rnd = rng(0x51914);
+      const N = 900;
+      const parts = Array.from({ length: N }, () => ({
+        off: rnd(),                       // desfase del ciclo radial
+        ang0: rnd() * Math.PI * 2,        // ángulo de nacimiento
+        vueltas: 2 + Math.floor(rnd() * 3), // vueltas ENTERAS por ciclo
+        ciclos: 1 + Math.floor(rnd() * 2),  // ciclos radiales ENTEROS por fase
+        tam: 0.6 + rnd() * 1.8,
+        tono: rnd(),
+      }));
+
+      const TAU = Math.PI * 2;
+      const cuadro = (fase: number) => {
+        g.clearRect(0, 0, W, H);
+
+        const colBase = señal ? "112,214,232" : "212,214,216";
+        const colAcento = señal ? "255,39,51" : "245,246,248";
+
+        /* el waveform: anillo con armónicos enteros de fase — sin costura */
+        g.strokeStyle = tinta(colAcento, 0.55);
+        g.lineWidth = 1.4;
+        g.beginPath();
+        for (let a = 0; a <= TAU + 0.01; a += 0.02) {
+          const d =
+            Math.sin(a * 6 + fase * TAU * 2) * 7 +
+            Math.sin(a * 11 - fase * TAU * 3) * 4 +
+            Math.sin(a * 17 + fase * TAU * 5) * 2;
+          const rr = R * 0.62 + d;
+          const x = CX + Math.cos(a) * rr, y = CY + Math.sin(a) * rr;
+          a ? g.lineTo(x, y) : g.moveTo(x, y);
+        }
+        g.stroke();
+
+        /* las partículas */
+        for (const p of parts) {
+          const u = (fase * p.ciclos + p.off) % 1;      // ciclo radial propio
+          const r = R * Math.pow(1 - u, 0.72);
+          const a = p.ang0 + u * p.vueltas * TAU;
+          const x = CX + Math.cos(a) * r;
+          const y = CY + Math.sin(a) * r * 0.86;         // el campo respira elíptico
+          const vida = Math.sin(u * Math.PI);            // fundido en ambos extremos
+          const c = señal && p.tono < 0.18 ? colAcento : colBase;
+          g.fillStyle = tinta(c, 0.12 + vida * 0.6);
+          g.beginPath();
+          g.arc(x, y, p.tam * (0.5 + vida * 0.8), 0, TAU);
+          g.fill();
+          /* estela corta hacia atrás del giro */
+          if (vida > 0.3) {
+            g.strokeStyle = tinta(c, vida * 0.22);
+            g.lineWidth = p.tam * 0.5;
+            const a2 = a - 0.14;
+            g.beginPath();
+            g.moveTo(x, y);
+            g.lineTo(CX + Math.cos(a2) * r, CY + Math.sin(a2) * r * 0.86);
+            g.stroke();
+          }
+        }
+
+        /* el ojo del vórtice */
+        const halo = g.createRadialGradient(CX, CY, 0, CX, CY, R * 0.2);
+        halo.addColorStop(0, tinta(colAcento, señal ? 0.5 : 0.35));
+        halo.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = halo;
+        g.fillRect(CX - R * 0.22, CY - R * 0.22, R * 0.44, R * 0.44);
+      };
+
+      montarLienzo({ raiz, cuadro, periodo: 12000, periodoReducido: 48000 });
+    </script>
+  </body>
+</html>

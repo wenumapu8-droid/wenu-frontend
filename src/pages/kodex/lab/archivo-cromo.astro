@@ -1,0 +1,281 @@
+---
+/**
+ * KODEX−∞ · LAB · CROMO DE ARCHIVO
+ *
+ * Demostración de los seis componentes del cromo de la serie de archivo
+ * (src/components/kodex/archivo/) armando la página a28-silence-engine.
+ * Entra como lab —mismo precedente que heart.astro—: noindex hasta que
+ * el creador la mire.
+ *
+ * TODO el texto visible está TRANSCRITO de
+ * reference/pendientes/a28-silence-engine.png. Nada se inventa: la
+ * regla dura de la serie es que aforismos y rótulos son del creador.
+ *
+ * El organismo central NO se reproduce: en la referencia es imagen
+ * renderizada (la cámara del silencio con su esfera oscura) y la
+ * decisión de qué placa va ahí es del creador. Queda un marco vacío
+ * rotulado. Solo el cromo es DOM/SVG.
+ *
+ * La lámina se dibuja a tamaño fijo 1229×1536 (el de su referencia) y
+ * se escala con transform calculado en JS — `100vw / 1229` en CSS da
+ * una longitud y scale() quiere un número (trampa documentada).
+ */
+import Base from "../../../layouts/Base.astro";
+import CabeceraArchivo from "../../../components/kodex/archivo/CabeceraArchivo.astro";
+import TituloBilingue from "../../../components/kodex/archivo/TituloBilingue.astro";
+import TarjetaMetrica from "../../../components/kodex/archivo/TarjetaMetrica.astro";
+import RielMetricas from "../../../components/kodex/archivo/RielMetricas.astro";
+import AforismoPie from "../../../components/kodex/archivo/AforismoPie.astro";
+import SelloClasificacion from "../../../components/kodex/archivo/SelloClasificacion.astro";
+import Waveform from "../../../components/kodex/lamina/kit/Waveform.astro";
+import { rng } from "../../../components/kodex/lamina/kit/rng";
+
+/* Diagramas del riel: geometría determinista (nunca Math.random(); el
+   azar con semilla viene del kit, misma regla que las láminas).
+   Formas transcritas de la referencia: onda de ruido (NOISE FLOOR),
+   anillos concéntricos con motas orbitales (STILLNESS DEPTH), dos
+   senoidales opuestas (PHASE CANCELLATION), flor de la vida
+   (COHERENCE). */
+
+/* PHASE CANCELLATION: dos ondas en oposición exacta (180°), con
+   envolvente senoidal para que se cierren en los extremos como en la
+   referencia. */
+const onda = (fase: number) =>
+  Array.from({ length: 81 }, (_, i) => {
+    const u = i / 80;
+    const x = u * 170;
+    const y = 40 + 30 * Math.sin(u * Math.PI * 4 + fase) * Math.sin(u * Math.PI);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+const faseA = onda(0);
+const faseB = onda(Math.PI);
+
+/* STILLNESS DEPTH: motas sobre los anillos, en ángulos con semilla. */
+const rMotas = rng(28);
+const motas = [40, 52, 62].flatMap((radio) =>
+  Array.from({ length: 4 }, () => {
+    const ang = rMotas() * Math.PI * 2;
+    return {
+      x: 85 + radio * Math.cos(ang),
+      y: 64 + radio * 0.8 * Math.sin(ang),
+    };
+  })
+);
+
+/* COHERENCE: flor de la vida — seis pétalos alrededor del centro. */
+const petalos = Array.from({ length: 6 }, (_, i) => {
+  const ang = (i / 6) * Math.PI * 2 - Math.PI / 2;
+  return { x: 85 + 22 * Math.cos(ang), y: 59 + 22 * Math.sin(ang) };
+});
+---
+
+<Base
+  title="KODEX Lab — Archivo Cromo"
+  description="Private KODEX archive chrome lab."
+  robots="noindex, nofollow"
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+>
+  <div class="arch-escena" data-arch-escena>
+    <div class="arch-marco" data-arch-marco>
+      {/* ── cabecera: esquinas medidas de a28 ─────────────────────── */}
+      <div class="arch-caja arch-caja--cabecera">
+        <CabeceraArchivo marca="KODEX−∞" lema="UNIVERSAL ARCHIVE" rotuloPagina="PAGE" pagina="28">
+          {/* Adorno central de a28: regla con círculo y eje vertical. */}
+          <svg slot="adorno" width="560" height="44" viewBox="0 0 560 44" fill="none" aria-hidden="true">
+            <line x1="0" y1="16" x2="560" y2="16" stroke="currentColor" stroke-opacity="0.5" />
+            <line x1="280" y1="0" x2="280" y2="44" stroke="currentColor" stroke-opacity="0.6" />
+            <circle cx="280" cy="16" r="8" stroke="currentColor" stroke-opacity="0.8" />
+            <line x1="252" y1="16" x2="308" y2="16" stroke="currentColor" stroke-opacity="0.8" />
+          </svg>
+        </CabeceraArchivo>
+      </div>
+
+      {/* ── título: banda medida y134..298 ────────────────────────── */}
+      <div class="arch-caja arch-caja--titulo">
+        <TituloBilingue titulo="SILENCE ENGINE" subtitulo="MOTOR DEL SILENCIO" />
+      </div>
+
+      {/* ── riel izquierdo: caja medida x35..225, y299..1430 ──────── */}
+      <div class="arch-caja arch-caja--riel">
+        <RielMetricas ancho={190} rotulo="métricas del motor del silencio">
+          <TarjetaMetrica tituloEn="NOISE FLOOR" tituloEs="PISO DE RUIDO" valor="−112.6 dB" etiqueta="RELATIVE TO UNITY">
+            <Waveform w={166} h={78} semilla={28} variante="peine" envolvente={0.7} grosor={0.9} clase="arch-demo-onda" />
+          </TarjetaMetrica>
+
+          <TarjetaMetrica tituloEn="STILLNESS DEPTH" tituloEs="PROFUNDIDAD DEL SILENCIO" valor="∞.00" etiqueta="DEPTH INDEX">
+            <svg width="170" height="128" viewBox="0 0 170 128" fill="none" aria-hidden="true">
+              <defs>
+                <radialGradient id="arch-quietud" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#e9e2f8" stop-opacity="0.95" />
+                  <stop offset="40%" stop-color="#cdbcf3" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="#cdbcf3" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              {[26, 40, 52, 62].map((r) => (
+                <ellipse cx="85" cy="64" rx={r} ry={r * 0.8} stroke="currentColor" stroke-opacity="0.4" />
+              ))}
+              <ellipse cx="85" cy="64" rx="14" ry="12" stroke="currentColor" stroke-opacity="0.6" />
+              <circle cx="85" cy="64" r="20" fill="url(#arch-quietud)" />
+              <circle cx="85" cy="64" r="3" fill="#efece7" />
+              {motas.map((m) => (
+                <circle cx={m.x.toFixed(1)} cy={m.y.toFixed(1)} r="1.4" fill="currentColor" fill-opacity="0.8" />
+              ))}
+            </svg>
+          </TarjetaMetrica>
+
+          <TarjetaMetrica tituloEn="PHASE CANCELLATION" tituloEs="CANCELACIÓN DE FASE" valor="180.00°" etiqueta="OPPOSED / PERFECT">
+            <svg width="170" height="80" viewBox="0 0 170 80" fill="none" aria-hidden="true">
+              <line x1="0" y1="40" x2="170" y2="40" stroke="currentColor" stroke-opacity="0.25" />
+              <polyline points={faseA} stroke="currentColor" stroke-opacity="0.75" stroke-width="1" />
+              <polyline points={faseB} stroke="#cdbcf3" stroke-opacity="0.7" stroke-width="1" />
+              <circle cx="85" cy="8" r="2" fill="currentColor" fill-opacity="0.8" />
+              <circle cx="85" cy="72" r="2" fill="currentColor" fill-opacity="0.8" />
+            </svg>
+          </TarjetaMetrica>
+
+          <TarjetaMetrica tituloEn="COHERENCE" tituloEs="COHERENCIA" valor="1.000" etiqueta="MAXIMUM">
+            <svg width="170" height="118" viewBox="0 0 170 118" fill="none" aria-hidden="true">
+              <circle cx="85" cy="59" r="46" stroke="currentColor" stroke-opacity="0.5" />
+              <circle cx="85" cy="59" r="22" stroke="currentColor" stroke-opacity="0.55" />
+              {petalos.map((p) => (
+                <circle cx={p.x.toFixed(1)} cy={p.y.toFixed(1)} r="22" stroke="currentColor" stroke-opacity="0.45" />
+              ))}
+              <circle cx="85" cy="59" r="12" fill="url(#arch-quietud)" />
+              <circle cx="85" cy="59" r="2.4" fill="#efece7" />
+            </svg>
+          </TarjetaMetrica>
+        </RielMetricas>
+      </div>
+
+      {/* ── hueco del organismo central ────────────────────────────
+          En la referencia acá va la imagen renderizada de la cámara.
+          Queda vacío a propósito: la placa la decide el creador. */}
+      <div class="arch-caja arch-caja--placa" aria-hidden="true">
+        <p>PLATE — pendiente de decisión del creador</p>
+      </div>
+
+      {/* ── pie: aforismo + rótulo de cámara, bandas y1450..1506 ──── */}
+      <div class="arch-caja arch-caja--pie">
+        <AforismoPie
+          rotuloEn="CHAMBER OF NULLITY"
+          rotuloEs="CAMARA DE NULIDAD"
+          lineas={[
+            [{ t: "SILENCE IS NOT ABSENCE." }],
+            [{ t: "IT IS " }, { t: "PERFECT ORDER.", acento: true }],
+          ]}
+        >
+          {/* Emblema medido: círculo Ø ~52 px con espada/cruz vertical. */}
+          <svg slot="emblema" width="56" height="56" viewBox="0 0 56 56" fill="none" aria-hidden="true">
+            <circle cx="28" cy="28" r="25" stroke="currentColor" stroke-opacity="0.7" />
+            <circle cx="28" cy="28" r="20" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="2 5" />
+            <line x1="28" y1="12" x2="28" y2="44" stroke="currentColor" stroke-opacity="0.85" />
+            <line x1="21" y1="20" x2="35" y2="20" stroke="currentColor" stroke-opacity="0.85" />
+            <circle cx="28" cy="16" r="2" stroke="currentColor" stroke-opacity="0.85" />
+          </svg>
+        </AforismoPie>
+      </div>
+
+      {/* ── sello + canto: hijo directo del marco a propósito —
+          el canto se ancla al borde del ancestro posicionado. ─────── */}
+      <SelloClasificacion
+        codigo="KX − ∞ − 28"
+        clasificacion="CLASSIFIED / ECHOLESS"
+        lado="der"
+        canto={[
+          [{ t: "IN SILENCE, ALL INTERFERENCE CEASES." }],
+          [{ t: "ONLY " }, { t: "ESSENCE", acento: true }, { t: " REMAINS." }],
+        ]}
+      />
+    </div>
+  </div>
+</Base>
+
+<style>
+  .arch-escena {
+    overflow: hidden;
+    background: #000; /* negro puro: medido en la referencia, no estimado */
+    padding: 16px 0;
+  }
+  .arch-marco {
+    position: relative;
+    width: 1229px;
+    height: 1536px;
+    background: #000;
+    overflow: hidden;
+    transform-origin: 0 0;
+    /* Paleta medida sobre a28: tinta #d8d4d0 de la familia del sistema,
+       título con pico blanco, acento violeta claro rgb(205,188,243) y
+       acento apagado del aforismo rgb(180,169,199). */
+    --arch-ink: #d8d4d0;
+    --arch-ink-titulo: #efece7;
+    --arch-acento: #cdbcf3;
+    --arch-acento-pie: #b4a9c7;
+  }
+  .arch-caja {
+    position: absolute;
+    box-sizing: border-box;
+  }
+  /* Posiciones medidas sobre la referencia (perfil de tinta):
+     cabecera y31..80 · título y134..298 · riel x35..225 y299..1430 ·
+     pie y1450..1506 · sello y1462..1492. */
+  .arch-caja--cabecera { top: 26px; left: 35px; right: 35px; }
+  .arch-caja--titulo { top: 100px; left: 0; right: 0; }
+  /* Altura medida del riel: y299..1430 = 1131 px. El contenido se
+     reparte a lo alto de la caja como en la referencia. */
+  .arch-caja--riel { top: 299px; left: 35px; height: 1131px; }
+  .arch-caja--riel > :global(.arch-riel) {
+    height: 100%;
+    justify-content: space-between;
+  }
+  .arch-caja--placa {
+    top: 330px;
+    left: 278px;
+    width: 790px;
+    height: 1050px;
+    border: 1px dashed color-mix(in srgb, #d8d4d0 28%, transparent);
+    display: grid;
+    place-items: center;
+  }
+  .arch-caja--placa p {
+    margin: 0;
+    font-family: var(--lam-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+    font-size: 12px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, #d8d4d0 45%, transparent);
+  }
+  /* La regla del pie va en y≈1450 medido: con la fila del emblema de
+     56 px y el aforismo de 68 px debajo, el fondo de la caja queda en 2. */
+  .arch-caja--pie { left: 35px; right: 35px; bottom: 2px; }
+  /* El sello va sobre el pie, esquina inferior derecha (medido y1462). */
+  .arch-marco > :global(.arch-sello) {
+    position: absolute;
+    right: 35px;
+    bottom: 40px;
+  }
+  /* El canto no invade cabecera ni pie: en la referencia el texto
+     vertical vive entre el título y el sello. */
+  .arch-marco > :global(.arch-sello__canto) {
+    top: 130px;
+    bottom: 150px;
+  }
+  :global(.arch-demo-onda) {
+    color: #d8d4d0;
+  }
+</style>
+
+<script>
+  // Escala del marco fijo 1229×1536 al ancho disponible. En JS porque
+  // `100vw / 1229` en CSS produce una longitud y scale() pide un número.
+  var marco = document.querySelector("[data-arch-marco]");
+  var escena = document.querySelector("[data-arch-escena]");
+  function ajustar() {
+    if (!(marco instanceof HTMLElement) || !(escena instanceof HTMLElement)) return;
+    var s = Math.min(1, (window.innerWidth - 24) / 1229);
+    var dx = Math.max(0, (window.innerWidth - 1229 * s) / 2);
+    marco.style.transform = "translateX(" + dx + "px) scale(" + s + ")";
+    escena.style.height = 1536 * s + 32 + "px";
+  }
+  ajustar();
+  window.addEventListener("resize", ajustar);
+</script>
