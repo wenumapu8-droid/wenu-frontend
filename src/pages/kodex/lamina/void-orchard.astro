@@ -403,15 +403,19 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
     background: #060409;
     overflow: hidden;
     transform-origin: 0 0;
-    /* Paleta medida sobre a21: tinta clara cálida de los paneles,
-       título dorado (prom rgb(185,159,112), pico blanco), acento
-       violeta de texto (pico rgb(209,192,224)), marcos oro apagado. */
-    --arch-ink: #cfc4ae;
+    /* Paleta medida sobre a21. La primera lectura tomó los PICOS de la
+       referencia y los usó como color de texto, y eso deja los paneles al
+       doble de brillo: barriendo fila por fila el panel ARCHIVE DATA, la
+       referencia da máximos de 103..146 por renglón (181 sólo en el título
+       del panel) y la lámina daba 176..205. Media medida de la caja:
+       referencia rgb(10,9,8) con desviación 19; lámina rgb(17,15,17) con 42.
+       El pico es el brillo de UN píxel del antialias, no el del texto. */
+    --arch-ink: #9a9182;
     --arch-ink-titulo: #ddc287;
-    --arch-acento: #b9a2e0;
-    --arch-acento-pie: #a794cf;
-    --vo-oro: #c2a76b;
-    --vo-marco: rgba(164, 138, 88, 0.5);
+    --arch-acento: #8d7bab;
+    --arch-acento-pie: #7f7099;
+    --vo-oro: #9b8656;
+    --vo-marco: rgba(164, 138, 88, 0.34);
     --vo-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-family: var(--vo-sans);
   }
@@ -527,12 +531,15 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
   .vo-panel--lectura    { left: 953px; top: 1002px; width: 232px; height: 322px; text-align: center; }
   .vo-panel--observacion { left: 953px; top: 1324px; width: 232px; height: 135px; padding-right: 46px; }
 
+  /* El título de panel es lo más claro de la caja también en la referencia
+     (máximo 181 contra 103..146 del cuerpo), pero no blanco: bajado de
+     #d6cdb8 a #a9a08c, la misma proporción que la tinta del cuerpo. */
   .vo-t {
     font-family: var(--vo-sans);
     font-weight: 700;
     font-size: 13.5px;
     letter-spacing: 0.14em;
-    color: #d6cdb8;
+    color: #a9a08c;
   }
   .vo-t--izq { text-align: left; }
   .vo-s {
@@ -632,12 +639,12 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
     gap: 12px;
     text-align: left;
   }
-  .vo-morfo__en { font-weight: 700; font-size: 10px; letter-spacing: 0.1em; color: #ccd0a8; }
+  .vo-morfo__en { font-weight: 700; font-size: 10px; letter-spacing: 0.1em; color: #9ba283; }
   .vo-morfo__es { margin-top: 3px !important; font-weight: 600; font-size: 9px; letter-spacing: 0.1em; color: var(--arch-acento); opacity: 0.9; }
-  .vo-morfo__pot { margin-top: 6px !important; font-weight: 600; font-size: 9px; letter-spacing: 0.12em; color: #c3c8a0; opacity: 0.85; }
+  .vo-morfo__pot { margin-top: 6px !important; font-weight: 600; font-size: 9px; letter-spacing: 0.12em; color: #94997a; opacity: 0.85; }
 
   .vo-cita__texto { text-align: left; }
-  .vo-cita__en { font-weight: 600; font-size: 10.5px; letter-spacing: 0.1em; color: #cdb579; }
+  .vo-cita__en { font-weight: 600; font-size: 10.5px; letter-spacing: 0.1em; color: #9c8a5c; }
   .vo-cita__en + .vo-cita__en { margin-top: 4px !important; }
   .vo-cita__es { margin-top: 4px !important; font-weight: 600; font-size: 10px; letter-spacing: 0.1em; color: var(--arch-acento); }
   p.vo-cita__es:nth-of-type(3) { margin-top: 10px !important; }
@@ -706,11 +713,11 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
   }
   /* grumos chicos y claros del centro: la textura granulada de la pintura */
   const grumos: Array<{x:number;y:number;r:number;o:number;c:string}> = [];
-  for (let k = 0; k < 240; k++) {
+  for (let k = 0; k < 340; k++) {
     const x = 260 + rnd() * 710;
-    const y = 280 + rnd() * 1120;
+    const y = 300 + rnd() * 1080;
     const c = rnd() < 0.35 ? "176,148,200" : rnd() < 0.7 ? "132,106,162" : "96,76,124";
-    grumos.push({ x, y, r: 16 + rnd() * 52, o: 0.06 + rnd() * 0.14, c });
+    grumos.push({ x, y, r: 14 + rnd() * 54, o: 0.09 + rnd() * 0.20, c });
   }
   /* polvo y estrellas */
   const polvo = Array.from({ length: 2600 }, () => ({
@@ -720,11 +727,22 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
     c: rnd() < 0.12 ? "222,196,130" : rnd() < 0.5 ? "196,178,220" : "160,142,190",
   }));
   /* grano fino del centro: la nebulosa de la referencia es ruidosa */
-  const grano = Array.from({ length: 2200 }, () => ({
-    x: 255 + rnd() * 720, y: 270 + rnd() * 1150,
-    s: 0.5 + rnd() * 1.0,
-    o: 0.08 + rnd() * 0.35,
+  /* Medido: la banda central de la referencia tiene desviación típica de
+     luminancia 35, la lámina en la vuelta 13 tenía 19. No es sólo que esté
+     más oscura: está más LISA. El grano y los grumos son la mitad de esa
+     diferencia — la nebulosa pintada es ruidosa y chispea. */
+  const grano = Array.from({ length: 3400 }, () => ({
+    x: 255 + rnd() * 720, y: 290 + rnd() * 1120,
+    s: 0.5 + rnd() * 1.2,
+    o: 0.10 + rnd() * 0.45,
     c: rnd() < 0.18 ? "228,206,150" : rnd() < 0.55 ? "204,184,226" : "168,148,198",
+  }));
+  /* chispas: los puntos claros que la referencia tiene sembrados por toda la
+     nebulosa, con halo — son los que levantan la desviación típica */
+  const chispas = Array.from({ length: 190 }, () => ({
+    x: 262 + rnd() * 700, y: 320 + rnd() * 1050,
+    r: 1.1 + rnd() * 2.0, o: 0.35 + rnd() * 0.5,
+    c: rnd() < 0.3 ? "244,226,168" : "226,214,248",
   }));
 
   /* el árbol: tronco + ramas recursivas, guardadas como segmentos */
@@ -791,6 +809,29 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
   for (let i = 0; i < 10; i++) {
     const lado = i % 2 ? 1 : -1;
     rama(CX + lado * 14, 700 + i * 32, lado * (0.15 + rnd() * 0.55), 170 + rnd() * 90, 6, 3);
+  }
+  /* La campana de raigones (se dibuja como cinta en pintarFondo): la tabla
+     vive acá porque sus puntas siguen en ramitas, y la ramazón se genera una
+     sola vez, antes de pintar. Generarla dentro de pintarFondo la dejaría
+     empujando segmentos a un array ya dibujado — código muerto. */
+  const salidasRaigon: Array<[number, number, number, number]> = [
+    [726, 286, 1024, 19],
+    [772, 238, 1036, 17],
+    [818, 322, 1040, 15],
+    [864, 176, 1042, 13],
+    [906, 262, 1046, 11],
+    [952, 122, 1046, 10],
+  ];
+  const curvaRaigon = new Map<string, [number, number]>();
+  for (const lado of [-1, 1]) {
+    for (const [y0, alcance, yFin] of salidasRaigon) {
+      curvaRaigon.set(`${lado}:${y0}`, [
+        CX + lado * alcance * (0.62 + rnd() * 0.3),
+        y0 + (yFin - y0) * (0.15 + rnd() * 0.25),
+      ]);
+      rama(CX + lado * alcance, yFin, lado * (0.2 + rnd() * 0.7) + (rnd() - 0.5) * 0.5,
+           60 + rnd() * 70, 3, 2);
+    }
   }
   /* raíces colgando bajo la isla */
   const raices: Seg[] = [];
@@ -957,16 +998,16 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
        referencia ahí es negra (medido rgb(19,16,16), 14 % encendido). La
        primera calibración lo estiró hasta y=60 y el título saltó a 312 %
        de cobertura — el campo se le metió detrás a la tipografía. */
-    ambiente(CX, 800, 400, 470, [
-      [0, "rgba(118,96,146,0.52)"],
-      [0.45, "rgba(96,78,124,0.44)"],
-      [0.75, "rgba(64,50,86,0.26)"],
+    ambiente(CX, 810, 400, 520, [
+      [0, "rgba(118,96,146,0.68)"],
+      [0.45, "rgba(96,78,124,0.58)"],
+      [0.75, "rgba(64,50,86,0.36)"],
       [1, "rgba(0,0,0,0)"],
     ]);
     /* foco alto: la corona alrededor de la vaina mayor es el punto más
        claro de la lámina (medido rgb(80,70,85)) */
     ambiente(CX, 570, 300, 250, [
-      [0, "rgba(140,116,170,0.30)"],
+      [0, "rgba(140,116,170,0.38)"],
       [0.6, "rgba(104,84,134,0.16)"],
       [1, "rgba(0,0,0,0)"],
     ]);
@@ -1091,15 +1132,68 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
     gF.quadraticCurveTo(CX + 24, 860, CX + 44, 1038);
     gF.closePath();
     gF.fill();
-    /* contrafuertes: la base se abre en raíces sobre la isla */
-    for (const lado of [-1, 1]) {
+    /* ── LA CAMPANA DE RAIGONES ────────────────────────────────────────
+       El diff de centro-medio (y720..1020) era rojo de borde a borde: en la
+       referencia esa banda no es tronco con fondo, es un sistema de raigones
+       que se abre EN CAMPANA de x≈280 a x≈950 y tapa la nebulosa entera. Un
+       tronco de 88 px ahí deja el 90 % de la banda vacía.
+       Cada raigón es una cinta que sale del eje, se curva hacia afuera y
+       abajo, y se afina: se dibuja como polígono de dos bordes paralelos. */
+    const raigon = (
+      x0: number, y0: number, x1: number, y1: number,
+      cx: number, cy: number, w0: number, w1: number
+    ) => {
+      const pt = (t: number) => ({
+        x: (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * x1,
+        y: (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y1,
+      });
+      const izq: Array<[number, number]> = [];
+      const der: Array<[number, number]> = [];
+      const N = 16;
+      for (let i = 0; i <= N; i++) {
+        const t = i / N;
+        const a = pt(Math.max(0, t - 0.02));
+        const b = pt(Math.min(1, t + 0.02));
+        const ang = Math.atan2(b.y - a.y, b.x - a.x) + Math.PI / 2;
+        const w = (w0 + (w1 - w0) * t) / 2;
+        const p = pt(t);
+        /* el borde se perturba: un raigón de canto liso lee como arco de
+           hormigón, y la referencia tiene madera nudosa */
+        const jz = 1 + (rnd() - 0.5) * 0.55;
+        const jd = 1 + (rnd() - 0.5) * 0.55;
+        izq.push([p.x + Math.cos(ang) * w * jz, p.y + Math.sin(ang) * w * jz]);
+        der.push([p.x - Math.cos(ang) * w * jd, p.y - Math.sin(ang) * w * jd]);
+      }
       gF.beginPath();
-      gF.moveTo(CX + lado * 20, 900);
-      gF.quadraticCurveTo(CX + lado * 70, 990, CX + lado * 120, 1040);
-      gF.lineTo(CX + lado * 120, 1050);
-      gF.quadraticCurveTo(CX + lado * 66, 1006, CX + lado * 14, 930);
+      izq.forEach(([x, y], i) => (i ? gF.lineTo(x, y) : gF.moveTo(x, y)));
+      for (let i = der.length - 1; i >= 0; i--) gF.lineTo(der[i][0], der[i][1]);
       gF.closePath();
       gF.fill();
+    };
+    gF.fillStyle = "rgba(8,5,11,0.96)";
+    for (const lado of [-1, 1]) {
+      /* Seis raigones por lado, angostos: la campana tiene que ser CELOSÍA,
+         no muro. Con cintas anchas la banda cayó a 89,7 % de cobertura y el
+         puntaje empeoró — en la referencia la nebulosa se ve ENTRE las
+         raíces, que es justo lo que las hace leer como raíces. */
+      for (const [y0, alcance, yFin, ancho] of salidasRaigon) {
+        const [cx, cy] = curvaRaigon.get(`${lado}:${y0}`)!;
+        raigon(CX + lado * 16, y0, CX + lado * alcance, yFin, cx, cy, ancho, 2.5);
+      }
+      /* contrafuertes cortos de la base sobre la isla */
+      raigon(CX + lado * 20, 900, CX + lado * 130, 1044, CX + lado * 78, 995, 22, 5);
+    }
+    /* vetas de oro que suben por el tronco (medidas en la referencia como
+       hilos claros sobre la madera negra, no como contorno) */
+    gF.lineWidth = 1;
+    for (let i = 0; i < 7; i++) {
+      const off = (i - 3) * 5;
+      gF.strokeStyle = tinta("214,180,112", 0.1 + (i % 3) * 0.06);
+      gF.beginPath();
+      gF.moveTo(CX + off * 3.4, 1030);
+      gF.quadraticCurveTo(CX + off * 1.6, 860, CX + off * 1.2, 700);
+      gF.quadraticCurveTo(CX + off * 1.4, 610, CX + off, 552);
+      gF.stroke();
     }
     gF.strokeStyle = tinta("150,124,90", 0.12);
     gF.lineWidth = 1;
@@ -1235,6 +1329,19 @@ const ticksPolen = Array.from({ length: 24 }, (_, i) => {
         gF.quadraticCurveTo(rx + (rnd() - 0.5) * 20, isla.y + 40, rx + (rnd() - 0.5) * 30, isla.y + 46 + rnd() * 40);
         gF.stroke();
       }
+    }
+
+    /* CHISPAS: van DESPUÉS del árbol y de la roca, porque en la referencia
+       los puntos de luz están delante de la madera, no detrás */
+    for (const ch of chispas) {
+      const gr = gF.createRadialGradient(ch.x, ch.y, 0, ch.x, ch.y, ch.r * 4);
+      gr.addColorStop(0, tinta(ch.c, ch.o));
+      gr.addColorStop(0.3, tinta(ch.c, ch.o * 0.35));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      gF.fillStyle = gr;
+      gF.fillRect(ch.x - ch.r * 4, ch.y - ch.r * 4, ch.r * 8, ch.r * 8);
+      gF.fillStyle = tinta(ch.c, Math.min(1, ch.o + 0.3));
+      gF.beginPath(); gF.arc(ch.x, ch.y, ch.r * 0.45, 0, Math.PI * 2); gF.fill();
     }
 
     /* cáscaras de las vainas (el brillo interior vive en la capa viva) */
