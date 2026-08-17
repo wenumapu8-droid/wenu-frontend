@@ -36,7 +36,7 @@ Do **not** recreate route/state/memory/renderer/factory/schema architecture.
 
 Last fully validated Golden materiality head: `70d8a756a2c46227179fac01c9835e8e1d358be7`, KODEX Core Runtime run #292 SUCCESS, artifact `9273811118`. GP-CON-03's bounded orbital-lineage defect is technically closed; `human_curator_acceptance=NOT_RUN`.
 
-Current PR #62 head `ebbf682d1c10f47785d0188f15be86ad610965f2` adds only `scripts/kodex-golden-curator-capture.mjs`, a non-gating 12×desktop/mobile review exporter. Run #293 SUCCESS proves no regression, but the workflow does not invoke that exporter. KOD-69 still owns execution of the 24 curator captures + manifest. Do not infer creator acceptance before those images are reviewed.
+Current PR #62 head `ebbf682d1c10f47785d0188f15be86ad610965f2` adds only `scripts/kodex-golden-curator-capture.mjs`, a non-gating 12×desktop/mobile review exporter. Run #293 SUCCESS proves no regression, but the workflow does not invoke that exporter. KOD-69 still owns execution of the 24 curator captures + manifest. This session attempted a local isolated checkout, but the sandbox cannot resolve GitHub DNS, so no honest local execution evidence was produced here. Do not infer creator acceptance before the 24-image packet is actually generated and reviewed.
 
 ---
 
@@ -67,11 +67,13 @@ The AUTHORIAL_TRANSITION workflow on this head is explicitly wired to run both:
 - FULL cinematic transition evidence;
 - `kodex-authorial-transition-reduced-evidence.mjs`, which requires source **and target** reduced-motion cues for PROLOGUE→DESCENT, MACHINE→COSMOLOGY and QUIET→RETURN control on desktop + 390×844.
 
-Natural exact-head Product Corridor / AUTHORIAL_STATE / AUTHORIAL_MOTION / AUTHORIAL_TRANSITION runs are queued/in progress. **Do not call KOD-74 mechanically closed until all required lanes pass on one exact head and the transition artifact is inspected.** Creator visual acceptance remains pending.
+Current exact-head evidence checkpoint: AUTHORIAL_STATE PASS and AUTHORIAL_MOTION PASS. Product Corridor and AUTHORIAL_TRANSITION remain in progress. **Do not call KOD-74 mechanically closed until all required lanes pass on one exact head and the transition artifact is inspected.** Creator visual acceptance remains pending.
 
 ### KOD-75 — next bounded organism-differentiation proof
 
-KOD-75 remains blocked until KOD-74 is mechanically stable. Evidence preparation already identified the root cause without adding architecture: PROLOGUE and MACHINE still present nearly the same woven-ring dominant silhouette. MACHINE stacks circularity across signal ASCII + concentric canvas drawing + radial/conic CSS; this is presentation redundancy, not a missing engine. KOD-75's first code-changing proof must remain PROLOGUE + MACHINE only, reuse existing folio/CRT/field/ASCII/canvas primitives, keep DESCENT as control and ARCHIVE unchanged, and avoid another renderer/runtime.
+KOD-75 remains blocked until KOD-74 is mechanically stable. Exact-head AUTHORIAL_MOTION artifact `9277752886` confirms the root cause visually: PROLOGUE and MACHINE still present nearly the same woven-ring dominant silhouette. MACHINE stacks circularity across signal ASCII + concentric canvas drawing + radial/conic CSS; this is presentation redundancy, not a missing engine. KOD-75's first code-changing proof must remain PROLOGUE + MACHINE only, reuse existing folio/CRT/field/ASCII/canvas primitives, keep DESCENT as control and ARCHIVE unchanged, and avoid another renderer/runtime.
+
+PROLOGUE source boundary is now explicit. Candidate A (`bw-02.jpg`) is verified present and may be recomposed without modifying source pixels. Candidate B previously named `Ojo Binario / arch-21.jpg`, but the current lineage has no `public/img/kodex/works/arch-21.jpg` and repository search returns no `arch-21`; B is **HOLD / provenance-path unverified**. Do not fabricate a path, infer source identity or silently substitute another image.
 
 ---
 
@@ -85,7 +87,7 @@ Exact head `97ec8b6074317b89bfc1c88c9861c7ed0541d86a` completed KODEX Core Runti
 
 ## 5. Other active lanes / authority boundaries
 
-- PR #84 — bounded system-axis label overlap repair; not architecture authority.
+- PR #84 — valid two-line system-axis label overlap patch, but its branch is **EXTRACTION-ONLY** for current convergence. Exact compare against the current #77/KOD-74 base shows 214 commits ahead / 77 behind with large unrelated history. Do not merge/retarget wholesale. The live corridor still has `white-space: nowrap`; after KOD-74 stabilizes, extract only `white-space: normal; max-width: 48px` onto the active lineage and revalidate.
 - PR #70 — current volumetric/materiality benchmark; creator acceptance pending.
 - PR #75 — reference-fidelity creator-review surface; source pixels NONE.
 - PR #76 — verified Manifestation × RGX convergence substrate; reuse, do not fork.
@@ -108,8 +110,9 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 7. Exact next actions
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; do not recreate P0.1–P0.10.
-2. Let PR #86 exact-head `45c7fac…` finish Product Corridor + AUTHORIAL_STATE + AUTHORIAL_MOTION + AUTHORIAL_TRANSITION including the reduced source/target gate. Inspect the artifact around PROLOGUE→DESCENT and MACHINE→COSMOLOGY before mechanical closure.
-3. Only after KOD-74 is stable, start KOD-75's first bounded PROLOGUE + MACHINE organism-differentiation proof on top of that exact transition head. Replace repeated-ring presentation using existing primitives; no route/state/memory/renderer fork.
-4. Separately, execute #62's 24-image Golden curator exporter through KOD-69 and keep creator acceptance `NOT_RUN` until actual review.
-5. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
-6. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
+2. Let PR #86 exact-head `45c7fac…` finish Product Corridor + AUTHORIAL_TRANSITION; AUTHORIAL_STATE and AUTHORIAL_MOTION are already green. Inspect the artifact around PROLOGUE→DESCENT and MACHINE→COSMOLOGY plus reduced source/target evidence before mechanical closure.
+3. Only after KOD-74 is stable, start KOD-75's first bounded PROLOGUE + MACHINE organism-differentiation proof on top of that exact transition head. Candidate A only for PROLOGUE until a governed Candidate B source is verified. Replace repeated-ring presentation using existing primitives; no route/state/memory/renderer fork.
+4. After KOD-74 stabilizes, source-extract the exact two-line #84 system-axis fix onto the active convergence lineage; do not import #84 branch history.
+5. Separately, execute #62's 24-image Golden curator exporter through KOD-69 and keep creator acceptance `NOT_RUN` until actual review.
+6. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
+7. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
