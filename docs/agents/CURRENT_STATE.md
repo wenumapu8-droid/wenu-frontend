@@ -42,14 +42,13 @@ Living-field correctness is also closed: `CON-RITUAL` uses registered `MOTION_03
 
 ### GP-CON-03 exact-head materiality close
 
-Current exact PR #62 head: `70d8a756a2c46227179fac01c9835e8e1d358be7`.
+Last fully validated PR #62 head: `70d8a756a2c46227179fac01c9835e8e1d358be7`.
 
 KODEX Core Runtime run #292 / `31985966672`: **SUCCESS**.
 
-Artifact: `9273811118`  
-Digest: `sha256:0dad58e09c3651f613cddd0f29c5c9f8aea86603093bc21e36f1993995700516`.
+Artifact: `9273811118`.
 
-The full technical chain is green on this exact SHA: scene/runtime, JourneyState/graph/memory, Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and rendered Golden Plate evidence.
+The full technical chain is green on that exact SHA: scene/runtime, JourneyState/graph/memory, Assembly OS contracts, seeded benchmark, integrity audit, Astro build, general browser evidence, Deep Navigation and rendered Golden Plate evidence.
 
 Direct artifact inspection of `GP-CON-03` confirms the v4 line-language repair crossed the specific target identified in runs 289–291: the field now reads primarily as fractured membrane / irregular tissue rather than an orbital or trajectory system. Broken seams, discontinuous striations, angular torn folds, displaced nucleus and asymmetric field mass materially subordinate the residual circular lineage.
 
@@ -58,13 +57,23 @@ State: **BROWSER-VALIDATED / SPECIFIC AGENT-AUDIT PERCEPTUAL DEFECT CLOSED**.
 
 Do not continue iterative GP-CON-03 styling without a new bounded defect from creator/readability review.
 
+### 12/12 creator-review evidence preparation
+
+Fresh inspection of run #292 exposed an evidence-coverage gap rather than a product failure: the Golden browser gate validates all 12 cases, but its retained artifact only contains desktop screenshots for four representative cases (`GP-SCI-01`, `GP-TECH-02`, `GP-ART-03`, `GP-CON-03`). That is insufficient for the declared next gate: creator/readability review of the complete 12-plate benchmark.
+
+Current PR #62 implementation head: `ebbf682d1c10f47785d0188f15be86ad610965f2`.
+
+This head adds only `scripts/kodex-golden-curator-capture.mjs`, a **non-gating review-evidence exporter**. It targets all 12 cases × desktop 1440×900 + mobile 390×844 = 24 initial-state captures plus a machine-readable review manifest. Mechanical correctness remains owned by the existing Golden browser evidence script. The exporter explicitly keeps `human_curator_acceptance=NOT_RUN` and `creator_visual_acceptance=NOT_RUN`.
+
+State: **IMPLEMENTED CANDIDATE / SHA-BOUND EXPORTER EXECUTION PENDING**. Do not infer exact-head QA PASS from the commit alone. Execute it through the existing KOD-69 local/self-hosted lane if necessary and preserve the 24 captures + manifest before starting full creator review.
+
 ---
 
 ## 3. Product corridor — PR #77
 
 PR #77 / `feat/kodex-threshold-convergence-v1` is the product-facing corridor lane, not an Assembly OS authority.
 
-Exact corridor head `6387ae29cd4827ec73a96caa23863941b3891674` completed Product Corridor run #73 / `31954166230`: **SUCCESS**. Artifact `9265613767`, digest `sha256:7209b5c10fc566bcc74ce90a563f74eaebd201051fa80302a81045060d7e1b45`.
+Exact corridor evidence head `6387ae29cd4827ec73a96caa23863941b3891674` completed Product Corridor run #73 / `31954166230`: **SUCCESS**. Artifact `9265613767`, digest `sha256:7209b5c10fc566bcc74ce90a563f74eaebd201051fa80302a81045060d7e1b45`.
 
 THRESHOLD → PROLOGUE → DESCENT → ARCHIVE → MACHINE → COSMOLOGY → RETURN are mechanically/browser-composition complete at the current acceptance level. Keep #77 draft unless new measured regression evidence or creator-requested bounded refinement appears. This is not creator aesthetic acceptance or production readiness.
 
@@ -72,6 +81,7 @@ THRESHOLD → PROLOGUE → DESCENT → ARCHIVE → MACHINE → COSMOLOGY → RET
 
 ## 4. Other active lanes / authority boundaries
 
+- **PR #84** — bounded KODEX system-axis label overlap repair on the corridor lineage; visual/layout fix only, not architecture authority.
 - **PR #70** — current volumetric/materiality benchmark. Creator acceptance pending; do not create another renderer family to compete with it.
 - **PR #75** — reference-fidelity creator-review surface; source pixels NONE.
 - **PR #76** — verified Manifestation × RGX convergence substrate; reuse, do not fork.
@@ -97,12 +107,12 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 6. Exact next action
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; P0.1–P0.10 remain closed.
-2. Treat `70d8a756...` / run #292 as the current exact-head technical truth for GP-CON-03.
-3. Treat the specific residual orbital/trajectory line-language defect as closed at agent-audit implementation level; do not keep styling by inertia.
-4. Move the Golden benchmark to actual creator/readability review across the rendered 12-plate set; `human_curator_acceptance` remains `NOT_RUN` until that happens.
-5. Make another renderer/material/composition change only if review identifies a specific bounded defect, then re-run exact-head evidence.
-6. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
-7. Keep #77 mechanically closed and draft.
-8. Keep #82/#83 isolated until their state/memory semantics are reconciled with existing #62/#76 substrates.
-9. Use KOD-69 rather than looping hosted reruns if provider CI becomes unavailable.
+2. Preserve `70d8a756...` / run #292 as the last fully validated technical truth for the renderer/materiality state.
+3. Execute `scripts/kodex-golden-curator-capture.mjs` against exact head `ebbf682d...`, binding `KODEX_HEAD_SHA`, and preserve 24 screenshots + `review-manifest.json` as SHA-bound evidence.
+4. Use KOD-69 / Mac mini if provider CI does not naturally execute this review exporter; do not loop hosted reruns.
+5. Perform actual creator/readability review across the rendered 12-plate set only after 12/12 evidence exists. Keep `human_curator_acceptance=NOT_RUN` until that review occurs.
+6. Make another renderer/material/composition change only if review identifies a specific bounded defect, then re-run exact-head evidence.
+7. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
+8. Keep #77 mechanically closed and draft.
+9. Keep #82/#83 isolated until their state/memory semantics are reconciled with existing #62/#76 substrates.
 10. No merge, deploy, permission change, preview publication, public asset approval or canon promotion is authorized.
