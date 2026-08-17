@@ -6,17 +6,20 @@
  * → KODEX−∞ (atractor central) → FIN +∞. Fullscreen, sin scroll de
  * documento — el viaje se recorre, no se hojea.
  *
- * Usa el SignalBus y el reduced-motion store ya existentes. No inventa una
- * capa de interacción propia: proximity/dwell son las mismas señales que
- * lee cualquier otra escena de KODEX.
+ * Capa 2: memoria de ruta y transición de escena. No abre motor propio:
+ * usa el ritual (`<KodexTransition />`), la máquina de estados
+ * (`estado.ts`) y la memoria tipada (`memoria.ts`) que ya existen. Lo
+ * único nuevo es el vocabulario de la escena, no la infraestructura.
  */
 import Base from "../../layouts/Base.astro";
+import KodexTransition from "../../components/kodex/transition/KodexTransition.astro";
 import { generarCorrientes, trazarPath } from "../../lib/kodex/journey-field";
 
 const W = 1600;
 const H = 900;
 const SEED = 0x4b4f4445; // "KODE" en hex, estable entre builds
 const corrientes = generarCorrientes(SEED, 13);
+const SIGUIENTE_ESCENA = "/kodex/folio/i/"; // el mismo destino que ya usa THRESHOLD
 ---
 
 <Base
@@ -25,7 +28,7 @@ const corrientes = generarCorrientes(SEED, 13);
   noNav
   noFooter
 >
-  <main class="jfm" data-kx="jfm" aria-label="KODEX Journey Field Map">
+  <main class="jfm" data-kx="jfm" data-jfm-next={SIGUIENTE_ESCENA} aria-label="KODEX Journey Field Map">
     <header class="jfm__bar" role="banner">
       <span class="jfm__word">KODEX−∞</span>
       <span class="jfm__sub">JOURNEY FIELD MAP</span>
@@ -48,15 +51,24 @@ const corrientes = generarCorrientes(SEED, 13);
           <filter id="jfm-soft"><feGaussianBlur stdDeviation="1.1" /></filter>
         </defs>
 
-        <g class="jfm__corrientes" aria-hidden="true">
+        <g class="jfm__corrientes">
           {corrientes.map((c) => (
-            <g class="jfm__corriente" data-corriente={c.id} data-fase={c.fase.toFixed(4)}>
+            <g
+              class="jfm__corriente"
+              data-corriente={c.id}
+              data-fase={c.fase.toFixed(4)}
+              tabindex="0"
+              role="button"
+              aria-label={`Corriente ${c.id}${c.glifo ? " — " + c.glifo : ""}`}
+            >
               <path
                 d={trazarPath(c.puntos, W, H)}
                 class="jfm__linea"
                 fill="none"
                 stroke-width="1.1"
               />
+              {/* hit-area invisible más ancha que el trazo — el dedo no mide 1px */}
+              <path d={trazarPath(c.puntos, W, H)} class="jfm__linea-hit" fill="none" stroke-width="18" />
               {c.glifo && (
                 <text
                   x={c.puntos[3].x * W}
@@ -88,9 +100,10 @@ const corrientes = generarCorrientes(SEED, 13);
           data-jfm-umbral
           tabindex="0"
           role="button"
-          aria-label="Umbral — entrada al viaje"
+          aria-label="Umbral — entrar y fijar la ruta activa"
           transform={`translate(${0.06 * W}, ${0.5 * H})`}
         >
+          <circle r="44" class="jfm__hit" fill="transparent" />
           <circle r="34" class="jfm__umbral-anillo" />
           <circle r="34" class="jfm__umbral-anillo jfm__umbral-anillo--eco" />
           <text y="58" class="jfm__anchor-label" text-anchor="middle">UMBRAL</text>
@@ -105,6 +118,7 @@ const corrientes = generarCorrientes(SEED, 13);
           aria-label="KODEX−∞ — corazón y atractor del sistema"
           transform={`translate(${0.5 * W}, ${0.5 * H})`}
         >
+          <circle r="44" class="jfm__hit" fill="transparent" />
           <circle r="120" fill="url(#jfm-heart-glow)" class="jfm__heart-glow" />
           <circle r="26" class="jfm__heart-core" />
           <circle r="26" class="jfm__heart-core jfm__heart-core--pulse" />
@@ -127,7 +141,7 @@ const corrientes = generarCorrientes(SEED, 13);
     </div>
 
     <nav class="jfm__controls" aria-label="Navegación del viaje">
-      <button type="button" class="jfm__ctl" data-jfm-back aria-label="Volver a KODEX">←</button>
+      <a href="/kodex/" class="jfm__ctl" data-jfm-back aria-label="Volver a KODEX">← KODEX</a>
       <button
         type="button"
         class="jfm__ctl jfm__ctl--motion"
@@ -136,19 +150,22 @@ const corrientes = generarCorrientes(SEED, 13);
       >
         MOTION
       </button>
-      <button type="button" class="jfm__ctl" data-jfm-enter aria-label="Cruzar el umbral">
+      <a href={SIGUIENTE_ESCENA} class="jfm__ctl" data-jfm-enter aria-label="Cruzar el umbral hacia la primera lámina">
         CRUZAR →
-      </button>
+      </a>
     </nav>
 
     <footer class="jfm__telemetry" data-jfm-telemetry role="status" aria-live="off">
       <div class="jfm__tel"><span>PROX</span><b data-tel="proximity">0.00</b></div>
       <div class="jfm__tel"><span>DWELL</span><b data-tel="dwell">0.00</b></div>
+      <div class="jfm__tel"><span>RUTA</span><b data-tel="ruta">—</b></div>
       <div class="jfm__tel jfm__tel--secondary"><span>MEMORY</span><b data-tel="memory">0.00</b></div>
-      <div class="jfm__tel jfm__tel--secondary"><span>CORRIENTES</span><b>{corrientes.length}</b></div>
+      <div class="jfm__tel jfm__tel--secondary"><span>INTERACCIONES</span><b data-tel="interacciones">0</b></div>
       <div class="jfm__tel jfm__tel--wide"><span>NOTA DEL KODEX</span><i>EL KODEX NO SE ESCRIBE. SE RECONOCE.</i></div>
     </footer>
   </main>
+
+  <KodexTransition />
 </Base>
 
 <style>
@@ -190,10 +207,15 @@ const corrientes = generarCorrientes(SEED, 13);
     stroke: rgba(240, 237, 232, 0.22);
     transition: stroke 0.5s ease, stroke-width 0.3s ease;
   }
+  .jfm__linea-hit { stroke: transparent; cursor: pointer; }
   .jfm__corriente:hover .jfm__linea,
   .jfm__corriente:focus-within .jfm__linea {
     stroke: rgba(139, 92, 246, 0.85);
     stroke-width: 1.8;
+  }
+  .jfm__corriente[data-bloqueada="1"] .jfm__linea {
+    stroke: #c9a84c;
+    stroke-width: 2;
   }
   .jfm__glifo {
     font-size: 8px;
@@ -222,6 +244,7 @@ const corrientes = generarCorrientes(SEED, 13);
     cursor: pointer;
     outline: none;
   }
+  .jfm__hit { pointer-events: all; }
   .jfm__umbral-anillo {
     fill: none;
     stroke: rgba(240, 237, 232, 0.5);
@@ -232,9 +255,11 @@ const corrientes = generarCorrientes(SEED, 13);
     animation: jfm-eco 4.4s ease-in-out infinite;
   }
   .jfm__umbral:hover .jfm__umbral-anillo,
-  .jfm__umbral:focus-visible .jfm__umbral-anillo {
+  .jfm__umbral:focus-visible .jfm__umbral-anillo,
+  .jfm__umbral[data-bloqueado="1"] .jfm__umbral-anillo {
     stroke: #8b5cf6;
   }
+  .jfm__umbral[data-bloqueado="1"] .jfm__umbral-anillo { stroke: #c9a84c; }
 
   .jfm__heart-glow { opacity: 0.55; transition: opacity 0.4s ease; }
   .jfm__heart-core {
@@ -308,6 +333,9 @@ const corrientes = generarCorrientes(SEED, 13);
     font-size: 0.7rem;
     letter-spacing: 0.1em;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
   }
   .jfm__ctl:hover, .jfm__ctl:focus-visible { border-color: #8b5cf6; color: #8b5cf6; }
   .jfm__ctl--motion[aria-pressed="true"] { color: #8b5cf6; border-color: #8b5cf6; }
@@ -361,30 +389,79 @@ const corrientes = generarCorrientes(SEED, 13);
 <script>
   import { senales } from "../../lib/kodex/senales";
   import { prefersReducedMotion } from "../../lib/kodex/reduced-motion.js";
+  import { estadoEscena } from "../../lib/kodex/estado";
+  import { recordar, eventos, ciclo } from "../../lib/kodex/memoria";
 
   const root = document.querySelector<HTMLElement>('[data-kx="jfm"]');
   if (root) {
     const bus = senales();
+    const maquina = estadoEscena(); // la ÚNICA máquina de estados — no una propia
     const stateEl = root.querySelector<HTMLElement>("[data-jfm-state]");
     const labelEl = root.querySelector<HTMLElement>("[data-jfm-label]");
     const telEls = {
       proximity: root.querySelector<HTMLElement>('[data-tel="proximity"]'),
       dwell: root.querySelector<HTMLElement>('[data-tel="dwell"]'),
       memory: root.querySelector<HTMLElement>('[data-tel="memory"]'),
+      ruta: root.querySelector<HTMLElement>('[data-tel="ruta"]'),
+      interacciones: root.querySelector<HTMLElement>('[data-tel="interacciones"]'),
     };
-    const svg = root.querySelector<SVGSVGElement>(".jfm__field")!;
     const particulas = Array.from(
-      root.querySelectorAll<SVGCircleElement>(".jfm__corriente"),
+      root.querySelectorAll<SVGGElement>(".jfm__corriente"),
     ).map((g) => ({
       grupo: g,
       linea: g.querySelector<SVGPathElement>(".jfm__linea")!,
       punto: g.querySelector<SVGCircleElement>(".jfm__particula")!,
       fase: parseFloat(g.dataset.fase || "0"),
     }));
+    const idsCorrientes = particulas.map((p) => p.grupo.dataset.corriente!).filter(Boolean);
+    const siguienteEscena = root.dataset.jfmNext || "/kodex/";
 
-    let motionOn = !prefersReducedMotion();
-    let dwellStart = performance.now();
-    let raf = 0;
+    /**
+     * Navega usando el ritual si está montado (transición ritual, con su
+     * propio degradado a crossfade en reduced-motion); si no, navegación
+     * plana. El mismo patrón que ya usa kodex-engine.js — no uno nuevo.
+     */
+    function navegarConRitual(url: string) {
+      const w = window as unknown as { __kdxRitual?: (u: string) => void };
+      maquina.ir("transitionOut");
+      if (typeof w.__kdxRitual === "function") w.__kdxRitual(url);
+      else window.location.href = url;
+    }
+
+    // ── estado persistente de la escena: ruta, nodo activo, interacciones ──
+    let rutaCandidata: string | null = null; // lo último tocado, no comprometido
+    let rutaBloqueada: string | null = null; // comprometida en UMBRAL
+    let interacciones = eventos().filter((e) => e.type.startsWith("jfm_")).length;
+
+    // Reload directo o back/forward: la ruta viaja en la URL, no sólo en JS.
+    const paramsIniciales = new URLSearchParams(location.search);
+    const rutaDeUrl = paramsIniciales.get("ruta");
+    if (rutaDeUrl && idsCorrientes.includes(rutaDeUrl)) {
+      rutaBloqueada = rutaDeUrl;
+    }
+
+    function marcarBloqueo(id: string | null) {
+      for (const p of particulas) {
+        p.grupo.dataset.bloqueada = p.grupo.dataset.corriente === id ? "1" : "0";
+      }
+      root!.querySelector("[data-jfm-umbral]")?.setAttribute(
+        "data-bloqueado",
+        id ? "1" : "0",
+      );
+      if (telEls.ruta) telEls.ruta.textContent = id ?? "—";
+      const enter = root!.querySelector<HTMLAnchorElement>("[data-jfm-enter]");
+      if (enter && id) {
+        const url = new URL(enter.getAttribute("href") || "", location.href);
+        url.searchParams.set("ruta", id);
+        enter.href = url.pathname + url.search;
+      }
+    }
+    marcarBloqueo(rutaBloqueada);
+
+    function contarInteraccion() {
+      interacciones++;
+      if (telEls.interacciones) telEls.interacciones.textContent = String(interacciones);
+    }
 
     function estado(v: string) {
       if (stateEl) stateEl.textContent = v;
@@ -401,27 +478,65 @@ const corrientes = generarCorrientes(SEED, 13);
       if (labelEl) labelEl.dataset.visible = "0";
     }
 
-    // UMBRAL
+    // presencia real → aware, sin duplicar lo que estado.ts ya hace solo
+    // (queda a cargo del propio módulo al montarse desde KodexTransition)
+
+    // corrientes: hover/focus las postula como candidata; no comprometen la ruta
+    for (const p of particulas) {
+      const id = p.grupo.dataset.corriente!;
+      p.grupo.addEventListener("pointerenter", () => {
+        rutaCandidata = id;
+        contarInteraccion();
+      });
+      p.grupo.addEventListener("focus", () => { rutaCandidata = id; });
+    }
+
+    // UMBRAL — entra y COMPROMETE la ruta
     const umbral = root.querySelector<SVGGElement>("[data-jfm-umbral]");
     umbral?.addEventListener("pointerenter", (e) => {
       bus.set("proximity", 1);
       estado("APROXIMACIÓN AL UMBRAL");
-      mostrarLabel("UMBRAL — entrada al viaje", (e as PointerEvent).clientX, (e as PointerEvent).clientY);
+      mostrarLabel("UMBRAL — entrar fija la ruta activa", (e as PointerEvent).clientX, (e as PointerEvent).clientY);
     });
     umbral?.addEventListener("focus", () => { bus.set("proximity", 1); estado("APROXIMACIÓN AL UMBRAL"); });
     umbral?.addEventListener("pointerleave", () => { bus.set("proximity", 0); ocultarLabel(); estado("CAOS INICIAL"); });
     umbral?.addEventListener("blur", () => { bus.set("proximity", 0); estado("CAOS INICIAL"); });
-    function cruzar() {
-      estado("UMBRAL CRUZADO");
-      bus.set("memory", Math.min(1, bus.get("memory") + 0.08));
-      window.location.href = "/kodex/";
+
+    function comprometerRuta(): string {
+      // Determinista: lo que el visitante señaló, o -si nunca señaló nada- la
+      // corriente que le toca por ciclo. Nunca al azar: mismo ciclo, misma ruta.
+      const ruta =
+        rutaBloqueada ||
+        rutaCandidata ||
+        idsCorrientes[ciclo() % idsCorrientes.length];
+      rutaBloqueada = ruta;
+      marcarBloqueo(ruta);
+      maquina.ir("locked");
+      contarInteraccion();
+      recordar("jfm_ruta_comprometida", ruta, {
+        interacciones: Math.min(1, interacciones / 20),
+      });
+      history.replaceState(null, "", `${location.pathname}?ruta=${ruta}`);
+      estado("RUTA COMPROMETIDA");
+      return ruta;
     }
-    umbral?.addEventListener("click", cruzar);
+
+    umbral?.addEventListener("click", (e) => {
+      e.preventDefault();
+      const ruta = comprometerRuta();
+      const url = new URL(siguienteEscena, location.href);
+      url.searchParams.set("ruta", ruta);
+      recordar("jfm_umbral_cruzado", ruta);
+      navegarConRitual(url.pathname + url.search);
+    });
     umbral?.addEventListener("keydown", (e) => {
-      if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") cruzar();
+      if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") {
+        e.preventDefault();
+        (umbral as unknown as HTMLElement).click();
+      }
     });
 
-    // CORAZÓN — el atractor activo
+    // CORAZÓN — el atractor activo, no comprometede ruta, sincroniza intensidad
     const heart = root.querySelector<SVGGElement>("[data-jfm-heart]");
     let heartSync = 0;
     heart?.addEventListener("pointerenter", (e) => {
@@ -429,16 +544,21 @@ const corrientes = generarCorrientes(SEED, 13);
       mostrarLabel("KODEX−∞ — cada decisión emite una frecuencia", (e as PointerEvent).clientX, (e as PointerEvent).clientY);
     });
     heart?.addEventListener("focus", () => estado("EL CORAZÓN SINCRONIZA"));
-    heart?.addEventListener("pointerleave", () => { ocultarLabel(); estado("CAOS INICIAL"); });
-    heart?.addEventListener("blur", () => estado("CAOS INICIAL"));
+    heart?.addEventListener("pointerleave", () => { ocultarLabel(); estado(rutaBloqueada ? "RUTA COMPROMETIDA" : "CAOS INICIAL"); });
+    heart?.addEventListener("blur", () => estado(rutaBloqueada ? "RUTA COMPROMETIDA" : "CAOS INICIAL"));
     function sincronizar() {
       heartSync = Math.min(1, heartSync + 0.25);
       bus.set("memory", Math.min(1, bus.get("memory") + 0.05));
+      contarInteraccion();
+      if (heartSync >= 1) {
+        maquina.ir("active");
+        recordar("jfm_corazon_sincronizado", rutaBloqueada || "heart", { intensidad: heartSync });
+      }
       estado(heartSync >= 1 ? "DESPERTAR" : "SINCRO ENERGÉTICA");
     }
     heart?.addEventListener("click", sincronizar);
     heart?.addEventListener("keydown", (e) => {
-      if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") sincronizar();
+      if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") { e.preventDefault(); sincronizar(); }
     });
 
     // Nodos individuales dentro de las corrientes
@@ -451,10 +571,13 @@ const corrientes = generarCorrientes(SEED, 13);
     });
 
     // dwell real: tiempo sostenido dentro del stage, no un valor fingido
+    let dwellStart = performance.now();
     const stage = root.querySelector(".jfm__stage");
     stage?.addEventListener("pointerenter", () => { dwellStart = performance.now(); });
 
     // toggle de movimiento — respeta reduced-motion como punto de partida, no como jaula
+    let motionOn = !prefersReducedMotion();
+    let raf = 0;
     const motionBtn = root.querySelector<HTMLButtonElement>("[data-jfm-motion-toggle]");
     if (motionBtn) {
       motionBtn.setAttribute("aria-pressed", String(motionOn));
@@ -465,10 +588,23 @@ const corrientes = generarCorrientes(SEED, 13);
       });
     }
 
-    root.querySelector("[data-jfm-back]")?.addEventListener("click", () => {
-      window.location.href = "/kodex/";
+    root.querySelector<HTMLAnchorElement>("[data-jfm-back]")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      maquina.ir("transitionOut");
+      navegarConRitual("/kodex/");
     });
-    root.querySelector("[data-jfm-enter]")?.addEventListener("click", cruzar);
+
+    // El botón fijo de la barra hace exactamente lo mismo que UMBRAL: es la
+    // misma acción por un segundo camino, no una acción distinta. Sin esto,
+    // quien use este control en vez del campo cruzaría sin ruta comprometida.
+    root.querySelector<HTMLAnchorElement>("[data-jfm-enter]")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      const ruta = comprometerRuta();
+      recordar("jfm_umbral_cruzado", ruta, { via: 0 }); // via:0 = control fijo, no el campo
+      const url = new URL(siguienteEscena, location.href);
+      url.searchParams.set("ruta", ruta);
+      navegarConRitual(url.pathname + url.search);
+    });
 
     function largoPath(el: SVGPathElement) {
       try { return el.getTotalLength(); } catch { return 0; }
@@ -497,7 +633,6 @@ const corrientes = generarCorrientes(SEED, 13);
     }
 
     if (!motionOn) {
-      // aún sin animación continua, el campo queda legible y posicionado
       for (const p of particulas) {
         const len = largoPath(p.linea);
         if (!len) continue;
@@ -506,6 +641,8 @@ const corrientes = generarCorrientes(SEED, 13);
         p.punto.setAttribute("cy", String(pt.y));
       }
     }
+    if (telEls.interacciones) telEls.interacciones.textContent = String(interacciones);
+    if (rutaBloqueada) estado("RUTA COMPROMETIDA");
     tick();
   }
 </script>
