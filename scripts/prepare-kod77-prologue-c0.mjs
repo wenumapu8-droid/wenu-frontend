@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
 
 const EXPECTED_RAW_SHA256 = 'ca93a8c962548fc58bfd7dbc64e9bbb5b3877d4c3c04591c016293dd2289642f';
@@ -25,7 +26,8 @@ if (rawMeta.width !== 5460 || rawMeta.height !== 4704 || !rawMeta.hasAlpha) {
   throw new Error(`[KOD-77] Unexpected raw metadata ${rawMeta.width}×${rawMeta.height}, alpha=${rawMeta.hasAlpha}. Refuse to ingest.`);
 }
 
-const repoRoot = path.resolve(new URL('..', import.meta.url).pathname, '..');
+const scriptsDir = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.resolve(scriptsDir, '..');
 const outDir = path.join(repoRoot, 'public/img/kodex/proof');
 const docsDir = path.join(repoRoot, 'docs/proofs');
 const outPath = path.join(outDir, 'prologue-c0-eye-mask.png');
