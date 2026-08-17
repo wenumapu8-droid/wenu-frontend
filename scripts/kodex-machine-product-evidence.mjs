@@ -136,7 +136,7 @@ for (const profile of profiles) {
     });
     assert(initial.state === 'READY', `${profile.id}: MACHINE initial state is not READY`);
     assert(initial.source === 'ACHROMA_006', `${profile.id}: MACHINE source drifted`);
-    assert(initial.method === 'MIRROR / DITHER / FLOW', `${profile.id}: MACHINE method drifted`);
+    assert(initial.method === 'ASSEMBLY / TRACE / CELL', `${profile.id}: MACHINE method drifted`);
     assert(initial.canvasPainted, `${profile.id}: MACHINE canvas is not painted`);
     assert(initial.pathname === '/kodex/folio/iv/', `${profile.id}: MACHINE route mismatch`);
 
