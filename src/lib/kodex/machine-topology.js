@@ -39,8 +39,9 @@ function clamp(value, min, max) {
  *
  * The model deliberately avoids radial polar coordinates: KOD-76 exists to
  * replace the repeated concentric-ring/spoke grammar with an assembly field.
- * Rendering, color, animation and interaction remain responsibilities of the
- * existing folio canvas/runtime.
+ * Edges carry orthogonal route points so the same model reads as circuitry /
+ * assembly rather than as a generic neural graph. Rendering, color, animation
+ * and interaction remain responsibilities of the existing folio canvas/runtime.
  */
 export function buildMachineTopology(seed, options = {}) {
   const width = Math.max(160, Number(options.width) || 720);
@@ -84,6 +85,7 @@ export function buildMachineTopology(seed, options = {}) {
         size: Number((2.5 + random() * 5.5).toFixed(3)),
         charge: Number((0.25 + random() * 0.75).toFixed(4)),
         reveal: Number(random().toFixed(4)),
+        kind: isCenter ? 'core' : random() > 0.82 ? 'port' : 'junction',
         core: isCenter,
       };
       nodes.push(node);
@@ -93,6 +95,28 @@ export function buildMachineTopology(seed, options = {}) {
 
   const edgeMap = new Set();
   const edges = [];
+  const routeEdge = (a, b, kind) => {
+    const start = { x: a.x, y: a.y };
+    const end = { x: b.x, y: b.y };
+    if (kind === 'trace-x') {
+      const x = Number((a.x + (b.x - a.x) * (0.35 + random() * 0.3)).toFixed(3));
+      return [start, { x, y: a.y }, { x, y: b.y }, end];
+    }
+    if (kind === 'trace-y') {
+      const y = Number((a.y + (b.y - a.y) * (0.35 + random() * 0.3)).toFixed(3));
+      return [start, { x: a.x, y }, { x: b.x, y }, end];
+    }
+    if (kind === 'core-bus') {
+      return random() > 0.5
+        ? [start, { x: a.x, y: b.y }, end]
+        : [start, { x: b.x, y: a.y }, end];
+    }
+    const horizontalFirst = random() > 0.5;
+    return horizontalFirst
+      ? [start, { x: b.x, y: a.y }, end]
+      : [start, { x: a.x, y: b.y }, end];
+  };
+
   const addEdge = (a, b, kind) => {
     if (!a || !b || a.id === b.id) return;
     const key = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`;
@@ -103,6 +127,7 @@ export function buildMachineTopology(seed, options = {}) {
       from: a.id,
       to: b.id,
       kind,
+      path: routeEdge(a, b, kind),
       weight: Number((0.35 + random() * 0.65).toFixed(4)),
       reveal: Number(random().toFixed(4)),
     });
@@ -139,11 +164,12 @@ export function buildMachineTopology(seed, options = {}) {
       width: Number((cellW * (0.34 + random() * 0.38)).toFixed(3)),
       height: Number((cellH * (0.22 + random() * 0.38)).toFixed(3)),
       reveal: Number(random().toFixed(4)),
+      kind: random() > 0.62 ? 'processor' : 'memory-cell',
     });
   }
 
   return {
-    version: 'machine-topology-v0.1.0',
+    version: 'machine-topology-v0.2.0',
     seed: String(seed),
     width,
     height,
