@@ -26,10 +26,11 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         <span>MICRO</span><i></i><span>OBJECT</span><i></i><span>SYSTEM</span><i></i><span>COSMOS</span><i></i><span>META</span>
       </aside>
 
-      <article class="kdx-deep__plate" data-plate tabindex="-1" aria-labelledby="kdx-deep-title">
+      <article class="kdx-deep__plate" data-plate data-phase="dormant" tabindex="-1" aria-labelledby="kdx-deep-title">
         <p class="kdx-deep__eyebrow"><span data-field>SCIENCE</span> · <span data-plate-role>KNOWLEDGE</span></p>
         <h1 id="kdx-deep-title" data-title>Living Systems</h1>
         <p class="kdx-deep__summary" data-summary>Life as nested organization: membrane, organism, ecology.</p>
+        <p class="kdx-deep__gesture-hint" data-gesture-hint aria-hidden="true">↕ SCROLL / SWIPE TO REVEAL ROUTES</p>
 
         <section class="kdx-activator" data-activator hidden aria-live="polite">
           <div class="kdx-activator__stage" role="img" data-activator-stage aria-label="Protected Ocín artwork source is withheld until export approval.">
@@ -94,6 +95,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   } from '../../../lib/kodex/micro-universe.js';
   import { buildMicroUniverseMemoryConstellation, revisitKnownMicroUniverseNode } from '../../../lib/kodex/memory-constellation.js';
   import { reduceObserverState } from '../../../lib/kodex/deep-navigation-engine.js';
+  import { accumulateSceneProgress, initialSceneProgress, resolveGesturePhase } from '../../../lib/kodex/gesture-timeline.js';
 
   const root = document.querySelector('[data-kdx-deep-lab]');
   if (root) {
@@ -103,6 +105,39 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       return { nodeId: params.get('node'), lens: params.get('lens') };
     };
     let state = restoreMicroUniverseHistoryState(window.history.state, fallbackFromLocation());
+
+    // Gesture Timeline (doc 38): sceneProgress is local presentation state,
+    // never written to history/URL/memory. It only reveals doors that the
+    // route engine already selected; it never chooses one (canon section 9).
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let sceneProgress = initialSceneProgress({ reducedMotion: reducedMotionQuery.matches });
+    let scenePhase = resolveGesturePhase(sceneProgress);
+    let gestureNodeId = state.currentNodeId;
+
+    const syncDoorFocusability = () => {
+      root.querySelectorAll('.kdx-door').forEach((door) => {
+        door.tabIndex = scenePhase === 'open' ? 0 : -1;
+      });
+    };
+
+    const applyScenePhase = () => {
+      const plate = $('[data-plate]');
+      if (plate instanceof HTMLElement) plate.dataset.phase = scenePhase;
+      const doors = $('[data-doors]');
+      if (doors instanceof HTMLElement) doors.setAttribute('aria-hidden', scenePhase === 'open' ? 'false' : 'true');
+      syncDoorFocusability();
+    };
+
+    const setSceneProgress = (nextProgress) => {
+      sceneProgress = nextProgress;
+      scenePhase = resolveGesturePhase(sceneProgress);
+      applyScenePhase();
+    };
+
+    const advanceSceneProgress = (rawDelta) => {
+      if (scenePhase === 'open') return;
+      setSceneProgress(accumulateSceneProgress(sceneProgress, rawDelta));
+    };
 
     const commitHistory = (mode = 'replace') => {
       const snapshot = createMicroUniverseHistorySnapshot(state);
@@ -161,6 +196,12 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     };
 
     const render = ({ restoreFocus = false } = {}) => {
+      if (state.currentNodeId !== gestureNodeId) {
+        gestureNodeId = state.currentNodeId;
+        setSceneProgress(initialSceneProgress({ reducedMotion: reducedMotionQuery.matches }));
+      } else {
+        applyScenePhase();
+      }
       const node = MICRO_UNIVERSE_NODES[state.currentNodeId];
       const frame = buildMicroUniverseFrame(state);
       $('[data-title]').textContent = node.title;
@@ -189,6 +230,7 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
         });
         doors.append(button);
       }
+      syncDoorFocusability();
 
       const trace = $('[data-trace]');
       trace.replaceChildren();
@@ -231,6 +273,46 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
       render({ restoreFocus: true });
     });
 
+    // Gesture input drives sceneProgress only. It never selects a route
+    // (doc 38 section 9) and never writes history (section 14) — only the
+    // existing click/enter handlers above do that.
+    const stage = root.querySelector('.kdx-deep__stage');
+    if (stage instanceof HTMLElement) {
+      stage.addEventListener('wheel', (event) => {
+        if (scenePhase === 'open' || reducedMotionQuery.matches) return;
+        event.preventDefault();
+        advanceSceneProgress(event.deltaY);
+      }, { passive: false });
+
+      let touchStartY = null;
+      stage.addEventListener('touchstart', (event) => {
+        touchStartY = event.touches[0] ? event.touches[0].clientY : null;
+      }, { passive: true });
+      stage.addEventListener('touchmove', (event) => {
+        if (scenePhase === 'open' || reducedMotionQuery.matches || touchStartY === null) return;
+        const currentY = event.touches[0] ? event.touches[0].clientY : touchStartY;
+        const delta = touchStartY - currentY;
+        touchStartY = currentY;
+        event.preventDefault();
+        advanceSceneProgress(delta * 4);
+      }, { passive: false });
+    }
+
+    // Keyboard equivalent (doc 38 section 19 acceptance: "keyboard path
+    // works without gesture input"). One bounded step reveals routes
+    // immediately, matching the reduced-motion end-state.
+    $('[data-plate]').addEventListener('keydown', (event) => {
+      if (scenePhase === 'open') return;
+      // Ignore keydowns that bubbled up from an already-focused descendant
+      // (e.g. a route door) so native Enter/Space button activation is
+      // never swallowed by this shortcut.
+      if (event.target !== event.currentTarget) return;
+      if (event.key === ' ' || event.key === 'Enter' || event.key === 'ArrowDown') {
+        event.preventDefault();
+        setSceneProgress(1);
+      }
+    });
+
     commitHistory('replace');
     render({ restoreFocus: true });
   }
@@ -254,7 +336,12 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
   .kdx-deep__eyebrow { margin:0 0 14px; font-size:10px; letter-spacing:.2em; opacity:.58; }
   .kdx-deep h1 { margin:0; font-size:clamp(42px,8vw,132px); line-height:.8; letter-spacing:-.06em; max-width:11ch; text-wrap:balance; }
   .kdx-deep__summary { max-width:58ch; margin:20px 0; font-size:clamp(12px,1.2vw,16px); line-height:1.5; opacity:.72; }
-  .kdx-deep__doors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-width:860px; }
+  .kdx-deep__doors { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; max-width:860px; transition:opacity 320ms ease,transform 320ms ease; }
+  .kdx-deep__plate[data-phase='dormant'] .kdx-deep__doors { opacity:0; transform:translateY(10px); }
+  .kdx-deep__plate[data-phase='aware'] .kdx-deep__doors { opacity:.35; transform:translateY(4px); }
+  .kdx-deep__plate[data-phase='open'] .kdx-deep__doors { opacity:1; transform:translateY(0); }
+  .kdx-deep__gesture-hint { margin:10px 0 0; font-size:8px; letter-spacing:.18em; opacity:.5; transition:opacity 320ms ease; }
+  .kdx-deep__plate[data-phase='open'] .kdx-deep__gesture-hint { opacity:0; }
   :global(.kdx-door) { min-width:0; min-height:72px; display:grid; grid-template-columns:1fr auto; gap:5px 12px; align-content:center; padding:11px 14px; color:inherit; text-align:left; background:#0a0a0a; border:1px solid #3a3640; cursor:pointer; }
   :global(.kdx-door:hover),:global(.kdx-door:focus-visible) { border-color:#a89ac2; outline:none; background:#111014; }
   :global(.kdx-door small) { grid-column:1/-1; font-size:8px; letter-spacing:.15em; opacity:.45; }
@@ -308,5 +395,5 @@ const nodes = Object.values(MICRO_UNIVERSE_NODES);
     .kdx-constellation__nodes { grid-template-columns:1fr; }
     .kdx-deep__controls { flex-wrap:wrap; justify-content:flex-end; }
   }
-  @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; transition:none !important; animation:none !important; } }
+  @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto !important; transition:none !important; animation:none !important; } .kdx-deep__plate .kdx-deep__doors,.kdx-deep__gesture-hint { opacity:1 !important; transform:none !important; pointer-events:auto !important; } }
 </style>
