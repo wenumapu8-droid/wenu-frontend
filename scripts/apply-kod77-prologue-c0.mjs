@@ -11,9 +11,9 @@ function replaceExact(label, before, after) {
   source = source.replace(before, after);
 }
 
-const derivative = new URL('../public/img/kodex/proof/prologue-c0-eye.png', import.meta.url);
+const derivative = new URL('../public/img/kodex/proof/prologue-c0-eye-mask.png', import.meta.url);
 if (!fs.existsSync(derivative)) {
-  throw new Error('[KOD-77] Missing prepared derivative. Run prepare-kod77-prologue-c0.mjs with the verified Drive original first.');
+  throw new Error('[KOD-77] Missing prepared CRT mask derivative. Run prepare-kod77-prologue-c0.mjs with the verified Drive original first.');
 }
 
 replaceExact(
@@ -25,10 +25,11 @@ replaceExact(
 replaceExact(
   'PROLOGUE source mapping',
   "    image: '/img/kodex/works/bw-02.jpg',",
-  "    image: '/img/kodex/proof/prologue-c0-eye.png',",
+  "    image: '/img/kodex/proof/prologue-c0-eye-mask.png',",
 );
 
 fs.writeFileSync(target, source);
-console.log('[KOD-77] Applied guarded PROLOGUE C0 mapping + composition import.');
+console.log('[KOD-77] Applied guarded PROLOGUE C0 mask mapping + composition import.');
 console.log('[KOD-77] Existing observe CRT authority remains unchanged; no CRT mount is hidden or bypassed.');
+console.log('[KOD-77] The technical mask is a provenance-recorded adapter, not a new artwork or attribution claim.');
 console.log('[KOD-77] Next: inspect git diff, npm run build, then exact-head AUTHORIAL_STATE/browser evidence.');
