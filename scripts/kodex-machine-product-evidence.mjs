@@ -79,6 +79,58 @@ async function machineCanvasSignature(page) {
   });
 }
 
+async function armGeneratingCapture(page) {
+  await page.evaluate(() => {
+    const stateEl = document.querySelector('[data-machine-state]');
+    const fingerprint = () => {
+      const canvas = document.querySelector('[data-machine-canvas]');
+      if (!(canvas instanceof HTMLCanvasElement)) return null;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let hash = 0x811c9dc5;
+      let paintedSamples = 0;
+      for (let i = 0; i < pixels.length; i += 16) {
+        if (pixels[i] || pixels[i + 1] || pixels[i + 2] || pixels[i + 3]) paintedSamples += 1;
+        for (let channel = 0; channel < 4; channel += 1) {
+          hash ^= pixels[i + channel];
+          hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+      }
+      return {
+        width: canvas.width,
+        height: canvas.height,
+        hash: hash.toString(16).padStart(8, '0'),
+        paintedSamples,
+      };
+    };
+
+    window.__kdxMachineGeneratingEvidence = null;
+    window.__kdxMachineGeneratingObserver?.disconnect?.();
+    let captureQueued = false;
+    const capture = () => {
+      if (captureQueued || stateEl?.textContent?.trim() !== 'GENERATING') return;
+      captureQueued = true;
+      // The product schedules its first assembly RAF in the same click task.
+      // Queueing after the GENERATING mutation captures the rendered in-flight
+      // frame before COMPLETE, independent of Playwright/CI scheduling latency.
+      requestAnimationFrame(() => {
+        window.__kdxMachineGeneratingEvidence = {
+          state: stateEl?.textContent?.trim(),
+          seed: document.querySelector('[data-machine-seed]')?.textContent?.trim(),
+          pathname: location.pathname,
+          signature: fingerprint(),
+        };
+        window.__kdxMachineGeneratingObserver?.disconnect?.();
+      });
+    };
+    const observer = new MutationObserver(capture);
+    if (stateEl) observer.observe(stateEl, { childList: true, subtree: true, characterData: true });
+    window.__kdxMachineGeneratingObserver = observer;
+    capture();
+  });
+}
+
 for (const profile of profiles) {
   const context = await browser.newContext({ viewport: profile.viewport, reducedMotion: profile.reducedMotion });
   const page = await context.newPage();
@@ -170,15 +222,16 @@ for (const profile of profiles) {
     const generate = page.locator('[data-machine-generate]');
     await generate.waitFor({ state: 'visible' });
     const beforeSeed = initial.seed;
+    await armGeneratingCapture(page);
     await generate.click();
-    await page.waitForFunction(() => document.querySelector('[data-machine-state]')?.textContent?.trim() === 'GENERATING', null, { timeout: 1000 });
-    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 80 : 260);
-    const generating = await page.evaluate(() => ({
-      state: document.querySelector('[data-machine-state]')?.textContent?.trim(),
-      seed: document.querySelector('[data-machine-seed]')?.textContent?.trim(),
-      pathname: location.pathname,
-    }));
-    const generatingSignature = await machineCanvasSignature(page);
+    await page.waitForFunction(() => Boolean(window.__kdxMachineGeneratingEvidence), null, { timeout: 1500 });
+    const generatingEvidence = await page.evaluate(() => window.__kdxMachineGeneratingEvidence);
+    const generating = {
+      state: generatingEvidence?.state,
+      seed: generatingEvidence?.seed,
+      pathname: generatingEvidence?.pathname,
+    };
+    const generatingSignature = generatingEvidence?.signature ?? null;
     assert(generating.state === 'GENERATING', `${profile.id}: GENERATING state was not observable`);
     assert(generating.seed && generating.seed !== beforeSeed, `${profile.id}: next seed was not visible during GENERATING`);
     assert(generating.pathname === '/kodex/folio/iv/', `${profile.id}: GENERATING auto-navigated`);
