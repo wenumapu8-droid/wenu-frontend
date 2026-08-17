@@ -1,0 +1,65 @@
+import assert from 'node:assert/strict';
+import {
+  buildMachineTopology,
+  createSeededRandom,
+  seedToUint32,
+} from '../src/lib/kodex/machine-topology.js';
+
+const seedA = 'A90C-73F1';
+const seedB = '1F2E-9A10';
+const options = { width: 720, height: 720 };
+
+const a = buildMachineTopology(seedA, options);
+const replayA = buildMachineTopology(seedA, options);
+const b = buildMachineTopology(seedB, options);
+
+assert.deepEqual(a, replayA, 'same seed must reproduce exact topology');
+assert.notDeepEqual(a, b, 'different seeds must produce different topology');
+assert.equal(seedToUint32(seedA), seedToUint32(seedA), 'seed hash must be stable');
+
+const randomA = createSeededRandom(seedA);
+const replayRandomA = createSeededRandom(seedA);
+assert.deepEqual(
+  [randomA(), randomA(), randomA()],
+  [replayRandomA(), replayRandomA(), replayRandomA()],
+  'local PRNG must replay exactly',
+);
+
+for (const topology of [a, b]) {
+  assert.ok(
+    topology.nodes.length >= 20 && topology.nodes.length <= 49,
+    `bounded node count: ${topology.nodes.length}`,
+  );
+  assert.ok(
+    topology.edges.length >= topology.nodes.length * 0.6,
+    `sufficient connected structure: ${topology.edges.length}`,
+  );
+
+  const nodeIds = new Set(topology.nodes.map((node) => node.id));
+  assert.equal(nodeIds.size, topology.nodes.length, 'node ids must be unique');
+
+  for (const node of topology.nodes) {
+    assert.ok(node.x >= 0 && node.x <= topology.width, `${node.id} x must stay in bounds`);
+    assert.ok(node.y >= 0 && node.y <= topology.height, `${node.id} y must stay in bounds`);
+  }
+
+  for (const edge of topology.edges) {
+    assert.ok(nodeIds.has(edge.from), `${edge.id} from endpoint must exist`);
+    assert.ok(nodeIds.has(edge.to), `${edge.id} to endpoint must exist`);
+    assert.notEqual(edge.from, edge.to, `${edge.id} must not self-loop`);
+  }
+
+  for (const cell of topology.cells) {
+    assert.ok(cell.x >= 0 && cell.x + cell.width <= topology.width + 1, `${cell.id} x must stay in bounds`);
+    assert.ok(cell.y >= 0 && cell.y + cell.height <= topology.height + 1, `${cell.id} y must stay in bounds`);
+  }
+}
+
+console.log(JSON.stringify({
+  status: 'PASS',
+  version: a.version,
+  seedA: { nodes: a.nodes.length, edges: a.edges.length, cells: a.cells.length },
+  seedB: { nodes: b.nodes.length, edges: b.edges.length, cells: b.cells.length },
+  sameSeedExact: JSON.stringify(a) === JSON.stringify(replayA),
+  differentSeedDifferent: JSON.stringify(a) !== JSON.stringify(b),
+}, null, 2));
