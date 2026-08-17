@@ -1,6 +1,6 @@
 # CURRENT STATE — KODEX−∞ + WËNU MAPU
 
-Last verified: 2026-08-16.  
+Last verified: 2026-08-17.  
 Purpose: compact operational truth for agents. This file is **not canon**; re-check Drive canon, active PR heads and SHA-bound CI/local artifacts before time-sensitive work.
 
 ---
@@ -36,7 +36,7 @@ Do **not** recreate route/state/memory/renderer/factory/schema architecture.
 
 Last fully validated Golden materiality head: `70d8a756a2c46227179fac01c9835e8e1d358be7`, KODEX Core Runtime run #292 SUCCESS, artifact `9273811118`. GP-CON-03's bounded orbital-lineage defect is technically closed; `human_curator_acceptance=NOT_RUN`.
 
-Current PR #62 head `ebbf682d1c10f47785d0188f15be86ad610965f2` adds only `scripts/kodex-golden-curator-capture.mjs`, a non-gating 12×desktop/mobile review exporter. Run #293 SUCCESS proves no regression, but the workflow does not invoke that exporter. KOD-69 still owns execution of the 24 curator captures + manifest. This session attempted a local isolated checkout, but the sandbox cannot resolve GitHub DNS, so no honest local execution evidence was produced here. Do not infer creator acceptance before the 24-image packet is actually generated and reviewed.
+Current PR #62 head `ebbf682d1c10f47785d0188f15be86ad610965f2` adds only `scripts/kodex-golden-curator-capture.mjs`, a non-gating 12×desktop/mobile review exporter. Run #293 SUCCESS proves no regression. Independent inspection of artifact `9275887667` confirms the hosted Golden bundle contains the normal representative sample only: four desktop PNGs (`GP-SCI-01`, `GP-TECH-02`, `GP-CON-03`, `GP-ART-03`) plus the existing mechanical reports/benchmark. It does **not** contain the required 24 curator captures and has no curator `review-manifest.json`. KOD-69 still owns execution of the 24 curator captures + manifest. Do not infer creator acceptance before that packet is actually generated and reviewed.
 
 ---
 
@@ -59,15 +59,18 @@ Bounded semantics:
 - MACHINE → COSMOLOGY: computation contracts to one point and the target expands from that point (`COMPUTATION / ASSEMBLY → FIELD EXPANSION`). A parser-time pre-paint handoff in the same `KodexTransition` removes the measured target flash/double-arrival without changing navigation authority.
 - QUIET → RETURN remains the control.
 
-Reduced-motion gap found during review: target-side recomposition previously returned before showing the declared static semantic cue. The same ritual now holds the existing static `descent` / `cosmology` cue during its short reduced-motion crossfade, with moving canvas bands/rings disabled.
-
 Current exact candidate: `45c7fac57feca6fc43c6a2d8b990bb8b3815973f`.
 
-The AUTHORIAL_TRANSITION workflow on this head is explicitly wired to run both:
-- FULL cinematic transition evidence;
-- `kodex-authorial-transition-reduced-evidence.mjs`, which requires source **and target** reduced-motion cues for PROLOGUE→DESCENT, MACHINE→COSMOLOGY and QUIET→RETURN control on desktop + 390×844.
+Exact-head workflow reconciliation:
+- Product Corridor: PASS;
+- AUTHORIAL_STATE: PASS;
+- AUTHORIAL_MOTION: PASS;
+- AUTHORIAL_TRANSITION FULL cinematic capture: 16/16 PASS;
+- AUTHORIAL_TRANSITION reduced-motion semantic proof: 0/6 PASS.
 
-Current exact-head evidence checkpoint: AUTHORIAL_STATE PASS and AUTHORIAL_MOTION PASS. Product Corridor and AUTHORIAL_TRANSITION remain in progress. **Do not call KOD-74 mechanically closed until all required lanes pass on one exact head and the transition artifact is inspected.** Creator visual acceptance remains pending.
+Artifact `9277835144` (`sha256:89cb529753bc44e56ccb378382c37eee15f7758a78cb2a28e127965f1102c1dd`) shows all six reduced-motion cases reach the correct target route with no console or first-party HTTP errors, then time out waiting for the target `recomposicion` cue. The failure is localized to the reduced-motion target-cue evidence boundary or its short-lived target presentation; it is not a routing/build/FULL-transition failure.
+
+**Do not call KOD-74 mechanically closed. Do not start KOD-75 yet.** Smallest next proof: instrument or hold the existing target-side reduced semantic cue so `descent`, `cosmology`, and the default control are observably preserved after navigation on desktop + 390×844, without adding a new transition/runtime/state engine. Then rerun the same four-lane exact-head gate and inspect the transition artifact. Creator visual acceptance remains pending.
 
 ### KOD-75 — next bounded organism-differentiation proof
 
@@ -110,8 +113,8 @@ Audit findings are not scene completion. Implementation + required evidence chan
 ## 7. Exact next actions
 
 1. Keep #62 as the sole Assembly OS / Deep Navigation authority; do not recreate P0.1–P0.10.
-2. Let PR #86 exact-head `45c7fac…` finish Product Corridor + AUTHORIAL_TRANSITION; AUTHORIAL_STATE and AUTHORIAL_MOTION are already green. Inspect the artifact around PROLOGUE→DESCENT and MACHINE→COSMOLOGY plus reduced source/target evidence before mechanical closure.
-3. Only after KOD-74 is stable, start KOD-75's first bounded PROLOGUE + MACHINE organism-differentiation proof on top of that exact transition head. Candidate A only for PROLOGUE until a governed Candidate B source is verified. Replace repeated-ring presentation using existing primitives; no route/state/memory/renderer fork.
+2. On #86, fix only the reduced-motion target `recomposicion` observability/hold gap on the existing transition ritual, then rerun Product Corridor + AUTHORIAL_STATE + AUTHORIAL_MOTION + AUTHORIAL_TRANSITION on one exact head and inspect the artifact.
+3. Only after KOD-74 is mechanically stable, start KOD-75's first bounded PROLOGUE + MACHINE organism-differentiation proof on top of that exact transition head. Candidate A only for PROLOGUE until a governed Candidate B source is verified. Replace repeated-ring presentation using existing primitives; no route/state/memory/renderer fork.
 4. After KOD-74 stabilizes, source-extract the exact two-line #84 system-axis fix onto the active convergence lineage; do not import #84 branch history.
 5. Separately, execute #62's 24-image Golden curator exporter through KOD-69 and keep creator acceptance `NOT_RUN` until actual review.
 6. Keep protected ART visual/no-crop review blocked while source bytes are WITHHELD.
