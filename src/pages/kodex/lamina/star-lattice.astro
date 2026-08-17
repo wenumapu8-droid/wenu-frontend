@@ -946,6 +946,25 @@ const sigD = peine(0x24f, 130, 236, 78);
     if (dash) g.setLineDash([]);
   };
 
+  /* HILO de la retícula.
+     En la referencia la telaraña DOMINA: cada arista es un núcleo casi blanco
+     con un resplandor azul alrededor, y los cristales son sólo acentos sobre
+     ella. Un trazo plano de 0,7 px sobre fondo negro se lee gris y desaparece
+     bajo los halos de los cristales — por eso la retícula era invisible. Cada
+     hilo va en dos pasadas: resplandor aditivo ancho y difuso, y encima el
+     núcleo fino y brillante. */
+  const hilo = (
+    a: {x:number;y:number}, b: {x:number;y:number},
+    rgb: string, alfa: number, w = 1, dash?: number[]
+  ) => {
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    linea(a, b, tinta(rgb, alfa * 0.3), w * 3.4, dash);
+    linea(a, b, tinta(rgb, alfa * 0.5), w * 1.9, dash);
+    g.restore();
+    linea(a, b, tinta("232,240,255", alfa), w, dash);
+  };
+
   const elipse = (f: number, estilo: string, w = 1, dash?: number[]) => {
     g.strokeStyle = estilo;
     g.lineWidth = w;
@@ -1103,32 +1122,25 @@ const sigD = peine(0x24f, 130, 236, 78);
           const nd = ring[i];
           if (!filtro(nd.prof)) continue;
           /* radio al centro */
-          linea(nd, { x: CX, y: CY }, tinta("195,205,235", 0.42 * cerca), 0.7);
+          hilo(nd, { x: CX, y: CY }, "150,180,245", 0.5 * cerca, 0.9);
           /* al vecino del mismo anillo: viga doble en el exterior */
           const vec = ring[(i + 1) % ring.length];
+          hilo(nd, vec, "130,165,245", 0.92 * cerca, ai === 0 ? 1.8 : 1.3);
           if (ai === 0) {
-            /* resplandor aditivo de la viga: la telaraña de la referencia brilla */
-            g.save();
-            g.globalCompositeOperation = "lighter";
-            linea(nd, vec, tinta("120,150,235", 0.22 * cerca), 3.2);
-            g.restore();
-          }
-          linea(nd, vec, tinta("210,215,235", 0.78 * cerca), ai === 0 ? 1.4 : 1);
-          if (ai === 0) {
-            linea({ x: nd.x, y: nd.y + 5 }, { x: vec.x, y: vec.y + 5 }, tinta("205,205,215", 0.4 * cerca), 0.8);
-            linea({ x: nd.x, y: nd.y + 2.5 }, { x: vec.x, y: vec.y + 2.5 }, tinta("205,205,215", 0.28 * cerca), 0.6, [1, 4]);
+            hilo({ x: nd.x, y: nd.y + 5 }, { x: vec.x, y: vec.y + 5 }, "130,165,245", 0.5 * cerca, 0.9);
+            linea({ x: nd.x, y: nd.y + 2.5 }, { x: vec.x, y: vec.y + 2.5 }, tinta("205,205,215", 0.34 * cerca), 0.6, [1, 4]);
           }
           /* al anillo interior */
           if (ai < nodos.length - 1) {
             const inner = nodos[ai + 1];
             const j = Math.round((i / ring.length) * inner.length) % inner.length;
-            linea(nd, inner[j], tinta("175,190,235", 0.5 * cerca), 0.8, [3, 4]);
-            linea(nd, inner[(j + 1) % inner.length], tinta("175,190,235", 0.3 * cerca), 0.7);
+            hilo(nd, inner[j], "150,180,245", 0.6 * cerca, 1, [3, 4]);
+            hilo(nd, inner[(j + 1) % inner.length], "150,180,245", 0.38 * cerca, 0.85);
           }
           /* cuerdas largas del anillo exterior */
           if (ai === 0) {
-            linea(nd, ring[(i + 3) % ring.length], tinta("165,175,220", 0.32 * cerca), 0.7, [1, 4]);
-            if (i % 2 === 0) linea(nd, ring[(i + 4) % ring.length], tinta("165,175,220", 0.24 * cerca), 0.7);
+            hilo(nd, ring[(i + 3) % ring.length], "145,165,235", 0.4 * cerca, 0.85, [1, 4]);
+            if (i % 2 === 0) hilo(nd, ring[(i + 4) % ring.length], "145,165,235", 0.3 * cerca, 0.85);
           }
           /* motas de luz sobre la viga */
           if (ai === 0) {
