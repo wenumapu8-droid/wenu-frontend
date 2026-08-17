@@ -40,11 +40,6 @@ async function boundedGeometry(page, selector, profileId) {
 
 async function clickAndRequirePath(page, locator, expectedPath, profileId) {
   await locator.waitFor({ state: 'visible' });
-  // Correctness belongs to the exact browser pathname, not Playwright's
-  // navigation lifecycle observer. The corridor can replace the document
-  // quickly enough that waitForURL reports ERR_ABORTED/frame-detached even
-  // when the destination is already loading/rendered. Sampling pathname keeps
-  // the route contract strict without coupling PASS to that observer race.
   await locator.click({ noWaitAfter: true });
   await page.waitForFunction(
     (path) => window.location.pathname === path,
@@ -54,6 +49,86 @@ async function clickAndRequirePath(page, locator, expectedPath, profileId) {
   const pathname = await page.evaluate(() => window.location.pathname);
   assert(pathname === expectedPath, `${profileId}: expected ${expectedPath}, got ${pathname}`);
   return pathname;
+}
+
+async function machineCanvasSignature(page) {
+  return page.evaluate(() => {
+    const canvas = document.querySelector('[data-machine-canvas]');
+    if (!(canvas instanceof HTMLCanvasElement)) return null;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    // Deterministic sampled FNV-1a fingerprint. Hash RGBA channels separately:
+    // collapsing one pixel with XOR can alias visibly different assembly frames.
+    // This remains equality/difference evidence, never an aesthetic score.
+    let hash = 0x811c9dc5;
+    let paintedSamples = 0;
+    for (let i = 0; i < pixels.length; i += 16) {
+      if (pixels[i] || pixels[i + 1] || pixels[i + 2] || pixels[i + 3]) paintedSamples += 1;
+      for (let channel = 0; channel < 4; channel += 1) {
+        hash ^= pixels[i + channel];
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+      }
+    }
+    return {
+      width: canvas.width,
+      height: canvas.height,
+      hash: hash.toString(16).padStart(8, '0'),
+      paintedSamples,
+    };
+  });
+}
+
+async function armGeneratingCapture(page) {
+  await page.evaluate(() => {
+    const stateEl = document.querySelector('[data-machine-state]');
+    const fingerprint = () => {
+      const canvas = document.querySelector('[data-machine-canvas]');
+      if (!(canvas instanceof HTMLCanvasElement)) return null;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return null;
+      const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let hash = 0x811c9dc5;
+      let paintedSamples = 0;
+      for (let i = 0; i < pixels.length; i += 16) {
+        if (pixels[i] || pixels[i + 1] || pixels[i + 2] || pixels[i + 3]) paintedSamples += 1;
+        for (let channel = 0; channel < 4; channel += 1) {
+          hash ^= pixels[i + channel];
+          hash = Math.imul(hash, 0x01000193) >>> 0;
+        }
+      }
+      return {
+        width: canvas.width,
+        height: canvas.height,
+        hash: hash.toString(16).padStart(8, '0'),
+        paintedSamples,
+      };
+    };
+
+    window.__kdxMachineGeneratingEvidence = null;
+    window.__kdxMachineGeneratingObserver?.disconnect?.();
+    let captureQueued = false;
+    const capture = () => {
+      if (captureQueued || stateEl?.textContent?.trim() !== 'GENERATING') return;
+      captureQueued = true;
+      // The product schedules its first assembly RAF in the same click task.
+      // Queueing after the GENERATING mutation captures the rendered in-flight
+      // frame before COMPLETE, independent of Playwright/CI scheduling latency.
+      requestAnimationFrame(() => {
+        window.__kdxMachineGeneratingEvidence = {
+          state: stateEl?.textContent?.trim(),
+          seed: document.querySelector('[data-machine-seed]')?.textContent?.trim(),
+          pathname: location.pathname,
+          signature: fingerprint(),
+        };
+        window.__kdxMachineGeneratingObserver?.disconnect?.();
+      });
+    };
+    const observer = new MutationObserver(capture);
+    if (stateEl) observer.observe(stateEl, { childList: true, subtree: true, characterData: true });
+    window.__kdxMachineGeneratingObserver = observer;
+    capture();
+  });
 }
 
 for (const profile of profiles) {
@@ -81,7 +156,6 @@ for (const profile of profiles) {
   });
 
   try {
-    // ARCHIVE → MACHINE quiet interlude: it is an explicit pause, not an auto-transition.
     await page.goto(`${baseURL}/kodex/interlude/archive-machine/`, { waitUntil: 'networkidle' });
     await page.waitForSelector('[data-kx][data-stage-name="QUIET FRAME"]');
     const interludeGeometry = await boundedGeometry(page, '[data-stage-name="QUIET FRAME"]', `${profile.id}/interlude`);
@@ -111,7 +185,6 @@ for (const profile of profiles) {
     const interludeNext = page.locator('[data-deck-next]');
     await clickAndRequirePath(page, interludeNext, '/kodex/folio/iv/', `${profile.id}/interlude`);
 
-    // MACHINE: generation is local state; navigation remains a separate explicit NEXT.
     await page.waitForSelector('[data-kx][data-stage-name="MACHINE"]');
     const machineGeometry = await boundedGeometry(page, '[data-stage-name="MACHINE"]', `${profile.id}/machine`);
     const initial = await page.evaluate(() => {
@@ -136,26 +209,50 @@ for (const profile of profiles) {
     });
     assert(initial.state === 'READY', `${profile.id}: MACHINE initial state is not READY`);
     assert(initial.source === 'ACHROMA_006', `${profile.id}: MACHINE source drifted`);
-    assert(initial.method === 'MIRROR / DITHER / FLOW', `${profile.id}: MACHINE method drifted`);
+    assert(initial.method === 'ASSEMBLY / TRACE / CELL', `${profile.id}: MACHINE method drifted`);
     assert(initial.canvasPainted, `${profile.id}: MACHINE canvas is not painted`);
     assert(initial.pathname === '/kodex/folio/iv/', `${profile.id}: MACHINE route mismatch`);
 
-    // Truth boundary: decorative percentages cannot masquerade as verified runtime telemetry.
+    const readySignature = await machineCanvasSignature(page);
+    assert(readySignature?.paintedSamples > 0, `${profile.id}: READY canvas fingerprint has no painted samples`);
+    await page.screenshot({ path: `${outDir}/machine-${profile.id}-ready.png`, fullPage: true });
+
     assert(!/^\d+(?:\.\d+)?%$/.test(initial.integrity ?? ''), `${profile.id}: UNSOURCED_TELEMETRY — MACHINE exposes literal INTEGRITY ${initial.integrity} without a verified runtime measurement source`);
 
     const generate = page.locator('[data-machine-generate]');
     await generate.waitFor({ state: 'visible' });
     const beforeSeed = initial.seed;
+    await armGeneratingCapture(page);
     await generate.click();
+    await page.waitForFunction(() => Boolean(window.__kdxMachineGeneratingEvidence), null, { timeout: 1500 });
+    const generatingEvidence = await page.evaluate(() => window.__kdxMachineGeneratingEvidence);
+    const generating = {
+      state: generatingEvidence?.state,
+      seed: generatingEvidence?.seed,
+      pathname: generatingEvidence?.pathname,
+    };
+    const generatingSignature = generatingEvidence?.signature ?? null;
+    assert(generating.state === 'GENERATING', `${profile.id}: GENERATING state was not observable`);
+    assert(generating.seed && generating.seed !== beforeSeed, `${profile.id}: next seed was not visible during GENERATING`);
+    assert(generating.pathname === '/kodex/folio/iv/', `${profile.id}: GENERATING auto-navigated`);
+    assert(generatingSignature?.hash !== readySignature?.hash, `${profile.id}: GENERATING did not visibly alter the canvas`);
+    await page.screenshot({ path: `${outDir}/machine-${profile.id}-generating.png`, fullPage: true });
+
     await page.waitForFunction(() => document.querySelector('[data-machine-state]')?.textContent?.trim() === 'COMPLETE', null, { timeout: 3000 });
     const generated = await page.evaluate(() => ({
       state: document.querySelector('[data-machine-state]')?.textContent?.trim(),
       seed: document.querySelector('[data-machine-seed]')?.textContent?.trim(),
       pathname: location.pathname,
     }));
+    const completeSignature = await machineCanvasSignature(page);
     assert(generated.state === 'COMPLETE', `${profile.id}: generation did not complete`);
     assert(generated.seed && generated.seed !== beforeSeed, `${profile.id}: generation did not produce a new seed`);
     assert(generated.pathname === '/kodex/folio/iv/', `${profile.id}: GENERATE SIGNAL auto-navigated`);
+    assert(completeSignature?.hash !== readySignature?.hash, `${profile.id}: different seed produced the same rendered canvas fingerprint`);
+    if (profile.reducedMotion !== 'reduce') {
+      assert(generatingSignature?.hash !== completeSignature?.hash, `${profile.id}: full-motion GENERATING did not expose an intermediate assembly frame`);
+    }
+    await page.screenshot({ path: `${outDir}/machine-${profile.id}-complete.png`, fullPage: true });
 
     const outputTrigger = page.locator('[data-kdx-drawer-open="machine"]');
     await outputTrigger.click();
@@ -173,13 +270,46 @@ for (const profile of profiles) {
     });
     assert(Array.isArray(machineJourney?.views) && machineJourney.views.includes('/kodex/folio/iv/'), `${profile.id}: MACHINE visit memory missing`);
 
+    await page.goto(`${baseURL}/kodex/folio/iv/`, { waitUntil: 'networkidle' });
+    await page.waitForSelector('[data-kx][data-stage-name="MACHINE"]');
+    const replay = await page.evaluate(() => ({
+      state: document.querySelector('[data-machine-state]')?.textContent?.trim(),
+      seed: document.querySelector('[data-machine-seed]')?.textContent?.trim(),
+      pathname: location.pathname,
+    }));
+    const replaySignature = await machineCanvasSignature(page);
+    assert(replay.state === 'READY', `${profile.id}: replay did not return to READY`);
+    assert(replay.seed === beforeSeed, `${profile.id}: replay seed drifted from canonical seed`);
+    assert(replaySignature?.hash === readySignature?.hash, `${profile.id}: same seed did not reproduce the same rendered canvas fingerprint`);
+    await page.screenshot({ path: `${outDir}/machine-${profile.id}-replay.png`, fullPage: true });
+
     const next = page.locator('[data-deck-next]');
     const navigation = await clickAndRequirePath(page, next, '/kodex/folio/v/', `${profile.id}/machine`);
 
     assert(consoleErrors.length === 0, `${profile.id}: console errors: ${JSON.stringify(consoleErrors)}`);
     assert(httpErrors.length === 0, `${profile.id}: first-party HTTP errors: ${JSON.stringify(httpErrors)}`);
 
-    evidence.push({ profile: profile.id, status: 'PASS', interludeGeometry, interlude, machineGeometry, initial, generated, navigation, consoleErrors, httpErrors, externalHttpErrors });
+    evidence.push({
+      profile: profile.id,
+      status: 'PASS',
+      interludeGeometry,
+      interlude,
+      machineGeometry,
+      initial,
+      generating,
+      generated,
+      replay,
+      canvasSignatures: {
+        ready: readySignature,
+        generating: generatingSignature,
+        complete: completeSignature,
+        replay: replaySignature,
+      },
+      navigation,
+      consoleErrors,
+      httpErrors,
+      externalHttpErrors,
+    });
   } catch (error) {
     failed = true;
     evidence.push({ profile: profile.id, status: 'FAIL', error: error instanceof Error ? error.message : String(error), currentUrl: page.url(), consoleErrors, httpErrors, externalHttpErrors });
@@ -190,6 +320,16 @@ for (const profile of profiles) {
 }
 
 await browser.close();
-await writeFile(`${outDir}/evidence.json`, JSON.stringify({ baseURL, evidence }, null, 2));
+await writeFile(`${outDir}/evidence.json`, JSON.stringify({
+  baseURL,
+  evidence,
+  truthBoundary: {
+    canvasFingerprintIsAestheticScore: false,
+    browserPassIsCreatorAcceptance: false,
+    sameSeedReplayMustMatch: true,
+    differentSeedMustChangeRenderedTopology: true,
+    fullMotionMustExposeIntermediateAssembly: true,
+  },
+}, null, 2));
 for (const result of evidence) console.log(`${result.status} ${result.profile}${result.error ? ` — ${result.error}` : ''}`);
 if (failed) process.exit(1);
