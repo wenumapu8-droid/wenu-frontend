@@ -1,0 +1,511 @@
+---
+/**
+ * KODEX−∞ · JOURNEY FIELD MAP
+ *
+ * Primer proof funcional del Mapa de Flujo: INICIO −∞ → UMBRAL → corrientes
+ * → KODEX−∞ (atractor central) → FIN +∞. Fullscreen, sin scroll de
+ * documento — el viaje se recorre, no se hojea.
+ *
+ * Usa el SignalBus y el reduced-motion store ya existentes. No inventa una
+ * capa de interacción propia: proximity/dwell son las mismas señales que
+ * lee cualquier otra escena de KODEX.
+ */
+import Base from "../../layouts/Base.astro";
+import { generarCorrientes, trazarPath } from "../../lib/kodex/journey-field";
+
+const W = 1600;
+const H = 900;
+const SEED = 0x4b4f4445; // "KODE" en hex, estable entre builds
+const corrientes = generarCorrientes(SEED, 13);
+---
+
+<Base
+  title="KODEX −∞ · Journey Field Map"
+  description="INICIO −∞ → UMBRAL → corrientes → KODEX−∞ → FIN +∞. El primer proof del Mapa de Flujo."
+  noNav
+  noFooter
+>
+  <main class="jfm" data-kx="jfm" aria-label="KODEX Journey Field Map">
+    <header class="jfm__bar" role="banner">
+      <span class="jfm__word">KODEX−∞</span>
+      <span class="jfm__sub">JOURNEY FIELD MAP</span>
+      <span class="jfm__state" data-jfm-state aria-live="polite">CAOS INICIAL</span>
+    </header>
+
+    <div class="jfm__stage">
+      <svg
+        class="jfm__field"
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label="Campo de corrientes entre el inicio y el fin del viaje"
+      >
+        <defs>
+          <radialGradient id="jfm-heart-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.55" />
+            <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0" />
+          </radialGradient>
+          <filter id="jfm-soft"><feGaussianBlur stdDeviation="1.1" /></filter>
+        </defs>
+
+        <g class="jfm__corrientes" aria-hidden="true">
+          {corrientes.map((c) => (
+            <g class="jfm__corriente" data-corriente={c.id} data-fase={c.fase.toFixed(4)}>
+              <path
+                d={trazarPath(c.puntos, W, H)}
+                class="jfm__linea"
+                fill="none"
+                stroke-width="1.1"
+              />
+              {c.glifo && (
+                <text
+                  x={c.puntos[3].x * W}
+                  y={c.puntos[3].y * H - 10}
+                  class="jfm__glifo"
+                  text-anchor="middle"
+                >
+                  {c.glifo}
+                </text>
+              )}
+              {c.nodo && (
+                <circle
+                  class="jfm__nodo"
+                  data-t={c.nodo.t}
+                  data-label={c.nodo.label}
+                  r="2.4"
+                  tabindex="0"
+                  role="button"
+                  aria-label={`Nodo: ${c.nodo.label}`}
+                />
+              )}
+              <circle class="jfm__particula" r="2.2" />
+            </g>
+          ))}
+        </g>
+
+        <g
+          class="jfm__umbral"
+          data-jfm-umbral
+          tabindex="0"
+          role="button"
+          aria-label="Umbral — entrada al viaje"
+          transform={`translate(${0.06 * W}, ${0.5 * H})`}
+        >
+          <circle r="34" class="jfm__umbral-anillo" />
+          <circle r="34" class="jfm__umbral-anillo jfm__umbral-anillo--eco" />
+          <text y="58" class="jfm__anchor-label" text-anchor="middle">UMBRAL</text>
+          <text y="-46" class="jfm__anchor-tag" text-anchor="middle">INICIO −∞</text>
+        </g>
+
+        <g
+          class="jfm__heart"
+          data-jfm-heart
+          tabindex="0"
+          role="button"
+          aria-label="KODEX−∞ — corazón y atractor del sistema"
+          transform={`translate(${0.5 * W}, ${0.5 * H})`}
+        >
+          <circle r="120" fill="url(#jfm-heart-glow)" class="jfm__heart-glow" />
+          <circle r="26" class="jfm__heart-core" />
+          <circle r="26" class="jfm__heart-core jfm__heart-core--pulse" />
+          <text y="6" class="jfm__heart-infinity" text-anchor="middle">−∞</text>
+          <text y="70" class="jfm__anchor-label" text-anchor="middle">KODEX−∞</text>
+        </g>
+
+        <g
+          class="jfm__fin"
+          transform={`translate(${0.94 * W}, ${0.5 * H})`}
+          aria-hidden="true"
+        >
+          <circle r="20" class="jfm__fin-anillo" />
+          <text y="46" class="jfm__anchor-label" text-anchor="middle">FIN</text>
+          <text y="-38" class="jfm__anchor-tag" text-anchor="middle">+∞</text>
+        </g>
+      </svg>
+
+      <div class="jfm__label-float" data-jfm-label aria-hidden="true"></div>
+    </div>
+
+    <nav class="jfm__controls" aria-label="Navegación del viaje">
+      <button type="button" class="jfm__ctl" data-jfm-back aria-label="Volver a KODEX">←</button>
+      <button
+        type="button"
+        class="jfm__ctl jfm__ctl--motion"
+        data-jfm-motion-toggle
+        aria-pressed="false"
+      >
+        MOTION
+      </button>
+      <button type="button" class="jfm__ctl" data-jfm-enter aria-label="Cruzar el umbral">
+        CRUZAR →
+      </button>
+    </nav>
+
+    <footer class="jfm__telemetry" data-jfm-telemetry role="status" aria-live="off">
+      <div class="jfm__tel"><span>PROX</span><b data-tel="proximity">0.00</b></div>
+      <div class="jfm__tel"><span>DWELL</span><b data-tel="dwell">0.00</b></div>
+      <div class="jfm__tel jfm__tel--secondary"><span>MEMORY</span><b data-tel="memory">0.00</b></div>
+      <div class="jfm__tel jfm__tel--secondary"><span>CORRIENTES</span><b>{corrientes.length}</b></div>
+      <div class="jfm__tel jfm__tel--wide"><span>NOTA DEL KODEX</span><i>EL KODEX NO SE ESCRIBE. SE RECONOCE.</i></div>
+    </footer>
+  </main>
+</Base>
+
+<style>
+  .jfm {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    width: 100vw;
+    background: #050308;
+    color: #f0ede8;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    display: grid;
+    grid-template-rows: auto 1fr auto auto;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .jfm__bar {
+    display: flex;
+    align-items: baseline;
+    gap: 0.9rem;
+    padding: 0.9rem 1.2rem 0.6rem;
+    border-bottom: 1px solid rgba(139, 92, 246, 0.18);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+  .jfm__word { color: #f0ede8; font-weight: 600; }
+  .jfm__sub { color: #9a948a; }
+  .jfm__state {
+    margin-left: auto;
+    color: #8b5cf6;
+    transition: opacity 0.4s ease;
+  }
+
+  .jfm__stage { position: relative; min-height: 0; }
+  .jfm__field { width: 100%; height: 100%; display: block; }
+
+  .jfm__linea {
+    stroke: rgba(240, 237, 232, 0.22);
+    transition: stroke 0.5s ease, stroke-width 0.3s ease;
+  }
+  .jfm__corriente:hover .jfm__linea,
+  .jfm__corriente:focus-within .jfm__linea {
+    stroke: rgba(139, 92, 246, 0.85);
+    stroke-width: 1.8;
+  }
+  .jfm__glifo {
+    font-size: 8px;
+    fill: rgba(240, 237, 232, 0.28);
+    letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .jfm__nodo {
+    fill: #f0ede8;
+    fill-opacity: 0.5;
+    cursor: pointer;
+    outline: none;
+  }
+  .jfm__nodo:hover,
+  .jfm__nodo:focus-visible {
+    fill: #8b5cf6;
+    fill-opacity: 1;
+  }
+  .jfm__particula {
+    fill: #c9a84c;
+    filter: url(#jfm-soft);
+  }
+
+  .jfm__umbral,
+  .jfm__heart {
+    cursor: pointer;
+    outline: none;
+  }
+  .jfm__umbral-anillo {
+    fill: none;
+    stroke: rgba(240, 237, 232, 0.5);
+    stroke-width: 1.4;
+  }
+  .jfm__umbral-anillo--eco {
+    stroke: rgba(139, 92, 246, 0.35);
+    animation: jfm-eco 4.4s ease-in-out infinite;
+  }
+  .jfm__umbral:hover .jfm__umbral-anillo,
+  .jfm__umbral:focus-visible .jfm__umbral-anillo {
+    stroke: #8b5cf6;
+  }
+
+  .jfm__heart-glow { opacity: 0.55; transition: opacity 0.4s ease; }
+  .jfm__heart-core {
+    fill: #0a0a0a;
+    stroke: #8b5cf6;
+    stroke-width: 1.6;
+  }
+  .jfm__heart-core--pulse {
+    fill: none;
+    stroke: rgba(139, 92, 246, 0.5);
+    animation: jfm-pulse 3.2s ease-in-out infinite;
+  }
+  .jfm__heart-infinity {
+    fill: #f0ede8;
+    font-size: 16px;
+    letter-spacing: 0.05em;
+  }
+  .jfm__heart:hover .jfm__heart-glow,
+  .jfm__heart:focus-visible .jfm__heart-glow {
+    opacity: 0.9;
+  }
+
+  .jfm__fin-anillo {
+    fill: none;
+    stroke: rgba(201, 168, 76, 0.55);
+    stroke-width: 1.2;
+  }
+
+  .jfm__anchor-label {
+    fill: #f0ede8;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+  }
+  .jfm__anchor-tag {
+    fill: #9a948a;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+  }
+
+  .jfm__label-float {
+    position: absolute;
+    pointer-events: none;
+    padding: 0.3rem 0.6rem;
+    background: rgba(5, 3, 8, 0.9);
+    border: 1px solid rgba(139, 92, 246, 0.4);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    color: #f0ede8;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    transform: translate(-50%, -140%);
+    white-space: nowrap;
+    z-index: 5;
+  }
+  .jfm__label-float[data-visible="1"] { opacity: 1; }
+
+  .jfm__controls {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 1.2rem;
+    gap: 0.6rem;
+  }
+  .jfm__ctl {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0 1rem;
+    background: transparent;
+    border: 1px solid rgba(240, 237, 232, 0.22);
+    color: #f0ede8;
+    font-family: inherit;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .jfm__ctl:hover, .jfm__ctl:focus-visible { border-color: #8b5cf6; color: #8b5cf6; }
+  .jfm__ctl--motion[aria-pressed="true"] { color: #8b5cf6; border-color: #8b5cf6; }
+
+  .jfm__telemetry {
+    display: flex;
+    gap: 1.4rem;
+    padding: 0.5rem 1.2rem 0.8rem;
+    border-top: 1px solid rgba(139, 92, 246, 0.14);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    overflow-x: auto;
+  }
+  .jfm__tel { display: flex; flex-direction: column; gap: 0.15rem; white-space: nowrap; }
+  .jfm__tel span { color: #9a948a; }
+  .jfm__tel b { color: #8b5cf6; font-weight: 600; }
+  .jfm__tel--wide { margin-left: auto; color: #6a635a; }
+  .jfm__tel--wide i { font-style: normal; color: #6a635a; }
+
+  @keyframes jfm-eco {
+    0%, 100% { stroke-opacity: 0.15; r: 34px; }
+    50% { stroke-opacity: 0.4; r: 40px; }
+  }
+  @keyframes jfm-pulse {
+    0%, 100% { stroke-opacity: 0.5; r: 26px; }
+    50% { stroke-opacity: 0.15; r: 34px; }
+  }
+
+  /* móvil: compuesto a propósito, no un desktop apretado */
+  @media (max-width: 640px) {
+    .jfm { grid-template-rows: auto 1fr auto; }
+    .jfm__sub { display: none; }
+    .jfm__telemetry .jfm__tel--secondary,
+    .jfm__telemetry .jfm__tel--wide {
+      display: none; /* la telemetría secundaria se oculta antes que la navegación */
+    }
+    .jfm__telemetry { padding-bottom: calc(0.6rem + env(safe-area-inset-bottom)); }
+    .jfm__glifo { display: none; } /* densidad editorial cede a legibilidad en pantalla chica */
+    .jfm__anchor-tag { font-size: 8px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .jfm__umbral-anillo--eco,
+    .jfm__heart-core--pulse {
+      animation: none;
+    }
+    .jfm__particula { display: none; }
+  }
+</style>
+
+<script>
+  import { senales } from "../../lib/kodex/senales";
+  import { prefersReducedMotion } from "../../lib/kodex/reduced-motion.js";
+
+  const root = document.querySelector<HTMLElement>('[data-kx="jfm"]');
+  if (root) {
+    const bus = senales();
+    const stateEl = root.querySelector<HTMLElement>("[data-jfm-state]");
+    const labelEl = root.querySelector<HTMLElement>("[data-jfm-label]");
+    const telEls = {
+      proximity: root.querySelector<HTMLElement>('[data-tel="proximity"]'),
+      dwell: root.querySelector<HTMLElement>('[data-tel="dwell"]'),
+      memory: root.querySelector<HTMLElement>('[data-tel="memory"]'),
+    };
+    const svg = root.querySelector<SVGSVGElement>(".jfm__field")!;
+    const particulas = Array.from(
+      root.querySelectorAll<SVGCircleElement>(".jfm__corriente"),
+    ).map((g) => ({
+      grupo: g,
+      linea: g.querySelector<SVGPathElement>(".jfm__linea")!,
+      punto: g.querySelector<SVGCircleElement>(".jfm__particula")!,
+      fase: parseFloat(g.dataset.fase || "0"),
+    }));
+
+    let motionOn = !prefersReducedMotion();
+    let dwellStart = performance.now();
+    let raf = 0;
+
+    function estado(v: string) {
+      if (stateEl) stateEl.textContent = v;
+    }
+
+    function mostrarLabel(texto: string, x: number, y: number) {
+      if (!labelEl) return;
+      labelEl.textContent = texto;
+      labelEl.style.left = `${x}px`;
+      labelEl.style.top = `${y}px`;
+      labelEl.dataset.visible = "1";
+    }
+    function ocultarLabel() {
+      if (labelEl) labelEl.dataset.visible = "0";
+    }
+
+    // UMBRAL
+    const umbral = root.querySelector<SVGGElement>("[data-jfm-umbral]");
+    umbral?.addEventListener("pointerenter", (e) => {
+      bus.set("proximity", 1);
+      estado("APROXIMACIÓN AL UMBRAL");
+      mostrarLabel("UMBRAL — entrada al viaje", (e as PointerEvent).clientX, (e as PointerEvent).clientY);
+    });
+    umbral?.addEventListener("focus", () => { bus.set("proximity", 1); estado("APROXIMACIÓN AL UMBRAL"); });
+    umbral?.addEventListener("pointerleave", () => { bus.set("proximity", 0); ocultarLabel(); estado("CAOS INICIAL"); });
+    umbral?.addEventListener("blur", () => { bus.set("proximity", 0); estado("CAOS INICIAL"); });
+    function cruzar() {
+      estado("UMBRAL CRUZADO");
+      bus.set("memory", Math.min(1, bus.get("memory") + 0.08));
+      window.location.href = "/kodex/";
+    }
+    umbral?.addEventListener("click", cruzar);
+    umbral?.addEventListener("keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") cruzar();
+    });
+
+    // CORAZÓN — el atractor activo
+    const heart = root.querySelector<SVGGElement>("[data-jfm-heart]");
+    let heartSync = 0;
+    heart?.addEventListener("pointerenter", (e) => {
+      estado("EL CORAZÓN SINCRONIZA");
+      mostrarLabel("KODEX−∞ — cada decisión emite una frecuencia", (e as PointerEvent).clientX, (e as PointerEvent).clientY);
+    });
+    heart?.addEventListener("focus", () => estado("EL CORAZÓN SINCRONIZA"));
+    heart?.addEventListener("pointerleave", () => { ocultarLabel(); estado("CAOS INICIAL"); });
+    heart?.addEventListener("blur", () => estado("CAOS INICIAL"));
+    function sincronizar() {
+      heartSync = Math.min(1, heartSync + 0.25);
+      bus.set("memory", Math.min(1, bus.get("memory") + 0.05));
+      estado(heartSync >= 1 ? "DESPERTAR" : "SINCRO ENERGÉTICA");
+    }
+    heart?.addEventListener("click", sincronizar);
+    heart?.addEventListener("keydown", (e) => {
+      if ((e as KeyboardEvent).key === "Enter" || (e as KeyboardEvent).key === " ") sincronizar();
+    });
+
+    // Nodos individuales dentro de las corrientes
+    root.querySelectorAll<SVGCircleElement>(".jfm__nodo").forEach((nodo) => {
+      const label = nodo.dataset.label || "";
+      nodo.addEventListener("pointerenter", (e) => mostrarLabel(label, (e as PointerEvent).clientX, (e as PointerEvent).clientY));
+      nodo.addEventListener("focus", () => mostrarLabel(label, 0, 0));
+      nodo.addEventListener("pointerleave", ocultarLabel);
+      nodo.addEventListener("blur", ocultarLabel);
+    });
+
+    // dwell real: tiempo sostenido dentro del stage, no un valor fingido
+    const stage = root.querySelector(".jfm__stage");
+    stage?.addEventListener("pointerenter", () => { dwellStart = performance.now(); });
+
+    // toggle de movimiento — respeta reduced-motion como punto de partida, no como jaula
+    const motionBtn = root.querySelector<HTMLButtonElement>("[data-jfm-motion-toggle]");
+    if (motionBtn) {
+      motionBtn.setAttribute("aria-pressed", String(motionOn));
+      motionBtn.addEventListener("click", () => {
+        motionOn = !motionOn;
+        motionBtn.setAttribute("aria-pressed", String(motionOn));
+        if (motionOn) tick(); else cancelAnimationFrame(raf);
+      });
+    }
+
+    root.querySelector("[data-jfm-back]")?.addEventListener("click", () => {
+      window.location.href = "/kodex/";
+    });
+    root.querySelector("[data-jfm-enter]")?.addEventListener("click", cruzar);
+
+    function largoPath(el: SVGPathElement) {
+      try { return el.getTotalLength(); } catch { return 0; }
+    }
+
+    function tick(t = 0) {
+      const dwellSec = (performance.now() - dwellStart) / 1000;
+      bus.set("dwell", Math.min(1, dwellSec / 8));
+
+      if (telEls.proximity) telEls.proximity.textContent = bus.get("proximity").toFixed(2);
+      if (telEls.dwell) telEls.dwell.textContent = bus.get("dwell").toFixed(2);
+      if (telEls.memory) telEls.memory.textContent = bus.get("memory").toFixed(2);
+
+      if (motionOn) {
+        const tSec = t / 1000;
+        for (const p of particulas) {
+          const len = largoPath(p.linea);
+          if (!len) continue;
+          const avance = (tSec * 0.045 + p.fase) % 1;
+          const pt = p.linea.getPointAtLength(avance * len);
+          p.punto.setAttribute("cx", String(pt.x));
+          p.punto.setAttribute("cy", String(pt.y));
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    }
+
+    if (!motionOn) {
+      // aún sin animación continua, el campo queda legible y posicionado
+      for (const p of particulas) {
+        const len = largoPath(p.linea);
+        if (!len) continue;
+        const pt = p.linea.getPointAtLength(p.fase * len);
+        p.punto.setAttribute("cx", String(pt.x));
+        p.punto.setAttribute("cy", String(pt.y));
+      }
+    }
+    tick();
+  }
+</script>
