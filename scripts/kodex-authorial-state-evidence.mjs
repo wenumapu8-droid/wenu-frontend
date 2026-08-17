@@ -3,7 +3,7 @@ import { chromium } from 'playwright';
 
 const baseURL = process.env.KODEX_PREVIEW_URL ?? 'http://127.0.0.1:4321';
 const outDir = 'artifacts/kodex-authorial-state-evidence';
-const exactSha = process.env.GITHUB_SHA ?? 'LOCAL_UNBOUND';
+const exactSha = process.env.KODEX_HEAD_SHA ?? process.env.GITHUB_SHA ?? 'LOCAL_UNBOUND';
 await mkdir(outDir, { recursive: true });
 
 const profiles = [
