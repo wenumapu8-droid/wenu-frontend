@@ -69,20 +69,52 @@ const gClase = glifos(0x22b, 9);
 const gPieIzq = glifos(0x22c, 9);
 const gPieDer = glifos(0x22d, 9);
 
-/* ── SYMBOL DENSITY: perfil espigado violeta + oro (semilla fija) ── */
+/* ── SYMBOL DENSITY: perfil espigado violeta + oro (semilla fija) ──
+   MEDIDO sobre la referencia: la traza es BIPOLAR alrededor de una línea
+   base en y=790 (real), sube hasta y=740 y baja hasta y=806. La nuestra
+   era unipolar y de la mitad de amplitud: la franja y748..798 salía 17,6
+   puntos de luminancia por debajo. */
 const perfilEspigas = (semilla: number, amp: number) => {
   const r = rng(semilla);
   const pts: string[] = [];
-  for (let i = 0; i <= 72; i++) {
-    const x = 6 + (i / 72) * 178;
-    const pico = r() < 0.22 ? r() * amp : r() * amp * 0.25;
-    const y = 62 - pico;
+  for (let i = 0; i <= 108; i++) {
+    const x = 6 + (i / 108) * 190;
+    /* los picos altos de la referencia llegan 50 px por encima de la base y
+       los valles 16 por debajo; con r() plano casi nunca se alcanzaban */
+    const pico = r() < 0.24 ? (0.45 + r() * 0.55) * amp : r() * amp * 0.11;
+    const hondo = r() < 0.3 ? (0.3 + r() * 0.7) * amp * 0.4 : 0;
+    const y = 58 - pico + hondo;
     pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
   }
   return pts.join(" ");
 };
-const espigasVioleta = perfilEspigas(0x2201, 40);
-const espigasOro = perfilEspigas(0x2202, 16);
+const espigasVioleta = perfilEspigas(0x2201, 52);
+const espigasOro = perfilEspigas(0x2202, 14);
+
+/* ── Geometría polar para las ruedas de sigilo (medida, no estimada) ── */
+const P = (r: number, a: number): [number, number] => {
+  const t = ((a - 90) * Math.PI) / 180;
+  return [Number((r * Math.cos(t)).toFixed(2)), Number((r * Math.sin(t)).toFixed(2))];
+};
+const poli = (r: number, n: number, off = 0) =>
+  Array.from({ length: n }, (_, i) => P(r, off + (i * 360) / n).join(",")).join(" ");
+const estrella = (re: number, ri: number, n: number, off = 0) =>
+  Array.from({ length: n * 2 }, (_, i) => P(i % 2 ? ri : re, off + (i * 180) / n).join(",")).join(" ");
+const angulos = (n: number, off = 0) => Array.from({ length: n }, (_, i) => off + (i * 360) / n);
+
+/* ── HEAT INDEX: filamentos de la columna de fuego (semilla fija) ─── */
+const filamento = (semilla: number, amp: number) => {
+  const r = rng(semilla);
+  const pts: string[] = [];
+  for (let i = 0; i <= 36; i++) {
+    const t = i / 36;
+    const y = 22 + t * 166;
+    const x = 104 + (r() - 0.5) * 2 * amp * (0.25 + t);
+    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return pts.join(" ");
+};
+const hilos = [filamento(0x2210, 3.2), filamento(0x2211, 2.1), filamento(0x2212, 4.4)];
 
 const pasos = [
   { n: "01", t1: "CHAOS", t2: "INFUSION", d: "Raw potential is drawn from the unformed." },
@@ -113,6 +145,8 @@ const notas = [
       {/* marco doble exterior medido x7..12 / y13..18 */}
       <div class="of-marco of-marco--ext" aria-hidden="true"></div>
       <div class="of-marco of-marco--int" aria-hidden="true"></div>
+      <div class="of-canto" aria-hidden="true"></div>
+      <div class="of-canto--der" aria-hidden="true"></div>
 
       {/* ── fila 1 de cabecera: esquinas + KODEX−∞ al centro ─────── */}
       <div class="arch-caja of-caja--cab">
@@ -181,7 +215,7 @@ const notas = [
           {pasos.map((p, i) => (
             <article class="of-paso">
               <div class="of-paso__icono">
-                <canvas id={`of-p${i + 1}`} width="104" height="104" aria-hidden="true"></canvas>
+                <canvas id={`of-p${i + 1}`} width="120" height="120" aria-hidden="true"></canvas>
               </div>
               <div class="of-paso__texto">
                 <p class="of-paso__n">{p.n}</p>
@@ -211,12 +245,27 @@ const notas = [
           <h2 class="of-riel-titulo">FORGE METRICS</h2>
           <TarjetaMetrica tituloEn="HEAT INDEX" tituloEs="" valor="9.87 ∞" etiqueta="EXA-KELVIN" conPie={false}>
             <svg width="196" height="216" viewBox="0 0 196 216" fill="none" aria-hidden="true">
+              {/* La columna de la referencia NO es una cuña naranja plana: es una
+                 hoja de fuego blanco-oro de 5 px envuelta en un halo ancho, y
+                 remata en una rosa encendida de ~28 px de radio. Medido: las
+                 franjas y449..648 de este panel salían entre 7 y 13,5 puntos de
+                 luminancia por debajo de la referencia. */}
               <defs>
                 <linearGradient id="of-llama-g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#fff3cf" />
-                  <stop offset="55%" stop-color="#f0b050" />
-                  <stop offset="100%" stop-color="#b06a20" />
+                  <stop offset="0%" stop-color="#fff6dd" />
+                  <stop offset="45%" stop-color="#ffd489" />
+                  <stop offset="100%" stop-color="#f0a840" />
                 </linearGradient>
+                <radialGradient id="of-halo-col" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0%" stop-color="#ffcf86" stop-opacity="0.4" />
+                  <stop offset="34%" stop-color="#f2a848" stop-opacity="0.17" />
+                  <stop offset="100%" stop-color="#f2a848" stop-opacity="0" />
+                </radialGradient>
+                <radialGradient id="of-halo-pie" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0%" stop-color="#fff0c8" stop-opacity="0.5" />
+                  <stop offset="40%" stop-color="#f0a840" stop-opacity="0.2" />
+                  <stop offset="100%" stop-color="#f0a840" stop-opacity="0" />
+                </radialGradient>
               </defs>
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <>
@@ -224,12 +273,34 @@ const notas = [
                   <line x1="42" y1={16 + i * 36} x2="160" y2={16 + i * 36} stroke="#a98d54" stroke-opacity="0.28" stroke-dasharray="1 4" />
                 </>
               ))}
-              <circle cx="104" cy="16" r="6" stroke="#e8c56a" stroke-opacity="0.9" fill="none" />
-              <path d="M104 22 L111 172 L104 184 L97 172 Z" fill="url(#of-llama-g)" />
-              <path d="M104 30 L116 170 L104 192 L92 170 Z" fill="#f0b050" fill-opacity="0.18" />
-              <circle cx="104" cy="192" r="15" stroke="#e8c56a" stroke-opacity="0.7" fill="none" />
-              <circle cx="104" cy="192" r="8" stroke="#e8c56a" stroke-opacity="0.5" fill="none" />
-              <path d="M89 192 H119 M104 177 V207 M94 182 L114 202 M114 182 L94 202" stroke="#c9ab6a" stroke-opacity="0.55" />
+              <ellipse cx="104" cy="106" rx="42" ry="106" fill="url(#of-halo-col)" />
+              <ellipse cx="104" cy="192" rx="48" ry="46" fill="url(#of-halo-pie)" />
+              <path d="M104 20 L109 186 L104 198 L99 186 Z" fill="url(#of-llama-g)" />
+              <path d="M104 24 L116 184 L104 200 L92 184 Z" fill="#ffbe63" fill-opacity="0.22" />
+              {hilos.map((h, k) => (
+                <polyline
+                  points={h}
+                  stroke={k === 1 ? "#fff8e6" : "#ffd489"}
+                  stroke-opacity={k === 1 ? 0.95 : 0.5}
+                  stroke-width={k === 1 ? 1.5 : 0.9}
+                  fill="none"
+                />
+              ))}
+              <line x1="104" y1="22" x2="104" y2="188" stroke="#fffaf0" stroke-opacity="0.85" stroke-width="1.4" />
+              <circle cx="104" cy="16" r="6" stroke="#ffe6a8" stroke-opacity="0.95" fill="none" />
+              <circle cx="104" cy="16" r="2.4" fill="#fff6dd" fill-opacity="0.9" />
+              {/* rosa de los vientos del pie, encendida */}
+              <g transform="translate(104 192)">
+                <circle r="28" stroke="#d8bd85" stroke-opacity="0.55" />
+                <circle r="21" stroke="#e8c56a" stroke-opacity="0.6" />
+                <circle r="13" stroke="#f2ddb0" stroke-opacity="0.7" />
+                {angulos(16).map((a) => (
+                  <line x1={P(13, a)[0]} y1={P(13, a)[1]} x2={P(28, a)[0]} y2={P(28, a)[1]} stroke="#e8c56a" stroke-opacity="0.45" />
+                ))}
+                <polygon points={estrella(32, 9, 4)} stroke="#f2ddb0" stroke-opacity="0.7" fill="none" />
+                <polygon points={estrella(21, 6, 6, 30)} fill="#ffeec4" fill-opacity="0.55" />
+                <circle r="6" fill="#fffaf0" fill-opacity="0.9" />
+              </g>
             </svg>
           </TarjetaMetrica>
         </RielMetricas>
@@ -238,13 +309,25 @@ const notas = [
       <div class="arch-caja of-panel of-panel--2">
         <RielMetricas ancho={226} rotulo="densidad de símbolos">
           <TarjetaMetrica tituloEn="SYMBOL DENSITY" tituloEs="" valor="Φ 7.314" etiqueta="SIGILS / m³" conPie={false}>
-            <svg width="190" height="78" viewBox="0 0 190 78" fill="none" aria-hidden="true">
-              <rect x="2" y="2" width="186" height="66" stroke="#8d7b58" stroke-opacity="0.35" fill="none" />
-              <line x1="6" y1="62" x2="184" y2="62" stroke="#a98d54" stroke-opacity="0.3" />
-              <polyline points={espigasOro} stroke="#e8c56a" stroke-opacity="0.55" stroke-width="0.9" fill="none" />
-              <polyline points={espigasVioleta} stroke="#8f72d8" stroke-opacity="0.85" stroke-width="1" fill="none" />
-              {[0, 1, 2, 3, 4].map((i) => (
-                <line x1={20 + i * 38} y1="68" x2={20 + i * 38} y2="72" stroke="#8d7b58" stroke-opacity="0.5" />
+            <svg width="202" height="100" viewBox="0 0 202 100" fill="none" aria-hidden="true">
+              {/* la referencia no encierra la traza en un marco brillante: es una
+                 retícula tenue con la señal encendida encima */}
+              <rect x="2" y="2" width="198" height="84" stroke="#8d7b58" stroke-opacity="0.2" fill="none" />
+              {[0, 1, 2, 3].map((i) => (
+                <line x1="2" y1={19 + i * 21} x2="200" y2={19 + i * 21} stroke="#a98d54" stroke-opacity="0.13" stroke-dasharray="2 5" />
+              ))}
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <line x1={16 + i * 34} y1="2" x2={16 + i * 34} y2="86" stroke="#a98d54" stroke-opacity="0.13" stroke-dasharray="2 5" />
+              ))}
+              <line x1="4" y1="58" x2="198" y2="58" stroke="#a98d54" stroke-opacity="0.3" />
+              <polyline points={espigasVioleta} stroke="#8f72d8" stroke-opacity="0.13" stroke-width="2.6" fill="none" />
+              <polyline points={espigasOro} stroke="#e8c56a" stroke-opacity="0.55" stroke-width="1" fill="none" />
+              <polyline points={espigasVioleta} stroke="#b294f0" stroke-opacity="0.9" stroke-width="1.15" fill="none" />
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <>
+                  <line x1={16 + i * 34} y1="86" x2={16 + i * 34} y2="90" stroke="#8d7b58" stroke-opacity="0.5" />
+                  <path d={glifos(0x2230 + i, 1, 5).d} transform={`translate(${10 + i * 34} 93)`} stroke="#8d7b58" stroke-opacity="0.6" stroke-width="0.7" fill="none" />
+                </>
               ))}
             </svg>
           </TarjetaMetrica>
@@ -254,26 +337,87 @@ const notas = [
       <div class="arch-caja of-panel of-panel--3">
         <RielMetricas ancho={226} rotulo="índice de coherencia">
           <TarjetaMetrica tituloEn="COHERENCE INDEX" tituloEs="" valor="Ψ 0.963" etiqueta="STABILITY RATIO" conPie={false}>
-            <svg width="172" height="132" viewBox="0 0 196 150" fill="none" aria-hidden="true">
-              <circle cx="98" cy="75" r="22" stroke="#d8bd85" stroke-opacity="0.7" />
-              <circle cx="98" cy="75" r="36" stroke="#c9ab6a" stroke-opacity="0.45" />
-              <circle cx="98" cy="75" r="52" stroke="#a98d54" stroke-opacity="0.35" />
-              <circle cx="98" cy="75" r="64" stroke="#a98d54" stroke-opacity="0.25" stroke-dasharray="2 5" />
-              {[0, 90, 180, 270].map((a) => (
-                <g transform={`rotate(${a} 98 75)`}>
-                  <line x1="98" y1="23" x2="98" y2="3" stroke="#c9ab6a" stroke-opacity="0.6" />
-                  <circle cx="98" cy="10" r="7" stroke="#c9ab6a" stroke-opacity="0.7" fill="none" />
-                  <circle cx="98" cy="10" r="2" fill="#e8c56a" fill-opacity="0.8" />
-                </g>
-              ))}
-              {[45, 135, 225, 315].map((a) => (
-                <g transform={`rotate(${a} 98 75)`}>
-                  <line x1="98" y1="30" x2="98" y2="16" stroke="#a98d54" stroke-opacity="0.45" />
-                  <circle cx="98" cy="14" r="4" stroke="#a98d54" stroke-opacity="0.55" fill="none" />
-                </g>
-              ))}
-              <path d="M98 55 L104 69 L118 75 L104 81 L98 95 L92 81 L78 75 L92 69 Z" fill="#f2ddb0" fill-opacity="0.9" />
-              <rect x="92" y="69" width="12" height="12" transform="rotate(45 98 75)" stroke="#e8c56a" stroke-opacity="0.7" fill="none" />
+            <svg width="200" height="158" viewBox="0 0 200 158" fill="none" aria-hidden="true">
+              {/* RUEDA DE SIGILOS · medida contra la referencia: el disco llega a
+                  r≈70 y los brazos cardinales a r≈96 dentro del panel de 226 px.
+                  La nuestra moría en r=56 y por eso la franja y947..1097 salía
+                  20 puntos de luminancia por debajo — el mayor hueco del riel. */}
+              <defs>
+                <radialGradient id="of-coh-luz" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0%" stop-color="#ffe6b0" stop-opacity="0.62" />
+                  <stop offset="26%" stop-color="#f0bc6a" stop-opacity="0.3" />
+                  <stop offset="62%" stop-color="#d8a054" stop-opacity="0.13" />
+                  <stop offset="100%" stop-color="#d8a054" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              <g transform="translate(100 79)">
+                {/* MEDIDO por columnas: el núcleo de la referencia da 75,6 de
+                    luminancia en x1080..1097 y el nuestro 33,4. La geometría ya
+                    estaba; lo que faltaba era la LUZ del disco. */}
+                <circle r="74" fill="url(#of-coh-luz)" />
+                <circle r="70" stroke="#a98d54" stroke-opacity="0.28" />
+                <circle r="64" stroke="#c9ab6a" stroke-opacity="0.45" stroke-dasharray="1.5 4" />
+                <circle r="57" stroke="#c9ab6a" stroke-opacity="0.62" />
+                <circle r="46" stroke="#d8bd85" stroke-opacity="0.72" />
+                <circle r="36" stroke="#e8c56a" stroke-opacity="0.8" />
+                <circle r="27" stroke="#f2ddb0" stroke-opacity="0.88" />
+                <circle r="18" stroke="#fff2d2" stroke-opacity="0.92" />
+                {angulos(24).map((a) => (
+                  <line
+                    x1={P(57, a)[0]} y1={P(57, a)[1]} x2={P(64, a)[0]} y2={P(64, a)[1]}
+                    stroke="#a98d54" stroke-opacity="0.5"
+                  />
+                ))}
+                <polygon points={poli(36, 3)} stroke="#f2ddb0" stroke-opacity="0.85" fill="none" />
+                <polygon points={poli(36, 3, 60)} stroke="#f2ddb0" stroke-opacity="0.85" fill="none" />
+                <polygon points={estrella(27, 18, 12)} stroke="#ffeec4" stroke-opacity="0.62" fill="none" />
+                <polygon points={poli(46, 6, 30)} stroke="#c9ab6a" stroke-opacity="0.3" fill="none" />
+                {/* corona de glifos pequeños entre los dos anillos medios */}
+                {angulos(8, 22.5).map((a) => (
+                  <g transform={`translate(${P(51.5, a)[0]} ${P(51.5, a)[1]})`}>
+                    <circle r="4.6" stroke="#c9ab6a" stroke-opacity="0.6" />
+                    <circle r="1.4" fill="#e8c56a" fill-opacity="0.75" />
+                  </g>
+                ))}
+                {/* cuatro medallones cardinales, con su tallo hacia el centro */}
+                {angulos(4).map((a) => (
+                  <g>
+                    <line
+                      x1={P(46, a)[0]} y1={P(46, a)[1]} x2={P(54, a)[0]} y2={P(54, a)[1]}
+                      stroke="#c9ab6a" stroke-opacity="0.6"
+                    />
+                    <g transform={`translate(${P(64, a)[0]} ${P(64, a)[1]})`}>
+                      <circle r="9.5" stroke="#d8bd85" stroke-opacity="0.75" />
+                      <circle r="5.5" stroke="#c9ab6a" stroke-opacity="0.5" />
+                      <circle r="2" fill="#f2ddb0" fill-opacity="0.85" />
+                    </g>
+                  </g>
+                ))}
+                {angulos(4, 45).map((a) => (
+                  <g transform={`translate(${P(57, a)[0]} ${P(57, a)[1]})`}>
+                    <circle r="5.5" stroke="#a98d54" stroke-opacity="0.55" />
+                    <circle r="1.2" fill="#e8c56a" fill-opacity="0.6" />
+                  </g>
+                ))}
+                {/* brazos: los horizontales llegan al borde del panel, los
+                    verticales rematan en rombo justo fuera del disco */}
+                {[90, 270].map((a) => (
+                  <g>
+                    <line x1={P(70, a)[0]} y1={P(70, a)[1]} x2={P(85, a)[0]} y2={P(85, a)[1]} stroke="#c9ab6a" stroke-opacity="0.55" />
+                    <polygon points={estrella(5.5, 2, 2, a)} transform={`translate(${P(90, a)[0]} ${P(90, a)[1]})`} stroke="#d8bd85" stroke-opacity="0.7" fill="none" />
+                    <circle cx={P(96.5, a)[0]} cy={P(96.5, a)[1]} r="1.6" fill="#e8c56a" fill-opacity="0.7" />
+                  </g>
+                ))}
+                {[0, 180].map((a) => (
+                  <g>
+                    <line x1={P(70, a)[0]} y1={P(70, a)[1]} x2={P(74, a)[0]} y2={P(74, a)[1]} stroke="#c9ab6a" stroke-opacity="0.5" />
+                    <polygon points={estrella(4.5, 1.8, 2)} transform={`translate(${P(78, a)[0]} ${P(78, a)[1]})`} stroke="#d8bd85" stroke-opacity="0.6" fill="none" />
+                  </g>
+                ))}
+                {/* núcleo encendido */}
+                <polygon points={estrella(17, 4.5, 4)} fill="#fffaf0" fill-opacity="0.95" />
+                <polygon points={poli(9, 4, 45)} stroke="#e8c56a" stroke-opacity="0.7" fill="none" />
+              </g>
             </svg>
           </TarjetaMetrica>
           <p class="of-status">STATUS: <em>OPTIMAL</em></p>
@@ -313,12 +457,25 @@ const notas = [
             [{ t: "EVERYTHING IS TRANSMUTED.”", acento: true }],
           ]}
         >
-          <svg slot="emblema" width="58" height="58" viewBox="0 0 58 58" fill="none" aria-hidden="true">
-            <circle cx="29" cy="29" r="26" stroke="currentColor" stroke-opacity="0.5" />
-            <circle cx="29" cy="29" r="20" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="2 4" />
-            <path d="M29 11 L44 41 L14 41 Z" stroke="currentColor" stroke-opacity="0.8" fill="none" />
-            <path d="M29 20 L38 38 L20 38 Z" stroke="currentColor" stroke-opacity="0.5" fill="none" />
-            <circle cx="29" cy="29" r="2" fill="currentColor" fill-opacity="0.8" />
+          {/* MEDIDO: en la referencia este emblema ocupa de y1466 a y1516 y en
+              la franja x460..691 aporta entre 10 y 16 de luminancia; el nuestro
+              era la mitad de alto y aportaba 5. */}
+          <svg slot="emblema" width="78" height="78" viewBox="0 0 78 78" fill="none" aria-hidden="true">
+            <g transform="translate(39 39)" stroke="currentColor" fill="none">
+              <circle r="36" stroke-opacity="0.28" />
+              <circle r="29" stroke-opacity="0.6" />
+              <circle r="22" stroke-opacity="0.3" stroke-dasharray="2 4" />
+              <polygon points={poli(29, 3)} stroke-opacity="0.85" />
+              <polygon points={poli(29, 3, 180)} stroke-opacity="0.42" />
+              <polygon points={poli(15, 3)} stroke-opacity="0.55" />
+              {angulos(12).map((a) => (
+                <line x1={P(29, a)[0]} y1={P(29, a)[1]} x2={P(36, a)[0]} y2={P(36, a)[1]} stroke-opacity="0.45" />
+              ))}
+              {angulos(4, 45).map((a) => (
+                <circle cx={P(29, a)[0]} cy={P(29, a)[1]} r="2.6" stroke-opacity="0.6" />
+              ))}
+              <circle r="3" fill="currentColor" fill-opacity="0.85" stroke="none" />
+            </g>
           </svg>
         </AforismoPie>
 
@@ -330,6 +487,50 @@ const notas = [
           <path d={gPieDer.d} stroke="#a98d54" stroke-width="0.9" stroke-opacity="0.85" fill="none" />
         </svg>
       </div>
+
+      {/* ── CENEFA DEL PIE ──────────────────────────────────────────
+         MEDIDA sobre la referencia (zoom x0..500 y1392..1452): una regla en
+         y=1403 que corre del canto hasta x=210, remata en nodo y baja en
+         chaflán hasta (305,1447); y a media altura, un tirante corto con
+         punto en x=370 y un rombo en x=397. Todo espejado en x=614,5.
+         Las franjas y1396..1416 del pie salían 4,5 puntos de luminancia por
+         debajo a lo ancho de la lámina: faltaba esta cenefa entera. */}
+      <svg class="of-cenefa" width="1229" height="1536" viewBox="0 0 1229 1536" fill="none" aria-hidden="true">
+        {[1, -1].map((m) => {
+          const X = (v: number) => (m === 1 ? v : 1229 - v);
+          return (
+            <g>
+              <path
+                d={`M${X(9)} 1405 H${X(210)} L${X(305)} 1449 H${X(330)}`}
+                stroke="#a98d54" stroke-opacity="0.62" stroke-width="1.1"
+              />
+              {/* bajo la regla la referencia NO tiene una segunda línea dura
+                  sino un velo cálido: de y1410 a y1432 mide 6-7 de luminancia
+                  contra los 4 del fondo */}
+              <rect x={m === 1 ? 9 : 615} y="1408" width="605" height="26" fill="#6a5533" fill-opacity="0.1" />
+              <circle cx={X(210)} cy="1405" r="2.6" fill="#e8c56a" fill-opacity="0.85" />
+              <line x1={X(325)} y1="1437" x2={X(368)} y2="1437" stroke="#c9ab6a" stroke-opacity="0.7" />
+              <circle cx={X(370)} cy="1437" r="2.4" fill="#f2ddb0" fill-opacity="0.9" />
+              <g transform={`translate(${X(397)} 1437) rotate(45)`}>
+                <rect x="-5" y="-5" width="10" height="10" stroke="#c9ab6a" stroke-opacity="0.75" fill="none" />
+                <rect x="-2" y="-2" width="4" height="4" stroke="#e8c56a" stroke-opacity="0.6" fill="none" />
+              </g>
+              {/* sigilos apagados del fondo, como en la referencia */}
+              <g transform={`translate(${X(80)} 1449)`} stroke="#a98d54" stroke-opacity="0.2" fill="none">
+                <circle r="27" /><circle r="17" />
+                {angulos(8).map((a) => (
+                  <line x1={P(17, a)[0]} y1={P(17, a)[1]} x2={P(30, a)[0]} y2={P(30, a)[1]} />
+                ))}
+                <polygon points={poli(17, 4)} />
+              </g>
+              <g transform={`translate(${X(196)} 1441)`} stroke="#a98d54" stroke-opacity="0.24" fill="none">
+                <circle r="14" />
+                <polygon points={estrella(14, 5, 4)} />
+              </g>
+            </g>
+          );
+        })}
+      </svg>
 
       {/* sello de archivo: texto + ∞ circulado, esquina inferior der */}
       <SelloClasificacion codigo="ARCHIVE SEAL" clasificacion="SIGIL VERIFIED" lado="der" />
@@ -368,8 +569,31 @@ const notas = [
 
   /* marco doble exterior (x7..12 medido) con tinta oro apagada */
   .of-marco { position: absolute; pointer-events: none; }
-  .of-marco--ext { inset: 7px; border: 1px solid rgba(145, 122, 82, 0.55); }
-  .of-marco--int { inset: 12px; border: 1px solid rgba(145, 122, 82, 0.3); }
+  /* MEDIDO línea a línea (marco.mjs) sobre la referencia: el marco NO es de
+     1 px. Arriba ocupa y=10..11 y y=13..14; a la izquierda x=7..9 y x=11..12;
+     abajo y=1522..1523 y y=1525..1526. Son dos reglas de 2 px con luminancias
+     de 35 y 40, no una de 1 px a 69. */
+  /* y el retiro no es igual en los cuatro lados: 7/11 px a los costados,
+     9/12 px arriba y abajo (y=10..11 y 13..14 arriba; 1525..1526 y
+     1522..1523 abajo) */
+  .of-marco--ext { top: 10px; bottom: 9px; left: 7px; right: 9px; border: 2px solid rgba(145, 122, 82, 0.42); border-left-width: 3px; }
+  .of-marco--int { top: 13px; bottom: 12px; left: 11px; right: 11px; border: 2px solid rgba(145, 122, 82, 0.3); }
+  /* y el canto izquierdo de la referencia lleva un resplandor cálido propio:
+     x=0..6 mide 15 de luminancia contra los 3 del fondo (el derecho, no) */
+  .of-canto {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 7px;
+    background: rgba(150, 120, 70, 0.125);
+    pointer-events: none;
+  }
+  /* el canto DERECHO no es simétrico: la referencia enciende ahí una banda
+     ancha (x1216..1222 mide entre 22 y 84 de luminancia, media ~50) donde
+     nosotros teníamos sólo los dos hilos del marco. Columna x1212..1229 del
+     riel derecho: 9,8 puntos por debajo. */
+  .of-canto--der {
+    position: absolute; right: 6px; top: 0; bottom: 0; width: 7px;
+    background: rgba(150, 120, 70, 0.3);
+    pointer-events: none;
+  }
 
   /* ── cabecera fila 1: y41..64 ─────────────────────────────────── */
   .of-caja--cab {
@@ -405,11 +629,14 @@ const notas = [
     transform: scaleX(0.72);
     transform-origin: 50% 50%;
   }
+  /* MEDIDO: la referencia pone FORJA DEL ORIGEN en y224..244 y la consigna en
+     y268..278; las nuestras caían en y240..260 y y280..300. El título en
+     cambio SÍ está en su sitio (subirlo entero empeora: 10,76 -> 10,90). */
   .of-caja--titulo :global(.arch-titulo__es) {
     color: #f5f2e6;
     font-size: 27px;
     letter-spacing: 0.34em;
-    margin-top: 2px;
+    margin-top: -16px;
   }
   .of-caja--titulo :global(.arch-titulo__regla) { margin-top: 4px; height: 12px; }
   .of-consigna {
@@ -448,10 +675,14 @@ const notas = [
     height: 100%;
     justify-content: space-between;
     border-color: rgba(169, 141, 84, 0.45);
-    padding: 12px 10px 14px;
+    /* el retiro derecho baja de 10 a 4 px: con la columna del medallón en
+       128 px, ALIGNMENT no cabía y salía cortado contra el borde del riel.
+       En la referencia ese renglón corre de x165 a x262 dentro de una caja
+       que acaba en x266. */
+    padding: 12px 4px 14px 10px;
   }
   .of-caja--riel-izq :global(.arch-riel > * + *) { margin-top: 8px; padding-top: 10px; }
-  .of-caja--riel-izq :global(.arch-riel > * + *)::before { background: rgba(169, 141, 84, 0.3); }
+  .of-caja--riel-izq :global(.arch-riel > * + *)::before { background: rgba(169, 141, 84, 0.3); left: -10px; right: -4px; }
   .of-riel-titulo {
     margin: 0;
     font-family: "Cormorant Garamond", Georgia, serif;
@@ -463,15 +694,21 @@ const notas = [
     padding: 6px 0 4px;
     white-space: nowrap;
   }
-  .of-paso { display: grid; grid-template-columns: 116px 1fr; align-items: center; color: var(--arch-ink); }
-  .of-paso__icono { position: relative; display: flex; justify-content: center; }
+  .of-paso { display: grid; grid-template-columns: 128px 1fr; align-items: center; color: var(--arch-ink); }
+  /* MEDIDO: los centros de los cinco medallones de la referencia caen en
+     y=414/571/729/888/1047 y en x=91 (pico de columna de los discos 01 y 04).
+     Los nuestros salían 7 px más abajo y 12 px más a la derecha, y por eso las
+     columnas x105..150 sobraban 10 puntos mientras x60..90 faltaban 20. */
+  .of-paso__icono { position: relative; display: flex; justify-content: center; transform: translate(-12px, -7px); }
   .of-paso__texto p, .of-paso__texto h3 { margin: 0; }
   .of-paso__n { font-size: 21px; letter-spacing: 0.18em; color: #d8bd85; }
   .of-paso__titulo {
     font-family: "Cormorant Garamond", Georgia, serif;
-    font-size: 15.5px;
+    font-size: 14.8px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    /* 0,14em dejaba ALIGNMENT cortado contra el borde del riel; en la
+       referencia ese renglón mide 97 px de ancho y aquí caben 100 */
+    letter-spacing: 0.1em;
     line-height: 1.35;
     color: #e6e2d4;
     margin-top: 3px !important;
@@ -508,14 +745,20 @@ const notas = [
   .of-panel :global(.arch-tarjeta__etiqueta) { order: 4; font-size: 10.5px; letter-spacing: 0.3em; color: #b9a06a; margin-top: 4px; }
   .of-panel :global(.arch-tarjeta__diagrama) { order: 5; margin-top: 8px; }
   .of-gauge-num { font-family: "Cormorant Garamond", Georgia, serif; font-size: 11.5px; fill: #cfc5ab; letter-spacing: 0.1em; }
-  .of-status { margin: 2px 0 0; text-align: center; font-size: 12.5px; font-weight: 600; letter-spacing: 0.24em; color: #cfc5ab; }
+  /* la rueda creció a 158 px: sin corregir el flujo, su centro caía en
+     y=1017 (la referencia lo tiene en 1001) y STATUS se salía del panel */
+  .of-panel--3 :global(.arch-tarjeta__diagrama) { margin-top: -8px; }
+  .of-status { margin: -11px 0 0; text-align: center; font-size: 12.5px; font-weight: 600; letter-spacing: 0.24em; color: #cfc5ab; }
+  .of-panel--3 :global(.arch-riel > * + *) { margin-top: 0; padding-top: 0; }
   .of-status em { font-style: normal; color: #8f72d8; }
   .of-riel-titulo--notas { font-size: 14.5px; letter-spacing: 0.2em; }
   .of-notas { list-style: none; margin: 3px 0 0; padding: 0 2px; color: var(--arch-ink); }
   .of-notas li { display: grid; grid-template-columns: 15px 1fr; gap: 5px; align-items: start; margin-top: 7px; }
   .of-notas li svg { margin-top: 1px; }
   .of-notas p { margin: 0; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; line-height: 1.45; color: #cdc6b4; }
-  .of-honra { margin: 9px 0 0; text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 0.18em; line-height: 1.75; color: #9a7fd0; }
+  /* "IT IS YOU." se salía por debajo del borde del panel de notas y caía sobre
+     la banda del pie; en la referencia las tres líneas caben dentro */
+  .of-honra { margin: 4px 0 0; text-align: center; font-size: 10.5px; font-weight: 600; letter-spacing: 0.18em; line-height: 1.62; color: #9a7fd0; }
   .of-rosa { align-self: center; margin-top: 4px; width: 54px; height: 54px; }
 
   /* ── pie ──────────────────────────────────────────────────────── */
@@ -523,12 +766,21 @@ const notas = [
   /* la referencia pone el aforismo ARRIBA de la regla con emblema */
   .of-caja--pie :global(.arch-pie) { display: flex; flex-direction: column; }
   .of-caja--pie :global(.arch-pie__aforismo) { order: 1; }
-  .of-caja--pie :global(.arch-pie__regla) { order: 2; margin-top: 6px; color: #b9a06a; }
+  /* el emblema creció 20 px y la caja del pie ancla abajo: sin este retroceso
+     el aforismo entero subía 20 px (medido: la franja y1436..1446 pasaba de
+     26,5 a 3,5 de luminancia) */
+  .of-caja--pie :global(.arch-pie__regla) { order: 2; margin-top: -14px; color: #b9a06a; }
+  /* y el emblema de la referencia llega hasta y1516: el nuestro moría en 1496 */
+  .of-caja--pie :global(.arch-pie__emblema) { transform: translateY(12px); }
   .of-caja--pie :global(.arch-pie__verso) { font-size: 13px; letter-spacing: 0.3em; line-height: 1.9; }
   .of-caja--pie :global(.arch-pie__acento) { color: #a689d0; }
-  .of-caja--pie :global(.arch-pie__rotulo) { bottom: 2px; }
+  /* MEDIDO por franjas de 10 px en x30..300: la referencia pone KODEX−∞ en
+     y1466..1486 y su bajada en y1496..1506. El nuestro caía en y1416..1446
+     (13 puntos de luminancia de más arriba y 17 de menos abajo). */
+  .of-caja--pie :global(.arch-pie__rotulo) { top: 84px; bottom: auto; }
   .of-caja--pie :global(.arch-pie__rotulo p:first-child) { font-size: 17px; letter-spacing: 0.3em; color: #e6ddc8; }
   .of-caja--pie :global(.arch-pie__rotulo p:last-child) { font-size: 9.5px; letter-spacing: 0.24em; color: #b9a06a; }
+  .of-cenefa { position: absolute; left: 0; top: 0; pointer-events: none; }
   .of-glifos { position: absolute; bottom: 12px; }
   .of-glifos--izq { left: 300px; }
   .of-glifos--der { right: 300px; }
@@ -547,19 +799,83 @@ const notas = [
   const raiz = document.querySelector("[data-lam]") as HTMLElement;
 
   /* ══ ICONOS DEL PROCESO (estáticos, semilla fija) ═══════════════ */
-  const icono = (id: string, pintarIcono: (g: CanvasRenderingContext2D, r: () => number) => void, semilla: number) => {
+  const icono = (
+    id: string,
+    pintarIcono: (g: CanvasRenderingContext2D, r: () => number) => void,
+    semilla: number,
+    fondoCol = "152,104,48",
+    hebraCol = "255,226,170",
+    carga = 1,
+  ) => {
     const c = document.getElementById(id) as HTMLCanvasElement;
     const g = c.getContext("2d")!;
     g.fillStyle = "#060403";
-    g.fillRect(0, 0, 104, 104);
+    g.fillRect(0, 0, 120, 120);
+    /* MEDIDO: el medallón de la referencia tiene r≈57 px (x36..151 en el paso
+       01) y el nuestro moría en r=49. Las columnas x60..135 del riel salían
+       entre 7 y 20 puntos de luminancia por debajo. El dibujo sigue escrito en
+       el espacio de 104 px original; solo se escala la lente. */
+    g.scale(120 / 104, 120 / 104);
     /* aro exterior común a los cinco */
     g.strokeStyle = tinta("169,141,84", 0.55);
     g.lineWidth = 1;
     g.beginPath(); g.arc(52, 52, 49, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = tinta("169,141,84", 0.3);
     g.beginPath(); g.arc(52, 52, 44, 0, Math.PI * 2); g.stroke();
+    /* en la referencia la mancha desborda el aro (el paso 04 mide 120 px de
+       alto para un aro de 113): halo por fuera antes de recortar */
+    const desborde = g.createRadialGradient(52, 52, 40, 52, 52, 56);
+    desborde.addColorStop(0, tinta(fondoCol, 0.2 * carga));
+    desborde.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = desborde;
+    g.beginPath(); g.arc(52, 52, 56, 0, Math.PI * 2); g.fill();
     g.save();
-    g.beginPath(); g.arc(52, 52, 43, 0, Math.PI * 2); g.clip();
+    g.beginPath(); g.arc(52, 52, 47.5, 0, Math.PI * 2); g.clip();
+    /* el medallón de la referencia está ENCENDIDO, no es un disco negro con
+       un dibujo de alambre encima: el riel medía 49 % de cobertura */
+    /* MEDIDO con discos.mjs: la mancha encendida de la referencia mide 105-120
+       px de alto dentro de un aro de 113; la nuestra llegaba a 72-90.
+       Pero NO es un disco de color plano: la referencia es un interior OSCURO
+       con jirones muy brillantes encima, y rellenarlo liso subía la cobertura
+       a costa del diff pixel. Nebulosa: base tenue + manchas + hebras. */
+    const rf = rng(semilla ^ 0x5eed);
+    const fondo = g.createRadialGradient(52, 52, 2, 52, 52, 46);
+    fondo.addColorStop(0, tinta(fondoCol, 0.3 * carga));
+    fondo.addColorStop(0.55, tinta(fondoCol, 0.15 * carga));
+    fondo.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = fondo;
+    g.fillRect(0, 0, 104, 104);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 26; k++) {
+      const a = rf() * Math.PI * 2, d = rf() * 38;
+      const bx = 52 + Math.cos(a) * d, by = 52 + Math.sin(a) * d;
+      const br = 6 + rf() * 20;
+      const b = g.createRadialGradient(bx, by, 0, bx, by, br);
+      b.addColorStop(0, tinta(fondoCol, (0.08 + rf() * 0.2) * carga));
+      b.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = b;
+      g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2); g.fill();
+    }
+    for (let k = 0; k < 20; k++) {
+      const a = rf() * Math.PI * 2;
+      const r0 = 6 + rf() * 14, r1 = 28 + rf() * 18;
+      const cu = (rf() - 0.5) * 46;
+      g.strokeStyle = tinta(hebraCol, (0.08 + rf() * 0.26) * carga);
+      g.lineWidth = 0.5 + rf() * 1.4;
+      g.beginPath();
+      g.moveTo(52 + Math.cos(a) * r0, 52 + Math.sin(a) * r0);
+      g.quadraticCurveTo(
+        52 + Math.cos(a + 0.5) * (r0 + r1) * 0.5 + cu * 0.2,
+        52 + Math.sin(a + 0.5) * (r0 + r1) * 0.5,
+        52 + Math.cos(a + 1.1) * r1,
+        52 + Math.sin(a + 1.1) * r1,
+      );
+      g.stroke();
+    }
+    g.restore();
+    /* y el dibujo llena más el aro */
+    g.translate(52, 52); g.scale(1.14, 1.14); g.translate(-52, -52);
     pintarIcono(g, rng(semilla));
     g.restore();
   };
@@ -582,7 +898,7 @@ const notas = [
     }
     g.fillStyle = tinta("245,240,255", 0.9);
     g.beginPath(); g.arc(52, 54, 2.4, 0, Math.PI * 2); g.fill();
-  }, 0x2211);
+  }, 0x2211, "104,84,196", "222,208,255");
 
   /* 02 · crisol vertiendo oro */
   icono("of-p2", (g, r) => {
@@ -610,50 +926,128 @@ const notas = [
     }
   }, 0x2212);
 
-  /* 03 · retícula geométrica (molde) */
+  /* 03 · molde: poliedro de alambre BLANCO sobre disco casi negro
+     (la franja y698..748 nos salía 29 puntos POR ENCIMA de la referencia:
+     habíamos pintado un disco cálido donde la referencia deja el fondo negro
+     y sólo hay alambre blanco y un embudo de luz que baja) */
   icono("of-p3", (g, r) => {
-    const halo = g.createRadialGradient(52, 52, 2, 52, 52, 40);
-    halo.addColorStop(0, tinta("240,205,140", 0.3));
-    halo.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = halo; g.fillRect(0, 0, 104, 104);
-    const v: Array<[number, number]> = [];
-    for (let k = 0; k < 6; k++) {
-      const a = (k / 6) * Math.PI * 2 - Math.PI / 2;
-      v.push([52 + Math.cos(a) * 34, 52 + Math.sin(a) * 34]);
+    g.strokeStyle = tinta("200,164,100", 0.3); g.lineWidth = 0.7;
+    for (const rr of [30, 38, 45]) { g.beginPath(); g.arc(52, 50, rr, 0, Math.PI * 2); g.stroke(); }
+    for (let k = 0; k < 24; k++) {
+      const a = (k / 24) * Math.PI * 2;
+      g.strokeStyle = tinta("200,164,100", 0.16 + r() * 0.16);
+      g.beginPath();
+      g.moveTo(52 + Math.cos(a) * 38, 50 + Math.sin(a) * 38);
+      g.lineTo(52 + Math.cos(a) * 45, 50 + Math.sin(a) * 45);
+      g.stroke();
     }
-    g.strokeStyle = tinta("235,215,175", 0.75); g.lineWidth = 0.8;
-    for (let i = 0; i < 6; i++) for (let j = i + 1; j < 6; j++) {
-      g.beginPath(); g.moveTo(v[i][0], v[i][1]); g.lineTo(v[j][0], v[j][1]); g.stroke();
+    const CX = 52, CY = 44, R = 31;
+    const arriba: Array<[number, number]> = [], abajo: Array<[number, number]> = [];
+    for (let k = 0; k < 5; k++) {
+      const a = (k / 5) * Math.PI * 2 - Math.PI / 2;
+      arriba.push([CX + Math.cos(a) * R, CY - 6 + Math.sin(a) * R * 0.44]);
+      abajo.push([CX + Math.cos(a + Math.PI / 5) * R * 0.8, CY + 13 + Math.sin(a + Math.PI / 5) * R * 0.36]);
     }
-    g.strokeStyle = tinta("235,215,175", 0.55);
-    g.beginPath(); g.arc(52, 52, 34, 0, Math.PI * 2); g.stroke();
-    g.beginPath(); g.arc(52, 52, 17, 0, Math.PI * 2); g.stroke();
-    for (const [x, y] of v) { g.beginPath(); g.arc(x, y, 2, 0, Math.PI * 2); g.stroke(); }
-    g.fillStyle = tinta("255,245,220", 0.9);
-    g.beginPath(); g.arc(52, 52, 1.8, 0, Math.PI * 2); g.fill();
-    void r;
-  }, 0x2213);
-
-  /* 04 · telaraña estelar del temple */
-  icono("of-p4", (g, r) => {
-    const halo = g.createRadialGradient(52, 52, 2, 52, 52, 42);
-    halo.addColorStop(0, tinta("255,230,170", 0.65));
-    halo.addColorStop(1, "rgba(0,0,0,0)");
-    g.fillStyle = halo; g.fillRect(0, 0, 104, 104);
-    g.strokeStyle = tinta("240,205,140", 0.55); g.lineWidth = 0.7;
-    for (const rr of [12, 21, 30, 38]) { g.beginPath(); g.arc(52, 52, rr, 0, Math.PI * 2); g.stroke(); }
-    for (let k = 0; k < 12; k++) {
-      const a = (k / 12) * Math.PI * 2;
-      g.beginPath(); g.moveTo(52, 52);
-      g.lineTo(52 + Math.cos(a) * 40, 52 + Math.sin(a) * 40); g.stroke();
+    const cima: [number, number] = [CX, CY - 30], pie: [number, number] = [CX, CY + 34];
+    const seg = (p: [number, number], q: [number, number], al: number) => {
+      g.strokeStyle = tinta("242,242,252", al);
+      g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke();
+    };
+    g.lineWidth = 0.85;
+    for (let k = 0; k < 5; k++) {
+      seg(arriba[k], arriba[(k + 1) % 5], 0.85);
+      seg(abajo[k], abajo[(k + 1) % 5], 0.6);
+      seg(cima, arriba[k], 0.8);
+      seg(pie, abajo[k], 0.55);
+      seg(arriba[k], abajo[k], 0.5);
+      seg(arriba[(k + 1) % 5], abajo[k], 0.5);
     }
-    g.fillStyle = tinta("255,248,230", 0.95);
+    for (const [x, y] of [...arriba, ...abajo, cima]) {
+      g.fillStyle = tinta("255,255,255", 0.8);
+      g.beginPath(); g.arc(x, y, 1.2, 0, Math.PI * 2); g.fill();
+    }
+    /* embudo de luz: sale del vértice inferior y baja fuera del aro */
+    const emb = g.createLinearGradient(0, CY + 24, 0, 100);
+    emb.addColorStop(0, tinta("255,232,178", 0.85));
+    emb.addColorStop(1, tinta("240,176,80", 0.12));
+    g.fillStyle = emb;
     g.beginPath();
-    g.moveTo(52, 34); g.quadraticCurveTo(55, 49, 70, 52); g.quadraticCurveTo(55, 55, 52, 70);
-    g.quadraticCurveTo(49, 55, 34, 52); g.quadraticCurveTo(49, 49, 52, 34);
-    g.fill();
-    void r;
-  }, 0x2214);
+    g.moveTo(45, CY + 26); g.lineTo(52.8, 100); g.lineTo(51.2, 100); g.lineTo(59, CY + 26);
+    g.closePath(); g.fill();
+    g.strokeStyle = tinta("255,245,215", 0.85); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(52, CY + 26); g.lineTo(52, 100); g.stroke();
+  }, 0x2213, "150,124,84", "235,235,248", 0.3);
+
+  /* 04 · temple: rueda radiante que LLENA el aro. En la referencia este es el
+     medallón más brillante de los cinco (pico de 141 de luminancia en x86..96)
+     y su mitad inferior nos salía 22 puntos por debajo: teníamos una estrella
+     pequeña en un disco vacío en vez de una rueda de anillos y radios. */
+  icono("of-p4", (g, r) => {
+    const halo = g.createRadialGradient(52, 52, 2, 52, 52, 46);
+    halo.addColorStop(0, tinta("255,236,190", 0.62));
+    halo.addColorStop(0.42, tinta("246,186,96", 0.26));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = halo; g.fillRect(0, 0, 104, 104);
+    /* anillo dentado exterior */
+    g.strokeStyle = tinta("250,206,132", 0.7); g.lineWidth = 1.1;
+    g.beginPath(); g.arc(52, 52, 40, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = tinta("250,206,132", 0.45); g.lineWidth = 0.8;
+    g.beginPath(); g.arc(52, 52, 44, 0, Math.PI * 2); g.stroke();
+    for (let k = 0; k < 36; k++) {
+      const a = (k / 36) * Math.PI * 2;
+      g.strokeStyle = tinta("255,222,160", k % 3 === 0 ? 0.8 : 0.4);
+      g.lineWidth = k % 3 === 0 ? 1.6 : 0.8;
+      g.beginPath();
+      g.moveTo(52 + Math.cos(a) * 40, 52 + Math.sin(a) * 40);
+      g.lineTo(52 + Math.cos(a) * 44, 52 + Math.sin(a) * 44);
+      g.stroke();
+    }
+    /* anillos medios y radios */
+    g.lineWidth = 0.9;
+    for (const rr of [33, 25, 17, 10]) {
+      g.strokeStyle = tinta("255,226,168", 0.55 + (33 - rr) * 0.008);
+      g.beginPath(); g.arc(52, 52, rr, 0, Math.PI * 2); g.stroke();
+    }
+    for (let k = 0; k < 16; k++) {
+      const a = (k / 16) * Math.PI * 2;
+      g.strokeStyle = tinta("255,232,180", k % 4 === 0 ? 0.75 : 0.4);
+      g.lineWidth = k % 4 === 0 ? 1.1 : 0.7;
+      g.beginPath();
+      g.moveTo(52 + Math.cos(a) * 6, 52 + Math.sin(a) * 6);
+      g.lineTo(52 + Math.cos(a) * 40, 52 + Math.sin(a) * 40);
+      g.stroke();
+    }
+    /* roseta interior */
+    g.strokeStyle = tinta("255,244,214", 0.8); g.lineWidth = 0.9;
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      g.beginPath();
+      g.arc(52 + Math.cos(a) * 9, 52 + Math.sin(a) * 9, 9, 0, Math.PI * 2);
+      g.stroke();
+    }
+    /* rayos largos en cruz y núcleo */
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2;
+      const gr = g.createLinearGradient(52, 52, 52 + Math.cos(a) * 48, 52 + Math.sin(a) * 48);
+      gr.addColorStop(0, tinta("255,250,232", 0.85));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.strokeStyle = gr; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(52, 52); g.lineTo(52 + Math.cos(a) * 48, 52 + Math.sin(a) * 48); g.stroke();
+    }
+    for (let k = 0; k < 26; k++) {
+      const a = r() * Math.PI * 2, d = 8 + r() * 34;
+      g.fillStyle = tinta("255,236,190", 0.3 + r() * 0.55);
+      g.beginPath(); g.arc(52 + Math.cos(a) * d, 52 + Math.sin(a) * d, 0.5 + r() * 1.1, 0, Math.PI * 2); g.fill();
+    }
+    const nuc = g.createRadialGradient(52, 52, 0, 52, 52, 14);
+    nuc.addColorStop(0, tinta("255,252,242", 0.95));
+    nuc.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = nuc;
+    g.beginPath(); g.arc(52, 52, 14, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }, 0x2214, "196,140,68", "255,232,180", 0.5);
 
   /* 05 · faro de emisión sobre el anillo */
   icono("of-p5", (g, r) => {
@@ -731,11 +1125,23 @@ const notas = [
     fondo.addColorStop(0.5, "#0a0605");
     fondo.addColorStop(1, "#080503");
     g.fillStyle = fondo; g.fillRect(0, 0, W, H);
-    const amb = g.createRadialGradient(CX, 600, 60, CX, 600, 560);
-    amb.addColorStop(0, tinta("150,98,45", 0.42 * luz));
-    amb.addColorStop(0.6, tinta("100,64,30", 0.2));
+    /* HISTOGRAMA del centro (11 cubos de luminancia, ref contra nuestro):
+       nos sobraban 138 000 px en el tramo 32..96 y nos faltaban 107 000 en
+       8..24. No era dibujo de más: era ESTE ambiente, que encharcaba el
+       lienzo entero en medio tono y disparaba la cobertura a 124 %. */
+    /* y su CENTRO estaba mal: el perfil por franjas da sobrante en y574..793
+       (canvas 276..495) y falta de 10 a 19 puntos en y1067..1176 (canvas
+       769..878). El foco del ambiente es el crisol, no el aire de arriba. */
+    const amb = g.createRadialGradient(CX, 780, 60, CX, 780, 520);
+    amb.addColorStop(0, tinta("150,98,45", 0.46 * luz));
+    amb.addColorStop(0.6, tinta("100,64,30", 0.16));
     amb.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = amb; g.fillRect(0, 0, W, H);
+    /* PROBADO Y DESCARTADO (vuelta 83): las franjas y300..409 salen 11 y 13
+       puntos por debajo, pero poner ahí un segundo foco de ambiente empeora el
+       centro de 23,01 a 23,17. Es la tercera vez que se mide lo mismo en esta
+       lámina: la luz que le falta al centro es ESTRUCTURA encendida —runas de
+       la pared, farolas, filamentos— y no niebla. Quien siga: dibujo, no alfa. */
     for (const [vx, vy] of [[48, 880], [656, 900], [90, 340], [620, 320]] as const) {
       const vio = g.createRadialGradient(vx, vy, 4, vx, vy, 130);
       vio.addColorStop(0, tinta("110,80,180", 0.13));
@@ -772,26 +1178,58 @@ const notas = [
       }
     }
 
-    /* anillos de runas concéntricos, tras el eje */
-    const RY = 512;
-    for (const [rr, col, o] of [[92, "200,165,105", 0.36], [126, "150,120,200", 0.3], [162, "200,165,105", 0.28], [200, "150,120,200", 0.22], [236, "200,165,105", 0.2], [270, "150,120,200", 0.14]] as const) {
+    /* ── CÍRCULO MÁGICO MAYOR, tras el eje ──
+       Medido sobre la referencia: centro en (351, 570) del lienzo y anillos
+       hasta 305 px, todos de oro. Estaba a 512, cortito y medio violeta, y
+       con alfas de 0,14–0,36 que lo dejaban casi invisible: en la referencia
+       es una de las estructuras más legibles de la lámina. */
+    const RY = 570;
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    const halo = g.createRadialGradient(CX, RY, 20, CX, RY, 320);
+    halo.addColorStop(0, tinta("196,140,66", 0.09 * luz));
+    halo.addColorStop(0.55, tinta("142,96,46", 0.035 * luz));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = halo;
+    g.beginPath(); g.arc(CX, RY, 320, 0, Math.PI * 2); g.fill();
+    for (const [rr, col, o, lw] of [
+      [100, "236,196,124", 0.62, 1.3], [140, "214,172,104", 0.5, 1],
+      [186, "240,200,128", 0.55, 1.6], [230, "206,166,102", 0.42, 1],
+      [272, "232,190,120", 0.46, 1.3], [305, "186,150,96", 0.3, 1],
+    ] as const) {
       g.strokeStyle = tinta(col, o * luz);
-      g.lineWidth = 1;
+      g.lineWidth = lw;
       g.beginPath(); g.arc(CX, RY, rr, 0, Math.PI * 2); g.stroke();
     }
+    /* dientes rúnicos entre los anillos 186 y 230 */
     for (let k = 0; k < 56; k++) {
       const a = (k / 56) * Math.PI * 2;
-      g.strokeStyle = tinta("200,165,105", 0.2 * luz);
+      g.strokeStyle = tinta("236,192,120", 0.34 * luz);
+      g.lineWidth = 1.2;
       g.beginPath();
-      g.moveTo(CX + Math.cos(a) * 200, RY + Math.sin(a) * 200);
-      g.lineTo(CX + Math.cos(a) * (k % 4 ? 205 : 212), RY + Math.sin(a) * (k % 4 ? 205 : 212));
+      g.moveTo(CX + Math.cos(a) * 186, RY + Math.sin(a) * 186);
+      g.lineTo(CX + Math.cos(a) * (k % 4 ? 198 : 214), RY + Math.sin(a) * (k % 4 ? 198 : 214));
       g.stroke();
     }
+    /* sellos cuadrados sobre el anillo de 140 y motas violetas en el de 272 */
     for (let k = 0; k < 30; k++) {
       const a = (k / 30) * Math.PI * 2 + 0.1;
-      g.fillStyle = tinta("170,140,220", 0.25 * luz);
-      g.fillRect(CX + Math.cos(a) * 162 - 1.5, RY + Math.sin(a) * 162 - 3, 3, 6);
+      g.fillStyle = tinta("244,202,132", 0.4 * luz);
+      g.fillRect(CX + Math.cos(a) * 140 - 2, RY + Math.sin(a) * 140 - 3.5, 4, 7);
+      g.fillStyle = tinta("176,146,226", 0.26 * luz);
+      g.fillRect(CX + Math.cos(a) * 272 - 1.5, RY + Math.sin(a) * 272 - 1.5, 3, 3);
     }
+    /* radios largos: la referencia los tiene cruzando todo el disco */
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * Math.PI * 2 + 0.26;
+      g.strokeStyle = tinta("214,172,104", 0.22 * luz);
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(CX + Math.cos(a) * 100, RY + Math.sin(a) * 100);
+      g.lineTo(CX + Math.cos(a) * 305, RY + Math.sin(a) * 305);
+      g.stroke();
+    }
+    g.restore();
 
     /* pilastras laterales de la cámara: columnas ornamentadas con
        paneles y puntos rúnicos (bordes de la referencia) */
@@ -848,7 +1286,10 @@ const notas = [
     const pilar = (x: number, y: number, e: number, sem: number) => {
       for (let b = 0; b < 3; b++) {
         const bw = (58 - b * 8) * e, bh = 42 * e, by = y - b * bh;
-        g.fillStyle = tinta("15,10,7", 0.96);
+        const cara = g.createLinearGradient(0, by - bh, 0, by);
+        cara.addColorStop(0, tinta("48,34,21", 0.97));
+        cara.addColorStop(1, tinta("34,24,15", 0.97));
+        g.fillStyle = cara;
         g.fillRect(x - bw / 2, by - bh, bw, bh);
         g.strokeStyle = tinta("205,160,90", 0.5 * luz);
         g.lineWidth = 1.2;
@@ -862,7 +1303,7 @@ const notas = [
       /* caída de metal fundido por el frente */
       g.save();
       g.globalCompositeOperation = "lighter";
-      g.strokeStyle = tinta("252,190,95", 0.55 * luz);
+      g.strokeStyle = tinta("252,190,95", 0.34 * luz);
       g.lineWidth = 4 * e;
       g.beginPath();
       g.moveTo(x + 12 * e, y - 118 * e);
@@ -875,7 +1316,11 @@ const notas = [
       g.quadraticCurveTo(x + 15 * e, y - 60 * e, x + 13 * e, y);
       g.stroke();
       g.restore();
-      llamaVert(x, y - 126 * e, 88 * e, 16 * e, sem, 1);
+      /* PROBADO Y DESCARTADO (vuelta 58): la franja y793..848 sale 25 puntos por
+         debajo y la referencia tiene ahí cinco columnas de fuego, pero subir
+         ESTAS al 100 % empeora el centro de 23,01 a 23,48: las nuestras no
+         caen en las mismas x. Es trabajo de trazado, no de brillo. */
+      llamaVert(x, y - 126 * e, 88 * e, 16 * e, sem, 0.62);
     };
     pilar(66, 700, 0.8, 1);
     pilar(636, 710, 0.85, 2);
@@ -884,49 +1329,146 @@ const notas = [
     pilar(98, 986, 1.05, 5);
     pilar(606, 996, 1.1, 6);
 
-    /* linternas-rombo colgantes (octaedros de aristas doradas) */
-    const rombo = (x: number, y: number, rx: number, ry: number, brillo: number) => {
-      g.strokeStyle = tinta("200,160,90", 0.25);
+    /* ── LINTERNAS-OCTAEDRO colgantes ──
+       En la referencia son JAULAS de oro: pirámide superior con cara plana en
+       fuga, pirámide inferior en punta, montantes gruesos, cristal oscuro y un
+       chorro de metal que gotea de la punta. Estaban dibujadas como un rombo
+       plano de 1,3 px, y las grandes iban a menos de la mitad de su tamaño
+       (medido: semiancho 58 y semialto 65 en el lienzo, no 26 y 36). */
+    const rombo = (x: number, y: number, rx: number, ry: number, brillo: number, goteo = 0) => {
+      const tapa = ry * 0.42, fuga = rx * 0.34;
+      /* cadena de la que cuelga */
+      g.strokeStyle = tinta("200,160,90", 0.3);
+      g.lineWidth = 1.2;
       g.beginPath(); g.moveTo(x, 0); g.lineTo(x, y - ry); g.stroke();
-      g.fillStyle = tinta("14,10,6", 0.96);
+      for (let e = 0; e < 10; e++) {
+        g.fillStyle = tinta("214,172,104", 0.32 * luz);
+        g.fillRect(x - 1.6, (y - ry) * ((e + 0.5) / 10) - 2.5, 3.2, 5);
+      }
+      /* cristal: cara superior en fuga + cuerpo */
+      g.fillStyle = tinta("34,24,15", 0.94);
       g.beginPath();
-      g.moveTo(x, y - ry); g.lineTo(x + rx, y); g.lineTo(x, y + ry); g.lineTo(x - rx, y);
+      g.moveTo(x - rx * 0.5, y - ry); g.lineTo(x + rx * 0.5, y - ry);
+      g.lineTo(x + rx, y - ry + tapa); g.lineTo(x, y + ry);
+      g.lineTo(x - rx, y - ry + tapa);
       g.closePath(); g.fill();
-      g.strokeStyle = tinta("230,190,120", brillo * luz);
-      g.lineWidth = 1.3;
-      g.stroke();
-      g.beginPath(); g.moveTo(x - rx, y); g.lineTo(x + rx, y); g.moveTo(x, y - ry); g.lineTo(x, y + ry); g.stroke();
-      const gl = g.createRadialGradient(x, y + ry, 1, x, y + ry, 22);
-      gl.addColorStop(0, tinta("255,220,150", 0.5 * brillo * luz));
+      const vidrio = g.createLinearGradient(0, y - ry, 0, y + ry);
+      vidrio.addColorStop(0, tinta("70,50,28", 0.5));
+      vidrio.addColorStop(1, tinta("150,92,36", 0.24 * brillo));
+      g.fillStyle = vidrio;
+      g.fill();
+      /* montantes de oro */
+      const barra = (x1: number, y1: number, x2: number, y2: number, e: number) => {
+        g.strokeStyle = tinta("150,108,52", 0.6 * luz);
+        g.lineWidth = 4.4 * e;
+        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+        g.strokeStyle = tinta("250,214,146", 0.62 * brillo * luz);
+        g.lineWidth = 1.7 * e;
+        g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      };
+      const hombro: Array<[number, number]> = [
+        [x - rx, y - ry + tapa], [x - fuga, y - ry + tapa * 0.35],
+        [x + fuga, y - ry + tapa * 0.35], [x + rx, y - ry + tapa],
+      ];
+      barra(x - rx * 0.5, y - ry, x + rx * 0.5, y - ry, 0.8);
+      for (const [hx, hy] of hombro) {
+        barra(hx, hy, x, y + ry, 0.9);
+        barra(hx, hy, hx > x ? x + rx * 0.5 : x - rx * 0.5, y - ry, 0.7);
+      }
+      for (let i = 0; i < hombro.length - 1; i++)
+        barra(hombro[i][0], hombro[i][1], hombro[i + 1][0], hombro[i + 1][1], 0.8);
+      /* runa en la cara y brasa en la punta */
+      g.fillStyle = tinta("244,198,124", 0.45 * brillo * luz);
+      g.fillRect(x - 3, y - ry * 0.1, 6, 12);
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const gl = g.createRadialGradient(x, y + ry * 0.72, 1, x, y + ry * 0.72, rx * 0.9);
+      gl.addColorStop(0, tinta("255,224,164", 0.42 * brillo * luz));
       gl.addColorStop(1, "rgba(0,0,0,0)");
       g.fillStyle = gl;
-      g.fillRect(x - 22, y + ry - 22, 44, 44);
+      g.fillRect(x - rx, y + ry * 0.72 - rx, rx * 2, rx * 2);
+      /* goteo de metal desde la punta */
+      if (goteo) {
+        /* el chorro serpentea: recto era un poste de farola */
+        const y0 = y + ry;
+        const trazo = () => {
+          g.beginPath();
+          g.moveTo(x, y0);
+          for (let s = 1; s <= 8; s++) {
+            const u = s / 8;
+            const w = Math.sin(u * 7.3 + x * 0.11) * 6 * (0.3 + u);
+            g.lineTo(x + w, y0 + goteo * u);
+          }
+        };
+        g.strokeStyle = tinta("252,186,92", 0.26 * luz);
+        g.lineWidth = 8; trazo(); g.stroke();
+        g.strokeStyle = tinta("255,242,206", 0.4 * luz);
+        g.lineWidth = 2.6; trazo(); g.stroke();
+        const ch = g.createRadialGradient(x, y0 + goteo, 1, x, y0 + goteo, 44);
+        ch.addColorStop(0, tinta("255,232,180", 0.55 * luz));
+        ch.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = ch;
+        g.beginPath(); g.ellipse(x, y0 + goteo, 44, 17, 0, 0, Math.PI * 2); g.fill();
+      }
+      g.restore();
     };
-    rombo(174, 300, 34, 46, 0.8);
-    rombo(530, 316, 38, 52, 0.85);
-    rombo(96, 470, 26, 36, 0.6);
-    rombo(614, 486, 28, 38, 0.6);
+    rombo(175, 302, 38, 44, 0.85);
+    rombo(527, 302, 38, 44, 0.85);
+    rombo(98, 405, 58, 65, 0.95, 260);
+    rombo(604, 405, 58, 65, 0.95, 260);
 
-    /* ── POLIEDRO INCANDESCENTE (cx, y152, R≈96) ── */
-    const PY = 152, R = 96;
-    const glow = g.createRadialGradient(CX, PY, 20, CX, PY, 260);
+    /* ── POLIEDRO INCANDESCENTE ──
+       Medido sobre la referencia: el poliedro va de x463 a x737 de la página
+       (semiancho 139 en el lienzo) y su centro cae en y138, no en y152. Estaba
+       dibujado a R=96 — un tercio más chico — y con aristas de 1,6 px, así que
+       leía como un hexágono negro; en la referencia es una jaula de oro. */
+    const PY = 138, R = 139;
+    const glow = g.createRadialGradient(CX, PY, 20, CX, PY, 262);
     glow.addColorStop(0, tinta("255,220,150", 0.7 * luz));
     glow.addColorStop(0.5, tinta("240,155,62", 0.32 * luz));
     glow.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = glow;
-    g.fillRect(CX - 260, PY - 260, 520, 520);
+    g.fillRect(CX - 262, PY - 262, 524, 524);
     g.save();
     g.globalCompositeOperation = "lighter";
+    /* penacho que sube por detrás del poliedro: en la referencia la banda alta
+       del centro está encendida, y medida contra la nuestra salía 30 puntos de
+       luminancia por debajo — era el mayor déficit de la lámina */
+    const pen = g.createLinearGradient(0, PY - R * 0.5, 0, -70);
+    pen.addColorStop(0, tinta("255,206,132", 0.5 * luz));
+    pen.addColorStop(0.55, tinta("246,164,70", 0.26 * luz));
+    pen.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = pen;
+    g.beginPath();
+    g.moveTo(CX - R * 0.94, PY + 26);
+    g.quadraticCurveTo(CX - R * 0.7, PY - 90, CX - R * 0.3, -40);
+    g.lineTo(CX + R * 0.3, -40);
+    g.quadraticCurveTo(CX + R * 0.7, PY - 90, CX + R * 0.94, PY + 26);
+    g.closePath(); g.fill();
+    for (let k = 0; k < 16; k++) {
+      const u = (k / 15 - 0.5) * 2;
+      const fl = 0.5 + 0.5 * Math.sin((fase * 2.2 + k * 0.43) * Math.PI * 2);
+      g.strokeStyle = tinta("255,224,168", 0.3 * fl * luz);
+      g.lineWidth = 1.6 + 1.6 * (1 - Math.abs(u));
+      g.beginPath();
+      g.moveTo(CX + u * R * 0.82, PY + 10);
+      g.quadraticCurveTo(CX + u * R * 0.6 + 14, PY - 80, CX + u * R * 0.4, PY - 170 - 40 * (1 - Math.abs(u)));
+      g.stroke();
+    }
+    /* fuego que envuelve al poliedro. Antes las estrías salían disparadas hasta
+       f.l entero y formaban un ABANICO de rayos que la referencia no tiene:
+       ahí el fuego es una pelusa corta y densa pegada a las aristas. */
     for (const f of llamas) {
       const fl = 0.6 + 0.4 * Math.sin((fase + f.v) * Math.PI * 2 * 3);
-      g.strokeStyle = tinta("255,200,110", f.o * fl * luz);
-      g.lineWidth = f.w;
+      const largo = f.l * 0.3;
+      g.strokeStyle = tinta("255,200,110", f.o * 0.85 * fl * luz);
+      g.lineWidth = f.w * 1.7;
       g.beginPath();
-      g.moveTo(CX + Math.cos(f.a) * R * 0.5, PY + Math.sin(f.a) * R * 0.5);
+      g.moveTo(CX + Math.cos(f.a) * R * 0.72, PY + Math.sin(f.a) * R * 0.72);
       g.quadraticCurveTo(
-        CX + Math.cos(f.a) * (R * 0.5 + f.l * 0.6) + (f.v - 0.5) * 26,
-        PY + Math.sin(f.a) * (R * 0.5 + f.l * 0.6) - f.l * 0.25,
-        CX + Math.cos(f.a) * (R * 0.5 + f.l), PY + Math.sin(f.a) * (R * 0.5 + f.l) - f.l * 0.5
+        CX + Math.cos(f.a) * (R * 0.72 + largo * 0.6) + (f.v - 0.5) * 16,
+        PY + Math.sin(f.a) * (R * 0.72 + largo * 0.6) - largo * 0.25,
+        CX + Math.cos(f.a) * (R * 0.72 + largo), PY + Math.sin(f.a) * (R * 0.72 + largo) - largo * 0.5
       );
       g.stroke();
     }
@@ -939,28 +1481,63 @@ const notas = [
       const am = a + Math.PI / 6;
       mid.push([CX + Math.cos(am) * R * 0.58, PY + Math.sin(am) * R * 0.55]);
     }
-    g.fillStyle = tinta("18,13,8", 0.9);
+    /* cuerpo: cristal oscuro pero encendido por dentro, no negro plano */
+    const cuerpo = g.createLinearGradient(0, PY - R, 0, PY + R);
+    cuerpo.addColorStop(0, tinta("66,48,28", 0.88));
+    cuerpo.addColorStop(0.62, tinta("52,36,20", 0.88));
+    cuerpo.addColorStop(1, tinta("74,46,22", 0.8));
+    g.fillStyle = cuerpo;
     g.beginPath();
     hex.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
     g.closePath(); g.fill();
-    g.strokeStyle = tinta("245,205,130", 0.9 * luz);
-    g.lineWidth = 1.6;
-    g.stroke();
+    /* fuego DENTRO de la jaula. Medida por quintos, la franja central de la
+       lámina salía 61 puntos de luminancia por debajo de la referencia en la
+       banda alta: el poliedro estaba apagado por dentro. */
+    g.save();
+    g.beginPath();
+    hex.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y)));
+    g.closePath();
+    g.clip();
+    g.globalCompositeOperation = "lighter";
+    /* la brasa va ARRIBA del centro del poliedro: medido por quintos, la mitad
+       alta salía 36 puntos por debajo y la baja 55 por encima */
+    const brasa = g.createRadialGradient(CX, PY - R * 0.34, 4, CX, PY - R * 0.34, R * 1.15);
+    brasa.addColorStop(0, tinta("255,244,214", 0.34 * luz));
+    brasa.addColorStop(0.34, tinta("252,190,96", 0.18 * luz));
+    brasa.addColorStop(1, tinta("196,104,34", 0.03 * luz));
+    g.fillStyle = brasa;
+    g.fillRect(CX - R, PY - R, R * 2, R * 2);
+    for (let k = 0; k < 14; k++) {
+      const u = (k / 13 - 0.5) * 1.7;
+      const fl = 0.5 + 0.5 * Math.sin((fase * 2.6 + k * 0.51) * Math.PI * 2);
+      g.strokeStyle = tinta("255,232,182", 0.2 * fl * luz);
+      g.lineWidth = 2.2;
+      g.beginPath();
+      g.moveTo(CX + u * R * 0.7, PY + R * 0.8);
+      g.quadraticCurveTo(CX + u * R * 0.45 + 10, PY, CX + u * R * 0.3, PY - R * 0.8);
+      g.stroke();
+    }
+    g.restore();
+    /* aristas: montante grueso mate + filo brillante encima (así se ve el
+       oro macizo de la referencia; una línea de 1,6 px no lo consigue) */
+    const arista = (x1: number, y1: number, x2: number, y2: number, e: number) => {
+      g.strokeStyle = tinta("146,104,48", 0.85 * luz);
+      g.lineWidth = 5.4 * e;
+      g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      g.strokeStyle = tinta("250,214,146", 0.95 * luz);
+      g.lineWidth = 2 * e;
+      g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    };
     for (let i = 0; i < 6; i++) {
       const j = (i + 1) % 6;
-      g.strokeStyle = tinta("235,190,115", 0.65 * luz);
-      g.lineWidth = 1.1;
-      g.beginPath();
-      g.moveTo(hex[i][0], hex[i][1]); g.lineTo(mid[i][0], mid[i][1]);
-      g.lineTo(hex[j][0], hex[j][1]);
-      g.stroke();
-      g.beginPath();
-      g.moveTo(mid[i][0], mid[i][1]); g.lineTo(mid[(i + 1) % 6][0], mid[(i + 1) % 6][1]);
-      g.stroke();
+      arista(hex[i][0], hex[i][1], hex[j][0], hex[j][1], (hex[i][1] + hex[j][1]) / 2 < PY ? 1.5 : 1);
+      arista(hex[i][0], hex[i][1], mid[i][0], mid[i][1], 0.72);
+      arista(mid[i][0], mid[i][1], hex[j][0], hex[j][1], 0.72);
+      arista(mid[i][0], mid[i][1], mid[j][0], mid[j][1], 0.62);
     }
     /* marcas rúnicas en facetas (fijas) */
     g.fillStyle = tinta("240,200,130", 0.5 * luz);
-    for (const [mx, my] of mid) g.fillRect(mx - 2, my - 4, 4, 8);
+    for (const [mx, my] of mid) g.fillRect(mx - 3, my - 6, 6, 12);
     /* cadena de suspensión */
     g.strokeStyle = tinta("220,180,110", 0.4);
     g.lineWidth = 1.4;
@@ -1003,32 +1580,65 @@ const notas = [
     g.restore();
 
     /* ── OCTAEDRO INVERTIDO (cx, y452) ── */
-    const OY = 452, ORX = 62, ORY = 86;
-    g.fillStyle = tinta("14,10,6", 0.97);
-    g.beginPath();
-    g.moveTo(CX - ORX, OY - ORY * 0.35);
-    g.lineTo(CX, OY - ORY);
-    g.lineTo(CX + ORX, OY - ORY * 0.35);
-    g.lineTo(CX, OY + ORY);
-    g.closePath(); g.fill();
-    g.strokeStyle = tinta("250,215,140", 0.95 * luz);
-    g.lineWidth = 1.8;
-    g.stroke();
-    g.strokeStyle = tinta("235,190,115", 0.6 * luz);
+    /* ── EMBUDO: el cono invertido que recibe el torrente ──
+       Estaba relleno de (14,10,6): una cometa NEGRA justo donde la referencia
+       tiene un cono de oro con la boca encendida. Medido: boca de semiancho 73
+       en y401 del lienzo, punta en y534. */
+    const OY = 452, ORX = 73, ORY = 86;
+    const bocaY = OY - ORY * 0.35;
+    const embudo = () => {
+      g.beginPath();
+      g.moveTo(CX - ORX, bocaY);
+      g.lineTo(CX, OY - ORY);
+      g.lineTo(CX + ORX, bocaY);
+      g.lineTo(CX, OY + ORY);
+      g.closePath();
+    };
+    const gc = g.createLinearGradient(0, OY - ORY, 0, OY + ORY);
+    gc.addColorStop(0, tinta("46,33,20", 0.95));
+    gc.addColorStop(0.45, tinta("74,50,26", 0.95));
+    gc.addColorStop(1, tinta("140,84,32", 0.9));
+    g.fillStyle = gc;
+    embudo(); g.fill();
+    /* gajos del cono */
+    g.strokeStyle = tinta("214,166,96", 0.4 * luz);
     g.lineWidth = 1;
+    for (let k = -3; k <= 3; k++) {
+      g.beginPath();
+      g.moveTo(CX + (k / 3) * ORX, bocaY);
+      g.lineTo(CX, OY + ORY);
+      g.stroke();
+    }
+    /* boca: elipse encendida donde cae el fuego */
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    const boca = g.createRadialGradient(CX, bocaY, 2, CX, bocaY, ORX);
+    boca.addColorStop(0, tinta("255,248,224", 0.85 * luz));
+    boca.addColorStop(0.4, tinta("252,196,102", 0.4 * luz));
+    boca.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = boca;
+    g.beginPath(); g.ellipse(CX, bocaY, ORX, ORX * 0.24, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+    /* montantes de oro */
+    g.strokeStyle = tinta("150,108,52", 0.9 * luz);
+    g.lineWidth = 5; embudo(); g.stroke();
+    g.strokeStyle = tinta("252,216,150", 0.95 * luz);
+    g.lineWidth = 1.9; embudo(); g.stroke();
+    g.strokeStyle = tinta("240,200,130", 0.7 * luz);
+    g.lineWidth = 2.4;
     g.beginPath();
-    g.moveTo(CX - ORX, OY - ORY * 0.35); g.lineTo(CX + ORX, OY - ORY * 0.35);
-    g.moveTo(CX, OY - ORY); g.lineTo(CX, OY + ORY);
+    g.moveTo(CX - ORX, bocaY); g.lineTo(CX + ORX, bocaY);
     g.stroke();
-    g.fillStyle = tinta("240,200,130", 0.55 * luz);
-    g.fillRect(CX - 2.4, OY - 18, 4.8, 12);
+    g.strokeStyle = tinta("236,190,116", 0.55 * luz);
+    g.lineWidth = 1.4;
+    g.beginPath(); g.ellipse(CX, bocaY, ORX * 0.62, ORX * 0.15, 0, 0, Math.PI * 2); g.stroke();
 
     /* ── COLUMNA de fuego fina (y540..y948) ── */
     g.save();
     g.globalCompositeOperation = "lighter";
     /* la columna es LLAMA, no barra: silueta dentada por capas, con
        ondulación determinista y deriva por fase */
-    const yTop = OY + ORY, yBot = 884;
+    const yTop = OY + ORY, yBot = 878;
     const capas: Array<[number, string, number]> = [
       [30, "250,170,70", 0.34],
       [18, "253,205,110", 0.6],
@@ -1064,12 +1674,17 @@ const notas = [
       g.closePath();
       g.fill();
     }
-    const brillo = g.createLinearGradient(CX - 64, 0, CX + 64, 0);
+    /* velo del eje: la referencia no tiene una cinta de fuego sobre negro,
+       tiene toda la franja central encendida (chispas, humo y reverbero).
+       Medido por quintos, ahí faltaban entre 17 y 35 puntos de luminancia. */
+    const brillo = g.createLinearGradient(CX - 116, 0, CX + 116, 0);
     brillo.addColorStop(0, "rgba(0,0,0,0)");
-    brillo.addColorStop(0.5, tinta("250,182,82", 0.42 * luz));
+    brillo.addColorStop(0.34, tinta("236,148,60", 0.14 * luz));
+    brillo.addColorStop(0.5, tinta("250,182,82", 0.36 * luz));
+    brillo.addColorStop(0.66, tinta("236,148,60", 0.14 * luz));
     brillo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = brillo;
-    g.fillRect(CX - 64, yTop, 128, yBot - yTop);
+    g.fillRect(CX - 116, yTop, 232, yBot - yTop);
     /* zarcillos que se desprenden de la columna */
     for (let k = 0; k < 8; k++) {
       const yk = yTop + 30 + k * 52;
@@ -1088,12 +1703,72 @@ const notas = [
     }
     g.restore();
 
+    /* ── COLADAS de metal fundido ──
+       En la referencia no son tubos: son cintas serpenteantes que caen de los
+       caños de los bloques, bajan en S por las terrazas y se abren en abanico
+       al llegar al suelo. Un solo bezier no serpentea, así que la colada toma
+       una polilínea y la suaviza por puntos medios. */
+    const colada = (pts: Array<[number, number]>, e: number, brillo = 1) => {
+      const trazar = () => {
+        g.beginPath();
+        g.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length - 1; i++) {
+          const [x, y] = pts[i], [xn, yn] = pts[i + 1];
+          g.quadraticCurveTo(x, y, (x + xn) / 2, (y + yn) / 2);
+        }
+        g.lineTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+      };
+      g.lineCap = "round";
+      g.lineJoin = "round";
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      g.strokeStyle = tinta("255,140,45", 0.08 * brillo * luz);
+      g.lineWidth = 30 * e; trazar(); g.stroke();
+      g.strokeStyle = tinta("250,168,64", 0.36 * brillo * luz);
+      g.lineWidth = 15 * e; trazar(); g.stroke();
+      g.strokeStyle = tinta("255,214,140", 0.5 * brillo * luz);
+      g.lineWidth = 8 * e; trazar(); g.stroke();
+      g.strokeStyle = tinta("255,248,225", 0.8 * brillo * luz);
+      g.lineWidth = 3.4 * e; trazar(); g.stroke();
+      /* abanico donde la colada toca el suelo */
+      const [fx, fy] = pts[pts.length - 1];
+      const ab = g.createRadialGradient(fx, fy, 2, fx, fy, 54 * e);
+      ab.addColorStop(0, tinta("255,236,190", 0.7 * brillo * luz));
+      ab.addColorStop(0.45, tinta("250,168,64", 0.3 * brillo * luz));
+      ab.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = ab;
+      g.beginPath(); g.ellipse(fx, fy, 54 * e, 20 * e, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+      g.lineCap = "butt";
+      g.lineJoin = "miter";
+    };
+    const espejo = (pts: Array<[number, number]>): Array<[number, number]> =>
+      pts.map(([x, y]) => [2 * CX - x, y] as [number, number]);
+    /* las dos grandes S laterales dominan la mitad baja de la referencia:
+       nacen de un caño alto, serpentean por las terrazas y se abren abajo */
+    const sIzq: Array<[number, number]> = [
+      [130, 700], [170, 744], [152, 792], [112, 848],
+      [88, 912], [106, 972], [142, 1032], [176, 1084],
+    ];
+    const canoIzq: Array<[number, number]> = [[198, 706], [228, 730], [240, 768], [234, 812]];
+    /* PROBADO Y DESCARTADO (vueltas 53-54): subir el brillo de estas coladas a
+       0,7-1,1 sube la cobertura pero EMPEORA el puntaje del centro (23,26 ->
+       23,81), porque nuestras curvas no caen donde caen las de la referencia.
+       La luz que falta en el tercio bajo no se arregla con más brillo aquí:
+       hace falta rehacer el trazado de los ríos, no encenderlo. */
+    const coladasLaterales = () => {
+      colada(sIzq, 0.86, 0.46);
+      colada(espejo(sIzq), 0.86, 0.46);
+      colada(canoIzq, 0.66, 0.6);
+      colada(espejo(canoIzq), 0.66, 0.6);
+    };
+
     /* ── CRISOL: tambor macizo de piedra escalonado ──
        La referencia NO tiene un aro de alambre: tiene un TAMBOR con volumen,
        cara frontal de sillares verticales y un segundo escalón más ancho.
        Antes esto se dibujaba con elipses de relleno negro y solo se veían sus
        filos dorados: leía como jaula de pájaros, no como piedra. */
-    const DY = 880, DRX = 248, DRY = 60, DH = 138;
+    const DY = 880, DRX = 162, DRY = 32, DH = 113;
 
     /* silueta del tambor (elipse superior + pared + elipse inferior) */
     const cuerpoTambor = (cx: number, cy: number, rx: number, ry: number, h: number) => {
@@ -1105,11 +1780,11 @@ const notas = [
     };
 
     /* pared de sillares: nervaduras verticales con luz que cae hacia los lados */
-    const paredTambor = (cx: number, cy: number, rx: number, ry: number, h: number, n: number) => {
+    const paredTambor = (cx: number, cy: number, rx: number, ry: number, h: number, n: number, f = 1) => {
       const gr = g.createLinearGradient(0, cy, 0, cy + h);
-      gr.addColorStop(0, tinta("58,42,26", 0.98));
-      gr.addColorStop(0.42, tinta("30,21,13", 0.98));
-      gr.addColorStop(1, tinta("14,10,7", 0.98));
+      gr.addColorStop(0, tinta(f > 1 ? "78,58,36" : "58,42,26", 0.98));
+      gr.addColorStop(0.42, tinta(f > 1 ? "46,33,21" : "30,21,13", 0.98));
+      gr.addColorStop(1, tinta(f > 1 ? "26,19,12" : "14,10,7", 0.98));
       g.fillStyle = gr;
       cuerpoTambor(cx, cy, rx, ry, h);
       g.fill();
@@ -1144,8 +1819,64 @@ const notas = [
       g.beginPath(); g.ellipse(cx, cy + h, rx, ry, 0, 0, Math.PI); g.stroke();
     };
 
-    /* escalón inferior, más ancho, y después el tambor principal */
-    paredTambor(CX, DY + DH + 30, 328, 78, 52, 30);
+    /* ── TERRAZAS: el anfiteatro de sillares que rodea el crisol ──
+       En la referencia la mitad baja no es fondo negro: es una grada de
+       bloques de piedra con cantos dorados y placas rúnicas. Sin esto el
+       crisol flota en el vacío (y la medición lo cobra: la referencia tiene
+       tinta ahí y nosotros no). */
+    const bloque = (x: number, y: number, w: number, h: number, s: number, f = 1) => {
+      const d = w * 0.34;
+      /* cara frontal */
+      const gf = g.createLinearGradient(0, y, 0, y + h);
+      gf.addColorStop(0, tinta(f > 1 ? "104,76,44" : "74,54,32", 0.98));
+      gf.addColorStop(1, tinta(f > 1 ? "46,33,21" : "33,24,15", 0.98));
+      g.fillStyle = gf;
+      g.fillRect(x - w / 2, y, w, h);
+      /* cara superior en fuga */
+      g.fillStyle = tinta(f > 1 ? "122,90,52" : "92,68,40", 0.98);
+      g.beginPath();
+      g.moveTo(x - w / 2, y);
+      g.lineTo(x - w / 2 + d * 0.5, y - d * 0.42);
+      g.lineTo(x + w / 2 + d * 0.5, y - d * 0.42);
+      g.lineTo(x + w / 2, y);
+      g.closePath(); g.fill();
+      /* cantos dorados */
+      g.strokeStyle = tinta("222,176,104", 0.5 * luz);
+      g.lineWidth = 1;
+      g.strokeRect(x - w / 2, y, w, h);
+      g.stroke();
+      /* placa rúnica en el frente */
+      if (s % 3 === 0) {
+        g.strokeStyle = tinta("240,190,110", 0.4 * luz);
+        g.strokeRect(x - w * 0.18, y + h * 0.3, w * 0.36, h * 0.34);
+      } else if (s % 3 === 1) {
+        g.fillStyle = tinta(s % 6 === 1 ? "168,132,224" : "244,192,112", 0.4 * luz);
+        g.fillRect(x - 2, y + h * 0.42, 4, h * 0.2);
+      }
+    };
+    /* cuatro gradas concéntricas, de atrás hacia adelante, salteando el frente
+       central donde cae el metal */
+    const gradas: Array<[number, number, number, number, number, number]> = [
+      [214, 52, 918, 46, 13, 1],
+      [258, 64, 966, 54, 15, 1],
+      [304, 76, 1016, 62, 17, 1.12],
+      [352, 90, 1064, 70, 19, 1.12],
+    ];
+    for (const [rx, ry, cy, w, n, f] of gradas) {
+      for (let k = 0; k < n; k++) {
+        const a = Math.PI * (0.03 + (k / (n - 1)) * 0.94);
+        const bx = CX + Math.cos(a) * rx;
+        const by = cy + Math.sin(a) * ry;
+        if (Math.abs(bx - CX) < 46 && Math.sin(a) > 0.9) continue;
+        bloque(bx, by, w, w * 0.82, k + n, f);
+      }
+    }
+
+    /* escalón inferior (más ancho), después las coladas laterales — que en la
+       referencia pasan por detrás del tambor alto y por delante de la terraza —
+       y por último el tambor principal */
+    paredTambor(CX, DY + DH + 8, 238, 46, 84, 30, 1.06);
+    coladasLaterales();
     paredTambor(CX, DY, DRX, DRY, DH, 26);
 
     /* superficie del crisol: disco con anillo rúnico brillante */
@@ -1162,37 +1893,37 @@ const notas = [
     for (let k = 0; k < 24; k++) {
       const a = (k / 24) * Math.PI * 2;
       g.beginPath();
-      g.moveTo(CX + Math.cos(a) * 118, DY + Math.sin(a) * 28);
-      g.lineTo(CX + Math.cos(a) * (DRX - 8), DY + Math.sin(a) * (DRY - 4));
+      g.moveTo(CX + Math.cos(a) * 77, DY + Math.sin(a) * 15);
+      g.lineTo(CX + Math.cos(a) * (DRX - 8), DY + Math.sin(a) * (DRY - 2));
       g.stroke();
     }
     g.strokeStyle = tinta("236,186,108", 0.34 * luz);
     g.lineWidth = 1.4;
-    g.beginPath(); g.ellipse(CX, DY, 190, 46, 0, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.ellipse(CX, DY, 124, 24, 0, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = tinta("255,220,150", 0.85 * luz);
     g.lineWidth = 3;
-    g.beginPath(); g.ellipse(CX, DY, 138, 34, 0, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.ellipse(CX, DY, 90, 18, 0, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = tinta("250,190,90", 0.45 * luz);
     g.lineWidth = 7;
-    g.beginPath(); g.ellipse(CX, DY, 138, 34, 0, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.ellipse(CX, DY, 90, 18, 0, 0, Math.PI * 2); g.stroke();
     for (let k = 0; k < 30; k++) {
       const a = (k / 30) * Math.PI * 2;
       g.fillStyle = tinta("255,230,170", 0.6 * luz);
-      g.fillRect(CX + Math.cos(a) * 112 - 1.5, DY + Math.sin(a) * 27 - 3, 3, 6);
+      g.fillRect(CX + Math.cos(a) * 73 - 1.5, DY + Math.sin(a) * 14 - 3, 3, 6);
     }
     /* círculo mágico sobre la superficie del crisol: doble anillo +
        estrella de cinco puntas + marcas rúnicas (así es la referencia) */
     g.strokeStyle = tinta("255,225,155", 0.7 * luz);
     g.lineWidth = 1.6;
-    g.beginPath(); g.ellipse(CX, DY, 92, 22, 0, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.ellipse(CX, DY, 60, 12, 0, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = tinta("252,205,120", 0.5 * luz);
-    g.beginPath(); g.ellipse(CX, DY, 68, 16.5, 0, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.ellipse(CX, DY, 44, 9, 0, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = tinta("255,235,175", 0.6 * luz);
     g.lineWidth = 1.2;
     g.beginPath();
     for (let k = 0; k <= 5; k++) {
       const a = ((k * 2) % 5 / 5) * Math.PI * 2 - Math.PI / 2;
-      const x = CX + Math.cos(a) * 68, y = DY + Math.sin(a) * 16.5;
+      const x = CX + Math.cos(a) * 44, y = DY + Math.sin(a) * 9;
       if (k === 0) g.moveTo(x, y); else g.lineTo(x, y);
     }
     g.stroke();
@@ -1201,7 +1932,7 @@ const notas = [
     impacto.addColorStop(0.35, tinta("253,205,110", 0.7 * luz));
     impacto.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = impacto;
-    g.beginPath(); g.ellipse(CX, DY, 130, 44, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(CX, DY, 130, 30, 0, 0, Math.PI * 2); g.fill();
     /* corona de salpicaduras del impacto */
     for (let k = 0; k < 12; k++) {
       const a = (k / 12) * Math.PI * 2;
@@ -1209,40 +1940,20 @@ const notas = [
       g.strokeStyle = tinta("255,238,185", 0.55 * fl * luz);
       g.lineWidth = 1.8;
       g.beginPath();
-      g.moveTo(CX + Math.cos(a) * 30, DY + Math.sin(a) * 9);
+      g.moveTo(CX + Math.cos(a) * 22, DY + Math.sin(a) * 5);
       g.quadraticCurveTo(
-        CX + Math.cos(a) * 62, DY + Math.sin(a) * 18 - 26,
-        CX + Math.cos(a) * 84, DY + Math.sin(a) * 25 - 8
+        CX + Math.cos(a) * 46, DY + Math.sin(a) * 10 - 26,
+        CX + Math.cos(a) * 62, DY + Math.sin(a) * 14 - 8
       );
       g.stroke();
     }
     g.restore();
 
-    /* ── RÍOS de metal fundido en canales radiales ── */
-    const rio = (x1: number, y1: number, cx1: number, cy1: number, cx2: number, cy2: number, x2: number, y2: number) => {
-      const trazar = () => {
-        g.beginPath();
-        g.moveTo(x1, y1);
-        g.bezierCurveTo(cx1, cy1, cx2, cy2, x2, y2);
-      };
-      g.lineCap = "round";
-      g.strokeStyle = tinta("30,18,8", 0.9);
-      g.lineWidth = 26; trazar(); g.stroke();
-      g.save();
-      g.globalCompositeOperation = "lighter";
-      g.strokeStyle = tinta("250,180,80", 0.65 * luz);
-      g.lineWidth = 15; trazar(); g.stroke();
-      g.strokeStyle = tinta("255,235,185", 0.8 * luz);
-      g.lineWidth = 6; trazar(); g.stroke();
-      g.restore();
-      g.lineCap = "butt";
-    };
-    /* El metal NO rodea el dais en un aro perfecto (eso leía como jaula):
-       cae por la cara frontal del tambor y escurre al suelo por delante. */
-    rio(CX - 96, DY + DH - 24, CX - 150, DY + DH + 40, CX - 210, DY + DH + 70, CX - 264, 1086);
-    rio(CX + 96, DY + DH - 22, CX + 150, DY + DH + 42, CX + 210, DY + DH + 72, CX + 264, 1088);
-    rio(CX - 34, DY + DH - 6, CX - 60, DY + DH + 46, CX - 74, DY + DH + 84, CX - 96, 1090);
-    rio(CX + 34, DY + DH - 4, CX + 60, DY + DH + 48, CX + 74, DY + DH + 86, CX + 96, 1092);
+    /* derrame de metal por la cara frontal del propio tambor: chorrea sobre la
+       pared y muere en la base, no baja hasta el suelo (bajaba, y las dos
+       coladas leían como patas de trípode delante del crisol) */
+    colada([[CX - 6, DY + 18], [CX - 12, DY + 60], [CX - 18, DY + DH - 6], [CX - 24, DY + DH + 26]], 0.62, 0.95);
+    colada([[CX + 9, DY + 20], [CX + 16, DY + 64], [CX + 22, DY + DH - 4], [CX + 30, DY + DH + 24]], 0.5, 0.85);
 
     /* chispas: deriva lenta hacia arriba + titileo */
     g.save();
