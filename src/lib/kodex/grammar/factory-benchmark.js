@@ -6,7 +6,7 @@ import { KDX_GOLDEN_PLATE_CASES } from './golden-plate-benchmark.v0.1.js';
 import { assembleMacroChapter } from './macro-chapter-factory.js';
 
 export const KDX_FACTORY_BENCHMARK_PROFILE = Object.freeze({
-  version: 'factory-benchmark-v0.1.0',
+  version: 'factory-benchmark-v0.1.1',
   status: 'IMPLEMENTED_CANDIDATE',
   thresholdsStatus: 'HYPOTHESIS',
   humanAcceptanceIsMechanicalMetric: false,
@@ -31,6 +31,59 @@ const percentile = (values, p) => {
   const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil(sorted.length * p) - 1));
   return sorted[index];
 };
+
+function frozenConcentrationRows(groups, total) {
+  return Object.freeze([...groups.entries()]
+    .map(([key, cases]) => Object.freeze({
+      key,
+      count: cases.length,
+      share: Number((cases.length / total).toFixed(6)),
+      case_ids: Object.freeze(cases.map((entry) => entry.case_id)),
+      node_ids: Object.freeze(cases.map((entry) => entry.node_id)),
+    }))
+    .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key)));
+}
+
+export function analyzeGoldenFixtureSet() {
+  const assembled = KDX_GOLDEN_PLATE_CASES.map((entry) => {
+    const spec = assemblePlateSpec(entry.node, entry.plate_type, entry.seed);
+    return Object.freeze({
+      case_id: entry.case_id,
+      domain: entry.domain,
+      node_id: entry.node_id,
+      plate_type: entry.plate_type,
+      seed: entry.seed,
+      primary_element_id: spec.slots?.[0]?.element_id || null,
+      visual_signature: visualSignature(spec),
+    });
+  });
+
+  const byPrimaryElement = new Map();
+  const byVisualSignature = new Map();
+  for (const entry of assembled) {
+    const primaryKey = entry.primary_element_id || 'UNRESOLVED';
+    if (!byPrimaryElement.has(primaryKey)) byPrimaryElement.set(primaryKey, []);
+    byPrimaryElement.get(primaryKey).push(entry);
+
+    if (!byVisualSignature.has(entry.visual_signature)) byVisualSignature.set(entry.visual_signature, []);
+    byVisualSignature.get(entry.visual_signature).push(entry);
+  }
+
+  const primaryElementConcentration = frozenConcentrationRows(byPrimaryElement, assembled.length);
+  const sameSilhouetteGroups = frozenConcentrationRows(byVisualSignature, assembled.length)
+    .filter((group) => group.count > 1);
+
+  return Object.freeze({
+    status: 'OBSERVED_DIAGNOSTIC',
+    aesthetic_threshold_status: 'NONE',
+    total_cases: assembled.length,
+    unique_primary_element_ids: byPrimaryElement.size,
+    max_primary_element_share: primaryElementConcentration[0]?.share || 0,
+    primary_element_concentration: primaryElementConcentration,
+    same_silhouette_groups: Object.freeze(sameSilhouetteGroups),
+    meaning: 'Deterministic structural concentration diagnostic for the Golden fixture set. It records repeated registered composition signatures; it does not score aesthetics, imply creator rejection, or alter assembler selection policy.',
+  });
+}
 
 function runSeed(seed) {
   const started = performance.now();
@@ -131,6 +184,7 @@ export function runFactoryBenchmark(options = {}) {
     per_node_visual_variation_mean: Number(perNodeVariationMean.toFixed(3)),
     unique_route_signatures: routeSignatures.size,
     route_diversity_rate: Number(routeDiversityRate.toFixed(6)),
+    golden_fixture_diagnostics: analyzeGoldenFixtureSet(),
     runtime_cost: Object.freeze({
       total_ms: Number(elapsed.reduce((sum, value) => sum + value, 0).toFixed(3)),
       mean_seed_ms: Number((elapsed.reduce((sum, value) => sum + value, 0) / elapsed.length).toFixed(3)),
@@ -167,6 +221,7 @@ export function factoryBenchmarkDeterministicMetrics(report) {
     per_node_visual_variation_mean: report.per_node_visual_variation_mean,
     unique_route_signatures: report.unique_route_signatures,
     route_diversity_rate: report.route_diversity_rate,
+    golden_fixture_diagnostics: report.golden_fixture_diagnostics,
     human_curator_acceptance: report.human_curator_acceptance,
     hypothesis_checks: report.hypothesis_checks,
     failures: report.failures,
