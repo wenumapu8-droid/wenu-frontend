@@ -404,3 +404,77 @@ export function clearMemory() {
   try { localStorage.removeItem(KDX_MEMORY_KEY); }
   catch (_) {}
 }
+
+// PROLOGUE semantic sensors. This is intentionally local-only and event-bounded:
+// no pointer coordinates, continuous sampling, identity inference or per-frame writes.
+export function bindPrologueSemanticSensors(scope = document) {
+  if (typeof document === 'undefined' || !scope?.querySelector) return false;
+  const root = scope.querySelector('[data-kx]');
+  const prologue = root?.querySelector('#prologue');
+  if (!prologue || prologue.dataset.kdxMemoryBound === '1') return false;
+  prologue.dataset.kdxMemoryBound = '1';
+
+  const visual = prologue.querySelector('[data-kdx-prologue-eye]')?.closest('.kx-prologue-stage__visual')
+    || prologue.querySelector('.kx-prologue-stage__visual');
+  const protocolButtons = [...prologue.querySelectorAll('[data-kdx-protocol-open]')];
+  const cta = prologue.querySelector('.kx-prologue-stage__cta');
+  let dwellStartedAt = 0;
+  let lastEngagementAt = 0;
+
+  const active = () => prologue.classList.contains('kx-active');
+  const beginDwell = () => {
+    if (dwellStartedAt || !active()) return;
+    dwellStartedAt = performance.now();
+    observeConcept('OBSERVER', { strength: 0.08 });
+    observeConcept('SIGNAL', { strength: 0.05 });
+  };
+  const endDwell = () => {
+    if (!dwellStartedAt) return;
+    const seconds = Math.max(0, (performance.now() - dwellStartedAt) / 1000);
+    dwellStartedAt = 0;
+    if (seconds < 2) return;
+    observeConcept('MEMORY', { type: 'dwell', seconds });
+    observeConcept('OBSERVER', { type: 'dwell', seconds: seconds * 0.75 });
+  };
+  const syncScene = () => {
+    if (active()) beginDwell();
+    else endDwell();
+  };
+  const engage = () => {
+    if (!active()) return;
+    const at = nowMs();
+    if (at - lastEngagementAt < 1200) return;
+    lastEngagementAt = at;
+    observeConcept('OBSERVER', { strength: 0.14 });
+    observeConcept('SIGNAL', { strength: 0.10 });
+  };
+
+  if (typeof MutationObserver !== 'undefined') {
+    new MutationObserver(syncScene).observe(prologue, { attributes: true, attributeFilter: ['class'] });
+  }
+  visual?.addEventListener('pointerdown', engage, { passive: true });
+  visual?.addEventListener('touchstart', engage, { passive: true });
+  visual?.addEventListener('focusin', engage);
+  protocolButtons.forEach((button) => button.addEventListener('click', () => {
+    if (!active()) return;
+    observeConcept('MEMORY', { strength: 0.18 });
+    observeConcept('OBSERVER', { strength: 0.08 });
+  }));
+  cta?.addEventListener('click', () => {
+    if (!active()) return;
+    endDwell();
+    observeConcept('SIGNAL', { strength: 0.20 });
+    observeConcept('MEMORY', { strength: 0.12 });
+  });
+  addEventListener('pagehide', endDwell, { once: true });
+  syncScene();
+  return true;
+}
+
+if (typeof document !== 'undefined') {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => bindPrologueSemanticSensors(document), { once: true });
+  } else {
+    queueMicrotask(() => bindPrologueSemanticSensors(document));
+  }
+}
