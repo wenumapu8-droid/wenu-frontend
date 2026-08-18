@@ -1,7 +1,7 @@
 export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
   Object.freeze({
     id: 'KDX-SEM-IMPERMANENCE',
-    version: '0.1.1',
+    version: '0.1.2',
     status: 'NEEDS_CONFIRMATION',
     question: 'WHAT PERSISTS WHEN FORM CHANGES?',
     principles: Object.freeze(['IMPERMANENCE', 'CONTINUITY']),
@@ -14,6 +14,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
       evidence_class: 'KODEX_SYMBOLIC',
       notes: 'Spiral/helix is used as recurrence-with-transformation; no universal sacred-geometry claim is implied.',
     }),
+    natural_patterns: Object.freeze(['SYMMETRY_BREAKING', 'NESTED_RECURSION']),
     scene_state: 'ARCHIVE',
     plate_type: 'KNOWLEDGE_PLATE',
     observer_lens: 'MICROSCOPE',
@@ -33,7 +34,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
   }),
   Object.freeze({
     id: 'KDX-SEM-INTERDEPENDENCE',
-    version: '0.1.1',
+    version: '0.1.2',
     status: 'NEEDS_CONFIRMATION',
     question: 'WHAT EXISTS BETWEEN TWO THINGS?',
     principles: Object.freeze(['INTERDEPENDENCE', 'RELATION']),
@@ -46,6 +47,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
       evidence_class: 'KODEX_SYMBOLIC',
       notes: 'The mapping uses adjacency and scale as formal relations; it does not claim exact self-similarity across all natural systems.',
     }),
+    natural_patterns: Object.freeze(['ADAPTIVE_TRANSPORT_NETWORK', 'VORONOI_DELAUNAY']),
     scene_state: 'MACHINE',
     plate_type: 'JUNCTION_PLATE',
     observer_lens: 'SYSTEM',
@@ -70,7 +72,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
   }),
   Object.freeze({
     id: 'KDX-SEM-OBSERVER',
-    version: '0.1.1',
+    version: '0.1.2',
     status: 'NEEDS_CONFIRMATION',
     question: 'WHAT CHANGES WHEN OBSERVATION LEAVES A TRACE?',
     principles: Object.freeze(['OBSERVER', 'PARTICIPATION']),
@@ -83,6 +85,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
       evidence_class: 'KODEX_SYMBOLIC',
       notes: 'Observer geometry encodes viewpoint and framing only; it is not a quantum-consciousness claim.',
     }),
+    natural_patterns: Object.freeze(['DEEP_REPRESENTATION_COMPRESSION']),
     scene_state: 'COSMOLOGY',
     plate_type: 'ACTIVATOR_PLATE',
     observer_lens: 'META',
