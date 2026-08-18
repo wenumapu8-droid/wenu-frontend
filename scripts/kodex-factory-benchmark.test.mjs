@@ -3,13 +3,14 @@ import test from 'node:test';
 
 import {
   KDX_FACTORY_BENCHMARK_PROFILE,
+  analyzeGoldenFixtureSet,
   factoryBenchmarkDeterministicMetrics,
   runFactoryBenchmark,
 } from '../src/lib/kodex/grammar/factory-benchmark.js';
 
 test('factory benchmark measures the requested mechanical metrics without fabricating human acceptance', () => {
   const report = runFactoryBenchmark({ seedCount: 16, seedPrefix: 'ci-factory' });
-  assert.equal(report.benchmark_profile, 'factory-benchmark-v0.1.0');
+  assert.equal(report.benchmark_profile, 'factory-benchmark-v0.1.1');
   assert.equal(report.thresholds_status, 'HYPOTHESIS');
   assert.equal(report.seed_count, 16);
   assert.equal(report.attempted_plates, 16 * 12);
@@ -48,4 +49,21 @@ test('benchmark reports diversity and repetition as observations, not hard aesth
   // Route diversity may legitimately be low in a four-neighbor micro-universe;
   // the benchmark records collapse instead of disguising it as a failure or success.
   assert.equal(typeof report.hypothesis_checks.route_diversity_observed, 'boolean');
+});
+
+test('Golden fixture diagnostics expose concentration and repeated structural signatures without creating an aesthetic gate', () => {
+  const diagnostic = analyzeGoldenFixtureSet();
+
+  assert.equal(diagnostic.status, 'OBSERVED_DIAGNOSTIC');
+  assert.equal(diagnostic.aesthetic_threshold_status, 'NONE');
+  assert.equal(diagnostic.total_cases, 12);
+  assert.ok(diagnostic.unique_primary_element_ids > 0);
+  assert.ok(diagnostic.unique_primary_element_ids <= diagnostic.total_cases);
+  assert.ok(diagnostic.max_primary_element_share > 0 && diagnostic.max_primary_element_share <= 1);
+  assert.equal(
+    diagnostic.primary_element_concentration.reduce((sum, group) => sum + group.count, 0),
+    diagnostic.total_cases,
+  );
+  assert.ok(diagnostic.same_silhouette_groups.every((group) => group.count > 1));
+  assert.match(diagnostic.meaning, /does not score aesthetics/i);
 });
