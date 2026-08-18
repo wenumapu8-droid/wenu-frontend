@@ -60,6 +60,7 @@ export function interactionToJourneyEvents(
       letter: state.current,
       world: state.currentWorld ?? undefined,
       detail: detail.semanticTarget,
+      // Journey memory preserves sequence, not wall-clock behavior timing.
       at: state.trace.length,
     },
   ];
@@ -77,6 +78,7 @@ export function organismActionToJourneyEvents(
     letter: state.current,
     world: state.currentWorld ?? undefined,
     detail: write,
+    // Ordered semantic writes; incoming timestamps are intentionally discarded.
     at: state.trace.length + index,
   }));
 }
@@ -100,6 +102,7 @@ function persistJourney(storage: KodexJourneyStorage | null | undefined, state: 
   try {
     storage.setItem(KODEX_JOURNEY_STORAGE_KEY, JSON.stringify(serializeJourney(state)));
   } catch {
+    // Memory remains valid for the current page even if storage is unavailable/full.
   }
 }
 
@@ -163,6 +166,7 @@ export function createKodexJourneyMemoryBridge(
       try {
         storage?.removeItem(KODEX_JOURNEY_STORAGE_KEY);
       } catch {
+        // Reset the in-memory state even when storage is unavailable.
       }
       emitState("reset");
     },
