@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodex.local/schema/kdx-semantic-ir-v0.1.json",
+  "title": "KODEX Semantic IR v0.1",
+  "description": "Pre-Assembly semantic transduction contract. It maps principle/question/operator/memory intent into existing Assembly OS inputs without creating a renderer, route engine, memory store or canon authority.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id", "version", "status", "question", "principles", "epistemic", "operators",
+    "depth_types", "scene_state", "plate_type", "seed", "manifestation", "interaction",
+    "memory", "return", "provenance_refs"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^KDX-SEM-[A-Z0-9_-]+$" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "status": { "type": "string", "enum": ["CANONICAL", "CANON_CANDIDATE", "IMPLEMENTED_CANDIDATE", "NEEDS_CONFIRMATION"] },
+    "question": { "type": "string", "minLength": 2, "maxLength": 240 },
+    "principles": { "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "epistemic": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": { "type": "string", "enum": ["VERIFIED", "CANONICAL", "CANON_CANDIDATE", "INFERRED", "SPECULATIVE", "NEEDS_CONFIRMATION"] }
+    },
+    "operators": {
+      "type": "array", "minItems": 1, "maxItems": 8, "uniqueItems": true,
+      "items": { "type": "string", "enum": ["MANIFEST", "OBSERVE", "REVEAL", "RELATE", "APPROACH", "CROSS", "DIVERGE", "CONVERGE", "MUTATE", "ERODE", "INHERIT", "RECONSTRUCT", "RETURN"] }
+    },
+    "depth_types": {
+      "type": "array", "minItems": 1, "maxItems": 4, "uniqueItems": true,
+      "items": { "type": "string", "enum": ["MATERIAL", "INFORMATION", "LINEAGE", "SYSTEMIC", "COSMOLOGICAL", "EPISTEMIC", "META"] }
+    },
+    "scene_state": { "type": "string", "enum": ["THRESHOLD", "PROLOGUE", "DESCENT", "ARCHIVE", "MACHINE", "COSMOLOGY", "RETURN"] },
+    "plate_type": { "type": "string", "enum": ["KNOWLEDGE_PLATE", "JUNCTION_PLATE", "ACTIVATOR_PLATE"] },
+    "observer_lens": { "type": "string", "enum": ["MICROSCOPE", "MAGNIFIER", "NAKED_EYE", "SYSTEM", "TELEPHOTO", "SATELLITE", "TELESCOPE", "META"] },
+    "communication_mode": { "type": "string" },
+    "seed": { "type": ["string", "integer"] },
+    "manifestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "macro_signal", "payload_type", "payload_ref", "status"],
+      "properties": {
+        "title": { "type": "string", "minLength": 2 },
+        "macro_signal": { "type": "string", "minLength": 2, "maxLength": 120 },
+        "payload_type": { "type": "string", "enum": ["CONCEPT", "DIAGRAM", "DOCUMENT", "OBJECT", "FIELD", "MAP", "TYPE"] },
+        "payload_ref": { "type": "string", "minLength": 2 },
+        "status": { "type": "string", "enum": ["VERIFIED", "CANONICAL", "CANON_CANDIDATE", "IMPLEMENTED_CANDIDATE", "NEEDS_CONFIRMATION"] },
+        "activation_id": { "type": "string" },
+        "explicit_action_required": { "type": "boolean" },
+        "allow_motion": { "type": "boolean" },
+        "copy_slots": { "type": "array", "maxItems": 12, "items": { "type": "object" } }
+      }
+    },
+    "route_slate": {
+      "type": "array", "maxItems": 5,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["target_node", "role"],
+        "properties": {
+          "target_node": { "type": "string", "minLength": 2 },
+          "role": { "type": "string", "enum": ["CONTINUITY", "BRIDGE", "ECHO", "SERENDIPITY", "RETURN"] }
+        }
+      }
+    },
+    "interaction": {
+      "type": "object", "additionalProperties": false, "required": ["action", "selection_required"],
+      "properties": { "action": { "type": "string", "minLength": 2 }, "selection_required": { "type": "boolean" } }
+    },
+    "memory": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": {
+        "effect": { "type": "string", "enum": ["NONE", "TRACE", "RESIDUE", "INHERITANCE", "ROUTE_SIGNATURE", "RECONSTRUCTION"] },
+        "retains": { "type": "array", "uniqueItems": true, "items": { "type": "string" } }
+      }
+    },
+    "return": {
+      "type": "object", "additionalProperties": false, "required": ["effect"],
+      "properties": { "effect": { "type": "string", "enum": ["UNCHANGED", "TRACE_VISIBLE", "RETURNED_FORM", "THRESHOLD_PRIME"] } }
+    },
+    "provenance_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "plate_type": { "const": "JUNCTION_PLATE" } }, "required": ["plate_type"] },
+      "then": { "properties": { "route_slate": { "minItems": 2, "maxItems": 5 } }, "required": ["route_slate"] }
+    },
+    {
+      "if": { "properties": { "plate_type": { "const": "ACTIVATOR_PLATE" } }, "required": ["plate_type"] },
+      "then": { "properties": { "manifestation": { "properties": { "payload_type": { "const": "FIELD" } } } } }
+    }
+  ],
+  "x-kodex-invariants": [
+    "Semantic IR is a pre-Assembly adapter, not a renderer, route engine, memory store or canon authority.",
+    "Epistemic status and provenance survive compilation as semantic trace; they must not be collapsed into visual certainty.",
+    "Gesture/motion may reveal or transform state but may not auto-select a route.",
+    "Protected ARTWORK does not enter Semantic IR P0 directly; existing protected activation contracts remain authoritative.",
+    "A manifestable principle must declare both a concrete interaction and a memory/return consequence."
+  ]
+}
