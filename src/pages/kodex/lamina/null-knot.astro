@@ -1,0 +1,191 @@
+---
+/**
+ * KODEX-∞ · KODEX STUDY 02 · NULL KNOT
+ * RELIC ENGINE / SPECTRAL SERIES / 0002
+ *
+ * Reproducción en código de `reference/pendientes/pend-33.png` (1254×1254),
+ * décima lámina del lote de Drive. La plancha se nombra sola en sus dos
+ * esquinas: "KODEX STUDY 02 / NULL KNOT" y "RELIC ENGINE / SPECTRAL SERIES".
+ *
+ * QUÉ ES: un nudo trébol espectral — cintas costilladas como columnas
+ * vertebrales metálicas entrelazadas, flotando sobre un disco violeta
+ * profundo en fondo casi negro.
+ *
+ * MEDIDO: tinta 112.244 px (lum>40) · brillos #d5c8d2 (lila-plata) · medios
+ * #8a7487 (malva) · el disco es OSCURÍSIMO — apenas se separa del fondo.
+ *
+ * EL NUDO: trébol paramétrico (x=sin t+2sin 2t, y=cos t−2cos 2t, z=−sin 3t)
+ * muestreado denso; cada muestra dibuja una COSTILLA perpendicular al rumbo,
+ * con largo y luz según la profundidad z, y las costillas se pintan ordenadas
+ * de atrás hacia adelante — así los cruces del nudo ocluyen bien sin 3D real.
+ * Determinista con semilla fija; respiración de brillo fase-continua.
+ */
+import "../../../styles/kodex-lamina.css";
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · NULL KNOT · STUDY 02</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam">
+    <div class="lam" data-lam="null-knot" style="width:1254px;height:1254px;">
+      <canvas id="nk-campo" width="1254" height="1254" style="position:absolute;inset:0;"></canvas>
+
+      <svg viewBox="0 0 1254 1254" style="position:absolute;inset:0;" aria-hidden="true">
+        <!-- cromo transcrito -->
+        <text x="46" y="52" class="nk-chip">KODEX STUDY 02</text>
+        <path class="nk-linea" d="M46 66 h56" />
+        <text x="46" y="96" class="nk-titulo">NULL KNOT</text>
+
+        <path class="nk-linea" d="M1166 40 h42 M1208 40 v42 M1166 96 h8 M1208 96 v-8" />
+        {Array.from({ length: 9 }, (_, k) => (
+          <circle cx={1194} cy={120 + k * 12} r="1.4" class="nk-punto" />
+        ))}
+        <text x="1208" y="256" class="nk-ast" text-anchor="end">✳</text>
+
+        <rect x="44" y="1146" width="20" height="20" class="nk-caja" />
+        <path class="nk-linea" d="M48 1152 h12 M48 1157 h12 M48 1162 h8" />
+        <text x="46" y="1196" class="nk-micro">KX02.NK</text>
+        <text x="46" y="1214" class="nk-micro">13:27:41:02</text>
+        <text x="46" y="1232" class="nk-micro">0019</text>
+
+        <text x="1208" y="1178" class="nk-chip" text-anchor="end">▪ ▪</text>
+        <text x="1208" y="1200" class="nk-micro" text-anchor="end">RELIC ENGINE</text>
+        <text x="1208" y="1218" class="nk-micro" text-anchor="end">SPECTRAL SERIES</text>
+        <text x="1208" y="1236" class="nk-micro" text-anchor="end">0002</text>
+      </svg>
+    </div>
+
+    <style is:global>
+      html, body { margin: 0; background: #030103; }
+      .lam { position: relative; background: #050205; transform-origin: 0 0; font-family: var(--lam-mono); }
+      .nk-chip  { fill: #b9a8b6; font-size: 15px; letter-spacing: .26em; }
+      .nk-titulo{ fill: #d5c8d2; font-size: 19px; letter-spacing: .3em; font-weight: 600; }
+      .nk-micro { fill: #8a7487; font-size: 13px; letter-spacing: .2em; }
+      .nk-linea { stroke: #8a7487; stroke-width: 1.2; fill: none; opacity: .8; }
+      .nk-punto { fill: #8a7487; opacity: .7; }
+      .nk-caja  { stroke: #8a7487; fill: none; stroke-width: 1.1; }
+      .nk-ast   { fill: #b9a8b6; font-size: 18px; }
+    </style>
+
+    <script>
+      import { montarLienzo, tinta } from "../../../components/kodex/lamina/kit/lienzo";
+      import { rng } from "../../../components/kodex/lamina/kit/rng";
+      import { montarEscala } from "../../../components/kodex/lamina/kit/escala";
+
+      const canvas = document.getElementById("nk-campo") as HTMLCanvasElement;
+      const raiz = document.querySelector("[data-lam]") as HTMLElement;
+      const g = canvas.getContext("2d")!;
+      const rnd = rng(0x33);
+
+      const CX = 627, CY = 612, ESC = 128, ROT = 0.42;
+
+      /* ── el trébol, muestreado UNA vez ──────────────────────────────
+         Cada muestra guarda posición 2D, profundidad z, rumbo y su jitter de
+         costilla — todo decidido con semilla para que el cuadro sea estable. */
+      type Muestra = {
+        x: number; y: number; z: number;
+        nx: number; ny: number;  // perpendicular al rumbo, en pantalla
+        j: number;               // jitter propio de la costilla
+      };
+      const muestras: Muestra[] = [];
+      const N = 1500;
+      /* trébol estirado y girado: la referencia es un enredo VERTICAL, no el
+         trébol plano de manual. El estiramiento anisótropo + la rotación en
+         pantalla + una armónica extra le dan el retorcimiento orgánico. */
+      const punto = (t: number) => {
+        const bx = Math.sin(t) + 2 * Math.sin(2 * t) + 0.35 * Math.sin(4 * t);
+        const by = Math.cos(t) - 2 * Math.cos(2 * t) + 0.3 * Math.cos(5 * t);
+        const x = (bx * Math.cos(ROT) - by * Math.sin(ROT)) * 0.62;
+        const y = (bx * Math.sin(ROT) + by * Math.cos(ROT)) * 1.18;
+        return { x, y, z: -Math.sin(3 * t) };
+      };
+      for (let k = 0; k < N; k++) {
+        const t = (k / N) * Math.PI * 2;
+        const p = punto(t);
+        const q = punto(t + 0.004);
+        const dx = q.x - p.x, dy = q.y - p.y;
+        const L = Math.hypot(dx, dy) || 1;
+        muestras.push({
+          x: CX + p.x * ESC,
+          y: CY + p.y * ESC * 0.96,
+          z: p.z,
+          nx: -dy / L, ny: dx / L,
+          j: rnd(),
+        });
+      }
+      /* atrás primero: la oclusión de los cruces sale del orden de pintado */
+      const orden = muestras.map((_, i) => i).sort((a, b) => muestras[a].z - muestras[b].z);
+
+      const pintar = (fase: number) => {
+        g.clearRect(0, 0, 1254, 1254);
+        const luz = 0.88 + 0.12 * Math.cos(fase * Math.PI * 2);
+
+        /* el disco violeta hondo */
+        const disco = g.createRadialGradient(CX, CY, 60, CX, CY, 470);
+        disco.addColorStop(0, "rgba(34,14,38,0.9)");
+        disco.addColorStop(0.75, "rgba(22,8,26,0.55)");
+        disco.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = disco;
+        g.beginPath(); g.arc(CX, CY, 476, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = tinta("60,32,64", 0.5);
+        g.lineWidth = 1;
+        g.beginPath(); g.arc(CX, CY, 476, 0, Math.PI * 2); g.stroke();
+
+        /* polvo espectral alrededor */
+        for (let k = 0; k < 240; k++) {
+          const a = ((k * 137) % 360) / 360 * Math.PI * 2;
+          const r = 300 + ((k * 71) % 300);
+          g.fillStyle = tinta("138,116,135", 0.06 + ((k * 13) % 10) / 60);
+          g.fillRect(CX + Math.cos(a) * r, CY + Math.sin(a) * r * 0.9, 1.3, 1.3);
+        }
+
+        /* ── las costillas del nudo, de atrás hacia adelante ────────── */
+        for (const i of orden) {
+          const fina = i % 2 === 1;                   // costilla fina intermedia
+          const m = muestras[i];
+          const prof = (m.z + 1) / 2;                 // 0 atrás … 1 delante
+          const radio = (26 + prof * 28) * (fina ? 0.82 : 1);
+          const lado = m.nx;
+          /* la luz espectral: lila-plata delante, malva al medio, ciruela atrás */
+          const c = prof > 0.82 ? "213,200,210" : prof > 0.6 ? "182,124,108" : prof > 0.33 ? "104,80,100" : "48,30,48";
+          const alfa = (0.16 + prof * 0.5) * luz * (fina ? 0.45 : 1);
+
+          /* costilla: arco corto perpendicular, con leve curvatura */
+          g.strokeStyle = tinta(c, alfa);
+          g.lineWidth = (fina ? 0.7 : 1.2) + prof * 1.2;
+          const cx1 = m.x + m.nx * radio, cy1 = m.y + m.ny * radio;
+          const cx2 = m.x - m.nx * radio, cy2 = m.y - m.ny * radio;
+          g.beginPath();
+          g.moveTo(cx1, cy1);
+          g.quadraticCurveTo(m.x + m.ny * 8 * (m.j - 0.5), m.y - m.nx * 8 * (m.j - 0.5), cx2, cy2);
+          g.stroke();
+
+          /* la espina: nodo vertebral sobre el eje */
+          if (!fina && i % 4 === 0) {
+            g.fillStyle = tinta(prof > 0.5 ? "225,214,222" : "150,126,148", alfa + 0.1);
+            g.beginPath();
+            g.arc(m.x, m.y, 1.6 + prof * 2.6, 0, Math.PI * 2);
+            g.fill();
+          }
+          /* púas en las puntas de las costillas, ralas */
+          if (i % 9 === 0) {
+            g.strokeStyle = tinta(c, alfa * 0.8);
+            g.lineWidth = 0.8;
+            g.beginPath();
+            g.moveTo(cx1, cy1);
+            g.lineTo(cx1 + m.nx * (6 + m.j * 8), cy1 + m.ny * (6 + m.j * 8));
+            g.stroke();
+          }
+        }
+      };
+
+      montarLienzo({ raiz, cuadro: pintar, periodo: 26000, periodoReducido: 64000 });
+
+      montarEscala();
+    </script>
+  </body>
+</html>

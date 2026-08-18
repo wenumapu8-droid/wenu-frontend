@@ -1,0 +1,1244 @@
+---
+/**
+ * KODEX−∞ · LAB · CROMO DE ARCHIVO · a21 VOID ORCHARD
+ *
+ * Segunda lámina de la serie de archivo, sobre el piloto silence-engine.
+ * Entra como lab —mismo precedente—: noindex hasta que el creador la mire.
+ *
+ * TODO el texto visible está TRANSCRITO de
+ * reference/pendientes/a21-void-orchard.png (recortes con zoom 3×).
+ * Nada se inventa: la regla dura de la serie es que aforismos y rótulos
+ * son del creador.
+ *
+ * DIFERENCIAS MEDIDAS contra el piloto a28 (perfil de tinta dorada,
+ * umbral lum 25):
+ * · Cabecera CENTRADA (variante `centrada` de CabeceraArchivo): marca
+ *   y14..31, lema "• LIVING ARCHIVE OF THE UNBOUND •" y43..50;
+ *   "// PAGE / 21" a la IZQUIERDA (bloque propio de esta página, el
+ *   componente solo trae uno) y "SPECIMEN / VØ-21" a la derecha.
+ * · Título y84..166 (versal 82 → cuerpo 131), subtítulo violeta
+ *   y192..217 (versal 25 → 40). a21 NO tiene la regla ornamental de
+ *   a28 entre título y subtítulo: se oculta.
+ * · DOS columnas de paneles con marco dorado propio y huecos entre sí
+ *   (no un riel único): izq x44..238 con cortes y240/554, y583/902,
+ *   y927/1271, y1298/1427; der x953..1185 con y240/574, y588/980,
+ *   y1002/1324, y1324/1459. Punteado de remate en y1459.
+ * · El fondo NO es negro: es pintura violeta de borde a borde con
+ *   viñeta (centro rgb(55,45,61) medido, bordes rgb(12,9,6), detrás de
+ *   los paneles rgb(5,4,4)). Por eso el canvas acá es de PÁGINA ENTERA
+ *   (1229×1536) y las placas oscuras de los paneles se pintan en él.
+ * · a21 NO tiene sello de clasificación ni canto con texto: las
+ *   esquinas llevan circuitos ornamentales sin letra. Regla dura:
+ *   texto ilegible/inexistente → marcas no textuales, así que
+ *   SelloClasificacion y TarjetaMetrica (vocabulario de a28/a24) no
+ *   aparecen — este cromo es de fichas clave/valor, no de tarjetas
+ *   de métrica con valor grande.
+ */
+import CabeceraArchivo from "../../../components/kodex/archivo/CabeceraArchivo.astro";
+import TituloBilingue from "../../../components/kodex/archivo/TituloBilingue.astro";
+import AforismoPie from "../../../components/kodex/archivo/AforismoPie.astro";
+import { rng } from "../../../components/kodex/lamina/kit/rng";
+
+/* ── diagramas del riel: geometría determinista (rng del kit) ─────── */
+
+/* SYSTEM READING: onda mitad verde-lima mitad violeta sobre retícula.
+   Forma transcrita: ruido de picos, más denso al centro de cada mitad. */
+const rOnda = rng(0x5e21);
+const N = 72;
+const puntosOnda = Array.from({ length: N }, (_, i) => {
+  const u = i / (N - 1);
+  const x = u * 196;
+  const pico =
+    Math.sin(u * Math.PI * 9 + 0.7) * 10 +
+    Math.sin(u * Math.PI * 23) * 7 +
+    (rOnda() - 0.5) * 26;
+  const env = 0.45 + 0.55 * Math.sin(((u * 2) % 1) * Math.PI);
+  return { x, y: 44 - pico * env };
+});
+const mitad = Math.floor(N / 2);
+const ondaVerde = puntosOnda.slice(0, mitad + 1).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+const ondaVioleta = puntosOnda.slice(mitad).map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+
+/* VOID POLLINATION: rueda radial con seis vainas sobre los anillos.
+   Transcrito del recorte: cruz de ejes, 3 anillos + retícula fina,
+   ticks radiales, vainas violeta/verde con destello, centro dorado. */
+const vainasPolen = [-90, -30, 30, 90, 150, 210].map((grados, i) => {
+  const a = (grados * Math.PI) / 180;
+  const r = i % 2 ? 64 : 56;
+  return {
+    x: 85 + r * Math.cos(a),
+    y: 85 + r * Math.sin(a),
+    rot: grados + 90,
+    tono: i % 3 === 1 ? "violeta" : i % 3 === 2 ? "palida" : "oscura",
+  };
+});
+const ticksPolen = Array.from({ length: 24 }, (_, i) => {
+  const a = (i / 24) * Math.PI * 2;
+  return {
+    x1: 85 + 70 * Math.cos(a), y1: 85 + 70 * Math.sin(a),
+    x2: 85 + (i % 2 ? 74 : 78) * Math.cos(a), y2: 85 + (i % 2 ? 74 : 78) * Math.sin(a),
+  };
+});
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · VOID ORCHARD · PAGE 21</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam">
+    <div class="lam arch-marco" data-lam="void-orchard" style="width:1229px;height:1536px;">
+      {/* ── la pintura: página entera, fondo estático + capa viva ──── */}
+      <canvas class="vo-lienzo" id="vo-fondo" width="1229" height="1536" aria-hidden="true"></canvas>
+      <canvas class="vo-lienzo vo-lienzo--vivo" id="vo-vivo" width="1229" height="1536" aria-hidden="true"></canvas>
+
+      {/* ── cabecera centrada (variante a21) ───────────────────────── */}
+      <div class="arch-caja arch-caja--cabecera">
+        <CabeceraArchivo
+          marca="KODEX−∞"
+          lema="• LIVING ARCHIVE OF THE UNBOUND •"
+          rotuloPagina="SPECIMEN"
+          pagina="VØ-21"
+          centrada
+        />
+      </div>
+      {/* bloque de página izquierdo, transcrito: "// PAGE" sobre "21".
+          CabeceraArchivo trae un solo bloque de página; este es el otro. */}
+      <div class="vo-pagina" aria-hidden="true">
+        <p class="vo-pagina__rotulo">// PAGE</p>
+        <p class="vo-pagina__num">21</p>
+      </div>
+
+      {/* ── título: bandas medidas y84..166 y y192..217 ────────────── */}
+      <div class="arch-caja arch-caja--titulo">
+        <TituloBilingue titulo="VOID ORCHARD" subtitulo="HUERTO DEL VACÍO" />
+      </div>
+
+      {/* lema del cultivo bajo el título, centrado (y≈256..285) */}
+      <div class="vo-cultivo">
+        <p class="vo-cultivo__en">A CULTIVATION OF LATENT POTENTIAL</p>
+        <p class="vo-cultivo__es">UN CULTIVO DE POTENCIAL LATENTE</p>
+      </div>
+
+      {/* ══ columna IZQUIERDA (x44..238) ════════════════════════════ */}
+
+      <section class="vo-panel vo-panel--archivo">
+        <h3 class="vo-t vo-t--izq">ARCHIVE DATA</h3>
+        <p class="vo-s vo-s--calida vo-t--izq">DATOS DE ARCHIVO</p>
+        <div class="vo-regla" aria-hidden="true"></div>
+        <div class="vo-ficha">
+          <p class="vo-ficha__k">ARCHIVE ID <span>/ ID DE ARCHIVO</span></p>
+          <p class="vo-ficha__v">KX∞-VØ-021</p>
+        </div>
+        <div class="vo-ficha">
+          <p class="vo-ficha__k">CATALOG DATE <span>/ FECHA</span></p>
+          <p class="vo-ficha__v">CYCLE 9,331.7</p>
+        </div>
+        <div class="vo-ficha">
+          <p class="vo-ficha__k">CLASSIFICATION <span>/ CLASIFICACIÓN</span></p>
+          <p class="vo-ficha__v">PRE-FORM ECOLOGY</p>
+          <p class="vo-ficha__v vo-violeta">ECOLOGÍA PRE-FORMAL</p>
+        </div>
+        <div class="vo-ficha">
+          <p class="vo-ficha__k">ORIGIN <span>/ ORIGEN</span></p>
+          <p class="vo-ficha__v">THE BETWEEN</p>
+          <p class="vo-ficha__v vo-violeta">EL ENTREMEDIO</p>
+        </div>
+        <div class="vo-ficha">
+          <p class="vo-ficha__k">STATUS <span>/ ESTADO</span></p>
+          <p class="vo-ficha__v">STABLE (DORMANT)</p>
+          <p class="vo-ficha__v vo-violeta">ESTABLE (DORMANTE)</p>
+        </div>
+      </section>
+
+      <section class="vo-panel vo-panel--polen">
+        <h3 class="vo-t">VOID POLLINATION</h3>
+        <p class="vo-s vo-violeta">POLINIZACIÓN DEL VACÍO</p>
+        <svg class="vo-diagrama" width="170" height="170" viewBox="0 0 170 170" fill="none" aria-hidden="true">
+          {[28, 46, 64].map((r) => (
+            <circle cx="85" cy="85" r={r} stroke="#a4885a" stroke-opacity="0.5" stroke-width="0.8" />
+          ))}
+          <circle cx="85" cy="85" r={70} stroke="#a4885a" stroke-opacity="0.35" stroke-width="0.6" stroke-dasharray="2 4" />
+          <line x1="4" y1="85" x2="166" y2="85" stroke="#a4885a" stroke-opacity="0.45" stroke-width="0.7" />
+          <line x1="85" y1="4" x2="85" y2="166" stroke="#a4885a" stroke-opacity="0.45" stroke-width="0.7" />
+          {ticksPolen.map((t) => (
+            <line x1={t.x1.toFixed(1)} y1={t.y1.toFixed(1)} x2={t.x2.toFixed(1)} y2={t.y2.toFixed(1)} stroke="#a4885a" stroke-opacity="0.5" stroke-width="0.7" />
+          ))}
+          <circle cx="85" cy="85" r="10" stroke="#cdb579" stroke-opacity="0.8" stroke-width="0.8" />
+          <circle cx="85" cy="85" r="4" fill="#e8d9a4" fill-opacity="0.95" />
+          <circle cx="85" cy="85" r="8" fill="#e8d9a4" fill-opacity="0.25" />
+          {vainasPolen.map((v) => (
+            <g transform={`translate(${v.x.toFixed(1)} ${v.y.toFixed(1)}) rotate(${v.rot})`}>
+              <path
+                d="M0,-15 Q9,0 0,15 Q-9,0 0,-15 Z"
+                fill={v.tono === "violeta" ? "#3a2850" : v.tono === "palida" ? "#2c2c22" : "#1c1626"}
+                stroke={v.tono === "violeta" ? "#9d7fd0" : "#b9a26b"}
+                stroke-opacity="0.8"
+                stroke-width="0.9"
+              />
+              <circle cx="0" cy="0" r="2.4" fill={v.tono === "violeta" ? "#cbb4ef" : "#e4dda0"} fill-opacity="0.95" />
+            </g>
+          ))}
+        </svg>
+        <p class="vo-nota">SEEDS DRIFT IN THE ETHER.</p>
+        <p class="vo-nota">POTENTIAL DRIFTS WITH THEM.</p>
+        <p class="vo-nota vo-nota--es">LAS SEMILLAS FLOTAN EN EL ÉTER.</p>
+        <p class="vo-nota vo-nota--es">EL POTENCIAL NAVEGA CON ELLAS.</p>
+      </section>
+
+      <section class="vo-panel vo-panel--morfo">
+        <h3 class="vo-t">SEED MORPHOLOGY</h3>
+        <p class="vo-s vo-violeta">MORFOLOGÍA DE LA SEMILLA</p>
+        <div class="vo-regla vo-regla--simple" aria-hidden="true"></div>
+
+        <div class="vo-morfo">
+          <svg width="46" height="62" viewBox="0 0 46 62" fill="none" aria-hidden="true">
+            <path d="M23,3 Q41,31 23,59 Q5,31 23,3 Z" fill="#232817" stroke="#cfd3a8" stroke-opacity="0.75" stroke-width="1" />
+            <path d="M23,10 Q34,31 23,52 Q12,31 23,10 Z" stroke="#a8b07c" stroke-opacity="0.5" stroke-width="0.7" fill="none" />
+            <circle cx="23" cy="29" r="6" fill="#eef2c8" fill-opacity="0.9" />
+            <circle cx="23" cy="29" r="11" fill="#cde27a" fill-opacity="0.28" />
+          </svg>
+          <div class="vo-morfo__texto">
+            <p class="vo-morfo__en">EMBRYONIC SPHERE</p>
+            <p class="vo-morfo__es">ESFERA EMBRIONARIA</p>
+            <p class="vo-morfo__pot">POTENTIAL: FORM</p>
+          </div>
+        </div>
+
+        <div class="vo-morfo">
+          <svg width="46" height="62" viewBox="0 0 46 62" fill="none" aria-hidden="true">
+            <path d="M23,3 Q41,31 23,59 Q5,31 23,3 Z" fill="#251b36" stroke="#9d7fd0" stroke-opacity="0.8" stroke-width="1" />
+            <path d="M23,3 Q23,31 23,59 M13,14 Q23,31 33,48 M33,14 Q23,31 13,48" stroke="#8a6cbf" stroke-opacity="0.55" stroke-width="0.7" fill="none" />
+            <circle cx="23" cy="31" r="4.5" fill="#d9c8f5" fill-opacity="0.9" />
+          </svg>
+          <div class="vo-morfo__texto">
+            <p class="vo-morfo__en">DREAM POD</p>
+            <p class="vo-morfo__es">VAINA ONÍRICA</p>
+            <p class="vo-morfo__pot">POTENTIAL: NARRATIVE</p>
+          </div>
+        </div>
+
+        <div class="vo-morfo">
+          <svg width="46" height="62" viewBox="0 0 46 62" fill="none" aria-hidden="true">
+            <path d="M23,3 Q41,31 23,59 Q5,31 23,3 Z" fill="#121016" stroke="#a4885a" stroke-opacity="0.8" stroke-width="1" />
+            <path d="M23,8 Q36,31 23,54 M23,8 Q10,31 23,54" stroke="#77653f" stroke-opacity="0.6" stroke-width="0.7" fill="none" />
+            <circle cx="23" cy="31" r="3" stroke="#a4885a" stroke-opacity="0.7" stroke-width="0.8" fill="none" />
+          </svg>
+          <div class="vo-morfo__texto">
+            <p class="vo-morfo__en">NULL HUSK</p>
+            <p class="vo-morfo__es">CÁSCARA NULA</p>
+            <p class="vo-morfo__pot vo-violeta">POTENTIAL: ERASURE</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="vo-panel vo-panel--cita">
+        <svg class="vo-cita__glifo" width="46" height="100" viewBox="0 0 46 100" fill="none" aria-hidden="true">
+          <line x1="23" y1="2" x2="23" y2="98" stroke="#a4885a" stroke-opacity="0.85" stroke-width="1.4" />
+          <path d="M23,6 L29,16 L23,26 L17,16 Z" stroke="#a4885a" stroke-opacity="0.85" stroke-width="1" />
+          <circle cx="23" cy="48" r="14" stroke="#c2a76b" stroke-opacity="0.9" stroke-width="1.6" />
+          <circle cx="23" cy="48" r="9" stroke="#a4885a" stroke-opacity="0.5" stroke-width="0.8" />
+          <line x1="15" y1="32" x2="31" y2="32" stroke="#a4885a" stroke-opacity="0.7" stroke-width="1" />
+          <path d="M23,86 L27,92 L23,98 L19,92 Z" stroke="#a4885a" stroke-opacity="0.8" stroke-width="1" />
+        </svg>
+        <div class="vo-cita__texto">
+          <p class="vo-cita__en">"IN THE ABSENCE OF FORM,</p>
+          <p class="vo-cita__en">LIFE STILL EXPERIMENTS."</p>
+          <p class="vo-cita__es">EN AUSENCIA DE FORMA,</p>
+          <p class="vo-cita__es">LA VIDA SIGUE EXPERIMENTANDO.</p>
+        </div>
+      </section>
+
+      {/* ══ columna DERECHA (x953..1185) ════════════════════════════ */}
+
+      <section class="vo-panel vo-panel--metricas">
+        <h3 class="vo-t vo-t--izq">BOTANICAL-COSMIC METRICS</h3>
+        <p class="vo-s vo-s--calida vo-t--izq">MÉTRICAS BOTÁNICO-CÓSMICAS</p>
+        <div class="vo-regla" aria-hidden="true"></div>
+
+        <div class="vo-metrica">
+          <div><p class="vo-metrica__en">LUMINOSITY INDEX</p><p class="vo-metrica__es">ÍNDICE DE LUMINOSIDAD</p></div>
+          <p class="vo-metrica__valor">0.73 φ</p>
+        </div>
+        <div class="vo-metrica">
+          <div><p class="vo-metrica__en">GRAVITIC VARIANCE</p><p class="vo-metrica__es">VARIANZA GRAVÍTICA</p></div>
+          <p class="vo-metrica__valor">-0.21 g</p>
+        </div>
+        <div class="vo-metrica">
+          <div><p class="vo-metrica__en">ETHEREAL HUMIDITY</p><p class="vo-metrica__es">HUMEDAD ETÉREA</p></div>
+          <p class="vo-metrica__valor">88.6 %</p>
+        </div>
+        <div class="vo-metrica">
+          <div><p class="vo-metrica__en">SPORE DENSITY</p><p class="vo-metrica__es">DENSIDAD DE ESPORAS</p></div>
+          <p class="vo-metrica__valor">7.3 x 10<sup>5</sup></p>
+        </div>
+        <div class="vo-metrica">
+          <div><p class="vo-metrica__en">TEMPORAL FLOW</p><p class="vo-metrica__es">FLUJO TEMPORAL</p></div>
+          <p class="vo-metrica__valor">Δt ± 0.37</p>
+        </div>
+        <div class="vo-metrica">
+          <div><p class="vo-metrica__en">POTENTIAL INDEX</p><p class="vo-metrica__es">ÍNDICE DE POTENCIAL</p></div>
+          <svg width="92" height="16" viewBox="0 0 92 16" fill="none" aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <g transform={`translate(${8 + i * 19} 8)`} opacity={i === 4 ? 0.45 : 0.9}>
+                <path d="M0,-7 L6,0 L0,7 L-6,0 Z" stroke="#c2a76b" stroke-width="1" />
+                <circle cx="0" cy="0" r="1.8" fill="#e0cd93" />
+              </g>
+            ))}
+          </svg>
+        </div>
+      </section>
+
+      <section class="vo-panel vo-panel--estratos">
+        <h3 class="vo-t">ORCHARD STRATA</h3>
+        <p class="vo-s vo-s--calida">ESTRATOS DEL HUERTO</p>
+        <div class="vo-estratos">
+          <svg width="96" height="330" viewBox="0 0 96 330" fill="none" aria-hidden="true">
+            {/* dosel: racimo verde luminoso */}
+            <circle cx="48" cy="28" r="17" fill="#8db33f" fill-opacity="0.30" />
+            <circle cx="38" cy="24" r="8" fill="#a9cf55" fill-opacity="0.45" />
+            <circle cx="56" cy="20" r="7" fill="#c4e070" fill-opacity="0.5" />
+            <circle cx="48" cy="33" r="6" fill="#e4f2a8" fill-opacity="0.6" />
+            <path d="M48,40 L48,62 M40,44 L36,58 M56,44 L60,58" stroke="#4d5a28" stroke-opacity="0.9" stroke-width="1.4" />
+            {/* tres discos con radios */}
+            {[70, 152, 234].map((y) => (
+              <g>
+                <ellipse cx="48" cy={y} rx="40" ry="11" stroke="#a4885a" stroke-opacity="0.7" stroke-width="0.9" />
+                <ellipse cx="48" cy={y} rx="24" ry="6.5" stroke="#a4885a" stroke-opacity="0.4" stroke-width="0.7" />
+                <line x1="8" y1={y} x2="88" y2={y} stroke="#a4885a" stroke-opacity="0.3" stroke-width="0.6" />
+              </g>
+            ))}
+            {/* embudos violeta entre discos */}
+            <path d="M34,74 Q48,110 48,116 Q48,110 62,74" stroke="#8a6cbf" stroke-opacity="0.55" stroke-width="0.9" fill="none" />
+            <path d="M34,156 Q48,192 48,198 Q48,192 62,156" stroke="#8a6cbf" stroke-opacity="0.55" stroke-width="0.9" fill="none" />
+            <path d="M40,238 Q48,268 48,280 Q48,268 56,238" stroke="#8a6cbf" stroke-opacity="0.55" stroke-width="0.9" fill="none" />
+            <line x1="48" y1="116" x2="48" y2="141" stroke="#cdb579" stroke-opacity="0.6" stroke-width="1" />
+            <line x1="48" y1="198" x2="48" y2="223" stroke="#cdb579" stroke-opacity="0.6" stroke-width="1" />
+            {/* océano de semillas: espiral violeta */}
+            <ellipse cx="48" cy="302" rx="34" ry="10" stroke="#9d7fd0" stroke-opacity="0.5" stroke-width="0.9" />
+            <ellipse cx="48" cy="302" rx="22" ry="6.5" stroke="#b394e2" stroke-opacity="0.6" stroke-width="0.9" />
+            <ellipse cx="48" cy="302" rx="11" ry="3.4" stroke="#cbb4ef" stroke-opacity="0.7" stroke-width="0.9" />
+            <circle cx="48" cy="302" r="3" fill="#e2d4fb" fill-opacity="0.9" />
+            <line x1="48" y1="280" x2="48" y2="299" stroke="#b394e2" stroke-opacity="0.7" stroke-width="1.2" />
+          </svg>
+          <div class="vo-estratos__rotulos">
+            <div style="top:34px"><p class="vo-metrica__en">CANOPY OF POTENTIAL</p><p class="vo-metrica__es">DOSEL DE POTENCIAL</p></div>
+            <div style="top:118px"><p class="vo-metrica__en">FRUITING REALMS</p><p class="vo-metrica__es">REINOS FRUTALES</p></div>
+            <div style="top:202px"><p class="vo-metrica__en">ROOT CONDUITS</p><p class="vo-metrica__es">CONDUCTOS RADICALES</p></div>
+            <div style="top:290px"><p class="vo-metrica__en">SEED OCEAN</p><p class="vo-metrica__es">OCÉANO DE SEMILLAS</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="vo-panel vo-panel--lectura">
+        <h3 class="vo-t">SYSTEM READING</h3>
+        <p class="vo-s vo-s--calida">LECTURA DEL SISTEMA</p>
+        <svg class="vo-diagrama" width="200" height="92" viewBox="0 0 200 92" fill="none" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((i) => (
+            <line x1="2" y1={6 + i * 20} x2="198" y2={6 + i * 20} stroke="#a4885a" stroke-opacity="0.22" stroke-width="0.6" />
+          ))}
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <line x1={2 + i * 24.5} y1="6" x2={2 + i * 24.5} y2="86" stroke="#a4885a" stroke-opacity="0.22" stroke-width="0.6" />
+          ))}
+          <polyline points={ondaVerde} stroke="#a9cf3f" stroke-opacity="0.9" stroke-width="1.3" />
+          <polyline points={ondaVioleta} stroke="#9b6fd0" stroke-opacity="0.9" stroke-width="1.3" />
+        </svg>
+        <p class="vo-ficha__v vo-lectura__senal">SIGNAL: BIO-LATENT</p>
+        <p class="vo-ficha__v vo-violeta vo-lectura__senal">SEÑAL: BIO-LATENTE</p>
+        <div class="vo-metrica vo-metrica--linea">
+          <p class="vo-metrica__en">FREQUENCY <span>/ FRECUENCIA</span></p>
+          <p class="vo-metrica__valor">417.2 THz</p>
+        </div>
+        <div class="vo-metrica vo-metrica--linea">
+          <p class="vo-metrica__en">HARMONIC <span>/ ARMÓNICO</span></p>
+          <p class="vo-metrica__valor">7 : 13 : 21</p>
+        </div>
+        <div class="vo-metrica vo-metrica--linea">
+          <p class="vo-metrica__en">RESONANCE <span>/ RESONANCIA</span></p>
+          <p class="vo-metrica__valor">Σ∞</p>
+        </div>
+      </section>
+
+      <section class="vo-panel vo-panel--observacion">
+        <p class="vo-ficha__k vo-obs__titulo">OBSERVATION <span>/ OBSERVACIÓN</span></p>
+        <p class="vo-ficha__v">THIS ORCHARD DOES NOT GROW.</p>
+        <p class="vo-ficha__v">IT REMEMBERS HOW.</p>
+        <p class="vo-ficha__v vo-violeta">ESTE HUERTO NO CRECE.</p>
+        <p class="vo-ficha__v vo-violeta">RECUERDA CÓMO.</p>
+        <svg class="vo-obs__glifo" width="40" height="110" viewBox="0 0 40 110" fill="none" aria-hidden="true">
+          <line x1="20" y1="2" x2="20" y2="108" stroke="#a4885a" stroke-opacity="0.8" stroke-width="1.2" />
+          <line x1="14" y1="14" x2="14" y2="46" stroke="#a4885a" stroke-opacity="0.5" stroke-width="0.8" />
+          <line x1="26" y1="14" x2="26" y2="46" stroke="#a4885a" stroke-opacity="0.5" stroke-width="0.8" />
+          <circle cx="20" cy="62" r="13" stroke="#c2a76b" stroke-opacity="0.9" stroke-width="1.6" />
+          <path d="M20,96 L24,102 L20,108 L16,102 Z" stroke="#a4885a" stroke-opacity="0.8" stroke-width="1" />
+        </svg>
+      </section>
+
+      {/* ── pie: aforismo transcrito, EN claro + ES violeta ────────── */}
+      <div class="arch-caja arch-caja--pie">
+        <AforismoPie
+          lineas={[
+            [{ t: "THE VOID GARDENS WHAT WILL BE." }],
+            [{ t: "EL VACÍO CULTIVA LO QUE SERÁ.", acento: true }],
+          ]}
+        />
+        <svg class="vo-pie__remate" width="730" height="26" viewBox="0 0 730 26" fill="none" aria-hidden="true">
+          <line x1="20" y1="13" x2="330" y2="13" stroke="#a4885a" stroke-opacity="0.6" stroke-width="1" />
+          <line x1="400" y1="13" x2="710" y2="13" stroke="#a4885a" stroke-opacity="0.6" stroke-width="1" />
+          <path d="M340,13 Q346,5 352,13 Q358,21 364,13 Q358,5 352,13 Q346,21 340,13 Z" stroke="#cdb579" stroke-opacity="0.9" stroke-width="1.4" />
+          <path d="M296,13 L302,9 L308,13 L302,17 Z" stroke="#a4885a" stroke-opacity="0.7" stroke-width="0.9" />
+          <path d="M422,13 L428,9 L434,13 L428,17 Z" stroke="#a4885a" stroke-opacity="0.7" stroke-width="0.9" />
+        </svg>
+      </div>
+    </div>
+  </body>
+</html>
+
+<style>
+  html, body { margin: 0; background: #000; }
+  .arch-marco {
+    position: relative;
+    background: #060409;
+    overflow: hidden;
+    transform-origin: 0 0;
+    /* Paleta medida sobre a21: tinta clara cálida de los paneles,
+       título dorado (prom rgb(185,159,112), pico blanco), acento
+       violeta de texto (pico rgb(209,192,224)), marcos oro apagado. */
+    --arch-ink: #cfc4ae;
+    --arch-ink-titulo: #ddc287;
+    --arch-acento: #b9a2e0;
+    --arch-acento-pie: #a794cf;
+    --vo-oro: #c2a76b;
+    --vo-marco: rgba(164, 138, 88, 0.5);
+    --vo-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family: var(--vo-sans);
+  }
+  .vo-lienzo {
+    position: absolute;
+    inset: 0;
+    width: 1229px;
+    height: 1536px;
+  }
+  .arch-caja { position: absolute; box-sizing: border-box; }
+
+  /* ── cabecera: bandas medidas y14..31 (marca) y43..50 (lema) ───── */
+  .arch-caja--cabecera { top: 8px; left: 35px; right: 35px; }
+  .arch-caja--cabecera :global(.arch-cab__marca) {
+    font-size: 26px;
+    letter-spacing: 0.34em;
+  }
+  .arch-caja--cabecera :global(.arch-cab__lema) {
+    margin-top: 7px;
+    font-family: var(--vo-sans);
+    font-size: 10.5px;
+    letter-spacing: 0.3em;
+    opacity: 0.8;
+  }
+  /* bloque SPECIMEN / VØ-21: sans chico, medido y50 / y79 */
+  .arch-caja--cabecera :global(.arch-cab__rotulo) {
+    margin-top: 40px;
+    font-family: var(--vo-sans);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+  }
+  .arch-caja--cabecera :global(.arch-cab__numero) {
+    margin-top: 6px;
+    font-family: var(--vo-sans);
+    font-weight: 600;
+    font-size: 19px;
+    letter-spacing: 0.12em;
+    color: var(--vo-oro);
+  }
+  .vo-pagina {
+    position: absolute;
+    top: 48px;
+    left: 88px;
+    color: var(--arch-ink);
+  }
+  .vo-pagina p { margin: 0; font-family: var(--vo-sans); font-weight: 600; }
+  .vo-pagina__rotulo { font-size: 11px; letter-spacing: 0.2em; }
+  .vo-pagina__num {
+    margin-top: 4px !important;
+    font-size: 26px;
+    letter-spacing: 0.08em;
+    color: var(--vo-oro);
+  }
+
+  /* ── título: y84..166 versal 82 → 131 px; sub y192..217 → 40 px ── */
+  .arch-caja--titulo { top: 70px; left: 0; right: 0; }
+  .arch-caja--titulo :global(.arch-titulo__en) {
+    font-size: 131px;
+    letter-spacing: 0.03em;
+    text-shadow: 0 0 26px rgba(200, 168, 96, 0.35);
+  }
+  /* a21 no lleva la regla ornamental del piloto entre título y sub */
+  .arch-caja--titulo :global(.arch-titulo__regla) { display: none; }
+  .arch-caja--titulo :global(.arch-titulo__es) {
+    margin-top: 22px;
+    font-size: 40px;
+    letter-spacing: 0.3em;
+  }
+
+  .vo-cultivo {
+    position: absolute;
+    top: 252px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: var(--arch-ink);
+  }
+  .vo-cultivo p { margin: 0; font-weight: 600; }
+  .vo-cultivo__en { font-size: 11px; letter-spacing: 0.28em; opacity: 0.85; }
+  .vo-cultivo__es { margin-top: 6px !important; font-size: 10px; letter-spacing: 0.26em; opacity: 0.6; }
+
+  /* ── paneles: cajas medidas del perfil de tinta ─────────────────── */
+  .vo-panel {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--vo-marco);
+    padding: 14px 12px;
+    color: var(--arch-ink);
+    /* chaflán de esquina: recorte suave arriba-izq y abajo-der */
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  }
+  .vo-panel p, .vo-panel h3 { margin: 0; }
+  .vo-panel--archivo    { left: 44px;  top: 240px; width: 194px; height: 314px; }
+  .vo-panel--polen      { left: 44px;  top: 583px; width: 194px; height: 319px; text-align: center; }
+  .vo-panel--morfo      { left: 44px;  top: 927px; width: 194px; height: 344px; text-align: center; }
+  .vo-panel--cita       {
+    left: 44px; top: 1298px; width: 194px; height: 129px;
+    border-left: none; border-right: none; clip-path: none;
+    display: flex; align-items: center; gap: 10px; padding: 10px 4px;
+  }
+  .vo-panel--metricas   { left: 953px; top: 240px; width: 232px; height: 334px; }
+  .vo-panel--estratos   { left: 953px; top: 588px; width: 232px; height: 392px; text-align: center; }
+  .vo-panel--lectura    { left: 953px; top: 1002px; width: 232px; height: 322px; text-align: center; }
+  .vo-panel--observacion { left: 953px; top: 1324px; width: 232px; height: 135px; padding-right: 46px; }
+
+  .vo-t {
+    font-family: var(--vo-sans);
+    font-weight: 700;
+    font-size: 13.5px;
+    letter-spacing: 0.14em;
+    color: #d6cdb8;
+  }
+  .vo-t--izq { text-align: left; }
+  .vo-s {
+    margin-top: 4px !important;
+    font-weight: 600;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+  }
+  .vo-s--calida { color: var(--arch-ink); opacity: 0.68; }
+  .vo-violeta { color: var(--arch-acento); }
+
+  .vo-regla {
+    margin: 10px 0 12px;
+    height: 1px;
+    background: var(--vo-marco);
+    position: relative;
+  }
+  .vo-regla::before, .vo-regla::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--vo-oro);
+    opacity: 0.85;
+  }
+  .vo-regla::before { left: 0; }
+  .vo-regla::after { right: 0; }
+  .vo-regla--simple::before, .vo-regla--simple::after { display: none; }
+
+  /* fichas clave/valor (ARCHIVE DATA) */
+  .vo-ficha { margin-top: 11px; }
+  .vo-ficha__k {
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: #d0c7b2;
+  }
+  .vo-ficha__k span { font-weight: 600; font-size: 9px; opacity: 0.62; }
+  .vo-ficha__v {
+    margin-top: 3px !important;
+    font-weight: 600;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    opacity: 0.9;
+  }
+
+  /* métricas clave/valor (BOTANICAL-COSMIC METRICS) */
+  .vo-metrica {
+    margin-top: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    text-align: left;
+  }
+  .vo-metrica__en {
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: #d0c7b2;
+  }
+  .vo-metrica__en span { font-weight: 600; font-size: 9px; opacity: 0.62; }
+  .vo-metrica__es {
+    margin-top: 2px !important;
+    font-weight: 600;
+    font-size: 8.5px;
+    letter-spacing: 0.1em;
+    opacity: 0.6;
+  }
+  .vo-metrica__valor {
+    font-weight: 600;
+    font-size: 14.5px;
+    letter-spacing: 0.06em;
+    color: #e0d2a4;
+    white-space: nowrap;
+  }
+  .vo-metrica__valor sup { font-size: 9px; }
+
+  .vo-diagrama { margin-top: 10px; }
+  .vo-nota {
+    margin-top: 8px !important;
+    font-weight: 600;
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    opacity: 0.85;
+  }
+  .vo-nota + .vo-nota { margin-top: 3px !important; }
+  .vo-nota--es { color: #b7bd97; opacity: 0.75; }
+  .vo-nota--es + .vo-nota--es { margin-top: 3px !important; }
+  p.vo-nota--es:nth-of-type(3) { margin-top: 10px !important; }
+
+  .vo-morfo {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    text-align: left;
+  }
+  .vo-morfo__en { font-weight: 700; font-size: 10px; letter-spacing: 0.1em; color: #ccd0a8; }
+  .vo-morfo__es { margin-top: 3px !important; font-weight: 600; font-size: 9px; letter-spacing: 0.1em; color: var(--arch-acento); opacity: 0.9; }
+  .vo-morfo__pot { margin-top: 6px !important; font-weight: 600; font-size: 9px; letter-spacing: 0.12em; color: #c3c8a0; opacity: 0.85; }
+
+  .vo-cita__texto { text-align: left; }
+  .vo-cita__en { font-weight: 600; font-size: 10.5px; letter-spacing: 0.1em; color: #cdb579; }
+  .vo-cita__en + .vo-cita__en { margin-top: 4px !important; }
+  .vo-cita__es { margin-top: 4px !important; font-weight: 600; font-size: 10px; letter-spacing: 0.1em; color: var(--arch-acento); }
+  p.vo-cita__es:nth-of-type(3) { margin-top: 10px !important; }
+
+  .vo-estratos { position: relative; margin-top: 10px; text-align: left; }
+  .vo-estratos > svg { display: block; }
+  .vo-estratos__rotulos { position: absolute; left: 104px; top: 0; right: 0; }
+  .vo-estratos__rotulos > div { position: absolute; }
+
+  .vo-lectura__senal { text-align: left; }
+  .vo-metrica--linea { margin-top: 10px; align-items: baseline; }
+  .vo-metrica--linea .vo-metrica__valor { font-size: 13px; }
+  .vo-obs__titulo { margin-bottom: 8px !important; }
+  .vo-panel--observacion .vo-ficha__v { margin-top: 4px !important; }
+  .vo-panel--observacion .vo-violeta:nth-of-type(4) { margin-top: 9px !important; }
+  .vo-obs__glifo { position: absolute; right: 8px; top: 12px; }
+
+  /* ── pie: regla y1459, versos y1471..1495, remate ∞ y1511..1519 ── */
+  .arch-caja--pie { left: 250px; width: 730px; top: 1452px; }
+  .arch-caja--pie :global(.arch-pie__regla) { display: none; }
+  .arch-caja--pie :global(.arch-pie__aforismo) { margin-top: 14px; }
+  .arch-caja--pie :global(.arch-pie__verso) {
+    font-family: var(--vo-sans);
+    font-weight: 600;
+    font-size: 11.5px;
+    line-height: 19px;
+    letter-spacing: 0.3em;
+  }
+  .vo-pie__remate { display: block; margin: 2px auto 0; }
+</style>
+
+<script>
+  import { montarLienzo, tinta } from "../../../components/kodex/lamina/kit/lienzo";
+  import { rng } from "../../../components/kodex/lamina/kit/rng";
+  import { montarEscala } from "../../../components/kodex/lamina/kit/escala";
+
+  const raiz = document.querySelector("[data-lam]") as HTMLElement;
+  const gF = (document.getElementById("vo-fondo") as HTMLCanvasElement).getContext("2d")!;
+  const gV = (document.getElementById("vo-vivo") as HTMLCanvasElement).getContext("2d")!;
+  const W = 1229, H = 1536;
+  const CX = 614;
+  const rnd = rng(0x5e21);
+
+  /* Cajas de los paneles (mismas medidas que el CSS): el canvas pinta
+     su placa casi negra — detrás de los paneles la referencia mide
+     rgb(5,4,4), no nebulosa. */
+  const placas: Array<[number, number, number, number]> = [
+    [44, 240, 194, 314], [44, 583, 194, 319], [44, 927, 194, 344], [44, 1298, 194, 129],
+    [953, 240, 232, 334], [953, 588, 232, 392], [953, 1002, 232, 322], [953, 1324, 232, 135],
+  ];
+
+  /* ── geometría fija por semilla ──────────────────────────────────── */
+
+  /* nebulosa: manchas violetas, más densas y claras hacia el eje.
+     Medido v2: la referencia promedia rgb(59,48,63) en el centro y
+     rgb(39,34,52) arriba — la vuelta 1 quedó a la mitad (29,22,38). */
+  const nubes: Array<{x:number;y:number;r:number;o:number;c:string}> = [];
+  for (let k = 0; k < 330; k++) {
+    const x = 40 + rnd() * (W - 80);
+    /* y arranca en 300 y no en 90: arriba está el título y la referencia
+       ahí es negra — una nube alta se le mete de fondo a la tipografía. */
+    const y = 300 + rnd() * (H - 400);
+    const dx = Math.abs(x - CX) / CX;
+    const c = rnd() < 0.3 ? "150,122,180" : rnd() < 0.6 ? "104,82,136" : "72,56,98";
+    nubes.push({ x, y, r: 50 + rnd() * 150, o: (0.08 + rnd() * 0.13) * (1 - dx * 0.62), c });
+  }
+  /* grumos chicos y claros del centro: la textura granulada de la pintura */
+  const grumos: Array<{x:number;y:number;r:number;o:number;c:string}> = [];
+  for (let k = 0; k < 240; k++) {
+    const x = 260 + rnd() * 710;
+    const y = 280 + rnd() * 1120;
+    const c = rnd() < 0.35 ? "176,148,200" : rnd() < 0.7 ? "132,106,162" : "96,76,124";
+    grumos.push({ x, y, r: 16 + rnd() * 52, o: 0.06 + rnd() * 0.14, c });
+  }
+  /* polvo y estrellas */
+  const polvo = Array.from({ length: 2600 }, () => ({
+    x: rnd() * W, y: rnd() * H,
+    s: 0.6 + rnd() * 1.1,
+    o: 0.06 + rnd() * 0.4,
+    c: rnd() < 0.12 ? "222,196,130" : rnd() < 0.5 ? "196,178,220" : "160,142,190",
+  }));
+  /* grano fino del centro: la nebulosa de la referencia es ruidosa */
+  const grano = Array.from({ length: 2200 }, () => ({
+    x: 255 + rnd() * 720, y: 270 + rnd() * 1150,
+    s: 0.5 + rnd() * 1.0,
+    o: 0.08 + rnd() * 0.35,
+    c: rnd() < 0.18 ? "228,206,150" : rnd() < 0.55 ? "204,184,226" : "168,148,198",
+  }));
+
+  /* el árbol: tronco + ramas recursivas, guardadas como segmentos */
+  type Seg = { x1:number;y1:number;x2:number;y2:number;w:number };
+  const ramas: Seg[] = [];
+  const rama = (x:number, y:number, ang:number, len:number, w:number, prof:number) => {
+    let px = x, py = y, a = ang;
+    const pasos = 5;
+    for (let i = 0; i < pasos; i++) {
+      const nx = px + Math.cos(a) * (len / pasos);
+      const ny = py + Math.sin(a) * (len / pasos);
+      ramas.push({ x1: px, y1: py, x2: nx, y2: ny, w });
+      px = nx; py = ny;
+      a += (rnd() - 0.5) * 0.55;
+    }
+    if (prof > 0) {
+      const nHijas = prof > 2 ? 3 : 2;
+      for (let i = 0; i < nHijas; i++) {
+        rama(px, py, a + (rnd() - 0.5) * 1.7, len * (0.55 + rnd() * 0.25), Math.max(0.6, w * 0.55), prof - 1);
+      }
+    }
+  };
+  /* EL ÁRBOL, medido contra la referencia: la copa no es un adorno arriba
+     del tronco, es la mitad de la lámina. En a21 la ramazón negra ocupa de
+     x≈280 a x≈950 y de y≈330 a y≈900, y es lo que APAGA el centro: sin ella
+     la nebulosa calibrada deja la banda central en 95 % de píxeles
+     encendidos contra el 60 % de la referencia. La copa es la sombra. */
+  /* corona alta: se abre desde el nacimiento del tronco en abanico ancho */
+  for (let i = 0; i < 11; i++) {
+    const a = -Math.PI / 2 + (i - 5) * 0.28;
+    rama(CX + (rnd() - 0.5) * 16, 600, a, 190 + rnd() * 90, 8.5, 4);
+  }
+  /* brazos mayores: los dos que barren hacia afuera y arriba */
+  for (const lado of [-1, 1]) {
+    rama(CX + lado * 8, 690, -Math.PI / 2 + lado * 1.05, 250 + rnd() * 60, 10, 4);
+  }
+  /* ramas medias que cuelgan hacia los lados */
+  for (let i = 0; i < 10; i++) {
+    const lado = i % 2 ? 1 : -1;
+    rama(CX + lado * 12, 660 + i * 34, lado * (0.15 + rnd() * 0.55), 170 + rnd() * 90, 6, 3);
+  }
+  /* raíces colgando bajo la isla */
+  const raices: Seg[] = [];
+  const raiz2 = (x:number, y:number, ang:number, len:number, w:number, prof:number) => {
+    let px = x, py = y, a = ang;
+    for (let i = 0; i < 5; i++) {
+      const nx = px + Math.cos(a) * (len / 5);
+      const ny = py + Math.sin(a) * (len / 5);
+      raices.push({ x1: px, y1: py, x2: nx, y2: ny, w });
+      px = nx; py = ny;
+      a += (rnd() - 0.5) * 0.4;
+    }
+    if (prof > 0) {
+      raiz2(px, py, a + (rnd() - 0.5) * 0.9, len * 0.6, w * 0.6, prof - 1);
+      if (rnd() < 0.6) raiz2(px, py, a + (rnd() - 0.5) * 1.2, len * 0.5, w * 0.55, prof - 1);
+    }
+  };
+  for (let i = 0; i < 9; i++) {
+    raiz2(CX + (i - 4) * 48 + (rnd() - 0.5) * 30, 1096 + rnd() * 24, Math.PI / 2 + (rnd() - 0.5) * 0.5, 90 + rnd() * 110, 3, 2);
+  }
+
+  /* goteos que cuelgan del borde superior */
+  const goteos = Array.from({ length: 26 }, () => ({
+    x: 260 + rnd() * 700, l: 30 + rnd() * 150, o: 0.12 + rnd() * 0.2,
+  }));
+
+  /* las vainas: posición, tamaño y tono, calcadas de la referencia */
+  type Vaina = { x:number;y:number;rx:number;ry:number;tono:"verde"|"violeta"|"palida";br:number;f:number };
+  const vainas: Vaina[] = [
+    { x: CX,   y: 486,  rx: 46, ry: 66, tono: "verde",   br: 1.0, f: 0.0 },
+    { x: 890,  y: 470,  rx: 30, ry: 44, tono: "verde",   br: 0.8, f: 0.2 },
+    { x: 293,  y: 700,  rx: 34, ry: 50, tono: "verde",   br: 0.9, f: 0.4 },
+    { x: 1207, y: 612,  rx: 26, ry: 38, tono: "verde",   br: 0.7, f: 0.6 },
+    { x: 420,  y: 566,  rx: 15, ry: 23, tono: "palida",  br: 0.5, f: 0.1 },
+    { x: 795,  y: 588,  rx: 19, ry: 29, tono: "violeta", br: 0.6, f: 0.5 },
+    { x: 324,  y: 874,  rx: 24, ry: 36, tono: "verde",   br: 0.7, f: 0.7 },
+    { x: 886,  y: 957,  rx: 21, ry: 31, tono: "violeta", br: 0.6, f: 0.3 },
+    { x: 415,  y: 1146, rx: 17, ry: 25, tono: "palida",  br: 0.5, f: 0.8 },
+    { x: 877,  y: 1130, rx: 19, ry: 28, tono: "verde",   br: 0.6, f: 0.9 },
+    { x: 610,  y: 1369, rx: 28, ry: 42, tono: "violeta", br: 0.9, f: 0.15 },
+    { x: 270,  y: 424,  rx: 20, ry: 30, tono: "violeta", br: 0.6, f: 0.55 },
+  ];
+
+  /* motas del haz central, ascendentes */
+  const motas = Array.from({ length: 70 }, () => ({
+    x: CX + (rnd() - 0.5) * 60, o: 0.2 + rnd() * 0.5,
+    r: 0.6 + rnd() * 1.2, v: rnd(), y0: 500 + rnd() * 860,
+  }));
+  /* polvo vivo a la deriva por el centro */
+  const deriva = Array.from({ length: 110 }, () => ({
+    x: 270 + rnd() * 690, y: 320 + rnd() * 1080,
+    r: 0.5 + rnd() * 1.1, o: 0.1 + rnd() * 0.35, v: rnd(),
+  }));
+
+  const trazar = (g: CanvasRenderingContext2D, segs: Seg[], color: string, alfa: number) => {
+    for (const s of segs) {
+      g.strokeStyle = tinta(color, alfa);
+      g.lineWidth = s.w;
+      g.beginPath(); g.moveTo(s.x1, s.y1); g.lineTo(s.x2, s.y2); g.stroke();
+    }
+  };
+
+  const vainaShell = (g: CanvasRenderingContext2D, v: Vaina) => {
+    /* cáscara: lente oscura con retícula y borde iluminado */
+    g.save();
+    g.translate(v.x, v.y);
+    g.fillStyle = v.tono === "violeta" ? "rgba(24,16,36,0.9)" : "rgba(18,20,12,0.9)";
+    g.beginPath();
+    g.moveTo(0, -v.ry);
+    g.quadraticCurveTo(v.rx, 0, 0, v.ry);
+    g.quadraticCurveTo(-v.rx, 0, 0, -v.ry);
+    g.fill();
+    const borde = v.tono === "violeta" ? "170,140,220" : "180,190,120";
+    g.strokeStyle = tinta(borde, 0.5 * v.br);
+    g.lineWidth = 1.4;
+    g.stroke();
+    /* nervaduras */
+    g.strokeStyle = tinta(borde, 0.28 * v.br);
+    g.lineWidth = 0.8;
+    for (const k of [0.45, 0.75]) {
+      g.beginPath();
+      g.moveTo(0, -v.ry * k);
+      g.quadraticCurveTo(v.rx * k, 0, 0, v.ry * k);
+      g.quadraticCurveTo(-v.rx * k, 0, 0, -v.ry * k);
+      g.stroke();
+    }
+    g.beginPath(); g.moveTo(0, -v.ry); g.lineTo(0, v.ry); g.stroke();
+    /* ramitas que la sostienen */
+    g.strokeStyle = "rgba(10,7,12,0.9)";
+    g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0, -v.ry); g.lineTo((rnd() - 0.5) * 14, -v.ry - 10 - rnd() * 16); g.stroke();
+    g.restore();
+  };
+
+  /* ── fondo: se pinta UNA vez ─────────────────────────────────────── */
+  const pintarFondo = () => {
+    gF.fillStyle = "#050308";
+    gF.fillRect(0, 0, W, H);
+
+    /* ── AMBIENTE · la palanca del piloto ──────────────────────────────
+       La referencia NO es negro plano con dibujos encima: es una PARED de
+       nebulosa iluminada al centro que cae a negro en los bordes. Medido
+       sobre a21 en malla 8×12: la banda central (x307..921, y350..1350)
+       promedia rgb(45,38,50) con 40..85 % de píxeles encendidos, y el pico
+       (x460..770, y384..700) llega a rgb(80,70,85) con 94 %. La vuelta 1
+       daba rgb(20,16,25) con 10 % encendido: de ahí salía el 45 % de
+       cobertura, no de que faltaran dibujos.
+       El campo es más alto que ancho, así que el degradado radial se pinta
+       escalado — un radialGradient de canvas siempre es circular. */
+    const ambiente = (
+      cx: number, cy: number, rx: number, ry: number,
+      paradas: Array<[number, string]>
+    ) => {
+      gF.save();
+      gF.translate(cx, cy);
+      gF.scale(1, ry / rx);
+      const gr = gF.createRadialGradient(0, 0, 0, 0, 0, rx);
+      for (const [p, c] of paradas) gr.addColorStop(p, c);
+      gF.fillStyle = gr;
+      gF.beginPath(); gF.arc(0, 0, rx, 0, Math.PI * 2); gF.fill();
+      gF.restore();
+    };
+    /* pared de nebulosa: el cuerpo del ambiente.
+       El campo ARRANCA en y≈330: arriba de esa línea vive el título y la
+       referencia ahí es negra (medido rgb(19,16,16), 14 % encendido). La
+       primera calibración lo estiró hasta y=60 y el título saltó a 312 %
+       de cobertura — el campo se le metió detrás a la tipografía. */
+    ambiente(CX, 800, 400, 470, [
+      [0, "rgba(118,96,146,0.52)"],
+      [0.45, "rgba(96,78,124,0.44)"],
+      [0.75, "rgba(64,50,86,0.26)"],
+      [1, "rgba(0,0,0,0)"],
+    ]);
+    /* foco alto: la corona alrededor de la vaina mayor es el punto más
+       claro de la lámina (medido rgb(80,70,85)) */
+    ambiente(CX, 570, 300, 250, [
+      [0, "rgba(140,116,170,0.30)"],
+      [0.6, "rgba(104,84,134,0.16)"],
+      [1, "rgba(0,0,0,0)"],
+    ]);
+    /* foco bajo: el estanque de la vaina final vuelve a encenderse
+       (y1280..1400 mide 77..83 % encendido antes del pie negro) */
+    ambiente(610, 1320, 300, 175, [
+      [0, "rgba(112,88,148,0.40)"],
+      [0.6, "rgba(80,62,108,0.20)"],
+      [1, "rgba(0,0,0,0)"],
+    ]);
+
+    /* nebulosa */
+    for (const n of nubes) {
+      const gr = gF.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+      gr.addColorStop(0, tinta(n.c, n.o));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      gF.fillStyle = gr;
+      gF.fillRect(n.x - n.r, n.y - n.r, n.r * 2, n.r * 2);
+    }
+    /* grumos: la nebulosa de la referencia está grumosa, no lisa */
+    for (const gm of grumos) {
+      const gr = gF.createRadialGradient(gm.x, gm.y, 0, gm.x, gm.y, gm.r);
+      gr.addColorStop(0, tinta(gm.c, gm.o));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      gF.fillStyle = gr;
+      gF.fillRect(gm.x - gm.r, gm.y - gm.r, gm.r * 2, gm.r * 2);
+    }
+
+    /* polvo */
+    for (const p of polvo) {
+      gF.fillStyle = tinta(p.c, p.o);
+      gF.fillRect(p.x, p.y, p.s, p.s);
+    }
+    /* grano fino del centro */
+    for (const t of grano) {
+      gF.fillStyle = tinta(t.c, t.o);
+      gF.fillRect(t.x, t.y, t.s, t.s);
+    }
+    /* goteos del borde superior */
+    for (const gt of goteos) {
+      gF.strokeStyle = tinta("140,120,170", gt.o);
+      gF.lineWidth = 0.8;
+      gF.beginPath(); gF.moveTo(gt.x, 60); gF.lineTo(gt.x + 3, 60 + gt.l); gF.stroke();
+      gF.fillStyle = tinta("200,180,230", gt.o + 0.15);
+      gF.beginPath(); gF.arc(gt.x + 3, 60 + gt.l, 1.2, 0, Math.PI * 2); gF.fill();
+    }
+
+    /* anillo grabado tras la vaina mayor (y≈462 medido) */
+    for (const r of [70, 100, 128, 150]) {
+      gF.strokeStyle = tinta("205,181,121", 0.14);
+      gF.lineWidth = 0.8;
+      gF.beginPath(); gF.arc(CX, 462, r, 0, Math.PI * 2); gF.stroke();
+    }
+    for (let k = 0; k < 36; k++) {
+      const a = (k / 36) * Math.PI * 2;
+      gF.strokeStyle = tinta("205,181,121", 0.16);
+      gF.beginPath();
+      gF.moveTo(CX + Math.cos(a) * 150, 462 + Math.sin(a) * 150);
+      gF.lineTo(CX + Math.cos(a) * (k % 3 ? 155 : 162), 462 + Math.sin(a) * (k % 3 ? 155 : 162));
+      gF.stroke();
+    }
+
+    /* EL ÁRBOL: silueta oscura con canto apenas iluminado */
+    trazar(gF, ramas, "8,5,11", 0.95);
+    trazar(gF, ramas, "146,120,88", 0.08);
+    /* tronco: columna cónica del centro */
+    gF.fillStyle = "rgba(9,6,12,0.96)";
+    /* Tronco medido: en la referencia arranca en la isla con ~80 px de
+       ancho, se estrecha a media altura y vuelve a abrirse en la horquilla
+       de donde sale la copa. La vuelta 1 lo tenía en 52 px planos: leía
+       como poste, no como árbol. */
+    gF.beginPath();
+    gF.moveTo(CX - 44, 1038);
+    gF.quadraticCurveTo(CX - 24, 860, CX - 20, 700);
+    gF.quadraticCurveTo(CX - 30, 610, CX - 12, 548);
+    gF.lineTo(CX + 12, 548);
+    gF.quadraticCurveTo(CX + 30, 610, CX + 20, 700);
+    gF.quadraticCurveTo(CX + 24, 860, CX + 44, 1038);
+    gF.closePath();
+    gF.fill();
+    /* contrafuertes: la base se abre en raíces sobre la isla */
+    for (const lado of [-1, 1]) {
+      gF.beginPath();
+      gF.moveTo(CX + lado * 20, 900);
+      gF.quadraticCurveTo(CX + lado * 70, 990, CX + lado * 120, 1040);
+      gF.lineTo(CX + lado * 120, 1050);
+      gF.quadraticCurveTo(CX + lado * 66, 1006, CX + lado * 14, 930);
+      gF.closePath();
+      gF.fill();
+    }
+    gF.strokeStyle = tinta("150,124,90", 0.12);
+    gF.lineWidth = 1;
+    gF.stroke();
+    /* copa que abraza la vaina mayor */
+    gF.strokeStyle = "rgba(9,6,12,0.9)";
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i - 4.5) * 0.32;
+      gF.lineWidth = 2.5 - (i % 3) * 0.6;
+      gF.beginPath();
+      gF.moveTo(CX + Math.cos(a) * 20, 545);
+      gF.quadraticCurveTo(
+        CX + Math.cos(a) * 70, 480 + Math.sin(a) * 40,
+        CX + Math.cos(a) * 44, 430 + (i % 2) * 24
+      );
+      gF.stroke();
+    }
+
+    /* LA ISLA principal: masa rocosa colgante */
+    gF.fillStyle = "rgba(8,5,10,0.97)";
+    gF.beginPath();
+    gF.moveTo(390, 1044);
+    for (let x = 390; x <= 845; x += 24) {
+      gF.lineTo(x, 1036 + Math.sin(x * 0.05) * 6 + (rnd() - 0.5) * 8);
+    }
+    for (let x = 845; x >= 390; x -= 20) {
+      const prof = 1 - Math.abs(x - 617) / 260;
+      gF.lineTo(x, 1050 + prof * 96 + (rnd() - 0.5) * 26);
+    }
+    gF.closePath();
+    gF.fill();
+    /* canto superior iluminado de la isla */
+    gF.strokeStyle = tinta("205,181,121", 0.32);
+    gF.lineWidth = 1.2;
+    gF.beginPath();
+    gF.moveTo(395, 1040);
+    for (let x = 395; x <= 840; x += 22) {
+      gF.lineTo(x, 1034 + Math.sin(x * 0.05) * 6);
+    }
+    gF.stroke();
+    /* resplandor violeta bajo la isla */
+    const bajo = gF.createRadialGradient(617, 1120, 10, 617, 1120, 180);
+    bajo.addColorStop(0, "rgba(120,90,170,0.16)");
+    bajo.addColorStop(1, "rgba(0,0,0,0)");
+    gF.fillStyle = bajo;
+    gF.fillRect(430, 1050, 380, 240);
+
+    /* raíces */
+    trazar(gF, raices, "10,7,14", 0.92);
+    trazar(gF, raices, "150,120,190", 0.07);
+
+    /* islas menores */
+    for (const isla of [
+      { x: 340, y: 1210, r: 72 }, { x: 830, y: 1228, r: 82 }, { x: 470, y: 1310, r: 40 },
+    ]) {
+      gF.fillStyle = "rgba(8,5,10,0.95)";
+      gF.beginPath();
+      gF.moveTo(isla.x - isla.r, isla.y);
+      for (let i = 0; i <= 12; i++) {
+        const u = i / 12;
+        gF.lineTo(isla.x - isla.r + u * isla.r * 2, isla.y - 8 + Math.sin(u * 9) * 5);
+      }
+      for (let i = 12; i >= 0; i--) {
+        const u = i / 12;
+        gF.lineTo(isla.x - isla.r + u * isla.r * 2, isla.y + 12 + Math.sin(u * 5) * (isla.r * 0.4) * Math.sin(u * Math.PI));
+      }
+      gF.closePath();
+      gF.fill();
+      gF.strokeStyle = tinta("205,181,121", 0.22);
+      gF.lineWidth = 0.9;
+      gF.beginPath();
+      gF.moveTo(isla.x - isla.r + 6, isla.y - 7);
+      gF.lineTo(isla.x + isla.r - 6, isla.y - 9);
+      gF.stroke();
+      /* raicillas de las islas menores */
+      for (let i = 0; i < 4; i++) {
+        gF.strokeStyle = "rgba(10,7,14,0.9)";
+        gF.lineWidth = 1.4;
+        gF.beginPath();
+        const rx = isla.x + (rnd() - 0.5) * isla.r * 1.2;
+        gF.moveTo(rx, isla.y + 8);
+        gF.quadraticCurveTo(rx + (rnd() - 0.5) * 20, isla.y + 40, rx + (rnd() - 0.5) * 30, isla.y + 46 + rnd() * 40);
+        gF.stroke();
+      }
+    }
+
+    /* cáscaras de las vainas (el brillo interior vive en la capa viva) */
+    for (const v of vainas) vainaShell(gF, v);
+
+    /* ondas concéntricas del fondo (y≈1400) */
+    for (const [rx, o] of [[46, 0.3], [86, 0.22], [128, 0.16], [168, 0.1]] as const) {
+      gF.strokeStyle = tinta("158,126,208", o);
+      gF.lineWidth = 1;
+      gF.beginPath(); gF.ellipse(610, 1408, rx, rx * 0.24, 0, 0, Math.PI * 2); gF.stroke();
+    }
+
+    /* VIÑETA — la caída a negro del borde. La vuelta 1 la tenía tan adentro
+       (transparente sólo hasta r=240) que se comía la propia pared de
+       nebulosa: a x=307 ya iba en 0,35 de negro. Ahora arranca fuera del
+       campo y cae en el margen, que es donde la referencia cae. */
+    const vin = gF.createRadialGradient(CX, 760, 430, CX, 760, 1000);
+    vin.addColorStop(0, "rgba(0,0,0,0)");
+    vin.addColorStop(0.55, "rgba(3,2,5,0.34)");
+    vin.addColorStop(1, "rgba(2,1,3,0.88)");
+    gF.fillStyle = vin;
+    gF.fillRect(0, 0, W, H);
+    /* franjas superior e inferior aún más oscuras (cromo sobre negro) */
+    const arriba = gF.createLinearGradient(0, 0, 0, 340);
+    arriba.addColorStop(0, "rgba(2,1,3,0.95)");
+    arriba.addColorStop(0.7, "rgba(2,1,3,0.55)");
+    arriba.addColorStop(1, "rgba(0,0,0,0)");
+    gF.fillStyle = arriba;
+    gF.fillRect(0, 0, W, 340);
+    const abajo = gF.createLinearGradient(0, H - 120, 0, H);
+    abajo.addColorStop(0, "rgba(0,0,0,0)");
+    abajo.addColorStop(1, "rgba(2,1,3,0.9)");
+    gF.fillStyle = abajo;
+    gF.fillRect(0, H - 120, W, 120);
+
+    /* placas casi negras de los paneles (medido rgb(5,4,4)) */
+    for (const [x, y, w, h] of placas) {
+      gF.fillStyle = "rgba(3,2,4,0.88)";
+      gF.fillRect(x - 3, y - 3, w + 6, h + 6);
+    }
+
+    /* ornamentos del marco: dobles verticales medidas x26 / x1202,x1211 */
+    gF.strokeStyle = tinta("164,138,88", 0.5);
+    gF.lineWidth = 1.2;
+    for (const x of [26.5, 1202.5]) {
+      gF.beginPath(); gF.moveTo(x, 130); gF.lineTo(x, 1440); gF.stroke();
+    }
+    gF.strokeStyle = tinta("164,138,88", 0.35);
+    gF.lineWidth = 1;
+    for (const x of [14.5, 1211.5]) {
+      gF.beginPath(); gF.moveTo(x, 210); gF.lineTo(x, 1370); gF.stroke();
+    }
+    /* micro-marcas del canto derecho (ilegibles en la referencia →
+       marcas no textuales, nunca texto inventado) */
+    for (let y = 570; y < 950; y += 8) {
+      const wq = 2 + Math.floor(rnd() * 5);
+      gF.fillStyle = tinta("164,138,88", 0.4);
+      gF.fillRect(1218, y, wq, 1.4);
+    }
+    /* circuitos de las esquinas inferiores + filas punteadas y1459 */
+    const punteada = (x0: number, n: number) => {
+      for (let i = 0; i < n; i++) {
+        const r = i === Math.floor(n / 2) ? 3 : 1.4;
+        gF.fillStyle = tinta("194,167,107", i === Math.floor(n / 2) ? 0.85 : 0.55);
+        gF.beginPath(); gF.arc(x0 + i * 17, 1459, r, 0, Math.PI * 2); gF.fill();
+      }
+    };
+    punteada(78, 9);
+    punteada(986, 9);
+    gF.strokeStyle = tinta("164,138,88", 0.55);
+    gF.lineWidth = 1.2;
+    /* brazo inferior izquierdo */
+    gF.beginPath();
+    gF.moveTo(46, 1424); gF.lineTo(230, 1424); gF.lineTo(258, 1444);
+    gF.moveTo(40, 1496); gF.lineTo(300, 1496);
+    gF.moveTo(40, 1508); gF.lineTo(290, 1508);
+    gF.stroke();
+    /* brazo inferior derecho */
+    gF.beginPath();
+    gF.moveTo(1183, 1424); gF.lineTo(999, 1424); gF.lineTo(971, 1444);
+    gF.moveTo(1189, 1496); gF.lineTo(929, 1496);
+    gF.moveTo(1189, 1508); gF.lineTo(939, 1508);
+    gF.stroke();
+    /* esquinas superiores: escuadras con círculo */
+    for (const lado of [-1, 1]) {
+      const x = lado < 0 ? 40 : 1189;
+      gF.strokeStyle = tinta("164,138,88", 0.55);
+      gF.beginPath();
+      gF.moveTo(x, 96); gF.lineTo(x, 40); gF.lineTo(x + lado * 56, 40);
+      gF.stroke();
+      gF.beginPath(); gF.arc(x + lado * 14, 68, 7, 0, Math.PI * 2); gF.stroke();
+    }
+    /* reglas ornamentales que flanquean la marca de la cabecera */
+    gF.strokeStyle = tinta("164,138,88", 0.5);
+    gF.lineWidth = 1;
+    gF.beginPath();
+    gF.moveTo(150, 22); gF.lineTo(438, 22);
+    gF.moveTo(790, 22); gF.lineTo(1078, 22);
+    gF.stroke();
+    for (const x of [300, 928]) {
+      gF.beginPath();
+      gF.moveTo(x - 6, 22); gF.lineTo(x, 17); gF.lineTo(x + 6, 22); gF.lineTo(x, 27);
+      gF.closePath(); gF.stroke();
+    }
+  };
+
+  /* ── capa viva: brillo de vainas, haz, motas ─────────────────────── */
+  const pintarVivo = (fase: number) => {
+    gV.clearRect(0, 0, W, H);
+    gV.save();
+    gV.globalCompositeOperation = "lighter";
+
+    /* haz dorado del eje: del anillo a la vaina del fondo */
+    const luz = 0.8 + 0.2 * Math.cos(fase * Math.PI * 2);
+    const haz = gV.createLinearGradient(0, 470, 0, 1400);
+    haz.addColorStop(0, tinta("232,214,150", 0.16 * luz));
+    haz.addColorStop(0.5, tinta("222,198,130", 0.1 * luz));
+    haz.addColorStop(1, tinta("205,170,220", 0.05));
+    gV.fillStyle = haz;
+    gV.beginPath();
+    gV.moveTo(CX - 9, 470); gV.lineTo(CX + 9, 470);
+    gV.lineTo(CX + 22, 1400); gV.lineTo(CX - 22, 1400);
+    gV.closePath(); gV.fill();
+    gV.strokeStyle = tinta("240,224,170", 0.22 * luz);
+    gV.lineWidth = 1.4;
+    gV.beginPath(); gV.moveTo(CX, 474); gV.lineTo(CX, 1396); gV.stroke();
+
+    /* la escalera dorada sobre la isla */
+    for (let i = 0; i < 8; i++) {
+      const y = 1036 - i * 7;
+      const w2 = 30 - i * 2.6;
+      gV.fillStyle = tinta("230,206,140", (0.16 + i * 0.02) * luz);
+      gV.fillRect(CX - w2, y, w2 * 2, 3);
+    }
+
+    /* brillo interior de cada vaina, con fase propia */
+    for (const v of vainas) {
+      const p = 0.62 + 0.38 * Math.sin((fase + v.f) * Math.PI * 2);
+      const c = v.tono === "violeta" ? "168,124,236" : v.tono === "palida" ? "226,226,180" : "168,208,70";
+      const nucleo = v.tono === "violeta" ? "224,204,250" : "236,246,190";
+      const gr = gV.createRadialGradient(v.x, v.y, 1, v.x, v.y, v.ry * 1.7);
+      gr.addColorStop(0, tinta(nucleo, 0.75 * v.br * p));
+      gr.addColorStop(0.35, tinta(c, 0.4 * v.br * p));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      gV.fillStyle = gr;
+      gV.fillRect(v.x - v.ry * 2, v.y - v.ry * 2, v.ry * 4, v.ry * 4);
+      gV.fillStyle = tinta(nucleo, 0.85 * v.br * p);
+      gV.beginPath(); gV.ellipse(v.x, v.y, v.rx * 0.3, v.ry * 0.3, 0, 0, Math.PI * 2); gV.fill();
+    }
+
+    /* motas ascendentes del haz */
+    for (const m of motas) {
+      const y = m.y0 - ((fase * 3 + m.v) % 1) * 240;
+      if (y < 480) continue;
+      gV.fillStyle = tinta("238,226,170", m.o * luz);
+      gV.beginPath(); gV.arc(m.x + Math.sin(fase * Math.PI * 2 + m.v * 7) * 5, y, m.r, 0, Math.PI * 2); gV.fill();
+    }
+    /* deriva ambiente */
+    for (const d of deriva) {
+      const x = d.x + Math.sin(fase * Math.PI * 2 + d.v * 6.3) * 8;
+      const y = d.y + Math.cos(fase * Math.PI * 2 + d.v * 4.1) * 5;
+      gV.fillStyle = tinta("208,190,236", d.o * 0.8);
+      gV.beginPath(); gV.arc(x, y, d.r, 0, Math.PI * 2); gV.fill();
+    }
+
+    /* pulso de las ondas del fondo */
+    const pw = 0.5 + 0.5 * Math.sin(fase * Math.PI * 2);
+    gV.strokeStyle = tinta("178,146,228", 0.14 * pw);
+    gV.lineWidth = 1;
+    gV.beginPath(); gV.ellipse(610, 1408, 46 + pw * 60, (46 + pw * 60) * 0.24, 0, 0, Math.PI * 2); gV.stroke();
+    gV.restore();
+  };
+
+  montarLienzo({ raiz, cuadro: pintarVivo, inicial: pintarFondo, periodo: 18000, periodoReducido: 54000 });
+  montarEscala();
+</script>
