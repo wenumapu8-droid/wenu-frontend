@@ -213,7 +213,7 @@ const notas = [
           {pasos.map((p, i) => (
             <article class="of-paso">
               <div class="of-paso__icono">
-                <canvas id={`of-p${i + 1}`} width="104" height="104" aria-hidden="true"></canvas>
+                <canvas id={`of-p${i + 1}`} width="120" height="120" aria-hidden="true"></canvas>
               </div>
               <div class="of-paso__texto">
                 <p class="of-paso__n">{p.n}</p>
@@ -593,8 +593,12 @@ const notas = [
     padding: 6px 0 4px;
     white-space: nowrap;
   }
-  .of-paso { display: grid; grid-template-columns: 116px 1fr; align-items: center; color: var(--arch-ink); }
-  .of-paso__icono { position: relative; display: flex; justify-content: center; }
+  .of-paso { display: grid; grid-template-columns: 128px 1fr; align-items: center; color: var(--arch-ink); }
+  /* MEDIDO: los centros de los cinco medallones de la referencia caen en
+     y=414/571/729/888/1047 y en x=91 (pico de columna de los discos 01 y 04).
+     Los nuestros salían 7 px más abajo y 12 px más a la derecha, y por eso las
+     columnas x105..150 sobraban 10 puntos mientras x60..90 faltaban 20. */
+  .of-paso__icono { position: relative; display: flex; justify-content: center; transform: translate(-12px, -7px); }
   .of-paso__texto p, .of-paso__texto h3 { margin: 0; }
   .of-paso__n { font-size: 21px; letter-spacing: 0.18em; color: #d8bd85; }
   .of-paso__titulo {
@@ -686,27 +690,75 @@ const notas = [
     pintarIcono: (g: CanvasRenderingContext2D, r: () => number) => void,
     semilla: number,
     fondoCol = "152,104,48",
+    hebraCol = "255,226,170",
   ) => {
     const c = document.getElementById(id) as HTMLCanvasElement;
     const g = c.getContext("2d")!;
     g.fillStyle = "#060403";
-    g.fillRect(0, 0, 104, 104);
+    g.fillRect(0, 0, 120, 120);
+    /* MEDIDO: el medallón de la referencia tiene r≈57 px (x36..151 en el paso
+       01) y el nuestro moría en r=49. Las columnas x60..135 del riel salían
+       entre 7 y 20 puntos de luminancia por debajo. El dibujo sigue escrito en
+       el espacio de 104 px original; solo se escala la lente. */
+    g.scale(120 / 104, 120 / 104);
     /* aro exterior común a los cinco */
     g.strokeStyle = tinta("169,141,84", 0.55);
     g.lineWidth = 1;
     g.beginPath(); g.arc(52, 52, 49, 0, Math.PI * 2); g.stroke();
     g.strokeStyle = tinta("169,141,84", 0.3);
     g.beginPath(); g.arc(52, 52, 44, 0, Math.PI * 2); g.stroke();
+    /* en la referencia la mancha desborda el aro (el paso 04 mide 120 px de
+       alto para un aro de 113): halo por fuera antes de recortar */
+    const desborde = g.createRadialGradient(52, 52, 40, 52, 52, 56);
+    desborde.addColorStop(0, tinta(fondoCol, 0.2));
+    desborde.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = desborde;
+    g.beginPath(); g.arc(52, 52, 56, 0, Math.PI * 2); g.fill();
     g.save();
-    g.beginPath(); g.arc(52, 52, 43, 0, Math.PI * 2); g.clip();
+    g.beginPath(); g.arc(52, 52, 47.5, 0, Math.PI * 2); g.clip();
     /* el medallón de la referencia está ENCENDIDO, no es un disco negro con
        un dibujo de alambre encima: el riel medía 49 % de cobertura */
-    const fondo = g.createRadialGradient(52, 52, 2, 52, 52, 43);
-    fondo.addColorStop(0, tinta(fondoCol, 0.46));
-    fondo.addColorStop(0.58, tinta(fondoCol, 0.18));
+    /* MEDIDO con discos.mjs: la mancha encendida de la referencia mide 105-120
+       px de alto dentro de un aro de 113; la nuestra llegaba a 72-90.
+       Pero NO es un disco de color plano: la referencia es un interior OSCURO
+       con jirones muy brillantes encima, y rellenarlo liso subía la cobertura
+       a costa del diff pixel. Nebulosa: base tenue + manchas + hebras. */
+    const rf = rng(semilla ^ 0x5eed);
+    const fondo = g.createRadialGradient(52, 52, 2, 52, 52, 46);
+    fondo.addColorStop(0, tinta(fondoCol, 0.3));
+    fondo.addColorStop(0.55, tinta(fondoCol, 0.15));
     fondo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = fondo;
     g.fillRect(0, 0, 104, 104);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let k = 0; k < 26; k++) {
+      const a = rf() * Math.PI * 2, d = rf() * 38;
+      const bx = 52 + Math.cos(a) * d, by = 52 + Math.sin(a) * d;
+      const br = 6 + rf() * 20;
+      const b = g.createRadialGradient(bx, by, 0, bx, by, br);
+      b.addColorStop(0, tinta(fondoCol, 0.08 + rf() * 0.2));
+      b.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = b;
+      g.beginPath(); g.arc(bx, by, br, 0, Math.PI * 2); g.fill();
+    }
+    for (let k = 0; k < 20; k++) {
+      const a = rf() * Math.PI * 2;
+      const r0 = 6 + rf() * 14, r1 = 28 + rf() * 18;
+      const cu = (rf() - 0.5) * 46;
+      g.strokeStyle = tinta(hebraCol, 0.08 + rf() * 0.26);
+      g.lineWidth = 0.5 + rf() * 1.4;
+      g.beginPath();
+      g.moveTo(52 + Math.cos(a) * r0, 52 + Math.sin(a) * r0);
+      g.quadraticCurveTo(
+        52 + Math.cos(a + 0.5) * (r0 + r1) * 0.5 + cu * 0.2,
+        52 + Math.sin(a + 0.5) * (r0 + r1) * 0.5,
+        52 + Math.cos(a + 1.1) * r1,
+        52 + Math.sin(a + 1.1) * r1,
+      );
+      g.stroke();
+    }
+    g.restore();
     /* y el dibujo llena más el aro */
     g.translate(52, 52); g.scale(1.14, 1.14); g.translate(-52, -52);
     pintarIcono(g, rng(semilla));
@@ -731,7 +783,7 @@ const notas = [
     }
     g.fillStyle = tinta("245,240,255", 0.9);
     g.beginPath(); g.arc(52, 54, 2.4, 0, Math.PI * 2); g.fill();
-  }, 0x2211, "104,84,196");
+  }, 0x2211, "104,84,196", "222,208,255");
 
   /* 02 · crisol vertiendo oro */
   icono("of-p2", (g, r) => {
