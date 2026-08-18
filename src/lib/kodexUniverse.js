@@ -44,6 +44,15 @@ export const ENTITY_REGISTRY = {
     icon: '◎',
     use: ['scene navigation', 'cosmology map', 'index'],
   },
+  CONCEPT: {
+    prefix: 'CX',
+    pattern: 'CX-###',
+    meaning: 'Abstract semantic unit remembered and associated across the KODEX journey.',
+    allowedStates: ['ACTIVE', 'RECORDED', 'TRACE', 'LATENT'],
+    accent: 'var(--kdx-cyan)',
+    icon: '◇',
+    use: ['semantic memory', 'memory trace', 'return telemetry'],
+  },
   LOCATION: {
     prefix: 'L',
     pattern: 'L-###',
