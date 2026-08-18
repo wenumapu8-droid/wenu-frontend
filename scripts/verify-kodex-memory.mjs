@@ -18,6 +18,7 @@ const {
 } = await import('../src/kodex/return/memory.js');
 
 assert.equal(typeof bindPrologueSemanticSensors, 'function');
+assert.equal(bindPrologueSemanticSensors(null), false, 'sensor binding must no-op without a browser document');
 
 clearMemory();
 record({ type: 'view', work: '/kodex/' });
