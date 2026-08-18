@@ -84,6 +84,17 @@ const perfilEspigas = (semilla: number, amp: number) => {
 const espigasVioleta = perfilEspigas(0x2201, 40);
 const espigasOro = perfilEspigas(0x2202, 16);
 
+/* ── Geometría polar para las ruedas de sigilo (medida, no estimada) ── */
+const P = (r: number, a: number): [number, number] => {
+  const t = ((a - 90) * Math.PI) / 180;
+  return [Number((r * Math.cos(t)).toFixed(2)), Number((r * Math.sin(t)).toFixed(2))];
+};
+const poli = (r: number, n: number, off = 0) =>
+  Array.from({ length: n }, (_, i) => P(r, off + (i * 360) / n).join(",")).join(" ");
+const estrella = (re: number, ri: number, n: number, off = 0) =>
+  Array.from({ length: n * 2 }, (_, i) => P(i % 2 ? ri : re, off + (i * 180) / n).join(",")).join(" ");
+const angulos = (n: number, off = 0) => Array.from({ length: n }, (_, i) => off + (i * 360) / n);
+
 const pasos = [
   { n: "01", t1: "CHAOS", t2: "INFUSION", d: "Raw potential is drawn from the unformed." },
   { n: "02", t1: "SIGIL", t2: "MOLTING", d: "Molten glyphs are cast into the crucible of intention." },
@@ -254,26 +265,75 @@ const notas = [
       <div class="arch-caja of-panel of-panel--3">
         <RielMetricas ancho={226} rotulo="índice de coherencia">
           <TarjetaMetrica tituloEn="COHERENCE INDEX" tituloEs="" valor="Ψ 0.963" etiqueta="STABILITY RATIO" conPie={false}>
-            <svg width="172" height="132" viewBox="0 0 196 150" fill="none" aria-hidden="true">
-              <circle cx="98" cy="75" r="22" stroke="#d8bd85" stroke-opacity="0.7" />
-              <circle cx="98" cy="75" r="36" stroke="#c9ab6a" stroke-opacity="0.45" />
-              <circle cx="98" cy="75" r="52" stroke="#a98d54" stroke-opacity="0.35" />
-              <circle cx="98" cy="75" r="64" stroke="#a98d54" stroke-opacity="0.25" stroke-dasharray="2 5" />
-              {[0, 90, 180, 270].map((a) => (
-                <g transform={`rotate(${a} 98 75)`}>
-                  <line x1="98" y1="23" x2="98" y2="3" stroke="#c9ab6a" stroke-opacity="0.6" />
-                  <circle cx="98" cy="10" r="7" stroke="#c9ab6a" stroke-opacity="0.7" fill="none" />
-                  <circle cx="98" cy="10" r="2" fill="#e8c56a" fill-opacity="0.8" />
-                </g>
-              ))}
-              {[45, 135, 225, 315].map((a) => (
-                <g transform={`rotate(${a} 98 75)`}>
-                  <line x1="98" y1="30" x2="98" y2="16" stroke="#a98d54" stroke-opacity="0.45" />
-                  <circle cx="98" cy="14" r="4" stroke="#a98d54" stroke-opacity="0.55" fill="none" />
-                </g>
-              ))}
-              <path d="M98 55 L104 69 L118 75 L104 81 L98 95 L92 81 L78 75 L92 69 Z" fill="#f2ddb0" fill-opacity="0.9" />
-              <rect x="92" y="69" width="12" height="12" transform="rotate(45 98 75)" stroke="#e8c56a" stroke-opacity="0.7" fill="none" />
+            <svg width="200" height="158" viewBox="0 0 200 158" fill="none" aria-hidden="true">
+              {/* RUEDA DE SIGILOS · medida contra la referencia: el disco llega a
+                  r≈70 y los brazos cardinales a r≈96 dentro del panel de 226 px.
+                  La nuestra moría en r=56 y por eso la franja y947..1097 salía
+                  20 puntos de luminancia por debajo — el mayor hueco del riel. */}
+              <g transform="translate(100 79)">
+                <circle r="70" stroke="#a98d54" stroke-opacity="0.28" />
+                <circle r="64" stroke="#c9ab6a" stroke-opacity="0.45" stroke-dasharray="1.5 4" />
+                <circle r="57" stroke="#a98d54" stroke-opacity="0.42" />
+                <circle r="46" stroke="#c9ab6a" stroke-opacity="0.5" />
+                <circle r="36" stroke="#d8bd85" stroke-opacity="0.58" />
+                <circle r="27" stroke="#d8bd85" stroke-opacity="0.68" />
+                <circle r="18" stroke="#e8c56a" stroke-opacity="0.72" />
+                {angulos(24).map((a) => (
+                  <line
+                    x1={P(57, a)[0]} y1={P(57, a)[1]} x2={P(64, a)[0]} y2={P(64, a)[1]}
+                    stroke="#a98d54" stroke-opacity="0.5"
+                  />
+                ))}
+                <polygon points={poli(36, 3)} stroke="#d8bd85" stroke-opacity="0.62" fill="none" />
+                <polygon points={poli(36, 3, 60)} stroke="#d8bd85" stroke-opacity="0.62" fill="none" />
+                <polygon points={estrella(27, 18, 12)} stroke="#e8c56a" stroke-opacity="0.42" fill="none" />
+                <polygon points={poli(46, 6, 30)} stroke="#c9ab6a" stroke-opacity="0.3" fill="none" />
+                {/* corona de glifos pequeños entre los dos anillos medios */}
+                {angulos(8, 22.5).map((a) => (
+                  <g transform={`translate(${P(51.5, a)[0]} ${P(51.5, a)[1]})`}>
+                    <circle r="4.6" stroke="#c9ab6a" stroke-opacity="0.6" />
+                    <circle r="1.4" fill="#e8c56a" fill-opacity="0.75" />
+                  </g>
+                ))}
+                {/* cuatro medallones cardinales, con su tallo hacia el centro */}
+                {angulos(4).map((a) => (
+                  <g>
+                    <line
+                      x1={P(46, a)[0]} y1={P(46, a)[1]} x2={P(54, a)[0]} y2={P(54, a)[1]}
+                      stroke="#c9ab6a" stroke-opacity="0.6"
+                    />
+                    <g transform={`translate(${P(64, a)[0]} ${P(64, a)[1]})`}>
+                      <circle r="9.5" stroke="#d8bd85" stroke-opacity="0.75" />
+                      <circle r="5.5" stroke="#c9ab6a" stroke-opacity="0.5" />
+                      <circle r="2" fill="#f2ddb0" fill-opacity="0.85" />
+                    </g>
+                  </g>
+                ))}
+                {angulos(4, 45).map((a) => (
+                  <g transform={`translate(${P(57, a)[0]} ${P(57, a)[1]})`}>
+                    <circle r="5.5" stroke="#a98d54" stroke-opacity="0.55" />
+                    <circle r="1.2" fill="#e8c56a" fill-opacity="0.6" />
+                  </g>
+                ))}
+                {/* brazos: los horizontales llegan al borde del panel, los
+                    verticales rematan en rombo justo fuera del disco */}
+                {[90, 270].map((a) => (
+                  <g>
+                    <line x1={P(70, a)[0]} y1={P(70, a)[1]} x2={P(85, a)[0]} y2={P(85, a)[1]} stroke="#c9ab6a" stroke-opacity="0.55" />
+                    <polygon points={estrella(5.5, 2, 2, a)} transform={`translate(${P(90, a)[0]} ${P(90, a)[1]})`} stroke="#d8bd85" stroke-opacity="0.7" fill="none" />
+                    <circle cx={P(96.5, a)[0]} cy={P(96.5, a)[1]} r="1.6" fill="#e8c56a" fill-opacity="0.7" />
+                  </g>
+                ))}
+                {[0, 180].map((a) => (
+                  <g>
+                    <line x1={P(70, a)[0]} y1={P(70, a)[1]} x2={P(74, a)[0]} y2={P(74, a)[1]} stroke="#c9ab6a" stroke-opacity="0.5" />
+                    <polygon points={estrella(4.5, 1.8, 2)} transform={`translate(${P(78, a)[0]} ${P(78, a)[1]})`} stroke="#d8bd85" stroke-opacity="0.6" fill="none" />
+                  </g>
+                ))}
+                {/* núcleo encendido */}
+                <polygon points={estrella(17, 4.5, 4)} fill="#f2ddb0" fill-opacity="0.9" />
+                <polygon points={poli(9, 4, 45)} stroke="#e8c56a" stroke-opacity="0.7" fill="none" />
+              </g>
             </svg>
           </TarjetaMetrica>
           <p class="of-status">STATUS: <em>OPTIMAL</em></p>
@@ -508,7 +568,11 @@ const notas = [
   .of-panel :global(.arch-tarjeta__etiqueta) { order: 4; font-size: 10.5px; letter-spacing: 0.3em; color: #b9a06a; margin-top: 4px; }
   .of-panel :global(.arch-tarjeta__diagrama) { order: 5; margin-top: 8px; }
   .of-gauge-num { font-family: "Cormorant Garamond", Georgia, serif; font-size: 11.5px; fill: #cfc5ab; letter-spacing: 0.1em; }
-  .of-status { margin: 2px 0 0; text-align: center; font-size: 12.5px; font-weight: 600; letter-spacing: 0.24em; color: #cfc5ab; }
+  /* la rueda creció a 158 px: sin corregir el flujo, su centro caía en
+     y=1017 (la referencia lo tiene en 1001) y STATUS se salía del panel */
+  .of-panel--3 :global(.arch-tarjeta__diagrama) { margin-top: -8px; }
+  .of-status { margin: -11px 0 0; text-align: center; font-size: 12.5px; font-weight: 600; letter-spacing: 0.24em; color: #cfc5ab; }
+  .of-panel--3 :global(.arch-riel > * + *) { margin-top: 0; padding-top: 0; }
   .of-status em { font-style: normal; color: #8f72d8; }
   .of-riel-titulo--notas { font-size: 14.5px; letter-spacing: 0.2em; }
   .of-notas { list-style: none; margin: 3px 0 0; padding: 0 2px; color: var(--arch-ink); }
