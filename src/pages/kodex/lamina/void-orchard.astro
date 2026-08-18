@@ -1464,9 +1464,19 @@ const mallaHusk = Array.from({ length: 8 }, (_, i) => {
     gF.quadraticCurveTo(CX - 52, 428, CX, 386);
     gF.stroke();
 
-    /* EL ÁRBOL: silueta oscura con canto apenas iluminado */
+    /* EL ÁRBOL: silueta oscura con canto iluminado.
+       El canto iba en alfa 0,08: a tamaño real no existe. La rama de a21 es
+       negra por dentro y CLARA en el filo — y ese filo es la mitad del 13 %
+       de píxeles sobre 80 que la referencia tiene y la lámina no. */
     trazar(gF, ramas, "8,5,11", 0.95);
-    trazar(gF, ramas, "146,120,88", 0.08);
+    gF.save();
+    gF.translate(-0.9, -0.9);
+    for (const sg of ramas) {
+      gF.strokeStyle = tinta("206,176,116", 0.26);
+      gF.lineWidth = Math.max(0.5, sg.w * 0.42);
+      gF.beginPath(); gF.moveTo(sg.x1, sg.y1); gF.lineTo(sg.x2, sg.y2); gF.stroke();
+    }
+    gF.restore();
     /* tronco: columna cónica del centro */
     gF.fillStyle = "rgba(9,6,12,0.96)";
     /* Tronco medido: en la referencia arranca en la isla con ~80 px de
@@ -1519,6 +1529,16 @@ const mallaHusk = Array.from({ length: 8 }, (_, i) => {
       for (let i = der.length - 1; i >= 0; i--) gF.lineTo(der[i][0], der[i][1]);
       gF.closePath();
       gF.fill();
+      /* SIN canto de oro en el raigón. Se probó en dos fuerzas y las dos
+         empeoraron la banda donde vive la campana:
+           v37  alfa 0,34 ancho 1,3  →  centro-medio 19,92 % → 20,24 %
+           v38  alfa 0,78 ancho 0,9  →  centro-medio 20,24 % → 22,53 %
+                                        centro-alto  16,89 % → 20,23 %
+         La lectura: la luz de a21 NO está repartida por todos los cantos.
+         Está concentrada — el corazón de filigrana del tronco, las vainas,
+         las burbujas — y la madera de la campana es masa oscura de verdad.
+         Encender cada borde sube la cobertura a 108 % y llena de medio tono
+         justo la zona que la referencia tiene apagada. */
     };
     gF.fillStyle = "rgba(8,5,11,0.96)";
     for (const lado of [-1, 1]) {
