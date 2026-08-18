@@ -1,11 +1,16 @@
 import { assemblePlateSpec } from './deterministic-assembler.js';
+import {
+  KDX_GEOMETRIC_EVIDENCE_CLASSES,
+  KDX_GEOMETRIC_PRIMITIVE_BY_ID,
+} from './geometric-transduction-registry.v0.1.js';
 
 export const KDX_SEMANTIC_IR_PROFILE = Object.freeze({
-  version: 'semantic-ir-v0.1.0',
+  version: 'semantic-ir-v0.1.1',
   status: 'IMPLEMENTED_CANDIDATE',
   role: 'PRE_ASSEMBLY_ADAPTER',
   createsParallelRuntime: false,
   mutatesAssemblyOS: false,
+  geometryRole: 'OPTIONAL_SEMANTIC_TRACE',
 });
 
 const PLATE_TYPES = new Set(['KNOWLEDGE_PLATE', 'JUNCTION_PLATE', 'ACTIVATOR_PLATE']);
@@ -17,6 +22,7 @@ const OPERATORS = new Set([
 const DEPTH_TYPES = new Set(['MATERIAL', 'INFORMATION', 'LINEAGE', 'SYSTEMIC', 'COSMOLOGICAL', 'EPISTEMIC', 'META']);
 const MEMORY_EFFECTS = new Set(['NONE', 'TRACE', 'RESIDUE', 'INHERITANCE', 'ROUTE_SIGNATURE', 'RECONSTRUCTION']);
 const RETURN_EFFECTS = new Set(['UNCHANGED', 'TRACE_VISIBLE', 'RETURNED_FORM', 'THRESHOLD_PRIME']);
+const GEOMETRIC_EVIDENCE_CLASSES = new Set(KDX_GEOMETRIC_EVIDENCE_CLASSES);
 
 export class KdxSemanticIrError extends Error {
   constructor(code, message, details = {}) {
@@ -28,11 +34,63 @@ export class KdxSemanticIrError extends Error {
 }
 
 const unique = (values) => [...new Set((values || []).filter(Boolean))];
+const intersects = (left, right) => left.some((value) => right.includes(value));
 const assertNonEmptyString = (value, field) => {
   if (typeof value !== 'string' || value.trim().length < 2) {
     throw new KdxSemanticIrError('INVALID_FIELD', `${field} must be a non-empty string.`, { field, value });
   }
 };
+
+function validateGeometry(ir) {
+  if (ir.geometry == null) return null;
+  if (!ir.geometry || typeof ir.geometry !== 'object' || Array.isArray(ir.geometry)) {
+    throw new KdxSemanticIrError('INVALID_GEOMETRY', 'geometry must be an object when declared.', { id: ir.id });
+  }
+  const primitives = unique(ir.geometry.primitives);
+  if (primitives.length === 0 || primitives.length > 4) {
+    throw new KdxSemanticIrError('INVALID_GEOMETRY_PRIMITIVES', 'geometry.primitives requires 1–4 registered primitive IDs.', { id: ir.id, primitives });
+  }
+  if (!GEOMETRIC_EVIDENCE_CLASSES.has(ir.geometry.evidence_class)) {
+    throw new KdxSemanticIrError('INVALID_GEOMETRY_EVIDENCE_CLASS', 'geometry.evidence_class must use a registered geometric evidence class.', { id: ir.id, evidence_class: ir.geometry.evidence_class });
+  }
+  assertNonEmptyString(ir.geometry.relation, 'geometry.relation');
+
+  const registered = primitives.map((primitiveId) => {
+    const entry = KDX_GEOMETRIC_PRIMITIVE_BY_ID[primitiveId];
+    if (!entry) {
+      throw new KdxSemanticIrError('UNKNOWN_GEOMETRY_PRIMITIVE', `Unsupported geometric primitive: ${primitiveId}`, { id: ir.id, primitiveId });
+    }
+    if (!intersects(ir.operators, entry.compatible_operators)) {
+      throw new KdxSemanticIrError('GEOMETRY_OPERATOR_MISMATCH', `Geometric primitive ${primitiveId} has no compatible declared semantic operator.`, {
+        id: ir.id,
+        primitiveId,
+        operators: ir.operators,
+        compatible_operators: entry.compatible_operators,
+      });
+    }
+    if (!intersects(ir.depth_types, entry.compatible_depth_types)) {
+      throw new KdxSemanticIrError('GEOMETRY_DEPTH_MISMATCH', `Geometric primitive ${primitiveId} has no compatible declared depth type.`, {
+        id: ir.id,
+        primitiveId,
+        depth_types: ir.depth_types,
+        compatible_depth_types: entry.compatible_depth_types,
+      });
+    }
+    return entry;
+  });
+
+  return Object.freeze({
+    primitives: Object.freeze(primitives),
+    relation: ir.geometry.relation,
+    evidence_class: ir.geometry.evidence_class,
+    notes: ir.geometry.notes || null,
+    registered_primitives: Object.freeze(registered.map((entry) => Object.freeze({
+      id: entry.id,
+      relation: entry.relation,
+      evidence_class: entry.evidence_class,
+    }))),
+  });
+}
 
 export function validateSemanticIr(ir) {
   if (!ir || typeof ir !== 'object' || Array.isArray(ir)) {
@@ -56,6 +114,7 @@ export function validateSemanticIr(ir) {
   if (!Array.isArray(ir.depth_types) || ir.depth_types.length === 0 || ir.depth_types.some((depth) => !DEPTH_TYPES.has(depth))) {
     throw new KdxSemanticIrError('INVALID_DEPTH_TYPE', 'Semantic IR depth_types[] must use registered depth types.', { id: ir.id, depth_types: ir.depth_types });
   }
+  validateGeometry(ir);
   if (!ir.memory || !MEMORY_EFFECTS.has(ir.memory.effect)) {
     throw new KdxSemanticIrError('INVALID_MEMORY_EFFECT', 'Semantic IR memory.effect is missing or unsupported.', { id: ir.id, memory: ir.memory });
   }
@@ -120,6 +179,7 @@ export function compileSemanticIrToAssemblyInput(ir) {
 
 export function buildSemanticTrace(ir) {
   validateSemanticIr(ir);
+  const geometry = validateGeometry(ir);
   return Object.freeze({
     semantic_ir_id: ir.id,
     semantic_ir_version: ir.version || KDX_SEMANTIC_IR_PROFILE.version,
@@ -128,6 +188,7 @@ export function buildSemanticTrace(ir) {
     epistemic: Object.freeze(unique(ir.epistemic)),
     operators: Object.freeze(unique(ir.operators)),
     depth_types: Object.freeze(unique(ir.depth_types)),
+    geometry,
     interaction: Object.freeze({ ...(ir.interaction || {}) }),
     memory: Object.freeze({ ...ir.memory }),
     return: Object.freeze({ ...ir.return }),
