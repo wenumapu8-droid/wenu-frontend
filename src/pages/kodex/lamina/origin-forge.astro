@@ -95,6 +95,20 @@ const estrella = (re: number, ri: number, n: number, off = 0) =>
   Array.from({ length: n * 2 }, (_, i) => P(i % 2 ? ri : re, off + (i * 180) / n).join(",")).join(" ");
 const angulos = (n: number, off = 0) => Array.from({ length: n }, (_, i) => off + (i * 360) / n);
 
+/* ── HEAT INDEX: filamentos de la columna de fuego (semilla fija) ─── */
+const filamento = (semilla: number, amp: number) => {
+  const r = rng(semilla);
+  const pts: string[] = [];
+  for (let i = 0; i <= 36; i++) {
+    const t = i / 36;
+    const y = 22 + t * 166;
+    const x = 104 + (r() - 0.5) * 2 * amp * (0.25 + t);
+    pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+  }
+  return pts.join(" ");
+};
+const hilos = [filamento(0x2210, 3.2), filamento(0x2211, 2.1), filamento(0x2212, 4.4)];
+
 const pasos = [
   { n: "01", t1: "CHAOS", t2: "INFUSION", d: "Raw potential is drawn from the unformed." },
   { n: "02", t1: "SIGIL", t2: "MOLTING", d: "Molten glyphs are cast into the crucible of intention." },
@@ -222,12 +236,27 @@ const notas = [
           <h2 class="of-riel-titulo">FORGE METRICS</h2>
           <TarjetaMetrica tituloEn="HEAT INDEX" tituloEs="" valor="9.87 ∞" etiqueta="EXA-KELVIN" conPie={false}>
             <svg width="196" height="216" viewBox="0 0 196 216" fill="none" aria-hidden="true">
+              {/* La columna de la referencia NO es una cuña naranja plana: es una
+                 hoja de fuego blanco-oro de 5 px envuelta en un halo ancho, y
+                 remata en una rosa encendida de ~28 px de radio. Medido: las
+                 franjas y449..648 de este panel salían entre 7 y 13,5 puntos de
+                 luminancia por debajo de la referencia. */}
               <defs>
                 <linearGradient id="of-llama-g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#fff3cf" />
-                  <stop offset="55%" stop-color="#f0b050" />
-                  <stop offset="100%" stop-color="#b06a20" />
+                  <stop offset="0%" stop-color="#fff6dd" />
+                  <stop offset="45%" stop-color="#ffd489" />
+                  <stop offset="100%" stop-color="#f0a840" />
                 </linearGradient>
+                <radialGradient id="of-halo-col" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0%" stop-color="#ffcf86" stop-opacity="0.4" />
+                  <stop offset="34%" stop-color="#f2a848" stop-opacity="0.17" />
+                  <stop offset="100%" stop-color="#f2a848" stop-opacity="0" />
+                </radialGradient>
+                <radialGradient id="of-halo-pie" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0%" stop-color="#fff0c8" stop-opacity="0.5" />
+                  <stop offset="40%" stop-color="#f0a840" stop-opacity="0.2" />
+                  <stop offset="100%" stop-color="#f0a840" stop-opacity="0" />
+                </radialGradient>
               </defs>
               {[0, 1, 2, 3, 4, 5].map((i) => (
                 <>
@@ -235,12 +264,34 @@ const notas = [
                   <line x1="42" y1={16 + i * 36} x2="160" y2={16 + i * 36} stroke="#a98d54" stroke-opacity="0.28" stroke-dasharray="1 4" />
                 </>
               ))}
-              <circle cx="104" cy="16" r="6" stroke="#e8c56a" stroke-opacity="0.9" fill="none" />
-              <path d="M104 22 L111 172 L104 184 L97 172 Z" fill="url(#of-llama-g)" />
-              <path d="M104 30 L116 170 L104 192 L92 170 Z" fill="#f0b050" fill-opacity="0.18" />
-              <circle cx="104" cy="192" r="15" stroke="#e8c56a" stroke-opacity="0.7" fill="none" />
-              <circle cx="104" cy="192" r="8" stroke="#e8c56a" stroke-opacity="0.5" fill="none" />
-              <path d="M89 192 H119 M104 177 V207 M94 182 L114 202 M114 182 L94 202" stroke="#c9ab6a" stroke-opacity="0.55" />
+              <ellipse cx="104" cy="106" rx="42" ry="106" fill="url(#of-halo-col)" />
+              <ellipse cx="104" cy="192" rx="48" ry="46" fill="url(#of-halo-pie)" />
+              <path d="M104 20 L109 186 L104 198 L99 186 Z" fill="url(#of-llama-g)" />
+              <path d="M104 24 L116 184 L104 200 L92 184 Z" fill="#ffbe63" fill-opacity="0.22" />
+              {hilos.map((h, k) => (
+                <polyline
+                  points={h}
+                  stroke={k === 1 ? "#fff8e6" : "#ffd489"}
+                  stroke-opacity={k === 1 ? 0.95 : 0.5}
+                  stroke-width={k === 1 ? 1.5 : 0.9}
+                  fill="none"
+                />
+              ))}
+              <line x1="104" y1="22" x2="104" y2="188" stroke="#fffaf0" stroke-opacity="0.85" stroke-width="1.4" />
+              <circle cx="104" cy="16" r="6" stroke="#ffe6a8" stroke-opacity="0.95" fill="none" />
+              <circle cx="104" cy="16" r="2.4" fill="#fff6dd" fill-opacity="0.9" />
+              {/* rosa de los vientos del pie, encendida */}
+              <g transform="translate(104 192)">
+                <circle r="28" stroke="#d8bd85" stroke-opacity="0.55" />
+                <circle r="21" stroke="#e8c56a" stroke-opacity="0.6" />
+                <circle r="13" stroke="#f2ddb0" stroke-opacity="0.7" />
+                {angulos(16).map((a) => (
+                  <line x1={P(13, a)[0]} y1={P(13, a)[1]} x2={P(28, a)[0]} y2={P(28, a)[1]} stroke="#e8c56a" stroke-opacity="0.45" />
+                ))}
+                <polygon points={estrella(32, 9, 4)} stroke="#f2ddb0" stroke-opacity="0.7" fill="none" />
+                <polygon points={estrella(21, 6, 6, 30)} fill="#ffeec4" fill-opacity="0.55" />
+                <circle r="6" fill="#fffaf0" fill-opacity="0.9" />
+              </g>
             </svg>
           </TarjetaMetrica>
         </RielMetricas>
