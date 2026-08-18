@@ -7,52 +7,67 @@ globalThis.localStorage = {
   removeItem: (key) => storage.delete(key),
 };
 
+const { memoryDiagnostics, readSpecimen, record } = await import('../src/kodex/return/memory.js');
 const {
-  KDX_MEMORY_KEY,
-  bindPrologueSemanticSensors,
-  clearMemory,
-  observeConcept,
-  readMemoryTrace,
-  readSpecimen,
-  record,
-} = await import('../src/kodex/return/memory.js');
+  KDX_CONCEPTS,
+  canonicalConceptKey,
+  conceptsForEvent,
+  edgeKey,
+} = await import('../src/kodex/memory/concepts.js');
 
-assert.equal(typeof bindPrologueSemanticSensors, 'function');
-assert.equal(bindPrologueSemanticSensors(null), false, 'sensor binding must no-op without a browser document');
+const KEY = 'kx-journey';
 
-clearMemory();
+storage.clear();
+const writesBefore = memoryDiagnostics.writes;
+
 record({ type: 'view', work: '/kodex/' });
-record({ type: 'signal' });
-observeConcept('MEMORY', { strength: 0.42, seconds: 8 });
-observeConcept('SIGNAL', { strength: 0.31 });
-record({ type: 'effect', effect: 'distort' });
+record({ type: 'effect', effect: 'mirror' });
 record({ type: 'cycle' });
 
-const trace = readMemoryTrace('VERIFY');
-assert.equal(trace.version, 2);
-assert.equal(trace.curated, false);
-assert.ok(trace.concepts.find((concept) => concept.key === 'MEMORY').salience > 0);
-assert.ok(trace.concepts.find((concept) => concept.key === 'SIGNAL').salience > 0);
-assert.ok(trace.strongestAssociation);
-assert.ok(trace.visualVector.persistence > 0);
+const acceptedRaw = storage.get(KEY);
+assert.ok(acceptedRaw, 'RETURN specimen store must persist accepted route/effect/cycle evidence');
+const accepted = JSON.parse(acceptedRaw);
+assert.deepEqual(Object.keys(accepted).sort(), ['cycle', 'effects', 'views']);
+assert.deepEqual(accepted.views, ['/kodex/']);
+assert.deepEqual(accepted.effects, ['mirror']);
+assert.equal(accepted.cycle, 1);
+
+const stableBeforeRejectedWrites = storage.get(KEY);
+record({ type: 'signal' });
+record({ type: 'dwell', concept: 'MEMORY', seconds: 99 });
+record({ type: 'concept', concept: 'OBSERVER', strength: 1 });
+assert.equal(
+  storage.get(KEY),
+  stableBeforeRejectedWrites,
+  'RETURN specimen store must ignore signal/dwell/concept semantic-memory writes',
+);
+assert.equal(memoryDiagnostics.writes, writesBefore + 3, 'only view/effect/cycle writes are admitted');
 
 const specimenA = readSpecimen('VERIFY');
 const specimenB = readSpecimen('VERIFY');
-assert.equal(specimenA.seed, specimenB.seed, 'same event history must remain reproducible');
-assert.equal(specimenA.memoryTrace.seed, trace.seed);
+assert.deepEqual(specimenA, specimenB, 'same RETURN evidence must remain deterministic');
+assert.equal(specimenA.curated, false);
+assert.equal(specimenA.cycle, 2);
+assert.deepEqual(specimenA.visualChain, ['mirror']);
 
-storage.set(KDX_MEMORY_KEY, JSON.stringify({
-  started: Date.now() - 10_000,
-  views: ['/kodex/', '/kodex/archive/'],
-  effects: ['mirror'],
-  signal: 1,
-  cycle: 1,
-}));
-const migrated = readMemoryTrace('LEGACY');
-assert.equal(migrated.version, 2);
-assert.equal(JSON.parse(storage.get(KDX_MEMORY_KEY)).version, 2);
-assert.ok(migrated.concepts.some((concept) => concept.salience > 0));
+assert.equal(KDX_CONCEPTS.SIGNAL.id, 'CX-001');
+assert.equal(KDX_CONCEPTS.MATTER.id, 'CX-002');
+assert.equal(KDX_CONCEPTS.MEMORY.id, 'CX-003');
+assert.equal(KDX_CONCEPTS.OBSERVER.id, 'CX-004');
+assert.equal(KDX_CONCEPTS.RETURN.id, 'CX-005');
+assert.equal(canonicalConceptKey(' memory '), 'MEMORY');
+assert.equal(canonicalConceptKey('unknown'), null);
+assert.equal(edgeKey('MEMORY', 'SIGNAL'), 'MEMORY::SIGNAL');
 
-clearMemory();
-assert.equal(storage.has(KDX_MEMORY_KEY), false);
-console.log('KODEX semantic memory v2 verification: PASS');
+const semanticProposal = conceptsForEvent({ type: 'concept', concept: 'MEMORY', strength: 0.42 });
+assert.ok(
+  semanticProposal.some(({ key, weight }) => key === 'MEMORY' && weight > 0),
+  'concept vocabulary may remain a pure proposal layer without owning persistence',
+);
+assert.equal(
+  storage.get(KEY),
+  stableBeforeRejectedWrites,
+  'pure semantic vocabulary evaluation must not mutate RETURN persistence',
+);
+
+console.log('KODEX memory authority boundary verification: PASS');
