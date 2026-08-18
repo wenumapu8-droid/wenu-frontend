@@ -16,6 +16,10 @@ import {
   type KodexOrganismActionEventDetail,
 } from "./journey-memory-bridge";
 import { createInitialJourneyState, type SerializedJourneyState } from "./journey-state";
+import {
+  semanticConceptToJourneyAction,
+  semanticRelationToJourneyAction,
+} from "./semantic-memory-journey-adapter.js";
 
 class MemoryStorage implements KodexJourneyStorage {
   private values = new Map<string, string>();
@@ -142,6 +146,61 @@ describe("Journey memory bridge", () => {
     const bad = new MemoryStorage();
     bad.setItem(KODEX_JOURNEY_STORAGE_KEY, "{broken");
     assert.deepEqual(restoreJourneyFromStorage(bad), createInitialJourneyState());
+  });
+
+  it("restored JourneyState plus explicit semantic commits replays deterministically without a migration store", () => {
+    const seedTarget = new EventTarget();
+    const seedStorage = new MemoryStorage();
+    const seedBridge = createKodexJourneyMemoryBridge(seedTarget, seedStorage);
+    seedTarget.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, interaction()));
+
+    const baseline = seedStorage.getItem(KODEX_JOURNEY_STORAGE_KEY);
+    assert.ok(baseline, "existing JourneyState snapshot must be available for deterministic restore");
+    seedBridge.destroy();
+
+    const concept = semanticConceptToJourneyAction({
+      eventId: "migration-concept-1",
+      concept: "MEMORY",
+      explicitCommit: true,
+    });
+    const relation = semanticRelationToJourneyAction({
+      eventId: "migration-relation-1",
+      from: "MEMORY",
+      to: "SIGNAL",
+      explicitCommit: true,
+    });
+    assert.ok(concept && relation, "explicit semantic commits must produce existing organism-action records");
+
+    const replay = () => {
+      const target = new EventTarget();
+      const storage = new MemoryStorage();
+      storage.setItem(KODEX_JOURNEY_STORAGE_KEY, baseline);
+      const bridge = createKodexJourneyMemoryBridge(target, storage);
+
+      target.dispatchEvent(eventWithDetail(KODEX_ORGANISM_ACTION_EVENT, concept));
+      target.dispatchEvent(eventWithDetail(KODEX_ORGANISM_ACTION_EVENT, relation));
+      target.dispatchEvent(eventWithDetail(KODEX_ORGANISM_ACTION_EVENT, concept));
+      target.dispatchEvent(eventWithDetail(KODEX_ORGANISM_ACTION_EVENT, relation));
+
+      const result = {
+        state: bridge.getState(),
+        persisted: storage.getItem(KODEX_JOURNEY_STORAGE_KEY),
+      };
+      bridge.destroy();
+      return result;
+    };
+
+    const first = replay();
+    const second = replay();
+
+    assert.deepEqual(first.state, second.state, "same restored state plus same explicit semantic sequence must replay identically");
+    assert.equal(first.persisted, second.persisted, "serialized JourneyState must be byte-stable across deterministic replay");
+    assert.deepEqual(first.state.committedActions, [
+      "remember",
+      "concept:CX-003:MEMORY",
+      "relation:CX-003:CX-001",
+    ]);
+    assert.equal(first.state.trace.length, 3, "replayed semantic identities must not double-write after restore");
   });
 
   it("reset removes persisted state and returns to deterministic initial state", () => {
