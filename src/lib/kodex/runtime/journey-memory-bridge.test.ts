@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { KODEX_INTERACTION_EVENT, type KodexInteractionEventDetail } from "./interaction-events";
+import {
+  KODEX_INTERACTION_EVENT,
+  type KodexInteractionEventDetail,
+} from "./interaction-events";
 import {
   createKodexJourneyMemoryBridge,
   interactionToJourneyEvents,
@@ -62,14 +65,24 @@ describe("Journey memory bridge", () => {
   });
 
   it("does not persist atmospheric/non-memory interaction", () => {
-    const events = interactionToJourneyEvents(interaction({ writesToMemory: false, stateAfter: "threshold" }), createInitialJourneyState());
+    const events = interactionToJourneyEvents(
+      interaction({ writesToMemory: false, stateAfter: "threshold" }),
+      createInitialJourneyState(),
+    );
     assert.deepEqual(events, []);
   });
 
   it("discards incoming wall-clock timing and persists semantic order only", () => {
-    const events = interactionToJourneyEvents(interaction({ createdAt: 987654321 }), createInitialJourneyState());
+    const events = interactionToJourneyEvents(
+      interaction({ createdAt: 987654321 }),
+      createInitialJourneyState(),
+    );
     assert.equal(events[0]?.at, 0);
-    const organismEvents = organismActionToJourneyEvents(organism({ createdAt: 123456789 }), createInitialJourneyState());
+
+    const organismEvents = organismActionToJourneyEvents(
+      organism({ createdAt: 123456789 }),
+      createInitialJourneyState(),
+    );
     assert.deepEqual(organismEvents.map((event) => event.at), [0, 1]);
   });
 
@@ -83,7 +96,9 @@ describe("Journey memory bridge", () => {
     const target = new EventTarget();
     const storage = new MemoryStorage();
     const bridge = createKodexJourneyMemoryBridge(target, storage);
+
     target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, interaction({ createdAt: 999999 })));
+
     assert.deepEqual(bridge.getState().committedActions, ["remember"]);
     const persisted = JSON.parse(storage.getItem(KODEX_JOURNEY_STORAGE_KEY) ?? "{}") as SerializedJourneyState;
     assert.deepEqual(persisted.committedActions, ["remember"]);
@@ -96,8 +111,10 @@ describe("Journey memory bridge", () => {
     const storage = new MemoryStorage();
     const bridge = createKodexJourneyMemoryBridge(target, storage);
     const detail = interaction();
+
     target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, detail));
     target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, detail));
+
     assert.deepEqual(bridge.getState().committedActions, ["remember"]);
     assert.equal(bridge.getState().trace.length, 1);
   });
@@ -106,7 +123,9 @@ describe("Journey memory bridge", () => {
     const target = new EventTarget();
     const storage = new MemoryStorage();
     const bridge = createKodexJourneyMemoryBridge(target, storage);
+
     target.dispatchEvent(eventWithDetail(KODEX_ORGANISM_ACTION_EVENT, organism()));
+
     assert.deepEqual(bridge.getState().committedActions, ["opened", "observed"]);
     assert.equal(bridge.getState().trace.every((event) => event.kind === "commit"), true);
   });
@@ -116,8 +135,10 @@ describe("Journey memory bridge", () => {
     const target = new EventTarget();
     const bridge = createKodexJourneyMemoryBridge(target, good);
     target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, interaction()));
+
     const restored = restoreJourneyFromStorage(good);
     assert.deepEqual(restored.committedActions, ["remember"]);
+
     const bad = new MemoryStorage();
     bad.setItem(KODEX_JOURNEY_STORAGE_KEY, "{broken");
     assert.deepEqual(restoreJourneyFromStorage(bad), createInitialJourneyState());
@@ -128,7 +149,9 @@ describe("Journey memory bridge", () => {
     const storage = new MemoryStorage();
     const bridge = createKodexJourneyMemoryBridge(target, storage);
     target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, interaction()));
+
     bridge.reset();
+
     assert.deepEqual(bridge.getState(), createInitialJourneyState());
     assert.equal(storage.getItem(KODEX_JOURNEY_STORAGE_KEY), null);
   });

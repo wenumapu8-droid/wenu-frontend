@@ -24,6 +24,7 @@ export type KodexLetter =
   | "M" | "N" | "O" | "P" | "Q" | "R" | "S" | "T" | "U" | "V" | "W" | "X"
   | "Y";
 
+/** Las letras que el canon define explícitamente. B–L y N–X permanecen LATENT. */
 export const CANONICAL_LETTERS: ReadonlyArray<KodexLetter> = ["A", "M", "Y"] as const;
 
 export type JourneyEventKind =
@@ -38,10 +39,12 @@ export type JourneyEventKind =
 export type HeartPortalState = "LATENT" | "RESONANT" | "AVAILABLE";
 
 export interface ReturnAnchor {
+  /** Nodo del que se salió hacia Heart. */
   letter: KodexLetter;
   world: string | null;
   focus: string | null;
   localState: string | null;
+  /** Largo del rastro al momento de anclar, para restaurar exactamente. */
   traceLength: number;
 }
 
@@ -52,15 +55,24 @@ export interface TracedRelation {
 }
 
 export interface JourneyEvent {
+  /** Identidad única del evento; base del replay idempotente. */
   id: string;
   kind: JourneyEventKind;
   letter: KodexLetter;
   world?: string;
+  /** Detalle semántico (acción, relación, señal). No acepta telemetría cruda. */
   detail?: string;
+  /** Marca de orden externa; el orden de replay lo aporta el caller. */
   at: number;
+  /** Payload semántico opcional. Nunca pointer telemetry. */
   payload?: Record<string, string | number | boolean>;
 }
 
+/**
+ * Campos de payload que el kernel considera semánticos por kind. Cualquier
+ * clave fuera de este allowlist se descarta al persistir y al restaurar, de
+ * modo que telemetría cruda bajo claves arbitrarias no puede sobrevivir.
+ */
 export const PAYLOAD_ALLOWLIST: Readonly<Record<JourneyEventKind, ReadonlyArray<string>>> = {
   arrive: [],
   commit: [],
@@ -92,6 +104,7 @@ export interface JourneyState {
   trace: JourneyEvent[];
   committedActions: string[];
   tracedRelations: TracedRelation[];
+  /** Señales ignoradas con posible consecuencia diferida (placeholders). */
   ignoredSignals: string[];
   spectralTrace: string[];
   heart: {
@@ -99,6 +112,7 @@ export interface JourneyState {
     visitCount: number;
   };
   returnAnchor: ReturnAnchor | null;
+  /** Semilla de serendipidad acotada, derivada determinísticamente del rastro. */
   serendipitySeed: number;
 }
 
@@ -111,6 +125,7 @@ function isLetter(value: string): value is KodexLetter {
   return (LETTERS as string[]).includes(value);
 }
 
+/** Estado inicial determinístico: todo recorrido completo comienza en A. */
 export function createInitialJourneyState(): JourneyState {
   return {
     current: "A",
@@ -131,6 +146,11 @@ export function createInitialJourneyState(): JourneyState {
   };
 }
 
+/**
+ * Semilla de serendipidad acotada (0..1), derivada de forma determinística
+ * de la identidad del último evento. Nunca usa aleatoriedad: el mismo rastro
+ * produce la misma semilla.
+ */
 function deriveSeed(state: JourneyState, eventId: string): number {
   let hash = 2166136261;
   const input = `${state.trace.length}:${eventId}`;
@@ -141,6 +161,10 @@ function deriveSeed(state: JourneyState, eventId: string): number {
   return (hash >>> 0) / 0xffffffff;
 }
 
+/**
+ * Reducer puro del viaje. Re-aplicar un evento ya presente en el rastro
+ * (misma `id`) devuelve el estado sin cambios: no doble-escribe memoria.
+ */
 export function journeyReducer(state: JourneyState, event: JourneyEvent): JourneyState {
   if (!isLetter(event.letter)) return state;
   if (state.trace.some((e) => e.id === event.id)) return state;
@@ -164,6 +188,8 @@ export function journeyReducer(state: JourneyState, event: JourneyEvent): Journe
       next.visitCounts = visitCounts;
       next.current = event.letter;
       if (event.world !== undefined) next.currentWorld = event.world;
+      // Una visita real a M incrementa el contador de Heart; la disponibilidad
+      // del portal (LATENT/RESONANT/AVAILABLE) es una dimensión aparte y no puntúa.
       if (event.letter === "M") {
         next.heart = { ...state.heart, visitCount: state.heart.visitCount + 1 };
       }
@@ -192,6 +218,8 @@ export function journeyReducer(state: JourneyState, event: JourneyEvent): Journe
       const payload = event.payload ?? {};
       const portal = typeof payload.portalState === "string" ? payload.portalState : null;
       if (portal === "LATENT" || portal === "RESONANT" || portal === "AVAILABLE") {
+        // La disponibilidad del portal no es una visita a M y no incrementa
+        // visitCount. Las visitas reales a M se cuentan en `arrive` (letter M).
         next.heart = { ...state.heart, portalState: portal };
       }
       break;
@@ -217,11 +245,20 @@ export function journeyReducer(state: JourneyState, event: JourneyEvent): Journe
   return next;
 }
 
+/**
+ * Aplica una secuencia de eventos en orden. El resultado es determinístico:
+ * la misma secuencia produce el mismo estado final.
+ */
 export function replayJourney(events: JourneyEvent[], from?: JourneyState): JourneyState {
   const base = from ?? createInitialJourneyState();
   return events.reduce((acc, e) => journeyReducer(acc, e), base);
 }
 
+/**
+ * Restaura un estado desde su forma serializada. Aplica de nuevo el allowlist
+ * semántico a los payloads del trace para que telemetría no permitida jamás
+ * sea reintroducida desde un payload externo.
+ */
 export function restoreJourney(serialized: SerializedJourneyState): JourneyState {
   return {
     current: isLetter(serialized.current) ? serialized.current : "A",
@@ -242,6 +279,7 @@ export function restoreJourney(serialized: SerializedJourneyState): JourneyState
   };
 }
 
+/** Forma serializable, con privacidad minimizada: sin telemetría cruda de puntero. */
 export interface SerializedJourneyState {
   current: string;
   currentWorld: string | null;
@@ -257,6 +295,11 @@ export interface SerializedJourneyState {
   serendipitySeed: number;
 }
 
+/**
+ * Serializa el estado aplicando el allowlist semántico por kind. El kernel
+ * nunca acepta pointer telemetry en `payload`; esta función garantiza que
+ * claves fuera del allowlist (bajo cualquier nombre) no persistan.
+ */
 export function serializeJourney(state: JourneyState): SerializedJourneyState {
   return {
     current: state.current,
