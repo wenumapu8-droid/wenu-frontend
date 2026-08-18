@@ -9,12 +9,15 @@ globalThis.localStorage = {
 
 const {
   KDX_MEMORY_KEY,
+  bindPrologueSemanticSensors,
   clearMemory,
   observeConcept,
   readMemoryTrace,
   readSpecimen,
   record,
 } = await import('../src/kodex/return/memory.js');
+
+assert.equal(typeof bindPrologueSemanticSensors, 'function');
 
 clearMemory();
 record({ type: 'view', work: '/kodex/' });
