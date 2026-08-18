@@ -2,10 +2,10 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
   Object.freeze({
     id: 'KDX-SEM-IMPERMANENCE',
     version: '0.1.1',
-    status: 'CANON_CANDIDATE',
+    status: 'NEEDS_CONFIRMATION',
     question: 'WHAT PERSISTS WHEN FORM CHANGES?',
     principles: Object.freeze(['IMPERMANENCE', 'CONTINUITY']),
-    epistemic: Object.freeze(['CANON_CANDIDATE']),
+    epistemic: Object.freeze(['NEEDS_CONFIRMATION']),
     operators: Object.freeze(['MANIFEST', 'MUTATE', 'ERODE', 'INHERIT']),
     depth_types: Object.freeze(['LINEAGE', 'INFORMATION']),
     geometry: Object.freeze({
@@ -23,7 +23,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
       macro_signal: 'FORM CHANGES. A TRACE REMAINS.',
       payload_type: 'CONCEPT',
       payload_ref: 'KDX-SEM-IMPERMANENCE',
-      status: 'CANON_CANDIDATE',
+      status: 'NEEDS_CONFIRMATION',
       allow_motion: true,
     }),
     interaction: Object.freeze({ action: 'REVEAL_RESIDUE', selection_required: true }),
@@ -34,10 +34,10 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
   Object.freeze({
     id: 'KDX-SEM-INTERDEPENDENCE',
     version: '0.1.1',
-    status: 'CANON_CANDIDATE',
+    status: 'NEEDS_CONFIRMATION',
     question: 'WHAT EXISTS BETWEEN TWO THINGS?',
     principles: Object.freeze(['INTERDEPENDENCE', 'RELATION']),
-    epistemic: Object.freeze(['CANON_CANDIDATE']),
+    epistemic: Object.freeze(['NEEDS_CONFIRMATION']),
     operators: Object.freeze(['REVEAL', 'RELATE', 'DIVERGE', 'CONVERGE']),
     depth_types: Object.freeze(['SYSTEMIC', 'EPISTEMIC']),
     geometry: Object.freeze({
@@ -55,7 +55,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
       macro_signal: 'RELATION IS PART OF THE FORM.',
       payload_type: 'MAP',
       payload_ref: 'KDX-SEM-INTERDEPENDENCE',
-      status: 'CANON_CANDIDATE',
+      status: 'NEEDS_CONFIRMATION',
       allow_motion: true,
     }),
     route_slate: Object.freeze([
@@ -71,10 +71,10 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
   Object.freeze({
     id: 'KDX-SEM-OBSERVER',
     version: '0.1.1',
-    status: 'CANON_CANDIDATE',
+    status: 'NEEDS_CONFIRMATION',
     question: 'WHAT CHANGES WHEN OBSERVATION LEAVES A TRACE?',
     principles: Object.freeze(['OBSERVER', 'PARTICIPATION']),
-    epistemic: Object.freeze(['CANON_CANDIDATE']),
+    epistemic: Object.freeze(['NEEDS_CONFIRMATION']),
     operators: Object.freeze(['OBSERVE', 'REVEAL', 'INHERIT', 'RETURN']),
     depth_types: Object.freeze(['EPISTEMIC', 'META']),
     geometry: Object.freeze({
@@ -92,7 +92,7 @@ export const KDX_SEMANTIC_IR_FIXTURES = Object.freeze([
       macro_signal: 'OBSERVATION CREATES A TRACE IN THE JOURNEY.',
       payload_type: 'FIELD',
       payload_ref: 'KDX-SEM-OBSERVER-FIELD',
-      status: 'CANON_CANDIDATE',
+      status: 'NEEDS_CONFIRMATION',
       activation_id: 'MOTION_03_FIELD_MARBLE',
       explicit_action_required: true,
       allow_motion: true,
