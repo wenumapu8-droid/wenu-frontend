@@ -14,6 +14,10 @@ const {
   conceptsForEvent,
   edgeKey,
 } = await import('../src/kodex/memory/concepts.js');
+const {
+  semanticConceptToJourneyAction,
+  semanticRelationToJourneyAction,
+} = await import('../src/lib/kodex/runtime/semantic-memory-journey-adapter.js');
 
 const KEY = 'kx-journey';
 
@@ -68,6 +72,51 @@ assert.equal(
   storage.get(KEY),
   stableBeforeRejectedWrites,
   'pure semantic vocabulary evaluation must not mutate RETURN persistence',
+);
+
+assert.equal(
+  semanticConceptToJourneyAction({ eventId: 'passive-1', concept: 'MEMORY', explicitCommit: false }),
+  null,
+  'passive concept observation must not become a persisted journey action',
+);
+assert.equal(
+  semanticRelationToJourneyAction({ eventId: 'passive-2', from: 'MEMORY', to: 'SIGNAL', explicitCommit: false }),
+  null,
+  'passive concept co-occurrence must not become a persisted relation',
+);
+
+const conceptAction = semanticConceptToJourneyAction({
+  eventId: 'commit-1',
+  concept: 'MEMORY',
+  explicitCommit: true,
+});
+assert.deepEqual(conceptAction, {
+  id: 'semantic:commit-1:CX-003',
+  createdAt: 0,
+  presetId: 'semantic-memory-v0.1.0',
+  family: 'SEMANTIC_MEMORY',
+  action: 'TRACE_CONCEPT',
+  memoryWrites: ['concept:CX-003:MEMORY'],
+});
+
+const relationActionA = semanticRelationToJourneyAction({
+  eventId: 'rel-1',
+  from: 'SIGNAL',
+  to: 'MEMORY',
+  explicitCommit: true,
+});
+const relationActionB = semanticRelationToJourneyAction({
+  eventId: 'rel-1',
+  from: 'MEMORY',
+  to: 'SIGNAL',
+  explicitCommit: true,
+});
+assert.deepEqual(relationActionA, relationActionB, 'explicit relation identity must be order-stable');
+assert.deepEqual(relationActionA?.memoryWrites, ['relation:CX-003:CX-001']);
+assert.equal(
+  storage.get(KEY),
+  stableBeforeRejectedWrites,
+  'semantic JourneyState adapter must own no RETURN storage side effects',
 );
 
 console.log('KODEX memory authority boundary verification: PASS');
