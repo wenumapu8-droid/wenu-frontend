@@ -15,7 +15,7 @@ const profiles = [
 
 const scenes = [
   { id: '00-threshold', stage: 'THRESHOLD', path: '/kodex/', readiness: 'threshold' },
-  { id: '01-prologue', stage: 'PROLOGUE', path: '/kodex/folio/i/', readiness: 'crt-observe' },
+  { id: '01-prologue', stage: 'PROLOGUE', path: '/kodex/folio/i/', readiness: 'prologue-c0' },
   { id: '02-descent', stage: 'DESCENT', path: '/kodex/folio/ii/', readiness: 'crt-descent' },
   { id: '03-archive', stage: 'ARCHIVE', path: '/kodex/folio/iii/', readiness: 'archive' },
   { id: '04-machine', stage: 'MACHINE', path: '/kodex/folio/iv/', readiness: 'machine' },
@@ -43,9 +43,17 @@ async function waitForAuthorialReady(page, scene) {
     }, null, { timeout: 8000 });
   }
 
-  if (scene.readiness === 'crt-observe') {
-    await page.waitForSelector('.kdx-crt-mount[data-preset="observe"]');
-    await page.waitForFunction(() => document.querySelector('.kdx-crt-mount[data-preset="observe"]')?.getAttribute('data-mounted') === '1', null, { timeout: 8000 });
+  if (scene.readiness === 'prologue-c0') {
+    await page.waitForSelector('.kx-os-scene--prologue .kx-os-stage__art');
+    await page.waitForFunction(() => {
+      const art = document.querySelector('.kx-os-scene--prologue .kx-os-stage__art');
+      if (!(art instanceof HTMLElement)) return false;
+      const rect = art.getBoundingClientRect();
+      const bg = getComputedStyle(art, '::before').backgroundImage;
+      const livefield = document.querySelector('.kx-os-scene--prologue .kx-os-stage__livefield');
+      const livefieldHidden = !livefield || getComputedStyle(livefield).display === 'none';
+      return rect.width > 100 && rect.height > 80 && bg.includes('ojo-final-03-03.png') && livefieldHidden;
+    }, null, { timeout: 8000 });
   }
 
   if (scene.readiness === 'crt-descent') {
@@ -77,9 +85,6 @@ async function waitForAuthorialReady(page, scene) {
     await page.waitForFunction(() => document.querySelector('.kdx-crt-mount[data-preset="return"]')?.getAttribute('data-mounted') === '1', null, { timeout: 8000 });
   }
 
-  // Let fonts, canvas and authored idle systems settle without triggering any
-  // interaction. AUTHORIAL_STATE is the clean resting/hero composition, not a
-  // drawer/modal/test state and not a synthetic engagement state.
   await page.waitForTimeout(900);
 }
 

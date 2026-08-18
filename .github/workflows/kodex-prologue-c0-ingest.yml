@@ -1,0 +1,68 @@
+name: KODEX PROLOGUE C0 Exact Asset Ingest
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kodex-prologue-c0-ingest.yml'
+      - 'src/styles/kodex-prologue-c0.css'
+      - 'src/styles/kodex-machine-assembly.css'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ingest-c0:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout exact PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Check whether exact asset is already admitted
+        id: asset
+        shell: bash
+        run: |
+          if [ -f public/img/kodex/works/ojo-final-03-03.png ]; then
+            actual="$(sha256sum public/img/kodex/works/ojo-final-03-03.png | awk '{print $1}')"
+            test "$actual" = "ca93a8c962548fc58bfd7dbc64e9bbb5b3877d4c3c04591c016293dd2289642f"
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Download exact public non-discoverable Drive source
+        if: steps.asset.outputs.present != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p public/img/kodex/works
+          tmp="$(mktemp)"
+          curl -L --fail --silent --show-error \
+            "https://drive.usercontent.google.com/download?id=1AOq9GpXN7GUWp7jvYLx56Zpya20ExVA8&export=download&confirm=t" \
+            -o "$tmp"
+          test "$(wc -c < "$tmp" | tr -d ' ')" = "406324"
+          echo "ca93a8c962548fc58bfd7dbc64e9bbb5b3877d4c3c04591c016293dd2289642f  $tmp" | sha256sum -c -
+          file "$tmp" | grep -q 'PNG image data, 5460 x 4704, 8-bit/color RGBA'
+          mv "$tmp" public/img/kodex/works/ojo-final-03-03.png
+
+      - name: Commit exact source bytes to bounded branch
+        if: steps.asset.outputs.present != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/img/kodex/works/ojo-final-03-03.png
+          git commit -m "asset(kodex): admit exact PROLOGUE C0 source"
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git push origin "HEAD:${branch}"
+
+      - name: Re-verify admitted bytes
+        shell: bash
+        run: |
+          test -f public/img/kodex/works/ojo-final-03-03.png
+          echo "ca93a8c962548fc58bfd7dbc64e9bbb5b3877d4c3c04591c016293dd2289642f  public/img/kodex/works/ojo-final-03-03.png" | sha256sum -c -
