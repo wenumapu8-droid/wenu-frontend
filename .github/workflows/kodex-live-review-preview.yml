@@ -9,6 +9,7 @@ on:
       - 'package-lock.json'
       - 'astro.config.*'
       - 'KODEX-LIVE-REVIEW-SNAPSHOT.md'
+      - 'KODEX-LIVE-REVIEW-DEPLOY.md'
       - '.github/workflows/kodex-live-review-preview.yml'
   workflow_dispatch:
 
@@ -49,3 +50,63 @@ jobs:
           path: dist/
           if-no-files-found: error
           retention-days: 7
+
+  deploy-preview:
+    if: github.event_name == 'pull_request' && github.head_ref == 'preview/kodex-live-review-2026-08-17'
+    needs: preview-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Download exact verified build
+        uses: actions/download-artifact@v4
+        with:
+          name: kodex-live-review-preview
+          path: dist
+
+      - name: Re-verify staging payload
+        shell: bash
+        run: |
+          test -f dist/_headers
+          grep -F 'X-Robots-Tag: noindex, nofollow, noarchive' dist/_headers
+          test -f dist/kodex/index.html
+
+      - name: Require Cloudflare CI credentials
+        shell: bash
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo 'BLOCKED_CLOUDFLARE_AUTH: repository secrets CLOUDFLARE_API_TOKEN and/or CLOUDFLARE_ACCOUNT_ID are unavailable.'
+            exit 2
+          fi
+
+      - name: Deploy isolated noindex Pages preview
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx wrangler@4 pages deploy dist \
+            --project-name=wenu-frontend \
+            --branch=kodex-live-review-2026-08-17 \
+            --commit-hash="$GITHUB_SHA" \
+            --commit-message="KODEX live review authorized 2026-08-18" \
+            | tee wrangler-output.txt
+          PREVIEW_URL="$(grep -Eo 'https://[^[:space:]]+\.pages\.dev' wrangler-output.txt | tail -1 || true)"
+          if [ -z "$PREVIEW_URL" ]; then
+            echo 'DEPLOY_COMPLETED_URL_NOT_PARSED'
+            exit 3
+          fi
+          echo "preview_url=$PREVIEW_URL" >> "$GITHUB_OUTPUT"
+          echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+
+      - name: Verify live HTTP and noindex
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$PREVIEW_URL/kodex/" -o /tmp/kodex.html
+          test -s /tmp/kodex.html
+          curl --fail --silent --show-error --head "$PREVIEW_URL/kodex/" | tee /tmp/kodex-headers.txt
+          grep -iF 'X-Robots-Tag: noindex, nofollow, noarchive' /tmp/kodex-headers.txt
+          echo "PREVIEW_PUBLISHED $PREVIEW_URL/kodex/"
+          echo "DEPLOYED_SHA $GITHUB_SHA"
