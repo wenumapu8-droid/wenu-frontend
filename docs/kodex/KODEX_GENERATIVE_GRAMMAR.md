@@ -8,7 +8,7 @@
 
 This document defines the geometry/manifestation layer for KODEX. It does **not** create a parallel renderer, navigation engine, memory store, state machine, PlateSpec dialect, or geometric primitive registry.
 
-The existing system remains authoritative. The grammar must compile into existing contracts and renderers.
+The current system remains authoritative. In particular, the Natural Law Migration Map remains authoritative for migration sequencing and current implementation status; Geometric Transduction remains authoritative for existing primitive IDs; the Geometric Memory Signature already implemented under KOD-81 / PR #99 remains the current bounded memory manifestation baseline.
 
 Core chain:
 
@@ -117,11 +117,19 @@ CENTER
 
 Uses: RETURN, feedback, memory recirculation, cyclic flow and transformed-origin signatures.
 
-### 5.3 Heart / biofield claim boundary
+### 5.3 Source identification: photographed book
 
-- Cardiac electrical activity produces weak magnetic fields measurable by magnetocardiography: research-supported.
-- HeartMath-style claims about body-spanning toroidal emotional fields or interpersonal energetic-information transfer: reference/claim source; require independent verification claim-by-claim.
-- KODEX may use toroidal return as an original artistic/computational metaphor without presenting those broader claims as established science.
+The photographed nested-plane and toroidal-field pages are consistent with Melissa Feick, *A Radical Approach to the Akashic Records: Master Your Life and Raise Your Vibration*. Public book descriptions and chapter summaries identify the same toroidal-field and physical/emotional/mental/quantum framing.
+
+KODEX classification:
+
+- source type: `SPIRITUAL / ESOTERIC REFERENCE`;
+- Akashic Records, “Quantum Field” spiritual access, manifestation and multidimensional-energy claims: `SPECULATIVE / CANON_EXTERNAL`;
+- torus as mathematical topology: `VERIFIED / FORMAL`, separately sourced;
+- cardiac magnetic fields measurable by magnetocardiography: `VERIFIED` within biomedical scope;
+- body-spanning toroidal emotional-information field / interpersonal energetic transfer: `NEEDS_CONFIRMATION`, not scientific canon.
+
+The book may inform symbolic/narrative research but cannot serve as a primary scientific source.
 
 ## 6. Formal toolbox
 
@@ -173,7 +181,7 @@ alpha = 1 - exp(-lambda*dt)
 x_new = x + alpha*(target - x)
 ```
 
-Prefer this class of time-based interpolation to frame-count-dependent lerps when changing motion code.
+Prefer time-based interpolation to frame-count-dependent motion where state smoothing is changed.
 
 ### Memory decay
 
@@ -189,7 +197,7 @@ This is software persistence, not psychological measurement.
 F_t = S_t + d*F_(t-1)
 ```
 
-Keep `d` bounded; existing `KodexWorld` already provides ping-pong feedback and must remain the starting renderer.
+Keep `d` bounded. Existing `KodexWorld` already provides ping-pong feedback and remains the renderer baseline.
 
 ### Shannon entropy
 
@@ -201,7 +209,7 @@ Only use for a defined probability distribution. Mapping normalized entropy to v
 
 ## 7. Proposed GeometryContract overlay
 
-This is an overlay/profile, not a new competing IR:
+This is an overlay/profile, not a competing IR:
 
 ```js
 {
@@ -252,7 +260,7 @@ Rules:
 
 ## 9. Source-hunt program
 
-The research tracker is the operational queue. Every admitted source must record: author, title, institution/publisher, year, DOI/URL, source type, evidence class, exact scope, supported claims, prohibited inferences, KODEX transduction, implementation relevance and license/provenance.
+The research tracker is the operational queue. Every admitted source must record author, title, institution/publisher, year, DOI/URL, source type, evidence class, exact scope, supported claims, prohibited inferences, KODEX transduction, implementation relevance and license/provenance.
 
 ### P0 structural mathematics
 
@@ -284,7 +292,7 @@ The research tracker is the operational queue. Every admitted source must record
 
 ### P0 information
 
-- Shannon entropy / source/channel framing
+- Shannon entropy / source-channel framing
 - Freeman centrality
 - clustering/community structure
 - graph propagation/diffusion
@@ -357,26 +365,33 @@ The grammar should progressively compile semantic/geometric profiles into recipe
 
 ## 12. Bounded implementation sequence
 
-### Proof 0 — registry / trace only
+### P0.2 — registry / trace
 
-- map grammar families onto existing Geometric Transduction vocabulary;
-- add only missing metadata if justified;
-- compile deterministic trace;
-- zero behavior change.
+Preserve the migration-plan rule: Natural Law profiles are trace/metadata first and do not silently mutate route, memory, CSS, renderer or audio behavior.
 
-### Proof 1 — preserve current Geometric Memory Signature
+### P0.3 — existing behavioral baseline
 
-The existing Geometric Memory Signature / RETURN work remains authoritative. This research must not fork its memory source or representation contract.
+KOD-81 / PR #99 already implements the first bounded Natural Law behavioral adapter: **Geometric Memory Signature**.
 
-### Proof 2 — Manifestation Lab
+Authoritative chain:
 
-Use existing `/kodex/lab` and `KodexWorld` to author recipes from current operators plus **one** formally motivated addition. Candidate: radial symmetry, contour or bounded field warp.
+```text
+existing routeTrace
+→ existing Memory Constellation
+→ deterministic signature derivation
+→ internal SVG manifestation
+```
 
-Save recipes as data, not screenshots.
+No second history store, score, profiling system or memory engine is allowed.
 
-### Proof 3 — one accepted adapter
+### Next bounded candidate
 
-After creator review, integrate exactly one additional grammar adapter. Do not expand across all seven scenes at once.
+Choose **one** after explicit review:
+
+1. a small RETURN adapter consuming the existing Geometric Memory Signature; **or**
+2. a Manifestation Lab proof using existing `/kodex/lab` + `KodexWorld` with current operators plus one formally motivated operator (candidate: radial symmetry, contour or bounded field warp).
+
+Do not open both behavioral fronts simultaneously without a gate.
 
 ## 13. Performance invariants
 
