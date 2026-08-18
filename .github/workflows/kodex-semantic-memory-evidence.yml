@@ -1,0 +1,44 @@
+name: KODEX Semantic Memory Evidence
+
+on:
+  push:
+    branches:
+      - 'agent/kodex-memory-v2'
+    paths:
+      - 'src/lib/kodex/runtime/journey-state.ts'
+      - 'src/lib/kodex/runtime/journey-state.test.ts'
+      - 'src/lib/kodex/runtime/journey-memory-bridge.ts'
+      - 'src/lib/kodex/runtime/journey-memory-bridge.test.ts'
+      - 'src/lib/kodex/runtime/semantic-memory-journey-adapter.js'
+      - 'src/kodex/memory/concepts.js'
+      - 'src/kodex/return/memory.js'
+      - 'scripts/verify-kodex-memory.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/kodex-semantic-memory-evidence.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-memory-authority:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - name: JourneyState + deterministic restore/replay contracts
+        run: >-
+          npx --yes tsx@4.23.1 --test
+          src/lib/kodex/runtime/journey-state.test.ts
+          src/lib/kodex/runtime/journey-memory-bridge.test.ts
+      - name: Semantic Memory / RETURN boundary verifier
+        run: npm run verify:kodex-memory
+      - name: Astro build
+        env:
+          ALLOW_EMPTY_PRODUCTS: 'true'
+        run: npm run build
