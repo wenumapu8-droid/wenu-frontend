@@ -1,0 +1,1860 @@
+---
+/**
+ * KODEX−∞ · LÁMINA DE ARCHIVO · GAIA SENTINEL · PAGE 27
+ *
+ * Reproducción en código de reference/pendientes/a27-gaia-sentinel-canon.png
+ * (1229×1536). Décima de la serie de archivo: mismo cromo que
+ * mycelial-oracle (a23) y silence-engine (a28) —los componentes de
+ * src/components/kodex/archivo/ en cajas absolutas medidas— con el
+ * organismo central pintado en canvas procedural.
+ *
+ * CANON: hay dos archivos para esta página, `-canon` y
+ * `-visual-variant`. Sólo se reproduce el CANON; la variante no entra
+ * en esta lámina ni como referencia parcial.
+ *
+ * TODO el texto visible está TRANSCRITO de la referencia. Nada se
+ * inventa. Lo que no se lee no se escribe: los sigilos de los paneles
+ * y los glifos de los obeliscos son geometría con semilla, no letra.
+ *
+ * MEDIDO sobre la referencia (scripts/lamina/gs/probe.mjs, perfil de
+ * tinta por fila/columna):
+ * · marco: verticales x11 y x1217 (exterior), x15/16 y x1211/1212
+ *   (interior); horizontales y11/y1525 y y16/y1520.
+ * · cabecera: reglas del cartucho en y63 y y68. «KODEX−∞» versales
+ *   y30..52 (versal 22) x59..231; «UNIVERSAL ARCHIVE» y30..45
+ *   (versal 15) x469..747; «PAGE» x1034..1112 y «27» versales y27..52
+ *   (versal 25) x1122..1175.
+ * · título: «GAIA SENTINEL» versales y82..151 (versal 69) x260..982 —
+ *   722 px de ancho, es la medida que manda sobre el cuerpo.
+ *   Subtítulo «CENTINELA DE GAIA» versales y171..196 (versal 25)
+ *   x376..854, con flechas ornamentales x329..366 y x863..900.
+ * · riel izquierdo: cajas x26..225 (199 px). Paneles y99..423,
+ *   y437..712, y728..1042, y1055..1352.
+ * · riel derecho: cajas x1005..1198 (193 px). Paneles y101..495,
+ *   y511..792, y807..1034, y1049..1352.
+ * · arte: x230..998, y206..1368 (768×1162).
+ * · pie: banda y1382..1490; versos y1401..1416, y1430..1445 y
+ *   y1459..1479; barra inferior y1494..1527 con la línea en y1506..1518.
+ *
+ * LA LUZ ES EL 80 % DEL TRABAJO. Medido: la caja del arte tiene 92,9 %
+ * de sus píxeles con tinta y luminancia media 89,8 — 829.307 px de los
+ * 1.020.838 de toda la lámina. No es una caverna negra como a23: es un
+ * valle a plena luz. Por eso el canvas arranca de un CAMPO DE AMBIENTE
+ * MEDIDO (12×19 celdas de color medio, 64 px por celda) interpolado
+ * bilinealmente: 228 muestras sobre 892.416 px, una resolución a la que
+ * no hay dibujo, sólo luz. Sobre ese campo van las estructuras, que sí
+ * son código: mandala, titán, obeliscos, cristal, cascadas, plaza.
+ *
+ * Paleta medida (pico de los píxeles altos de cada banda):
+ * título crema rgb(228,215,183); subtítulo verde rgb(161,192,107);
+ * marca y cromo oro rgb(186,163,110); rótulos de panel verde
+ * rgb(152,163,118); valores oro rgb(187,166,118); cuerpo de bitácora
+ * rgb(114,113,82); aforismo oro rgb(155,148,103).
+ *
+ * ICONOGRAFÍA: los nueve sigilos de SACRED SIGILS y el sello del pie
+ * son formas geométricas genéricas (hexágonos, balanza, espiral,
+ * gota, cornamenta, ojo). Se reproduce la FORMA, sin atribuirle
+ * significado a ninguna tradición.
+ */
+import CabeceraArchivo from "../../../components/kodex/archivo/CabeceraArchivo.astro";
+import TituloBilingue from "../../../components/kodex/archivo/TituloBilingue.astro";
+import TarjetaMetrica from "../../../components/kodex/archivo/TarjetaMetrica.astro";
+import AforismoPie from "../../../components/kodex/archivo/AforismoPie.astro";
+import SelloClasificacion from "../../../components/kodex/archivo/SelloClasificacion.astro";
+import { rng } from "../../../components/kodex/lamina/kit/rng";
+
+/* ── geometría determinista del cromo (nunca Math.random) ───────────── */
+
+/* Sigilo de GUARDIAN CLASS: hexágono con un cubo de aristas y cuatro
+   nodos anillados. Geometría de construcción, no emblema de nadie. */
+const rHex = rng(0x27a1);
+const hexPts = Array.from({ length: 6 }, (_, i) => {
+  const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+  return [38 + 36 * Math.cos(a), 38 + 36 * Math.sin(a)];
+});
+const hexIn = Array.from({ length: 6 }, (_, i) => {
+  const a = (i / 6) * Math.PI * 2 - Math.PI / 2;
+  return [38 + 20 * Math.cos(a), 38 + 20 * Math.sin(a)];
+});
+
+/* Árbol del WORLD TREE SIGIL y del emblema de la bitácora: se ramifica
+   con semilla y se espeja, como en la referencia. */
+interface Trazo { d: string; o: number; w: number }
+function ramificar(
+  x: number, y: number, ang: number, largo: number, prof: number,
+  r: () => number, out: Trazo[], hojas: Array<{ x: number; y: number; r: number }>,
+) {
+  if (prof <= 0 || largo < 1.6) return;
+  const x2 = x + Math.cos(ang) * largo;
+  const y2 = y + Math.sin(ang) * largo;
+  const cx = x + Math.cos(ang - 0.22) * largo * 0.55;
+  const cy = y + Math.sin(ang - 0.22) * largo * 0.55;
+  out.push({
+    d: `M${x.toFixed(1)} ${y.toFixed(1)} Q${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`,
+    o: +(0.3 + prof * 0.11).toFixed(2),
+    w: +(0.25 + prof * 0.34).toFixed(2),
+  });
+  if (prof <= 2 && r() < 0.7) hojas.push({ x: x2, y: y2, r: +(0.9 + r() * 1.5).toFixed(2) });
+  const n = r() < 0.45 ? 3 : 2;
+  for (let k = 0; k < n; k++) {
+    const d = (k - (n - 1) / 2) * (0.42 + r() * 0.4);
+    ramificar(x2, y2, ang + d + (r() - 0.5) * 0.18, largo * (0.66 + r() * 0.16), prof - 1, r, out, hojas);
+  }
+}
+
+function arbol(semilla: number, cx: number, cy: number, esc: number) {
+  const r = rng(semilla);
+  const ramas: Trazo[] = [];
+  const hojas: Array<{ x: number; y: number; r: number }> = [];
+  const raices: Trazo[] = [];
+  const puntas: Array<{ x: number; y: number; r: number }> = [];
+  /* copa */
+  for (let k = 0; k < 5; k++) {
+    const a = -Math.PI / 2 + (k / 4 - 0.5) * Math.PI * 1.15;
+    ramificar(cx, cy, a, 15 * esc + r() * 5 * esc, 5, r, ramas, hojas);
+  }
+  /* raíces */
+  for (let k = 0; k < 5; k++) {
+    const a = Math.PI / 2 + (k / 4 - 0.5) * Math.PI * 1.2;
+    ramificar(cx, cy + 6 * esc, a, 13 * esc + r() * 4 * esc, 4, r, raices, puntas);
+  }
+  return { ramas, hojas, raices, puntas };
+}
+const arbolGrande = arbol(0x27b0, 90, 74, 1.5);
+const arbolBitacora = arbol(0x27b4, 40, 34, 0.72);
+
+/* Los nueve SACRED SIGILS: marco poligonal + una figura geométrica
+   cada uno. La forma se reproduce; el significado no se inventa. */
+const SIGILOS = [
+  { et: "GAIA HEART" }, { et: "TERRAN BOND" }, { et: "GROWTH CYCLE" },
+  { et: "WATER VEIL" }, { et: "STONE OATH" }, { et: "LIFE WEAVE" },
+  { et: "BALANCE AXIS" }, { et: "WILD SPIRIT" }, { et: "ETERNAL WATCH" },
+];
+const marcoSigilo = Array.from({ length: 8 }, (_, i) => {
+  const a = (i / 8) * Math.PI * 2 - Math.PI / 8;
+  return `${(25 + 23 * Math.cos(a)).toFixed(1)},${(25 + 23 * Math.sin(a)).toFixed(1)}`;
+}).join(" ");
+/* espiral de GROWTH CYCLE */
+const espiral = Array.from({ length: 68 }, (_, i) => {
+  const t = (i / 67) * Math.PI * 4.4;
+  const rr = 2 + t * 2.5;
+  return `${(25 + rr * Math.cos(t)).toFixed(1)} ${(25 + rr * Math.sin(t)).toFixed(1)}`;
+}).join(" L");
+/* rosetón de LIFE WEAVE */
+const roseton = [0, 1, 2, 3, 4, 5].map((i) => {
+  const a = (i / 6) * Math.PI * 2;
+  return { cx: +(25 + 7 * Math.cos(a)).toFixed(1), cy: +(25 + 7 * Math.sin(a)).toFixed(1) };
+});
+/* cornamenta de WILD SPIRIT */
+const rAsta = rng(0x27c8);
+const astas: Trazo[] = [];
+const puntasAsta: Array<{ x: number; y: number; r: number }> = [];
+for (const s of [-1, 1]) {
+  ramificar(25 + s * 5, 28, -Math.PI / 2 + s * 0.65, 9, 4, rAsta, astas, puntasAsta);
+}
+
+/* Filas de las métricas del riel derecho (transcritas). */
+const FILAS_BIO = [
+  { et: "FLORA VITALITY", v: "94.1%" },
+  { et: "FAUNA HARMONY", v: "91.3%" },
+  { et: "WATER PURITY", v: "90.8%" },
+  { et: "AIR CLARITY", v: "93.7%" },
+  { et: "SOIL REGENERATION", v: "91.2%" },
+];
+const FILAS_MAPA = [
+  { et: "GREEN ZONES", v: "82.7%", c: "#5fbf7a" },
+  { et: "RESTORATION", v: "11.6%", c: "#d8b64a" },
+  { et: "AT RISK", v: "4.3%", c: "#c9584a" },
+  { et: "CORRUPTION", v: "1.4%", c: "#a8446a" },
+];
+
+---
+
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>KODEX−∞ · GAIA SENTINEL · PAGE 27</title>
+    <meta name="robots" content="noindex, nofollow" />
+  </head>
+  <body class="kdx-lam">
+    <div class="lam arch-marco" data-lam="gaia-sentinel" style="width:1229px;height:1536px;">
+      {/* ── el organismo: canvas procedural, x230..998 y206..1368 ──── */}
+      <canvas class="arch-caja gs-heroe" id="gs-heroe" width="768" height="1162" aria-hidden="true"></canvas>
+
+      {/* ── marco exterior e interior (medido x11/16 · x1212/1217) ─── */}
+      <svg class="arch-caja gs-marco" viewBox="0 0 1229 1536" width="1229" height="1536" fill="none" aria-hidden="true">
+        <rect x="11.5" y="11.5" width="1205" height="1513" stroke="currentColor" stroke-opacity="0.55" />
+        <rect x="16.5" y="16.5" width="1195" height="1503" stroke="currentColor" stroke-opacity="0.28" />
+        {/* filigrana de las cuatro esquinas del marco */}
+        {[[11, 11, 1, 1], [1217, 11, -1, 1], [11, 1525, 1, -1], [1217, 1525, -1, -1]].map(([x, y, sx, sy]) => (
+          <g transform={`translate(${x} ${y}) scale(${sx} ${sy})`} stroke="currentColor" stroke-opacity="0.6">
+            <path d="M6 30 L6 12 Q6 6 12 6 L30 6" />
+            <path d="M6 46 L18 46 L18 34" stroke-opacity="0.4" />
+            <circle cx="24" cy="24" r="3.2" />
+            <path d="M34 14 L44 14 M14 34 L14 44" stroke-opacity="0.35" />
+          </g>
+        ))}
+      </svg>
+
+      {/* ── cabecera: KODEX−∞ · UNIVERSAL ARCHIVE · PAGE 27 ────────── */}
+      <div class="arch-caja arch-caja--cabecera">
+        <CabeceraArchivo marca="KODEX−∞" lema="" rotuloPagina="PAGE" pagina="27">
+          <svg slot="adorno" width="1100" height="66" viewBox="0 0 1100 66" fill="none" aria-hidden="true">
+            {/* cartucho: las dos reglas medidas en y63 y y68 con sus
+                quiebres en chaflán hacia los flancos */}
+            <path d="M172 50 L196 50 L216 30 L360 30 L376 12" stroke="currentColor" stroke-opacity="0.5" />
+            <path d="M928 50 L904 50 L884 30 L740 30 L724 12" stroke="currentColor" stroke-opacity="0.5" />
+            <path d="M196 55 L214 55 L232 36 L360 36" stroke="currentColor" stroke-opacity="0.22" />
+            <path d="M904 55 L886 55 L868 36 L740 36" stroke="currentColor" stroke-opacity="0.22" />
+            <path d="M376 12 L724 12" stroke="currentColor" stroke-opacity="0.32" />
+            <circle cx="550" cy="56" r="2.6" stroke="currentColor" stroke-opacity="0.6" />
+            <path d="M550 0 L550 6" stroke="currentColor" stroke-opacity="0.5" />
+          </svg>
+        </CabeceraArchivo>
+      </div>
+      {/* estrellas de ocho puntas que flanquean el lema (medidas) */}
+      {[440, 762].map((x) => (
+        <svg class="arch-caja gs-estrella" style={`left:${x}px`} width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <path d="M11 0 L12.6 9.4 L22 11 L12.6 12.6 L11 22 L9.4 12.6 L0 11 L9.4 9.4 Z" fill="currentColor" fill-opacity="0.85" />
+          <path d="M4 4 L18 18 M18 4 L4 18" stroke="currentColor" stroke-opacity="0.45" />
+        </svg>
+      ))}
+      <p class="arch-caja gs-lema">UNIVERSAL ARCHIVE</p>
+
+      {/* ── título bilingüe: banda y82..196 medida ─────────────────── */}
+      <div class="arch-caja arch-caja--titulo">
+        <TituloBilingue titulo="GAIA SENTINEL" subtitulo="CENTINELA DE GAIA" />
+      </div>
+      {/* flechas ornamentales del subtítulo (x329..366 y x863..900) */}
+      {[{ x: 329, s: 1 }, { x: 863, s: -1 }].map(({ x, s }) => (
+        <svg class="arch-caja gs-flecha" style={`left:${x}px`} width="38" height="18" viewBox="0 0 38 18" fill="none" aria-hidden="true">
+          <g transform={s < 0 ? "translate(38 0) scale(-1 1)" : undefined}>
+            <path d="M0 9 L26 9" stroke="currentColor" stroke-opacity="0.8" />
+            <path d="M26 2 L34 9 L26 16 L28 9 Z" fill="currentColor" fill-opacity="0.85" />
+            <path d="M13 4 L18 9 L13 14 L8 9 Z" stroke="currentColor" stroke-opacity="0.7" />
+          </g>
+        </svg>
+      ))}
+
+      {/* ══ RIEL IZQUIERDO ═══════════════════════════════════════════ */}
+
+      {/* P1 · GUARDIAN CLASS — caja y99..423 */}
+      <section class="arch-caja gs-panel gs-panel--1">
+        <h2 class="gs-panel__rotulo">GUARDIAN CLASS</h2>
+        <span class="gs-panel__regla" aria-hidden="true"></span>
+        <svg class="gs-panel__sigilo" width="84" height="84" viewBox="0 0 76 76" fill="none" aria-hidden="true">
+          <polygon points={hexPts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")} stroke="currentColor" stroke-opacity="0.75" />
+          <polygon points={hexIn.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")} stroke="currentColor" stroke-opacity="0.5" />
+          {hexIn.map((p, i) => (
+            <line x1={hexIn[i][0].toFixed(1)} y1={hexIn[i][1].toFixed(1)} x2={hexIn[(i + 2) % 6][0].toFixed(1)} y2={hexIn[(i + 2) % 6][1].toFixed(1)} stroke="currentColor" stroke-opacity="0.55" />
+          ))}
+          {hexIn.map((p) => (
+            <line x1="38" y1="38" x2={p[0].toFixed(1)} y2={p[1].toFixed(1)} stroke="currentColor" stroke-opacity="0.4" />
+          ))}
+          {[1, 2, 4, 5].map((i) => (
+            <g>
+              <circle cx={hexIn[i][0].toFixed(1)} cy={hexIn[i][1].toFixed(1)} r="4.2" stroke="currentColor" stroke-opacity="0.9" />
+              <circle cx={hexIn[i][0].toFixed(1)} cy={hexIn[i][1].toFixed(1)} r="1.5" fill="currentColor" fill-opacity="0.7" />
+            </g>
+          ))}
+          <line x1="38" y1="0" x2="38" y2="10" stroke="currentColor" stroke-opacity="0.5" />
+          <line x1="38" y1="66" x2="38" y2="76" stroke="currentColor" stroke-opacity="0.5" />
+          <circle cx="4" cy="38" r="2.4" stroke="currentColor" stroke-opacity="0.6" />
+          <circle cx="72" cy="38" r="2.4" stroke="currentColor" stroke-opacity="0.6" />
+          <circle cx="38" cy="38" r="2.8" fill="currentColor" fill-opacity="0.8" />
+        </svg>
+        <p class="gs-panel__clase">{"TITANIC BIOSPHERE\nPROTECTOR"}</p>
+        <dl class="gs-campos">
+          <div><dt>CLASSIFICATION:</dt><dd>Ω-GAIA</dd></div>
+          <div><dt>ORIGIN:</dt><dd>PRIME EARTH</dd></div>
+          <div><dt>AGE:</dt><dd>∞ CYCLES</dd></div>
+          <div><dt>ALIGNMENT:</dt><dd>HARMONIC</dd></div>
+          <div class="gs-campos__ancho"><dt>FUNCTION:</dt><dd>{"PROTECT • BALANCE\nRESTORE"}</dd></div>
+        </dl>
+      </section>
+
+      {/* P2 · WORLD TREE SIGIL — caja y437..712 */}
+      <section class="arch-caja gs-panel gs-panel--2">
+        <h2 class="gs-panel__rotulo">WORLD TREE SIGIL</h2>
+        <span class="gs-panel__regla" aria-hidden="true"></span>
+        <svg class="gs-arbol" width="180" height="180" viewBox="0 0 180 180" fill="none" aria-hidden="true">
+          <circle cx="90" cy="90" r="86" stroke="currentColor" stroke-opacity="0.5" />
+          <circle cx="90" cy="90" r="78" stroke="currentColor" stroke-opacity="0.3" />
+          <circle cx="90" cy="90" r="63" stroke="currentColor" stroke-opacity="0.42" stroke-dasharray="2 5" />
+          <circle cx="90" cy="90" r="55" stroke="currentColor" stroke-opacity="0.22" />
+          {Array.from({ length: 8 }, (_, i) => {
+            const a = (i / 8) * Math.PI * 2 - Math.PI / 2;
+            return (
+              <g>
+                <circle cx={(90 + 78 * Math.cos(a)).toFixed(1)} cy={(90 + 78 * Math.sin(a)).toFixed(1)} r="4.6" stroke="currentColor" stroke-opacity="0.7" />
+                <circle cx={(90 + 78 * Math.cos(a)).toFixed(1)} cy={(90 + 78 * Math.sin(a)).toFixed(1)} r="1.4" fill="currentColor" fill-opacity="0.75" />
+              </g>
+            );
+          })}
+          {Array.from({ length: 36 }, (_, i) => {
+            const a = (i / 36) * Math.PI * 2;
+            return <line x1={(90 + 63 * Math.cos(a)).toFixed(1)} y1={(90 + 63 * Math.sin(a)).toFixed(1)} x2={(90 + 70 * Math.cos(a)).toFixed(1)} y2={(90 + 70 * Math.sin(a)).toFixed(1)} stroke="currentColor" stroke-opacity="0.3" />;
+          })}
+          <line x1="4" y1="90" x2="176" y2="90" stroke="currentColor" stroke-opacity="0.3" />
+          <line x1="90" y1="4" x2="90" y2="176" stroke="currentColor" stroke-opacity="0.3" />
+          {[1, -1].map((sx) => (
+            <g transform={sx < 0 ? "translate(180 0) scale(-1 1)" : undefined}>
+              {arbolGrande.ramas.map((t) => (
+                <path d={t.d} stroke="#a8c774" stroke-opacity={t.o} stroke-width={t.w} />
+              ))}
+              {arbolGrande.raices.map((t) => (
+                <path d={t.d} stroke="#c9b47c" stroke-opacity={t.o} stroke-width={t.w} />
+              ))}
+              {arbolGrande.hojas.map((h) => (
+                <circle cx={h.x.toFixed(1)} cy={h.y.toFixed(1)} r={h.r} fill="#9ed46a" fill-opacity="0.7" />
+              ))}
+            </g>
+          ))}
+          <path d="M87 74 L90 62 L93 74 L90 86 Z" fill="#9ed46a" fill-opacity="0.55" stroke="#c8e89a" stroke-opacity="0.8" />
+          <path d="M86 96 L90 88 L94 96 L90 112 Z" fill="#9ed46a" fill-opacity="0.4" stroke="#c8e89a" stroke-opacity="0.6" />
+          <circle cx="90" cy="90" r="3" fill="#dff0b6" fill-opacity="0.9" />
+        </svg>
+        <p class="gs-panel__verso">{"THE ROOT REMEMBERS.\nTHE LEAF WHISPERS.\nTHE WHOLE ENDURES."}</p>
+      </section>
+
+      {/* P3 · SACRED SIGILS — caja y728..1042 */}
+      <section class="arch-caja gs-panel gs-panel--3">
+        <h2 class="gs-panel__rotulo">SACRED SIGILS</h2>
+        <span class="gs-panel__regla" aria-hidden="true"></span>
+        <div class="gs-rejilla">
+          {SIGILOS.map((s, i) => (
+            <figure class="gs-sig">
+              <svg width="50" height="50" viewBox="0 0 50 50" fill="none" aria-hidden="true">
+                <polygon points={marcoSigilo} stroke="currentColor" stroke-opacity="0.55" />
+                {i === 0 && (
+                  <g>
+                    <path d="M25 8 L37 24 L25 42 L13 24 Z" stroke="#a8c774" stroke-opacity="0.9" fill="#7fae4e" fill-opacity="0.28" />
+                    <path d="M25 40 L25 16" stroke="#cfe6a0" stroke-opacity="0.8" />
+                    {[-1, 1].map((s2) => (
+                      <g>
+                        <path d={`M25 32 Q${25 + s2 * 9} 28 ${25 + s2 * 11} 20`} stroke="#cfe6a0" stroke-opacity="0.7" />
+                        <path d={`M25 24 Q${25 + s2 * 7} 20 ${25 + s2 * 8} 14`} stroke="#cfe6a0" stroke-opacity="0.6" />
+                      </g>
+                    ))}
+                  </g>
+                )}
+                {i === 1 && (
+                  <g stroke="currentColor">
+                    <path d="M25 10 L40 36 L10 36 Z" stroke-opacity="0.85" />
+                    <path d="M25 18 L34 34 L16 34 Z" stroke-opacity="0.6" />
+                    <path d="M25 25 L30 33 L20 33 Z" stroke-opacity="0.5" />
+                    <circle cx="25" cy="31" r="1.6" fill="#9ed46a" fill-opacity="0.8" stroke="none" />
+                  </g>
+                )}
+                {i === 2 && <path d={`M${espiral}`} stroke="currentColor" stroke-opacity="0.85" fill="none" />}
+                {i === 3 && (
+                  <g stroke="currentColor">
+                    <path d="M25 9 Q37 26 33 34 Q29 42 25 42 Q21 42 17 34 Q13 26 25 9 Z" stroke-opacity="0.85" />
+                    <path d="M18 30 Q25 36 32 30" stroke-opacity="0.6" />
+                    <path d="M20 34 Q25 38 30 34" stroke-opacity="0.45" />
+                  </g>
+                )}
+                {i === 4 && (
+                  <g stroke="currentColor">
+                    <polygon points="25,10 39,18 39,33 25,41 11,33 11,18" stroke-opacity="0.85" />
+                    <path d="M25 10 L25 25 L11 33 M25 25 L39 33" stroke-opacity="0.5" />
+                    <ellipse cx="25" cy="26" rx="3" ry="4.4" fill="#7fae4e" fill-opacity="0.7" stroke="#cfe6a0" stroke-opacity="0.7" />
+                  </g>
+                )}
+                {i === 5 && (
+                  <g stroke="currentColor">
+                    <circle cx="25" cy="25" r="13" stroke-opacity="0.7" />
+                    {roseton.map((c) => <circle cx={c.cx} cy={c.cy} r="7" stroke-opacity="0.55" />)}
+                    <circle cx="25" cy="25" r="7" stroke-opacity="0.6" />
+                  </g>
+                )}
+                {i === 6 && (
+                  <g stroke="currentColor">
+                    <path d="M25 12 L25 40 M14 40 L36 40" stroke-opacity="0.85" />
+                    <path d="M11 20 L39 20" stroke-opacity="0.8" />
+                    <path d="M11 20 L5 30 L17 30 Z" stroke-opacity="0.7" />
+                    <path d="M39 20 L33 30 L45 30 Z" stroke-opacity="0.7" />
+                    <circle cx="25" cy="15" r="3" stroke-opacity="0.8" />
+                  </g>
+                )}
+                {i === 7 && (
+                  <g>
+                    {astas.map((t) => <path d={t.d} stroke="currentColor" stroke-opacity={t.o} stroke-width={t.w} fill="none" />)}
+                    <path d="M25 30 Q20 32 21 38 Q23 44 25 44 Q27 44 29 38 Q30 32 25 30 Z" stroke="currentColor" stroke-opacity="0.8" fill="currentColor" fill-opacity="0.15" />
+                    <circle cx="22.5" cy="35" r="1.1" fill="currentColor" fill-opacity="0.8" />
+                    <circle cx="27.5" cy="35" r="1.1" fill="currentColor" fill-opacity="0.8" />
+                  </g>
+                )}
+                {i === 8 && (
+                  <g stroke="currentColor">
+                    <path d="M8 25 Q25 12 42 25 Q25 38 8 25 Z" stroke-opacity="0.85" />
+                    <circle cx="25" cy="25" r="6.5" stroke-opacity="0.8" />
+                    <circle cx="25" cy="25" r="2.6" fill="#7fae4e" fill-opacity="0.85" stroke="none" />
+                    <path d="M25 8 L25 14 M12 13 L16 18 M38 13 L34 18 M12 37 L16 32 M38 37 L34 32 M25 42 L25 36" stroke-opacity="0.55" />
+                  </g>
+                )}
+              </svg>
+              <figcaption>{s.et}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+
+      {/* P4 · SENTINEL LOG ENTRY — caja y1055..1352 */}
+      <section class="arch-caja gs-panel gs-panel--4">
+        <h2 class="gs-panel__rotulo">SENTINEL LOG ENTRY</h2>
+        <span class="gs-panel__regla" aria-hidden="true"></span>
+        <div class="gs-logid">
+          <SelloClasificacion codigo="LOG ID:" clasificacion="GS-∞-27" lado="izq" />
+        </div>
+        <span class="gs-panel__regla gs-panel__regla--dos" aria-hidden="true"></span>
+        <p class="gs-log">{"Cycle 78,944 ∞\nThe mountains sing. The rivers\nremember their path. The forests\nbreathe in unison. All is not lost.\nThe Sentinel stands.\nI stand.\nWe stand.\nFor Gaia."}</p>
+        <svg class="gs-sello-arbol" width="80" height="80" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+          <circle cx="40" cy="40" r="38" stroke="#7fbf5a" stroke-opacity="0.75" />
+          <circle cx="40" cy="40" r="33" stroke="#7fbf5a" stroke-opacity="0.35" stroke-dasharray="1.5 3" />
+          <circle cx="40" cy="40" r="27" stroke="#7fbf5a" stroke-opacity="0.55" />
+          {Array.from({ length: 4 }, (_, i) => {
+            const a = (i / 4) * Math.PI * 2 - Math.PI / 2;
+            return <line x1={(40 + 27 * Math.cos(a)).toFixed(1)} y1={(40 + 27 * Math.sin(a)).toFixed(1)} x2={(40 + 38 * Math.cos(a)).toFixed(1)} y2={(40 + 38 * Math.sin(a)).toFixed(1)} stroke="#7fbf5a" stroke-opacity="0.6" />;
+          })}
+          {[1, -1].map((sx) => (
+            <g transform={sx < 0 ? "translate(80 0) scale(-1 1)" : undefined}>
+              {arbolBitacora.ramas.map((t) => <path d={t.d} stroke="#8fd067" stroke-opacity={t.o} stroke-width={t.w} />)}
+              {arbolBitacora.raices.map((t) => <path d={t.d} stroke="#8fd067" stroke-opacity={t.o} stroke-width={t.w} />)}
+              {arbolBitacora.hojas.map((h) => <circle cx={h.x.toFixed(1)} cy={h.y.toFixed(1)} r={h.r} fill="#a8e07a" fill-opacity="0.7" />)}
+            </g>
+          ))}
+        </svg>
+        <p class="gs-archivista">— ARCHIVIST: <span>LYRΔ</span></p>
+      </section>
+
+      {/* ══ RIEL DERECHO ═════════════════════════════════════════════ */}
+
+      {/* R1 · BIOSPHERE INTEGRITY — caja y101..495 */}
+      <section class="arch-caja gs-tarjeta gs-tarjeta--1">
+        <TarjetaMetrica tituloEn="BIOSPHERE INTEGRITY" tituloEs="" valor="92.7%" etiqueta={"HARMONIC STABILITY\nOPTIMAL"} conPie={false}>
+          <canvas class="gs-medidor" id="gs-medidor" width="152" height="152"></canvas>
+        </TarjetaMetrica>
+        <span class="gs-tarjeta__regla" aria-hidden="true"></span>
+        <ul class="gs-filas">
+          {FILAS_BIO.map((f, i) => (
+            <li>
+              <svg class="gs-filas__icono" width="14" height="16" viewBox="0 0 14 16" fill="none" aria-hidden="true">
+                {i === 0 && <g><path d="M7 15 L7 5" stroke="#8fd067" stroke-opacity="0.9" /><path d="M7 8 Q1 7 2 2 Q7 3 7 8 Z M7 8 Q13 7 12 2 Q7 3 7 8 Z" fill="#7fbf5a" fill-opacity="0.55" stroke="#a8e07a" stroke-opacity="0.8" /></g>}
+                {i === 1 && <g><path d="M2 2 L4 7 L10 7 L12 2" stroke="#8fd067" stroke-opacity="0.85" /><path d="M4 7 Q7 15 10 7 Z" fill="#7fbf5a" fill-opacity="0.5" stroke="#a8e07a" stroke-opacity="0.8" /></g>}
+                {i === 2 && <path d="M7 1 Q12 8 11 11 Q10 15 7 15 Q4 15 3 11 Q2 8 7 1 Z" fill="#5fb8a0" fill-opacity="0.5" stroke="#8fd8c0" stroke-opacity="0.85" />}
+                {i === 3 && <g><path d="M7 1 L12 12 L2 12 Z" fill="#7fbf5a" fill-opacity="0.35" stroke="#a8e07a" stroke-opacity="0.8" /><path d="M7 14 Q3 10 7 6 Q11 10 7 14 Z" fill="#8fd067" fill-opacity="0.6" stroke="none" /></g>}
+                {i === 4 && <g><path d="M7 1 L13 13 L1 13 Z" stroke="#a8e07a" stroke-opacity="0.8" fill="#7fbf5a" fill-opacity="0.3" /><path d="M7 12 L7 5 M7 8 Q4 7 4 4 M7 8 Q10 7 10 4" stroke="#cfe6a0" stroke-opacity="0.8" /></g>}
+              </svg>
+              <span class="gs-filas__et">{f.et}</span>
+              <span class="gs-filas__v">{f.v}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* R2 · WATCH RADIUS — caja y511..792 */}
+      <section class="arch-caja gs-tarjeta gs-tarjeta--2">
+        <TarjetaMetrica tituloEn="WATCH RADIUS" tituloEs="GLOBAL • TELLURIC" valor="12,742 km" etiqueta="PLANETARY COVERAGE" conPie={false}>
+          <span class="gs-hueco" aria-hidden="true"></span>
+        </TarjetaMetrica>
+        <canvas class="gs-orbitas" id="gs-orbitas" width="186" height="186"></canvas>
+      </section>
+
+      {/* R3 · ROOT-NETWORK METRICS — caja y807..1034 */}
+      <section class="arch-caja gs-panel gs-panel--r3">
+        <h2 class="gs-panel__rotulo gs-panel__rotulo--izq">ROOT-NETWORK METRICS</h2>
+        <span class="gs-panel__regla" aria-hidden="true"></span>
+        <dl class="gs-red">
+          <div><dt>TOTAL ROOT LENGTH</dt><dd>8.76 x 10<sup>11</sup> km</dd></div>
+          <div><dt>ACTIVE NODES</dt><dd>7.21 MILLION</dd></div>
+          <div><dt>DATA FLOW (HARMONIC)</dt><dd>3.68 PB/s</dd></div>
+          <div class="gs-red--ultima"><dt>NETWORK HEALTH</dt><dd>89.4%<canvas class="gs-pulso" id="gs-pulso" width="112" height="34"></canvas></dd></div>
+        </dl>
+      </section>
+
+      {/* R4 · GAIA WATCH MAP — caja y1049..1352 */}
+      <section class="arch-caja gs-panel gs-panel--r4">
+        <h2 class="gs-panel__rotulo">GAIA WATCH MAP</h2>
+        <span class="gs-panel__regla" aria-hidden="true"></span>
+        <canvas class="gs-globo" id="gs-globo" width="186" height="186"></canvas>
+        <ul class="gs-leyenda">
+          {FILAS_MAPA.map((f) => (
+            <li>
+              <span class="gs-leyenda__punto" style={`--p:${f.c}`}></span>
+              <span class="gs-leyenda__et">{f.et}</span>
+              <span class="gs-leyenda__v">{f.v}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ══ PIE ══════════════════════════════════════════════════════ */}
+
+      {/* sello izquierdo: montaña dentro de un círculo de construcción */}
+      <svg class="arch-caja gs-sello gs-sello--izq" width="84" height="84" viewBox="0 0 84 84" fill="none" aria-hidden="true">
+        <circle cx="42" cy="42" r="40" stroke="currentColor" stroke-opacity="0.6" />
+        <circle cx="42" cy="42" r="34" stroke="currentColor" stroke-opacity="0.3" />
+        <path d="M42 10 L70 60 L14 60 Z" stroke="currentColor" stroke-opacity="0.7" />
+        <path d="M42 24 L60 60 L24 60 Z" stroke="currentColor" stroke-opacity="0.5" />
+        <path d="M28 46 L42 30 L56 46" stroke="currentColor" stroke-opacity="0.65" />
+        <path d="M20 60 L64 60" stroke="currentColor" stroke-opacity="0.55" />
+        <path d="M42 60 L42 72 M30 66 L42 60 L54 66" stroke="currentColor" stroke-opacity="0.4" />
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = (i / 12) * Math.PI * 2;
+          return <circle cx={(42 + 40 * Math.cos(a)).toFixed(1)} cy={(42 + 40 * Math.sin(a)).toFixed(1)} r="1.1" fill="currentColor" fill-opacity="0.6" />;
+        })}
+      </svg>
+      <p class="arch-caja gs-pie-izq">{"HARMONY\nIS STRENGTH."}</p>
+      <svg class="arch-caja gs-puntos gs-puntos--izq" width="92" height="10" viewBox="0 0 92 10" fill="none" aria-hidden="true">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <circle cx={5 + i * 20.5} cy="5" r="4.2" fill="#6cbf5a" fill-opacity={i === 2 ? "0.45" : "0.85"} />
+        ))}
+        <circle cx="46" cy="5" r="1.6" fill="#dff0b6" fill-opacity="0.9" />
+      </svg>
+
+      {/* aforismo central: versos y1401..1479 medidos */}
+      <div class="arch-caja arch-caja--pie">
+        <AforismoPie
+          lineas={[
+            [{ t: "I AM THE MEMORY OF THE EARTH." }],
+            [{ t: "I AM THE PROMISE OF TOMORROW." }],
+            [{ t: "I AM GAIA.", acento: true }],
+          ]}
+        />
+      </div>
+
+      <svg class="arch-caja gs-pie-marco" width="1173" height="112" viewBox="0 0 1173 112" fill="none" aria-hidden="true">
+        <path d="M0 2 H1173" stroke="currentColor" stroke-opacity="0.5" />
+        <path d="M0 6 H1173" stroke="currentColor" stroke-opacity="0.22" />
+        {/* cajas de las tres celdas del pie (medidas) */}
+        <rect x="46" y="12" width="220" height="92" stroke="currentColor" stroke-opacity="0.28" />
+        <rect x="273" y="12" width="627" height="92" stroke="currentColor" stroke-opacity="0.32" />
+        <rect x="907" y="12" width="220" height="92" stroke="currentColor" stroke-opacity="0.28" />
+        {[46, 273, 907].map((x, i) => {
+          const w = i === 1 ? 627 : 220;
+          return (
+            <g stroke="currentColor" stroke-opacity="0.45">
+              <path d={`M${x} ${22} L${x} 14 Q${x} 12 ${x + 2} 12 L${x + 10} 12`} />
+              <path d={`M${x + w} ${22} L${x + w} 14 Q${x + w} 12 ${x + w - 2} 12 L${x + w - 10} 12`} />
+              <path d={`M${x} ${94} L${x} 102 Q${x} 104 ${x + 2} 104 L${x + 10} 104`} />
+              <path d={`M${x + w} ${94} L${x + w} 102 Q${x + w} 104 ${x + w - 2} 104 L${x + w - 10} 104`} />
+            </g>
+          );
+        })}
+        {/* rombos que flanquean el aforismo */}
+        {[289, 884].map((x) => (
+          <g stroke="currentColor" stroke-opacity="0.7">
+            <path d={`M${x} 52 L${x + 7} 58 L${x} 64 L${x - 7} 58 Z`} />
+            <path d={`M${x - 14} 58 L${x - 8} 58 M${x + 8} 58 L${x + 14} 58`} />
+          </g>
+        ))}
+      </svg>
+
+      <p class="arch-caja gs-pie-der">{"PROTECT\nPRESERVE\nPERPETUATE"}</p>
+      <svg class="arch-caja gs-puntos gs-puntos--der" width="92" height="10" viewBox="0 0 92 10" fill="none" aria-hidden="true">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <circle cx={5 + i * 20.5} cy="5" r="4.2" fill="#6cbf5a" fill-opacity={i === 3 ? "0.4" : "0.85"} />
+        ))}
+      </svg>
+      {/* sello derecho: la rama de la referencia */}
+      <svg class="arch-caja gs-sello gs-sello--der" width="84" height="84" viewBox="0 0 84 84" fill="none" aria-hidden="true">
+        <circle cx="42" cy="42" r="40" stroke="currentColor" stroke-opacity="0.6" />
+        <circle cx="42" cy="42" r="34" stroke="currentColor" stroke-opacity="0.3" />
+        <path d="M42 74 L42 20" stroke="currentColor" stroke-opacity="0.85" />
+        <path d="M42 22 Q38 12 42 6 Q46 12 42 22 Z" stroke="currentColor" stroke-opacity="0.8" fill="currentColor" fill-opacity="0.12" />
+        {[0, 1, 2].map((k) => {
+          const y = 30 + k * 13;
+          return (
+            <g stroke="currentColor" stroke-opacity="0.75">
+              <path d={`M42 ${y + 8} Q${28 - k * 3} ${y + 4} ${26 - k * 4} ${y - 6}`} fill="currentColor" fill-opacity="0.1" />
+              <path d={`M42 ${y + 8} Q${56 + k * 3} ${y + 4} ${58 + k * 4} ${y - 6}`} fill="currentColor" fill-opacity="0.1" />
+            </g>
+          );
+        })}
+        {Array.from({ length: 12 }, (_, i) => {
+          const a = (i / 12) * Math.PI * 2;
+          return <circle cx={(42 + 40 * Math.cos(a)).toFixed(1)} cy={(42 + 40 * Math.sin(a)).toFixed(1)} r="1.1" fill="currentColor" fill-opacity="0.6" />;
+        })}
+      </svg>
+
+      {/* ── barra inferior: cartucho «ALL LIFE. ONE SONG.» y1494..1527 ── */}
+      <svg class="arch-caja gs-barra" width="1173" height="46" viewBox="0 0 1173 46" fill="none" aria-hidden="true">
+        <path d="M0 6 H1173" stroke="currentColor" stroke-opacity="0.2" />
+        <path d="M20 24 H408" stroke="currentColor" stroke-opacity="0.3" />
+        <path d="M765 24 H1153" stroke="currentColor" stroke-opacity="0.3" />
+        <path d="M424 24 L440 10 L733 10 L749 24 L733 38 L440 38 Z" stroke="currentColor" stroke-opacity="0.5" />
+        {[416, 757].map((x, i) => (
+          <g stroke="currentColor" stroke-opacity="0.7" transform={i ? `translate(${x * 2} 0) scale(-1 1)` : undefined}>
+            <path d={`M${i ? x : x} 24 L${(i ? x : x) - 8} 18 L${(i ? x : x) - 8} 30 Z`} fill="currentColor" fill-opacity="0.5" />
+          </g>
+        ))}
+      </svg>
+      <p class="arch-caja gs-barra__lema">ALL LIFE. ONE SONG.</p>
+    </div>
+  </body>
+</html>
+
+<style is:global>
+  /* LECCIÓN PAGADA · las familias instaladas sólo traen 400 y 700: con
+     600 el navegador SINTETIZA la negrita y el texto sale ~8 % más
+     ancho y mucho más denso que la referencia, que es una versalita
+     fina. Los componentes del cromo declaran 600, así que hay que
+     pisarlos desde la lámina y con !important (están scopeados por
+     Astro y ganan por especificidad). */
+  .arch-marco p,
+  .arch-marco h1,
+  .arch-marco h2,
+  .arch-marco h3,
+  .arch-marco dt,
+  .arch-marco dd,
+  .arch-marco li,
+  .arch-marco em,
+  .arch-marco span,
+  .arch-marco figcaption { font-weight: 400 !important; }
+</style>
+
+<style>
+  html, body { margin: 0; background: #000; }
+  .arch-marco {
+    position: relative;
+    background: #05070a;
+    overflow: hidden;
+    transform-origin: 0 0;
+    /* Paleta MEDIDA sobre a27-canon (pico de los píxeles altos). */
+    --gs-oro: #baa36e;
+    --gs-oro-vivo: #d4bb84;
+    --gs-oro-tenue: #8f8761;
+    --gs-verde: #9cc06e;
+    --gs-verde-vivo: #a1c06b;
+    --gs-verde-panel: #98a376;
+    --gs-crema: #e4d7b7;
+    --gs-texto: #a9a07c;
+    --gs-sans: "Futura", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+    --gs-serif: "Bodoni 72", "Bodoni 72 Oldstyle", Didot, Georgia, serif;
+    /* variables del cromo compartido */
+    --arch-ink: #baa36e;
+    --arch-ink-titulo: #e4d7b7;
+    --arch-acento: #a1c06b;
+  }
+  .arch-caja { position: absolute; box-sizing: border-box; }
+
+  /* ── organismo ──────────────────────────────────────────────────── */
+  .gs-heroe { left: 230px; top: 206px; width: 768px; height: 1162px; }
+  .gs-marco { left: 0; top: 0; color: var(--gs-oro); }
+
+  /* ── cabecera ───────────────────────────────────────────────────── */
+  .arch-caja--cabecera {
+    top: 27px; left: 26px; width: 1177px;
+    color: var(--gs-oro);
+    --arch-cab-marca-size: 29.2px;
+    --arch-cab-rotulo-size: 21.2px;
+    --arch-cab-numero-size: 33.2px;
+  }
+  .arch-caja--cabecera :global(.arch-cab__marca) {
+    /* 140,7 px naturales contra los 172 medidos (x59..231). */
+    letter-spacing: 0.153em;
+    font-family: var(--gs-sans);
+    padding-left: 31px;
+    line-height: 30px;
+  }
+  .arch-caja--cabecera :global(.arch-cab__lema) { display: none; }
+  /* «PAGE 27» va en UNA línea en esta referencia: rótulo y número
+     alineados por la base, no apilados como en a28. */
+  .arch-caja--cabecera :global(.arch-cab__pagina-bloque) {
+    display: flex; align-items: baseline; gap: 4px;
+    padding-right: 13px;
+  }
+  .arch-caja--cabecera :global(.arch-cab__rotulo) {
+    font-family: var(--gs-sans); letter-spacing: 0.29em; line-height: 1;
+  }
+  /* «PAGE 27» ocupa 157 px entre x1039 y x1196: el número va tracado. */
+  .arch-caja--cabecera :global(.arch-cab__numero) {
+    margin-top: 0; font-family: var(--gs-sans); letter-spacing: 0.35em; line-height: 1;
+  }
+  .arch-caja--cabecera :global(.arch-cab__adorno) { position: absolute; left: 50%; top: -2px; transform: translateX(-50%); }
+
+  .gs-lema {
+    top: 26px; left: 0; width: 1229px; margin: 0; text-align: center;
+    font-family: var(--gs-sans); font-size: 18.6px; line-height: 20px;
+    /* 188 px naturales contra los 278 medidos (x469..747). */
+    letter-spacing: 0.285em; text-transform: uppercase;
+    color: var(--gs-oro);
+  }
+  .gs-estrella { top: 28px; color: var(--gs-oro); }
+
+  /* ── título ─────────────────────────────────────────────────────── */
+  .arch-caja--titulo {
+    top: 76px; left: 222px; width: 783px;
+    /* 105 px = versal medida 73 / 0,695 (razón de Bodoni 72).
+       33,2 px = versal 25 / 0,754 (razón de Futura). */
+    --arch-titulo-size: 105px;
+    --arch-sub-size: 33.2px;
+  }
+  .arch-caja--titulo :global(.arch-titulo__en) {
+    font-family: var(--gs-serif);
+    /* tracking calculado: 714,7 px naturales a 105 px contra los 719
+       medidos entre x256 y x975. */
+    letter-spacing: 0.003em;
+    /* interlínea por debajo del cuerpo: la referencia pega el
+       subtítulo al título y con line-height 105 quedaba 25 px bajo. */
+    line-height: 88px;
+    text-shadow: 0 0 30px rgba(226,206,150,0.3), 0 0 8px rgba(226,206,150,0.2);
+  }
+  /* la referencia NO trae la regla ornamental entre título y subtítulo */
+  .arch-caja--titulo :global(.arch-titulo__regla) { display: none; }
+  .arch-caja--titulo :global(.arch-titulo__es) {
+    margin-top: 3px;
+    font-family: var(--gs-sans);
+    /* 332,6 px naturales contra los 478 medidos (x376..854). */
+    letter-spacing: 0.258em;
+    color: var(--gs-verde-vivo);
+    text-shadow: 0 0 16px rgba(140,200,90,0.4);
+  }
+  .gs-flecha { top: 175px; color: var(--gs-verde-vivo); opacity: 0.9; }
+
+  /* ── cajas de panel, cromo común de los dos rieles ──────────────── */
+  .gs-panel, .gs-tarjeta {
+    border: 1px solid color-mix(in srgb, var(--gs-oro) 34%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--gs-oro) 13%, transparent);
+    outline-offset: 4px;
+    background: rgba(3,6,4,0.86);
+    color: var(--gs-oro);
+    text-align: center;
+    overflow: hidden;
+  }
+  /* esquineros: la referencia remata cada caja con una L de filigrana */
+  .gs-panel::before, .gs-panel::after,
+  .gs-tarjeta::before, .gs-tarjeta::after {
+    content: "";
+    position: absolute;
+    left: 5px; right: 5px; height: 9px;
+    border-left: 1px solid color-mix(in srgb, var(--gs-oro) 55%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--gs-oro) 55%, transparent);
+    pointer-events: none;
+  }
+  .gs-panel::before, .gs-tarjeta::before { top: 5px; border-top: 1px solid color-mix(in srgb, var(--gs-oro) 30%, transparent); }
+  .gs-panel::after, .gs-tarjeta::after { bottom: 5px; border-bottom: 1px solid color-mix(in srgb, var(--gs-oro) 30%, transparent); }
+
+  .gs-panel__rotulo {
+    margin: 0; padding-top: 16px;
+    /* 13,26 px = versal medida 10 / 0,754. */
+    font-family: var(--gs-sans); font-size: 13.2px; line-height: 14px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+    color: var(--gs-verde-panel);
+    white-space: nowrap;
+  }
+  .gs-panel__rotulo--izq { text-align: left; padding-left: 12px; }
+  /* «ROOT-NETWORK METRICS» mide 163 px entre x1017 y x1180: a 13,2 px
+     se sale de la caja, así que va a 12,6 sin tracking. */
+  .gs-panel--r3 .gs-panel__rotulo { font-size: 12.6px; letter-spacing: 0.013em; }
+  .gs-panel__regla {
+    display: block; height: 1px; margin: 8px 15px 0;
+    background: color-mix(in srgb, var(--gs-oro) 42%, transparent);
+  }
+
+  /* ── P1 · GUARDIAN CLASS (y99..423) ─────────────────────────────── */
+  .gs-panel--1 { left: 26px; top: 99px; width: 199px; height: 324px; }
+  /* sigilo medido y150..219 (69 px de alto) */
+  .gs-panel--1 .gs-panel__sigilo { position: absolute; left: 58px; top: 45px; color: var(--gs-oro-vivo); }
+  /* clase medida y241..249 y y257..265 (versal 9 → 11,9 px) */
+  .gs-panel__clase {
+    position: absolute; left: 0; right: 0; top: 138px; margin: 0;
+    font-family: var(--gs-sans); font-size: 11.9px; line-height: 16px;
+    letter-spacing: 0.045em; white-space: pre;
+    color: var(--gs-verde-panel);
+  }
+  /* campos medidos: versales en y285, 308, 330, 354, 379 y 395 —
+     paso 23,5 px, no los 32 que salían del flujo normal. */
+  .gs-campos { position: absolute; left: 10px; right: 10px; top: 183px; margin: 0; padding: 0; text-align: left; }
+  .gs-campos > div {
+    display: flex; align-items: baseline; gap: 7px;
+    box-sizing: border-box; height: 23.5px; padding-top: 3px;
+    border-top: 1px solid color-mix(in srgb, var(--gs-oro) 15%, transparent);
+  }
+  .gs-campos > div:first-child { border-top: 0; }
+  .gs-campos__ancho { flex-wrap: wrap; height: auto; }
+  .gs-campos dt, .gs-campos dd {
+    margin: 0; font-family: var(--gs-sans); font-size: 10.5px; line-height: 13px;
+    letter-spacing: 0.045em; text-transform: uppercase; white-space: pre;
+  }
+  .gs-campos dt { color: var(--gs-verde-panel); }
+  .gs-campos dd { color: var(--gs-oro-vivo); }
+  .gs-campos__ancho dd { width: 100%; text-align: center; margin-top: 0; }
+  .gs-campos__ancho dt { width: auto; }
+
+  /* ── P2 · WORLD TREE SIGIL (y437..712) ──────────────────────────── */
+  .gs-panel--2 { left: 26px; top: 437px; width: 199px; height: 275px; }
+  .gs-arbol { display: block; margin: 5px auto 0; color: var(--gs-oro); }
+  .gs-panel__verso {
+    margin: 8px 0 0;
+    font-family: var(--gs-sans); font-size: 10.5px; line-height: 14.7px;
+    letter-spacing: 0.055em; white-space: pre;
+    color: var(--gs-texto);
+  }
+
+  /* ── P3 · SACRED SIGILS (y728..1042) ────────────────────────────── */
+  .gs-panel--3 { left: 26px; top: 728px; width: 199px; height: 314px; }
+  .gs-rejilla {
+    margin: 12px 0 0; padding: 0 5px;
+    display: grid; grid-template-columns: repeat(3, 1fr); row-gap: 27px;
+  }
+  .gs-sig { margin: 0; display: flex; flex-direction: column; align-items: center; color: var(--gs-oro-vivo); }
+  .gs-sig svg { display: block; }
+  .gs-sig figcaption {
+    margin-top: 8px;
+    /* rótulos medidos: 44 px de ancho con versal 7 — razón 6,29, que
+       en Futura no existe (6,29 pide una condensada). */
+    font-family: "Avenir Next Condensed", "Futura Condensed Medium", var(--gs-sans);
+    font-size: 9.9px; line-height: 10px;
+    letter-spacing: 0.031em; text-transform: uppercase;
+    color: var(--gs-oro-vivo); white-space: nowrap;
+  }
+
+  /* ── P4 · SENTINEL LOG ENTRY (y1055..1352) ──────────────────────── */
+  .gs-panel--4 { left: 26px; top: 1055px; width: 199px; height: 297px; }
+  .gs-logid { position: absolute; left: 14px; top: 48px; }
+  .gs-logid :global(.arch-sello) {
+    --arch-sello-cod-size: 12px;
+    --arch-sello-clasif-size: 12px;
+    align-items: baseline; gap: 8px;
+  }
+  .gs-logid :global(.arch-sello__texto) { display: flex; gap: 8px; align-items: baseline; }
+  .gs-logid :global(.arch-sello__codigo) {
+    font-family: var(--gs-sans); font-size: 12px; letter-spacing: 0.05em; line-height: 14px;
+    color: var(--gs-verde-panel);
+  }
+  .gs-logid :global(.arch-sello__clasif) {
+    font-family: var(--gs-sans); font-size: 12px; letter-spacing: 0.05em; line-height: 14px;
+    opacity: 1; color: var(--gs-oro-vivo);
+  }
+  .gs-logid :global(.arch-sello__barra) { display: none; }
+  .gs-panel__regla--dos { position: absolute; left: 15px; right: 15px; top: 75px; margin: 0; }
+  .gs-log {
+    position: absolute; left: 14px; top: 84px; width: 172px; margin: 0;
+    text-align: left; white-space: pre;
+    font-family: var(--gs-sans); font-size: 10.6px; line-height: 15.7px;
+    letter-spacing: 0.008em; color: var(--gs-texto);
+  }
+  .gs-sello-arbol { position: absolute; left: 109px; top: 180px; }
+  .gs-archivista {
+    position: absolute; left: 0; right: 0; top: 270px; margin: 0;
+    font-family: var(--gs-sans); font-size: 11px; line-height: 13px;
+    letter-spacing: 0.06em; color: var(--gs-oro-vivo);
+  }
+  .gs-archivista span { font-size: 15px; letter-spacing: 0.2em; color: var(--gs-verde-vivo); }
+
+  /* ── R1 · BIOSPHERE INTEGRITY (y101..495) ───────────────────────── */
+  .gs-tarjeta--1 { left: 1005px; top: 101px; width: 193px; height: 394px; }
+  .gs-tarjeta--2 { left: 1005px; top: 511px; width: 193px; height: 281px; }
+  .gs-tarjeta :global(.arch-tarjeta) { align-items: center; }
+  .gs-tarjeta :global(.arch-tarjeta__en) {
+    padding-top: 17px;
+    font-family: var(--gs-sans); font-size: 13.5px; line-height: 14px;
+    letter-spacing: 0.05em; color: var(--gs-verde-panel);
+  }
+  .gs-tarjeta :global(.arch-tarjeta__es) {
+    margin-top: 12px; opacity: 1;
+    font-family: var(--gs-sans); font-size: 12.5px; line-height: 13px;
+    letter-spacing: 0.07em; color: var(--gs-verde-panel);
+  }
+  .gs-tarjeta :global(.arch-tarjeta__diagrama) { margin: 0; }
+  .gs-tarjeta :global(.arch-tarjeta__valor) {
+    font-family: var(--gs-sans); letter-spacing: 0.01em; color: var(--gs-oro-vivo);
+  }
+  .gs-tarjeta :global(.arch-tarjeta__etiqueta) {
+    opacity: 1; white-space: pre;
+    font-family: var(--gs-sans); letter-spacing: 0.055em;
+  }
+  .gs-tarjeta--1 :global(.arch-tarjeta__es) { display: none; }
+  .gs-tarjeta--1 :global(.arch-tarjeta__diagrama) { margin-top: 5px; }
+  .gs-tarjeta--1 :global(.arch-tarjeta__valor) { margin-top: 12px; font-size: 33px; line-height: 33px; }
+  .gs-tarjeta--1 :global(.arch-tarjeta__etiqueta) {
+    margin-top: 10px; font-size: 12px; line-height: 18px; color: var(--gs-oro-vivo);
+  }
+  .gs-medidor { display: block; width: 152px; height: 152px; }
+  .gs-tarjeta__regla {
+    position: absolute; left: 12px; right: 12px; top: 259px; height: 1px;
+    background: color-mix(in srgb, var(--gs-oro) 30%, transparent);
+  }
+  .gs-filas { position: absolute; left: 12px; right: 10px; top: 265px; margin: 0; padding: 0; list-style: none; }
+  .gs-filas li {
+    display: flex; align-items: center; gap: 6px; height: 23px;
+    border-bottom: 1px solid color-mix(in srgb, var(--gs-oro) 12%, transparent);
+  }
+  .gs-filas__icono { flex: none; }
+  .gs-filas__et {
+    flex: 1; text-align: left;
+    font-family: var(--gs-sans); font-size: 9.6px; line-height: 11px;
+    letter-spacing: 0.035em; color: var(--gs-verde-panel); white-space: nowrap;
+  }
+  .gs-filas__v {
+    font-family: var(--gs-sans); font-size: 10.6px; line-height: 11px;
+    letter-spacing: 0.01em; color: var(--gs-oro-vivo);
+  }
+
+  /* ── R2 · WATCH RADIUS (y511..792) ──────────────────────────────── */
+  .gs-tarjeta--2 :global(.arch-tarjeta__diagrama) { height: 0; overflow: visible; }
+  .gs-hueco { display: block; height: 0; }
+  .gs-tarjeta--2 :global(.arch-tarjeta__valor) {
+    margin-top: 8px; font-size: 27px; line-height: 27px; color: var(--gs-verde-vivo);
+  }
+  .gs-tarjeta--2 :global(.arch-tarjeta__etiqueta) {
+    margin-top: 11px; font-size: 13px; line-height: 14px; color: var(--gs-verde-vivo);
+  }
+  .gs-orbitas { position: absolute; left: 2px; top: 99px; width: 186px; height: 186px; }
+
+  /* ── R3 · ROOT-NETWORK METRICS (y807..1034) ─────────────────────── */
+  .gs-panel--r3 { left: 1005px; top: 807px; width: 193px; height: 227px; text-align: left; }
+  /* medido: rótulos en y853, 897, 940 y 982 — paso 43 px — con el
+     valor 16 px por debajo de cada uno. */
+  .gs-red { position: absolute; left: 12px; right: 12px; top: 41px; margin: 0; padding: 0; }
+  .gs-red > div {
+    box-sizing: border-box; height: 43px;
+    border-top: 1px solid color-mix(in srgb, var(--gs-oro) 16%, transparent);
+    padding-top: 5px;
+  }
+  .gs-red > div:first-child { border-top: 0; padding-top: 0; }
+  /* «89.4%» va más grande que los otros valores: versal 14 medida. */
+  .gs-red > div.gs-red--ultima dd { font-size: 18.5px; line-height: 21px; }
+  .gs-red dt, .gs-red dd { margin: 0; font-family: var(--gs-sans); }
+  .gs-red dt {
+    font-size: 10.4px; line-height: 12px; letter-spacing: 0.045em;
+    text-transform: uppercase; color: var(--gs-verde-panel);
+  }
+  .gs-red dd {
+    margin-top: 3px; font-size: 14.6px; line-height: 17px; letter-spacing: 0.01em;
+    color: var(--gs-verde-vivo); position: relative;
+  }
+  .gs-red sup { font-size: 9.5px; vertical-align: super; }
+  .gs-pulso { position: absolute; left: 69px; top: -8px; width: 112px; height: 34px; }
+
+  /* ── R4 · GAIA WATCH MAP (y1049..1352) ──────────────────────────── */
+  .gs-panel--r4 { left: 1005px; top: 1049px; width: 193px; height: 303px; }
+  .gs-globo { position: absolute; left: 2px; top: 33px; width: 186px; height: 186px; }
+  .gs-leyenda { position: absolute; left: 14px; right: 12px; top: 222px; margin: 0; padding: 0; list-style: none; }
+  .gs-leyenda li { display: flex; align-items: center; gap: 8px; height: 18px; }
+  .gs-leyenda__punto {
+    width: 11px; height: 11px; border-radius: 50%; flex: none;
+    background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--p) 92%, #fff), var(--p) 62%, rgba(0,0,0,0.5));
+    box-shadow: 0 0 5px color-mix(in srgb, var(--p) 55%, transparent);
+  }
+  .gs-leyenda__et {
+    flex: 1; font-family: var(--gs-sans); font-size: 10.6px; line-height: 12px;
+    letter-spacing: 0.035em; color: var(--gs-oro-vivo); white-space: nowrap;
+  }
+  .gs-leyenda__v {
+    font-family: var(--gs-sans); font-size: 11.6px; line-height: 12px;
+    letter-spacing: 0.01em; color: var(--gs-oro-vivo);
+  }
+
+  /* ── pie (banda y1382..1490) ────────────────────────────────────── */
+  .gs-pie-marco { left: 28px; top: 1380px; color: var(--gs-oro); }
+  .gs-sello { color: var(--gs-oro); }
+  .gs-sello--izq { left: 63px; top: 1396px; }
+  .gs-sello--der { left: 1087px; top: 1396px; }
+  .gs-pie-izq, .gs-pie-der {
+    margin: 0; text-align: center; white-space: pre;
+    font-family: var(--gs-sans); font-size: 12.4px; line-height: 21px;
+    letter-spacing: 0.075em; color: var(--gs-verde-panel);
+  }
+  .gs-pie-izq { left: 160px; top: 1406px; width: 120px; }
+  .gs-pie-der { left: 942px; top: 1401px; width: 120px; }
+  .gs-puntos--izq { left: 174px; top: 1466px; }
+  .gs-puntos--der { left: 956px; top: 1466px; }
+
+  .arch-caja--pie {
+    left: 299px; top: 1371px; width: 630px;
+    --arch-pie-size: 19.9px;
+  }
+  .arch-caja--pie :global(.arch-pie__regla) { display: none; }
+  .arch-caja--pie :global(.arch-pie__aforismo) { text-align: center; }
+  .arch-caja--pie :global(.arch-pie__verso) {
+    /* 333,9 px naturales contra los 399 medidos (x400..799). */
+    margin: 0; font-family: var(--gs-sans); font-size: 19.9px; line-height: 29px;
+    letter-spacing: 0.113em; color: var(--gs-oro-vivo);
+  }
+  .arch-caja--pie :global(.arch-pie__verso:last-child) { font-size: 26.5px; line-height: 29px; letter-spacing: 0.079em; margin-top: 0; }
+  .arch-caja--pie :global(.arch-pie__acento) {
+    font-style: normal; color: var(--gs-verde-vivo);
+    text-shadow: 0 0 14px rgba(140,200,90,0.35);
+  }
+
+  /* ── barra inferior (y1494..1527) ───────────────────────────────── */
+  .gs-barra { left: 28px; top: 1488px; color: var(--gs-oro); }
+  .gs-barra__lema {
+    left: 0; top: 1503px; width: 1229px; margin: 0; text-align: center;
+    /* versal 12 medida en y1506..1518; 166 px naturales contra 202. */
+    font-family: var(--gs-sans); font-size: 15.9px; line-height: 16px;
+    letter-spacing: 0.118em; color: var(--gs-oro);
+  }
+</style>
+
+<script>
+  import { montarLienzo, tinta } from "../../../components/kodex/lamina/kit/lienzo";
+  import { rng } from "../../../components/kodex/lamina/kit/rng";
+  import { montarEscala } from "../../../components/kodex/lamina/kit/escala";
+
+  const raiz = document.querySelector("[data-lam]") as HTMLElement;
+  const heroe = document.getElementById("gs-heroe") as HTMLCanvasElement;
+  const g = heroe.getContext("2d")!;
+  const W = 768, H = 1162, CX = 384;
+  const rnd = rng(0x27a7);
+  /* Glifos de los obeliscos: en la referencia son ILEGIBLES. Se
+     reproducen como marcas geométricas con semilla — nunca como texto
+     inventado. */
+  const rGlifo = rng(0x27d5);
+  const glifosObeliscoJS = Array.from({ length: 18 }, () => ({
+    brazos: 3 + Math.floor(rGlifo() * 4),
+    giro: rGlifo() * Math.PI,
+    anillo: rGlifo() < 0.5,
+  }));
+
+  /* ─────────────────────────────────────────────────────────────────
+     EL ORGANISMO — caja x230..998, y206..1368 de la referencia.
+
+     El titán de piedra y musgo con la corona de cristal, el mandala de
+     oro a su espalda, el valle con cascadas y, al pie, la plaza de
+     obeliscos con el prisma verde.
+
+     Medido en la caja: 92,9 % de sus píxeles tienen tinta y la
+     luminancia media es 89,8 — el 81 % de toda la tinta de la lámina.
+     Este arte NO es una caverna oscura: es un valle a plena luz de
+     día. Por eso la palanca grande es el AMBIENTE y no el detalle.
+     ───────────────────────────────────────────────────────────────── */
+
+  /* CAMPO DE AMBIENTE MEDIDO · color medio por celda de 64 px
+     (scripts/lamina/gs/campo.mjs). 12×19 = 228 muestras sobre 892.416
+     píxeles: a esta resolución no queda dibujo, queda LUZ. Es la
+     lección de la serie llevada al final — la cobertura se compra con
+     luz lisa, no con grano — y lo que evita el fallo contrario: pintar
+     negro y dejar que el banco lo premie. */
+  const CAMPO: number[][][] = [
+    [[79,78,73],[91,94,94],[95,99,100],[77,84,85],[78,81,81],[92,90,84],[90,88,83],[72,74,75],[57,65,67],[60,69,74],[95,95,93],[68,69,65]],
+    [[153,147,138],[188,181,172],[139,143,144],[131,133,132],[148,142,131],[177,167,143],[171,161,137],[141,134,124],[106,112,113],[99,111,117],[177,169,160],[118,117,112]],
+    [[160,151,142],[112,111,106],[148,146,142],[161,155,145],[175,162,140],[161,150,119],[131,123,99],[165,152,131],[145,142,134],[171,166,159],[174,166,158],[102,103,96]],
+    [[96,99,97],[80,84,81],[134,131,124],[173,166,150],[139,132,103],[104,95,67],[77,74,55],[113,110,88],[146,146,133],[173,165,153],[153,148,138],[92,91,81]],
+    [[72,77,65],[87,91,86],[135,132,121],[112,114,82],[110,103,65],[139,131,99],[112,107,81],[80,74,48],[82,88,67],[104,113,106],[117,117,107],[117,112,97]],
+    [[79,81,71],[93,97,92],[128,129,123],[74,70,50],[79,74,51],[116,137,87],[110,131,83],[67,64,45],[52,51,39],[114,117,109],[116,117,106],[116,112,97]],
+    [[66,71,67],[100,102,91],[130,132,125],[100,93,69],[55,53,33],[93,88,54],[84,81,48],[50,49,31],[72,71,57],[119,122,115],[111,111,99],[99,99,77]],
+    [[75,75,62],[95,99,87],[123,120,91],[58,58,42],[135,128,107],[83,75,48],[67,61,38],[116,112,96],[51,52,38],[90,94,73],[106,113,97],[86,81,66]],
+    [[47,48,31],[104,106,96],[95,87,61],[70,71,56],[126,116,94],[70,62,40],[62,57,35],[88,86,74],[78,79,63],[88,81,58],[131,130,116],[70,66,43]],
+    [[63,63,47],[119,118,106],[87,82,60],[94,99,84],[114,104,81],[52,49,31],[57,52,30],[75,73,55],[103,107,93],[89,83,63],[97,98,83],[85,82,59]],
+    [[49,52,38],[89,89,72],[85,86,72],[120,118,102],[86,78,58],[44,44,30],[55,53,35],[81,76,58],[109,110,96],[93,93,78],[81,84,74],[110,101,75]],
+    [[39,39,30],[86,90,81],[87,90,79],[101,96,70],[75,72,50],[38,41,32],[40,43,33],[77,75,52],[80,82,70],[102,104,92],[104,106,90],[84,78,57]],
+    [[57,45,49],[90,93,88],[131,129,117],[87,80,57],[59,59,43],[78,82,69],[73,77,62],[68,64,47],[66,68,54],[117,119,108],[104,103,83],[72,72,53]],
+    [[42,41,34],[48,53,41],[70,72,54],[97,94,78],[79,79,66],[94,106,83],[102,117,91],[90,87,69],[99,96,75],[76,78,64],[99,99,85],[86,89,64]],
+    [[26,33,16],[58,61,46],[80,81,69],[88,88,69],[98,101,85],[114,128,100],[113,130,97],[113,109,85],[93,90,67],[80,84,75],[90,91,77],[58,59,33]],
+    [[47,52,46],[52,57,47],[86,86,62],[70,72,57],[107,110,89],[98,109,74],[84,98,66],[109,109,91],[77,74,53],[70,71,50],[79,80,61],[44,47,37]],
+    [[34,38,31],[46,50,37],[62,62,40],[130,118,85],[124,111,76],[114,128,92],[110,126,88],[99,92,64],[111,101,72],[60,66,60],[49,53,38],[50,45,43]],
+    [[48,50,69],[49,51,40],[64,60,37],[98,93,70],[115,104,74],[124,119,86],[114,114,79],[98,90,61],[76,73,49],[45,46,31],[34,36,34],[45,49,63]],
+    [[37,41,51],[32,35,26],[39,40,18],[56,55,34],[76,72,49],[119,107,79],[114,105,78],[74,70,45],[60,63,47],[40,41,21],[53,51,51],[22,26,18]],
+  ];
+
+  const VERDE = "150,205,110";
+  const VERDE_VIVO = "120,240,140";
+  const ORO = "198,178,104";
+  const PIEDRA = "168,166,150";
+  const CIELO = "196,202,206";
+  const LILA = "170,140,215";
+  const AZUL = "110,160,235";
+
+  /* ── 1 · AMBIENTE ────────────────────────────────────────────────
+     El campo medido, subido en dos pasos y desenfocado: sin el
+     segundo paso la interpolación deja costuras rectas de 64 px y el
+     banco las lee como estructura falsa. */
+  function pintarAmbiente(c: CanvasRenderingContext2D) {
+    const NX = 12, NY = 19;
+    const baja = document.createElement("canvas");
+    baja.width = NX; baja.height = NY;
+    const bg = baja.getContext("2d")!;
+    const id = bg.createImageData(NX, NY);
+    for (let j = 0; j < NY; j++) {
+      for (let i = 0; i < NX; i++) {
+        const k = (j * NX + i) * 4;
+        const p = CAMPO[j][i];
+        id.data[k] = p[0]; id.data[k + 1] = p[1]; id.data[k + 2] = p[2]; id.data[k + 3] = 255;
+      }
+    }
+    bg.putImageData(id, 0, 0);
+    const media = document.createElement("canvas");
+    media.width = NX * 8; media.height = NY * 8;
+    const mg = media.getContext("2d")!;
+    mg.imageSmoothingEnabled = true;
+    mg.imageSmoothingQuality = "high";
+    mg.drawImage(baja, 0, 0, NX * 8, NY * 8);
+    c.save();
+    c.imageSmoothingEnabled = true;
+    c.imageSmoothingQuality = "high";
+    c.filter = "blur(16px)";
+    c.drawImage(media, -24, -24, W + 48, H + 48);
+    c.restore();
+  }
+
+  /* ── 2 · CIELO Y NUBES ───────────────────────────────────────────
+     La banda alta de la referencia es cúmulo iluminado: y206..500 abs
+     tiene luminancia media 134..175, el máximo de toda la lámina. */
+  const nubes = Array.from({ length: 46 }, () => {
+    const x = rnd() * W;
+    const y = 20 + Math.pow(rnd(), 1.5) * 300;
+    return { x, y, r: 40 + rnd() * 110, o: 0.06 + rnd() * 0.2 };
+  });
+  const aves = Array.from({ length: 26 }, () => ({
+    x: 380 + rnd() * 380,
+    y: 30 + rnd() * 260,
+    s: 3 + rnd() * 6,
+    o: 0.3 + rnd() * 0.5,
+  }));
+
+  /* ── 3 · MANDALA ─────────────────────────────────────────────────
+     Anillos de oro a la espalda del titán, centro medido en (381,175)
+     local, radio exterior ~205. */
+  const MAN = { x: 382, y: 176 };
+  const anillos = [58, 86, 112, 138, 164, 186, 204];
+  const glifosMandala = [
+    ...Array.from({ length: 8 }, (_, i) => ({ a: (i / 8) * Math.PI * 2 - Math.PI / 2, r: 138, s: 13 })),
+    ...Array.from({ length: 12 }, (_, i) => ({ a: (i / 12) * Math.PI * 2, r: 186, s: 10 })),
+  ];
+
+  /* ── 4 · EL TITÁN ────────────────────────────────────────────────
+     Silueta simétrica de bloques de piedra y musgo. Las medidas salen
+     del recorte: corona y93..164, rostro y164..214, hombros y271
+     (x179..586), sigilo del pecho en (381,329) r≈44, manos hacia
+     y≈700. */
+  const HEAD = { x: 384, y: 186 };
+  const PECHO = { x: 383, y: 330 };
+
+  const coronaPicos = Array.from({ length: 21 }, (_, i) => {
+    const t = i / 20 - 0.5;
+    const x = 384 + t * 210;
+    const alto = 96 * (1 - Math.abs(t) * 1.25) + 24 + rnd() * 16;
+    return { x, base: 186 + Math.abs(t) * 62, alto, w: 9 + (1 - Math.abs(t) * 2) * 9, incl: t * 0.5 };
+  });
+
+  /* bloques del cuerpo: rocas apiladas, espejadas sobre el eje */
+  const bloques: Array<{ x: number; y: number; w: number; h: number; o: number; giro: number }> = [];
+  for (let y = 250; y < 700; y += 17) {
+    const t = (y - 250) / 450;
+    const medio = 150 - t * 46 + Math.sin(t * 7) * 14;
+    for (let k = 0; k < 7; k++) {
+      const dx = (k / 6) * medio;
+      bloques.push({
+        x: dx, y, w: 15 + rnd() * 22, h: 10 + rnd() * 8,
+        o: 0.16 + rnd() * 0.3, giro: (rnd() - 0.5) * 0.3,
+      });
+    }
+  }
+  /* cristales de hombro y torso */
+  const cristales = Array.from({ length: 54 }, () => {
+    const lado = rnd() < 0.5 ? -1 : 1;
+    const t = rnd();
+    const x = 384 + lado * (60 + t * 190);
+    const y = 250 + rnd() * 190 + t * 40;
+    return { x, y, h: 26 + rnd() * 62, w: 8 + rnd() * 12, incl: lado * (0.05 + rnd() * 0.22) };
+  });
+  /* lianas: los hilos que cuelgan del titán en la referencia */
+  const lianas = Array.from({ length: 120 }, () => {
+    const lado = rnd() < 0.5 ? -1 : 1;
+    const x = 384 + lado * (30 + rnd() * 230);
+    const y0 = 250 + rnd() * 300;
+    return { x, y0, largo: 40 + rnd() * 200, curva: (rnd() - 0.5) * 26, o: 0.14 + rnd() * 0.34 };
+  });
+  /* brazos: dos arcos que bajan a las manos */
+  const brazos = [-1, 1].map((s) => ({
+    x0: 384 + s * 168, y0: 286,
+    x1: 384 + s * 258, y1: 470,
+    x2: 384 + s * 236, y2: 700,
+  }));
+
+  /* ── 5 · VALLE: acantilados y cascadas ───────────────────────────*/
+  const cascadas = [
+    { x: 34, y0: 250, y1: 700, w: 15 }, { x: 66, y0: 300, y1: 660, w: 9 },
+    { x: 96, y0: 360, y1: 620, w: 7 },  { x: 690, y0: 240, y1: 720, w: 17 },
+    { x: 724, y0: 280, y1: 690, w: 11 }, { x: 748, y0: 330, y1: 640, w: 8 },
+    { x: 640, y0: 430, y1: 620, w: 6 },  { x: 132, y0: 430, y1: 600, w: 6 },
+  ];
+  const acantilados = [
+    { x: 0, y: 300, w: 150, h: 620 }, { x: 618, y: 280, w: 150, h: 640 },
+    { x: 96, y: 210, w: 120, h: 300 }, { x: 560, y: 200, w: 140, h: 320 },
+  ];
+  /* follaje: matas de puntos que cubren cantos y suelo */
+  const follaje = Array.from({ length: 5200 }, () => {
+    const canto = rnd();
+    let x: number;
+    if (canto < 0.42) x = rnd() * 190;
+    else if (canto < 0.84) x = W - rnd() * 190;
+    else x = rnd() * W;
+    const y = canto < 0.84 ? 200 + rnd() * 900 : 780 + rnd() * 380;
+    return { x, y, s: 1 + rnd() * 2.6, o: 0.12 + rnd() * 0.4, c: rnd() < 0.6 ? VERDE : ORO };
+  });
+
+  /* ── 6 · PLAZA ───────────────────────────────────────────────────
+     Anillos concéntricos en perspectiva, escalinatas, seis obeliscos
+     y el prisma verde del centro. */
+  const PLAZA = { x: 385, y: 1042 };
+  const obeliscos = [
+    { x: 139, w: 46, y0: 861, y1: 1044 },
+    { x: 221, w: 30, y0: 895, y1: 1014 },
+    { x: 350, w: 23, y0: 902, y1: 1008 },
+    { x: 471, w: 23, y0: 896, y1: 1004 },
+    { x: 607, w: 30, y0: 882, y1: 1018 },
+    { x: 693, w: 46, y0: 855, y1: 1048 },
+  ];
+  const PRISMA = { x: 385, base: 1018, alto: 268, w: 30 };
+  /* figurillas: la referencia puebla la plaza de siluetas de 12..20 px */
+  const figuras = Array.from({ length: 24 }, () => ({
+    x: 120 + rnd() * 528,
+    y: 940 + rnd() * 190,
+    h: 13 + rnd() * 9,
+  }));
+  /* flores de los cantos bajos: violeta y azul encendidos */
+  const flores = Array.from({ length: 54 }, () => {
+    const izq = rnd() < 0.5;
+    return {
+      x: izq ? rnd() * 150 : W - rnd() * 150,
+      y: 980 + rnd() * 182,
+      r: 7 + rnd() * 15,
+      c: rnd() < 0.55 ? LILA : AZUL,
+      o: 0.35 + rnd() * 0.45,
+    };
+  });
+
+  /* ── 7 · GRANO ───────────────────────────────────────────────────
+     Poco y fino: el grano paga doble en el diff. Está para romper las
+     bandas del ambiente, no para llenar. */
+  const grano = Array.from({ length: 7000 }, () => ({
+    x: rnd() * W, y: rnd() * H,
+    s: 0.6 + rnd() * 1.1,
+    o: 0.04 + rnd() * 0.14,
+    c: rnd() < 0.4 ? ORO : rnd() < 0.7 ? VERDE : PIEDRA,
+  }));
+
+  /* ── capa estática ───────────────────────────────────────────────*/
+  const fondo = document.createElement("canvas");
+  fondo.width = W; fondo.height = H;
+  const f = fondo.getContext("2d")!;
+
+  function pintarFondo() {
+    f.clearRect(0, 0, W, H);
+    pintarAmbiente(f);
+
+    /* nubes: masa suave sobre la banda alta */
+    for (const n of nubes) {
+      const gr = f.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
+      gr.addColorStop(0, tinta(CIELO, n.o));
+      gr.addColorStop(0.55, tinta(CIELO, n.o * 0.4));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      f.fillStyle = gr;
+      f.beginPath(); f.arc(n.x, n.y, n.r, 0, Math.PI * 2); f.fill();
+    }
+
+    /* acantilados: masas oscuras con perfil quebrado */
+    for (const a of acantilados) {
+      f.fillStyle = tinta("38,46,38", 0.5);
+      f.beginPath();
+      f.moveTo(a.x, a.y + a.h);
+      let px = a.x;
+      while (px < a.x + a.w) {
+        const paso = 14 + rnd() * 26;
+        f.lineTo(px, a.y + (rnd() - 0.5) * 70);
+        px += paso;
+      }
+      f.lineTo(a.x + a.w, a.y + a.h);
+      f.closePath(); f.fill();
+    }
+
+    /* cascadas: cintas de luz vertical, lo más brillante del valle */
+    for (const c of cascadas) {
+      const gr = f.createLinearGradient(c.x - c.w, 0, c.x + c.w, 0);
+      gr.addColorStop(0, "rgba(0,0,0,0)");
+      gr.addColorStop(0.5, tinta("226,232,236", 0.42));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      f.fillStyle = gr;
+      f.fillRect(c.x - c.w, c.y0, c.w * 2, c.y1 - c.y0);
+      f.strokeStyle = tinta("240,246,250", 0.34);
+      f.lineWidth = 0.8;
+      for (let k = 0; k < 5; k++) {
+        const xx = c.x + (k - 2) * c.w * 0.35;
+        f.beginPath(); f.moveTo(xx, c.y0); f.lineTo(xx + (rnd() - 0.5) * 6, c.y1); f.stroke();
+      }
+      /* bruma del pie de la caída */
+      const br = f.createRadialGradient(c.x, c.y1, 2, c.x, c.y1, c.w * 5);
+      br.addColorStop(0, tinta("220,228,232", 0.3));
+      br.addColorStop(1, "rgba(0,0,0,0)");
+      f.fillStyle = br;
+      f.beginPath(); f.arc(c.x, c.y1, c.w * 5, 0, Math.PI * 2); f.fill();
+    }
+
+    /* follaje de los cantos */
+    for (const p of follaje) {
+      f.fillStyle = tinta(p.c, p.o);
+      f.fillRect(p.x, p.y, p.s, p.s);
+    }
+
+    /* ── el titán ── */
+    /* masa del torso: dos siluetas espejadas */
+    f.fillStyle = tinta("40,46,38", 0.74);
+    f.beginPath();
+    f.moveTo(384, 150);
+    f.lineTo(600, 286); f.lineTo(560, 520); f.lineTo(520, 780); f.lineTo(470, 980);
+    f.lineTo(298, 980); f.lineTo(248, 780); f.lineTo(208, 520); f.lineTo(168, 286);
+    f.closePath(); f.fill();
+
+    /* bloques de piedra, espejados */
+    for (const b of bloques) {
+      for (const s of [-1, 1]) {
+        f.save();
+        f.translate(384 + s * b.x, b.y);
+        f.rotate(b.giro * s);
+        f.fillStyle = tinta(PIEDRA, b.o * 0.68);
+        f.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
+        f.strokeStyle = tinta("214,206,180", b.o * 0.55);
+        f.lineWidth = 0.6;
+        f.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+        f.restore();
+      }
+    }
+
+    /* brazos */
+    for (const b of brazos) {
+      f.strokeStyle = tinta("58,64,50", 0.72);
+      f.lineWidth = 62;
+      f.lineCap = "round";
+      f.beginPath();
+      f.moveTo(b.x0, b.y0);
+      f.quadraticCurveTo(b.x1, b.y1, b.x2, b.y2);
+      f.stroke();
+      f.strokeStyle = tinta(PIEDRA, 0.2);
+      f.lineWidth = 44;
+      f.beginPath();
+      f.moveTo(b.x0, b.y0);
+      f.quadraticCurveTo(b.x1, b.y1, b.x2, b.y2);
+      f.stroke();
+      f.lineCap = "butt";
+    }
+
+    /* corona de cristal */
+    for (const p of coronaPicos) {
+      f.save();
+      f.translate(p.x, p.base);
+      f.rotate(p.incl);
+      const gr = f.createLinearGradient(0, 0, 0, -p.alto);
+      gr.addColorStop(0, tinta("60,110,70", 0.5));
+      gr.addColorStop(0.6, tinta("120,200,130", 0.55));
+      gr.addColorStop(1, tinta("200,255,210", 0.8));
+      f.fillStyle = gr;
+      f.beginPath();
+      f.moveTo(-p.w, 0); f.lineTo(0, -p.alto); f.lineTo(p.w, 0);
+      f.closePath(); f.fill();
+      f.strokeStyle = tinta("190,250,200", 0.55);
+      f.lineWidth = 0.9;
+      f.stroke();
+      f.restore();
+    }
+
+    /* cristales del torso */
+    for (const c of cristales) {
+      f.save();
+      f.translate(c.x, c.y);
+      f.rotate(c.incl);
+      const gr = f.createLinearGradient(0, 0, 0, -c.h);
+      gr.addColorStop(0, tinta("40,90,60", 0.55));
+      gr.addColorStop(0.55, tinta("110,210,140", 0.6));
+      gr.addColorStop(1, tinta("210,255,220", 0.85));
+      f.fillStyle = gr;
+      f.beginPath();
+      f.moveTo(-c.w / 2, 0); f.lineTo(-c.w / 2, -c.h * 0.6);
+      f.lineTo(0, -c.h); f.lineTo(c.w / 2, -c.h * 0.6); f.lineTo(c.w / 2, 0);
+      f.closePath(); f.fill();
+      f.strokeStyle = tinta("190,255,205", 0.5);
+      f.lineWidth = 0.7; f.stroke();
+      f.restore();
+    }
+
+    /* lianas */
+    for (const l of lianas) {
+      f.strokeStyle = tinta(ORO, l.o);
+      f.lineWidth = 0.7;
+      f.beginPath();
+      f.moveTo(l.x, l.y0);
+      f.quadraticCurveTo(l.x + l.curva, l.y0 + l.largo * 0.6, l.x + l.curva * 0.4, l.y0 + l.largo);
+      f.stroke();
+    }
+
+    /* rostro: cuenca de piedra y dos brasas verdes */
+    f.fillStyle = tinta("34,42,36", 0.8);
+    f.beginPath(); f.ellipse(HEAD.x, HEAD.y, 48, 58, 0, 0, Math.PI * 2); f.fill();
+    f.strokeStyle = tinta(PIEDRA, 0.35);
+    f.lineWidth = 1.2;
+    f.beginPath(); f.ellipse(HEAD.x, HEAD.y, 48, 58, 0, 0, Math.PI * 2); f.stroke();
+    for (const s of [-1, 1]) {
+      f.strokeStyle = tinta(PIEDRA, 0.4);
+      f.lineWidth = 1;
+      f.beginPath();
+      f.moveTo(HEAD.x + s * 12, HEAD.y + 6);
+      f.lineTo(HEAD.x + s * 20, HEAD.y + 44);
+      f.stroke();
+    }
+
+    /* ── plaza ── */
+    /* escalinatas y anillos concéntricos en perspectiva */
+    for (let k = 8; k >= 1; k--) {
+      const rx = 40 + k * 26, ry = (40 + k * 26) * 0.29;
+      f.strokeStyle = tinta(ORO, 0.14 + (k % 2) * 0.14);
+      f.lineWidth = k % 3 === 0 ? 1.4 : 0.8;
+      f.beginPath(); f.ellipse(PLAZA.x, PLAZA.y, rx, ry, 0, 0, Math.PI * 2); f.stroke();
+    }
+    f.fillStyle = tinta("128,126,110", 0.16);
+    f.beginPath(); f.ellipse(PLAZA.x, PLAZA.y, 250, 74, 0, 0, Math.PI * 2); f.fill();
+    for (let k = 0; k < 32; k++) {
+      const a = (k / 32) * Math.PI * 2;
+      f.strokeStyle = tinta(ORO, 0.1);
+      f.lineWidth = 0.6;
+      f.beginPath();
+      f.moveTo(PLAZA.x + Math.cos(a) * 44, PLAZA.y + Math.sin(a) * 13);
+      f.lineTo(PLAZA.x + Math.cos(a) * 246, PLAZA.y + Math.sin(a) * 72);
+      f.stroke();
+    }
+    /* escalones del frente */
+    for (let k = 0; k < 7; k++) {
+      const y = 1078 + k * 12;
+      const w = 128 - k * 4;
+      f.strokeStyle = tinta(PIEDRA, 0.22);
+      f.lineWidth = 1;
+      f.beginPath(); f.moveTo(PLAZA.x - w, y); f.lineTo(PLAZA.x + w, y); f.stroke();
+    }
+
+    /* obeliscos */
+    for (let i = 0; i < obeliscos.length; i++) {
+      const o = obeliscos[i];
+      const alto = o.y1 - o.y0;
+      const gr = f.createLinearGradient(o.x - o.w / 2, 0, o.x + o.w / 2, 0);
+      gr.addColorStop(0, tinta("62,66,56", 0.85));
+      gr.addColorStop(0.42, tinta("136,134,118", 0.7));
+      gr.addColorStop(1, tinta("46,50,42", 0.9));
+      f.fillStyle = gr;
+      f.beginPath();
+      f.moveTo(o.x - o.w / 2, o.y1);
+      f.lineTo(o.x - o.w / 2 + 2, o.y0 + 10);
+      f.lineTo(o.x, o.y0);
+      f.lineTo(o.x + o.w / 2 - 2, o.y0 + 10);
+      f.lineTo(o.x + o.w / 2, o.y1);
+      f.closePath(); f.fill();
+      f.strokeStyle = tinta("196,190,164", 0.3);
+      f.lineWidth = 0.8; f.stroke();
+      /* glifos: marcas con semilla, nunca texto inventado */
+      const n = Math.max(2, Math.round(alto / 46));
+      for (let k = 0; k < n; k++) {
+        const gl = glifosObeliscoJS[(i * 3 + k) % glifosObeliscoJS.length];
+        const y = o.y0 + 26 + k * (alto - 40) / n;
+        const rr = Math.min(9, o.w * 0.3);
+        f.strokeStyle = tinta(VERDE_VIVO, 0.8);
+        f.lineWidth = 1;
+        if (gl.anillo) { f.beginPath(); f.arc(o.x, y, rr, 0, Math.PI * 2); f.stroke(); }
+        for (let b = 0; b < gl.brazos; b++) {
+          const a = gl.giro + (b / gl.brazos) * Math.PI * 2;
+          f.beginPath();
+          f.moveTo(o.x, y);
+          f.lineTo(o.x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+          f.stroke();
+        }
+      }
+    }
+
+    /* figurillas */
+    for (const fg of figuras) {
+      f.fillStyle = tinta("30,34,28", 0.75);
+      f.beginPath();
+      f.ellipse(fg.x, fg.y - fg.h * 0.8, fg.h * 0.16, fg.h * 0.18, 0, 0, Math.PI * 2);
+      f.fill();
+      f.fillRect(fg.x - fg.h * 0.16, fg.y - fg.h * 0.62, fg.h * 0.32, fg.h * 0.62);
+      f.fillStyle = tinta("200,190,160", 0.2);
+      f.fillRect(fg.x - fg.h * 0.1, fg.y - fg.h * 0.6, fg.h * 0.1, fg.h * 0.5);
+    }
+
+    /* flores encendidas de los cantos bajos */
+    for (const fl of flores) {
+      const gr = f.createRadialGradient(fl.x, fl.y, 0, fl.x, fl.y, fl.r);
+      gr.addColorStop(0, tinta(fl.c, fl.o));
+      gr.addColorStop(0.4, tinta(fl.c, fl.o * 0.45));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      f.fillStyle = gr;
+      f.beginPath(); f.arc(fl.x, fl.y, fl.r, 0, Math.PI * 2); f.fill();
+      for (let k = 0; k < 6; k++) {
+        const a = (k / 6) * Math.PI * 2;
+        f.strokeStyle = tinta(fl.c, fl.o * 1.2);
+        f.lineWidth = 1.1;
+        f.beginPath();
+        f.moveTo(fl.x, fl.y);
+        f.lineTo(fl.x + Math.cos(a) * fl.r * 0.7, fl.y + Math.sin(a) * fl.r * 0.7);
+        f.stroke();
+      }
+    }
+
+    /* aves */
+    for (const av of aves) {
+      f.strokeStyle = tinta("40,44,44", av.o);
+      f.lineWidth = 1.1;
+      f.beginPath();
+      f.moveTo(av.x - av.s, av.y);
+      f.quadraticCurveTo(av.x - av.s * 0.4, av.y - av.s * 0.6, av.x, av.y - av.s * 0.1);
+      f.quadraticCurveTo(av.x + av.s * 0.4, av.y - av.s * 0.6, av.x + av.s, av.y);
+      f.stroke();
+    }
+
+    /* grano */
+    for (const p of grano) {
+      f.fillStyle = tinta(p.c, p.o);
+      f.fillRect(p.x, p.y, p.s, p.s);
+    }
+
+    /* VIÑETA ELÍPTICA · los focos están donde el mapa de luminancia
+       tiene sus máximos (eje central y banda alta) y la caída a negro
+       va a los cantos. Sin esto los bordes quedan más claros que la
+       referencia y el diff los cobra entero. */
+    const vin = f.createRadialGradient(CX, 430, 150, CX, 470, 760);
+    vin.addColorStop(0, "rgba(5,7,10,0)");
+    vin.addColorStop(0.62, "rgba(5,7,10,0)");
+    vin.addColorStop(0.88, "rgba(5,7,10,0.14)");
+    vin.addColorStop(1, "rgba(5,7,10,0.42)");
+    f.fillStyle = vin;
+    f.fillRect(0, 0, W, H);
+    /* cierre a los cuatro cantos: la referencia muere en negro contra
+       el marco, y los últimos 3 px pesan en cada región del borde */
+    const lat = f.createLinearGradient(0, 0, W, 0);
+    lat.addColorStop(0, "rgba(5,7,10,0.95)");
+    lat.addColorStop(0.02, "rgba(5,7,10,0)");
+    lat.addColorStop(0.98, "rgba(5,7,10,0)");
+    lat.addColorStop(1, "rgba(5,7,10,0.95)");
+    f.fillStyle = lat; f.fillRect(0, 0, W, H);
+    const ver = f.createLinearGradient(0, 0, 0, H);
+    ver.addColorStop(0, "rgba(5,7,10,0.9)");
+    ver.addColorStop(0.014, "rgba(5,7,10,0)");
+    ver.addColorStop(0.992, "rgba(5,7,10,0)");
+    ver.addColorStop(1, "rgba(5,7,10,0.55)");
+    f.fillStyle = ver; f.fillRect(0, 0, W, H);
+  }
+
+  /* ── piezas vivas ────────────────────────────────────────────────*/
+  function pintarMandala(fase: number) {
+    const pulso = 0.84 + 0.16 * Math.sin(fase * Math.PI * 2);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    for (let i = 0; i < anillos.length; i++) {
+      const r = anillos[i];
+      g.strokeStyle = tinta(ORO, (0.09 + (i % 2) * 0.08) * pulso);
+      g.lineWidth = i % 3 === 0 ? 1.3 : 0.8;
+      g.beginPath(); g.arc(MAN.x, MAN.y, r, 0, Math.PI * 2); g.stroke();
+    }
+    for (let k = 0; k < 24; k++) {
+      const a = (k / 24) * Math.PI * 2;
+      g.strokeStyle = tinta(ORO, 0.055 * pulso);
+      g.lineWidth = 0.6;
+      g.beginPath();
+      g.moveTo(MAN.x + Math.cos(a) * 58, MAN.y + Math.sin(a) * 58);
+      g.lineTo(MAN.x + Math.cos(a) * 204, MAN.y + Math.sin(a) * 204);
+      g.stroke();
+    }
+    for (const gl of glifosMandala) {
+      const x = MAN.x + Math.cos(gl.a) * gl.r, y = MAN.y + Math.sin(gl.a) * gl.r;
+      g.strokeStyle = tinta(ORO, 0.2 * pulso);
+      g.lineWidth = 0.8;
+      g.beginPath(); g.arc(x, y, gl.s, 0, Math.PI * 2); g.stroke();
+      for (let b = 0; b < 3; b++) {
+        const a2 = gl.a + b * 2.1;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x + Math.cos(a2) * gl.s, y + Math.sin(a2) * gl.s);
+        g.stroke();
+      }
+    }
+    /* triángulos entrelazados del centro */
+    for (const rot of [0, Math.PI]) {
+      g.strokeStyle = tinta(ORO, 0.13 * pulso);
+      g.lineWidth = 1;
+      g.beginPath();
+      for (let k = 0; k < 3; k++) {
+        const a = rot + (k / 3) * Math.PI * 2 - Math.PI / 2;
+        const x = MAN.x + Math.cos(a) * 138, y = MAN.y + Math.sin(a) * 138;
+        k ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.closePath(); g.stroke();
+    }
+    g.restore();
+  }
+
+  function pintarLuces(fase: number) {
+    const pulso = 0.82 + 0.18 * Math.sin(fase * Math.PI * 2);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+
+    /* ojos del titán */
+    for (const s of [-1, 1]) {
+      const x = HEAD.x + s * 18, y = HEAD.y - 4;
+      const gr = g.createRadialGradient(x, y, 0, x, y, 16);
+      gr.addColorStop(0, tinta("210,255,200", 0.95 * pulso));
+      gr.addColorStop(0.3, tinta(VERDE_VIVO, 0.4 * pulso));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = gr;
+      g.beginPath(); g.arc(x, y, 16, 0, Math.PI * 2); g.fill();
+    }
+
+    /* sigilo del pecho: el foco más fuerte del arte */
+    const pe = g.createRadialGradient(PECHO.x, PECHO.y, 2, PECHO.x, PECHO.y, 96);
+    pe.addColorStop(0, tinta("225,255,215", 0.9 * pulso));
+    pe.addColorStop(0.16, tinta(VERDE_VIVO, 0.55 * pulso));
+    pe.addColorStop(0.45, tinta("70,170,90", 0.13 * pulso));
+    pe.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = pe;
+    g.beginPath(); g.arc(PECHO.x, PECHO.y, 96, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = tinta("200,255,200", 0.75 * pulso);
+    g.lineWidth = 1.6;
+    g.beginPath(); g.arc(PECHO.x, PECHO.y, 44, 0, Math.PI * 2); g.stroke();
+    g.strokeStyle = tinta(ORO, 0.6 * pulso);
+    g.lineWidth = 1;
+    g.beginPath(); g.arc(PECHO.x, PECHO.y, 34, 0, Math.PI * 2); g.stroke();
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      g.strokeStyle = tinta("220,255,215", 0.55 * pulso);
+      g.lineWidth = k % 2 ? 0.8 : 1.4;
+      g.beginPath();
+      g.moveTo(PECHO.x, PECHO.y);
+      g.lineTo(PECHO.x + Math.cos(a) * 44, PECHO.y + Math.sin(a) * 44);
+      g.stroke();
+    }
+
+    /* prisma de la plaza y su haz */
+    const haz = g.createLinearGradient(PRISMA.x - 26, 0, PRISMA.x + 26, 0);
+    haz.addColorStop(0, "rgba(0,0,0,0)");
+    haz.addColorStop(0.5, tinta(VERDE_VIVO, 0.2 * pulso));
+    haz.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = haz;
+    g.fillRect(PRISMA.x - 26, 0, 52, PRISMA.base);
+    const cuerpo = g.createLinearGradient(0, PRISMA.base, 0, PRISMA.base - PRISMA.alto);
+    cuerpo.addColorStop(0, tinta("240,255,235", 0.9 * pulso));
+    cuerpo.addColorStop(0.3, tinta(VERDE_VIVO, 0.6 * pulso));
+    cuerpo.addColorStop(1, tinta("120,220,140", 0.35 * pulso));
+    g.fillStyle = cuerpo;
+    g.beginPath();
+    g.moveTo(PRISMA.x - PRISMA.w / 2, PRISMA.base);
+    g.lineTo(PRISMA.x - PRISMA.w / 2 + 5, PRISMA.base - PRISMA.alto + 26);
+    g.lineTo(PRISMA.x, PRISMA.base - PRISMA.alto);
+    g.lineTo(PRISMA.x + PRISMA.w / 2 - 5, PRISMA.base - PRISMA.alto + 26);
+    g.lineTo(PRISMA.x + PRISMA.w / 2, PRISMA.base);
+    g.closePath(); g.fill();
+    const halo = g.createRadialGradient(PRISMA.x, PRISMA.base - 20, 4, PRISMA.x, PRISMA.base - 20, 150);
+    halo.addColorStop(0, tinta("235,255,230", 0.5 * pulso));
+    halo.addColorStop(0.2, tinta(VERDE_VIVO, 0.18 * pulso));
+    halo.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = halo;
+    g.beginPath(); g.arc(PRISMA.x, PRISMA.base - 20, 150, 0, Math.PI * 2); g.fill();
+
+    /* rombo de la cúspide (medido sobre el eje, y≈760 local) */
+    g.fillStyle = tinta("240,255,235", 0.85 * pulso);
+    g.beginPath();
+    g.moveTo(PRISMA.x, 744); g.lineTo(PRISMA.x + 14, 762);
+    g.lineTo(PRISMA.x, 780); g.lineTo(PRISMA.x - 14, 762);
+    g.closePath(); g.fill();
+
+    /* anillo encendido de la plaza */
+    g.strokeStyle = tinta(VERDE_VIVO, 0.3 * pulso);
+    g.lineWidth = 1.6;
+    g.beginPath(); g.ellipse(PLAZA.x, PLAZA.y, 118, 34, 0, 0, Math.PI * 2); g.stroke();
+    g.restore();
+  }
+
+  /* ── instrumentos del riel derecho ──────────────────────────────*/
+  const medidor = document.getElementById("gs-medidor") as HTMLCanvasElement | null;
+  const orbitas = document.getElementById("gs-orbitas") as HTMLCanvasElement | null;
+  const pulso = document.getElementById("gs-pulso") as HTMLCanvasElement | null;
+  const globo = document.getElementById("gs-globo") as HTMLCanvasElement | null;
+
+  const rMapa = rng(0x27e1);
+  const continentes = Array.from({ length: 15 }, () => ({
+    a: rMapa() * Math.PI * 2,
+    r: rMapa() * 0.82,
+    rx: 0.1 + rMapa() * 0.24,
+    ry: 0.08 + rMapa() * 0.2,
+    giro: rMapa() * Math.PI,
+  }));
+  const rPulso = rng(0x27e5);
+  const seriePulso = Array.from({ length: 74 }, (_, i) =>
+    (i % 9 === 0 ? 0.5 + rPulso() * 0.5 : rPulso() * 0.4)
+  );
+
+  function pintarMedidor(fase: number) {
+    if (!medidor) return;
+    const c = medidor.getContext("2d")!;
+    const S = 152, cx = S / 2, cy = S / 2, R = 58;
+    const p = 0.86 + 0.14 * Math.sin(fase * Math.PI * 2);
+    c.clearRect(0, 0, S, S);
+    /* vidrio del disco */
+    const disco = c.createRadialGradient(cx, cy - 8, 6, cx, cy, R + 14);
+    disco.addColorStop(0, "rgba(18,30,20,0.9)");
+    disco.addColorStop(1, "rgba(4,10,6,0.9)");
+    c.fillStyle = disco;
+    c.beginPath(); c.arc(cx, cy, R + 14, 0, Math.PI * 2); c.fill();
+    /* arco de 92,7 %: 24 segmentos, el hueco arriba a la izquierda */
+    const N = 24, lleno = Math.round(N * 0.927);
+    for (let k = 0; k < N; k++) {
+      const a0 = -Math.PI / 2 + (k / N) * Math.PI * 2 + 0.03;
+      const a1 = -Math.PI / 2 + ((k + 1) / N) * Math.PI * 2 - 0.03;
+      c.strokeStyle = k < lleno ? tinta("110,215,120", 0.85 * p) : "rgba(40,60,44,0.55)";
+      c.lineWidth = 15;
+      c.beginPath(); c.arc(cx, cy, R, a0, a1); c.stroke();
+    }
+    c.strokeStyle = tinta(ORO, 0.4);
+    c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, R + 12, 0, Math.PI * 2); c.stroke();
+    c.beginPath(); c.arc(cx, cy, R - 11, 0, Math.PI * 2); c.stroke();
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2;
+      c.strokeStyle = tinta(ORO, 0.3);
+      c.beginPath();
+      c.moveTo(cx + Math.cos(a) * (R - 10), cy + Math.sin(a) * (R - 10));
+      c.lineTo(cx + Math.cos(a) * (R + 12), cy + Math.sin(a) * (R + 12));
+      c.stroke();
+    }
+    /* la rama del centro */
+    c.strokeStyle = tinta("222,214,150", 0.9);
+    c.lineWidth = 1.6;
+    c.beginPath(); c.moveTo(cx, cy + 28); c.lineTo(cx, cy - 30); c.stroke();
+    for (let k = 0; k < 3; k++) {
+      const y = cy + 16 - k * 15;
+      for (const s of [-1, 1]) {
+        c.beginPath();
+        c.moveTo(cx, y);
+        c.quadraticCurveTo(cx + s * (20 - k * 3), y - 4, cx + s * (24 - k * 4), y - 16);
+        c.quadraticCurveTo(cx + s * (10 - k), y - 8, cx, y);
+        c.strokeStyle = tinta("222,214,150", 0.85);
+        c.lineWidth = 1.2;
+        c.stroke();
+        c.fillStyle = tinta("150,210,120", 0.14 * p);
+        c.fill();
+      }
+    }
+    c.beginPath();
+    c.moveTo(cx, cy - 30);
+    c.quadraticCurveTo(cx - 7, cy - 40, cx, cy - 52);
+    c.quadraticCurveTo(cx + 7, cy - 40, cx, cy - 30);
+    c.strokeStyle = tinta("222,214,150", 0.9);
+    c.stroke();
+  }
+
+  function pintarOrbitas(fase: number) {
+    if (!orbitas) return;
+    const c = orbitas.getContext("2d")!;
+    const S = 186, cx = S / 2, cy = S / 2;
+    c.clearRect(0, 0, S, S);
+    const tierra = c.createRadialGradient(cx - 6, cy - 10, 3, cx, cy, 46);
+    tierra.addColorStop(0, "rgba(90,140,110,0.5)");
+    tierra.addColorStop(0.7, "rgba(30,60,55,0.35)");
+    tierra.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = tierra;
+    c.beginPath(); c.arc(cx, cy, 46, 0, Math.PI * 2); c.fill();
+    for (const [r, o] of [[26, 0.5], [42, 0.4], [58, 0.32], [74, 0.24], [88, 0.18]] as const) {
+      c.strokeStyle = tinta(ORO, o);
+      c.lineWidth = r === 42 ? 1.2 : 0.8;
+      c.beginPath(); c.ellipse(cx, cy, r, r, 0, 0, Math.PI * 2); c.stroke();
+    }
+    c.strokeStyle = tinta(ORO, 0.22);
+    c.setLineDash([2, 4]);
+    c.beginPath(); c.ellipse(cx, cy, 66, 66, 0, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([]);
+    c.strokeStyle = tinta(ORO, 0.3);
+    c.beginPath(); c.moveTo(cx, 6); c.lineTo(cx, S - 6); c.moveTo(6, cy); c.lineTo(S - 6, cy); c.stroke();
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2 + fase * Math.PI * 2 * 0.2;
+      const r = [42, 58, 74, 88][k];
+      c.fillStyle = tinta(k === 3 ? "120,235,140" : ORO, 0.9);
+      c.beginPath(); c.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2.6, 0, Math.PI * 2); c.fill();
+    }
+    c.fillStyle = tinta("120,235,140", 0.8);
+    c.beginPath(); c.arc(cx, cy + 74, 4, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = tinta(ORO, 0.7);
+    c.lineWidth = 1.4;
+    c.beginPath(); c.arc(cx, cy, 11, 0, Math.PI * 2); c.stroke();
+    c.fillStyle = tinta("120,200,120", 0.6);
+    c.beginPath(); c.arc(cx, cy, 9, 0, Math.PI * 2); c.fill();
+  }
+
+  function pintarPulso(fase: number) {
+    if (!pulso) return;
+    const c = pulso.getContext("2d")!;
+    const Wp = 112, Hp = 34, eje = Hp / 2;
+    c.clearRect(0, 0, Wp, Hp);
+    c.strokeStyle = tinta("110,215,120", 0.85);
+    c.lineWidth = 1;
+    c.beginPath();
+    for (let k = 0; k < seriePulso.length; k++) {
+      const x = (k / (seriePulso.length - 1)) * Wp;
+      const v = seriePulso[k] * (0.8 + 0.2 * Math.sin(fase * Math.PI * 2 + k * 0.4));
+      const y = eje - (k % 2 ? v : -v) * eje * 0.92;
+      k ? c.lineTo(x, y) : c.moveTo(x, y);
+    }
+    c.stroke();
+  }
+
+  function pintarGlobo(fase: number) {
+    if (!globo) return;
+    const c = globo.getContext("2d")!;
+    const S = 186, cx = S / 2, cy = S / 2, R = 74;
+    c.clearRect(0, 0, S, S);
+    const at = c.createRadialGradient(cx, cy, R * 0.7, cx, cy, R + 12);
+    at.addColorStop(0, "rgba(40,90,80,0.3)");
+    at.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = at;
+    c.beginPath(); c.arc(cx, cy, R + 12, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "rgba(14,32,30,0.85)";
+    c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.fill();
+    /* masas de tierra: elipses con semilla, no un mapa real */
+    c.save();
+    c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.clip();
+    for (const k of continentes) {
+      c.save();
+      c.translate(cx + Math.cos(k.a) * k.r * R, cy + Math.sin(k.a) * k.r * R * 0.9);
+      c.rotate(k.giro);
+      c.fillStyle = tinta("120,180,90", 0.42);
+      c.beginPath(); c.ellipse(0, 0, k.rx * R, k.ry * R, 0, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = tinta("190,215,130", 0.35);
+      c.lineWidth = 0.8; c.stroke();
+      c.restore();
+    }
+    /* rejilla de paralelos y meridianos */
+    for (let k = 1; k < 6; k++) {
+      c.strokeStyle = tinta(ORO, 0.16);
+      c.lineWidth = 0.6;
+      c.beginPath(); c.ellipse(cx, cy, R, (R * k) / 6, 0, 0, Math.PI * 2); c.stroke();
+      c.beginPath(); c.ellipse(cx, cy, (R * k) / 6, R, 0, 0, Math.PI * 2); c.stroke();
+    }
+    c.restore();
+    c.strokeStyle = tinta(ORO, 0.5);
+    c.lineWidth = 1;
+    c.beginPath(); c.arc(cx, cy, R, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([2, 5]);
+    c.strokeStyle = tinta(ORO, 0.3);
+    c.beginPath(); c.arc(cx, cy, R + 12, 0, Math.PI * 2); c.stroke();
+    c.setLineDash([]);
+    c.strokeStyle = tinta("120,215,140", 0.4);
+    c.beginPath(); c.moveTo(cx, 4); c.lineTo(cx, S - 4); c.moveTo(4, cy); c.lineTo(S - 4, cy); c.stroke();
+    const nucleo = 0.7 + 0.3 * Math.sin(fase * Math.PI * 2);
+    c.fillStyle = tinta("160,255,170", 0.9 * nucleo);
+    c.beginPath(); c.arc(cx, cy, 3.2, 0, Math.PI * 2); c.fill();
+  }
+
+  /* ── el cuadro ───────────────────────────────────────────────────*/
+  const pintar = (fase: number) => {
+    g.clearRect(0, 0, W, H);
+    g.drawImage(fondo, 0, 0);
+    pintarMandala(fase);
+    pintarLuces(fase);
+    pintarMedidor(fase);
+    pintarOrbitas(fase);
+    pintarPulso(fase);
+    pintarGlobo(fase);
+  };
+
+  montarLienzo({ raiz, cuadro: pintar, inicial: pintarFondo, periodo: 26000, periodoReducido: 64000 });
+  montarEscala();
+</script>
