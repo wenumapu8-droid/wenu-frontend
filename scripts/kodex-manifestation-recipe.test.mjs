@@ -96,3 +96,25 @@ test('MID and LOW tiers deterministically reduce active effect-chain passes', ()
   assert.equal(mid.runtime.effects.filter((effect) => effect.on).length, 2);
   assert.equal(low.runtime.effects.filter((effect) => effect.on).length, 1);
 });
+
+test('provenance refs fail closed instead of accepting unbound strings', () => {
+  const invalid = {
+    ...recipe,
+    provenance_refs: [...recipe.provenance_refs, 'fabricated:trust-me'],
+  };
+  assert.throws(
+    () => compileManifestationRecipe(invalid, { memorySignature }),
+    (error) => error instanceof KdxManifestationRecipeError && error.code === 'INVALID_PROVENANCE_REF',
+  );
+});
+
+test('protected artwork provenance cannot be omitted from a manifestation recipe', () => {
+  const invalid = {
+    ...recipe,
+    provenance_refs: recipe.provenance_refs.filter((ref) => !ref.includes('OCÍN_MASTER_ART_REGISTRY_v0.8#OCN-MND-GRY-002')),
+  };
+  assert.throws(
+    () => compileManifestationRecipe(invalid, { memorySignature }),
+    (error) => error instanceof KdxManifestationRecipeError && error.code === 'MISSING_REQUIRED_PROVENANCE',
+  );
+});
