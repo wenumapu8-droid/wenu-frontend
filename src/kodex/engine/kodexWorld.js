@@ -13,6 +13,13 @@ import colorFrag from '../shaders/color.frag?raw';
 import feedbackFrag from '../shaders/feedback.frag?raw';
 import compositeFrag from '../shaders/composite.frag?raw';
 
+const RENDER_TIER_DPR = Object.freeze({ HIGH: 1.5, MID: 1.25, LOW: 1.0, STATIC: 0.85 });
+const WORLD_PHASES = new Set(['E00', 'T01', 'M11', 'R10']);
+const SOURCE_MODES = new Set(['flow', 'spiral', 'blacksun']);
+const RUNTIME_EFFECTS = new Set(['mirror', 'distort', 'color']);
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const dampingAlpha = (lambda, dt) => 1 - Math.exp(-lambda * dt);
+
 export class KodexWorld {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
@@ -20,7 +27,11 @@ export class KodexWorld {
     this.getAudio = opts.getAudio || (() => 0);
     this.seed = opts.seed ?? Math.random();
     this.reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.dpr = Math.min(opts.maxDpr ?? 1.5, window.devicePixelRatio || 1);
+    this.renderTier = String(opts.renderTier || 'HIGH').toUpperCase();
+    if (!RENDER_TIER_DPR[this.renderTier]) this.renderTier = 'HIGH';
+    this.requestedMaxDpr = opts.maxDpr ?? 1.5;
+    this.maxDpr = Math.min(this.requestedMaxDpr, RENDER_TIER_DPR[this.renderTier]);
+    this.dpr = Math.min(this.maxDpr, window.devicePixelRatio || 1);
     this.state = { time: 0, mouse: [0, 0], targetMouse: [0, 0], vel: 0, signal: 0, targetSignal: 0 };
     this.raf = 0; this.running = false;
     this._fps = 0; this._frames = 0; this._acc = 0; this._last = 0;
@@ -30,9 +41,12 @@ export class KodexWorld {
       { name: 'distort', on: false, params: { u_amt: 0.18, u_mode: 0 } },
       { name: 'color', on: false, params: { u_mode: 0, u_amt: 0.85 } },
     ];
-    this.decay = 0.90;
+    this.recipeEffects = null;
+    this.recipeDecay = 0.90;
+    this.decay = this.recipeDecay;
     this.sourceMode = 'flow'; // 'flow' (luminous threads) | 'spiral' | 'blacksun'
     this.tint = [0.85, 0.72, 0.35]; // per-work field colour
+    this.planId = null;
     this._initGL();
   }
 
@@ -100,27 +114,86 @@ export class KodexWorld {
     addEventListener('touchmove', (e) => { if (e.touches[0]) move(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
   }
   setSignal(on) { this.state.targetSignal = on ? 1 : 0; }
-  // STATE machine — one phase drives BOTH visuals and (in the page) audio: synchrony.
+  // Existing state vocabulary remains authoritative. Recipe/lab labels map onto these phases.
   setState(phase) {
     const V = {
-      E00: { decay: 0.92, color: 0, camt: 0.0, dist: 0.0, mirror: false, sig: false }, // excavation
-      T01: { decay: 0.90, color: 0, camt: 0.45, dist: 0.14, mirror: false, sig: false }, // transmutation
-      M11: { decay: 0.88, color: 1, camt: 0.85, dist: 0.0, mirror: true, sig: true }, // manifestation
-      R10: { decay: 0.94, color: 2, camt: 0.5, dist: 0.0, mirror: false, sig: false }, // return
+      E00: { decayDelta: 0.02, colorMode: 0, colorEnvelope: 0.0, distEnvelope: 0.0, mirror: false, sig: false }, // excavation / dormant
+      T01: { decayDelta: 0.00, colorMode: 0, colorEnvelope: 0.55, distEnvelope: 1.0, mirror: false, sig: false }, // transmutation / aware
+      M11: { decayDelta: -0.02, colorMode: 1, colorEnvelope: 1.0, distEnvelope: 0.0, mirror: true, sig: true }, // manifestation / open
+      R10: { decayDelta: 0.04, colorMode: 2, colorEnvelope: 0.60, distEnvelope: 0.0, mirror: false, sig: false }, // return
     }[phase];
     if (!V) return;
-    this.phase = phase; this.decay = V.decay;
-    const col = this.getEffect('color'); col.on = V.camt > 0; col.params.u_mode = V.color; col.params.u_amt = V.camt;
-    const dis = this.getEffect('distort'); dis.on = V.dist > 0; dis.params.u_amt = V.dist || dis.params.u_amt;
-    const mir = this.getEffect('mirror'); mir.on = V.mirror;
+    this.phase = phase;
+    this.decay = clamp(this.recipeDecay + V.decayDelta, 0.78, 0.975);
+
+    const configured = this.recipeEffects || {};
+    const col = this.getEffect('color');
+    const configuredColor = configured.color;
+    col.on = V.colorEnvelope > 0 && (configuredColor?.on ?? true);
+    col.params.u_mode = configuredColor?.params?.u_mode ?? V.colorMode;
+    col.params.u_amt = configuredColor
+      ? clamp((configuredColor.params?.u_amt ?? 0.85) * V.colorEnvelope, 0, 1)
+      : ({ E00: 0, T01: 0.45, M11: 0.85, R10: 0.5 }[phase] ?? 0);
+
+    const dis = this.getEffect('distort');
+    const configuredDistort = configured.distort;
+    dis.on = V.distEnvelope > 0 && (configuredDistort?.on ?? true);
+    dis.params.u_amt = configuredDistort
+      ? clamp((configuredDistort.params?.u_amt ?? 0.14) * V.distEnvelope, 0, 0.5)
+      : (phase === 'T01' ? 0.14 : dis.params.u_amt);
+    if (configuredDistort?.params?.u_mode !== undefined) dis.params.u_mode = configuredDistort.params.u_mode;
+
+    const mir = this.getEffect('mirror');
+    const configuredMirror = configured.mirror;
+    mir.on = V.mirror && (configuredMirror?.on ?? true);
+    if (configuredMirror?.params) Object.assign(mir.params, configuredMirror.params);
+
     this.setSignal(V.sig);
+    if ((this.reduce || this.renderTier === 'STATIC') && this.artwork) this.renderOnce();
   }
   toggle(name, on) { const e = this.effects.find((x) => x.name === name); if (e) e.on = on === undefined ? !e.on : on; }
   setParam(name, key, val) { const e = this.effects.find((x) => x.name === name); if (e) e.params[key] = val; }
   getEffect(name) { return this.effects.find((x) => x.name === name); }
-  setSeed(v) { this.seed = v; }
-  setSourceMode(m) { this.sourceMode = m; }
-  setTint(rgb) { this.tint = rgb; }
+  setSeed(v) { this.seed = clamp(Number(v) || 0, 0, 1); }
+  setSourceMode(m) { if (SOURCE_MODES.has(m)) this.sourceMode = m; }
+  setTint(rgb) { if (Array.isArray(rgb) && rgb.length === 3) this.tint = rgb.map((value) => clamp(Number(value) || 0, 0, 1)); }
+  setRenderTier(tier) {
+    const next = String(tier || '').toUpperCase();
+    if (!RENDER_TIER_DPR[next]) return false;
+    this.renderTier = next;
+    this.maxDpr = Math.min(this.requestedMaxDpr, RENDER_TIER_DPR[next]);
+    this.dpr = Math.min(this.maxDpr, window.devicePixelRatio || 1);
+    if (this.gl) this._resize();
+    return true;
+  }
+
+  // Stateless adapter point: ManifestationRecipe compiles elsewhere; KodexWorld only
+  // consumes legal existing-runtime parameters. No route, memory, canon or state authority is added here.
+  applyPlan(plan = {}) {
+    if (!plan || typeof plan !== 'object' || !plan.plan_id || !plan.runtime) throw new TypeError('KodexWorld.applyPlan requires a compiled manifestation plan.');
+    const runtime = plan.runtime;
+    if (!WORLD_PHASES.has(runtime.initialPhase)) throw new TypeError(`Unsupported KodexWorld phase: ${runtime.initialPhase}`);
+    if (!SOURCE_MODES.has(runtime.sourceMode)) throw new TypeError(`Unsupported KodexWorld source mode: ${runtime.sourceMode}`);
+    if (!this.setRenderTier(runtime.renderTier || 'HIGH')) throw new TypeError(`Unsupported KodexWorld render tier: ${runtime.renderTier}`);
+
+    this.planId = plan.plan_id;
+    this.setSeed(runtime.seed);
+    this.setSourceMode(runtime.sourceMode);
+    this.setTint(runtime.tint);
+    this.recipeDecay = clamp(Number(runtime.decay) || 0.9, 0.78, 0.975);
+
+    const configured = {};
+    for (const effect of runtime.effects || []) {
+      if (!RUNTIME_EFFECTS.has(effect.name)) throw new TypeError(`Unsupported KodexWorld runtime effect: ${effect.name}`);
+      configured[effect.name] = { on: effect.on !== false, params: { ...(effect.params || {}) } };
+      const target = this.getEffect(effect.name);
+      target.on = effect.on !== false;
+      Object.assign(target.params, effect.params || {});
+    }
+    this.recipeEffects = configured;
+    this.setState(runtime.initialPhase);
+    return this;
+  }
 
   _drawQuad() { const gl = this.gl; gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); gl.drawArrays(gl.TRIANGLES, 0, 3); }
   _pass(prog, tex, fbo, setU) {
@@ -131,9 +204,18 @@ export class KodexWorld {
 
   _render(now) {
     const gl = this.gl, s = this.state;
-    s.time += this._last ? Math.min(0.05, (now - this._last) / 1000) : 0.016;
-    s.mouse[0] += (s.targetMouse[0] - s.mouse[0]) * 0.06; s.mouse[1] += (s.targetMouse[1] - s.mouse[1]) * 0.06;
-    s.vel *= 0.92; s.signal += (s.targetSignal - s.signal) * 0.05;
+    const frameMs = this._last ? Math.min(50, Math.max(0, now - this._last)) : 16;
+    const dt = frameMs / 1000;
+    s.time += dt;
+
+    // Frame-rate-independent damping. Lambdas preserve approximately the previous
+    // 60 Hz feel while keeping response duration stable on 30/60/120 Hz displays.
+    const mouseAlpha = dampingAlpha(3.71, dt);
+    const signalAlpha = dampingAlpha(3.08, dt);
+    s.mouse[0] += (s.targetMouse[0] - s.mouse[0]) * mouseAlpha;
+    s.mouse[1] += (s.targetMouse[1] - s.mouse[1]) * mouseAlpha;
+    s.vel *= Math.exp(-5.0 * dt);
+    s.signal += (s.targetSignal - s.signal) * signalAlpha;
     const audio = this.getAudio();
 
     // SOURCE — flow (luminous threads) · spiral · black sun
@@ -163,7 +245,7 @@ export class KodexWorld {
     // FEEDBACK — real ping-pong
     this._pass(this.progs.feedback, readTex, this.fbB, (u) => {
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.fbA.tex); gl.uniform1i(u.u_prev, 1);
-      gl.uniform1f(u.u_decay, this.decay + audio * 0.06); gl.uniform1f(u.u_audio, audio);
+      gl.uniform1f(u.u_decay, clamp(this.decay + audio * 0.06, 0.78, 0.99)); gl.uniform1f(u.u_audio, audio);
       gl.uniform1i(u.u_scene, 0);
     });
     // composite → screen
@@ -173,23 +255,47 @@ export class KodexWorld {
     const tmp = this.fbA; this.fbA = this.fbB; this.fbB = tmp;
 
     // telemetry (measured) + governor
-    this._frames++; this._acc += this._last ? (now - this._last) : 16; this._last = now;
+    this._frames++; this._acc += frameMs; this._last = now;
     if (this._acc >= 500) {
       this._fps = Math.round(this._frames / (this._acc / 1000)); this._frames = 0; this._acc = 0;
-      if (this._fps < 40 && this.dpr > 0.75) { this.dpr = Math.max(0.75, this.dpr - 0.15); this._resize(); }
-      else if (this._fps > 58 && this.dpr < (window.devicePixelRatio || 1)) { this.dpr = Math.min(window.devicePixelRatio || 1, this.dpr + 0.1); this._resize(); }
+      if (this.renderTier !== 'STATIC') {
+        if (this._fps < 40 && this.dpr > 0.75) { this.dpr = Math.max(0.75, this.dpr - 0.15); this._resize(); }
+        else if (this._fps > 58 && this.dpr < this.maxDpr) { this.dpr = Math.min(this.maxDpr, this.dpr + 0.1); this._resize(); }
+      }
       const on = this.effects.filter((e) => e.on).map((e) => e.name);
-      this.onTelemetry({ fps: this._fps, res: this.W + '×' + this.H, state: this.phase || 'E00', passes: passes + 1, chain: on.length ? on.join('+') : 'source', seed: this.seedHex(), audio });
+      this.onTelemetry({
+        fps: this._fps,
+        res: this.W + '×' + this.H,
+        state: this.phase || 'E00',
+        passes: passes + 1,
+        chain: on.length ? on.join('+') : 'source',
+        seed: this.seedHex(),
+        audio,
+        renderTier: this.renderTier,
+        planId: this.planId,
+        reducedMotion: this.reduce,
+      });
     }
   }
   seedHex() { return '0x' + Math.floor(this.seed * 65535).toString(16).toUpperCase().padStart(4, '0'); }
 
+  renderOnce() {
+    if (this.failed || !this.gl) return;
+    this._render(performance.now());
+  }
+
   exportPNG() {
     // render one guaranteed frame then read the canvas
-    this._render(performance.now());
+    this.renderOnce();
     return this.canvas.toDataURL('image/png');
   }
 
-  start() { if (this.failed || this.running) return; this.running = true; const loop = (now) => { if (!this.running) return; this._render(now); this.raf = requestAnimationFrame(loop); }; if (this.reduce) { this._render(performance.now()); return; } this.raf = requestAnimationFrame(loop); }
+  start() {
+    if (this.failed || this.running) return;
+    this.running = true;
+    const loop = (now) => { if (!this.running) return; this._render(now); this.raf = requestAnimationFrame(loop); };
+    if (this.reduce || this.renderTier === 'STATIC') { this.renderOnce(); return; }
+    this.raf = requestAnimationFrame(loop);
+  }
   stop() { this.running = false; cancelAnimationFrame(this.raf); }
 }
