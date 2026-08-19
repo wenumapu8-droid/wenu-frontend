@@ -209,7 +209,7 @@ Only use for a defined probability distribution. Mapping normalized entropy to v
 
 ## 7. Proposed GeometryContract overlay
 
-This is an overlay/profile, not a competing IR:
+This is a **RESEARCH_PROFILE / NON_AUTHORITATIVE** overlay, not a competing IR or a new machine-readable correctness dialect. If implemented, it must normalize into existing Geometric Transduction / Semantic Trace / Natural Law vocabulary and existing validators rather than establishing parallel authority:
 
 ```js
 {
@@ -243,6 +243,7 @@ Rules:
 - unknown IDs fail closed;
 - geometry metadata cannot upgrade epistemic status;
 - map to existing Geometric Transduction IDs before adding anything;
+- do not introduce a parallel contract dialect beside ElementContract, PlateSpec, Semantic IR or existing Natural Law/trace validators absent a demonstrated contract gap;
 - explicit route choice remains Deep Navigation authority;
 - protected artwork boundaries remain unchanged.
 
@@ -251,12 +252,14 @@ Rules:
 | Scene | Dominant grammar | Intended function |
 |---|---|---|
 | THRESHOLD | seed + boundary + symmetry break + field | potential → first differentiation |
-| PROLOGUE | nested + orbit + concentric | orient observer / layered reveal |
+| PROLOGUE | observation/acquisition field + layered reveal; non-radial by default | orient observer / attention / signal acquisition |
 | DESCENT | spiral/helix + nested recursion + attractor | inward scale transition |
 | ARCHIVE | grid + network + Voronoi/Delaunay + phyllotaxis | records, neighborhoods, bridges |
 | MACHINE | lattice + graph + feedback + coupled oscillation | visible rule execution / signal propagation |
 | COSMOLOGY | field + orbit + hyperbolic + radial/toroidal where justified | system-within-system relations |
 | RETURN | toroidal return + lineage + decay + reconvergence + seed′ | compress visited history into transformed origin |
+
+For PROLOGUE, orbit/concentric geometry may appear only as subordinate/conditional vocabulary when justified by scene evidence; it is not the default macro-silhouette. Current verified implementation evidence remains PR #94.
 
 ## 9. Source-hunt program
 
