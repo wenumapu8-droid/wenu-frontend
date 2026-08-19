@@ -689,18 +689,25 @@ const FILAS_MAPA = [
     top: 76px; left: 222px; width: 783px;
     /* 105 px = versal medida 73 / 0,695 (razón de Bodoni 72).
        33,2 px = versal 25 / 0,754 (razón de Futura). */
-    --arch-titulo-size: 105px;
+    --arch-titulo-size: 105.5px;
     --arch-sub-size: 33.2px;
   }
   .arch-caja--titulo :global(.arch-titulo__en) {
     font-family: var(--gs-serif);
-    /* tracking calculado: 714,7 px naturales a 105 px contra los 719
-       medidos entre x256 y x975. */
-    letter-spacing: 0.003em;
+    /* tracking y espacio de palabra calculados: 714,7 px naturales a
+       105 px contra los 719 medidos (x256..x975), y el hueco entre
+       GAIA y SENTINEL mide 39 px en la referencia contra los 28 que
+       da la fuente sola — sin word-spacing toda la segunda palabra
+       entra 16 px corrida a la izquierda. */
+    letter-spacing: -0.005em;
+    word-spacing: 11px;
     /* interlínea por debajo del cuerpo: la referencia pega el
        subtítulo al título y con line-height 105 quedaba 25 px bajo. */
     line-height: 88px;
-    text-shadow: 0 0 30px rgba(226,206,150,0.3), 0 0 8px rgba(226,206,150,0.2);
+    /* el resplandor del título rellenaba los huecos entre versales:
+       la referencia deja 10..17 px de negro entre letras y con la
+       sombra larga la región subía a 111 % de tinta. */
+    text-shadow: 0 0 14px rgba(226,206,150,0.16);
   }
   /* la referencia NO trae la regla ornamental entre título y subtítulo */
   .arch-caja--titulo :global(.arch-titulo__regla) { display: none; }
@@ -1098,7 +1105,7 @@ const FILAS_MAPA = [
   const nubes = Array.from({ length: 46 }, () => {
     const x = rnd() * W;
     const y = 20 + Math.pow(rnd(), 1.5) * 300;
-    return { x, y, r: 40 + rnd() * 110, o: 0.06 + rnd() * 0.2 };
+    return { x, y, r: 40 + rnd() * 110, o: 0.035 + rnd() * 0.12 };
   });
   const aves = Array.from({ length: 26 }, () => ({
     x: 380 + rnd() * 380,
@@ -1128,8 +1135,8 @@ const FILAS_MAPA = [
   const coronaPicos = Array.from({ length: 21 }, (_, i) => {
     const t = i / 20 - 0.5;
     const x = 384 + t * 210;
-    const alto = 96 * (1 - Math.abs(t) * 1.25) + 24 + rnd() * 16;
-    return { x, base: 186 + Math.abs(t) * 62, alto, w: 9 + (1 - Math.abs(t) * 2) * 9, incl: t * 0.5 };
+    const alto = 74 * (1 - Math.abs(t) * 1.2) + 26 + rnd() * 14;
+    return { x, base: 196 + Math.abs(t) * 58, alto, w: 10 + (1 - Math.abs(t) * 2) * 10, incl: t * 0.5 };
   });
 
   /* bloques del cuerpo: rocas apiladas, espejadas sobre el eje */
@@ -1149,9 +1156,9 @@ const FILAS_MAPA = [
   const cristales = Array.from({ length: 54 }, () => {
     const lado = rnd() < 0.5 ? -1 : 1;
     const t = rnd();
-    const x = 384 + lado * (60 + t * 190);
-    const y = 250 + rnd() * 190 + t * 40;
-    return { x, y, h: 26 + rnd() * 62, w: 8 + rnd() * 12, incl: lado * (0.05 + rnd() * 0.22) };
+    const x = 384 + lado * (72 + t * 148);
+    const y = 262 + rnd() * 150 + t * 56;
+    return { x, y, h: 22 + rnd() * 46, w: 7 + rnd() * 10, incl: lado * (0.03 + rnd() * 0.14) };
   });
   /* lianas: los hilos que cuelgan del titán en la referencia */
   const lianas = Array.from({ length: 120 }, () => {
@@ -1189,6 +1196,30 @@ const FILAS_MAPA = [
     return { x, y, s: 1 + rnd() * 2.6, o: 0.12 + rnd() * 0.4, c: rnd() < 0.6 ? VERDE : ORO };
   });
 
+  /* DOSEL · copas oscuras de los cantos y del borde alto. Son masas,
+     no puntos: el follaje suelto no baja la media donde la referencia
+     tiene bosque cerrado. */
+  /* CALIBRADO CONTRA EL DELTA. La primera versión —190 copas de hasta
+     88 px más una banda en el borde alto— hundió la fila superior de
+     −33 a −107 y arte-alto saltó de 32,7 % a 41,5 %. El borde alto de
+     la referencia es CIELO, no bosque: la banda se quitó entera y las
+     copas de los cantos bajaron a un tercio de masa. */
+  const dosel: Array<{ x: number; y: number; r: number; o: number; c: string }> = [];
+  for (let k = 0; k < 96; k++) {
+    const lado = k % 2 ? 1 : -1;
+    const t = (k / 96);
+    const x = lado < 0 ? Math.pow(rnd(), 2.4) * 150 : W - Math.pow(rnd(), 2.4) * 150;
+    const y = 320 + t * (H - 320) + (rnd() - 0.5) * 90;
+    dosel.push({ x, y, r: 22 + rnd() * 40, o: 0.13 + rnd() * 0.2, c: rnd() < 0.35 ? "58,72,44" : "34,46,32" });
+  }
+  /* motas claras encima del dosel: hoja iluminada */
+  const hojas = Array.from({ length: 4200 }, () => {
+    const lado = rnd() < 0.5 ? -1 : 1;
+    const x = lado < 0 ? Math.pow(rnd(), 1.6) * 215 : W - Math.pow(rnd(), 1.6) * 215;
+    return { x, y: rnd() * H, s: 0.9 + rnd() * 2.2, o: 0.12 + rnd() * 0.34,
+             c: rnd() < 0.5 ? "122,158,80" : rnd() < 0.7 ? "168,178,120" : "78,110,64" };
+  });
+
   /* ── 6 · PLAZA ───────────────────────────────────────────────────
      Anillos concéntricos en perspectiva, escalinatas, seis obeliscos
      y el prisma verde del centro. */
@@ -1201,7 +1232,7 @@ const FILAS_MAPA = [
     { x: 607, w: 30, y0: 882, y1: 1018 },
     { x: 693, w: 46, y0: 855, y1: 1048 },
   ];
-  const PRISMA = { x: 385, base: 1018, alto: 268, w: 30 };
+  const PRISMA = { x: 385, base: 1018, alto: 268, w: 44 };
   /* figurillas: la referencia puebla la plaza de siluetas de 12..20 px */
   const figuras = Array.from({ length: 24 }, () => ({
     x: 120 + rnd() * 528,
@@ -1216,7 +1247,7 @@ const FILAS_MAPA = [
       y: 980 + rnd() * 182,
       r: 7 + rnd() * 15,
       c: rnd() < 0.55 ? LILA : AZUL,
-      o: 0.35 + rnd() * 0.45,
+      o: 0.22 + rnd() * 0.3,
     };
   });
 
@@ -1251,7 +1282,7 @@ const FILAS_MAPA = [
 
     /* acantilados: masas oscuras con perfil quebrado */
     for (const a of acantilados) {
-      f.fillStyle = tinta("38,46,38", 0.5);
+      f.fillStyle = tinta("52,62,50", 0.17);
       f.beginPath();
       f.moveTo(a.x, a.y + a.h);
       let px = a.x;
@@ -1268,7 +1299,7 @@ const FILAS_MAPA = [
     for (const c of cascadas) {
       const gr = f.createLinearGradient(c.x - c.w, 0, c.x + c.w, 0);
       gr.addColorStop(0, "rgba(0,0,0,0)");
-      gr.addColorStop(0.5, tinta("226,232,236", 0.42));
+      gr.addColorStop(0.5, tinta("226,232,236", 0.3));
       gr.addColorStop(1, "rgba(0,0,0,0)");
       f.fillStyle = gr;
       f.fillRect(c.x - c.w, c.y0, c.w * 2, c.y1 - c.y0);
@@ -1278,12 +1309,28 @@ const FILAS_MAPA = [
         const xx = c.x + (k - 2) * c.w * 0.35;
         f.beginPath(); f.moveTo(xx, c.y0); f.lineTo(xx + (rnd() - 0.5) * 6, c.y1); f.stroke();
       }
-      /* bruma del pie de la caída */
-      const br = f.createRadialGradient(c.x, c.y1, 2, c.x, c.y1, c.w * 5);
-      br.addColorStop(0, tinta("220,228,232", 0.3));
+      /* bruma del pie de la caída: corta y local. Con radio 5w y 0,3
+         de opacidad agrisaba medio cuadro y el delta lo cobraba a lo
+         ancho de tres columnas de celdas. */
+      const br = f.createRadialGradient(c.x, c.y1, 2, c.x, c.y1, c.w * 2.6);
+      br.addColorStop(0, tinta("220,228,232", 0.18));
       br.addColorStop(1, "rgba(0,0,0,0)");
       f.fillStyle = br;
-      f.beginPath(); f.arc(c.x, c.y1, c.w * 5, 0, Math.PI * 2); f.fill();
+      f.beginPath(); f.arc(c.x, c.y1, c.w * 2.6, 0, Math.PI * 2); f.fill();
+    }
+
+    /* dosel: masas de copa a los dos cantos y al borde alto */
+    for (const d of dosel) {
+      const gr = f.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r);
+      gr.addColorStop(0, tinta(d.c, d.o));
+      gr.addColorStop(0.62, tinta(d.c, d.o * 0.65));
+      gr.addColorStop(1, "rgba(0,0,0,0)");
+      f.fillStyle = gr;
+      f.beginPath(); f.arc(d.x, d.y, d.r, 0, Math.PI * 2); f.fill();
+    }
+    for (const h of hojas) {
+      f.fillStyle = tinta(h.c, h.o);
+      f.fillRect(h.x, h.y, h.s, h.s);
     }
 
     /* follaje de los cantos */
@@ -1292,46 +1339,141 @@ const FILAS_MAPA = [
       f.fillRect(p.x, p.y, p.s, p.s);
     }
 
-    /* ── el titán ── */
-    /* masa del torso: dos siluetas espejadas */
-    f.fillStyle = tinta("40,46,38", 0.74);
-    f.beginPath();
-    f.moveTo(384, 150);
-    f.lineTo(600, 286); f.lineTo(560, 520); f.lineTo(520, 780); f.lineTo(470, 980);
-    f.lineTo(298, 980); f.lineTo(248, 780); f.lineTo(208, 520); f.lineTo(168, 286);
-    f.closePath(); f.fill();
+    /* ── el titán ──────────────────────────────────────────────────
+       Comparando el recorte contra la referencia, la versión anterior
+       era un TRAPECIO de ladrillos: leía como muro, no como figura. La
+       referencia tiene cintura, dos brazos separados del torso —con el
+       fondo visible entre brazo y costado— y dos piernas que se funden
+       con el terreno. Todo espejado sobre el eje x384. */
 
-    /* bloques de piedra, espejados */
+    /* silueta del torso, para clip: hombros en y268, cintura en y560 */
+    const torso = new Path2D();
+    torso.moveTo(384, 148);
+    torso.bezierCurveTo(452, 168, 496, 216, 508, 276);
+    torso.bezierCurveTo(492, 372, 470, 452, 458, 556);
+    torso.bezierCurveTo(452, 660, 462, 760, 470, 862);
+    torso.lineTo(298, 862);
+    torso.bezierCurveTo(306, 760, 316, 660, 310, 556);
+    torso.bezierCurveTo(298, 452, 276, 372, 260, 276);
+    torso.bezierCurveTo(272, 216, 316, 168, 384, 148);
+    torso.closePath();
+
+    /* brazos: masa gruesa que sale del hombro, abre y vuelve. Se pintan
+       ANTES del torso para que el costado los recorte. */
+    for (const s2 of [-1, 1]) {
+      const via = () => {
+        f.beginPath();
+        f.moveTo(384 + s2 * 124, 280);
+        f.bezierCurveTo(384 + s2 * 206, 340, 384 + s2 * 222, 520, 384 + s2 * 196, 700);
+      };
+      f.lineCap = "round";
+      f.strokeStyle = tinta("38,44,34", 0.62);
+      f.lineWidth = 84; via(); f.stroke();
+      f.strokeStyle = tinta("116,116,96", 0.4);
+      f.lineWidth = 62; via(); f.stroke();
+      /* canto iluminado del brazo, hacia fuera */
+      f.save();
+      f.translate(s2 * 20, 0);
+      f.strokeStyle = tinta("192,188,160", 0.3);
+      f.lineWidth = 22; via(); f.stroke();
+      f.restore();
+      /* la referencia no tiene una silueta lisa: rompe el canto con
+         cordón de liana y bloque suelto */
+      for (let k = 0; k < 34; k++) {
+        const u = k / 33;
+        const bx = 384 + s2 * (124 + (206 - 124) * u * 1.5 - u * u * 90);
+        const by = 280 + u * 420;
+        f.fillStyle = rnd() < 0.5 ? tinta("22,28,20", 0.5) : tinta("176,172,146", 0.2);
+        f.fillRect(bx - 20 + rnd() * 40, by, 6 + rnd() * 22, 5 + rnd() * 12);
+      }
+      /* mano: garra de tres dedos, como en la referencia */
+      const mx = 384 + s2 * 196, my = 700;
+      f.strokeStyle = tinta("34,40,30", 0.7);
+      f.lineWidth = 15;
+      for (let k = 0; k < 3; k++) {
+        f.beginPath();
+        f.moveTo(mx, my);
+        f.quadraticCurveTo(mx + s2 * (10 - k * 12), my + 58, mx - s2 * (14 + k * 20), my + 96);
+        f.stroke();
+      }
+      f.strokeStyle = tinta("150,148,124", 0.28);
+      f.lineWidth = 6;
+      for (let k = 0; k < 3; k++) {
+        f.beginPath();
+        f.moveTo(mx, my);
+        f.quadraticCurveTo(mx + s2 * (10 - k * 12), my + 58, mx - s2 * (14 + k * 20), my + 96);
+        f.stroke();
+      }
+      f.lineCap = "butt";
+    }
+
+    /* piernas: dos columnas que se pierden en el terreno */
+    for (const s2 of [-1, 1]) {
+      f.fillStyle = tinta("40,46,36", 0.7);
+      f.beginPath();
+      f.moveTo(384 + s2 * 26, 800);
+      f.lineTo(384 + s2 * 118, 812);
+      f.lineTo(384 + s2 * 104, 968);
+      f.lineTo(384 + s2 * 34, 962);
+      f.closePath(); f.fill();
+      f.fillStyle = tinta("128,128,108", 0.14);
+      f.fillRect(384 + s2 * 44, 812, s2 * 40, 148);
+    }
+
+    /* masa del torso */
+    f.fillStyle = tinta("40,46,36", 0.72);
+    f.fill(torso);
+
+    /* piedra y fibra DENTRO de la silueta */
+    f.save();
+    f.clip(torso);
     for (const b of bloques) {
-      for (const s of [-1, 1]) {
+      for (const s2 of [-1, 1]) {
         f.save();
-        f.translate(384 + s * b.x, b.y);
-        f.rotate(b.giro * s);
-        f.fillStyle = tinta(PIEDRA, b.o * 0.68);
-        f.fillRect(-b.w / 2, -b.h / 2, b.w, b.h);
-        f.strokeStyle = tinta("214,206,180", b.o * 0.55);
-        f.lineWidth = 0.6;
-        f.strokeRect(-b.w / 2, -b.h / 2, b.w, b.h);
+        f.translate(384 + s2 * b.x * 0.72, b.y);
+        f.rotate(b.giro * s2);
+        f.fillStyle = tinta(PIEDRA, b.o * 0.5);
+        f.beginPath();
+        f.moveTo(-b.w / 2, -b.h / 2 + (b.o - 0.2) * 6);
+        f.lineTo(b.w / 2, -b.h / 2);
+        f.lineTo(b.w / 2 - 2, b.h / 2);
+        f.lineTo(-b.w / 2 + 1, b.h / 2 - (b.o - 0.2) * 5);
+        f.closePath(); f.fill();
+        f.strokeStyle = tinta("206,200,174", b.o * 0.36);
+        f.lineWidth = 0.6; f.stroke();
         f.restore();
       }
     }
+    /* fibra vertical: la piel del titán es cordón de liana y musgo, no
+       muro liso. Es lo que le da el ruido de alta frecuencia que la
+       referencia tiene en toda la figura. */
+    for (let k = 0; k < 520; k++) {
+      const t = rnd();
+      const x = 384 + (rnd() - 0.5) * 2 * (150 - t * 46);
+      const y0 = 160 + rnd() * 640;
+      const largo = 40 + rnd() * 190;
+      f.strokeStyle = rnd() < 0.52
+        ? tinta("22,28,20", 0.4 + rnd() * 0.4)
+        : tinta("142,144,114", 0.13 + rnd() * 0.3);
+      f.lineWidth = 0.6 + rnd() * 1.5;
+      f.beginPath();
+      f.moveTo(x, y0);
+      f.quadraticCurveTo(x + (rnd() - 0.5) * 16, y0 + largo * 0.5, x + (rnd() - 0.5) * 22, y0 + largo);
+      f.stroke();
+    }
+    f.restore();
 
-    /* brazos */
-    for (const b of brazos) {
-      f.strokeStyle = tinta("58,64,50", 0.72);
-      f.lineWidth = 62;
-      f.lineCap = "round";
+    /* hombreras: dos placas de piedra sobre los hombros */
+    for (const s2 of [-1, 1]) {
+      f.fillStyle = tinta("54,60,48", 0.72);
       f.beginPath();
-      f.moveTo(b.x0, b.y0);
-      f.quadraticCurveTo(b.x1, b.y1, b.x2, b.y2);
-      f.stroke();
-      f.strokeStyle = tinta(PIEDRA, 0.2);
-      f.lineWidth = 44;
-      f.beginPath();
-      f.moveTo(b.x0, b.y0);
-      f.quadraticCurveTo(b.x1, b.y1, b.x2, b.y2);
-      f.stroke();
-      f.lineCap = "butt";
+      f.moveTo(384 + s2 * 96, 250);
+      f.lineTo(384 + s2 * 212, 286);
+      f.lineTo(384 + s2 * 196, 352);
+      f.lineTo(384 + s2 * 92, 330);
+      f.closePath(); f.fill();
+      f.strokeStyle = tinta("192,188,160", 0.26);
+      f.lineWidth = 1.2; f.stroke();
     }
 
     /* corona de cristal */
@@ -1340,41 +1482,41 @@ const FILAS_MAPA = [
       f.translate(p.x, p.base);
       f.rotate(p.incl);
       const gr = f.createLinearGradient(0, 0, 0, -p.alto);
-      gr.addColorStop(0, tinta("60,110,70", 0.5));
-      gr.addColorStop(0.6, tinta("120,200,130", 0.55));
-      gr.addColorStop(1, tinta("200,255,210", 0.8));
+      gr.addColorStop(0, tinta("40,72,48", 0.55));
+      gr.addColorStop(0.6, tinta("78,130,86", 0.34));
+      gr.addColorStop(1, tinta("158,206,168", 0.5));
       f.fillStyle = gr;
       f.beginPath();
       f.moveTo(-p.w, 0); f.lineTo(0, -p.alto); f.lineTo(p.w, 0);
       f.closePath(); f.fill();
-      f.strokeStyle = tinta("190,250,200", 0.55);
+      f.strokeStyle = tinta("190,250,200", 0.4);
       f.lineWidth = 0.9;
       f.stroke();
       f.restore();
     }
 
-    /* cristales del torso */
+    /* cristales del torso y de los hombros */
     for (const c of cristales) {
       f.save();
       f.translate(c.x, c.y);
       f.rotate(c.incl);
       const gr = f.createLinearGradient(0, 0, 0, -c.h);
-      gr.addColorStop(0, tinta("40,90,60", 0.55));
-      gr.addColorStop(0.55, tinta("110,210,140", 0.6));
-      gr.addColorStop(1, tinta("210,255,220", 0.85));
+      gr.addColorStop(0, tinta("32,72,48", 0.5));
+      gr.addColorStop(0.55, tinta("88,168,112", 0.44));
+      gr.addColorStop(1, tinta("186,238,198", 0.62));
       f.fillStyle = gr;
       f.beginPath();
       f.moveTo(-c.w / 2, 0); f.lineTo(-c.w / 2, -c.h * 0.6);
       f.lineTo(0, -c.h); f.lineTo(c.w / 2, -c.h * 0.6); f.lineTo(c.w / 2, 0);
       f.closePath(); f.fill();
-      f.strokeStyle = tinta("190,255,205", 0.5);
+      f.strokeStyle = tinta("190,255,205", 0.35);
       f.lineWidth = 0.7; f.stroke();
       f.restore();
     }
 
-    /* lianas */
+    /* lianas colgantes */
     for (const l of lianas) {
-      f.strokeStyle = tinta(ORO, l.o);
+      f.strokeStyle = tinta(ORO, l.o * 0.8);
       f.lineWidth = 0.7;
       f.beginPath();
       f.moveTo(l.x, l.y0);
@@ -1382,18 +1524,18 @@ const FILAS_MAPA = [
       f.stroke();
     }
 
-    /* rostro: cuenca de piedra y dos brasas verdes */
-    f.fillStyle = tinta("34,42,36", 0.8);
-    f.beginPath(); f.ellipse(HEAD.x, HEAD.y, 48, 58, 0, 0, Math.PI * 2); f.fill();
-    f.strokeStyle = tinta(PIEDRA, 0.35);
+    /* rostro: cuenca de piedra bajo la corona (medido y164..221) */
+    f.fillStyle = tinta("34,42,36", 0.5);
+    f.beginPath(); f.ellipse(HEAD.x, 192, 42, 30, 0, 0, Math.PI * 2); f.fill();
+    f.strokeStyle = tinta(PIEDRA, 0.4);
     f.lineWidth = 1.2;
-    f.beginPath(); f.ellipse(HEAD.x, HEAD.y, 48, 58, 0, 0, Math.PI * 2); f.stroke();
-    for (const s of [-1, 1]) {
+    f.beginPath(); f.ellipse(HEAD.x, 192, 42, 30, 0, 0, Math.PI * 2); f.stroke();
+    for (const s2 of [-1, 1]) {
       f.strokeStyle = tinta(PIEDRA, 0.4);
       f.lineWidth = 1;
       f.beginPath();
-      f.moveTo(HEAD.x + s * 12, HEAD.y + 6);
-      f.lineTo(HEAD.x + s * 20, HEAD.y + 44);
+      f.moveTo(HEAD.x + s2 * 12, 200);
+      f.lineTo(HEAD.x + s2 * 18, 226);
       f.stroke();
     }
 
@@ -1401,12 +1543,14 @@ const FILAS_MAPA = [
     /* escalinatas y anillos concéntricos en perspectiva */
     for (let k = 8; k >= 1; k--) {
       const rx = 40 + k * 26, ry = (40 + k * 26) * 0.29;
-      f.strokeStyle = tinta(ORO, 0.14 + (k % 2) * 0.14);
+      f.strokeStyle = tinta(ORO, 0.09 + (k % 2) * 0.09);
       f.lineWidth = k % 3 === 0 ? 1.4 : 0.8;
       f.beginPath(); f.ellipse(PLAZA.x, PLAZA.y, rx, ry, 0, 0, Math.PI * 2); f.stroke();
     }
-    f.fillStyle = tinta("128,126,110", 0.16);
+    f.fillStyle = tinta("150,146,124", 0.17);
     f.beginPath(); f.ellipse(PLAZA.x, PLAZA.y, 250, 74, 0, 0, Math.PI * 2); f.fill();
+    f.fillStyle = tinta("162,158,134", 0.11);
+    f.beginPath(); f.ellipse(PLAZA.x, PLAZA.y + 6, 176, 52, 0, 0, Math.PI * 2); f.fill();
     for (let k = 0; k < 32; k++) {
       const a = (k / 32) * Math.PI * 2;
       f.strokeStyle = tinta(ORO, 0.1);
@@ -1416,12 +1560,21 @@ const FILAS_MAPA = [
       f.lineTo(PLAZA.x + Math.cos(a) * 246, PLAZA.y + Math.sin(a) * 72);
       f.stroke();
     }
+    /* el vado: la referencia abre un agua iluminada entre el titán y
+       la plaza, y sin ella el eje caía 32 puntos por debajo. */
+    const vado = f.createRadialGradient(PLAZA.x, 830, 10, PLAZA.x, 830, 210);
+    vado.addColorStop(0, tinta("158,172,148", 0.34));
+    vado.addColorStop(0.5, tinta("120,138,118", 0.16));
+    vado.addColorStop(1, "rgba(0,0,0,0)");
+    f.fillStyle = vado;
+    f.beginPath(); f.ellipse(PLAZA.x, 830, 210, 120, 0, 0, Math.PI * 2); f.fill();
+
     /* escalones del frente */
     for (let k = 0; k < 7; k++) {
       const y = 1078 + k * 12;
       const w = 128 - k * 4;
-      f.strokeStyle = tinta(PIEDRA, 0.22);
-      f.lineWidth = 1;
+      f.strokeStyle = tinta(PIEDRA, 0.4);
+      f.lineWidth = 1.6;
       f.beginPath(); f.moveTo(PLAZA.x - w, y); f.lineTo(PLAZA.x + w, y); f.stroke();
     }
 
@@ -1481,14 +1634,15 @@ const FILAS_MAPA = [
       gr.addColorStop(1, "rgba(0,0,0,0)");
       f.fillStyle = gr;
       f.beginPath(); f.arc(fl.x, fl.y, fl.r, 0, Math.PI * 2); f.fill();
-      for (let k = 0; k < 6; k++) {
-        const a = (k / 6) * Math.PI * 2;
-        f.strokeStyle = tinta(fl.c, fl.o * 1.2);
-        f.lineWidth = 1.1;
+      /* pétalos como manchas, no como radios: con líneas rectas las
+         flores salían copos de nieve y la referencia tiene corolas. */
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * Math.PI * 2 + fl.r;
+        f.fillStyle = tinta(fl.c, fl.o * 0.85);
         f.beginPath();
-        f.moveTo(fl.x, fl.y);
-        f.lineTo(fl.x + Math.cos(a) * fl.r * 0.7, fl.y + Math.sin(a) * fl.r * 0.7);
-        f.stroke();
+        f.ellipse(fl.x + Math.cos(a) * fl.r * 0.4, fl.y + Math.sin(a) * fl.r * 0.4,
+                  fl.r * 0.34, fl.r * 0.2, a, 0, Math.PI * 2);
+        f.fill();
       }
     }
 
@@ -1543,13 +1697,13 @@ const FILAS_MAPA = [
     g.globalCompositeOperation = "lighter";
     for (let i = 0; i < anillos.length; i++) {
       const r = anillos[i];
-      g.strokeStyle = tinta(ORO, (0.09 + (i % 2) * 0.08) * pulso);
+      g.strokeStyle = tinta(ORO, (0.062 + (i % 2) * 0.055) * pulso);
       g.lineWidth = i % 3 === 0 ? 1.3 : 0.8;
       g.beginPath(); g.arc(MAN.x, MAN.y, r, 0, Math.PI * 2); g.stroke();
     }
     for (let k = 0; k < 24; k++) {
       const a = (k / 24) * Math.PI * 2;
-      g.strokeStyle = tinta(ORO, 0.055 * pulso);
+      g.strokeStyle = tinta(ORO, 0.034 * pulso);
       g.lineWidth = 0.6;
       g.beginPath();
       g.moveTo(MAN.x + Math.cos(a) * 58, MAN.y + Math.sin(a) * 58);
@@ -1558,7 +1712,7 @@ const FILAS_MAPA = [
     }
     for (const gl of glifosMandala) {
       const x = MAN.x + Math.cos(gl.a) * gl.r, y = MAN.y + Math.sin(gl.a) * gl.r;
-      g.strokeStyle = tinta(ORO, 0.2 * pulso);
+      g.strokeStyle = tinta(ORO, 0.13 * pulso);
       g.lineWidth = 0.8;
       g.beginPath(); g.arc(x, y, gl.s, 0, Math.PI * 2); g.stroke();
       for (let b = 0; b < 3; b++) {
@@ -1602,9 +1756,9 @@ const FILAS_MAPA = [
 
     /* sigilo del pecho: el foco más fuerte del arte */
     const pe = g.createRadialGradient(PECHO.x, PECHO.y, 2, PECHO.x, PECHO.y, 96);
-    pe.addColorStop(0, tinta("225,255,215", 0.9 * pulso));
-    pe.addColorStop(0.16, tinta(VERDE_VIVO, 0.55 * pulso));
-    pe.addColorStop(0.45, tinta("70,170,90", 0.13 * pulso));
+    pe.addColorStop(0, tinta("225,255,215", 0.85 * pulso));
+    pe.addColorStop(0.16, tinta(VERDE_VIVO, 0.4 * pulso));
+    pe.addColorStop(0.45, tinta("70,170,90", 0.08 * pulso));
     pe.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = pe;
     g.beginPath(); g.arc(PECHO.x, PECHO.y, 96, 0, Math.PI * 2); g.fill();
@@ -1627,14 +1781,14 @@ const FILAS_MAPA = [
     /* prisma de la plaza y su haz */
     const haz = g.createLinearGradient(PRISMA.x - 26, 0, PRISMA.x + 26, 0);
     haz.addColorStop(0, "rgba(0,0,0,0)");
-    haz.addColorStop(0.5, tinta(VERDE_VIVO, 0.2 * pulso));
+    haz.addColorStop(0.5, tinta(VERDE_VIVO, 0.12 * pulso));
     haz.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = haz;
-    g.fillRect(PRISMA.x - 26, 0, 52, PRISMA.base);
+    g.fillRect(PRISMA.x - 26, 700, 52, PRISMA.base - 700);
     const cuerpo = g.createLinearGradient(0, PRISMA.base, 0, PRISMA.base - PRISMA.alto);
-    cuerpo.addColorStop(0, tinta("240,255,235", 0.9 * pulso));
-    cuerpo.addColorStop(0.3, tinta(VERDE_VIVO, 0.6 * pulso));
-    cuerpo.addColorStop(1, tinta("120,220,140", 0.35 * pulso));
+    cuerpo.addColorStop(0, tinta("240,255,235", 0.75 * pulso));
+    cuerpo.addColorStop(0.3, tinta(VERDE_VIVO, 0.45 * pulso));
+    cuerpo.addColorStop(1, tinta("120,220,140", 0.26 * pulso));
     g.fillStyle = cuerpo;
     g.beginPath();
     g.moveTo(PRISMA.x - PRISMA.w / 2, PRISMA.base);
@@ -1643,22 +1797,39 @@ const FILAS_MAPA = [
     g.lineTo(PRISMA.x + PRISMA.w / 2 - 5, PRISMA.base - PRISMA.alto + 26);
     g.lineTo(PRISMA.x + PRISMA.w / 2, PRISMA.base);
     g.closePath(); g.fill();
-    const halo = g.createRadialGradient(PRISMA.x, PRISMA.base - 20, 4, PRISMA.x, PRISMA.base - 20, 150);
-    halo.addColorStop(0, tinta("235,255,230", 0.5 * pulso));
-    halo.addColorStop(0.2, tinta(VERDE_VIVO, 0.18 * pulso));
+    const halo = g.createRadialGradient(PRISMA.x, PRISMA.base - 20, 4, PRISMA.x, PRISMA.base - 20, 108);
+    halo.addColorStop(0, tinta("235,255,230", 0.2 * pulso));
+    halo.addColorStop(0.2, tinta(VERDE_VIVO, 0.06 * pulso));
     halo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = halo;
-    g.beginPath(); g.arc(PRISMA.x, PRISMA.base - 20, 150, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(PRISMA.x, PRISMA.base - 20, 108, 0, Math.PI * 2); g.fill();
 
-    /* rombo de la cúspide (medido sobre el eje, y≈760 local) */
-    g.fillStyle = tinta("240,255,235", 0.85 * pulso);
-    g.beginPath();
-    g.moveTo(PRISMA.x, 744); g.lineTo(PRISMA.x + 14, 762);
-    g.lineTo(PRISMA.x, 780); g.lineTo(PRISMA.x - 14, 762);
-    g.closePath(); g.fill();
+    /* racimo: la referencia no tiene un prisma solo sino tres o
+       cuatro esquirlas de distinto alto contra el eje */
+    for (const [dx, alto, ancho] of [[-24, 168, 18], [22, 196, 20], [-11, 118, 13], [13, 132, 14]] as const) {
+      const gr = g.createLinearGradient(0, PRISMA.base, 0, PRISMA.base - alto);
+      gr.addColorStop(0, tinta("210,246,206", 0.5 * pulso));
+      gr.addColorStop(1, tinta("120,214,140", 0.22 * pulso));
+      g.fillStyle = gr;
+      g.beginPath();
+      g.moveTo(PRISMA.x + dx - ancho / 2, PRISMA.base);
+      g.lineTo(PRISMA.x + dx, PRISMA.base - alto);
+      g.lineTo(PRISMA.x + dx + ancho / 2, PRISMA.base);
+      g.closePath(); g.fill();
+    }
+    /* estrella de la base */
+    for (let k = 0; k < 4; k++) {
+      const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
+      g.strokeStyle = tinta("236,255,232", 0.5 * pulso);
+      g.lineWidth = k % 2 ? 1.2 : 2;
+      g.beginPath();
+      g.moveTo(PRISMA.x, PRISMA.base - 6);
+      g.lineTo(PRISMA.x + Math.cos(a) * (k % 2 ? 34 : 62), PRISMA.base - 6 + Math.sin(a) * (k % 2 ? 34 : 62) * 0.5);
+      g.stroke();
+    }
 
     /* anillo encendido de la plaza */
-    g.strokeStyle = tinta(VERDE_VIVO, 0.3 * pulso);
+    g.strokeStyle = tinta(VERDE_VIVO, 0.19 * pulso);
     g.lineWidth = 1.6;
     g.beginPath(); g.ellipse(PLAZA.x, PLAZA.y, 118, 34, 0, 0, Math.PI * 2); g.stroke();
     g.restore();
