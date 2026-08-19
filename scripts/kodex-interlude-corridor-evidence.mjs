@@ -49,7 +49,7 @@ try {
 
       const name = `${interlude.key}-${profile.key}`;
       try {
-        const response = await page.goto(new URL(interlude.href, baseURL), {
+        const response = await page.goto(new URL(interlude.href, baseURL).toString(), {
           waitUntil: 'domcontentloaded',
           timeout: 30_000,
         });
