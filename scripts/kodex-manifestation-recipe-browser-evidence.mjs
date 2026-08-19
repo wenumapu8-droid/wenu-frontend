@@ -17,6 +17,7 @@ const report = { baseURL, generatedAt: new Date().toISOString(), cases: [], erro
 const browser = await chromium.launch({ headless: true });
 const assert = (condition, message) => { if (!condition) throw new Error(message); };
 const formatError = (error) => String(error?.stack || error?.message || error);
+const stateReadoutSelector = '.kdx-mrecipe__header [data-state]';
 
 async function samplePaintedSignal(page) {
   return page.evaluate(() => {
@@ -63,12 +64,12 @@ try {
         await page.waitForFunction(() => Number(document.querySelector('[data-fps]')?.textContent || 0) > 0, null, { timeout: 8_000 });
       }
 
-      const initial = await page.evaluate(() => {
+      const initial = await page.evaluate((stateSelector) => {
         const read = (selector) => document.querySelector(selector)?.textContent?.trim() || '';
         const lab = window.__KDX_MANIFESTATION_LAB__ || {};
         return {
           planId: read('[data-plan-id]'),
-          state: read('[data-state]'),
+          state: read(stateSelector),
           sourceStatus: read('[data-source-pixel-status]'),
           mirrorRuntime: read('[data-mirror-runtime]'),
           memoryTopology: read('[data-memory-topology]'),
@@ -77,7 +78,7 @@ try {
           sourceBlocked: Boolean(lab.plan?.source_pixel_blocked),
           overflow: document.documentElement.scrollWidth - window.innerWidth,
         };
-      });
+      }, stateReadoutSelector);
 
       assert(/^KDX-MAN-[A-Z0-9]+$/.test(initial.planId), `${profile.key}: invalid plan id ${initial.planId}`);
       assert(initial.state === 'DORMANT', `${profile.key}: initial state ${initial.state} != DORMANT`);
@@ -90,7 +91,7 @@ try {
 
       const openButton = page.locator('[data-state-button="OPEN"]');
       if (profile.hasTouch) await openButton.tap(); else await openButton.click();
-      await page.waitForFunction(() => document.querySelector('[data-state]')?.textContent === 'OPEN', null, { timeout: 3_000 });
+      await page.waitForFunction((stateSelector) => document.querySelector(stateSelector)?.textContent === 'OPEN', stateReadoutSelector, { timeout: 3_000 });
       if (profile.reducedMotion !== 'reduce') await page.waitForTimeout(500);
       const signal = await samplePaintedSignal(page);
       assert(signal.painted > 0, `${profile.key}: no painted WebGL signal in sampled framebuffer`);
@@ -99,14 +100,14 @@ try {
       const orbitButton = page.locator('[data-memory-preset="ORBIT"]');
       if (profile.hasTouch) await orbitButton.tap(); else await orbitButton.click();
       await page.waitForFunction((before) => document.querySelector('[data-plan-id]')?.textContent !== before, beforeMemoryPlan, { timeout: 4_000 });
-      const memoryResult = await page.evaluate(() => ({
+      const memoryResult = await page.evaluate((stateSelector) => ({
         planId: document.querySelector('[data-plan-id]')?.textContent?.trim() || '',
         topology: document.querySelector('[data-memory-topology]')?.textContent?.trim() || '',
         revisitRatio: Number(document.querySelector('[data-revisit-ratio]')?.textContent || 0),
         segments: Number(document.querySelector('[data-segments-out]')?.textContent || 0),
-        state: document.querySelector('[data-state]')?.textContent?.trim() || '',
+        state: document.querySelector(stateSelector)?.textContent?.trim() || '',
         overflow: document.documentElement.scrollWidth - window.innerWidth,
-      }));
+      }), stateReadoutSelector);
       assert(memoryResult.planId !== beforeMemoryPlan, `${profile.key}: memory snapshot did not produce a distinct deterministic plan`);
       assert(memoryResult.topology === 'ORBIT_LOOP', `${profile.key}: expected ORBIT_LOOP memory, got ${memoryResult.topology}`);
       assert(memoryResult.revisitRatio > 0, `${profile.key}: revisit ratio did not affect descriptive memory input`);
