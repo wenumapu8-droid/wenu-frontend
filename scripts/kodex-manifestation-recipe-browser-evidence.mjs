@@ -41,6 +41,37 @@ async function samplePaintedSignal(page) {
   });
 }
 
+async function readRailMetrics(page) {
+  return page.evaluate(() => {
+    const panel = document.querySelector('.kdx-mrecipe__panel');
+    const button = document.querySelector('[data-memory-preset="ORBIT"]');
+    const section = button?.closest('section');
+    if (!(panel instanceof HTMLElement) || !(section instanceof HTMLElement) || !(button instanceof HTMLElement)) {
+      return null;
+    }
+    const panelRect = panel.getBoundingClientRect();
+    const sectionRect = section.getBoundingClientRect();
+    const buttonRect = button.getBoundingClientRect();
+    const visibleLeft = Math.max(sectionRect.left, panelRect.left);
+    const visibleRight = Math.min(sectionRect.right, panelRect.right);
+    const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+    return {
+      scrollLeft: panel.scrollLeft,
+      scrollWidth: panel.scrollWidth,
+      clientWidth: panel.clientWidth,
+      sectionLeft: sectionRect.left,
+      sectionRight: sectionRect.right,
+      panelLeft: panelRect.left,
+      panelRight: panelRect.right,
+      sectionVisibleRatio: sectionRect.width > 0 ? visibleWidth / sectionRect.width : 0,
+      sectionLeftClipped: sectionRect.left < panelRect.left - 1,
+      buttonLeft: buttonRect.left,
+      buttonRight: buttonRect.right,
+      buttonVisible: buttonRect.left >= panelRect.left - 1 && buttonRect.right <= panelRect.right + 1,
+    };
+  });
+}
+
 try {
   for (const profile of profiles) {
     const context = await browser.newContext({
@@ -98,8 +129,30 @@ try {
 
       const beforeMemoryPlan = await page.locator('[data-plan-id]').textContent();
       const orbitButton = page.locator('[data-memory-preset="ORBIT"]');
-      if (profile.hasTouch) await orbitButton.tap(); else await orbitButton.click();
+
+      const railBefore = profile.hasTouch ? await readRailMetrics(page) : null;
+      if (profile.hasTouch) {
+        await page.evaluate(() => {
+          const button = document.querySelector('[data-memory-preset="ORBIT"]');
+          if (!(button instanceof HTMLButtonElement)) throw new Error('ORBIT control missing');
+          button.click();
+        });
+      } else {
+        await orbitButton.click();
+      }
+
       await page.waitForFunction((before) => document.querySelector('[data-plan-id]')?.textContent !== before, beforeMemoryPlan, { timeout: 4_000 });
+      await page.waitForTimeout(profile.hasTouch ? 250 : 0);
+
+      const railAfter = profile.hasTouch ? await readRailMetrics(page) : null;
+      if (profile.hasTouch) {
+        assert(railBefore && railAfter, `${profile.key}: control rail metrics unavailable`);
+        assert(
+          Math.abs(railAfter.scrollLeft - railBefore.scrollLeft) <= 1,
+          `${profile.key}: product ORBIT action moved control rail ${railBefore.scrollLeft} -> ${railAfter.scrollLeft}`,
+        );
+      }
+
       const memoryResult = await page.evaluate((stateSelector) => ({
         planId: document.querySelector('[data-plan-id]')?.textContent?.trim() || '',
         topology: document.querySelector('[data-memory-topology]')?.textContent?.trim() || '',
@@ -125,6 +178,12 @@ try {
         initial,
         paintedSignal: signal,
         memoryResult,
+        controlRailDiagnostic: profile.hasTouch ? {
+          action: 'DOM_CLICK_WITHOUT_PLAYWRIGHT_AUTOSCROLL',
+          before: railBefore,
+          after: railAfter,
+          productMovedRail: Math.abs((railAfter?.scrollLeft || 0) - (railBefore?.scrollLeft || 0)) > 1,
+        } : null,
         pageErrors,
       });
     } catch (error) {
