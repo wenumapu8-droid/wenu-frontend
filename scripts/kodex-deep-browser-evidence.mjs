@@ -25,9 +25,6 @@ const fail = (name, error) => {
   console.error(message);
 };
 
-// Chromium/Playwright may normalize disabled motion to a 0.01 ms sentinel
-// (`1e-05s`) rather than literal `0s`. Treat <=0.1 ms as effectively zero,
-// while still rejecting any perceptible transition/animation duration.
 const REDUCED_MOTION_EPSILON_MS = 0.1;
 const cssTimeToMs = (token = '') => {
   const value = String(token).trim();
@@ -48,7 +45,7 @@ async function navigate(page, search = '') {
   const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
   await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
   await page.locator('[data-kdx-deep-lab]').waitFor({ state: 'visible', timeout: 10_000 });
-  await page.locator('[data-doors] .kdx-door').first().waitFor({ state: 'visible', timeout: 10_000 });
+  await page.locator('[data-doors] .kdx-door').first().waitFor({ state: 'attached', timeout: 10_000 });
   return response;
 }
 
@@ -74,6 +71,22 @@ async function shellMetrics(page) {
   });
 }
 
+async function gestureSnapshot(page) {
+  return page.evaluate(() => {
+    const plate = document.querySelector('[data-plate]');
+    const doors = document.querySelector('[data-doors]');
+    const firstDoor = doors?.querySelector('.kdx-door');
+    return {
+      phase: plate?.getAttribute('data-phase') || null,
+      ariaHidden: doors?.getAttribute('aria-hidden') || null,
+      firstDoorTabIndex: firstDoor?.tabIndex ?? null,
+      historyLength: history.length,
+      node: new URL(location.href).searchParams.get('node'),
+      knownCount: Number(document.querySelector('[data-known-count]')?.textContent || 0),
+    };
+  });
+}
+
 async function assertActivePlate(page, label) {
   await page.waitForFunction(() => document.activeElement?.matches?.('[data-plate]'));
   assert(await page.locator('[data-plate]').evaluate((el) => el === document.activeElement), `${label}: focus was not restored to the active plate`);
@@ -88,6 +101,18 @@ function assertBoundedShell(metrics, label) {
   assert(metrics.urlKeys.every((key) => key === 'lens' || key === 'node'), `${label}: public URL leaked non-addressable state (${metrics.urlKeys.join(', ')})`);
 }
 
+function assertDormant(snapshot, label) {
+  assert(snapshot.phase === 'dormant', `${label}: expected DORMANT, received ${snapshot.phase}`);
+  assert(snapshot.ariaHidden === 'true', `${label}: routes were exposed to accessibility tree before OPEN`);
+  assert(snapshot.firstDoorTabIndex === -1, `${label}: route was focusable before OPEN`);
+}
+
+function assertOpen(snapshot, label) {
+  assert(snapshot.phase === 'open', `${label}: expected OPEN, received ${snapshot.phase}`);
+  assert(snapshot.ariaHidden === 'false', `${label}: routes remained aria-hidden after OPEN`);
+  assert(snapshot.firstDoorTabIndex === 0, `${label}: route did not become keyboard-focusable after OPEN`);
+}
+
 async function desktopHistoryKeyboard() {
   const name = 'deep-navigation-desktop-keyboard-history';
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' });
@@ -97,6 +122,16 @@ async function desktopHistoryKeyboard() {
     await assertActivePlate(page, `${name}: initial deep-link`);
     const initial = await shellMetrics(page);
     assertBoundedShell(initial, name);
+
+    const beforeReveal = await gestureSnapshot(page);
+    assertDormant(beforeReveal, name);
+    await page.keyboard.press('ArrowDown');
+    await page.waitForFunction(() => document.querySelector('[data-plate]')?.getAttribute('data-phase') === 'open');
+    const afterReveal = await gestureSnapshot(page);
+    assertOpen(afterReveal, name);
+    assert(afterReveal.historyLength === beforeReveal.historyLength, `${name}: gesture reveal changed browser history`);
+    assert(afterReveal.node === beforeReveal.node, `${name}: gesture reveal navigated without explicit route choice`);
+    assert(afterReveal.knownCount === beforeReveal.knownCount, `${name}: gesture reveal wrote route memory before explicit choice`);
 
     const firstDoor = page.locator('[data-doors] .kdx-door').first();
     const initialNode = new URL(page.url()).searchParams.get('node');
@@ -111,6 +146,7 @@ async function desktopHistoryKeyboard() {
     const depthAfterEnter = Number(await page.locator('[data-depth]').textContent());
     assert(depthAfterEnter === 1, `${name}: meaningful descent did not increment depth to 1 (received ${depthAfterEnter})`);
     assert((await page.evaluate(() => history.length)) === initialHistoryLength + 1, `${name}: descent did not push exactly one history entry`);
+    assertDormant(await gestureSnapshot(page), `${name}: new node`);
 
     const knownAfterEnter = Number(await page.locator('[data-known-count]').textContent());
     assert(knownAfterEnter >= 2, `${name}: Memory Constellation did not learn descended node`);
@@ -134,7 +170,7 @@ async function desktopHistoryKeyboard() {
     assertBoundedShell(after, name);
     const file = `${name}.png`;
     await page.screenshot({ path: path.join(outputDir, file), fullPage: false, animations: 'disabled' });
-    report.acceptance.push({ name, pass: true, initialNode, descendedNode, knownAfterEnter, metrics: after, screenshot: file });
+    report.acceptance.push({ name, pass: true, initialNode, descendedNode, knownAfterEnter, gesture: { beforeReveal, afterReveal }, metrics: after, screenshot: file });
   } catch (error) {
     fail(name, error);
   } finally {
@@ -149,6 +185,26 @@ async function mobileTouchConstellation() {
   try {
     await navigate(page, '?node=SCI-BIOLOGY&lens=NAKED_EYE');
     assertBoundedShell(await shellMetrics(page), name);
+    const beforeReveal = await gestureSnapshot(page);
+    assertDormant(beforeReveal, name);
+
+    await page.evaluate(() => {
+      const stage = document.querySelector('.kdx-deep__stage');
+      if (!stage) throw new Error('gesture stage missing');
+      const touch = (clientY) => ({ clientY });
+      const start = new Event('touchstart', { bubbles: true, cancelable: true });
+      Object.defineProperty(start, 'touches', { value: [touch(620)] });
+      stage.dispatchEvent(start);
+      const move = new Event('touchmove', { bubbles: true, cancelable: true });
+      Object.defineProperty(move, 'touches', { value: [touch(420)] });
+      stage.dispatchEvent(move);
+    });
+    await page.waitForFunction(() => document.querySelector('[data-plate]')?.getAttribute('data-phase') === 'open');
+    const afterReveal = await gestureSnapshot(page);
+    assertOpen(afterReveal, name);
+    assert(afterReveal.historyLength === beforeReveal.historyLength, `${name}: touch reveal changed browser history`);
+    assert(afterReveal.node === beforeReveal.node, `${name}: touch reveal navigated without explicit choice`);
+    assert(afterReveal.knownCount === beforeReveal.knownCount, `${name}: touch reveal wrote memory before explicit choice`);
 
     await page.locator('[data-doors] .kdx-door').first().tap();
     await page.waitForFunction(() => Number(document.querySelector('[data-depth]')?.textContent) === 1);
@@ -163,7 +219,7 @@ async function mobileTouchConstellation() {
     assertBoundedShell(metrics, name);
     const file = `${name}.png`;
     await page.screenshot({ path: path.join(outputDir, file), fullPage: false, animations: 'disabled' });
-    report.acceptance.push({ name, pass: true, visibleMemoryNodes, metrics, screenshot: file });
+    report.acceptance.push({ name, pass: true, visibleMemoryNodes, gesture: { beforeReveal, afterReveal }, metrics, screenshot: file });
   } catch (error) {
     fail(name, error);
   } finally {
@@ -177,9 +233,12 @@ async function reducedMotionContract() {
   const page = await context.newPage();
   try {
     await navigate(page, '?node=SCI-BIOLOGY&lens=NAKED_EYE');
+    const gesture = await gestureSnapshot(page);
+    assertOpen(gesture, name);
     const motion = await page.evaluate(() => {
       const targets = [
         ['root', document.querySelector('[data-kdx-deep-lab]')],
+        ['doors', document.querySelector('[data-doors]')],
         ['door', document.querySelector('[data-doors] .kdx-door')],
         ['meta-control', document.querySelector('[data-lens-action="META"]')],
       ].filter(([, el]) => Boolean(el));
@@ -197,7 +256,7 @@ async function reducedMotionContract() {
     assertBoundedShell(await shellMetrics(page), name);
     const file = `${name}.png`;
     await page.screenshot({ path: path.join(outputDir, file), fullPage: false, animations: 'allow' });
-    report.acceptance.push({ name, pass: true, epsilonMs: REDUCED_MOTION_EPSILON_MS, motion, screenshot: file });
+    report.acceptance.push({ name, pass: true, epsilonMs: REDUCED_MOTION_EPSILON_MS, gesture, motion, screenshot: file });
   } catch (error) {
     fail(name, error);
   } finally {
@@ -207,7 +266,7 @@ async function reducedMotionContract() {
 
 async function boundedInteractionPerformance() {
   const name = 'deep-navigation-bounded-interaction-performance';
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, colorScheme: 'dark' });
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce', colorScheme: 'dark' });
   const page = await context.newPage();
   try {
     await navigate(page, '?node=SCI-BIOLOGY&lens=NAKED_EYE');
