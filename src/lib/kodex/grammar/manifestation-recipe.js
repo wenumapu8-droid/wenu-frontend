@@ -209,6 +209,58 @@ function compileSource(source = {}) {
   });
 }
 
+function validateProvenanceRefs(recipe, { geometry, patternRecords, source, compiledOperators }) {
+  const refs = unique((recipe.provenance_refs || []).map(clean));
+  const required = new Set();
+  const allowed = new Set();
+
+  if (geometry?.primitive_ids?.length) {
+    const ref = 'runtime:src/lib/kodex/grammar/geometric-transduction-registry.v0.1.js';
+    required.add(ref);
+    allowed.add(ref);
+  }
+
+  if (patternRecords?.length) {
+    const ref = 'runtime:src/lib/kodex/grammar/natural-law-patterns.v0.1.js';
+    required.add(ref);
+    allowed.add(ref);
+  }
+
+  if (source?.artwork_id) {
+    const ref = `registry:OCÍN_MASTER_ART_REGISTRY_v0.8#${source.artwork_id}`;
+    required.add(ref);
+    allowed.add(ref);
+  }
+
+  for (const operator of compiledOperators || []) {
+    if (operator.id === 'RADIAL_SYMMETRY' && operator.runtime === 'mirror') {
+      const ref = 'runtime:src/kodex/shaders/mirror.frag';
+      required.add(ref);
+      allowed.add(ref);
+    }
+  }
+
+  const invalid = refs.filter((ref) => !allowed.has(ref));
+  if (invalid.length) {
+    throw new KdxManifestationRecipeError(
+      'INVALID_PROVENANCE_REF',
+      'ManifestationRecipe provenance_refs[] must bind only to authorities implied by registered recipe inputs.',
+      { invalid, allowed: [...allowed] },
+    );
+  }
+
+  const missing = [...required].filter((ref) => !refs.includes(ref));
+  if (missing.length) {
+    throw new KdxManifestationRecipeError(
+      'MISSING_REQUIRED_PROVENANCE',
+      'ManifestationRecipe is missing provenance required by its registered geometry, pattern, source or runtime inputs.',
+      { missing, refs },
+    );
+  }
+
+  return freezeDeep(refs);
+}
+
 function deriveMemoryInfluence(memorySignature, recipeMemory = {}) {
   if (!memorySignature) return freezeDeep({ applied: false, reason: 'NO_MEMORY_SIGNATURE' });
   const metrics = memorySignature.metrics || {};
@@ -315,6 +367,12 @@ export function compileManifestationRecipe(recipe = {}, context = {}) {
     applyMemoryToOperators(recipe.operators.map(compileOperator), memoryInfluence),
     renderTier,
   );
+  const provenanceRefs = validateProvenanceRefs(recipe, {
+    geometry,
+    patternRecords,
+    source,
+    compiledOperators,
+  });
   const feedback = compiledOperators.find((operator) => operator.id === 'FEEDBACK');
   const runtimeEffects = compiledOperators
     .filter((operator) => operator.role === 'EFFECT_CHAIN')
@@ -362,7 +420,7 @@ export function compileManifestationRecipe(recipe = {}, context = {}) {
     memory_influence: memoryInfluence,
     reduced_motion_fallback: recipe.reduced_motion_fallback || 'STATIC_SEMANTIC_ENDPOINT',
     epistemic_trace: freezeDeep(recipe.epistemic_trace || []),
-    provenance_refs: unique(recipe.provenance_refs),
+    provenance_refs: provenanceRefs,
     source_pixel_blocked: !source.source_bytes_renderable,
   };
   return freezeDeep({ ...core, plan_id: runtimePlanId(core) });
