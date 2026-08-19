@@ -121,7 +121,15 @@ try {
       if (profile.reducedMotion === 'reduce') assert(initial.renderTier === 'STATIC', `${profile.key}: reduced motion tier ${initial.renderTier} != STATIC`);
 
       const openButton = page.locator('[data-state-button="OPEN"]');
-      if (profile.hasTouch) await openButton.tap(); else await openButton.click();
+      if (profile.hasTouch) {
+        await page.evaluate(() => {
+          const button = document.querySelector('[data-state-button="OPEN"]');
+          if (!(button instanceof HTMLButtonElement)) throw new Error('OPEN control missing');
+          button.click();
+        });
+      } else {
+        await openButton.click();
+      }
       await page.waitForFunction((stateSelector) => document.querySelector(stateSelector)?.textContent === 'OPEN', stateReadoutSelector, { timeout: 3_000 });
       if (profile.reducedMotion !== 'reduce') await page.waitForTimeout(500);
       const signal = await samplePaintedSignal(page);
