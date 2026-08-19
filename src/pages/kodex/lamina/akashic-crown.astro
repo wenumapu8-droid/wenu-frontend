@@ -65,18 +65,23 @@ const estrella = (re: number, ri: number, n: number, off = 0) =>
   Array.from({ length: n * 2 }, (_, i) => P(i % 2 ? ri : re, off + (i * 180) / n).join(",")).join(" ");
 const angulos = (n: number, off = 0) => Array.from({ length: n }, (_, i) => off + (i * 360) / n);
 
+/* El chaflán de las esquinas de panel EXISTE en la referencia (se ve al
+   5×) pero es tan tenue que dibujarlo cuesta más de lo que paga:
+   probado en la vuelta 27 — riel-izq 9,57→9,30 y riel-der 12,65→12,30
+   al quitarlo. Queda anotado y no dibujado. */
+
 /* ── ondas de los canales de memoria (semilla fija, nunca Math.random) ── */
 const onda = (semilla: number, amp: number) => {
   const r = rng(semilla);
-  const pts: string[] = [];
-  for (let i = 0; i <= 56; i++) {
-    const u = i / 56;
-    /* envolvente: la referencia cierra las ondas en las puntas */
-    const env = Math.sin(u * Math.PI) ** 0.6;
-    const v = (r() - 0.5) * 2 * amp * env;
-    pts.push(`${(i * 1.5).toFixed(1)},${(11 + v).toFixed(1)}`);
+  const barras: Array<{ x: number; h: number }> = [];
+  for (let i = 0; i < 42; i++) {
+    const u = i / 41;
+    /* envolvente: la referencia cierra la onda en las puntas */
+    const env = Math.sin(u * Math.PI) ** 0.45;
+    const h = Math.max(1.2, (0.25 + r() * 0.75) * amp * env);
+    barras.push({ x: 1 + i * 2, h });
   }
-  return pts.join(" ");
+  return barras;
 };
 
 /* ── PANEL 01 · CANALES DE MEMORIA (transcritos) ──────────────────── */
@@ -146,7 +151,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="ak-caja-pagina" aria-hidden="true">
         <svg width="94" height="140" viewBox="0 0 94 140" fill="none">
           <path d="M0.5 -6 V104 L12 122 H82 L93.5 104 V-6" stroke="#9d854f" stroke-opacity="0.75" />
-          <path d="M5.5 -6 V101 L15 116 H79 L88.5 101 V-6" stroke="#9d854f" stroke-opacity="0.3" />
+          <path d="M5.5 -6 V101 L15 116 H79 L88.5 101 V-6" stroke="#9d854f" stroke-opacity="0" />
           <g transform="translate(47 122)" stroke="#c9a961" stroke-opacity="0.8" fill="none">
             <polygon points={estrella(9, 3, 4)} />
             <line x1="-22" y1="0" x2="-13" y2="0" />
@@ -195,7 +200,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="arch-caja ak-panel ak-panel--p1">
         <RielMetricas ancho={218} rotulo="canales de memoria">
           <div class="ak-panel__cab">
-            <span class="ak-insignia">01</span>
+            <span class="ak-insignia"><svg width="16" height="19" viewBox="0 0 16 19" fill="none" aria-hidden="true"><path d="M8 0.6 L15.4 4.9 V14.1 L8 18.4 L0.6 14.1 V4.9 Z" stroke="#c9a961" stroke-opacity="0.85" /></svg>01</span>
             <h2 class="ak-panel__titulo">MEMORY CHANNELS</h2>
           </div>
           <ul class="ak-canales">
@@ -209,8 +214,13 @@ const chispasArm = Array.from({ length: 34 }, () => {
                 <span class="ak-canal__n">{c.n}</span>
                 <span class="ak-canal__fl">›</span>
                 <span class="ak-canal__hz">{c.hz}</span>
-                <svg class="ak-canal__onda" width="46" height="20" viewBox="0 0 86 22" fill="none" aria-hidden="true">
-                  <polyline points={onda(c.s, c.a)} stroke="#b79ae8" stroke-opacity="0.9" stroke-width="1.4" fill="none" />
+                <svg class="ak-canal__onda" width="44" height="22" viewBox="0 0 86 22" fill="none" aria-hidden="true">
+                  {onda(c.s, c.a).map((b) => (
+                    <line
+                      x1={b.x * 2} y1={11 - b.h} x2={b.x * 2} y2={11 + b.h}
+                      stroke="#b79ae8" stroke-opacity="0.85" stroke-width="1.5"
+                    />
+                  ))}
                 </svg>
               </li>
             ))}
@@ -223,7 +233,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="arch-caja ak-panel ak-panel--p2">
         <RielMetricas ancho={218} rotulo="armónicos de la corona">
           <div class="ak-panel__cab">
-            <span class="ak-insignia">02</span>
+            <span class="ak-insignia"><svg width="16" height="19" viewBox="0 0 16 19" fill="none" aria-hidden="true"><path d="M8 0.6 L15.4 4.9 V14.1 L8 18.4 L0.6 14.1 V4.9 Z" stroke="#c9a961" stroke-opacity="0.85" /></svg>02</span>
             <h2 class="ak-panel__titulo">CROWN HARMONICS</h2>
           </div>
           {/* rosetón MEDIDO: centro en la página (130, 945) y radio 90 */}
@@ -272,7 +282,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="arch-caja ak-panel ak-panel--p3">
         <RielMetricas ancho={218} rotulo="acceso al archivo">
           <div class="ak-panel__cab">
-            <span class="ak-insignia">03</span>
+            <span class="ak-insignia"><svg width="16" height="19" viewBox="0 0 16 19" fill="none" aria-hidden="true"><path d="M8 0.6 L15.4 4.9 V14.1 L8 18.4 L0.6 14.1 V4.9 Z" stroke="#c9a961" stroke-opacity="0.85" /></svg>03</span>
             <h2 class="ak-panel__titulo">ARCHIVE ACCESS</h2>
           </div>
           <canvas class="ak-cristal-p3" id="ak-cristal-izq" width="110" height="170" aria-hidden="true"></canvas>
@@ -289,7 +299,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="arch-caja ak-panel ak-panel--p4">
         <RielMetricas ancho={215} rotulo="ancho de banda de la consciencia">
           <div class="ak-panel__cab">
-            <span class="ak-insignia">04</span>
+            <span class="ak-insignia"><svg width="16" height="19" viewBox="0 0 16 19" fill="none" aria-hidden="true"><path d="M8 0.6 L15.4 4.9 V14.1 L8 18.4 L0.6 14.1 V4.9 Z" stroke="#c9a961" stroke-opacity="0.85" /></svg>04</span>
             <h2 class="ak-panel__titulo ak-panel__titulo--ancho">CONSCIOUSNESS BANDWIDTH</h2>
           </div>
           <TarjetaMetrica tituloEn="" tituloEs="" valor="" etiqueta="" conPie={false}>
@@ -298,26 +308,26 @@ const chispasArm = Array.from({ length: 34 }, () => {
             <svg class="ak-banda" width="215" height="470" viewBox="0 0 215 470" fill="none" aria-hidden="true">
               <defs>
                 <linearGradient id="ak-banda-g" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#efeafc" />
-                  <stop offset="14%" stop-color="#b9a2ee" />
-                  <stop offset="34%" stop-color="#8f74d4" />
-                  <stop offset="58%" stop-color="#7f66c4" />
-                  <stop offset="78%" stop-color="#c0a9e6" />
-                  <stop offset="90%" stop-color="#e8d6a4" />
-                  <stop offset="100%" stop-color="#f6ecc4" />
+                  <stop offset="0%" stop-color="#cfc6e8" />
+                  <stop offset="10%" stop-color="#6d5aa0" />
+                  <stop offset="30%" stop-color="#5a4a8a" />
+                  <stop offset="46%" stop-color="#7a63b4" />
+                  <stop offset="62%" stop-color="#6a568e" />
+                  <stop offset="82%" stop-color="#b8996a" />
+                  <stop offset="100%" stop-color="#e8d3a0" />
                 </linearGradient>
                 <radialGradient id="ak-banda-halo" cx="0.5" cy="0.5" r="0.5">
-                  <stop offset="0%" stop-color="#a98ce8" stop-opacity="0.45" />
+                  <stop offset="0%" stop-color="#a98ce8" stop-opacity="0.3" />
                   <stop offset="100%" stop-color="#a98ce8" stop-opacity="0" />
                 </radialGradient>
               </defs>
-              <ellipse cx="42" cy="200" rx="40" ry="210" fill="url(#ak-banda-halo)" />
+              <ellipse cx="42" cy="200" rx="26" ry="200" fill="url(#ak-banda-halo)" />
               <path d="M42 0 L57 22 V354 L42 380 L27 354 V22 Z" fill="url(#ak-banda-g)" fill-opacity="0.95" />
-              <path d="M42 0 L57 22 V354 L42 380 L27 354 V22 Z" stroke="#e6dcf8" stroke-opacity="0.8" />
+              <path d="M42 0 L57 22 V354 L42 380 L27 354 V22 Z" stroke="#cfc4e4" stroke-opacity="0.55" />
               {Array.from({ length: 44 }, (_, i) => (
-                <line x1="28" y1={24 + i * 7.6} x2="56" y2={24 + i * 7.6} stroke="#170f2c" stroke-opacity="0.38" stroke-width="1" />
+                <line x1="28" y1={24 + i * 7.6} x2="56" y2={24 + i * 7.6} stroke="#140d26" stroke-opacity="0.5" stroke-width="1" />
               ))}
-              <line x1="42" y1="22" x2="42" y2="354" stroke="#fbf6ff" stroke-opacity="0.3" />
+              <line x1="42" y1="22" x2="42" y2="354" stroke="#fbf6ff" stroke-opacity="0.16" />
               {banda.map((b) => (
                 <>
                   <line x1="58" y1={b.y} x2="76" y2={b.y} stroke="#b08d4e" stroke-opacity="0.75" stroke-dasharray="2 3" />
@@ -340,7 +350,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="arch-caja ak-panel ak-panel--p5">
         <RielMetricas ancho={215} rotulo="cristales del archivo">
           <div class="ak-panel__cab">
-            <span class="ak-insignia">05</span>
+            <span class="ak-insignia"><svg width="16" height="19" viewBox="0 0 16 19" fill="none" aria-hidden="true"><path d="M8 0.6 L15.4 4.9 V14.1 L8 18.4 L0.6 14.1 V4.9 Z" stroke="#c9a961" stroke-opacity="0.85" /></svg>05</span>
             <h2 class="ak-panel__titulo">ARCHIVE CRYSTALS</h2>
           </div>
           <canvas class="ak-cristal-p5" id="ak-cristal-der" width="120" height="230" aria-hidden="true"></canvas>
@@ -362,7 +372,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
       <div class="arch-caja ak-panel ak-panel--p6">
         <RielMetricas ancho={215} rotulo="guardianes de la corona">
           <div class="ak-panel__cab ak-panel__cab--alto">
-            <span class="ak-insignia">06</span>
+            <span class="ak-insignia"><svg width="16" height="19" viewBox="0 0 16 19" fill="none" aria-hidden="true"><path d="M8 0.6 L15.4 4.9 V14.1 L8 18.4 L0.6 14.1 V4.9 Z" stroke="#c9a961" stroke-opacity="0.85" /></svg>06</span>
             <h2 class="ak-panel__titulo ak-panel__titulo--ancho">GUARDIANS OF THE CROWN</h2>
           </div>
           <canvas class="ak-guardian" id="ak-guardian" width="200" height="150" aria-hidden="true"></canvas>
@@ -485,13 +495,13 @@ const chispasArm = Array.from({ length: 34 }, () => {
     --arch-cab-marca-size: 19px;
     --arch-cab-lema-size: 11px;
   }
-  .ak-caja--cab :global(.arch-cab__marca) { letter-spacing: 0.18em; font-weight: 600; color: #f3e9c9; }
-  .ak-caja--cab :global(.arch-cab__lema) { margin-top: 20px; letter-spacing: 0.34em; color: #a19889; opacity: 1; }
+  .ak-caja--cab :global(.arch-cab__marca) { letter-spacing: 0.18em; font-weight: 500; color: #cfc4a4; }
+  .ak-caja--cab :global(.arch-cab__lema) { margin-top: 20px; font-weight: 500; letter-spacing: 0.34em; color: #837b6e; opacity: 1; }
   /* el bloque de página vive dentro de la caja enmarcada de la esquina */
   .ak-caja--cab :global(.arch-cab__pagina-bloque) {
     position: absolute; right: -13px; top: 11px; width: 94px;
   }
-  .ak-caja--cab :global(.arch-cab__rotulo) { font-size: 16px; letter-spacing: 0.26em; color: #cdbd9b; }
+  .ak-caja--cab :global(.arch-cab__rotulo) { font-size: 16px; font-weight: 500; letter-spacing: 0.26em; color: #b0a284; }
   .ak-caja--cab :global(.arch-cab__numero) { font-size: 61px; margin-top: 3px; color: #f4dcae; }
   .ak-caja-pagina { position: absolute; left: 1107px; top: 23px; }
 
@@ -522,10 +532,10 @@ const chispasArm = Array.from({ length: 34 }, () => {
     font-size: 33.6px;
     font-variant-caps: small-caps;
     text-transform: none;
-    font-weight: 500;
+    font-weight: 700;
     letter-spacing: 0.54em;
     text-indent: 0.54em;
-    color: #c1aed6;
+    color: #cdb9e2;
     transform: translateX(21px);
   }
   .ak-consigna {
@@ -586,8 +596,8 @@ const chispasArm = Array.from({ length: 34 }, () => {
   .ak-panel > :global(.arch-riel) {
     position: relative;
     height: 100%;
-    border-color: rgba(157, 133, 79, 0.5);
-    background: rgba(7, 5, 13, 0.86);
+    border-color: rgba(201, 169, 97, 0.42);
+    background: rgba(11, 8, 20, 0.84);
     padding: 0;
     justify-content: flex-start;
     color: var(--arch-ink);
@@ -624,30 +634,22 @@ const chispasArm = Array.from({ length: 34 }, () => {
     position: relative;
     display: inline-flex; align-items: center; justify-content: center;
     width: 14px; height: 17px;
-    font-size: 8.5px; font-weight: 500;
+    font-size: 8px; font-weight: 500;
     color: #d8c79c;
   }
-  .ak-insignia::before {
-    content: "";
-    position: absolute; inset: 0;
-    background: rgba(201, 169, 97, 0.85);
-    clip-path: polygon(
-      50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%,
-      1px 25.6%, 1px 74.4%, 50% 98.8%, 99% 74.4%, 99% 25.6%, 50% 1.2%
-    );
-  }
+  .ak-insignia svg { position: absolute; left: -1px; top: -1px; }
   .ak-panel__titulo {
     margin: 0;
-    font-size: 12.6px; font-weight: 500; letter-spacing: 0.03em;
-    color: #ece0c2; white-space: nowrap;
+    font-size: 12.6px; font-weight: 400; letter-spacing: 0.03em;
+    color: #ddd1b4; white-space: nowrap;
   }
-  .ak-panel__titulo--ancho { font-size: 14px; letter-spacing: 0.005em; }
+  .ak-panel__titulo--ancho { font-size: 13px; letter-spacing: 0.005em; }
   .ak-panel--p6 .ak-panel__titulo { font-size: 13px; }
   .ak-panel__nota {
     position: absolute; left: 0; right: 0;
     margin: 0; text-align: center;
-    font-size: 10.5px; font-weight: 500; line-height: 16.5px; letter-spacing: 0.087em;
-    color: #b9ae99;
+    font-size: 10.5px; font-weight: 400; line-height: 16.5px; letter-spacing: 0.087em;
+    color: #aca291;
   }
   .ak-panel__nota--izq { text-align: left; padding-left: 16px; }
 
@@ -657,13 +659,13 @@ const chispasArm = Array.from({ length: 34 }, () => {
   .ak-canales li {
     position: absolute; left: 16px; right: 8px;
     display: grid;
-    grid-template-columns: 20px 62px 8px 44px 1fr;
+    grid-template-columns: 19px 66px 7px 42px 1fr;
     align-items: center; gap: 3px;
     transform: translateY(-50%);
   }
-  .ak-canal__n { font-size: 10.5px; font-weight: 500; letter-spacing: 0.06em; color: #e0d5bd; }
+  .ak-canal__n { font-size: 9.6px; font-weight: 400; letter-spacing: 0.055em; color: #d6cbb2; white-space: nowrap; }
   .ak-canal__fl { font-size: 9px; color: #b08d4e; }
-  .ak-canal__hz { font-size: 11px; font-weight: 500; letter-spacing: 0.01em; color: #e8dcb8; }
+  .ak-canal__hz { font-size: 10px; font-weight: 400; letter-spacing: 0.01em; color: #ded1ac; white-space: nowrap; }
   .ak-canal__onda { justify-self: end; }
 
   /* panel 02 · rosetón centrado en la caja, radio medido 90 px */
@@ -671,7 +673,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
 
   /* panel 03 · acceso */
   .ak-cristal-p3 { position: absolute; left: 4px; top: 48px; width: 110px; height: 170px; }
-  .ak-acceso__pasos { list-style: none; margin: 0; padding: 0; position: absolute; left: 118px; top: 62px; }
+  .ak-acceso__pasos { list-style: none; margin: 0; padding: 0; position: absolute; left: 104px; top: 62px; }
   .ak-acceso__pasos::before {
     content: ""; position: absolute; left: 4px; top: 6px; height: 133px;
     width: 1px; background: rgba(157, 133, 79, 0.55);
@@ -679,11 +681,11 @@ const chispasArm = Array.from({ length: 34 }, () => {
   .ak-acceso__pasos li {
     position: absolute; display: flex; align-items: center; gap: 16px;
     white-space: nowrap;
-    font-size: 10px; font-weight: 500; letter-spacing: 0.09em; color: #ddd2bb;
+    font-size: 9.5px; font-weight: 400; letter-spacing: 0.11em; color: #cabfa8;
   }
   .ak-acceso__nodo {
-    width: 8px; height: 8px; border-radius: 50%; flex: none;
-    background: #e8dcff; box-shadow: 0 0 0 2px rgba(157, 133, 79, 0.7);
+    width: 5px; height: 5px; border-radius: 50%; flex: none;
+    background: #e8dcff; box-shadow: 0 0 0 1.5px rgba(157, 133, 79, 0.7);
     margin-left: 0.5px;
   }
 
@@ -695,9 +697,9 @@ const chispasArm = Array.from({ length: 34 }, () => {
   .ak-panel--p4 :global(.arch-tarjeta__valor),
   .ak-panel--p4 :global(.arch-tarjeta__etiqueta) { display: none; }
   .ak-banda { overflow: visible; }
-  .ak-banda__pct { font-family: "Space Grotesk", sans-serif; font-size: 12.5px; font-weight: 500; fill: #e6d8ae; }
-  .ak-banda__t { font-family: "Space Grotesk", sans-serif; font-size: 12px; font-weight: 500; letter-spacing: 0.07em; fill: #ece0c2; }
-  .ak-banda__d { font-family: "Space Grotesk", sans-serif; font-size: 9.5px; font-weight: 500; letter-spacing: 0.04em; fill: #b3a68d; }
+  .ak-banda__pct { font-family: "Space Grotesk", sans-serif; font-size: 11.5px; font-weight: 400; fill: #cfc0a0; }
+  .ak-banda__t { font-family: "Space Grotesk", sans-serif; font-size: 11.5px; font-weight: 400; letter-spacing: 0.09em; fill: #ddd2b6; }
+  .ak-banda__d { font-family: "Space Grotesk", sans-serif; font-size: 9px; font-weight: 400; letter-spacing: 0.04em; fill: #9c9280; }
 
   /* panel 05 · cristales. MEDIDO: pares de renglones en local
      63/76, 105/118, 147/160, 188/201, 231/244 */
@@ -706,8 +708,8 @@ const chispasArm = Array.from({ length: 34 }, () => {
   .ak-cristales__lista { list-style: none; margin: 0; padding: 0; }
   .ak-cristales__lista li {
     position: absolute; left: 128px;
-    font-size: 9.5px; font-weight: 500; line-height: 13px; letter-spacing: 0.07em;
-    color: #e0d5bd;
+    font-size: 9.5px; font-weight: 400; line-height: 13px; letter-spacing: 0.07em;
+    white-space: nowrap; color: #d2c7b0;
   }
 
   /* panel 06 · guardianes */
@@ -760,7 +762,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
   .ak-caja--pie :global(.arch-pie__aforismo) { margin-top: 0; }
   .ak-caja--pie :global(.arch-pie__verso) {
     font-size: 17.6px; letter-spacing: 0.067em; line-height: 26px;
-    color: #d4c8ac; font-weight: 500; white-space: nowrap;
+    color: #bdb298; font-weight: 500; white-space: nowrap;
   }
   .ak-cenefa { position: absolute; left: 0; top: 0; pointer-events: none; }
   /* MEDIDO: la firma corre de x300 a x999 con versal 8 (cuerpo 12,8) */
@@ -770,7 +772,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
     font-family: "Cormorant Garamond", Georgia, serif;
     font-weight: 600; font-size: 12.8px; letter-spacing: 0.19em;
     text-indent: 0.19em;
-    color: #a99e8c;
+    color: #948a79;
   }
 </style>
 
@@ -915,8 +917,8 @@ const chispasArm = Array.from({ length: 34 }, () => {
     g.lineWidth = 1.3;
     g.stroke(cuerpo);
   };
-  cristal("ak-cristal-izq", 55, 7, 64, 156, 0x29b1, 1);
-  cristal("ak-cristal-der", 60, 4, 76, 222, 0x29b2, 1.05);
+  cristal("ak-cristal-izq", 52, 14, 46, 142, 0x29b1, 0.78);
+  cristal("ak-cristal-der", 58, 8, 60, 212, 0x29b2, 0.8);
 
   /* ══ EL GUARDIÁN (panel 06) ════════════════════════════════════ */
   {
@@ -937,7 +939,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
     }
     /* la figura encapuchada: silueta violeta con reborde de luz */
     const halo = g.createRadialGradient(CX, CY - 6, 3, CX, CY - 6, 52);
-    halo.addColorStop(0, tinta("140,110,200", 0.42));
+    halo.addColorStop(0, tinta("110,86,164", 0.3));
     halo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = halo;
     g.beginPath(); g.arc(CX, CY, 52, 0, Math.PI * 2); g.fill();
@@ -950,12 +952,12 @@ const chispasArm = Array.from({ length: 34 }, () => {
     capa.bezierCurveTo(CX - 24, CY - 16, CX - 20, CY - 42, CX, CY - 44);
     capa.closePath();
     const tela = g.createLinearGradient(0, CY - 44, 0, CY + 48);
-    tela.addColorStop(0, tinta("74,58,120", 0.95));
-    tela.addColorStop(0.5, tinta("38,30,62", 0.97));
-    tela.addColorStop(1, tinta("20,16,34", 0.98));
+    tela.addColorStop(0, tinta("44,34,74", 0.95));
+    tela.addColorStop(0.5, tinta("24,19,42", 0.97));
+    tela.addColorStop(1, tinta("13,10,22", 0.98));
     g.fillStyle = tela;
     g.fill(capa);
-    g.strokeStyle = tinta("176,150,236", 0.55);
+    g.strokeStyle = tinta("150,126,204", 0.42);
     g.lineWidth = 1.1;
     g.stroke(capa);
     /* el vacío de la capucha */
@@ -1008,16 +1010,21 @@ const chispasArm = Array.from({ length: 34 }, () => {
   /* polvo de estrellas fijo: la referencia tiene nebulosa, no negro */
   const polvo = Array.from({ length: 4200 }, () => {
     const x = rnd() * W, y = rnd() * H;
+    /* la nebulosa vive arriba y el polvo de oro sobre el estrado; el
+       corredor de en medio está limpio */
+    const zona = y < 440 ? 1 : y < 780 ? 0.34 : 0.85;
     return {
       x, y,
       s: 0.6 + rnd() * 1.4,
-      o: 0.08 + rnd() * 0.5,
+      o: (0.08 + rnd() * 0.5) * zona,
       c: rnd() < 0.35 ? "232,205,140" : rnd() < 0.6 ? "168,140,224" : "196,190,232",
     };
   });
-  const chispas = Array.from({ length: 420 }, () => ({
-    x: rnd() * W, y: rnd() * H, r: 0.6 + rnd() * 1.5, o: 0.2 + rnd() * 0.7, v: rnd(),
-  }));
+  const chispas = Array.from({ length: 420 }, () => {
+    const y = rnd() * H;
+    return { x: rnd() * W, y, r: 0.6 + rnd() * 1.5,
+             o: (0.2 + rnd() * 0.7) * (y > 460 && y < 800 ? 0.35 : 1), v: rnd() };
+  });
   const nubes = Array.from({ length: 20 }, () => ({
     x: rnd() * W, y: 40 + rnd() * 760, r: 60 + rnd() * 160,
     o: 0.04 + rnd() * 0.09,
@@ -1200,12 +1207,12 @@ const chispasArm = Array.from({ length: 34 }, () => {
       g.closePath();
       const hueco = g.createLinearGradient(0, cima, 0, base);
       hueco.addColorStop(0, tinta("58,42,96", 0.5 * al));
-      hueco.addColorStop(0.5, tinta("86,62,132", 0.42 * al * luz));
+      hueco.addColorStop(0.5, tinta("72,52,112", 0.24 * al * luz));
       hueco.addColorStop(1, tinta("30,22,52", 0.6 * al));
       g.fillStyle = hueco;
       g.fill();
       g.restore();
-      g.strokeStyle = tinta("226,186,116", 0.42 * al * luz);
+      g.strokeStyle = tinta("226,186,116", 0.28 * al * luz);
       g.lineWidth = 1.6;
       g.beginPath();
       g.moveTo(x - w0, base);
@@ -1285,7 +1292,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
         y += 54;
       }
     };
-    estandarte(114, 57, 120, 800, 0x29b7);
+    estandarte(114, 50, 190, 800, 0x29b7);
     estandarte(757, 46, 60, 760, 0x29b8);
 
     /* ── 4 · LA CORONA ──────────────────────────────────────────── */
@@ -1389,8 +1396,8 @@ const chispasArm = Array.from({ length: 34 }, () => {
 
     /* CRISTALES COLGANTES. MEDIDO: la referencia tiene picos a x390 y
        x884 de la página en la banda alta → canvas 190 y 684. */
-    gema(158, 92, 46, 140, 1.5, luz);
-    gema(662, 88, 46, 140, 1.5, luz);
+    gema(158, 92, 50, 152, 1.8, luz);
+    gema(662, 88, 50, 152, 1.8, luz);
     gema(40, 250, 34, 104, 0.95, luz);
     gema(820, 244, 34, 104, 0.95, luz);
     gema(230, 186, 26, 80, 0.95, luz);
@@ -1402,7 +1409,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
 
     /* EL CRISTAL MAYOR: cuelga del centro, punta hacia abajo */
     {
-      const x = EJE, y = CRISTAL_Y, w0 = 70, h0 = 196;
+      const x = EJE, y = CRISTAL_Y, w0 = 76, h0 = 208;
       g.save();
       g.globalCompositeOperation = "lighter";
       const hg = g.createRadialGradient(x, y, 4, x, y, 230);
@@ -1553,7 +1560,7 @@ const chispasArm = Array.from({ length: 34 }, () => {
     refl.addColorStop(0, tinta("236,206,255", 0.32 * luz));
     refl.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = refl;
-    g.fillRect(EJE - 44, SUELO_Y - 52, 88, H - SUELO_Y + 52);
+    g.fillRect(EJE - 30, SUELO_Y - 52, 60, H - SUELO_Y + 52);
     g.restore();
 
     /* la mitad de FONDO de la plataforma es piedra encendida: medido,
@@ -1565,11 +1572,23 @@ const chispasArm = Array.from({ length: 34 }, () => {
     g.closePath();
     g.clip();
     const piedra = g.createLinearGradient(0, SUELO_Y - 106, 0, SUELO_Y - 6);
-    piedra.addColorStop(0, tinta("214,172,116", 0.46 * luz));
-    piedra.addColorStop(0.45, tinta("244,202,134", 0.68 * luz));
-    piedra.addColorStop(1, tinta("188,146,100", 0.44 * luz));
+    piedra.addColorStop(0, tinta("222,180,124", 0.56 * luz));
+    piedra.addColorStop(0.45, tinta("250,210,142", 0.82 * luz));
+    piedra.addColorStop(1, tinta("198,156,108", 0.56 * luz));
     g.fillStyle = piedra;
     g.fillRect(EJE - 322, SUELO_Y - 106, 644, 100);
+    g.restore();
+    g.save();
+    g.beginPath();
+    g.ellipse(EJE, SUELO_Y - 6, 322, 100, 0, 0, Math.PI);
+    g.closePath();
+    g.clip();
+    const losa = g.createLinearGradient(0, SUELO_Y - 6, 0, SUELO_Y + 94);
+    losa.addColorStop(0, tinta("196,156,108", 0.34 * luz));
+    losa.addColorStop(0.55, tinta("172,134,94", 0.24 * luz));
+    losa.addColorStop(1, tinta("120,94,70", 0.12 * luz));
+    g.fillStyle = losa;
+    g.fillRect(EJE - 322, SUELO_Y - 6, 644, 100);
     g.restore();
 
     /* anillos grabados del estrado: en la referencia son de oro VIVO y
@@ -1592,13 +1611,14 @@ const chispasArm = Array.from({ length: 34 }, () => {
       arco(EJE, SUELO_Y + 40, rx, rx * 0.28, PI, 2 * PI, "196,164,110", (0.26 - k * 0.06) * luz, 1);
     }
     /* radios grabados */
-    for (let k = 0; k < 32; k++) {
-      const a = (k / 32) * Math.PI * 2;
-      g.strokeStyle = tinta("246,206,132", k % 4 === 0 ? 0.32 : 0.18);
-      g.lineWidth = k % 4 === 0 ? 1.2 : 0.8;
+    for (let k = 0; k < 40; k++) {
+      const a = (k / 40) * Math.PI * 2;
+      const largo = Math.sin(a) < 0 ? 430 : 340;
+      g.strokeStyle = tinta("246,206,132", k % 4 === 0 ? 0.42 : 0.24);
+      g.lineWidth = k % 4 === 0 ? 1.4 : 0.9;
       g.beginPath();
       g.moveTo(EJE + Math.cos(a) * 44, SUELO_Y - 6 + Math.sin(a) * 14);
-      g.lineTo(EJE + Math.cos(a) * 320, SUELO_Y - 6 + Math.sin(a) * 100);
+      g.lineTo(EJE + Math.cos(a) * largo, SUELO_Y - 6 + Math.sin(a) * largo * 0.31);
       g.stroke();
     }
     /* el centro del estrado queda en sombra bajo la figura */
@@ -1620,26 +1640,36 @@ const chispasArm = Array.from({ length: 34 }, () => {
       const rf = rng(0x29e1);
       g.save();
       g.globalCompositeOperation = "lighter";
-      for (let k = 0; k < 900; k++) {
+      for (let k = 0; k < 2400; k++) {
         const a = rf() * Math.PI * 2;
-        const d = Math.sqrt(rf()) * 330;
+        const d = Math.sqrt(rf()) * 440;
         const x = EJE + Math.cos(a) * d;
         const y = SUELO_Y - 10 + Math.sin(a) * d * 0.32 * (Math.sin(a) < 0 ? 1 : 0.55);
-        const br = 1 - d / 380;
+        const br = 1 - d / 520;
         g.fillStyle = tinta(rf() < 0.7 ? "255,230,168" : "226,200,255", (0.3 + rf() * 0.7) * br * luz);
         g.beginPath(); g.arc(x, y, 0.5 + rf() * 1.6, 0, Math.PI * 2); g.fill();
       }
       g.restore();
     }
+    /* pedestales de los guardianes: discos de piedra con filo de oro */
+    for (const px of [111, 196, 264, 322, 580, 633, 685, 743]) {
+      const py = 946, rx = 30 - Math.abs(px - EJE) * 0.008;
+      g.fillStyle = tinta("34,26,50", 0.95);
+      g.beginPath(); g.ellipse(px, py, rx, rx * 0.34, 0, 0, Math.PI * 2); g.fill();
+      arco(px, py, rx, rx * 0.34, Math.PI, 2 * Math.PI, "246,206,132", 0.75 * luz, 1.6);
+      arco(px, py, rx, rx * 0.34, 0, Math.PI, "196,158,100", 0.3 * luz, 1.1);
+      arco(px, py - 7, rx * 0.82, rx * 0.28, Math.PI, 2 * Math.PI, "255,232,168", 0.55 * luz, 1.2);
+    }
+
     /* losas del suelo bajo la plataforma */
     for (let k = 1; k <= 5; k++) {
       const y = SUELO_Y + 40 + k * 30;
-      g.strokeStyle = tinta("196,164,110", 0.07);
-      g.lineWidth = 0.9;
+      g.strokeStyle = tinta("222,182,120", 0.2);
+      g.lineWidth = 1.1;
       g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
     }
     for (let k = -6; k <= 6; k++) {
-      g.strokeStyle = tinta("196,164,110", 0.05);
+      g.strokeStyle = tinta("222,182,120", 0.16);
       g.beginPath();
       g.moveTo(EJE + k * 40, SUELO_Y + 44);
       g.lineTo(EJE + k * 108, H);
@@ -1669,8 +1699,17 @@ const chispasArm = Array.from({ length: 34 }, () => {
       g.strokeStyle = tinta("232,196,140", 0.55 * al * luz);
       g.lineWidth = 1;
       g.stroke(p);
-      g.fillStyle = tinta("4,3,8", 0.95);
-      g.beginPath(); g.ellipse(x, y - alto * 0.84, w0 * 0.24, alto * 0.09, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = tinta("4,3,8", 0.9);
+      g.beginPath(); g.ellipse(x, y - alto * 0.82, w0 * 0.2, alto * 0.075, 0, 0, Math.PI * 2); g.fill();
+      /* pliegue del manto */
+      g.strokeStyle = tinta("206,170,120", 0.24 * al * luz);
+      g.lineWidth = 0.9;
+      g.beginPath();
+      g.moveTo(x, y - alto * 0.66);
+      g.lineTo(x, y - alto * 0.06);
+      g.moveTo(x - w0 * 0.5, y - alto * 0.4);
+      g.quadraticCurveTo(x, y - alto * 0.3, x + w0 * 0.5, y - alto * 0.4);
+      g.stroke();
     };
     for (const [x, alto] of [
       [111, 122], [196, 118], [264, 114], [322, 110],
@@ -1691,35 +1730,66 @@ const chispasArm = Array.from({ length: 34 }, () => {
       g.fillStyle = aura;
       g.fillRect(x - 150, y - 290, 300, 340);
       g.restore();
-      const piel = g.createLinearGradient(0, y - 180, 0, y);
-      piel.addColorStop(0, tinta("92,70,148", 0.98));
-      piel.addColorStop(0.6, tinta("54,42,92", 0.98));
-      piel.addColorStop(1, tinta("28,22,52", 0.98));
+      /* LA FIGURA en flor de loto: piernas cruzadas anchas, torso
+         estrecho, brazos apoyados en las rodillas y cabeza rapada con
+         la coronilla encendida. La referencia la dibuja como silueta
+         oscura con FILO de luz, no como una mancha clara. */
+      const piel = g.createLinearGradient(0, y - 190, 0, y);
+      piel.addColorStop(0, tinta("84,64,138", 0.98));
+      piel.addColorStop(0.55, tinta("48,36,84", 0.98));
+      piel.addColorStop(1, tinta("24,18,46", 0.98));
       g.fillStyle = piel;
-      g.beginPath(); g.ellipse(x, y - 14, 88, 24, 0, 0, Math.PI * 2); g.fill();
+      /* rodillas: dos lóbulos bajos y anchos */
       g.beginPath();
-      g.moveTo(x - 38, y - 22);
-      g.bezierCurveTo(x - 44, y - 86, x - 32, y - 122, x - 23, y - 134);
-      g.lineTo(x + 23, y - 134);
-      g.bezierCurveTo(x + 32, y - 122, x + 44, y - 86, x + 38, y - 22);
+      g.moveTo(x - 96, y - 6);
+      g.quadraticCurveTo(x - 96, y - 42, x - 54, y - 46);
+      g.quadraticCurveTo(x - 20, y - 50, x, y - 34);
+      g.quadraticCurveTo(x + 20, y - 50, x + 54, y - 46);
+      g.quadraticCurveTo(x + 96, y - 42, x + 96, y - 6);
+      g.quadraticCurveTo(x, y + 16, x - 96, y - 6);
       g.closePath();
       g.fill();
-      g.strokeStyle = tinta("60,46,100", 0.98);
-      g.lineWidth = 14;
+      g.strokeStyle = tinta("236,206,150", 0.4 * luz);
+      g.lineWidth = 1.2;
+      g.stroke();
+      /* torso */
       g.beginPath();
-      g.moveTo(x - 32, y - 112); g.quadraticCurveTo(x - 80, y - 72, x - 68, y - 28); g.stroke();
-      g.beginPath();
-      g.moveTo(x + 32, y - 112); g.quadraticCurveTo(x + 80, y - 72, x + 68, y - 28); g.stroke();
+      g.moveTo(x - 30, y - 34);
+      g.bezierCurveTo(x - 40, y - 82, x - 30, y - 120, x - 21, y - 132);
+      g.lineTo(x + 21, y - 132);
+      g.bezierCurveTo(x + 30, y - 120, x + 40, y - 82, x + 30, y - 34);
+      g.closePath();
       g.fillStyle = piel;
-      g.beginPath(); g.ellipse(x, y - 160, 24, 30, 0, 0, Math.PI * 2); g.fill();
-      g.strokeStyle = tinta("236,206,150", 0.5 * luz);
-      g.lineWidth = 1.3;
-      g.beginPath(); g.ellipse(x, y - 160, 24, 30, 0, 0, Math.PI * 2); g.stroke();
+      g.fill();
+      g.strokeStyle = tinta("236,206,150", 0.34 * luz);
+      g.stroke();
+      /* brazos que bajan hasta las rodillas */
+      for (const lado of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(x + lado * 26, y - 122);
+        g.bezierCurveTo(x + lado * 62, y - 104, x + lado * 76, y - 66, x + lado * 62, y - 42);
+        g.lineTo(x + lado * 46, y - 44);
+        g.bezierCurveTo(x + lado * 58, y - 66, x + lado * 48, y - 98, x + lado * 16, y - 116);
+        g.closePath();
+        g.fillStyle = piel;
+        g.fill();
+        g.strokeStyle = tinta("236,206,150", 0.3 * luz);
+        g.stroke();
+      }
+      /* cabeza */
+      g.fillStyle = piel;
+      g.beginPath(); g.ellipse(x, y - 158, 22, 27, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = tinta("240,212,158", 0.55 * luz);
+      g.lineWidth = 1.4;
+      g.beginPath(); g.ellipse(x, y - 158, 22, 27, 0, 0, Math.PI * 2); g.stroke();
+      /* cuello */
+      g.fillStyle = piel;
+      g.fillRect(x - 8, y - 140, 16, 16);
       g.save();
       g.globalCompositeOperation = "lighter";
       for (const [cy, rad, col] of [
-        [y - 192, 24, "236,214,255"], [y - 134, 18, "255,238,196"],
-        [y - 92, 16, "236,214,255"], [y - 44, 14, "255,238,196"],
+        [y - 188, 22, "236,214,255"], [y - 124, 17, "255,238,196"],
+        [y - 86, 15, "236,214,255"], [y - 42, 13, "255,238,196"],
       ] as Array<[number, number, string]>) {
         const gl = g.createRadialGradient(x, cy, 1, x, cy, rad * 2.4);
         gl.addColorStop(0, tinta(col, 0.9 * luz));
@@ -1729,8 +1799,8 @@ const chispasArm = Array.from({ length: 34 }, () => {
         g.fillRect(x - rad * 2.4, cy - rad * 2.4, rad * 4.8, rad * 4.8);
       }
       g.restore();
-      for (const [cy, rad] of [[y - 144, 58], [y - 92, 74], [y - 42, 92]] as const) {
-        g.strokeStyle = tinta("240,214,150", 0.45 * luz);
+      for (const [cy, rad] of [[y - 144, 46], [y - 92, 58], [y - 42, 70]] as const) {
+        g.strokeStyle = tinta("240,214,150", 0.28 * luz);
         g.lineWidth = 1;
         g.beginPath(); g.arc(x, cy, rad, 0, Math.PI * 2); g.stroke();
       }
@@ -1779,17 +1849,17 @@ const chispasArm = Array.from({ length: 34 }, () => {
     g.save();
     g.globalCompositeOperation = "lighter";
     const bajo = g.createLinearGradient(0, SUELO_Y, 0, 1180);
-    bajo.addColorStop(0, tinta("255,248,230", 0.6 * luz));
-    bajo.addColorStop(0.45, tinta("246,228,255", 0.9 * luz));
-    bajo.addColorStop(1, tinta("226,196,255", 0.3));
+    bajo.addColorStop(0, tinta("255,248,230", 0.22 * luz));
+    bajo.addColorStop(0.45, tinta("246,228,255", 0.72 * luz));
+    bajo.addColorStop(1, tinta("226,196,255", 0.42));
     g.fillStyle = bajo;
     g.fillRect(EJE - 7, SUELO_Y, 14, 200);
-    const bajoHalo = g.createLinearGradient(EJE - 54, 0, EJE + 54, 0);
+    const bajoHalo = g.createLinearGradient(EJE - 62, 0, EJE + 62, 0);
     bajoHalo.addColorStop(0, "rgba(0,0,0,0)");
-    bajoHalo.addColorStop(0.5, tinta("214,180,255", 0.4 * luz));
+    bajoHalo.addColorStop(0.5, tinta("214,180,255", 0.26 * luz));
     bajoHalo.addColorStop(1, "rgba(0,0,0,0)");
     g.fillStyle = bajoHalo;
-    g.fillRect(EJE - 38, SUELO_Y, 76, 170);
+    g.fillRect(EJE - 62, SUELO_Y, 124, 200);
     g.restore();
 
     /* el sigilo que el haz proyecta bajo el estrado */
