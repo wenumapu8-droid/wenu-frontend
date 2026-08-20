@@ -1,0 +1,104 @@
+name: KODEX Effect Foundry CI
+
+on:
+  push:
+    branches:
+      - "feature/kodex-effect-foundry-*"
+    paths:
+      - "src/lib/kodex/effectFoundry.js"
+      - "src/lib/kodex/effectFoundryRuntime.js"
+      - "src/components/kodex/effects/**"
+      - "src/components/KodexOverlays.astro"
+      - "src/pages/kodex/lab/effect-foundry/**"
+      - "src/styles/kodex-effect-foundry.css"
+      - "docs/kodex/KODEX_EFFECT_FOUNDRY.md"
+      - "agent-control/KODEX_EFFECT_FOUNDRY_HANDOFF.md"
+      - ".github/workflows/kodex-effect-foundry-ci.yml"
+  pull_request:
+    paths:
+      - "src/lib/kodex/effectFoundry.js"
+      - "src/lib/kodex/effectFoundryRuntime.js"
+      - "src/components/kodex/effects/**"
+      - "src/components/KodexOverlays.astro"
+      - "src/pages/kodex/lab/effect-foundry/**"
+      - "src/styles/kodex-effect-foundry.css"
+      - "docs/kodex/KODEX_EFFECT_FOUNDRY.md"
+      - "agent-control/KODEX_EFFECT_FOUNDRY_HANDOFF.md"
+      - ".github/workflows/kodex-effect-foundry-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-visual-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ALLOW_EMPTY_PRODUCTS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24.14.1"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro project
+        run: npm run build
+
+      - name: Verify Foundry and all canonical folio assignments
+        run: |
+          test -f dist/kodex/lab/effect-foundry/index.html
+          test -f dist/kodex/lab/effect-foundry/smoke/index.html
+          for folio in i ii iii iv v vi; do test -f "dist/kodex/folio/$folio/index.html"; done
+          grep -q "KDX EFFECT FOUNDRY" dist/kodex/lab/effect-foundry/index.html
+          grep -q "SIX EFFECT SMOKE MATRIX" dist/kodex/lab/effect-foundry/smoke/index.html
+          grep -q "KDX-FX-002" dist/kodex/folio/i/index.html
+          grep -q "KDX-FX-003" dist/kodex/folio/ii/index.html
+          grep -q "KDX-FX-005" dist/kodex/folio/iii/index.html
+          grep -q "KDX-FX-004" dist/kodex/folio/iv/index.html
+          grep -q "KDX-FX-001" dist/kodex/folio/v/index.html
+          grep -q "KDX-FX-006" dist/kodex/folio/vi/index.html
+          for folio in i ii iii iv v vi; do grep -q "data-kdx-foundry-scene" "dist/kodex/folio/$folio/index.html"; done
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-preview.log 2>&1 &
+          echo $! > /tmp/kodex-preview.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/effect-foundry/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-preview.log
+          exit 1
+
+      - name: Install Chromium for visual smoke
+        run: npx --yes playwright@1.54.2 install --with-deps chromium
+
+      - name: Capture factory and six-scene browser evidence
+        run: |
+          mkdir -p qa-artifacts
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="390,844" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/lab/effect-foundry/ qa-artifacts/foundry-390x844.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="1440,1400" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/lab/effect-foundry/smoke/ qa-artifacts/all-six-effects-desktop.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="390,1800" --wait-for-timeout=1800 http://127.0.0.1:4321/kodex/lab/effect-foundry/smoke/ qa-artifacts/all-six-effects-mobile.png
+          for folio in i ii iii iv v vi; do
+            npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="1440,1000" --wait-for-timeout=1800 "http://127.0.0.1:4321/kodex/folio/$folio/" "qa-artifacts/folio-$folio-desktop.png"
+            npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="390,844" --wait-for-timeout=1800 "http://127.0.0.1:4321/kodex/folio/$folio/" "qa-artifacts/folio-$folio-mobile.png"
+          done
+
+      - name: Upload QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-effect-foundry-qa
+          path: qa-artifacts/
+          if-no-files-found: warn

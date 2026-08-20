@@ -1,0 +1,112 @@
+---
+import Base from '../../../../layouts/Base.astro';
+import KodexEffectCanvas from '../../../../components/kodex/effects/KodexEffectCanvas.astro';
+import { KODEX_EFFECTS } from '../../../../lib/kodex/effectFoundry.js';
+---
+
+<Base
+  title="KODEX Effect Foundry — Browser Smoke Matrix"
+  description="Internal browser smoke matrix for the six Sprint 0 effect renderers."
+  robots="noindex, nofollow"
+  kodexFonts={true}
+  noNav={true}
+  noFooter={true}
+  noOverlays={true}
+  noQuote={true}
+  noThemes={true}
+  noKai={true}
+  noCart={true}
+  noImmersive={true}
+>
+  <main class="kfx-smoke" data-kfx-smoke>
+    <header>
+      <p>KODEX−∞ / EFFECT FOUNDRY / BROWSER QA</p>
+      <h1>SPRINT 0 · SIX EFFECT SMOKE MATRIX</h1>
+      <output data-smoke-summary>CHECKING 0 / {KODEX_EFFECTS.length}</output>
+    </header>
+
+    <section class="kfx-smoke__grid">
+      {KODEX_EFFECTS.map((effect) => (
+        <article class="kfx-smoke__card" data-smoke-card={effect.id}>
+          <div class="kfx-smoke__meta">
+            <span>{effect.id}</span>
+            <strong>{effect.name}</strong>
+            <small>{effect.family} / {effect.status}</small>
+          </div>
+          <KodexEffectCanvas
+            effectId={effect.id}
+            class="kfx-smoke__canvas"
+            width={420}
+            height={420}
+            animate={false}
+            interactive={false}
+          />
+          <output class="kfx-smoke__result" data-smoke-result>PENDING</output>
+        </article>
+      ))}
+    </section>
+  </main>
+
+  <script is:inline>
+    (() => {
+      const root = document.querySelector('[data-kfx-smoke]');
+      if (!root) return;
+
+      const sample = () => {
+        const cards = [...root.querySelectorAll('[data-smoke-card]')];
+        let passed = 0;
+        cards.forEach((card) => {
+          const canvas = card.querySelector('canvas');
+          const out = card.querySelector('[data-smoke-result]');
+          if (!canvas || !out || !canvas.width || !canvas.height) return;
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          if (!ctx) return;
+          try {
+            const w = canvas.width;
+            const h = canvas.height;
+            const data = ctx.getImageData(0, 0, w, h).data;
+            let bright = 0;
+            const stride = Math.max(4, Math.floor((w * h) / 5000)) * 4;
+            for (let i = 0; i < data.length; i += stride) {
+              if (data[i] + data[i + 1] + data[i + 2] > 48) bright += 1;
+            }
+            const ok = bright > 8;
+            out.textContent = ok ? 'PASS' : 'FAIL';
+            out.dataset.state = ok ? 'pass' : 'fail';
+            if (ok) passed += 1;
+          } catch {
+            out.textContent = 'FAIL';
+            out.dataset.state = 'fail';
+          }
+        });
+        const summary = root.querySelector('[data-smoke-summary]');
+        if (summary) summary.textContent = `${passed} / ${cards.length} PASS`;
+        root.dataset.smoke = passed === cards.length ? 'pass' : 'fail';
+      };
+
+      window.setTimeout(sample, 1200);
+      document.addEventListener('astro:page-load', () => window.setTimeout(sample, 1200));
+    })();
+  </script>
+</Base>
+
+<style>
+  :global(html), :global(body) { margin: 0; background: #020304; color: #f4f1ea; }
+  .kfx-smoke { min-height: 100dvh; padding: 24px; font-family: var(--kx-font-mono, monospace); box-sizing: border-box; }
+  header { display: flex; gap: 12px 28px; flex-wrap: wrap; align-items: end; margin-bottom: 20px; border-bottom: 1px solid #2a3137; padding-bottom: 16px; }
+  header p, header h1 { margin: 0; }
+  header p { width: 100%; color: #7fe9ff; font-size: 11px; letter-spacing: .16em; }
+  header h1 { font-size: clamp(18px, 3vw, 34px); }
+  header output { margin-left: auto; color: #a7ff00; }
+  .kfx-smoke__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .kfx-smoke__card { min-width: 0; border: 1px solid #2a3137; background: #07090b; padding: 10px; }
+  .kfx-smoke__meta { display: grid; gap: 2px; margin-bottom: 8px; }
+  .kfx-smoke__meta span, .kfx-smoke__meta small { color: #8f9aa3; font-size: 10px; }
+  .kfx-smoke__meta strong { font-size: 14px; }
+  .kfx-smoke__canvas { width: 100%; aspect-ratio: 1; border: 1px solid #1c252c; }
+  .kfx-smoke__result { display: block; margin-top: 8px; font-size: 11px; letter-spacing: .16em; }
+  .kfx-smoke__result[data-state='pass'] { color: #a7ff00; }
+  .kfx-smoke__result[data-state='fail'] { color: #ff583b; }
+  @media (max-width: 900px) { .kfx-smoke__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .kfx-smoke { padding: 12px; } .kfx-smoke__grid { grid-template-columns: 1fr; } }
+</style>

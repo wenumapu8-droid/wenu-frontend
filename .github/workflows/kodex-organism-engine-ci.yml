@@ -1,0 +1,97 @@
+name: KODEX Organism Engine CI
+
+on:
+  push:
+    branches:
+      - "feature/kodex-organism-engine-foundation"
+    paths:
+      - "src/kodex/organism-engine/**"
+      - "src/components/kodex/organism/**"
+      - "src/pages/kodex/lab/organism-engine.astro"
+      - "src/kodex/threshold-portal/**"
+      - "public/img/kodex/organisms/**"
+      - "docs/kodex/ORGANISM_ENGINE_USAGE.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/kodex-organism-engine-ci.yml"
+  pull_request:
+    paths:
+      - "src/kodex/organism-engine/**"
+      - "src/components/kodex/organism/**"
+      - "src/pages/kodex/lab/organism-engine.astro"
+      - "src/kodex/threshold-portal/**"
+      - "public/img/kodex/organisms/**"
+      - "docs/kodex/ORGANISM_ENGINE_USAGE.md"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/kodex-organism-engine-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ALLOW_EMPTY_PRODUCTS: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Astro project
+        run: npm run build
+
+      - name: Verify organism lab and FIELD lifecycle contract
+        run: |
+          test -f dist/kodex/lab/organism-engine/index.html
+          grep -q "UNIVERSAL ORGANISM ENGINE" dist/kodex/lab/organism-engine/index.html
+          grep -q "deleteProgram" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+          grep -q "deleteFramebuffer" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+          grep -q "deleteTexture" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+          grep -q "deleteBuffer" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+          grep -q "webglcontextlost" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+          grep -q "webglcontextrestored" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+          grep -q "resourceCount" src/kodex/threshold-portal/runtime/KdxThresholdPortalRuntime.js
+
+      - name: Start preview server
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-organism-preview.log 2>&1 &
+          echo $! > /tmp/kodex-organism-preview.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/organism-engine/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-organism-preview.log
+          exit 1
+
+      - name: Install Chromium for visual QA
+        run: npx --yes playwright@1.54.2 install --with-deps chromium
+
+      - name: Capture organism lab desktop and mobile QA
+        run: |
+          mkdir -p qa-artifacts
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="1440,1200" --wait-for-timeout=2200 --full-page http://127.0.0.1:4321/kodex/lab/organism-engine/ qa-artifacts/organism-lab-desktop.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="390,844" --wait-for-timeout=2200 --full-page http://127.0.0.1:4321/kodex/lab/organism-engine/ qa-artifacts/organism-lab-390x844.png
+          npx --yes playwright@1.54.2 screenshot --browser=chromium --viewport-size="412,915" --wait-for-timeout=2200 --full-page http://127.0.0.1:4321/kodex/lab/organism-engine/ qa-artifacts/organism-lab-412x915.png
+
+      - name: Upload organism QA screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-organism-engine-qa
+          path: qa-artifacts/
+          if-no-files-found: warn
