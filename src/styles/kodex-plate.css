@@ -26,6 +26,25 @@
    lo único que no depende de cómo quede armado el bundle.
    ========================================================================== */
 
+/* ---------------------------------------------------------------------------
+   0 · LO QUE EL CONTRATO RETIRA EN TODO TAMAÑO
+   ---------------------------------------------------------------------------
+   La barra de atajos `⌘K COMMANDS · 0-6 SCENE · T MODE` ocupaba una franja
+   entera del borde inferior en las cinco medidas, y en teléfono además tapaba
+   la navegación del corredor. Ocín, mirándolo: "aparecen los comandos abajo,
+   siento que usan mucho espacio".
+
+   Se retira la BARRA, no la función: la paleta sigue abriéndose con ⌘K y con
+   el botón de índice. Lo que se va es el cartel que anuncia atajos de teclado
+   ocupando espacio de obra. Un instrumento no rotula sus propias teclas.
+
+   El código de barras se va por otra razón, medida: en desktop se superponía
+   con los rótulos del eje abajo a la izquierda -- 47% de área compartida --
+   y su contenido ya está en el dossier y en el rail de la obra.
+   ------------------------------------------------------------------------- */
+[data-kdx-plate-contract][data-kdx-plate] .kdx-os__hint,
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-barcode { display: none; }
+
 /* El disparador del dossier nace oculto ACÁ y no con un `style` en el markup:
    un estilo en línea le gana a cualquier hoja, así que el botón no reaparecía
    nunca en teléfono por más media query que se escribiera. */
@@ -163,14 +182,30 @@
   }
 
   /* --- las acciones: disponibles de inmediato, nunca bajo el pliegue ------ */
+  /* Ninguna pieza del bloque de texto CRECE. Medido: la caja de acciones se
+     estiraba a 192px -- contra los 96 que ocupan sus dos filas de botones --
+     y al estirarse estiraba también los botones, dejando un hueco muerto de
+     más de 100px entre el último botón y el pie de la escena. El bloque debe
+     medir lo que mide su contenido y apoyarse abajo; nada más. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy > * { flex: 0 0 auto; }
+
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions {
     display: flex;
     flex-wrap: wrap;
+    align-content: flex-end;
     gap: 8px;
     margin: 2px 0 0;
+    /* 96px de relleno inferior heredados de la hoja vieja. Eran el hueco
+       muerto entero: el contenido mide 96 y la caja medía 192. En el layout
+       antiguo ese relleno separaba del pie flotante; con el contrato el pie
+       ya tiene su lugar reservado y el relleno sólo empuja al vacío. */
+    padding: 0;
   }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-primary,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost {
+    /* Alto FIJO, no mínimo: con `min-height` el botón se estira hasta llenar
+       la fila del contenedor y deja de ser un botón para volverse una franja. */
+    height: var(--kdx-plate-tap, 44px);
     min-height: var(--kdx-plate-tap, 44px);
     display: inline-flex;
     align-items: center;
@@ -178,8 +213,8 @@
     padding: 0 14px;
     font-size: max(var(--kdx-plate-type-min, 11px), .62rem);
   }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-primary { flex: 1 1 100%; }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost   { flex: 1 1 calc(50% - 4px); }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-primary { flex: 0 0 100%; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost   { flex: 0 1 calc(50% - 4px); }
 
   /* --- lo secundario se va al drawer, no desaparece del sistema ----------- */
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__eje,
@@ -240,8 +275,7 @@
     z-index: 160;
   }
 
-  /* Los atajos de teclado no existen en un teléfono. Ocultos, no removidos. */
-  [data-kdx-plate-contract][data-kdx-plate] .kdx-os__hint { display: none; }
+  /* (la barra de atajos se retira para todos los tamaños, ver más abajo) */
 
   /* El disparador del descenso (`kdx-boca`, del otro agente) ya cae por encima
      de la navegación por su cuenta -- y=738-786 contra y=788-844 -- así que no
@@ -342,10 +376,16 @@
       minmax(360px, 1.15fr)
       minmax(230px, 0.62fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
+    /* El eje ocupa las dos primeras columnas y NO la tercera. Medido: cuando
+       cruzaba las tres, su rótulo derecho -- "+∞ · EXPANSIÓN · una forma,
+       muchas manifestaciones" -- caía debajo del HUD de coordenadas, que es
+       fijo en esa esquina: 100% de superposición en "01 / 07" sobre "+∞".
+       Dejarle la columna libre al HUD resuelve el choque sin mover ninguno de
+       los dos de donde el diseño los quiere. */
     grid-template-areas:
       'tira tira meta'
       'copy art  meta'
-      'eje  eje  eje';
+      'eje  eje  .';
     grid-auto-rows: 0;
     align-items: center;
     align-content: stretch;
@@ -369,6 +409,17 @@
     max-width: 13ch;
     margin: 0;
   }
+  /* El eje declara `height:34px` para su lista de marcas, pero cada marca
+     apila tres líneas -- signo, nombre y nota -- y en desktop la nota es
+     visible (abajo de 860px el componente la esconde). La tercera línea se
+     derramaba fuera de la caja y aterrizaba sobre el rótulo de fase: 49% de
+     superposición entre "profundidad sin límite conocido" y "EXCAVATION · E00".
+     Es un defecto del componente, no del contrato, y por eso se corrige ACÁ y
+     no en el componente: tocarlo cambiaría las otras cinco escenas, que en
+     esta prueba no se tocan. Queda anotado para arreglarlo en la raíz cuando
+     el contrato se extienda a los Folios II-VI. */
+  [data-kdx-plate-contract][data-kdx-plate] .kdx-eje__marcas { height: 48px; }
+
   [data-kdx-plate-contract][data-kdx-plate] .kx-protocol-lines { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 14px 0 0; }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions { margin-top: clamp(14px, 2.2vh, 26px); display: flex; flex-wrap: wrap; gap: 10px; }
   [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: none; }

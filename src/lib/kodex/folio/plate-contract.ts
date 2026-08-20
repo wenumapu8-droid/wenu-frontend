@@ -95,10 +95,17 @@ export interface KdxMobileProfile {
  */
 export const KDX_MOBILE_PROFILE: Record<string, KdxMobileProfile> = {
   prologue: {
-    visualRatio: 0.4,
-    artFit: 'cover',
-    artPosition: '58% 42%',
-    artScale: 1.18,
+    /* El mandala es una figura RADIAL y cerrada: se lee entera o no se lee.
+       Con `cover` y escala 1.18 el recuadro le cortaba la corona de arriba y
+       de abajo y la dejaba ovalada -- "achatada", dicho por Ocín, y tenía
+       razón. Una obra circular pide `contain` y escala 1: que respire dentro
+       de su región en vez de llenarla a costa de su forma.
+       Esto es exactamente para lo que existe el perfil: la dirección de arte
+       es POR OBRA. Una fotografía a sangre sí querrá `cover`; ésta no. */
+    visualRatio: 0.42,
+    artFit: 'contain',
+    artPosition: '50% 50%',
+    artScale: 1,
     titleScale: 'large',
     chromeDensity: 'compact',
     metadataMode: 'sheet',
