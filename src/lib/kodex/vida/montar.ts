@@ -70,11 +70,13 @@ export function montarVida(opciones: { id: string; raiz?: HTMLElement } ) {
   apagar.type = 'button';
   apagar.className = 'kdx-vida__apagar';
   apagar.textContent = 'SIGNALS OFF';
+  apagar.setAttribute('aria-label', 'Turn living signals off');
   let encendida = true;
   apagar.addEventListener('click', () => {
     encendida = !encendida;
     capa.dataset.apagada = encendida ? '' : 'si';
     apagar.textContent = encendida ? 'SIGNALS OFF' : 'SIGNALS ON';
+    apagar.setAttribute('aria-label', encendida ? 'Turn living signals off' : 'Turn living signals on');
   });
 
   barra.append(rotulo, apagar);
@@ -114,7 +116,11 @@ export function montarVida(opciones: { id: string; raiz?: HTMLElement } ) {
   }
 
   const pintarBarra = () => {
-    rotulo.textContent = `RULE · ${campo.bloque.nombre} · B${campo.bloque.nace.join('')}/S${campo.bloque.vive.join('')}`;
+    const r = `RULE · ${campo.bloque.nombre} · B${campo.bloque.nace.join('')}/S${campo.bloque.vive.join('')}`;
+    rotulo.textContent = r;
+    /* Colapsada la barra, el texto queda oculto por CSS pero sigue en el DOM;
+       el aria-label garantiza que un lector de pantalla lo anuncie igual. */
+    rotulo.setAttribute('aria-label', r);
     rotulo.style.setProperty('--kdx-v-color', TINTE[campo.bloque.gesto]);
   };
 

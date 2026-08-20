@@ -39,6 +39,35 @@ for (const lam of LAMS) {
      de que existan sería medir una página que nadie ve. */
   await p.waitForTimeout(6500);
   const R = await p.evaluate(() => {
+    /* ── EL RECTÁNGULO REALMENTE VISIBLE ────────────────────────────────
+       Hallazgo del agente del Folio I, y es un fallo del INSTRUMENTO, no de
+       las páginas: un elemento dentro de un contenedor con scroll, corrido
+       fuera de la parte visible, está recortado en pantalla pero
+       `getBoundingClientRect` sigue devolviendo su posición geométrica. El
+       detector lo reportaba encima de cosas que nunca llegan a tocarse.
+
+       En su corredor eran seis superposiciones inexistentes y estuvo
+       arreglando fantasmas. Acá el riesgo es el mismo y peor: el tríptico
+       tiene páginas con `overflow-y:auto`, así que estos números había que
+       rehacerlos antes de creerles.
+
+       La corrección: recortar contra cada ancestro que recorta. Si el
+       rectángulo queda vacío, el elemento no está a la vista y no cuenta. */
+    const rectoVisible = (el) => {
+      let r = el.getBoundingClientRect();
+      let x1 = r.left, y1 = r.top, x2 = r.right, y2 = r.bottom;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
+        const cs = getComputedStyle(a);
+        const cortaX = cs.overflowX !== 'visible';
+        const cortaY = cs.overflowY !== 'visible';
+        if (!cortaX && !cortaY) continue;
+        const c = a.getBoundingClientRect();
+        if (cortaX) { x1 = Math.max(x1, c.left); x2 = Math.min(x2, c.right); }
+        if (cortaY) { y1 = Math.max(y1, c.top); y2 = Math.min(y2, c.bottom); }
+        if (x2 - x1 <= 0 || y2 - y1 <= 0) return null;
+      }
+      return { left: x1, top: y1, right: x2, bottom: y2, width: x2 - x1, height: y2 - y1 };
+    };
     const vis = [];
     for (const e of document.querySelectorAll('body *')) {
       const cs = getComputedStyle(e);
@@ -47,7 +76,8 @@ for (const lam of LAMS) {
       // solo elementos que llevan texto propio
       const txt = [...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent.trim()).join(' ').trim();
       if (txt.length < 2) continue;
-      const r = e.getBoundingClientRect();
+      const r = rectoVisible(e);
+      if (!r) continue;
       if (r.width<4 || r.height<4 || r.bottom<0 || r.top>innerHeight || r.right<0 || r.left>innerWidth) continue;
       vis.push({ e, t:txt.slice(0,32), x:r.left, y:r.top, r:r.right, b:r.bottom, w:r.width, h:r.height,
                  cls:(e.className||'').toString().slice(0,34) });

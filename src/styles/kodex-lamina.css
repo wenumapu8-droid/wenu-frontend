@@ -302,8 +302,31 @@ html[data-kdx-frozen] .kdx-vida{ display:none; }
   align-items:flex-end; flex-direction:column;
   display:flex; flex-wrap:wrap; gap:6px; pointer-events:auto; max-width:calc(100vw - 24px);
 }
+/* ── la barra COLAPSA, igual que la navegación ──────────────────────────────
+   El detector de solapamientos, ya corregido para recortar contra ancestros
+   con scroll, mostró que "RULE · PULSE · B23/S23" y "SIGNALS OFF" se apoyaban
+   sobre el texto de la plancha al 100% en horizontal y en escritorio. La capa
+   de vida es control, no obra: se corre el control.
+
+   Mismo patrón que los enlaces de lámina —pestaña de 44px en reposo, rótulo al
+   tocar o enfocar— para que el sistema tenga un solo gesto y no dos. */
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__regla,
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__apagar{
+  width:44px; min-width:44px; padding:0; font-size:0;
+  overflow:hidden; justify-content:center;
+}
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__regla::before{ content:"◉"; font-size:13px; }
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__apagar::before{ content:"○"; font-size:13px; }
+/* En táctil no hay hover: se abre al tocar la pestaña, y el propio botón
+   informa con su `aria-label`, así que colapsado nunca queda mudo. */
+@media (hover:none){
+  .kdx-vida__barra:not(:focus-within) .kdx-vida__regla,
+  .kdx-vida__barra:not(:focus-within) .kdx-vida__apagar{ width:44px; min-width:44px; padding:0; font-size:0; }
+}
+
 .kdx-vida__regla,.kdx-vida__apagar{
   min-height:44px; padding:0 12px; cursor:pointer;
+  transition:width .2s ease, padding .2s ease;
   background:rgba(6,6,8,.7); backdrop-filter:blur(6px);
   border:1px solid rgba(240,237,232,.16);
   color:rgba(240,237,232,.7);
@@ -407,12 +430,42 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
      ganaba: la opacidad medía 1 en las tres páginas. A igual especificidad gana
      la última del bundle, no la última del import — y el orden del bundle no lo
      decide uno. Se gana por especificidad, no por orden. */
-  /* I SIGNAL — la obra atrás, tenue: el concepto se anuncia con la palabra. */
-  body:has(.kdx-tri) [data-kdx-tri="0"]{ opacity:.26; filter:blur(1px); }
+  /* I SIGNAL — la obra atrás, como TEXTURA y no como texto.
+     Medido: con blur(1px) a .26 el cromo de la plancha seguía siendo texto
+     legible y atravesaba el titular al 100% ("PISO DE RUIDO" y "−112.6 dB"
+     sobre "SILENCE ENGINE"). La receta permite que ZONE B se apoye sobre el
+     campo visual —"sometimes overlapping the primary field"— pero es explícita
+     en que "never compete with another equally large headline". Dos textos en
+     el mismo lugar es esa competencia.
+     El desenfoque no esconde la obra: la convierte en lo que esta página
+     necesita que sea, un fondo. En FIELD vuelve entera y nítida. */
+  body:has(.kdx-tri) [data-kdx-tri="0"]{ opacity:.22; filter:blur(3.5px); }
   /* II FIELD — la obra sola, entera, sin nada encima. */
   body:has(.kdx-tri) [data-kdx-tri="1"]{ opacity:1; filter:none; }
   /* III EVIDENCE — la obra cede el paso a los datos. */
-  body:has(.kdx-tri) [data-kdx-tri="2"]{ opacity:.15; filter:blur(2px); }
+  body:has(.kdx-tri) [data-kdx-tri="2"]{ opacity:.13; filter:blur(4px); }
+
+  /* ── EL TEXTO DE LA PLANCHA NO SE REPITE ────────────────────────────────
+     En SIGNAL y en EVIDENCE se oculta el TEXTO de la lámina, no la lámina.
+     Sus formas —canvas, trazos, campos— quedan de fondo; sus rótulos no.
+     
+     La razón no es estética: es que ese texto YA ESTÁ en las tres páginas.
+     El tríptico lee los 92 bloques de la plancha y los reparte; dejarlos
+     también debajo los muestra dos veces. El detector lo destapó como 19
+     solapamientos contra mi propio titular —"PISO DE RUIDO" y "−112.6 dB"
+     encima de "SILENCE ENGINE"— y tenía razón: dos textos en el mismo lugar.
+     
+     Nada se pierde: se relocaliza, que es exactamente lo que pidió el creador
+     —"todo lo que está en la lámina se organiza de la mejor forma posible
+     entre los 3"—. En FIELD vuelve entero, porque ahí la obra se muestra tal
+     cual es.
+     
+     `visibility` y no `display`: no se reflota el layout de la plancha, que
+     está medido al pixel contra su referencia. */
+  body:has(.kdx-tri) [data-kdx-tri="0"] :is(svg text, p, h1, h2, h3, span, dd, dt, li, strong, b, em, small),
+  body:has(.kdx-tri) [data-kdx-tri="2"] :is(svg text, p, h1, h2, h3, span, dd, dt, li, strong, b, em, small){
+    visibility:hidden;
+  }
 
   /* Con el tríptico montado, la navegación de lámina se va ARRIBA. Medido: la
      pestaña "→" quedaba sobre la barra de pasos e interceptaba los toques —
@@ -437,7 +490,13 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
     bottom:auto !important; left:auto !important; right:10px !important;
     transform:none !important; width:44px !important; min-width:44px !important;
     padding:0 !important;
+    display:inline-flex !important; align-items:center; justify-content:center;
+    overflow:hidden; font-size:0 !important;
   }
+  /* Simétrico al de salida: el rótulo se oculta a la vista pero sigue en el
+     DOM, así que el lector de pantalla anuncia "NEXT PLATE · …" completo. */
+  body:has(.kdx-tri) .lam-siguiente::before{ content:"→"; font-size:14px; }
+  body:has(.kdx-tri) .lam-siguiente i{ display:none; }
 
   /* El lector viejo se retira: era la miniaturización que la receta prohíbe. */
   .kdx-mov{ display:none !important; }
