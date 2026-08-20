@@ -2,6 +2,7 @@
 /* La hoja viaja con el módulo, no con la página: 9 de las 39 láminas no
    importan `kodex-lamina.css` y en esas esta capa salía sin posición ni color.
    Importándola acá, cualquier lámina que monte el módulo recibe sus estilos. */
+import { raizLamina } from "./raiz";
 import "../../../../styles/kodex-lamina.css";
 /**
  * KODEX−∞ · LA LÁMINA EN EL TELÉFONO
@@ -36,7 +37,7 @@ const BANDA = 26;
 
 export function montarMovil(): void {
   if (matchMedia(`(min-width:${ANCHO_MOVIL + 1}px)`).matches) return;
-  const lam = document.querySelector<HTMLElement>(".lam");
+  const lam = raizLamina();
   if (!lam || document.querySelector("[data-kdx-movil]")) return;
 
   /* ── el contenido, en orden de lectura ──────────────────────────── */

@@ -22,6 +22,7 @@ import "../../../styles/kodex-lamina.css";
 
 import { sembrar, latir, senales, tocar, avivar, apagado, cambiarBloque, BLOQUES, type Campo, type Senal } from './reglas';
 import { recordar } from '../memoria';
+import { raizLamina, idLamina, TRAZADAS } from '../../../components/kodex/lamina/kit/raiz';
 
 const GLIFO: Record<string, string> = { COLOR: '◉', DIVIDE: '⋔', ROTATE: '◈', ACCELERATE: '⊹' };
 const TINTE: Record<string, string> = { COLOR: '#e8b4bc', DIVIDE: '#c9a84c', ROTATE: '#8ba0c9', ACCELERATE: '#ff2733' };
@@ -30,8 +31,11 @@ const TINTE: Record<string, string> = { COLOR: '#e8b4bc', DIVIDE: '#c9a84c', ROT
 export type PulsoVida = { gesto: string; tempo: number; tinte: string; mutaciones: number };
 
 export function montarVida(opciones: { id: string; raiz?: HTMLElement } ) {
-  const raiz = opciones.raiz ?? document.querySelector<HTMLElement>('[data-lam]');
+  const raiz = opciones.raiz ?? raizLamina();
   if (!raiz) return;
+  /* Las dos planchas trazadas del creador no reciben la capa de vida: son obra
+     suya y no se tocan sin él. Ver `raiz.ts`. */
+  if (TRAZADAS.has(opciones.id) || TRAZADAS.has(idLamina(raiz) ?? '')) return;
 
   const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
   /* Retícula: la misma proporción que la plancha, para que las señales caigan
