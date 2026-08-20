@@ -237,7 +237,11 @@ export function bifurcar(v: Viaje, corpus: Corpus): Puerta[] {
      El papel también decide qué se puede prometer: HALLAZGO no afirma
      relación, porque no la hay. Nada se resuelve en silencio. */
   const aqui = v.aqui ? corpus.nodos[corpus.indice[v.aqui]] : null;
-  const esHilo = (p: Puerta) => v.aqui && (corpus.vecinos[v.aqui] || []).includes(p.nodo.id);
+  /* `!!` y no truthiness suelta: `v.aqui` es `string | null`, así que sin la
+     doble negación el predicado devuelve `string | boolean | null` y no
+     `boolean`. Funcionaba —`Array.find` evalúa por veracidad— pero el tipo
+     mentía sobre el contrato. Lo encontró `tsc --strict`, no el navegador. */
+  const esHilo = (p: Puerta) => !!v.aqui && (corpus.vecinos[v.aqui] || []).includes(p.nodo.id);
   const esPuente = (p: Puerta) => !!(aqui?.estrato && p.nodo.estrato && aqui.estrato !== p.nodo.estrato)
     || (!aqui?.estrato && !!p.nodo.estrato);
   const esHallazgo = (p: Puerta) => !p.nodo.estrato && p.nodo.grado === 0;
