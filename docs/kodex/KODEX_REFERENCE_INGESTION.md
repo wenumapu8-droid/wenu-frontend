@@ -17,6 +17,12 @@ Machine-readable registry:
 
 `data/kodex/reference-registry.v0.1.json`
 
+Per-reference records may also live under:
+
+`data/kodex/references/`
+
+Those records are additive source/provenance entries and must eventually reconcile back into the consolidated registry rather than becoming a second authority.
+
 ## Ingestion contract
 
 For each link record:
@@ -89,6 +95,46 @@ Current source state: `NEEDS_CONFIRMATION`.
 
 The shortlink did not resolve reliably during the current ingestion pass. Do not infer the post's content from unrelated Reddit results. The associated creator-supplied screenshot can remain a separate visual reference, but the URL itself is not yet a verified textual source.
 
+### REF-UX-003 — Feelings Wheel / Atherio
+
+Source:
+
+`https://feelings-wheel.atherio.dev/`
+
+Use as a reference for **nested radial information architecture + direct manipulation + fracture/repair state grammar**, not as an emotion taxonomy or mental-health product pattern.
+
+The public page currently supports these observations:
+
+- a three-ring wheel;
+- drag/flick manipulation;
+- high-energy spin can break/shatter the wheel;
+- a Repair action reassembles it;
+- the surrounding product is intentionally framed as a quiet check-in rather than a feed or streak scoreboard.
+
+KODEX translation implemented as a bounded lab proof:
+
+`/kodex/lab/semantic-wheel/`
+
+Translation:
+
+- ring 1 = DOMAIN (`SIGNAL / MATTER / MEMORY / OBSERVER`);
+- ring 2 = PROCESS (`POTENTIAL / FORM / INTERACTION / MUTATION / DISSOLUTION / RETURN`);
+- ring 3 = existing canonical KODEX scenes;
+- drag/flick = semantic traversal through alignments;
+- high input energy = `ANOMALY` presentation state;
+- repair = `RETURN / REASSEMBLE`;
+- quiet product pacing = low-density contemplation state between dense system screens.
+
+Reference record:
+
+`data/kodex/references/REF-UX-003-feelings-wheel.json`
+
+Proof contract:
+
+`docs/proofs/KODEX-SEMANTIC-RELATION-WHEEL-P0.1.md`
+
+Do not copy the source emotion vocabulary, Atherio identity, product copy, exact wheel design, assets, code or psychological framing.
+
 ## Existing KODEX technical/reference pool now connected to this pipeline
 
 The registry also records the prior KODEX resource matrix so future agents can distinguish **study/reference** from **directly reusable** resources:
@@ -140,6 +186,8 @@ Examples:
 |---|---|---|
 | kinetic type modes | title operator ID | Manifestation Recipe / scene registry |
 | command palette | input/presentation layer | existing routes + `KodexChrome` |
+| nested radial wheel | DOMAIN / PROCESS / SCENE relation instrument | existing scene registry; lab vocabulary only |
+| fracture / repair | ANOMALY / RETURN presentation state | existing KODEX state language; no data destruction |
 | CRT/terminal shaders | bounded surface treatment | existing renderer / post chain |
 | shader parameters | modulation inputs | existing Manifestation/Signal contracts |
 | reaction-diffusion | visual MODEL for living field | scene grammar, not biological claim |
@@ -155,8 +203,8 @@ References should now be applied in this order:
 2. **Shared Command Shell** — command palette / index / display modes without changing canonical routes.
 3. **Title Engine** — map the seven operator IDs into the existing Manifestation Recipe.
 4. **Mobile Instrument Dock** — touch equivalent of shell actions.
-5. **ARCHIVE quiet-reading state** — alternate dense system space with low-density artifact contemplation.
-6. **COSMOLOGY relational field** — use graph/spatial references only after the shell/title language is stable.
+5. **ARCHIVE quiet-reading state + relation instrument** — alternate dense system space with low-density artifact contemplation and bounded radial relationship discovery.
+6. **COSMOLOGY relational field** — evaluate whether the relation wheel becomes an entry instrument for the graph/spatial view after creator review.
 
 ## Rights gate
 
@@ -176,7 +224,7 @@ Required state progression:
 
 `REFERENCE → TRANSLATION → LAB PROOF → BROWSER QA → CREATOR KEEP/REFINE/REJECT → SHARED SYSTEM → PRODUCTION → DEPLOY`
 
-Current Command Shell + Title Engine remains before creator acceptance and production integration.
+Current Command Shell + Title Engine and Semantic Relation Wheel remain before creator acceptance and production integration.
 
 ## Future link handling
 
