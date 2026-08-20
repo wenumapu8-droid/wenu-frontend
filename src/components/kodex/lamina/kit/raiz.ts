@@ -29,12 +29,26 @@
  * Probando cada ancla por separado, en orden, el comportamiento viejo queda
  * intacto y la serie t01 sólo AGREGA su caso al final.
  */
-const ANCLAS = ['.lam', '[data-lam]', '.kdx-lam', '[data-lamina]'];
+/*
+ * `.kdx-lam` ES AMBIGUA y por eso va last: en la mayoría de las planchas es la
+ * clase del `<body>`, y en la serie t01 es la clase del `<div>` de la plancha.
+ * Un `querySelector('.kdx-lam')` devuelve el body —viene antes en el
+ * documento— y todo lo que se cuelgue de ahí queda mal anclado: la escala, el
+ * tríptico, la capa de vida. Se descubrió midiendo la opacidad de la "plancha"
+ * y viendo que era la del body.
+ *
+ * Los ATRIBUTOS no son ambiguos: `data-lam` y `data-lamina` sólo existen en el
+ * div de la plancha. Por eso van primero, y el respaldo por clase además
+ * descarta `<body>` y `<html>` explícitamente.
+ */
+const ANCLAS = ['[data-lam]', '[data-lamina]', '.lam', '.kdx-lam'];
 
 export function raizLamina(): HTMLElement | null {
   for (const a of ANCLAS) {
-    const el = document.querySelector<HTMLElement>(a);
-    if (el) return el;
+    for (const el of document.querySelectorAll<HTMLElement>(a)) {
+      if (el === document.body || el === document.documentElement) continue;
+      return el;
+    }
   }
   return null;
 }
