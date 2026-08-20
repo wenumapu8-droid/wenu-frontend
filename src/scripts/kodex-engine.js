@@ -192,7 +192,17 @@ export function initKx() {
          completa y correcta.
          El ritual es un adorno; llegar a la escena siguiente no lo es. Si en
          1,2 s no navego, navegamos nosotros. */
-      setTimeout(() => { if (location.href === desde) location.href = url; }, 1200);
+      /* El salvavidas se mantiene, pero ya no puede matar una navegacion que
+         SI esta ocurriendo. Con el router de vistas la barra de direcciones
+         cambia recien al final del intercambio, asi que comparar `location`
+         no alcanza: a los 1,2 s el ritual estaba trabajando y el salvavidas
+         lo atropellaba con una recarga entera -- perdiendo justamente el
+         cromo persistente que el intercambio venia a conservar.
+         Ahora se pregunta primero si hay viaje en curso, y se deja un tope
+         duro por si el viaje tampoco termina nunca. */
+      const forzar = () => { if (location.href === desde) location.href = url; };
+      setTimeout(() => { if (!window.__kdxNavegando) forzar(); }, 1200);
+      setTimeout(forzar, 4000);
       return;
     }
     root.style.transition = 'opacity .55s ease'; root.style.opacity = '0';

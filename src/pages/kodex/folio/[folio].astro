@@ -27,6 +27,10 @@ import KodexTransition from '../../../components/kodex/transition/KodexTransitio
 import KodexDebug from '../../../components/kodex/debug/KodexDebug.astro';
 import '../../../styles/kodex-micrographics.css';
 import '../../../styles/kodex.css';
+/* KDX_PLATE_CONTRACT — la anatomía declarada de la plancha. La hoja no
+   hace nada sin el atributo de compuerta: ver src/styles/kodex-plate.css */
+import '../../../styles/kodex-plate.css';
+import { plateId, perfilMovil, plateVars, KDX_PLATE_CONTRACT_VERSION } from '../../../lib/kodex/folio/plate-contract';
 import { fieldParams, motionVars, recipeFor, gridFor } from '../../../lib/kodex/grammar';
 import { specimens, families, discoWorks, folios, organs } from '../../../lib/kodexBook.js';
 /* Cada folio registra su paso: sin esto el recorrido llega vacío a RETURN
@@ -161,6 +165,13 @@ const sceneGlyph = glyphByFolio[folio] ?? 'ポータル';
 // La tira lateral se arma con los metadatos que la escena ya declara: se parte
 // cada entrada 'CLAVE · VALOR' del rail existente. Asi no hay dos fuentes de
 // verdad que puedan desincronizarse.
+/* El contrato de plancha. `perfilMovil` devuelve null para toda escena que
+   todavía no fue calibrada, y sin perfil la compuerta no se abre: esas cinco
+   escenas se sirven byte por byte como antes. */
+const platePerfil = perfilMovil(sceneByFolio.slug);
+const plateIdent = plateId(sceneByFolio.slug);
+const plateStyle = platePerfil ? plateVars(platePerfil) : '';
+
 const stripRows = sceneByFolio.meta.map((row) => {
   const [k, ...rest] = row.split('·');
   return { k: k.trim(), v: rest.join('·').trim() || '—' };
@@ -393,6 +404,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   ogImage={sceneByFolio.image}
   kodexFonts={true}
   noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+  osShell={true}
 >
   <KodexRecuerda />
   <div
@@ -407,9 +419,12 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     data-kdx-tool={sceneHerramienta}
     data-kdx-recipe={sceneRecipe.id}
     data-kdx-grid={sceneGrid.id}
-    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}`}
+    data-kdx-plate-contract={platePerfil ? KDX_PLATE_CONTRACT_VERSION : undefined}
+    data-kdx-plate={plateIdent}
+    data-kdx-plate-metadata={platePerfil?.metadataMode}
+    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}${plateStyle ? ';' + plateStyle : ''}`}
   >
-    <KodexTransition />
+    <KodexTransition router={true} />
     <KodexDebug />
 
     <KodexChrome segs={7} />
@@ -485,6 +500,10 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 <div class="kx-os-stage__actions">
                   <a class="kx-os-primary" href={nextUrl}>{sceneByFolio.cta}</a>
                   <button class="kx-os-ghost" type="button" data-kdx-drawer-open="protocol">READ THE PROTOCOL</button>
+                  {/* Sólo en teléfono. Lo que se retira de los 390px no se
+                      pierde: se lee acá. La hoja del contrato lo oculta en
+                      desktop, donde esos datos ya están a la vista. */}
+                  <button class="kx-os-ghost" type="button" data-kdx-plate-dossier data-kdx-drawer-open="dossier" style="display:none">SPECIMEN DATA</button>
                 </div>
               </>
             )}
@@ -670,6 +689,29 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
           <p class="kx-os-stage__kicker">PROTOCOL · OBSERVATION</p>
           <h2>The archive observes relation, not identity.</h2>
           <p>KODEX records sequence, choice, state and attention. Audio is opt-in. Motion respects reduced mode. The visitor remains a signal, never a target.</p>
+        </section>
+
+        {/* DOSSIER — el destino de lo que el contrato retira del teléfono:
+            el eje, la tira de volúmenes, la banda de datos y la procedencia
+            de la obra. Mismos datos, otro lugar. Nada se borró. */}
+        <section data-kdx-drawer-section="dossier">
+          <p class="kx-os-stage__kicker">{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · DOSSIER</p>
+          <h2>{sceneByFolio.title}</h2>
+          <dl>
+            {stripRows.map((r) => <div><dt>{r.k}</dt><dd>{r.v}</dd></div>)}
+            <div><dt>MOTIF</dt><dd>{sceneByFolio.motif.toUpperCase()}</dd></div>
+            <div><dt>DEPTH</dt><dd>{idx + 1} / 7</dd></div>
+            <div><dt>PLATE</dt><dd>{plateIdent}</dd></div>
+            <div><dt>PROVENANCE</dt><dd>Ocin / Wenu Mapu</dd></div>
+          </dl>
+          {volumenesDelEstrato.length > 0 && (
+            <>
+              <p class="kx-os-stage__kicker">BELOW THIS SCENE</p>
+              <nav class="kx-return-routes">
+                {volumenesDelEstrato.map((v) => <a href={`/kodex/volumen/${v.slug}/`}>{v.titulo ?? v.slug}</a>)}
+              </nav>
+            </>
+          )}
         </section>
 
         <section data-kdx-drawer-section="specimen">
