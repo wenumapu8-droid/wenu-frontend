@@ -1,3 +1,8 @@
+
+/* La hoja viaja con el módulo, no con la página: 9 de las 39 láminas no
+   importan `kodex-lamina.css` y en esas esta capa salía sin posición ni color.
+   Importándola acá, cualquier lámina que monte el módulo recibe sus estilos. */
+import "../../../../styles/kodex-lamina.css";
 /**
  * KODEX−∞ · LA LÁMINA EN EL TELÉFONO
  *

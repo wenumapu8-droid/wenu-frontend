@@ -206,3 +206,92 @@
   body:has(.kdx-mov) .lam{ position:relative !important; }
   body:has(.kdx-mov){ height:auto !important; overflow-y:auto !important; }
 }
+
+/* ── KDX.LIFE · las señales vivas ───────────────────────────────────────────
+   El tercer motor del handoff de Ocín (2026-08-20): rule blocks, cellular
+   behavior, presets, emergence, mutation. Sus palabras en castellano el mismo
+   día: "que vayan apareciendo señales e infográficos de una misma experiencia
+   como botones que interactúen con la experiencia o que transformen, den color
+   y transformen, aceleren, roten".
+
+   Va en hoja global y no en <style> de componente porque las señales las crea
+   `montar.ts` en tiempo de ejecución: un nodo creado en runtime nunca recibe el
+   atributo de scope de Astro y todas sus reglas quedarían sin aplicar. Ya pasó
+   con las puertas del descenso y sólo se vio mirando la captura. */
+
+.kdx-vida{
+  position:fixed; inset:0; z-index:6; pointer-events:none;
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+}
+.kdx-vida[data-apagada="si"] .kdx-vida__campo{ display:none; }
+/* Fuera de vista la plancha, la capa entera se retira: no flota sobre el
+   lector de texto en móvil. */
+.kdx-vida[data-fuera="si"]{ opacity:0; pointer-events:none; transition:opacity .3s ease; }
+html[data-kdx-frozen] .kdx-vida{ display:none; }
+
+/* La caja la fija `montar.ts` sobre la plancha: ver el comentario de
+   `encuadrar()`. Acá sólo se declara que es una capa, no dónde. */
+.kdx-vida__campo{ position:fixed; }
+
+/* La señal. 44px de área táctil aunque el glifo sea chico: el dedo necesita
+   blanco, la plancha necesita que no la tapen. Se resuelve con padding
+   transparente, no agrandando el glifo. */
+.kdx-vida__s{
+  position:absolute; transform:translate(-50%,-50%);
+  display:grid; place-items:center;
+  width:44px; height:44px; padding:0; margin:0;
+  background:none; border:0; cursor:pointer; pointer-events:auto;
+  /* color explícito y no heredado: heredar daba negro sobre negro */
+  color:var(--kdx-v-color,#f0ede8);
+  font-size:calc(15px + var(--kdx-v-peso,0) * 9px);
+  line-height:1;
+  opacity:calc(.42 + var(--kdx-v-peso,0) * .5);
+  text-shadow:0 0 calc(4px + var(--kdx-v-peso,0) * 10px) currentColor;
+  transition:opacity .3s ease, font-size .3s ease;
+}
+.kdx-vida__s:hover,.kdx-vida__s:focus-visible{ opacity:1; }
+.kdx-vida__s:focus-visible{ outline:1px solid currentColor; outline-offset:2px; }
+/* Gira, y gira MÁS LENTO cuanto más vieja es la señal: la edad es el dato y la
+   velocidad es ese dato hecho visible. Al tocarla se acelera antes de mutar. */
+/* El glifo gira DENTRO del botón; el botón no se mueve. Rotar el botón con su
+   translate(-50%,-50%) lo volvía intocable: el puntero perseguía un blanco en
+   movimiento. Se descubrió porque Playwright no lograba hacer click. */
+.kdx-vida__g{ display:block; font-style:normal; line-height:1; }
+@media (prefers-reduced-motion:no-preference){
+  .kdx-vida__g{ animation:kdx-vida-girar var(--kdx-v-giro,14s) linear infinite; }
+  .kdx-vida__s:active .kdx-vida__g{ animation-duration:.5s; }
+  @keyframes kdx-vida-girar{ to{ transform:rotate(360deg); } }
+}
+
+/* Abajo a la derecha, POR ENCIMA del botón NEXT PLATE.
+   Dos correcciones encadenadas, las dos vistas en captura y ninguna en las
+   métricas: abajo a la izquierda chocaba con NEXT PLATE; arriba a la derecha
+   tapaba el título de la obra. Regla de canon: la obra no se sacrifica al
+   layout — el control se corre, la plancha no. */
+.kdx-vida__barra{
+  position:fixed; right:12px; bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  align-items:flex-end; flex-direction:column;
+  display:flex; flex-wrap:wrap; gap:6px; pointer-events:auto; max-width:calc(100vw - 24px);
+}
+.kdx-vida__regla,.kdx-vida__apagar{
+  min-height:44px; padding:0 12px; cursor:pointer;
+  background:rgba(6,6,8,.7); backdrop-filter:blur(6px);
+  border:1px solid rgba(240,237,232,.16);
+  color:rgba(240,237,232,.7);
+  font:9.5px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:.18em;
+  display:inline-flex; align-items:center; white-space:nowrap;
+}
+.kdx-vida__regla{ color:var(--kdx-v-color,#f0ede8); border-color:currentColor; }
+.kdx-vida__regla:hover,.kdx-vida__apagar:hover{ color:#fff; border-color:rgba(240,237,232,.5); }
+
+/* En móvil la barra cede el ancho antes que las señales: la barra es control,
+   las señales son la experiencia. */
+@media (max-width:560px){
+  .kdx-vida__barra{ right:8px; bottom:calc(66px + env(safe-area-inset-bottom,0px));
+    max-width:56vw; }
+  .kdx-vida__regla{ font-size:8.5px; letter-spacing:.1em; max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; }
+}
+/* El lector móvil manda sobre la capa de vida cuando la plancha se fue de la
+   pantalla — eso lo resuelve `[data-fuera]` desde el observador, que funciona
+   aunque el navegador no soporte :has. */
