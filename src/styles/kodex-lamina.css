@@ -389,10 +389,15 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
      `escala.ts`— sólo su opacidad y su encuadre. */
   /* Se ancla por ATRIBUTO y no por clase: `.kdx-lam` es la clase del <body> en
      la mayoría de las planchas, así que anclar por clase movía el body entero.
-     `[data-kdx-tri]` lo pone `triptico.ts` sobre la plancha real. */
+     `[data-kdx-tri]` lo pone `triptico.ts` sobre la plancha real.
+
+     NO SE LE TOCA LA POSICIÓN. La primera versión le puso `left:50%; top:50%`
+     y la obra apareció descentrada abajo a la derecha: `escala.ts` ya la coloca
+     con su propio `transform` y `transform-origin:0 0`, así que sumarle un
+     desplazamiento la corre en vez de centrarla. Se vio en la captura, no en
+     ninguna métrica. Acá sólo se cambia su PRESENCIA —opacidad y desenfoque—,
+     que es lo único que distingue una página de otra. */
   body:has(.kdx-tri) [data-kdx-tri]{
-    position:fixed !important; left:50%; top:50%;
-    margin:0 !important;
     transition:opacity .45s ease, filter .45s ease;
     z-index:0;
   }
@@ -414,10 +419,19 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
      Playwright no lograba pulsar "2 FIELD" y una persona tampoco habría
      podido. La franja de abajo es de los pasos; los saltos entre láminas viven
      arriba, donde el tríptico no pone nada. */
+  /* Los dos enlaces colapsan por igual. Antes sólo colapsaba el de "NEXT" y el
+     de salida quedaba extendido a 170px tapando el título de la propia obra —
+     asimetría visible en la captura que ninguna métrica reportaba. */
   body:has(.kdx-tri) .lam-salida{
     top:calc(10px + env(safe-area-inset-top,0px)) !important;
     bottom:auto !important; left:10px !important;
+    width:44px !important; min-width:44px !important; padding:0 !important;
+    display:inline-flex !important; align-items:center; justify-content:center;
+    overflow:hidden; font-size:0 !important;
   }
+  /* La flecha se repone por CSS: el rótulo completo se pierde de vista pero no
+     del DOM, así que el lector de pantalla lo sigue anunciando entero. */
+  body:has(.kdx-tri) .lam-salida::before{ content:"←"; font-size:14px; }
   body:has(.kdx-tri) .lam-siguiente{
     top:calc(10px + env(safe-area-inset-top,0px)) !important;
     bottom:auto !important; left:auto !important; right:10px !important;
@@ -427,9 +441,15 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
 
   /* El lector viejo se retira: era la miniaturización que la receta prohíbe. */
   .kdx-mov{ display:none !important; }
-  /* Y la capa de vida sólo respira en la página de la obra. */
-  .kdx-tri ~ .kdx-vida .kdx-vida__campo{ display:none; }
-  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida .kdx-vida__campo{ display:block; }
+  /* La capa de vida ENTERA —señales y su barra— sólo respira en la página de la
+     obra. Antes se ocultaba sólo el campo y la barra "RULE · BLOOM" seguía
+     visible en SIGNAL, chocando con la boca del gusano. La regla es la misma
+     idea que las tres páginas: cada una muestra lo suyo y nada más. */
+  body:has(.kdx-tri) .kdx-vida{ opacity:0; pointer-events:none;
+    transition:opacity .35s ease; }
+  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida{ opacity:1; pointer-events:none; }
+  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida__s,
+  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida__barra{ pointer-events:auto; }
 }
 
 .kdx-tri{ display:none; }
@@ -463,7 +483,12 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
     letter-spacing:-.01em; text-wrap:balance;
   }
   .kdx-tri__macro2{ margin:0; font-size:15px; letter-spacing:.14em; color:rgba(240,237,232,.72); }
-  .kdx-tri__rail{ margin-top:auto; display:flex; flex-wrap:wrap; gap:4px 14px; }
+  /* El macro respira arriba y la cabecera se ancla abajo, con el vacío entre
+     medio: la receta pide "strong negative space" y eso es el vacío haciendo
+     trabajo, no un hueco por descuido. */
+  .kdx-tri__p--signal{ justify-content:flex-start; }
+  .kdx-tri__rail{ margin-top:auto; display:flex; flex-wrap:wrap; gap:4px 14px;
+    padding-bottom:8px; }
   .kdx-tri__railt{ margin:0; font-size:10px; letter-spacing:.16em; color:rgba(240,237,232,.5); }
 
   .kdx-tri__p--field{ justify-content:space-between; }
