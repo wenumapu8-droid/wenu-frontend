@@ -115,6 +115,25 @@ export function montarTriptico() {
 
   const zonas: Record<Zona, Bloque[]> = { A: [], B: [], D: [], E: [] };
   for (const b of bloques) zonas[zonaDe(b)].push(b);
+
+  /* ZONE E SE ACOTA A TRES. La receta la define como "persistent but low
+     hierarchy", 3-7% de alto, y enumera lo que le toca: next action, route
+     status, logging state, return path, system-state phrase, chapter marker.
+     Los identificadores de archivo, marcas de tiempo y numeración de serie son
+     ZONE D --"ARCHIVE ID / TIMESTAMP / PROVENANCE / NODE / VERSION"-- aunque
+     estén impresos abajo.
+     
+     Medido: en `null-knot`, siete de sus nueve bloques cayeron en continuidad
+     porque su cromo entero vive en la banda inferior, y la página de evidencia
+     quedó sin un solo dato. La posición sola no distingue un pie de página de
+     un identificador; la cantidad sí, porque una continuidad de siete líneas
+     no es una continuidad. Los que sobran bajan a D, que es donde se pueden
+     inspeccionar. */
+  if (zonas.E.length > 3) {
+    zonas.E.sort((p, q) => q.y - p.y);
+    zonas.D.push(...zonas.E.slice(3));
+    zonas.E = zonas.E.slice(0, 3);
+  }
   /* Y si aun así ninguna califica, la señal macro es el bloque de cuerpo mayor.
      Nunca se inventa un título: se PROMUEVE el que la plancha ya tiene. Si la
      plancha no tuviera texto alguno, el tríptico ni se monta. */
@@ -218,6 +237,32 @@ export function montarTriptico() {
   }, { passive: true });
 
   document.body.append(raiz);
+
+  /* ── EL ARMAZÓN QUEDA ACOTADO A LA PANTALLA ─────────────────────────────
+     `38-GESTURE-TIMELINE-NAVIGATION.txt` §2, límite declarado NO NEGOCIABLE:
+       "This mechanism MUST NOT become a hidden vertical feed."
+       · page shell remains bounded to 100dvh
+       · body-level Y scroll remains disabled
+       · long-form reading uses a deliberate reader/overlay state
+     
+     Medido antes de esto: 692px de scroll de documento en void-orchard, 558 en
+     u03-return, 410 en null-knot. La causa no era el lector viejo sino la
+     plancha misma: `transform:scale()` la achica en pantalla pero su CAJA DE
+     LAYOUT sigue midiendo 1254px, así que estiraba el body por debajo.
+     
+     Sacarla del flujo con `fixed` devuelve el armazón a la pantalla, y la
+     lectura larga pasa a ocurrir DENTRO de la página III —que es exactamente
+     el "deliberate reader/overlay state" que el documento pide— en vez de en
+     el documento. El tríptico se hace cargo del armazón porque es quien lo
+     necesita acotado; nadie más decide por él. */
+  const raizEl = lam as HTMLElement;
+  raizEl.style.position = 'fixed';
+  raizEl.style.top = '0';
+  raizEl.style.left = '0';
+  document.body.style.height = '100dvh';
+  document.body.style.overflow = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+
   ir(0);
 
   /* ── el agujero de gusano ───────────────────────────────────────────────

@@ -37,6 +37,20 @@ const BANDA = 26;
 
 export function montarMovil(): void {
   if (matchMedia(`(min-width:${ANCHO_MOVIL + 1}px)`).matches) return;
+  /* SUPERSEDIDO POR EL TRÍPTICO EN MÓVIL. No se borra —el creador pidió
+     transformar, no borrar, y este lector sigue siendo el respaldo si el
+     tríptico no puede montar— pero se aparta cuando el tríptico va a montar.
+     
+     Medido: los dos corrían a la vez y se peleaban el armazón. Este ponía
+     `body{overflow-y:auto}` para poder desplazar hasta su panel, y pisaba el
+     `overflow:hidden` del tríptico: la página se desplazaba 600px, violando el
+     límite NO NEGOCIABLE de §2 de `38-GESTURE-TIMELINE` ("body-level Y scroll
+     remains disabled", "MUST NOT become a hidden vertical feed").
+     
+     Una regla que no hace nada es peor que ninguna; dos módulos peleando por el
+     mismo armazón, peor todavía. */
+  if (document.querySelector('.kdx-tri') || matchMedia('(max-width:560px)').matches) return;
+
   const lam = raizLamina();
   if (!lam || document.querySelector("[data-kdx-movil]")) return;
 
