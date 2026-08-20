@@ -1,8 +1,14 @@
 /**
  * KDX_PLATE_CONTRACT · v1
  *
- * Una plancha del corredor (un folio) deja de resolverse a ojo por escena y
- * pasa a declarar su anatomía. Antes de esto cada escena se defendía sola en
+ * PLANCHA = cualquier superficie del KODEX que ocupe una pantalla entera: los
+ * seis folios del corredor y las 39 láminas sueltas. Vive en `plancha/` y no
+ * en `folio/` justamente por eso -- el agente que lleva las láminas usa este
+ * mismo vocabulario, y dos anatomías distintas para el mismo sistema serían
+ * dos KODEX otra vez, esta vez a nivel de diseño.
+ *
+ * Una plancha deja de resolverse a ojo por escena y pasa a declarar su
+ * anatomía. Antes de esto cada escena se defendía sola en
  * teléfono: `--descent`, `--machine` y `--archive` tenían cada una su propio
  * grid móvil con `grid-template-areas`, y `--prologue` tenía UNA regla — la
  * opacidad de su imagen. El resultado medido en 390×844: la obra empezaba en
@@ -114,6 +120,19 @@ export const KDX_MOBILE_PROFILE: Record<string, KdxMobileProfile> = {
   },
 };
 
+/**
+ * NOTA PARA LAS PLANCHAS DE TAMAÑO FÍSICO FIJO (las láminas t01…).
+ *
+ * Esas planchas declaran un ancho real -- 1254px, 1672px -- y se llevan al
+ * viewport con un `transform: scale()`. En ese caso `visualRatio` NO se aplica
+ * al viewport sino a la CAJA de la plancha antes de escalar, y `artScale` debe
+ * quedar en 1: multiplicar una escala sobre otra escala es cómo se deforma una
+ * obra sin darse cuenta. `artFit` sigue valiendo igual, porque describe la
+ * relación entre la obra y su región, no entre la región y la pantalla.
+ *
+ * En resumen: el vocabulario es el mismo, el sistema de referencia no. La
+ * plancha fija mide en su propio espacio; el folio mide en el del visitante.
+ */
 export function perfilMovil(slug: string): KdxMobileProfile | null {
   return KDX_MOBILE_PROFILE[slug] ?? null;
 }
