@@ -34,7 +34,10 @@ export const KDX_PLATE_BREAKPOINT = 560;
 
 /** `kdx:folio/prologue`. La superficie va en el id porque una lámina y un
  *  folio pueden compartir slug y no son la misma cosa. */
-export function plateId(slug: string, superficie: 'folio' | 'lamina' = 'folio'): string {
+export function plateId(
+  slug: string,
+  superficie: 'folio' | 'lamina' | 'interlude' = 'folio',
+): string {
   return `kdx:${superficie}/${slug}`;
 }
 
@@ -69,15 +72,6 @@ export type MetadataMode = 'sheet' | 'inline';
 export type ActionMode = 'bottom' | 'inline';
 export type TitleScale = 'large' | 'medium' | 'small';
 export type RenderQuality = 'constrained' | 'full';
-
-/**
- * KDX_MOBILE_PROFILE · la dirección de arte móvil de cada escena.
- *
- * Esto es lo que 07D llama Scene DNA. Sin esto una obra sólo se encoge:
- * `width:100%` y `object-fit` no saben dónde mira la pieza. Con esto cada
- * obra declara su punto focal, su recorte y su escala en mano, y se adapta
- * en vez de achicarse.
- */
 export interface KdxMobileProfile {
   /** Fracción del alto visible que ocupa la obra. */
   visualRatio: number;
@@ -94,25 +88,101 @@ export interface KdxMobileProfile {
 }
 
 /**
- * Sólo PROLOGUE está calibrado. Es deliberado: esta es la prueba acotada que
- * pidió Ocín, y las otras cinco escenas siguen exactamente como estaban hasta
- * que su composición se apruebe. Los folios sin perfil no reciben el contrato
- * — la compuerta no se abre y su CSS legacy manda igual que ayer.
+ * Las seis escenas del corredor, calibradas.
+ *
+ * Folio I corrió primero como prueba acotada y Ocín la aprobó mirándola; recién
+ * entonces se extendió al resto. Las planchas sin perfil siguen sin recibir el
+ * contrato: la compuerta no se abre sin perfil, y eso sigue siendo cierto para
+ * cualquier superficie que se agregue mañana.
  */
 export const KDX_MOBILE_PROFILE: Record<string, KdxMobileProfile> = {
+  /* `contain` es el DEFECTO de esta casa, y es una decisión, no una omisión.
+     `cover` llena la región a costa de recortar, y en el KODEX las obras son
+     piezas cerradas -- mandalas, sellos, especímenes -- que se leen enteras o
+     no se leen. El primer perfil de PROLOGUE decía `cover` con escala 1,18 y
+     dejaba el mandala ovalado; Ocín lo vio de inmediato.
+     Cuando una escena tenga una obra que SÍ quiera sangrar -- una textura, un
+     campo, una fotografía sin borde -- se le pone `cover` a ella sola con su
+     punto focal medido. Eso es lo que este archivo existe para permitir. */
+
   prologue: {
-    /* El mandala es una figura RADIAL y cerrada: se lee entera o no se lee.
-       Con `cover` y escala 1.18 el recuadro le cortaba la corona de arriba y
-       de abajo y la dejaba ovalada -- "achatada", dicho por Ocín, y tenía
-       razón. Una obra circular pide `contain` y escala 1: que respire dentro
-       de su región en vez de llenarla a costa de su forma.
-       Esto es exactamente para lo que existe el perfil: la dirección de arte
-       es POR OBRA. Una fotografía a sangre sí querrá `cover`; ésta no. */
     visualRatio: 0.42,
     artFit: 'contain',
     artPosition: '50% 50%',
     artScale: 1,
-    titleScale: 'large',
+    titleScale: 'large',      // "THE ARCHIVE IS WATCHING." — 24 caracteres
+    chromeDensity: 'compact',
+    metadataMode: 'sheet',
+    actionMode: 'bottom',
+    renderQuality: 'constrained',
+  },
+
+  descent: {
+    /* El panel de estrato trae cuenta, profundidad, título, lectura y botón:
+       es la escena con más texto por debajo de la obra, así que la obra cede. */
+    visualRatio: 0.34,
+    artFit: 'contain',
+    artPosition: '50% 50%',
+    artScale: 1,
+    titleScale: 'small',      // "THE TREE DESCENDS TO HOLD WHAT RISES." — 37
+    chromeDensity: 'compact',
+    metadataMode: 'sheet',
+    actionMode: 'bottom',
+    renderQuality: 'constrained',
+  },
+
+  archive: {
+    /* El dossier del espécimen es una tabla de ocho pares. En teléfono no pelea
+       por los 390px: se lee en el cajón, que para eso ya existía. */
+    visualRatio: 0.34,
+    artFit: 'contain',
+    artPosition: '50% 50%',
+    artScale: 1,
+    titleScale: 'medium',     // "EVERY SIGNAL HAS A GENEALOGY." — 29
+    chromeDensity: 'compact',
+    metadataMode: 'sheet',
+    actionMode: 'bottom',
+    renderQuality: 'constrained',
+  },
+
+  machine: {
+    visualRatio: 0.34,
+    artFit: 'contain',
+    artPosition: '50% 50%',
+    artScale: 1,
+    titleScale: 'medium',     // "THE SYSTEM MAKES FROM MEMORY." — 29
+    chromeDensity: 'compact',
+    metadataMode: 'sheet',
+    actionMode: 'bottom',
+    renderQuality: 'constrained',
+  },
+
+  cosmology: {
+    /* La cartografía viva de COSMOLOGY NO es un elemento aparte: es hija de la
+       figura de la obra. Se llegó a escribir un campo `visualSource:'scene'`
+       para que el mapa "tomara" la región visual, y ocultaba la figura para
+       hacerle lugar -- con lo cual ocultaba también el mapa, que iba adentro.
+       El mapa quedó en 0x0 y la escena sin nada que mirar.
+       No hacía falta ninguna abstracción nueva: hacía falta leer el DOM. */
+    visualRatio: 0.36,
+    artFit: 'contain',
+    artPosition: '50% 50%',
+    artScale: 1,
+    titleScale: 'medium',     // "NOTHING HERE STANDS ALONE." — 26
+    chromeDensity: 'compact',
+    metadataMode: 'sheet',
+    actionMode: 'bottom',
+    renderQuality: 'constrained',
+  },
+
+  return: {
+    /* RETURN cierra con tres salidas -- tienda, encargo, ecosistema -- y las
+       tres tienen que estar a la mano sin scroll. */
+    visualRatio: 0.32,
+    artFit: 'contain',
+    artPosition: '50% 50%',
+    artScale: 1,
+    titleScale: 'small',      // "THE SIGNAL RETURNS. THE PATTERN REMAINS." — 40
     chromeDensity: 'compact',
     metadataMode: 'sheet',
     actionMode: 'bottom',

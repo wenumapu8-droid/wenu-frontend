@@ -1,49 +1,162 @@
 /* ============================================================================
-   KDX_PLATE_CONTRACT · capa de consolidación · v1
+   KDX_PLATE_CONTRACT · v2 · el corredor entero
    ----------------------------------------------------------------------------
-   NADA DE ESTA HOJA SE APLICA sin `[data-kdx-plate-contract][data-kdx-plate]` en la raíz de la
-   escena. Ese atributo lo pone sólo la plancha que declaró perfil en
-   `src/lib/kodex/folio/plate-contract.ts` — hoy únicamente PROLOGUE. Las otras
-   cinco escenas no ven una sola regla de acá y su CSS legacy manda igual que
-   ayer. Esa es la compuerta: no se borró ni se marcó DEPRECATED nada todavía.
+   DOS CAPAS, y la distinción importa:
 
-   Reusa los elementos que ya existen — `kx-os-stage`, `kx-os-stage__art`,
-   `kx-os-stage__copy`, `kx-os-drawer`, `kx-deckbar`, `kx-status`. No introduce
-   un escenario nuevo: declara dónde va cada región y con qué medidas.
+     [data-kdx-shell]           el cromo compartido -- barra superior,
+                                navegación inferior, atajos, blancos táctiles.
+                                Lo firma CUALQUIER superficie del KODEX,
+                                incluidos el umbral y los interludios, que
+                                tienen composición propia y no la comparten.
+                                Se llama SHELL y no `plate-chrome` porque el
+                                umbral y los interludios NO son planchas, y un
+                                nombre que miente confunde al que venga.
 
-   Las variables las emite `plateVars()` en el atributo `style` de la escena.
+     [data-kdx-plate-contract]  la anatomía de la escena -- obra, texto,
+                                acciones, profundidad. Sólo la firman las
+                                planchas con `kx-os-stage` Y perfil declarado
+                                en src/lib/kodex/plancha/plate-contract.ts.
 
-   POR QUÉ EL SELECTOR LLEVA DOS ATRIBUTOS
-   Porque el orden no alcanza. Esta hoja se importa después de `kodex.css` en
-   la página, pero el empaquetador la ubica ANTES en el bundle, así que a igual
-   especificidad pierde. Medido en el navegador recorriendo `document.
-   styleSheets`: `.kx--deck .kx-slide__in` -- 0,2,0, igual que
-   `[data-kdx-plate-contract] .kx-os-stage` -- ganaba por venir después, y el
-   escenario se quedaba con `padding-left:0`. El texto salía pegado al borde.
-   Lo mismo con el eje: su regla de componente `.kdx-eje[data-astro-cid-…]`
-   también es 0,2,0 y seguía visible pese al `display:none` del contrato.
-   Con los dos atributos el contrato es 0,3,0 y gana por especificidad, que es
-   lo único que no depende de cómo quede armado el bundle.
+   Sin esos atributos esta hoja no hace absolutamente nada. Ninguna regla
+   legacy fue borrada ni marcada DEPRECATED: quedan detrás de la compuerta.
+
+   POR QUÉ LOS SELECTORES LLEVAN DOS ATRIBUTOS
+   Porque el orden no alcanza. Esta hoja se importa después de `kodex.css`
+   pero el empaquetador la ubica ANTES en el bundle, y a igual especificidad
+   gana la última del bundle, no la última del import. Medido recorriendo
+   `document.styleSheets`: `.kx--deck .kx-slide__in` es 0,2,0 igual que
+   `[data-kdx-plate-contract] .kx-os-stage`, y ganaba por venir después --
+   el escenario se quedaba con `padding-left:0` y el texto pegado al borde.
+   Los estilos de componente de Astro tienen el mismo peso:
+   `.kdx-eje[data-astro-cid-…]` también es 0,2,0. Con dos atributos el
+   contrato es 0,3,0 y gana por especificidad, que es lo único que no depende
+   de cómo quede armado el bundle.
    ========================================================================== */
 
-/* ---------------------------------------------------------------------------
-   0 · LO QUE EL CONTRATO RETIRA EN TODO TAMAÑO
-   ---------------------------------------------------------------------------
-   La barra de atajos `⌘K COMMANDS · 0-6 SCENE · T MODE` ocupaba una franja
-   entera del borde inferior en las cinco medidas, y en teléfono además tapaba
-   la navegación del corredor. Ocín, mirándolo: "aparecen los comandos abajo,
-   siento que usan mucho espacio".
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAPA 1 · CROMO — vale para toda superficie del KODEX
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* La barra de atajos `⌘K COMMANDS · 0-6 SCENE · T MODE` ocupaba una franja del
+   borde inferior en las cinco medidas, y en teléfono además se dibujaba ENCIMA
+   de la navegación del corredor: medido, "‹ PREVIOUS" contra "⌘K" al 100% de
+   área compartida. No se veía PREVIOUS, ni 01/07, ni DESCEND, ni INDEX.
+   Ocín: "aparecen los comandos abajo, siento que usan mucho espacio".
 
    Se retira la BARRA, no la función: la paleta sigue abriéndose con ⌘K y con
-   el botón de índice. Lo que se va es el cartel que anuncia atajos de teclado
+   el botón INDEX. Lo que se va es el cartel que anuncia atajos de teclado
    ocupando espacio de obra. Un instrumento no rotula sus propias teclas.
 
    El código de barras se va por otra razón, medida: en desktop se superponía
-   con los rótulos del eje abajo a la izquierda -- 47% de área compartida --
-   y su contenido ya está en el dossier y en el rail de la obra.
-   ------------------------------------------------------------------------- */
-[data-kdx-plate-contract][data-kdx-plate] .kdx-os__hint,
-[data-kdx-plate-contract][data-kdx-plate] .kx-os-barcode { display: none; }
+   con los rótulos del eje abajo a la izquierda -- 47% -- y su contenido ya
+   está en el dossier y en el rail de la obra. */
+[data-kdx-shell][data-kdx-plate] .kdx-os__hint,
+[data-kdx-shell][data-kdx-plate] .kx-os-barcode { display: none; }
+
+/* La navegación del corredor es el ancla del sistema: va sobre todo lo demás
+   salvo la paleta de comandos, que es la única superficie que debe ganarle a
+   un modal. */
+[data-kdx-shell][data-kdx-plate] .kx-deckbar { z-index: 160; }
+
+/* Blancos táctiles: en teléfono Y en landscape corto, que también es un
+   teléfono aunque mida 844 de ancho. Estaba sólo en `max-width:560px` y por eso
+   en horizontal seguían apareciendo controles de 20 y 17px de alto -- lo
+   encontró el barrido del agente de las láminas, no el mío: mi detector medía
+   superposición y no alcanzabilidad. Son dos preguntas distintas y hacen falta
+   las dos. */
+@media (max-width: 560px), (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-shell][data-kdx-plate] .kx-sound,
+  [data-kdx-shell][data-kdx-plate] .kx-signal,
+  [data-kdx-shell][data-kdx-plate] .kx-status__index,
+  [data-kdx-shell][data-kdx-plate] .kx-deckbar button,
+  [data-kdx-shell][data-kdx-plate] .kx-deckbar__index,
+  [data-kdx-shell][data-kdx-plate] .kx-word,
+  [data-kdx-shell][data-kdx-plate] .kx-os-primary,
+  [data-kdx-shell][data-kdx-plate] .kx-os-ghost {
+    min-height: var(--kdx-plate-tap, 44px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  [data-kdx-shell][data-kdx-plate] .kx-sound,
+  [data-kdx-shell][data-kdx-plate] .kx-signal,
+  [data-kdx-shell][data-kdx-plate] .kx-status__index,
+  [data-kdx-shell][data-kdx-plate] .kx-deckbar button,
+  [data-kdx-shell][data-kdx-plate] .kx-deckbar__index { min-width: var(--kdx-plate-tap, 44px); }
+
+  [data-kdx-shell][data-kdx-plate] .kx-status {
+    min-height: var(--kdx-plate-chrome, 48px);
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Misma altura y misma posición en toda escena que firme el contrato: la
+     barra inferior no se mueve entre pantallas. Eso es lo que la vuelve un
+     ancla y no un adorno. */
+  [data-kdx-shell][data-kdx-plate] .kx-deckbar {
+    height: var(--kdx-plate-nav, 56px);
+    bottom: env(safe-area-inset-bottom);
+    width: calc(100vw - 2 * var(--kdx-plate-inline, 18px));
+    box-sizing: border-box;
+  }
+
+  /* Nada de texto por debajo del mínimo legible en mano. */
+  [data-kdx-shell][data-kdx-plate] .kx-astro,
+  [data-kdx-shell][data-kdx-plate] .kx-readout,
+  [data-kdx-shell][data-kdx-plate] .kx-deckbar__count {
+    font-size: max(var(--kdx-plate-type-min, 11px), 10px);
+  }
+
+  /* El marco silencioso de los interludios ancla su rail y su comando al pie,
+     y ahí es exactamente donde vive la navegación del corredor. Medido en
+     390x844: el rail en y=809-822 y el comando en 762-798, contra la barra en
+     794-838. "‹ PREVIOUS" sobre "STATUS / PARTIAL" al 96%.
+     El interludio no firma el contrato de escena -- su composición es suya --
+     pero sí comparte la barra, así que el cromo le reserva la franja. */
+  [data-kdx-shell][data-kdx-plate] .kdx-qf {
+    padding-bottom: calc(var(--kdx-plate-nav, 56px) + 70px + env(safe-area-inset-bottom));
+  }
+  /* El relleno no alcanzaba: el rail y el comando están ANCLADOS al pie del
+     marco, no en su flujo, así que agrandar el relleno no los movía ni un
+     píxel. Medido después de aplicarlo -- padding-bottom computado 126px y el
+     rail seguía clavado en y=809. Hay que moverlos por donde están sujetos. */
+  /* Los dos están anclados al pie, así que subirlos con el MISMO valor los
+     hacía chocar entre ellos -- "ORIGIN / R2 ARCHIVE" contra "ENTER MACHINE"
+     al 62%. Se apilan: el rail abajo, el comando encima. */
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__rail {
+    bottom: calc(var(--kdx-plate-nav, 56px) + 22px + env(safe-area-inset-bottom));
+  }
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__command {
+    bottom: calc(var(--kdx-plate-nav, 56px) + 22px + env(safe-area-inset-bottom));
+  }
+
+  /* El cajón entra desde abajo, que es de donde entra un sheet. */
+  [data-kdx-shell][data-kdx-plate] .kx-os-drawer { place-items: end stretch; }
+  [data-kdx-shell][data-kdx-plate] .kx-os-drawer__panel {
+    width: 100vw;
+    max-height: 88svh;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    border-left: 0;
+    border-top: 1px solid var(--kdx-line, rgba(230, 230, 230, .18));
+  }
+  [data-kdx-shell][data-kdx-plate] .kx-os-drawer__close {
+    min-height: var(--kdx-plate-tap, 44px);
+    min-width: var(--kdx-plate-tap, 44px);
+  }
+}
+
+/* El comando se apila SOBRE el rail sólo en vertical. En horizontal la
+   pantalla tiene 390px de alto y separarlos 74px empuja el comando contra el
+   contenido de la escena: medido, el arreglo de vertical creaba un choque
+   nuevo en horizontal. Cada orientación tiene su propio presupuesto de alto. */
+@media (max-width: 560px) and (orientation: portrait) {
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__command {
+    bottom: calc(var(--kdx-plate-nav, 56px) + 74px + env(safe-area-inset-bottom));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CAPA 2 · ESCENA — sólo planchas con `kx-os-stage` y perfil declarado
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 /* El disparador del dossier nace oculto ACÁ y no con un `style` en el markup:
    un estilo en línea le gana a cualquier hoja, así que el botón no reaparecía
@@ -51,28 +164,24 @@
 [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: none; }
 
 /* ---------------------------------------------------------------------------
-   1 · TELÉFONO — la anatomía base de 07D
-   chrome 44–52px · obra ~34–44svh · copy · nav 52–64px
+   2.1 · TELÉFONO — la anatomía base
+   cromo 44–52px · obra 32–42svh · texto · navegación 52–64px
    ------------------------------------------------------------------------- */
 @media (max-width: 560px) {
 
-  /* El escenario deja de ser "una fila que crece" y pasa a ser dos regiones
-     de alto acotado. Antes, con `align-content:center` y la obra en `order:2`,
-     la columna de texto empujaba la obra fuera del alto visible y el
-     `overflow:hidden` del escenario la recortaba: medido en 390×844, la obra
-     empezaba en y=764 y sólo se veían 80px de 244. */
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage {
     display: grid;
     grid-template-columns: 1fr;
     grid-template-areas: 'art' 'copy';
-    /* La obra toma el espacio sobrante hasta su tope; el texto toma lo que
-       necesita. Al revés -- obra fija en 40svh y texto en 1fr -- el bloque de
-       texto medía 361px dentro de una fila de 269 y, con `align-self:end`, se
-       desbordaba HACIA ARRIBA: el título "THE ARCHIVE" quedaba cortado detrás
-       de la obra. Medido, no supuesto. */
+    /* La obra toma el sobrante hasta su tope; el texto toma lo que necesita.
+       Al revés -- obra fija y texto en 1fr -- el bloque de texto medía 361px
+       dentro de una fila de 269 y, con `align-self:end`, se desbordaba HACIA
+       ARRIBA: el título quedaba cortado detrás de la obra. Medido. */
     grid-template-rows: minmax(0, 1fr) auto;
+    /* Cualquier hijo que no reclame región cae en una fila implícita y rompe
+       el contrato en silencio. Le pasó al eje. Que no la haya. */
+    grid-auto-rows: 0;
     align-content: stretch;
-    align-items: stretch;
     gap: var(--kdx-plate-gap, 14px);
     box-sizing: border-box;
     height: 100svh;
@@ -89,7 +198,6 @@
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art {
     grid-area: art;
     align-self: end;
-    order: 0;
     position: relative;
     width: 100%;
     height: 100%;
@@ -100,44 +208,38 @@
     overflow: hidden;
   }
 
-  /* Dirección de arte, no `width:100%`. El punto focal, el recorte y la escala
-     los declara la escena en su perfil: la obra se adapta en vez de encogerse. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > img,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > canvas,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > picture > img {
+  /* TODO hijo de la figura cubre la región, no sólo los que uno recuerde.
+     Las escenas meten cosas distintas ahí -- imagen, canvas de la máquina,
+     lector ASCII, capa CRT, el museo de ARCHIVE, el artefacto de COSMOLOGY --
+     y enumerarlos uno por uno es cómo se olvida el sexto. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > *:not(.kx-corner):not(figcaption) {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    max-width: none;
     max-height: none;
-    object-fit: var(--kdx-art-fit, cover);
+    margin: 0;
+  }
+
+  /* Dirección de arte, no `width:100%`. El punto focal, el recorte y la escala
+     los declara la escena en su perfil. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art img,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art canvas {
+    object-fit: var(--kdx-art-fit, contain);
     object-position: var(--kdx-art-position, 50% 50%);
     transform: scale(var(--kdx-art-scale, 1));
     transform-origin: var(--kdx-art-position, 50% 50%);
   }
 
-  /* Las capas generadas (CRT, ASCII, campo) cubren la región de la obra y no
-     el escenario entero: dejaron de pintar por debajo de la columna de texto. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > .kx-crt-mount,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > .kdx-ascii,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > .kdx-effect-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
   /* El pie de la obra y el rail son procedencia: pertenecen al dossier, no a
-     los 390px. No se borran — se leen en el drawer. */
+     los 390px. No se borran -- se leen en el cajón. */
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > figcaption,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__rail-top {
-    display: none;
-  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__rail-top { display: none; }
 
   /* --- el texto ---------------------------------------------------------- */
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy {
     grid-area: copy;
-    order: 0;
     align-self: end;
     justify-self: stretch;
     max-width: none;
@@ -145,9 +247,8 @@
     display: flex;
     flex-direction: column;
     /* `align-self:end` acomoda la CAJA contra el borde de su fila, pero la caja
-       llena la fila entera y el contenido se quedaba arriba: entre el último
-       botón y la navegación quedaba un hueco muerto de casi 100px. El que
-       empuja el contenido dentro de la caja es este. */
+       llena la fila y el contenido se quedaba arriba: entre el último botón y
+       la navegación quedaba un hueco muerto de casi 100px. */
     justify-content: flex-end;
     gap: 10px;
     /* Sin `overflow:hidden`. Recortar texto para que "quepa" es esconder el
@@ -155,6 +256,11 @@
     overflow: visible;
     min-height: 0;
   }
+
+  /* Ninguna pieza del bloque CRECE. La caja de acciones se estiraba a 192px
+     contra los 96 de sus dos filas de botones, y al estirarse estiraba también
+     los botones. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy > * { flex: 0 0 auto; }
 
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__kicker {
     margin: 0;
@@ -166,7 +272,12 @@
     margin: 0;
     font-size: var(--kdx-title-size, clamp(2.4rem, 11.5vw, 3.6rem));
     line-height: .92;
-    max-width: 12ch;
+    max-width: 14ch;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy h2 {
+    margin: 0;
+    font-size: clamp(1.3rem, 6.4vw, 1.9rem);
+    line-height: 1;
   }
 
   [data-kdx-plate-contract][data-kdx-plate] .kx-protocol-lines {
@@ -181,30 +292,57 @@
     letter-spacing: .12em;
   }
 
-  /* --- las acciones: disponibles de inmediato, nunca bajo el pliegue ------ */
-  /* Ninguna pieza del bloque de texto CRECE. Medido: la caja de acciones se
-     estiraba a 192px -- contra los 96 que ocupan sus dos filas de botones --
-     y al estirarse estiraba también los botones, dejando un hueco muerto de
-     más de 100px entre el último botón y el pie de la escena. El bloque debe
-     medir lo que mide su contenido y apoyarse abajo; nada más. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy > * { flex: 0 0 auto; }
+  /* --- los paneles propios de cada escena --------------------------------
+     Cada folio mete en la columna de texto un panel distinto: el estrato de
+     DESCENT, el dossier de ARCHIVE, la consola de MACHINE, el nodo de
+     COSMOLOGY, las salidas de RETURN. El contrato no los rediseña: los trata
+     a todos como bloque de texto y les impone la misma disciplina. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-descent-panel,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-specimen-readout,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-machine-readout,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-cosmo-readout,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-return-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    max-width: none;
+    background: none;
+    border: 0;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-descent-panel > p,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-cosmo-readout > p,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-return-actions > p {
+    margin: 0;
+    font-size: max(var(--kdx-plate-type-min, 11px), .68rem);
+    line-height: 1.35;
+  }
 
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions {
+  /* Las tablas clave/valor son densidad de escritorio. En teléfono se leen en
+     el cajón -- cada escena ya tiene su botón que lo abre -- y no compiten por
+     los 390px. Nada se pierde: se cambia de lugar. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-specimen-readout dl,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-machine-readout dl { display: none; }
+
+  /* --- las acciones: disponibles de inmediato, nunca bajo el pliegue ------ */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-return-actions {
     display: flex;
     flex-wrap: wrap;
     align-content: flex-end;
     gap: 8px;
     margin: 2px 0 0;
-    /* 96px de relleno inferior heredados de la hoja vieja. Eran el hueco
-       muerto entero: el contenido mide 96 y la caja medía 192. En el layout
-       antiguo ese relleno separaba del pie flotante; con el contrato el pie
-       ya tiene su lugar reservado y el relleno sólo empuja al vacío. */
+    /* 96px de relleno inferior heredados de la hoja vieja: eran el hueco
+       muerto entero. En el layout antiguo separaban del pie flotante; con el
+       contrato el pie ya tiene lugar reservado y el relleno empuja al vacío. */
     padding: 0;
   }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-primary,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost {
-    /* Alto FIJO, no mínimo: con `min-height` el botón se estira hasta llenar
-       la fila del contenedor y deja de ser un botón para volverse una franja. */
+    /* Alto FIJO, no mínimo: con `min-height` el botón se estira hasta llenar la
+       fila y deja de ser un botón para volverse una franja. */
     height: var(--kdx-plate-tap, 44px);
     min-height: var(--kdx-plate-tap, 44px);
     display: inline-flex;
@@ -212,101 +350,47 @@
     justify-content: center;
     padding: 0 14px;
     font-size: max(var(--kdx-plate-type-min, 11px), .62rem);
+    text-align: center;
   }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-primary { flex: 0 0 100%; }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost   { flex: 0 1 calc(50% - 4px); }
 
-  /* --- lo secundario se va al drawer, no desaparece del sistema ----------- */
+  /* COSMOLOGY trae un mapa vivo con sus portales. Medido: su caja mide 302px
+     y su contenido 1167 -- se derramaba sobre la navegación y sobre el pie de
+     la escena. No se oculta, porque ESE mapa es la escena: se le devuelve el
+     desborde a su propia caja y se recorre dentro de ella. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* La cartografía de COSMOLOGY es HIJA de la figura de la obra, no un bloque
+     hermano: la regla de arriba ya la estira sobre la región visual. Lo único
+     que le faltaba era que su propio contenido -- 1167px medidos dentro de una
+     caja de 302 -- se quedara adentro en vez de derramarse sobre el texto y la
+     navegación. Sus etiquetas SVG caían al 100% encima del párrafo de dominio.
+     Se recorre dentro de su caja: el mapa ES el contenido de esa escena y
+     mandarlo al cajón sería la escena sin escena. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* --- lo secundario se va al cajón, no desaparece del sistema ----------- */
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__eje,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__tira,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__strip,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__rail,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-barcode {
-    display: none;
-  }
-  /* El disparador del dossier sólo existe en teléfono: en desktop esos datos
-     están a la vista y un botón para abrirlos sería ruido. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__rail { display: none; }
+
   [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: inline-flex; }
-
-  /* --- cromo: tocable de verdad ------------------------------------------ */
-  /* Medido antes del contrato: SOUND y SIGNAL eran de 28×28 y el índice de
-     29.6px de alto. Por debajo de 44 no es un blanco, es una apuesta. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-status {
-    min-height: var(--kdx-plate-chrome, 48px);
-    padding-top: env(safe-area-inset-top);
-  }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-sound,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-signal,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-status__index,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar button,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar__index {
-    min-height: var(--kdx-plate-tap, 44px);
-    min-width: var(--kdx-plate-tap, 44px);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-word { min-height: var(--kdx-plate-tap, 44px); display: inline-flex; align-items: center; }
-
-  /* ---------------------------------------------------------------------
-     EL BORDE INFERIOR, ORDENADO
-     ---------------------------------------------------------------------
-     Medido en 390x844 antes de esto, había tres muebles fijos peleando el
-     mismo borde y uno tapaba a otro:
-
-       kdx-boca      y 738-786   z 8     (el disparador del descenso)
-       kdx-os__hint  y 781-844   z 150   (los atajos de teclado)
-       kx-deckbar    y 788-844   z 57    (la navegación del corredor)
-
-     La barra de atajos le ganaba en z a la navegación y la escondía entera:
-     en teléfono no se veía ni PREVIOUS, ni 01/07, ni NEXT, ni INDEX. La
-     captura lo mostró; ninguna métrica lo detectó.
-
-     Se ordena, no se borra. La navegación es el ancla del sistema y va
-     arriba de todo; el disparador del descenso queda por encima de ella; y
-     los atajos de teclado se retiran donde no hay teclado -- que es
-     exactamente "no desktop reducido". Siguen ahí en desktop, intactos.
-     -------------------------------------------------------------------- */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar {
-    height: var(--kdx-plate-nav, 56px);
-    bottom: env(safe-area-inset-bottom);
-    width: calc(100vw - 2 * var(--kdx-plate-inline, 18px));
-    box-sizing: border-box;
-    z-index: 160;
-  }
-
-  /* (la barra de atajos se retira para todos los tamaños, ver más abajo) */
-
-  /* El disparador del descenso (`kdx-boca`, del otro agente) ya cae por encima
-     de la navegación por su cuenta -- y=738-786 contra y=788-844 -- así que no
-     se le toca nada. Lo único que hacía falta era que la navegación dejara de
-     estar sepultada. El contrato le RESERVA el alto con `--kdx-plate-nav-extra`
-     para que el texto de la escena tampoco se le meta debajo. */
-
-  /* Nada de texto por debajo del mínimo legible en mano. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-astro,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-readout,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar__count {
-    font-size: max(var(--kdx-plate-type-min, 11px), 10px);
-  }
-
-  /* El drawer como sheet: entra desde abajo, que es de donde entra un sheet. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-drawer { place-items: end stretch; }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-drawer__panel {
-    width: 100vw;
-    max-height: 88svh;
-    padding-bottom: calc(24px + env(safe-area-inset-bottom));
-    border-left: 0;
-    border-top: 1px solid var(--kdx-line, rgba(230, 230, 230, .18));
-  }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-drawer__close {
-    min-height: var(--kdx-plate-tap, 44px);
-    min-width: var(--kdx-plate-tap, 44px);
-  }
 }
 
 /* ---------------------------------------------------------------------------
-   2 · LANDSCAPE CORTO — el caso que nadie mira y donde todo se cae
+   2.2 · LANDSCAPE CORTO — el caso que nadie mira y donde todo se caía
    Medido antes del contrato en 844×390: el CTA quedaba en y=559 de 390px de
    alto. El botón primario de la escena estaba fuera de la pantalla.
    ------------------------------------------------------------------------- */
@@ -316,6 +400,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas: 'art copy';
     grid-template-rows: minmax(0, 1fr);
+    grid-auto-rows: 0;
     align-items: stretch;
     gap: 14px;
     height: 100svh;
@@ -325,49 +410,87 @@
     padding:
       calc(var(--kdx-plate-chrome, 48px) + env(safe-area-inset-top) + 4px)
       calc(16px + env(safe-area-inset-right))
-      calc(var(--kdx-plate-nav, 56px) + env(safe-area-inset-bottom) + 4px)
+      /* En vertical la reserva es nav + 56. Acá NO: 112px sobre 390 de alto es
+         casi un tercio de la pantalla, y al apretar el texto lo hacía
+         desbordar HACIA ARRIBA contra la barra de estado -- medido, el rótulo
+         de DESCENT terminaba en y=12 debajo de "SOUND · OFF". En horizontal
+         alcanza con despejar la boca del descenso. */
+      calc(var(--kdx-plate-nav, 56px) + 26px + env(safe-area-inset-bottom))
       calc(16px + env(safe-area-inset-left));
   }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art  { grid-area: art;  width: 100%; height: 100%; max-height: none; margin: 0; aspect-ratio: auto; overflow: hidden; position: relative; }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > img,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > canvas {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: var(--kdx-art-fit, cover); object-position: var(--kdx-art-position, 50% 50%);
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art {
+    grid-area: art; width: 100%; height: 100%; max-height: none; margin: 0;
+    aspect-ratio: auto; overflow: hidden; position: relative;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > *:not(.kx-corner):not(figcaption) {
+    position: absolute; inset: 0; width: 100%; height: 100%; max-height: none; margin: 0;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art img,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art canvas {
+    object-fit: var(--kdx-art-fit, contain);
+    object-position: var(--kdx-art-position, 50% 50%);
   }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy {
-    grid-area: copy; align-self: center; max-width: none;
-    display: flex; flex-direction: column; gap: 8px; overflow: hidden;
+    grid-area: copy; align-self: center; max-width: none; min-width: 0;
+    display: flex; flex-direction: column; justify-content: center; gap: 8px; overflow: visible;
   }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy h1 { font-size: clamp(1.4rem, 4.4vh, 2.2rem); line-height: .95; margin: 0; max-width: 16ch; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy > * { flex: 0 0 auto; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy h1 {
+    font-size: clamp(1.3rem, 4.2vh, 2rem); line-height: .95; margin: 0; max-width: 20ch;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy h2 { font-size: clamp(1rem, 3.2vh, 1.4rem); margin: 0; }
+  /* El rótulo de escena y el HUD de coordenadas dicen LO MISMO -- "01 / 07
+     PROLOGUE" contra "PROLOGUE · OBSERVATION PROTOCOL" -- y en horizontal
+     caen uno encima del otro: 100% de área compartida, medido. En una franja
+     de 390px de alto no caben dos rótulos de la misma cosa. Se queda el HUD,
+     que es del sistema y está en todas las escenas; el de la escena se retira
+     acá y sigue intacto en vertical y en escritorio. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__kicker,
+  [data-kdx-plate-contract][data-kdx-plate] .kdx-tt__op { display: none; }
+
   [data-kdx-plate-contract][data-kdx-plate] .kx-protocol-lines { display: none; }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions { margin: 0; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-specimen-readout dl,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-machine-readout dl { display: none; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-descent-panel,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-specimen-readout,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-machine-readout,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-cosmo-readout,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-return-actions {
+    display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0;
+    background: none; border: 0; max-width: none;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-return-actions {
+    display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0;
+  }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-primary,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost { min-height: 40px; font-size: 10px; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost {
+    height: var(--kdx-plate-tap, 44px); min-height: var(--kdx-plate-tap, 44px);
+    font-size: 10px; padding: 0 12px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__eje,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__tira,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__strip,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-barcode,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__rail,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > figcaption { display: none; }
   [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: inline-flex; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo {
+    overflow: auto; overscroll-behavior: contain;
+  }
 }
 
 /* ---------------------------------------------------------------------------
-   3 · DESKTOP — el mismo contrato, tres columnas
+   2.3 · DESKTOP — el mismo contrato, tres columnas
    ---------------------------------------------------------------------------
-   Esto NO era un problema de tamaños. Medido en 1440x900: el bloque de texto
+   Esto NO era un problema de tamaños. Medido en 1440×900: el bloque de texto
    medía 173px de ancho con el título en 86,4px. El título entraba a razón de
    cuatro letras por línea, se desbordaba 300px hacia abajo y la obra le pasaba
-   por encima. El CTA terminaba en y=869 de una ventana de 900, es decir fuera.
+   por encima. El CTA terminaba en y=869 de una ventana de 900.
 
    La causa: el escenario declara tres columnas pero NINGÚN hijo declara en
-   cuál va. Con auto-placement el texto caía en la primera columna -- la del
-   rail, `minmax(92px,12vw)` = 173px -- y la obra en la segunda. Nunca fue una
-   decisión; fue el orden del markup.
-
-   El contrato le pone nombre a cada región. Mismos elementos, mismas tres
-   columnas, ahora deliberadas: el texto manda, la obra acompaña, y la densidad
-   -- eje, tira, banda de datos -- se agrupa en su propia columna en vez de
-   competir por la del título.
+   cuál va. Con auto-placement el texto caía en la primera -- la del rail,
+   `minmax(92px,12vw)` = 173px. Nunca fue una decisión; fue el orden del markup.
    ------------------------------------------------------------------------- */
 @media (min-width: 901px) {
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage {
@@ -377,10 +500,9 @@
       minmax(230px, 0.62fr);
     grid-template-rows: auto minmax(0, 1fr) auto;
     /* El eje ocupa las dos primeras columnas y NO la tercera. Medido: cuando
-       cruzaba las tres, su rótulo derecho -- "+∞ · EXPANSIÓN · una forma,
-       muchas manifestaciones" -- caía debajo del HUD de coordenadas, que es
-       fijo en esa esquina: 100% de superposición en "01 / 07" sobre "+∞".
-       Dejarle la columna libre al HUD resuelve el choque sin mover ninguno de
+       cruzaba las tres, su rótulo derecho caía debajo del HUD de coordenadas,
+       que es fijo en esa esquina -- 100% de superposición entre "01 / 07" y
+       "+∞". Dejarle la columna libre resuelve el choque sin mover ninguno de
        los dos de donde el diseño los quiere. */
     grid-template-areas:
       'tira tira meta'
@@ -401,28 +523,45 @@
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__tira  { grid-area: tira; align-self: start; }
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__eje   { grid-area: eje;  align-self: end; }
 
-  /* El título deja de desbordar porque ahora tiene columna propia y un tope
-     que se mide en su columna, no en la ventana. */
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__copy h1 {
-    font-size: clamp(2.4rem, 4.4vw, 4.6rem);
+    font-size: clamp(2.2rem, 4.2vw, 4.4rem);
     line-height: .92;
-    max-width: 13ch;
+    max-width: 15ch;
     margin: 0;
   }
-  /* (el defecto de alto del eje se corrigió en KodexEje.astro, de raíz: el
-     parche que estaba acá servía sólo a PROLOGUE y el problema era de todas
-     las escenas que muestran la nota del eje) */
-
   [data-kdx-plate-contract][data-kdx-plate] .kx-protocol-lines { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 14px 0 0; }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions { margin-top: clamp(14px, 2.2vh, 26px); display: flex; flex-wrap: wrap; gap: 10px; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-return-actions { margin-top: clamp(14px, 2.2vh, 26px); display: flex; flex-wrap: wrap; gap: 10px; }
   [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: none; }
 }
 
 /* ---------------------------------------------------------------------------
-   4 · MOVIMIENTO REDUCIDO — el contrato no depende de la animación
+   2.4 · ESCRITORIO — las dos esquinas que el HUD reclama
+   ---------------------------------------------------------------------------
+   El HUD de coordenadas es fijo abajo a la derecha y está en TODAS las
+   escenas. Cualquier cosa que cruce el ancho completo del pie termina debajo
+   de él. Ya pasó con el eje en las planchas; pasa igual con el rail del marco
+   silencioso -- "+89°" sobre "STATUS / PARTIAL" al 54% -- y con la cartografía
+   de COSMOLOGY, cuyas etiquetas caían bajo la barra de navegación.
+   No se mueve el HUD: se le deja su esquina.
+   ------------------------------------------------------------------------- */
+@media (min-width: 901px) {
+  /* NO se pone `padding-right` en el rail: en escritorio ese rail no es una
+     barra inferior sino una COLUMNA vertical pegada al borde derecho -- medido,
+     16px de ancho por 128 de alto en x=1381. El relleno horizontal no lo mueve.
+     Su choque con el HUD de coordenadas en esa esquina queda SIN RESOLVER y
+     anotado, en vez de dejar puesta una regla que no hace nada. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo {
+    padding-bottom: calc(var(--kdx-plate-nav, 56px) + 18px);
+    box-sizing: border-box;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   3 · MOVIMIENTO REDUCIDO — el contrato no depende de la animación
    ------------------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > img,
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art > canvas { transform: none; }
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-drawer { transition: none; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art img,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art canvas { transform: none; }
+  [data-kdx-shell][data-kdx-plate] .kx-os-drawer { transition: none; }
 }
