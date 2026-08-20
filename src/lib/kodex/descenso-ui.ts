@@ -1,0 +1,260 @@
+/**
+ * KODEX−∞ · DESCENSO (comportamiento) — el motor de ruta encarnado
+ *
+ * `ruta.ts` decide. Esto lo pone en pantalla, escribe la memoria y respeta el
+ * botón Atrás. Separados a propósito: la decisión se puede medir sin navegador
+ * (`scripts/kodex/probar-ruta.mjs`), y la pantalla se puede cambiar sin tocar
+ * la decisión.
+ *
+ * §8 del documento: cada descenso es una entrada real del historial. §18: la
+ * orientación es mínima y siempre visible, el mapa completo sólo a pedido.
+ */
+import { bifurcar, firmaDeRuta, PROFUNDIDAD_CORAZON, type Corpus, type Puerta, type Viaje } from './ruta';
+import { recordar, derivados } from './memoria';
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+
+const GLIFO: Record<string, string> = { HILO: '⌁', PUENTE: '⌖', HALLAZGO: '✳' };
+const COLOR: Record<string, string> = { HILO: '#e8b4bc', PUENTE: '#8ba0c9', HALLAZGO: '#c9a84c' };
+const DICE: Record<string, string> = {
+  HILO: 'FOLLOW THE THREAD',
+  PUENTE: 'CROSS THE FIELD',
+  HALLAZGO: 'THE UNREAD ARCHIVE',
+};
+
+let corpus: Corpus | null = null;
+let cargando: Promise<Corpus> | null = null;
+
+/** El corpus baja UNA vez y sólo cuando alguien decide descender — §11: el
+    costo escala con la atención actual, no con el tamaño del archivo. */
+function traerCorpus(): Promise<Corpus> {
+  if (corpus) return Promise.resolve(corpus);
+  cargando ||= fetch('/kodex-content/ramas.json')
+    .then((r) => r.json())
+    .then((j) => (corpus = { nodos: j.nodos, vecinos: j.vecinos, indice: j.indice }));
+  return cargando;
+}
+
+export function montarDescenso() {
+  const placa = document.getElementById('kdx-descenso');
+  const boca = document.querySelector<HTMLButtonElement>('[data-kdx-abrir-descenso]');
+  if (!placa || !boca) return;
+
+  const escena = placa.getAttribute('data-escena') || 'i';
+  const $ = <T extends Element>(s: string) => placa.querySelector<T>(s)!;
+  const lista = $<HTMLUListElement>('[data-kdx-puertas]');
+  const espiral = $<HTMLCanvasElement>('.kdx-desc__espiral');
+
+  /* El estado del viaje vive acá y sólo acá. `memoria.ts` guarda el hecho de
+     haber pasado; la ruta en curso es efímera a propósito — un descenso es una
+     bajada, no un documento. */
+  let v: Viaje = {
+    escena, profundidad: 0, aqui: null, visitados: [],
+    firma: 0, memoria: { archiveDepth: 0, routeDiversity: 0, returnCount: 0 },
+  };
+
+  const refrescarFirma = () => {
+    const d = derivados();
+    v.memoria = {
+      archiveDepth: d.archiveDepth ?? 0,
+      routeDiversity: d.routeDiversity ?? 0,
+      returnCount: d.returnCount ?? 0,
+    };
+    v.firma = firmaDeRuta(escena, v.visitados, v.memoria.returnCount);
+  };
+
+  /* ── la espiral: la geometría del motor, dibujada ────────────────────────
+     Es la MISMA razón áurea con que `ruta.ts` elige puertas. El radio se
+     divide por φ en cada nivel, así que la vuelta que estás pisando se ve
+     converger al centro. No ilustra la profundidad: la mide. */
+  let animando = 0;
+  const dibujarEspiral = () => {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = placa.clientWidth, h = placa.clientHeight;
+    espiral.width = w * dpr; espiral.height = h * dpr;
+    const g = espiral.getContext('2d');
+    if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const pintar = (t: number) => {
+      g.clearRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2;
+      const r0 = Math.min(w, h) * 0.46;
+      const giro = quieto ? 0 : t / 26000;
+
+      /* Una vuelta por nivel: las ya bajadas quedan tenues, la actual encendida,
+         y las que faltan apenas se insinúan. Se ve cuánto queda al corazón. */
+      for (let n = 0; n <= PROFUNDIDAD_CORAZON; n++) {
+        const r = r0 / Math.pow(PHI, n * 0.62);
+        const pasado = n < v.profundidad, ahora = n === v.profundidad;
+        g.beginPath();
+        for (let k = 0; k <= 220; k++) {
+          const a = (k / 220) * Math.PI * 2 + giro * (1 + n * 0.5) + n * 2.399963;
+          const rr = r * (1 + 0.045 * Math.sin(a * 5 + n));
+          const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr * 0.94;
+          k ? g.lineTo(x, y) : g.moveTo(x, y);
+        }
+        g.closePath();
+        g.strokeStyle = ahora ? 'rgba(255,39,51,.5)'
+          : pasado ? 'rgba(240,237,232,.16)' : 'rgba(240,237,232,.05)';
+        g.lineWidth = ahora ? 1.4 : 1;
+        g.stroke();
+      }
+
+      /* El corazón, al medio, latiendo más fuerte cuanto más cerca estás. */
+      const cerca = v.profundidad / PROFUNDIDAD_CORAZON;
+      const pulso = quieto ? 1 : 1 + 0.3 * Math.sin(t / 900);
+      g.beginPath();
+      g.arc(cx, cy, (3 + cerca * 9) * pulso, 0, Math.PI * 2);
+      g.fillStyle = `rgba(255,39,51,${0.2 + cerca * 0.7})`;
+      g.fill();
+
+      if (!quieto) animando = requestAnimationFrame(pintar);
+    };
+    cancelAnimationFrame(animando);
+    animando = requestAnimationFrame(pintar);
+  };
+
+  /* ── pintar una bifurcación ──────────────────────────────────────────── */
+  const pintar = (puertas: Puerta[]) => {
+    lista.replaceChildren();
+    for (const p of puertas) {
+      const li = document.createElement('li');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'kdx-p';
+      const papel = p.papel || 'HALLAZGO';
+      b.style.setProperty('--kdx-p-color', COLOR[papel]);
+      /* La velocidad de giro ES la profundidad: 9s arriba, ~2s en el fondo. */
+      b.style.setProperty('--kdx-giro', `${(9 / (1 + v.profundidad * 0.55)).toFixed(2)}s`);
+
+      const rot = document.createElement('span');
+      rot.className = 'kdx-p__papel';
+      rot.innerHTML = `<span class="kdx-p__glifo" aria-hidden="true">${GLIFO[papel]}</span> ${DICE[papel]}`;
+
+      const t = document.createElement('span');
+      t.className = p.nodo.sinNombre ? 'kdx-p__t kdx-p__t--anon' : 'kdx-p__t';
+      /* Honestidad: 1.309 nodos no tienen nombre y el hash no es un título. */
+      t.textContent = p.nodo.sinNombre ? `UNNAMED SPECIMEN · ${p.nodo.id.slice(5, 13)}` : p.nodo.titulo;
+
+      const meta = document.createElement('span');
+      meta.className = 'kdx-p__meta';
+      const est = document.createElement('span');
+      est.className = 'kdx-p__est';
+      est.dataset.e = p.nodo.estatus;
+      est.textContent = p.nodo.estatus.replace('_', ' ');
+      meta.append(est);
+      if (p.nodo.estrato) {
+        const e = document.createElement('span');
+        e.textContent = p.nodo.estrato.toUpperCase().replace(/-/g, ' ');
+        meta.append(e);
+      }
+      const r = document.createElement('span');
+      r.textContent = p.razon;
+      meta.append(r);
+
+      b.append(rot, t, meta);
+      b.addEventListener('click', () => elegir(p, puertas));
+      li.append(b);
+      lista.append(li);
+    }
+  };
+
+  const rotular = () => {
+    $('[data-kdx-hondura]').textContent = `DEPTH ${v.profundidad} / ${PROFUNDIDAD_CORAZON}`;
+    $('[data-kdx-firma]').textContent = `ROUTE ${v.firma.toString(16).slice(0, 4).toUpperCase()}`;
+    $('[data-kdx-rastro]').textContent = v.visitados.length
+      ? `${v.visitados.length} NODE${v.visitados.length > 1 ? 'S' : ''} BEHIND YOU`
+      : 'NO TRACE YET';
+    const enCorazon = v.profundidad >= PROFUNDIDAD_CORAZON;
+    ($('[data-kdx-corazon]') as HTMLElement).hidden = !enCorazon;
+    $('[data-kdx-ojo]').textContent = enCorazon ? 'THE CENTRE' : `LAYER ${v.profundidad + 1}`;
+    $('[data-kdx-nota]').textContent = enCorazon
+      ? 'Seven layers. This is the middle. The way out is the way you came.'
+      : 'Each door records what you chose and what you left. Two people never descend the same.';
+  };
+
+  const abrirNivel = async () => {
+    const c = await traerCorpus();
+    refrescarFirma();
+    rotular();
+    dibujarEspiral();
+    if (v.profundidad >= PROFUNDIDAD_CORAZON) {
+      lista.replaceChildren();
+      $('[data-kdx-aqui]').textContent = 'YOU REACHED THE HEART';
+      return;
+    }
+    pintar(bifurcar(v, c));
+  };
+
+  const elegir = (p: Puerta, todas: Puerta[]) => {
+    /* §20: el evento de memoria guarda la elección CON las alternativas que
+       estaban a la vista. Sólo números y identificadores del propio KODEX —
+       nada sobre la persona. */
+    recordar('ROUTE_CHOICE', p.nodo.id, {
+      depth: v.profundidad,
+      offered: todas.length,
+      chosen: todas.indexOf(p),
+    });
+    v = {
+      ...v, profundidad: v.profundidad + 1, aqui: p.nodo.id,
+      visitados: [...v.visitados, p.nodo.id],
+    };
+    $('[data-kdx-aqui]').textContent = p.nodo.sinNombre
+      ? `UNNAMED SPECIMEN · ${p.nodo.id.slice(5, 13)}` : p.nodo.titulo;
+    $('[data-kdx-sub]').textContent = p.nodo.sinNombre
+      ? 'An entry the archive holds but has not named. It is still yours to read.'
+      : `${p.razon.toLowerCase()} — and it opens further.`;
+    /* Historial real: Atrás sube un nivel, como debe ser. */
+    history.pushState({ kdx: v.profundidad, escena }, '', `#descent-${v.profundidad}`);
+    abrirNivel();
+  };
+
+  const abrir = () => {
+    placa.hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    recordar('DESCENT_OPENED', `scene-${escena}`, { depth: 0 });
+    history.pushState({ kdx: 0, escena }, '', '#descent-0');
+    abrirNivel();
+    $<HTMLButtonElement>('[data-kdx-cerrar-descenso]').focus();
+  };
+
+  const cerrar = () => {
+    placa.hidden = true;
+    document.documentElement.style.overflow = '';
+    cancelAnimationFrame(animando);
+    boca.focus();
+  };
+
+  /* Subir un nivel: la placa no se cierra, se retrae. El documento pide que el
+     retorno sea parte del viaje, no una salida de emergencia. */
+  const subir = () => {
+    if (v.profundidad === 0) { cerrar(); return; }
+    v = {
+      ...v, profundidad: v.profundidad - 1,
+      visitados: v.visitados.slice(0, -1),
+      aqui: v.visitados[v.visitados.length - 2] ?? null,
+    };
+    recordar('ROUTE_ASCENT', v.aqui ?? `scene-${escena}`, { depth: v.profundidad });
+    $('[data-kdx-aqui]').textContent = 'CHOOSE AGAIN';
+    abrirNivel();
+  };
+
+  boca.addEventListener('click', abrir);
+  $('[data-kdx-cerrar-descenso]').addEventListener('click', () => history.back());
+  addEventListener('popstate', (e) => {
+    if (placa.hidden) return;
+    const d = (e.state as { kdx?: number } | null)?.kdx;
+    if (typeof d !== 'number') { cerrar(); return; }
+    while (v.profundidad > d) subir();
+  });
+  addEventListener('keydown', (e) => {
+    if (placa.hidden) return;
+    if (e.key === 'Escape') { e.preventDefault(); history.back(); }
+    /* 1–3 eligen puerta: el teclado no es una segunda clase. */
+    const n = Number(e.key);
+    if (n >= 1 && n <= 3) lista.querySelectorAll<HTMLButtonElement>('.kdx-p')[n - 1]?.click();
+  });
+  addEventListener('resize', () => { if (!placa.hidden) dibujarEspiral(); });
+}
