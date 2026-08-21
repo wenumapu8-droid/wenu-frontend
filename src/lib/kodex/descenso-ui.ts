@@ -422,10 +422,28 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
       }
       return false;
     };
-    for (let k = 0; k < 40 && choca(); k++) {
+    /* LA CAUSA ERA QUE EL TREPADO NO TIENE RETORNO. Sube de a 8px hasta 40
+       pasos y, si nunca encuentra sitio, se QUEDA donde llegó -- a 336px del
+       piso, que es exactamente la altura del titular. O sea: cuando falla,
+       falla en el peor lugar posible.
+
+       Medido en reduced-motion, 390x844, a los 6,5s: los seis folios con la
+       boca en 336 encima del título, hasta el 100% en MACHINE. Y el piso, en
+       ese mismo instante, libre. Había subido contra una escena que ya no
+       existía.
+
+       Si después de recorrer todo no hay sitio, vuelve al piso: es su lugar de
+       reposo, está debajo de la barra y ahí no tapa a nadie. Perder la
+       separación es mucho menos grave que aterrizar sobre la frase más grande
+       de la escena. */
+    const piso = `calc(16px + env(safe-area-inset-bottom,0px))`;
+    let libre = !choca();
+    for (let k = 0; k < 40 && !libre; k++) {
       const y = 16 + (k + 1) * 8;
       boca.style.bottom = `calc(${y}px + env(safe-area-inset-bottom,0px))`;
+      libre = !choca();
     }
+    if (!libre) boca.style.bottom = piso;
   };
 
   montarTravesia();
@@ -435,6 +453,12 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
      ubica contra una franja que todavía no está completa. */
   setTimeout(ubicar, 1200);
   setTimeout(ubicar, 3600);
+
+  /* PROBÉ DOS OBSERVADORES Y NINGUNO SIRVIÓ. Van anotados para que nadie los
+     vuelva a poner: uno de TAMAÑO sobre la caja de la escena -- que nunca
+     cambia de tamaño, lo que se mueve es el titular adentro -- y otro de
+     MUTACIONES más `document.fonts.ready`. Los cinco folios quedaron igual.
+     Eran compensaciones encima de una causa que no había mirado. */
 
   boca.addEventListener('click', abrir);
   /* Cerrar es DIRECTO, y además se corrige el historial.

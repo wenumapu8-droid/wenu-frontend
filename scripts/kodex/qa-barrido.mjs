@@ -8,12 +8,20 @@ const RUTAS = ['/kodex/','/kodex/folio/i/','/kodex/folio/ii/','/kodex/folio/iii/
    los carriles y saca choques que el estrecho esconde. Si no está en el
    barrido, no existe para nosotros. */
 const VP = [{n:'390',w:390,h:844,m:true},{n:'412',w:412,h:915,m:true},
-            {n:'844L',w:844,h:390,m:true},{n:'1440',w:1440,h:900,m:false}];
+            {n:'844L',w:844,h:390,m:true},{n:'1440',w:1440,h:900,m:false},
+            /* Reduced-motion no es "lo mismo pero quieto": las fases revelan
+               distinto, los títulos no se ensamblan letra por letra y la boca
+               del descenso se ubica contra una escena que llegó completa de
+               una vez. Medido en PROLOGUE, la boca aterrizaba sobre "THE
+               ARCHIVE IS WATCHING." -- y este barrido no lo veía porque nunca
+               probaba en ese modo. Si no está acá, no existe para nosotros. */
+            {n:'390q',w:390,h:844,m:true,q:true}];
 const b = await chromium.launch();
 const filas = [];
 for (const r of RUTAS) {
   for (const v of VP) {
-    const c = await b.newContext({viewport:{width:v.w,height:v.h},isMobile:v.m,hasTouch:v.m});
+    const c = await b.newContext({viewport:{width:v.w,height:v.h},isMobile:v.m,hasTouch:v.m,
+      reducedMotion: v.q ? 'reduce' : 'no-preference'});
     const p = await c.newPage();
     const errs = [];
     p.on('pageerror', e => errs.push(String(e).split('\n')[0].slice(0,80)));
