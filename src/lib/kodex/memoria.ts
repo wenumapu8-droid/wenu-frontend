@@ -71,18 +71,51 @@ const hayAlmacen = (): boolean => {
   }
 };
 
+/**
+ * LA FORMA BASE DEL REGISTRO COMPARTIDO.
+ *
+ * `kx-journey` la escriben DOS módulos con necesidades distintas: este, con
+ * `eventos` tipados, y `src/kodex/return/memory.js`, con `views`, `effects`,
+ * `signal` y `cycle`. Compartir la clave fue lo correcto —un segundo almacén
+ * habría partido la memoria del visitante en dos— pero faltaba una mitad del
+ * contrato.
+ *
+ * EL FALLO ERA MÍO Y CERRABA LA PUERTA. Este archivo creaba el registro con
+ * sólo `eventos`. Mi propio comentario decía "sin tocar views, effects, signal
+ * ni cycle" —cierto— pero el problema no era tocarlos: era CREAR el registro
+ * sin ellos. Después `memory.js` leía un objeto que existe y hacía
+ * `j.views[j.views.length - 1]` sobre `undefined`: TypeError, el manejador del
+ * umbral moría ahí, el velo no se disolvía nunca y NO SE PODÍA ENTRAR AL
+ * KODEX. Lo detectó el agente del Folio I reproduciéndolo en tres viewports, y
+ * sólo aparecía cuando este módulo escribía PRIMERO — o sea, en cualquier
+ * sesión donde alguien hubiera descendido antes de llegar al umbral.
+ *
+ * La corrección no es que cada lector se defienda del otro: es que el registro
+ * esté SIEMPRE completo. Quien escribe primero inicializa la forma entera, y
+ * los valores existentes siempre ganan sobre los de base.
+ */
+function base(): Recorrido {
+  return { views: [], effects: [], signal: 0, cycle: 0, eventos: [] };
+}
+
 function leer(): Recorrido {
-  if (!hayAlmacen()) return {};
+  if (!hayAlmacen()) return base();
   try {
-    return (JSON.parse(localStorage.getItem(CLAVE) || "null") as Recorrido) || {};
+    const crudo = JSON.parse(localStorage.getItem(CLAVE) || "null") as Recorrido | null;
+    /* Los del disco pisan a los de base, nunca al revés: nada que el otro
+       módulo haya escrito se pierde al pasar por acá. */
+    return { ...base(), ...(crudo ?? {}) };
   } catch {
-    return {};
+    return base();
   }
 }
 
 function escribir(r: Recorrido): void {
   if (!hayAlmacen()) return;
   try {
+    /* Se completa otra vez al escribir, no sólo al leer: alguien puede armar un
+       `Recorrido` a mano y guardarlo sin haber pasado por `leer()`. */
+    r = { ...base(), ...r };
     if (r.eventos && r.eventos.length > TOPE) r.eventos = r.eventos.slice(-TOPE);
     r.last = Date.now();
     localStorage.setItem(CLAVE, JSON.stringify(r));
