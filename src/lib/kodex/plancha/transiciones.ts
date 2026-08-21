@@ -185,3 +185,31 @@ export function duracionDe(desde: string, hacia: string, fallback = 260): number
   const c = contratoDe(desde, hacia);
   return c ? c.duracion[0] : fallback;
 }
+
+
+/**
+ * De una ruta al id de su plancha. El runtime necesita saber QUÉ frontera se
+ * está cruzando para elegir la forma de atravesarla, y lo único que tiene en
+ * el momento del clic es una URL.
+ */
+export function planchaDeRuta(pathname: string): string {
+  const p = pathname.replace(/\/+$/, '') || '/kodex';
+  if (/\/kodex$/.test(p)) return 'kdx:interlude/threshold';
+  const folio = p.match(/\/kodex\/folio\/(i{1,3}|iv|v|vi)$/);
+  if (folio) {
+    const slug = { i:'prologue', ii:'descent', iii:'archive', iv:'machine', v:'cosmology', vi:'return' }[folio[1]];
+    return slug ? `kdx:folio/${slug}` : '';
+  }
+  const inter = p.match(/\/kodex\/interlude\/([a-z0-9-]+)$/);
+  if (inter) return `kdx:interlude/${inter[1]}`;
+  return '';
+}
+
+/**
+ * La forma de atravesar una frontera. Si la frontera no está declarada -- salir
+ * a una lámina, a la tienda, a un volumen -- se devuelve `paso`: un tránsito
+ * corto y sin gesto. No toda puerta es un umbral.
+ */
+export function modoDeCruce(desde: string, hacia: string): ModoTransicion {
+  return contratoDe(desde, hacia)?.modo ?? 'paso';
+}

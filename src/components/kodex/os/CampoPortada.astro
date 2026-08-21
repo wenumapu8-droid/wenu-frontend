@@ -185,12 +185,29 @@ void main(){
       }, { passive: true });
 
       const estadoBase = Number(cv.dataset.kdxCampoEstado || '0.15');
+
+      /* KDX-MOTION-REF-003, MOTION:
+           AWARE      → tiny phase displacement
+           LOCKED     → symmetry stabilizes
+           OBSERVING  → controlled breathing / resonance
+         Eso es la máquina de escena que ya existe -- idle → aware → locked →
+         active -- y no una segunda. El portal no inventa su intensidad: la
+         lee. Escuchar el estado es lo que hace que el campo RESPONDA al
+         visitante en vez de latir solo. */
+      const PORESTADO: Record<string, number> = {
+        idle: 0.10, aware: 0.24, locked: 0.46, active: 0.72, transitionOut: 0.9,
+      };
+      /* `data-kdx-state` en el <html> lo escribe `src/lib/kodex/estado.ts`
+         desde hace tiempo. No se inventa un atributo nuevo: se lee el que ya
+         está. Ensamblar, no construir otra vez. */
+      const leerEstado = () => PORESTADO[document.documentElement.dataset.kdxState || ''];
       /* `__kdxCampo` es el enchufe para el sonido: quien monte el audio le pasa
          la energía del analizador y el campo late con el drone. Mientras nadie
          lo enchufe, late solo. */
       const puente = ((window as any).__kdxCampo ||= { bass: 0, estado: estadoBase, exposicion: 0.52 });
 
       let t0 = performance.now(), raf = 0, visible = true;
+      let estadoActual = estadoBase;
       const io = new IntersectionObserver((e) => { visible = e[0].isIntersecting; }, { threshold: 0 });
       io.observe(cv);
 
@@ -198,12 +215,22 @@ void main(){
         raf = requestAnimationFrame(cuadro);
         if (!visible || document.hidden || !cv.isConnected) return;
         const t = (performance.now() - t0) / 1000;
-        const px = Math.max(2, Math.min(5, Math.round(Math.min(cv.width, cv.height) / 260)));
+        /* KDX-MOTION-REF-003, REDUCED MOTION, textual: "Use static optical
+           composition with LOWER SPATIAL FREQUENCY and no phase movement to
+           reduce discomfort." Congelar el tiempo no alcanza: un patrón de
+           interferencia fino y quieto sigue siendo incómodo. Se agranda el
+           bloque, que es exactamente bajar la frecuencia espacial. */
+        const base = Math.max(2, Math.min(5, Math.round(Math.min(cv.width, cv.height) / 260)));
+        const px = REDUCIDO ? base * 3 : base;
         gl.uniform2f(uRes, cv.width, cv.height);
         gl.uniform1f(uTime, REDUCIDO ? 0 : t);
         gl.uniform2f(uPtr, ptr[0], ptr[1]);
         gl.uniform1f(uBass, puente.bass || 0);
-        gl.uniform1f(uState, puente.estado ?? estadoBase);
+        /* Suave: el estado se persigue, no se salta. Un corte en la intensidad
+           del campo se ve como un parpadeo, y el canon prohíbe el destello. */
+        const objetivo = leerEstado() ?? puente.estado ?? estadoBase;
+        estadoActual += (objetivo - estadoActual) * 0.035;
+        gl.uniform1f(uState, estadoActual);
         gl.uniform1f(uPx, px * DPR);
         gl.uniform1f(uExp, puente.exposicion ?? 0.52);
         gl.drawArrays(gl.TRIANGLES, 0, 3);

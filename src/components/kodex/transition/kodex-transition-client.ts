@@ -12,6 +12,7 @@
  */
 import { estadoEscena, montarEstadoEscena } from "../../../lib/kodex/estado";
 import { montarRueda } from "../../../lib/kodex/scroll";
+import { planchaDeRuta, modoDeCruce, duracionDe } from "../../../lib/kodex/plancha/transiciones";
 
 const REDUCIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -340,6 +341,53 @@ document.addEventListener("astro:page-load", montar);
    -- un umbral, no un NEXT -- envuelve el cargador del router y colapsa antes
    de entregar, igual que siempre. La espera ahí ES el contenido.
    ------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+   LA TRAVESÍA
+   ---------------------------------------------------------------------------
+   "KODEX no cambia de página. KODEX atraviesa dimensiones."
+
+   El velo tapaba el corte. Esto lo atraviesa: la ESCENA se va hacia el centro
+   y el visitante la cruza. El cromo de KDX.OS -- túnel, CRT, grano, barra --
+   no se mueve, y eso es lo que hace que se sienta pasar una capa y no saltar
+   de página: el instrumento permanece, la realidad de adentro cambia.
+
+   Cada frontera tiene su forma, declarada en el contrato:
+   absorción en el umbral, caída hacia DESCENT, expansión hacia COSMOLOGY,
+   convergencia en RETURN. Lo que no es umbral, es paso.
+   ------------------------------------------------------------------------- */
+const viewport = () =>
+  document.querySelector<HTMLElement>("[data-deck]") ??
+  document.querySelector<HTMLElement>(".kx-deck");
+
+/* El contrato nombra la frontera por lo que SIGNIFICA -- cruce, descenso,
+   llegada, mutación, expansión, retorno -- y la hoja la nombra por cómo se
+   VE. No son la misma lista y no deberían serlo: el día que "mutación" se vea
+   distinta, cambia el mapa y no el contrato. Se traduce acá, en un solo lugar.
+   (Sin esta tabla la travesía se disparaba con `cruce-sale`, la hoja sólo
+   conocía `absorcion-sale`, y no animaba nada: el atributo puesto y la
+   pantalla quieta.) */
+const FORMA: Record<string, string> = {
+  cruce: "absorcion",
+  descenso: "caida",
+  llegada: "paso",
+  mutacion: "paso",
+  expansion: "expansion",
+  retorno: "convergencia",
+  paso: "paso",
+};
+
+function atravesar(fase: "sale" | "entra", modo: string, ms: number) {
+  const forma = FORMA[modo] ?? "paso";
+  const v = viewport();
+  if (!v) return;
+  v.style.setProperty(fase === "sale" ? "--kdx-travesia-ms" : "--kdx-travesia-entra-ms", `${ms}ms`);
+  v.dataset.kdxTravesia = `${forma}-${fase}`;
+}
+function limpiarTravesia() {
+  const v = viewport();
+  if (v) delete v.dataset.kdxTravesia;
+}
+
 document.addEventListener("astro:before-preparation", (e) => {
   const ev = e as Event & {
     sourceElement?: Element;
@@ -357,6 +405,15 @@ document.addEventListener("astro:before-preparation", (e) => {
     };
     return;
   }
+  /* La travesía. Se elige por la frontera que se está cruzando y no por un
+     valor global: entrar al KODEX no puede sentirse igual que ir a la tienda. */
+  const desde = planchaDeRuta(location.pathname);
+  const hacia = planchaDeRuta(new URL((ev as any).to ?? location.href, location.href).pathname);
+  const modo = desde && hacia ? modoDeCruce(desde, hacia) : "paso";
+  const ms = desde && hacia ? duracionDe(desde, hacia) : 220;
+  atravesar("sale", modo, ms);
+  (window as unknown as { __kdxModoCruce?: string }).__kdxModoCruce = modo;
+
   // Rápido: el velo se pinta y no se espera. El router sigue su curso.
   //
   // Se probó además una compuerta que encolaba `requestAnimationFrame` durante
@@ -374,6 +431,11 @@ document.addEventListener("astro:before-preparation", (e) => {
    sobrevive al intercambio -- vive en el cromo persistente -- y acá sólo se le
    pide que se abra otra vez. */
 document.addEventListener("astro:after-swap", () => {
+  /* Del otro lado: la escena emerge desde el centro con el mismo gesto al
+     revés. Es lo que convierte dos animaciones sueltas en una travesía. */
+  const modo = (window as unknown as { __kdxModoCruce?: string }).__kdxModoCruce || "paso";
+  atravesar("entra", modo, 420);
+  window.setTimeout(limpiarTravesia, 700);
   (window as unknown as { __kdxNavegando?: boolean }).__kdxNavegando = false;
   let pendiente: string | null = null;
   try {
