@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodex.local/schema/kdx-work-order-v0.1.json",
+  "title": "KODEX WorkOrder v0.1",
+  "description": "Bounded station input contract. The same WorkOrder can be executed by a script, agent, or human without changing correctness rules.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "work_id", "version", "event_type", "station_id", "target_id", "desired_state_ref",
+    "input_refs", "allowed_writes", "prohibited_writes", "validator_set", "retry_policy",
+    "idempotency_key", "seed", "priority", "parent_work_id", "provenance_refs", "status",
+    "worker_policy", "release_gate"
+  ],
+  "properties": {
+    "work_id": { "type": "string", "pattern": "^KDX-WORK-[A-Z0-9_-]+$" },
+    "version": { "const": "0.1.0" },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "ELEMENT_REGISTERED", "ELEMENT_UPDATED", "NODE_UPDATED", "EDGE_PROPOSED",
+        "PLATE_REQUESTED", "PLATE_ASSEMBLED", "VALIDATION_FAILED", "VALIDATION_PASSED",
+        "ART_APPROVED", "ACTIVATION_APPROVED", "COPY_APPROVED", "ROUTE_SIMULATED",
+        "BENCHMARK_REGRESSION", "RELEASE_APPROVED"
+      ]
+    },
+    "station_id": {
+      "type": "string",
+      "enum": [
+        "A0_ORCHESTRATOR", "A1_CORPUS_CURATOR", "A2_SEMANTIC_CARTOGRAPHER",
+        "A3_PLATE_ARCHITECT", "A4_MACRO_COMPOSER", "A5_ELEMENT_ASSEMBLER",
+        "A6_MICRO_DETAILER", "A7_COPY_STATION", "A8_MOTION_ACTIVATION",
+        "A9_PROVENANCE_GUARDIAN", "A10_QA_TEST", "A11_RENDERER_EXPORTER", "A12_PUBLISHER"
+      ]
+    },
+    "target_id": { "type": "string", "minLength": 2 },
+    "desired_state_ref": { "type": "string", "minLength": 2 },
+    "input_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "allowed_writes": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "prohibited_writes": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+    "validator_set": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "retry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "max_attempts"],
+      "properties": {
+        "mode": { "type": "string", "enum": ["NEVER", "MECHANICAL_ONLY"] },
+        "max_attempts": { "type": "integer", "minimum": 0, "maximum": 3 }
+      }
+    },
+    "idempotency_key": { "type": "string", "minLength": 8 },
+    "seed": { "type": ["string", "integer", "null"] },
+    "priority": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "parent_work_id": { "type": ["string", "null"] },
+    "provenance_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "status": { "type": "string", "enum": ["QUEUED", "RUNNING", "BLOCKED", "VALIDATING", "COMPLETE", "FAILED", "CANCELLED"] },
+    "worker_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["allowed_worker_kinds", "generative_required"],
+      "properties": {
+        "allowed_worker_kinds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["SCRIPT", "AGENT", "HUMAN"] }
+        },
+        "generative_required": { "const": false }
+      }
+    },
+    "release_gate": { "type": "string", "enum": ["NONE", "EXPLICIT_APPROVAL_REQUIRED"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "station_id": { "const": "A12_PUBLISHER" } }, "required": ["station_id"] },
+      "then": { "properties": { "release_gate": { "const": "EXPLICIT_APPROVAL_REQUIRED" } } }
+    },
+    {
+      "if": { "properties": { "event_type": { "const": "RELEASE_APPROVED" } }, "required": ["event_type"] },
+      "then": { "properties": { "release_gate": { "const": "EXPLICIT_APPROVAL_REQUIRED" } } }
+    }
+  ],
+  "x-kodex-invariants": [
+    "Workers can write only fields/paths explicitly listed in allowed_writes.",
+    "prohibited_writes cannot be overridden by worker capability or aesthetic judgment.",
+    "Every result must pass validator_set before COMPLETE.",
+    "Retry is permitted only for mechanically decidable failures.",
+    "Generative intelligence is never a correctness dependency.",
+    "Publishing always requires an explicit release gate."
+  ]
+}

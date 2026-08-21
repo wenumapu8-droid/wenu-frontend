@@ -1,0 +1,221 @@
+---
+import type { OcinWorkRecord } from '../../../lib/kodex/ocin/authorial-corpus-v0';
+
+interface Props {
+  work: OcinWorkRecord;
+  selected?: boolean;
+}
+
+const { work, selected = false } = Astro.props;
+const canRenderArtwork = work.publicApproval && Boolean(work.artworkSrc);
+---
+
+<article
+  class:list={['ocin-work', { 'ocin-work--selected': selected }]}
+  data-ocin-work={work.id}
+  data-density={work.visualSignature.density}
+  data-negative-space={work.visualSignature.negativeSpace}
+  aria-labelledby={`${work.id}-title`}
+>
+  <header class="ocin-work__meta">
+    <span>{work.id}</span>
+    <span>{work.series}</span>
+    <span>{work.status}</span>
+  </header>
+
+  <div class="ocin-work__stage">
+    {canRenderArtwork ? (
+      <img
+        class="ocin-work__art"
+        src={work.artworkSrc!}
+        alt={work.alt}
+        loading={selected ? 'eager' : 'lazy'}
+        decoding="async"
+      />
+    ) : (
+      <div class="ocin-work__gate" role="img" aria-label={`${work.alt} Source image withheld until public derivative approval.`}>
+        <div class="ocin-work__gate-field" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </div>
+        <p>SOURCE WITHHELD</p>
+        <strong>APPROVED DERIVATIVE REQUIRED</strong>
+        <small>The layout is live; private Drive bytes are not rendered.</small>
+      </div>
+    )}
+  </div>
+
+  <div class="ocin-work__copy">
+    <p class="ocin-work__eyebrow">{work.sceneRoles.join(' / ')} · {work.activation}</p>
+    <h2 id={`${work.id}-title`}>{work.title}</h2>
+    <p>{work.curatorialNote}</p>
+  </div>
+
+  <dl class="ocin-work__signature">
+    <div><dt>SYMMETRY</dt><dd>{work.visualSignature.symmetry}</dd></div>
+    <div><dt>DENSITY</dt><dd>{work.visualSignature.density}</dd></div>
+    <div><dt>VOID</dt><dd>{work.visualSignature.negativeSpace}</dd></div>
+    <div><dt>PALETTE</dt><dd>{work.visualSignature.palette}</dd></div>
+    <div class="ocin-work__signature-wide"><dt>MOTION POTENTIAL</dt><dd>{work.visualSignature.motionPotential}</dd></div>
+  </dl>
+</article>
+
+<style>
+  .ocin-work {
+    --ocin-fg: #f5f2e9;
+    --ocin-bg: #080808;
+    --ocin-dim: rgba(245, 242, 233, .5);
+    --ocin-line: rgba(245, 242, 233, .18);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(.75rem, 1.8vw, 1.5rem);
+    min-height: min(88svh, 920px);
+    padding: clamp(.8rem, 2.5vw, 2rem);
+    color: var(--ocin-fg);
+    background: var(--ocin-bg);
+    border: 1px solid var(--ocin-line);
+  }
+
+  .ocin-work > * { min-width: 0; max-width: 100%; }
+
+  .ocin-work__meta,
+  .ocin-work__signature {
+    font: 500 .68rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .ocin-work__meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: .5rem 1rem;
+    color: var(--ocin-dim);
+  }
+
+  .ocin-work__meta span,
+  .ocin-work__signature dd,
+  .ocin-work__eyebrow,
+  .ocin-work__copy h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .ocin-work__stage {
+    min-height: 52svh;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ocin-work__art {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: min(68svh, 720px);
+    object-fit: contain;
+  }
+
+  .ocin-work__gate {
+    width: min(100%, 720px);
+    max-width: 100%;
+    aspect-ratio: 1;
+    position: relative;
+    display: grid;
+    place-content: center;
+    text-align: center;
+    gap: .45rem;
+    isolation: isolate;
+    color: rgba(245, 242, 233, .72);
+  }
+
+  .ocin-work__gate-field {
+    position: absolute;
+    inset: 8%;
+    z-index: -1;
+    border: 1px solid var(--ocin-line);
+    border-radius: 50%;
+  }
+
+  .ocin-work__gate-field span {
+    position: absolute;
+    inset: 15%;
+    border: 1px solid var(--ocin-line);
+    transform: rotate(45deg);
+  }
+
+  .ocin-work__gate-field span:nth-child(2) { inset: 28%; transform: rotate(0); border-radius: 50%; }
+  .ocin-work__gate-field span:nth-child(3) { inset: 40%; transform: rotate(45deg); }
+
+  .ocin-work__gate p,
+  .ocin-work__gate strong,
+  .ocin-work__gate small { margin: 0; }
+  .ocin-work__gate p,
+  .ocin-work__gate small { font: .66rem/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: .08em; }
+  .ocin-work__gate strong { font: 600 clamp(.9rem, 2vw, 1.15rem)/1.1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  .ocin-work__copy {
+    width: min(760px, 100%);
+    min-width: 0;
+  }
+
+  .ocin-work__eyebrow {
+    margin: 0 0 .7rem;
+    color: var(--ocin-dim);
+    font: .68rem/1.2 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: .1em;
+  }
+
+  .ocin-work__copy h2 {
+    margin: 0;
+    max-width: 15ch;
+    font: 500 clamp(2.3rem, 7vw, 7rem)/.88 system-ui, sans-serif;
+    letter-spacing: -.055em;
+    text-wrap: balance;
+  }
+
+  .ocin-work__copy > p:last-child {
+    max-width: 64ch;
+    margin: 1rem 0 0;
+    color: rgba(245, 242, 233, .72);
+    font: 400 clamp(.9rem, 1.4vw, 1.08rem)/1.55 system-ui, sans-serif;
+  }
+
+  .ocin-work__signature {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .6rem 1rem;
+    margin: 0;
+    padding-top: 1rem;
+    border-top: 1px solid var(--ocin-line);
+  }
+
+  .ocin-work__signature div { display: grid; gap: .25rem; min-width: 0; }
+  .ocin-work__signature dt { color: var(--ocin-dim); }
+  .ocin-work__signature dd { margin: 0; }
+  .ocin-work__signature-wide { grid-column: 1 / -1; }
+
+  .ocin-work[data-negative-space='very-high'] .ocin-work__stage { min-height: 62svh; }
+  .ocin-work[data-density='high'] .ocin-work__copy,
+  .ocin-work[data-density='very-high'] .ocin-work__copy { max-width: 680px; }
+
+  @media (min-width: 900px) {
+    .ocin-work {
+      grid-template-columns: minmax(0, 1.55fr) minmax(280px, .65fr);
+      grid-template-rows: auto 1fr auto;
+    }
+    .ocin-work__meta { grid-column: 1 / -1; }
+    .ocin-work__stage { grid-column: 1; grid-row: 2 / 4; min-height: 72svh; }
+    .ocin-work__copy { grid-column: 2; align-self: end; }
+    .ocin-work__signature { grid-column: 2; align-self: end; }
+    .ocin-work[data-negative-space='very-high'] .ocin-work__stage { min-height: 76svh; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ocin-work *, .ocin-work *::before, .ocin-work *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+    }
+  }
+</style>

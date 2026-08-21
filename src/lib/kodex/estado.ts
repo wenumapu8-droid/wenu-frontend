@@ -82,6 +82,11 @@ class MaquinaEscena {
   private publicar(anterior: Estado): void {
     if (this.raiz) this.raiz.dataset.kdxState = this.estado;
     document.documentElement.dataset.kdxState = this.estado;
+    /* Y en el nodo que firma el shell, para que la hoja del instrumento pueda
+       combinar estado + superficie en un solo selector. La telemetría baja o
+       sube según lo que el sistema sabe del visitante, y eso se decide acá. */
+    const shell = document.querySelector<HTMLElement>("[data-kdx-shell]");
+    if (shell) shell.dataset.kdxState = this.estado;
     (window as unknown as { __kdxState?: Estado }).__kdxState = this.estado;
     for (const f of this.escuchas) f(this.estado, anterior);
   }

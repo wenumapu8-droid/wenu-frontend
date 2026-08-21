@@ -1,0 +1,495 @@
+/* ═══════════════════════════════════════════════════════════════════
+   WENU MAPU — JOURNEY LAYER (additive · redesigned 2026-07-10)
+   Constellation walk over the starmap portal: each star is one stage.
+   Art direction: analog collage w/ grain (torn edges, gold tape)
+   + retro-tech CRT HUD (Share Tech Mono, scanlines, pixel sprite).
+   Hard exclusions honored: no Three.js, no UFOs, no % discounts.
+   Loaded lazily by journey.js's companion <link> in index.html.
+   Remove the two journey lines in index.html to roll back entirely.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --j-gold: #f0c060;
+  --j-gold-dim: rgba(240, 192, 96, 0.55);
+  --j-bone: #f0ede8;
+  --j-ink: rgba(8, 7, 6, 0.92);
+  --j-mono: 'Share Tech Mono', monospace;
+  --j-serif: 'Cormorant Garamond', Georgia, serif;
+  --j-display: 'Cinzel Decorative', serif;
+}
+
+/* ─── HUD STRIP — six roman-numeral chapter blocks, terminal style ─── */
+#journey-hud {
+  position: fixed;
+  left: 18px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 60;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--j-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--j-gold-dim);
+  padding: 8px 12px;
+  background: rgba(8, 7, 6, 0.72);
+  border: 1px solid rgba(240, 192, 96, 0.22);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  user-select: none;
+  /* CRT scanlines, HUD only */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(240, 192, 96, 0.035) 0px, rgba(240, 192, 96, 0.035) 1px,
+    transparent 1px, transparent 3px
+  );
+}
+#journey-hud.on { display: flex; }
+/* ten constellation pips fill as stars are lit */
+#journey-hud .j-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(240, 192, 96, 0.18);
+  transition: background 0.4s, box-shadow 0.4s;
+}
+#journey-hud .j-pip.done { background: var(--j-gold); }
+#journey-hud .j-pip.now {
+  background: var(--j-gold);
+  box-shadow: 0 0 8px var(--j-gold);
+  animation: j-blink 2.2s ease-in-out infinite;
+}
+@keyframes j-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+#journey-hud .j-count { font-size: 9px; opacity: 0.7; margin-left: 4px; letter-spacing: 0.1em; }
+#journey-hud .j-label { opacity: 0.75; }
+@media (max-width: 768px) {
+  /* sits above the site's own footer metadata line */
+  #journey-hud { left: 50%; transform: translateX(-50%); bottom: 46px; font-size: 9px; gap: 5px; padding: 7px 10px; max-width: calc(100vw - 24px); background-color: rgba(8, 7, 6, 0.92); }
+  #journey-hud .j-label { display: none; }
+}
+
+/* ─── TARGET STAR — the map star the current stage points to ─── */
+.star.j-target::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 1px solid var(--j-gold);
+  animation: j-target-pulse 1.8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes j-target-pulse {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.18); box-shadow: 0 0 18px rgba(240, 192, 96, 0.4); }
+}
+
+/* ─── INVITE CHIP (post-loader, offers the journey) ─── */
+#journey-invite {
+  position: fixed;
+  left: 50%;
+  bottom: 72px;
+  transform: translateX(-50%) translateY(12px);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.2s ease, transform 1.2s ease;
+}
+#journey-invite.on { opacity: 1; pointer-events: all; transform: translateX(-50%) translateY(0); }
+#journey-invite button {
+  font-family: var(--j-mono);
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--j-gold);
+  background: rgba(8, 7, 6, 0.78);
+  border: 1px solid var(--j-gold-dim);
+  padding: 11px 22px 11px 26px;
+  cursor: pointer;
+  transition: background 0.4s, box-shadow 0.4s;
+}
+#journey-invite button:hover {
+  background: rgba(24, 18, 8, 0.9);
+  box-shadow: 0 0 18px rgba(240, 192, 96, 0.25);
+}
+#journey-invite .j-sub {
+  font-family: var(--j-mono);
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  color: rgba(240, 237, 232, 0.45);
+  text-transform: uppercase;
+}
+@media (max-width: 768px) { #journey-invite { bottom: 88px; } }
+
+/* ─── CHAPTER CARD — torn-paper collage panel ─── */
+#journey-card {
+  position: fixed;
+  z-index: 62;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%) translateX(24px);
+  width: min(360px, calc(100vw - 40px));
+  max-height: min(72vh, 560px);
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  color: var(--j-bone);
+  background:
+    /* faint paper mottle via layered radial gradients — no raster asset */
+    radial-gradient(ellipse at 20% 15%, rgba(240, 192, 96, 0.05), transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(240, 192, 96, 0.04), transparent 50%),
+    rgba(10, 9, 8, 0.88);
+  border: 1px solid rgba(240, 192, 96, 0.18);
+  /* torn-collage silhouette */
+  clip-path: polygon(
+    0% 2.2%, 3% 0%, 97.4% 0.6%, 100% 3.4%, 99.2% 96.8%,
+    96.6% 100%, 2.4% 99.2%, 0.4% 97%
+  );
+  padding: 26px 26px 22px;
+  backdrop-filter: blur(4px);
+}
+#journey-card.on { opacity: 1; pointer-events: all; transform: translateY(-50%) translateX(0); }
+/* gold tape corner — collage artifact */
+#journey-card::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 34px;
+  width: 74px;
+  height: 20px;
+  background: linear-gradient(100deg, rgba(240, 192, 96, 0.32), rgba(240, 192, 96, 0.14));
+  transform: rotate(-4deg);
+  pointer-events: none;
+}
+@media (max-width: 768px) {
+  #journey-card {
+    right: 50%;
+    top: auto;
+    bottom: 92px;
+    transform: translate(50%, 18px);
+    max-height: 58vh;
+  }
+  #journey-card.on { transform: translate(50%, 0); }
+}
+
+#journey-card .j-kicker {
+  font-family: var(--j-mono);
+  font-size: 9px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: var(--j-gold-dim);
+  margin-bottom: 10px;
+}
+#journey-card .j-title {
+  font-family: var(--j-display);
+  font-size: 24px;
+  line-height: 1.15;
+  color: var(--j-gold);
+  margin-bottom: 4px;
+  text-shadow: 0 0 22px rgba(240, 192, 96, 0.28);
+}
+#journey-card .j-sub-title {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 14px;
+  color: rgba(240, 237, 232, 0.62);
+  margin-bottom: 14px;
+}
+#journey-card .j-story {
+  font-family: var(--j-serif);
+  font-size: 15.5px;
+  line-height: 1.62;
+  color: rgba(240, 237, 232, 0.86);
+}
+#journey-card .j-story p { margin: 0 0 12px; }
+#journey-card .j-task {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px dashed rgba(240, 192, 96, 0.35);
+  font-family: var(--j-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  line-height: 1.7;
+  color: var(--j-gold);
+  text-transform: uppercase;
+}
+#journey-card .j-task.done { border-style: solid; opacity: 0.65; }
+#journey-card .j-task.done::before { content: '✓ '; }
+#journey-card .j-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 18px;
+}
+#journey-card .j-next {
+  font-family: var(--j-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--j-ink);
+  background: var(--j-gold);
+  border: none;
+  padding: 11px 18px;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+#journey-card .j-next.ready { opacity: 1; pointer-events: all; }
+#journey-card .j-next:hover { box-shadow: 0 0 20px rgba(240, 192, 96, 0.4); }
+#journey-card .j-min {
+  font-family: var(--j-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(240, 237, 232, 0.4);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+}
+#journey-card .j-min:hover { color: rgba(240, 237, 232, 0.75); }
+
+/* subtle 3D tilt on pointer — CSS only, disabled on touch/reduced */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  #journey-card { transform-style: preserve-3d; will-change: transform; }
+}
+
+/* ─── MOON PANEL (Küyen chapter — real lunar phase) ─── */
+#journey-moon {
+  display: none;
+  margin: 16px auto 4px;
+  text-align: center;
+}
+#journey-moon.on { display: block; }
+#journey-moon svg {
+  width: 92px;
+  height: 92px;
+  filter: drop-shadow(0 0 16px rgba(240, 237, 232, 0.3));
+}
+#journey-moon .j-moon-name {
+  font-family: var(--j-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--j-gold);
+  margin-top: 10px;
+}
+#journey-moon .j-moon-pct {
+  font-family: var(--j-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  color: rgba(240, 237, 232, 0.5);
+  margin-top: 4px;
+}
+
+/* ─── THE FRAGMENT — 8-bit pixel meteorite crossing the sky ─── */
+#j-fragment {
+  position: fixed;
+  z-index: 58;
+  width: 44px;
+  height: 44px;
+  display: none;
+  cursor: pointer;
+  /* generous hit area */
+  padding: 14px;
+  box-sizing: content-box;
+  will-change: transform;
+}
+#j-fragment.on { display: block; }
+#j-fragment .j-px {
+  position: absolute;
+  inset: 14px;
+  image-rendering: pixelated;
+}
+/* pixel sprite drawn with box-shadow grid — pure CSS 8-bit */
+#j-fragment .j-px::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: transparent;
+  box-shadow:
+    /* iron core (bone/silver) */
+    16px 8px  0 #d8d4cc, 20px 8px  0 #b8b4aa,
+    12px 12px 0 #b8b4aa, 16px 12px 0 #f0ede8, 20px 12px 0 #d8d4cc, 24px 12px 0 #8a867e,
+    8px 16px  0 #8a867e, 12px 16px 0 #d8d4cc, 16px 16px 0 #f0ede8, 20px 16px 0 #b8b4aa, 24px 16px 0 #6a665e,
+    12px 20px 0 #8a867e, 16px 20px 0 #b8b4aa, 20px 20px 0 #8a867e,
+    16px 24px 0 #6a665e,
+    /* gold glint pixels */
+    24px 8px  0 #f0c060, 28px 12px 0 rgba(240, 192, 96, 0.7),
+    4px 20px  0 rgba(240, 192, 96, 0.6);
+  animation: j-px-shimmer 0.9s steps(2) infinite;
+}
+@keyframes j-px-shimmer {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.35); }
+}
+/* ion trail */
+#j-fragment .j-trail {
+  position: absolute;
+  top: 50%;
+  right: 100%;
+  width: 90px;
+  height: 2px;
+  background: linear-gradient(to left, rgba(240, 192, 96, 0.75), transparent);
+  transform: translateY(-50%);
+}
+#j-fragment.j-return .j-px::before { animation-duration: 1.6s; }
+#j-fragment.j-return { filter: drop-shadow(0 0 10px rgba(240, 192, 96, 0.65)); }
+body.touch #j-fragment .j-trail { display: none; }
+
+/* capture feedback — shatter pixels */
+.j-shard {
+  position: fixed;
+  z-index: 59;
+  width: 4px;
+  height: 4px;
+  pointer-events: none;
+  image-rendering: pixelated;
+}
+
+/* fragment status toast — terminal line */
+#j-toast {
+  position: fixed;
+  z-index: 63;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  font-family: var(--j-mono);
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--j-gold);
+  background: rgba(8, 7, 6, 0.85);
+  border: 1px solid rgba(240, 192, 96, 0.3);
+  padding: 12px 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+  text-align: center;
+  max-width: calc(100vw - 40px);
+}
+#j-toast.on { opacity: 1; }
+#j-toast.j-err { color: #e08484; border-color: rgba(224, 132, 132, 0.4); }
+
+/* ─── REWARD PANEL (chapter VI — coupon + email) ─── */
+#j-reward {
+  margin-top: 16px;
+  display: none;
+}
+#j-reward.on { display: block; }
+#j-reward .j-code-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+#j-reward .j-code {
+  flex: 1;
+  font-family: var(--j-mono);
+  font-size: 16px;
+  letter-spacing: 0.22em;
+  color: var(--j-gold);
+  background: rgba(240, 192, 96, 0.08);
+  border: 1px solid var(--j-gold-dim);
+  padding: 12px 10px;
+  text-align: center;
+  user-select: all;
+}
+#j-reward .j-copy {
+  font-family: var(--j-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--j-ink);
+  background: var(--j-gold);
+  border: none;
+  padding: 0 14px;
+  cursor: pointer;
+}
+#j-reward .j-code-note {
+  font-family: var(--j-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: rgba(240, 237, 232, 0.5);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+#j-reward .j-email-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+#j-reward input[type='email'] {
+  flex: 1;
+  font-family: var(--j-mono);
+  font-size: 12px;
+  color: var(--j-bone);
+  background: rgba(240, 237, 232, 0.06);
+  border: 1px solid rgba(240, 237, 232, 0.25);
+  padding: 10px 12px;
+  outline: none;
+}
+#j-reward input[type='email']:focus { border-color: var(--j-gold-dim); }
+#j-reward .j-send {
+  font-family: var(--j-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--j-gold);
+  background: none;
+  border: 1px solid var(--j-gold-dim);
+  padding: 0 14px;
+  cursor: pointer;
+}
+#j-reward .j-send:disabled { opacity: 0.4; cursor: default; }
+#j-reward .j-email-note {
+  font-family: var(--j-serif);
+  font-style: italic;
+  font-size: 12.5px;
+  color: rgba(240, 237, 232, 0.55);
+  margin-top: 8px;
+}
+#j-reward .j-shop {
+  display: block;
+  margin-top: 16px;
+  font-family: var(--j-mono);
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--j-ink);
+  background: var(--j-gold);
+  border: none;
+  padding: 13px 18px;
+  cursor: pointer;
+  text-decoration: none;
+}
+#j-reward .j-shop:hover { box-shadow: 0 0 24px rgba(240, 192, 96, 0.45); }
+
+/* ─── REDUCED MOTION ─── */
+@media (prefers-reduced-motion: reduce) {
+  #journey-card, #journey-invite, #j-toast { transition: none; }
+  #journey-hud .j-pip.now { animation: none; }
+  #j-fragment .j-px::before { animation: none; }
+  .star.j-target::after { animation: none; opacity: 0.7; }
+}
+
+/* ─── KEYBOARD FOCUS (added 2026-07-10, audit fix) ─── */
+#journey-invite button:focus-visible,
+#journey-hud:focus-visible,
+.j-next:focus-visible,
+.j-min:focus-visible,
+.j-copy:focus-visible,
+.j-send:focus-visible,
+.j-shop:focus-visible,
+#j-reward input[type='email']:focus-visible {
+  outline: 2px solid #f0c060;
+  outline-offset: 2px;
+}
