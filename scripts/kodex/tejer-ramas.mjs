@@ -14,6 +14,14 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const g = JSON.parse(readFileSync('public/kodex-content/graph.json', 'utf8'));
 
+/* LAS CAPTURAS SALEN DEL GRAFO. Directiva del creador: no se publican, y por
+   lo tanto el descenso no puede ofrecerlas — si lo hiciera, mandaría a una
+   página que ya no existe. Se leen del manifiesto, que es donde vive la marca
+   `descartado: "captura-de-pantalla"` con su evidencia. */
+const man = JSON.parse(readFileSync('public/kodex-content/manifest.json', 'utf8'));
+const capturas = new Set((man.volumes ?? []).filter((v) => v.descartado).map((v) => v.id));
+console.log(`capturas excluidas del grafo: ${capturas.size}`);
+
 /* 1.309 de los 1.427 nodos tienen por título su propio hash ("0050aebb-49347").
    No son un error: son especímenes del archivo que todavía nadie nombró. Poner
    ese hash en una puerta como si fuera un título sería presentar un dato falso,
@@ -21,7 +29,7 @@ const g = JSON.parse(readFileSync('public/kodex-content/graph.json', 'utf8'));
    que le falta en vez de disimularlo. */
 const esHash = (t) => !t || /^[0-9a-f]{8}-\d+$/i.test(t) || t.length < 3;
 
-const nodos = g.nodes.map((n) => ({
+const nodos = g.nodes.filter((n) => !capturas.has(n.node_id)).map((n) => ({
   id: n.node_id,
   titulo: n.title,
   sinNombre: esHash(n.title) || undefined,

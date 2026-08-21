@@ -14,6 +14,7 @@ import { recordar, derivados } from './memoria';
 import '../../styles/kodex-descenso.css';
 import { sonidoProfundidad } from './sonido-montar';
 import { atravesarHaciaDentro, montarTravesia, prepararTravesia } from './travesia';
+import { respirar, toca, prepararRespiracion } from './respiracion';
 
 /**
  * LA PLACA SE CONSTRUYE ACÁ, no en el markup del componente.
@@ -318,6 +319,12 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
        vez". El túnel es el feedback pass que ya existía en el repo, no una
        animación nueva. */
     void atravesarHaciaDentro(560);
+    /* Cada dos niveles se respira: aparece una obra suya a pantalla completa,
+       sin nada encima, y el descenso espera a que la persona siga. Es la
+       ACTIVATOR PLATE de §20 — "respiration + authorial encounter". */
+    if (toca(v.profundidad)) {
+      void respirar(v.firma, v.profundidad);
+    }
     /* Historial real: Atrás sube un nivel, como debe ser. */
     history.pushState({ kdx: v.profundidad, escena }, '', `#descent-${v.profundidad}`);
     abrirNivel();
@@ -327,6 +334,7 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     /* El shader se pide ACÁ, no al descender: abrir la placa ya es atención
        declarada, y compilarlo tarda casi tres segundos en producción. */
     prepararTravesia();
+    prepararRespiracion();
     placa.hidden = false;
     document.documentElement.style.overflow = 'hidden';
     recordar('DESCENT_OPENED', `scene-${escena}`, { depth: 0 });
