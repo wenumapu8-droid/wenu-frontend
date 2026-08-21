@@ -13,7 +13,7 @@ import { bifurcar, firmaDeRuta, PROFUNDIDAD_CORAZON, type Corpus, type Puerta, t
 import { recordar, derivados } from './memoria';
 import '../../styles/kodex-descenso.css';
 import { sonidoProfundidad } from './sonido-montar';
-import { atravesarHaciaDentro, montarTravesia } from './travesia';
+import { atravesarHaciaDentro, montarTravesia, prepararTravesia } from './travesia';
 
 /**
  * LA PLACA SE CONSTRUYE ACÁ, no en el markup del componente.
@@ -324,6 +324,9 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
   };
 
   const abrir = () => {
+    /* El shader se pide ACÁ, no al descender: abrir la placa ya es atención
+       declarada, y compilarlo tarda casi tres segundos en producción. */
+    prepararTravesia();
     placa.hidden = false;
     document.documentElement.style.overflow = 'hidden';
     recordar('DESCENT_OPENED', `scene-${escena}`, { depth: 0 });

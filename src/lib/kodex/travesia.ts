@@ -51,6 +51,12 @@ let runtime: InstanceType<typeof KdxThresholdPortalRuntime> | null = null;
 let lienzo: HTMLCanvasElement | null = null;
 let raf = 0;
 let t0 = 0;
+/* Hasta cuándo la travesía en curso tiene la posta. Hay DOS llamadores sobre
+   un solo runtime —el descenso y el observador del corredor— y medido en
+   producción el segundo cancelaba al primero a los tres cuadros: el túnel
+   duraba 50ms a opacidad 0.25 y no se veía. Una travesía empezada se termina;
+   la que llega encima espera su turno o se descarta. */
+let hasta = 0;
 
 function crearLienzo(): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -78,8 +84,11 @@ async function preparar(obra?: string): Promise<void> {
   await runtime.load();
 }
 
-function correr(f: Forma, ms: number, saliendo: boolean): void {
+function correr(f: Forma, ms: number, saliendo: boolean, forzar = false): void {
   if (!runtime || !lienzo) return;
+  const ahora = performance.now();
+  if (!forzar && ahora < hasta) return;   // hay una travesía en curso: no se pisa
+  hasta = ahora + ms;
   const C = FORMAS[f] ?? FORMAS.paso;
   runtime.setState(C.estado);
   runtime.setPointer(C.foco[0], C.foco[1]);
@@ -134,10 +143,30 @@ export function montarTravesia(): void {
   }, { passive: true });
 }
 
+/**
+ * Precarga. MEDIDO EN PRODUCCIÓN y por eso existe: el runtime tarda ~2,9s en
+ * bajar y compilar sus tres shaders, así que pedirlo recién al descender hacía
+ * que el túnel llegara DESPUÉS de que el contenido ya había cambiado — el
+ * lienzo aparecía con opacidad 0 y la travesía no se veía nunca. Localmente no
+ * se notaba porque los archivos estaban en disco.
+ *
+ * Se precarga al ABRIR la placa, que es cuando el visitante ya declaró
+ * atención: cumple §11 —el costo escala con la atención actual— sin pagar el
+ * shader en cada carga de página.
+ */
+export function prepararTravesia(obra?: string): void {
+  void preparar(obra);
+}
+
 /** Para el descenso: atravesar hacia dentro al bajar un nivel. */
 export async function atravesarHaciaDentro(ms = 620): Promise<void> {
-  await preparar();
-  correr('absorcion', ms, true);
+  /* Si todavía no está listo, NO se espera: una travesía que llega tarde es
+     peor que no tenerla, porque se ve el corte y después el efecto. Se
+     descarta este cruce y el siguiente ya la tendrá. */
+  if (!runtime) { void preparar(); return; }
+  /* Las dos mitades del mismo cruce se fuerzan entre sí: son un movimiento,
+     no dos travesías compitiendo. */
+  correr('absorcion', ms, true, true);
   await new Promise((r) => setTimeout(r, ms));
-  correr('absorcion', ms, false);
+  correr('absorcion', ms, false, true);
 }
