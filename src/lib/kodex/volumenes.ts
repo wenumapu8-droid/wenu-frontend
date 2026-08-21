@@ -153,11 +153,31 @@ export type VolumenResuelto = Volumen & {
 };
 
 /** Valida, completa y resuelve el estrato de cada volumen. */
-export function resolver(m: Manifiesto): VolumenResuelto[] {
+/**
+ * `incluirDescartados` existe por una razón concreta y no por simetría de API.
+ *
+ * Las 828 capturas salen del LISTADO, pero sus páginas se siguen generando.
+ * Si desaparecieran, el grafo -- que tiene 1.427 nodos y no sabe nada de esta
+ * decisión -- mandaría al visitante a páginas muertas desde el descenso. Sacar
+ * algo de la vista no es lo mismo que hacerlo inexistente, y romper la
+ * navegación de otro agente para limpiar una grilla sería un mal negocio.
+ */
+export function resolver(m: Manifiesto, opciones?: { incluirDescartados?: boolean }): VolumenResuelto[] {
+  const incluirDescartados = opciones?.incluirDescartados === true;
   const porId = new Map(m.estratos.map((e) => [e.id, e]));
 
   return m.volumenes
     .filter((v) => {
+      /* CAPTURAS DE PANTALLA FUERA DEL ARCHIVO.
+         El archivo tenía 828 entradas de 1.279 cuya portada no era obra sino
+         una foto de pantalla: tableros de Pinterest, reels de Instagram,
+         búsquedas de Google, capturas del propio wenumapuonline, un formulario,
+         un código QR. Ocín las vio en la grilla y pidió sacarlas.
+         No se borran: la ficha queda entera en el manifiesto con
+         `descartado: "captura-de-pantalla"` y la evidencia de por qué. Dejan de
+         mostrarse, y volver a mostrarlas es quitar una línea.
+         Ver docs/kodex/CAPTURAS-RETIRADAS-2026-08-21.json */
+      if (!incluirDescartados && (v as { descartado?: string }).descartado) return false;
       const ok = v?.id && v?.tipo && v?.titulo_es;
       if (!ok) console.warn(`[kodex] volumen descartado — falta id, tipo o titulo_es:`, v?.id ?? "(sin id)");
       return ok;
