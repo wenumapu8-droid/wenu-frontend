@@ -184,6 +184,35 @@
    La plancha se mira como cartel arriba; su contenido se lee debajo, en
    tamaño de lectura. Medido: escalada a 390 px la tipografía caía a 3–4 px y
    24 de 29 textos eran ilegibles. */
+/* ── blindaje contra la herencia de la plancha ──────────────────────────────
+   39 de las 39 láminas declaran `html, body { … }` en su propio bloque, y esas
+   hojas se empaquetan DESPUÉS de esta. Todo lo heredable que pongan ahí se
+   filtra dentro de estas dos capas: ya pasó una vez y las señales salieron
+   NEGRAS SOBRE NEGRO, invisibles, con todas las métricas en verde.
+
+   No se resuelve inflando especificidad —nadie más usa estas clases, así que
+   no hay pelea de cascada que ganar— sino declarando explícitamente en la raíz
+   de cada capa lo que no debe heredarse. Es más barato y más honesto: la capa
+   se define a sí misma en vez de defenderse de la página.
+
+   `revert-layer` no sirve acá porque no hay capas declaradas; los valores van
+   explícitos. */
+.kdx-vida, .kdx-mov{
+  color:#f0ede8;
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+  font-weight:400; font-style:normal;
+  letter-spacing:normal; word-spacing:normal;
+  line-height:1.5; text-align:left; text-transform:none;
+  text-indent:0; white-space:normal; text-shadow:none;
+  font-variant:normal; direction:ltr;
+}
+/* Y el botón, que además hereda del user-agent y de cualquier regla `button`
+   que la plancha declare después. */
+.kdx-vida__s, .kdx-vida__regla, .kdx-vida__apagar{
+  font-family:inherit; text-transform:none; text-indent:0;
+  -webkit-appearance:none; appearance:none; border-radius:0;
+}
+
 .kdx-mov{
   display:none;
   padding:clamp(20px,6vw,30px) clamp(16px,5vw,24px) 96px;
@@ -205,4 +234,364 @@
   /* la obra deja de ocupar la pantalla entera: es el cartel, no la página */
   body:has(.kdx-mov) .lam{ position:relative !important; }
   body:has(.kdx-mov){ height:auto !important; overflow-y:auto !important; }
+}
+
+/* ── KDX.LIFE · las señales vivas ───────────────────────────────────────────
+   El tercer motor del handoff de Ocín (2026-08-20): rule blocks, cellular
+   behavior, presets, emergence, mutation. Sus palabras en castellano el mismo
+   día: "que vayan apareciendo señales e infográficos de una misma experiencia
+   como botones que interactúen con la experiencia o que transformen, den color
+   y transformen, aceleren, roten".
+
+   Va en hoja global y no en <style> de componente porque las señales las crea
+   `montar.ts` en tiempo de ejecución: un nodo creado en runtime nunca recibe el
+   atributo de scope de Astro y todas sus reglas quedarían sin aplicar. Ya pasó
+   con las puertas del descenso y sólo se vio mirando la captura. */
+
+.kdx-vida{
+  position:fixed; inset:0; z-index:6; pointer-events:none;
+  font-family:'IBM Plex Mono',ui-monospace,monospace;
+}
+.kdx-vida[data-apagada="si"] .kdx-vida__campo{ display:none; }
+/* Fuera de vista la plancha, la capa entera se retira: no flota sobre el
+   lector de texto en móvil. */
+.kdx-vida[data-fuera="si"]{ opacity:0; pointer-events:none; transition:opacity .3s ease; }
+html[data-kdx-frozen] .kdx-vida{ display:none; }
+
+/* La caja la fija `montar.ts` sobre la plancha: ver el comentario de
+   `encuadrar()`. Acá sólo se declara que es una capa, no dónde. */
+.kdx-vida__campo{ position:fixed; }
+
+/* La señal. 44px de área táctil aunque el glifo sea chico: el dedo necesita
+   blanco, la plancha necesita que no la tapen. Se resuelve con padding
+   transparente, no agrandando el glifo. */
+.kdx-vida__s{
+  position:absolute; transform:translate(-50%,-50%);
+  display:grid; place-items:center;
+  width:44px; height:44px; padding:0; margin:0;
+  background:none; border:0; cursor:pointer; pointer-events:auto;
+  /* color explícito y no heredado: heredar daba negro sobre negro */
+  color:var(--kdx-v-color,#f0ede8);
+  font-size:calc(15px + var(--kdx-v-peso,0) * 9px);
+  line-height:1;
+  opacity:calc(.42 + var(--kdx-v-peso,0) * .5);
+  text-shadow:0 0 calc(4px + var(--kdx-v-peso,0) * 10px) currentColor;
+  transition:opacity .3s ease, font-size .3s ease;
+}
+.kdx-vida__s:hover,.kdx-vida__s:focus-visible{ opacity:1; }
+.kdx-vida__s:focus-visible{ outline:1px solid currentColor; outline-offset:2px; }
+/* Gira, y gira MÁS LENTO cuanto más vieja es la señal: la edad es el dato y la
+   velocidad es ese dato hecho visible. Al tocarla se acelera antes de mutar. */
+/* El glifo gira DENTRO del botón; el botón no se mueve. Rotar el botón con su
+   translate(-50%,-50%) lo volvía intocable: el puntero perseguía un blanco en
+   movimiento. Se descubrió porque Playwright no lograba hacer click. */
+.kdx-vida__g{ display:block; font-style:normal; line-height:1; }
+@media (prefers-reduced-motion:no-preference){
+  .kdx-vida__g{ animation:kdx-vida-girar var(--kdx-v-giro,14s) linear infinite; }
+  .kdx-vida__s:active .kdx-vida__g{ animation-duration:.5s; }
+  @keyframes kdx-vida-girar{ to{ transform:rotate(360deg); } }
+}
+
+/* Abajo a la derecha, POR ENCIMA del botón NEXT PLATE.
+   Dos correcciones encadenadas, las dos vistas en captura y ninguna en las
+   métricas: abajo a la izquierda chocaba con NEXT PLATE; arriba a la derecha
+   tapaba el título de la obra. Regla de canon: la obra no se sacrifica al
+   layout — el control se corre, la plancha no. */
+.kdx-vida__barra{
+  position:fixed; right:12px; bottom:calc(72px + env(safe-area-inset-bottom,0px));
+  align-items:flex-end; flex-direction:column;
+  display:flex; flex-wrap:wrap; gap:6px; pointer-events:auto; max-width:calc(100vw - 24px);
+}
+/* ── la barra COLAPSA, igual que la navegación ──────────────────────────────
+   El detector de solapamientos, ya corregido para recortar contra ancestros
+   con scroll, mostró que "RULE · PULSE · B23/S23" y "SIGNALS OFF" se apoyaban
+   sobre el texto de la plancha al 100% en horizontal y en escritorio. La capa
+   de vida es control, no obra: se corre el control.
+
+   Mismo patrón que los enlaces de lámina —pestaña de 44px en reposo, rótulo al
+   tocar o enfocar— para que el sistema tenga un solo gesto y no dos. */
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__regla,
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__apagar{
+  width:44px; min-width:44px; padding:0; font-size:0;
+  overflow:hidden; justify-content:center;
+}
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__regla::before{ content:"◉"; font-size:13px; }
+.kdx-vida__barra:not(:hover):not(:focus-within) .kdx-vida__apagar::before{ content:"○"; font-size:13px; }
+/* En táctil no hay hover: se abre al tocar la pestaña, y el propio botón
+   informa con su `aria-label`, así que colapsado nunca queda mudo. */
+@media (hover:none){
+  .kdx-vida__barra:not(:focus-within) .kdx-vida__regla,
+  .kdx-vida__barra:not(:focus-within) .kdx-vida__apagar{ width:44px; min-width:44px; padding:0; font-size:0; }
+}
+
+.kdx-vida__regla,.kdx-vida__apagar{
+  min-height:44px; padding:0 12px; cursor:pointer;
+  transition:width .2s ease, padding .2s ease;
+  background:rgba(6,6,8,.7); backdrop-filter:blur(6px);
+  border:1px solid rgba(240,237,232,.16);
+  color:rgba(240,237,232,.7);
+  font:9.5px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:.18em;
+  display:inline-flex; align-items:center; white-space:nowrap;
+}
+.kdx-vida__regla{ color:var(--kdx-v-color,#f0ede8); border-color:currentColor; }
+.kdx-vida__regla:hover,.kdx-vida__apagar:hover{ color:#fff; border-color:rgba(240,237,232,.5); }
+
+/* En móvil la barra cede el ancho antes que las señales: la barra es control,
+   las señales son la experiencia. */
+@media (max-width:560px){
+  .kdx-vida__barra{ right:8px; bottom:calc(66px + env(safe-area-inset-bottom,0px));
+    max-width:56vw; }
+  .kdx-vida__regla{ font-size:8.5px; letter-spacing:.1em; max-width:100%;
+    overflow:hidden; text-overflow:ellipsis; }
+}
+/* El lector móvil manda sobre la capa de vida cuando la plancha se fue de la
+   pantalla — eso lo resuelve `[data-fuera]` desde el observador, que funciona
+   aunque el navegador no soporte :has. */
+
+/* ── el desborde sin culpable ───────────────────────────────────────────────
+   Barriendo las 39 planchas a 390×844 quedó una con 57px de scroll horizontal
+   y NINGÚN elemento cuyo borde derecho pasara de 390. Ese patrón es la firma
+   de `100vw`: incluye el ancho de la barra de desplazamiento, así que un hijo
+   "del ancho de la pantalla" mide más que la pantalla. Ya había mordido antes
+   en el corredor y se resolvió igual.
+
+   `clip` y no `hidden`: `hidden` crea un contexto de desplazamiento que rompe
+   `position:sticky` de los hijos; `clip` recorta sin crearlo. Sólo el eje X —
+   el vertical tiene que seguir andando porque abajo vive el lector móvil. */
+html:has(.kdx-mov), html:has(.lam), html:has(.kdx-lam){ overflow-x:clip; }
+body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
+
+/* ── la navegación de la lámina, fuera de la obra ───────────────────────────
+   Ver `kit/navegacion.ts`. Con aire bajo la plancha, los enlaces bajan ahí y
+   `top` se lo pone el módulo. Sin aire, se retraen al borde: en reposo son una
+   pestaña angosta que no tapa nada, y se abren al tocarlas o enfocarlas. */
+.lam-salida[data-kdx-fuera="si"], .lam-siguiente[data-kdx-fuera="si"]{
+  background:rgba(6,6,8,.82);
+}
+.lam-siguiente[data-kdx-fuera="si"]{ bottom:auto; }
+
+/* Colapsados a pestaña: sólo cuando NO hay aire y la plancha ocupa todo.
+   Se achica la CAJA, no la opacidad — un enlace opaco sobre el texto lo tapa
+   igual, y el detector de solapamientos mide geometría. 44px sigue siendo el
+   área táctil mínima. */
+.lam-salida:not([data-kdx-fuera="si"]),
+.lam-siguiente:not([data-kdx-fuera="si"]){
+  width:44px; min-width:44px; padding:0; display:inline-flex;
+  align-items:center; justify-content:center; height:44px;
+  overflow:hidden; white-space:nowrap;
+  transition:width .22s ease, opacity .22s ease;
+}
+.lam-salida[data-kdx-abierto="si"],
+.lam-siguiente[data-kdx-abierto="si"]{
+  width:auto; min-width:0; padding:11px 16px; background:rgba(6,6,8,.94);
+}
+.lam-salida:not([data-kdx-fuera="si"]):hover,
+.lam-salida:not([data-kdx-fuera="si"]):focus-visible,
+.lam-siguiente:not([data-kdx-fuera="si"]):hover,
+.lam-siguiente:not([data-kdx-fuera="si"]):focus-visible{ opacity:1; }
+/* En pantalla táctil no hay hover, así que en vez de esconderlos se les da
+   fondo sólido: dejan de "flotar sobre" la obra y pasan a estar "delante de"
+   ella, que es legible y no ambiguo. */
+@media (hover:none){
+  .lam-salida:not([data-kdx-fuera="si"]),
+  .lam-siguiente:not([data-kdx-fuera="si"]){ background:rgba(6,6,8,.88); }
+}
+
+/* ── EL TRÍPTICO · la lámina en móvil, recompuesta en tres páginas ──────────
+   `23-MASTER-LAYOUT-RECIPE.txt`, bloque MOBILE, literal: "Do not miniature the
+   desktop composition." Y el creador: "ese concepto vive en las 3 páginas y
+   todo lo que está en la lámina se organiza de la mejor forma posible entre
+   los 3… nada se pierde, sólo se mejora y se optimiza."
+
+   La obra se monta UNA sola vez y sigue viva detrás; las tres páginas cambian
+   cómo se la mira, no la duplican. */
+
+@media (max-width:560px){
+  /* La plancha pasa a ser fondo: fija, centrada, y cada página decide cuánto
+     de ella se ve. No se le toca el transform de escala —eso lo maneja
+     `escala.ts`— sólo su opacidad y su encuadre. */
+  /* Se ancla por ATRIBUTO y no por clase: `.kdx-lam` es la clase del <body> en
+     la mayoría de las planchas, así que anclar por clase movía el body entero.
+     `[data-kdx-tri]` lo pone `triptico.ts` sobre la plancha real.
+
+     NO SE LE TOCA LA POSICIÓN. La primera versión le puso `left:50%; top:50%`
+     y la obra apareció descentrada abajo a la derecha: `escala.ts` ya la coloca
+     con su propio `transform` y `transform-origin:0 0`, así que sumarle un
+     desplazamiento la corre en vez de centrarla. Se vio en la captura, no en
+     ninguna métrica. Acá sólo se cambia su PRESENCIA —opacidad y desenfoque—,
+     que es lo único que distingue una página de otra. */
+  body:has(.kdx-tri) [data-kdx-tri]{
+    transition:opacity .45s ease, filter .45s ease;
+    z-index:0;
+  }
+  /* Prefijo `body:has(.kdx-tri)` = 0,3,0 y no 0,2,0. Sin él estas reglas
+     empataban en especificidad con el estilo de componente de la propia
+     plancha (`.lam[data-astro-cid-…]`), que se empaqueta DESPUÉS y por lo tanto
+     ganaba: la opacidad medía 1 en las tres páginas. A igual especificidad gana
+     la última del bundle, no la última del import — y el orden del bundle no lo
+     decide uno. Se gana por especificidad, no por orden. */
+  /* I SIGNAL — la obra atrás, como TEXTURA y no como texto.
+     Medido: con blur(1px) a .26 el cromo de la plancha seguía siendo texto
+     legible y atravesaba el titular al 100% ("PISO DE RUIDO" y "−112.6 dB"
+     sobre "SILENCE ENGINE"). La receta permite que ZONE B se apoye sobre el
+     campo visual —"sometimes overlapping the primary field"— pero es explícita
+     en que "never compete with another equally large headline". Dos textos en
+     el mismo lugar es esa competencia.
+     El desenfoque no esconde la obra: la convierte en lo que esta página
+     necesita que sea, un fondo. En FIELD vuelve entera y nítida. */
+  body:has(.kdx-tri) [data-kdx-tri="0"]{ opacity:.22; filter:blur(3.5px); }
+  /* II FIELD — la obra sola, entera, sin nada encima. */
+  body:has(.kdx-tri) [data-kdx-tri="1"]{ opacity:1; filter:none; }
+  /* III EVIDENCE — la obra cede el paso a los datos. */
+  body:has(.kdx-tri) [data-kdx-tri="2"]{ opacity:.13; filter:blur(4px); }
+
+  /* ── EL TEXTO DE LA PLANCHA NO SE REPITE ────────────────────────────────
+     En SIGNAL y en EVIDENCE se oculta el TEXTO de la lámina, no la lámina.
+     Sus formas —canvas, trazos, campos— quedan de fondo; sus rótulos no.
+     
+     La razón no es estética: es que ese texto YA ESTÁ en las tres páginas.
+     El tríptico lee los 92 bloques de la plancha y los reparte; dejarlos
+     también debajo los muestra dos veces. El detector lo destapó como 19
+     solapamientos contra mi propio titular —"PISO DE RUIDO" y "−112.6 dB"
+     encima de "SILENCE ENGINE"— y tenía razón: dos textos en el mismo lugar.
+     
+     Nada se pierde: se relocaliza, que es exactamente lo que pidió el creador
+     —"todo lo que está en la lámina se organiza de la mejor forma posible
+     entre los 3"—. En FIELD vuelve entero, porque ahí la obra se muestra tal
+     cual es.
+     
+     `visibility` y no `display`: no se reflota el layout de la plancha, que
+     está medido al pixel contra su referencia. */
+  body:has(.kdx-tri) [data-kdx-tri="0"] :is(svg text, p, h1, h2, h3, span, dd, dt, li, strong, b, em, small),
+  body:has(.kdx-tri) [data-kdx-tri="2"] :is(svg text, p, h1, h2, h3, span, dd, dt, li, strong, b, em, small){
+    visibility:hidden;
+  }
+
+  /* Con el tríptico montado, la navegación de lámina se va ARRIBA. Medido: la
+     pestaña "→" quedaba sobre la barra de pasos e interceptaba los toques —
+     Playwright no lograba pulsar "2 FIELD" y una persona tampoco habría
+     podido. La franja de abajo es de los pasos; los saltos entre láminas viven
+     arriba, donde el tríptico no pone nada. */
+  /* Los dos enlaces colapsan por igual. Antes sólo colapsaba el de "NEXT" y el
+     de salida quedaba extendido a 170px tapando el título de la propia obra —
+     asimetría visible en la captura que ninguna métrica reportaba. */
+  body:has(.kdx-tri) .lam-salida{
+    top:calc(10px + env(safe-area-inset-top,0px)) !important;
+    bottom:auto !important; left:10px !important;
+    width:44px !important; min-width:44px !important; padding:0 !important;
+    display:inline-flex !important; align-items:center; justify-content:center;
+    overflow:hidden; font-size:0 !important;
+  }
+  /* La flecha se repone por CSS: el rótulo completo se pierde de vista pero no
+     del DOM, así que el lector de pantalla lo sigue anunciando entero. */
+  body:has(.kdx-tri) .lam-salida::before{ content:"←"; font-size:14px; }
+  body:has(.kdx-tri) .lam-siguiente{
+    top:calc(10px + env(safe-area-inset-top,0px)) !important;
+    bottom:auto !important; left:auto !important; right:10px !important;
+    transform:none !important; width:44px !important; min-width:44px !important;
+    padding:0 !important;
+    display:inline-flex !important; align-items:center; justify-content:center;
+    overflow:hidden; font-size:0 !important;
+  }
+  /* Simétrico al de salida: el rótulo se oculta a la vista pero sigue en el
+     DOM, así que el lector de pantalla anuncia "NEXT PLATE · …" completo. */
+  body:has(.kdx-tri) .lam-siguiente::before{ content:"→"; font-size:14px; }
+  body:has(.kdx-tri) .lam-siguiente i{ display:none; }
+
+  /* El lector viejo se retira: era la miniaturización que la receta prohíbe. */
+  .kdx-mov{ display:none !important; }
+  /* La capa de vida ENTERA —señales y su barra— sólo respira en la página de la
+     obra. Antes se ocultaba sólo el campo y la barra "RULE · BLOOM" seguía
+     visible en SIGNAL, chocando con la boca del gusano. La regla es la misma
+     idea que las tres páginas: cada una muestra lo suyo y nada más. */
+  body:has(.kdx-tri) .kdx-vida{ opacity:0; pointer-events:none;
+    transition:opacity .35s ease; }
+  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida{ opacity:1; pointer-events:none; }
+  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida__s,
+  body:has(.kdx-tri[data-pagina="1"]) .kdx-vida__barra{ pointer-events:auto; }
+}
+
+.kdx-tri{ display:none; }
+@media (max-width:560px){
+  .kdx-tri{
+    display:block; position:fixed; inset:0; z-index:5;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
+    color:#f0ede8; pointer-events:none;
+  }
+  .kdx-tri__p{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; gap:12px;
+    padding:calc(58px + env(safe-area-inset-top,0px)) 20px
+            calc(84px + env(safe-area-inset-bottom,0px));
+    overflow-y:auto; overscroll-behavior:contain;
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .38s ease;
+  }
+  /* Una sola página a la vez, y la que se ve recibe el dedo. */
+  .kdx-tri[data-pagina="0"] .kdx-tri__p--signal,
+  .kdx-tri[data-pagina="1"] .kdx-tri__p--field,
+  .kdx-tri[data-pagina="2"] .kdx-tri__p--evidence{
+    opacity:1; visibility:visible; pointer-events:auto;
+  }
+
+  .kdx-tri__ojo{ margin:0; font-size:10px; letter-spacing:.28em; color:#ff2733; }
+  /* MACRO, de la receta: clamp(64px,14vw,260px), line-height .78-.95, 1-3 líneas */
+  .kdx-tri__macro{
+    margin:0; font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif;
+    font-weight:800; font-size:clamp(44px,14vw,96px); line-height:.86;
+    letter-spacing:-.01em; text-wrap:balance;
+  }
+  .kdx-tri__macro2{ margin:0; font-size:15px; letter-spacing:.14em; color:rgba(240,237,232,.72); }
+  /* El macro respira arriba y la cabecera se ancla abajo, con el vacío entre
+     medio: la receta pide "strong negative space" y eso es el vacío haciendo
+     trabajo, no un hueco por descuido. */
+  .kdx-tri__p--signal{ justify-content:flex-start; }
+  .kdx-tri__rail{ margin-top:auto; display:flex; flex-wrap:wrap; gap:4px 14px;
+    padding-bottom:8px; }
+  .kdx-tri__railt{ margin:0; font-size:10px; letter-spacing:.16em; color:rgba(240,237,232,.5); }
+
+  .kdx-tri__p--field{ justify-content:space-between; }
+  .kdx-tri__pie{ margin:0; font-size:10px; letter-spacing:.2em; color:rgba(240,237,232,.44); }
+
+  .kdx-tri__datos{ display:flex; flex-direction:column; gap:7px; }
+  /* 13px es el piso medido de legibilidad; la plancha original daba 3px. */
+  .kdx-tri__d{ margin:0; font-size:13px; line-height:1.5; letter-spacing:.02em;
+    color:rgba(240,237,232,.86); }
+  .kdx-tri__cont{ margin-top:14px; padding-top:12px;
+    border-top:1px solid rgba(240,237,232,.14); display:flex; flex-wrap:wrap; gap:4px 14px; }
+  .kdx-tri__e{ margin:0; font-size:10.5px; letter-spacing:.16em; color:rgba(240,237,232,.55); }
+
+  /* Los pasos: tres botones de dedo, siempre visibles, siempre en el mismo
+     lugar. Deslizar es atajo, no requisito. */
+  .kdx-tri__pasos{
+    position:absolute; left:0; right:0;
+    bottom:calc(30px + env(safe-area-inset-bottom,0px));
+    display:flex; gap:6px; justify-content:center; padding:0 12px;
+    pointer-events:auto;
+  }
+  .kdx-tri__punto{
+    flex:1; min-height:44px; padding:0 6px; cursor:pointer;
+    background:rgba(6,6,8,.74); backdrop-filter:blur(6px);
+    border:1px solid rgba(240,237,232,.16); color:rgba(240,237,232,.55);
+    font:8.5px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:.14em;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .kdx-tri__punto[aria-current="true"]{ color:#f0ede8; border-color:#ff2733; }
+
+  /* La boca del agujero de gusano, una por página. */
+  .kdx-tri__boca{
+    margin-top:14px; align-self:flex-start; min-height:48px; padding:12px 16px;
+    cursor:pointer; background:rgba(255,39,51,.08);
+    border:1px solid rgba(255,39,51,.42); color:#f0ede8;
+    font:10px/1 'IBM Plex Mono',ui-monospace,monospace; letter-spacing:.18em;
+  }
+  .kdx-tri__gusano{ margin-top:14px; display:flex; flex-direction:column; gap:7px; }
+  .kdx-tri__puerta{
+    display:flex; flex-direction:column; gap:4px; min-height:64px; padding:11px 13px;
+    text-decoration:none; color:#f0ede8;
+    background:rgba(240,237,232,.03); border:1px solid rgba(240,237,232,.16);
+  }
+  .kdx-tri__papel{ font-size:8.5px; letter-spacing:.24em; color:#ff2733; }
+  .kdx-tri__pt{ font-size:13px; letter-spacing:.04em; line-height:1.3; }
+  .kdx-tri__pest{ font-size:8.5px; letter-spacing:.14em; color:rgba(240,237,232,.42); }
 }
