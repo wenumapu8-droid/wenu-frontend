@@ -12,6 +12,7 @@
 import { bifurcar, firmaDeRuta, PROFUNDIDAD_CORAZON, type Corpus, type Puerta, type Viaje } from './ruta';
 import { recordar, derivados } from './memoria';
 import '../../styles/kodex-descenso.css';
+import { sonidoProfundidad } from './sonido-montar';
 
 /**
  * LA PLACA SE CONSTRUYE ACÁ, no en el markup del componente.
@@ -39,7 +40,9 @@ function construirPlaca(escena: string): HTMLElement {
     <canvas class="kdx-desc__espiral" aria-hidden="true"></canvas>
     <header class="kdx-desc__cab">
       <button class="kdx-desc__salir" type="button" data-kdx-cerrar-descenso>← ASCEND</button>
-      <p class="kdx-desc__medida">
+      <button class="kdx-desc__instr" type="button" data-kdx-instrumentos
+        aria-expanded="false" aria-label="Show instruments">◦</button>
+      <p class="kdx-desc__medida" data-kdx-medida hidden>
         <span data-kdx-hondura>DEPTH 0</span><span aria-hidden="true">·</span><span data-kdx-firma>ROUTE 0000</span>
       </p>
     </header>
@@ -138,7 +141,9 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     const pintar = (t: number) => {
       g.clearRect(0, 0, w, h);
       const cx = w / 2, cy = h / 2;
-      const r0 = Math.min(w, h) * 0.46;
+      /* 0.34 y no 0.46: la vuelta más externa entraba justo en el ancho y se
+         cortaba contra los bordes, que es lo contrario de converger. */
+      const r0 = Math.min(w, h) * 0.34;
       const giro = quieto ? 0 : t / 26000;
 
       /* Una vuelta por nivel: las ya bajadas quedan tenues, la actual encendida,
@@ -154,9 +159,15 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
           k ? g.lineTo(x, y) : g.moveTo(x, y);
         }
         g.closePath();
-        g.strokeStyle = ahora ? 'rgba(255,39,51,.5)'
-          : pasado ? 'rgba(240,237,232,.16)' : 'rgba(240,237,232,.05)';
-        g.lineWidth = ahora ? 1.4 : 1;
+        /* La espiral es AHORA el único indicador de profundidad: al sacar
+           «DEPTH 0 / 7» de la cabecera, el dibujo quedó solo con el trabajo.
+           Y con la vuelta actual al 50% de rojo se leía como un lazo suelto en
+           vez de como una espiral que converge. Se baja el acento y se sube el
+           resto: lo que informa es la FAMILIA de vueltas cerrándose, no una
+           sola gritando. */
+        g.strokeStyle = ahora ? 'rgba(255,39,51,.30)'
+          : pasado ? 'rgba(240,237,232,.20)' : 'rgba(240,237,232,.11)';
+        g.lineWidth = ahora ? 1.1 : 1;
         g.stroke();
       }
 
@@ -198,11 +209,25 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
 
       const meta = document.createElement('span');
       meta.className = 'kdx-p__meta';
-      const est = document.createElement('span');
-      est.className = 'kdx-p__est';
-      est.dataset.e = p.nodo.estatus;
-      est.textContent = p.nodo.estatus.replace('_', ' ');
-      meta.append(est);
+      /* ── el estatus se rotula sólo cuando es EXCEPCIÓN ───────────────────
+         Acá chocan dos reglas de canon y hay que decir cómo se resuelve, no
+         resolverlo en silencio:
+           · lo especulativo NUNCA se presenta como documentado;
+           · «el software desaparece y aparece el universo» — el manifiesto
+             nombra «VERIFIED» y «CANONICAL» entre lo que no debe estar a la
+             vista todo el tiempo.
+         Se cumplen las dos rotulando la EXCEPCIÓN y no la norma: 1.352 de
+         1.427 nodos son VERIFIED, así que ese rótulo no informa nada y sólo
+         hace ruido. Lo que informa es cuando algo NO está verificado. Eso se
+         sigue diciendo, siempre y a la vista. */
+      const RUIDO = p.nodo.estatus === 'VERIFIED' || p.nodo.estatus === 'CANONICAL';
+      if (!RUIDO) {
+        const est = document.createElement('span');
+        est.className = 'kdx-p__est';
+        est.dataset.e = p.nodo.estatus;
+        est.textContent = p.nodo.estatus.replace('_', ' ');
+        meta.append(est);
+      }
       if (p.nodo.estrato) {
         const e = document.createElement('span');
         e.textContent = p.nodo.estrato.toUpperCase().replace(/-/g, ' ');
@@ -227,7 +252,11 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
       : 'NO TRACE YET';
     const enCorazon = v.profundidad >= PROFUNDIDAD_CORAZON;
     ($('[data-kdx-corazon]') as HTMLElement).hidden = !enCorazon;
-    $('[data-kdx-ojo]').textContent = enCorazon ? 'THE CENTRE' : `LAYER ${v.profundidad + 1}`;
+    /* El ojo NO numera la capa. El manifiesto del creador nombra «LAYER 1»
+       entre lo que el visitante no necesita ver, y la espiral ya lo dice sin
+       palabras: una vuelta más cerrada por nivel. La palabra sobraba encima
+       del dibujo que la explica. */
+    $('[data-kdx-ojo]').textContent = enCorazon ? 'THE CENTRE' : '';
     $('[data-kdx-nota]').textContent = enCorazon
       ? 'Seven layers. This is the middle. The way out is the way you came.'
       : 'Each door records what you chose and what you left. Two people never descend the same.';
@@ -237,6 +266,9 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     const c = await traerCorpus();
     refrescarFirma();
     rotular();
+    /* El sonido baja con vos: cuanto más hondo, más cerrado el aire. Es el
+       mismo dato que dibuja la espiral, sonando. */
+    sonidoProfundidad(v.profundidad, PROFUNDIDAD_CORAZON);
     dibujarEspiral();
     if (v.profundidad >= PROFUNDIDAD_CORAZON) {
       lista.replaceChildren();
@@ -298,6 +330,18 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     $('[data-kdx-aqui]').textContent = 'CHOOSE AGAIN';
     abrirNivel();
   };
+
+  /* Los instrumentos, a pedido. "Puede aparecer ocasionalmente como
+     microdetalle estético —como mirar los instrumentos de una nave— pero no
+     puede dominar la escena." Un punto que se toca y aparece la lectura. */
+  const instr = placa.querySelector<HTMLButtonElement>('[data-kdx-instrumentos]');
+  const medida = placa.querySelector<HTMLElement>('[data-kdx-medida]');
+  instr?.addEventListener('click', () => {
+    const abierto = instr.getAttribute('aria-expanded') === 'true';
+    instr.setAttribute('aria-expanded', String(!abierto));
+    if (medida) medida.hidden = abierto;
+    instr.textContent = abierto ? '◦' : '◉';
+  });
 
   boca.addEventListener('click', abrir);
   /* Cerrar es DIRECTO, y además se corrige el historial.
