@@ -168,13 +168,13 @@ const letras = [...texto];
 
   @keyframes kdx-glitch-pulso-menos {
     0%,100% { opacity: 0; transform: none; clip-path: none; }
-    20%     { opacity: .8; transform: translate3d(-.05em, -.012em, 0); clip-path: inset(12% 0 54% 0); }
-    55%     { opacity: .55; transform: translate3d(-.02em, .014em, 0); clip-path: inset(58% 0 16% 0); }
+    18%     { opacity: .95; transform: translate3d(-.075em, -.014em, 0); clip-path: inset(10% 0 52% 0); }
+    52%     { opacity: .7;  transform: translate3d(-.03em, .016em, 0);  clip-path: inset(56% 0 14% 0); }
   }
   @keyframes kdx-glitch-pulso-mas {
     0%,100% { opacity: 0; transform: none; clip-path: none; }
-    20%     { opacity: .8; transform: translate3d(.05em, .012em, 0); clip-path: inset(46% 0 22% 0); }
-    55%     { opacity: .55; transform: translate3d(.02em, -.014em, 0); clip-path: inset(8% 0 62% 0); }
+    18%     { opacity: .95; transform: translate3d(.075em, .014em, 0);  clip-path: inset(44% 0 20% 0); }
+    52%     { opacity: .7;  transform: translate3d(.03em, -.016em, 0);  clip-path: inset(6% 0 60% 0); }
   }
   @keyframes kdx-glitch-pulso-cero {
     0%,100% { transform: none; }
@@ -243,9 +243,31 @@ const letras = [...texto];
    */
   function reposo(el: HTMLElement) {
     let vivo = true;
+
+    /* EL PULSO RESPONDE A LA PRESENCIA, no a un reloj suelto.
+       Estaba cada 4,5 a 11 segundos y en la práctica nadie lo veía: el
+       visitante llega, mira dos segundos y se va con la impresión de que el
+       título es estático. Ocín preguntó si la portada tenía las fuentes
+       dinámicas y con esa cadencia la respuesta honesta era "están, pero no se
+       sienten".
+       KDX-MOTION-REF-003: "AWARE: tiny phase displacement". Cuando el sistema
+       nota que hay alguien, la palabra lo acusa. Cuando el visitante apunta a
+       la puerta -- LOCKED -- se acelera. Eso es KODEX respondiendo, que es lo
+       que el manifiesto pide: "el visitante elige, KODEX responde". */
+    const CADENCIA: Record<string, number> = {
+      idle: 5200,      // nadie mirando: raro, casi dormido
+      aware: 2100,     // alguien llegó
+      locked: 1200,    // apunta a la puerta
+      active: 900,
+      transitionOut: 900,
+    };
+
     const siguiente = () => {
       if (!vivo) return;
-      const espera = 4500 + Math.floor(performance.now() % 6500);
+      const estado = document.documentElement.dataset.kdxState || 'idle';
+      const base = CADENCIA[estado] ?? 5200;
+      // irregular a propósito: un latido regular se vuelve metrónomo
+      const espera = base + Math.floor((performance.now() * 7) % (base * 0.8));
       window.setTimeout(() => {
         if (!vivo || document.hidden || !el.isConnected) { siguiente(); return; }
         el.dataset.kdxGlitchPulso = '';
@@ -253,6 +275,21 @@ const letras = [...texto];
       }, espera);
     };
     siguiente();
+
+    /* Y un pulso inmediato la primera vez que aparece alguien. Es el momento
+       en que el archivo deja de estar solo; que la palabra no lo acuse sería
+       desperdiciar el único instante que el visitante sí está mirando. */
+    let acusado = false;
+    const acusar = () => {
+      if (acusado || !vivo) return;
+      acusado = true;
+      el.dataset.kdxGlitchPulso = '';
+      window.setTimeout(() => delete el.dataset.kdxGlitchPulso, 340);
+    };
+    for (const ev of ['pointermove', 'touchstart', 'keydown'] as const) {
+      addEventListener(ev, acusar, { once: true, passive: true });
+    }
+
     document.addEventListener('astro:before-swap', () => { vivo = false; }, { once: true });
   }
 
