@@ -21,20 +21,25 @@
  *   la cámara, no la obra."
  * · NADA ENCIMA. Ni título, ni ficha, ni botón dibujado. Se toca donde sea y
  *   se sigue. "La imagen domina."
- * · LA OBRA ES SUYA Y ESTÁ VERIFICADA. `obras.json` sale del registro de
- *   assets filtrando por `origin: KODEX-ORIGINAL`, `creator: Ocín`, uso
- *   comercial permitido, y ARCHIVO PRESENTE en disco. Ninguna generada,
- *   ninguna de referencia, ninguna capturada. Marca y cromo excluidos: no son
- *   obra para contemplar.
+ * · LA OBRA ES SUYA Y ESTÁ VERIFICADA. `obras.json` sale del MANIFIESTO
+ *   CURADO —sólo volúmenes sin la marca `descartado: "captura-de-pantalla"`—
+ *   y sólo los que tienen archivo presente. 435 obras.
+ *
+ *   La primera versión salía del registro de assets y habría mostrado 2.712
+ *   imágenes, con las 896 capturas del creador mezcladas adentro. Se frenó
+ *   antes de publicarla: mostrarle una captura suya como si fuera obra habría
+ *   sido exactamente lo contrario de lo que pidió.
  * · CUÁL TE TOCA DEPENDE DE TU CAMINO. Se elige con la firma de ruta, así que
  *   dos personas no ven la misma obra en el mismo punto, y vos volvés a ver la
  *   tuya si repetís el camino.
  */
 
-let obras: string[] | null = null;
-let pidiendo: Promise<string[]> | null = null;
+type Obra = { id: string; titulo: string | null; grande: string; chica: string };
 
-function traerObras(): Promise<string[]> {
+let obras: Obra[] | null = null;
+let pidiendo: Promise<Obra[]> | null = null;
+
+function traerObras(): Promise<Obra[]> {
   if (obras) return Promise.resolve(obras);
   pidiendo ||= fetch('/kodex-content/obras.json')
     .then((r) => r.json())
@@ -60,18 +65,23 @@ export function toca(profundidad: number): boolean {
  * continúa. Una imagen que falla no puede ser una puerta cerrada.
  */
 export async function respirar(firma: number, profundidad: number): Promise<void> {
-  const lista = await traerObras().catch(() => [] as string[]);
+  const lista = await traerObras().catch(() => [] as Obra[]);
   if (!lista.length) return;
 
   /* La obra sale de la firma de ruta y de la hondura: tu camino elige. */
   const i = Math.abs((firma ^ (profundidad * 2654435761)) >>> 0) % lista.length;
-  const src = lista[i];
+  const obra = lista[i];
+  /* En teléfono se pide la versión chica: bajar dos megas para mirar cinco
+     segundos es cobrarle a la persona por respirar. */
+  const src = matchMedia('(max-width:560px)').matches ? obra.chica : obra.grande;
 
   return new Promise<void>((seguir) => {
     const capa = document.createElement('div');
     capa.className = 'kdx-respira';
     capa.setAttribute('role', 'img');
-    capa.setAttribute('aria-label', 'A work by Ocín. Tap to continue.');
+    capa.setAttribute('aria-label', obra.titulo
+      ? `${obra.titulo} — a work by Ocín. Tap to continue.`
+      : 'A work by Ocín. Tap to continue.');
     capa.tabIndex = 0;
 
     const img = document.createElement('img');
