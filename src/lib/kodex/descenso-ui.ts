@@ -376,7 +376,56 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     instr.textContent = abierto ? '◦' : '◉';
   });
 
+  /* ── LA BOCA SE UBICA MIDIENDO, NO CON UN NÚMERO ────────────────────────
+     Se movió dos veces por número fijo —58px y después 120px— y las dos veces
+     cayó encima de otra cosa: primero de la barra del mazo, después del CTA
+     `SPECIMEN DATA` de la escena, al 100%. Un número mágico sólo acierta hasta
+     que alguien agrega un control abajo.
+     
+     Ahora mira qué hay realmente en la franja inferior y se pone ARRIBA de lo
+     más alto que encuentre. Es la misma solución que ya usa la navegación de
+     las láminas: medir la caja real en vez de suponerla. Se recalcula al rotar
+     y cuando las fases terminan de revelar. */
+  const ubicar = () => {
+    /* Se sube hasta quedar LIBRE, comprobándolo. La versión anterior sólo
+       miraba elementos `fixed` y `SPECIMEN DATA` no lo es: está en el flujo
+       normal de la escena, así que el barrido lo ignoraba y la boca seguía
+       encima al 100%.
+       
+       Acá no se clasifica nada: se prueba. Se baja la boca al piso, se mide
+       contra todo lo que tenga texto visible, y si choca sube 8px y se vuelve
+       a medir. Máximo 40 pasos —320px— para no subirse a la obra. */
+    boca.style.bottom = `calc(16px + env(safe-area-inset-bottom,0px))`;
+    const choca = () => {
+      const m = boca.getBoundingClientRect();
+      for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+        if (el === boca || boca.contains(el) || el.contains(boca)) continue;
+        if (!el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
+        const propio = [...el.childNodes].filter((n) => n.nodeType === 3)
+          .map((n) => n.textContent?.trim() ?? '').join('').length;
+        if (propio < 2) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width < 4 || r.height < 4) continue;
+        const ox = Math.min(m.right, r.right) - Math.max(m.left, r.left);
+        const oy = Math.min(m.bottom, r.bottom) - Math.max(m.top, r.top);
+        if (ox > 2 && oy > 2) return true;
+      }
+      return false;
+    };
+    for (let k = 0; k < 40 && choca(); k++) {
+      const y = 16 + (k + 1) * 8;
+      boca.style.bottom = `calc(${y}px + env(safe-area-inset-bottom,0px))`;
+    }
+  };
+
   montarTravesia();
+  ubicar();
+  addEventListener('resize', ubicar);
+  /* Las fases revelan controles con retraso; sin este segundo pase la boca se
+     ubica contra una franja que todavía no está completa. */
+  setTimeout(ubicar, 1200);
+  setTimeout(ubicar, 3600);
+
   boca.addEventListener('click', abrir);
   /* Cerrar es DIRECTO, y además se corrige el historial.
      Antes el botón sólo hacía `history.back()` y confiaba en que el popstate
