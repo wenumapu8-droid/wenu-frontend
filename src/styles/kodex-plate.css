@@ -374,8 +374,23 @@
     display: flex;
     flex-wrap: wrap;
     align-content: flex-end;
+    /* Sin esto, los botones se estiran al alto de su LÍNEA. En RETURN la
+       constelación del espécimen comparte línea con el botón principal y
+       "COLLECT A FRAGMENT" terminaba midiendo 331px de alto: un rectángulo
+       verde de media pantalla con una palabra adentro. El barrido daba cero
+       porque un botón gigante no se superpone con nada.
+       Cada control conserva su alto propio. */
+    align-items: flex-start;
     gap: 8px;
     margin: 2px 0 0;
+    /* `align-items` no era la causa y la medición lo dijo: el botón siguió en
+       331px. La caja de RETURN quedaba en `flex-direction:column` (de la regla
+       de más arriba) MÁS `flex-wrap:wrap` (de ésta), y una caja en columna que
+       envuelve reparte sus hijos en COLUMNAS. Por eso los cuatro controles
+       empezaban todos en y=337: la constelación en una columna, el botón
+       principal en otra estirado a 331px, y los dos secundarios en una
+       tercera. Se ve como un rectángulo verde de media pantalla al lado de dos
+       renglones grises. En 390px eso se apila y punto. */
     /* 96px de relleno inferior heredados de la hoja vieja: eran el hueco
        muerto entero. En el layout antiguo separaban del pie flotante; con el
        contrato el pie ya tiene lugar reservado y el relleno empuja al vacío. */
@@ -726,4 +741,156 @@
 }
 @supports not (max-height: 1cqh) {
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo .kdx-cosmo__svg { max-height: 62vh; }
+}
+
+/* ── LA TELEMETRÍA ASTRONÓMICA VIVÍA DETRÁS DE LA OBRA ────────────────────
+   `.kx-astro` es `fixed` en y=64-82 con z 54. El marco de la obra ocupa
+   y=52-271 y pinta por encima: `elementFromPoint` sobre el centro del
+   contador devuelve la figura, no la tira. Medido en folios I, IV y VI a
+   390px -- "01 / 07", "PROLOGUE", "06 / 07" y el rótulo de la escena, todos
+   detrás de un panel con fondo negro al 62%.
+
+   No se corrige subiéndola: ponerla por encima sería escribir telemetría
+   sobre la obra, que es el error contrario y el que más molesta al creador.
+   El 07D ya decía qué hacer con ella en teléfono -- "astronomy telemetry
+   should be contextual rather than permanently occupying the phone viewport",
+   y el KDX.OS móvil se queda con marca, señal, un grupo de navegación y el
+   índice. Nada de lo que dice se pierde: el ordinal de escena sigue en el
+   contador de la barra.                                                      */
+@media (max-width: 560px), (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-astro { display: none; }
+}
+/* En apaisado, 390px de alto, la misma decisión alcanza a la lectura de
+   sistema. Medido en COSMOLOGY 844x390: la boca del descenso recorrió sus 40
+   pasos sin encontrar una franja libre y terminó arriba del todo, en y=6-54,
+   encima de "SYSTEM · ACTIVE · 100.00". No es que la boca esté mal ubicada: es
+   que en esa altura no entran obra, titular, acciones, barra, lectura y boca.
+   Sale la lectura, que es P3 y no dice nada que el visitante necesite para
+   avanzar. La señal y el sonido siguen en la barra superior.                 */
+@media (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-readout { display: none; }
+}
+
+/* ── EL RAIL DEL INTERLUDIO SEGUÍA DENTRO DE LA BARRA ─────────────────────
+   Lo subí a 78px del piso creyendo que la barra terminaba en 74. Medida real:
+   la barra va de 722 a 778, o sea ocupa hasta 122px del piso, y sus botones
+   hasta 116. El rail a 78 quedaba adentro: "STATUS / PARTIAL" debajo de
+   "‹ PREVIOUS" y "ORIGIN / R2 ARCHIVE" debajo de "ENTER MACHINE".
+   El comando ya está libre a 130. El rail se apila encima de él.            */
+@media (max-width: 560px) and (orientation: portrait) {
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__rail,
+  .kdx-qf__rail {
+    bottom: calc(184px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* En apaisado no hay dónde apilar. Medido en 844x390: la barra ocupa de 66 a
+   122 del piso, el comando estaba en 78 -- adentro -- y subir el rail a 184 lo
+   estrella contra la leyenda del fragmento, que vive en 190. Cuatro cosas para
+   390px de alto no entran, y forzarlas es lo que produce el HUD apretado que
+   el canon rechaza.
+   El comando sube a 130, libre. El rail -- tres etiquetas de estado, P2 puro --
+   se retira: el 07D ya lo pide, "metadata collapses into sheets". */
+@media (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__rail,
+  .kdx-qf__rail { display: none; }
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__command,
+  .kdx-qf__command { bottom: calc(130px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ── LOS PORTALES DE COSMOLOGY CONTRA EL PIE DEL MARCO ────────────────────
+   Al subir el mapa al primer lugar, los portales quedaron a la altura del
+   rótulo del marco: "◈ WENU MAPU" sobre "05 · COSMOLOGY · orbital-map" al 63%
+   en 1440x900. El rótulo repite lo que la escena ya dice a la izquierda en
+   letra grande, así que dentro de esta ranura se calla.                     */
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo ~ figcaption,
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art:has(.kx-os-stage__cosmo) > figcaption {
+  display: none;
+}
+
+/* ── RETURN: LA COLUMNA DE TEXTO SE DERRAMABA HACIA ARRIBA, SOBRE LA OBRA ──
+   Medido en 390x844. La rejilla reparte 219px para la obra y 437 para el
+   texto. En RETURN el texto mide 546 -- rótulo, titular, la constelación del
+   espécimen del visitante y las acciones -- 110 de más. La celda no crece y la
+   columna está `align-self:end`, así que toma el alto de su contenido y,
+   anclada por abajo, CRECE HACIA ARRIBA: empieza en y=176, dentro del marco de
+   la obra, que va de 52 a 271. "RETURN · PATTERN RESTORED", "06 / RETURN ·
+   RECALL" y "RECALL" quedaban detrás de la figura y su fondo negro al 62%.
+
+   No se achica la obra -- `/img/kodex/works/bw-01.jpg` es del creador -- ni se
+   recorta el espécimen, que es lo único de esa pantalla que cambia por
+   visitante. La columna se ciñe a su celda y lo que no entra se recorre
+   adentro, como ya hace la cartografía de COSMOLOGY.
+
+   Y va SÓLO en RETURN. Se probó `align-self:stretch` para todas las escenas
+   con contrato: RETURN quedó bien y II a V se rompieron -- el cajón "SPECIMEN
+   DATA" se apoya con `margin-top:auto` y al estirar la celda cayó sobre el
+   CTA, "REVEAL CONNECTION" al 100% en COSMOLOGY. De 3 filas con defecto a 9.
+   La regla general era la equivocada; el problema era de una escena.         */
+@media (max-width: 560px), (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-os-stage__copy {
+    align-self: stretch;
+    /* Y todavía faltaba esto. Con la celda ceñida y el recorrido puesto, el
+       rótulo seguía en y=176 mientras su propia caja empezaba en 285: el
+       sobrante se iba por ARRIBA, que es el único lado por donde un recorrido
+       no llega. La caja se apoya abajo por herencia, así que al no entrar el
+       contenido empuja el principio fuera de la vista y ni se ve ni se alcanza.
+       `scrollHeight` decía 437 sobre 437 -- "no sobra nada" -- porque lo que se
+       derrama hacia arriba no cuenta como recorrido. Un cero que mentía.
+       Apoyado arriba, lo que no entra queda abajo y se alcanza. */
+    justify-content: flex-start;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* La regla de arriba pone `flex-wrap:wrap` para las filas de acciones, que es
+   lo correcto para una fila de botones. RETURN no es una fila: es la
+   constelación del visitante y tres acciones debajo. En teléfono se apila. */
+@media (max-width: 560px) and (orientation: portrait) {
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-return-actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-return-actions > .kx-os-primary,
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-return-actions > .kx-os-ghost {
+    flex: 0 0 auto;
+    min-height: var(--kdx-plate-tap, 44px);
+    height: auto;
+  }
+}
+
+/* ── LA BARRA NO ALCANZA PARA CUATRO COSAS EN 390px ───────────────────────
+   Medido en RETURN, 390x844. La barra mide 354 y sus cuatro piezas ocupan
+   83 + 48 + 133 + 66 más tres separaciones = 354 exactos. El resultado es que
+   la acción principal se corta: "RETURN TO THRESHOLI".
+
+   El contador es lo que sobra. No porque no importe, sino porque cada escena
+   ya dice su ordinal en su propia línea -- "05 / COSMOLOGY / ORBIT", "06 /
+   RETURN · RECALL" -- y ahí se lee de verdad, no en 9,5px partidos en dos
+   renglones. El 07D deja en teléfono marca, señal, UN grupo de navegación y el
+   índice; el contador no está en esa lista.
+
+   Sigue en el documento para quien lo lea con lector de pantalla.            */
+@media (max-width: 560px) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar__count {
+    position: absolute;
+    width: 1px; height: 1px;
+    /* La hoja base le pone `min-width:64px`, así que `width:1px` sola no lo
+       encoge nada: seguía midiendo 48px y comiéndose el espacio del botón. */
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar button.kx-deckbar--turn {
+    min-width: 0;
+    max-width: 100%;
+  }
 }

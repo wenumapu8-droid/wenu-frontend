@@ -401,9 +401,19 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
       for (const el of document.querySelectorAll<HTMLElement>('body *')) {
         if (el === boca || boca.contains(el) || el.contains(boca)) continue;
         if (!el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
+        /* Y quedaba un obstáculo invisible para esta prueba: EL TITULAR.
+           Los títulos cinéticos reparten una letra por hijo, así que el <h1>
+           no tiene ni un nodo de texto DIRECTO y `propio` daba 0. Medido en
+           844x390 sobre COSMOLOGY: la boca aterrizaba sobre "NOTHING HERE
+           STANDS ALONE" cubriendo el 54% de su caja, y este bucle la daba por
+           libre. Es el mismo punto ciego que tenía el barrido de QA, y por la
+           misma razón: "texto propio" no es lo mismo que "texto que se ve".
+           Los titulares y los controles entran por lo que MUESTRAN. */
         const propio = [...el.childNodes].filter((n) => n.nodeType === 3)
           .map((n) => n.textContent?.trim() ?? '').join('').length;
-        if (propio < 2) continue;
+        const muestra = /^(H1|H2|A|BUTTON)$/.test(el.tagName)
+          ? (el.innerText ?? '').trim().length : 0;
+        if (propio < 2 && muestra < 2) continue;
         const r = el.getBoundingClientRect();
         if (r.width < 4 || r.height < 4) continue;
         const ox = Math.min(m.right, r.right) - Math.max(m.left, r.left);
