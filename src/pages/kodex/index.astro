@@ -13,6 +13,7 @@ import ParticleField from '../../components/kodex/motion/ParticleField.astro';
 import SpriteSignal from '../../components/kodex/motion/SpriteSignal.astro';
 import KodexPortal from '../../components/kodex/portal/KodexPortal.astro';
 import KodexTransition from '../../components/kodex/transition/KodexTransition.astro';
+import TituloGlitch from '../../components/kodex/os/TituloGlitch.astro';
 import KodexDebug from '../../components/kodex/debug/KodexDebug.astro';
 import KodexQuietFrame from '../../components/kodex/interludes/KodexQuietFrame.astro';
 /* El umbral registra el paso: es el primer evento del recorrido y el que
@@ -67,7 +68,26 @@ const prologueRows = [
   ogImage={hero.src}
   kodexFonts={true}
   noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+  osShell={true}
 >
+  {/* EL GUARDIA DE LA PUERTA.
+      Va EN LÍNEA y antes que todo lo demás porque tiene que ejecutarse
+      mientras el documento se parsea: los módulos de Astro corren diferidos y
+      para entonces el motor ya habría grabado la visita. La regla del creador
+      es "sin memory mutation pasiva" — el archivo recuerda a quien entra, no a
+      quien todavía está mirando la puerta.
+      Y si el huésped ya cruzó en esta sesión, el velo no vuelve a pedirle
+      permiso: volver atrás debe devolverlo donde estaba, no hacerle repetir la
+      decisión que ya tomó. */}
+  <script is:inline>
+    (() => {
+      let cruzado = false;
+      try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
+      if (cruzado) document.documentElement.setAttribute('data-kdx-umbral-cruzado', '');
+      else document.documentElement.setAttribute('data-kdx-espera-eleccion', '');
+    })();
+  </script>
+
   <KodexRecuerda />
   <div
     class="kx kx--deck kx--threshold kx--entry"
@@ -89,7 +109,7 @@ const prologueRows = [
     data-kdx-grid={thresholdGrid.id}
     style={thresholdMotion}
   >
-    <KodexTransition />
+    <KodexTransition router={true} />
     <KodexDebug />
 
     <KodexChrome segs={7} />
@@ -177,7 +197,11 @@ const prologueRows = [
               disuelve y revela la escena — no navega. */}
           <div class="kx-veil" data-kdx-veil>
             <p class="kx-veil__cejilla">KODEX&nbsp;&nbsp;−∞</p>
-            <p class="kx-veil__marca">THRESHOLD</p>
+            {/* La palabra de la puerta, con el eje partiéndose y volviendo.
+        Ver src/components/kodex/os/TituloGlitch.astro: el texto real está en
+        el HTML servido y se lee en el primer cuadro; el glitch corre encima y
+        no retrasa ni la lectura ni la acción. */}
+    <TituloGlitch texto="THRESHOLD" como="p" class="kx-veil__marca" tempo="umbral" />
             <button class="kx-veil__entrar" type="button" data-kdx-sonido="1">TAP TO ENTER — ENABLE SOUND</button>
             <button class="kx-veil__silencio" type="button" data-kdx-sonido="0">CONTINUE IN SILENCE →</button>
           </div>
@@ -316,6 +340,8 @@ const prologueRows = [
   </div>
 
   <script>
+    import { liberarMemoria } from "../../kodex/return/memory.js";
+
     import { initKx } from '../../scripts/kodex-engine.js';
     initKx();
 
@@ -345,9 +371,22 @@ const prologueRows = [
       const disolver = () => {
         if (disuelto) return;
         disuelto = true;
+        /* Elegir es el acto que abre el archivo. Recién acá se libera la
+           memoria: lo que se encoló mientras el velo estaba puesto se escribe
+           ahora, con el consentimiento dado. */
+        try { sessionStorage.setItem('kx-umbral', 'cruzado'); } catch (_) {}
+        liberarMemoria();
         velo.classList.add('is-disuelto');
         window.setTimeout(() => velo.remove(), 950);
       };
+
+      /* Ya cruzó en esta sesión: el velo se retira sin ceremonia y sin volver
+         a preguntar. Volver atrás no debe costar dos veces la misma decisión. */
+      if (document.documentElement.hasAttribute('data-kdx-umbral-cruzado')) {
+        velo.remove();
+        disuelto = true;
+        liberarMemoria();
+      }
       velo.addEventListener('click', (e) => {
         const boton = e.target instanceof Element ? e.target.closest('[data-kdx-sonido]') : null;
         if (!boton) {

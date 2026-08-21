@@ -1,0 +1,262 @@
+---
+/**
+ * KDX.TYPE · TÍTULO GLITCH
+ *
+ * El pedido del creador fue "que las letras tengan dinamismo, que se haga como
+ * un glitch y sea genial". Esto es eso, pero con una regla: en el KODEX el
+ * glitch no puede ser un efecto suelto, tiene que significar algo.
+ *
+ * QUÉ SIGNIFICA
+ * El eje del archivo es −∞ · 0 · +∞. La palabra se descompone en sus dos
+ * fantasmas cromáticos y vuelve: el rojo se va hacia −∞ (el archivo, lo que ya
+ * fue) y el frío hacia +∞ (la expansión, lo que todavía no). El centro blanco
+ * es el 0, el punto donde nada está fijado. Cuando la palabra se estabiliza,
+ * los tres coinciden. El glitch ES el eje separándose y volviendo a juntarse,
+ * no ruido de televisor.
+ *
+ * LA REGLA QUE MANDA SOBRE LA ANIMACIÓN
+ * El 07D es explícito: "title animation must not postpone navigation or CTA
+ * availability". Así que el texto REAL está en el HTML servido y es legible en
+ * el primer cuadro; la animación corre encima. Si el módulo no carga, si el
+ * JavaScript falla, si el visitante pidió menos movimiento -- la palabra sigue
+ * ahí, entera, quieta y legible. Nunca se anima algo que todavía no se puede
+ * leer.
+ *
+ * ACCESIBILIDAD
+ * El lector de pantalla recibe la palabra una sola vez, limpia. Las letras
+ * partidas y los fantasmas son `aria-hidden`: para quien escucha, esto dice
+ * "THRESHOLD", no "T H R E S H O L D" tres veces.
+ */
+interface Props {
+  /** La palabra. Se parte en letras para animarlas por separado. */
+  texto: string;
+  /** Etiqueta del elemento: `h1` en el umbral, `p` donde no sea el título. */
+  como?: 'h1' | 'h2' | 'p';
+  class?: string;
+  id?: string;
+  /**
+   * `umbral` — la entrada: ensamblado lento y pulsos raros. Es una puerta, no
+   *            una pantalla de carga.
+   * `escena` — dentro del corredor: ensamblado corto, sin pulsos de reposo.
+   */
+  tempo?: 'umbral' | 'escena';
+}
+const { texto, como = 'h1', class: klass = '', id, tempo = 'umbral' } = Astro.props;
+const Etiqueta = como;
+const letras = [...texto];
+---
+
+<Etiqueta
+  id={id}
+  class:list={['kdx-glitch', `kdx-glitch--${tempo}`, klass]}
+  data-kdx-glitch
+  data-kdx-glitch-tempo={tempo}
+>
+  {/* La palabra para quien escucha: una vez, limpia, sin partir. */}
+  <span class="kdx-glitch__sr">{texto}</span>
+
+  {/* Las tres capas del eje. El centro se lee; los fantasmas acompañan. */}
+  <span class="kdx-glitch__capa kdx-glitch__capa--menos" aria-hidden="true">
+    {letras.map((l, i) => <i style={`--i:${i}`}>{l === ' ' ? ' ' : l}</i>)}
+  </span>
+  <span class="kdx-glitch__capa kdx-glitch__capa--mas" aria-hidden="true">
+    {letras.map((l, i) => <i style={`--i:${i}`}>{l === ' ' ? ' ' : l}</i>)}
+  </span>
+  <span class="kdx-glitch__capa kdx-glitch__capa--cero" aria-hidden="true">
+    {letras.map((l, i) => <i style={`--i:${i}`} data-l={l}>{l === ' ' ? ' ' : l}</i>)}
+  </span>
+</Etiqueta>
+
+<style is:global>
+  /* `is:global` a propósito: las capas y las letras se tocan desde el runtime,
+     y un nodo creado o marcado en tiempo de ejecución nunca recibe el atributo
+     de scope de Astro. Es el error que ya costó caro en este proyecto: reglas
+     escritas, compiladas, y sin aplicar a nada. */
+
+  .kdx-glitch {
+    position: relative;
+    display: block;
+    margin: 0;
+    isolation: isolate;
+    /* El alto lo fija la capa central; las otras dos van encima sin empujar. */
+  }
+
+  .kdx-glitch__sr {
+    position: absolute;
+    width: 1px; height: 1px;
+    margin: -1px; padding: 0; border: 0;
+    overflow: hidden; white-space: nowrap;
+    clip-path: inset(50%);
+  }
+
+  .kdx-glitch__capa {
+    display: block;
+    white-space: pre;
+  }
+  /* Las dos capas de fuera se apoyan sobre la del centro sin ocupar espacio. */
+  .kdx-glitch__capa--menos,
+  .kdx-glitch__capa--mas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    will-change: transform, opacity, clip-path;
+  }
+  .kdx-glitch__capa--cero { position: relative; }
+
+  .kdx-glitch__capa i {
+    display: inline-block;
+    font-style: inherit;
+    will-change: transform, opacity;
+  }
+
+  /* −∞ · el archivo. Se va hacia atrás y hacia la izquierda. */
+  .kdx-glitch__capa--menos {
+    color: var(--kdx-glitch-menos, #FF2733);
+    mix-blend-mode: screen;
+    opacity: 0;
+  }
+  /* +∞ · la expansión. Se va hacia adelante y hacia la derecha. */
+  .kdx-glitch__capa--mas {
+    color: var(--kdx-glitch-mas, #4DE1FF);
+    mix-blend-mode: screen;
+    opacity: 0;
+  }
+  /* 0 · el punto donde nada está fijado. Es la que se lee. */
+  .kdx-glitch__capa--cero { color: inherit; }
+
+  /* ── EL ENSAMBLADO ─────────────────────────────────────────────────────
+     Las letras llegan desordenadas y se asientan. El retardo por letra sale
+     de `--i`, así que la palabra se arma de izquierda a derecha como se lee,
+     no todas de golpe. */
+  .kdx-glitch[data-kdx-glitch-fase="ensamblando"] .kdx-glitch__capa--cero i {
+    animation: kdx-glitch-llegar var(--kdx-glitch-letra, 420ms) cubic-bezier(.16,.84,.28,1) both;
+    animation-delay: calc(var(--i) * var(--kdx-glitch-paso, 34ms));
+  }
+  .kdx-glitch[data-kdx-glitch-fase="ensamblando"] .kdx-glitch__capa--menos,
+  .kdx-glitch[data-kdx-glitch-fase="ensamblando"] .kdx-glitch__capa--mas {
+    animation: kdx-glitch-eje var(--kdx-glitch-eje-ms, 900ms) cubic-bezier(.2,.7,.2,1) both;
+  }
+  .kdx-glitch[data-kdx-glitch-fase="ensamblando"] .kdx-glitch__capa--mas {
+    animation-name: kdx-glitch-eje-mas;
+  }
+
+  @keyframes kdx-glitch-llegar {
+    0%   { opacity: 0; transform: translate3d(0, .34em, 0) scaleY(1.6); filter: blur(6px); }
+    38%  { opacity: 1; filter: blur(0); }
+    52%  { transform: translate3d(0, -.04em, 0) scaleY(.94); }
+    100% { opacity: 1; transform: none; filter: none; }
+  }
+  @keyframes kdx-glitch-eje {
+    0%   { opacity: .95; transform: translate3d(-.14em, 0, 0); }
+    45%  { opacity: .55; transform: translate3d(-.05em, 0, 0); }
+    100% { opacity: 0;   transform: none; }
+  }
+  @keyframes kdx-glitch-eje-mas {
+    0%   { opacity: .95; transform: translate3d(.14em, 0, 0); }
+    45%  { opacity: .55; transform: translate3d(.05em, 0, 0); }
+    100% { opacity: 0;   transform: none; }
+  }
+
+  /* ── EL PULSO DE REPOSO ────────────────────────────────────────────────
+     Cada tanto el eje se abre y se cierra. Raro y corto: si late todo el
+     tiempo deja de ser un acontecimiento y se vuelve ruido. Sólo en el
+     umbral, que es donde el sistema está esperando y puede permitirse
+     respirar. Las escenas del corredor no lo llevan. */
+  .kdx-glitch[data-kdx-glitch-pulso] .kdx-glitch__capa--menos { animation: kdx-glitch-pulso-menos 320ms steps(3, end) both; }
+  .kdx-glitch[data-kdx-glitch-pulso] .kdx-glitch__capa--mas   { animation: kdx-glitch-pulso-mas   320ms steps(3, end) both; }
+  .kdx-glitch[data-kdx-glitch-pulso] .kdx-glitch__capa--cero  { animation: kdx-glitch-pulso-cero  320ms steps(3, end) both; }
+
+  @keyframes kdx-glitch-pulso-menos {
+    0%,100% { opacity: 0; transform: none; clip-path: none; }
+    20%     { opacity: .8; transform: translate3d(-.05em, -.012em, 0); clip-path: inset(12% 0 54% 0); }
+    55%     { opacity: .55; transform: translate3d(-.02em, .014em, 0); clip-path: inset(58% 0 16% 0); }
+  }
+  @keyframes kdx-glitch-pulso-mas {
+    0%,100% { opacity: 0; transform: none; clip-path: none; }
+    20%     { opacity: .8; transform: translate3d(.05em, .012em, 0); clip-path: inset(46% 0 22% 0); }
+    55%     { opacity: .55; transform: translate3d(.02em, -.014em, 0); clip-path: inset(8% 0 62% 0); }
+  }
+  @keyframes kdx-glitch-pulso-cero {
+    0%,100% { transform: none; }
+    22%     { transform: translate3d(.006em, 0, 0); }
+    48%     { transform: translate3d(-.006em, 0, 0); }
+  }
+
+  /* ── MOVIMIENTO REDUCIDO ───────────────────────────────────────────────
+     No hay versión "suave" del glitch: hay palabra. Quieta, entera, legible.
+     Los fantasmas no se muestran nunca. */
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-glitch .kdx-glitch__capa--menos,
+    .kdx-glitch .kdx-glitch__capa--mas { display: none; }
+    .kdx-glitch .kdx-glitch__capa--cero i,
+    .kdx-glitch[data-kdx-glitch-fase] .kdx-glitch__capa--cero i { animation: none !important; opacity: 1; transform: none; filter: none; }
+  }
+</style>
+
+<script>
+  /**
+   * El runtime hace DOS cosas y nada más: dispara el ensamblado cuando la
+   * palabra entra en pantalla, y suelta un pulso cada tanto en el umbral.
+   *
+   * Lo que NO hace, deliberadamente: no escribe el texto. La palabra ya está
+   * en el HTML servido. Si este archivo no llega, el título se lee igual.
+   */
+  const REDUCIDO = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function montar() {
+    for (const el of document.querySelectorAll<HTMLElement>('[data-kdx-glitch]')) {
+      if (el.dataset.kdxGlitchMontado) continue;
+      el.dataset.kdxGlitchMontado = '1';
+      if (REDUCIDO) continue;
+
+      const tempo = el.dataset.kdxGlitchTempo || 'umbral';
+      const letras = el.querySelectorAll('.kdx-glitch__capa--cero i').length;
+
+      // El ensamblado empieza cuando la palabra es visible, no cuando el
+      // documento termina de cargar: una palabra que se arma fuera de pantalla
+      // es una animación que nadie vio y un gasto que nadie pidió.
+      const arrancar = () => {
+        el.dataset.kdxGlitchFase = 'ensamblando';
+        const total = 420 + letras * 34 + 200;
+        window.setTimeout(() => {
+          delete el.dataset.kdxGlitchFase;
+          if (tempo === 'umbral') reposo(el);
+        }, total);
+      };
+
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((ents) => {
+          for (const e of ents) if (e.isIntersecting) { io.disconnect(); arrancar(); }
+        }, { threshold: 0.25 });
+        io.observe(el);
+      } else {
+        arrancar();
+      }
+    }
+  }
+
+  /**
+   * El pulso de reposo. Intervalos irregulares -- entre 4,5 y 11 segundos --
+   * porque un latido regular se vuelve metrónomo y el ojo lo empieza a
+   * predecir. Y se detiene cuando la pestaña no está a la vista: nadie mira
+   * una puerta que no tiene delante.
+   */
+  function reposo(el: HTMLElement) {
+    let vivo = true;
+    const siguiente = () => {
+      if (!vivo) return;
+      const espera = 4500 + Math.floor(performance.now() % 6500);
+      window.setTimeout(() => {
+        if (!vivo || document.hidden || !el.isConnected) { siguiente(); return; }
+        el.dataset.kdxGlitchPulso = '';
+        window.setTimeout(() => { delete el.dataset.kdxGlitchPulso; siguiente(); }, 340);
+      }, espera);
+    };
+    siguiente();
+    document.addEventListener('astro:before-swap', () => { vivo = false; }, { once: true });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montar, { once: true });
+  else montar();
+  document.addEventListener('astro:page-load', montar);
+</script>
