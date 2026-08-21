@@ -58,7 +58,11 @@ class Sonido {
   private beat?: OscillatorNode;
   private nf?: BiquadFilterNode;
   private an?: AnalyserNode;
-  private bins?: Uint8Array;
+  /* `Uint8Array<ArrayBuffer>` y no `Uint8Array` a secas: `getByteFrequencyData`
+     exige un buffer no compartido, y el tipo suelto admite `SharedArrayBuffer`.
+     Lo marcó `tsc --strict` y no el navegador — en ejecución nunca falla, pero
+     el tipo estaba mintiendo sobre el contrato. */
+  private bins?: Uint8Array<ArrayBuffer>;
   private energiaV = 0;
   private andando = false;
 
@@ -106,7 +110,7 @@ class Sonido {
     lfo.connect(lg); lg.connect(master.gain); lfo.start();
 
     const an = ctx.createAnalyser(); an.fftSize = 256; master.connect(an);
-    this.an = an; this.bins = new Uint8Array(an.frequencyBinCount);
+    this.an = an; this.bins = new Uint8Array(new ArrayBuffer(an.frequencyBinCount));
 
     /* Entra en cuatro segundos. Un drone que aparece de golpe asusta. */
     const now = ctx.currentTime;
