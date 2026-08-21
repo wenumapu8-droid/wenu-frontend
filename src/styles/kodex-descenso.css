@@ -1,0 +1,270 @@
+/**
+ * KODEX−∞ · la placa de descenso — hoja propia y global
+ *
+ * Estaba dentro del <style> de `Descenso.astro`, y eso la ataba a dos cosas:
+ * al scope que Astro le estampa al markup del componente, y a que la escena
+ * fuera un folio. El creador señaló la consecuencia sin ver el código:
+ * "hay dos interfaces para la misma máquina" — el descenso desde una escena
+ * era un panel modal con espiral, y el gusano desde una lámina una lista de
+ * tres puertas. Mismo motor, dos caras, y nadie puede saber que son lo mismo.
+ *
+ * Viviendo acá, la hoja VIAJA CON EL MÓDULO (`descenso-ui.ts` la importa), así
+ * que la placa se puede construir desde JavaScript y montarse igual en un
+ * folio que en una lámina. Una sola máquina, una sola cara.
+ */
+
+  /* La boca: la segunda salida de la escena. Convive con el "NEXT →" lateral
+     que ya existía — una va hacia el lado, esta va hacia dentro. */
+  .kdx-boca{
+    position:fixed; left:50%; bottom:calc(58px + env(safe-area-inset-bottom,0px));
+    transform:translateX(-50%); z-index:8;
+    display:inline-flex; align-items:center; gap:10px;
+    min-height:48px; padding:12px 20px;
+    background:rgba(6,6,8,.72); backdrop-filter:blur(6px);
+    border:1px solid rgba(240,237,232,.2); color:rgba(240,237,232,.82);
+    font:11px/1 var(--lam-mono, ui-monospace, monospace); letter-spacing:.2em;
+    cursor:pointer; max-width:92vw;
+  }
+  .kdx-boca:hover,.kdx-boca:focus-visible{ color:#fff; border-color:#ff2733; }
+  .kdx-boca__g{ color:#ff2733; font-size:13px; }
+  .kdx-boca__t{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .kdx-boca__d{ opacity:.55; }
+  /* la boca late despacio: señala que hay algo debajo sin gritarlo */
+  @media (prefers-reduced-motion:no-preference){
+    .kdx-boca__g{ animation:kdx-latir 3.8s ease-in-out infinite; }
+    @keyframes kdx-latir{ 0%,100%{opacity:.55;transform:scale(1)} 50%{opacity:1;transform:scale(1.22)} }
+  }
+  html[data-kdx-frozen] .kdx-boca{ display:none; }
+
+  /* ── la placa de descenso: 100dvh compuesto, sin scroll de documento ──── */
+  /* La placa se monta dentro de páginas que ya traen su propia cascada, y
+     medido en pantalla el texto salía en serif: algo más específico ganaba.
+     Por eso la familia se declara en la placa Y en cada hoja de texto, en vez
+     de confiar en que herede. Se vio en la captura, no en el código. */
+  /* ── el orden de apilado, escrito para que nadie lo adivine ─────────────
+     El descenso es un diálogo modal: mientras está abierto, manda. Estaba en
+     60 y la franja de pistas de BarraOS vive en 150, así que el "⌘K COMMANDS /
+     0-6 SCENE / T MODE" se dibujaba ENCIMA del panel — se ve en las capturas
+     del descenso y lo detectó también el agente del Folio I desde su lado.
+     Va a 180: por encima de la barra (150), por debajo de la paleta de
+     comandos (220), que es la única superficie que debe ganarle a un modal. */
+  .kdx-desc{
+    position:fixed; inset:0; z-index:180;
+    display:grid; grid-template-rows:auto 1fr auto;
+    background:#050507; color:#f0ede8;
+    font-family:'IBM Plex Mono',ui-monospace,monospace;
+    overflow:hidden;
+  }
+  .kdx-desc :where(p,span,button,a,li,h2){ font-family:inherit; }
+  .kdx-desc[hidden]{ display:none; }
+  .kdx-desc__espiral{ position:absolute; inset:0; width:100%; height:100%; opacity:.5; pointer-events:none; }
+
+  .kdx-desc__cab{ position:relative; z-index:2; display:flex; justify-content:space-between;
+    align-items:center; gap:12px; padding:12px clamp(14px,4vw,32px);
+    padding-top:calc(12px + env(safe-area-inset-top,0px));
+    border-bottom:1px solid rgba(240,237,232,.1); }
+  .kdx-desc__salir{ background:none; border:1px solid rgba(240,237,232,.18);
+    color:rgba(240,237,232,.7); font:10.5px/1 inherit; letter-spacing:.2em;
+    min-height:44px; padding:0 14px; cursor:pointer; }
+  .kdx-desc__salir:hover{ color:#fff; border-color:rgba(240,237,232,.5); }
+  .kdx-desc__medida{ margin:0; display:flex; gap:8px; font-size:10px; letter-spacing:.18em;
+    color:rgba(240,237,232,.45); font-variant-numeric:tabular-nums; }
+
+  .kdx-desc__centro{ position:relative; z-index:2; display:flex; flex-direction:column;
+    justify-content:center; gap:clamp(10px,2vh,18px);
+    width:min(96vw,760px); margin:0 auto; padding:clamp(16px,3vh,28px) clamp(14px,4vw,24px);
+    min-height:0; }
+  .kdx-desc__ojo{ margin:0; font-size:10px; letter-spacing:.28em; color:#ff2733; }
+  .kdx-desc__aqui{ margin:0; font-family:'Barlow Condensed','Inter Tight',system-ui,sans-serif !important;
+    font-weight:800; font-size:clamp(26px,7vw,46px); line-height:1.02; letter-spacing:.01em;
+    text-wrap:balance; }
+  .kdx-desc__pie-t{ margin:0; font-size:11px; line-height:1.6; letter-spacing:.04em;
+    color:rgba(240,237,232,.5); max-width:52ch; }
+
+  /* Las tres puertas. En móvil van apiladas y son bloques de dedo; en pantalla
+     ancha se abren en tres columnas — la misma decisión, otra respiración. */
+  .kdx-desc__puertas{ list-style:none; margin:0; padding:0; display:grid; gap:8px;
+    grid-template-columns:1fr; align-content:start; }
+  @media (min-width:720px){ .kdx-desc__puertas{ grid-template-columns:repeat(3,1fr); gap:10px; } }
+
+  /* Medido 51px de alto cuando la declaración decía 76: el grid comprimía la
+     fila. `align-content:start` en la lista deja que cada puerta ocupe lo suyo. */
+  .kdx-desc__nota{ margin:0; font-size:10px; line-height:1.6; letter-spacing:.06em;
+    color:rgba(240,237,232,.34); }
+
+  .kdx-desc__pie{ position:relative; z-index:2; display:flex; justify-content:space-between;
+    align-items:center; gap:10px; padding:10px clamp(14px,4vw,32px);
+    /* La barra del OS vive fija abajo con su franja de pistas; sin este colchón
+       el pie del descenso quedaba tapado y el enlace al corazón era invisible. */
+    padding-bottom:calc(46px + env(safe-area-inset-bottom,0px));
+    border-top:1px solid rgba(240,237,232,.1);
+    font-size:9.5px; letter-spacing:.16em; color:rgba(240,237,232,.4); }
+  .kdx-desc__corazon{ color:#ff2733; text-decoration:none; letter-spacing:.2em;
+    min-height:44px; display:inline-flex; align-items:center; padding:0 12px;
+    border:1px solid rgba(255,39,51,.5); font-size:11px; }
+  .kdx-desc__corazon:hover{ background:rgba(255,39,51,.12); color:#fff; }
+  .kdx-desc__corazon[hidden]{ display:none; }
+
+  /* Muy angosto: el subtítulo cede antes que las puertas. */
+  @media (max-height:640px){ .kdx-desc__pie-t{ display:none; } }
+
+
+  /* ── por qué is:global ──────────────────────────────────────────────────
+     Las tres puertas las crea `descenso-ui.ts` en tiempo de ejecución, así que
+     nunca llevan el atributo de scope que Astro le estampa al markup de este
+     archivo. Dentro del <style> scoped estas reglas NO se aplicaban: en la
+     captura el texto salía corrido, centrado y sin borde. Se vio mirando la
+     pantalla — el build no dice nada de esto. */
+  .kdx-p{
+    display:flex; flex-direction:column; gap:6px; align-items:flex-start;
+    width:100%; min-height:76px; box-sizing:border-box; padding:14px 16px;
+    text-align:left; cursor:pointer;
+    background:rgba(240,237,232,.02); border:1px solid rgba(240,237,232,.16);
+    color:#f0ede8; font:11px/1.4 'IBM Plex Mono',ui-monospace,monospace;
+    transition:border-color .22s ease, background .22s ease, transform .22s ease;
+  }
+  .kdx-p:hover,.kdx-p:focus-visible{
+    border-color:var(--kdx-p-color,#ff2733);
+    background:rgba(255,39,51,.06); transform:translateY(-2px);
+  }
+  .kdx-p__papel{
+    display:inline-flex; align-items:center; gap:6px;
+    font-size:9px; letter-spacing:.24em; color:var(--kdx-p-color,#ff2733);
+  }
+  /* El glifo gira, y gira MÁS RÁPIDO cuanto más hondo estás: la aceleración no
+     es un efecto, es el dato de profundidad hecho movimiento. Al tocar la
+     puerta se acelera cuatro veces — la puerta responde antes de abrirse. */
+  .kdx-p__glifo{ display:inline-block; }
+  @media (prefers-reduced-motion:no-preference){
+    .kdx-p__glifo{ animation:kdx-girar var(--kdx-giro,9s) linear infinite; }
+    .kdx-p:hover .kdx-p__glifo,.kdx-p:focus-visible .kdx-p__glifo{
+      animation-duration:calc(var(--kdx-giro,9s) / 4);
+    }
+    @keyframes kdx-girar{ to{ transform:rotate(360deg); } }
+  }
+  .kdx-p__t{ font-size:14px; letter-spacing:.06em; line-height:1.3; }
+  .kdx-p__t--anon{ color:rgba(240,237,232,.6); font-style:italic; }
+  .kdx-p__meta{
+    display:flex; flex-wrap:wrap; gap:4px 10px;
+    font-size:9px; letter-spacing:.14em; color:rgba(240,237,232,.42);
+  }
+  /* El estatus epistémico va SIEMPRE visible: regla de canon, nada se resuelve
+     en silencio. Lo especulativo no se esconde, se rotula. */
+  .kdx-p__est{ padding:2px 6px; border:1px solid currentColor; }
+  .kdx-p__est[data-e="SPECULATIVE"]{ color:#c98b4c; }
+  .kdx-p__est[data-e="INFERRED"]{ color:#8ba0c9; }
+  .kdx-p__est[data-e="NEEDS_CONFIRMATION"]{ color:#c9c04c; }
+
+/* ── los instrumentos no dominan ───────────────────────────────────────────
+   Manifiesto operativo del creador (2026-08-20, rango CANON): "el visitante NO
+   necesita ver constantemente «LAYER 1», «VERIFIED», «CANONICAL», «DEPTH 7»,
+   «ROUTE B39B» … puede aparecer ocasionalmente como microdetalle estético
+   —como mirar los instrumentos de una nave— pero no puede dominar la escena.
+   Porque entonces el universo desaparece y aparece el software."
+   Medido antes de esto: la placa mostraba 8 cadenas de software a la vez, y
+   cuatro de ellas son literalmente las que el manifiesto nombra. */
+.kdx-desc__instr{
+  width:44px; height:44px; padding:0; cursor:pointer;
+  background:none; border:0; color:rgba(240,237,232,.34);
+  font:13px/1 'IBM Plex Mono',ui-monospace,monospace;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:color .25s ease;
+}
+.kdx-desc__instr:hover,.kdx-desc__instr[aria-expanded="true"]{ color:#ff2733; }
+.kdx-desc__medida[hidden]{ display:none; }
+/* La lectura de instrumentos no puede desbordar: medido, "ROUTE BEEB" quedaba
+   cortado contra el borde derecho. Cede ancho antes que salirse. */
+.kdx-desc__medida{ flex-wrap:wrap; justify-content:flex-end; max-width:58vw;
+  text-align:right; row-gap:2px; }
+/* El ojo puede quedar vacío: la espiral dice la profundidad sin palabras. */
+.kdx-desc__ojo:empty{ display:none; }
+
+/* El interruptor de sonido: microdetalle, nunca protagonista. */
+.kdx-son{
+  position:fixed; right:12px; top:calc(10px + env(safe-area-inset-top,0px));
+  z-index:170; width:44px; height:44px; padding:0; cursor:pointer;
+  background:rgba(6,6,8,.55); backdrop-filter:blur(6px);
+  border:1px solid rgba(240,237,232,.14); color:rgba(240,237,232,.45);
+  font:12px/1 'IBM Plex Mono',ui-monospace,monospace;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:color .25s ease, border-color .25s ease;
+}
+.kdx-son:hover,.kdx-son[aria-pressed="true"]{ color:#ff2733; border-color:rgba(255,39,51,.4); }
+html[data-kdx-frozen] .kdx-son{ display:none; }
+/* Con el tríptico montado, el interruptor cede el rincón a la navegación. */
+body:has(.kdx-tri) .kdx-son{ top:auto; bottom:calc(76px + env(safe-area-inset-bottom,0px)); }
+
+/* ── LOS NODOS: la bifurcación deja de ser un examen ────────────────────────
+   El creador: "necesitamos que la experiencia sea más visual y no una app de
+   quién quiere ser millonario con alternativas y textos". Eran tres cajas
+   apiladas con rótulo, título y metadato: un examen de opción múltiple.
+   `10-ESCONDER-EL-SISTEMA` da la forma — hotspots, anomalías, símbolos,
+   NODOS o zonas vivas. Cada salida es ahora un punto sobre la espiral, en la
+   vuelta de la profundidad actual y a ángulo áureo de sus hermanos. */
+
+.kdx-desc__puertas{
+  position:absolute; inset:0; margin:0; padding:0; list-style:none;
+  display:block; pointer-events:none;
+}
+.kdx-desc__puertas > li{ position:static; }
+
+.kdx-n{
+  position:absolute;
+  left:var(--kdx-n-x,50%); top:var(--kdx-n-y,50%);
+  transform:translate(-50%,-50%);
+  display:grid; place-items:center;
+  /* 44px de área táctil aunque el punto sea de 9: el dedo necesita blanco, la
+     escena necesita que no la ocupen. */
+  width:44px; height:44px; padding:0; margin:0;
+  background:none; border:0; cursor:pointer; pointer-events:auto;
+  color:var(--kdx-n-color,#f0ede8);
+  font:10px/1.3 'IBM Plex Mono',ui-monospace,monospace;
+}
+.kdx-n__punto{
+  width:9px; height:9px; border-radius:50%;
+  background:currentColor; box-shadow:0 0 12px currentColor;
+  opacity:.72; transition:opacity .3s ease, transform .3s ease;
+}
+@media (prefers-reduced-motion:no-preference){
+  /* Late, y más rápido cuanto más hondo: la profundidad hecha pulso. */
+  .kdx-n__punto{ animation:kdx-n-latir var(--kdx-n-pulso,4.2s) ease-in-out infinite; }
+  @keyframes kdx-n-latir{ 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.5);opacity:1} }
+}
+
+/* El nombre no existe hasta que te acercás. "Nada se explica antes de poder
+   sentirse." Aparece al lado del punto, sin caja ni borde. */
+.kdx-n__nombre{
+  position:absolute; left:50%; top:calc(50% + 20px); transform:translateX(-50%);
+  white-space:nowrap; max-width:74vw; overflow:hidden; text-overflow:ellipsis;
+  letter-spacing:.1em; color:#f0ede8; text-shadow:0 2px 14px #000, 0 0 4px #000;
+  opacity:0; transition:opacity .3s ease; pointer-events:none;
+}
+.kdx-n:hover .kdx-n__nombre,
+.kdx-n:focus-visible .kdx-n__nombre,
+.kdx-n[data-abierto="si"] .kdx-n__nombre{ opacity:1; }
+.kdx-n:hover .kdx-n__punto,
+.kdx-n:focus-visible .kdx-n__punto,
+.kdx-n[data-abierto="si"] .kdx-n__punto{ opacity:1; transform:scale(1.6); }
+.kdx-n:focus-visible{ outline:1px solid currentColor; outline-offset:4px; border-radius:50%; }
+.kdx-n__aviso{
+  display:block; font-style:normal; font-size:8.5px; letter-spacing:.16em;
+  color:#c98b4c; margin-top:2px;
+}
+
+/* El centro deja de ser un titular de examen: el nombre de dónde estás, y
+   nada más. La consigna y la nota se retiran — eran texto explicando lo que
+   la escena ya hace. */
+.kdx-desc__centro{ pointer-events:none; }
+.kdx-desc__centro > *{ pointer-events:auto; }
+.kdx-desc__pie-t, .kdx-desc__nota{ display:none; }
+.kdx-desc__aqui{ text-align:center; }
+
+/* El lienzo de la travesía. Cubre todo mientras se atraviesa y no recibe
+   ningún toque: es paisaje, no control. */
+.kdx-travesia{
+  position:fixed; inset:0; z-index:200;
+  width:100%; height:100%;
+  pointer-events:none; opacity:0;
+  display:none;
+}
+.kdx-travesia[data-activa="si"]{ display:block; }

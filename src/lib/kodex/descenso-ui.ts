@@ -11,8 +11,59 @@
  */
 import { bifurcar, firmaDeRuta, PROFUNDIDAD_CORAZON, type Corpus, type Puerta, type Viaje } from './ruta';
 import { recordar, derivados } from './memoria';
+import '../../styles/kodex-descenso.css';
+import { sonidoProfundidad } from './sonido-montar';
+import { atravesarHaciaDentro, montarTravesia, prepararTravesia } from './travesia';
+
+/**
+ * LA PLACA SE CONSTRUYE ACÁ, no en el markup del componente.
+ *
+ * El creador lo señaló sin ver el código: "hay dos interfaces para la misma
+ * máquina". El descenso desde una escena era un panel modal con espiral y
+ * medidor de profundidad; el gusano desde una lámina, una lista de tres
+ * puertas dentro de la página. Mismo motor, dos caras, y un visitante no puede
+ * saber que son lo mismo.
+ *
+ * Construyéndola en JavaScript, la misma placa se abre desde un folio y desde
+ * una lámina, con la misma espiral y el mismo vocabulario. Una sola máquina,
+ * una sola cara. La hoja de estilos viaja con este módulo por la misma razón.
+ */
+function construirPlaca(escena: string): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'kdx-desc';
+  el.id = 'kdx-descenso';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', 'Descent');
+  el.hidden = true;
+  el.dataset.escena = escena;
+  el.innerHTML = `
+    <canvas class="kdx-desc__espiral" aria-hidden="true"></canvas>
+    <header class="kdx-desc__cab">
+      <button class="kdx-desc__salir" type="button" data-kdx-cerrar-descenso>← ASCEND</button>
+      <button class="kdx-desc__instr" type="button" data-kdx-instrumentos
+        aria-expanded="false" aria-label="Show instruments">◦</button>
+      <p class="kdx-desc__medida" data-kdx-medida hidden>
+        <span data-kdx-hondura>DEPTH 0</span><span aria-hidden="true">·</span><span data-kdx-firma>ROUTE 0000</span>
+      </p>
+    </header>
+    <main class="kdx-desc__centro">
+      <p class="kdx-desc__ojo" data-kdx-ojo>THE SCENE OPENS</p>
+      <h2 class="kdx-desc__aqui" data-kdx-aqui>CHOOSE YOUR DESCENT</h2>
+      <p class="kdx-desc__pie-t" data-kdx-sub>Three ways in. None of them is the same for two people.</p>
+      <ul class="kdx-desc__puertas" data-kdx-puertas role="list"></ul>
+      <p class="kdx-desc__nota" data-kdx-nota></p>
+    </main>
+    <footer class="kdx-desc__pie">
+      <span data-kdx-rastro>NO TRACE YET</span>
+      <a class="kdx-desc__corazon" href="/kodex/lab/heart/" hidden data-kdx-corazon>◉ THE HEART →</a>
+    </footer>`;
+  document.body.append(el);
+  return el;
+}
 
 const PHI = (1 + Math.sqrt(5)) / 2;
+const AUREO = 1 / (PHI * PHI);
 
 const GLIFO: Record<string, string> = { HILO: '⌁', PUENTE: '⌖', HALLAZGO: '✳' };
 const COLOR: Record<string, string> = { HILO: '#e8b4bc', PUENTE: '#8ba0c9', HALLAZGO: '#c9a84c' };
@@ -35,12 +86,24 @@ function traerCorpus(): Promise<Corpus> {
   return cargando;
 }
 
-export function montarDescenso() {
-  const placa = document.getElementById('kdx-descenso');
-  const boca = document.querySelector<HTMLButtonElement>('[data-kdx-abrir-descenso]');
-  if (!placa || !boca) return;
-
-  const escena = placa.getAttribute('data-escena') || 'i';
+/**
+ * @param opciones.boca  disparador propio (una lámina pasa el suyo por página)
+ * @param opciones.escena  la boca por la que se entra — siembra la firma de
+ *   ruta, así que dos bocas distintas del mismo sitio abren ramas distintas
+ */
+export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string }) {
+  const boca = opciones?.boca
+    ?? document.querySelector<HTMLButtonElement>('[data-kdx-abrir-descenso]');
+  if (!boca) return;
+  const escena = opciones?.escena
+    ?? boca.getAttribute('data-kdx-escena')
+    ?? document.getElementById('kdx-descenso')?.getAttribute('data-escena')
+    ?? 'i';
+  /* Una sola placa por documento, compartida por todas las bocas: abrir dos
+     modales a la vez no significa nada, y duplicar el canvas de la espiral
+     duplicaría su rAF. */
+  const placa = document.getElementById('kdx-descenso') ?? construirPlaca(escena);
+  placa.dataset.escena = escena;
   const $ = <T extends Element>(s: string) => placa.querySelector<T>(s)!;
   const lista = $<HTMLUListElement>('[data-kdx-puertas]');
   const espiral = $<HTMLCanvasElement>('.kdx-desc__espiral');
@@ -80,7 +143,9 @@ export function montarDescenso() {
     const pintar = (t: number) => {
       g.clearRect(0, 0, w, h);
       const cx = w / 2, cy = h / 2;
-      const r0 = Math.min(w, h) * 0.46;
+      /* 0.34 y no 0.46: la vuelta más externa entraba justo en el ancho y se
+         cortaba contra los bordes, que es lo contrario de converger. */
+      const r0 = Math.min(w, h) * 0.34;
       const giro = quieto ? 0 : t / 26000;
 
       /* Una vuelta por nivel: las ya bajadas quedan tenues, la actual encendida,
@@ -96,9 +161,15 @@ export function montarDescenso() {
           k ? g.lineTo(x, y) : g.moveTo(x, y);
         }
         g.closePath();
-        g.strokeStyle = ahora ? 'rgba(255,39,51,.5)'
-          : pasado ? 'rgba(240,237,232,.16)' : 'rgba(240,237,232,.05)';
-        g.lineWidth = ahora ? 1.4 : 1;
+        /* La espiral es AHORA el único indicador de profundidad: al sacar
+           «DEPTH 0 / 7» de la cabecera, el dibujo quedó solo con el trabajo.
+           Y con la vuelta actual al 50% de rojo se leía como un lazo suelto en
+           vez de como una espiral que converge. Se baja el acento y se sube el
+           resto: lo que informa es la FAMILIA de vueltas cerrándose, no una
+           sola gritando. */
+        g.strokeStyle = ahora ? 'rgba(255,39,51,.30)'
+          : pasado ? 'rgba(240,237,232,.20)' : 'rgba(240,237,232,.11)';
+        g.lineWidth = ahora ? 1.1 : 1;
         g.stroke();
       }
 
@@ -116,49 +187,78 @@ export function montarDescenso() {
     animando = requestAnimationFrame(pintar);
   };
 
-  /* ── pintar una bifurcación ──────────────────────────────────────────── */
+  /* ── pintar una bifurcación: NODOS, NO ALTERNATIVAS ─────────────────────
+     El creador, mirando lo publicado: "necesitamos que la experiencia sea más
+     visual y no una app de quién quiere ser millonario, con alternativas y
+     textos". Tenía razón y era exacto: tres rectángulos apilados, cada uno con
+     su rótulo, su título y su metadato, son un examen de opción múltiple.
+     
+     `10-ESCONDER-EL-SISTEMA` (2026-08-21) da la forma: "incluso los botones
+     que técnicamente necesitamos pueden convertirse visualmente en hotspots,
+     anomalías, símbolos, objetos, grietas, NODOS o zonas vivas".
+     
+     Así que las tres salidas son tres puntos EN LA ESPIRAL. Su posición no es
+     decorativa: caen sobre la vuelta de la profundidad actual, separados por el
+     ángulo áureo desde la firma de ruta — la misma razón con que el motor las
+     eligió. Se ve dónde estás y qué se abre desde ahí, sin una sola caja.
+     
+     El nombre no se muestra hasta que te acercás: "nada se explica antes de
+     poder sentirse". Y debajo siguen siendo <button> con su `aria-label`
+     completo, porque esconder el sistema no es esconder la accesibilidad. */
   const pintar = (puertas: Puerta[]) => {
     lista.replaceChildren();
-    for (const p of puertas) {
+    const N = puertas.length || 1;
+    puertas.forEach((p, k) => {
       const li = document.createElement('li');
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'kdx-p';
+      b.className = 'kdx-n';
       const papel = p.papel || 'HALLAZGO';
-      b.style.setProperty('--kdx-p-color', COLOR[papel]);
-      /* La velocidad de giro ES la profundidad: 9s arriba, ~2s en el fondo. */
-      b.style.setProperty('--kdx-giro', `${(9 / (1 + v.profundidad * 0.55)).toFixed(2)}s`);
+      b.dataset.papel = papel;
+      b.style.setProperty('--kdx-n-color', COLOR[papel]);
 
-      const rot = document.createElement('span');
-      rot.className = 'kdx-p__papel';
-      rot.innerHTML = `<span class="kdx-p__glifo" aria-hidden="true">${GLIFO[papel]}</span> ${DICE[papel]}`;
+      /* Sobre la vuelta actual, a ángulo áureo desde la firma. */
+      const giro = ((v.firma % 1000) / 1000 + k * AUREO) * Math.PI * 2;
+      const radio = 34 - v.profundidad * 2.2;            // en % del lado menor
+      b.style.setProperty('--kdx-n-x', `${(50 + Math.cos(giro) * radio).toFixed(2)}%`);
+      b.style.setProperty('--kdx-n-y', `${(50 + Math.sin(giro) * radio * 0.92).toFixed(2)}%`);
+      /* Late más rápido cuanto más hondo: la profundidad hecha pulso. */
+      b.style.setProperty('--kdx-n-pulso', `${(4.2 / (1 + v.profundidad * 0.3)).toFixed(2)}s`);
 
-      const t = document.createElement('span');
-      t.className = p.nodo.sinNombre ? 'kdx-p__t kdx-p__t--anon' : 'kdx-p__t';
-      /* Honestidad: 1.309 nodos no tienen nombre y el hash no es un título. */
-      t.textContent = p.nodo.sinNombre ? `UNNAMED SPECIMEN · ${p.nodo.id.slice(5, 13)}` : p.nodo.titulo;
-
-      const meta = document.createElement('span');
-      meta.className = 'kdx-p__meta';
-      const est = document.createElement('span');
-      est.className = 'kdx-p__est';
-      est.dataset.e = p.nodo.estatus;
-      est.textContent = p.nodo.estatus.replace('_', ' ');
-      meta.append(est);
-      if (p.nodo.estrato) {
-        const e = document.createElement('span');
-        e.textContent = p.nodo.estrato.toUpperCase().replace(/-/g, ' ');
-        meta.append(e);
+      const t = p.nodo.sinNombre ? `UNNAMED · ${p.nodo.id.slice(5, 13)}` : p.nodo.titulo;
+      const punto = document.createElement('i');
+      punto.className = 'kdx-n__punto';
+      punto.setAttribute('aria-hidden', 'true');
+      const nombre = document.createElement('span');
+      nombre.className = 'kdx-n__nombre';
+      nombre.textContent = t;
+      /* El estatus sólo si es excepción — regla ya establecida. */
+      if (p.nodo.estatus !== 'VERIFIED' && p.nodo.estatus !== 'CANONICAL') {
+        const e = document.createElement('em');
+        e.className = 'kdx-n__aviso';
+        e.textContent = p.nodo.estatus.replace('_', ' ').toLowerCase();
+        nombre.append(e);
       }
-      const r = document.createElement('span');
-      r.textContent = p.razon;
-      meta.append(r);
+      b.append(punto, nombre);
+      b.setAttribute('aria-label', `${DICE[papel]}: ${t}. ${p.razon.toLowerCase()}`);
 
-      b.append(rot, t, meta);
-      b.addEventListener('click', () => elegir(p, puertas));
+      /* En táctil el primer toque revela y el segundo entra: tocar a ciegas un
+         punto sin nombre sería adivinar adónde vas. Con puntero, acercarse ya
+         revela y un click entra. */
+      b.addEventListener('click', (ev) => {
+        const revelado = b.dataset.abierto === 'si';
+        if (!revelado && matchMedia('(hover:none)').matches) {
+          ev.preventDefault();
+          lista.querySelectorAll<HTMLElement>('.kdx-n').forEach((x) => delete x.dataset.abierto);
+          b.dataset.abierto = 'si';
+          return;
+        }
+        elegir(p, puertas);
+      });
       li.append(b);
       lista.append(li);
-    }
+    });
+    lista.dataset.n = String(N);
   };
 
   const rotular = () => {
@@ -169,7 +269,11 @@ export function montarDescenso() {
       : 'NO TRACE YET';
     const enCorazon = v.profundidad >= PROFUNDIDAD_CORAZON;
     ($('[data-kdx-corazon]') as HTMLElement).hidden = !enCorazon;
-    $('[data-kdx-ojo]').textContent = enCorazon ? 'THE CENTRE' : `LAYER ${v.profundidad + 1}`;
+    /* El ojo NO numera la capa. El manifiesto del creador nombra «LAYER 1»
+       entre lo que el visitante no necesita ver, y la espiral ya lo dice sin
+       palabras: una vuelta más cerrada por nivel. La palabra sobraba encima
+       del dibujo que la explica. */
+    $('[data-kdx-ojo]').textContent = enCorazon ? 'THE CENTRE' : '';
     $('[data-kdx-nota]').textContent = enCorazon
       ? 'Seven layers. This is the middle. The way out is the way you came.'
       : 'Each door records what you chose and what you left. Two people never descend the same.';
@@ -179,6 +283,9 @@ export function montarDescenso() {
     const c = await traerCorpus();
     refrescarFirma();
     rotular();
+    /* El sonido baja con vos: cuanto más hondo, más cerrado el aire. Es el
+       mismo dato que dibuja la espiral, sonando. */
+    sonidoProfundidad(v.profundidad, PROFUNDIDAD_CORAZON);
     dibujarEspiral();
     if (v.profundidad >= PROFUNDIDAD_CORAZON) {
       lista.replaceChildren();
@@ -206,12 +313,20 @@ export function montarDescenso() {
     $('[data-kdx-sub]').textContent = p.nodo.sinNombre
       ? 'An entry the archive holds but has not named. It is still yours to read.'
       : `${p.razon.toLowerCase()} — and it opens further.`;
+    /* SE ATRAVIESA, no se cambia de contenido. El creador: "esto es un loop,
+       como un black hole o agujeros de gusano, que entrás hacia dentro cada
+       vez". El túnel es el feedback pass que ya existía en el repo, no una
+       animación nueva. */
+    void atravesarHaciaDentro(560);
     /* Historial real: Atrás sube un nivel, como debe ser. */
     history.pushState({ kdx: v.profundidad, escena }, '', `#descent-${v.profundidad}`);
     abrirNivel();
   };
 
   const abrir = () => {
+    /* El shader se pide ACÁ, no al descender: abrir la placa ya es atención
+       declarada, y compilarlo tarda casi tres segundos en producción. */
+    prepararTravesia();
     placa.hidden = false;
     document.documentElement.style.overflow = 'hidden';
     recordar('DESCENT_OPENED', `scene-${escena}`, { depth: 0 });
@@ -241,8 +356,35 @@ export function montarDescenso() {
     abrirNivel();
   };
 
+  /* Los instrumentos, a pedido. "Puede aparecer ocasionalmente como
+     microdetalle estético —como mirar los instrumentos de una nave— pero no
+     puede dominar la escena." Un punto que se toca y aparece la lectura. */
+  const instr = placa.querySelector<HTMLButtonElement>('[data-kdx-instrumentos]');
+  const medida = placa.querySelector<HTMLElement>('[data-kdx-medida]');
+  instr?.addEventListener('click', () => {
+    const abierto = instr.getAttribute('aria-expanded') === 'true';
+    instr.setAttribute('aria-expanded', String(!abierto));
+    if (medida) medida.hidden = abierto;
+    instr.textContent = abierto ? '◦' : '◉';
+  });
+
+  montarTravesia();
   boca.addEventListener('click', abrir);
-  $('[data-kdx-cerrar-descenso]').addEventListener('click', () => history.back());
+  /* Cerrar es DIRECTO, y además se corrige el historial.
+     Antes el botón sólo hacía `history.back()` y confiaba en que el popstate
+     cerrara. Medido en una lámina: la placa quedaba abierta y bloqueaba todo lo
+     de atrás —el segundo paso del tríptico no se podía tocar—. Desde un folio
+     funcionaba de casualidad, porque la escena tenía historial propio.
+     Un modal tiene que cerrarse cuando se toca su botón de cerrar, sin
+     depender de qué haya en la pila.
+
+     Y NO rebobina el historial. El primer intento devolvía las entradas que el
+     descenso había empujado, y medido se pasaba de largo: sacaba al visitante
+     de la lámina entera. Además contradice el canon — §8 del documento de
+     navegación pide que cada descenso SEA una entrada real del historial, así
+     que Atrás debe poder recorrer la bajada. Cerrar la placa no es deshacer el
+     viaje: es guardarla. */
+  $('[data-kdx-cerrar-descenso]').addEventListener('click', () => cerrar());
   addEventListener('popstate', (e) => {
     if (placa.hidden) return;
     const d = (e.state as { kdx?: number } | null)?.kdx;

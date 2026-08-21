@@ -39,8 +39,8 @@
  */
 import { raizLamina, idLamina } from './raiz';
 import '../../../../styles/kodex-lamina.css';
-import { bifurcar, firmaDeRuta, type Corpus, type Viaje } from '../../../../lib/kodex/ruta';
-import { recordar, derivados } from '../../../../lib/kodex/memoria';
+import { recordar } from '../../../../lib/kodex/memoria';
+import { montarDescenso } from '../../../../lib/kodex/descenso-ui';
 
 /** Sobre este ancho, la lámina se ve como plano completo y no hace falta. */
 const CORTE = 560;
@@ -265,74 +265,31 @@ export function montarTriptico() {
 
   ir(0);
 
-  /* ── el agujero de gusano ───────────────────────────────────────────────
+  /* ── el agujero de gusano: LA MISMA PLACA ───────────────────────────────
      El creador: "desde cada página uno entra como en agujero de gusano y entra
-     en otro concepto, y así se va haciendo la experiencia según de dónde hagas
-     click, porque todo está conectado entre sí".
+     en otro concepto… según de dónde hagas click, porque todo está conectado".
+     Y después, mirando el resultado: "hay dos interfaces para la misma
+     máquina".
      
-     Las tres páginas son TRES BOCAS DISTINTAS al mismo grafo. No es el mismo
-     descenso con otro botón: la firma de ruta se siembra con la página, así que
-     salir por SIGNAL no lleva adonde lleva salir por FIELD. La misma lámina,
-     tres continuaciones — y eso multiplica por tres las salidas de cada
-     concepto sin escribir una sola relación nueva a mano.
+     Tenía razón. Este archivo armaba su propia lista de tres puertas mientras
+     las escenas abrían una placa modal con espiral y medidor de profundidad.
+     Mismo motor de ruta, dos caras, y un visitante no puede saber que son lo
+     mismo. Ahora las tres bocas abren LA PLACA — la misma que el folio — con
+     su espiral y su cuenta de profundidad.
      
-     El corpus baja UNA vez y sólo si alguien decide cruzar: §11 del documento
-     de navegación —el costo escala con la atención, no con el archivo. */
-  let corpus: Corpus | null = null;
-  const traerCorpus = async (): Promise<Corpus> => {
-    if (corpus) return corpus;
-    const j = await fetch('/kodex-content/ramas.json').then((r) => r.json());
-    corpus = { nodos: j.nodos, vecinos: j.vecinos, indice: j.indice };
-    return corpus;
-  };
-
-  const abrirGusano = async (pagina: number, boton: HTMLElement) => {
-    const c = await traerCorpus();
-    const d = derivados();
-    /* La boca: `kdx:lamina/<slug>#<pagina>` entra en la firma, así que cada
-       página abre su propia rama del mismo concepto. */
-    const boca = `kdx:lamina/${id}#${NOMBRES[pagina]}`;
-    const v: Viaje = {
-      escena: boca, profundidad: 0, aqui: null, visitados: [],
-      firma: firmaDeRuta(boca, [], d.returnCount ?? 0),
-      memoria: {
-        archiveDepth: d.archiveDepth ?? 0,
-        routeDiversity: d.routeDiversity ?? 0,
-        returnCount: d.returnCount ?? 0,
-      },
-    };
-    const puertas = bifurcar(v, c);
-    const caja = document.createElement('div');
-    caja.className = 'kdx-tri__gusano';
-    const cab = document.createElement('p');
-    cab.className = 'kdx-tri__ojo';
-    cab.textContent = `WORMHOLE · FROM ${NOMBRES[pagina]}`;
-    caja.append(cab);
-    for (const pt of puertas) {
-      const a = document.createElement('a');
-      a.className = 'kdx-tri__puerta';
-      a.href = pt.nodo.href;
-      /* Honestidad: 1.309 nodos no tienen nombre y el hash no es un título. */
-      const t = pt.nodo.sinNombre ? `UNNAMED SPECIMEN · ${pt.nodo.id.slice(5, 13)}` : pt.nodo.titulo;
-      a.innerHTML = `<span class="kdx-tri__papel">${pt.papel ?? ''}</span><span class="kdx-tri__pt">${t}</span><span class="kdx-tri__pest">${pt.nodo.estatus.replace('_', ' ')}</span>`;
-      a.addEventListener('click', () => {
-        recordar('WORMHOLE_TAKEN', pt.nodo.id, { page: pagina, offered: puertas.length });
-      });
-      caja.append(a);
-    }
-    boton.replaceWith(caja);
-  };
-
+     Lo que cambia entre las tres no es la interfaz sino la SEMILLA: cada página
+     entra con su propia boca, `kdx:lamina/<slug>#SIGNAL|FIELD|EVIDENCE`, así
+     que salir por una no lleva adonde lleva salir por otra. Eso era el pedido
+     y se conserva entero. */
   for (let i = 0; i < 3; i++) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'kdx-tri__boca';
-    b.textContent = '◎ ENTER ANOTHER CONCEPT →';
-    b.addEventListener('click', () => {
-      recordar('WORMHOLE_OPENED', `kdx:lamina/${id}`, { page: i });
-      abrirGusano(i, b);
-    }, { once: true });
+    b.setAttribute('data-kdx-abrir-descenso', '');
+    b.textContent = `◎ ENTER ANOTHER CONCEPT · FROM ${NOMBRES[i]} →`;
+    b.addEventListener('click', () => recordar('WORMHOLE_OPENED', `kdx:lamina/${id}`, { page: i }), { once: true });
     [p1, p2, p3][i].append(b);
+    montarDescenso({ boca: b, escena: `kdx:lamina/${id}#${NOMBRES[i]}` });
   }
 
   /* Auditoría: cuántos bloques de la plancha quedaron repartidos. "Nada se

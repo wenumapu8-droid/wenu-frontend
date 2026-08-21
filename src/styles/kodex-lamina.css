@@ -248,10 +248,19 @@
    atributo de scope de Astro y todas sus reglas quedarían sin aplicar. Ya pasó
    con las puertas del descenso y sólo se vio mirando la captura. */
 
+/* Arranca APAGADA y la enciende su fase. Antes nacía visible y se apagaba, y
+   medido a 400ms estaba en opacidad 0.25 — un parpadeo de controles ANTES de
+   que apareciera el nombre de la obra, que es justo el orden que el manifiesto
+   invierte. Nada aparece antes de que le toque. */
 .kdx-vida{
   position:fixed; inset:0; z-index:6; pointer-events:none;
   font-family:'IBM Plex Mono',ui-monospace,monospace;
+  opacity:0;
 }
+html[data-kdx-fase="movimiento"] body .kdx-vida,
+html[data-kdx-fase="descubrimiento"] body .kdx-vida{ opacity:1; }
+/* Sin coreografía montada (otra superficie), la capa se comporta como antes. */
+html:not([data-kdx-fase]) .kdx-vida{ opacity:1; }
 .kdx-vida[data-apagada="si"] .kdx-vida__campo{ display:none; }
 /* Fuera de vista la plancha, la capa entera se retira: no flota sobre el
    lector de texto en móvil. */
@@ -595,3 +604,74 @@ body:has(.kdx-mov), body:has(.lam), body:has(.kdx-lam){ overflow-x:clip; }
   .kdx-tri__pt{ font-size:13px; letter-spacing:.04em; line-height:1.3; }
   .kdx-tri__pest{ font-size:8.5px; letter-spacing:.14em; color:rgba(240,237,232,.42); }
 }
+
+/* ── LA COREOGRAFÍA DE LLEGADA ─────────────────────────────────────────────
+   Manifiesto operativo (rango CANON): "algunos instrumentos están tocando
+   todos al mismo tiempo… Silencio · Entrada · Tensión · Revelación ·
+   Movimiento · Descubrimiento", y "nada se muestra todo a la vez".
+
+   Antes, al abrir una lámina, llegaban de golpe: la obra, el título, el cromo,
+   las señales vivas y la boca del gusano. Ahora entran en orden y cada una
+   espera su turno. Las fases las estampa `montarFases()` en <html>; acá sólo
+   se dice qué se ve en cada una.
+
+   Se anima OPACIDAD y no `display`: nada cambia de lugar al aparecer, así que
+   no hay saltos de composición y el texto ya está en el DOM desde el principio
+   para quien lea con lector de pantalla. */
+
+html[data-kdx-fase] .kdx-tri__macro,
+html[data-kdx-fase] .kdx-tri__ojo,
+html[data-kdx-fase] .kdx-tri__rail,
+html[data-kdx-fase] .kdx-tri__datos,
+html[data-kdx-fase] .kdx-tri__cont,
+html[data-kdx-fase] .kdx-tri__pasos,
+html[data-kdx-fase] .kdx-tri__boca,
+html[data-kdx-fase] .kdx-vida,
+html[data-kdx-fase] .lam-salida,
+html[data-kdx-fase] .lam-siguiente{
+  transition:opacity .85s cubic-bezier(.22,.61,.36,1);
+}
+
+/* SILENCIO — sólo la obra.
+   La capa de vida necesita el prefijo `body` porque su propia regla
+   (`body:has(.kdx-tri) .kdx-vida`) tiene más peso que un selector de fase
+   suelto: medido, se la veía durante el silencio hasta que el tríptico
+   montaba. Las fases mandan sobre las capas, no al revés. */
+html[data-kdx-fase="silencio"] :is(.kdx-tri__macro,.kdx-tri__ojo,.kdx-tri__rail,
+  .kdx-tri__datos,.kdx-tri__cont,.kdx-tri__pasos,.kdx-tri__boca,
+  .lam-salida,.lam-siguiente){ opacity:0; pointer-events:none; }
+html[data-kdx-fase="silencio"] body .kdx-vida,
+html[data-kdx-fase="entrada"] body .kdx-vida,
+html[data-kdx-fase="revelacion"] body .kdx-vida{ opacity:0 !important; pointer-events:none; }
+
+/* ENTRADA — el nombre del concepto, y nada más. */
+html[data-kdx-fase="entrada"] :is(.kdx-tri__rail,.kdx-tri__datos,.kdx-tri__cont,
+  .kdx-tri__boca,.kdx-vida){ opacity:0; pointer-events:none; }
+
+/* REVELACIÓN — el cromo y los datos de la superficie. */
+html[data-kdx-fase="revelacion"] :is(.kdx-tri__boca,.kdx-vida){ opacity:0; pointer-events:none; }
+
+/* MOVIMIENTO — recién acá empiezan a emerger las señales vivas. */
+html[data-kdx-fase="movimiento"] .kdx-tri__boca{ opacity:0; pointer-events:none; }
+
+/* DESCUBRIMIENTO — y sólo entonces se ofrece salir a otro concepto.
+   "Nada se explica antes de poder sentirse." */
+
+
+/* ── ÁREA TÁCTIL DE LA NAVEGACIÓN, EN TODAS LAS LÁMINAS ────────────────────
+   Auditoría mecánica sobre las 37 láminas a 390×844: 21 tenían los dos
+   enlaces de navegación en 46×18px — por debajo del mínimo de 44 en el alto.
+   La causa: el colapso a pestaña de 44px sólo aplicaba bajo `body:has(.kdx-tri)`,
+   y 14 láminas no montan tríptico. O sea que la regla existía y no llegaba
+   justo a las que más la necesitaban.
+
+   Acá va sin condición: el dedo necesita 44px en cualquier lámina, tenga o no
+   tríptico. El relleno es transparente, así que crece el área y no la mancha. */
+@media (max-width:560px){
+  .lam-salida, .lam-siguiente{
+    min-height:44px; display:inline-flex; align-items:center;
+    box-sizing:border-box;
+  }
+}
+/* En escritorio también: el puntero es fino pero el foco de teclado no. */
+.lam-salida, .lam-siguiente{ min-height:44px; }

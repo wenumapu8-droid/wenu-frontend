@@ -1,0 +1,63 @@
+/**
+ * KODEX−∞ · ÁREA TÁCTIL — el dedo necesita 44px aunque el signo mida 12
+ *
+ * Medido en producción a 390×844 y 412×915:
+ *   /kodex/works/          1.496 controles bajo 44px
+ *   /kodex/vol/<slug>/        15 controles bajo 44px
+ *
+ * Y casi todos por MUY POCO: los botones de filtro miden 42px de alto —dos
+ * menos que el mínimo— y el cromo compartido trae el wordmark en 18 y el
+ * interruptor de sonido en 28×28. No es un problema de diseño: es un problema
+ * de dos pixeles repetido mil quinientas veces.
+ *
+ * LA OBRA Y LA COMPOSICIÓN NO SE TOCAN. Agrandar los botones cambiaría el
+ * ritmo de la página, y el manifiesto es claro en que la interfaz desaparece
+ * mientras cumple su función. Así que el área táctil crece con un
+ * pseudo-elemento absoluto y transparente: el signo se ve igual, el dedo
+ * encuentra 44px. Es la misma solución que ya usan las señales de KDX.LIFE
+ * —44px de caja alrededor de un punto de 9— aplicada al cromo.
+ */
+
+/* Se ancla en `body` y no en una clase: esta hoja la importan SÓLO las dos
+   páginas que la necesitan, así que no hay riesgo de alcance, y buscar la raíz
+   correcta en el markup de cada una era pelear con el árbol para nada. */
+body :is(a, button, [role="button"]) {
+  position: relative;
+}
+/* El colchón invisible. `inset` negativo hasta completar 44px de lado, y sólo
+   donde falta: un control que ya mide 44 no recibe nada. */
+body :is(a, button, [role="button"])::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 50%;
+  width: 100%; height: 44px;
+  min-width: 44px;
+  transform: translateY(-50%);
+  /* Centrado horizontal cuando el control es más angosto que 44. */
+  margin-left: min(0px, calc((100% - 44px) / 2));
+  pointer-events: auto;
+}
+/* Elementos que ya son bloque grande no necesitan el colchón, y ponérselo
+   crearía una zona muerta sobre lo que tienen debajo. */
+body :is(a, button)[data-kdx-tacto="no"]::after { content: none; }
+
+/* El enlace de salto se muestra sólo al enfocarlo; su tamaño en reposo no
+   cuenta como blanco táctil porque no es tocable en reposo. */
+body .skip-link::after { content: none; }
+
+/* ── LA FRANJA DE ABAJO ES DE UNO SOLO ──────────────────────────────────────
+   Medido en la página de llegada: 9 solapamientos, y los seis peores son todos
+   la barra de comandos del OS —COMMANDS · 0–6 · MODE · VOID— encimada sobre la
+   navegación de la propia página —‹ PREVIOUS · NEXT ›— y sobre su contenido
+   (ESCRITURA al 100%, PROFUNDIDAD al 77%).
+
+   Dos superficies distintas reclamando el mismo borde inferior. La barra del OS
+   es global y no se toca desde acá; lo que cede es la página, dejándole su
+   altura libre. Es la misma decisión que ya se tomó en las láminas cuando la
+   barra de KDX.LIFE chocaba con NEXT PLATE: el control se corre, y el que se
+   corre es el local, no el del sistema. */
+body{ padding-bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+/* Lo fijo al borde inferior sube por encima de la barra del OS. */
+body :is(.kx-vol__nav, .kx-vol__pie, [data-kdx-vol-nav]){
+  bottom: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+}
