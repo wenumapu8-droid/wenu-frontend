@@ -164,6 +164,8 @@ void main(){
       const uRes=U('u_res'), uTime=U('u_time'), uSeed=U('u_seed'),
             uPtr=U('u_pointer'), uBass=U('u_bass'), uState=U('u_state'), uPx=U('u_px'), uExp=U('u_exp');
       gl.uniform1f(uSeed, Math.random());
+      /* Instante en que el campo nace, para que la anomalía pueda crecer. */
+      const t0Campo = performance.now();
 
       /* El tamaño de bloque decide cuán "código" se ve. En el prototipo era
          fijo; acá baja en pantallas chicas para que el mandala no se coma su
@@ -232,7 +234,27 @@ void main(){
         estadoActual += (objetivo - estadoActual) * 0.035;
         gl.uniform1f(uState, estadoActual);
         gl.uniform1f(uPx, px * DPR);
-        gl.uniform1f(uExp, puente.exposicion ?? 0.52);
+        /* ── LA ANOMALÍA CRECE, NO LLEGA HECHA ────────────────────────────
+           El creador, muchas veces: "hay como un mandala al comienzo que no es
+           lo que yo quería… está una flor que está buena pero no me gusta como
+           para el comienzo".
+
+           Comparado el shader de la portada contra el del prototipo que él
+           aprobó: son IDÉNTICOS, línea por línea, incluida la función que
+           dibuja el mandala. O sea que la flor no sobraba — llegaba demasiado
+           pronto y demasiado entera.
+
+           Su propia descripción del umbral lo dice: "Negro casi total. Algo
+           respira. Aparece una pequeña anomalía. La anomalía CRECE." Una flor
+           a plena exposición desde el primer cuadro no crece: ya llegó.
+
+           Así que la exposición ARRANCA CASI EN NEGRO y sube durante los
+           primeros ocho segundos con una curva lenta al principio. Lo que se
+           ve primero es el campo respirando; la geometría emerge después. No
+           se cambió un solo pixel del shader: se cambió cuándo se enciende. */
+        const nacida = (performance.now() - t0Campo) / 8000;
+        const crecer = nacida >= 1 ? 1 : nacida * nacida * (3 - 2 * nacida);
+        gl.uniform1f(uExp, (puente.exposicion ?? 0.52) * (0.06 + 0.94 * crecer));
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
       cuadro();
