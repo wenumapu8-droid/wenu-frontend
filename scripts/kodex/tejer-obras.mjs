@@ -1,50 +1,76 @@
 /**
- * TEJER OBRAS — el banco limpio para las portadas entre concepto y concepto
+ * TEJER OBRAS — el banco de obra digital del creador
  *
- * El creador: "las páginas de portada entremedio de cada concepto que deberían
- * vivir dentro del KODEX", y después: "no necesito que pongas screenshot, son
- * las imágenes digitales de mi obra".
+ * Él: "son las imágenes digitales de mi obra, digitales en blanco y negro y
+ * mirrolab e instashot y cosas así".
  *
- * Por eso este índice NO sale del registro de assets, que mezclaba todo, sino
- * del MANIFIESTO ya curado: sólo volúmenes SIN la marca
- * `descartado: "captura-de-pantalla"`. Es la clasificación que ya se hizo y se
- * verificó contando cortes horizontales duros en cada portada; rehacerla a ojo
- * habría sido peor y más lento.
+ * DOS CONDICIONES, y las dos hicieron falta. Cada una sola dejaba pasar cosas
+ * que él no quiere ver presentadas como su obra:
  *
- * Y sólo entran las que tienen ARCHIVO PRESENTE: un índice que promete una
- * imagen que no está es una pantalla negra en mitad del descenso.
+ *   1. SATURACIÓN < 0.05 — blanco y negro de verdad.
+ *      Sin esto entraba una foto de una caja de madera con musgo verde.
+ *
+ *   2. LLENA EL CUADRO — densidad de bordes > 0.08 y menos de la mitad del
+ *      cuadro en blanco casi puro.
+ *      Sin esto entraba una foto de producto: joyería de metal gris sobre
+ *      fondo blanco, que es gris y por lo tanto pasaba el filtro anterior.
+ *      Su obra es patrón de borde a borde; una foto de producto es fondo
+ *      vacío con un objeto chico en el medio.
+ *
+ * Y sobre las dos, la marca de captura del manifiesto.
+ *
+ * VERIFICADO MIRANDO, no sólo midiendo: se armó hoja de contactos de las 24
+ * primeras y las 24 son geometría suya —grecas, mandalas, caleidoscopios,
+ * fractales— sin una sola excepción. Es la tercera vuelta de este filtro;
+ * las dos anteriores se publicaron mal y por eso ahora se mira antes.
  */
+import sharp from 'sharp';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
+const SAT_MAX = 0.05;
+const BORDE_MIN = 0.08;
+const BLANCO_MAX = 0.5;
+
 const man = JSON.parse(readFileSync('public/kodex-content/manifest.json', 'utf8'));
-const vols = man.volumes ?? [];
-
 const obras = [];
-let sinArchivo = 0;
+let porCaptura = 0, porColor = 0, porFondo = 0, sinArchivo = 0;
 
-for (const v of vols) {
-  if (v.descartado) continue;                    // captura: no es obra
-  const hash = String(v.id).replace(/^spec-/, '');
-  /* La versión de escritorio es la de mayor resolución; la de móvil se deja
-     como respaldo para no bajar 2MB en un teléfono. */
-  const grande = `/kodex-content/free/wallpapers/${hash}-desktop.webp`;
-  const chica = `/kodex-content/free/wallpapers/${hash}-mobile.webp`;
-  const hayG = existsSync('public' + grande);
-  const hayC = existsSync('public' + chica);
+for (const v of man.volumes ?? []) {
+  if (v.descartado) { porCaptura++; continue; }
+  const h = String(v.id).replace(/^spec-/, '');
+  const g = `/kodex-content/free/wallpapers/${h}-desktop.webp`;
+  const c = `/kodex-content/free/wallpapers/${h}-mobile.webp`;
+  const hayG = existsSync('public' + g), hayC = existsSync('public' + c);
   if (!hayG && !hayC) { sinArchivo++; continue; }
-  obras.push({
-    id: v.id,
-    titulo: v.titulo_es || v.titulo_en || null,
-    grande: hayG ? grande : chica,
-    chica: hayC ? chica : grande,
-  });
+
+  try {
+    const p = 'public' + (hayC ? c : g);
+    const { data, info } = await sharp(p).resize(48, 48, { fit: 'fill' })
+      .removeAlpha().raw().toBuffer({ resolveWithObject: true });
+    const N = info.width * info.height;
+    let sat = 0, blanco = 0, borde = 0, prevL = -1;
+    for (let i = 0, k = 0; i < data.length; i += 3, k++) {
+      const r = data[i] / 255, gg = data[i + 1] / 255, b = data[i + 2] / 255;
+      const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2;
+      sat += mx === mn ? 0 : (l > 0.5 ? (mx - mn) / (2 - mx - mn) : (mx - mn) / (mx + mn));
+      const lum = l * 255;
+      if (lum > 235) blanco++;
+      if (k % info.width !== 0 && prevL >= 0 && Math.abs(lum - prevL) > 50) borde++;
+      prevL = lum;
+    }
+    const S = sat / N, B = blanco / N, E = borde / N;
+    if (S >= SAT_MAX) { porColor++; continue; }
+    if (E <= BORDE_MIN || B >= BLANCO_MAX) { porFondo++; continue; }
+    obras.push({ id: v.id, titulo: v.titulo_es || v.titulo_en || null,
+      grande: hayG ? g : c, chica: hayC ? c : g });
+  } catch { sinArchivo++; }
 }
 
 writeFileSync('public/kodex-content/obras.json', JSON.stringify({
-  version: 2,
-  nota: 'Obra del creador para las láminas de respiración. Sale del manifiesto CURADO: sólo volúmenes sin la marca de captura de pantalla, y sólo los que tienen archivo presente. Ninguna generada, ninguna capturada.',
-  total: obras.length,
-  obras,
+  version: 4,
+  nota: 'Obra digital en blanco y negro del creador. Filtro doble verificado a ojo en hoja de contactos: saturación < 0.05 Y llena el cuadro (bordes > 0.08, blanco < 0.5). Descarta capturas, documentos, fotografía a color y fotografía de producto sobre fondo blanco.',
+  total: obras.length, obras,
 }));
 
-console.log(`obras.json · ${obras.length} obras limpias · ${sinArchivo} descartadas por falta de archivo · ${(JSON.stringify(obras).length / 1024).toFixed(0)}KB`);
+console.log(`obras.json v4 · ${obras.length} obras`);
+console.log(`descartadas: ${porCaptura} por captura · ${porColor} por color · ${porFondo} por fondo vacío · ${sinArchivo} sin archivo`);
