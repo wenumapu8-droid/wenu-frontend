@@ -106,3 +106,72 @@ export function montarEstadoEscena(): void {
   const raiz = document.querySelector<HTMLElement>("[data-kx], .kx-threshold, .kx-os-stage");
   if (raiz) estadoEscena().iniciar(raiz);
 }
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * FASES DE LLEGADA — la coreografía temporal
+ *
+ * MANIFIESTO OPERATIVO del creador (2026-08-20, rango CANON):
+ *
+ *   "Las piezas no son el problema; la coreografía sí. Tenemos instrumentos
+ *    increíbles, pero algunos están tocando todos al mismo tiempo.
+ *    Ahora necesitamos dirección:
+ *      Silencio · Entrada · Tensión · Revelación · Movimiento
+ *      Descubrimiento · Profundidad · Pausa · Transformación · Regreso"
+ *
+ *   "Nada se explica antes de poder sentirse. Nada se muestra todo a la vez."
+ *
+ * Y del `08A`: la máquina de escena de arriba es el ancestro pero no distingue
+ * ESTABLISH de REVEAL. Esto NO es una segunda máquina: es una capa de fases
+ * que se monta sobre la misma instancia, hacia adelante como ella, y que sólo
+ * agrega el eje que faltaba — el TIEMPO.
+ *
+ * Se estampa en `<html data-kdx-fase>` y las capas se revelan por CSS. Ninguna
+ * capa decide sola cuándo aparece: obedecen a un valor único, que es lo que
+ * este archivo ya venía defendiendo para el espacio y ahora también rige el
+ * tiempo.
+ */
+
+export type Fase = 'silencio' | 'entrada' | 'revelacion' | 'movimiento' | 'descubrimiento';
+
+/** Los tiempos, en ms desde que la superficie queda lista. */
+const COMPAS: Array<[Fase, number]> = [
+  ['silencio', 0],        // sólo la obra. El manifiesto: "la imagen domina"
+  ['entrada', 700],       // aparece el nombre del concepto
+  ['revelacion', 1500],   // el cromo y los datos de la superficie
+  ['movimiento', 2400],   // KDX.LIFE empieza a emerger
+  ['descubrimiento', 3200], // recién ahora se ofrece salir a otro concepto
+];
+
+/**
+ * Arranca la coreografía de llegada.
+ *
+ * `prefers-reduced-motion` NO la desactiva: la comprime. Quien pidió menos
+ * movimiento igual merece que las cosas lleguen en orden — lo que no merece es
+ * esperar tres segundos por ello.
+ */
+export function montarFases(raiz: HTMLElement = document.documentElement): () => void {
+  const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const escala = quieto ? 0.25 : 1;
+  const relojes: number[] = [];
+
+  const poner = (f: Fase) => { raiz.dataset.kdxFase = f; };
+  poner('silencio');
+
+  for (const [f, t] of COMPAS) {
+    if (t === 0) continue;
+    relojes.push(window.setTimeout(() => poner(f), t * escala));
+  }
+
+  /* Si el visitante toca antes de tiempo, la coreografía se salta hasta el
+     final: la dirección es para quien mira, nunca una traba para quien ya
+     decidió. */
+  const saltar = () => {
+    relojes.forEach(clearTimeout);
+    poner('descubrimiento');
+  };
+  for (const ev of ['pointerdown', 'keydown'] as const) {
+    addEventListener(ev, saltar, { once: true, passive: true });
+  }
+
+  return () => relojes.forEach(clearTimeout);
+}

@@ -62,6 +62,7 @@ function construirPlaca(escena: string): HTMLElement {
 }
 
 const PHI = (1 + Math.sqrt(5)) / 2;
+const AUREO = 1 / (PHI * PHI);
 
 const GLIFO: Record<string, string> = { HILO: '⌁', PUENTE: '⌖', HALLAZGO: '✳' };
 const COLOR: Record<string, string> = { HILO: '#e8b4bc', PUENTE: '#8ba0c9', HALLAZGO: '#c9a84c' };
@@ -185,63 +186,78 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     animando = requestAnimationFrame(pintar);
   };
 
-  /* ── pintar una bifurcación ──────────────────────────────────────────── */
+  /* ── pintar una bifurcación: NODOS, NO ALTERNATIVAS ─────────────────────
+     El creador, mirando lo publicado: "necesitamos que la experiencia sea más
+     visual y no una app de quién quiere ser millonario, con alternativas y
+     textos". Tenía razón y era exacto: tres rectángulos apilados, cada uno con
+     su rótulo, su título y su metadato, son un examen de opción múltiple.
+     
+     `10-ESCONDER-EL-SISTEMA` (2026-08-21) da la forma: "incluso los botones
+     que técnicamente necesitamos pueden convertirse visualmente en hotspots,
+     anomalías, símbolos, objetos, grietas, NODOS o zonas vivas".
+     
+     Así que las tres salidas son tres puntos EN LA ESPIRAL. Su posición no es
+     decorativa: caen sobre la vuelta de la profundidad actual, separados por el
+     ángulo áureo desde la firma de ruta — la misma razón con que el motor las
+     eligió. Se ve dónde estás y qué se abre desde ahí, sin una sola caja.
+     
+     El nombre no se muestra hasta que te acercás: "nada se explica antes de
+     poder sentirse". Y debajo siguen siendo <button> con su `aria-label`
+     completo, porque esconder el sistema no es esconder la accesibilidad. */
   const pintar = (puertas: Puerta[]) => {
     lista.replaceChildren();
-    for (const p of puertas) {
+    const N = puertas.length || 1;
+    puertas.forEach((p, k) => {
       const li = document.createElement('li');
       const b = document.createElement('button');
       b.type = 'button';
-      b.className = 'kdx-p';
+      b.className = 'kdx-n';
       const papel = p.papel || 'HALLAZGO';
-      b.style.setProperty('--kdx-p-color', COLOR[papel]);
-      /* La velocidad de giro ES la profundidad: 9s arriba, ~2s en el fondo. */
-      b.style.setProperty('--kdx-giro', `${(9 / (1 + v.profundidad * 0.55)).toFixed(2)}s`);
+      b.dataset.papel = papel;
+      b.style.setProperty('--kdx-n-color', COLOR[papel]);
 
-      const rot = document.createElement('span');
-      rot.className = 'kdx-p__papel';
-      rot.innerHTML = `<span class="kdx-p__glifo" aria-hidden="true">${GLIFO[papel]}</span> ${DICE[papel]}`;
+      /* Sobre la vuelta actual, a ángulo áureo desde la firma. */
+      const giro = ((v.firma % 1000) / 1000 + k * AUREO) * Math.PI * 2;
+      const radio = 34 - v.profundidad * 2.2;            // en % del lado menor
+      b.style.setProperty('--kdx-n-x', `${(50 + Math.cos(giro) * radio).toFixed(2)}%`);
+      b.style.setProperty('--kdx-n-y', `${(50 + Math.sin(giro) * radio * 0.92).toFixed(2)}%`);
+      /* Late más rápido cuanto más hondo: la profundidad hecha pulso. */
+      b.style.setProperty('--kdx-n-pulso', `${(4.2 / (1 + v.profundidad * 0.3)).toFixed(2)}s`);
 
-      const t = document.createElement('span');
-      t.className = p.nodo.sinNombre ? 'kdx-p__t kdx-p__t--anon' : 'kdx-p__t';
-      /* Honestidad: 1.309 nodos no tienen nombre y el hash no es un título. */
-      t.textContent = p.nodo.sinNombre ? `UNNAMED SPECIMEN · ${p.nodo.id.slice(5, 13)}` : p.nodo.titulo;
-
-      const meta = document.createElement('span');
-      meta.className = 'kdx-p__meta';
-      /* ── el estatus se rotula sólo cuando es EXCEPCIÓN ───────────────────
-         Acá chocan dos reglas de canon y hay que decir cómo se resuelve, no
-         resolverlo en silencio:
-           · lo especulativo NUNCA se presenta como documentado;
-           · «el software desaparece y aparece el universo» — el manifiesto
-             nombra «VERIFIED» y «CANONICAL» entre lo que no debe estar a la
-             vista todo el tiempo.
-         Se cumplen las dos rotulando la EXCEPCIÓN y no la norma: 1.352 de
-         1.427 nodos son VERIFIED, así que ese rótulo no informa nada y sólo
-         hace ruido. Lo que informa es cuando algo NO está verificado. Eso se
-         sigue diciendo, siempre y a la vista. */
-      const RUIDO = p.nodo.estatus === 'VERIFIED' || p.nodo.estatus === 'CANONICAL';
-      if (!RUIDO) {
-        const est = document.createElement('span');
-        est.className = 'kdx-p__est';
-        est.dataset.e = p.nodo.estatus;
-        est.textContent = p.nodo.estatus.replace('_', ' ');
-        meta.append(est);
+      const t = p.nodo.sinNombre ? `UNNAMED · ${p.nodo.id.slice(5, 13)}` : p.nodo.titulo;
+      const punto = document.createElement('i');
+      punto.className = 'kdx-n__punto';
+      punto.setAttribute('aria-hidden', 'true');
+      const nombre = document.createElement('span');
+      nombre.className = 'kdx-n__nombre';
+      nombre.textContent = t;
+      /* El estatus sólo si es excepción — regla ya establecida. */
+      if (p.nodo.estatus !== 'VERIFIED' && p.nodo.estatus !== 'CANONICAL') {
+        const e = document.createElement('em');
+        e.className = 'kdx-n__aviso';
+        e.textContent = p.nodo.estatus.replace('_', ' ').toLowerCase();
+        nombre.append(e);
       }
-      if (p.nodo.estrato) {
-        const e = document.createElement('span');
-        e.textContent = p.nodo.estrato.toUpperCase().replace(/-/g, ' ');
-        meta.append(e);
-      }
-      const r = document.createElement('span');
-      r.textContent = p.razon;
-      meta.append(r);
+      b.append(punto, nombre);
+      b.setAttribute('aria-label', `${DICE[papel]}: ${t}. ${p.razon.toLowerCase()}`);
 
-      b.append(rot, t, meta);
-      b.addEventListener('click', () => elegir(p, puertas));
+      /* En táctil el primer toque revela y el segundo entra: tocar a ciegas un
+         punto sin nombre sería adivinar adónde vas. Con puntero, acercarse ya
+         revela y un click entra. */
+      b.addEventListener('click', (ev) => {
+        const revelado = b.dataset.abierto === 'si';
+        if (!revelado && matchMedia('(hover:none)').matches) {
+          ev.preventDefault();
+          lista.querySelectorAll<HTMLElement>('.kdx-n').forEach((x) => delete x.dataset.abierto);
+          b.dataset.abierto = 'si';
+          return;
+        }
+        elegir(p, puertas);
+      });
       li.append(b);
       lista.append(li);
-    }
+    });
+    lista.dataset.n = String(N);
   };
 
   const rotular = () => {

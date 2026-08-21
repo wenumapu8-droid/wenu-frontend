@@ -70,8 +70,20 @@ for (const lam of LAMS) {
     };
     const vis = [];
     for (const e of document.querySelectorAll('body *')) {
+      /* ── CUARTA CORRECCIÓN AL INSTRUMENTO ─────────────────────────────
+         `getComputedStyle(hijo).display` NO hereda el `none` del padre: un
+         <span> dentro de un <p hidden> reporta `inline` y el filtro lo dejaba
+         pasar. Así conté «DEPTH 0 / 7» y «ROUTE D8A4» como visibles en
+         producción cuando su contenedor estaba oculto — y casi reporto una
+         regresión que no existía.
+         `checkVisibility` es la pregunta correcta: la hace el navegador
+         mirando toda la cadena, no una propiedad suelta. */
+      if (typeof e.checkVisibility === 'function'
+        && !e.checkVisibility({ contentVisibilityAuto: true, opacityProperty: true, visibilityProperty: true })) continue;
       const cs = getComputedStyle(e);
       if (cs.display==='none' || cs.visibility==='hidden' || parseFloat(cs.opacity) < 0.12) continue;
+      /* y el texto a cuerpo cero no es texto a la vista */
+      if (parseFloat(cs.fontSize) < 1) continue;
       if (e.getAttribute('aria-hidden')==='true') continue;
       // solo elementos que llevan texto propio
       const txt = [...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent.trim()).join(' ').trim();
