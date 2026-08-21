@@ -13,6 +13,7 @@ import { bifurcar, firmaDeRuta, PROFUNDIDAD_CORAZON, type Corpus, type Puerta, t
 import { recordar, derivados } from './memoria';
 import '../../styles/kodex-descenso.css';
 import { sonidoProfundidad } from './sonido-montar';
+import { atravesarHaciaDentro, montarTravesia } from './travesia';
 
 /**
  * LA PLACA SE CONSTRUYE ACÁ, no en el markup del componente.
@@ -312,6 +313,11 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     $('[data-kdx-sub]').textContent = p.nodo.sinNombre
       ? 'An entry the archive holds but has not named. It is still yours to read.'
       : `${p.razon.toLowerCase()} — and it opens further.`;
+    /* SE ATRAVIESA, no se cambia de contenido. El creador: "esto es un loop,
+       como un black hole o agujeros de gusano, que entrás hacia dentro cada
+       vez". El túnel es el feedback pass que ya existía en el repo, no una
+       animación nueva. */
+    void atravesarHaciaDentro(560);
     /* Historial real: Atrás sube un nivel, como debe ser. */
     history.pushState({ kdx: v.profundidad, escena }, '', `#descent-${v.profundidad}`);
     abrirNivel();
@@ -359,6 +365,7 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
     instr.textContent = abierto ? '◦' : '◉';
   });
 
+  montarTravesia();
   boca.addEventListener('click', abrir);
   /* Cerrar es DIRECTO, y además se corrige el historial.
      Antes el botón sólo hacía `history.back()` y confiaba en que el popstate
