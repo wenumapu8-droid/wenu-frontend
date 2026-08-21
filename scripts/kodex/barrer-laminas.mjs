@@ -26,8 +26,13 @@ import { readdirSync } from 'node:fs';
 const B = process.env.KDX_BASE || 'http://127.0.0.1:4620';
 const LAMS = readdirSync('src/pages/kodex/lamina')
   .filter((f) => f.endsWith('.astro') && f !== 'index.astro' && f !== 'kit.astro')
-  .map((f) => f.replace('.astro', ''));
-const VISTAS = [[390, 844], [412, 915], [1440, 900]];
+  .map((f) => f.replace('.astro', ''))
+  .slice(Number(process.env.KDX_DESDE || 0), Number(process.env.KDX_HASTA || 999));
+/* Una vista por corrida: las tres juntas tardaban más de diez minutos y el
+   barrido se cortaba sin entregar nada. Se elige con KDX_VISTA. */
+const TODAS = { movil: [390, 844], grande: [412, 915], escritorio: [1440, 900] };
+const VISTAS = [TODAS[process.env.KDX_VISTA || 'movil']];
+/* Y se puede acotar el lote con KDX_DESDE / KDX_HASTA. */
 
 const b = await chromium.launch();
 const filas = [];
@@ -41,7 +46,7 @@ for (const lam of LAMS) {
     p.on('pageerror', (e) => errs.push(String(e.message).slice(0, 50)));
     try {
       await p.goto(`${B}/kodex/lamina/${lam}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      await p.waitForTimeout(6500);
+      await p.waitForTimeout(5200);
       const d = await p.evaluate(() => {
         const vis = (x) => x.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })
           && parseFloat(getComputedStyle(x).fontSize) > 1;
