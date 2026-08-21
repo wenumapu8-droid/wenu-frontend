@@ -82,6 +82,31 @@ for (const lam of LAMS) {
       vis.push({ e, t:txt.slice(0,32), x:r.left, y:r.top, r:r.right, b:r.bottom, w:r.width, h:r.height,
                  cls:(e.className||'').toString().slice(0,34) });
     }
+    /* ── PRUEBA DE IMPACTO ───────────────────────────────────────────────
+       Segundo fallo del instrumento, también hallado por el agente del Folio I:
+       dos rectángulos pueden intersecarse y aun así NO verse encimados, porque
+       una tercera capa los tapa a los dos. En su umbral el velo cubre la escena
+       entera —ese es su trabajo— y el detector lo contaba como choque: su cifra
+       base real era 10, no 231. Casi cambia una portada aprobada por un
+       artefacto de medición.
+
+       Intersecar rectángulos dice si COMPARTEN ESPACIO. `elementFromPoint` dice
+       si alguno de los dos SE VE ahí. Sólo lo segundo es un solapamiento
+       visible, que es lo que el creador pidió que no ocurriera.
+
+       Se muestrean nueve puntos del área común: si en ninguno el impacto cae
+       sobre uno de los dos elementos (o un descendiente suyo), los dos están
+       tapados por otra cosa y el par no cuenta. */
+    const seVe = (a, z, x1, y1, x2, y2) => {
+      for (let i = 1; i <= 3; i++) for (let j = 1; j <= 3; j++) {
+        const x = x1 + ((x2 - x1) * i) / 4, y = y1 + ((y2 - y1) * j) / 4;
+        const hit = document.elementFromPoint(x, y);
+        if (!hit) continue;
+        if (a.e.contains(hit) || z.e.contains(hit) || hit === a.e || hit === z.e) return true;
+      }
+      return false;
+    };
+
     const pares = [];
     for (let i=0;i<vis.length;i++) for (let j=i+1;j<vis.length;j++) {
       const a=vis[i], z=vis[j];
@@ -92,6 +117,8 @@ for (const lam of LAMS) {
       if (ox<=2 || oy<=2) continue;
       const area = ox*oy, menor = Math.min(a.w*a.h, z.w*z.h);
       if (area/menor < 0.22) continue;                 // roces mínimos no cuentan
+      /* y por último: ¿alguno de los dos se ve realmente ahí? */
+      if (!seVe(a, z, Math.max(a.x,z.x), Math.max(a.y,z.y), Math.min(a.r,z.r), Math.min(a.b,z.b))) continue;
       pares.push({ a:a.t, ca:a.cls, z:z.t, cz:z.cls, cubre:+(100*area/menor).toFixed(0) });
     }
     return pares.sort((x,y)=>y.cubre-x.cubre).slice(0,10);
