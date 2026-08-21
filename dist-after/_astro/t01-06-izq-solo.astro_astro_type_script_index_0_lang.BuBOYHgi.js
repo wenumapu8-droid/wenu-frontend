@@ -1,0 +1,1 @@
+import{m as t,a as r}from"./triptico.Bnu7cJ01.js";const o=[];window.__kdxRegisterFreeze=e=>o.push(e);window.__kdxFreeze=(e=0)=>{for(const n of o)n(e);document.documentElement.dataset.kdxFrozen="1"};t();r();

@@ -1,0 +1,1 @@
+import{m as n}from"./movil.BFtS-alC.js";const r=document.querySelector(".lam"),t=()=>{const e=Math.min(innerWidth/1122,innerHeight/1402);r.style.transform=`scale(${e})`,document.body.style.height=`${1402*e}px`};t();addEventListener("resize",t,{passive:!0});n();

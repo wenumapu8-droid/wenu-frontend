@@ -1,0 +1,574 @@
+/**
+ * Kai — "Hogar de Kai" (tamagotchi system) — styles.
+ * 2026-07-12. Board: ~/wenu-kai/source/kai_04_sistema_tamagotchi.jpg
+ *
+ * Lives in public/ ON PURPOSE: it is never compiled by Astro, so it cannot
+ * break the build. Loaded LAZILY by public/kai/kai-home.js (injected <link> on
+ * first intent — opening the drawer, or landing on /kai), so it costs nothing
+ * on pages where nobody visits Kai.
+ *
+ * Palette: Kai's room is ALWAYS dark ritual (obsidian + ember), in BOTH themes
+ * — exactly like the existing .kai-niche in global.css, which hardcodes its own
+ * dark gradient for the same reason. To honour the "no loose hex in components"
+ * rule the room declares its own scoped token set (--kh-*) at the top and every
+ * rule below consumes those, never raw hex.
+ */
+
+.kaihome {
+  /* Kai's room palette — theme-independent by design (see header note). */
+  --kh-ink: #0a0806;
+  --kh-panel-a: #1b150c;
+  --kh-panel-b: #0b0806;
+  --kh-gold: #c9a84c;
+  --kh-gold-dim: #6a4a28;
+  --kh-bone: #f0ede8;
+  --kh-sand: #9a948a;
+  --kh-line: rgba(201, 168, 76, 0.20);
+  --kh-line-strong: rgba(201, 168, 76, 0.45);
+  --kh-slot: rgba(240, 237, 232, 0.07);
+
+  /* Meter colours — muted so the room stays ritual, not arcade. */
+  --kh-energia: #c9a84c;
+  --kh-hambre: #d8a24a;
+  --kh-felicidad: #7fa8c9;
+  --kh-curiosidad: #9b8ac9;
+  --kh-vinculo: #c96a6a;
+
+  --kh-pixel: "Press Start 2P", ui-monospace, monospace;
+
+  width: min(980px, 100%);
+  margin: 0 auto;
+  box-sizing: border-box;
+  color: var(--kh-bone);
+}
+.kaihome *,
+.kaihome *::before,
+.kaihome *::after { box-sizing: border-box; }
+
+/* ── Overlay (opened from the Nav Kai) ─────────────────────────────────── */
+.kaihome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90; /* above nav drawer (60) and cart */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: clamp(12px, 3vw, 40px);
+  background: rgba(6, 5, 4, 0.86);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  opacity: 0;
+  transition: opacity 220ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+.kaihome-overlay.is-open { opacity: 1; }
+
+/* ── Panel ─────────────────────────────────────────────────────────────── */
+.kaihome__panel {
+  background:
+    radial-gradient(120% 90% at 50% 0%, var(--kh-panel-a), var(--kh-panel-b) 70%),
+    var(--kh-ink);
+  border: 1px solid var(--kh-line);
+  border-radius: 18px;
+  padding: clamp(16px, 3vw, 30px);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.65);
+}
+.kaihome--inline .kaihome__panel { box-shadow: none; }
+
+.kaihome__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: clamp(14px, 2.4vw, 22px);
+}
+.kaihome__eyebrow {
+  margin: 0 0 6px;
+  font-family: var(--kh-pixel);
+  font-size: 7px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: var(--kh-gold);
+}
+.kaihome__title {
+  margin: 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-weight: 400;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  line-height: 1.05;
+  color: var(--kh-bone);
+}
+.kaihome__sub {
+  margin: 6px 0 0;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--kh-sand);
+  max-width: 46ch;
+}
+.kaihome__close {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--kh-line);
+  border-radius: 10px;
+  color: var(--kh-sand);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.kaihome__close:hover { color: var(--kh-bone); border-color: var(--kh-line-strong); }
+.kaihome--inline .kaihome__close { display: none; }
+
+/* ── Layout ────────────────────────────────────────────────────────────── */
+.kaihome__grid {
+  display: grid;
+  gap: clamp(14px, 2.4vw, 22px);
+  grid-template-columns: 1fr;
+}
+@media (min-width: 780px) {
+  .kaihome__grid {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .kaihome__actions { grid-column: 1 / -1; }
+}
+
+/* ── The room (sprite stage) ───────────────────────────────────────────── */
+.kaihome__room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 14px 14px;
+  background: radial-gradient(120% 95% at 50% 16%, #251d11, #0f0b06);
+  border: 1px solid var(--kh-line);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+/* Window + lamp — a hint of the room from the board, drawn in pure CSS so it
+   costs no asset. Decorative only. */
+.kaihome__room::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  width: 190px;
+  height: 190px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 50% 0%, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0) 68%);
+  pointer-events: none;
+}
+.kaihome__stage {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  border-radius: 50%;
+}
+.kaihome__sprite {
+  width: 168px;
+  height: 168px;
+  image-rendering: pixelated;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+.kaihome__sprite-fallback { width: 120px; height: auto; image-rendering: pixelated; }
+
+/* Evolution aura — the ONLY visual difference between the 4 stages while we
+   reuse the same sprite (no evolution art yet). Swap-ready: when the new
+   sprites land, kai-home.js just points the engine at the new pose prefix and
+   these auras stay as a subtle rank cue. */
+.kaihome__stage::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: box-shadow 400ms ease, background 400ms ease;
+}
+.kaihome__stage[data-stage="1"]::after {
+  background: radial-gradient(circle at 50% 62%, rgba(201, 168, 76, 0.05), rgba(201, 168, 76, 0) 62%);
+}
+.kaihome__stage[data-stage="2"]::after {
+  background: radial-gradient(circle at 50% 62%, rgba(201, 168, 76, 0.10), rgba(201, 168, 76, 0) 66%);
+  box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.22);
+}
+.kaihome__stage[data-stage="3"]::after {
+  background: radial-gradient(circle at 50% 62%, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0) 70%);
+  box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.42), 0 0 26px rgba(201, 168, 76, 0.16);
+}
+.kaihome__stage[data-stage="4"]::after {
+  background:
+    radial-gradient(circle at 50% 62%, rgba(201, 168, 76, 0.20), rgba(201, 168, 76, 0) 72%),
+    radial-gradient(circle at 50% 40%, rgba(140, 90, 200, 0.16), rgba(140, 90, 200, 0) 70%);
+  box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.6), 0 0 34px rgba(201, 168, 76, 0.22);
+}
+.kaihome__floor {
+  width: 62%;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.38), transparent);
+}
+.kaihome__line {
+  margin: 4px 0 0;
+  min-height: 2.6em;
+  max-width: 280px;
+  text-align: center;
+  font-family: var(--kh-pixel);
+  font-size: 9px;
+  line-height: 1.7;
+  letter-spacing: 0;
+  color: var(--kh-sand);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Rank + xp */
+.kaihome__rank {
+  margin: 2px 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kh-gold);
+}
+.kaihome__rank-gloss { color: var(--kh-sand); letter-spacing: 0.06em; text-transform: none; }
+.kaihome__xp {
+  width: 100%;
+  max-width: 240px;
+  height: 6px;
+  background: var(--kh-slot);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.kaihome__xp-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--kh-gold-dim), var(--kh-gold));
+  transition: width 400ms ease;
+}
+.kaihome__xp-note {
+  margin: 0;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.62rem;
+  color: var(--kh-sand);
+}
+
+/* ── Meters ────────────────────────────────────────────────────────────── */
+.kaihome__card {
+  padding: 16px;
+  border: 1px solid var(--kh-line);
+  border-radius: 14px;
+  background: rgba(240, 237, 232, 0.02);
+}
+.kaihome__card-title {
+  margin: 0 0 12px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--kh-gold);
+}
+.kaihome__meters-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.kaihome__meter {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.kaihome__meter-icon { display: block; width: 16px; height: 16px; }
+.kaihome__meter-body { display: grid; gap: 4px; }
+.kaihome__meter-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kh-bone);
+}
+.kaihome__meter-val { font-family: var(--font-mono, monospace); color: var(--kh-sand); letter-spacing: 0; }
+.kaihome__bar {
+  display: flex;
+  gap: 3px;
+  height: 8px;
+}
+.kaihome__seg {
+  flex: 1 1 0;
+  border-radius: 2px;
+  background: var(--kh-slot);
+  transition: background 300ms ease;
+}
+.kaihome__seg.is-on { background: var(--kh-mc, var(--kh-gold)); }
+
+/* ── Actions ───────────────────────────────────────────────────────────── */
+.kaihome__actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .kaihome__actions-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+.kaihome__act {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 64px;
+  padding: 10px 6px;
+  background: rgba(240, 237, 232, 0.03);
+  border: 1px solid var(--kh-line);
+  border-radius: 12px;
+  color: var(--kh-bone);
+  cursor: pointer;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.kaihome__act:hover:not(.is-cooling) {
+  border-color: var(--kh-line-strong);
+  background: rgba(201, 168, 76, 0.08);
+}
+.kaihome__act:active:not(.is-cooling) { transform: translateY(1px); }
+/* Cooling down: aria-disabled, not [disabled] — the button keeps keyboard
+   focus (see kai-home.js refresh()), it just can't do anything yet. */
+.kaihome__act.is-cooling { opacity: 0.4; cursor: default; }
+.kaihome__act svg { width: 18px; height: 18px; display: block; }
+.kaihome__act-es {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--kh-sand);
+}
+
+/* ── Rewards ───────────────────────────────────────────────────────────── */
+.kaihome__section { margin-top: clamp(14px, 2.4vw, 22px); }
+.kaihome__rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (min-width: 560px) {
+  .kaihome__rewards-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+.kaihome__reward {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border: 1px solid var(--kh-line);
+  border-radius: 12px;
+  background: rgba(240, 237, 232, 0.02);
+  text-align: center;
+}
+.kaihome__reward svg { width: 30px; height: 30px; display: block; }
+.kaihome__reward-name {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  color: var(--kh-bone);
+}
+.kaihome__reward-hint {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.58rem;
+  line-height: 1.4;
+  color: var(--kh-sand);
+}
+.kaihome__reward.is-locked { opacity: 0.32; }
+.kaihome__reward.is-locked svg { filter: grayscale(1); }
+.kaihome__reward.is-new {
+  border-color: var(--kh-line-strong);
+  box-shadow: 0 0 22px rgba(201, 168, 76, 0.18);
+}
+
+/* ── Kai's find / kept pieces ──────────────────────────────────────────── */
+.kaihome__pieces { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+@media (min-width: 560px) {
+  .kaihome__pieces { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.kaihome__piece {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--kh-line);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--kh-bone);
+  transition: border-color 120ms ease, background 120ms ease;
+}
+.kaihome__piece:hover { border-color: var(--kh-line-strong); background: rgba(201, 168, 76, 0.06); }
+.kaihome__piece-img {
+  display: block; /* also applies to the <span> placeholder when a piece has no photo */
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 8px;
+  background: rgba(240, 237, 232, 0.05);
+}
+.kaihome__piece-body { display: grid; gap: 2px; min-width: 0; }
+.kaihome__piece-name {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.74rem;
+  line-height: 1.25;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.kaihome__piece-price { font-family: var(--font-mono, monospace); font-size: 0.62rem; color: var(--kh-gold); }
+.kaihome__empty {
+  margin: 0;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.72rem;
+  color: var(--kh-sand);
+}
+
+/* ── Journey (site events → Kai grows) ─────────────────────────────────── */
+.kaihome__journey {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.kaihome__step {
+  flex: 1 1 120px;
+  padding: 8px 10px;
+  border: 1px solid var(--kh-line);
+  border-radius: 10px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--kh-sand);
+  text-align: center;
+}
+.kaihome__step.is-done {
+  color: var(--kh-bone);
+  border-color: var(--kh-line-strong);
+  background: rgba(201, 168, 76, 0.08);
+}
+.kaihome__step-mark { color: var(--kh-gold); }
+
+/* ── Notes (Kai's little log) ──────────────────────────────────────────── */
+.kaihome__notes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.kaihome__note {
+  font-family: var(--font-mono, monospace);
+  font-size: 0.64rem;
+  line-height: 1.5;
+  color: var(--kh-sand);
+  padding-left: 14px;
+  position: relative;
+}
+.kaihome__note::before {
+  content: "✦";
+  position: absolute;
+  left: 0;
+  color: var(--kh-gold);
+}
+.kaihome__reset {
+  margin-top: 14px;
+  background: none;
+  border: 0;
+  padding: 6px 0;
+  color: var(--kh-sand);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.6rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.kaihome__reset:hover { color: var(--kh-bone); }
+
+/* ── Entrance ──────────────────────────────────────────────────────────────
+   There is none, on purpose. The nav niche used to carry an injected
+   "KAI'S HOME" pill (.kaihome-open); it was removed 2026-07-12 — the room is an
+   easter egg now: hold Kai down, or tap him five times. That gesture's only
+   feedback is an ember aura drawn with inline styles from kai-home.js (this
+   stylesheet is lazy-loaded, so it can't be trusted to be here in time). */
+
+/* ── Toast ("Kai found something for you" / "Kai missed you") ──────────── */
+.kaitoast {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 85;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(320px, calc(100vw - 32px));
+  padding: 10px 12px;
+  background: radial-gradient(120% 95% at 50% 16%, #251d11, #0f0b06);
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 14px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+  color: #f0ede8;
+  text-decoration: none;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+.kaitoast.is-in { opacity: 1; transform: none; }
+.kaitoast__face { width: 34px; height: 34px; flex: 0 0 auto; image-rendering: pixelated; }
+.kaitoast__text {
+  font-family: "Press Start 2P", ui-monospace, monospace;
+  font-size: 7.5px;
+  line-height: 1.7;
+  color: #f0ede8;
+}
+.kaitoast__x {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: 0;
+  color: #9a948a;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.kaitoast__x:hover { color: #f0ede8; }
+
+/* ── Focus + reduced motion ────────────────────────────────────────────── */
+.kaihome :is(button, a):focus-visible,
+.kaitoast:focus-visible {
+  outline: 2px solid var(--kh-gold, #c9a84c);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kaihome-overlay,
+  .kaihome__xp-fill,
+  .kaihome__seg,
+  .kaihome__stage::after,
+  .kaitoast {
+    transition: none;
+  }
+  .kaitoast { transform: none; }
+}

@@ -1,0 +1,1 @@
+import{m as e,a as o}from"./montar.CMy2uPcb.js";import{m as n,a as r}from"./triptico.Bnu7cJ01.js";const i=document.querySelector(".lam"),t=()=>{const a=Math.min(innerWidth/1122,innerHeight/1402);i.style.transform=`scale(${a})`,document.body.style.height=`${1402*a}px`};t();addEventListener("resize",t,{passive:!0});e();o({id:"u08-anomaly"});n();r();
