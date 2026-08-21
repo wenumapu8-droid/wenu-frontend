@@ -11,6 +11,52 @@
  */
 import { bifurcar, firmaDeRuta, PROFUNDIDAD_CORAZON, type Corpus, type Puerta, type Viaje } from './ruta';
 import { recordar, derivados } from './memoria';
+import '../../styles/kodex-descenso.css';
+
+/**
+ * LA PLACA SE CONSTRUYE ACÁ, no en el markup del componente.
+ *
+ * El creador lo señaló sin ver el código: "hay dos interfaces para la misma
+ * máquina". El descenso desde una escena era un panel modal con espiral y
+ * medidor de profundidad; el gusano desde una lámina, una lista de tres
+ * puertas dentro de la página. Mismo motor, dos caras, y un visitante no puede
+ * saber que son lo mismo.
+ *
+ * Construyéndola en JavaScript, la misma placa se abre desde un folio y desde
+ * una lámina, con la misma espiral y el mismo vocabulario. Una sola máquina,
+ * una sola cara. La hoja de estilos viaja con este módulo por la misma razón.
+ */
+function construirPlaca(escena: string): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'kdx-desc';
+  el.id = 'kdx-descenso';
+  el.setAttribute('role', 'dialog');
+  el.setAttribute('aria-modal', 'true');
+  el.setAttribute('aria-label', 'Descent');
+  el.hidden = true;
+  el.dataset.escena = escena;
+  el.innerHTML = `
+    <canvas class="kdx-desc__espiral" aria-hidden="true"></canvas>
+    <header class="kdx-desc__cab">
+      <button class="kdx-desc__salir" type="button" data-kdx-cerrar-descenso>← ASCEND</button>
+      <p class="kdx-desc__medida">
+        <span data-kdx-hondura>DEPTH 0</span><span aria-hidden="true">·</span><span data-kdx-firma>ROUTE 0000</span>
+      </p>
+    </header>
+    <main class="kdx-desc__centro">
+      <p class="kdx-desc__ojo" data-kdx-ojo>THE SCENE OPENS</p>
+      <h2 class="kdx-desc__aqui" data-kdx-aqui>CHOOSE YOUR DESCENT</h2>
+      <p class="kdx-desc__pie-t" data-kdx-sub>Three ways in. None of them is the same for two people.</p>
+      <ul class="kdx-desc__puertas" data-kdx-puertas role="list"></ul>
+      <p class="kdx-desc__nota" data-kdx-nota></p>
+    </main>
+    <footer class="kdx-desc__pie">
+      <span data-kdx-rastro>NO TRACE YET</span>
+      <a class="kdx-desc__corazon" href="/kodex/lab/heart/" hidden data-kdx-corazon>◉ THE HEART →</a>
+    </footer>`;
+  document.body.append(el);
+  return el;
+}
 
 const PHI = (1 + Math.sqrt(5)) / 2;
 
@@ -35,12 +81,24 @@ function traerCorpus(): Promise<Corpus> {
   return cargando;
 }
 
-export function montarDescenso() {
-  const placa = document.getElementById('kdx-descenso');
-  const boca = document.querySelector<HTMLButtonElement>('[data-kdx-abrir-descenso]');
-  if (!placa || !boca) return;
-
-  const escena = placa.getAttribute('data-escena') || 'i';
+/**
+ * @param opciones.boca  disparador propio (una lámina pasa el suyo por página)
+ * @param opciones.escena  la boca por la que se entra — siembra la firma de
+ *   ruta, así que dos bocas distintas del mismo sitio abren ramas distintas
+ */
+export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string }) {
+  const boca = opciones?.boca
+    ?? document.querySelector<HTMLButtonElement>('[data-kdx-abrir-descenso]');
+  if (!boca) return;
+  const escena = opciones?.escena
+    ?? boca.getAttribute('data-kdx-escena')
+    ?? document.getElementById('kdx-descenso')?.getAttribute('data-escena')
+    ?? 'i';
+  /* Una sola placa por documento, compartida por todas las bocas: abrir dos
+     modales a la vez no significa nada, y duplicar el canvas de la espiral
+     duplicaría su rAF. */
+  const placa = document.getElementById('kdx-descenso') ?? construirPlaca(escena);
+  placa.dataset.escena = escena;
   const $ = <T extends Element>(s: string) => placa.querySelector<T>(s)!;
   const lista = $<HTMLUListElement>('[data-kdx-puertas]');
   const espiral = $<HTMLCanvasElement>('.kdx-desc__espiral');
@@ -242,7 +300,21 @@ export function montarDescenso() {
   };
 
   boca.addEventListener('click', abrir);
-  $('[data-kdx-cerrar-descenso]').addEventListener('click', () => history.back());
+  /* Cerrar es DIRECTO, y además se corrige el historial.
+     Antes el botón sólo hacía `history.back()` y confiaba en que el popstate
+     cerrara. Medido en una lámina: la placa quedaba abierta y bloqueaba todo lo
+     de atrás —el segundo paso del tríptico no se podía tocar—. Desde un folio
+     funcionaba de casualidad, porque la escena tenía historial propio.
+     Un modal tiene que cerrarse cuando se toca su botón de cerrar, sin
+     depender de qué haya en la pila.
+
+     Y NO rebobina el historial. El primer intento devolvía las entradas que el
+     descenso había empujado, y medido se pasaba de largo: sacaba al visitante
+     de la lámina entera. Además contradice el canon — §8 del documento de
+     navegación pide que cada descenso SEA una entrada real del historial, así
+     que Atrás debe poder recorrer la bajada. Cerrar la placa no es deshacer el
+     viaje: es guardarla. */
+  $('[data-kdx-cerrar-descenso]').addEventListener('click', () => cerrar());
   addEventListener('popstate', (e) => {
     if (placa.hidden) return;
     const d = (e.state as { kdx?: number } | null)?.kdx;
