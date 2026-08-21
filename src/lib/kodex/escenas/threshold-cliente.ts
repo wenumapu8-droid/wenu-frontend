@@ -82,6 +82,11 @@ export function montarThreshold(raiz: HTMLElement): () => void {
     desde = 0;
   };
   const revisar = () => {
+    /* Quedarse mirando la puerta tampoco es entrar. El reloj sigue contando
+       -- la permanencia real no se pierde -- pero no se ESCRIBE hasta que hay
+       elección. En cuanto el visitante elige, el siguiente tic la anota con el
+       total acumulado, incluido el rato que estuvo dudando. */
+    if (document.documentElement.hasAttribute("data-kdx-espera-eleccion")) return;
     const total = acumulado + (desde ? performance.now() - desde : 0);
     if (!anotada && total >= UMBRAL_PERMANENCIA) {
       anotada = true;

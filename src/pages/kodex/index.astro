@@ -365,6 +365,12 @@ const prologueRows = [
        ENABLE SOUND es la rama con-sonido de la bifurcacion canonica); el
        fantasma CONTINUE IN SILENCE ya fijo kx-audio=0 en su propio handler.
        Elegir disuelve el velo y revela la escena; no navega. */
+    /* Se monta en función y no de una vez, porque con el router de vistas
+       VOLVER no recarga el documento: intercambia el contenido y el guion de
+       módulo no se ejecuta de nuevo. Sin esto, retroceder desde PROLOGUE traía
+       el velo otra vez y le cobraba al huésped la misma decisión dos veces.
+       Medido en los tres tamaños antes de arreglarlo. */
+    const montarVelo = () => {
     const velo = document.querySelector('[data-kdx-veil]');
     if (velo instanceof HTMLElement) {
       let disuelto = false;
@@ -399,5 +405,20 @@ const prologueRows = [
         disolver();
       });
     }
+    };
+
+    /* Al volver, la sesión ya sabe que cruzó: se marca antes de montar para
+       que el velo se retire sin ceremonia en vez de aparecer y desvanecerse. */
+    const marcarSiCruzo = () => {
+      let cruzado = false;
+      try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
+      if (cruzado) {
+        document.documentElement.setAttribute('data-kdx-umbral-cruzado', '');
+        document.documentElement.removeAttribute('data-kdx-espera-eleccion');
+      }
+    };
+    marcarSiCruzo();
+    montarVelo();
+    document.addEventListener('astro:page-load', () => { marcarSiCruzo(); montarVelo(); });
   </script>
 </Base>
