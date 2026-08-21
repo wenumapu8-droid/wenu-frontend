@@ -1,0 +1,175 @@
+---
+/**
+ * KODEX−∞ · RETURN · el espécimen del visitante
+ *
+ * Ocín, sobre la captura en blanco de RETURN: "no puede ser una página final
+ * genérica con COLLECT / COMMISSION / EXPLORE. Y debe ser diferente para cada
+ * visitante, porque sintetiza el camino recorrido, revisitas, señales,
+ * relaciones y decisiones."
+ *
+ * NO SE INVENTA NADA. `readSpecimen()` en src/kodex/return/memory.js ya deriva
+ * del recorrido real la familia, el ciclo, la quiralidad, la señal y la
+ * semilla. Existía desde antes y nadie la estaba mostrando. Esto es cablearla.
+ *
+ * LA HONESTIDAD ESTÁ EN LA FUNCIÓN Y SE RESPETA ACÁ:
+ * `readSpecimen` devuelve `curated: true` cuando el recorrido está vacío. En
+ * ese caso NO se finge un espécimen personal: se dice que es curado. Un archivo
+ * que promete recordar y le inventa un recuerdo a quien no pasó por ningún
+ * lado, miente. El canon lo pide por nombre -- "honest: if empty → curated".
+ *
+ * Se dibuja como constelación y no como tabla. El manifiesto: "descubrir
+ * conocimiento como espacios/constelaciones, no tarjetas".
+ */
+---
+
+<section class="kdx-espec" data-kdx-especimen aria-live="polite">
+  {/* Servidor: el estado honesto de quien todavía no tiene recorrido. El
+      cliente lo reemplaza si hay memoria. Nunca hay pantalla vacía. */}
+  <p class="kdx-espec__estado" data-kdx-espec-estado>ESPÉCIMEN CURADO</p>
+  <p class="kdx-espec__codigo" data-kdx-espec-codigo>KDX-C01-R10-L-000000</p>
+
+  <div class="kdx-espec__ruta" data-kdx-espec-ruta aria-hidden="true"></div>
+  <p class="kdx-espec__lectura" data-kdx-espec-lectura>
+    El archivo todavía no te recuerda. Cruzá una escena y volvé.
+  </p>
+</section>
+
+<style is:global>
+  .kdx-espec { display: flex; flex-direction: column; gap: 10px; margin: 0 0 4px; }
+
+  .kdx-espec__estado {
+    margin: 0;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: max(11px, .62rem);
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--acc, #A7FF00);
+  }
+  .kdx-espec__codigo {
+    margin: 0;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: clamp(1rem, 4.6vw, 1.5rem);
+    letter-spacing: .06em;
+    color: var(--kdx-off-white, #E6E6E6);
+  }
+  .kdx-espec__lectura {
+    margin: 0;
+    font-size: max(11px, .68rem);
+    line-height: 1.4;
+    color: var(--kdx-muted, #88888A);
+    max-width: 46ch;
+  }
+
+  /* LA RUTA COMO CONSTELACIÓN, no como lista.
+     Cada escena cruzada es un nodo; la línea entre ellos es el camino. El
+     último late, porque es donde el visitante está parado. */
+  .kdx-espec__ruta {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-height: 26px;
+    margin: 2px 0;
+  }
+  .kdx-espec__ruta i {
+    position: relative;
+    display: block;
+    width: 7px; height: 7px;
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in srgb, var(--acc, #A7FF00) 70%, transparent);
+    transform: rotate(45deg);
+    background: color-mix(in srgb, var(--acc, #A7FF00) 22%, transparent);
+  }
+  /* El hilo entre nodos. Es el recorrido, no una decoración: si hay un nodo
+     hay hilo, si no hay recorrido no hay nada que dibujar. */
+  .kdx-espec__ruta i + i::before {
+    content: '';
+    position: absolute;
+    right: 100%; top: 50%;
+    width: var(--kdx-espec-hilo, 18px);
+    height: 1px;
+    transform: translateY(-50%) rotate(-45deg);
+    transform-origin: right center;
+    background: color-mix(in srgb, var(--acc, #A7FF00) 40%, transparent);
+  }
+  .kdx-espec__ruta i:last-child {
+    background: var(--acc, #A7FF00);
+    animation: kdx-espec-late 2.6s ease-in-out infinite;
+  }
+  @keyframes kdx-espec-late {
+    0%, 100% { opacity: 1;   box-shadow: 0 0 0 0 color-mix(in srgb, var(--acc, #A7FF00) 55%, transparent); }
+    50%      { opacity: .72; box-shadow: 0 0 0 4px color-mix(in srgb, var(--acc, #A7FF00) 0%, transparent); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-espec__ruta i:last-child { animation: none; }
+  }
+</style>
+
+<script>
+  import { readSpecimen } from '../../../kodex/return/memory.js';
+
+  /* Los nombres legibles de las escenas. El recorrido guarda rutas -- lo que
+     el motor grabó -- y el visitante no tiene por qué leer rutas. */
+  const NOMBRE = (ruta) => {
+    const m = String(ruta).match(/\/kodex\/folio\/(i{1,3}|iv|v|vi)\/?$/);
+    if (m) return { i:'PROLOGUE', ii:'DESCENT', iii:'ARCHIVE', iv:'MACHINE', v:'COSMOLOGY', vi:'RETURN' }[m[1]] || '';
+    if (/\/kodex\/?$/.test(ruta)) return 'THRESHOLD';
+    if (/\/kodex\/interlude\//.test(ruta)) return 'INTERLUDIO';
+    if (/\/kodex\/lamina\//.test(ruta)) return 'LÁMINA';
+    if (/\/kodex\/vol\//.test(ruta)) return 'VOLUMEN';
+    return '';
+  };
+
+  function pintar() {
+    const raiz = document.querySelector('[data-kdx-especimen]');
+    if (!raiz) return;
+
+    let e;
+    try { e = readSpecimen(); } catch (_) { return; }
+    if (!e) return;
+
+    const estado = raiz.querySelector('[data-kdx-espec-estado]');
+    const codigo = raiz.querySelector('[data-kdx-espec-codigo]');
+    const ruta   = raiz.querySelector('[data-kdx-espec-ruta]');
+    const lectura= raiz.querySelector('[data-kdx-espec-lectura]');
+
+    if (codigo) codigo.textContent = e.code;
+
+    /* CURADO NO SE DISFRAZA DE PERSONAL. Si no hay recorrido, se dice. */
+    if (e.curated) {
+      if (estado) estado.textContent = 'ESPÉCIMEN CURADO';
+      if (lectura) lectura.textContent = 'El archivo todavía no te recuerda. Cruzá una escena y volvé.';
+      if (ruta) ruta.replaceChildren();
+      return;
+    }
+
+    if (estado) estado.textContent = `ESPÉCIMEN PROPIO · CICLO ${String(e.cycle).padStart(2, '0')}`;
+
+    /* La constelación: un nodo por escena cruzada, en el orden en que se
+       cruzaron. La separación varía con la señal, así que dos recorridos con
+       las mismas escenas pero distinta intensidad no se dibujan igual. */
+    if (ruta) {
+      const hilo = 12 + Math.round(e.signal * 16);
+      ruta.style.setProperty('--kdx-espec-hilo', `${hilo}px`);
+      ruta.replaceChildren(...e.works.slice(-14).map(() => document.createElement('i')));
+      ruta.style.gap = `${hilo}px`;
+    }
+
+    if (lectura) {
+      const nombres = [...new Set(e.works.map(NOMBRE).filter(Boolean))];
+      const cuantas = e.works.length;
+      const mano = e.chirality > 0 ? 'diestra' : 'zurda';
+      const senal = Math.round(e.signal * 100);
+      lectura.textContent =
+        `${cuantas} ${cuantas === 1 ? 'paso registrado' : 'pasos registrados'}` +
+        (nombres.length ? ` · ${nombres.join(' → ')}` : '') +
+        ` · quiralidad ${mano} · señal ${senal}%` +
+        (e.visualChain.length ? ` · ${e.visualChain.length} transformaciones` : '');
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', pintar, { once: true });
+  else pintar();
+  document.addEventListener('astro:page-load', pintar);
+</script>
