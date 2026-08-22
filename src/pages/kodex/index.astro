@@ -85,8 +85,21 @@ const prologueRows = [
     (() => {
       let cruzado = false;
       try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
-      if (cruzado) document.documentElement.setAttribute('data-kdx-umbral-cruzado', '');
-      else document.documentElement.setAttribute('data-kdx-espera-eleccion', '');
+      /* VOLVER ATRÁS NO ES LO MISMO QUE VOLVER A LA ENTRADA, y hasta ahora se
+         trataban igual. La regla "quien ya cruzó no vuelve a ver el velo" está
+         bien para el botón de atrás -- nadie debe pagar dos veces la misma
+         decisión -- pero se aplicaba también al recargar y al ir a /kodex/ a
+         propósito. Resultado medido: la portada se veía UNA sola vez en la
+         vida. Todas las visitas siguientes empezaban en la escena de adentro.
+         La portada del KODEX no puede ser una pantalla de un solo uso.
+         El tipo de navegación los separa: `back_forward` es el botón de atrás;
+         `navigate` y `reload` son alguien llegando a la puerta. */
+      let atras = false;
+      try { atras = (performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward'; } catch (_) {}
+      const raiz = document.documentElement;
+      if (cruzado && atras) raiz.setAttribute('data-kdx-umbral-cruzado', '');
+      else if (cruzado) raiz.setAttribute('data-kdx-umbral-reconocido', '');
+      else raiz.setAttribute('data-kdx-espera-eleccion', '');
     })();
   </script>
 
@@ -231,6 +244,11 @@ const prologueRows = [
     <TituloGlitch texto="THRESHOLD" como="p" class="kx-veil__marca" tempo="umbral" />
             <button class="kx-veil__entrar" type="button" data-kdx-sonido="1">TAP TO ENTER — ENABLE SOUND</button>
             <button class="kx-veil__silencio" type="button" data-kdx-sonido="0">CONTINUE IN SILENCE →</button>
+            {/* La puerta de quien ya entró. No vuelve a preguntar nada -- el
+                consentimiento ya está dado y la memoria ya está liberada --
+                pero la portada sigue estando, que es lo que una portada hace.
+                Y dice lo que el archivo dice de sí mismo: te recuerda. */}
+            <button class="kx-veil__devuelta" type="button" data-kdx-sonido="-1">THE ARCHIVE REMEMBERS YOU — CONTINUE →</button>
           </div>
         </div>
       </section>
@@ -423,6 +441,13 @@ const prologueRows = [
         disuelto = true;
         liberarMemoria();
         document.dispatchEvent(new CustomEvent('kdx:eleccion'));
+      } else if (document.documentElement.hasAttribute('data-kdx-umbral-reconocido')) {
+        /* Ya cruzó, pero volvió a la puerta por su cuenta. La portada se queda
+           -- el campo, la marca, la palabra -- y lo único que cambia es que no
+           se le pregunta nada: una sola puerta y ya. Nada se encola ni se pide
+           de nuevo, la memoria se libera acá mismo. */
+        liberarMemoria();
+        document.dispatchEvent(new CustomEvent('kdx:eleccion'));
       }
       velo.addEventListener('click', (e) => {
         const boton = e.target instanceof Element ? e.target.closest('[data-kdx-sonido]') : null;
@@ -439,13 +464,48 @@ const prologueRows = [
     const marcarSiCruzo = () => {
       let cruzado = false;
       try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
-      if (cruzado) {
-        document.documentElement.setAttribute('data-kdx-umbral-cruzado', '');
-        document.documentElement.removeAttribute('data-kdx-espera-eleccion');
-      }
+      if (!cruzado) return;
+      /* Misma distinción que el guardián de arriba, y hacía falta repetirla:
+         esta función corre en cada `astro:page-load` y volvía a poner
+         `umbral-cruzado` siempre, pisando lo que el guardián había decidido.
+         Medido: la portada seguía sin volver aunque el guardián ya la
+         marcaba como reconocida. Dos lugares deciden lo mismo, los dos tienen
+         que decidirlo igual. */
+      let atras = false;
+      try { atras = (performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward'; } catch (_) {}
+      const raiz = document.documentElement;
+      raiz.removeAttribute('data-kdx-espera-eleccion');
+      if (atras) { raiz.setAttribute('data-kdx-umbral-cruzado', ''); raiz.removeAttribute('data-kdx-umbral-reconocido'); }
+      else { raiz.setAttribute('data-kdx-umbral-reconocido', ''); raiz.removeAttribute('data-kdx-umbral-cruzado'); }
     };
     marcarSiCruzo();
     montarVelo();
-    document.addEventListener('astro:page-load', () => { marcarSiCruzo(); montarVelo(); });
+    /* Y ACÁ ESTABA EL AGUJERO DEL DISCRIMINADOR. El tipo de navegación sólo
+       sirve para el documento que se carga de verdad. Cuando el corredor vuelve
+       a /kodex/ por su router, NO hay navegación nueva: el documento es el
+       mismo y `performance` sigue diciendo 'navigate'. Con eso, volver desde un
+       folio hacía reaparecer la portada -- justo lo que la regla del creador
+       prohíbe, y el banco lo cazó: tres fallas de "volver NO vuelve a pedir la
+       puerta".
+
+       Después de la primera carga, todo lo que pase es movimiento DENTRO del
+       corredor. Quien ya cruzó y vuelve por adentro no ve la puerta otra vez.
+       La portada reconocida es para quien llega de nuevo al sitio. */
+    let dentroDelCorredor = false;
+    document.addEventListener('astro:page-load', () => {
+      if (dentroDelCorredor) {
+        let cruzado = false;
+        try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
+        if (cruzado) {
+          document.documentElement.setAttribute('data-kdx-umbral-cruzado', '');
+          document.documentElement.removeAttribute('data-kdx-umbral-reconocido');
+          document.documentElement.removeAttribute('data-kdx-espera-eleccion');
+        }
+      } else {
+        dentroDelCorredor = true;
+        marcarSiCruzo();
+      }
+      montarVelo();
+    });
   </script>
 </Base>
