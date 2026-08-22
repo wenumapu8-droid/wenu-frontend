@@ -69,6 +69,20 @@
    un modal. */
 [data-kdx-shell][data-kdx-plate] .kx-deckbar { z-index: 160; }
 
+/* EL DOCK NO PISA LA PUERTA.
+   Medido en 390x844 después de entrar en silencio: la barra inferior es
+   `fixed` y ocupa 722-778; el enlace de entrada del umbral cae en 728-776.
+   Entero adentro. `elementFromPoint` sobre su centro devolvía el botón de la
+   barra, no el enlace: el visitante ve la puerta y no la puede abrir.
+
+   Pasa igual en escritorio, así que la reserva va fuera de toda consulta de
+   medios. La voz del umbral está `align-self:end` dentro de su celda, de modo
+   que el relleno inferior levanta su contenido sin mover la celda ni tocar la
+   composición de la lámina -- cambia la cámara, no la obra. */
+[data-kdx-shell][data-kdx-plate] .kx-threshold__voz {
+  padding-bottom: calc(var(--kdx-plate-nav, 56px) + 18px + env(safe-area-inset-bottom));
+}
+
 /* Blancos táctiles: en teléfono Y en landscape corto, que también es un
    teléfono aunque mida 844 de ancho. Estaba sólo en `max-width:560px` y por eso
    en horizontal seguían apareciendo controles de 20 y 17px de alto -- lo
@@ -142,6 +156,11 @@
   }
   [data-kdx-shell][data-kdx-plate] .kdx-qf__command {
     bottom: calc(var(--kdx-plate-nav, 56px) + 22px + env(safe-area-inset-bottom));
+    /* "ENTER MACHINE" es la única acción del interludio y medía 117x36 en
+       390x844. Es el paso adelante del corredor: si algo tiene que llegar a
+       los 44px, es esto. El ancho ya sobra; sólo faltaba el alto. */
+    min-height: var(--kdx-plate-tap, 44px);
+    display: inline-flex; align-items: center;
   }
 
   /* El cajón entra desde abajo, que es de donde entra un sheet. */
@@ -192,7 +211,13 @@
        Al revés -- obra fija y texto en 1fr -- el bloque de texto medía 361px
        dentro de una fila de 269 y, con `align-self:end`, se desbordaba HACIA
        ARRIBA: el título quedaba cortado detrás de la obra. Medido. */
-    grid-template-rows: minmax(0, 1fr) auto;
+    /* PISO PARA LA OBRA. Con `minmax(0,1fr)` la figura cedía TODO el espacio
+       que el texto pidiera: al agregar el espécimen a RETURN, la obra quedó en
+       una banda de 90px. La regla del creador no admite eso -- "una obra jamás
+       debería quedar achatada para entrar en un rectángulo".
+       Ahora la obra tiene un mínimo que el texto no puede tomarle. Si el texto
+       no entra, el que se achica es el texto, no la obra. */
+    grid-template-rows: minmax(26svh, 1fr) auto;
     /* Cualquier hijo que no reclame región cae en una fila implícita y rompe
        el contrato en silencio. Le pasó al eje. Que no la haya. */
     grid-auto-rows: 0;
@@ -270,6 +295,8 @@
        problema: si no cabe hay que achicarlo, no taparlo. */
     overflow: visible;
     min-height: 0;
+    /* Y si aun así no entra, el que cede es el texto. La obra tiene piso. */
+    font-size: clamp(.86rem, 3.6vw, 1rem);
   }
 
   /* Ninguna pieza del bloque CRECE. La caja de acciones se estiraba a 192px
@@ -347,8 +374,23 @@
     display: flex;
     flex-wrap: wrap;
     align-content: flex-end;
+    /* Sin esto, los botones se estiran al alto de su LÍNEA. En RETURN la
+       constelación del espécimen comparte línea con el botón principal y
+       "COLLECT A FRAGMENT" terminaba midiendo 331px de alto: un rectángulo
+       verde de media pantalla con una palabra adentro. El barrido daba cero
+       porque un botón gigante no se superpone con nada.
+       Cada control conserva su alto propio. */
+    align-items: flex-start;
     gap: 8px;
     margin: 2px 0 0;
+    /* `align-items` no era la causa y la medición lo dijo: el botón siguió en
+       331px. La caja de RETURN quedaba en `flex-direction:column` (de la regla
+       de más arriba) MÁS `flex-wrap:wrap` (de ésta), y una caja en columna que
+       envuelve reparte sus hijos en COLUMNAS. Por eso los cuatro controles
+       empezaban todos en y=337: la constelación en una columna, el botón
+       principal en otra estirado a 331px, y los dos secundarios en una
+       tercera. Se ve como un rectángulo verde de media pantalla al lado de dos
+       renglones grises. En 390px eso se apila y punto. */
     /* 96px de relleno inferior heredados de la hoja vieja: eran el hueco
        muerto entero. En el layout antiguo separaban del pie flotante; con el
        contrato el pie ya tiene lugar reservado y el relleno empuja al vacío. */
@@ -401,9 +443,60 @@
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__strip,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__rail { display: none; }
 
-  [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: inline-flex; flex: 0 0 100%; }
-  /* La fila del dossier no lleva margen propio: se apoya en la de acciones. */
-  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions--dossier { margin-top: 0; }
+  /* ── TRES CAJAS ERAN CINCO ──────────────────────────────────────────────
+     Ocín, sobre el estado anterior: "el KODEX que me mostraste tenía demasiado:
+     botón / tarjeta / texto / botón / lista". Medido en PROLOGUE a 390px, el
+     pie tenía CINCO rectángulos apilados: acción primaria, protocolo, dossier,
+     el panel del descenso y la barra de navegación.
+
+     Los botones no se pueden esconder -- son función, y esconder la función es
+     peor que mostrarla. Pero sí pueden dejar de ser cajas. Su instrucción:
+     "los botones pueden existir, pero casi invisibles o integrados en la
+     composición".
+
+     Queda UNA acción con forma de acción -- la primaria, que es la que abre la
+     escena -- y las dos secundarias pasan a ser texto en una sola línea, sin
+     marco. Cinco rectángulos se vuelven dos.
+
+     No se toca el alto táctil: siguen midiendo 44px, sólo que ese alto ya no
+     está dibujado. Lo que desaparece es el borde, no el blanco. */
+  [data-kdx-plate-contract][data-kdx-plate] [data-kdx-plate-dossier] { display: inline-flex; }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__actions--dossier {
+    margin-top: 0;
+    /* Sólo para las escenas con panel propio, donde el dossier sí necesita su
+       renglón. En PROLOGUE el botón vive dentro de la fila de acciones. */
+    padding-top: 0;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost {
+    flex: 0 1 auto;
+    background: none;
+    border: 0;
+    padding: 0 2px;
+    min-width: 0;
+    color: var(--kdx-muted, #88888A);
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, var(--acc, #8B5CF6) 55%, transparent);
+    text-underline-offset: 5px;
+    text-decoration-thickness: 1px;
+  }
+  /* Separador entre las dos secundarias: una marca, no un borde. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost + .kx-os-ghost::before {
+    content: '·';
+    margin: 0 10px 0 0;
+    color: color-mix(in srgb, var(--kdx-muted, #88888A) 60%, transparent);
+    text-decoration: none;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost:hover,
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost:focus-visible {
+    color: var(--kdx-off-white, #E6E6E6);
+    text-decoration-color: var(--acc, #8B5CF6);
+  }
+  /* El foco de teclado necesita un contorno visible: sin borde dibujado, el
+     subrayado no alcanza para saber dónde estás parado. */
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-ghost:focus-visible {
+    outline: 1px solid var(--acc, #8B5CF6);
+    outline-offset: 4px;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -590,4 +683,234 @@
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art img,
   [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art canvas { transform: none; }
   [data-kdx-shell][data-kdx-plate] .kx-os-drawer { transition: none; }
+}
+
+/* ── LA RESERVA DE LA BOCA SE RETIRA: LA RESOLVIÓ QUIEN CORRESPONDÍA ──────
+   Puse acá una reserva fija de 180px para que la fila de acciones de la escena
+   no quedara debajo de la boca del descenso. Funcionó -- y sobró.
+
+   La boca ahora no se coloca por número: baja al piso, mide contra todo lo que
+   tenga texto visible propio, y si choca sube de a 8px hasta quedar libre. Con
+   eso, mi reserva ya no evita nada y sí cobra: 124px de margen muerto en el
+   medio de la escena, que es justo el espacio que a COSMOLOGY le faltaba para
+   que su mapa respire.
+
+   Dos arreglos para el mismo choque es peor que uno. Queda el que mide.        */
+
+/* ── COSMOLOGY: EL MAPA NO SE VEÍA NUNCA ──────────────────────────────────
+   Esto no lo encontró ningún detector. Lo encontró mirar la captura.
+
+   `CosmologyMap` es una SECCIÓN completa -- encabezado propio, mapa orbital y
+   cinco portales -- y está montada dentro del marco de la obra de la escena.
+   Medido:
+
+     teléfono 390x844    marco  217px   contenido 1167px   SVG empieza en y=372
+     escritorio 1440x900 marco  527px   contenido 1127px   SVG empieza en y=821
+
+   El SVG arranca por debajo del corte en las dos. O sea: en la escena de la
+   cartografía viva, la cartografía no se ve. Lo que se ve es su portada --
+   un título y un párrafo dentro de un rectángulo -- y el párrafo cortado a la
+   mitad de una frase. Es exactamente lo que el canon nombra: rectángulo
+   flotante, arte subordinado.
+
+   Y la portada además se repetía: el encabezado dice "the system beneath the
+   system" y "Nothing here stands alone. ..." mientras la escena, dos dedos más
+   abajo, ya dice COSMOLOGY · LIVING CARTOGRAPHY y NOTHING HERE STANDS ALONE.
+   Las mismas palabras dos veces en la misma pantalla.
+
+   No se borra nada: el encabezado se oculta porque la escena YA lo dice, y los
+   portales siguen ahí, debajo del mapa, dentro del recorrido de su propia caja.
+   Lo que cambia es el orden: primero la obra. */
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo .kdx-cosmo {
+  padding: 0;
+  background: transparent;
+  width: 100%;
+}
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo .kdx-cosmo__head { display: none; }
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo .kdx-cosmo__stage {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  max-width: none;
+}
+/* El mapa toma el alto del marco menos un asomo de los portales, para que se
+   note que hay más abajo sin que nada quede cortado a la mitad. */
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo .kdx-cosmo__svg {
+  max-width: none;
+  max-height: calc(100cqh - 56px);
+  height: auto;
+}
+@supports not (max-height: 1cqh) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo .kdx-cosmo__svg { max-height: 62vh; }
+}
+
+/* ── LA TELEMETRÍA ASTRONÓMICA VIVÍA DETRÁS DE LA OBRA ────────────────────
+   `.kx-astro` es `fixed` en y=64-82 con z 54. El marco de la obra ocupa
+   y=52-271 y pinta por encima: `elementFromPoint` sobre el centro del
+   contador devuelve la figura, no la tira. Medido en folios I, IV y VI a
+   390px -- "01 / 07", "PROLOGUE", "06 / 07" y el rótulo de la escena, todos
+   detrás de un panel con fondo negro al 62%.
+
+   No se corrige subiéndola: ponerla por encima sería escribir telemetría
+   sobre la obra, que es el error contrario y el que más molesta al creador.
+   El 07D ya decía qué hacer con ella en teléfono -- "astronomy telemetry
+   should be contextual rather than permanently occupying the phone viewport",
+   y el KDX.OS móvil se queda con marca, señal, un grupo de navegación y el
+   índice. Nada de lo que dice se pierde: el ordinal de escena sigue en el
+   contador de la barra.                                                      */
+@media (max-width: 560px), (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-astro { display: none; }
+}
+/* En apaisado, 390px de alto, la misma decisión alcanza a la lectura de
+   sistema. Medido en COSMOLOGY 844x390: la boca del descenso recorrió sus 40
+   pasos sin encontrar una franja libre y terminó arriba del todo, en y=6-54,
+   encima de "SYSTEM · ACTIVE · 100.00". No es que la boca esté mal ubicada: es
+   que en esa altura no entran obra, titular, acciones, barra, lectura y boca.
+   Sale la lectura, que es P3 y no dice nada que el visitante necesite para
+   avanzar. La señal y el sonido siguen en la barra superior.                 */
+@media (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-readout { display: none; }
+}
+
+/* ── EL RAIL DEL INTERLUDIO SEGUÍA DENTRO DE LA BARRA ─────────────────────
+   Lo subí a 78px del piso creyendo que la barra terminaba en 74. Medida real:
+   la barra va de 722 a 778, o sea ocupa hasta 122px del piso, y sus botones
+   hasta 116. El rail a 78 quedaba adentro: "STATUS / PARTIAL" debajo de
+   "‹ PREVIOUS" y "ORIGIN / R2 ARCHIVE" debajo de "ENTER MACHINE".
+   El comando ya está libre a 130. El rail se apila encima de él.            */
+@media (max-width: 560px) and (orientation: portrait) {
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__rail,
+  .kdx-qf__rail {
+    bottom: calc(184px + env(safe-area-inset-bottom, 0px));
+  }
+}
+/* En apaisado no hay dónde apilar. Medido en 844x390: la barra ocupa de 66 a
+   122 del piso, el comando estaba en 78 -- adentro -- y subir el rail a 184 lo
+   estrella contra la leyenda del fragmento, que vive en 190. Cuatro cosas para
+   390px de alto no entran, y forzarlas es lo que produce el HUD apretado que
+   el canon rechaza.
+   El comando sube a 130, libre. El rail -- tres etiquetas de estado, P2 puro --
+   se retira: el 07D ya lo pide, "metadata collapses into sheets". */
+@media (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__rail,
+  .kdx-qf__rail { display: none; }
+  [data-kdx-shell][data-kdx-plate] .kdx-qf__command,
+  .kdx-qf__command { bottom: calc(130px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ── LOS PORTALES DE COSMOLOGY CONTRA EL PIE DEL MARCO ────────────────────
+   Al subir el mapa al primer lugar, los portales quedaron a la altura del
+   rótulo del marco: "◈ WENU MAPU" sobre "05 · COSMOLOGY · orbital-map" al 63%
+   en 1440x900. El rótulo repite lo que la escena ya dice a la izquierda en
+   letra grande, así que dentro de esta ranura se calla.                     */
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__cosmo ~ figcaption,
+[data-kdx-plate-contract][data-kdx-plate] .kx-os-stage__art:has(.kx-os-stage__cosmo) > figcaption {
+  display: none;
+}
+
+/* ── RETURN: LA COLUMNA DE TEXTO SE DERRAMABA HACIA ARRIBA, SOBRE LA OBRA ──
+   Medido en 390x844. La rejilla reparte 219px para la obra y 437 para el
+   texto. En RETURN el texto mide 546 -- rótulo, titular, la constelación del
+   espécimen del visitante y las acciones -- 110 de más. La celda no crece y la
+   columna está `align-self:end`, así que toma el alto de su contenido y,
+   anclada por abajo, CRECE HACIA ARRIBA: empieza en y=176, dentro del marco de
+   la obra, que va de 52 a 271. "RETURN · PATTERN RESTORED", "06 / RETURN ·
+   RECALL" y "RECALL" quedaban detrás de la figura y su fondo negro al 62%.
+
+   No se achica la obra -- `/img/kodex/works/bw-01.jpg` es del creador -- ni se
+   recorta el espécimen, que es lo único de esa pantalla que cambia por
+   visitante. La columna se ciñe a su celda y lo que no entra se recorre
+   adentro, como ya hace la cartografía de COSMOLOGY.
+
+   Y va SÓLO en RETURN. Se probó `align-self:stretch` para todas las escenas
+   con contrato: RETURN quedó bien y II a V se rompieron -- el cajón "SPECIMEN
+   DATA" se apoya con `margin-top:auto` y al estirar la celda cayó sobre el
+   CTA, "REVEAL CONNECTION" al 100% en COSMOLOGY. De 3 filas con defecto a 9.
+   La regla general era la equivocada; el problema era de una escena.         */
+@media (max-width: 560px), (max-height: 480px) and (orientation: landscape) {
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-os-stage__copy {
+    align-self: stretch;
+    /* Y todavía faltaba esto. Con la celda ceñida y el recorrido puesto, el
+       rótulo seguía en y=176 mientras su propia caja empezaba en 285: el
+       sobrante se iba por ARRIBA, que es el único lado por donde un recorrido
+       no llega. La caja se apoya abajo por herencia, así que al no entrar el
+       contenido empuja el principio fuera de la vista y ni se ve ni se alcanza.
+       `scrollHeight` decía 437 sobre 437 -- "no sobra nada" -- porque lo que se
+       derrama hacia arriba no cuenta como recorrido. Un cero que mentía.
+       Apoyado arriba, lo que no entra queda abajo y se alcanza. */
+    justify-content: flex-start;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+
+/* La regla de arriba pone `flex-wrap:wrap` para las filas de acciones, que es
+   lo correcto para una fila de botones. RETURN no es una fila: es la
+   constelación del visitante y tres acciones debajo. En teléfono se apila. */
+@media (max-width: 560px) and (orientation: portrait) {
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-return-actions {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-return-actions > .kx-os-primary,
+  [data-kdx-plate-contract][data-kdx-plate="kdx:folio/return"] .kx-return-actions > .kx-os-ghost {
+    flex: 0 0 auto;
+    min-height: var(--kdx-plate-tap, 44px);
+    height: auto;
+  }
+}
+
+/* ── LA BARRA NO ALCANZA PARA CUATRO COSAS EN 390px ───────────────────────
+   Medido en RETURN, 390x844. La barra mide 354 y sus cuatro piezas ocupan
+   83 + 48 + 133 + 66 más tres separaciones = 354 exactos. El resultado es que
+   la acción principal se corta: "RETURN TO THRESHOLI".
+
+   El contador es lo que sobra. No porque no importe, sino porque cada escena
+   ya dice su ordinal en su propia línea -- "05 / COSMOLOGY / ORBIT", "06 /
+   RETURN · RECALL" -- y ahí se lee de verdad, no en 9,5px partidos en dos
+   renglones. El 07D deja en teléfono marca, señal, UN grupo de navegación y el
+   índice; el contador no está en esa lista.
+
+   Sigue en el documento para quien lo lea con lector de pantalla.            */
+@media (max-width: 560px) {
+  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar__count {
+    position: absolute;
+    width: 1px; height: 1px;
+    /* La hoja base le pone `min-width:64px`, así que `width:1px` sola no lo
+       encoge nada: seguía midiendo 48px y comiéndose el espacio del botón. */
+    min-width: 0;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  [data-kdx-plate-contract][data-kdx-plate] .kx-deckbar button.kx-deckbar--turn {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* ── EL UMBRAL DECÍA DOS VECES LO MISMO ───────────────────────────────────
+   En 390px, después de entrar en silencio, la pantalla mostraba INDEX arriba a
+   la derecha y otra vez INDEX abajo a la derecha, y "00 / 07" en la tira de
+   arriba y otra vez en la barra de abajo. Dos veces el mismo botón y dos veces
+   el mismo número en la primera pantalla de la experiencia.
+
+   THRESHOLD es absorción. Dos índices y dos contadores es exactamente el
+   "HUD genérico" que el canon rechaza. Se queda el de arriba, que es el que ya
+   estaba antes de elegir y no se mueve al cruzar. Abajo queda la navegación
+   del mazo, que sí es de esta escena.                                        */
+@media (max-width: 560px) {
+  .kx--threshold .kx-deckbar__index { display: none; }
+  .kx--threshold .kx-deckbar__count {
+    position: absolute;
+    width: 1px; height: 1px; min-width: 0;
+    padding: 0; margin: 0;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
 }

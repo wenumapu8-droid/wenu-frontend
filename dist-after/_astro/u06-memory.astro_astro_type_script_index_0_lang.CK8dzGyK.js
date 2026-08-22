@@ -1,1 +1,0 @@
-import{m as e,a as o}from"./montar.CMy2uPcb.js";import{m as r,a as m}from"./triptico.Bnu7cJ01.js";const n=document.querySelector(".lam"),a=()=>{const t=Math.min(innerWidth/1122,innerHeight/1402);n.style.transform=`scale(${t})`,document.body.style.height=`${1402*t}px`};a();addEventListener("resize",a,{passive:!0});e();o({id:"u06-memory"});r();m();

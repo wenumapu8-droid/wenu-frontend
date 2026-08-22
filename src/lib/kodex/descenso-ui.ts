@@ -401,9 +401,19 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
       for (const el of document.querySelectorAll<HTMLElement>('body *')) {
         if (el === boca || boca.contains(el) || el.contains(boca)) continue;
         if (!el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
+        /* Y quedaba un obstáculo invisible para esta prueba: EL TITULAR.
+           Los títulos cinéticos reparten una letra por hijo, así que el <h1>
+           no tiene ni un nodo de texto DIRECTO y `propio` daba 0. Medido en
+           844x390 sobre COSMOLOGY: la boca aterrizaba sobre "NOTHING HERE
+           STANDS ALONE" cubriendo el 54% de su caja, y este bucle la daba por
+           libre. Es el mismo punto ciego que tenía el barrido de QA, y por la
+           misma razón: "texto propio" no es lo mismo que "texto que se ve".
+           Los titulares y los controles entran por lo que MUESTRAN. */
         const propio = [...el.childNodes].filter((n) => n.nodeType === 3)
           .map((n) => n.textContent?.trim() ?? '').join('').length;
-        if (propio < 2) continue;
+        const muestra = /^(H1|H2|A|BUTTON)$/.test(el.tagName)
+          ? (el.innerText ?? '').trim().length : 0;
+        if (propio < 2 && muestra < 2) continue;
         const r = el.getBoundingClientRect();
         if (r.width < 4 || r.height < 4) continue;
         const ox = Math.min(m.right, r.right) - Math.max(m.left, r.left);
@@ -412,10 +422,28 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
       }
       return false;
     };
-    for (let k = 0; k < 40 && choca(); k++) {
+    /* LA CAUSA ERA QUE EL TREPADO NO TIENE RETORNO. Sube de a 8px hasta 40
+       pasos y, si nunca encuentra sitio, se QUEDA donde llegó -- a 336px del
+       piso, que es exactamente la altura del titular. O sea: cuando falla,
+       falla en el peor lugar posible.
+
+       Medido en reduced-motion, 390x844, a los 6,5s: los seis folios con la
+       boca en 336 encima del título, hasta el 100% en MACHINE. Y el piso, en
+       ese mismo instante, libre. Había subido contra una escena que ya no
+       existía.
+
+       Si después de recorrer todo no hay sitio, vuelve al piso: es su lugar de
+       reposo, está debajo de la barra y ahí no tapa a nadie. Perder la
+       separación es mucho menos grave que aterrizar sobre la frase más grande
+       de la escena. */
+    const piso = `calc(16px + env(safe-area-inset-bottom,0px))`;
+    let libre = !choca();
+    for (let k = 0; k < 40 && !libre; k++) {
       const y = 16 + (k + 1) * 8;
       boca.style.bottom = `calc(${y}px + env(safe-area-inset-bottom,0px))`;
+      libre = !choca();
     }
+    if (!libre) boca.style.bottom = piso;
   };
 
   montarTravesia();
@@ -425,6 +453,12 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
      ubica contra una franja que todavía no está completa. */
   setTimeout(ubicar, 1200);
   setTimeout(ubicar, 3600);
+
+  /* PROBÉ DOS OBSERVADORES Y NINGUNO SIRVIÓ. Van anotados para que nadie los
+     vuelva a poner: uno de TAMAÑO sobre la caja de la escena -- que nunca
+     cambia de tamaño, lo que se mueve es el titular adentro -- y otro de
+     MUTACIONES más `document.fonts.ready`. Los cinco folios quedaron igual.
+     Eran compensaciones encima de una causa que no había mirado. */
 
   boca.addEventListener('click', abrir);
   /* Cerrar es DIRECTO, y además se corrige el historial.
