@@ -13,8 +13,19 @@
  * está dominado por el héroe (que es procedural y nunca va a dar 0) y esconde
  * que un panel de texto está entero mal. Por región se ve dónde duele.
  *
+ * COBERTURA es observabilidad adicional, no un veredicto estético. Cuenta la
+ * relación de píxeles de tinta actual/referencia para evitar que una lámina
+ * casi vacía parezca cercana solo porque la referencia es mayoritariamente
+ * negra. No modifica `pct`, no tiene umbral de PASS/FAIL y no autoriza por sí
+ * sola KEEP/REFINE/REJECT.
+ *
  * Uso:
  *   node scripts/lamina/compare.mjs <slug> [--url http://localhost:4321/...] [--open]
+ *
+ * Referencia:
+ *   Por defecto usa `reference/canon`. `KDX_REFDIR` puede apuntar a otra raíz
+ *   de referencias (por ejemplo `reference/pendientes`) sin promover esas
+ *   referencias a canon. El score registra explícitamente el scope usado.
  *
  * Salidas en scripts/lamina/out/<slug>/:
  *   actual.png        captura al tamaño exacto de la referencia
@@ -27,7 +38,7 @@ import { chromium } from "playwright";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -41,7 +52,10 @@ if (!slug) {
 const urlArg = process.argv.indexOf("--url");
 const url = urlArg > -1 ? process.argv[urlArg + 1] : `http://localhost:4321/kodex/lamina/${slug}/`;
 
-const refPath = join(ROOT, "reference", "canon", `${slug}.png`);
+const defaultRefDir = join("reference", "canon");
+const refDir = normalize(process.env.KDX_REFDIR || defaultRefDir);
+const refPath = join(ROOT, refDir, `${slug}.png`);
+const referenceScope = refDir === normalize(defaultRefDir) ? "CANON" : "NON_CANON_REFERENCE";
 if (!existsSync(refPath)) {
   console.error(`no existe la referencia: ${refPath}`);
   process.exit(2);
@@ -166,12 +180,10 @@ function diffEstructural(a, b, w, h) {
 }
 
 /**
- * Diferencia una caja. Devuelve el % combinado.
+ * Diferencia una caja. Devuelve el % combinado y observabilidad de cobertura.
  *
- * El puntaje es el promedio del diff píxel a píxel y del estructural. Ninguno
- * de los dos solo sirve: el píxel castiga la textura correcta, y el estructural
- * solo no distingue un dibujo bien puesto de uno con el mismo brillo medio en
- * otro sitio. Juntos, un panel vacío no puede ganarle a uno bien hecho.
+ * `pct` conserva exactamente su semántica histórica. `cobertura` es una
+ * medición separada: no se mezcla con el score y no contiene thresholds.
  */
 function diffBox(box, writeTo) {
   const { x, y, w, h } = box;
@@ -195,13 +207,27 @@ function diffBox(box, writeTo) {
     PNG.bitblt(d, trip, 0, 0, w, h, w * 2 + 16, 0);
     writeFileSync(writeTo, PNG.sync.write(trip));
   }
+
+  let tintaRef = 0;
+  let tintaActual = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    const lumActual = 0.299 * a.data[i] + 0.587 * a.data[i + 1] + 0.114 * a.data[i + 2];
+    const lumRef = 0.299 * b.data[i] + 0.587 * b.data[i + 1] + 0.114 * b.data[i + 2];
+    if (lumRef > 26) tintaRef++;
+    if (lumActual > 26) tintaActual++;
+  }
+
   const pixel = (bad / (w * h)) * 100;
+  const cobertura = tintaRef ? (tintaActual / tintaRef) * 100 : 100;
   return {
     bad,
     total: w * h,
     pixel: +pixel.toFixed(3),
     estructural: +estructural.toFixed(3),
     pct: +((pixel + estructural) / 2).toFixed(3),
+    cobertura: +cobertura.toFixed(1),
+    tinta_ref: tintaRef,
+    tinta_actual: tintaActual,
   };
 }
 
@@ -221,17 +247,32 @@ perRegion.sort((a, b) => b.pct - a.pct);
 const score = {
   slug,
   url,
-  referencia: `reference/canon/${slug}.png`,
+  referencia: `${refDir}/${slug}.png`,
+  reference_scope: referenceScope,
   px: `${width}x${height}`,
   generado: new Date().toISOString(),
-  _metrica: "pct = promedio de (a) diff pixel a pixel y (b) diff estructural por bloques de 8x8. El estructural existe porque el diff a secas premia dejar el panel vacio en zonas de textura: ver el comentario en compare.mjs.",
-  global: { pct: full.pct, pixel: full.pixel, estructural: full.estructural, distintos: full.bad, total: full.total },
+  _metrica: "pct = promedio de (a) diff pixel a pixel y (b) diff estructural por bloques de 8x8. cobertura = tinta_actual / tinta_ref con umbral de luminancia >26. cobertura es OBSERVED_DIAGNOSTIC y no altera pct ni implica aceptación estética.",
+  coverage_status: "OBSERVED_DIAGNOSTIC",
+  aesthetic_threshold_status: "NONE",
+  global: {
+    pct: full.pct,
+    pixel: full.pixel,
+    estructural: full.estructural,
+    cobertura: full.cobertura,
+    tinta_ref: full.tinta_ref,
+    tinta_actual: full.tinta_actual,
+    distintos: full.bad,
+    total: full.total,
+  },
   forma: { ...forma, mb: +(forma.bytes / 1048576).toFixed(2), sospecha_trazado: forma.canvas === 0 && forma.paths > 8000 },
   regiones: perRegion.map((r) => ({
     id: r.id,
     nombre: r.nombre,
     caja: { x: r.x, y: r.y, w: r.w, h: r.h },
     pct: r.pct,
+    cobertura: r.cobertura,
+    tinta_ref: r.tinta_ref,
+    tinta_actual: r.tinta_actual,
     pixel: r.pixel,
     estructural: r.estructural,
     distintos: r.bad,
@@ -241,6 +282,9 @@ writeFileSync(join(outDir, "score.json"), JSON.stringify(score, null, 2));
 
 const bar = (p) => "█".repeat(Math.min(40, Math.round(p / 2.5))).padEnd(40, "·");
 console.log(`\n  ${slug}  ${width}x${height}`);
+console.log(`  REFERENCIA ${referenceScope} · ${refDir}/${slug}.png`);
+console.log(`  COBERTURA ${full.cobertura.toFixed(1).padStart(6)}%  [OBSERVED_DIAGNOSTIC · NO AESTHETIC THRESHOLD]`);
+console.log(`            tinta ${full.tinta_actual.toLocaleString()} / ${full.tinta_ref.toLocaleString()} px`);
 console.log(`  GLOBAL  ${full.pct.toFixed(2).padStart(6)}%  ${bar(full.pct)}`);
 console.log(`          pixel ${full.pixel.toFixed(2)}%  ·  estructural ${full.estructural.toFixed(2)}%`);
 const mb = (forma.bytes / 1048576).toFixed(2);
@@ -254,6 +298,8 @@ if (trazada) {
 }
 console.log();
 for (const r of perRegion) {
-  console.log(`  ${r.id.padEnd(22)} ${r.pct.toFixed(2).padStart(6)}%  ${bar(r.pct)}`);
+  console.log(
+    `  ${r.id.padEnd(22)} ${r.pct.toFixed(2).padStart(6)}%  ${bar(r.pct)}  cobertura ${r.cobertura.toFixed(1).padStart(6)}%`
+  );
 }
 console.log(`\n  → ${join("scripts/lamina/out", slug)}/\n`);
