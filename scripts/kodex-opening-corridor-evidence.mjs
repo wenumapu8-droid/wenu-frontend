@@ -54,14 +54,37 @@ function assertViewport(value, label) {
   if (value.scrollHeight > value.height + 2) throw new Error(`${label}: page-level vertical scroll`);
 }
 
-async function capture(page, cdp, key, label, elapsed, frames) {
+async function captureScreencastFrame(context, page, label) {
+  // KODEX scenes run continuous rAF/WebGL loops. Page.captureScreenshot can
+  // stall on those surfaces, and a CDP session kept across navigation can be
+  // detached from the active page. Use a fresh session per sample and consume
+  // the first screencast frame instead. This is evidence-only; product timing
+  // remains untouched.
+  const cdp = await withTimeout(context.newCDPSession(page), 2_000, `${label} cdp session`);
+  try {
+    await withTimeout(cdp.send('Page.enable'), 2_000, `${label} Page.enable`);
+    const framePromise = new Promise((resolve) => {
+      cdp.once('Page.screencastFrame', async (params) => {
+        await cdp.send('Page.screencastFrameAck', { sessionId: params.sessionId }).catch(() => {});
+        resolve(params.data);
+      });
+    });
+    await withTimeout(cdp.send('Page.startScreencast', {
+      format: 'png',
+      everyNthFrame: 1,
+    }), 2_000, `${label} start screencast`);
+    const data = await withTimeout(framePromise, 4_000, `${label} screencast frame`);
+    await withTimeout(cdp.send('Page.stopScreencast'), 2_000, `${label} stop screencast`).catch(() => {});
+    return data;
+  } finally {
+    await withTimeout(cdp.detach().catch(() => {}), 2_000, `${label} cdp detach`).catch(() => {});
+  }
+}
+
+async function capture(context, page, key, label, elapsed, frames) {
   const file = `${key}-${label}-${String(elapsed).padStart(4, '0')}ms.png`;
-  const shot = await withTimeout(cdp.send('Page.captureScreenshot', {
-    format: 'png',
-    captureBeyondViewport: false,
-    fromSurface: true,
-  }), 4_000, `${key}/${label} screenshot`);
-  await fs.writeFile(path.join(outputDir, file), Buffer.from(shot.data, 'base64'));
+  const data = await captureScreencastFrame(context, page, `${key}/${label}`);
+  await fs.writeFile(path.join(outputDir, file), Buffer.from(data, 'base64'));
   const snapshot = await state(page);
   frames.push({ file, label, elapsed, ...snapshot });
   return snapshot;
@@ -82,7 +105,6 @@ async function runProfile(profile) {
     colorScheme: 'dark',
   });
   const page = await context.newPage();
-  const cdp = await context.newCDPSession(page);
   const pageErrors = [];
   page.on('pageerror', (error) => pageErrors.push(String(error?.message || error)));
   const frames = [];
@@ -90,14 +112,14 @@ async function runProfile(profile) {
   try {
     await page.goto(new URL('/kodex/', baseURL).toString(), { waitUntil: 'load', timeout: 15_000 });
     await page.waitForTimeout(250);
-    const threshold = await capture(page, cdp, profile.key, 'threshold', 0, frames);
+    const threshold = await capture(context, page, profile.key, 'threshold', 0, frames);
     assertViewport(threshold, `${profile.key}/threshold`);
 
     await trigger(page.locator('.kx-threshold__cta[href="/kodex/folio/i/"]').first(), profile.hasTouch);
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
-        const snapshot = await capture(page, cdp, profile.key, 'threshold-cross', elapsed, frames);
+        const snapshot = await capture(context, page, profile.key, 'threshold-cross', elapsed, frames);
         if (snapshot.path === '/kodex/' && snapshot.profile !== 'depth') {
           throw new Error(`${profile.key}: THRESHOLD crossing did not expose depth ritual`);
         }
@@ -106,20 +128,20 @@ async function runProfile(profile) {
     await page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 8_000 });
     await page.waitForLoadState('domcontentloaded', { timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(120);
-    const prologue = await capture(page, cdp, profile.key, 'prologue', 120, frames);
+    const prologue = await capture(context, page, profile.key, 'prologue', 120, frames);
     assertViewport(prologue, `${profile.key}/prologue`);
     if (profile.reducedMotion !== 'reduce') {
       await page.waitForTimeout(680);
-      await capture(page, cdp, profile.key, 'prologue', 800, frames);
+      await capture(context, page, profile.key, 'prologue', 800, frames);
       await page.waitForTimeout(1400);
-      await capture(page, cdp, profile.key, 'prologue', 2200, frames);
+      await capture(context, page, profile.key, 'prologue', 2200, frames);
     }
 
     await trigger(page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first(), profile.hasTouch);
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
-        const snapshot = await capture(page, cdp, profile.key, 'prologue-cross', elapsed, frames);
+        const snapshot = await capture(context, page, profile.key, 'prologue-cross', elapsed, frames);
         if (snapshot.path === '/kodex/folio/i/' && snapshot.profile !== 'depth') {
           throw new Error(`${profile.key}: PROLOGUE→DESCENT crossing did not expose depth ritual`);
         }
@@ -128,13 +150,13 @@ async function runProfile(profile) {
     await page.waitForURL((url) => url.pathname === '/kodex/folio/ii/', { timeout: 8_000 });
     await page.waitForLoadState('domcontentloaded', { timeout: 5_000 }).catch(() => {});
     await page.waitForTimeout(120);
-    const descent = await capture(page, cdp, profile.key, 'descent', 120, frames);
+    const descent = await capture(context, page, profile.key, 'descent', 120, frames);
     assertViewport(descent, `${profile.key}/descent`);
     if (profile.reducedMotion !== 'reduce') {
       await page.waitForTimeout(680);
-      await capture(page, cdp, profile.key, 'descent', 800, frames);
+      await capture(context, page, profile.key, 'descent', 800, frames);
       await page.waitForTimeout(1200);
-      await capture(page, cdp, profile.key, 'descent', 2000, frames);
+      await capture(context, page, profile.key, 'descent', 2000, frames);
     }
 
     if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join(' | ')}`);
@@ -144,7 +166,6 @@ async function runProfile(profile) {
     report.errors.push(message);
     report.cases.push({ name: `opening-${profile.key}`, pass: false, frames, pageErrors, error: message });
   } finally {
-    await withTimeout(cdp.detach().catch(() => {}), 2_000, `${profile.key}/cdp detach`).catch(() => {});
     await withTimeout(context.close(), 4_000, `${profile.key}/context close`).catch(() => {});
   }
 }
