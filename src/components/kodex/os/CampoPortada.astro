@@ -233,7 +233,26 @@ void main(){
         const objetivo = leerEstado() ?? puente.estado ?? estadoBase;
         estadoActual += (objetivo - estadoActual) * 0.035;
         gl.uniform1f(uState, estadoActual);
-        gl.uniform1f(uPx, px * DPR);
+        /* ── EL TAMAÑO DEL DITHER ES LO QUE HACÍA LA DIFERENCIA ────────────
+           El creador dijo muchas veces que la portada "aún no se ve así",
+           señalando su prototipo. Comparados los dos shaders línea por línea
+           eran IDÉNTICOS, y los uniforms también salvo dos. El culpable era
+           este:
+
+             prototipo   u_px = (5.0 + (1.0 - estado) * 4.0) * DPR   -> ~17
+             producción  u_px = px * DPR                             -> fijo y chico
+
+           El dither de Bayer usa `u_px` como tamaño de celda. Con celdas
+           grandes el campo se lee difuso y llena la pantalla; con celdas finas
+           se lee como un círculo nítido sobre negro. Eso es exactamente lo que
+           se veía distinto: en el prototipo estás DENTRO de un campo, en
+           producción mirás un objeto.
+
+           Y crece con el estado al revés de lo que uno esperaría: MÁS pixelado
+           en estados bajos. Cuando el KODEX está dormido se ve granulado, y a
+           medida que despierta se resuelve. La anomalía no sólo se enciende:
+           se enfoca. */
+        gl.uniform1f(uPx, (5.0 + (1.0 - estadoActual) * 4.0) * DPR);
         /* ── LA ANOMALÍA CRECE, NO LLEGA HECHA ────────────────────────────
            El creador, muchas veces: "hay como un mandala al comienzo que no es
            lo que yo quería… está una flor que está buena pero no me gusta como
@@ -252,9 +271,13 @@ void main(){
            primeros ocho segundos con una curva lenta al principio. Lo que se
            ve primero es el campo respirando; la geometría emerge después. No
            se cambió un solo pixel del shader: se cambió cuándo se enciende. */
+        /* La exposición sube hasta 1, no hasta 0.52: el prototipo no tiene
+           `u_exp` —implícitamente vale 1— y con 0.52 los bordes del campo se
+           apagaban y reforzaban la lectura de "objeto sobre negro". Se conserva
+           la rampa de ocho segundos, que es la anomalía creciendo. */
         const nacida = (performance.now() - t0Campo) / 8000;
         const crecer = nacida >= 1 ? 1 : nacida * nacida * (3 - 2 * nacida);
-        gl.uniform1f(uExp, (puente.exposicion ?? 0.52) * (0.06 + 0.94 * crecer));
+        gl.uniform1f(uExp, (puente.exposicion ?? 1) * (0.06 + 0.94 * crecer));
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
       cuadro();

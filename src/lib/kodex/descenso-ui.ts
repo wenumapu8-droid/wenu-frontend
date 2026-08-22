@@ -386,64 +386,60 @@ export function montarDescenso(opciones?: { boca?: HTMLElement; escena?: string 
      más alto que encuentre. Es la misma solución que ya usa la navegación de
      las láminas: medir la caja real en vez de suponerla. Se recalcula al rotar
      y cuando las fases terminan de revelar. */
+  /* EL TREPADO SE RETIRA. Existía para encontrarle sitio a una barra ancha
+     en un borde disputado, y las cuatro veces que se ajustó volvió a chocar
+     —la última, en modo de movimiento reducido, contra PREVIOUS e INDEX—.
+     Con la boca convertida en un círculo de 48px anclado a la esquina, no hay
+     nada que esquivar: cabe donde una barra no cabía. Se quita en vez de
+     seguir compensando, que es lo que el creador viene señalando todo el día.
+     Su historia queda en el registro por si alguien la necesita de vuelta. */
+  /* ── SI NO HAY LUGAR, LA BOCA NO SE MUESTRA ─────────────────────────────
+     Se movió cinco veces buscando sitio —abajo, más arriba, midiendo, trepando,
+     al costado derecho, al izquierdo— y las cinco chocó. Al final se midió la
+     franja entera: en un folio NO HAY una sola columna libre entre y=320 e
+     y=520. La escena está ocupada de borde a borde, con rieles verticales de
+     texto en los dos costados.
+
+     La conclusión no es un sexto lugar: es que ahí no cabe un segundo control
+     flotante. Y el manifiesto lo dice antes que la medición — "no rectángulos
+     flotantes", "los botones casi invisibles o integrados en la composición".
+
+     Entonces la boca se comprueba a sí misma: si su caja pisa algo, se retira
+     en vez de sumar ruido. En las láminas hay lugar y aparece; en los folios
+     no lo hay y no aparece, y el descenso sigue alcanzable desde cada lámina y
+     desde el índice. Un control que no cabe es un control que no debería estar.
+
+     Cuando el contrato de escena reserve un hueco propio, la boca lo va a
+     encontrar libre y va a volver sola. No hace falta cambiar nada acá. */
   const ubicar = () => {
-    /* Se sube hasta quedar LIBRE, comprobándolo. La versión anterior sólo
-       miraba elementos `fixed` y `SPECIMEN DATA` no lo es: está en el flujo
-       normal de la escena, así que el barrido lo ignoraba y la boca seguía
-       encima al 100%.
-       
-       Acá no se clasifica nada: se prueba. Se baja la boca al piso, se mide
-       contra todo lo que tenga texto visible, y si choca sube 8px y se vuelve
-       a medir. Máximo 40 pasos —320px— para no subirse a la obra. */
-    boca.style.bottom = `calc(16px + env(safe-area-inset-bottom,0px))`;
-    const choca = () => {
-      const m = boca.getBoundingClientRect();
-      for (const el of document.querySelectorAll<HTMLElement>('body *')) {
-        if (el === boca || boca.contains(el) || el.contains(boca)) continue;
-        if (!el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
-        /* Y quedaba un obstáculo invisible para esta prueba: EL TITULAR.
-           Los títulos cinéticos reparten una letra por hijo, así que el <h1>
-           no tiene ni un nodo de texto DIRECTO y `propio` daba 0. Medido en
-           844x390 sobre COSMOLOGY: la boca aterrizaba sobre "NOTHING HERE
-           STANDS ALONE" cubriendo el 54% de su caja, y este bucle la daba por
-           libre. Es el mismo punto ciego que tenía el barrido de QA, y por la
-           misma razón: "texto propio" no es lo mismo que "texto que se ve".
-           Los titulares y los controles entran por lo que MUESTRAN. */
-        const propio = [...el.childNodes].filter((n) => n.nodeType === 3)
-          .map((n) => n.textContent?.trim() ?? '').join('').length;
-        const muestra = /^(H1|H2|A|BUTTON)$/.test(el.tagName)
-          ? (el.innerText ?? '').trim().length : 0;
-        if (propio < 2 && muestra < 2) continue;
-        const r = el.getBoundingClientRect();
-        if (r.width < 4 || r.height < 4) continue;
-        const ox = Math.min(m.right, r.right) - Math.max(m.left, r.left);
-        const oy = Math.min(m.bottom, r.bottom) - Math.max(m.top, r.top);
-        if (ox > 2 && oy > 2) return true;
-      }
-      return false;
-    };
-    /* LA CAUSA ERA QUE EL TREPADO NO TIENE RETORNO. Sube de a 8px hasta 40
-       pasos y, si nunca encuentra sitio, se QUEDA donde llegó -- a 336px del
-       piso, que es exactamente la altura del titular. O sea: cuando falla,
-       falla en el peor lugar posible.
-
-       Medido en reduced-motion, 390x844, a los 6,5s: los seis folios con la
-       boca en 336 encima del título, hasta el 100% en MACHINE. Y el piso, en
-       ese mismo instante, libre. Había subido contra una escena que ya no
-       existía.
-
-       Si después de recorrer todo no hay sitio, vuelve al piso: es su lugar de
-       reposo, está debajo de la barra y ahí no tapa a nadie. Perder la
-       separación es mucho menos grave que aterrizar sobre la frase más grande
-       de la escena. */
-    const piso = `calc(16px + env(safe-area-inset-bottom,0px))`;
-    let libre = !choca();
-    for (let k = 0; k < 40 && !libre; k++) {
-      const y = 16 + (k + 1) * 8;
-      boca.style.bottom = `calc(${y}px + env(safe-area-inset-bottom,0px))`;
-      libre = !choca();
+    /* SÓLO LA BOCA FLOTANTE se retira. Las del tríptico están DENTRO de la
+       composición de su página —son parte de ella, no un rectángulo encima— y
+       por lo tanto solapan con su propio texto por diseño. La primera versión
+       de esto las escondía a todas y dejó el descenso inalcanzable desde las
+       láminas: se rompió lo que funcionaba por arreglar lo que no.
+       La pregunta correcta no es "¿choca?" sino "¿es un control flotante que
+       choca?". */
+    if (getComputedStyle(boca).position !== 'fixed') return;
+    boca.style.visibility = 'hidden';
+    boca.style.removeProperty('display');
+    const m = boca.getBoundingClientRect();
+    let choca = false;
+    for (const el of document.querySelectorAll<HTMLElement>('body *')) {
+      if (el === boca || boca.contains(el) || el.contains(boca)) continue;
+      if (!el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
+      const t = (el.tagName === 'H1' || el.tagName === 'H2' || el.tagName === 'A' || el.tagName === 'BUTTON')
+        ? (el.innerText ?? '').trim().length
+        : [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent?.trim() ?? '').join('').length;
+      if (t < 2) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 4 || r.height < 4) continue;
+      const ox = Math.min(m.right, r.right) - Math.max(m.left, r.left);
+      const oy = Math.min(m.bottom, r.bottom) - Math.max(m.top, r.top);
+      if (ox > 2 && oy > 2) { choca = true; break; }
     }
-    if (!libre) boca.style.bottom = piso;
+    boca.style.visibility = choca ? 'hidden' : 'visible';
+    boca.setAttribute('aria-hidden', choca ? 'true' : 'false');
+    if (choca) boca.tabIndex = -1; else boca.removeAttribute('tabindex');
   };
 
   montarTravesia();
