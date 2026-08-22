@@ -166,3 +166,49 @@ Dos objetivos táctiles en el mismo lugar. **P1 abierto.**
 `scripts/kodex/cosechar-marcas.mjs` y `public/kodex-content/marcas.json` ya
 tienen **60 signos extraídos de 13 planchas**, normalizados y con procedencia.
 Es el primer eslabón de ATOMS y está hecho.
+
+---
+
+## P0 · PORTE DE LOS 5 ARCHIVOS DE #101 · resultado
+
+**Hecho y medido, 2026-08-22.**
+
+Los tres cambios chicos entran:
+
+| archivo | qué era | veredicto |
+|---|---|---|
+| `KodexTransition.astro` | ocultar el filo horizontal en el perfil `depth` | **PORTADO** — el corredor de profundidad usa el lienzo completo; coincide con el canon 14 |
+| `kodex-universe.css` | sólo el `@import` de la capa | descartado con la capa |
+| `kodex-quiet-frames.css` | sólo el `@import` de la capa | descartado con la capa |
+
+**`kodex-experience-convergence.css` · 742 líneas · RECHAZADO, con motivo.**
+
+La revisé antes de traerla, por lo de hoy con `kodex-micrographics.css`. Estaba
+limpia de lo que temía: **0 `!important`, 0 `grid-template`**, y se declara
+«presentation-only». Los números después de traerla también pasaron:
+
+    banco     72/72
+    barrido   0 defectos en 45 combinaciones
+
+**Y la pantalla estaba rota.** En PROLOGUE la obra pasó a fondo completo con el
+texto encima: el titular sobre el mandala, «YOU ARE NOT ALONE» ilegible sobre la
+obra, y «BEGIN OBSERVATION» convertido en un bloque violeta sólido con la obra
+asomando alrededor.
+
+**Por qué el barrido dio cero:** la obra es un lienzo, no texto. Texto sobre obra
+no es texto sobre texto, y el detector no lo mide. Es exactamente el caso que el
+creador nombró — «si técnicamente pasa pero visualmente parece arte subordinado,
+no está terminada» — y la razón por la que la regla es mirar la captura.
+
+La capa toca `.kx-os-scene` 98 veces, `.kx-os-stage` 56 y `.kx-prologue-stage`
+27. Fue escrita para la estructura de escena de hace tres días. Es la misma
+historia que la capa de micrografías: una generación de reglas que compensa a
+otra, que es lo que el 07D prohíbe por nombre.
+
+**No se pierde:** vive en `feat/kodex-manifestation-recipe-p0-4`. Si se quiere
+su efecto —la barra del sistema más tenue en el umbral— se consigue deliberado
+desde la capa de instrumento, que ya existe y está verificada.
+
+**Deuda de arnés que esto deja abierta:** el barrido no detecta texto sobre obra.
+Es un detector nuevo que hay que escribir, y hasta entonces la captura no es
+opcional.
