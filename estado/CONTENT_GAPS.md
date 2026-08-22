@@ -76,6 +76,39 @@ scripts de evidencia en navegador. Va a la decisión 1.3.
 
 ---
 
+## 3.3 · El índice del corredor es una lista de tarjetas — ABIERTA
+
+Encontrado por `chatgpt-contenido` auditando el sitio en vivo, y verificado
+abriéndolo: al pulsar INDEX aparece una fila por escena con número, miniatura,
+título, subtítulo y «ENTER →». Es literalmente «cards + menu», lo que el canon
+rechaza por nombre.
+
+**Matiz que importa para futuras auditorías:** los strings `SYSTEM INDEX` y
+`command shell` están en el HTML de todas las páginas, pero medido en navegador
+el panel es `display:none`, `hidden`, 0×0. No es cromo en pantalla: es un panel
+bajo demanda. **Grepear el HTML no es auditar la experiencia** — el HTML tiene
+todo lo que PUEDE mostrarse, no lo que se muestra. El hallazgo era correcto; el
+camino para llegar, no.
+
+Pendiente: convertirlo en constelación en vez de lista. Es trabajo de estructura
+y necesita dirección del creador sobre qué debe SER el índice, no sólo cómo se
+ve. Lo toma `mini-1-deploy`.
+
+## 3.4 · 39 láminas existen, 36 se enlazan — ABIERTA
+
+El índice afirmaba «27 láminas». Medido: 39 archivos en
+`src/pages/kodex/lamina/` y 36 enlaces en la página publicada. El número estaba
+escrito a mano, llegaron láminas nuevas y quedó mintiendo en producción.
+
+Corregido: ahora lo cuenta `scripts/kodex/estado-circuito.mjs` y lo escribe en
+`src/data/kodex-conteos.json`, que el índice importa. No puede volver a
+desfasarse.
+
+**Lo que queda abierto es la diferencia:** 3 láminas existen y no aparecen en el
+listado. O están excluidas a propósito y hay que decir por qué, o se perdieron
+del índice como pasó antes con el lote de Drive. Es material para
+`chatgpt-contenido`.
+
 ## 4 · CÓMO SE USA ESTE ARCHIVO
 
 - **Ocín / chatgpt-contenido** — contestan lo de la sección 1 y llenan la 2.

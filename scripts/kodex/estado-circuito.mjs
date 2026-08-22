@@ -108,7 +108,8 @@ const contenido = {
     rastreables: num(/rastreables\s*:\s*(\d+)/),
     vivos: num(/vivos\s*:\s*(\d+)/),
     huerfanos: num(/huérfanos\s*:\s*(\d+)/),
-    laminas_a_mano: contar('src/pages/kodex/lamina', (f) => f.endsWith('.astro')),
+    /* sin `index.astro`, que es la portada del listado y no una lámina */
+    laminas_a_mano: contar('src/pages/kodex/lamina', (f) => f.endsWith('.astro') && f !== 'index.astro'),
     nota: 'Huérfano no es basura: es material escrito que nadie cableó.',
   },
 };
@@ -135,6 +136,20 @@ const experiencia = {
   })),
   decisiones_humanas: decisiones,
 };
+
+/* Y un dato que el SITIO importa, no sólo los agentes.
+   El índice del corredor afirmaba "27 láminas" cuando había 39 archivos y 36
+   publicadas: el número se escribió una vez y quedó mintiendo en producción.
+   No puede contarlas él mismo -- hacer `glob` de páginas desde un componente
+   rompe el grafo de módulos, probado y falla el build -- así que el conteo se
+   emite acá, junto al resto del estado, y el índice lo lee. */
+writeFileSync('src/data/kodex-conteos.json', JSON.stringify({
+  generado: estado.generado,
+  nota: 'GENERADO por scripts/kodex/estado-circuito.mjs. No editar a mano.',
+  laminas: contenido.codigo.laminas_a_mano,
+  nodos: contenido.grafo.nodos,
+  obras: contenido.obra_del_creador.curadas,
+}, null, 2) + '\n');
 
 writeFileSync('estado/CURRENT_STATE.json', JSON.stringify(estado, null, 2) + '\n');
 writeFileSync('estado/CONTENT_REGISTRY.json', JSON.stringify(contenido, null, 2) + '\n');
