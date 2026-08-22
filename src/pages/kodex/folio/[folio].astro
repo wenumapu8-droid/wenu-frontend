@@ -87,6 +87,25 @@ const nextLabel =
   : next ? CTA_ESCENA[next.slug] ?? `NEXT · ${next.stage}`
   : 'RETURN TO THRESHOLD';
 
+/* ── UNA OBRA DISTINTA POR ESCENA ──────────────────────────────────────────
+   Las siete se parecían porque CINCO usaban la misma serie monocroma `bw-*`.
+   Medido: bw-01, bw-02, bw-07 y bw-11 tienen brillo 20-27 y saturación 1,6-3,7
+   — la misma paleta, la misma densidad, el mismo gesto. El creador lo viene
+   diciendo desde el principio: «no tenemos siete portales iguales con skins
+   distintos».
+
+   La asignación sale de la propuesta de imac-kimi, verificada acá una por una
+   mirando las obras, no sólo sus números:
+
+     THRESHOLD  arch-04     mandala cristalino sobre negro, el centro es abertura
+     PROLOGUE   arch-21     estallido radial que lee como iris — «el archivo observa»
+     DESCENT    bw-06       el sistema YA la llama DESCENT en kodexBook.js:6
+     ARCHIVE    arch-01     se mantiene, ya estaba bien
+     MACHINE    conjuncion  laberinto y maquinaria reflejada, no se parece a nada
+     COSMOLOGY  disco-05    red radial en magenta — el acento ya declarado de la escena
+     RETURN     mandala     la que hoy estaba mal puesta en el umbral
+
+   Quedan tres familias distintas donde había una: archive, works y disco. */
 const sceneByFolio = {
   i: {
     number: '01', slug: 'prologue', accent: 'var(--kdx-violet,#8B5CF6)', motif: 'archive-eye',
@@ -95,7 +114,7 @@ const sceneByFolio = {
     copy: ['YOU ARE NOT ALONE.', 'A SIGNAL.', 'A SYSTEM.', 'A CHOICE.'],
     cta: 'BEGIN OBSERVATION',
     meta: ['NODE · KDX_01', 'STATUS · OBSERVING', 'ACCESS · RECORDED', 'PROTOCOL · EYE/CRT/WAVE'],
-    image: '/img/kodex/works/bw-02.jpg',
+    image: '/img/kodex/archive/arch-21.jpg',
   },
   ii: {
     number: '02', slug: 'descent', accent: 'var(--kdx-orange,#FF6A00)', motif: 'descent-tunnel',
@@ -103,7 +122,7 @@ const sceneByFolio = {
     title: 'THE TREE DESCENDS TO HOLD WHAT RISES.',
     cta: 'DESCEND',
     meta: ['NODE · KDX_02', 'MODE · STEPWISE', 'STRATA · 11', 'SKIP · INDEX'],
-    image: '/img/kodex/works/bw-01.jpg',
+    image: '/img/kodex/works/bw-06.jpg',
   },
   iii: {
     number: '03', slug: 'archive', accent: 'var(--kdx-acid,#A7FF00)', motif: 'specimen-dossier',
@@ -119,7 +138,7 @@ const sceneByFolio = {
     title: 'THE SYSTEM MAKES FROM MEMORY.',
     cta: 'GENERATE SIGNAL',
     meta: ['ENGINE · READY', 'SOURCE · ACHROMA_006', 'METHOD · MIRROR/DITHER/FLOW', 'INTEGRITY · 98.7%'],
-    image: '/img/kodex/works/bw-07.jpg',
+    image: '/img/kodex/works/conjuncion.jpg',
   },
   v: {
     number: '05', slug: 'cosmology', accent: 'var(--kdx-magenta,#FF00C8)', motif: 'orbital-map',
@@ -127,7 +146,7 @@ const sceneByFolio = {
     title: 'NOTHING HERE STANDS ALONE.',
     cta: 'REVEAL CONNECTION',
     meta: ['NODE · KDX_05', 'STATE · LINKED', 'DOMAIN · SIGNAL/MATTER/MEMORY', 'RELATION · +∞'],
-    image: '/img/kodex/disco/disco-01.jpg',
+    image: '/img/kodex/disco/disco-05.jpg',
   },
   vi: {
     number: '06', slug: 'return', accent: 'var(--kdx-acid,#A7FF00)', motif: 'return-seal',
@@ -135,7 +154,7 @@ const sceneByFolio = {
     title: 'THE SIGNAL RETURNS. THE PATTERN REMAINS.',
     cta: 'COLLECT A FRAGMENT',
     meta: ['NODE · KDX_06', 'STATE · RETURNED', 'PATTERN · ACTIVE', 'NEXT · CARRY FORWARD'],
-    image: '/img/kodex/works/bw-11.jpg',
+    image: '/img/kodex/works/mandala-0cin-negativo.png',
   },
 }[folio];
 
@@ -851,6 +870,8 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     drawer?.addEventListener('click', (e) => { if (e.target === drawer) closeDrawer(); });
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer(); });
 
+    const folioActual = document.querySelector('[data-kdx-folio]')?.getAttribute('data-kdx-folio')
+      || (location.pathname.match(/\/folio\/([^/]+)\//) || [])[1] || '';
     const strata = JSON.parse(document.getElementById('kdx-strata-data')?.textContent || '[]');
     let stratumIndex = 0;
     const paintStratum = () => {
@@ -860,8 +881,24 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
       document.querySelector('[data-stratum-depth]')?.replaceChildren(`DEPTH · -${137 + stratumIndex * 89} M`);
       document.querySelector('[data-stratum-title]')?.replaceChildren(s.name);
       document.querySelector('[data-stratum-read]')?.replaceChildren(s.read);
-      const art = document.querySelector('[data-kdx-art] img');
-      if (art) art.src = `/img/kodex/works/${s.file}.jpg`;
+      /* EL MOTOR DE ESTRATOS SÓLO PINTA LA OBRA EN DESCENT.
+         Acá estaba la razón de que las siete escenas se parecieran, y no eran
+         las tablas de asignación: `paintStratum()` se llamaba sin condición al
+         final del script, en LOS SEIS folios. Los estratos se emiten en todos
+         -- son los 11 especímenes -- así que `strata[0]` es bw-01 y todas las
+         escenas terminaban mostrando la misma obra, pisando lo que declaraban
+         `sceneByFolio` y la tabla de fundición.
+
+         Comprobado en navegador: PROLOGUE, DESCENT, MACHINE y RETURN servían
+         `bw-01.jpg` mientras su HTML decía otra cosa. Dos tablas cambiadas no
+         movieron un pixel hasta encontrar esto.
+
+         El recorrido de estratos es de DESCENT. En las demás escenas la obra la
+         decide su propia declaración y nadie la toca. */
+      if (folioActual === 'ii') {
+        const art = document.querySelector('[data-kdx-art] img');
+        if (art) art.src = `/img/kodex/works/${s.file}.jpg`;
+      }
     };
     document.querySelector('[data-stratum-next]')?.addEventListener('click', () => {
       stratumIndex = (stratumIndex + 1) % strata.length;
