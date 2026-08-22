@@ -33,17 +33,6 @@ const report = {
   summary: {},
 };
 
-const visible = (style, rect, viewport) =>
-  style.display !== 'none'
-  && style.visibility !== 'hidden'
-  && Number.parseFloat(style.opacity || '1') > 0.02
-  && rect.width > 0
-  && rect.height > 0
-  && rect.right > 0
-  && rect.bottom > 0
-  && rect.left < viewport.width
-  && rect.top < viewport.height;
-
 async function inspect(page, scene, profile) {
   const url = new URL(scene.href, baseURL).toString();
   const pageErrors = [];
@@ -66,6 +55,17 @@ async function inspect(page, scene, profile) {
       return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
     };
 
+    const isVisible = (style, rect) =>
+      style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && Number.parseFloat(style.opacity || '1') > 0.02
+      && rect.width > 0
+      && rect.height > 0
+      && rect.right > 0
+      && rect.bottom > 0
+      && rect.left < viewport.width
+      && rect.top < viewport.height;
+
     const h1Rect = rectOf(h1);
     const artRect = rectOf(art);
     const primaryRect = rectOf(primary);
@@ -77,7 +77,7 @@ async function inspect(page, scene, profile) {
       .map((el) => {
         const style = getComputedStyle(el);
         const r = el.getBoundingClientRect();
-        if (!visible(style, r, viewport)) return null;
+        if (!isVisible(style, r)) return null;
         if (r.width >= 44 && r.height >= 44) return null;
         return {
           tag: el.tagName.toLowerCase(),
