@@ -59,6 +59,10 @@ const estado = {
     nota: 'lo pone quien corra el arnés; ver scripts/kodex/qa-barrido.mjs y qa-banco.mjs',
   },
   defectos_abiertos: decisiones.defectos_abiertos ?? [],
+  /* Para la auditoría en vivo de chatgpt-contenido: no alcanza con decir qué
+     commit entró. Hay que decir QUÉ DEBERÍA VERSE, para que pueda comparar el
+     sitio real contra la intención y no contra el diff. */
+  ultimo_cambio_publicado: decisiones.ultimo_cambio_publicado ?? null,
   deudas_de_arnes: [
     'El barrido no detecta TEXTO SOBRE OBRA. Costó un porte revertido: los números daban 0 y PROLOGUE estaba roto.',
     'El barrido no cubre el estado posterior a cruzar el velo salvo por el banco.',
