@@ -171,11 +171,16 @@ async function runProfile(profile) {
 }
 
 try {
+  // Every Playwright/CDP operation inside runProfile is already explicitly
+  // bounded. Do not race the whole profile against a second watchdog: when
+  // that outer Promise.race fires, runProfile continues in the background and
+  // browser cleanup can close its active target mid-capture. Await each profile
+  // directly so failure is reported by the bounded operation that caused it.
   for (const profile of profiles) {
-    await withTimeout(runProfile(profile), 35_000, `${profile.key}/profile`);
+    await runProfile(profile);
   }
 } catch (error) {
-  report.errors.push(`opening-corridor watchdog: ${String(error?.stack || error)}`);
+  report.errors.push(`opening-corridor harness: ${String(error?.stack || error)}`);
 } finally {
   await withTimeout(browser.close(), 5_000, 'browser close').catch(() => {});
 }
