@@ -90,10 +90,15 @@ async function capture(context, page, key, label, elapsed, frames) {
   return snapshot;
 }
 
-async function trigger(locator, touch) {
+async function trigger(locator) {
+  // This lane measures the transition timeline, not pointer hit-testing.
+  // Playwright's physical click/tap may auto-scroll a continuously animated
+  // scene while trying to satisfy actionability and can time out even when the
+  // anchor is already visible/stable. Keyboard/touch actionability is covered
+  // by the dedicated browser/deep-navigation gates. Dispatch the real anchor
+  // activation in-page here so temporal evidence samples product timing only.
   await locator.waitFor({ state: 'visible', timeout: 8_000 });
-  if (touch) await locator.tap({ noWaitAfter: true, timeout: 5_000 });
-  else await locator.click({ noWaitAfter: true, timeout: 5_000 });
+  await withTimeout(locator.evaluate((element) => element.click()), 2_000, 'transition trigger');
 }
 
 async function runProfile(profile) {
@@ -115,7 +120,7 @@ async function runProfile(profile) {
     const threshold = await capture(context, page, profile.key, 'threshold', 0, frames);
     assertViewport(threshold, `${profile.key}/threshold`);
 
-    await trigger(page.locator('.kx-threshold__cta[href="/kodex/folio/i/"]').first(), profile.hasTouch);
+    await trigger(page.locator('.kx-threshold__cta[href="/kodex/folio/i/"]').first());
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
@@ -137,7 +142,7 @@ async function runProfile(profile) {
       await capture(context, page, profile.key, 'prologue', 2200, frames);
     }
 
-    await trigger(page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first(), profile.hasTouch);
+    await trigger(page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first());
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
