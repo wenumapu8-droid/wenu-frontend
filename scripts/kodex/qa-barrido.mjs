@@ -1,8 +1,10 @@
 import { chromium } from 'playwright';
 const B = process.env.KDX_BASE || 'http://127.0.0.1:4342';
 const ESPERA = 6500;   // la capa de vida necesita sus ciclos: medir antes es medir una pagina que nadie ve
-const RUTAS = ['/kodex/','/kodex/folio/i/','/kodex/folio/ii/','/kodex/folio/iii/','/kodex/folio/iv/',
-               '/kodex/folio/v/','/kodex/folio/vi/','/kodex/interlude/archive-machine/','/kodex/interlude/cosmology-return/'];
+const RUTAS = (process.env.KDX_RUTAS||'').split(',').filter(Boolean).length
+  ? (process.env.KDX_RUTAS||'').split(',').filter(Boolean)
+  : ['/kodex/','/kodex/folio/i/','/kodex/folio/ii/','/kodex/folio/iii/','/kodex/folio/iv/',
+     '/kodex/folio/v/','/kodex/folio/vi/','/kodex/interlude/archive-machine/','/kodex/interlude/cosmology-return/'];
 /* 412x915 entra porque es el tamaño donde el otro Claude midió 12 solapes en
    COSMOLOGY y yo medía 0 en 390: un teléfono más ancho y más alto reacomoda
    los carriles y saca choques que el estrecho esconde. Si no está en el
@@ -98,6 +100,35 @@ for (const r of RUTAS) {
         return true;
       };
 
+      /* ── LA CAJA NO ES LO QUE SE DIBUJA ──────────────────────────────────
+         Medido en genesis-cradle a 1440: la caja de "STABILITY" va de x=843 a
+         984 -- 141px -- pero sus letras ocupan unos 60. El valor "98.7%" cae en
+         929-952, o sea DENTRO de la caja y LEJOS de las letras. El detector
+         informaba 8 superposiciones al 63% y no había ni una: las dos se leen
+         perfectamente, cada una en su lado de la columna.
+         Es el mismo error que ya cometí midiendo: comparar cajas en vez de lo
+         que el ojo ve. Un elemento de bloque con texto alineado a la izquierda
+         siempre "solapa" con lo que esté a su derecha.
+         Se mide el rectángulo de las LETRAS, con un Range sobre sus nodos de
+         texto, y sólo si eso falla se cae a la caja. */
+      const rectoTexto = (el) => {
+        try {
+          const r = document.createRange();
+          let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity, hubo=false;
+          for (const n of el.childNodes) {
+            if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+            r.selectNodeContents(n);
+            for (const q of r.getClientRects()) {
+              if (q.width < 1 || q.height < 1) continue;
+              hubo = true;
+              x0=Math.min(x0,q.left); y0=Math.min(y0,q.top);
+              x1=Math.max(x1,q.right); y1=Math.max(y1,q.bottom);
+            }
+          }
+          return hubo ? {left:x0, top:y0, right:x1, bottom:y1, width:x1-x0, height:y1-y0} : null;
+        } catch (_) { return null; }
+      };
+
       const rectoVisible = (el) => {
         let r = el.getBoundingClientRect();
         let t = { x: r.left, y: r.top, r: r.right, b: r.bottom };
@@ -127,8 +158,16 @@ for (const r of RUTAS) {
         const titular=/^(H1|H2|A|BUTTON)$/.test(e.tagName) ? (e.innerText||'').trim().replace(/\s+/g,' ') : '';
         const t = propio.length>=2 ? propio : titular;
         if (t.length<2) continue;
-        const r=rectoVisible(e);
+        let r=rectoVisible(e);
         if (!r) continue;
+        /* si el elemento tiene letras propias, manda el rectángulo de las
+           letras, recortado por lo que los ancestros dejan ver */
+        const rt=rectoTexto(e);
+        if (rt) {
+          const x=Math.max(r.left,rt.left), y=Math.max(r.top,rt.top);
+          const X=Math.min(r.right,rt.right), Y=Math.min(r.bottom,rt.bottom);
+          if (X-x > 0 && Y-y > 0) r={left:x, top:y, right:X, bottom:Y, width:X-x, height:Y-y};
+        }
         if (r.width<4||r.height<4||r.bottom<0||r.top>innerHeight||r.right<0||r.left>innerWidth) continue;
         if (tapado(e, r, tapados)) continue;
         /* Y AÚN ASÍ SE ESCAPABA EL PEOR CASO. `tapado` devuelve "se ve" apenas

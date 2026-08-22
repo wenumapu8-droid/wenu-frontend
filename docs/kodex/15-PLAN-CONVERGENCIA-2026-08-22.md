@@ -92,9 +92,77 @@ tría y se declara.
 linaje y hay que localizarlo, o hay que sacarlo del canon. Documentación no es
 implementación.
 
-## PENDIENTE DE ENTRADA
+## CORRECCIONES DE LA SEGUNDA PASADA · 2026-08-22
 
-08D, 08E y 08F no son legibles desde estas máquinas: el paquete
-`08_KDX_EXPERIENCE_ORCHESTRATION` no está sincronizado en el Drive local del
-iMac. Este plan se hizo con el repositorio y el canon 07D/09–14. Si 08F asigna
-paquetes de trabajo distintos, manda 08F.
+Tres cosas que este documento decía mal y que la verificación corrigió. Se
+dejan escritas en vez de editarlas en silencio.
+
+### 1 · 08D, 08E y 08F no existen
+
+La serie del Drive termina en C: `08A-KDX-SCENE-ORCHESTRATOR`,
+`08B-KDX-OBSERVATORY-CONTROL-ROOM`, `08C-MACHINE-MASTER-PROMPT`. No falta
+entrada: el plan está hecho contra el canon completo.
+
+### 2 · HoloCore SÍ se escribió — y se cerró sin fusionar
+
+No es «documentación sin implementación». Es **implementación abandonada**:
+
+    PR #67  CLOSED · DRAFT · feat/kodex-holocore-registry-v1 · 12 archivos
+    ramas vivas en origin, las tres de hace 8 días:
+      feat/kodex-holocore-registry-v1
+      feat/kodex-holocore-renderer-adapters-v0
+      feat/kodex-holocore-prototype-v1
+
+Incluye `src/kodex/holocore/registry.js` (11 KB), cuatro escenas ASCII y
+scripts de evidencia en navegador. Los docs 28 y 29 hablan de «catorce núcleos
+visuales direccionables por consulta». Está escrito, tiene evidencia, y nadie lo
+fusionó. Eso es material de P0, no una ausencia.
+
+### 3 · El renderer y la placa activadora YA EXISTEN — el plan los daba por construir
+
+`src/components/kodex/grammar/KodexPlateSpecRenderer.astro`, 18 KB, **en esta
+rama**, sabe dibujar tres tipos de placa:
+
+    KNOWLEDGE_PLATE · JUNCTION_PLATE · ACTIVATOR_PLATE
+
+y dos cargas: `ARTWORK` y `FIELD`. Con ranuras, lista de rutas, referencias de
+procedencia, movimiento y control de bytes de la obra.
+
+La **placa activadora**, que el artefacto G daba por inexistente, está declarada
+en cuatro esquemas y tiene **12 entradas** en el registro de 28 elementos.
+
+Lo consume, otra vez, sólo el laboratorio: `lab/semantic-ir/[case_id]` y
+`lab/golden-plates/[case_id]`.
+
+**Consecuencia para P4:** no es construir un renderer. Es **promover a producción
+uno que ya dibuja, y enchufarle el registro huérfano que es su lista de piezas.**
+De semanas a días. Y eso desarma la objeción de que P4 sea construir motor
+mientras el creador espera experiencia.
+
+**Consecuencia para P7:** la dependencia `P7 → P4` que este plan escribió es
+demasiado fuerte. Los controles de MACHINE sobre `KodexTreatmentChain` no
+necesitan el renderer: corren en paralelo sobre la escena escrita a mano y se
+pliegan al renderer después.
+
+### 4 · El detector medía cajas, no letras
+
+En `genesis-cradle` a 1440 informaba 8 superposiciones al 63% — pares
+`"STABILITY" × "98.7%"`. Medido: la caja de la etiqueta va de x=843 a 984, sus
+letras ocupan unos 60px, y el valor cae en 929-952, dentro de la caja y lejos
+del texto. **Las ocho eran falsas.** Un bloque con texto a la izquierda siempre
+«solapa» con lo que tenga a la derecha.
+
+Corregido: se mide el rectángulo de las letras con un `Range` sobre los nodos de
+texto, recortado por los ancestros. Las ocho desaparecen y el corredor sigue en
+0 defectos en 45 combinaciones, así que no se escondió nada.
+
+**Lo que sí queda abierto en `genesis-cradle`**, y es distinto de lo reportado:
+en 390, 412 y reduced-motion, dos controles de 44×44 están apilados con 4px de
+desfase — el interruptor de señales en x 338-382 y el de sonido en x 334-378.
+Dos objetivos táctiles en el mismo lugar. **P1 abierto.**
+
+### 5 · P13 no arranca de cero
+
+`scripts/kodex/cosechar-marcas.mjs` y `public/kodex-content/marcas.json` ya
+tienen **60 signos extraídos de 13 planchas**, normalizados y con procedencia.
+Es el primer eslabón de ATOMS y está hecho.
