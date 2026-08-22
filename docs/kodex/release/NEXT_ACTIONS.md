@@ -1,8 +1,10 @@
 # NEXT ACTIONS — KODEX Release 2026-08-21
 
-1. Keep `19d5be17798c09bc0725c8dc6b24fa1f6ce79abd` / Core Runtime #360 as the current exact-head product/browser baseline. Later PR #101 commits that change documentation only do not require a new product-runtime acceptance run by themselves; verify the changed-file set before scheduling CI.
-2. Inspect product corridor evidence, not only CI status.
-3. Advance the existing PR #101 product lineage with the smallest missing presentation delta; port historical visual work only as bounded source material, never as wholesale/parallel architecture.
-4. Prioritize `THRESHOLD → PORTAL → PROLOGUE → first depth of DESCENT`: first-view artwork dominance, dynamic imagery, intentional mobile composition, preserved artwork aspect ratio, integrated navigation, and fast non-ritual traversal.
-5. Re-run exact-head Core Runtime/browser evidence after the next runtime/product-facing delta, covering desktop, 390×844, 412×915, keyboard/touch, reduced-motion, 100dvh/no accidental page scroll, artwork integrity, and no consequential navigation/memory write before explicit choice.
-6. Keep `REFINE GLOBAL / HIDE THE SYSTEM → SHOW THE UNIVERSE` as a reversible curation direction, not visual KEEP or canon promotion. Record creator verdict on the corridor as a whole before merge/deploy.
+1. Keep `c3e3585f2d3e6c342f5bb7b6df401bdab359cc43` / KODEX Core Runtime #375 (run `32534807222`) as the current exact-head product/browser baseline. Documentation-only commits do not displace that product baseline or justify a new product acceptance run by themselves.
+2. Do not rebuild Assembly OS / Deep Navigation P0.1–P0.10. PR #62 is closed baseline infrastructure; correctness continues to come from the existing registries, schemas, constraints, and validators.
+3. Advance the existing PR #101 lineage only. The next meaningful delta must be product-facing and must use the existing runtime plus `kodex-experience-convergence.css`; historical PRs/branches are bounded visual source material only, never parallel architecture.
+4. Produce `THRESHOLD → PORTAL → PROLOGUE → first depth of DESCENT` as one continuous audiovisual corridor: artwork/image dominance, dynamic camera/framing and depth, intentional mobile timing, integrated navigation, preserved source aspect ratio, and fast non-ritual traversal. Change the camera, not the protected artwork.
+5. Keep technical UI, routes, layers, state labels, metadata, and instrumentation subordinate to the visible universe. They may remain available for accessibility/inspection, but must not dominate first-read experience.
+6. After the next product-facing delta, run exact-head Core Runtime/browser evidence covering desktop, 390×844, 412×915, keyboard/touch, reduced-motion, 100dvh/no accidental page scroll, artwork integrity, and no consequential URL/history/memory write before explicit choice.
+7. Add temporal evidence for the corridor (video or sequential frames) in addition to static screenshots so transition quality can be judged, not inferred.
+8. Keep `REFINE GLOBAL / HIDE THE SYSTEM → SHOW THE UNIVERSE` as reversible curation direction. Technical/browser PASS is not visual KEEP, creator approval, canon promotion, merge, or deployment.
