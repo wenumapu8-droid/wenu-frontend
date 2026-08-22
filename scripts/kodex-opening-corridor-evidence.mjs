@@ -14,9 +14,13 @@ const profiles = [
 ];
 
 const browser = await chromium.launch({ headless: true });
-const report = { baseURL, generatedAt: new Date().toISOString(), cases: [], errors: [] };
-
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const report = {
+  baseURL,
+  generatedAt: new Date().toISOString(),
+  captureMode: 'real-input timing check + evidence-only stretched ritual frames',
+  cases: [],
+  errors: [],
+};
 
 async function state(page) {
   return page.evaluate(() => ({
@@ -27,6 +31,7 @@ async function state(page) {
     scrollHeight: document.documentElement.scrollHeight,
     profile: document.querySelector('[data-kdx-ritual]')?.getAttribute('data-perfil') || null,
     phase: document.querySelector('[data-kdx-ritual]')?.getAttribute('data-fase') || null,
+    sceneState: document.documentElement.dataset.kdxState || null,
   }));
 }
 
@@ -37,16 +42,114 @@ function assertViewport(value, label) {
 
 async function capture(page, key, label, elapsed, frames) {
   const file = `${key}-${label}-${String(elapsed).padStart(4, '0')}ms.png`;
-  await page.screenshot({ path: path.join(outputDir, file) });
   const snapshot = await state(page);
+  await page.screenshot({
+    path: path.join(outputDir, file),
+    animations: 'allow',
+    timeout: 12_000,
+  });
   frames.push({ file, label, elapsed, ...snapshot });
   return snapshot;
 }
 
 async function trigger(locator, touch) {
   await locator.waitFor({ state: 'visible', timeout: 10_000 });
-  if (touch) await locator.tap({ noWaitAfter: true });
-  else await locator.click({ noWaitAfter: true });
+  if (touch) await locator.tap({ noWaitAfter: true, timeout: 10_000 });
+  else await locator.click({ noWaitAfter: true, timeout: 10_000 });
+}
+
+async function gotoStable(page, pathname) {
+  const response = await page.goto(new URL(pathname, baseURL).toString(), {
+    waitUntil: 'load',
+    timeout: 30_000,
+  });
+  if ((response?.status() || 0) >= 400) throw new Error(`${pathname}: HTTP ${response?.status()}`);
+  await page.waitForTimeout(250);
+}
+
+async function verifyRealCrossing(page, profile, { from, selector, to, label }) {
+  await gotoStable(page, from);
+  const before = await state(page);
+  assertViewport(before, `${profile.key}/${label}/before`);
+
+  const t0 = Date.now();
+  await trigger(page.locator(selector).first(), profile.hasTouch);
+  if (profile.reducedMotion !== 'reduce') {
+    await page.waitForFunction(
+      () => document.documentElement.dataset.kdxState === 'transitionOut',
+      null,
+      { timeout: 2_000 },
+    );
+  }
+  await page.waitForURL((url) => url.pathname === to, { timeout: 10_000 });
+  const routeMs = Date.now() - t0;
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  const after = await state(page);
+  assertViewport(after, `${profile.key}/${label}/after`);
+
+  // Guard only against an instant reload or pathological stall. Authorial
+  // pacing remains a creator-review decision and is not encoded here.
+  if (profile.reducedMotion === 'reduce') {
+    if (routeMs < 100 || routeMs > 4_000) throw new Error(`${profile.key}/${label}: reduced timing ${routeMs}ms`);
+  } else if (routeMs < 300 || routeMs > 8_000) {
+    throw new Error(`${profile.key}/${label}: traversal timing ${routeMs}ms`);
+  }
+
+  return { routeMs, before, after };
+}
+
+async function captureCrossing(page, profile, { from, selector, to, label, frames }) {
+  await gotoStable(page, from);
+  const origin = await capture(page, profile.key, `${label}-stable`, 0, frames);
+  assertViewport(origin, `${profile.key}/${label}/stable`);
+
+  if (profile.reducedMotion === 'reduce') {
+    await trigger(page.locator(selector).first(), profile.hasTouch);
+    await page.waitForURL((url) => url.pathname === to, { timeout: 10_000 });
+    await page.waitForLoadState('domcontentloaded').catch(() => {});
+    await page.waitForTimeout(120);
+    const settled = await capture(page, profile.key, `${label}-settle`, 120, frames);
+    assertViewport(settled, `${profile.key}/${label}/reduced-settle`);
+    return;
+  }
+
+  // Screenshot capture can be slower than the real transition on CI, causing
+  // frames to accidentally photograph the destination. Stretch only the
+  // existing CSS timing for this second, evidence-only pass. Input, state,
+  // interpolation, routing authority and rendering code stay unchanged; real
+  // pacing was verified immediately before this capture pass.
+  await page.evaluate(() => {
+    document.documentElement.style.setProperty('--kdx-m-state-transition', '5s');
+  });
+
+  await trigger(page.locator(selector).first(), profile.hasTouch);
+  await page.waitForFunction(
+    () => document.documentElement.dataset.kdxState === 'transitionOut',
+    null,
+    { timeout: 2_000 },
+  );
+
+  const samples = [
+    { elapsed: 120, delay: 120 },
+    { elapsed: 360, delay: 240 },
+    { elapsed: 700, delay: 340 },
+  ];
+
+  for (const sample of samples) {
+    await page.waitForTimeout(sample.delay);
+    const snapshot = await state(page);
+    if (snapshot.path !== from) throw new Error(`${profile.key}/${label}: route committed before ${sample.elapsed}ms evidence sample`);
+    if (snapshot.profile !== 'depth') throw new Error(`${profile.key}/${label}: depth ritual missing at ${sample.elapsed}ms`);
+    await capture(page, profile.key, `${label}-cross`, sample.elapsed, frames);
+  }
+
+  await page.waitForURL((url) => url.pathname === to, { timeout: 12_000 });
+  await page.waitForLoadState('domcontentloaded').catch(() => {});
+  await page.waitForTimeout(120);
+  const destination = await capture(page, profile.key, `${label}-destination`, 120, frames);
+  assertViewport(destination, `${profile.key}/${label}/destination`);
+  await page.waitForTimeout(680);
+  await capture(page, profile.key, `${label}-destination`, 800, frames);
 }
 
 try {
@@ -64,57 +167,46 @@ try {
     const frames = [];
 
     try {
-      await page.goto(new URL('/kodex/', baseURL).toString(), { waitUntil: 'load', timeout: 30_000 });
-      await page.waitForTimeout(250);
-      const threshold = await capture(page, profile.key, 'threshold', 0, frames);
-      assertViewport(threshold, `${profile.key}/threshold`);
+      const thresholdTiming = await verifyRealCrossing(page, profile, {
+        from: '/kodex/',
+        selector: '.kx-threshold__cta[href="/kodex/folio/i/"]',
+        to: '/kodex/folio/i/',
+        label: 'threshold-prologue',
+      });
 
-      await trigger(page.locator('.kx-threshold__cta[href="/kodex/folio/i/"]').first(), profile.hasTouch);
-      if (profile.reducedMotion !== 'reduce') {
-        for (const elapsed of [120, 360, 700]) {
-          await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
-          const snapshot = await capture(page, profile.key, 'threshold-cross', elapsed, frames);
-          if (snapshot.path === '/kodex/' && snapshot.profile !== 'depth') {
-            throw new Error(`${profile.key}: THRESHOLD crossing did not expose depth ritual`);
-          }
-        }
-      }
-      await page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 10_000 });
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-      await page.waitForTimeout(120);
-      const prologue = await capture(page, profile.key, 'prologue', 120, frames);
-      assertViewport(prologue, `${profile.key}/prologue`);
-      if (profile.reducedMotion !== 'reduce') {
-        await page.waitForTimeout(680);
-        await capture(page, profile.key, 'prologue', 800, frames);
-        await page.waitForTimeout(1400);
-        await capture(page, profile.key, 'prologue', 2200, frames);
-      }
+      const prologueTiming = await verifyRealCrossing(page, profile, {
+        from: '/kodex/folio/i/',
+        selector: 'a.kx-os-primary[href="/kodex/folio/ii/"]',
+        to: '/kodex/folio/ii/',
+        label: 'prologue-descent',
+      });
 
-      await trigger(page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first(), profile.hasTouch);
-      if (profile.reducedMotion !== 'reduce') {
-        for (const elapsed of [120, 360, 700]) {
-          await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
-          const snapshot = await capture(page, profile.key, 'prologue-cross', elapsed, frames);
-          if (snapshot.path === '/kodex/folio/i/' && snapshot.profile !== 'depth') {
-            throw new Error(`${profile.key}: PROLOGUE→DESCENT crossing did not expose depth ritual`);
-          }
-        }
-      }
-      await page.waitForURL((url) => url.pathname === '/kodex/folio/ii/', { timeout: 10_000 });
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-      await page.waitForTimeout(120);
-      const descent = await capture(page, profile.key, 'descent', 120, frames);
-      assertViewport(descent, `${profile.key}/descent`);
-      if (profile.reducedMotion !== 'reduce') {
-        await page.waitForTimeout(680);
-        await capture(page, profile.key, 'descent', 800, frames);
-        await page.waitForTimeout(1200);
-        await capture(page, profile.key, 'descent', 2000, frames);
-      }
+      await captureCrossing(page, profile, {
+        from: '/kodex/',
+        selector: '.kx-threshold__cta[href="/kodex/folio/i/"]',
+        to: '/kodex/folio/i/',
+        label: 'threshold-prologue',
+        frames,
+      });
+
+      await captureCrossing(page, profile, {
+        from: '/kodex/folio/i/',
+        selector: 'a.kx-os-primary[href="/kodex/folio/ii/"]',
+        to: '/kodex/folio/ii/',
+        label: 'prologue-descent',
+        frames,
+      });
 
       if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join(' | ')}`);
-      report.cases.push({ name: `opening-${profile.key}`, pass: true, frames });
+      report.cases.push({
+        name: `opening-${profile.key}`,
+        pass: true,
+        timing: {
+          thresholdToPrologueMs: thresholdTiming.routeMs,
+          prologueToDescentMs: prologueTiming.routeMs,
+        },
+        frames,
+      });
     } catch (error) {
       const message = `opening-${profile.key}: ${String(error?.stack || error)}`;
       report.errors.push(message);
