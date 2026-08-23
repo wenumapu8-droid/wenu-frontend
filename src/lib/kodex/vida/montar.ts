@@ -90,6 +90,31 @@ export function montarVida(opciones: { id: string; raiz?: HTMLElement } ) {
      `fixed` en `absolute`. Colgada del body, `fixed` vuelve a ser fixed. */
   document.body.append(capa);
 
+  /* ── LA BARRA SE COLOCA MIDIENDO EL ENLACE DE SALIDA ──────────────────────
+     La barra vive bajo `← KODEX−∞ · PLATES`, en la misma columna. Su desfase
+     estaba escrito como 64px, y ese número era una suposición: medido, la
+     salida ocupa 44px de alto en retrato con tríptico pero 66px en apaisado a
+     844×390, donde el rótulo se parte en dos renglones. A 64px la barra le
+     comía 12px al enlace y el dedo volvía a elegir a ciegas.
+     Así que se pregunta por la caja real, cada vez, y se vuelve a preguntar al
+     rotar. Es el mismo criterio que ya usa la navegación de lámina: la altura
+     de un rótulo depende del texto y del ancho, y eso no se adivina en CSS. */
+  const bajoLaSalida = () => {
+    const salida = document.querySelector<HTMLElement>('.lam-salida');
+    if (!salida?.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) {
+      barra.style.top = '';
+      return;
+    }
+    const r = salida.getBoundingClientRect();
+    /* Sólo si comparten columna: en escritorio la salida puede estar en otro
+       lado y entonces la barra no tiene por qué esquivar nada. */
+    const b = barra.getBoundingClientRect();
+    const comparten = Math.min(r.right, b.right) - Math.max(r.left, b.left) > 2;
+    barra.style.top = comparten ? `${Math.round(r.bottom) + 12}px` : '';
+  };
+  requestAnimationFrame(bajoLaSalida);
+  addEventListener('resize', () => requestAnimationFrame(bajoLaSalida));
+
   /* El campo se recorta sobre la CAJA DE LA PLANCHA, no sobre la pantalla.
      Medido a 390×844: con `inset:0` las señales caían por todo el viewport,
      incluida la franja de abajo donde vive el botón NEXT PLATE. Una señal
@@ -144,8 +169,55 @@ export function montarVida(opciones: { id: string; raiz?: HTMLElement } ) {
      desaparecía cada 800ms. Ahora la señal permanece mientras la celda viva. */
   const vivos = new Map<number, HTMLButtonElement>();
 
+  /** Separación mínima entre dos señales, en pixeles de pantalla. */
+  const SEPARACION = 52;
+
   const pintarSenales = () => {
-    const s = senales(campo);
+    /* ── DOS SEÑALES NO PUEDEN COMPARTIR EL DEDO ──────────────────────────
+       La retícula es de 32×18 sobre la caja de la plancha, así que dos celdas
+       vecinas quedan a unos 12px — y cada señal tiene 44px de área táctil.
+       Medido en `genesis-cradle`: hasta cinco pares de señales encimadas.
+       Que dos botones compartan el mismo punto no es un defecto estético: es
+       una acción que no se puede elegir.
+
+       Se filtran por distancia en PANTALLA y no por distancia en la retícula,
+       porque la plancha se escala y la misma separación de celdas da
+       distancias distintas según el viewport. Se conservan las más viejas, que
+       son las que más sobrevivieron: la edad ya es el criterio con el que
+       `senales()` ordena. */
+    const caja = lienzo.getBoundingClientRect();
+    const puestas: Array<[number, number]> = [];
+
+    /* Los controles que ya están en pantalla: la señal no se pone encima de
+       ninguno. Se recogen una vez por latido, no por señal.
+       Medido: sin esto, las señales caían sobre "← KODEX−∞ · PLATES", sobre la
+       boca del gusano y sobre el interruptor de sonido. Una señal encima de un
+       control convierte dos acciones en una lotería. */
+    const ocupados: DOMRect[] = [];
+    for (const el of document.querySelectorAll<HTMLElement>('a,button')) {
+      if (el.closest('.kdx-vida__campo')) continue;      // las señales no se estorban acá
+      if (!el.checkVisibility?.({ opacityProperty: true, visibilityProperty: true })) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) ocupados.push(r);
+    }
+
+    const cabe = (x: number, y: number) => {
+      const px = caja.left + (x / ANCHO) * caja.width;
+      const py = caja.top + (y / ALTO) * caja.height;
+      /* Contra otras señales: por distancia entre centros. */
+      for (const [qx, qy] of puestas) {
+        if (Math.hypot(px - qx, py - qy) < SEPARACION) return false;
+      }
+      /* Contra los controles: por caja, porque no son puntos. */
+      const mitad = 24;
+      for (const r of ocupados) {
+        if (px + mitad > r.left - 4 && px - mitad < r.right + 4
+          && py + mitad > r.top - 4 && py - mitad < r.bottom + 4) return false;
+      }
+      puestas.push([px, py]);
+      return true;
+    };
+    const s = senales(campo).filter((n) => cabe(n.x + 0.5, n.y + 0.5));
     const presentes = new Set(s.map((n) => n.i));
     for (const [i, el] of vivos) if (!presentes.has(i)) { el.remove(); vivos.delete(i); }
     for (const n of s) {

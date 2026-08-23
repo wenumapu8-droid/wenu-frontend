@@ -53,8 +53,43 @@ for (const lam of LAMS) {
 
        La corrección: recortar contra cada ancestro que recorta. Si el
        rectángulo queda vacío, el elemento no está a la vista y no cuenta. */
+    /* ── QUINTA CORRECCIÓN AL INSTRUMENTO: MEDIR LETRAS, NO CAJAS ──────
+       La encontró el agente del corredor y me corrige a mí. El detector
+       comparaba la CAJA del elemento, y la caja de un bloque va de borde a
+       borde aunque su texto ocupe sólo la punta izquierda. Un rótulo ancho con
+       tres palabras a la izquierda "se solapaba" con cualquier cosa a su
+       derecha, aunque entre las letras hubiera doscientos píxeles de aire.
+
+       En `genesis-cradle` esto convirtió 8 supuestas superposiciones al 63% en
+       CERO: eran etiquetas de bloque con su valor al lado, dentro de la misma
+       caja y sin tocarse nunca.
+
+       Un `Range` sobre los nodos de texto devuelve el rectángulo que ocupan las
+       letras de verdad. Es lo que hay que comparar, porque es lo único que el
+       ojo ve encimado. Todos mis números de solapes ANTERIORES a esta línea
+       llevan el sesgo y no valen. */
+    const rectoLetras = (el) => {
+      let x1=Infinity, y1=Infinity, x2=-Infinity, y2=-Infinity, hubo=false;
+      for (const n of el.childNodes) {
+        if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+        const rg = document.createRange();
+        rg.selectNodeContents(n);
+        for (const q of rg.getClientRects()) {
+          if (q.width <= 0 || q.height <= 0) continue;
+          hubo = true;
+          x1=Math.min(x1,q.left); y1=Math.min(y1,q.top);
+          x2=Math.max(x2,q.right); y2=Math.max(y2,q.bottom);
+        }
+        rg.detach?.();
+      }
+      /* Sin nodos de texto medibles —un <text> de SVG, por ejemplo— se cae a la
+         caja del elemento, que es peor pero es lo que hay. */
+      if (!hubo) return el.getBoundingClientRect();
+      return { left:x1, top:y1, right:x2, bottom:y2, width:x2-x1, height:y2-y1 };
+    };
+
     const rectoVisible = (el) => {
-      let r = el.getBoundingClientRect();
+      let r = rectoLetras(el);
       let x1 = r.left, y1 = r.top, x2 = r.right, y2 = r.bottom;
       for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) {
         const cs = getComputedStyle(a);

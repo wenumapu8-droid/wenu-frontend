@@ -43,16 +43,20 @@ void main() {
   float band = floor(gl_FragCoord.y / max(u_block_size, 1.0));
 
   float trigger = hash(vec2(band, t));
-  float active = step(1.0 - u_glitch_amount * 0.35, trigger);
+  /* `banda` y no `active`: `active` es palabra RESERVADA en GLSL ES 3.00 y
+     este shader nunca compiló. Es la razón por la que la cadena entera de
+     tratamientos estaba huérfana — el motor tiraba al montarla y quien lo
+     probó supuso que el problema era el motor. */
+  float banda = step(1.0 - u_glitch_amount * 0.35, trigger);
 
   // shift + slice: la banda entera se corre en X.
-  float shift = (hash(vec2(band * 1.7, t * 0.3)) - 0.5) * u_displacement * active;
+  float shift = (hash(vec2(band * 1.7, t * 0.3)) - 0.5) * u_displacement * banda;
   vec2 uv = v_uv + vec2(shift, 0.0);
 
   // displace / channel split: el desgarro también separa canales, y solo
   // dentro de la banda activa. Fuera de ella la imagen queda limpia, que es lo
   // que hace legible el contraste.
-  float rs = u_rgb_shift * 0.02 * active;
+  float rs = u_rgb_shift * 0.02 * banda;
 
   vec3 col = vec3(
     texture(u_inputTex, uv + vec2(rs, 0.0)).r,
