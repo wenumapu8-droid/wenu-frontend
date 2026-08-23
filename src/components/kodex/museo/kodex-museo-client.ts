@@ -94,6 +94,30 @@ const montar = () => {
    */
   if (raiz.closest(".kx-os-scene--archive")) {
     raiz.style.setProperty("display", "grid", "important");
+
+    /*
+     * Reference-first quieting pass.
+     * ARCHIVE must read artwork/specimen first and relation territory second,
+     * not as another HUD panel. Keep the same nine real records and semantic
+     * links, but remove first-view dashboard cues: frame/grid, visible system
+     * header/count, and secondary per-node metadata. Hidden copy stays in the
+     * accessibility tree, so this changes hierarchy rather than information.
+     */
+    const relation = raiz.querySelector<HTMLElement>(".kdx-museo__relation");
+    relation?.style.setProperty("border-color", "transparent");
+    relation?.style.setProperty(
+      "background",
+      "radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--acc, #A7FF00) 7%, transparent), transparent 38%)",
+      "important",
+    );
+
+    raiz.querySelector<HTMLElement>(".kdx-museo__relation-head")?.classList.add("visually-hidden");
+    for (const meta of raiz.querySelectorAll<HTMLElement>(".kdx-museo__node-copy small")) {
+      meta.classList.add("visually-hidden");
+    }
+    for (const trace of raiz.querySelectorAll<HTMLElement>(".kdx-museo__trace")) {
+      trace.style.opacity = "0.2";
+    }
   }
 
   // Los organismos, una sola vez y sólo cuando la celda se acerca a pantalla.
