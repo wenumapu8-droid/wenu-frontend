@@ -79,6 +79,23 @@ const montar = () => {
   if (!raiz || (raiz as any).__kdxMuseo) return;
   (raiz as any).__kdxMuseo = true;
 
+  /*
+   * ARCHIVE relation-first convergence.
+   *
+   * The current poster-era stylesheet still contains a legacy rule that hides
+   * `.kx-os-stage__museo` with `display:none !important`. That rule predates
+   * the bounded relation field added to this component and was silently
+   * defeating the current 08E/reference-first intent in the live folio.
+   *
+   * Keep the old stylesheet untouched for historical layouts, but on the
+   * actual ARCHIVE scene restore this already-mounted component explicitly.
+   * This is presentation-only: no route, graph, memory, provenance, artwork
+   * bytes or semantic relation data are changed.
+   */
+  if (raiz.closest(".kx-os-scene--archive")) {
+    raiz.style.setProperty("display", "grid", "important");
+  }
+
   // Los organismos, una sola vez y sólo cuando la celda se acerca a pantalla.
   const pendientes = raiz.querySelectorAll<HTMLCanvasElement>("[data-kdx-museo-organismo]");
   const io = new IntersectionObserver(
