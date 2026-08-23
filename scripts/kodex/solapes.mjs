@@ -85,7 +85,47 @@ for (const lam of LAMS) {
       /* Sin nodos de texto medibles —un <text> de SVG, por ejemplo— se cae a la
          caja del elemento, que es peor pero es lo que hay. */
       if (!hubo) return el.getBoundingClientRect();
-      return { left:x1, top:y1, right:x2, bottom:y2, width:x2-x1, height:y2-y1 };
+      return ceñirATinta(el, { left:x1, top:y1, right:x2, bottom:y2, width:x2-x1, height:y2-y1 });
+    };
+
+    /* ── SEXTA CORRECCIÓN: LA CAJA DE LÍNEA TAMPOCO ES LA TINTA ────────
+       El `Range` fue un avance —292 solapamientos pasaron a 19— pero no
+       alcanzó, y lo confirmé MIRANDO: el detector reportaba "Akashic Crown"
+       encima de "Corona Akáshica" al 68%, y en la captura los dos títulos
+       están apilados limpios, sin tocarse.
+
+       El motivo: `getClientRects()` devuelve la CAJA DE LÍNEA, no la mancha.
+       En una serif de 150px con `line-height:1` sobran ~20px de caja sin una
+       gota de tinta debajo de la base, y "Akashic Crown" ni siquiera tiene
+       letras con descendente.
+
+       `measureText` sí sabe dónde está la tinta: `actualBoundingBoxAscent` y
+       `actualBoundingBoxDescent` se miden sobre las letras REALES de esa
+       cadena en esa fuente. Con eso se reconstruye la caja de tinta alrededor
+       de la línea de base.
+
+       Tres veces se equivocó este instrumento en la misma dirección: siempre
+       reportando de más, siempre sobre la composición del creador. Un detector
+       que inventa defectos en la obra es peor que no tener detector, porque
+       manda a corregir lo que está bien. */
+    const lienzoMedidor = document.createElement('canvas').getContext('2d');
+    const ceñirATinta = (el, r) => {
+      try {
+        const cs = getComputedStyle(el);
+        const texto = (el.textContent ?? '').trim();
+        if (!texto || !lienzoMedidor) return r;
+        lienzoMedidor.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize}/${cs.fontSize} ${cs.fontFamily}`;
+        const m = lienzoMedidor.measureText(texto);
+        const subeF = m.fontBoundingBoxAscent, bajaF = m.fontBoundingBoxDescent;
+        const subeT = m.actualBoundingBoxAscent, bajaT = m.actualBoundingBoxDescent;
+        if (![subeF, bajaF, subeT, bajaT].every(Number.isFinite)) return r;
+        /* La base cae centrada dentro de la caja de línea. */
+        const base = r.top + (r.height - (subeF + bajaF)) / 2 + subeF;
+        const top = Math.max(r.top, base - subeT);
+        const bottom = Math.min(r.bottom, base + bajaT);
+        if (bottom - top <= 0) return r;
+        return { left:r.left, top, right:r.right, bottom, width:r.width, height:bottom - top };
+      } catch { return r; }
     };
 
     const rectoVisible = (el) => {

@@ -23,7 +23,24 @@
  *   se sigue. "La imagen domina."
  * · LA OBRA ES SUYA Y ESTÁ VERIFICADA. `obras.json` sale del MANIFIESTO
  *   CURADO —sólo volúmenes sin la marca `descartado: "captura-de-pantalla"`—
- *   y sólo los que tienen archivo presente. 435 obras.
+ *   y sólo los que tienen archivo presente, y sobre eso el filtro doble de
+ *   `tejer-obras.mjs`: blanco y negro de verdad Y patrón que llena el cuadro.
+ *
+ *   SON 47, NO 435. Este comentario decía 435 y era falso — el número de
+ *   antes de aplicar el filtro de color. Medido hoy sobre el manifiesto de
+ *   1.427 volúmenes: 914 son capturas suyas y se descartan por su orden
+ *   expreso; de los 513 restantes hay archivo para 417; de esos, 270 se caen
+ *   por color y 91 por fondo vacío. Quedan 47.
+ *
+ *   Y el filtro NO está de más: mirada la hoja de contactos de los 24 que
+ *   rozan el umbral por arriba, los 24 son fotos de producto —expansores,
+ *   pesos de oreja, una regla de taller, una captura de reseña—. Aflojar el
+ *   umbral no recupera obra: mete el catálogo adentro de la obra, que es
+ *   exactamente el error que ya se publicó dos veces.
+ *
+ *   Lo que esto significa de verdad: en este árbol hay POCA obra suya, y no
+ *   por culpa del filtro. Si el creador quiere más portadas entre conceptos,
+ *   el trabajo es sumar obra al manifiesto, no aflojar el criterio.
  *
  *   La primera versión salía del registro de assets y habría mostrado 2.712
  *   imágenes, con las 896 capturas del creador mezcladas adentro. Se frenó

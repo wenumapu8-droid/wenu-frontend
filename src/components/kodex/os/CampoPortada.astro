@@ -277,7 +277,44 @@ void main(){
            la rampa de ocho segundos, que es la anomalía creciendo. */
         const nacida = (performance.now() - t0Campo) / 8000;
         const crecer = nacida >= 1 ? 1 : nacida * nacida * (3 - 2 * nacida);
-        gl.uniform1f(uExp, (puente.exposicion ?? 1) * (0.06 + 0.94 * crecer));
+        /* ── EL TECHO DE EXPOSICIÓN, MEDIDO CONTRA EL PROTOTIPO ────────────
+           El creador viene diciendo hace días que la portada todavía no se ve
+           como su `kodex-threshold-live.html`. Se midió, con la MISMA semilla
+           en las dos páginas —el campo es procedural y sembrado, comparar dos
+           semillas distintas es comparar dos dibujos distintos— y a 1440×900:
+
+             prototipo   media 15.8   97% de los píxeles en el octavo más oscuro,  2% en el segundo
+             esta página media 23.9   74%                                        , 24% en el segundo
+
+           Un cuarto de la pantalla encendido en rojo tenue donde el prototipo
+           tiene un 2%. Eso es lo que se ve distinto: el prototipo es negro con
+           algo que respira; esto era un mosaico rojo a todo volumen desde el
+           segundo tres. Su propia descripción de THRESHOLD dice «negro casi
+           total; algo respira; aparece una pequeña anomalía; la anomalía
+           crece» — y acá no crecía nada, ya estaba arriba.
+
+           Antes de tocar esto se descartaron las otras hipótesis MIDIENDO:
+             · las seis capas apiladas (túnel, partículas, CRT en `screen`,
+               aura) aportan 1.4 de los 8 de diferencia: apagándolas todas la
+               media baja 23.9 → 22.5;
+             · sin el campo la página mide 17.7 con 98% en el octavo oscuro, o
+               sea que el cromo está bien;
+             · `u_px` es 8.49 acá y 8.4 en el prototipo — el tamaño del dither
+               NO era la diferencia, aunque yo lo había dado por seguro.
+           La luz de más es del campo.
+
+           Barrido de exposición contra el histograma del prototipo:
+             ×1.0   media 23.9   74 25 1
+             ×0.7   media 20.0   87 13 0
+             ×0.5   media 17.5   95  4 0
+             ×0.35  media 15.6   99  0 0
+           El prototipo es 97/2. Cae entre 0.35 y 0.5, y por eso 0.42.
+
+           Se ajusta la CÁMARA, no la obra: el shader del creador no se toca,
+           sólo cuánta luz entra. Y la rampa de ocho segundos se conserva
+           entera, porque es la anomalía creciendo. */
+        const TECHO = 0.42;
+        gl.uniform1f(uExp, (puente.exposicion ?? 1) * TECHO * (0.06 + 0.94 * crecer));
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
       cuadro();
