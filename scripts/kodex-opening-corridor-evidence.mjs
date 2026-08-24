@@ -55,11 +55,6 @@ function assertViewport(value, label) {
 }
 
 async function captureScreencastFrame(context, page, label) {
-  // KODEX scenes run continuous rAF/WebGL loops. Page.captureScreenshot can
-  // stall on those surfaces, and a CDP session kept across navigation can be
-  // detached from the active page. Use a fresh session per sample and consume
-  // the first screencast frame instead. This is evidence-only; product timing
-  // remains untouched.
   const cdp = await withTimeout(context.newCDPSession(page), 2_000, `${label} cdp session`);
   try {
     await withTimeout(cdp.send('Page.enable'), 2_000, `${label} Page.enable`);
@@ -91,20 +86,14 @@ async function capture(context, page, key, label, elapsed, frames) {
 }
 
 async function trigger(locator) {
-  // This lane measures the transition timeline, not pointer hit-testing.
-  // Playwright's physical click/tap may auto-scroll a continuously animated
-  // scene while trying to satisfy actionability and can time out even when the
-  // anchor is already visible/stable. Keyboard/touch actionability is covered
-  // by the dedicated browser/deep-navigation gates. Schedule the real anchor
-  // activation on the page's next task so this evidence helper returns before
-  // a heavy transition/navigation handler can keep page.evaluate on its stack.
-  // Subsequent ritual/path assertions remain the source of truth for whether
-  // the product transition actually happened.
+  // Temporal evidence must dispatch the real product activation without
+  // coupling correctness to Playwright's actionability/auto-scroll heuristics
+  // or to a page.evaluate roundtrip that can remain blocked by navigation.
+  // Dedicated browser/deep-navigation gates separately cover physical
+  // keyboard/touch actionability. Here the post-trigger ritual/path/URL
+  // assertions remain authoritative.
   await locator.waitFor({ state: 'visible', timeout: 8_000 });
-  await withTimeout(locator.evaluate((element) => {
-    setTimeout(() => element.click(), 0);
-    return true;
-  }), 2_000, 'transition trigger schedule');
+  await locator.click({ force: true, noWaitAfter: true, timeout: 2_000 });
 }
 
 async function runProfile(profile) {
@@ -182,11 +171,6 @@ async function runProfile(profile) {
 }
 
 try {
-  // Every Playwright/CDP operation inside runProfile is already explicitly
-  // bounded. Do not race the whole profile against a second watchdog: when
-  // that outer Promise.race fires, runProfile continues in the background and
-  // browser cleanup can close its active target mid-capture. Await each profile
-  // directly so failure is reported by the bounded operation that caused it.
   for (const profile of profiles) {
     await runProfile(profile);
   }
