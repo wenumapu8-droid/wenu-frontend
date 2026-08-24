@@ -277,44 +277,38 @@ void main(){
            la rampa de ocho segundos, que es la anomalía creciendo. */
         const nacida = (performance.now() - t0Campo) / 8000;
         const crecer = nacida >= 1 ? 1 : nacida * nacida * (3 - 2 * nacida);
-        /* ── EL TECHO DE EXPOSICIÓN, MEDIDO CONTRA EL PROTOTIPO ────────────
-           El creador viene diciendo hace días que la portada todavía no se ve
-           como su `kodex-threshold-live.html`. Se midió, con la MISMA semilla
-           en las dos páginas —el campo es procedural y sembrado, comparar dos
-           semillas distintas es comparar dos dibujos distintos— y a 1440×900:
+        /* ── ACÁ HUBO UN TECHO DE EXPOSICIÓN Y ESTABA MAL. NO LO REPONGAS ──
+           Puse `TECHO = 0.42` porque medí el prototipo del creador y me dio
+           media 15.8 con el 97% de los píxeles en el octavo más oscuro, contra
+           23.9 y 74% de esta página. Conclusión: el campo estaba encendido de
+           más. Era falsa.
 
-             prototipo   media 15.8   97% de los píxeles en el octavo más oscuro,  2% en el segundo
-             esta página media 23.9   74%                                        , 24% en el segundo
+           `kodex-threshold-live.html` tiene un `#gate`: un velo que cubre el
+           viewport entero con `rgba(10,10,10,.86)` y `backdrop-filter:blur(2px)`,
+           y que se ELIMINA del DOM al primer toque. Yo capturé el prototipo sin
+           tocarlo nunca. No medí su campo: medí un negro al 86% por encima de
+           su campo. Y lo comparé contra esta página ya entrada.
 
-           Un cuarto de la pantalla encendido en rojo tenue donde el prototipo
-           tiene un 2%. Eso es lo que se ve distinto: el prototipo es negro con
-           algo que respira; esto era un mosaico rojo a todo volumen desde el
-           segundo tres. Su propia descripción de THRESHOLD dice «negro casi
-           total; algo respira; aparece una pequeña anomalía; la anomalía
-           crece» — y acá no crecía nada, ya estaba arriba.
+           Medido bien, tocando primero y verificando que `#gate` sea null:
 
-           Antes de tocar esto se descartaron las otras hipótesis MIDIENDO:
-             · las seis capas apiladas (túnel, partículas, CRT en `screen`,
-               aura) aportan 1.4 de los 8 de diferencia: apagándolas todas la
-               media baja 23.9 → 22.5;
-             · sin el campo la página mide 17.7 con 98% en el octavo oscuro, o
-               sea que el cromo está bien;
-             · `u_px` es 8.49 acá y 8.4 en el prototipo — el tamaño del dither
-               NO era la diferencia, aunque yo lo había dado por seguro.
-           La luz de más es del campo.
+                            con velo            sin velo (lo real)
+             escritorio     15.8  (97 2 0)      33.5  (62 21 11 3)
+             móvil          18.8  (98 1 0)      56.9  (22 43 27 7)
 
-           Barrido de exposición contra el histograma del prototipo:
-             ×1.0   media 23.9   74 25 1
-             ×0.7   media 20.0   87 13 0
-             ×0.5   media 17.5   95  4 0
-             ×0.35  media 15.6   99  0 0
-           El prototipo es 97/2. Cae entre 0.35 y 0.5, y por eso 0.42.
+           O sea lo contrario de lo que dije: el campo del prototipo es MÁS
+           encendido que el nuestro, sobre todo en móvil. Con el techo 0.42
+           dejé la portada móvil en 15.3 contra 56.9 de referencia — un cuarto—
+           y estuvo así en producción.
 
-           Se ajusta la CÁMARA, no la obra: el shader del creador no se toca,
-           sólo cuánta luz entra. Y la rampa de ocho segundos se conserva
-           entera, porque es la anomalía creciendo. */
-        const TECHO = 0.42;
-        gl.uniform1f(uExp, (puente.exposicion ?? 1) * TECHO * (0.06 + 0.94 * crecer));
+           Lo mismo explica el otro defecto que reporté: la «capa fantasma
+           KODEX ∞ detrás del título» no existe. Es la pantalla del propio velo
+           —`.g-sub` sobre `.g-mark`— vista a través del negro al 86%.
+
+           REGLA: cualquier captura del prototipo hace click primero y comprueba
+           `document.querySelector('#gate') === null` ANTES de medir. Con el velo
+           puesto, la medición no es del campo. Lo encontró el agente de QA.
+        */
+        gl.uniform1f(uExp, (puente.exposicion ?? 1) * (0.06 + 0.94 * crecer));
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
       cuadro();
