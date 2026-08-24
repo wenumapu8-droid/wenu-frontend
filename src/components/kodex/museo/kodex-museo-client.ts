@@ -74,51 +74,54 @@ function dibujar(cv: HTMLCanvasElement, semilla: number): void {
   }
 }
 
+/**
+ * ARCHIVE reference-first convergence.
+ *
+ * El stylesheet heredado todavía contiene una regla `display:none !important`
+ * para `.kx-os-stage__museo`. Además, la primera versión de este refine
+ * aplicaba la quieting visual sólo dentro de `DOMContentLoaded`, lo que dejaba
+ * una ventana donde el frame inicial podía mostrar el panel/grid/header viejo
+ * antes de esconderlo.
+ *
+ * Este paso no cambia datos, rutas, graph, memoria ni artwork: aplica la misma
+ * decisión de jerarquía inmediatamente cuando el módulo se evalúa, cuando el
+ * markup del componente ya existe, y antes del trabajo diferido del índice.
+ */
+function aplicarConvergenciaArchive(): void {
+  const raiz = document.querySelector<HTMLElement>("[data-kdx-museo]");
+  if (!raiz || !raiz.closest(".kx-os-scene--archive")) return;
+
+  raiz.style.setProperty("display", "grid", "important");
+
+  const relation = raiz.querySelector<HTMLElement>(".kdx-museo__relation");
+  relation?.style.setProperty("border-color", "transparent");
+  relation?.style.setProperty(
+    "background",
+    "radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--acc, #A7FF00) 7%, transparent), transparent 38%)",
+    "important",
+  );
+
+  raiz.querySelector<HTMLElement>(".kdx-museo__relation-head")?.classList.add("visually-hidden");
+  for (const meta of raiz.querySelectorAll<HTMLElement>(".kdx-museo__node-copy small")) {
+    meta.classList.add("visually-hidden");
+  }
+  for (const trace of raiz.querySelectorAll<HTMLElement>(".kdx-museo__trace")) {
+    trace.style.opacity = "0.2";
+  }
+}
+
+// El <script> del componente está después del markup; aplicar ahora evita que
+// la jerarquía de ARCHIVE dependa de esperar DOMContentLoaded.
+aplicarConvergenciaArchive();
+
 const montar = () => {
   const raiz = document.querySelector<HTMLElement>("[data-kdx-museo]");
   if (!raiz || (raiz as any).__kdxMuseo) return;
   (raiz as any).__kdxMuseo = true;
 
-  /*
-   * ARCHIVE relation-first convergence.
-   *
-   * The current poster-era stylesheet still contains a legacy rule that hides
-   * `.kx-os-stage__museo` with `display:none !important`. That rule predates
-   * the bounded relation field added to this component and was silently
-   * defeating the current 08E/reference-first intent in the live folio.
-   *
-   * Keep the old stylesheet untouched for historical layouts, but on the
-   * actual ARCHIVE scene restore this already-mounted component explicitly.
-   * This is presentation-only: no route, graph, memory, provenance, artwork
-   * bytes or semantic relation data are changed.
-   */
-  if (raiz.closest(".kx-os-scene--archive")) {
-    raiz.style.setProperty("display", "grid", "important");
-
-    /*
-     * Reference-first quieting pass.
-     * ARCHIVE must read artwork/specimen first and relation territory second,
-     * not as another HUD panel. Keep the same nine real records and semantic
-     * links, but remove first-view dashboard cues: frame/grid, visible system
-     * header/count, and secondary per-node metadata. Hidden copy stays in the
-     * accessibility tree, so this changes hierarchy rather than information.
-     */
-    const relation = raiz.querySelector<HTMLElement>(".kdx-museo__relation");
-    relation?.style.setProperty("border-color", "transparent");
-    relation?.style.setProperty(
-      "background",
-      "radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--acc, #A7FF00) 7%, transparent), transparent 38%)",
-      "important",
-    );
-
-    raiz.querySelector<HTMLElement>(".kdx-museo__relation-head")?.classList.add("visually-hidden");
-    for (const meta of raiz.querySelectorAll<HTMLElement>(".kdx-museo__node-copy small")) {
-      meta.classList.add("visually-hidden");
-    }
-    for (const trace of raiz.querySelectorAll<HTMLElement>(".kdx-museo__trace")) {
-      trace.style.opacity = "0.2";
-    }
-  }
+  // Astro puede reemplazar el documento en navegación cliente. Reaplicar la
+  // misma convergencia es idempotente y mantiene el first-view consistente.
+  aplicarConvergenciaArchive();
 
   // Los organismos, una sola vez y sólo cuando la celda se acerca a pantalla.
   const pendientes = raiz.querySelectorAll<HTMLCanvasElement>("[data-kdx-museo-organismo]");
