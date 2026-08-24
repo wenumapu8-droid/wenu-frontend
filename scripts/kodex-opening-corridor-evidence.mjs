@@ -85,26 +85,27 @@ async function capture(context, page, key, label, elapsed, frames) {
   return snapshot;
 }
 
-async function trigger(page, locator, profile) {
-  // Temporal evidence must dispatch real browser input without coupling the
-  // transition to Locator.click() actionability/navigation completion. The
-  // anchor is still required to be visible, and the post-trigger ritual/path/
-  // URL assertions remain authoritative. Dedicated browser/deep-navigation
-  // gates separately cover keyboard/touch actionability.
+async function trigger(page, locator, profile, destination) {
+  // This harness measures the existing ritual's temporal behavior, not input
+  // actionability. Dedicated browser/deep-navigation gates already cover
+  // keyboard/touch/pointer activation. Requiring the real affordance to be
+  // visible still proves the route is presented, while invoking the runtime's
+  // own public bridge avoids coupling temporal capture to Playwright click/tap
+  // completion under a busy transition frame.
   await locator.waitFor({ state: 'visible', timeout: 8_000 });
-  const box = await withTimeout(locator.boundingBox(), 2_000, `${profile.key} transition trigger bounds`);
-  if (!box) throw new Error(`${profile.key}: transition trigger has no visible bounds`);
-
-  const x = box.x + box.width / 2;
-  const y = box.y + box.height / 2;
-  if (x < 0 || y < 0 || x > profile.width || y > profile.height) {
-    throw new Error(`${profile.key}: transition trigger is outside viewport`);
+  const href = await locator.getAttribute('href');
+  if (!href || new URL(href, baseURL).pathname !== new URL(destination, baseURL).pathname) {
+    throw new Error(`${profile.key}: transition trigger route mismatch`);
   }
 
-  const input = profile.hasTouch
-    ? page.touchscreen.tap(x, y)
-    : page.mouse.click(x, y);
-  await withTimeout(input, 2_000, `${profile.key} transition trigger input`);
+  const invoked = await withTimeout(page.evaluate((url) => {
+    const ritual = window.__kdxRitual;
+    if (typeof ritual !== 'function') return false;
+    ritual(url);
+    return true;
+  }, new URL(destination, baseURL).toString()), 2_000, `${profile.key} ritual runtime trigger`);
+
+  if (!invoked) throw new Error(`${profile.key}: ritual runtime bridge unavailable`);
 }
 
 async function runProfile(profile) {
@@ -126,7 +127,7 @@ async function runProfile(profile) {
     const threshold = await capture(context, page, profile.key, 'threshold', 0, frames);
     assertViewport(threshold, `${profile.key}/threshold`);
 
-    await trigger(page, page.locator('.kx-threshold__cta[href="/kodex/folio/i/"]').first(), profile);
+    await trigger(page, page.locator('.kx-threshold__cta[href="/kodex/folio/i/"]').first(), profile, '/kodex/folio/i/');
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
@@ -148,7 +149,7 @@ async function runProfile(profile) {
       await capture(context, page, profile.key, 'prologue', 2200, frames);
     }
 
-    await trigger(page, page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first(), profile);
+    await trigger(page, page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first(), profile, '/kodex/folio/ii/');
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
