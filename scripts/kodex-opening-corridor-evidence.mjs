@@ -95,10 +95,16 @@ async function trigger(locator) {
   // Playwright's physical click/tap may auto-scroll a continuously animated
   // scene while trying to satisfy actionability and can time out even when the
   // anchor is already visible/stable. Keyboard/touch actionability is covered
-  // by the dedicated browser/deep-navigation gates. Dispatch the real anchor
-  // activation in-page here so temporal evidence samples product timing only.
+  // by the dedicated browser/deep-navigation gates. Schedule the real anchor
+  // activation on the page's next task so this evidence helper returns before
+  // a heavy transition/navigation handler can keep page.evaluate on its stack.
+  // Subsequent ritual/path assertions remain the source of truth for whether
+  // the product transition actually happened.
   await locator.waitFor({ state: 'visible', timeout: 8_000 });
-  await withTimeout(locator.evaluate((element) => element.click()), 2_000, 'transition trigger');
+  await withTimeout(locator.evaluate((element) => {
+    setTimeout(() => element.click(), 0);
+    return true;
+  }), 2_000, 'transition trigger schedule');
 }
 
 async function runProfile(profile) {
