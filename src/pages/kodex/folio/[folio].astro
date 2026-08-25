@@ -880,6 +880,113 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   </div>
 
   <script>
+  /* ── CONTINUIDAD DEL VIAJE ────────────────────────────────────────────────
+     Dos piezas que convierten siete escenas en un recorrido. Ninguna inventa
+     sistemas nuevos: enchufan los que ya existen y estaban sueltos.
+
+     1. CADA ESCENA REGISTRA SU LLEGADA. El sistema de memoria (record /
+        readSpecimen / EspecimenRetorno) ya sabía reconstruir el viaje, pero
+        sólo PROLOGUE le daba de comer, así que RETURN veía un recorrido
+        cojo. Ahora las seis escenas del corredor anotan su paso, y el
+        espécimen de RETURN dibuja la ruta real.
+        Se anota la LLEGADA, no la permanencia: nada que puntúe al visitante.
+
+     2. EL DESCENSO ABRE EN LA ESCENA SIGUIENTE. Al salir de PROLOGUE el iris
+        se cierra sobre la pantalla; si la siguiente escena apareciera de golpe
+        se perdería justamente la sensación de haber entrado. La escena que
+        recibe abre desde ese mismo punto de fuga. La marca viaja por
+        sessionStorage y se consume una sola vez: recargar no vuelve a
+        disparar una transición que nadie provocó. */
+  import { record as kdxRecord } from '../../../kodex/return/memory.js';
+
+  const kdxEscena = document.querySelector('[data-stage-name]');
+  if (kdxEscena) {
+    try { kdxRecord({ type: 'view', work: location.pathname }); } catch {}
+
+    /* Al cruzar hacia la siguiente, se deja la señal de que hubo descenso. */
+    for (const b of Array.from(document.querySelectorAll('a, button'))) {
+      if (!/DESCEND/i.test(b.textContent || '')) continue;
+      b.addEventListener('click', () => {
+        try { sessionStorage.setItem('kdx:entrando', '1'); } catch {}
+      }, true);
+    }
+
+    /* CTA DE TRAVESIA MUERTO. Medido recorriendo el corredor: en DESCENT el
+       control primario dice DESCEND, es un <button class="kx-os-primary"> sin
+       href y sin manejador, y no lleva a ninguna parte —el recorrido se cortaba
+       ahi—. Ademas esa escena no monta la barra de descenso que si tiene
+       PROLOGUE, asi que ese boton muerto era la UNICA salida hacia adelante.
+       El destino existia todo el tiempo en data-next-url.
+       Se cablea SOLO cuando la etiqueta es de travesia: los otros CTA
+       —OPEN SPECIMEN, GENERATE SIGNAL, REVEAL CONNECTION— pertenecen a otros
+       sistemas y no se tocan. */
+    const kdxSiguiente = kdxEscena.getAttribute('data-next-url');
+    if (kdxSiguiente) {
+      /* SOLO el CTA primario, y solo si su etiqueta es de travesia.
+         La boca «◎ DESCEND INTO ...» quedo FUERA a proposito: parecia un link
+         muerto, pero su CSS la documenta como «la segunda salida de la escena»
+         y su marcado es data-kdx-abrir-descenso — ABRE el panel de descenso,
+         no navega. Cablearla habria secuestrado su funcion real por un
+         diagnostico apurado. Los otros CTA —OPEN SPECIMEN, GENERATE SIGNAL,
+         REVEAL CONNECTION— pertenecen a otros sistemas y tampoco se tocan. */
+      for (const b of Array.from(document.querySelectorAll('.kx-os-primary'))) {
+        const t = (b.textContent || '').trim().toUpperCase();
+        if (!/^(DESCEND|DESCENDER|CONTINUE|ENTER)$/.test(t)) continue;
+        if (b.getAttribute('href')) continue;          // ya tiene destino propio
+        b.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          try { sessionStorage.setItem('kdx:entrando', '1'); } catch {}
+          location.href = kdxSiguiente;
+        });
+      }
+    }
+
+    let entrando = false;
+    try {
+      entrando = sessionStorage.getItem('kdx:entrando') === '1';
+      if (entrando) sessionStorage.removeItem('kdx:entrando');
+    } catch {}
+
+    if (entrando) {
+      const velo = document.createElement('div');
+      velo.className = 'kdx-entrada';
+      velo.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(velo);
+      /* Dos cuadros antes de soltar: si se anima en el mismo tick, el
+         navegador colapsa el estado inicial y no se ve la apertura. */
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        velo.setAttribute('data-abierto', '');
+        setTimeout(() => velo.remove(), 1200);
+      }));
+    }
+  }
+  </script>
+
+  <style is:global>
+    /* El velo de entrada: el mismo círculo por el que se salió, ahora
+       abriéndose. Nace cubriendo la pantalla y se retira hacia los bordes. */
+    .kdx-entrada {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      pointer-events: none;
+      background: #05040a;
+      clip-path: circle(150% at 50% 50%);
+      opacity: 1;
+    }
+    .kdx-entrada[data-abierto] {
+      clip-path: circle(0% at 50% 50%);
+      opacity: 0;
+      transition: clip-path 900ms cubic-bezier(.16,.84,.44,1), opacity 900ms ease-out;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      /* Equivalente semántico: sin viaje, pero el corte breve mantiene la
+         lectura de «acabo de entrar». */
+      .kdx-entrada[data-abierto] { transition: opacity 220ms; clip-path: circle(0% at 50% 50%); }
+    }
+  </style>
+
+  <script>
   /* LAS TRES PIEZAS DEL CORREDOR, MONTADAS Y NO REESCRITAS.
      Las tres existen ya y las escribió el agente que lleva el descenso; acá
      sólo se enchufan a las escenas del folio, que hasta ahora se las perdían:
