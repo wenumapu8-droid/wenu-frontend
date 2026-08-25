@@ -89,9 +89,34 @@ function dibujar(cv: HTMLCanvasElement, semilla: number): void {
  */
 function aplicarConvergenciaArchive(): void {
   const raiz = document.querySelector<HTMLElement>("[data-kdx-museo]");
-  if (!raiz || !raiz.closest(".kx-os-scene--archive")) return;
+  const scene = raiz?.closest<HTMLElement>(".kx-os-scene--archive");
+  if (!raiz || !scene) return;
 
   raiz.style.setProperty("display", "grid", "important");
+
+  // El espécimen y el territorio relacional ya viven dentro de la misma
+  // figura. Forzarlos al mismo plano evita que el grid heredado los coloque en
+  // filas implícitas y recorte el museo fuera del first-view. No se crea otro
+  // graph: sólo se corrige el stacking de los elementos existentes.
+  const art = raiz.closest<HTMLElement>(".kx-os-stage__art");
+  const hero = art?.querySelector<HTMLElement>(".kx-archive-hero-specimen");
+  if (art) {
+    art.style.setProperty("isolation", "isolate");
+  }
+  if (hero) {
+    hero.style.setProperty("position", "absolute");
+    hero.style.setProperty("inset", "clamp(18px, 6%, 42px)");
+    hero.style.setProperty("width", "calc(100% - clamp(36px, 12%, 84px))");
+    hero.style.setProperty("height", "calc(100% - clamp(36px, 12%, 84px))");
+    hero.style.setProperty("object-fit", "contain");
+    hero.style.setProperty("padding", "0");
+    hero.style.setProperty("z-index", "1");
+  }
+  raiz.style.setProperty("position", "absolute");
+  raiz.style.setProperty("inset", "0");
+  raiz.style.setProperty("width", "100%");
+  raiz.style.setProperty("height", "100%");
+  raiz.style.setProperty("z-index", "2");
 
   const relation = raiz.querySelector<HTMLElement>(".kdx-museo__relation");
   relation?.style.setProperty("border-color", "transparent");
@@ -108,6 +133,13 @@ function aplicarConvergenciaArchive(): void {
   for (const trace of raiz.querySelectorAll<HTMLElement>(".kdx-museo__trace")) {
     trace.style.opacity = "0.2";
   }
+
+  // El dossier completo ya existe detrás de OPEN SPECIMEN. Repetir
+  // CLASS/YEAR/METHOD/STATUS en el first-view hacía que ARCHIVE volviera a
+  // leerse como panel antes que como memoria espacial. Se oculta sólo esa
+  // copia redundante; el botón y el drawer siguen siendo la vía explícita.
+  const readout = scene.querySelector<HTMLElement>("[data-kdx-archive]");
+  readout?.querySelector<HTMLElement>("dl")?.setAttribute("hidden", "");
 }
 
 // El <script> del componente está después del markup; aplicar ahora evita que
