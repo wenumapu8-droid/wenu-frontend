@@ -57,6 +57,17 @@ import OjoDeObservacion from "./OjoDeObservacion.astro";
     <li>GLITCH MAP</li><li>SCANLINE</li><li>BITMAP NOISE</li>
   </ul>
 
+  <div class="kx-prologue__descenso" data-kdx-descenso aria-hidden="true"></div>
+
+  {/* EL DESCENSO PERTENECE AL OJO, NO AL CHROME.
+      Pelear por el boton del shell era la solucion equivocada: usa delegacion
+      y ademas el creador pidio que «el ojo/iris se convierte fisicamente en el
+      tunel de DESCENT». Asi que la pupila ES la puerta. Solo aparece cuando el
+      sistema tiene lock: antes no hay nada que atravesar. */}
+  <button class="kx-prologue__puerta" data-kdx-puerta type="button">
+    <span>DESCEND</span>
+  </button>
+
   <button class="kx-prologue__inspector-btn" data-kdx-inspector-btn type="button" aria-expanded="false">
     ◎ INSPECT SIGNAL
   </button>
@@ -289,7 +300,88 @@ glitch = step(0.995, noise(r * Time));`}</pre>
     .kx-prologue__senal { bottom: 17vh; height: 64px; }
   }
 
+  /* LA PUPILA COMO PUERTA. Se dimensiona sobre el centro del ojo y hereda su
+     escala; el anillo que la rodea es el mismo limbo que el organismo pinta. */
+  .kx-prologue__puerta {
+    position: absolute;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: clamp(88px, 16vmin, 148px);
+    height: clamp(88px, 16vmin, 148px);
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid transparent;
+    color: color-mix(in srgb, var(--acento) 90%, #fff);
+    font: 500 .54rem/1 ui-monospace, monospace;
+    letter-spacing: .28em;
+    display: grid; place-items: end center;
+    padding-bottom: 8%;
+    cursor: pointer;
+    z-index: 4;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 420ms, border-color 420ms;
+  }
+  /* MEMORIA: la puerta se abre con el primer lock y NO se vuelve a cerrar.
+     Atarla solo a LOCK/TRACK la hacia inalcanzable —para tocarla hay que
+     soltar, y al soltar el estado cae a AWARE y la puerta desaparecia bajo el
+     dedo—. El sistema recuerda que ya te reconocio: eso es memoria del
+     recorrido, no una comodidad de UI. */
+  .kx-prologue[data-kdx-abierto] .kx-prologue__puerta,
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__puerta,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__puerta {
+    opacity: 1;
+    pointer-events: auto;
+    border-color: color-mix(in srgb, var(--acento) 42%, transparent);
+  }
+  .kx-prologue__puerta:focus-visible {
+    opacity: 1; pointer-events: auto;
+    outline: 2px solid var(--acento); outline-offset: 4px;
+  }
+  .kx-prologue__puerta span { text-shadow: 0 0 12px rgba(5,4,10,.9); }
+
+  /* TRANSICION DE PROFUNDIDAD — el iris se convierte en el tunel.
+     DESCEND no puede ser un cambio de URL: el creador pidio que se sienta como
+     entrar fisicamente hacia dentro del sistema. La pupila del ojo se expande
+     hasta tragarse la pantalla y recien entonces se navega. El anillo que
+     crece ES el mismo circulo negro que el organismo dibuja en el centro, asi
+     que la continuidad es literal, no una cortinilla generica encima. */
+  .kx-prologue__descenso {
+    position: fixed;
+    left: 50%; top: 50%;
+    width: 12px; height: 12px;
+    margin: -6px 0 0 -6px;
+    border-radius: 50%;
+    background: #05040a;
+    box-shadow: 0 0 0 1px rgba(178,124,255,.85), 0 0 60px 12px rgba(178,124,255,.35);
+    transform: scale(0);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9;
+  }
+  .kx-prologue[data-kdx-descendiendo] .kx-prologue__descenso {
+    opacity: 1;
+    transform: scale(320);
+    transition: transform 780ms cubic-bezier(.62,.02,.86,.4), opacity 120ms;
+  }
+  /* Mientras se cae hacia dentro, lo demas se retira: el mundo se cierra
+     alrededor del punto de fuga en vez de quedarse mirando. */
+  .kx-prologue[data-kdx-descendiendo] .kx-prologue__titulo,
+  .kx-prologue[data-kdx-descendiendo] .kx-prologue__fragmentos,
+  .kx-prologue[data-kdx-descendiendo] .kx-prologue__inspector-btn,
+  .kx-prologue[data-kdx-descendiendo] .kx-prologue__estado {
+    opacity: 0;
+    transform: scale(1.14);
+    transition: opacity 320ms, transform 780ms cubic-bezier(.62,.02,.86,.4);
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    /* Equivalente semantico, no ausencia: sin viaje simulado, pero el campo
+       igual se cierra en un corte breve para que el descenso siga leyendose. */
+    .kx-prologue[data-kdx-descendiendo] .kx-prologue__descenso {
+      transition: opacity 160ms;
+      transform: scale(320);
+    }
     .kx-prologue__nombre b,
     .kx-prologue__fragmentos li,
     .kx-prologue__senal { transition-duration: 1ms; }
@@ -332,6 +424,7 @@ glitch = step(0.995, noise(r * Time));`}</pre>
       /* El ojo consume el pulso por evento: un solo productor de estado. */
       raiz.dispatchEvent(new CustomEvent("kdx:pulso", { detail: p }));
 
+      if (p.locks > 0 && !raiz.hasAttribute("data-kdx-abierto")) raiz.setAttribute("data-kdx-abierto", "");
       if (elEstado && elEstado.textContent !== p.estado) elEstado.textContent = p.estado;
       if (az) az.textContent = `${(180 + p.objetivo.x * 60).toFixed(2)}°`;
       if (el) el.textContent = `${(p.objetivo.y * -30).toFixed(2)}°`;
@@ -356,6 +449,40 @@ glitch = step(0.995, noise(r * Time));`}</pre>
       ctx.lineWidth = 1 + p.foco;
       ctx.stroke();
     });
+
+    /* DESCENSO — el iris se traga la pantalla y despues navega.
+       Se intercepta el control del shell en vez de duplicarlo: la escena no
+       inventa su propio boton, se engancha al que ya existe y que ya funciona.
+       Si por lo que sea no se encuentra, no se rompe nada: el shell sigue
+       navegando como siempre. */
+    const irA = (url: string) => {
+      raiz.setAttribute("data-kdx-descendiendo", "");
+      const reduce2 = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setTimeout(() => { location.href = url; }, reduce2 ? 180 : 700);
+    };
+
+    const engancharDescenso = () => {
+      /* El shell registra su propio manejador sobre DESCEND y gana la carrera:
+         interceptar en captura no bastaba porque su listener estaba puesto
+         antes. Clonar el nodo se lleva TODOS los oyentes previos, y recien
+         entonces la accion es nuestra. Se hace solo si hay destino conocido:
+         sin el, dejar el boton pelado seria romper la navegacion, que es peor
+         que no tener transicion. */
+      const destino =
+        document.querySelector<HTMLElement>("[data-next-url]")?.dataset.nextUrl || "";
+      if (!destino) return;
+
+      const puerta = raiz.querySelector<HTMLButtonElement>("[data-kdx-puerta]");
+      if (puerta) {
+        puerta.setAttribute("aria-label", `Descender hacia ${destino}`);
+        puerta.addEventListener("click", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          irA(destino);
+        });
+      }
+    };
+    engancharDescenso();
 
     /* INSPECTOR — lo denso sólo bajo acción explícita. */
     const btn = raiz.querySelector<HTMLButtonElement>("[data-kdx-inspector-btn]");

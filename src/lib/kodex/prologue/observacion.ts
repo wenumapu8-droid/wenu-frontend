@@ -63,6 +63,15 @@ export function crearObservacion(raiz: HTMLElement) {
   let tLock: number | null = null;
   let ultX = 0, ultY = 0;
   let dentro = false;
+  /* EN TACTIL NO EXISTE EL HOVER.
+     La primera version modelaba la entrada como un puntero de escritorio: la
+     presencia dependia de estar «dentro», y el navegador dispara pointerleave
+     inmediatamente despues de pointerup en un toque. Resultado medido en un
+     viewport tactil: un tap encendia y apagaba en el mismo gesto, y la escena
+     quedaba muerta en el telefono — que es justamente donde el creador la
+     prueba. Con dedo la presencia es DELIBERADA: se enciende al tocar y se
+     queda hasta que el visitante toca fuera o abandona la escena. */
+  let tactil = false;
 
   const fijar = (e: Estado) => {
     if (pulso.estado === e) return;
@@ -88,8 +97,11 @@ export function crearObservacion(raiz: HTMLElement) {
     ultX = n.x; ultY = n.y;
     pulso.objetivo = n;
     pulso.energia = Math.min(1, pulso.energia * 0.72 + Math.hypot(dx, dy) * 5.5);
-    if (sosteniendo && pulso.estado === 'LOCK' && Math.hypot(dx, dy) > 0.012) fijar('TRACK');
-    else if (!sosteniendo && pulso.estado !== 'LOCK' && pulso.estado !== 'TRACK') fijar('AWARE');
+    if (sosteniendo && (pulso.estado === 'LOCK' || pulso.estado === 'TRACK') && Math.hypot(dx, dy) > 0.012) fijar('TRACK');
+    /* DORMANT tiene que romperse aunque ya se este sosteniendo: si no, un toque
+       rapido entra por `sostener` con `sosteniendo` ya en true y ninguna rama
+       llegaba a encender AWARE. */
+    else if (pulso.estado === 'DORMANT' || pulso.estado === 'IDLE') fijar('AWARE');
   };
 
   const sostener = (cx: number, cy: number) => {
@@ -101,7 +113,10 @@ export function crearObservacion(raiz: HTMLElement) {
   const soltar = () => {
     sosteniendo = false;
     if (tLock) { clearTimeout(tLock); tLock = null; }
-    fijar(dentro ? 'AWARE' : 'IDLE');
+    /* Con dedo, soltar NO es marcharse: el sistema sigue reconociendo la
+       presencia. Con puntero si, porque el cursor sigue en pantalla y el hover
+       expresa la intencion por si mismo. */
+    fijar('AWARE');
   };
 
   const salir = () => {
@@ -110,11 +125,29 @@ export function crearObservacion(raiz: HTMLElement) {
     fijar('IDLE');
   };
 
-  raiz.addEventListener('pointermove', (e) => entrar(e.clientX, e.clientY), { passive: true });
-  raiz.addEventListener('pointerdown', (e) => sostener(e.clientX, e.clientY));
+  raiz.addEventListener('pointermove', (e) => {
+    if (e.pointerType === 'touch' && !sosteniendo) return;   // sin dedo apoyado no hay rastro
+    entrar(e.clientX, e.clientY);
+  }, { passive: true });
+  raiz.addEventListener('pointerdown', (e) => {
+    tactil = e.pointerType === 'touch';
+    sostener(e.clientX, e.clientY);
+  });
   raiz.addEventListener('pointerup', soltar);
   raiz.addEventListener('pointercancel', soltar);
-  raiz.addEventListener('pointerleave', salir);
+  raiz.addEventListener('pointerleave', (e) => {
+    /* En tactil, pointerleave llega pegado al pointerup y significa «levante el
+       dedo», no «me fui». Ignorarlo es lo que mantiene viva la escena en el
+       telefono. */
+    if ((e as PointerEvent).pointerType === 'touch') return;
+    salir();
+  });
+  /* La salida deliberada en tactil: tocar fuera de la escena la devuelve a
+     reposo. Es simetrico con encenderla tocando dentro. */
+  document.addEventListener('pointerdown', (e) => {
+    if (!tactil) return;
+    if (!raiz.contains(e.target as Node)) salir();
+  }, true);
 
   /* Teclado: la escena tiene que ser recorrible sin puntero. Flechas mueven el
      objetivo, Espacio/Enter sostiene. No es un añadido de accesibilidad pegado
