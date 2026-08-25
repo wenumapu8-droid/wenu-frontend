@@ -20,13 +20,28 @@
  *   mover mientras sostiene→ TRACK     el iris SIGUE al puntero, la onda modula
  *                                      con la velocidad del gesto
  *   soltar / salir         → IDLE      decae de vuelta, con memoria del último lock
+ *   pedir ver más          → INSPECT   lo denso se abre; el ojo baja su agitación
+ *                                      para no competir con lo que se está leyendo
+ *   cruzar la pupila       → DESCEND   el campo converge al punto de fuga
+ *
+ * INSPECT y DESCEND NO son funciones paralelas pegadas al costado. El creador lo
+ * pidió por nombre: «deberían formar parte del mismo modelo causal», porque las
+ * escenas siguientes van a heredar el CONTRATO DE ESTADOS, no una colección de
+ * hacks independientes. Por eso viven acá, con sus transiciones declaradas:
+ *
+ *   INSPECT sólo se alcanza desde AWARE / LOCK / TRACK — no se inspecciona algo
+ *   que el sistema todavía no reconoció. Al cerrarlo se vuelve al estado que se
+ *   traía, no a un genérico.
+ *
+ *   DESCEND es TERMINAL: una vez comprometido, ninguna entrada lo revierte. Un
+ *   descenso que se cancela solo porque el dedo se movió no sería un descenso.
  *
  * No hay temporizadores que finjan vida: sin entrada, el sistema cae a DORMANT
  * y se queda ahí. La vida la trae quien mira. Eso es lo que hace que la escena
  * observe al visitante y no al revés.
  */
 
-export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'IDLE';
+export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'INSPECT' | 'DESCEND' | 'IDLE';
 
 export type Pulso = {
   estado: Estado;
@@ -40,6 +55,8 @@ export type Pulso = {
   energia: number;
   /** cuántas veces se ha alcanzado LOCK en esta sesión: es memoria, no adorno */
   locks: number;
+  /** cuántas veces se pidió ver lo denso */
+  inspecciones: number;
 };
 
 type Oyente = (p: Pulso) => void;
@@ -54,6 +71,7 @@ export function crearObservacion(raiz: HTMLElement) {
     objetivo: { x: 0, y: 0 },
     energia: 0,
     locks: 0,
+    inspecciones: 0,
   };
 
   const oyentes: Oyente[] = [];
@@ -73,11 +91,29 @@ export function crearObservacion(raiz: HTMLElement) {
      queda hasta que el visitante toca fuera o abandona la escena. */
   let tactil = false;
 
+  /* Desde dónde se puede alcanzar cada estado. Declararlo evita que el sistema
+     entre a INSPECT desde DORMANT —inspeccionar sin haber sido reconocido— o
+     que salga de DESCEND, que es terminal. */
+  const ALCANZABLE: Record<Estado, Estado[]> = {
+    DORMANT: ['AWARE', 'IDLE'],
+    IDLE: ['AWARE', 'DORMANT'],
+    AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'IDLE', 'DORMANT'],
+    LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'IDLE'],
+    TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'IDLE'],
+    INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'IDLE'],
+    DESCEND: [],
+  };
+
+  let previo: Estado = 'DORMANT';
+
   const fijar = (e: Estado) => {
     if (pulso.estado === e) return;
+    if (!ALCANZABLE[pulso.estado].includes(e)) return;
+    if (e === 'INSPECT') previo = pulso.estado;
     pulso.estado = e;
     raiz.dataset.kdxObs = e;                       // el CSS reacciona a esto
     if (e === 'LOCK') pulso.locks += 1;
+    if (e === 'INSPECT') pulso.inspecciones += 1;
     raiz.dispatchEvent(new CustomEvent('kdx:observacion', { detail: { ...pulso }, bubbles: true }));
     emitir();
   };
@@ -97,6 +133,10 @@ export function crearObservacion(raiz: HTMLElement) {
     ultX = n.x; ultY = n.y;
     pulso.objetivo = n;
     pulso.energia = Math.min(1, pulso.energia * 0.72 + Math.hypot(dx, dy) * 5.5);
+    /* Mientras se lee o se desciende, el puntero no reescribe el estado: el
+       sistema está en otra cosa. Sin esto, mover el dedo sobre el inspector lo
+       cerraría de facto volviendo a TRACK. */
+    if (pulso.estado === 'INSPECT' || pulso.estado === 'DESCEND') return;
     if (sosteniendo && (pulso.estado === 'LOCK' || pulso.estado === 'TRACK') && Math.hypot(dx, dy) > 0.012) fijar('TRACK');
     /* DORMANT tiene que romperse aunque ya se este sosteniendo: si no, un toque
        rapido entra por `sostener` con `sosteniendo` ya en true y ninguna rama
@@ -175,10 +215,17 @@ export function crearObservacion(raiz: HTMLElement) {
   const tic = () => {
     const objetivoPresencia = dentro ? 1 : 0;
     pulso.presencia += (objetivoPresencia - pulso.presencia) * 0.06;
-    const objetivoFoco = (pulso.estado === 'LOCK' || pulso.estado === 'TRACK') ? 1 : (dentro ? 0.34 : 0);
+    /* INSPECT conserva foco alto pero no total: el ojo sigue reconociendo, sólo
+       baja su agitación para no competir con lo que se está leyendo.
+       DESCEND lo lleva a 1: todo converge al punto de fuga. */
+    const objetivoFoco = pulso.estado === 'DESCEND' ? 1
+      : pulso.estado === 'INSPECT' ? 0.72
+      : (pulso.estado === 'LOCK' || pulso.estado === 'TRACK') ? 1
+      : (dentro ? 0.34 : 0);
     pulso.foco += (objetivoFoco - pulso.foco) * 0.08;
     pulso.energia *= 0.94;
-    if (!dentro && pulso.presencia < 0.02 && pulso.estado !== 'DORMANT') fijar('DORMANT');
+    if (!dentro && pulso.presencia < 0.02
+        && pulso.estado !== 'DORMANT' && pulso.estado !== 'INSPECT' && pulso.estado !== 'DESCEND') fijar('DORMANT');
     emitir();
     raf = requestAnimationFrame(tic);
   };
@@ -188,6 +235,11 @@ export function crearObservacion(raiz: HTMLElement) {
 
   return {
     pulso,
+    /* La escena pide transiciones por nombre; la máquina decide si son legales.
+       Así INSPECT y DESCEND entran por la misma puerta que el resto. */
+    inspeccionar() { fijar('INSPECT'); },
+    cerrarInspeccion() { fijar(previo === 'INSPECT' ? 'AWARE' : previo); },
+    descender() { fijar('DESCEND'); },
     escuchar(o: Oyente) { oyentes.push(o); return () => { const i = oyentes.indexOf(o); if (i >= 0) oyentes.splice(i, 1); }; },
     destruir() { cancelAnimationFrame(raf); },
   };

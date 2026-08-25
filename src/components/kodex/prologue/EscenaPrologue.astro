@@ -173,7 +173,14 @@ glitch = step(0.995, noise(r * Time));`}</pre>
   }
   .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__nombre b { opacity: .62; filter: blur(2px); transform: none; }
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__nombre b,
-  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__nombre b { opacity: 1; filter: none; transform: none; }
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__nombre b,
+  .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__nombre b { opacity: 1; filter: none; transform: none; }
+  /* DESCEND: la tipografía se retira hacia la profundidad en vez de apagarse.
+     El título no desaparece: se va con el resto del campo hacia el punto de fuga. */
+  .kx-prologue[data-kdx-obs="DESCEND"] .kx-prologue__nombre b {
+    opacity: 0; filter: blur(3px); transform: translateY(-10px) scale(1.06);
+    transition-delay: calc(var(--i) * 14ms);
+  }
   .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__eyebrow,
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__eyebrow,
   .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__eyebrow { opacity: 1; transform: none; }
@@ -217,7 +224,8 @@ glitch = step(0.995, noise(r * Time));`}</pre>
   .kx-prologue__fragmentos li:nth-child(5) { top: 44%; left: 12%; transition-delay: 280ms; }
   .kx-prologue__fragmentos li:nth-child(6) { top: 52%; right: 12%; transition-delay: 340ms; }
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__fragmentos li,
-  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__fragmentos li { opacity: 1; transform: none; }
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__fragmentos li,
+  .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__fragmentos li { opacity: 1; transform: none; }
 
   /* INSPECTOR — lo denso de la lámina (shader, logs, datos) NO está en pantalla
      por defecto. Se abre sólo si el visitante decide observar más. */
@@ -238,6 +246,7 @@ glitch = step(0.995, noise(r * Time));`}</pre>
   }
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__inspector-btn,
   .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__inspector-btn,
+  .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__inspector-btn,
   .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__inspector-btn { opacity: 1; }
 
   .kx-prologue__inspector {
@@ -329,6 +338,7 @@ glitch = step(0.995, noise(r * Time));`}</pre>
      recorrido, no una comodidad de UI. */
   .kx-prologue[data-kdx-abierto] .kx-prologue__puerta,
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__puerta,
+  .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__puerta,
   .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__puerta {
     opacity: 1;
     pointer-events: auto;
@@ -359,6 +369,7 @@ glitch = step(0.995, noise(r * Time));`}</pre>
     pointer-events: none;
     z-index: 9;
   }
+  .kx-prologue[data-kdx-obs="DESCEND"] .kx-prologue__descenso,
   .kx-prologue[data-kdx-descendiendo] .kx-prologue__descenso {
     opacity: 1;
     transform: scale(320);
@@ -366,6 +377,9 @@ glitch = step(0.995, noise(r * Time));`}</pre>
   }
   /* Mientras se cae hacia dentro, lo demas se retira: el mundo se cierra
      alrededor del punto de fuga en vez de quedarse mirando. */
+  .kx-prologue[data-kdx-obs="DESCEND"] .kx-prologue__fragmentos,
+  .kx-prologue[data-kdx-obs="DESCEND"] .kx-prologue__inspector-btn,
+  .kx-prologue[data-kdx-obs="DESCEND"] .kx-prologue__estado,
   .kx-prologue[data-kdx-descendiendo] .kx-prologue__titulo,
   .kx-prologue[data-kdx-descendiendo] .kx-prologue__fragmentos,
   .kx-prologue[data-kdx-descendiendo] .kx-prologue__inspector-btn,
@@ -470,6 +484,11 @@ glitch = step(0.995, noise(r * Time));`}</pre>
        Si por lo que sea no se encuentra, no se rompe nada: el shell sigue
        navegando como siempre. */
     const irA = (url: string) => {
+      /* El descenso ENTRA A LA MÁQUINA. Antes era una navegación paralela que
+         además marcaba el DOM por su cuenta; ahora pide la transición y la
+         máquina decide. DESCEND es terminal: ninguna entrada posterior lo
+         revierte, que es lo que hace que un descenso se sienta comprometido. */
+      obs.descender();
       /* El descenso queda en la memoria del viaje: es el paso que RETURN
          necesita para saber por dónde entraste. */
       try {
@@ -509,10 +528,14 @@ glitch = step(0.995, noise(r * Time));`}</pre>
     const panel = raiz.querySelector<HTMLElement>("[data-kdx-inspector]");
     btn?.addEventListener("click", (e) => {
       e.stopPropagation();
-      const abierto = panel?.hasAttribute("hidden");
-      if (abierto) panel?.removeAttribute("hidden"); else panel?.setAttribute("hidden", "");
-      btn.setAttribute("aria-expanded", String(!!abierto));
-      btn.textContent = abierto ? "◎ HIDE SIGNAL" : "◎ INSPECT SIGNAL";
+      const abriendo = panel?.hasAttribute("hidden");
+      /* El inspector ENTRA A LA MÁQUINA. Pedir ver lo denso es una transición
+         de estado, no un toggle de CSS: el ojo baja su agitación mientras se
+         lee, y al cerrar se vuelve al estado que se traía —no a un genérico. */
+      if (abriendo) { obs.inspeccionar(); panel?.removeAttribute("hidden"); }
+      else { obs.cerrarInspeccion(); panel?.setAttribute("hidden", ""); }
+      btn.setAttribute("aria-expanded", String(!!abriendo));
+      btn.textContent = abriendo ? "◎ HIDE SIGNAL" : "◎ INSPECT SIGNAL";
     });
   }
 </script>
