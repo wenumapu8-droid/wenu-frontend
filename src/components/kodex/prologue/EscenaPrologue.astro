@@ -1,0 +1,371 @@
+---
+/**
+ * KODEX−∞ · PROLOGUE · ESCENA NATIVA
+ *
+ * Tercer intento, después de dos rechazos del creador:
+ *   1. template genérico + organismo recortado        RECHAZADO
+ *   2. lámina completa + cámara/pan/crop sobre ella   RECHAZADO
+ *
+ * El diagnóstico que cerró la discusión: «si el mismo resultado se lograra
+ * exportando la lámina a PNG o haciendo un PPT, no has construido KODEX».
+ * Ambos intentos pasaban esa prueba por la vía mala — un PNG con zoom habría
+ * dado lo mismo. La lámina es la ESPECIFICACIÓN, no el runtime.
+ *
+ * Acá la plancha está descompuesta semánticamente. Cada cosa que en el póster
+ * era un dibujo, es ahora un módulo gobernado por estado:
+ *
+ *   panel 04  ojo ilustrado      → OjoDeObservacion, organismo procedural
+ *   panel 01  LOCK/TRACK/IDLE    → estados reales de la máquina
+ *   panel 06  waveform dibujada  → señal calculada desde el gesto
+ *   título    texto compuesto    → tipografía cinética ligada al estado
+ *   panel 05  fragments/crops    → aparecen sólo cuando hay LOCK
+ *   panel 08  shader/logs        → inspector, oculto hasta que se pide
+ *
+ * DESKTOP es espacial: el ojo domina y la instrumentación coexiste alrededor.
+ * MÓVIL es temporal: el ojo llena la pantalla y todo lo demás aparece según el
+ * estado que el visitante provoca — no son páginas, son momentos de la misma
+ * escena fullscreen.
+ *
+ * La escena observa a quien la mira: sin presencia cae a DORMANT y se queda
+ * ahí. No hay temporizadores fingiendo actividad.
+ */
+import OjoDeObservacion from "./OjoDeObservacion.astro";
+---
+
+<section class="kx-prologue" data-kdx-observacion tabindex="0"
+         role="application"
+         aria-label="Prologue — campo de observación. Mueve el puntero o desliza para que el sistema te detecte; mantén para fijar.">
+
+  <div class="kx-prologue__campo">
+    <OjoDeObservacion />
+    <canvas class="kx-prologue__senal" data-kdx-senal aria-hidden="true"></canvas>
+  </div>
+
+  <h1 class="kx-prologue__titulo" data-kdx-titulo>
+    <span class="kx-prologue__eyebrow">01 · SCAN PROTOCOL</span>
+    <span class="kx-prologue__nombre" aria-label="Observation Eye">
+      {"OBSERVATION".split("").map((c, i) => <b style={`--i:${i}`}>{c}</b>)}
+      <i></i>
+      {"EYE".split("").map((c, i) => <b style={`--i:${i + 11}`}>{c}</b>)}
+    </span>
+  </h1>
+
+  <output class="kx-prologue__estado" data-kdx-estado aria-live="polite">DORMANT</output>
+
+  <ul class="kx-prologue__fragmentos" data-kdx-fragmentos aria-hidden="true">
+    <li>HALFTONE</li><li>NEON ENERGY</li><li>PIXEL SORT</li>
+    <li>GLITCH MAP</li><li>SCANLINE</li><li>BITMAP NOISE</li>
+  </ul>
+
+  <button class="kx-prologue__inspector-btn" data-kdx-inspector-btn type="button" aria-expanded="false">
+    ◎ INSPECT SIGNAL
+  </button>
+  <div class="kx-prologue__inspector" data-kdx-inspector hidden>
+    <dl>
+      <div><dt>AZIMUTH</dt><dd data-kdx-az>180.00°</dd></div>
+      <div><dt>ELEVATION</dt><dd data-kdx-el>+00.42°</dd></div>
+      <div><dt>SIGNAL STR</dt><dd data-kdx-str>0%</dd></div>
+      <div><dt>SYNC</dt><dd data-kdx-sync>UNLOCKED</dd></div>
+      <div><dt>LOCKS</dt><dd data-kdx-locks>0</dd></div>
+    </dl>
+    <pre>{`scan = sin(Time * SCAN_SPEED);
+pulse = smoothstep(IRIS_INNER, IRIS_OUTER, r);
+glitch = step(0.995, noise(r * Time));`}</pre>
+  </div>
+</section>
+
+<style>
+  .kx-prologue {
+    /* A SANGRE COMPLETA. Dentro del escenario del corredor la escena quedaba
+       encajonada por la grilla del stage y se veian las costuras del fondo del
+       shell a los lados: la obra no llenaba la pantalla, que es lo primero que
+       pide «HIDE THE SYSTEM -> SHOW THE UNIVERSE». `fixed` la saca de esa
+       grilla; el z-index la deja DEBAJO del chrome del shell, que sigue siendo
+       clickeable por encima. */
+    position: fixed; inset: 0;
+    z-index: 0;
+    /* El shell impone a todo lo que cuelga del slide un ancho de columna
+       —medido: max-width 760px y margin 0 340px— pensado para paginas de
+       lectura. Una escena no es una columna de texto: ocupa el mundo entero.
+       Se anula aqui y solo aqui, sin tocar la hoja compartida. */
+    max-width: none;
+    width: 100vw;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    background: #05040a;
+    --acento: #b27cff;
+    touch-action: none;      /* el gesto es de la escena, no del navegador */
+    outline: none;
+  }
+  .kx-prologue:focus-visible { box-shadow: inset 0 0 0 2px var(--acento); }
+
+  .kx-prologue__campo {
+    position: absolute;
+    inset: 0;
+    display: grid; place-items: center;
+  }
+  .kx-prologue__senal {
+    position: absolute;
+    z-index: 0;                      /* siempre por debajo del titulo y del chrome */
+    left: 0; right: 0; bottom: 14%;
+    width: 100%; height: 76px;
+    opacity: .2;
+    transition: opacity 420ms;
+  }
+  .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__senal { opacity: .55; }
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__senal,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__senal { opacity: .95; }
+
+  /* TIPOGRAFÍA CINÉTICA — el título no está «puesto»: se forma.
+     En DORMANT las letras están dispersas y sin foco, como señal no resuelta.
+     Con la presencia convergen; con LOCK terminan de asentarse. Cada letra
+     tiene su propio retardo, así el nombre se ESCRIBE en vez de aparecer. */
+  .kx-prologue__titulo {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    display: grid;
+    justify-items: center;
+    gap: .6rem;
+    pointer-events: none;
+    text-align: center;
+  }
+  .kx-prologue__eyebrow {
+    font: 500 .62rem/1 ui-monospace, monospace;
+    letter-spacing: .42em;
+    color: color-mix(in srgb, var(--acento) 70%, #fff);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 600ms, transform 600ms;
+  }
+  .kx-prologue__nombre {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    font: 700 clamp(1.6rem, 7vw, 4.2rem)/0.98 "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: .02em;
+    color: #efe9ff;
+  }
+  .kx-prologue__nombre i { width: .5em; }
+  .kx-prologue__nombre b {
+    display: inline-block;
+    font-weight: inherit;
+    opacity: .16;
+    filter: blur(6px);
+    transform: translateY(calc(var(--i) * .6px - 8px)) scale(.94);
+    transition: opacity 520ms cubic-bezier(.22,.61,.36,1),
+                filter 520ms cubic-bezier(.22,.61,.36,1),
+                transform 520ms cubic-bezier(.22,.61,.36,1);
+    transition-delay: calc(var(--i) * 26ms);
+  }
+  .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__nombre b { opacity: .62; filter: blur(2px); transform: none; }
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__nombre b,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__nombre b { opacity: 1; filter: none; transform: none; }
+  .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__eyebrow,
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__eyebrow,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__eyebrow { opacity: 1; transform: none; }
+
+  .kx-prologue__estado {
+    position: absolute;
+    top: max(4.6rem, env(safe-area-inset-top, 0px) + 4rem);
+    font: 500 .6rem/1 ui-monospace, monospace;
+    letter-spacing: .34em;
+    color: var(--acento);
+    opacity: .5;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__estado,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__estado { opacity: 1; }
+
+  /* FRAGMENTOS — el panel 05 de la lámina. No están de decoración: sólo
+     existen cuando el sistema consiguió LOCK. Antes de eso, la escena no tiene
+     nada que mostrar sobre lo que observa. */
+  .kx-prologue__fragmentos {
+    position: absolute; inset: 0;
+    margin: 0; padding: 0; list-style: none;
+    z-index: 1; pointer-events: none;
+  }
+  .kx-prologue__fragmentos li {
+    position: absolute;
+    padding: .28rem .5rem;
+    font: 500 .5rem/1 ui-monospace, monospace;
+    letter-spacing: .2em;
+    color: color-mix(in srgb, var(--acento) 82%, #fff);
+    border: 1px solid color-mix(in srgb, var(--acento) 34%, transparent);
+    background: rgba(8,5,16,.6);
+    opacity: 0; transform: scale(.86);
+    transition: opacity 420ms, transform 420ms;
+  }
+  .kx-prologue__fragmentos li:nth-child(1) { top: 18%; left: 8%;  transition-delay: 40ms; }
+  .kx-prologue__fragmentos li:nth-child(2) { top: 30%; right: 7%; transition-delay: 100ms; }
+  .kx-prologue__fragmentos li:nth-child(3) { top: 62%; left: 6%;  transition-delay: 160ms; }
+  .kx-prologue__fragmentos li:nth-child(4) { top: 72%; right: 9%; transition-delay: 220ms; }
+  .kx-prologue__fragmentos li:nth-child(5) { top: 44%; left: 12%; transition-delay: 280ms; }
+  .kx-prologue__fragmentos li:nth-child(6) { top: 52%; right: 12%; transition-delay: 340ms; }
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__fragmentos li,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__fragmentos li { opacity: 1; transform: none; }
+
+  /* INSPECTOR — lo denso de la lámina (shader, logs, datos) NO está en pantalla
+     por defecto. Se abre sólo si el visitante decide observar más. */
+  .kx-prologue__inspector-btn {
+    position: absolute;
+    bottom: max(6.2rem, env(safe-area-inset-bottom, 0px) + 5.6rem);
+    z-index: 3;
+    padding: .55rem 1rem;
+    font: 500 .58rem/1 ui-monospace, monospace;
+    letter-spacing: .22em;
+    color: var(--acento);
+    background: rgba(8,5,16,.72);
+    border: 1px solid color-mix(in srgb, var(--acento) 40%, transparent);
+    border-radius: 999px;
+    cursor: pointer;
+    opacity: .34;
+    transition: opacity 300ms;
+  }
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__inspector-btn,
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__inspector-btn,
+  .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__inspector-btn { opacity: 1; }
+
+  .kx-prologue__inspector {
+    position: absolute;
+    left: 50%; bottom: max(9.4rem, env(safe-area-inset-bottom, 0px) + 8.8rem);
+    transform: translateX(-50%);
+    z-index: 3;
+    width: min(92vw, 460px);
+    padding: .9rem 1rem;
+    background: rgba(6,4,12,.94);
+    border: 1px solid color-mix(in srgb, var(--acento) 30%, transparent);
+    color: #cfc4e6;
+    font: .58rem/1.5 ui-monospace, monospace;
+  }
+  .kx-prologue__inspector dl { margin: 0 0 .7rem; display: grid; gap: .28rem; }
+  .kx-prologue__inspector dl > div { display: flex; justify-content: space-between; gap: 1rem; }
+  .kx-prologue__inspector dt { color: #8b81a3; letter-spacing: .16em; }
+  .kx-prologue__inspector dd { margin: 0; color: var(--acento); }
+  .kx-prologue__inspector pre {
+    margin: 0; white-space: pre-wrap;
+    color: #6f6690; font-size: .52rem;
+    border-top: 1px solid rgba(178,124,255,.18); padding-top: .6rem;
+  }
+
+  /* DESKTOP — espacial: el título se corre del centro para que el ojo lo ocupe
+     y la instrumentación coexista alrededor, como en la plancha. */
+  /* DESKTOP — camara amplia: el ojo al centro, el titulo anclado abajo a la
+     izquierda y la instrumentacion a la derecha. Cada cosa en su carril: el
+     creador prohibio expresamente que el titulo se solape con arte o
+     navegacion, y en la primera pasada el boton de inspeccion caia justo
+     encima de la palabra EYE. */
+  @media (min-width: 900px) {
+    .kx-prologue__titulo {
+      position: absolute; left: 4vw; bottom: 15vh;
+      justify-items: start; text-align: left;
+      max-width: 46vw;                       /* el titulo no invade el carril derecho */
+    }
+    .kx-prologue__nombre { justify-content: flex-start; font-size: clamp(2rem, 4.4vw, 3.6rem); }
+    .kx-prologue__estado { top: auto; bottom: 11vh; left: 4vw; }
+    .kx-prologue__senal { bottom: 4%; height: 96px; opacity: .18; }
+    .kx-prologue__inspector-btn { right: 4vw; bottom: 15vh; }
+    .kx-prologue__inspector { left: auto; right: 4vw; transform: none; bottom: 21vh; }
+  }
+
+  /* MOVIL — camara intima: un fenomeno por vez. El titulo baja para no pisar
+     el ojo, y la barra del shell se respeta con reserva propia. */
+  @media (max-width: 899px) {
+    .kx-prologue__titulo { position: absolute; bottom: 22vh; padding-inline: 6vw; }
+    /* Los fragmentos se replegan al tercio superior: en el telefono el carril
+       de abajo pertenece al titulo y a la navegacion, y GLITCH MAP estaba
+       cayendo justo encima de «01 · SCAN PROTOCOL». Orbitan el ojo, no lo
+       invaden ni pisan la tipografia. */
+    .kx-prologue__fragmentos li:nth-child(1) { top: 14%; left: 6%;  }
+    .kx-prologue__fragmentos li:nth-child(2) { top: 22%; right: 5%; }
+    .kx-prologue__fragmentos li:nth-child(3) { top: 40%; left: 4%;  }
+    .kx-prologue__fragmentos li:nth-child(4) { top: 48%; right: 4%; }
+    .kx-prologue__fragmentos li:nth-child(5) { top: 31%; left: 8%;  }
+    .kx-prologue__fragmentos li:nth-child(6) { top: 57%; right: 7%; }
+    .kx-prologue__nombre { font-size: clamp(1.5rem, 8.5vw, 2.6rem); }
+    .kx-prologue__senal { bottom: 17vh; height: 64px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-prologue__nombre b,
+    .kx-prologue__fragmentos li,
+    .kx-prologue__senal { transition-duration: 1ms; }
+  }
+</style>
+
+<script>
+  import { crearObservacion } from "../../../lib/kodex/prologue/observacion";
+
+  const raiz = document.querySelector<HTMLElement>("[data-kdx-observacion]");
+  if (raiz) {
+    const obs = crearObservacion(raiz);
+    const elEstado = raiz.querySelector<HTMLElement>("[data-kdx-estado]");
+    const az = raiz.querySelector<HTMLElement>("[data-kdx-az]");
+    const el = raiz.querySelector<HTMLElement>("[data-kdx-el]");
+    const str = raiz.querySelector<HTMLElement>("[data-kdx-str]");
+    const sync = raiz.querySelector<HTMLElement>("[data-kdx-sync]");
+    const locks = raiz.querySelector<HTMLElement>("[data-kdx-locks]");
+
+    /* SEÑAL VIVA — el waveform del panel 06 no es un dibujo: su amplitud sale
+       de la energía del gesto y su estabilidad del foco. En LOCK se aquieta;
+       moviéndote en TRACK, se agita. */
+    const cv = raiz.querySelector<HTMLCanvasElement>("[data-kdx-senal]");
+    const ctx = cv?.getContext("2d") ?? null;
+    let W = 0, H = 0;
+    const medir = () => {
+      if (!cv) return;
+      const r = cv.getBoundingClientRect();
+      const dpr = Math.min(2, devicePixelRatio || 1);
+      W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    medir(); addEventListener("resize", medir, { passive: true });
+
+    let t = 0;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+
+    obs.escuchar((p) => {
+      /* El ojo consume el pulso por evento: un solo productor de estado. */
+      raiz.dispatchEvent(new CustomEvent("kdx:pulso", { detail: p }));
+
+      if (elEstado && elEstado.textContent !== p.estado) elEstado.textContent = p.estado;
+      if (az) az.textContent = `${(180 + p.objetivo.x * 60).toFixed(2)}°`;
+      if (el) el.textContent = `${(p.objetivo.y * -30).toFixed(2)}°`;
+      if (str) str.textContent = `${Math.round(p.presencia * 100)}%`;
+      if (sync) sync.textContent = p.foco > 0.6 ? "LOCKED" : "UNLOCKED";
+      if (locks) locks.textContent = String(p.locks);
+
+      if (!ctx || !cv) return;
+      t += reduce.matches ? 0 : 1;
+      ctx.clearRect(0, 0, W, H);
+      const amp = (H / 2) * (0.08 + p.energia * 0.7 + p.presencia * 0.22);
+      const ruido = 1 - p.foco;                 // LOCK estabiliza la señal
+      ctx.beginPath();
+      for (let x = 0; x <= W; x += 2) {
+        const f = x / W;
+        const y = H / 2
+          + Math.sin(f * 22 + t / 9) * amp * (0.5 + p.foco * 0.5)
+          + (Math.sin(f * 97 + t / 3) * amp * 0.5 * ruido);
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = `rgba(178,124,255,${0.35 + p.presencia * 0.55})`;
+      ctx.lineWidth = 1 + p.foco;
+      ctx.stroke();
+    });
+
+    /* INSPECTOR — lo denso sólo bajo acción explícita. */
+    const btn = raiz.querySelector<HTMLButtonElement>("[data-kdx-inspector-btn]");
+    const panel = raiz.querySelector<HTMLElement>("[data-kdx-inspector]");
+    btn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const abierto = panel?.hasAttribute("hidden");
+      if (abierto) panel?.removeAttribute("hidden"); else panel?.setAttribute("hidden", "");
+      btn.setAttribute("aria-expanded", String(!!abierto));
+      btn.textContent = abierto ? "◎ HIDE SIGNAL" : "◎ INSPECT SIGNAL";
+    });
+  }
+</script>

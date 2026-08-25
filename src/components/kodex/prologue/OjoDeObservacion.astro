@@ -1,0 +1,171 @@
+---
+/**
+ * KODEX−∞ · PROLOGUE · EL OJO, COMO ORGANISMO
+ *
+ * La lámina t01-02 no se copia: se obedece. Su cabecera trae el PERFIL RADIAL
+ * MEDIDO del ojo —luminancia media por radio sobre el PNG canon, excluyendo la
+ * raya de barrido para que no contamine el promedio—. Ese perfil es la
+ * dirección de arte, ya resuelta. Lo que la lámina NO define es el
+ * comportamiento, y ahí es donde esto deja de ser una imagen:
+ *
+ *   Hitos del perfil (r sobre 360), tomados de t01-02/Centro.astro:
+ *     r   9- 23  pupila negra           lum  5- 11
+ *     r  24- 44  collar quemado         pico r=33  (88)
+ *     r  45- 67  valle de fibra media   lum 22- 43
+ *     r  68- 77  ANILLO LIMBAL          pico r=72 (106) — lo más brillante
+ *     r  78-135  filamento largo        cae 63 → 8
+ *     r 136-245  anillos de datos       crestas 143·159·168·189·214·225
+ *     r 246-360  coronas exteriores     lum  5- 11
+ *
+ * Cada capa toma su alfa de ese perfil, igual que en la plancha. La diferencia
+ * es que acá el perfil se MODULA con el estado de la máquina de observación:
+ *
+ *   DORMANT  el ojo late apenas, el limbo casi apagado, deriva lenta
+ *   AWARE    la pupila se dilata, el limbo enciende, los filamentos se agitan
+ *   LOCK     la pupila CONVERGE —se contrae y se afila—, los anillos de datos
+ *            se estabilizan y dejan de temblar
+ *   TRACK    el iris entero se DESPLAZA hacia el objetivo: el ojo te sigue
+ *   IDLE     todo decae con inercia, no con un corte
+ *
+ * Sin canvas no hay organismo. Y sin estado, el canvas sería un GIF caro.
+ */
+interface Props { class?: string }
+const { class: className } = Astro.props;
+---
+
+<canvas class:list={["kdx-ojo", className]} data-kdx-ojo aria-hidden="true"></canvas>
+
+<style>
+  .kdx-ojo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<script>
+  const PERFIL: Array<[number, number]> = [
+    [0, 0], [9, 0.04], [23, 0.08], [33, 0.83], [44, 0.55],
+    [56, 0.21], [67, 0.40], [72, 1.0], [77, 0.72],
+    [96, 0.44], [120, 0.20], [135, 0.075],
+    [143, 0.30], [159, 0.26], [168, 0.30], [189, 0.24], [214, 0.22], [225, 0.20],
+    [245, 0.09], [300, 0.07], [360, 0.045],
+  ];
+
+  /** Interpola el perfil medido. Es la firma del ojo: cambiarla lo vuelve otro ojo. */
+  function lum(r: number): number {
+    if (r <= 0) return 0;
+    for (let i = 1; i < PERFIL.length; i++) {
+      const [r1, v1] = PERFIL[i];
+      if (r <= r1) {
+        const [r0, v0] = PERFIL[i - 1];
+        const t = (r - r0) / (r1 - r0 || 1);
+        return v0 + (v1 - v0) * t;
+      }
+    }
+    return 0;
+  }
+
+  const cv = document.querySelector<HTMLCanvasElement>("[data-kdx-ojo]");
+  const raiz = cv?.closest<HTMLElement>("[data-kdx-observacion]");
+  if (cv && raiz) {
+    const ctx = cv.getContext("2d")!;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+    let W = 0, H = 0, dpr = 1;
+
+    const medir = () => {
+      const r = cv.getBoundingClientRect();
+      dpr = Math.min(2, devicePixelRatio || 1);
+      W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    medir();
+    addEventListener("resize", medir, { passive: true });
+    if ("ResizeObserver" in window) new ResizeObserver(medir).observe(cv);
+
+    /* El estado llega por evento desde la máquina; no se consulta el DOM en
+       cada frame. El ojo es consumidor de estado, no su dueño. */
+    let est = { estado: "DORMANT", presencia: 0, foco: 0, objetivo: { x: 0, y: 0 }, energia: 0, locks: 0 };
+    raiz.addEventListener("kdx:pulso", (e) => { est = (e as CustomEvent).detail; });
+
+    let t = 0;
+    const dibujar = () => {
+      t += reduce.matches ? 0 : 1;
+      const R = Math.min(W, H) * 0.5;
+      const k = R / 360;                                  // el perfil vive en 0..360
+
+      /* TRACK: el iris se desplaza hacia el objetivo. El desplazamiento es
+         parcial a propósito —un ojo sigue, no se teletransporta—. */
+      const seguir = est.foco * 0.16;
+      const cx = W / 2 + est.objetivo.x * R * seguir;
+      const cy = H / 2 + est.objetivo.y * R * seguir;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter";
+
+      const respiro = reduce.matches ? 0 : Math.sin(t / 96) * 0.5 + 0.5;
+      /* DORMANT no es negro: es un ojo dormido. 0.16 de piso para que exista
+         antes de que llegue nadie, y suba a 1 con la presencia. */
+      const vigor = 0.16 + est.presencia * 0.84;
+      /* LOCK contrae la pupila: el radio interior crece hacia el collar. */
+      const pupila = (14 + est.foco * 9) * k;
+
+      for (let r = 6; r <= 360; r += 1.6) {
+        let a = lum(r);
+        if (a <= 0.005) continue;
+
+        if (r < 24) { a *= 1 - est.foco * 0.5; }
+        if (r >= 68 && r <= 77) { a *= 0.45 + vigor * 0.9; }              // limbo: el pulso
+        if (r > 77 && r < 136) { a *= 0.5 + vigor * 0.6 + est.energia * 0.5; } // filamentos: el gesto
+        if (r >= 136 && r <= 245) {
+          /* Anillos de datos: tiemblan cuando el sistema NO tiene lock, y se
+             aquietan cuando lo consigue. Es la señal de que el sistema se
+             estabilizó, legible sin leer una etiqueta. */
+          const temblor = (1 - est.foco) * (reduce.matches ? 0 : Math.sin(t / 13 + r / 7) * 0.28);
+          a *= 0.55 + vigor * 0.45 + temblor;
+        }
+        if (r > 245) { a *= 0.35 + respiro * 0.3 * vigor; }
+
+        const rr = r * k;
+        if (rr < pupila) continue;
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(178, 124, 255, ${Math.min(1, a * 0.5)})`;
+        ctx.lineWidth = 1.6 * k * 1.6;
+        ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      /* La raya de barrido: en la lámina es «fila 341, media 110 sobre TODO el
+         ancho del panel». Acá es el escaneo, y su brillo depende del estado —
+         en LOCK se afila, en DORMANT casi no está. */
+      const barrido = 0.10 + est.presencia * 0.5 + est.foco * 0.4;
+      const g = ctx.createLinearGradient(0, cy, W, cy);
+      g.addColorStop(0, "rgba(178,124,255,0)");
+      g.addColorStop(0.5, `rgba(226,196,255,${barrido})`);
+      g.addColorStop(1, "rgba(178,124,255,0)");
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1 + est.foco * 1.4;
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+
+      /* El núcleo: el ∞ de la lámina vive acá como punto de convergencia. */
+      ctx.globalCompositeOperation = "source-over";
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(6,4,10,${0.6 + est.foco * 0.4})`;
+      ctx.arc(cx, cy, pupila, 0, Math.PI * 2);
+      ctx.fill();
+      if (est.foco > 0.02) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(232,214,255,${est.foco * 0.9})`;
+        ctx.lineWidth = 1.2;
+        ctx.arc(cx, cy, pupila + 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(dibujar);
+    };
+    requestAnimationFrame(dibujar);
+  }
+</script>
