@@ -49,28 +49,48 @@ const box = `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px`;
 
 <div class:list={["kx-organismo", className]} data-escena={escena}
      style={`--kx-org-w:${o.w};--kx-org-h:${o.h};--kx-org-x:${o.x};--kx-org-y:${o.y}`}>
-  <div class="kdx-lam kx-organismo__lienzo" style={`width:${W}px;height:${H}px`} data-lamina-host>
-    <Bloque box={box} />
+  <div class="kx-organismo__caja">
+    <div class="kdx-lam kx-organismo__lienzo" style={`width:${W}px;height:${H}px`} data-lamina-host>
+      <Bloque box={box} />
+    </div>
   </div>
 </div>
 
 <style>
-  /* El recorte manda: el contenedor tiene la proporción del bloque, no la del
-     póster entero. Así el organismo llena la región de arte en vez de quedar
-     nadando en el margen del cartel. */
+  /* CONTENER, NO RECORTAR.
+     La version anterior le imponia al contenedor la proporcion del bloque
+     (MACHINE es 393x778, vertical) mientras la region de arte de la escena es
+     mas ancha que alta. Resultado medido: 527x1042 arrancando en y=-76 — el
+     organismo se salia por arriba y el panel de pseudocodigo quedaba cortado
+     por la izquierda.
+
+     Ahora el organismo se comporta como una obra colgada: entra ENTERO en su
+     region, centrado, conservando su proporcion. Nada se sale, nada se corta. */
   .kx-organismo {
     position: relative;
+    display: grid;
+    place-items: center;
     width: 100%;
-    aspect-ratio: var(--kx-org-w) / var(--kx-org-h);
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
+  }
+  /* La caja toma la proporcion del bloque pero nunca excede su region: el
+     par max-width/max-height es lo que convierte "escalar" en "contener". */
+  .kx-organismo__caja {
+    position: relative;
+    aspect-ratio: var(--kx-org-w) / var(--kx-org-h);
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
     container-type: inline-size;
+    overflow: hidden;
   }
   .kx-organismo__lienzo {
     position: absolute;
     transform-origin: 0 0;
-    /* Lleva el origen del lienzo a la esquina de la caja y escala el recorte
-       al ancho disponible. 100cqw es el ancho del contenedor, no del viewport:
-       el organismo se adapta a su región, no a la pantalla. */
+    /* 100cqw es el ancho de la caja ya contenida, no el del viewport. El
+       translate lleva el origen del poster a la esquina de la caja medida. */
     transform:
       scale(calc(100cqw / (var(--kx-org-w) * 1px)))
       translate(calc(var(--kx-org-x) * -1px), calc(var(--kx-org-y) * -1px));

@@ -1,0 +1,98 @@
+---
+/**
+ * KODEX−∞ · LA LÁMINA COMPLETA COMO ESCENA
+ *
+ * Corrección de rumbo de Ocin, 2026-08-25: el intento anterior portaba sólo el
+ * ORGANISMO central de la lámina y lo metía dentro del template genérico del
+ * corredor — título genérico, metadata genérica, dossier, HUD, CTA. El
+ * resultado era «arte correcto dentro de una composición incorrecta», que
+ * nunca se iba a parecer a la referencia por mucho que se refinara el recorte.
+ *
+ * El patrón correcto no era extraer organismos. Era:
+ *
+ *     cada lámina codificada COMPLETA = un Scene Component montable
+ *     dentro del KODEX shell.
+ *
+ * La lámina aporta todo lo que es la escena: arte, tipografía, micrográficos,
+ * márgenes, jerarquía, color, interacción y motion. El shell aporta sólo lo
+ * que la rodea: navegación, memoria, estado, transición y accesibilidad.
+ * Nada más. Por eso acá no hay títulos, ni tablas de metadata, ni CTA: eso ya
+ * vive dentro de la lámina, compuesto por quien la diseñó.
+ *
+ * Desktop y móvil NO comparten coreografía. En desktop la plancha entra
+ * entera, ajustada al viewport. En móvil NO se encoge —`movil.ts` midió que
+ * escalar a 390px deja 24 de 29 textos ilegibles—: se monta el tríptico del
+ * kit, que separa el mirar de lejos (la obra) del leer de cerca (su texto).
+ */
+import "../../../styles/kodex-lamina.css";
+
+const W = 1672, H = 941;
+
+interface Props {
+  /** id de la lámina, p.ej. "t01-02-observation-eye" — lo usa el runtime de vida */
+  lamina: string;
+  class?: string;
+}
+const { lamina, class: className } = Astro.props;
+---
+
+<div class:list={["kx-escena-lamina", className]} data-escena-lamina={lamina}>
+  <div class="kdx-lam-fit" data-kdx-fit>
+    <div class="kdx-lam" style={`width:${W}px;height:${H}px`} data-lamina={lamina}>
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  /* La plancha ocupa el escenario completo. `position:absolute; inset:0` es lo
+     que la página de lámina usa para su viewport; acá el ancla es la escena,
+     no la ventana, para que el shell siga dibujando su navegación por encima. */
+  .kx-escena-lamina {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #000;
+  }
+  .kx-escena-lamina .kdx-lam-fit {
+    --s: 1; --tx: 0px; --ty: 0px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .kx-escena-lamina .kdx-lam-fit > :global(.kdx-lam) {
+    position: absolute;
+    left: 0; top: 0;
+    transform-origin: 0 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--s));
+  }
+</style>
+
+<script>
+  /* El ajuste al viewport, copiado de la página de lámina: mismo cálculo, misma
+     regla de no ampliar nunca por encima de 1. La diferencia es que acá mide la
+     caja de la escena y no la ventana, porque el shell puede reservar espacio. */
+  const sinks: Array<(t?: number) => void> = [];
+  (window as any).__kdxRegisterFreeze = (fn: (t?: number) => void) => sinks.push(fn);
+  (window as any).__kdxFreeze = (t = 0) => {
+    for (const fn of sinks) fn(t);
+    document.documentElement.dataset.kdxFrozen = "1";
+  };
+
+  const host = document.querySelector<HTMLElement>("[data-escena-lamina]");
+  const fit = host?.querySelector<HTMLElement>("[data-kdx-fit]");
+  if (host && fit) {
+    const ajustar = () => {
+      const r = host.getBoundingClientRect();
+      const vw = r.width || innerWidth;
+      const vh = r.height || innerHeight;
+      const s = Math.min(1, vw / 1672, vh / 941);
+      fit.style.setProperty("--s", String(s));
+      fit.style.setProperty("--tx", ((vw - 1672 * s) / 2).toFixed(2) + "px");
+      fit.style.setProperty("--ty", ((vh - 941 * s) / 2).toFixed(2) + "px");
+    };
+    ajustar();
+    addEventListener("resize", ajustar, { passive: true });
+    if ("ResizeObserver" in window) new ResizeObserver(ajustar).observe(host);
+  }
+</script>
