@@ -96,7 +96,48 @@ const H = 941;
         ajustar();
         addEventListener("resize", ajustar, { passive: true });
       }
-    
+
+      /* ── LOS RÓTULOS QUE VIVEN EN <div> ───────────────────────────────────
+         Medido a 390 px con el tríptico ya montado: 22 rótulos de ESTA lámina
+         —IDLE / BUILD / BLOOM / DISPERSE, PULSE / TRANSMIT / GLITCH / RETURN,
+         los cuatro TEXTURE CROPS con sus hexadecimales, y la rotulación de
+         WAVEFORM & SPECTRAL— seguían pintados ENCIMA de las páginas SIGNAL y
+         EVIDENCE a 2,2-2,9 px efectivos. Ilegibles y, además, repetidos.
+
+         Los dos síntomas tienen UNA causa. El kit lee la plancha con
+         `p,h1,h2,h3,strong,b,span,dd,dt,li,em,small` y la hoja la oculta con
+         ese mismo `:is(…)`. Estos rótulos son `<div>`, así que caían fuera de
+         las dos listas: ni entraban al tríptico —por eso EVIDENCE no los
+         tenía— ni se ocultaban con el resto del cromo.
+
+         No se toca el kit (es de todos) ni los bloques de esta lámina (son de
+         otro nodo). Se NORMALIZA la plancha antes de que el kit la lea:
+         el texto suelto de cada hoja se envuelve en un `<span>`. Entonces el
+         kit sí lo transcribe a EVIDENCE, y la regla
+         `[data-kdx-tri="0"] :is(… span …)` sí lo oculta en SIGNAL.
+
+         Sólo se envuelven HOJAS —`children.length === 0`— así que el `<span>`
+         en línea ocupa exactamente la caja que ocupaba el nodo de texto: no
+         hay reflujo posible. Y sólo bajo 560 px: en escritorio a esta plancha
+         no se le mueve ni un nodo. */
+      if (matchMedia("(max-width:560px)").matches) {
+        const HOJAS = "p,h1,h2,h3,strong,b,span,dd,dt,li,em,small";
+        const NUNCA = new Set(["SCRIPT", "STYLE", "TITLE", "TEXTAREA", "CANVAS", "OPTION"]);
+        const plancha = document.querySelector("[data-lamina]");
+        if (plancha) {
+          for (const el of plancha.querySelectorAll("*")) {
+            if (el.children.length || el.matches(HOJAS)) continue;
+            if (NUNCA.has(el.tagName) || el.closest("svg")) continue;
+            for (const n of [...el.childNodes]) {
+              if (n.nodeType !== 3 || !n.textContent.trim()) continue;
+              const s = document.createElement("span");
+              s.textContent = n.textContent;
+              n.replaceWith(s);
+            }
+          }
+        }
+      }
+
       import { montarMovil } from "../../../components/kodex/lamina/kit/movil";
       montarMovil();
     

@@ -53,6 +53,27 @@ interface Props {
   noKai?: boolean;
   /** Skip the global Cart drawer — no commerce chrome in the art worlds (KODEX). */
   noCart?: boolean;
+  /**
+   * SUPERFICIE BASE de la página. `'dark'` (defecto) = todo el sitio como hasta
+   * hoy: el body pinta `var(--bg)` (#0a0a0a) desde global.css y esta plantilla
+   * no interviene. `'light'` marca <html data-kdx-surface="light"> y SÓLO
+   * entonces se activa la regla de abajo.
+   *
+   * Existe por una escena concreta: VII · RETURN (`/kodex/folio/vi/`), la única
+   * superficie clara del corredor — la lámina la llama OPEN WHITE y su blanco
+   * hueso medido es rgb(248,245,242). Sobre el #0a0a0a global esa escena no
+   * puede alcanzar su papel.
+   *
+   * El TONO no se decide acá: lo pone `--kdx-base` (en :root o en body) desde
+   * la hoja de la escena. Sin esa variable cae al hueso cálido del sistema.
+   */
+  surface?: 'dark' | 'light';
+  /**
+   * Atajo para fijar `--kdx-base` desde la página sin tocar CSS. Sólo tiene
+   * efecto con `surface="light"`. Se filtra a caracteres de color para que un
+   * valor mal formado no pueda cerrar la declaración inline.
+   */
+  surfaceColor?: string;
   /** Skip the Immersive layer, incl. the Hidden Sky UFO blip — KODEX must stay
    *  clean of the site-wide fiction/motion (KODEX pages carry their own reveals). */
   noImmersive?: boolean;
@@ -91,11 +112,26 @@ const {
   noKai = false,
   noCart = false,
   noImmersive = false,
+  surface = 'dark',
+  surfaceColor,
   jsonLd,
   osShell = false,
   preloadImage = null,
 } = Astro.props;
 const themesOn = themesEnabled && !noThemes;
+
+/* Superficie clara: gesto explícito de la página, nunca un defecto. Con
+   `surface` en 'dark' (todas las páginas de hoy) `lightSurface` es false, no se
+   emite atributo alguno y el <html> sale byte a byte igual que antes. */
+const lightSurface = surface === 'light';
+const surfaceTone =
+  lightSurface && typeof surfaceColor === 'string' && /^[#\w(),.%\s/-]+$/.test(surfaceColor)
+    ? surfaceColor.trim()
+    : null;
+/* Hueso cálido del sistema (--warm-bone, tokens.css) como último recurso: si
+   alguien pide superficie clara sin declarar tono, cae en la paleta, no en un
+   blanco de navegador. */
+const LIGHT_FALLBACK = '#f3ebdd';
 
 const path = Astro.url.pathname;
 const isKodexPath = path.startsWith('/kodex/');
@@ -110,7 +146,7 @@ const ldArray = jsonLd
   : null;
 ---
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-kdx-surface={lightSurface ? 'light' : undefined}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -139,8 +175,8 @@ const ldArray = jsonLd
     <link rel="icon" type="image/png" href={isKodexPath ? '/img/kodex/brand/KODEX_Master_Seal_transparent.png' : '/logos/wenu-mapu-square.png'} />
     <link rel="apple-touch-icon" href={isKodexPath ? '/img/kodex/brand/KODEX_Master_Seal_transparent.png' : '/logos/wenu-mapu-square.png'} />
     <link rel="sitemap" href="/sitemap-index.xml" />
-    <meta name="theme-color" content="#0a0a0a" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content={lightSurface ? (surfaceTone ?? LIGHT_FALLBACK) : '#0a0a0a'} />
+    <meta name="color-scheme" content={lightSurface ? 'light' : 'dark'} />
     <meta name="robots" content={robots} />
 
     {/* DNS prefetch + preconnect to third-party origins we always hit */}
@@ -242,7 +278,7 @@ const ldArray = jsonLd
     {!noKai && <script is:inline defer src="/kai/kai-textile.js"></script>}
     {osShell && <ClientRouter />}
   </head>
-  <body>
+  <body style={surfaceTone ? `--kdx-base:${surfaceTone}` : undefined}>
     <a href="#main" class="skip-link">Skip to main content</a>
     {!noNav && <Nav />}
     <main id="main">
@@ -284,6 +320,46 @@ const ldArray = jsonLd
     </script>
   </body>
 </html>
+
+<style is:global>
+  /*
+    SUPERFICIE BASE CONMUTABLE — el fondo oscuro sigue siendo el defecto.
+
+    global.css declara `body { background: var(--bg) }` y --bg es --obsidian
+    (#0a0a0a). Eso no se toca: reescribir esa regla acá (por ejemplo a
+    `html body { background: var(--kdx-base, var(--bg)) }`) parecía lo más
+    elegante, pero sube la especificidad a 0,0,2 y se come fondos legítimos que
+    hoy ganan por orden con 0,0,1 — medido: /kodex/lab/crystal-receiver declara
+    `:root, body { background:#050505 }` y pasaría a #0a0a0a. Un mecanismo para
+    aclarar UNA escena no puede oscurecer otra.
+
+    Por eso la regla va CERRADA CON LLAVE: nada la activa salvo un
+    `data-kdx-surface="light"` explícito. Sin ese atributo el selector no
+    engancha en ninguna página del sitio, y el CSS emitido para el resto es
+    inerte.
+
+    Dos formas de abrirla, ambas opt-in:
+      1. La página lo pide en la plantilla — <Base surface="light" …>, que marca
+         <html data-kdx-surface="light"> (y con ella theme-color y color-scheme).
+      2. La ESCENA lo pide desde su propio DOM — el <body> o cualquier elemento
+         adentro con [data-kdx-surface="light"]. Sirve para que una escena o una
+         lámina reclame su papel sin editar esta plantilla ni el frontmatter de
+         su página. La vía 1 manda: con el atributo ya puesto en <html> (aunque
+         sea en 'dark') ningún descendiente puede aclarar la página.
+    Van como reglas SEPARADAS a propósito: si un navegador no entiende :has(),
+    descarta esa regla sola y la vía 1 sigue viva.
+
+    El TONO es `--kdx-base`, declarable desde :root o body por la hoja de la
+    escena (es ahí donde vive la croma de cada lámina — acá no se unifica
+    ninguna paleta). El fallback es el hueso cálido del sistema.
+  */
+  html[data-kdx-surface="light"] body {
+    background: var(--kdx-base, #f3ebdd);
+  }
+  html:not([data-kdx-surface]):has([data-kdx-surface="light"]) body {
+    background: var(--kdx-base, #f3ebdd);
+  }
+</style>
 
 <style>
   /* Theme switcher strip — sits flush under the (always-dark) sacred footer and

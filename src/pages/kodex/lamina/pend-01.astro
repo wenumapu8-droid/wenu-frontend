@@ -685,6 +685,168 @@ import "../../../styles/kodex-lamina.css";
     
       import { montarFases } from "../../../lib/kodex/estado";
       montarFases();
+
+      /* ══ EL TELEFONO ═══════════════════════════════════════════════════════
+         MEDIDO a 390 px antes de esto: la banda de 1731x909 cae a k=0,2253 y
+         queda en 390x205 —una estampilla en el 24 % de la pantalla— con su
+         cabezal en 6,98 px y su lema en 3,60 px. Es exactamente el desktop
+         encogido que el canon prohibe.
+
+         Y NO HABIA NADIE PARA ARREGLARLO. Las dos rutas del kit se abstienen
+         en esta plancha, cada una por su propia regla:
+           · `triptico.ts` sale sin montar con `if (bloques.length < 3) return`
+             y esta banda tiene exactamente DOS textos —el cabezal «KODEX-∞» y
+             el lema—, porque la plancha no se nombra a si misma;
+           · `movil.ts`, el respaldo, se aparta el mismo bajo 560 px (su linea
+             52, para no pelearse el armazon con el triptico).
+         Resultado medido: `.kdx-tri` ausente y `[data-kdx-movil]` ausente en un
+         telefono. Dos soluciones correctas, ninguna montada.
+
+         Asi que se monta ACA, con el MISMO CONTRATO del kit —las clases
+         `kdx-tri*` y el atributo `data-kdx-tri` sobre la plancha— para que
+         `kodex-lamina.css` la trate igual que a las otras 38: obra de fondo,
+         texto de la plancha oculto en I y en III (no se repite), navegacion
+         colapsada arriba, pasos abajo. No se reimplementa el clasificador del
+         kit: con DOS bloques no hay nada que clasificar —el de cuerpo mayor es
+         la senal y el otro es la evidencia—, y eso es una regla, no una lista.
+         Ni una palabra inventada: los dos textos se leen de la propia plancha.
+
+         Lo unico propio de esta lamina es el ENCUADRE: es la unica apaisada
+         del lote (1731x909), y anclada arriba a 205 px de alto quedaba varada
+         contra el borde con 639 px de negro debajo. Se centra verticalmente
+         moviendo `top` —nunca su `transform`, que es de `escala.ts`— y asi la
+         banda se lee como banda. Es camara, no rediseno: el dibujo no cambia
+         un pixel, y en escritorio nada de esto corre. */
+      import { montarDescenso } from "../../../lib/kodex/descenso-ui";
+      import { recordar } from "../../../lib/kodex/memoria";
+
+      const CORTE_MOVIL = 560;
+      if (matchMedia(`(max-width:${CORTE_MOVIL}px)`).matches && !document.querySelector(".kdx-tri")) {
+        const idLam = raiz.dataset.lam || "pend-01";
+        const bloques = Array.from(raiz.querySelectorAll<SVGTextElement>("svg text"))
+          .map((el) => ({
+            t: (el.textContent || "").replace(/\s+/g, " ").trim(),
+            cuerpo: parseFloat(getComputedStyle(el).fontSize) || 0,
+          }))
+          .filter((b) => b.t.length > 1)
+          .sort((a, b) => b.cuerpo - a.cuerpo);
+
+        if (bloques.length) {
+          const linea = (t: string, c: string) => {
+            const e = document.createElement("p");
+            e.className = c;
+            e.textContent = t;
+            return e;
+          };
+
+          const tri = document.createElement("div");
+          tri.className = "kdx-tri";
+          tri.dataset.pagina = "0";
+          tri.setAttribute("role", "group");
+          tri.setAttribute("aria-label", "Plate, recomposed in three pages");
+
+          /* I · SIGNAL — el concepto se anuncia: el cabezal, a cuerpo de cartel. */
+          const pg1 = document.createElement("section");
+          pg1.className = "kdx-tri__p kdx-tri__p--signal";
+          pg1.append(linea("I · SIGNAL", "kdx-tri__ojo"));
+          const macro = document.createElement("h1");
+          macro.className = "kdx-tri__macro";
+          macro.textContent = bloques[0].t;
+          pg1.append(macro);
+
+          /* II · FIELD — la banda entera, nitida, centrada y sin nada encima. */
+          const pg2 = document.createElement("section");
+          pg2.className = "kdx-tri__p kdx-tri__p--field";
+          pg2.append(linea("II · FIELD", "kdx-tri__ojo"), linea("THE PLATE, WHOLE", "kdx-tri__pie"));
+
+          /* III · EVIDENCE — el lema, ya legible, y de donde viene. */
+          const pg3 = document.createElement("section");
+          pg3.className = "kdx-tri__p kdx-tri__p--evidence";
+          pg3.append(linea("III · EVIDENCE", "kdx-tri__ojo"));
+          const datos = document.createElement("div");
+          datos.className = "kdx-tri__datos";
+          for (const b of bloques.slice(1)) datos.append(linea(b.t, "kdx-tri__d"));
+          pg3.append(datos);
+          const cont = document.createElement("div");
+          cont.className = "kdx-tri__cont";
+          cont.append(linea(idLam.toUpperCase(), "kdx-tri__e"));
+          pg3.append(cont);
+
+          tri.append(pg1, pg2, pg3);
+
+          const pasos = document.createElement("nav");
+          pasos.className = "kdx-tri__pasos";
+          pasos.setAttribute("aria-label", "Pages of this plate");
+          const NOMBRES = ["SIGNAL", "FIELD", "EVIDENCE"];
+          const puntos: HTMLButtonElement[] = [];
+          const ir = (n: number) => {
+            const i = Math.max(0, Math.min(2, n));
+            tri.dataset.pagina = String(i);
+            puntos.forEach((b, k) => b.setAttribute("aria-current", k === i ? "true" : "false"));
+            raiz.dataset.kdxTri = String(i);
+          };
+          NOMBRES.forEach((n, i) => {
+            const b = document.createElement("button");
+            b.type = "button";
+            b.className = "kdx-tri__punto";
+            b.textContent = `${i + 1} ${n}`;
+            b.addEventListener("click", () => ir(i));
+            puntos.push(b);
+            pasos.append(b);
+          });
+          tri.append(pasos);
+
+          /* Deslizar entre paginas; los botones siguen estando, el gesto no es
+             el unico camino. */
+          let x0 = 0;
+          tri.addEventListener("touchstart", (e) => { x0 = (e as TouchEvent).touches[0].clientX; }, { passive: true });
+          tri.addEventListener("touchend", (e) => {
+            const dx = (e as TouchEvent).changedTouches[0].clientX - x0;
+            if (Math.abs(dx) > 56) ir(Number(tri.dataset.pagina) + (dx < 0 ? 1 : -1));
+          }, { passive: true });
+
+          document.body.append(tri);
+
+          /* El armazon acotado a la pantalla —§2 de `38-GESTURE-TIMELINE`, limite
+             NO NEGOCIABLE: "body-level Y scroll remains disabled"— y la banda
+             centrada. `top` y nunca `transform`: el transform es de `escala.ts`
+             y pisarlo la descoloca. El oyente va DESPUES del de `escala.ts`, asi
+             que al girar el telefono la escala se recalcula primero y el
+             encuadre despues. */
+          raiz.style.position = "fixed";
+          raiz.style.left = "0";
+          const encuadrar = () => {
+            const alto = raiz.getBoundingClientRect().height;
+            raiz.style.top = `${Math.max(0, (innerHeight - alto) / 2)}px`;
+            document.body.style.height = "100dvh";
+            document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
+          };
+          encuadrar();
+          addEventListener("resize", encuadrar, { passive: true });
+
+          ir(0);
+
+          /* El agujero de gusano: LA MISMA PLACA que abren las otras laminas,
+             con su propia semilla por pagina. Se reusa `montarDescenso`, no se
+             fabrica una segunda interfaz para la misma maquina. */
+          for (let i = 0; i < 3; i++) {
+            const boca = document.createElement("button");
+            boca.type = "button";
+            boca.className = "kdx-tri__boca";
+            boca.setAttribute("data-kdx-abrir-descenso", "");
+            boca.textContent = `◎ ENTER ANOTHER CONCEPT · FROM ${NOMBRES[i]} →`;
+            boca.addEventListener("click", () => recordar("WORMHOLE_OPENED", `kdx:lamina/${idLam}`, { page: i }), { once: true });
+            [pg1, pg2, pg3][i].append(boca);
+            montarDescenso({ boca, escena: `kdx:lamina/${idLam}#${NOMBRES[i]}` });
+          }
+
+          /* Auditable como el del kit: "nada se pierde" tiene que comprobarse. */
+          tri.dataset.kdxBloques = String(bloques.length);
+          tri.dataset.kdxRepartidos = String(bloques.length);
+          tri.dataset.kdxLamina = idLam;
+        }
+      }
     </script>
 
     <!-- Salida de la lamina. Hallazgo #5 de la auditoria: 0 enlaces, callejon

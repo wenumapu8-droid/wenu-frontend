@@ -56,8 +56,33 @@ import Pie from "../../../components/kodex/lamina/u08/Pie.astro";
       const lam = document.querySelector(".lam");
       const ajustar = () => {
         const k = Math.min(innerWidth / 1122, innerHeight / 1402);
-        lam.style.transform = `scale(${k})`;
-        document.body.style.height = `${1402 * k}px`;
+        /* EL SOBRANTE VERTICAL SE REPARTE, NO SE ACUMULA DEBAJO.
+           Medido en el tríptico, página II FIELD, a 390x844: la plancha caía
+           en 390x487 clavada al borde superior y dejaba 357 px (42 % de la
+           pantalla) de negro muerto abajo. El precio no era el hueco sino el
+           choque: el rótulo "II · FIELD" de la página se imprime en y 58-72 y
+           ahí arriba ya estaba el propio cabezal de la obra, así que quedaban
+           entre 3 y 6 textos de la plancha DEBAJO del rótulo. Dos textos en el
+           mismo lugar es exactamente lo que condena el propio tríptico
+           ("nunca competir con otro titular igual de grande"), y la página II
+           se define como "la obra sola, entera, SIN NADA ENCIMA".
+
+           Repartiendo el sobrante, la obra arranca en y 178 y el rótulo cae
+           sobre negro limpio: el cartel queda enmarcado en vez de encajado.
+
+           ESCRITORIO INTACTO, y se puede comprobar sin abrir el navegador: a
+           1440x900 manda la altura (k = 900/1402) y 1402*k == innerHeight
+           EXACTO, o sea sobra == 0 y el transform vuelve a ser `scale(k)`
+           puro. El desplazamiento sólo existe cuando manda el ancho, que es
+           el caso del teléfono.
+
+           Va DENTRO del transform y no como `top`/`margin`: con
+           `transform-origin: 0 0` un desplazamiento por fuera corre la obra en
+           vez de centrarla —ya se pagó ese error una vez en la hoja del
+           tríptico—. Acá se compone con la escala en el mismo cálculo. */
+        const sobra = Math.max(0, (innerHeight - 1402 * k) / 2);
+        lam.style.transform = `translateY(${sobra}px) scale(${k})`;
+        document.body.style.height = `${1402 * k + sobra * 2}px`;
       };
       ajustar();
       addEventListener("resize", ajustar, { passive: true });

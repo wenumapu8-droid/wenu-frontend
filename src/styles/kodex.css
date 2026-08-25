@@ -1232,12 +1232,56 @@
   background:var(--kdx-black,#080808);
 }
 .kx-os-scene--return{
-  --ink:#080808; --gray:#333335; --dim:#686868; --line:rgba(8,8,8,.18);
-  background:var(--kdx-off-white,#E6E6E6); color:#080808;
+  /* OPEN WHITE. La lamina canonica (reference/canon/u03-return.png) es papel
+     crema al 95.4% de pixeles claros: no es "gris claro", es PAPEL. El valor
+     que habia aqui -- #E6E6E6, el off-white del chrome oscuro -- es el gris de
+     la tinta clara de las otras seis escenas usado como fondo, y arrastraba
+     toda la escena a 37% de papel. Se reusa la paleta que el propio archivo ya
+     tenia escrita para "la inversion" (.kx--white, mas arriba): mismo papel,
+     misma tinta, misma linea. No se inventa una croma nueva. */
+  --paper:#F2EFE8;
+  --ink:#0a0a0a; --gray:#5f5c55; --dim:#8f8a80; --line:#d8d3c8;
+  background:var(--paper); color:var(--ink);
+
+  /* Y aca esta la palanca real. Los componentes que comparten las siete
+     escenas -- KodexDataStrip, el rail, la tira, el chrome -- no escriben
+     colores literales: leen los tokens --kdx-*. Redefinirlos EN EL NODO DE
+     ESTA ESCENA da vuelta todo ese chrome de una sola vez, sin editar un solo
+     archivo de componente y sin ninguna posibilidad de alcanzar a las otras
+     seis, que siguen heredando los suyos de :root.
+     La semantica se conserva: --kdx-off-white no era "blanco", era LA TINTA;
+     --kdx-near-black no era "negro", era EL CAMPO DEL PANEL. Sobre papel la
+     tinta es oscura y el campo es claro. Medido antes de esto: el panel de
+     datos de la derecha era un rectangulo gris (L=168) con texto blanco
+     encima -- el dato mas denso de la escena, ilegible. */
+  --kdx-off-white:#141414;
+  --kdx-dust-white:#141414;
+  --kdx-near-black:#EBE7DD;
+  --kdx-muted:#6b675f;
+  --kdx-line:rgba(10,10,10,.14);
+  /* El acento NO cambia de tono -- sigue siendo el acido de RETURN, la croma
+     propia de esta lamina. Cambia de valor: #A7FF00 sobre papel mide L=221 y
+     no se lee. Este es el mismo verde, entintado para papel. */
+  --kdx-acid:#5C7A00;
 }
+/* El hover del CTA pinta el fondo con el acento; con el acento ya entintado,
+   el texto tiene que ser el papel y no la tinta. */
+.kx-os-scene--return .kx-os-primary:hover{ color:var(--paper,#F2EFE8); }
+/* Los tres velos del ritual oscuro (crt, grain, tunnel) estan pintados para
+   restar luz. A .08 en multiply seguian bajando el papel ~17 puntos. El
+   precedente ya existia en este archivo: `.kx--white` los apaga.
+   OJO, medido: apagarlos del todo (`opacity:0`, o `display:none`, o
+   `visibility:hidden`) cuelga la escena. `.kx-tunnel` es un canvas con un
+   requestAnimationFrame permanente -- 220 estrellas y 7 anillos con
+   shadowBlur a pantalla completa -- y mientras conserve capa compuesta propia
+   el navegador lo rasteriza aparte; sin capa propia cada cuadro invalida la
+   pagina entera y el hilo principal deja de responder (medido: la pagina pasa
+   de 4.8s a >40s sin llegar a responder). Por eso se deja en un dos por ciento
+   con multiply -- practicamente invisible sobre el papel (242 -> 237) y con
+   su capa intacta. Es una anulacion optica, no una desconexion. */
 .kx-os-scene--return .kx-crt,
-.kx-os-scene--return .kx-grain,
-.kx-os-scene--return .kx-tunnel{ opacity:.08; mix-blend-mode:multiply; }
+.kx-os-scene--return .kx-tunnel{ opacity:.02; mix-blend-mode:multiply; }
+.kx-os-scene--return .kx-grain{ opacity:.03; mix-blend-mode:multiply; }
 .kx-os-scene::before{
   opacity:.48; mix-blend-mode:normal;
   background:
@@ -1246,9 +1290,14 @@
     linear-gradient(90deg, transparent 0 50%, rgba(230,230,230,.08) 50.08%, transparent 50.16%);
 }
 .kx-os-scene--return::before{
+  /* Misma composicion: halo de acento + anillo de horizonte. Lo que cambia es
+     que el anillo deja de ser un disco de tinta al 38% sobre el papel y pasa a
+     ser una linea. El centro ya no se rellena con un color: se deja pasar el
+     papel. */
+  opacity:.32;
   background:
-    radial-gradient(circle at 70% 42%, rgba(166,255,0,.26), transparent 32vw),
-    radial-gradient(circle at 70% 42%, #E6E6E6 0 9vw, rgba(8,8,8,.38) 9.2vw 9.45vw, transparent 28vw);
+    radial-gradient(circle at 70% 42%, rgba(166,255,0,.16), transparent 32vw),
+    radial-gradient(circle at 70% 42%, transparent 0 9vw, rgba(10,10,10,.20) 9.2vw 9.45vw, transparent 28vw);
 }
 .kx-os-stage{
   position:relative; min-height:100dvh; width:100%; box-sizing:border-box;
@@ -1335,14 +1384,32 @@
   display:grid; place-items:center; overflow:hidden;
   box-shadow:0 30px 90px rgba(0,0,0,.45),0 0 42px color-mix(in srgb, var(--gold) 10%, transparent);
 }
-.kx-os-stage--return .kx-os-stage__art{ background:#f3f3f3; }
+.kx-os-stage--return .kx-os-stage__art,
+.kx-os-scene--return .kx-os-stage__art{
+  background:var(--paper,#F2EFE8); border-color:var(--line,#d8d3c8);
+  box-shadow:0 18px 56px rgba(64,56,42,.14), 0 0 0 1px rgba(10,10,10,.04);
+}
 .kx-os-stage__art img{
   width:100%; height:100%; object-fit:contain; padding:clamp(12px,2vw,22px); box-sizing:border-box;
   filter:contrast(1.08) saturate(.8);
 }
 .kx-os-scene--prologue .kx-os-stage__art img{ opacity:.36; filter:contrast(1.35) grayscale(1); }
 .kx-os-scene--archive .kx-os-stage__art img{ filter:contrast(1.25) grayscale(1); }
+/* El asset de RETURN es un NEGATIVO (mandala-0cin-negativo.png): tinta clara
+   sobre campo negro. Invertirlo es revelarlo, no alterarlo -- devuelve la
+   positiva: tinta sobre papel. Esta regla ya existia para la <img>, pero la
+   <img> hoy es solo la textura fuente (opacity:0) y lo que se ve es el canvas
+   CRT que la lee: sin la misma inversion sobre el canvas, la placa seguia
+   siendo un cuadrado negro de 527x527 -- 21% del viewport en negro. */
 .kx-os-scene--return .kx-os-stage__art img{ filter:contrast(1.1) grayscale(1) invert(1); mix-blend-mode:multiply; }
+.kx-os-scene--return .kdx-crt-canvas,
+.kx-os-scene--return .kx-os-stage__crt{ filter:invert(1); mix-blend-mode:multiply; }
+/* Las lineas de barrido de la placa estaban en `screen` con blanco: sobre
+   papel no existen. En multiply con tinta si, y la trama se lee como impresa. */
+.kx-os-scene--return .kx-os-stage__art::after{
+  background:repeating-linear-gradient(0deg,rgba(10,10,10,.05) 0 1px,transparent 1px 4px);
+  mix-blend-mode:multiply; opacity:.5;
+}
 .kx-os-stage__art::after{
   content:''; position:absolute; inset:0; pointer-events:none; opacity:.28;
   background:repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 1px,transparent 1px 4px);
@@ -1389,7 +1456,7 @@
 }
 .kx-os-scene--return .kx-specimen-readout div,
 .kx-os-scene--return .kx-machine-readout div,
-.kx-os-scene--return .kx-os-drawer dl div{ background:rgba(230,230,230,.9); }
+.kx-os-scene--return .kx-os-drawer dl div{ background:rgba(255,255,255,.72); }
 .kx-specimen-readout dt,
 .kx-machine-readout dt,
 .kx-os-drawer dt{ color:var(--gray); }
@@ -3639,6 +3706,68 @@
 .kx-os-scene--return .kx-status strong,
 .kx-os-scene--return .kx-os-stage__coords strong{ color:#0d0d0d; }
 .kx-os-scene--return .kx-barcode{ filter:invert(1); opacity:.72; }
+
+/* ══ RETURN · la superficie, no solo la tinta ═══════════════════════════
+   El chrome del corredor esta pintado para tinta clara sobre negro y se
+   apoya en campos NEGROS que son ajenos a la escena clara: la barra de
+   estado degrada desde #000, los botones del deckbar son rgba(0,0,0,.45), el
+   halo lleva una sombra interior negra al 70% y la retícula dibuja lineas
+   blancas que sobre papel no existen. Todo eso vive en reglas compartidas por
+   las siete escenas, asi que aqui se acota -- ninguna de estas reglas puede
+   alcanzar a PROLOGUE, DESCENT, ARCHIVE, MACHINE, COSMOLOGY ni THRESHOLD.
+   Los valores no se inventan: son los que `.kx--white` ya declara para "la
+   inversion" mas arriba en este mismo archivo. */
+.kx-os-scene--return .kx-status{
+  background:linear-gradient(var(--paper,#F2EFE8) 60%,transparent);
+  border-top-color:rgba(138,111,47,.30);
+  box-shadow:none;
+}
+.kx-os-scene--return .kx-deckbar button{
+  background:rgba(255,255,255,.62); border-color:#c9c3b6; color:var(--ink,#0a0a0a);
+}
+.kx-os-scene--return .kx-deckbar button:hover{ background:rgba(255,255,255,.86); border-color:var(--ink,#0a0a0a); }
+.kx-os-scene--return .kx-deckbar button.kx-deckbar--turn{
+  border-color:#7f9c1f; color:#4c5f10; box-shadow:0 0 18px rgba(166,255,0,.22);
+}
+/* La reticula: misma trama de 64px, tinta en vez de luz. */
+.kx-os-scene--return .kx-os-stage__grid{
+  opacity:.5;
+  background:
+    linear-gradient(90deg,rgba(10,10,10,.05) 1px,transparent 1px),
+    linear-gradient(0deg,rgba(10,10,10,.045) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+/* El halo conserva su geometria -- circulo, dos anillos, un barrido -- y
+   pierde el pozo negro interior, que era lo unico que lo hacia gris. */
+.kx-os-scene--return .kx-os-stage__halo{
+  border-color:rgba(10,10,10,.20);
+  box-shadow:inset 0 0 90px rgba(255,255,255,.75), 0 0 60px rgba(242,239,232,.8);
+}
+.kx-os-scene--return .kx-os-stage__halo::before,
+.kx-os-scene--return .kx-os-stage__halo::after{ border-color:rgba(10,10,10,.16); }
+.kx-os-scene--return .kx-os-stage__scan{ opacity:.4; mix-blend-mode:multiply; }
+/* LA VINIETA. Medido: el degradado del fondo de RETURN no salia de ninguna
+   regla de la escena sino de `.kx::after`, compartida por las siete -- un
+   `radial-gradient(... rgba(0,0,0,.8) 100%)` que cierra los bordes en negro.
+   Sobre negro es profundidad; sobre papel es una mancha: el borde inferior
+   medía L=182 contra 235 del centro, y las cuatro esquinas eran lo mas oscuro
+   de la lamina despues de la obra. Se conserva la MISMA geometria de cierre
+   -- misma elipse, mismo centro -- entintada, y las lineas de barrido pasan de
+   blanco (invisible sobre papel) a tinta. */
+.kx-os-scene--return::after{
+  opacity:.26;
+  background:
+    repeating-linear-gradient(0deg,rgba(10,10,10,.03) 0 1px,transparent 1px 4px),
+    radial-gradient(110% 80% at 50% 35%,transparent 62%,rgba(10,10,10,.16) 100%);
+}
+
+/* El interruptor de sonido vive fuera de la escena (position:fixed, hijo de
+   <body>), asi que no lo alcanza el prefijo de escena. `:has` lo acota igual
+   de bien: solo en la pagina donde RETURN esta montada. El precedente de esta
+   forma ya esta en kodex-descenso.css (`body:has(.kdx-tri) .kdx-son`). */
+body:has(.kx-os-scene--return) .kdx-son{
+  background:rgba(255,255,255,.55); border-color:rgba(10,10,10,.16); color:rgba(10,10,10,.55);
+}
 
 /* El control de fase del archivo. Se lee como parte del rail de datos, no como
    un boton de formulario: es un interruptor de instrumento. */

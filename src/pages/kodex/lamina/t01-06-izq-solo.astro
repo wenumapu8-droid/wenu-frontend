@@ -21,21 +21,181 @@ const W = 1672, H = 941;
 <html lang="es">
   <head>
     <meta charset="utf-8" />
+    <!-- SIN ESTA LÍNEA EL TELÉFONO MIENTE. Medido a 390 px: `clientWidth` daba
+         980 y `visualViewport.scale` 0,398 — el navegador maquetaba a 980 px y
+         después encogía la página entera al 39,8 %. La micrografía trazada del
+         cromo, dibujada para 7-9 px de versal, caía a ~3 px. O sea exactamente
+         el escritorio encogido que el canon prohíbe, y ni siquiera declarado:
+         lo hacía el navegador por defecto porque esta página —a diferencia de
+         sus hermanas t01— nunca declaró viewport. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>KODEX−∞ · t01-06 · bloque Izquierda (banco privado)</title>
     <meta name="robots" content="noindex, nofollow" />
     <style is:global>
       html, body { margin: 0; padding: 0; background: #000; overflow: hidden; }
+
+      /* ── MÓVIL: DOS COREOGRAFÍAS ────────────────────────────────────────
+         "Desktop and mobile are two choreographies." Acá esa frase pide algo
+         distinto que en las demás láminas, y conviene decir por qué.
+
+         El tríptico del kit no puede montar en esta plancha, y hace bien en
+         abstenerse: TODO su cromo está TRAZADO. Lo dice su propio bloque —
+         "a 7-9 px de versal la mono del póster no existe en ninguna máquina",
+         y por eso los rótulos salen de `arte-izq.ts` como recorridos, no como
+         texto. Medido: 0 nodos de texto en el DOM de la plancha. El tríptico
+         lee `<text>` y hojas HTML; acá no hay ninguno, así que sale con
+         `bloques.length < 3` y no inventa nada. Correcto.
+
+         Entonces "el contenido debajo, extraído de la propia lámina" no tiene
+         de dónde extraerse: en esta plancha el contenido ES el trazo. Lo que
+         queda legible de un trazo no es transcribirlo —no se puede— sino
+         mirarlo al tamaño para el que fue dibujado. Así que las dos
+         coreografías son:
+
+           CARTEL  la obra entera, a ancho completo, como se ve un póster;
+           LEER    la misma obra a escala 1:1, desplazable, que es la escala a
+                   la que su micrografía fue diseñada y se lee.
+
+         Una sola variable las separa —`--k`— y ninguna de las dos encoge el
+         escritorio: CARTEL declara que es un cartel y no pide que se lea, y
+         LEER no reduce un solo píxel.
+
+         El banco de puntaje NO SE ENTERA: sirve la página a 1672×941, muy por
+         encima de 560 px, así que nada de acá se aplica y la plancha sigue
+         en 0,0 a escala 1, que es lo único que `_t0106_izq_score.mjs` mide. */
+      .izq-cabo, .izq-pista { display: none; }
+
+      @media (max-width: 560px) {
+        html, body { height: 100dvh; }
+        body { display: flex; flex-direction: column; }
+
+        .izq-cabo {
+          display: block;
+          flex: 0 0 auto;
+          padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+          border-bottom: 1px solid rgba(63, 216, 210, .22);
+          font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        }
+        /* Croma propia de t01-06: cian de resonancia y magenta de fase, los
+           dos colores que la plancha ya usa. Ni un rojo de sistema acá. */
+        .izq-titulo {
+          margin: 0 0 9px; font-size: 11px; letter-spacing: .22em;
+          color: #3fd8d2; text-transform: uppercase;
+        }
+        /* 56 px reservados a la derecha: el control de sonido del sistema es
+           `fixed` arriba a la derecha y ocupa 44x46 desde x=334. Sin esta
+           reserva el botón LEER 1:1 le pasaba por debajo — "no quiero que se
+           sobrepongan elementos", y un botón a medio tapar además no se toca
+           bien. Se corre la navegación, no el chrome del sistema. */
+        .izq-modos { display: flex; gap: 8px; padding-right: 56px; }
+        .izq-b {
+          flex: 1 1 0; min-height: 40px; padding: 9px 6px;
+          background: transparent; color: rgba(216, 212, 204, .62);
+          border: 1px solid rgba(216, 212, 204, .2);
+          font: 12px/1.2 ui-monospace, "SF Mono", Menlo, monospace;
+          letter-spacing: .16em; text-transform: uppercase;
+        }
+        .izq-b[aria-current="true"] { color: #f0ede8; border-color: #3fd8d2; }
+        .izq-b[data-modo="leer"][aria-current="true"] { border-color: #b055e6; }
+
+        .izq-marco {
+          flex: 1 1 auto; min-height: 0;
+          overflow: hidden; overscroll-behavior: contain;
+          -webkit-overflow-scrolling: touch;
+        }
+        /* En CARTEL el póster se centra en el aire que le sobra; en LEER no se
+           centra nada, porque un contenedor flex centrado con `overflow:auto`
+           deja contenido inalcanzable por arriba en cuanto el riel es más alto
+           que el marco, que es justamente el caso de LEER (778 contra 712). */
+        body[data-izq="cartel"] .izq-marco { display: flex; align-items: center; }
+        /* En LEER el marco es el que se desplaza; el documento nunca. Así el
+           desborde horizontal de la página sigue siendo 0, que es el contrato. */
+        body[data-izq="leer"] .izq-marco { overflow: auto; }
+
+        /* El riel recorta la plancha a su REGIÓN ÚTIL —x 0..640, y 88..866—
+           medida sobre la caja del bloque (left:4 top:88 616×778) más el
+           tajo del panel 06 que llega hasta x=620. Sin este recorte el marco
+           se desplazaría por los 1672×941 del lienzo, casi todo vacío. */
+        .izq-riel {
+          position: relative; overflow: hidden;
+          width: calc(640px * var(--k, 1));
+          height: calc(778px * var(--k, 1));
+        }
+        .izq-riel > .kdx-lam {
+          position: absolute; left: 0; top: calc(-88px * var(--k, 1));
+          transform-origin: 0 0; transform: scale(var(--k, 1));
+        }
+        .izq-pista {
+          display: block; flex: 0 0 auto; margin: 0;
+          padding: 9px 14px calc(9px + env(safe-area-inset-bottom, 0px));
+          font: 11px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+          letter-spacing: .14em; color: rgba(216, 212, 204, .5);
+        }
+      }
     </style>
   </head>
   <body>
-    <div class="kdx-lam" style={`width:${W}px;height:${H}px`} data-lamina="t01-06-ritual-device">
-      <Izquierda box="left:4px;top:88px;width:616px;height:778px" />
+    <header class="izq-cabo">
+      <p class="izq-titulo">t01-06 · Izquierda · banco</p>
+      <nav class="izq-modos" aria-label="Cómo mirar la plancha">
+        <button type="button" class="izq-b" data-modo="cartel" aria-current="true">Cartel</button>
+        <button type="button" class="izq-b" data-modo="leer" aria-current="false">Leer 1:1</button>
+      </nav>
+    </header>
+    <div class="izq-marco">
+      <div class="izq-riel">
+        <div class="kdx-lam" style={`width:${W}px;height:${H}px`} data-lamina="t01-06-ritual-device">
+          <Izquierda box="left:4px;top:88px;width:616px;height:778px" />
+        </div>
+      </div>
     </div>
+    <p class="izq-pista" data-izq-pista>La obra entera. Tocá LEER 1:1 para leer su micrografía.</p>
     <script>
       const sinks = [];
       window.__kdxRegisterFreeze = (fn) => sinks.push(fn);
       window.__kdxFreeze = (t = 0) => { for (const fn of sinks) fn(t); document.documentElement.dataset.kdxFrozen = "1"; };
-    
+
+      /* Las dos coreografías, gobernadas por UNA variable. `--k` es lo único
+         que cambia entre mirar y leer: la hoja de arriba deriva de ella el
+         recorte del riel, el desplazamiento del cielo de la plancha y su
+         escala. Un modo no es una maqueta distinta, es la misma a otra
+         distancia — que es justamente la diferencia entre una coreografía y
+         un rediseño.
+
+         REGIÓN ÚTIL 640×778 desde y=88, no el lienzo de 1672×941: la caja
+         medida del bloque es left:4 top:88 616×778 y el tajo del panel 06
+         llega hasta x=620. Lo demás es negro. */
+      const CORTE = 560, REG_W = 640;
+      if (matchMedia(`(max-width:${CORTE}px)`).matches) {
+        const marco = document.querySelector(".izq-marco");
+        const pista = document.querySelector("[data-izq-pista]");
+        const botones = [...document.querySelectorAll(".izq-b")];
+        const PISTA = {
+          cartel: "La obra entera. Tocá LEER 1:1 para leer su micrografía.",
+          leer: "Escala 1:1 — arrastrá para recorrer la plancha.",
+        };
+        const escala = () =>
+          document.documentElement.style.setProperty(
+            "--k",
+            /* LEER no reduce nada: k = 1, exacto. CARTEL cabe al ancho del
+               marco y nunca AMPLÍA —`Math.min(1, …)`— porque agrandar un
+               trazo pensado a 1:1 lo revienta igual que encogerlo. */
+            document.body.dataset.izq === "leer"
+              ? "1"
+              : String(Math.min(1, (marco.clientWidth || REG_W) / REG_W)),
+          );
+        const modo = (m) => {
+          document.body.dataset.izq = m;
+          for (const b of botones) b.setAttribute("aria-current", b.dataset.modo === m ? "true" : "false");
+          pista.textContent = PISTA[m];
+          escala();
+          if (m === "leer") { marco.scrollLeft = 0; marco.scrollTop = 0; }
+        };
+        for (const b of botones) b.addEventListener("click", () => modo(b.dataset.modo));
+        modo("cartel");
+        addEventListener("resize", escala, { passive: true });
+      }
+
       import { montarNavegacion } from "../../../components/kodex/lamina/kit/navegacion";
       montarNavegacion();
     
