@@ -107,13 +107,28 @@ const { class: className } = Astro.props;
       ctx.globalCompositeOperation = "lighter";
 
       const respiro = reduce.matches ? 0 : Math.sin(t / 96) * 0.5 + 0.5;
-      /* DORMANT no es negro: es un ojo dormido. 0.16 de piso para que exista
-         antes de que llegue nadie, y suba a 1 con la presencia. */
-      const vigor = 0.16 + est.presencia * 0.84;
-      /* LOCK contrae la pupila: el radio interior crece hacia el collar. */
-      const pupila = (14 + est.foco * 9) * k;
+      /* DORMANT es un ojo dormido, no apagado: 0.06 de piso. El piso anterior
+         —0.16— era demasiado alto y, sumado al apilado en `lighter`, dejaba la
+         luminancia del organismo PLANA entre estados: medido 143.6 dormido
+         contra 143.8 en lock. La maquina vivia y el organismo no lo expresaba,
+         que es exactamente la queja del creador: «el ojo no esta demostrando
+         respuesta real». */
+      const vigor = 0.06 + est.presencia * 0.94;
+
+      /* EL OJO SE ABRE. La respuesta no puede ser solo de brillo: con ~220
+         trazos en modo `lighter` el brillo satura y deja de leerse. Lo que si
+         se lee es la ESTRUCTURA — cuanto campo existe. Dormido solo vive el
+         nucleo; con la presencia el organismo se despliega hacia afuera hasta
+         sus coronas. Es la diferencia entre subirle el volumen a algo y que
+         ese algo despierte. */
+      const alcance = 96 + (360 - 96) * Math.min(1, est.presencia * 1.15);
+
+      /* LOCK contrae la pupila y la afila: de 22 a 11, no de 14 a 23. Un ojo
+         que enfoca cierra el diafragma. */
+      const pupila = (22 - est.foco * 11) * k;
 
       for (let r = 6; r <= 360; r += 1.6) {
+        if (r > alcance) break;
         let a = lum(r);
         if (a <= 0.005) continue;
 
@@ -129,10 +144,19 @@ const { class: className } = Astro.props;
         }
         if (r > 245) { a *= 0.35 + respiro * 0.3 * vigor; }
 
+        /* Desvanecido en el BORDE del alcance: sin esto el campo termina en un
+           corte duro y se lee como un recorte, no como un organismo que se
+           extiende. */
+        const borde = alcance < 359 ? Math.max(0, Math.min(1, (alcance - r) / 46)) : 1;
+        a *= borde;
+
         const rr = r * k;
         if (rr < pupila) continue;
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(178, 124, 255, ${Math.min(1, a * 0.5)})`;
+        /* Alfa base bajada de .5 a .3: con `lighter` el apilado saturaba a
+           blanco y ninguna modulacion se notaba. Con margen, el estado vuelve
+           a ser legible en el pixel. */
+        ctx.strokeStyle = `rgba(178, 124, 255, ${Math.min(1, a * 0.3)})`;
         ctx.lineWidth = 1.6 * k * 1.6;
         ctx.arc(cx, cy, rr, 0, Math.PI * 2);
         ctx.stroke();
