@@ -15,6 +15,7 @@
  */
 
 const REDUCIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ARCHIVE_CONVERGENCE_STYLE_ID = "kdx-archive-reference-convergence";
 
 /** Ruido determinista: la misma semilla dibuja siempre el mismo organismo. */
 function azar(semilla: number): () => number {
@@ -75,6 +76,180 @@ function dibujar(cv: HTMLCanvasElement, semilla: number): void {
 }
 
 /**
+ * El poster pass legado de ARCHIVE todavía fija dos columnas 49/41 y convierte
+ * título + readout en casi la mitad del primer frame. Eso contradice los planos
+ * gobernados de memoria: primero debe sentirse la cámara/campo/espécimen; la
+ * identidad y la acción viven en el borde y mobile revela esas capas después.
+ *
+ * Esta hoja se monta desde el mismo runtime de ARCHIVE para no abrir otro
+ * design system ni otra arquitectura. Solo corrige presentación. Los mismos
+ * datos, anchors, rutas, relaciones y controles siguen siendo la autoridad.
+ */
+function asegurarJerarquiaVisualArchive(): void {
+  if (document.getElementById(ARCHIVE_CONVERGENCE_STYLE_ID)) return;
+
+  const style = document.createElement("style");
+  style.id = ARCHIVE_CONVERGENCE_STYLE_ID;
+  style.textContent = `
+    .kx-os-scene--archive .kx-os-stage {
+      display: block !important;
+      position: relative !important;
+    }
+
+    .kx-os-scene--archive .kx-os-stage__art {
+      position: absolute !important;
+      inset: calc(58px + env(safe-area-inset-top)) clamp(18px,3vw,48px)
+        calc(70px + env(safe-area-inset-bottom)) clamp(18px,3vw,48px) !important;
+      width: auto !important;
+      height: auto !important;
+      max-width: none !important;
+      max-height: none !important;
+      margin: 0 !important;
+      border-color: transparent !important;
+      background: transparent !important;
+      box-shadow: none !important;
+    }
+
+    .kx-os-scene--archive .kx-os-stage__art::before {
+      opacity: .3 !important;
+    }
+
+    .kx-os-scene--archive .kx-os-stage__copy {
+      position: absolute !important;
+      left: clamp(18px,3.2vw,54px) !important;
+      bottom: calc(74px + env(safe-area-inset-bottom)) !important;
+      z-index: 7 !important;
+      width: min(31rem,34vw) !important;
+      max-width: none !important;
+      padding: 0 !important;
+      pointer-events: none;
+      text-shadow: 0 1px 22px rgba(0,0,0,.94);
+    }
+
+    .kx-os-scene--archive .kx-os-stage__copy > .kx-os-stage__kicker {
+      margin: 0 0 7px !important;
+      font-size: .58rem !important;
+      letter-spacing: .24em !important;
+      opacity: .5;
+    }
+
+    .kx-os-scene--archive .kx-os-stage__copy > h1 {
+      max-width: 13ch !important;
+      margin: 0 !important;
+      font-size: clamp(1.55rem,2.65vw,3.2rem) !important;
+      line-height: .94 !important;
+      opacity: .72;
+      text-wrap: balance;
+    }
+
+    .kx-os-scene--archive .kx-specimen-readout {
+      margin-top: 9px !important;
+      padding: 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      pointer-events: auto;
+    }
+
+    .kx-os-scene--archive .kx-specimen-readout::before {
+      display: none !important;
+    }
+
+    .kx-os-scene--archive .kx-specimen-readout .kx-os-stage__sub {
+      margin: 0 0 3px !important;
+      font-size: .56rem !important;
+      opacity: .48;
+    }
+
+    .kx-os-scene--archive .kx-specimen-readout h2 {
+      margin: 0 !important;
+      font-size: clamp(1rem,1.4vw,1.5rem) !important;
+      line-height: 1 !important;
+      opacity: .76;
+    }
+
+    .kx-os-scene--archive .kx-specimen-readout .kx-os-primary {
+      width: auto !important;
+      min-width: 44px;
+      min-height: 44px !important;
+      margin-top: 5px !important;
+      padding: 8px 0 !important;
+      border: 0 !important;
+      background: transparent !important;
+      color: rgba(230,230,230,.68) !important;
+      box-shadow: none !important;
+      font-size: .58rem !important;
+      letter-spacing: .2em !important;
+    }
+
+    .kx-os-scene--archive .kx-specimen-readout .kx-os-primary:hover,
+    .kx-os-scene--archive .kx-specimen-readout .kx-os-primary:focus-visible {
+      color: #fff !important;
+      outline: 1px solid rgba(166,255,0,.5);
+      outline-offset: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .kx-os-scene--archive .kx-os-stage__art {
+        top: calc(54px + env(safe-area-inset-top)) !important;
+        right: 12px !important;
+        bottom: auto !important;
+        left: 12px !important;
+        height: 47svh !important;
+      }
+
+      .kx-os-scene--archive .kx-os-stage__copy {
+        top: calc(54px + env(safe-area-inset-top) + 49svh) !important;
+        right: 14px !important;
+        bottom: calc(62px + env(safe-area-inset-bottom)) !important;
+        left: 14px !important;
+        width: auto !important;
+        max-width: none !important;
+        display: grid;
+        align-content: start;
+        row-gap: 2px;
+        overflow: hidden;
+      }
+
+      .kx-os-scene--archive .kx-os-stage__copy > .kx-os-stage__kicker {
+        margin-bottom: 4px !important;
+        font-size: .52rem !important;
+        letter-spacing: .2em !important;
+      }
+
+      .kx-os-scene--archive .kx-os-stage__copy > h1 {
+        max-width: 14ch !important;
+        font-size: clamp(1.28rem,5.8vw,1.95rem) !important;
+        line-height: .94 !important;
+      }
+
+      .kx-os-scene--archive .kx-specimen-readout {
+        margin-top: 4px !important;
+      }
+
+      .kx-os-scene--archive .kx-specimen-readout h2 {
+        font-size: clamp(.9rem,4vw,1.2rem) !important;
+      }
+
+      .kx-os-scene--archive .kx-specimen-readout .kx-os-primary {
+        min-height: 44px !important;
+        margin-top: 1px !important;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .kx-os-scene--archive .kx-os-stage__art,
+      .kx-os-scene--archive .kx-os-stage__copy,
+      .kx-os-scene--archive [data-kdx-museo] {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+/**
  * ARCHIVE reference-first convergence.
  *
  * El stylesheet heredado todavía contiene una regla `display:none !important`
@@ -92,6 +267,7 @@ function aplicarConvergenciaArchive(): void {
   const scene = raiz?.closest<HTMLElement>(".kx-os-scene--archive");
   if (!raiz || !scene) return;
 
+  asegurarJerarquiaVisualArchive();
   raiz.style.setProperty("display", "grid", "important");
 
   // El espécimen y el territorio relacional ya viven dentro de la misma
