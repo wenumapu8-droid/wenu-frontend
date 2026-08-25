@@ -1,0 +1,114 @@
+---
+/**
+ * KODEX-∞ · ESCENA t01-06 · RITUAL DEVICE
+ *
+ * Componente montable del corredor. Recompone la lámina completa
+ * `t01-06-ritual-device` con los bloques gruesos existentes, usando el
+ * mecanismo de fit compartido (.kdx-lam-fit) y un encuadre mobile sobre
+ * el centro (dispositivo), con las columnas laterales ocultas.
+ */
+import "../../../styles/kodex-lamina.css";
+
+import Cabecera  from "../lamina/t01-06/Cabecera.astro";
+import Izquierda from "../lamina/t01-06/Izquierda.astro";
+import Centro    from "../lamina/t01-06/Centro.astro";
+import Derecha   from "../lamina/t01-06/Derecha.astro";
+import Pie       from "../lamina/t01-06/Pie.astro";
+
+interface Props {
+  class?: string;
+  style?: string;
+}
+
+const { class: className, style } = Astro.props;
+
+const W = 1672;
+const H = 941;
+const SLUG = "t01-06-ritual-device";
+/* Caja del organismo central (Centro) para el encuadre mobile. */
+const MOBILE_BOX = [620, 88, 393, 778] as const;
+---
+
+<div
+  class:list={["kdx-lam-fit", className]}
+  style={style}
+  data-lamina={SLUG}
+  data-kdx-desktop-w={W}
+  data-kdx-desktop-h={H}
+  data-kdx-mobile-box={MOBILE_BOX.join(",")}
+>
+  <div
+    class="kdx-lam kdx-lam--machine"
+    style={`width:${W}px;height:${H}px`}
+    data-lamina={SLUG}
+  >
+    <Cabecera box="left:0px;top:0px;width:1672px;height:88px" />
+    <Pie      box="left:0px;top:866px;width:1672px;height:75px" />
+
+    <div class="kdx-lam-side" style="position:absolute;inset:0;overflow:hidden;">
+      <Izquierda box="left:4px;top:88px;width:616px;height:778px" />
+    </div>
+
+    <div class="kdx-lam-main" style="position:absolute;inset:0;overflow:hidden;">
+      <Centro box="left:620px;top:88px;width:393px;height:778px" />
+    </div>
+
+    <div class="kdx-lam-side" style="position:absolute;inset:0;overflow:hidden;">
+      <Derecha box="left:1013px;top:88px;width:655px;height:778px" />
+    </div>
+  </div>
+</div>
+
+<style>
+  .kdx-lam-fit {
+    --s: 1;
+    --tx: 0px;
+    --ty: 0px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .kdx-lam-fit > .kdx-lam {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--s));
+    background: #000;
+  }
+
+  /* Mobile: el organismo central domina; laterales fuera de pantalla. */
+  @media (max-width: 900px) {
+    .kdx-lam-side {
+      display: none;
+    }
+  }
+</style>
+
+<script define:vars={{ slug: SLUG, W, H, mobileBox: MOBILE_BOX, breakpoint: 900 }}>
+  (function () {
+    const fit = document.querySelector(`.kdx-lam-fit[data-lamina="${slug}"]`);
+    if (!fit) return;
+    const [mx, my, mw, mh] = mobileBox;
+    const ajustar = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let s, tx, ty;
+      if (vw <= breakpoint) {
+        s = Math.min(1, vw / mw, vh / mh);
+        tx = ((vw - mw * s) / 2 - mx * s).toFixed(2) + "px";
+        ty = ((vh - mh * s) / 2 - my * s).toFixed(2) + "px";
+      } else {
+        s = Math.min(1, vw / W, vh / H);
+        tx = ((vw - W * s) / 2).toFixed(2) + "px";
+        ty = ((vh - H * s) / 2).toFixed(2) + "px";
+      }
+      fit.style.setProperty("--s", String(s));
+      fit.style.setProperty("--tx", tx);
+      fit.style.setProperty("--ty", ty);
+    };
+    ajustar();
+    window.addEventListener("resize", ajustar, { passive: true });
+    window.addEventListener("orientationchange", ajustar);
+  })();
+</script>

@@ -1,0 +1,115 @@
+---
+/**
+ * KODEX-∞ · ESCENA u03 · RETURN
+ *
+ * Componente montable del corredor. Recompone la lámina completa
+ * `u03-return` con los bloques existentes, usando el mecanismo de fit
+ * compartido (.kdx-lam-fit) y un encuadre mobile sobre la flor (héroe).
+ *
+ * NOTA: esta lámina es la excepción cromática de la serie. No es oscura:
+ * fondo de papel hueso, tinta violeta/dorada, tipografía serif editorial.
+ */
+import "../../../styles/kodex-lamina.css";
+
+import Cabecera from "../lamina/u03/Cabecera.astro";
+import Flor     from "../lamina/u03/Flor.astro";
+import Paneles  from "../lamina/u03/Paneles.astro";
+import Pie      from "../lamina/u03/Pie.astro";
+
+interface Props {
+  class?: string;
+  style?: string;
+}
+
+const { class: className, style } = Astro.props;
+
+const W = 1122;
+const H = 1402;
+const SLUG = "u03-return";
+/* Caja del organismo central (Flor) para el encuadre mobile. */
+const MOBILE_BOX = [55, 268, 1012, 748] as const;
+---
+
+<div
+  class:list={["kdx-lam-fit", className]}
+  style={style}
+  data-lamina={SLUG}
+  data-kdx-desktop-w={W}
+  data-kdx-desktop-h={H}
+  data-kdx-mobile-box={MOBILE_BOX.join(",")}
+>
+  <div
+    class="kdx-lam kdx-lam--return"
+    style={`width:${W}px;height:${H}px`}
+    data-lamina={SLUG}
+  >
+    <Cabecera />
+
+    <div class="kdx-lam-main" style="position:absolute;inset:0;overflow:hidden;">
+      <Flor />
+    </div>
+
+    <div class="kdx-lam-side" style="position:absolute;inset:0;overflow:hidden;">
+      <Paneles />
+    </div>
+
+    <Pie />
+  </div>
+</div>
+
+<style>
+  .kdx-lam-fit {
+    --s: 1;
+    --tx: 0px;
+    --ty: 0px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .kdx-lam-fit > .kdx-lam {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--s));
+    background: #f8f5f2;
+    color: #4a4744;
+    overflow: hidden;
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  /* Mobile: el organismo central domina; paneles laterales/recortados ocultos. */
+  @media (max-width: 900px) {
+    .kdx-lam-side {
+      display: none;
+    }
+  }
+</style>
+
+<script define:vars={{ slug: SLUG, W, H, mobileBox: MOBILE_BOX, breakpoint: 900 }}>
+  (function () {
+    const fit = document.querySelector(`.kdx-lam-fit[data-lamina="${slug}"]`);
+    if (!fit) return;
+    const [mx, my, mw, mh] = mobileBox;
+    const ajustar = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let s, tx, ty;
+      if (vw <= breakpoint) {
+        s = Math.min(1, vw / mw, vh / mh);
+        tx = ((vw - mw * s) / 2 - mx * s).toFixed(2) + "px";
+        ty = ((vh - mh * s) / 2 - my * s).toFixed(2) + "px";
+      } else {
+        s = Math.min(1, vw / W, vh / H);
+        tx = ((vw - W * s) / 2).toFixed(2) + "px";
+        ty = ((vh - H * s) / 2).toFixed(2) + "px";
+      }
+      fit.style.setProperty("--s", String(s));
+      fit.style.setProperty("--tx", tx);
+      fit.style.setProperty("--ty", ty);
+    };
+    ajustar();
+    window.addEventListener("resize", ajustar, { passive: true });
+    window.addEventListener("orientationchange", ajustar);
+  })();
+</script>

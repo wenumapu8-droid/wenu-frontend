@@ -1,0 +1,130 @@
+---
+/**
+ * KODEX-∞ · ESCENA t01-03 · DESCENT TUNNEL
+ *
+ * Componente montable del corredor. Recompone la lámina completa
+ * `t01-03-descent-tunnel` con los bloques gruesos existentes, usando el
+ * mecanismo de fit compartido (.kdx-lam-fit) y un encuadre mobile sobre
+ * el héroe (el túnel), con las columnas laterales ocultas.
+ */
+import "../../../styles/kodex-lamina.css";
+
+import Header      from "../lamina/t01-03/Header.astro";
+import SceneDesc   from "../lamina/t01-03/SceneDescription.astro";
+import StateProg   from "../lamina/t01-03/StateProgression.astro";
+import MotionNotes from "../lamina/t01-03/MotionNotes.astro";
+import PolarCode   from "../lamina/t01-03/PolarDistortion.astro";
+import Hero        from "../lamina/t01-03/Hero.astro";
+import Progress    from "../lamina/t01-03/DescentProgress.astro";
+import CoreReadout from "../lamina/t01-03/CoreReadout.astro";
+import FrameStudy  from "../lamina/t01-03/FrameStudies.astro";
+import ShaderTreat from "../lamina/t01-03/ShaderTreatment.astro";
+import DataTags    from "../lamina/t01-03/DataTags.astro";
+import MobileMock  from "../lamina/t01-03/MobileMockup.astro";
+import Footer      from "../lamina/t01-03/Footer.astro";
+
+interface Props {
+  class?: string;
+  style?: string;
+}
+
+const { class: className, style } = Astro.props;
+
+const W = 1672;
+const H = 941;
+const SLUG = "t01-03-descent-tunnel";
+/* Caja del organismo central (Hero / túnel) para el encuadre mobile. */
+const MOBILE_BOX = [317, 96, 776, 522] as const;
+---
+
+<div
+  class:list={["kdx-lam-fit", className]}
+  style={style}
+  data-lamina={SLUG}
+  data-kdx-desktop-w={W}
+  data-kdx-desktop-h={H}
+  data-kdx-mobile-box={MOBILE_BOX.join(",")}
+>
+  <div
+    class="kdx-lam kdx-lam--descent"
+    style={`width:${W}px;height:${H}px`}
+    data-lamina={SLUG}
+  >
+    <Header      box="left:0;top:0;width:1672px;height:88px" />
+    <Footer      box="left:0;top:880px;width:1672px;height:61px" />
+
+    <div class="kdx-lam-side" style="position:absolute;inset:0;overflow:hidden;">
+      <SceneDesc   box="left:13px;top:96px;width:297px;height:207px" />
+      <StateProg   box="left:13px;top:310px;width:297px;height:268px" />
+      <MotionNotes box="left:13px;top:586px;width:297px;height:107px" />
+      <PolarCode   box="left:13px;top:717px;width:402px;height:152px" />
+    </div>
+
+    <div class="kdx-lam-main" style="position:absolute;inset:0;overflow:hidden;">
+      <Hero        box="left:317px;top:96px;width:776px;height:522px" />
+      <Progress    box="left:317px;top:624px;width:776px;height:60px" />
+      <CoreReadout box="left:429px;top:717px;width:610px;height:152px" />
+    </div>
+
+    <div class="kdx-lam-side" style="position:absolute;inset:0;overflow:hidden;">
+      <FrameStudy  box="left:1110px;top:96px;width:547px;height:230px" />
+      <ShaderTreat box="left:1110px;top:334px;width:547px;height:110px" />
+      <DataTags    box="left:1110px;top:452px;width:547px;height:232px" />
+      <MobileMock  box="left:1110px;top:692px;width:547px;height:177px" />
+    </div>
+  </div>
+</div>
+
+<style>
+  .kdx-lam-fit {
+    --s: 1;
+    --tx: 0px;
+    --ty: 0px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .kdx-lam-fit > .kdx-lam {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--s));
+    background: #000;
+  }
+
+  /* Mobile: el organismo central domina; laterales fuera de pantalla. */
+  @media (max-width: 900px) {
+    .kdx-lam-side {
+      display: none;
+    }
+  }
+</style>
+
+<script define:vars={{ slug: SLUG, W, H, mobileBox: MOBILE_BOX, breakpoint: 900 }}>
+  (function () {
+    const fit = document.querySelector(`.kdx-lam-fit[data-lamina="${slug}"]`);
+    if (!fit) return;
+    const [mx, my, mw, mh] = mobileBox;
+    const ajustar = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      let s, tx, ty;
+      if (vw <= breakpoint) {
+        s = Math.min(1, vw / mw, vh / mh);
+        tx = ((vw - mw * s) / 2 - mx * s).toFixed(2) + "px";
+        ty = ((vh - mh * s) / 2 - my * s).toFixed(2) + "px";
+      } else {
+        s = Math.min(1, vw / W, vh / H);
+        tx = ((vw - W * s) / 2).toFixed(2) + "px";
+        ty = ((vh - H * s) / 2).toFixed(2) + "px";
+      }
+      fit.style.setProperty("--s", String(s));
+      fit.style.setProperty("--tx", tx);
+      fit.style.setProperty("--ty", ty);
+    };
+    ajustar();
+    window.addEventListener("resize", ajustar, { passive: true });
+    window.addEventListener("orientationchange", ajustar);
+  })();
+</script>
