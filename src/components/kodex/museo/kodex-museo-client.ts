@@ -138,8 +138,13 @@ function aplicarConvergenciaArchive(): void {
   // CLASS/YEAR/METHOD/STATUS en el first-view hacía que ARCHIVE volviera a
   // leerse como panel antes que como memoria espacial. Se oculta sólo esa
   // copia redundante; el botón y el drawer siguen siendo la vía explícita.
+  // El atributo `hidden` solo no basta aquí porque el CSS heredado del readout
+  // fuerza su `dl` a display:grid. La prioridad explícita garantiza que el
+  // first-view respete el wireframe sin tocar el contenido del dossier.
   const readout = scene.querySelector<HTMLElement>("[data-kdx-archive]");
-  readout?.querySelector<HTMLElement>("dl")?.setAttribute("hidden", "");
+  const dossier = readout?.querySelector<HTMLElement>("dl");
+  dossier?.setAttribute("hidden", "");
+  dossier?.style.setProperty("display", "none", "important");
 }
 
 // El <script> del componente está después del markup; aplicar ahora evita que
