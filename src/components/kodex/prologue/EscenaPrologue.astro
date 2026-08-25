@@ -390,6 +390,7 @@ glitch = step(0.995, noise(r * Time));`}</pre>
 
 <script>
   import { crearObservacion } from "../../../lib/kodex/prologue/observacion";
+  import { record } from "../../../kodex/return/memory.js";
 
   const raiz = document.querySelector<HTMLElement>("[data-kdx-observacion]");
   if (raiz) {
@@ -424,7 +425,20 @@ glitch = step(0.995, noise(r * Time));`}</pre>
       /* El ojo consume el pulso por evento: un solo productor de estado. */
       raiz.dispatchEvent(new CustomEvent("kdx:pulso", { detail: p }));
 
-      if (p.locks > 0 && !raiz.hasAttribute("data-kdx-abierto")) raiz.setAttribute("data-kdx-abierto", "");
+      if (p.locks > 0 && !raiz.hasAttribute("data-kdx-abierto")) {
+        raiz.setAttribute("data-kdx-abierto", "");
+        /* EL RECORRIDO SE ACUERDA DE TI.
+           El sistema de memoria ya existía completo —record() acepta eventos,
+           readSpecimen() siembra el especimen de RETURN con views+effects, y si
+           no hay recorrido devuelve `curated`— pero nadie lo alimentaba desde
+           las escenas. Ese hueco es exactamente la diferencia entre siete
+           páginas sueltas y un sistema: sin esto, RETURN reconstruye lo mismo
+           para todo el mundo.
+           Se registra el LOCK, que es el momento en que el sistema te reconoce.
+           No se registra la permanencia ni nada que puntúe al visitante: sólo
+           que hubo encuentro. */
+        try { record({ type: "effect", effect: "prologue:observation-lock" }); } catch {}
+      }
       if (elEstado && elEstado.textContent !== p.estado) elEstado.textContent = p.estado;
       if (az) az.textContent = `${(180 + p.objetivo.x * 60).toFixed(2)}°`;
       if (el) el.textContent = `${(p.objetivo.y * -30).toFixed(2)}°`;
@@ -456,6 +470,12 @@ glitch = step(0.995, noise(r * Time));`}</pre>
        Si por lo que sea no se encuentra, no se rompe nada: el shell sigue
        navegando como siempre. */
     const irA = (url: string) => {
+      /* El descenso queda en la memoria del viaje: es el paso que RETURN
+         necesita para saber por dónde entraste. */
+      try {
+        record({ type: "view", work: location.pathname });
+        record({ type: "effect", effect: "prologue:descend" });
+      } catch {}
       raiz.setAttribute("data-kdx-descendiendo", "");
       const reduce2 = matchMedia("(prefers-reduced-motion: reduce)").matches;
       setTimeout(() => { location.href = url; }, reduce2 ? 180 : 700);
