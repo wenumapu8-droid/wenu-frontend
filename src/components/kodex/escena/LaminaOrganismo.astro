@@ -1,0 +1,81 @@
+---
+/**
+ * KODEX−∞ · EL ORGANISMO DE LA LÁMINA, DENTRO DE LA ESCENA
+ *
+ * PASS A del contrato KDX.FACTORY: «no necesitamos construir siete páginas
+ * nuevas, necesitamos recuperar siete mundos que ya diseñamos y hacer que la
+ * web deje de esconderlos».
+ *
+ * El corredor mostraba, en el lugar del arte, una FOTO pasada por un shader
+ * CRT — arch-21 para PROLOGUE, bw-06 para DESCENT, conjuncion para MACHINE.
+ * Ninguna es el organismo de su escena. Mientras tanto el organismo real ya
+ * existía, procedural y con estados, dentro de la lámina: el dispositivo
+ * ritual de t01-06 son anillos toroidales, tubo de vidrio, árbol de luz,
+ * cristal romboidal y quince órbitas en un canvas 2D parametrizado.
+ *
+ * Este componente no reinterpreta nada. Recrea el espacio de coordenadas del
+ * póster (1672×941), monta el bloque central de la lámina en su caja MEDIDA, y
+ * escala ese recorte a la región de arte de la escena. El organismo se dibuja
+ * con la misma geometría con la que fue construido; sólo cambia de sala.
+ *
+ * Desktop y móvil NO comparten coreografía: acá sólo se resuelve el «qué se
+ * ve». La secuencia temporal de móvil la fija la matriz 08E por escena.
+ */
+import CentroPrologue  from "../lamina/t01-02/Centro.astro";
+import CentroArchive   from "../lamina/t01-04/Centro.astro";
+import CentroMachine   from "../lamina/t01-06/Centro.astro";
+import CentroCosmology from "../lamina/t01-07/Centro.astro";
+import HeroDescent     from "../lamina/t01-03/Hero.astro";
+import "../../../styles/kodex-lamina.css";
+
+const W = 1672, H = 941;
+
+/* Cajas medidas en cada lámina, copiadas verbatim de su página. No son
+   números elegidos: cada corte cae en un borde real de tinta del póster. */
+const ORGANISMOS = {
+  prologue:  { comp: CentroPrologue,  x: 468, y: 88, w: 712, h: 778 },
+  descent:   { comp: HeroDescent,     x: 317, y: 96, w: 776, h: 522 },
+  archive:   { comp: CentroArchive,   x: 400, y: 88, w: 610, h: 778 },
+  machine:   { comp: CentroMachine,   x: 620, y: 88, w: 393, h: 778 },
+  cosmology: { comp: CentroCosmology, x: 408, y: 88, w: 767, h: 778 },
+} as const;
+
+interface Props { escena: keyof typeof ORGANISMOS; class?: string }
+const { escena, class: className } = Astro.props;
+const o = ORGANISMOS[escena];
+const Bloque = o.comp;
+const box = `left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px`;
+---
+
+<div class:list={["kx-organismo", className]} data-escena={escena}
+     style={`--kx-org-w:${o.w};--kx-org-h:${o.h};--kx-org-x:${o.x};--kx-org-y:${o.y}`}>
+  <div class="kdx-lam kx-organismo__lienzo" style={`width:${W}px;height:${H}px`} data-lamina-host>
+    <Bloque box={box} />
+  </div>
+</div>
+
+<style>
+  /* El recorte manda: el contenedor tiene la proporción del bloque, no la del
+     póster entero. Así el organismo llena la región de arte en vez de quedar
+     nadando en el margen del cartel. */
+  .kx-organismo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: var(--kx-org-w) / var(--kx-org-h);
+    overflow: hidden;
+    container-type: inline-size;
+  }
+  .kx-organismo__lienzo {
+    position: absolute;
+    transform-origin: 0 0;
+    /* Lleva el origen del lienzo a la esquina de la caja y escala el recorte
+       al ancho disponible. 100cqw es el ancho del contenedor, no del viewport:
+       el organismo se adapta a su región, no a la pantalla. */
+    transform:
+      scale(calc(100cqw / (var(--kx-org-w) * 1px)))
+      translate(calc(var(--kx-org-x) * -1px), calc(var(--kx-org-y) * -1px));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kx-organismo :global(canvas) { animation: none !important; }
+  }
+</style>
