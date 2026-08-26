@@ -253,13 +253,36 @@ const { class: className } = Astro.props;
         if (rr < pupila) continue;
         ctx.lineWidth = 1.6 * k * 1.6;
 
+        /* LO QUE LA LÁMINA LLAMA FILAMENTO, NO SE DIBUJA COMO ANILLO.
+           Diagnóstico por capas: apagando los anillos la variación angular
+           subió de 0.25 a 0.66 a media distancia — ellos eran los que
+           aplanaban. Y al releer el perfil medido aparece el error de lectura:
+
+               r  9- 23  pupila        MASA
+               r 24- 44  collar        MASA
+               r 45- 67  VALLE de fibra media   ← un valle no es una línea
+               r 68- 77  anillo limbal MASA
+               r 78-135  FILAMENTO largo        ← lo dice el nombre
+
+           Estaba trazando el valle y el filamento largo como circunferencias
+           continuas. Sólo pupila, collar y limbo son cuerpos; el resto es
+           campo, y el campo pertenece a los radios. */
+        const esMasa = r < 45 || (r >= 68 && r <= 77);
+        if (r >= 45 && r < 136 && !esMasa) continue;
+
         if (r < 136) {
           /* EL NÚCLEO ES MASA. Pupila, collar, valle y limbo son cuerpos
              continuos en la lámina, no líneas: van de una pieza.
              Alfa .38 y no .26 — el campo interior había quedado demasiado
              oscuro: luminancia 31 contra 77 de la referencia a 0.3 del radio. */
           ctx.beginPath();
-          ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.38)})`;
+          /* SUBIDA REAL DE TINTA. Medido el búfer del canvas con alfa —sin el
+             fondo de la página— el organismo daba lum 9.5/2.1/0.4 contra
+             77/22.8/15.8 de la lámina: diez veces más tenue. Lo que llenaba la
+             pantalla era el túnel, el grano y el halo del shell, no el ojo.
+             Por eso cinco rondas de afinar alfa no movían nada visible: se
+             estaba ajustando la capa que menos aportaba. */
+          ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.95)})`;
           ctx.arc(cx, cy, rr, 0, Math.PI * 2);
           ctx.stroke();
         } else {
@@ -281,7 +304,7 @@ const { class: className } = Astro.props;
             const iniA = giro + n * paso + paso * 0.14;
             const finA = iniA + paso * (0.3 + s0 * 0.52);
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (0.34 + s0 * 0.9))})`;
+            ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (0.8 + s0 * 1.6))})`;
             ctx.arc(cx, cy, rr, iniA, finA);
             ctx.stroke();
           }
@@ -311,7 +334,7 @@ const { class: className } = Astro.props;
            que es exactamente lo que distingue un organismo de un disco. */
         /* Cada filamento lleva bastante más tinta que antes, porque ahora hay
            un tercio de ellos: el total se mantiene y el contraste sube. */
-        const op = f.peso * (0.34 + vigor * 1.5);
+        const op = f.peso * (0.8 + vigor * 2.6);
         g2.addColorStop(0, `rgba(${C},${Math.min(1, op)})`);
         g2.addColorStop(0.22, `rgba(${C},${Math.min(1, op * 0.62)})`);
         g2.addColorStop(0.58, `rgba(${C},${Math.min(1, op * 0.14)})`);

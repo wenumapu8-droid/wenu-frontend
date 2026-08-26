@@ -20,26 +20,34 @@ Preview: https://kodex-preview.wenu-frontend.pages.dev/kodex/folio/i/
 
 ## TAREAS PENDIENTES — tomar la primera, una sola por tanda
 
-1. **Variación angular del campo medio.** HECHO en parte: el ojo ya es
-   filamentoso —34 radios desiguales, anillos sólo en las crestas medidas,
-   anillos de datos segmentados en arcos, coronas exteriores retiradas—.
-   Midiendo el canvas del ojo AISLADO contra el recorte del panel 04:
+1. **Variación angular del campo medio.** CERRADA COMO DIAGNÓSTICO.
+   Se aplicó el método anotado —apagar capas de a una— y encontró dos cosas que
+   cinco rondas de afinado no vieron:
 
-       fracción del radio   referencia      runtime
-            0.3             77.2 · 0.58    37.6 · 0.24
-            0.5             22.8 · 1.17    14.1 · 0.21
-            0.7             15.8 · 1.57    13.8 · 0.20
-            0.9              9.6 · 1.48    16.7 · 1.36   ← ya coincide
+   a) Con TODAS las capas apagadas el canvas seguía midiendo lum 14. Ese piso es
+      el FONDO DE LA PÁGINA —túnel, grano, halo del shell— visto a través del
+      canvas transparente. Nunca se estuvo midiendo sólo el ojo.
 
-   El borde exterior cierra. El CAMPO MEDIO sigue demasiado liso.
-   **Cinco intentos medidos no lo movieron** (0.21 → 0.21): más filamentos,
-   menos filamentos, más desiguales, anillos sólo en crestas, arcos segmentados.
-   Ninguno cambió la cifra, lo que sugiere que el problema NO está en los
-   elementos que toqué. Hipótesis para la próxima tanda: el campo medio puede
-   estar dominado por el halo/glow del núcleo, no por anillos ni filamentos —
-   medir apagando capas de a una en vez de seguir afinando parámetros.
-   NO seguir afinando a ciegas: cinco iteraciones sin mover una cifra es señal
-   de que el modelo mental está mal, no de que falte ajuste.
+   b) Midiendo el búfer con alfa, compuesto sobre negro, el organismo daba
+      9.5 / 2.1 / 0.4 contra 77 / 22.8 / 15.8 de la lámina. **El ojo era diez
+      veces más tenue de lo que parecía**: lo que llenaba la pantalla era el
+      fondo del shell, con el ojo encima. Por eso afinar su alfa no cambiaba
+      nada visible — se estaba ajustando la capa que menos aportaba.
+
+   c) Error de lectura del perfil, corregido: `r 45-67` es un VALLE y `r 78-135`
+      se llama literalmente FILAMENTO LARGO. Se estaban trazando como
+      circunferencias continuas. Sólo pupila, collar y limbo son masas.
+
+   HECHO: valle y filamento largo dejan de ser anillos; tinta del organismo
+   subida ~2.5x. Reposo ahora 6.5 de luminancia contra 13.7 antes — el ojo
+   duerme de verdad.
+
+   PENDIENTE: la comparación numérica contra la lámina sigue sin encuadre
+   válido. CUARTO intento fallido de alinear la métrica: las fracciones más
+   allá de 0.56 del canvas miden vacío, porque el radio del organismo llega
+   hasta ahí. Para comparar de verdad hace falta mapear fracciones del RADIO
+   DEL OJO en ambas imágenes, no del lienzo ni del encuadre.
+   Antes de tocar un parámetro más: arreglar la métrica.
 
 2. **Instrumentación flanqueante.** La lámina muestra AZIMUTH / ELEVATION / ZOOM /
    FOCUS / IRIS / APERTURE a la izquierda del ojo y SIGNAL STR / NOISE / SYNC /
