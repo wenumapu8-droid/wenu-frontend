@@ -113,7 +113,7 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
       </button>
     )}
     <button class="kx-signal" data-signal aria-pressed="false">
-      <span class="kx-signal__dot"></span><span data-signal-label>SIGNAL · LATENT</span>
+      <span class="kx-signal__dot"></span><span data-signal-label data-kdx-signal-live>SIGNAL · LATENT</span>
     </button>
     {isThreshold && <button type="button" class="kx-status__index" data-kdx-index-open aria-label="open codex index">INDEX</button>}
   </span>
@@ -122,3 +122,43 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
 {/* La barra de sistema: ⌘K, atajos y modos de visualizacion en TODAS las
     paginas del codice. Un instrumento se opera desde cualquier pantalla. */}
 <BarraOS />
+
+<script>
+  /* COPY COHERENCE — el cromo decia «SIGNAL · LATENT» mientras el ojo de la
+     escena estaba en LOCK. Medido: ojo=LOCK / shell=LATENT en el mismo cuadro.
+     Un instrumento que contradice a su propio organismo es peor que uno mudo.
+
+     No se inventa un estado nuevo para el shell: escucha el de la escena. Si no
+     hay escena con estado —el resto del corredor todavia no lo expone— se queda
+     en LATENT, que ahi si es verdad. */
+  const etiqueta = document.querySelector("[data-kdx-signal-live]");
+  if (etiqueta) {
+    const NOMBRE = {
+      DORMANT: "LATENT", IDLE: "LATENT", AWARE: "ACQUIRING",
+      LOCK: "LOCKED", TRACK: "TRACKING", INSPECT: "READING", DESCEND: "DESCENDING",
+    };
+    const pintar = () => {
+      const e = document.querySelector("[data-kdx-obs]")?.getAttribute("data-kdx-obs");
+      etiqueta.textContent = "SIGNAL · " + (NOMBRE[e] || "LATENT");
+    };
+    /* La escena escribe `data-kdx-obs` cuando su maquina arranca, y eso pasa
+       DESPUES de este script: buscarlo aca dejaba el observador sin nodo y la
+       etiqueta congelada en LATENT para siempre. Se espera a que aparezca. */
+    const enganchar = (escena) => {
+      pintar();
+      new MutationObserver(pintar).observe(escena, { attributes: true, attributeFilter: ["data-kdx-obs"] });
+    };
+    const ya = document.querySelector("[data-kdx-obs]");
+    if (ya) enganchar(ya);
+    else {
+      const espera = new MutationObserver(() => {
+        const e = document.querySelector("[data-kdx-obs]");
+        if (e) { espera.disconnect(); enganchar(e); }
+      });
+      espera.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kdx-obs"] });
+      /* Si en 8s no aparecio ninguna escena con estado, se deja de esperar: el
+         resto del corredor todavia no expone el suyo y LATENT ahi es verdad. */
+      setTimeout(() => espera.disconnect(), 8000);
+    }
+  }
+</script>

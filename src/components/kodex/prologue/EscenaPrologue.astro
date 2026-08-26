@@ -172,9 +172,25 @@ glitch = step(0.995, noise(r * Time));`}</pre>
     transition-delay: calc(var(--i) * 26ms);
   }
   .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__nombre b { opacity: .62; filter: blur(2px); transform: none; }
-  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__nombre b,
-  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__nombre b,
-  .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__nombre b { opacity: 1; filter: none; transform: none; }
+  /* LOCK — la tipografia SE ESTABILIZA: es su unico estado plenamente asentado. */
+  .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__nombre b { opacity: 1; filter: none; transform: none; }
+
+  /* TRACK — el titulo RESPIRA CON EL SEGUIMIENTO. El tracking se abre y se
+     cierra con la energia del gesto (--kx-track, escrita por la escena desde el
+     mismo pulso que mueve el iris). No es un adorno: es el mismo dato. El
+     creador lo pidio por nombre — TRACK no puede pasar solo porque el titulo
+     quedo quieto despues de LOCK. */
+  .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__nombre b {
+    opacity: 1; filter: none;
+    transform: translateX(calc(var(--kx-track, 0) * 1px));
+    transition-duration: 180ms;
+  }
+
+  /* INSPECT — el titulo SE RETIRA un paso. La atencion se fue al panel denso; el
+     nombre sigue presente pero deja de reclamar. Semantico, no decorativo. */
+  .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__nombre b {
+    opacity: .45; filter: none; transform: none;
+  }
   /* DESCEND: la tipografía se retira hacia la profundidad en vez de apagarse.
      El título no desaparece: se va con el resto del campo hacia el punto de fuga. */
   .kx-prologue[data-kdx-obs="DESCEND"] .kx-prologue__nombre b {
@@ -229,21 +245,42 @@ glitch = step(0.995, noise(r * Time));`}</pre>
 
   /* INSPECTOR — lo denso de la lámina (shader, logs, datos) NO está en pantalla
      por defecto. Se abre sólo si el visitante decide observar más. */
+  /* GRAMATICA DE CONTROLES. Medido contra la barra del mazo, que es la
+     gramatica del sistema: IBM Plex Mono 10.5px, tracking 2.1px, radio 999px,
+     borde 1px solid, altura 44. Este boton usaba ui-monospace a 9.28px y media
+     156x29 — la unica pieza de la escena que hablaba otra tipografia y que
+     ademas no alcanzaba el minimo tactil. Era, literalmente, el control «sacado
+     de otro kit». */
   .kx-prologue__inspector-btn {
     position: absolute;
     bottom: max(6.2rem, env(safe-area-inset-bottom, 0px) + 5.6rem);
     z-index: 3;
-    padding: .55rem 1rem;
-    font: 500 .58rem/1 ui-monospace, monospace;
-    letter-spacing: .22em;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 1.1rem;
+    font: 500 10.5px/1 "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: 2.1px;
     color: var(--acento);
     background: rgba(8,5,16,.72);
     border: 1px solid color-mix(in srgb, var(--acento) 40%, transparent);
     border-radius: 999px;
     cursor: pointer;
     opacity: .34;
-    transition: opacity 300ms;
+    transition: opacity 300ms, border-color 200ms, color 200ms;
   }
+  /* Los cinco estados que el creador pide para todo control: idle, hover,
+     focus, pressed y disabled. Antes solo existia idle. */
+  .kx-prologue__inspector-btn:hover {
+    border-color: color-mix(in srgb, var(--acento) 75%, transparent);
+    color: color-mix(in srgb, var(--acento) 60%, #fff);
+  }
+  .kx-prologue__inspector-btn:focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 3px;
+    opacity: 1;
+  }
+  .kx-prologue__inspector-btn:active { transform: translateY(1px); }
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__inspector-btn,
   .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__inspector-btn,
   .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__inspector-btn,
@@ -457,6 +494,10 @@ glitch = step(0.995, noise(r * Time));`}</pre>
       if (az) az.textContent = `${(180 + p.objetivo.x * 60).toFixed(2)}°`;
       if (el) el.textContent = `${(p.objetivo.y * -30).toFixed(2)}°`;
       if (str) str.textContent = `${Math.round(p.presencia * 100)}%`;
+      /* El titulo lee el MISMO pulso que mueve el iris: cada letra se separa
+         segun su indice y la energia del gesto, asi el nombre se estira con el
+         seguimiento en vez de quedarse congelado tras el LOCK. */
+      raiz.style.setProperty("--kx-track", (p.objetivo.x * 2.2 + p.energia * 1.6).toFixed(2));
       if (sync) sync.textContent = p.foco > 0.6 ? "LOCKED" : "UNLOCKED";
       if (locks) locks.textContent = String(p.locks);
 
