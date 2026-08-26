@@ -90,6 +90,14 @@ async function trigger(page, locator, profile, destination) {
     throw new Error(`${profile.key}: transition trigger route mismatch`);
   }
 
+  // Native PROLOGUE must prove the real user affordance. Its click handler
+  // delegates to the existing ritual authority; generic scenes keep the
+  // historical public ritual bridge for temporal capture.
+  if (await locator.getAttribute('data-kdx-puerta') !== null) {
+    await locator.click({ noWaitAfter: true, timeout: 2_000 });
+    return;
+  }
+
   const invoked = await withTimeout(page.evaluate((url) => {
     const ritual = window.__kdxRitual;
     if (typeof ritual !== 'function') return false;
@@ -99,7 +107,7 @@ async function trigger(page, locator, profile, destination) {
   if (!invoked) throw new Error(`${profile.key}: ritual runtime bridge unavailable`);
 }
 
-async function proveNativePrologueLock(page, profile, context, frames) {
+async function proveNativePrologue(page, profile, context, frames) {
   const native = page.locator('[data-kdx-observacion]').first();
   if (!await native.count()) return false;
 
@@ -111,13 +119,29 @@ async function proveNativePrologueLock(page, profile, context, frames) {
     throw new Error(`${profile.key}: native PROLOGUE failed causal LOCK/KDX.TYPE proof`);
   }
 
+  // TRACK is a causal state, not decoration: hold and move the pointer.
+  const box = await native.boundingBox();
+  if (!box) throw new Error(`${profile.key}: native PROLOGUE has no interaction bounds`);
+  const x = box.x + box.width * 0.5;
+  const y = box.y + box.height * 0.5;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + Math.min(80, box.width * 0.15), y + Math.min(50, box.height * 0.1), { steps: 3 });
+  await page.locator('[data-kdx-observacion][data-kdx-obs="TRACK"]').waitFor({ state: 'visible', timeout: 2_000 });
+  const tracked = await capture(context, page, profile.key, 'prologue-track', 0, frames);
+  if (tracked.prologueType !== 'PROLOGUE / TRACK') throw new Error(`${profile.key}: TRACK did not drive KDX.TYPE`);
+  await page.mouse.up();
+  await page.locator('[data-kdx-observacion][data-kdx-obs="AWARE"]').waitFor({ state: 'visible', timeout: 2_000 });
+
+  await native.focus();
+  await native.press('Enter');
+  await page.locator('[data-kdx-observacion][data-kdx-obs="LOCK"]').waitFor({ state: 'visible', timeout: 2_000 });
   const inspect = page.locator('[data-kdx-inspector-btn]').first();
   await inspect.click({ timeout: 2_000 });
   await page.locator('[data-kdx-observacion][data-kdx-obs="INSPECT"]').waitFor({ state: 'visible', timeout: 2_000 });
-  await capture(context, page, profile.key, 'prologue-inspect', 0, frames);
+  const inspected = await capture(context, page, profile.key, 'prologue-inspect', 0, frames);
+  if (inspected.prologueType !== 'PROLOGUE / INSPECT') throw new Error(`${profile.key}: INSPECT did not drive KDX.TYPE`);
   await inspect.click({ timeout: 2_000 });
-  await page.locator('[data-kdx-observacion][data-kdx-obs="AWARE"]').waitFor({ state: 'visible', timeout: 2_000 });
-  await native.press('Enter');
   await page.locator('[data-kdx-observacion][data-kdx-obs="LOCK"]').waitFor({ state: 'visible', timeout: 2_000 });
   return true;
 }
@@ -161,7 +185,7 @@ async function runProfile(profile) {
       await capture(context, page, profile.key, 'prologue', 2200, frames);
     }
 
-    const native = await proveNativePrologueLock(page, profile, context, frames);
+    const native = await proveNativePrologue(page, profile, context, frames);
     const prologueRoute = native
       ? page.locator('a[data-kdx-puerta][href="/kodex/folio/ii/"]').first()
       : page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first();
