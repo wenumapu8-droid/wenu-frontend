@@ -15,7 +15,6 @@ const profiles = [
 
 const browser = await chromium.launch({ headless: true });
 const report = { baseURL, generatedAt: new Date().toISOString(), cases: [], errors: [] };
-
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function withTimeout(promise, ms, label) {
@@ -38,6 +37,8 @@ async function state(page) {
         scrollHeight: document.documentElement.scrollHeight,
         profile: document.querySelector('[data-kdx-ritual]')?.getAttribute('data-perfil') || null,
         phase: document.querySelector('[data-kdx-ritual]')?.getAttribute('data-fase') || null,
+        prologueState: document.querySelector('[data-kdx-observacion]')?.getAttribute('data-kdx-obs') || null,
+        prologueType: document.querySelector('[data-kdx-observacion]')?.getAttribute('data-kdx-type') || null,
       })), 2_000, 'state snapshot');
     } catch (error) {
       lastError = error;
@@ -64,10 +65,7 @@ async function captureScreencastFrame(context, page, label) {
         resolve(params.data);
       });
     });
-    await withTimeout(cdp.send('Page.startScreencast', {
-      format: 'png',
-      everyNthFrame: 1,
-    }), 2_000, `${label} start screencast`);
+    await withTimeout(cdp.send('Page.startScreencast', { format: 'png', everyNthFrame: 1 }), 2_000, `${label} start screencast`);
     const data = await withTimeout(framePromise, 4_000, `${label} screencast frame`);
     await withTimeout(cdp.send('Page.stopScreencast'), 2_000, `${label} stop screencast`).catch(() => {});
     return data;
@@ -86,12 +84,6 @@ async function capture(context, page, key, label, elapsed, frames) {
 }
 
 async function trigger(page, locator, profile, destination) {
-  // This harness measures the existing ritual's temporal behavior, not input
-  // actionability. Dedicated browser/deep-navigation gates already cover
-  // keyboard/touch/pointer activation. Requiring the real affordance to be
-  // visible still proves the route is presented, while invoking the runtime's
-  // own public bridge avoids coupling temporal capture to Playwright click/tap
-  // completion under a busy transition frame.
   await locator.waitFor({ state: 'visible', timeout: 8_000 });
   const href = await locator.getAttribute('href');
   if (!href || new URL(href, baseURL).pathname !== new URL(destination, baseURL).pathname) {
@@ -104,8 +96,30 @@ async function trigger(page, locator, profile, destination) {
     ritual(url);
     return true;
   }, new URL(destination, baseURL).toString()), 2_000, `${profile.key} ritual runtime trigger`);
-
   if (!invoked) throw new Error(`${profile.key}: ritual runtime bridge unavailable`);
+}
+
+async function proveNativePrologueLock(page, profile, context, frames) {
+  const native = page.locator('[data-kdx-observacion]').first();
+  if (!await native.count()) return false;
+
+  await native.focus();
+  await native.press('Enter');
+  await page.locator('[data-kdx-observacion][data-kdx-obs="LOCK"]').waitFor({ state: 'visible', timeout: 3_000 });
+  const locked = await capture(context, page, profile.key, 'prologue-lock', 0, frames);
+  if (locked.prologueState !== 'LOCK' || locked.prologueType !== 'PROLOGUE / LOCK') {
+    throw new Error(`${profile.key}: native PROLOGUE failed causal LOCK/KDX.TYPE proof`);
+  }
+
+  const inspect = page.locator('[data-kdx-inspector-btn]').first();
+  await inspect.click({ timeout: 2_000 });
+  await page.locator('[data-kdx-observacion][data-kdx-obs="INSPECT"]').waitFor({ state: 'visible', timeout: 2_000 });
+  await capture(context, page, profile.key, 'prologue-inspect', 0, frames);
+  await inspect.click({ timeout: 2_000 });
+  await page.locator('[data-kdx-observacion][data-kdx-obs="AWARE"]').waitFor({ state: 'visible', timeout: 2_000 });
+  await native.press('Enter');
+  await page.locator('[data-kdx-observacion][data-kdx-obs="LOCK"]').waitFor({ state: 'visible', timeout: 2_000 });
+  return true;
 }
 
 async function runProfile(profile) {
@@ -132,9 +146,7 @@ async function runProfile(profile) {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
         const snapshot = await capture(context, page, profile.key, 'threshold-cross', elapsed, frames);
-        if (snapshot.path === '/kodex/' && snapshot.profile !== 'depth') {
-          throw new Error(`${profile.key}: THRESHOLD crossing did not expose depth ritual`);
-        }
+        if (snapshot.path === '/kodex/' && snapshot.profile !== 'depth') throw new Error(`${profile.key}: THRESHOLD crossing did not expose depth ritual`);
       }
     }
     await page.waitForURL((url) => url.pathname === '/kodex/folio/i/', { timeout: 8_000 });
@@ -149,14 +161,16 @@ async function runProfile(profile) {
       await capture(context, page, profile.key, 'prologue', 2200, frames);
     }
 
-    await trigger(page, page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first(), profile, '/kodex/folio/ii/');
+    const native = await proveNativePrologueLock(page, profile, context, frames);
+    const prologueRoute = native
+      ? page.locator('a[data-kdx-puerta][href="/kodex/folio/ii/"]').first()
+      : page.locator('a.kx-os-primary[href="/kodex/folio/ii/"]').first();
+    await trigger(page, prologueRoute, profile, '/kodex/folio/ii/');
     if (profile.reducedMotion !== 'reduce') {
       for (const elapsed of [120, 360, 700]) {
         await wait(elapsed === 120 ? 120 : elapsed === 360 ? 240 : 340);
         const snapshot = await capture(context, page, profile.key, 'prologue-cross', elapsed, frames);
-        if (snapshot.path === '/kodex/folio/i/' && snapshot.profile !== 'depth') {
-          throw new Error(`${profile.key}: PROLOGUE→DESCENT crossing did not expose depth ritual`);
-        }
+        if (snapshot.path === '/kodex/folio/i/' && snapshot.profile !== 'depth') throw new Error(`${profile.key}: PROLOGUE→DESCENT crossing did not expose depth ritual`);
       }
     }
     await page.waitForURL((url) => url.pathname === '/kodex/folio/ii/', { timeout: 8_000 });
@@ -172,7 +186,7 @@ async function runProfile(profile) {
     }
 
     if (pageErrors.length) throw new Error(`page errors: ${pageErrors.join(' | ')}`);
-    report.cases.push({ name: `opening-${profile.key}`, pass: true, frames });
+    report.cases.push({ name: `opening-${profile.key}`, pass: true, nativePrologue: native, frames });
   } catch (error) {
     const message = `opening-${profile.key}: ${String(error?.stack || error)}`;
     report.errors.push(message);
@@ -183,9 +197,7 @@ async function runProfile(profile) {
 }
 
 try {
-  for (const profile of profiles) {
-    await runProfile(profile);
-  }
+  for (const profile of profiles) await runProfile(profile);
 } catch (error) {
   report.errors.push(`opening-corridor harness: ${String(error?.stack || error)}`);
 } finally {
