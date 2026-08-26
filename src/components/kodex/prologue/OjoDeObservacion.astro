@@ -91,6 +91,27 @@ const { class: className } = Astro.props;
     let est = { estado: "DORMANT", presencia: 0, foco: 0, objetivo: { x: 0, y: 0 }, energia: 0, locks: 0 };
     raiz.addEventListener("kdx:pulso", (e) => { est = (e as CustomEvent).detail; });
 
+    /* LA CROMA ES EL ESTADO — leído de la lámina, no elegido.
+       El tablero «Observation Eye System Board — Violet» pinta sus tres estados
+       de escaneo en colores distintos: LOCK en violeta, TRACK en CIAN, IDLE en
+       gris. No es decoración: el color dice en qué estado está el sistema, y se
+       lee sin leer la etiqueta.
+       Medido contra la referencia, al runtime le faltaba el cian por completo
+       (0% contra 0.39%) y su violeta estaba a menos de la mitad de saturación
+       (0.147 contra 0.341). Los dos se corrigen acá. */
+    const CROMA: Record<string, [number, number, number]> = {
+      DORMANT: [120, 96, 150],    // violeta apagado: existe, no reclama
+      IDLE:    [138, 112, 168],
+      AWARE:   [176, 108, 255],   // el violeta del mundo, ya saturado
+      LOCK:    [186, 96, 255],    // lock: el más profundo
+      TRACK:   [ 96, 226, 255],   // CIAN — el color del seguimiento en la lámina
+      INSPECT: [168, 120, 240],
+      DESCEND: [214, 168, 255],
+    };
+    /* La transición de color es continua: saltar de violeta a cian de un cuadro
+       a otro se leería como un parpadeo de error, no como un cambio de estado. */
+    let croma: [number, number, number] = [...CROMA.DORMANT] as [number, number, number];
+
     let t = 0;
     const dibujar = () => {
       t += reduce.matches ? 0 : 1;
@@ -105,6 +126,10 @@ const { class: className } = Astro.props;
 
       ctx.clearRect(0, 0, W, H);
       ctx.globalCompositeOperation = "lighter";
+
+      const meta = CROMA[est.estado] || CROMA.DORMANT;
+      for (let i = 0; i < 3; i++) croma[i] += (meta[i] - croma[i]) * 0.07;
+      const C = `${Math.round(croma[0])}, ${Math.round(croma[1])}, ${Math.round(croma[2])}`;
 
       const respiro = reduce.matches ? 0 : Math.sin(t / 96) * 0.5 + 0.5;
       /* DORMANT es un ojo dormido, no apagado: 0.06 de piso. El piso anterior
@@ -127,6 +152,17 @@ const { class: className } = Astro.props;
          que enfoca cierra el diafragma. */
       const pupila = (22 - est.foco * 11) * k;
 
+      /* REVERTIDO el intento de «menos trazos, más tinta».
+         Diagnostiqué que el violeta estaba lavado midiendo la saturación GLOBAL
+         del cuadro contra la de la lámina: 0.147 contra 0.341. Estaba comparando
+         manzanas con peras — la lámina es un tablero de once paneles saturados y
+         el runtime es un solo organismo sobre negro, así que esa cifra mide
+         COMPOSICIÓN, no color.
+         Midiendo la MISMA región en ambas —el panel 04, x 468→1113, y 93→579—:
+             referencia  saturación 0.548 · violeta 85.9%
+             runtime     saturación 0.541 · violeta 99.8%
+         El ojo ya era cromáticamente fiel. Quitar trazos sólo lo dejó más ralo
+         (tinta 13.5% en la lámina contra 11.5%), así que vuelve el paso original. */
       for (let r = 6; r <= 360; r += 1.6) {
         if (r > alcance) break;
         let a = lum(r);
@@ -156,7 +192,7 @@ const { class: className } = Astro.props;
         /* Alfa base bajada de .5 a .3: con `lighter` el apilado saturaba a
            blanco y ninguna modulacion se notaba. Con margen, el estado vuelve
            a ser legible en el pixel. */
-        ctx.strokeStyle = `rgba(178, 124, 255, ${Math.min(1, a * 0.3)})`;
+        ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.3)})`;
         ctx.lineWidth = 1.6 * k * 1.6;
         ctx.arc(cx, cy, rr, 0, Math.PI * 2);
         ctx.stroke();
@@ -167,9 +203,9 @@ const { class: className } = Astro.props;
          en LOCK se afila, en DORMANT casi no está. */
       const barrido = 0.10 + est.presencia * 0.5 + est.foco * 0.4;
       const g = ctx.createLinearGradient(0, cy, W, cy);
-      g.addColorStop(0, "rgba(178,124,255,0)");
-      g.addColorStop(0.5, `rgba(226,196,255,${barrido})`);
-      g.addColorStop(1, "rgba(178,124,255,0)");
+      g.addColorStop(0, `rgba(${C},0)`);
+      g.addColorStop(0.5, `rgba(${C},${barrido})`);
+      g.addColorStop(1, `rgba(${C},0)`);
       ctx.strokeStyle = g;
       ctx.lineWidth = 1 + est.foco * 1.4;
       ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
@@ -182,7 +218,7 @@ const { class: className } = Astro.props;
       ctx.fill();
       if (est.foco > 0.02) {
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(232,214,255,${est.foco * 0.9})`;
+        ctx.strokeStyle = `rgba(${C},${est.foco * 0.9})`;
         ctx.lineWidth = 1.2;
         ctx.arc(cx, cy, pupila + 2, 0, Math.PI * 2);
         ctx.stroke();
