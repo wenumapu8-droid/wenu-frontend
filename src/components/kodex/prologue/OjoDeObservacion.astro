@@ -222,16 +222,23 @@ const { class: className } = Astro.props;
       for (let r = 6; r <= 360; r += 1.6) {
         if (r > alcance) break;
         if (r >= 136 && r <= 245 && !enCresta(r)) continue;
-        /* Las coronas exteriores se retiran del todo. Eran anillos angularmente
-           uniformes que rellenaban justo los huecos que en la lámina son
-           oscuros, y aplanaban la variación angular: medida 0.59 contra 2.20 de
-           la referencia a 0.85 del radio del ojo. Ese espacio pertenece a los
-           filamentos. */
-        if (r > 245) continue;
+        /* LAS CORONAS EXTERIORES VUELVEN. Se habían retirado por completo con
+           el argumento de que aplanaban la variación angular — argumento que
+           venía de la métrica contaminada. Con el encuadre corregido se ve el
+           daño: el campo exterior quedó en 2.4 de luminancia contra 13.0 de la
+           lámina, y su variación se disparó a 2.86 contra 1.49 porque quedó
+           casi negro con espigas sueltas.
+           El perfil medido las declara: «r 246-360 coronas exteriores tenues
+           (5-11)». Tenues, pero existen — y son las que dan cuerpo al borde.
+           Vuelven espaciadas y con poca tinta, que es lo que dice el perfil. */
+        if (r > 245 && (r % 7) > 2.4) continue;
         let a = lum(r);
         if (a <= 0.005) continue;
 
-        if (r < 24) { a *= 1 - est.foco * 0.5; }
+        /* La pupila es NEGRA en la lámina —lum 7.3 contra 13.3 del runtime,
+           x1.81—. Es el único punto de reposo del organismo: si brilla, el ojo
+           pierde su centro. */
+        if (r < 24) { a *= (1 - est.foco * 0.5) * 0.42; }
         if (r >= 68 && r <= 77) { a *= 0.45 + vigor * 0.9; }              // limbo: el pulso
         if (r > 77 && r < 136) { a *= 0.5 + vigor * 0.6 + est.energia * 0.5; } // filamentos: el gesto
         if (r >= 136 && r <= 245) {
@@ -241,7 +248,10 @@ const { class: className } = Astro.props;
           const temblor = (1 - est.foco) * (reduce.matches ? 0 : Math.sin(t / 13 + r / 7) * 0.28);
           a *= 0.55 + vigor * 0.45 + temblor;
         }
-        if (r > 245) { a *= 0.35 + respiro * 0.3 * vigor; }
+        /* Coronas: el perfil las declara «tenues (5-11)». Calibradas contra la
+           lámina —6.8 de luminancia media— y no a ojo: primero faltaban (x0.31),
+           luego sobraban (x1.91). El respiro las hace latir sin cambiar su peso. */
+        if (r > 245) { a *= 0.62 + respiro * 0.34 * vigor; }
 
         /* Desvanecido en el BORDE del alcance: sin esto el campo termina en un
            corte duro y se lee como un recorte, no como un organismo que se
@@ -253,23 +263,25 @@ const { class: className } = Astro.props;
         if (rr < pupila) continue;
         ctx.lineWidth = 1.6 * k * 1.6;
 
-        /* LO QUE LA LÁMINA LLAMA FILAMENTO, NO SE DIBUJA COMO ANILLO.
-           Diagnóstico por capas: apagando los anillos la variación angular
-           subió de 0.25 a 0.66 a media distancia — ellos eran los que
-           aplanaban. Y al releer el perfil medido aparece el error de lectura:
+        /* EL CAMPO MEDIO LLEVA MASA — corrección del ciclo anterior.
+           El ciclo pasado dejó de trazar r45-67 y r78-135 porque el perfil los
+           llama «valle» y «filamento», y el nombre parecía la instrucción. Con
+           la métrica ya encuadrada —radio propio de cada ojo, umbral absoluto,
+           búfer con alfa sobre negro— se ve que fue un error de lectura:
 
-               r  9- 23  pupila        MASA
-               r 24- 44  collar        MASA
-               r 45- 67  VALLE de fibra media   ← un valle no es una línea
-               r 68- 77  anillo limbal MASA
-               r 78-135  FILAMENTO largo        ← lo dice el nombre
+               fracción del radio   lámina        runtime tras vaciarlo
+                    0.4            40.2 lum          3.9 lum
+                    0.6            13.0 lum          1.0 lum
 
-           Estaba trazando el valle y el filamento largo como circunferencias
-           continuas. Sólo pupila, collar y limbo son cuerpos; el resto es
-           campo, y el campo pertenece a los radios. */
-        const esMasa = r < 45 || (r >= 68 && r <= 77);
-        if (r >= 45 && r < 136 && !esMasa) continue;
+           «Valle» es un valle RELATIVO a los picos vecinos; su luminancia
+           absoluta sigue siendo la más alta de todo el organismo. Vaciarlo dejó
+           un agujero de diez veces.
 
+           Y el mismo encuadre desmiente el diagnóstico que venía arrastrándose:
+           la variación angular del runtime no era BAJA sino ALTA —4.02 contra
+           0.87 de la lámina—, porque el campo estaba casi negro con unas pocas
+           espigas. Se estuvo empujando en la dirección contraria durante seis
+           iteraciones. */
         if (r < 136) {
           /* EL NÚCLEO ES MASA. Pupila, collar, valle y limbo son cuerpos
              continuos en la lámina, no líneas: van de una pieza.
@@ -282,7 +294,11 @@ const { class: className } = Astro.props;
              pantalla era el túnel, el grano y el halo del shell, no el ojo.
              Por eso cinco rondas de afinar alfa no movían nada visible: se
              estaba ajustando la capa que menos aportaba. */
-          ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.95)})`;
+          /* Alfa calibrada contra objetivo, no a ojo. Con los anillos del campo
+             medio restaurados y la subida 2.5x del ciclo anterior —que venía de
+             una medición contaminada— el núcleo daba 108.7 contra 33.7 de la
+             lámina: tres veces de más. El factor sale de la razón medida. */
+          ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.32)})`;
           ctx.arc(cx, cy, rr, 0, Math.PI * 2);
           ctx.stroke();
         } else {
@@ -304,7 +320,14 @@ const { class: className } = Astro.props;
             const iniA = giro + n * paso + paso * 0.14;
             const finA = iniA + paso * (0.3 + s0 * 0.52);
             ctx.beginPath();
-            ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (0.8 + s0 * 1.6))})`;
+            /* Los arcos de datos se calibran APARTE del núcleo. Al bajar la
+               tinta general para corregir el núcleo —que estaba al triple— se
+               bajaron también estos, y el campo exterior cayó a 2.4 contra 13.0
+               de la lámina. Mapeando fracciones a radios del póster, 0.6 a 0.95
+               del radio caen justo en esta zona (r136-245), no en las coronas:
+               son estos arcos los que dan cuerpo al borde, y necesitan su propia
+               escala. */
+            ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (1.5 + s0 * 3.0))})`;
             ctx.arc(cx, cy, rr, iniA, finA);
             ctx.stroke();
           }
