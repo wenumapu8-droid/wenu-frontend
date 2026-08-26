@@ -40,6 +40,37 @@ Preview: https://kodex-preview.wenu-frontend.pages.dev/kodex/folio/i/
    DESCENT, ARCHIVE, MACHINE, COSMOLOGY y RETURN contra su referencia de Drive.
    **Esto es sólo documento:** no tocar su código hasta que PROLOGUE sea aceptada.
 
+## LINAJE DE PRODUCTO — RESUELTO CON MEDICIÓN 2026-08-26
+
+Hubo instrucción de portar el trabajo probado sobre PR #101 como «current product
+host». **Medido, eso llevaría a una rama que producción nunca adoptó:**
+
+    redesign-v2 (la rama que Cloudflare despliega) vs converge/kodex-todo
+        redesign-v2 adelante 0  ·  converge adelante 315
+    redesign-v2 vs feat/kodex-manifestation-recipe-p0-4 (PR #101)
+        redesign-v2 adelante 500  ·  p0-4 adelante 287
+
+`redesign-v2` es ANCESTRO ESTRICTO de converge: converge contiene todo lo que hay
+en producción más 315 commits. Con p0-4 hay divergencia real en ambos sentidos.
+
+**El linaje de producto es `redesign-v2 → converge/kodex-todo`.** PR #101 es una
+rama paralela que producción nunca tomó, y sigue OPEN / DRAFT / NOT MERGED con
+head `3a66fcdd`. Está 59 adelante y 587 atrás de converge — la brecha creció.
+
+Este trabajo ya está basado en converge. No hay que portar nada; hay que no
+desviarse.
+
+## OTRA RAMA VIVA SOBRE LA MISMA BASE
+
+`kodex/pass-b-escenas-componentes` (head `05d60614`, 2026-08-24) sale de `56bc3576`,
+la misma base que esta. Trae 5 componentes de escena —Archive, Cosmology, Descent,
+Machine, Return, 587 líneas— construidos por otro nodo.
+
+**Su markup y sus cajas medidas sirven. Su móvil NO:** el iMac ya auditó que no
+montan `montarVida`/`montarFases`/`montarNavegacion`/`montarTriptico` y que
+reimplementan `scale()` para móvil, que es el error rechazado por el creador.
+Si se toman, tomar el mapeo de bloques; nunca su coreografía móvil.
+
 ## BLOQUEOS
 
 - Aceptación del creador sobre PROLOGUE: sin eso no hay replicación.
