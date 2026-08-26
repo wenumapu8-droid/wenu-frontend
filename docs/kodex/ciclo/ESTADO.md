@@ -43,13 +43,35 @@ Preview: https://kodex-preview.wenu-frontend.pages.dev/kodex/folio/i/
    Las siete zonas dentro de rango (0.6–1.7). Antes de arreglar la métrica
    había dos huecos de diez veces sin que ninguna medición los mostrara.
 
-2. **Instrumentación flanqueante.** La lámina muestra AZIMUTH / ELEVATION / ZOOM /
-   FOCUS / IRIS / APERTURE a la izquierda del ojo y SIGNAL STR / NOISE / SYNC /
-   RESOLUTION / BIT DEPTH / COLOR SPACE a la derecha, **siempre visibles**. El
-   runtime las esconde en el inspector. Evaluar sacarlas al campo en desktop
-   (donde hay sitio) manteniéndolas tras interacción en móvil.
-   Sólo las que deriven de algo real: ZOOM, RESOLUTION y BIT DEPTH probablemente
-   sean parámetros canónicos, no telemetría. Clasificarlas antes de mostrarlas.
+2. **Instrumentación flanqueante.** CERRADA.
+
+   Dos rieles a los lados del ojo, como en la lámina, visibles desde 1360px.
+   Cada lectura declara su CLASE en el propio DOM (`data-clase`), para que la
+   verdad sea auditable sin leer el código:
+
+       DERIVED   AZIMUTH · ELEVATION · ZOOM · FOCUS · IRIS
+                 SIGNAL STR · NOISE · SYNC
+       LIVE      RESOLUTION — los píxeles reales del lienzo del organismo
+       CANONICAL APERTURE f/2.8 · BIT DEPTH 16-BIT · COLOR SPACE ACEScg
+
+   Nueve derivadas o vivas, tres parámetros, cero inventadas. Los canónicos se
+   pintan más callados que las lecturas vivas: un valor fijo no debe vestirse
+   de medición.
+
+   Medido moviendo el puntero — reposo → AWARE → TRACK:
+       AZIMUTH   180.00° → 167.08° → 191.48°
+       ELEVATION   0.00° →   5.74° →  -5.10°
+       ZOOM        x1.00 →   x2.66 →   x3.66
+       FOCUS        AUTO →    AUTO →  MANUAL
+       IRIS           22 →      19 →      11
+       NOISE        HIGH →    HIGH →     LOW
+       SYNC     UNLOCKED →UNLOCKED →  LOCKED
+
+   IRIS no es adorno: es el MISMO número con que el organismo dibuja su pupila.
+   NOISE sale del mismo término que hace temblar los anillos de datos.
+
+   En teléfono los rieles no existen: ahí el campo es del ojo y lo denso sigue
+   esperando en el inspector.
 
 3. **Audio.** El contrato lo pide opt-in, consciente del estado, y con el mute
    funcionando. Hoy no existe en la escena.

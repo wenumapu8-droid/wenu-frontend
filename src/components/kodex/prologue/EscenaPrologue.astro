@@ -41,6 +41,34 @@ import OjoDeObservacion from "./OjoDeObservacion.astro";
     <canvas class="kx-prologue__senal" data-kdx-senal aria-hidden="true"></canvas>
   </div>
 
+  {/* INSTRUMENTACIÓN FLANQUEANTE — como en la lámina, a los lados del ojo y
+      siempre visible en escritorio. Cada lectura declara su CLASE en el DOM,
+      para que la verdad sea auditable sin leer el código:
+
+        LIVE      se lee del runtime en el momento
+        DERIVED   se calcula desde el pulso de observación
+        CANONICAL parámetro real del instrumento, fijo por diseño
+
+      No hay una cuarta categoría para «número que parece medición». Si algo no
+      cabe en las tres, no se muestra. */}
+  <aside class="kx-prologue__riel kx-prologue__riel--izq" aria-label="Óptica">
+    <div><dt>AZIMUTH</dt><dd data-kdx-az data-clase="DERIVED">180.00°</dd></div>
+    <div><dt>ELEVATION</dt><dd data-kdx-el data-clase="DERIVED">+00.00°</dd></div>
+    <div><dt>ZOOM</dt><dd data-kdx-zoom data-clase="DERIVED">x1.00</dd></div>
+    <div><dt>FOCUS</dt><dd data-kdx-focus data-clase="DERIVED">AUTO</dd></div>
+    <div><dt>IRIS</dt><dd data-kdx-iris data-clase="DERIVED">22</dd></div>
+    <div><dt>APERTURE</dt><dd data-clase="CANONICAL">f/2.8</dd></div>
+  </aside>
+
+  <aside class="kx-prologue__riel kx-prologue__riel--der" aria-label="Señal">
+    <div><dt>SIGNAL STR</dt><dd data-kdx-str data-clase="DERIVED">0%</dd></div>
+    <div><dt>NOISE</dt><dd data-kdx-noise data-clase="DERIVED">HIGH</dd></div>
+    <div><dt>SYNC</dt><dd data-kdx-sync data-clase="DERIVED">UNLOCKED</dd></div>
+    <div><dt>RESOLUTION</dt><dd data-kdx-res data-clase="LIVE">—</dd></div>
+    <div><dt>BIT DEPTH</dt><dd data-clase="CANONICAL">16-BIT</dd></div>
+    <div><dt>COLOR SPACE</dt><dd data-clase="CANONICAL">ACEScg</dd></div>
+  </aside>
+
   <h1 class="kx-prologue__titulo" data-kdx-titulo>
     <span class="kx-prologue__eyebrow">01 · SCAN PROTOCOL</span>
     <span class="kx-prologue__nombre" aria-label="Observation Eye">
@@ -200,6 +228,67 @@ glitch = step(0.995, noise(r * Time));`}</pre>
   .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__eyebrow,
   .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__eyebrow,
   .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__eyebrow { opacity: 1; transform: none; }
+
+  /* Los rieles NO existen en teléfono: ahí el campo pertenece al ojo y lo denso
+     espera en el inspector, que es lo que ya hacía. Aparecen sólo donde la
+     lámina tiene sitio para ellos. */
+  .kx-prologue__riel { display: none; }
+  /* 1360 y no 1100: medido, a 1100 y a 1280 los rieles chocaban con el título y los
+     fragmentos —2 colisiones—. El umbral no se elige por costumbre sino por
+     dónde caben de verdad. Debajo de eso rige el comportamiento de teléfono:
+     el campo es del ojo y lo denso espera en el inspector. */
+  @media (min-width: 1360px) {
+    /* DONDE HAY RIELES, LOS FRAGMENTOS SE CORREN HACIA ADENTRO.
+       Medido a 1360: el riel izquierdo terminaba en y=546 y «PIXEL SORT»
+       empezaba exactamente en y=546 — no era solape sino contacto a cero
+       píxeles, compartiendo carril. Subir el umbral no lo arreglaba: el choque
+       reaparecía en cada nuevo umbral, porque el defecto era de construcción y
+       no de ancho. Cada cosa con su carril: los rieles pegados al borde, los
+       fragmentos orbitando el ojo. */
+    .kx-prologue__fragmentos li:nth-child(1) { top: 20%; left: 22%; }
+    .kx-prologue__fragmentos li:nth-child(2) { top: 26%; right: 22%; }
+    .kx-prologue__fragmentos li:nth-child(3) { top: 66%; left: 24%; }
+    .kx-prologue__fragmentos li:nth-child(4) { top: 70%; right: 24%; }
+    .kx-prologue__fragmentos li:nth-child(5) { top: 43%; left: 19%; }
+    .kx-prologue__fragmentos li:nth-child(6) { top: 50%; right: 19%; }
+
+    .kx-prologue__riel {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      display: grid;
+      gap: .95rem;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 520ms;
+    }
+    .kx-prologue__riel--izq { left: 6vw; text-align: right; justify-items: end; }
+    .kx-prologue__riel--der { right: 6vw; text-align: left; justify-items: start; }
+    /* Se revelan con la presencia: dormido el instrumento no reporta nada. */
+    .kx-prologue[data-kdx-obs="AWARE"] .kx-prologue__riel,
+    .kx-prologue[data-kdx-obs="LOCK"] .kx-prologue__riel,
+    .kx-prologue[data-kdx-obs="TRACK"] .kx-prologue__riel,
+    .kx-prologue[data-kdx-obs="INSPECT"] .kx-prologue__riel { opacity: 1; }
+    .kx-prologue__riel div { display: grid; gap: .16rem; }
+    .kx-prologue__riel dt {
+      font: 400 .54rem/1 "IBM Plex Mono", ui-monospace, monospace;
+      letter-spacing: .2em;
+      color: color-mix(in srgb, var(--acento) 46%, #8d83a8);
+    }
+    .kx-prologue__riel dd {
+      margin: 0;
+      font: 500 .72rem/1 "IBM Plex Mono", ui-monospace, monospace;
+      letter-spacing: .06em;
+      color: color-mix(in srgb, var(--acento) 88%, #fff);
+      font-variant-numeric: tabular-nums;
+    }
+    /* Los parámetros canónicos se distinguen de las lecturas vivas: no laten,
+       y su tinta es más callada. Un valor fijo no debe vestirse de medición. */
+    .kx-prologue__riel dd[data-clase="CANONICAL"] {
+      color: color-mix(in srgb, var(--acento) 40%, #8d83a8);
+    }
+  }
 
   .kx-prologue__estado {
     position: absolute;
@@ -452,6 +541,21 @@ glitch = step(0.995, noise(r * Time));`}</pre>
     const str = raiz.querySelector<HTMLElement>("[data-kdx-str]");
     const sync = raiz.querySelector<HTMLElement>("[data-kdx-sync]");
     const locks = raiz.querySelector<HTMLElement>("[data-kdx-locks]");
+    const zoom = raiz.querySelector<HTMLElement>("[data-kdx-zoom]");
+    const focus = raiz.querySelector<HTMLElement>("[data-kdx-focus]");
+    const iris = raiz.querySelector<HTMLElement>("[data-kdx-iris]");
+    const noise = raiz.querySelector<HTMLElement>("[data-kdx-noise]");
+    const res = raiz.querySelector<HTMLElement>("[data-kdx-res]");
+
+    /* RESOLUTION — LIVE de verdad: son los píxeles reales del lienzo del
+       organismo, no una cifra de catálogo. Cambia con el viewport y con el
+       devicePixelRatio, porque eso es lo que cambia de verdad. */
+    const pintarRes = () => {
+      const cv = raiz.querySelector<HTMLCanvasElement>("[data-kdx-organismo-ojo]");
+      if (res && cv) res.textContent = `${cv.width}x${cv.height}`;
+    };
+    pintarRes();
+    addEventListener("resize", pintarRes, { passive: true });
 
     /* SEÑAL VIVA — el waveform del panel 06 no es un dibujo: su amplitud sale
        de la energía del gesto y su estabilidad del foco. En LOCK se aquieta;
@@ -499,6 +603,19 @@ glitch = step(0.995, noise(r * Time));`}</pre>
          seguimiento en vez de quedarse congelado tras el LOCK. */
       raiz.style.setProperty("--kx-track", (p.objetivo.x * 2.2 + p.energia * 1.6).toFixed(2));
       if (sync) sync.textContent = p.foco > 0.6 ? "LOCKED" : "UNLOCKED";
+
+      /* ZOOM — el organismo se despliega con la presencia: `alcance` va de 96 a
+         360 radios del póster. Esa expansión ES el zoom, expresada como razón. */
+      if (zoom) zoom.textContent = `x${(1 + p.presencia * 2.75).toFixed(2)}`;
+      /* FOCUS — MANUAL cuando el visitante conduce el seguimiento; AUTO cuando
+         el sistema se sostiene solo. */
+      if (focus) focus.textContent = (p.estado === "TRACK" || p.estado === "LOCK") ? "MANUAL" : "AUTO";
+      /* IRIS — el radio real de la pupila, que se contrae de 22 a 11 al enfocar.
+         Es el mismo número que usa el organismo para dibujarse. */
+      if (iris) iris.textContent = (22 - p.foco * 11).toFixed(0);
+      /* NOISE — el temblor de los anillos de datos es (1 - foco): el mismo
+         término que los agita cuando el sistema no tiene lock. */
+      if (noise) noise.textContent = p.foco > 0.72 ? "LOW" : p.foco > 0.34 ? "MED" : "HIGH";
       if (locks) locks.textContent = String(p.locks);
 
       if (!ctx || !cv) return;
