@@ -33,7 +33,7 @@ interface Props { class?: string }
 const { class: className } = Astro.props;
 ---
 
-<canvas class:list={["kdx-ojo", className]} data-kdx-ojo aria-hidden="true"></canvas>
+<canvas class:list={["kdx-ojo", className]} data-kdx-organismo-ojo aria-hidden="true"></canvas>
 
 <style>
   .kdx-ojo {
@@ -86,19 +86,34 @@ const { class: className } = Astro.props;
      Las direcciones son deterministas —seed fijo— para que el organismo sea el
      mismo entre recargas: un ojo que se redibuja distinto cada vez no es un
      organismo, es ruido. */
-  const RADIOS = 96;
+  /* MENOS FILAMENTOS, MÁS DESIGUALES.
+     Con 96 radios repartidos parejo, a cualquier distancia del centro casi todos
+     los ángulos quedaban encendidos: variación angular 0.58 contra 2.20 de la
+     lámina. El contraste no nace de la cantidad de tinta sino de que HAYA
+     ÁNGULOS NEGROS entre los encendidos.
+     34 filamentos, con largos y pesos mucho más dispares y las direcciones
+     sueltas de la rejilla — un organismo no crece en abanico regular. */
+  const RADIOS = 34;
   const semilla = (i: number) => {
     const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
     return x - Math.floor(x);
   };
-  const FIL = Array.from({ length: RADIOS }, (_, i) => ({
-    ang: (i / RADIOS) * Math.PI * 2 + semilla(i) * 0.05,
-    largo: 0.34 + semilla(i + 100) * 0.66,   // hasta dónde llega cada filamento
-    peso: 0.35 + semilla(i + 200) * 0.65,    // cuánta tinta lleva
-    fase: semilla(i + 300) * Math.PI * 2,
-  }));
+  const FIL = Array.from({ length: RADIOS }, (_, i) => {
+    /* El largo se eleva al cubo: la mayoría queda corta y unos pocos llegan muy
+       lejos. Repartir parejo daba una corona; repartir desigual da un organismo. */
+    const l = semilla(i + 100);
+    const w = semilla(i + 200);
+    return {
+      /* Las direcciones se sueltan de la rejilla hasta media celda: en abanico
+         perfecto se leen como los radios de una rueda, no como filamentos. */
+      ang: (i / RADIOS) * Math.PI * 2 + (semilla(i) - 0.5) * (Math.PI / RADIOS),
+      largo: 0.16 + l * l * l * 0.84,
+      peso: 0.12 + w * w * 0.88,
+      fase: semilla(i + 300) * Math.PI * 2,
+    };
+  });
 
-  const cv = document.querySelector<HTMLCanvasElement>("[data-kdx-ojo]");
+  const cv = document.querySelector<HTMLCanvasElement>("[data-kdx-organismo-ojo]");
   const raiz = cv?.closest<HTMLElement>("[data-kdx-observacion]");
   if (cv && raiz) {
     const ctx = cv.getContext("2d")!;
@@ -236,14 +251,41 @@ const { class: className } = Astro.props;
 
         const rr = r * k;
         if (rr < pupila) continue;
-        ctx.beginPath();
-        /* Alfa base bajada de .5 a .3: con `lighter` el apilado saturaba a
-           blanco y ninguna modulacion se notaba. Con margen, el estado vuelve
-           a ser legible en el pixel. */
-        ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (r < 136 ? 0.26 : 0.5))})`;
         ctx.lineWidth = 1.6 * k * 1.6;
-        ctx.arc(cx, cy, rr, 0, Math.PI * 2);
-        ctx.stroke();
+
+        if (r < 136) {
+          /* EL NÚCLEO ES MASA. Pupila, collar, valle y limbo son cuerpos
+             continuos en la lámina, no líneas: van de una pieza.
+             Alfa .38 y no .26 — el campo interior había quedado demasiado
+             oscuro: luminancia 31 contra 77 de la referencia a 0.3 del radio. */
+          ctx.beginPath();
+          ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.38)})`;
+          ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          /* LOS ANILLOS DE DATOS SON ARCOS, NO CIRCUNFERENCIAS.
+             Ahí estaba el campo medio demasiado liso: variación 0.21 contra
+             1.17 de la lámina a media distancia. Un círculo completo es
+             angularmente uniforme POR DEFINICIÓN y aplana la medida por mucho
+             que se le baje el brillo — bajarlo sólo lo volvía invisible.
+             En la lámina esos anillos están rotos en tramos de densidad
+             desigual: son lecturas, no órbitas. Se dibujan segmentados, con el
+             corte sembrado por radio para que cada anillo tenga su ritmo y no
+             se alineen todos en la misma costura. */
+          const trozos = 9 + Math.floor(semilla(r * 7) * 7);
+          const paso = (Math.PI * 2) / trozos;
+          const giro = semilla(r * 13) * Math.PI * 2;
+          for (let n = 0; n < trozos; n++) {
+            const s0 = semilla(r * 31 + n);
+            if (s0 < 0.34) continue;              // tramos ausentes: el negro entre lecturas
+            const iniA = giro + n * paso + paso * 0.14;
+            const finA = iniA + paso * (0.3 + s0 * 0.52);
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (0.34 + s0 * 0.9))})`;
+            ctx.arc(cx, cy, rr, iniA, finA);
+            ctx.stroke();
+          }
+        }
       }
 
       /* LOS FILAMENTOS, sobre los anillos. Nacen en el collar quemado (r=24) y
@@ -267,13 +309,15 @@ const { class: className } = Astro.props;
            del campo exterior. La variación angular nace de que unos llegan lejos
            y otros no: a cualquier radio hay ángulos encendidos y ángulos negros,
            que es exactamente lo que distingue un organismo de un disco. */
-        const op = f.peso * (0.2 + vigor * 0.95);
+        /* Cada filamento lleva bastante más tinta que antes, porque ahora hay
+           un tercio de ellos: el total se mantiene y el contraste sube. */
+        const op = f.peso * (0.34 + vigor * 1.5);
         g2.addColorStop(0, `rgba(${C},${Math.min(1, op)})`);
         g2.addColorStop(0.22, `rgba(${C},${Math.min(1, op * 0.62)})`);
         g2.addColorStop(0.58, `rgba(${C},${Math.min(1, op * 0.14)})`);
         g2.addColorStop(1, `rgba(${C},0)`);
         ctx.strokeStyle = g2;
-        ctx.lineWidth = (0.5 + f.peso * 0.9) * k * 1.6;
+        ctx.lineWidth = (0.5 + f.peso * 1.6) * k * 1.6;
         ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx2, by2); ctx.stroke();
       }
 

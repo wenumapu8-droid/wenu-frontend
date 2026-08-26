@@ -20,10 +20,26 @@ Preview: https://kodex-preview.wenu-frontend.pages.dev/kodex/folio/i/
 
 ## TAREAS PENDIENTES — tomar la primera, una sola por tanda
 
-1. **Densidad del ojo.** La lámina tiene filamentos radiales y espigas que el
-   runtime no dibuja: sólo anillos concéntricos. Medido: tinta 14.8% contra
-   13.5%, pero la ESTRUCTURA difiere. Añadir los radios sin subir la densidad
-   total. Referencia: fileId `1oLNdv2ttClvxsXekrQ7eBqX6bIxkIXyE`, panel 04.
+1. **Variación angular del campo medio.** HECHO en parte: el ojo ya es
+   filamentoso —34 radios desiguales, anillos sólo en las crestas medidas,
+   anillos de datos segmentados en arcos, coronas exteriores retiradas—.
+   Midiendo el canvas del ojo AISLADO contra el recorte del panel 04:
+
+       fracción del radio   referencia      runtime
+            0.3             77.2 · 0.58    37.6 · 0.24
+            0.5             22.8 · 1.17    14.1 · 0.21
+            0.7             15.8 · 1.57    13.8 · 0.20
+            0.9              9.6 · 1.48    16.7 · 1.36   ← ya coincide
+
+   El borde exterior cierra. El CAMPO MEDIO sigue demasiado liso.
+   **Cinco intentos medidos no lo movieron** (0.21 → 0.21): más filamentos,
+   menos filamentos, más desiguales, anillos sólo en crestas, arcos segmentados.
+   Ninguno cambió la cifra, lo que sugiere que el problema NO está en los
+   elementos que toqué. Hipótesis para la próxima tanda: el campo medio puede
+   estar dominado por el halo/glow del núcleo, no por anillos ni filamentos —
+   medir apagando capas de a una en vez de seguir afinando parámetros.
+   NO seguir afinando a ciegas: cinco iteraciones sin mover una cifra es señal
+   de que el modelo mental está mal, no de que falte ajuste.
 
 2. **Instrumentación flanqueante.** La lámina muestra AZIMUTH / ELEVATION / ZOOM /
    FOCUS / IRIS / APERTURE a la izquierda del ojo y SIGNAL STR / NOISE / SYNC /
