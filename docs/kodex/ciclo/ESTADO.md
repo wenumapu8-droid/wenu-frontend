@@ -73,8 +73,28 @@ Preview: https://kodex-preview.wenu-frontend.pages.dev/kodex/folio/i/
    En teléfono los rieles no existen: ahí el campo es del ojo y lo denso sigue
    esperando en el inspector.
 
-3. **Audio.** El contrato lo pide opt-in, consciente del estado, y con el mute
-   funcionando. Hoy no existe en la escena.
+3. **Audio.** CERRADO.
+
+   NO se escribió un motor. Existía uno completo y aprobado por el creador
+   —`src/lib/kodex/sonido.ts`, portado del prototipo `kodex-threshold-live.html`
+   con sus cuatro voces en proporciones justas: octava, quinta y cuarta—. Y el
+   interruptor opt-in ya estaba montado en el corredor: pasa de `◌` a `◉` y
+   arranca sólo con un gesto del visitante.
+
+   Lo que faltaba no era motor: era que la escena le hablara. Se acopló
+   `sonidoProfundidad` al MISMO pulso que mueve el iris. La profundidad acá no
+   es una escalera de escenas sino la ATENCIÓN: el aire se abre cuando el
+   sistema duerme y se cierra cuando reconoce.
+
+   Medido en el corte real del filtro, en Hz:
+       DORMANT  1580   aire abierto
+       AWARE    1195   empieza a cerrarse
+       LOCK     1110   resonancia
+       TRACK     372   cerrado, modulado por el gesto
+       INSPECT   740   se abre: la atención se fue al panel
+
+   Sigue siendo opt-in y no bloquea nada: sin sonido encendido la llamada sale
+   sin hacer ruido y la escena se comprende igual.
 
 4. **Contratos de las seis restantes.** Preparar Scene Translation Contract de
    DESCENT, ARCHIVE, MACHINE, COSMOLOGY y RETURN contra su referencia de Drive.
