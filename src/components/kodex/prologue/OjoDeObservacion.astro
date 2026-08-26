@@ -68,6 +68,36 @@ const { class: className } = Astro.props;
     return 0;
   }
 
+  /* LOS FILAMENTOS. Medida la variación angular de la luminancia —cuánto cambia
+     el brillo al girar a un radio fijo— sobre la lámina y sobre el runtime:
+
+         radio   referencia   runtime
+         0.10       0.59       0.22
+         0.16       1.57       0.12
+         0.22       1.33       0.11
+         0.30       2.51       0.11
+
+     La lámina es un organismo FILAMENTOSO; el runtime era un juego de anillos
+     lisos. Y su luminancia media es MENOR que la del runtime (14 contra 28.8 a
+     r=0.16): más oscuro en promedio, pero con espigas. Por eso no basta con
+     añadir radios: hay que bajar el peso de los anillos al mismo tiempo, o el
+     ojo se convierte en una mancha.
+
+     Las direcciones son deterministas —seed fijo— para que el organismo sea el
+     mismo entre recargas: un ojo que se redibuja distinto cada vez no es un
+     organismo, es ruido. */
+  const RADIOS = 96;
+  const semilla = (i: number) => {
+    const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const FIL = Array.from({ length: RADIOS }, (_, i) => ({
+    ang: (i / RADIOS) * Math.PI * 2 + semilla(i) * 0.05,
+    largo: 0.34 + semilla(i + 100) * 0.66,   // hasta dónde llega cada filamento
+    peso: 0.35 + semilla(i + 200) * 0.65,    // cuánta tinta lleva
+    fase: semilla(i + 300) * Math.PI * 2,
+  }));
+
   const cv = document.querySelector<HTMLCanvasElement>("[data-kdx-ojo]");
   const raiz = cv?.closest<HTMLElement>("[data-kdx-observacion]");
   if (cv && raiz) {
@@ -163,8 +193,26 @@ const { class: className } = Astro.props;
              runtime     saturación 0.541 · violeta 99.8%
          El ojo ya era cromáticamente fiel. Quitar trazos sólo lo dejó más ralo
          (tinta 13.5% en la lámina contra 11.5%), así que vuelve el paso original. */
+      /* ANILLOS SÓLO DONDE LA LÁMINA LOS TIENE.
+         El bucle dibujaba un anillo en CADA radio de 6 a 360, y eso producía un
+         disco uniforme. La lámina no es eso: su perfil declara crestas en
+         143·159·168·189·214·225 con oscuridad entre ellas, y por eso su
+         luminancia media es MENOR que la del runtime mientras su variación
+         angular es diez veces mayor.
+         Del núcleo (r<136) sí es continua —pupila, collar, valle, limbo son
+         masas, no líneas—. De ahí para afuera sólo viven las crestas, y el
+         espacio entre ellas es de los filamentos. */
+      const CRESTAS = [143, 159, 168, 189, 214, 225];
+      const enCresta = (r: number) => CRESTAS.some((c) => Math.abs(r - c) < 2.4);
       for (let r = 6; r <= 360; r += 1.6) {
         if (r > alcance) break;
+        if (r >= 136 && r <= 245 && !enCresta(r)) continue;
+        /* Las coronas exteriores se retiran del todo. Eran anillos angularmente
+           uniformes que rellenaban justo los huecos que en la lámina son
+           oscuros, y aplanaban la variación angular: medida 0.59 contra 2.20 de
+           la referencia a 0.85 del radio del ojo. Ese espacio pertenece a los
+           filamentos. */
+        if (r > 245) continue;
         let a = lum(r);
         if (a <= 0.005) continue;
 
@@ -192,10 +240,41 @@ const { class: className } = Astro.props;
         /* Alfa base bajada de .5 a .3: con `lighter` el apilado saturaba a
            blanco y ninguna modulacion se notaba. Con margen, el estado vuelve
            a ser legible en el pixel. */
-        ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.3)})`;
+        ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (r < 136 ? 0.26 : 0.5))})`;
         ctx.lineWidth = 1.6 * k * 1.6;
         ctx.arc(cx, cy, rr, 0, Math.PI * 2);
         ctx.stroke();
+      }
+
+      /* LOS FILAMENTOS, sobre los anillos. Nacen en el collar quemado (r=24) y
+         se extienden hacia afuera según su largo propio. El estado los gobierna:
+         dormido apenas asoman, con la presencia se extienden, y la energía del
+         gesto los agita — es el mismo pulso que mueve el iris, no una animación
+         aparte. */
+      const extension = 0.28 + est.presencia * 0.72;
+      for (const f of FIL) {
+        const r0 = 24 * k;
+        const r1 = Math.min(alcance, 24 + (360 - 24) * f.largo * extension) * k;
+        if (r1 <= r0) continue;
+        const agita = reduce.matches ? 0 : Math.sin(t / 34 + f.fase) * est.energia * 0.035;
+        const ang = f.ang + agita;
+        const ax = cx + Math.cos(ang) * r0, ay = cy + Math.sin(ang) * r0;
+        const bx2 = cx + Math.cos(ang) * r1, by2 = cy + Math.sin(ang) * r1;
+        /* Contraste dentro del propio filamento: nace fuerte, se apaga rápido y
+           deja cola. Un degradado suave a lo largo lo volvería otra vez un disco. */
+        const g2 = ctx.createLinearGradient(ax, ay, bx2, by2);
+        /* Los filamentos suben de peso porque ahora son los únicos habitantes
+           del campo exterior. La variación angular nace de que unos llegan lejos
+           y otros no: a cualquier radio hay ángulos encendidos y ángulos negros,
+           que es exactamente lo que distingue un organismo de un disco. */
+        const op = f.peso * (0.2 + vigor * 0.95);
+        g2.addColorStop(0, `rgba(${C},${Math.min(1, op)})`);
+        g2.addColorStop(0.22, `rgba(${C},${Math.min(1, op * 0.62)})`);
+        g2.addColorStop(0.58, `rgba(${C},${Math.min(1, op * 0.14)})`);
+        g2.addColorStop(1, `rgba(${C},0)`);
+        ctx.strokeStyle = g2;
+        ctx.lineWidth = (0.5 + f.peso * 0.9) * k * 1.6;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx2, by2); ctx.stroke();
       }
 
       /* La raya de barrido: en la lámina es «fila 341, media 110 sobre TODO el
