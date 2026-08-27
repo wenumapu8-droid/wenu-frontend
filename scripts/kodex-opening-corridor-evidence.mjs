@@ -90,11 +90,20 @@ async function trigger(page, locator, profile, destination) {
     throw new Error(`${profile.key}: transition trigger route mismatch`);
   }
 
-  // Native PROLOGUE must prove the real user affordance. Its click handler
-  // delegates to the existing ritual authority; generic scenes keep the
-  // historical public ritual bridge for temporal capture.
+  // Native PROLOGUE must prove the real user affordance. Avoid Locator.click()
+  // here because the depth-transition handler can keep Playwright's actionability
+  // lifecycle open while the real crossing has already begun. Inject a real
+  // pointer/touch hit at the rendered anchor center, then let the downstream
+  // ritual/path assertions decide whether the interaction actually worked.
   if (await locator.getAttribute('data-kdx-puerta') !== null) {
-    await locator.click({ noWaitAfter: true, timeout: 2_000 });
+    const box = await locator.boundingBox();
+    if (!box || box.width < 1 || box.height < 1) {
+      throw new Error(`${profile.key}: transition trigger has no hit bounds`);
+    }
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    if (profile.hasTouch) await page.touchscreen.tap(x, y);
+    else await page.mouse.click(x, y);
     return;
   }
 
