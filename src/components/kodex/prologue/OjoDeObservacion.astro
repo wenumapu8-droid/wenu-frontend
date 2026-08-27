@@ -152,10 +152,10 @@ const { class: className } = Astro.props;
     const perfil: Array<[number,number]> = [[0,0],[9,.04],[23,.08],[33,.83],[44,.55],[56,.21],[67,.40],[72,1],[77,.72],[96,.44],[120,.20],[135,.075],[143,.30],[159,.26],[168,.30],[189,.24],[214,.22],[225,.20],[245,.09],[300,.07],[360,.045]];
     const lum=(r:number)=>{ for(let i=1;i<perfil.length;i++){ if(r<=perfil[i][0]){const [r0,v0]=perfil[i-1], [r1,v1]=perfil[i]; const q=(r-r0)/(r1-r0||1); return v0+(v1-v0)*q;}} return 0; };
     const seed=(i:number)=>{const x=Math.sin(i*12.9898+78.233)*43758.5453; return x-Math.floor(x);};
-    const fil=Array.from({length:34},(_,i)=>{const l=seed(i+100),w=seed(i+200);return{ang:(i/34)*Math.PI*2+(seed(i)-.5)*(Math.PI/34),largo:.16+l*l*l*.84,peso:.12+w*w*.88,fase:seed(i+300)*Math.PI*2};});
+    const fil=Array.from({length:46},(_,i)=>{const l=seed(i+100),w=seed(i+200);return{ang:(i/46)*Math.PI*2+(seed(i)-.5)*(Math.PI/46),largo:.16+l*l*l*.84,peso:.12+w*w*.88,fase:seed(i+300)*Math.PI*2};});
     const crestas=[143,159,168,189,214,225];
     const chroma:Record<string,[number,number,number]>={DORMANT:[120,96,150],IDLE:[138,112,168],AWARE:[176,108,255],LOCK:[186,96,255],TRACK:[96,226,255],INSPECT:[168,120,240],DESCEND:[214,168,255]};
-    const stateReach:Record<string,number>={DORMANT:96,IDLE:108,AWARE:178,LOCK:300,TRACK:338,INSPECT:318,DESCEND:360};
+    const stateReach:Record<string,number>={DORMANT:172,IDLE:190,AWARE:238,LOCK:330,TRACK:356,INSPECT:346,DESCEND:360};
     let color:[number,number,number]=[120,96,150];
     let est={estado:'DORMANT',presencia:0,foco:0,objetivo:{x:0,y:0},energia:0,locks:0};
     raiz.addEventListener('kdx:pulso',(e)=>{est=(e as CustomEvent).detail;});
@@ -164,13 +164,14 @@ const { class: className } = Astro.props;
     const draw=()=>{
       if(!reduce.matches)t++;
       ctx.clearRect(0,0,W,H); ctx.globalCompositeOperation='lighter';
-      const R=Math.min(W,H)*.49, k=R/360;
+      const responsiveScale=W<900?.72:.52;
+      const R=Math.min(W,H)*responsiveScale, k=R/360;
       const follow=est.foco*.16, cx=W/2+est.objetivo.x*R*follow, cy=H/2+est.objetivo.y*R*follow;
       const target=chroma[est.estado]||chroma.DORMANT; for(let i=0;i<3;i++)color[i]+=(target[i]-color[i])*.07;
       const C=`${Math.round(color[0])},${Math.round(color[1])},${Math.round(color[2])}`;
       const vigor=.06+est.presencia*.94;
-      const alcance=Math.max(stateReach[est.estado]||96,96+(360-96)*Math.min(1,est.presencia*1.15));
-      for(let r=7;r<=Math.min(245,alcance);r+=1.8){
+      const alcance=Math.max(stateReach[est.estado]||172,172+(360-172)*Math.min(1,est.presencia*1.08));
+      for(let r=7;r<=Math.min(300,alcance);r+=1.8){
         const crest=crestas.some(c=>Math.abs(r-c)<2.5); if(r>=136&&!crest)continue;
         let a=lum(r); if(r>=68&&r<=77)a*=.45+vigor*.9; if(r>77)a*=.38+vigor*.62; if(a<.008)continue;
         const rr=r*k; ctx.lineWidth=Math.max(.45,k*(r<78?1.25:.7)); ctx.strokeStyle=`rgba(${C},${Math.min(.86,a*(.30+.55*vigor))})`; ctx.beginPath();
