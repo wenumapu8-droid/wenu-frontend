@@ -8,6 +8,23 @@ import '../../styles/kodex.css';
 import '../../styles/kodex-plate.css';
 import '../../styles/kodex-instrumento.css';
 import { plateId, KDX_PLATE_CONTRACT_VERSION } from '../../lib/kodex/plancha/plate-contract';
+import { contratoDe } from '../../lib/kodex/contrato-escena';
+
+/**
+ * CONTRATO DE THRESHOLD.
+ *
+ * Era la única de las siete que no declaraba nada, así que el gate no podía
+ * medirle ni organismo ni causalidad — y es, con diferencia, la escena MÁS
+ * viva del corredor (43.5% de vida en reposo el 26-08, contra 0.01% de
+ * PROLOGUE). Medirla importa justamente porque es la que funciona.
+ *
+ * Su organismo es el campo de partículas, NO el campo de shaders: el canon
+ * pide proteger la identidad rojo/negro de apertura de esta escena y no
+ * reconstruirla sin evidencia. Acá sólo se declara lo que ya existe.
+ */
+const contratoUmbral = contratoDe('THRESHOLD', {
+  organismo: '.kx-threshold__particles',
+});
 import '../../styles/kodex-motion.css';
 import HiddenMessageBand from '../../components/kodex/motion/HiddenMessageBand.astro';
 import ParticleField from '../../components/kodex/motion/ParticleField.astro';
@@ -131,7 +148,7 @@ const prologueRows = [
 
     <div class="kx-deck" data-deck>
       <section class="kx-slide kx-slide--threshold" id="threshold" aria-labelledby="kdx-threshold-title">
-        <div class="kx-slide__in kx-threshold">
+        <div class="kx-slide__in kx-threshold" {...contratoUmbral}>
           {/* 2026-08-17 · Umbral respirado. La referencia es la pantalla de
               diseño del umbral (pend-11: 00/07 THRESHOLD · una obra central ·
               un titular · una pregunta · ENTER VOLUNTARILY) y el prototipo de
@@ -142,32 +159,7 @@ const prologueRows = [
               waveform, panel de artefacto) salió: el diseño muestra UN panel
               de nodo en el margen y nada más compitiendo con la obra. */}
 
-          {/* ── EL NUCLEO DEL UMBRAL ──────────────────────────────────────
-              Defecto medido, no rediseno. Antes de esto el campo propio de
-              THRESHOLD estaba vacio de obra: en 390x844 y 412x915 media
-              390x0 y 412x0 anclado FUERA de la pantalla (top:844 / top:915),
-              y en 1440x900 su unico canvas ocupaba 282x141 -- el 3.1% del
-              contenedor. Resultado: el 100% de lo que se veia era el canvas
-              de cromo global [data-tunnel], el mismo fondo que usan las otras
-              seis escenas. La escena del umbral no mostraba su propio arte.
-
-              El portal NO se dibuja de nuevo. Es `pintarPortal` de
-              `lamina/t01-01/portal.js`, el mismo pintor procedural calibrado
-              contra `reference/canon/t01-01-threshold-portal.png` que usa
-              PortalCore en la lamina: coronas por perfil radial medido, ocho
-              radios, malla, arbol fantasma, el infinito en el eje. Lo que NO
-              viaja es el HUD del panel (titulo, cajas, rotulos), que a este
-              tamano caeria a 3-4 px: eso seria encoger una plancha, que es
-              justo lo que el canon prohibe. Aca entra la OBRA; el texto de la
-              lamina se queda en la lamina.
-
-              Y no vuelve el mandala que el creador saco de la primera
-              pantalla: aquello era el PNG `mandala-0cin-negativo.png` a
-              tamano completo desde el primer cuadro. Esto nace en 0.58 y
-              crece al cruzar la compuerta -- "algo respira, aparece una
-              pequena anomalia, la anomalia CRECE". */}
           <div class="kx-threshold__field" aria-hidden="true">
-            <canvas class="kx-threshold__nucleo" data-kdx-threshold-nucleo aria-hidden="true"></canvas>
             <ParticleField class="kx-threshold__particles" scene="threshold" label="threshold particle field" />
             <span class="kx-threshold__aura"></span>
           </div>
@@ -445,232 +437,6 @@ const prologueRows = [
     <KodexOverlays gallery={false} />
   </div>
 
-  {/* ── ESTILOS DEL NUCLEO ────────────────────────────────────────────────
-      Todo lo de aca cierra un DEFECTO MEDIDO. No mueve una sola pieza de la
-      composicion congelada: ni el marcador, ni la voz, ni el nodo, ni la
-      identidad oculta, ni el velo. Solo repone el contenedor de arte que
-      estaba colapsado y le pone dentro la obra que le corresponde. */}
-  <style is:global>
-    /* 1. EL CONTENEDOR NO PUEDE COLAPSAR.
-       En <=900px la regla `.kx-threshold__field{ inset:auto 0 0 0 }` (0-1-0,
-       kodex.css) dejaba el campo en ALTURA 0 y clavado al borde de abajo:
-       medido, 390x0 en top:844 y 412x0 en top:915 -- literalmente fuera de la
-       ventana. Se repone `inset:0` con especificidad 0-3-0 para que gane sin
-       depender del orden en que se concatenen las hojas. */
-    .kx--threshold .kx-slide__in .kx-threshold__field{
-      position:absolute;
-      inset:0;
-      height:auto;
-      overflow:hidden;
-      pointer-events:none;
-    }
-
-    /* 2. EL CANVAS TAMPOCO LLENABA. Sin caja propia, el campo de particulas se
-       quedaba en su tamano intrinseco de canvas: medido 282x141 sobre un
-       contenedor de 1440x900, o sea 3.1%. El motor calcula su buffer con
-       getBoundingClientRect (kodex-engine.js), asi que darle caja es todo lo
-       que hacia falta -- no se toca el motor. */
-    .kx--threshold .kx-threshold__field .kx-threshold__particles{
-      position:absolute; inset:0; width:100%; height:100%;
-    }
-
-    /* 3. EL PORTAL. Cuadrado porque el recorte que se pinta es cuadrado y
-       centrado en el centro MEDIDO del portal (357.5, 298.5), no en el centro
-       geometrico del panel: ver el guion de abajo. Se ancla en 46% de alto,
-       que es donde ya vive el aura de la escena (`circle at 50% 46%`), para
-       que las dos capas compartan centro en vez de pelearse. */
-    .kx--threshold .kx-threshold__nucleo{
-      --kx-nucleo-d:min(76svh, 54vw);
-      position:absolute;
-      left:50%; top:46%;
-      width:var(--kx-nucleo-d);
-      height:var(--kx-nucleo-d);
-      transform:translate(-50%,-50%) scale(.58);
-      opacity:0;
-      pointer-events:none;
-    }
-    /* LA ANOMALIA CRECE. El creador sobre el umbral: "Negro casi total. Algo
-       respira. Aparece una pequena anomalia. La anomalia CRECE." Por eso el
-       portal no aparece hecho: nace en 0.58 al cruzar la compuerta y se abre.
-       Despues respira, que es lo que la Scene Bible pide de una membrana. */
-    .kx--threshold .kx-threshold__nucleo.is-abierto{
-      animation:
-        kx-nucleo-crece 3.2s cubic-bezier(.16,.72,.24,1) forwards,
-        kx-nucleo-respira 11s 3.2s ease-in-out infinite;
-    }
-    @keyframes kx-nucleo-crece{
-      from{ opacity:0; transform:translate(-50%,-50%) scale(.58); }
-      to{ opacity:.9; transform:translate(-50%,-50%) scale(1); }
-    }
-    @keyframes kx-nucleo-respira{
-      0%,100%{ opacity:.9; transform:translate(-50%,-50%) scale(1); }
-      50%{ opacity:1; transform:translate(-50%,-50%) scale(1.014); }
-    }
-
-    @media (max-width:900px){
-      /* 92vw y no mas: el campo recorta, pero el desborde horizontal del
-         documento tiene que seguir en 0 y se mide. */
-      .kx--threshold .kx-threshold__nucleo{
-        --kx-nucleo-d:min(92vw, 52svh);
-        top:43%;
-      }
-    }
-
-    @media (prefers-reduced-motion:reduce){
-      .kx--threshold .kx-threshold__nucleo,
-      .kx--threshold .kx-threshold__nucleo.is-abierto{
-        animation:none;
-        opacity:.9;
-        transform:translate(-50%,-50%);
-      }
-    }
-  </style>
-
-  {/* ── EL PINTOR DEL NUCLEO ──────────────────────────────────────────────
-      SEARCH -> RECOVER -> REUSE. El portal ya estaba escrito y calibrado:
-      `pintarPortal` en `lamina/t01-01/portal.js`, medido contra
-      `reference/canon/t01-01-threshold-portal.png` arco por arco. Aca se
-      REUSA tal cual, con sus mismas constantes; no hay un portal nuevo.
-
-      Dos cosas se hacen encima y las dos tienen motivo medido:
-
-      a) RECORTE CUADRADO CENTRADO EN EL PORTAL. El pintor trabaja en la caja
-         del panel de la lamina (738x597) y su centro esta en (357.5, 298.5) --
-         corrido 11 px a la izquierda del centro geometrico porque en el poster
-         la columna derecha le come sitio. Estirar 738x597 a un cuadrado
-         deformaria los anillos, que son circulos. Se toma la ventana
-         (59, 0, 597, 597): el lado del alto, centrada en x sobre el centro
-         real, y ahi entra la corona completa (r 256).
-
-      b) EL NEGRO SE VUELVE TRANSPARENTE. `pintarPortal` rellena su lienzo de
-         negro opaco porque en la lamina vive sobre un panel negro. Pegado tal
-         cual aca taparia el cromo de la escena con un cuadrado negro. Se pasa
-         una vez por los pixeles y se les da alfa = canal maximo, des-
-         premultiplicando el color: el resultado compone sobre el fondo igual
-         que un `screen`, pero sin depender de mix-blend-mode, que en esta
-         escena no serviria -- `.kx-threshold` declara `isolation:isolate` y el
-         blend no alcanzaria el canvas de cromo que esta detras.
-
-      Se pinta UNA vez y despues solo se recompone en resize: nada de rAF. El
-      movimiento lo pone el CSS, que cuesta cero. */}
-  <script>
-    import { pintarPortal } from '../../components/kodex/lamina/t01-01/portal.js';
-
-    /* Caja del pintor y ventana del recorte -- las tres son mediciones de la
-       lamina, no numeros elegidos. */
-    const PANEL_W = 738;
-    const PANEL_H = 597;
-    const LADO = 597;
-    const RECORTE_X = 59; // 357.5 (centro medido) - 298.5 (medio lado)
-    /* El recorte se pinta al doble para que el portal no llegue interpolado a
-       una pantalla retina: el lienzo visible mide hasta 76svh de lado y en
-       dpr 2 pedia 1374 px a una fuente de 597. Las coordenadas del pintor no
-       se tocan -- se escala el contexto, que es lo mismo que decirle que su
-       panel mide el doble. */
-    const FACTOR = 2;
-
-    let nucleoFuente: HTMLCanvasElement | null = null;
-
-    const construirNucleo = (): HTMLCanvasElement | null => {
-      if (nucleoFuente) return nucleoFuente;
-      const panel = document.createElement('canvas');
-      panel.width = PANEL_W * FACTOR;
-      panel.height = PANEL_H * FACTOR;
-      const pctx = panel.getContext('2d');
-      if (!pctx) return null;
-      pctx.scale(FACTOR, FACTOR);
-      pintarPortal(pctx, PANEL_W, PANEL_H, 0);
-
-      const lado = LADO * FACTOR;
-      const cuadro = document.createElement('canvas');
-      cuadro.width = lado;
-      cuadro.height = lado;
-      const cctx = cuadro.getContext('2d');
-      if (!cctx) return null;
-      cctx.drawImage(panel, RECORTE_X * FACTOR, 0, lado, lado, 0, 0, lado, lado);
-
-      let datos: ImageData;
-      try { datos = cctx.getImageData(0, 0, lado, lado); }
-      catch (_) { nucleoFuente = cuadro; return cuadro; }
-      const px = datos.data;
-      for (let i = 0; i < px.length; i += 4) {
-        const r = px[i], g = px[i + 1], b = px[i + 2];
-        const m = r > g ? (r > b ? r : b) : (g > b ? g : b);
-        /* Umbral bajo a proposito: por debajo de 7 solo queda el ruido del
-           antialias del negro, y dejarlo pasar devuelve el cuadrado gris. */
-        if (m < 7) { px[i + 3] = 0; continue; }
-        const k = 255 / m;
-        px[i] = r * k;
-        px[i + 1] = g * k;
-        px[i + 2] = b * k;
-        px[i + 3] = m;
-      }
-      cctx.putImageData(datos, 0, 0);
-      nucleoFuente = cuadro;
-      return cuadro;
-    };
-
-    const pintar = (lienzo: HTMLCanvasElement): boolean => {
-      const fuente = construirNucleo();
-      if (!fuente) return false;
-      /* offsetWidth y NO getBoundingClientRect: el lienzo nace en scale(.58)
-         para poder crecer, y el rect devuelve la caja YA transformada. Con el
-         rect el buffer salia a 373 px para una caja de 687 -- medido -- y el
-         portal llegaba interpolado. offsetWidth da la caja de maquetacion, que
-         es la que hay que llenar. */
-      const lado = lienzo.offsetWidth;
-      const alto = lienzo.offsetHeight;
-      if (lado < 2 || alto < 2) return false;
-      const dpr = Math.min(2, window.devicePixelRatio || 1);
-      lienzo.width = Math.round(lado * dpr);
-      lienzo.height = Math.round(alto * dpr);
-      const ctx = lienzo.getContext('2d');
-      if (!ctx) return false;
-      ctx.clearRect(0, 0, lienzo.width, lienzo.height);
-      ctx.drawImage(fuente, 0, 0, fuente.width, fuente.height, 0, 0, lienzo.width, lienzo.height);
-      return true;
-    };
-
-    const montarNucleo = () => {
-      const lienzo = document.querySelector('canvas[data-kdx-threshold-nucleo]');
-      if (!(lienzo instanceof HTMLCanvasElement)) return;
-      if (lienzo.dataset.kdxMontado === '1') return;
-      if (!pintar(lienzo)) return;
-      lienzo.dataset.kdxMontado = '1';
-
-      /* La apertura se dispara cuando la compuerta ya no tapa. No se puede
-         confiar solo en `kdx:eleccion`: cuando el huesped ya cruzo antes, ese
-         evento se emite en el guion de arriba ANTES de que este modulo llegue
-         a escucharlo. Se mira el DOM, que es la verdad. */
-      const abrir = () => lienzo.classList.add('is-abierto');
-      const compuertaPuesta = () => {
-        const velo = document.querySelector('[data-kdx-veil]');
-        return !!velo && !velo.classList.contains('is-disuelto');
-      };
-      if (!compuertaPuesta()) abrir();
-      else {
-        const vigia = new MutationObserver(() => {
-          if (compuertaPuesta()) return;
-          vigia.disconnect();
-          abrir();
-        });
-        vigia.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-      }
-
-      let pendiente = 0;
-      addEventListener('resize', () => {
-        window.clearTimeout(pendiente);
-        pendiente = window.setTimeout(() => pintar(lienzo), 160);
-      }, { passive: true });
-    };
-
-    montarNucleo();
-    /* El corredor intercambia contenido sin recargar: al volver a /kodex/ el
-       lienzo es otro nodo y hay que repintarlo. `kdxMontado` evita repetir
-       trabajo cuando es el mismo. */
-    document.addEventListener('astro:page-load', montarNucleo);
-  </script>
-
   <script>
     import { liberarMemoria } from "../../kodex/return/memory.js";
 
@@ -684,6 +450,12 @@ const prologueRows = [
     import { montarThreshold } from '../../lib/kodex/escenas/threshold-cliente';
     const umbral = document.querySelector('.kx-threshold');
     if (umbral instanceof HTMLElement) montarThreshold(umbral);
+
+    /* El estado en el DOM. La máquina ya corría acá —la comparten el portal,
+       la compuerta y el CRT— pero nadie la escribía, así que la consecuencia
+       visible no era verificable ni desde el gate ni desde el CSS. */
+    import { montarEspejoEstado } from '../../lib/kodex/espejo-estado';
+    if (umbral instanceof HTMLElement) { try { montarEspejoEstado(umbral); } catch (_) {} }
 
     /* La bifurcacion sonido/silencio: la eleccion se guarda donde el motor de
        audio la lee (sessionStorage kx-audio). Vive en el velo. */

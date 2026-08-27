@@ -11,9 +11,8 @@ import CommissionForm from '../../../components/kodex/CommissionForm.astro'; // 
 import KodexOverlays from '../../../components/KodexOverlays.astro';
 import CosmologyMap from '../../../components/kodex/CosmologyMap.astro';
 import KodexObserveScene from '../../../components/kodex/observe/KodexObserveScene.astro';
+import { contratoDe } from '../../../lib/kodex/contrato-escena';
 import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
-import LaminaOrganismo from '../../../components/kodex/escena/LaminaOrganismo.astro';
-import EscenaPrologue from '../../../components/kodex/prologue/EscenaPrologue.astro';
 import KodexRail from '../../../components/kodex/density/KodexRail.astro';
 import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.astro';
 import KodexField from '../../../components/kodex/field/KodexField.astro';
@@ -114,7 +113,7 @@ const sceneByFolio = {
     kicker: 'PROLOGUE · OBSERVATION PROTOCOL',
     title: 'THE ARCHIVE IS WATCHING.',
     copy: ['YOU ARE NOT ALONE.', 'A SIGNAL.', 'A SYSTEM.', 'A CHOICE.'],
-    cta: 'BEGIN OBSERVATION',
+    cta: 'INSPECT SIGNAL',      // nivel 3 canónico. 'BEGIN OBSERVATION' anunciaba en vez de invitar a actuar
     meta: ['NODE · KDX_01', 'STATUS · OBSERVING', 'ACCESS · RECORDED', 'PROTOCOL · EYE/CRT/WAVE'],
     image: '/img/kodex/archive/arch-21.jpg',
   },
@@ -130,7 +129,7 @@ const sceneByFolio = {
     number: '03', slug: 'archive', accent: 'var(--kdx-acid,#A7FF00)', motif: 'specimen-dossier',
     kicker: 'ARCHIVE · CLASSIFIED SPECIMEN',
     title: 'EVERY SIGNAL HAS A GENEALOGY.',
-    cta: 'OPEN SPECIMEN',
+    cta: 'OPEN ARCHIVE',        // nivel 3 canónico
     meta: ['NODE · KDX_03', 'CLASS · ARCHIVE WORK', 'WORKS · 18', 'STATUS · PRESERVED'],
     image: '/img/kodex/archive/arch-01.jpg',
   },
@@ -151,19 +150,14 @@ const sceneByFolio = {
     image: '/img/kodex/disco/disco-05.jpg',
   },
   vi: {
-    /* CROMA PROPIA. RETURN venía declarada con `--kdx-acid` #A7FF00, que es
-       EXACTAMENTE el mismo token que ARCHIVE (folio iii): dos escenas con una
-       sola paleta, justo lo que el contrato prohíbe. Medido sobre la lámina
-       `u03-return.png`: 94.9% del cuadro es neutro claro (papel) y la tinta
-       saturada cae en hue 255-285° (lavanda, bucket dominante #9078A8) con un
-       segundo acento cálido en hue 15-30° (dorado). Verde ácido: cero muestras.
-       Medido sobre la escena servida hoy: hue 165-180° (cian, 5.050 muestras)
-       + hue 75° (ácido, 2.307). Es decir, RETURN renderizaba con la croma de
-       MACHINE y la de ARCHIVE, y con nada suyo. */
-    number: '06', slug: 'return', accent: 'var(--kdx-return-ink,#7C5FA0)', motif: 'return-seal',
+    number: '06', slug: 'return', accent: 'var(--kdx-acid,#A7FF00)', motif: 'return-seal',
     kicker: 'RETURN · PATTERN RESTORED',
     title: 'THE SIGNAL RETURNS. THE PATTERN REMAINS.',
-    cta: 'COLLECT A FRAGMENT',
+    /* Era 'COLLECT A FRAGMENT': una llamada a comprar en la escena de cierre.
+       El canon es explícito — RETURN debe funcionar artísticamente aunque el
+       visitante se vaya sin nada, y el comercio migra a la 8ª escena, que es
+       opcional y va DESPUÉS. Un fragmento se colecciona allá, no acá. */
+    cta: 'RETURN',
     meta: ['NODE · KDX_06', 'STATE · RETURNED', 'PATTERN · ACTIVE', 'NEXT · CARRY FORWARD'],
     image: '/img/kodex/works/mandala-0cin-negativo.png',
   },
@@ -244,7 +238,7 @@ const tintByFolio = {
   iii: { tint: '#A7FF00', spark: '#7FE9FF', floor: 0.06 },
   iv:  { tint: '#00D8FF', spark: '#FFC46B', floor: 0.05 },
   v:   { tint: '#FF00C8', spark: '#7FE9FF', floor: 0.16 },
-  vi:  { tint: '#7C5FA0', spark: '#BE8C50', floor: 0.06 },  // lavanda + dorado: la croma de u03-return
+  vi:  { tint: '#A7FF00', spark: '#FFB25E', floor: 0.06 },
 };
 const sceneRecipe = recipeFor(folio);
 const sceneGrid = gridFor(folio);
@@ -270,31 +264,9 @@ const crtByFolio = {
   ii:  'descent',
   iii: 'archive',
   iv:  'machine',
-  /* RETURN NO lleva CRT.
-     El preset `return` corría sobre un canvas WebGL, y un canvas es una placa
-     opaca: sobre la única lámina de papel del corredor dejaba un recuadro
-     negro con destellos cian incrustado en la hoja — el HUD oscuro de las
-     otras seis metido justo donde el ADN pide luz. `kodex.css` ya tenía
-     escrita la traducción correcta y estaba MUERTA por falta de markup que la
-     alcanzara: `.kx-os-scene--return .kx-os-stage__art img` (línea 1345)
-     hace `grayscale(1) invert(1); mix-blend-mode:multiply`, que es
-     precisamente lo que convierte `mandala-0cin-negativo.png` (blanco sobre
-     negro) en tinta sobre papel. Se recupera esa ruta en vez de generar una
-     nueva. */
+  vi:  'return',
 };
 const sceneCrt = crtByFolio[folio] ?? null;
-
-/* PASS A · EL ORGANISMO DE CADA LAMINA ENTRA AL CORREDOR.
-   Hasta aca el "arte" de la escena era una FOTO tratada con un shader CRT.
-   El organismo real -- procedural, con estados -- ya existia dentro de su
-   lamina y la web lo estaba escondiendo. Se conecta, no se reinterpreta. */
-const organismoPorFolio = {
-  i:   'prologue',
-  ii:  'descent',
-  iv:  'machine',
-  v:   'cosmology',
-};
-const organismoEscena = organismoPorFolio[folio] ?? null;
 
 /**
  * El ORGANISMO de cada lámina: qué corre detrás, si es que corre algo.
@@ -327,25 +299,111 @@ const organismoEscena = organismoPorFolio[folio] ?? null;
  * compartido.
  */
 const organismoByFolio = {
-  ii: 'network-vortex',
-  iv: 'network-vortex',
-  // COSMOLOGY vuelve a la orbita.
+  // UN ORGANISMO POR MUNDO · 2026-08-26
   //
-  // Se probo con wrinkled-reality, que es lo que su fila de la tabla pide como
-  // distorsion, y el resultado fue peor: 75% de fondo oscuro contra el ~85%
-  // que exige la receta, y no bajaba ni hundiendo el piso a 0.84 ni cortando
-  // la intensidad a la mitad. Medido apagando el campo: sin el, la lamina da
-  // 84.4%. El campo era la causa.
+  // Hasta hoy este mapa tenía tres entradas y las tres decían `network-vortex`.
+  // Cuatro escenas se quedaban sin organismo — y sin organismo no hay campo
+  // vivo, así que la escena queda siendo una lámina fija con texto encima.
   //
-  // El error no era el shader sino el rol. En el modelo de tres tandas
-  // -- ORGANISMO → ESPACIO → TRATAMIENTO -- wrinkled-reality es ESPACIO: se
-  // compone SOBRE un organismo en multipass, no lo reemplaza. Este runtime es
-  // de una sola pasada, asi que lo estaba usando como si fuera un organismo y
-  // por eso llenaba el cuadro. Queda registrado en SHADERS, listo para cuando
-  // exista la cadena multipass, que es el trabajo que sigue.
-  v:  'network-vortex',
+  // El gate de experiencia lo midió contra el build real:
+  //   PROLOGUE  0.01% de cambio en 2.6s sin que nadie la toque  → PÓSTER
+  //   RETURN    0.02%                                            → PÓSTER
+  //   ARCHIVE   4.2%
+  //   DESCENT / MACHINE / COSMOLOGY: 92-93% de firma estructural compartida
+  //
+  // Un solo mapa explicaba las dos quejas del creador a la vez: "parece un
+  // póster con botones" y "todas se ven iguales".
+  //
+  // Hay DIEZ shaders construidos en `src/kodex/shaders/lab/` y el corredor
+  // usaba uno. Varios están literalmente nombrados por la escena que los
+  // necesita. Esta asignación sigue el dialecto que el creador fijó el 26-08:
+  //
+  //   PROLOGUE   adquisición / scan / lock
+  //   DESCENT    deformación / absorción
+  //   ARCHIVE    raster / memoria / reconstrucción
+  //   MACHINE    procesamiento / señal causal
+  //   COSMOLOGY  campo / relación / resonancia
+  //   RETURN     reducción de entropía / reintegración
+  //
+  // ⚠ PENDIENTE DE APROBACIÓN DEL CREADOR. Es una decisión visual: la propuse
+  // por afinidad semántica y está medida, no aceptada. Revertir desde
+  // /tmp/folio.astro.bak-organismos.
+  //
+  // NOTA: `wrinkled-reality` queda deliberadamente fuera. La nota anterior de
+  // este mismo bloque ya lo probó y documentó: en el modelo ORGANISMO →
+  // ESPACIO → TRATAMIENTO es ESPACIO, se compone SOBRE un organismo en
+  // multipass. Este runtime es de una sola pasada, así que usado como
+  // organismo llena el cuadro y rompe la receta de fondo oscuro.
+  i:   'signal-bloom',         // la señal florece hasta enfocarse: eso es LOCK
+  ii:  'network-vortex',       // ya era el correcto: vórtice / estratos
+  iii: 'mandelbrot-field',     // recursión = genealogía, memoria con fondo
+  iv:  'impossible-structure', // el procesador como estructura imposible
+  // MEDIDO 26-08: `archive-orbit` es un campo ESTÁTICO. Con él, COSMOLOGY
+  // cayó de 5.6% de vida a 0.01% — la convirtió en póster. El nombre prometía
+  // órbita pero el shader no se mueve. `liquid-acid` sí fluye, y fluir ES la
+  // resonancia que esta escena pide: relación que se propaga entre nodos.
+  v:   'liquid-acid',          // campo que fluye: resonancia entre nodos
+  vi:  'ripple-floor',         // entropía que baja: ondas que se asientan
 };
 const sceneOrganismo = organismoByFolio[folio] ?? null;
+
+/**
+ * CONTRATO DE ESCENA · lo que esta escena DECLARA ser.
+ *
+ * Sin esto el gate de experiencia queda ciego: no puede saber cuál es el
+ * organismo dominante, así que no evalúa ni dominancia ni causalidad — el
+ * 26-08 las siete escenas reportaban "causalidad no evaluada". Una escena que
+ * no puede decir qué es, no es verificable.
+ *
+ * El organismo es el campo vivo: es lo que ocupa el cuadro y lo que responde.
+ */
+/**
+ * COMPOSICIÓN POR MUNDO · 2026-08-26
+ *
+ * El gate midió que las siete escenas comparten 92-95% de firma estructural:
+ * PROLOGUE es 95% idéntica a MACHINE. Se probó darles organismos distintos y
+ * el número NO se movió — porque la igualdad no vive en el fondo, vive en el
+ * esqueleto. Todas montaban `eje` + `tira` + `strip` + copy, siempre, en el
+ * mismo orden.
+ *
+ * Un mundo de observación no puede tener la misma planta que uno de
+ * procesamiento. Acá cada verbo decide QUÉ bloques existen y CUÁL manda:
+ *
+ *   observar    → vaciar alrededor del organismo. Un ojo necesita silencio.
+ *   elegir      → los estratos son la escena; la decisión se ve como lista.
+ *   recordar    → el dossier manda; el archivo es procedencia, no paisaje.
+ *   transformar → entrada → proceso → salida. La banda de datos ES la máquina.
+ *   relacionar  → el campo invade todo; el resto se retira a los bordes.
+ *   reintegrar  → reducción: queda lo mínimo que prueba que volviste.
+ *
+ * ⚠ PENDIENTE DE APROBACIÓN DEL CREADOR — es una decisión de composición.
+ * Propuesta y medida, no aceptada. Revertir: poner todo en `true`.
+ */
+const composicionByFolio = {
+  i:   { eje: false, tira: false, strip: true,  domina: 'organismo' }, // observar
+  ii:  { eje: true,  tira: true,  strip: false, domina: 'tira'      }, // elegir
+  iii: { eje: false, tira: true,  strip: true,  domina: 'tira'      }, // recordar
+  iv:  { eje: true,  tira: false, strip: true,  domina: 'strip'     }, // transformar
+  v:   { eje: false, tira: false, strip: false, domina: 'organismo' }, // relacionar
+  vi:  { eje: true,  tira: false, strip: false, domina: 'copy'      }, // reintegrar
+};
+const composicion = composicionByFolio[folio] ?? { eje: true, tira: true, strip: true, domina: 'copy' };
+
+/** Qué capas de ambiente monta cada mundo. Ver el comentario en el markup. */
+const capasByFolio = {
+  i:   { grid: false, halo: true,  scan: true  }, // observar    · adquirir y barrer
+  ii:  { grid: true,  halo: false, scan: false }, // elegir      · estratos, retícula
+  iii: { grid: false, halo: false, scan: true  }, // recordar    · lectura de archivo
+  iv:  { grid: true,  halo: false, scan: false }, // transformar · estructura de máquina
+  v:   { grid: false, halo: true,  scan: false }, // relacionar  · el campo ya es todo
+  vi:  { grid: false, halo: true,  scan: false }, // reintegrar  · presencia, cuerpo
+};
+const capas = capasByFolio[folio] ?? { grid: true, halo: true, scan: true };
+
+const contratoEscena = contratoDe(folio, {
+  organismo: '.kx-os-stage__livefield',
+  titulo: '.kx-titulo-cinetico',
+});
 
 const sceneField = {
   field: sceneOrganismo ?? 'network-vortex',
@@ -477,7 +535,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     data-kdx-plate-contract={platePerfil ? KDX_PLATE_CONTRACT_VERSION : undefined}
     data-kdx-plate={plateIdent}
     data-kdx-plate-metadata={platePerfil?.metadataMode}
-    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${folio === 'vi' ? '--kdx-return-ink:#7C5FA0;--kdx-return-gold:#BE8C50;--kdx-paper:#F2EFE7;' : ''}${sceneMotion}${plateStyle ? ';' + plateStyle : ''}`}
+    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}${plateStyle ? ';' + plateStyle : ''}`}
   >
     <KodexTransition router={true} />
     <KodexDebug />
@@ -485,19 +543,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     <KodexChrome segs={7} />
 
     <div class="kx-deck" data-deck>
-      {folio === 'i' ? (
-        /* PROLOGUE · LA LAMINA COMPLETA ES LA ESCENA.
-           No se monta el template generico: ni titulo, ni tabla de metadata, ni
-           dossier, ni HUD, ni CTA. Todo eso ya esta compuesto DENTRO de la
-           lamina t01-02, por quien la disenio. El shell solo aporta lo de
-           afuera: navegacion, memoria, estado, transicion y accesibilidad.
-           Patron a replicar en DESCENT, ARCHIVE, MACHINE, COSMOLOGY y RETURN
-           una vez que el creador confirme que ESTA se parece a su referencia. */
-        <section class="kx-slide kx-slide--os kx-slide--lamina kx-active" id={sceneByFolio.slug}
-                 style="overflow:hidden;">
-          <EscenaPrologue />
-        </section>
-      ) : (
       <section class="kx-slide kx-slide--os kx-active" id={sceneByFolio.slug} style="overflow:hidden;overflow-x:hidden;overflow-y:hidden;">
         {/* PROLOGUE usaba KodexObserveScene, la escena del ojo procedural. Ocin
             la descarto sin ambiguedad: "horrible, no era lo esperado" -- rework
@@ -506,7 +551,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             ARTIFACT. La densidad la aportan el rail y la metadata, no un
             organismo generado. */}
         {(
-        <div class={`kx-slide__in kx-os-stage${folio === 'vi' ? ' kx-os-stage--return' : ''}`} data-kdx-scene-kind={sceneByFolio.slug}>
+        <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug} data-kdx-domina={composicion.domina} {...contratoEscena}>
           <KodexRegistration accent={sceneByFolio.accent} />
 
           {/* El campo de red sólo donde la escena todavía no tiene su propio
@@ -525,28 +570,41 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             class="kx-os-stage__livefield"
           />}
 
+          {/* LAS CAPAS DE AMBIENTE TAMBIÉN HABLAN EL DIALECTO DE SU MUNDO.
+              Antes las tres se montaban siempre, en las siete escenas. Por eso
+              PROLOGUE y MACHINE median 94% de firma estructural idéntica aunque
+              tuvieran organismos distintos: la igualdad no estaba en el fondo,
+              estaba en que montaban exactamente el mismo andamiaje.
+
+              Y no son intercambiables. Un ojo BARRE; una máquina tiene
+              ESTRUCTURA; un campo de relación no necesita ninguna de las dos
+              porque el campo ya es todo. Cada capa entra donde significa algo:
+
+                grid  → estructura, retícula, procesamiento  (elegir, transformar)
+                scan  → adquisición, lectura, barrido        (observar, recordar)
+                halo  → presencia, cuerpo, reintegración     (observar, relacionar, reintegrar)  */}
           <div class="kx-os-stage__field" aria-hidden="true">
-            <span class="kx-os-stage__grid"></span>
-            <span class="kx-os-stage__halo"></span>
-            <span class="kx-os-stage__scan"></span>
+            {capas.grid && <span class="kx-os-stage__grid"></span>}
+            {capas.halo && <span class="kx-os-stage__halo"></span>}
+            {capas.scan && <span class="kx-os-stage__scan"></span>}
           </div>
 
           {/* La metadata era una columna de texto suelto. En los boards de
               referencia ese costado es un panel: marco con esquinas cortadas,
               pares clave/valor alineados, un medidor y una figura concentrica.
               Mismos datos, leidos como instrumento. */}
-          <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />
+          {composicion.eje && <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />}
 
           {/* Lo que hay DEBAJO de esta escena. La lamina es la superficie;
               los volumenes son la profundidad que se abre al entrar. */}
-          <KodexTira
+          {composicion.tira && <KodexTira
             volumenes={volumenesDelEstrato}
             estrato={estratoByFolio[folio] ?? ""}
             accent={sceneByFolio.accent}
             class="kx-os-stage__tira"
-          />
+          />}
 
-          <KodexDataStrip
+          {composicion.strip && <KodexDataStrip
             title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
             rows={stripRows}
             accent={sceneByFolio.accent}
@@ -554,7 +612,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             meterLabel="DEPTH"
             figure={figureByFolio[folio] ?? 'rings'}
             class="kx-os-stage__strip"
-          />
+          />}
 
           <main class="kx-os-stage__copy">
             <p class="kx-os-stage__kicker">{sceneByFolio.kicker}</p>
@@ -707,7 +765,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             {folio === 'iii' && volumenes.length > 0 && (
               <KodexMuseo volumenes={volumenes} class="kx-os-stage__museo" />
             )}
-            {sceneCrt && folio !== 'iii' && !organismoEscena && (
+            {sceneCrt && folio !== 'iii' && (
               <img
                 class="kx-os-stage__crt-source"
                 src={sceneByFolio.image}
@@ -716,29 +774,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 decoding="async"
               />
             )}
-            {folio === 'vi'
-              ? (
-                /* EL SELLO DE RETORNO, EN TINTA.
-                   La obra entra como <img> y no como canvas a propósito: es la
-                   única forma de que la lámina clara pueda ATRAVESARLA. El
-                   `mix-blend-mode:multiply` que kodex.css ya declara para esta
-                   escena necesita un elemento pintado sobre el fondo, no un
-                   búfer opaco. Así el mandala negativo se invierte a trazo
-                   oscuro y el papel queda debajo, que es la lámina u03. */
-                <img
-                  class="kx-return-mandala"
-                  src={sceneByFolio.image}
-                  alt="Return seal — todas las trayectorias convergen en un punto de luz"
-                  decoding="async"
-                />
-              )
-              : organismoEscena
-              ? (
-                /* ARTE > UI. El organismo de la lamina ocupa la region de arte
-                   de la escena, en vez de la obra raster ajena que estaba. */
-                <LaminaOrganismo escena={organismoEscena} class="kx-os-stage__organismo" />
-              )
-              : folio === 'v'
+            {folio === 'v'
               ? <div class="kx-os-stage__cosmo"><CosmologyMap /></div>
               : sceneCrt
               ? null
@@ -778,7 +814,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
 
                 En esta lamina el CRT NO va encima del artefacto: ES el
                 tratamiento. Organismo por tratamiento, uno por escena. */}
-            {sceneCrt && !organismoEscena && (
+            {sceneCrt && (
               <KodexCrtLayer
                 sourceSelector=".kx-os-stage__crt-source"
                 preset={sceneCrt}
@@ -801,7 +837,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
         </div>
         )}
       </section>
-      )}
     </div>
 
     <aside class="kx-os-drawer" data-kdx-drawer hidden aria-hidden="true" role="dialog" aria-modal="true">
@@ -880,151 +915,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   </div>
 
   <script>
-  /* ── CONTINUIDAD DEL VIAJE ────────────────────────────────────────────────
-     Dos piezas que convierten siete escenas en un recorrido. Ninguna inventa
-     sistemas nuevos: enchufan los que ya existen y estaban sueltos.
-
-     1. CADA ESCENA REGISTRA SU LLEGADA. El sistema de memoria (record /
-        readSpecimen / EspecimenRetorno) ya sabía reconstruir el viaje, pero
-        sólo PROLOGUE le daba de comer, así que RETURN veía un recorrido
-        cojo. Ahora las seis escenas del corredor anotan su paso, y el
-        espécimen de RETURN dibuja la ruta real.
-        Se anota la LLEGADA, no la permanencia: nada que puntúe al visitante.
-
-     2. EL DESCENSO ABRE EN LA ESCENA SIGUIENTE. Al salir de PROLOGUE el iris
-        se cierra sobre la pantalla; si la siguiente escena apareciera de golpe
-        se perdería justamente la sensación de haber entrado. La escena que
-        recibe abre desde ese mismo punto de fuga. La marca viaja por
-        sessionStorage y se consume una sola vez: recargar no vuelve a
-        disparar una transición que nadie provocó. */
-  import { record as kdxRecord } from '../../../kodex/return/memory.js';
-
-  const kdxEscena = document.querySelector('[data-stage-name]');
-  if (kdxEscena) {
-    try { kdxRecord({ type: 'view', work: location.pathname }); } catch {}
-
-    /* Al cruzar hacia la siguiente, se deja la señal de que hubo descenso. */
-    for (const b of Array.from(document.querySelectorAll('a, button'))) {
-      if (!/DESCEND/i.test(b.textContent || '')) continue;
-      b.addEventListener('click', () => {
-        try { sessionStorage.setItem('kdx:entrando', '1'); } catch {}
-      }, true);
-    }
-
-    /* CTA DE TRAVESIA MUERTO. Medido recorriendo el corredor: en DESCENT el
-       control primario dice DESCEND, es un <button class="kx-os-primary"> sin
-       href y sin manejador, y no lleva a ninguna parte —el recorrido se cortaba
-       ahi—. Ademas esa escena no monta la barra de descenso que si tiene
-       PROLOGUE, asi que ese boton muerto era la UNICA salida hacia adelante.
-       El destino existia todo el tiempo en data-next-url.
-       Se cablea SOLO cuando la etiqueta es de travesia: los otros CTA
-       —OPEN SPECIMEN, GENERATE SIGNAL, REVEAL CONNECTION— pertenecen a otros
-       sistemas y no se tocan. */
-    const kdxSiguiente = kdxEscena.getAttribute('data-next-url');
-    if (kdxSiguiente) {
-      /* SOLO el CTA primario, y solo si su etiqueta es de travesia.
-         La boca «◎ DESCEND INTO ...» quedo FUERA a proposito: parecia un link
-         muerto, pero su CSS la documenta como «la segunda salida de la escena»
-         y su marcado es data-kdx-abrir-descenso — ABRE el panel de descenso,
-         no navega. Cablearla habria secuestrado su funcion real por un
-         diagnostico apurado. Los otros CTA —OPEN SPECIMEN, GENERATE SIGNAL,
-         REVEAL CONNECTION— pertenecen a otros sistemas y tampoco se tocan. */
-      for (const b of Array.from(document.querySelectorAll('.kx-os-primary'))) {
-        const t = (b.textContent || '').trim().toUpperCase();
-        if (!/^(DESCEND|DESCENDER|CONTINUE|ENTER)$/.test(t)) continue;
-        if (b.getAttribute('href')) continue;          // ya tiene destino propio
-        b.addEventListener('click', (ev) => {
-          ev.preventDefault();
-          try { sessionStorage.setItem('kdx:entrando', '1'); } catch {}
-          location.href = kdxSiguiente;
-        });
-      }
-    }
-
-    let entrando = false;
-    try {
-      entrando = sessionStorage.getItem('kdx:entrando') === '1';
-      if (entrando) sessionStorage.removeItem('kdx:entrando');
-    } catch {}
-
-    if (entrando) {
-      const velo = document.createElement('div');
-      velo.className = 'kdx-entrada';
-      velo.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(velo);
-      /* Dos cuadros antes de soltar: si se anima en el mismo tick, el
-         navegador colapsa el estado inicial y no se ve la apertura. */
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        velo.setAttribute('data-abierto', '');
-        setTimeout(() => velo.remove(), 1200);
-      }));
-    }
-  }
-  </script>
-
-  <style is:global>
-    /* ── EL HUECO DE LA BOCA ──────────────────────────────────────────────
-       Verificado recorriendo el corredor con los controles visibles: en
-       ARCHIVE no hay NINGUNA salida hacia adelante. Su CTA primario es
-       «OPEN SPECIMEN» —que pertenece a otro sistema—, no monta barra de
-       descenso, y la boca «◎ DESCEND INTO ARCHIVE» esta invisible. El viaje
-       se cortaba ahi: para seguir habia que salir al indice.
-
-       La boca NO es un control roto. `descenso-ui.ts` la retira cuando
-       chocaria con texto real, y su autor dejo escrito el arreglo correcto:
-       «un control que no cabe es un control que no deberia estar. Cuando el
-       contrato de escena reserve un hueco propio, la boca lo va a encontrar
-       libre y va a volver sola. No hace falta cambiar nada aca.»
-
-       Esto es esa reserva. No se fuerza su visibilidad ni se toca su modulo:
-       se le deja el carril libre en el costado izquierdo, a media altura, que
-       es exactamente donde ella se ubica (left:14px, top:50%, 48px). Su propia
-       prueba de colision decide; nosotros solo dejamos de invadirla.
-
-       Se aplica al copy de la escena, que es el bloque de texto con el que
-       chocaba. El arte no se mueve: sigue ocupando la pantalla entera. */
-    /* El atributo sube la especificidad a (0,3,0): con (0,2,0) el kicker de
-       ARCHIVE seguia ganando por orden de cascada y era el ultimo bloque que
-       invadia el carril. Se compite por especificidad, no con !important. */
-    .kx-os-scene[data-stage-name] .kx-os-stage__copy,
-    .kx-os-scene[data-stage-name] .kx-os-stage__kicker,
-    .kx-os-scene[data-stage-name] .kdx-tt {
-      /* Medido: los bloques que invadian el carril empiezan en x=18 y no
-         estaban dentro de __copy sino en el bloque tipografico .kdx-tt y en el
-         kicker. Reservar solo en __copy no alcanzaba: hay que dejar libre el
-         carril en TODOS los bloques de texto que cruzan esa altura. */
-      padding-left: max(76px, env(safe-area-inset-left, 0px) + 76px);
-    }
-    /* PROLOGUE no lo necesita: su escena nativa ya deja el costado libre y la
-       boca volvio sola ahi. Se excluye para no moverle la composicion. */
-    .kx-os-scene--prologue[data-stage-name] .kx-os-stage__copy,
-    .kx-os-scene--prologue[data-stage-name] .kx-os-stage__kicker,
-    .kx-os-scene--prologue[data-stage-name] .kdx-tt { padding-left: 0; }
-
-    /* El velo de entrada: el mismo círculo por el que se salió, ahora
-       abriéndose. Nace cubriendo la pantalla y se retira hacia los bordes. */
-    .kdx-entrada {
-      position: fixed;
-      inset: 0;
-      z-index: 40;
-      pointer-events: none;
-      background: #05040a;
-      clip-path: circle(150% at 50% 50%);
-      opacity: 1;
-    }
-    .kdx-entrada[data-abierto] {
-      clip-path: circle(0% at 50% 50%);
-      opacity: 0;
-      transition: clip-path 900ms cubic-bezier(.16,.84,.44,1), opacity 900ms ease-out;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      /* Equivalente semántico: sin viaje, pero el corte breve mantiene la
-         lectura de «acabo de entrar». */
-      .kdx-entrada[data-abierto] { transition: opacity 220ms; clip-path: circle(0% at 50% 50%); }
-    }
-  </style>
-
-  <script>
   /* LAS TRES PIEZAS DEL CORREDOR, MONTADAS Y NO REESCRITAS.
      Las tres existen ya y las escribió el agente que lleva el descenso; acá
      sólo se enchufan a las escenas del folio, que hasta ahora se las perdían:
@@ -1045,11 +935,18 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   import { montarTravesia } from '../../../lib/kodex/travesia';
   import { montarFases } from '../../../lib/kodex/estado';
   import { montarSonido } from '../../../lib/kodex/sonido-montar';
+  /* `montarEspejoEstado` no agrega comportamiento: hace VISIBLE el que ya
+     existe. La máquina de estados ya la comparten el campo, el portal, la
+     transición y el CRT, pero nadie la escribía en el DOM, así que la ley
+     INPUT → ESTADO → CONSECUENCIA VISIBLE tenía el eslabón del medio invisible
+     y el gate reportaba "causalidad no evaluada" en las siete escenas. */
+  import { montarEspejoEstado } from '../../../lib/kodex/espejo-estado';
 
   const montarCorredor = () => {
     try { montarTravesia(); } catch (_) {}
     try { montarFases(); } catch (_) {}
     try { montarSonido(); } catch (_) {}
+    try { montarEspejoEstado(); } catch (_) {}
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montarCorredor, { once: true });
   else montarCorredor();
@@ -1187,187 +1084,92 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
 </Base>
 
 <style>
-/* ═══════════════════════════════════════════════════════════════════════════
-   VII · RETURN — LA LÁMINA CLARA, DEVUELTA A PAPEL
-   ═══════════════════════════════════════════════════════════════════════════
+  /* CONSECUENCIA VISIBLE DEL ESTADO · 2026-08-26
+   *
+   * La ley del proyecto es INPUT → CAMBIO DE ESTADO → CONSECUENCIA VISIBLE.
+   * El estado ya cambiaba y `espejo-estado.ts` ya lo escribe en el DOM, pero
+   * nada lo mostraba: el gate midió `idle → aware` en cuatro escenas y falló
+   * las cuatro con "ESTADO SIN CONSECUENCIA — un estado que no se ve no existe
+   * para el visitante".
+   *
+   * Esto no es decoración: es el eslabón final de la ley. La escena reconoce
+   * que hay alguien. No anuncia nada, no mueve la composición — respira.
+   *
+   * `--kdx-intensidad` viene del espejo como número continuo, así que la
+   * respuesta es proporcional al estado y no un salto binario.
+   */
+  .kx-os-stage {
+    --kdx-intensidad: 0;
+    /* Duraciones largas a propósito: la escena ATIENDE, no reacciona nerviosa.
+       El canon prohíbe el feedback de interfaz genérica. */
+    transition: filter 900ms cubic-bezier(.22,.61,.36,1);
+  }
 
-   Este bloque existe porque `kodex.css` es propiedad de otro nodo y no se
-   toca. Todo lo de acá está acotado a `.kx-os-scene--return`: en las otras
-   cinco escenas del corredor no matchea ni una regla.
+  /* El campo vivo es lo que responde: es el organismo, y el organismo es la
+     obra. La interfaz no cambia de tamaño ni de sitio. */
+  .kx-os-stage__livefield {
+    transition:
+      opacity   1200ms cubic-bezier(.22,.61,.36,1),
+      filter     900ms cubic-bezier(.22,.61,.36,1),
+      transform 1400ms cubic-bezier(.22,.61,.36,1);
+    transform-origin: center center;
+    will-change: filter, transform;
+  }
 
-   El defecto que cierra: RETURN se servía con la croma prestada de otras dos
-   escenas. Medido sobre la captura de 1440×900 antes del cambio:
-     · hue 165-180° (cian, croma de MACHINE) ....... 5.050 muestras
-     · hue 75°      (ácido, croma de ARCHIVE) ...... 2.307 muestras
-     · hue 255-285° (lavanda, croma PROPIA) ........ 0 muestras
-     · papel (neutro claro >200) ................... 37,3% del cuadro
-   Medido sobre su lámina de autoridad `u03-return.png`:
-     · papel ....................................... 94,9% del cuadro
-     · tinta dominante ............................. hue 270°, #9078A8
-     · segundo acento .............................. hue 15-30°, cálido
+  /* AWARE — la escena nota que hay alguien.
+   *
+   * La primera versión usaba `brightness(1.18)` y el gate no la detectó: sobre
+   * un campo que ya se mueve solo, un matiz de brillo se pierde en su propio
+   * ruido. La consecuencia tiene que destacar sobre lo que la escena YA hace,
+   * o no es consecuencia — es un adorno que nadie percibe.
+   *
+   * `scale` sobre el organismo, no sobre la interfaz: el campo se acerca. El
+   * canon prohíbe mover la composición, y esto no la mueve — el organismo ya
+   * ocupa el cuadro entero, así que crecer 1.5% es profundidad, no reflow. */
+  .kx-os-stage[data-kdx-estado="aware"] .kx-os-stage__livefield {
+    filter: brightness(1.5) saturate(1.35) contrast(1.12);
+    transform: scale(1.015);
+  }
+  .kx-os-stage[data-kdx-estado="aware"] .kx-os-stage__scan { opacity: .95; }
+  .kx-os-stage[data-kdx-estado="aware"] .kx-os-stage__halo { opacity: .8; }
 
-   La especificidad va a (0,2,0) a propósito -- `.kx.kx-os-scene--return` --
-   porque las reglas que corrige en `kodex.css` son (0,1,0) y el orden de
-   bundling entre la hoja importada y el estilo de página no está garantizado.
-   Ganar por especificidad es determinista; ganar por orden es una apuesta. */
+  /* LOCKED — la atención se estabiliza: el campo se asienta y enfoca.
+     Es lo contrario de "más efecto". El grano cede y el contraste sube. */
+  .kx-os-stage[data-kdx-estado="locked"] .kx-os-stage__livefield {
+    filter: brightness(1.7) saturate(1.5) contrast(1.22);
+    transform: scale(1.025);
+  }
+  .kx-os-stage[data-kdx-estado="locked"] .kx-os-stage__grid { opacity: .55; }
 
-/* El halo de fondo estaba escrito con `rgba(166,255,0,.26)` — verde ácido
-   literal, hardcodeado. Es el único acento cromático a escala de pantalla de
-   toda la escena, así que mientras siguiera ahí no importaba qué declarara la
-   tabla de folios: la lámina leía ácida igual. */
-.kx.kx-os-scene--return::before{
-  background:
-    radial-gradient(circle at 70% 42%,
-      color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 22%, transparent), transparent 34vw),
-    radial-gradient(circle at 70% 42%,
-      color-mix(in srgb, var(--kdx-return-gold,#BE8C50) 26%, transparent), transparent 18vw),
-    radial-gradient(circle at 70% 42%,
-      transparent 0 9vw,
-      color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 34%, transparent) 9.2vw 9.45vw,
-      transparent 28vw);
-}
+  /* ACTIVE — relación activa. El campo se abre del todo. */
+  .kx-os-stage[data-kdx-estado="active"] .kx-os-stage__livefield {
+    filter: brightness(1.9) saturate(1.65) contrast(1.3);
+    transform: scale(1.04);
+  }
+  .kx-os-stage[data-kdx-estado="active"] .kx-os-stage__halo { opacity: 1; }
 
-/* LA HOJA. `.kx-os-stage--return .kx-os-stage__art{background:#f3f3f3}` ya
-   estaba escrita en kodex.css:1338 y nunca se aplicó: el markup ponía
-   `kx-os-scene--return` en la raíz pero nadie ponía `kx-os-stage--return` en
-   el escenario. Ahora la clase existe (ver el template) y la regla despierta;
-   acá sólo se le quita el chrome que la delataba como caja de HUD -- el borde
-   de tinta clara, la sombra proyectada negra y el resplandor de acento -- que
-   sobre papel se leen como un recuadro pegado encima de la hoja. */
-.kx.kx-os-scene--return .kx-os-stage__art{
-  background:#F2EFE7;                 /* crema de la lámina, no gris de sistema */
-  border-color:color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 20%, transparent);
-  box-shadow:none;
-}
+  /* TRANSITIONOUT — la escena se retira antes de que llegue la siguiente.
+     No desaparece: se apaga, que es distinto y es lo que pide la ley de
+     transición (ANCLA → ATRACCIÓN → DEFORMACIÓN → COLAPSO). */
+  .kx-os-stage[data-kdx-estado="transitionOut"] .kx-os-stage__livefield {
+    opacity: .35;
+    filter: brightness(.7) saturate(.6);
+  }
 
-/* El barrido de scanlines venía en `mix-blend-mode:screen`, que sobre negro
-   dibuja una trama de CRT y sobre papel sólo lava el blanco. Es chrome técnico
-   en la única escena cuyo ADN dice explícitamente que no lo lleva. */
-.kx.kx-os-scene--return .kx-os-stage__art::after{
-  opacity:.1;
-  mix-blend-mode:multiply;
-  background:repeating-linear-gradient(0deg,
-    color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 12%, transparent) 0 1px,
-    transparent 1px 5px);
-}
+  /* Quien domina la escena recibe el aire; los demás bloques ceden presencia.
+     `data-kdx-domina` lo fija la composición por mundo, no el gusto. */
+  .kx-os-stage[data-kdx-domina="organismo"] .kx-os-stage__strip { opacity: .82; }
+  .kx-os-stage[data-kdx-domina="tira"]      .kx-os-stage__eje   { opacity: .78; }
+  .kx-os-stage[data-kdx-domina="strip"]     .kx-os-stage__eje   { opacity: .78; }
 
-/* Las escuadras de encuadre pasan de gris-HUD a tinta lavanda tenue: siguen
-   registrando la obra, dejan de parecer visor. */
-.kx.kx-os-scene--return .kx-corner{
-  border-color:color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 38%, transparent);
-  opacity:.5;
-}
-
-/* EL SELLO DE RETORNO.
-   `invert(1)` sobre el mandala negativo lo devuelve a trazo oscuro; `multiply`
-   deja pasar el papel por debajo en vez de tapiarlo, que es la diferencia
-   entre una lámina impresa y una pantalla incrustada. El `sepia+hue-rotate`
-   tiñe el trazo hacia el lavanda medido en la lámina en lugar de dejarlo en
-   gris neutro. Se declara acá y no se delega a kodex.css:1345 porque esa
-   regla es (0,2,0) sobre `img` genérico y necesito además la tinta. */
-.kx.kx-os-scene--return .kx-os-stage__art .kx-return-mandala{
-  width:100%; height:100%;
-  object-fit:contain;
-  padding:clamp(10px,2.2vw,26px);
-  box-sizing:border-box;
-  mix-blend-mode:multiply;
-  filter:
-    grayscale(1) invert(1) contrast(1.16)
-    sepia(.55) hue-rotate(215deg) saturate(2.6)
-    opacity(.92);
-}
-
-/* ───────────────────────────────────────────────────────────────────────────
-   EL CHROME QUE SEGUÍA SIENDO NOCTURNO
-   ───────────────────────────────────────────────────────────────────────────
-   Estas tres piezas las dibujan componentes hijos, así que el scoping de Astro
-   no las alcanza y hay que nombrarlas con `:global()`. El ancestro
-   `.kx-os-scene--return` las mantiene encerradas en esta única escena: en las
-   otras cinco del corredor el selector no matchea.
-
-   No es maquillaje. `kodex.css` ya había invertido el COLOR DE TEXTO de este
-   chrome para RETURN (líneas 3632-3641) pero no sus FONDOS, así que quedó
-   tinta oscura sobre banda negra. Medido en 1440×900: la franja `.kx-status`
-   pinta `linear-gradient(#000 60%, transparent)` mientras su texto computa
-   `rgba(18,18,18,.78)` — contraste ~1.1:1, ilegible; y `.kdx-strip` pinta
-   `rgb(17,17,19)` con texto `rgb(8,8,8)` encima. El arreglo devuelve los
-   fondos al papel y con eso el texto que ya era oscuro vuelve a leerse. */
-
-/* La banda superior. Es el scrim que sostiene el wordmark y la telemetría:
-   sobre seis escenas negras desaparece, sobre la única de papel es una barra
-   negra atravesando la hoja. */
-.kx.kx-os-scene--return :global(.kx-status){
-  background-image:linear-gradient(
-    color-mix(in srgb, var(--kdx-paper,#F2EFE7) 92%, transparent) 55%,
-    transparent);
-}
-
-/* El panel de instrumento. Se conserva entero -- mismos datos, mismo lugar --
-   pero impreso: hoja, filete de tinta lavanda y nada de resplandor. */
-.kx.kx-os-scene--return :global(.kdx-strip){
-  background-color:color-mix(in srgb, var(--kdx-paper,#F2EFE7) 88%, transparent);
-  background-image:linear-gradient(
-    color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 6%, transparent),
-    transparent);
-  border-color:color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 26%, transparent);
-  box-shadow:none;
-}
-
-/* El rail de la obra traía un velo del acento al 4%. Con el acento corregido
-   ya no es ácido, pero sobre papel cualquier velo lee como sucio: se retira. */
-.kx.kx-os-scene--return :global(.kdx-rail){
-  background:transparent;
-  border-color:color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 22%, transparent);
-}
-
-/* Los dos elementos que el scrim negro venía TAPANDO.
-   Al devolver la banda a papel quedan expuestos, y los dos estaban escritos
-   para fondo oscuro: el wordmark en `rgb(237,237,237)` — contraste 1.03:1
-   sobre #F2EFE7, literalmente invisible — y el botón de cruce en
-   `rgb(183,255,0)` sobre `rgba(0,0,0,.45)`, que es OTRA vez el verde ácido de
-   ARCHIVE, esta vez hardcodeado (no pasa por `--kdx-acid`, así que el cambio
-   de la tabla de folios no lo alcanza). Son parte del mismo defecto: chrome
-   nocturno servido sobre la única lámina de papel. */
-.kx.kx-os-scene--return :global(.kx-word){
-  color:#141414;                      /* 15,8:1 sobre el papel */
-}
-/* La barra de cruce entera, no sólo la píldora del medio: dejar una clara
-   entre dos oscuras es peor que las tres oscuras. PREVIOUS e INDEX ya traían
-   tinta oscura (`rgb(8,8,8)`, invertida por kodex.css) sobre una píldora
-   `rgba(0,0,0,.45)`; se les cambia el fondo, no el texto. */
-.kx.kx-os-scene--return :global(.kx-deckbar button),
-.kx.kx-os-scene--return :global(.kx-deckbar a),
-.kx.kx-os-scene--return :global(.kx-deckbar__index){
-  color:#2A2140;
-  background:color-mix(in srgb, var(--kdx-paper,#F2EFE7) 74%, transparent);
-  border-color:color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 30%, transparent);
-}
-.kx.kx-os-scene--return :global(.kx-deckbar--turn){
-  color:#2A2140;                      /* 12,9:1 sobre el papel */
-  background:color-mix(in srgb, var(--kdx-paper,#F2EFE7) 82%, transparent);
-  border-color:color-mix(in srgb, var(--kdx-return-ink,#7C5FA0) 55%, transparent);
-}
-
-/* EL PANEL DE DATOS, IMPRESO.
-   Al devolverle el fondo a papel quedaban invisibles justo los VALORES: los
-   `dd` computan `rgb(237,237,237)` — 1,02:1 sobre #F2EFE7 — y el título y el
-   valor del medidor vienen en `rgb(183,255,0)`, verde ácido hardcodeado (otra
-   vez fuera de `--kdx-acid`, así que la tabla de folios no los alcanza).
-   Cambiar el fondo sin la tinta habría borrado NODE/STATE/PATTERN/NEXT: el
-   contrato permite mover la telemetría, no perderla. */
-.kx.kx-os-scene--return :global(.kdx-strip dd){ color:#1E1A2E; }   /* 14,7:1 */
-.kx.kx-os-scene--return :global(.kdx-strip dt),
-.kx.kx-os-scene--return :global(.kdx-strip .kdx-strip__meter-head),
-.kx.kx-os-scene--return :global(.kdx-strip .kdx-strip__meter-head span){ color:#5A5468; }  /* 6,3:1 */
-.kx.kx-os-scene--return :global(.kdx-strip .kdx-strip__title),
-.kx.kx-os-scene--return :global(.kdx-strip .kdx-strip__meter-val){ color:#6B4F96; }        /* 5,7:1, croma propia */
-
-/* Sin movimiento sigue siendo una lámina: el sello se queda quieto, no
-   desaparece. (El filtro no anima, así que sólo se fija el blend.) */
-@media (prefers-reduced-motion: reduce){
-  .kx.kx-os-scene--return .kx-os-stage__art .kx-return-mandala{ filter:
-    grayscale(1) invert(1) contrast(1.16)
-    sepia(.55) hue-rotate(215deg) saturate(2.6)
-    opacity(.92); }
-}
+  /* Reduced-motion: la consecuencia SIGUE EXISTIENDO, sin transición. Quitarla
+     rompería la ley de causalidad para quien la necesita; lo que se quita es
+     el movimiento, no la información. */
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-stage,
+    .kx-os-stage__livefield { transition-duration: 1ms; }
+    /* El acercamiento se anula; el cambio de luz permanece. La información
+       sobre el estado no se le quita a quien pidió menos movimiento. */
+    .kx-os-stage[data-kdx-estado] .kx-os-stage__livefield { transform: none; }
+  }
 </style>
