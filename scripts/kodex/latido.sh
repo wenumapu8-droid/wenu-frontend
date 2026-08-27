@@ -125,10 +125,27 @@ fi
 log "build ok · dist/p=$PAGINAS"
 
 set -a; source .env >/dev/null 2>&1; set +a
-if npx --yes wrangler@latest pages deploy dist \
-     --project-name=wenu-frontend \
-     --branch=kodex-preview \
-     --commit-dirty=true >/tmp/kodex-latido-deploy.log 2>&1; then
+
+# Subir casi 4.000 archivos por un enlace largo falla a veces a mitad de camino:
+# el 27-08 se cortó en 3760/3953 con "Failed to upload files. Please try again."
+# Es transitorio y el propio wrangler lo dice. Sin reintentos, el latido se
+# rendía hasta el ciclo siguiente y el trabajo se quedaba sin publicar.
+publicar() {
+  local rama="$1" destino="$2" intento
+  for intento in 1 2 3; do
+    if npx --yes wrangler@latest pages deploy dist \
+         --project-name=wenu-frontend \
+         --branch="$rama" \
+         --commit-dirty=true >"$destino" 2>&1; then
+      [ "$intento" -gt 1 ] && log "  (publicó en el intento $intento)"
+      return 0
+    fi
+    log "  intento $intento de subida falló · reintento"
+    sleep $((intento * 20))
+  done
+  return 1
+}
+if publicar kodex-preview /tmp/kodex-latido-deploy.log; then
   URL=$(grep -o 'https://[a-z0-9-]*\.wenu-frontend\.pages\.dev' /tmp/kodex-latido-deploy.log | tail -1)
   log "PREVIEW publicada · $SHA · $URL"
 else
@@ -230,10 +247,7 @@ ANTERIOR=$(npx --yes wrangler@latest pages deployment list --project-name=wenu-f
 # publicando a `converge/kodex-todo` y viendo el sitio viejo: los deploys
 # decían "Success" y eran Preview. El nombre de la rama de git no importa acá;
 # importa el nombre que Cloudflare tiene marcado como producción.
-if npx --yes wrangler@latest pages deploy dist \
-     --project-name=wenu-frontend \
-     --branch=redesign-v2 \
-     --commit-dirty=true >/tmp/kodex-latido-prod.log 2>&1; then
+if publicar redesign-v2 /tmp/kodex-latido-prod.log; then
   log "PRODUCCIÓN publicada · $SHA · tienda:$PROD corredor:$KDX"
   # Verificar en vivo. Publicar no es lo mismo que funcionar.
   sleep 20
