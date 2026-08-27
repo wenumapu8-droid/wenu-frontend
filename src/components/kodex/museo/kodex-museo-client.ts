@@ -54,8 +54,6 @@ function dibujar(cv: HTMLCanvasElement, semilla: number): void {
     ctx.beginPath();
     for (let i = 0; i <= brazos * 8; i++) {
       const t = (i / (brazos * 8)) * Math.PI * 2;
-      // La deformación por brazo es lo que evita que sea un círculo: cada
-      // anillo respira con la simetría del volumen.
       const d = rad * (1 + Math.sin(t * brazos + giro + a) * 0.14);
       const x = cx + Math.cos(t) * d;
       const y = cy + Math.sin(t) * d;
@@ -75,16 +73,6 @@ function dibujar(cv: HTMLCanvasElement, semilla: number): void {
   }
 }
 
-/**
- * El poster pass legado de ARCHIVE todavía fija dos columnas 49/41 y convierte
- * título + readout en casi la mitad del primer frame. Eso contradice los planos
- * gobernados de memoria: primero debe sentirse la cámara/campo/espécimen; la
- * identidad y la acción viven en el borde y mobile revela esas capas después.
- *
- * Esta hoja se monta desde el mismo runtime de ARCHIVE para no abrir otro
- * design system ni otra arquitectura. Solo corrige presentación. Los mismos
- * datos, anchors, rutas, relaciones y controles siguen siendo la autoridad.
- */
 function asegurarJerarquiaVisualArchive(): void {
   if (document.getElementById(ARCHIVE_CONVERGENCE_STYLE_ID)) return;
 
@@ -185,50 +173,57 @@ function asegurarJerarquiaVisualArchive(): void {
     .kx-os-scene--archive .kx-specimen-readout .kx-os-primary:hover,
     .kx-os-scene--archive .kx-specimen-readout .kx-os-primary:focus-visible {
       color: #fff !important;
-      outline: 1px solid rgba(166,255,0,.5);
+      outline: 1px solid rgba(197,138,50,.6);
       outline-offset: 4px;
     }
 
     @media (max-width: 900px) {
-      .kx-os-scene--archive .kx-os-stage__art {
+      /* Mobile is one continuous camera, not a 47svh artwork panel followed by
+         a second page-like copy panel. Keep the governed memory chamber alive
+         behind identity/action and let copy enter as a lower temporal layer. */
+      .kx-os-scene--archive .kx-os-stage.kx-os-stage .kx-os-stage__art {
         top: calc(54px + env(safe-area-inset-top)) !important;
         right: 12px !important;
-        bottom: auto !important;
+        bottom: calc(64px + env(safe-area-inset-bottom)) !important;
         left: 12px !important;
-        height: 47svh !important;
+        height: auto !important;
+        min-height: 0 !important;
       }
 
       .kx-os-scene--archive .kx-os-stage__copy {
-        top: calc(54px + env(safe-area-inset-top) + 49svh) !important;
-        right: 14px !important;
-        bottom: calc(62px + env(safe-area-inset-bottom)) !important;
-        left: 14px !important;
-        width: auto !important;
+        top: auto !important;
+        right: 18px !important;
+        bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+        left: 18px !important;
+        width: min(18rem, 74vw) !important;
         max-width: none !important;
         display: grid;
-        align-content: start;
+        align-content: end;
         row-gap: 2px;
-        overflow: hidden;
+        overflow: visible;
+        padding: 14px 12px 8px 0 !important;
+        background: linear-gradient(90deg, rgba(2,2,2,.86), rgba(2,2,2,.48) 72%, transparent) !important;
       }
 
       .kx-os-scene--archive .kx-os-stage__copy > .kx-os-stage__kicker {
         margin-bottom: 4px !important;
-        font-size: .52rem !important;
-        letter-spacing: .2em !important;
+        font-size: .5rem !important;
+        letter-spacing: .18em !important;
       }
 
       .kx-os-scene--archive .kx-os-stage__copy > h1 {
-        max-width: 14ch !important;
-        font-size: clamp(1.28rem,5.8vw,1.95rem) !important;
+        max-width: 11ch !important;
+        font-size: clamp(1.22rem,5.4vw,1.72rem) !important;
         line-height: .94 !important;
+        opacity: .72;
       }
 
       .kx-os-scene--archive .kx-specimen-readout {
-        margin-top: 4px !important;
+        margin-top: 3px !important;
       }
 
       .kx-os-scene--archive .kx-specimen-readout h2 {
-        font-size: clamp(.9rem,4vw,1.2rem) !important;
+        font-size: clamp(.86rem,3.7vw,1.08rem) !important;
       }
 
       .kx-os-scene--archive .kx-specimen-readout .kx-os-primary {
@@ -249,19 +244,6 @@ function asegurarJerarquiaVisualArchive(): void {
   document.head.appendChild(style);
 }
 
-/**
- * ARCHIVE reference-first convergence.
- *
- * El stylesheet heredado todavía contiene una regla `display:none !important`
- * para `.kx-os-stage__museo`. Además, la primera versión de este refine
- * aplicaba la quieting visual sólo dentro de `DOMContentLoaded`, lo que dejaba
- * una ventana donde el frame inicial podía mostrar el panel/grid/header viejo
- * antes de esconderlo.
- *
- * Este paso no cambia datos, rutas, graph, memoria ni artwork: aplica la misma
- * decisión de jerarquía inmediatamente cuando el módulo se evalúa, cuando el
- * markup del componente ya existe, y antes del trabajo diferido del índice.
- */
 function aplicarConvergenciaArchive(): void {
   const raiz = document.querySelector<HTMLElement>("[data-kdx-museo]");
   const scene = raiz?.closest<HTMLElement>(".kx-os-scene--archive");
@@ -270,10 +252,6 @@ function aplicarConvergenciaArchive(): void {
   asegurarJerarquiaVisualArchive();
   raiz.style.setProperty("display", "grid", "important");
 
-  // El espécimen y el territorio relacional ya viven dentro de la misma
-  // figura. Forzarlos al mismo plano evita que el grid heredado los coloque en
-  // filas implícitas y recorte el museo fuera del first-view. No se crea otro
-  // graph: sólo se corrige el stacking de los elementos existentes.
   const art = raiz.closest<HTMLElement>(".kx-os-stage__art");
   const hero = art?.querySelector<HTMLElement>(".kx-archive-hero-specimen");
   if (art) {
@@ -294,11 +272,6 @@ function aplicarConvergenciaArchive(): void {
   raiz.style.setProperty("height", "100%");
   raiz.style.setProperty("z-index", "2");
 
-  // The governed ARCHIVE stylesheet owns the memory-engine/chamber material.
-  // Do not overwrite it here with a simplified inline !important background:
-  // that runtime override was masking the richer concentric rings and woven
-  // traces already defined for the current reference-first presentation.
-
   raiz.querySelector<HTMLElement>(".kdx-museo__relation-head")?.classList.add("visually-hidden");
   for (const meta of raiz.querySelectorAll<HTMLElement>(".kdx-museo__node-copy small")) {
     meta.classList.add("visually-hidden");
@@ -307,21 +280,12 @@ function aplicarConvergenciaArchive(): void {
     trace.style.opacity = "0.2";
   }
 
-  // El dossier completo ya existe detrás de OPEN SPECIMEN. Repetir
-  // CLASS/YEAR/METHOD/STATUS en el first-view hacía que ARCHIVE volviera a
-  // leerse como panel antes que como memoria espacial. Se oculta sólo esa
-  // copia redundante; el botón y el drawer siguen siendo la vía explícita.
-  // El atributo `hidden` solo no basta aquí porque el CSS heredado del readout
-  // fuerza su `dl` a display:grid. La prioridad explícita garantiza que el
-  // first-view respete el wireframe sin tocar el contenido del dossier.
   const readout = scene.querySelector<HTMLElement>("[data-kdx-archive]");
   const dossier = readout?.querySelector<HTMLElement>("dl");
   dossier?.setAttribute("hidden", "");
   dossier?.style.setProperty("display", "none", "important");
 }
 
-// El <script> del componente está después del markup; aplicar ahora evita que
-// la jerarquía de ARCHIVE dependa de esperar DOMContentLoaded.
 aplicarConvergenciaArchive();
 
 const montar = () => {
@@ -329,11 +293,8 @@ const montar = () => {
   if (!raiz || (raiz as any).__kdxMuseo) return;
   (raiz as any).__kdxMuseo = true;
 
-  // Astro puede reemplazar el documento en navegación cliente. Reaplicar la
-  // misma convergencia es idempotente y mantiene el first-view consistente.
   aplicarConvergenciaArchive();
 
-  // Los organismos, una sola vez y sólo cuando la celda se acerca a pantalla.
   const pendientes = raiz.querySelectorAll<HTMLCanvasElement>("[data-kdx-museo-organismo]");
   const io = new IntersectionObserver(
     (entradas) => {
@@ -348,8 +309,6 @@ const montar = () => {
   );
   for (const cv of pendientes) io.observe(cv);
 
-  // Filtro. En el cliente y sin recargar: un índice que navega para filtrar
-  // deja de ser un índice.
   const input = raiz.querySelector<HTMLInputElement>("[data-kdx-museo-buscar]");
   const items = [...raiz.querySelectorAll<HTMLElement>("[data-kdx-museo-item]")];
   const cuenta = raiz.querySelector<HTMLElement>("[data-kdx-museo-cuenta]");
@@ -368,8 +327,6 @@ const montar = () => {
   };
 
   input?.addEventListener("input", filtrar);
-  // Escape limpia: si la búsqueda no se puede deshacer rápido, el visitante
-  // queda encerrado en su propio filtro.
   input?.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && input.value) { input.value = ""; filtrar(); }
   });
