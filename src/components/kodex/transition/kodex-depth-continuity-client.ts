@@ -48,6 +48,90 @@ function animateTowardAxis(el: Element, cx: number, cy: number, amount: number, 
   ], { duration: ms, easing: 'cubic-bezier(.62,.02,.86,.4)', fill: 'forwards' });
 }
 
+/**
+ * Presentation-only continuity glyph. It deliberately reuses the Observation
+ * Eye vocabulary (elliptical iris, pupil, concentric acquisition rings and
+ * radial signal rays) instead of substituting the generic depth tunnel as the
+ * perceptual anchor. No source pixels, route state or semantic memory live here.
+ */
+function createEyeBridge(residue: Residue, phase: 'source' | 'arrival'): HTMLElement {
+  const x = Math.max(0, Math.min(1, residue.x)) * 100;
+  const y = Math.max(0, Math.min(1, residue.y)) * 100;
+  const bridge = document.createElement('span');
+  bridge.setAttribute('data-kdx-depth-eye-bridge', phase);
+  bridge.setAttribute('data-kdx-depth-eye-state', residue.state);
+  Object.assign(bridge.style, {
+    position: 'fixed',
+    inset: '0',
+    pointerEvents: 'none',
+    zIndex: '2147483000',
+    overflow: 'hidden',
+    background: `radial-gradient(ellipse at ${x}% ${y}%, color-mix(in srgb, ${residue.accent} 11%, transparent) 0%, rgba(5,4,10,.78) 34%, #050507 76%)`,
+  });
+
+  const eye = document.createElement('span');
+  Object.assign(eye.style, {
+    position: 'absolute',
+    left: `${x}%`,
+    top: `${y}%`,
+    width: 'clamp(150px, 27vmin, 340px)',
+    height: 'clamp(104px, 18vmin, 228px)',
+    transform: 'translate(-50%,-50%)',
+    borderRadius: '52% 48% 52% 48% / 48% 52% 48% 52%',
+    border: `1px solid color-mix(in srgb, ${residue.accent} 82%, white)`,
+    boxShadow: `0 0 26px color-mix(in srgb, ${residue.accent} 58%, transparent), inset 0 0 28px color-mix(in srgb, ${residue.accent} 32%, transparent)`,
+    opacity: '0.94',
+  });
+
+  for (let i = 0; i < 4; i += 1) {
+    const ring = document.createElement('span');
+    const inset = 12 + i * 11;
+    Object.assign(ring.style, {
+      position: 'absolute',
+      inset: `${inset}%`,
+      borderRadius: '50%',
+      border: `1px solid color-mix(in srgb, ${residue.accent} ${72 - i * 11}%, transparent)`,
+      boxShadow: i === 3 ? `0 0 30px color-mix(in srgb, ${residue.accent} 52%, transparent)` : 'none',
+    });
+    eye.appendChild(ring);
+  }
+
+  const pupil = document.createElement('span');
+  Object.assign(pupil.style, {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    width: 'clamp(13px, 2.2vmin, 28px)',
+    height: 'clamp(13px, 2.2vmin, 28px)',
+    transform: 'translate(-50%,-50%)',
+    borderRadius: '50%',
+    background: '#050507',
+    border: `1px solid ${residue.accent}`,
+    boxShadow: `0 0 38px 9px color-mix(in srgb, ${residue.accent} 62%, transparent)`,
+  });
+  eye.appendChild(pupil);
+
+  const rays = document.createElement('span');
+  Object.assign(rays.style, {
+    position: 'absolute',
+    left: `${x}%`,
+    top: `${y}%`,
+    width: 'min(72vmin, 720px)',
+    height: 'min(72vmin, 720px)',
+    transform: 'translate(-50%,-50%)',
+    borderRadius: '50%',
+    background: `repeating-conic-gradient(from 0deg, color-mix(in srgb, ${residue.accent} 32%, transparent) 0deg 0.35deg, transparent 0.35deg 10deg)`,
+    opacity: '0.34',
+    WebkitMaskImage: 'radial-gradient(circle, transparent 0 18%, #000 28% 74%, transparent 82%)',
+    maskImage: 'radial-gradient(circle, transparent 0 18%, #000 28% 74%, transparent 82%)',
+  });
+
+  bridge.appendChild(rays);
+  bridge.appendChild(eye);
+  document.body.appendChild(bridge);
+  return bridge;
+}
+
 function beginPrologueCrossing(anchor: HTMLAnchorElement): void {
   const root = document.querySelector<HTMLElement>('[data-kdx-observacion]');
   if (!root || root.hasAttribute('data-kdx-depth-crossing')) return;
@@ -66,16 +150,40 @@ function beginPrologueCrossing(anchor: HTMLAnchorElement): void {
   try { sessionStorage.setItem(RESIDUE_KEY, JSON.stringify(residue)); } catch (_) {}
   root.setAttribute('data-kdx-depth-crossing', '');
 
+  // Keep the SAME eye above the generic depth ritual during the source-side
+  // collapse. This is the perceptual continuity layer the old implementation
+  // lacked: the tunnel may move underneath, but it cannot replace the anchor.
+  const sourceBridge = createEyeBridge(residue, 'source');
+  const sourceEye = sourceBridge.lastElementChild as HTMLElement | null;
+  const sourceRays = sourceBridge.firstElementChild as HTMLElement | null;
+
   if (REDUCED) {
-    root.animate([{ opacity: 1 }, { opacity: 0.45 }], { duration: 180, easing: 'linear', fill: 'forwards' });
+    sourceBridge.animate([{ opacity: 0 }, { opacity: 0.96 }], { duration: 80, easing: 'linear', fill: 'both' });
+    sourceEye?.animate([{ transform: 'translate(-50%,-50%) scale(1)' }, { transform: 'translate(-50%,-50%) scale(1.12)' }], { duration: 180, easing: 'linear', fill: 'forwards' });
+    root.animate([{ opacity: 1 }, { opacity: 0.32 }], { duration: 180, easing: 'linear', fill: 'forwards' });
     return;
   }
+
+  sourceBridge.animate([
+    { opacity: 0.04 },
+    { opacity: 0.72, offset: 0.35 },
+    { opacity: 0.98 },
+  ], { duration: 820, easing: 'cubic-bezier(.62,.02,.86,.4)', fill: 'both' });
+  sourceEye?.animate([
+    { transform: 'translate(-50%,-50%) scale(.92)', opacity: 0.9 },
+    { transform: 'translate(-50%,-50%) scale(1.9)', opacity: 1, offset: 0.52 },
+    { transform: 'translate(-50%,-50%) scale(3.85)', opacity: 0.84 },
+  ], { duration: 860, easing: 'cubic-bezier(.62,.02,.86,.4)', fill: 'forwards' });
+  sourceRays?.animate([
+    { transform: 'translate(-50%,-50%) scale(.88) rotate(0deg)', opacity: 0.18 },
+    { transform: 'translate(-50%,-50%) scale(2.2) rotate(7deg)', opacity: 0.42 },
+  ], { duration: 860, easing: 'cubic-bezier(.62,.02,.86,.4)', fill: 'forwards' });
 
   const ms = 720;
   const field = root.querySelector<HTMLElement>('.kx-prologue__campo');
   field?.animate([
     { transform: 'scale(1)', filter: 'blur(0px) contrast(1)', opacity: 1 },
-    { transform: 'scale(1.34)', filter: 'blur(1.5px) contrast(1.18)', opacity: 0.58 },
+    { transform: 'scale(1.34)', filter: 'blur(1.5px) contrast(1.18)', opacity: 0.42 },
   ], { duration: ms, easing: 'cubic-bezier(.62,.02,.86,.4)', fill: 'forwards' });
 
   for (const selector of [
@@ -124,35 +232,12 @@ function revealDescentFromResidue(): void {
   const world = scene.querySelector<HTMLElement>('.kx-os-stage__livefield, .kx-os-stage__field');
   const copy = scene.querySelector<HTMLElement>('.kx-os-stage__copy');
 
-  // Arrival bridge: cover the route swap itself with the SAME remembered axis.
-  // This is presentation only; the existing ritual remains navigation authority.
-  // Keeping the bridge outside `scene` lets the destination reconstitute behind it
-  // instead of flashing its generic chrome before the depth gesture completes.
-  const bridge = document.createElement('span');
-  bridge.setAttribute('data-kdx-depth-bridge', residue.state);
-  Object.assign(bridge.style, {
-    position: 'fixed',
-    inset: '0',
-    background: '#050507',
-    pointerEvents: 'none',
-    zIndex: '2147483000',
-  });
-
-  const ring = document.createElement('span');
-  Object.assign(ring.style, {
-    position: 'absolute',
-    left: cx,
-    top: cy,
-    width: REDUCED ? '84px' : '108px',
-    height: REDUCED ? '84px' : '108px',
-    margin: REDUCED ? '-42px' : '-54px',
-    borderRadius: '50%',
-    border: `1px solid ${residue.accent}`,
-    boxShadow: `0 0 30px 5px ${residue.accent}, inset 0 0 24px 2px ${residue.accent}`,
-    opacity: '0.82',
-  });
-  bridge.appendChild(ring);
-  document.body.appendChild(bridge);
+  // Destination-side counterpart of the source bridge: the same violet eye is
+  // the first arrival frame, then it dilates into DESCENT while the world is
+  // reconstituted behind it. The generic ritual can remain authoritative below.
+  const bridge = createEyeBridge(residue, 'arrival');
+  const eye = bridge.lastElementChild as HTMLElement | null;
+  const rays = bridge.firstElementChild as HTMLElement | null;
 
   const pulse = document.createElement('span');
   pulse.setAttribute('data-kdx-depth-residue', residue.state);
@@ -172,51 +257,67 @@ function revealDescentFromResidue(): void {
   scene.appendChild(pulse);
 
   if (REDUCED) {
-    scene.animate([{ opacity: 0.38 }, { opacity: 1 }], { duration: 180, easing: 'linear', fill: 'both' });
-    ring.animate([{ opacity: 0.82 }, { opacity: 0 }], { duration: 180, easing: 'linear', fill: 'forwards' });
-    bridge.animate([{ opacity: 0.88 }, { opacity: 0 }], { duration: 180, easing: 'linear', fill: 'forwards' })
+    scene.animate([{ opacity: 0.28 }, { opacity: 1 }], { duration: 300, easing: 'linear', fill: 'both' });
+    eye?.animate([
+      { transform: 'translate(-50%,-50%) scale(1.18)', opacity: 0.92 },
+      { transform: 'translate(-50%,-50%) scale(1.34)', opacity: 0 },
+    ], { duration: 320, easing: 'linear', fill: 'forwards' });
+    rays?.animate([{ opacity: 0.28 }, { opacity: 0 }], { duration: 320, easing: 'linear', fill: 'forwards' });
+    bridge.animate([
+      { opacity: 0.98 },
+      { opacity: 0.82, offset: 0.58 },
+      { opacity: 0 },
+    ], { duration: 340, easing: 'linear', fill: 'forwards' })
       .finished.finally(() => bridge.remove());
-    pulse.animate([{ opacity: 0.72 }, { opacity: 0 }], { duration: 180, easing: 'linear', fill: 'forwards' })
+    pulse.animate([{ opacity: 0.72 }, { opacity: 0 }], { duration: 340, easing: 'linear', fill: 'forwards' })
       .finished.finally(() => pulse.remove());
     return;
   }
 
-  // Reconstitute the destination only after the remembered eye/axis has occupied
-  // the first arrival frame. This removes the perceptual "new page appeared"
-  // flash while keeping all destination content and controls intact afterwards.
+  // Reconstitute the destination after the remembered eye has occupied the
+  // first arrival frame. The eye remains visible through the overlap instead
+  // of yielding immediately to a generic ring/tunnel.
   scene.animate([
-    { opacity: 0.06, filter: 'blur(5px)' },
-    { opacity: 0.16, filter: 'blur(3px)', offset: 0.34 },
+    { opacity: 0.03, filter: 'blur(7px)' },
+    { opacity: 0.2, filter: 'blur(4px)', offset: 0.36 },
     { opacity: 1, filter: 'blur(0px)' },
-  ], { duration: 720, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
+  ], { duration: 900, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
 
   world?.animate([
-    { transform: 'scale(1.42)', transformOrigin: `${cx} ${cy}`, filter: 'blur(8px)', opacity: 0.28 },
+    { transform: 'scale(1.48)', transformOrigin: `${cx} ${cy}`, filter: 'blur(9px)', opacity: 0.18 },
     { transform: 'scale(1)', transformOrigin: `${cx} ${cy}`, filter: 'blur(0px)', opacity: 1 },
-  ], { duration: 860, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
+  ], { duration: 980, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
 
   copy?.animate([
-    { transform: 'scale(.82)', transformOrigin: `${cx} ${cy}`, opacity: 0 },
+    { transform: 'scale(.8)', transformOrigin: `${cx} ${cy}`, opacity: 0 },
     { transform: 'scale(1)', transformOrigin: `${cx} ${cy}`, opacity: 1 },
-  ], { duration: 560, delay: 300, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
+  ], { duration: 620, delay: 360, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
 
-  ring.animate([
-    { transform: 'scale(.72)', opacity: 0.9 },
-    { transform: 'scale(2.4)', opacity: 0.78, offset: 0.34 },
-    { transform: 'scale(8.2)', opacity: 0 },
-  ], { duration: 760, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' });
+  eye?.animate([
+    { transform: 'translate(-50%,-50%) scale(3.6)', opacity: 0.98 },
+    { transform: 'translate(-50%,-50%) scale(2.1)', opacity: 0.94, offset: 0.34 },
+    { transform: 'translate(-50%,-50%) scale(.76)', opacity: 0 },
+  ], { duration: 920, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' });
+
+  rays?.animate([
+    { transform: 'translate(-50%,-50%) scale(2.2) rotate(7deg)', opacity: 0.42 },
+    { transform: 'translate(-50%,-50%) scale(1.1) rotate(13deg)', opacity: 0.2, offset: 0.58 },
+    { transform: 'translate(-50%,-50%) scale(.8) rotate(16deg)', opacity: 0 },
+  ], { duration: 920, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' });
 
   bridge.animate([
-    { opacity: 0.96 },
-    { opacity: 0.88, offset: 0.34 },
+    { opacity: 0.98 },
+    { opacity: 0.92, offset: 0.34 },
+    { opacity: 0.42, offset: 0.7 },
     { opacity: 0 },
-  ], { duration: 760, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' })
+  ], { duration: 940, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' })
     .finished.finally(() => bridge.remove());
 
   pulse.animate([
     { transform: 'scale(.4)', opacity: 0.82 },
-    { transform: 'scale(24)', opacity: 0 },
-  ], { duration: 760, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' })
+    { transform: 'scale(18)', opacity: 0.34, offset: 0.55 },
+    { transform: 'scale(30)', opacity: 0 },
+  ], { duration: 920, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' })
     .finished.finally(() => pulse.remove());
 }
 
