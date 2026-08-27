@@ -84,6 +84,12 @@ const first = strata[0];
     const render = (nextIndex: number) => {
       index = Math.max(0, Math.min(buttons.length - 1, nextIndex));
       root.dataset.stratumIndex = String(index);
+      const total = Math.max(1, buttons.length - 1);
+      const progress = index / total;
+      root.style.setProperty('--kdx-depth-progress', progress.toFixed(3));
+      root.style.setProperty('--kdx-depth-scale', (1 + progress * 0.22).toFixed(3));
+      root.style.setProperty('--kdx-depth-compress', (1 - progress * 0.16).toFixed(3));
+      root.style.setProperty('--kdx-depth-glow', (0.12 + progress * 0.46).toFixed(3));
       const button = buttons[index];
       buttons.forEach((item, i) => {
         if (i === index) item.setAttribute('aria-current', 'step');
@@ -106,7 +112,7 @@ const first = strata[0];
         next.textContent = index === 0 ? 'DESCEND' : 'DESCEND DEEPER';
       }
       if (cross) cross.hidden = !isLast;
-      root.dispatchEvent(new CustomEvent('kdx:stratum', { bubbles: true, detail: { index, total: buttons.length } }));
+      root.dispatchEvent(new CustomEvent('kdx:stratum', { bubbles: true, detail: { index, total: buttons.length, progress } }));
     };
 
     buttons.forEach((button, i) => button.addEventListener('click', () => render(i)));
@@ -146,6 +152,10 @@ const first = strata[0];
   .kdx-descent {
     --orange: #ff6a00;
     --ice: #8fd4ff;
+    --kdx-depth-progress: 0;
+    --kdx-depth-scale: 1;
+    --kdx-depth-compress: 1;
+    --kdx-depth-glow: .12;
     position: relative;
     isolation: isolate;
     width: 100%;
@@ -156,30 +166,39 @@ const first = strata[0];
     color: #f4f1e9;
     touch-action: pan-x;
   }
-  .kdx-descent__organism { z-index: 0; }
+  .kdx-descent__organism {
+    z-index: 0;
+    transform: scale(var(--kdx-depth-scale));
+    filter: saturate(calc(.88 + var(--kdx-depth-progress) * .48)) contrast(calc(1 + var(--kdx-depth-progress) * .2));
+    transition: transform 520ms cubic-bezier(.16,.78,.18,1), filter 420ms ease;
+    transform-origin: 50% 52%;
+  }
   .kdx-descent__depth {
     position: absolute;
     inset: 0;
     z-index: 1;
     pointer-events: none;
     background:
-      radial-gradient(circle at 50% 52%, rgba(139,92,246,.16) 0 2%, transparent 10%),
-      radial-gradient(circle at 50% 52%, transparent 0 18%, rgba(255,106,0,.08) 24%, transparent 48%);
+      radial-gradient(circle at 50% 52%, rgba(139,92,246,calc(.16 + var(--kdx-depth-progress) * .22)) 0 2%, transparent calc(10% * var(--kdx-depth-compress))),
+      radial-gradient(circle at 50% 52%, transparent 0 calc(18% * var(--kdx-depth-compress)), rgba(255,106,0,calc(.08 + var(--kdx-depth-progress) * .12)) 24%, transparent 48%);
   }
   .kdx-descent__ring {
     position: absolute;
     left: 50%; top: 52%;
     width: min(68vw, 920px); aspect-ratio: 1;
-    border: 1px solid rgba(255,106,0,.18);
+    border: 1px solid rgba(255,106,0,calc(.18 + var(--kdx-depth-progress) * .22));
     border-radius: 50%;
-    transform: translate(-50%,-50%);
-    box-shadow: 0 0 60px rgba(255,106,0,.08), inset 0 0 50px rgba(143,212,255,.035);
+    transform: translate(-50%,-50%) scale(var(--kdx-depth-compress));
+    box-shadow: 0 0 60px rgba(255,106,0,var(--kdx-depth-glow)), inset 0 0 50px rgba(143,212,255,.035);
+    transition: transform 520ms cubic-bezier(.16,.78,.18,1), border-color 420ms ease, box-shadow 420ms ease;
   }
-  .kdx-descent__ring--b { width: min(42vw, 560px); border-color: rgba(143,212,255,.16); }
+  .kdx-descent__ring--b { width: min(42vw, 560px); border-color: rgba(143,212,255,calc(.16 + var(--kdx-depth-progress) * .2)); }
   .kdx-descent__axis {
     position: absolute;
     left: 50%; top: 8%; bottom: 8%; width: 1px;
-    background: linear-gradient(transparent, rgba(255,106,0,.28), rgba(139,92,246,.44), rgba(255,106,0,.28), transparent);
+    background: linear-gradient(transparent, rgba(255,106,0,.28), rgba(139,92,246,calc(.44 + var(--kdx-depth-progress) * .3)), rgba(255,106,0,.28), transparent);
+    transform: scaleY(calc(.82 + var(--kdx-depth-progress) * .18));
+    transform-origin: 50% 52%;
   }
   .kdx-descent__identity,
   .kdx-descent__record,
@@ -200,8 +219,12 @@ const first = strata[0];
     margin: 18px 0 0;
     max-width: 13ch;
     font: 600 clamp(30px,4.6vw,72px)/.9 var(--kdx-font-display, sans-serif);
-    letter-spacing: -.045em;
+    letter-spacing: calc(-.045em - var(--kdx-depth-progress) * .012em);
     text-transform: uppercase;
+    transform: translateY(calc(var(--kdx-depth-progress) * 8px)) scaleY(calc(1 - var(--kdx-depth-progress) * .08));
+    transform-origin: left top;
+    opacity: calc(1 - var(--kdx-depth-progress) * .18);
+    transition: transform 420ms ease, opacity 420ms ease, letter-spacing 420ms ease;
   }
   .kdx-descent__record {
     right: clamp(24px,4vw,72px);
@@ -240,7 +263,7 @@ const first = strata[0];
   @media (max-width: 720px) {
     .kdx-descent__identity { inset: 22px 20px auto; max-width: none; }
     .kdx-descent__identity h1 { margin-top: 10px; max-width: 15ch; font-size: clamp(30px,10vw,44px); }
-    .kdx-descent__depth { background: radial-gradient(circle at 50% 47%, rgba(139,92,246,.18), transparent 12%), radial-gradient(circle at 50% 47%, transparent 0 22%, rgba(255,106,0,.09) 28%, transparent 58%); }
+    .kdx-descent__depth { background: radial-gradient(circle at 50% 47%, rgba(139,92,246,calc(.18 + var(--kdx-depth-progress) * .22)), transparent 12%), radial-gradient(circle at 50% 47%, transparent 0 22%, rgba(255,106,0,calc(.09 + var(--kdx-depth-progress) * .12)) 28%, transparent 58%); }
     .kdx-descent__ring { top: 47%; width: 112vw; }
     .kdx-descent__ring--b { width: 72vw; }
     .kdx-descent__axis { top: 14%; bottom: 19%; }
