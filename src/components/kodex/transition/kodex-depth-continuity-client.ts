@@ -124,6 +124,36 @@ function revealDescentFromResidue(): void {
   const world = scene.querySelector<HTMLElement>('.kx-os-stage__livefield, .kx-os-stage__field');
   const copy = scene.querySelector<HTMLElement>('.kx-os-stage__copy');
 
+  // Arrival bridge: cover the route swap itself with the SAME remembered axis.
+  // This is presentation only; the existing ritual remains navigation authority.
+  // Keeping the bridge outside `scene` lets the destination reconstitute behind it
+  // instead of flashing its generic chrome before the depth gesture completes.
+  const bridge = document.createElement('span');
+  bridge.setAttribute('data-kdx-depth-bridge', residue.state);
+  Object.assign(bridge.style, {
+    position: 'fixed',
+    inset: '0',
+    background: '#050507',
+    pointerEvents: 'none',
+    zIndex: '2147483000',
+  });
+
+  const ring = document.createElement('span');
+  Object.assign(ring.style, {
+    position: 'absolute',
+    left: cx,
+    top: cy,
+    width: REDUCED ? '84px' : '108px',
+    height: REDUCED ? '84px' : '108px',
+    margin: REDUCED ? '-42px' : '-54px',
+    borderRadius: '50%',
+    border: `1px solid ${residue.accent}`,
+    boxShadow: `0 0 30px 5px ${residue.accent}, inset 0 0 24px 2px ${residue.accent}`,
+    opacity: '0.82',
+  });
+  bridge.appendChild(ring);
+  document.body.appendChild(bridge);
+
   const pulse = document.createElement('span');
   pulse.setAttribute('data-kdx-depth-residue', residue.state);
   Object.assign(pulse.style, {
@@ -142,11 +172,23 @@ function revealDescentFromResidue(): void {
   scene.appendChild(pulse);
 
   if (REDUCED) {
+    scene.animate([{ opacity: 0.38 }, { opacity: 1 }], { duration: 180, easing: 'linear', fill: 'both' });
+    ring.animate([{ opacity: 0.82 }, { opacity: 0 }], { duration: 180, easing: 'linear', fill: 'forwards' });
+    bridge.animate([{ opacity: 0.88 }, { opacity: 0 }], { duration: 180, easing: 'linear', fill: 'forwards' })
+      .finished.finally(() => bridge.remove());
     pulse.animate([{ opacity: 0.72 }, { opacity: 0 }], { duration: 180, easing: 'linear', fill: 'forwards' })
       .finished.finally(() => pulse.remove());
-    copy?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: 'linear' });
     return;
   }
+
+  // Reconstitute the destination only after the remembered eye/axis has occupied
+  // the first arrival frame. This removes the perceptual "new page appeared"
+  // flash while keeping all destination content and controls intact afterwards.
+  scene.animate([
+    { opacity: 0.06, filter: 'blur(5px)' },
+    { opacity: 0.16, filter: 'blur(3px)', offset: 0.34 },
+    { opacity: 1, filter: 'blur(0px)' },
+  ], { duration: 720, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
 
   world?.animate([
     { transform: 'scale(1.42)', transformOrigin: `${cx} ${cy}`, filter: 'blur(8px)', opacity: 0.28 },
@@ -156,7 +198,20 @@ function revealDescentFromResidue(): void {
   copy?.animate([
     { transform: 'scale(.82)', transformOrigin: `${cx} ${cy}`, opacity: 0 },
     { transform: 'scale(1)', transformOrigin: `${cx} ${cy}`, opacity: 1 },
-  ], { duration: 680, delay: 120, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
+  ], { duration: 560, delay: 300, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'both' });
+
+  ring.animate([
+    { transform: 'scale(.72)', opacity: 0.9 },
+    { transform: 'scale(2.4)', opacity: 0.78, offset: 0.34 },
+    { transform: 'scale(8.2)', opacity: 0 },
+  ], { duration: 760, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' });
+
+  bridge.animate([
+    { opacity: 0.96 },
+    { opacity: 0.88, offset: 0.34 },
+    { opacity: 0 },
+  ], { duration: 760, easing: 'cubic-bezier(.16,.78,.28,1)', fill: 'forwards' })
+    .finished.finally(() => bridge.remove());
 
   pulse.animate([
     { transform: 'scale(.4)', opacity: 0.82 },
