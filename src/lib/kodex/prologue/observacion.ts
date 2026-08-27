@@ -93,11 +93,33 @@ export function crearObservacion(raiz: HTMLElement) {
     if (timer) { clearTimeout(timer); timer = null; }
     if (pulso.estado !== 'DESCEND' && pulso.estado !== 'INSPECT') setState('IDLE');
   };
+  const isSceneControl = (target: EventTarget | null) => {
+    if (!(target instanceof Element)) return false;
+    const control = target.closest('button, a, input, select, textarea, [role="button"], [role="link"]');
+    return !!control && raiz.contains(control);
+  };
 
-  raiz.addEventListener('pointermove', (e) => { if (e.pointerType !== 'touch' || sosteniendo) move(e.clientX, e.clientY); }, { passive: true });
-  raiz.addEventListener('pointerdown', (e) => { tactil = e.pointerType === 'touch'; down(e.clientX, e.clientY); });
-  raiz.addEventListener('pointerup', up);
-  raiz.addEventListener('pointercancel', up);
+  // Nested scene controls are not observation-field input. Letting their
+  // pointer lifecycle bubble into the organism can rewrite LOCK/TRACK before
+  // the control's own click runs (e.g. LOCK → AWARE → INSPECT), breaking the
+  // causal state contract and reduced-motion close semantics.
+  raiz.addEventListener('pointermove', (e) => {
+    if (isSceneControl(e.target)) return;
+    if (e.pointerType !== 'touch' || sosteniendo) move(e.clientX, e.clientY);
+  }, { passive: true });
+  raiz.addEventListener('pointerdown', (e) => {
+    if (isSceneControl(e.target)) return;
+    tactil = e.pointerType === 'touch';
+    down(e.clientX, e.clientY);
+  });
+  raiz.addEventListener('pointerup', (e) => {
+    if (isSceneControl(e.target)) return;
+    up();
+  });
+  raiz.addEventListener('pointercancel', (e) => {
+    if (isSceneControl(e.target)) return;
+    up();
+  });
   raiz.addEventListener('pointerleave', (e) => { if ((e as PointerEvent).pointerType !== 'touch') leave(); });
   document.addEventListener('pointerdown', (e) => { if (tactil && !raiz.contains(e.target as Node)) leave(); }, true);
 
