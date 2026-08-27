@@ -119,11 +119,14 @@ async function proveNativePrologue(page, profile, context, frames) {
     throw new Error(`${profile.key}: native PROLOGUE failed causal LOCK/KDX.TYPE proof`);
   }
 
-  // TRACK is a causal state, not decoration: hold and move the pointer.
+  // TRACK is a causal state, not decoration. Use real pointer input on a quiet
+  // part of the observation field instead of the pupil: LOCK reveals the real
+  // DESCEND anchor at the exact center, and dragging from an <a> can enter the
+  // browser's native link-drag path before pointermove reaches the organism.
   const box = await native.boundingBox();
   if (!box) throw new Error(`${profile.key}: native PROLOGUE has no interaction bounds`);
-  const x = box.x + box.width * 0.5;
-  const y = box.y + box.height * 0.5;
+  const x = box.x + box.width * 0.28;
+  const y = box.y + box.height * 0.38;
   await page.mouse.move(x, y);
   await page.mouse.down();
   await page.mouse.move(x + Math.min(80, box.width * 0.15), y + Math.min(50, box.height * 0.1), { steps: 3 });
