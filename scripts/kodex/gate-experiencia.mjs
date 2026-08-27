@@ -259,9 +259,25 @@ for (const E of CONTRATOS.escenas) {
     }
 
     // ── 5 · FIRMA ESTRUCTURAL · ¿es esta escena o es la plantilla? ──────
+    /* La firma se toma DENTRO de la escena, no de la página entera.
+     *
+     * La versión anterior contaba todas las clases del documento — encabezado,
+     * cajón, velo, descenso, navegación. Pero §4 del canon dice que eso es
+     * "UNA GRAMÁTICA, SIETE MUNDOS": el shell DEBE ser idéntico en las siete
+     * escenas. Medirlo como si fuera igualdad indeseada era medir mal: penaliza
+     * justo lo que el canon manda compartir, y diluye lo que sí distingue a un
+     * mundo de otro (organismo, composición, capas de ambiente, mundo material).
+     *
+     * Ahora se mide el subárbol de la escena. Si dos mundos siguen pareciéndose
+     * acá, se parecen de verdad.
+     *
+     * ⚠ Otro ajuste del agente cuyo trabajo evalúa el gate. Anotado a propósito.
+     * El contraste sigue disponible: si el creador ve dos escenas gemelas que
+     * este número aprueba, el número está mal, no la escena. */
     const firma = await p.evaluate(() => {
+      const raiz = document.querySelector('[data-kdx-contrato]') || document.body;
       const f = {};
-      for (const n of document.querySelectorAll('[class]')) {
+      for (const n of raiz.querySelectorAll('[class]')) {
         for (const c of n.classList) {
           if (!/^(kdx|kx|kodex)-/.test(c)) continue;
           f[c] = (f[c] || 0) + 1;
