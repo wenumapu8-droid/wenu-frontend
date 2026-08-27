@@ -121,21 +121,16 @@ const archiveItems = [...families.slice(0, 13), ...discoWorks.slice(0, 5)].map((
 
 const selectedArchive = archiveItems[0];
 const selectedStratum = specimens[0];
-// Glifo por escena. En los boards el kana ancla la lectura del panel; se
-// elige uno que diga algo de la lamina, no un adorno al azar.
 const glyphByFolio = {
-  i: '観測',      // observacion
-  ii: '降下',     // descenso
-  iii: '記録',    // registro
-  iv: '機械',     // maquina
-  v: '宇宙',      // cosmos
-  vi: '回帰',     // retorno
+  i: '観測',
+  ii: '降下',
+  iii: '記録',
+  iv: '機械',
+  v: '宇宙',
+  vi: '回帰',
 };
 const sceneGlyph = glyphByFolio[folio] ?? 'ポータル';
 
-// La tira lateral se arma con los metadatos que la escena ya declara: se parte
-// cada entrada 'CLAVE · VALOR' del rail existente. Asi no hay dos fuentes de
-// verdad que puedan desincronizarse.
 const stripRows = sceneByFolio.meta.map((row) => {
   const [k, ...rest] = row.split('·');
   return { k: k.trim(), v: rest.join('·').trim() || '—' };
@@ -143,33 +138,6 @@ const stripRows = sceneByFolio.meta.map((row) => {
 
 const figureByFolio = { i: 'rings', ii: 'triangles', iii: 'squares', iv: 'rings', v: 'rings', vi: 'triangles' };
 
-/**
- * El campo vivo de cada lámina.
- *
- * Todas corren la MISMA red -- el vórtice de la referencia -- porque es el
- * lenguaje de la experiencia, no un efecto de una escena: "así debe sentirse
- * esta red viva para cada pantallazo".
- *
- * Cómo se comporta cada una ya no se elige a ojo: sale de la receta de la
- * gramática visual, que es quien decide "cómo se comporta". DESCENT resulta la
- * más rápida porque su receta declara mutación de secuencia; COSMOLOGY la más
- * lenta y la más tejida porque es la receta más densa del set (0.96).
- *
- * Lo único que se sigue eligiendo a mano es el color, y a propósito: las
- * recetas dicen `palette_mode: original_kodex_palette` y nada más. La paleta
- * es de KODEX, no de las referencias.
- */
-/**
- * Color y piso de luminancia por lámina.
- *
- * El piso decide desde qué brillo el campo deja de ser negro, y NO es igual
- * para todos: cada shader llena el cuadro de manera distinta. Los que son casi
- * todo negro con estructura brillante necesitan un piso bajo; los que llenan
- * el cuadro entero -- la retorcedura de COSMOLOGY es el caso extremo, sale
- * como un disco pleno -- necesitan uno alto o se comen la lámina. Medido: con
- * el piso por defecto, COSMOLOGY caía a 65% de fondo oscuro contra el ~85% que
- * pide la receta.
- */
 const tintByFolio = {
   i:   { tint: '#8B5CF6', spark: '#7FE9FF', floor: 0.05 },
   ii:  { tint: '#FF6A00', spark: '#8FD4FF', floor: 0.05 },
@@ -181,22 +149,6 @@ const tintByFolio = {
 const sceneRecipe = recipeFor(folio);
 const sceneGrid = gridFor(folio);
 const sceneMotion = motionVars(folio);
-/**
- * El TRATAMIENTO de cada lámina, que es lo que la distingue.
- *
- * La regla del proyecto: una gramática, siete productos. Si tapo el chrome y
- * pongo dos escenas lado a lado tienen que distinguirse al instante por
- * organismo, tratamiento y color, y reconocerse como el mismo sistema. Si las
- * siete parecen la misma lámina recoloreada, está mal.
- *
- * El CRT MASTER KIT trae un preset por escena -- observe, descent, archive,
- * machine, cosmology, return -- y el de `observe` viene con tinte violeta
- * [0.72, 0.48, 1.0], que es el acento de PROLOGUE. Fue escrito contra esta
- * misma tabla.
- *
- * Se va conectando escena por escena. Las que todavía no tienen su preset
- * siguen con el campo de red, que es de donde vienen.
- */
 const crtByFolio = {
   i:   'observe',
   ii:  'descent',
@@ -206,85 +158,22 @@ const crtByFolio = {
 };
 const sceneCrt = crtByFolio[folio] ?? null;
 
-/**
- * El ORGANISMO de cada lámina: qué corre detrás, si es que corre algo.
- *
- * El tratamiento (CRT) da la piel y el color; el organismo da la forma y el
- * movimiento. Juntos son la receta que distingue una escena de otra.
- *
- *  · DESCENT baja por un corredor, así que corre el corredor partido.
- *  · MACHINE es una red de nodos, que es el vórtice.
- *  · COSMOLOGY es un mapa orbital y ya trae el suyo dibujado, así que la
- *    órbita va de fondo.
- *  · ARCHIVE y RETURN NO llevan organismo detrás, y es una decisión: el
- *    archivo es un catálogo quieto -- la tabla dice "rígido" -- y el retorno
- *    resuelve limpio. Poner un campo vivo detrás de ellas sería repetir el
- *    recurso justo donde la escena pide lo contrario.
- */
-/*
- * Las tres corren el vortice, y no es pereza.
- *
- * DESCENT y COSMOLOGY llevaban split-corridor y archive-orbit, que es lo que
- * la tabla de distincion pide. Compilan -- la sonda lo confirma, no hay error
- * -- pero salen tan oscuros que las dos laminas quedaban con el fondo PLANO.
- * Montado, estado en orden, nada en pantalla: el mismo fallo mudo de siempre,
- * detectado solo comparando capturas.
- *
- * La distincion se sostiene igual por tinte, chispa, detalle, velocidad,
- * semilla y el preset de CRT propio de cada una. Los presets del lab quedan
- * registrados y necesitan calibracion de ganancia por shader -- trabajo real,
- * no un parametro al azar. Dos escenas muertas es peor que un organismo
- * compartido.
- */
 const organismoByFolio = {
   ii: 'network-vortex',
   iv: 'network-vortex',
-  // COSMOLOGY vuelve a la orbita.
-  //
-  // Se probo con wrinkled-reality, que es lo que su fila de la tabla pide como
-  // distorsion, y el resultado fue peor: 75% de fondo oscuro contra el ~85%
-  // que exige la receta, y no bajaba ni hundiendo el piso a 0.84 ni cortando
-  // la intensidad a la mitad. Medido apagando el campo: sin el, la lamina da
-  // 84.4%. El campo era la causa.
-  //
-  // El error no era el shader sino el rol. En el modelo de tres tandas
-  // -- ORGANISMO → ESPACIO → TRATAMIENTO -- wrinkled-reality es ESPACIO: se
-  // compone SOBRE un organismo en multipass, no lo reemplaza. Este runtime es
-  // de una sola pasada, asi que lo estaba usando como si fuera un organismo y
-  // por eso llenaba el cuadro. Queda registrado en SHADERS, listo para cuando
-  // exista la cadena multipass, que es el trabajo que sigue.
   v:  'network-vortex',
 };
 const sceneOrganismo = organismoByFolio[folio] ?? null;
 
 const sceneField = {
   field: sceneOrganismo ?? 'network-vortex',
-  // La intensidad acompaña a la densidad de la receta: una lámina que la
-  // gramática marca densa tiene derecho a un campo más presente.
-  // La intensidad sale de la densidad de la receta, salvo que la lámina la
-  // corrija: hay shaders que llenan el cuadro y no se dejan domar sólo con el
-  // piso. COSMOLOGY es ese caso.
   intensity: Math.round((0.34 + sceneRecipe.density * 0.26) * 100) / 100,
   ...tintByFolio[folio],
   ...fieldParams(folio),
 };
 
-/**
- * El motor ASCII, sólo donde la escena lo pide.
- *
- * El kit trae cuatro escenas generativas con los mismos CTA que las láminas
- * ("BEGIN OBSERVATION" en observe, "GENERATE SIGNAL" en signal): se escribió
- * contra esta misma especificación. Pero sólo dos láminas lo justifican --
- * PROLOGUE, donde el archivo observa, y MACHINE, que genera. En las demás
- * sería un tercer sistema encendido sin nada que decir.
- *
- * Va DEBAJO de la obra, como lecho de glifos dentro de la placa, no en su
- * lugar: el ojo procedural de PROLOGUE ya se retiró una vez por protagonista
- * ("horrible, no era lo esperado" -- KODEX-POLISH.md). La pieza es la obra.
- */
 const asciiByFolio = {
   i: { scene: 'observe', glyphs: 'kodex' },
-  // La escena de señal del kit venía en verde agua; MACHINE es cian.
   iv: {
     scene: 'signal',
     glyphs: 'petscii',
@@ -293,44 +182,16 @@ const asciiByFolio = {
 };
 const sceneAscii = asciiByFolio[folio] ?? null;
 
-/**
- * La HERRAMIENTA de scroll de cada lámina.
- *
- * Regla dura de la misión: cero scroll de página. La rueda no baja el
- * documento — opera la escena. Y qué opera lo decide lo que la escena hace,
- * no una preferencia: en DESCENT se desciende porque la lámina se llama
- * descenso; en ARCHIVE se recorre porque es un catálogo.
- */
 const herramientaByFolio = {
-  i:   'intensificar',   // PROLOGUE: subir la observación, revelar capas
-  ii:  'descender',      // DESCENT: bajar por el corredor
-  iii: 'recorrer',       // ARCHIVE: pasar por los specimens
-  iv:  'intensificar',   // MACHINE: subir la generación
-  v:   'orbitar',        // COSMOLOGY: girar el mapa
-  vi:  'reensamblar',    // RETURN: rehacer el patrón
+  i:   'intensificar',
+  ii:  'descender',
+  iii: 'recorrer',
+  iv:  'intensificar',
+  v:   'orbitar',
+  vi:  'reensamblar',
 };
 const sceneHerramienta = herramientaByFolio[folio] ?? null;
 
-// ARCHIVE es el indice de la biblioteca. Se lee el manifiesto solo en esa
-// lamina: las demas no lo necesitan y leerlo en todas seria trabajo de build
-// repetido seis veces para nada.
-/**
- * A qué estrato del sistema pertenece cada lámina.
- *
- * Los seis estratos son la estructura REAL del archivo -- están en el
- * storyboard y en el segundo cerebro. Las siete escenas son el marco que se
- * recorre; los estratos son lo que hay debajo. Este mapa los une, y la
- * asignación sale de lo que cada uno dice ser:
- *
- *   PROLOGUE   01 macro-geometrías   el origen de las formas
- *   DESCENT    04 sol negro          la puerta entre lo visible y lo invisible
- *   ARCHIVE    —                     es el índice de TODOS
- *   MACHINE    06 laboratorio        código, IA y arte generativo
- *   COSMOLOGY  05 yayentru           geometría de energía y conexión
- *   RETURN     03 respirantes        patrones que respiran y pulsan
- *
- * (02 portales es de THRESHOLD, que vive en la otra plantilla.)
- */
 const estratoByFolio = {
   i:  'macro-geometrias',
   ii: 'sol-negro',
@@ -340,21 +201,11 @@ const estratoByFolio = {
 };
 
 const todosLosVolumenes = resolver(await leerManifiesto());
-// ARCHIVE recibe todos: es el indice. Las demas, los de su estrato.
 const volumenes = folio === 'iii' ? todosLosVolumenes : [];
 const volumenesDelEstrato = folio === 'iii'
   ? []
   : todosLosVolumenes.filter((v) => v.estrato === estratoByFolio[folio]);
 
-/**
- * Dónde cae cada lámina en el eje −∞ · 0 · +∞.
- *
- * No es decorativo: es el recorrido de la fórmula maestra. PROLOGUE todavía
- * está en la profundidad; DESCENT excava; ARCHIVE es lo que se encontró abajo;
- * MACHINE transmuta, y por eso está en el 0 -- el punto donde nada está fijado;
- * COSMOLOGY manifiesta hacia +∞; RETURN cierra la vuelta y deja al sistema
- * otra vez cerca del archivo, pero con algo en la mano. Espiral, no recta.
- */
 const ejeByFolio = { i: 0.12, ii: 0.28, iii: 0.4, iv: 0.5, v: 0.82, vi: 0.06 };
 const scenePosicion = ejeByFolio[folio] ?? 0;
 
@@ -386,24 +237,14 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   >
     <KodexTransition />
     <KodexDebug />
-
     <KodexChrome segs={7} />
 
     <div class="kx-deck" data-deck>
       <section class="kx-slide kx-slide--os kx-active" id={sceneByFolio.slug} style="overflow:hidden;overflow-x:hidden;overflow-y:hidden;">
-        {/* PROLOGUE usaba KodexObserveScene, la escena del ojo procedural. Ocin
-            la descarto sin ambiguedad: "horrible, no era lo esperado" -- rework
-            total del anchor (KODEX-POLISH.md, 2026-07-29). Ahora entra por el
-            mismo layout que las demas laminas, con su obra tratada como
-            ARTIFACT. La densidad la aportan el rail y la metadata, no un
-            organismo generado. */}
         {(
         <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug}>
           <KodexRegistration accent={sceneByFolio.accent} />
 
-          {/* El campo de red sólo donde la escena todavía no tiene su propio
-              tratamiento. Correr los dos deja dos sistemas peleando por el
-              mismo fondo. */}
           {sceneOrganismo && <KodexField
             field={sceneField.field}
             intensity={sceneField.intensity}
@@ -423,21 +264,13 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             <span class="kx-os-stage__scan"></span>
           </div>
 
-          {/* La metadata era una columna de texto suelto. En los boards de
-              referencia ese costado es un panel: marco con esquinas cortadas,
-              pares clave/valor alineados, un medidor y una figura concentrica.
-              Mismos datos, leidos como instrumento. */}
           <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />
-
-          {/* Lo que hay DEBAJO de esta escena. La lamina es la superficie;
-              los volumenes son la profundidad que se abre al entrar. */}
           <KodexTira
             volumenes={volumenesDelEstrato}
             estrato={estratoByFolio[folio] ?? ""}
             accent={sceneByFolio.accent}
             class="kx-os-stage__tira"
           />
-
           <KodexDataStrip
             title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
             rows={stripRows}
@@ -467,7 +300,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             {folio === 'ii' && (
               <div class="kx-descent-panel" data-kdx-descent>
                 <p class="kx-os-stage__sub" data-stratum-count>STRATUM · 01 / 11</p>
-                <p class="kx-descent-panel__depth" data-stratum-depth>DEPTH · -137 M</p>
                 <h2 data-stratum-title>{selectedStratum.name}</h2>
                 <p data-stratum-read>{selectedStratum.read}</p>
                 <button class="kx-os-primary" type="button" data-stratum-next>{sceneByFolio.cta}</button>
@@ -525,11 +357,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
           <figure class="kx-os-stage__art" data-kdx-art>
             <span class="kx-corner kx-corner--tl"></span><span class="kx-corner kx-corner--tr"></span>
             <span class="kx-corner kx-corner--bl"></span><span class="kx-corner kx-corner--br"></span>
-
-            {/* El rail va DENTRO de la figura, no como hijo del escenario: el
-                grid del stage tiene columnas fijas y meterle una fila nueva
-                empujaba la obra fuera de la pantalla. La numeracion pertenece
-                a la pieza, no al escenario. */}
             <KodexRail
               index={sceneByFolio.number}
               label={sceneByFolio.slug}
@@ -539,9 +366,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
               compact={true}
               class="kx-os-stage__rail-top"
             />
-            {/* El OJO procedural de PROLOGUE se retiro: "horrible, no era lo
-                esperado" (KODEX-POLISH.md, correccion de Ocin 2026-07-29). En
-                su lugar queda la obra tratada, igual que en las demas laminas. */}
             {sceneAscii && (
               <KodexAscii
                 scene={sceneAscii.scene}
@@ -577,10 +401,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
               : sceneCrt
               ? null
               : (
-                /* La obra como ARTIFACT, no como <img> plana: pixelada, con
-                   dither Bayer, scanlines y glow del color de la escena. Cada
-                   folio trae su pieza y su acento; el tratamiento es el mismo
-                   para que las siete laminas se lean como un solo sistema. */
                 <KodexArtifact
                   artwork={sceneByFolio.image}
                   accent={sceneByFolio.accent}
@@ -597,21 +417,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   class="kx-os-stage__artifact"
                 />
               )}
-            {/* TRATAMIENTO CRT — la piel de PROLOGUE.
-                La tabla de distincion pide "CRT scanline + chroma" con barrido
-                de scan, y el preset `observe` del kit trae su propio violeta
-                [0.72 0.48 1.0], que es el acento de esta lamina. Fue escrito
-                contra esta misma tabla.
-
-                La FUENTE es la obra como <img>, no el canvas del artefacto.
-                Ese canvas es WebGL sin preserveDrawingBuffer: fuera de su
-                propio dibujo el buffer no se puede leer, asi que usarlo de
-                textura daba negro. Activarlo cuesta rendimiento en todas las
-                laminas para que sirva en una sola; la obra directa no cuesta
-                nada y es la misma pieza.
-
-                En esta lamina el CRT NO va encima del artefacto: ES el
-                tratamiento. Organismo por tratamiento, uno por escena. */}
             {sceneCrt && (
               <KodexCrtLayer
                 sourceSelector=".kx-os-stage__crt-source"
@@ -620,14 +425,8 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 class="kx-os-stage__crt"
               />
             )}
-
-            {/* El pie de la placa sólo cuando la placa no trae obra. El
-                artefacto se rotula solo -- ARTIFACT / KDX-0n / ARCHIVED -- y
-                mantener los dos dejaba dos leyendas encimadas diciendo lo
-                mismo en la misma esquina. */}
             {folio === 'v' && (
-
-            <figcaption>{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · {sceneByFolio.motif}</figcaption>
+              <figcaption>{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · {sceneByFolio.motif}</figcaption>
             )}
           </figure>
 
@@ -725,7 +524,6 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
       const s = strata[stratumIndex]; if (!s) return;
       const pad = String(stratumIndex + 1).padStart(2, '0');
       document.querySelector('[data-stratum-count]')?.replaceChildren(`STRATUM · ${pad} / ${String(strata.length).padStart(2, '0')}`);
-      document.querySelector('[data-stratum-depth]')?.replaceChildren(`DEPTH · -${137 + stratumIndex * 89} M`);
       document.querySelector('[data-stratum-title]')?.replaceChildren(s.name);
       document.querySelector('[data-stratum-read]')?.replaceChildren(s.read);
       const art = document.querySelector('[data-kdx-art] img');
