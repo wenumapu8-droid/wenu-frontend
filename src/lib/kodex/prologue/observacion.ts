@@ -64,13 +64,24 @@ export function crearObservacion(raiz: HTMLElement) {
     pulso.objetivo = n;
     pulso.energia = Math.min(1, pulso.energia * .72 + Math.hypot(dx, dy) * 5.5);
     if (pulso.estado === 'INSPECT' || pulso.estado === 'DESCEND') return;
-    if (sosteniendo && (pulso.estado === 'LOCK' || pulso.estado === 'TRACK') && Math.hypot(dx, dy) > .012) setState('TRACK');
+    if (sosteniendo && (pulso.estado === 'LOCK' || pulso.estado === 'TRACK') && Math.hypot(dx, dy) > .012) {
+      // Once a held gesture has become TRACK, the long-press timer has served
+      // its purpose. Leaving it armed can asynchronously regress TRACK→LOCK,
+      // which is especially visible in reduced-motion/evidence capture.
+      if (timer) { clearTimeout(timer); timer = null; }
+      setState('TRACK');
+    }
     else if (pulso.estado === 'DORMANT' || pulso.estado === 'IDLE') setState('AWARE');
   };
   const down = (x: number, y: number) => {
     sosteniendo = true; move(x, y);
     if (timer) clearTimeout(timer);
-    timer = window.setTimeout(() => { if (sosteniendo) setState('LOCK'); }, LOCK_MS);
+    // Only arm the long-press lock while the gesture is not already in a
+    // semantic LOCK/TRACK state. A fresh pointerdown after keyboard LOCK must
+    // not schedule a later TRACK→LOCK regression.
+    if (pulso.estado !== 'LOCK' && pulso.estado !== 'TRACK') {
+      timer = window.setTimeout(() => { if (sosteniendo) setState('LOCK'); }, LOCK_MS);
+    } else timer = null;
   };
   const up = () => {
     sosteniendo = false;
