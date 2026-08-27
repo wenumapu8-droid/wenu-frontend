@@ -23,6 +23,7 @@ const { class: className } = Astro.props;
     const fil=Array.from({length:34},(_,i)=>{const l=seed(i+100),w=seed(i+200);return{ang:(i/34)*Math.PI*2+(seed(i)-.5)*(Math.PI/34),largo:.16+l*l*l*.84,peso:.12+w*w*.88,fase:seed(i+300)*Math.PI*2};});
     const crestas=[143,159,168,189,214,225];
     const chroma:Record<string,[number,number,number]>={DORMANT:[120,96,150],IDLE:[138,112,168],AWARE:[176,108,255],LOCK:[186,96,255],TRACK:[96,226,255],INSPECT:[168,120,240],DESCEND:[214,168,255]};
+    const stateReach:Record<string,number>={DORMANT:96,IDLE:108,AWARE:178,LOCK:300,TRACK:338,INSPECT:318,DESCEND:360};
     let color:[number,number,number]=[120,96,150];
     let est={estado:'DORMANT',presencia:0,foco:0,objetivo:{x:0,y:0},energia:0,locks:0};
     raiz.addEventListener('kdx:pulso',(e)=>{est=(e as CustomEvent).detail;});
@@ -35,7 +36,13 @@ const { class: className } = Astro.props;
       const follow=est.foco*.16, cx=W/2+est.objetivo.x*R*follow, cy=H/2+est.objetivo.y*R*follow;
       const target=chroma[est.estado]||chroma.DORMANT; for(let i=0;i<3;i++)color[i]+=(target[i]-color[i])*.07;
       const C=`${Math.round(color[0])},${Math.round(color[1])},${Math.round(color[2])}`;
-      const vigor=.06+est.presencia*.94, alcance=96+(360-96)*Math.min(1,est.presencia*1.15);
+      const vigor=.06+est.presencia*.94;
+      // The governed Observation Eye is the PROLOGUE organism, not a cursor-sized
+      // decoration. Presence still grows the field continuously, while semantic
+      // states establish a minimum visible reach so LOCK/TRACK/INSPECT have an
+      // immediate organism-scale consequence even before the eased presence
+      // accumulator catches up.
+      const alcance=Math.max(stateReach[est.estado]||96,96+(360-96)*Math.min(1,est.presencia*1.15));
       // Central masses + measured data-ring crests. Outside the core, arcs are
       // intentionally broken so the field keeps the angular voids of the plate.
       for(let r=7;r<=Math.min(245,alcance);r+=1.8){
