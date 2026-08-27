@@ -202,7 +202,6 @@ function readResidue(): Residue | null {
   try {
     const raw = sessionStorage.getItem(RESIDUE_KEY);
     if (!raw) return null;
-    sessionStorage.removeItem(RESIDUE_KEY);
     const parsed = JSON.parse(raw) as Partial<Residue>;
     if (parsed.kind !== 'observation-eye') return null;
     return {
@@ -217,13 +216,23 @@ function readResidue(): Residue | null {
   }
 }
 
+function clearResidue(): void {
+  try { sessionStorage.removeItem(RESIDUE_KEY); } catch (_) {}
+}
+
 function revealDescentFromResidue(): void {
   if (normalizar(location.pathname) !== '/kodex/folio/ii/') return;
+  if (document.querySelector('[data-kdx-depth-eye-bridge="arrival"]')) return;
+
   const residue = readResidue();
   if (!residue) return;
 
   const scene = document.querySelector<HTMLElement>('.kx-os-scene--descent');
-  if (!scene) return;
+  if (!scene) {
+    requestAnimationFrame(revealDescentFromResidue);
+    return;
+  }
+
   scene.dataset.kdxResidue = residue.kind;
   scene.style.setProperty('--kdx-residue-accent', residue.accent);
 
@@ -236,6 +245,7 @@ function revealDescentFromResidue(): void {
   // the first arrival frame, then it dilates into DESCENT while the world is
   // reconstituted behind it. The generic ritual can remain authoritative below.
   const bridge = createEyeBridge(residue, 'arrival');
+  clearResidue();
   const eye = bridge.lastElementChild as HTMLElement | null;
   const rays = bridge.firstElementChild as HTMLElement | null;
 
@@ -333,4 +343,5 @@ function mount(): void {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once: true });
 else mount();
+document.addEventListener('astro:after-swap', revealDescentFromResidue);
 document.addEventListener('astro:page-load', revealDescentFromResidue);
