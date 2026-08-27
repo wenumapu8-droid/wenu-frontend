@@ -107,6 +107,20 @@ async function trigger(page, locator, profile, destination) {
   if (!invoked) throw new Error(`${profile.key}: ritual runtime bridge unavailable`);
 }
 
+async function activateControl(page, locator, profile, label) {
+  await locator.waitFor({ state: 'visible', timeout: 3_000 });
+  const box = await locator.boundingBox();
+  if (!box || box.width < 1 || box.height < 1) throw new Error(`${profile.key}: ${label} has no hit bounds`);
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+
+  // Use actual pointer/touch injection rather than Locator.click actionability.
+  // The state assertion after the input remains authoritative, so an overlay,
+  // blocked hit target, or disconnected control still fails the evidence gate.
+  if (profile.hasTouch) await page.touchscreen.tap(x, y);
+  else await page.mouse.click(x, y);
+}
+
 async function proveNativePrologue(page, profile, context, frames) {
   const native = page.locator('[data-kdx-observacion]').first();
   if (!await native.count()) return false;
@@ -140,11 +154,11 @@ async function proveNativePrologue(page, profile, context, frames) {
   await native.press('Enter');
   await page.locator('[data-kdx-observacion][data-kdx-obs="LOCK"]').waitFor({ state: 'visible', timeout: 2_000 });
   const inspect = page.locator('[data-kdx-inspector-btn]').first();
-  await inspect.click({ timeout: 2_000 });
+  await activateControl(page, inspect, profile, 'INSPECT SIGNAL');
   await page.locator('[data-kdx-observacion][data-kdx-obs="INSPECT"]').waitFor({ state: 'visible', timeout: 2_000 });
   const inspected = await capture(context, page, profile.key, 'prologue-inspect', 0, frames);
   if (inspected.prologueType !== 'PROLOGUE / INSPECT') throw new Error(`${profile.key}: INSPECT did not drive KDX.TYPE`);
-  await inspect.click({ timeout: 2_000 });
+  await activateControl(page, inspect, profile, 'INSPECT SIGNAL close');
   await page.locator('[data-kdx-observacion][data-kdx-obs="LOCK"]').waitFor({ state: 'visible', timeout: 2_000 });
   return true;
 }
