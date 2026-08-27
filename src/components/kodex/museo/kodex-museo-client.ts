@@ -294,13 +294,10 @@ function aplicarConvergenciaArchive(): void {
   raiz.style.setProperty("height", "100%");
   raiz.style.setProperty("z-index", "2");
 
-  const relation = raiz.querySelector<HTMLElement>(".kdx-museo__relation");
-  relation?.style.setProperty("border-color", "transparent");
-  relation?.style.setProperty(
-    "background",
-    "radial-gradient(circle at 50% 48%, color-mix(in srgb, var(--acc, #A7FF00) 7%, transparent), transparent 38%)",
-    "important",
-  );
+  // The governed ARCHIVE stylesheet owns the memory-engine/chamber material.
+  // Do not overwrite it here with a simplified inline !important background:
+  // that runtime override was masking the richer concentric rings and woven
+  // traces already defined for the current reference-first presentation.
 
   raiz.querySelector<HTMLElement>(".kdx-museo__relation-head")?.classList.add("visually-hidden");
   for (const meta of raiz.querySelectorAll<HTMLElement>(".kdx-museo__node-copy small")) {
