@@ -177,6 +177,38 @@ function asegurarJerarquiaVisualArchive(): void {
       outline-offset: 4px;
     }
 
+    /* #466 proved the chamber is continuous on mobile, but same-region review
+       against the governed Archive reference still showed an empty perceptual
+       center: nine truthful records orbit the field while no real record owns
+       the memory-engine axis. Promote the existing fifth deterministic record
+       to that axis instead of inventing a synthetic telemetry/core object. */
+    .kx-os-scene--archive .kdx-museo__node:nth-child(5) {
+      left: 50% !important;
+      top: 48% !important;
+      right: auto !important;
+      bottom: auto !important;
+      z-index: 5 !important;
+      width: clamp(106px, 13vw, 154px) !important;
+      transform: translate(-50%, -50%) scale(1.12) !important;
+      transform-origin: center !important;
+    }
+
+    .kx-os-scene--archive .kdx-museo__node:nth-child(5) .kdx-museo__node-mark {
+      width: 16px !important;
+      height: 16px !important;
+      margin-top: 0 !important;
+      border-color: rgba(225,185,106,.92) !important;
+      box-shadow:
+        0 0 0 5px rgba(197,138,50,.10),
+        0 0 0 14px rgba(197,138,50,.035),
+        0 0 30px rgba(225,185,106,.18) !important;
+    }
+
+    .kx-os-scene--archive .kdx-museo__node:nth-child(5) .kdx-museo__node-copy b {
+      color: rgba(245,226,188,.96) !important;
+      font-weight: 600 !important;
+    }
+
     @media (max-width: 900px) {
       /* Mobile is one continuous camera, not a 47svh artwork panel followed by
          a second page-like copy panel. Keep the governed memory chamber alive
@@ -229,6 +261,12 @@ function asegurarJerarquiaVisualArchive(): void {
       .kx-os-scene--archive .kx-specimen-readout .kx-os-primary {
         min-height: 44px !important;
         margin-top: 1px !important;
+      }
+
+      .kx-os-scene--archive .kdx-museo__node:nth-child(5) {
+        top: 42% !important;
+        width: 110px !important;
+        transform: translate(-50%, -50%) scale(1.04) !important;
       }
     }
 
