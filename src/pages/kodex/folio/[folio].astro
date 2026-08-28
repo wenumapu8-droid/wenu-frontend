@@ -28,6 +28,14 @@ import KodexMuseo from '../../../components/kodex/museo/KodexMuseo.astro';
 import OrbitEngine from '../../../components/kodex/motion/OrbitEngine.astro';
 import KodexTira from '../../../components/kodex/museo/KodexTira.astro';
 import { leerManifiesto, resolver } from '../../../lib/kodex/volumenes';
+/* 2026-08-28 · cablear cada umbral a sus conceptos. El atlas entró al codigo
+   por primera vez (src/data/kodex-atlas.json, 36 nodos transcritos de Drive
+   2026-08-06). Hasta hoy el folio no sabia nada de ellos: la escena era
+   etiqueta, no puerta. `nodosDeEscena` devuelve solo lo que el atlas declara;
+   si una escena del folio (PROLOGUE, ARCHIVE) no aparece en el atlas, no
+   se infiere por parecido — se declara el hueco. Esa es la regla que se
+   incumplió y costó meses. */
+import { nodosDeEscena } from '../../../lib/kodex/atlas';
 import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
 import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
 import KodexTransition from '../../../components/kodex/transition/KodexTransition.astro';
@@ -233,6 +241,20 @@ const sceneByFolio = {
     image: '/img/kodex/works/mandala-0cin-negativo.png',
   },
 }[folio];
+
+/* Conceptos del atlas para esta escena. El nombre de escena del folio se
+   compara TAL CUAL contra las escenas declaradas en el atlas. La correspondencia
+   real hoy:
+     PROLOGUE  → 0 (el atlas no lo declara; el board equivalente es OBSERVE,
+                    pero renombrarlo aca ya seria inferencia)
+     DESCENT   → 2
+     ARCHIVE   → 0 (el atlas no lo declara)
+     MACHINE   → 5
+     COSMOLOGY → 4
+     RETURN    → 5
+   Los 0 son HUECO DECLARADO. Se muestran como tales. */
+const escenaAtlas = sceneByFolio.slug.toUpperCase();
+const conceptos = nodosDeEscena(escenaAtlas);
 
 const archiveItems = [...families.slice(0, 13), ...discoWorks.slice(0, 5)].map((w, i) => ({
   code: `KDX_A_${String(i + 1).padStart(3, '0')}`,
@@ -927,6 +949,23 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 <button class="kx-os-ghost" type="button" data-kdx-plate-dossier data-kdx-drawer-open="dossier">SPECIMEN DATA</button>
               </div>
             )}
+            {/* 2026-08-28 · el umbral se abre hacia sus conceptos.
+                La escena era un click; ahora tiene puerta al atlas. Si el
+                atlas no declaró conceptos para esta escena, el boton lo dice:
+                mostrar 0 con honestidad es mejor que inferir el mapeo. */}
+            <div class="kx-os-stage__actions kx-os-stage__actions--concepts">
+              <button
+                class="kx-os-ghost kx-os-ghost--concepts"
+                type="button"
+                data-kdx-drawer-open="concepts"
+                data-kdx-conceptos-count={conceptos.length}
+              >
+                CONCEPTS ·
+                <span data-kdx-readout data-fuente={`src/data/kodex-atlas.json:nodosDeEscena('${escenaAtlas}')`}>
+                  {String(conceptos.length).padStart(2, '0')}
+                </span>
+              </button>
+            </div>
           </main>
 
           <figure class="kx-os-stage__art" data-kdx-art>
@@ -1099,6 +1138,65 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             <p>KDX-GEN-0000 · SEED A90C-73F1 · SOURCE ACHROMA_006 · METHOD MIRROR/DITHER/FLOW · STATUS READY</p>
           </div>
           <a class="kx-os-primary" href="mailto:marimari@wenumapuonline.com?subject=KODEX%20Signal%20Request">REQUEST THIS PIECE</a>
+        </section>
+
+        {/* 2026-08-28 · CONCEPTOS DEL ATLAS PARA ESTA ESCENA.
+            El atlas se leyo por primera vez desde el codigo. Aca cada umbral
+            abre hacia lo que declara: los nodos que el creador especificó en
+            07A/07B (Drive, 2026-08-06). No hay reparto por parecido: si la
+            escena del folio no aparece en el atlas, el panel lo declara como
+            hueco y punto. */}
+        <section data-kdx-drawer-section="concepts" class="kx-os-drawer__concepts">
+          <p class="kx-os-stage__kicker">
+            {sceneByFolio.number} · {escenaAtlas} · CONCEPTS FROM THE ATLAS
+          </p>
+          {conceptos.length === 0 ? (
+            <div class="kx-os-concepts kx-os-concepts--hueco">
+              <h2>NOT DECLARED IN THE ATLAS</h2>
+              <p>
+                The atlas (07A / 07B, Drive, 2026-08-06) has 36 concepts. This
+                scene name — <b>{escenaAtlas}</b> — does not appear among the
+                declared scenes. 16 concepts still wait for the creator to
+                assign a scene; they are not distributed by resemblance.
+                Inferring the mapping is exactly the error the project avoids.
+              </p>
+              <p class="kx-os-concepts__fuente">
+                SOURCE ·
+                <span data-kdx-readout data-fuente="src/lib/kodex/atlas.ts:nodosDeEscena · atlas.escenas declaradas">
+                  0 concepts
+                </span>
+              </p>
+            </div>
+          ) : (
+            <>
+              <h2>
+                <span data-kdx-readout data-fuente={`src/data/kodex-atlas.json:nodosDeEscena('${escenaAtlas}')`}>
+                  {conceptos.length}
+                </span> concept{conceptos.length === 1 ? '' : 's'} open from this threshold
+              </h2>
+              <ol class="kx-os-concepts__lista">
+                {conceptos.map((n) => (
+                  <li class="kx-os-concepts__nodo">
+                    <p class="kx-os-concepts__id">{n.id}</p>
+                    <h3 class="kx-os-concepts__titulo">{n.titulo}</h3>
+                    {n.concepto && <p class="kx-os-concepts__concepto">{n.concepto}</p>}
+                    {n.copy && <p class="kx-os-concepts__copy">{n.copy}</p>}
+                    {n.interaccion && (
+                      <p class="kx-os-concepts__interaccion">
+                        <span>INTERACTION</span> {n.interaccion}
+                      </p>
+                    )}
+                    <p class="kx-os-concepts__zonas">
+                      {n.zonas.map((z) => <em>{z}</em>)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+              <p class="kx-os-concepts__fuente">
+                SOURCE · 07A_KODEX_VISUAL_ATLAS_MASTER + 07B (Drive · 2026-08-06)
+              </p>
+            </>
+          )}
         </section>
 
         <section data-kdx-drawer-section="return">
@@ -1567,5 +1665,119 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     /* El acercamiento se anula; el cambio de luz permanece. La información
        sobre el estado no se le quita a quien pidió menos movimiento. */
     .kx-os-stage[data-kdx-estado] .kx-os-stage__livefield { transform: none; }
+  }
+
+  /* CONCEPTS PANEL · 2026-08-28
+   *
+   * El chasis ambar del atlas, aplicado al drawer de conceptos. Marco de linea
+   * fina con esquinas en corchete, sin bloques macizos. Es lo mismo que la
+   * bóveda /kodex/atlas/ pero abierto desde cada umbral. */
+  .kx-os-drawer__concepts { --ambar: #E8A33D; --ambar-tenue: color-mix(in srgb, var(--ambar) 26%, transparent); }
+
+  .kx-os-ghost--concepts {
+    letter-spacing: .16em;
+    font-size: 10.5px;
+  }
+  .kx-os-ghost--concepts [data-kdx-readout] {
+    margin-left: .35em;
+    color: var(--kdx-scene-accent, var(--acc, #E8A33D));
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kx-os-concepts { padding: 6px 0 4px; }
+  .kx-os-concepts--hueco {
+    padding: 22px 20px 20px;
+    border: 1px solid color-mix(in srgb, var(--ambar) 30%, transparent);
+    position: relative;
+  }
+  .kx-os-concepts--hueco::before,
+  .kx-os-concepts--hueco::after {
+    content: ''; position: absolute; width: 10px; height: 10px;
+    border: 1px solid var(--ambar); opacity: .55;
+  }
+  .kx-os-concepts--hueco::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kx-os-concepts--hueco::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .kx-os-concepts--hueco h2 {
+    margin: 0 0 .8em;
+    font-size: .78rem; letter-spacing: .22em; color: var(--ambar);
+    font-weight: 400;
+  }
+  .kx-os-concepts--hueco p {
+    margin: 0 0 .8em; font-size: 12px; line-height: 1.6; color: #9a968f;
+  }
+  .kx-os-concepts--hueco p:last-child { margin-bottom: 0; }
+  .kx-os-concepts--hueco b { color: var(--ambar); font-weight: 400; }
+
+  .kx-os-concepts__lista {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 12px; margin: 18px 0 14px; padding: 0; list-style: none;
+  }
+  .kx-os-concepts__nodo {
+    position: relative; padding: 15px 14px 13px;
+    border: 1px solid color-mix(in srgb, var(--ambar) 16%, transparent);
+    transition: border-color 420ms ease, transform 420ms ease;
+  }
+  .kx-os-concepts__nodo::before,
+  .kx-os-concepts__nodo::after {
+    content: ''; position: absolute; width: 9px; height: 9px;
+    border: 1px solid var(--ambar); opacity: .55;
+  }
+  .kx-os-concepts__nodo::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kx-os-concepts__nodo::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .kx-os-concepts__nodo:hover {
+    border-color: color-mix(in srgb, var(--ambar) 44%, transparent);
+    transform: translateY(-2px);
+  }
+
+  .kx-os-concepts__id {
+    margin: 0; font-size: 9.5px; letter-spacing: .16em;
+    color: var(--ambar); opacity: .78;
+  }
+  .kx-os-concepts__titulo {
+    margin: .5em 0 .55em;
+    font-family: 'Instrument Serif', ui-serif, serif;
+    font-weight: 400; font-size: 1.02rem; line-height: 1.2;
+    color: #f0ede8;
+  }
+  .kx-os-concepts__concepto {
+    margin: 0 0 .7em; font-size: 11.5px; line-height: 1.5;
+    color: #9a968f;
+  }
+  .kx-os-concepts__copy {
+    margin: 0 0 .8em;
+    font-family: 'Instrument Serif', ui-serif, serif; font-style: italic;
+    font-size: 12.5px; line-height: 1.35;
+    color: color-mix(in srgb, var(--ambar) 76%, #f0ede8);
+  }
+  .kx-os-concepts__interaccion {
+    margin: 0 0 .8em; font-size: 10.5px; line-height: 1.5; color: #86827b;
+  }
+  .kx-os-concepts__interaccion span {
+    display: block; margin-bottom: .35em; letter-spacing: .18em; color: #625f59;
+  }
+  .kx-os-concepts__zonas {
+    display: flex; flex-wrap: wrap; gap: 5px; margin: 0;
+    font-size: 9px; letter-spacing: .12em;
+  }
+  .kx-os-concepts__zonas em {
+    font-style: normal; padding: 2px 6px; color: #7d7a74;
+    border: 1px solid color-mix(in srgb, var(--ambar) 14%, transparent);
+  }
+  .kx-os-concepts__fuente {
+    margin: 18px 0 0; padding-top: 12px;
+    border-top: 1px solid var(--ambar-tenue);
+    font-size: 9.5px; letter-spacing: .14em; color: #5f5c57;
+  }
+  .kx-os-concepts__fuente [data-kdx-readout] {
+    color: var(--ambar); margin-left: .35em;
+  }
+
+  @media (max-width: 640px) {
+    .kx-os-concepts__lista { grid-template-columns: 1fr; gap: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-concepts__nodo { transition: none; }
+    .kx-os-concepts__nodo:hover { transform: none; }
   }
 </style>
