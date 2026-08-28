@@ -1,0 +1,208 @@
+---
+/**
+ * CARRIL DE ESTADOS · KODEX−∞ · PROLOGUE
+ *
+ * La máquina de estados de escena (src/lib/kodex/estado.ts) ya rige el ciclo
+ * `idle → aware → locked → active → transitionOut` y la comparten el campo,
+ * el portal, la transición y el CRT. Lo que faltaba era que sus transiciones
+ * dejaran una HUELLA VISIBLE — la falla `ESTADO SIN CONSECUENCIA` del gate
+ * (scripts/kodex/gate-experiencia.mjs §3): el estado cambia y la pantalla no
+ * lo muestra, así que no existe para el visitante.
+ *
+ * La referencia gobernada de PROLOGUE
+ * (~/kodex-relevo/referencias-escenas/01-PROLOGUE.png) dibuja el carril como
+ * la respuesta: cinco pasos con el actual encendido. Este componente lo
+ * cablea a la máquina real.
+ *
+ * NOMBRES CANÓNICOS · el board manda
+ *   La máquina existente usa idle/aware/locked/active/transitionOut. La
+ *   referencia dice DORMANT/AWARE/OPEN/CROSSED/REMEMBERED. Se renombra acá,
+ *   en la capa de presentación, sin inventar una máquina paralela.
+ *
+ * TEST DEL PNG · vivo, no calcado (kodex-relevo/00-EL-TEST-DEL-PNG.md)
+ *   Si la máquina no engancha, no aparece `data-kdx-carril-vivo` y ningún
+ *   paso se ilumina — el carril queda como fila de puntos muertos, firma
+ *   diagnóstica de instrumento desconectado. Exportar la lámina a PNG
+ *   pierde el carril entero: no hay estado hardcodeado como activo por
+ *   defecto en el DOM.
+ */
+---
+<div class="kdx-carril" data-kdx-carril role="group" aria-label="Estado de la escena">
+  <span class="kdx-carril__riel" aria-hidden="true"></span>
+  <ol class="kdx-carril__pistas">
+    <li class="kdx-carril__pista" data-estado-canonico="DORMANT"><span class="kdx-carril__punto" aria-hidden="true"></span><span class="kdx-carril__nombre">DORMANT</span></li>
+    <li class="kdx-carril__pista" data-estado-canonico="AWARE"><span class="kdx-carril__punto" aria-hidden="true"></span><span class="kdx-carril__nombre">AWARE</span></li>
+    <li class="kdx-carril__pista" data-estado-canonico="OPEN"><span class="kdx-carril__punto" aria-hidden="true"></span><span class="kdx-carril__nombre">OPEN</span></li>
+    <li class="kdx-carril__pista" data-estado-canonico="CROSSED"><span class="kdx-carril__punto" aria-hidden="true"></span><span class="kdx-carril__nombre">CROSSED</span></li>
+    <li class="kdx-carril__pista" data-estado-canonico="REMEMBERED"><span class="kdx-carril__punto" aria-hidden="true"></span><span class="kdx-carril__nombre">REMEMBERED</span></li>
+  </ol>
+</div>
+
+<style>
+  .kdx-carril{
+    position: relative;
+    padding: 1.15rem 0 0.55rem;
+    color: color-mix(in oklch, var(--bone, #f0ede8) 32%, transparent);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    --kdx-carril-color: var(--kdx-accent, var(--ember, #c9a84c));
+  }
+
+  .kdx-carril__riel{
+    position: absolute;
+    top: calc(1.15rem + 0.275rem);
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: color-mix(in oklch, var(--bone, #f0ede8) 15%, transparent);
+    pointer-events: none;
+  }
+
+  .kdx-carril__pistas{
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    align-items: start;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .kdx-carril__pista{
+    position: relative;
+    display: grid;
+    justify-items: center;
+    row-gap: 0.55rem;
+    transition: color 420ms ease;
+  }
+
+  .kdx-carril__punto{
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    border: 1px solid color-mix(in oklch, var(--bone, #f0ede8) 42%, transparent);
+    /* El fondo opaco de la escena, para que el punto tape el riel al pasar */
+    background: var(--obsidian, #0a0a0a);
+    transition:
+      background 420ms ease,
+      border-color 420ms ease,
+      box-shadow 420ms ease,
+      transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .kdx-carril__nombre{
+    font-size: inherit;
+    color: color-mix(in oklch, var(--bone, #f0ede8) 30%, transparent);
+    transition: color 420ms ease;
+  }
+
+  /* ── VIVO ─────────────────────────────────────────────────────────────
+     El atributo `data-kdx-carril-vivo` sólo lo agrega el script cuando la
+     máquina emite. Sin ese atributo, ninguna regla de "activa" o "pasado"
+     aplica y el carril se ve como puntos apagados sobre un riel. */
+  .kdx-carril[data-kdx-carril-vivo] .kdx-carril__pista--activa .kdx-carril__punto{
+    border-color: var(--kdx-carril-color);
+    background: var(--kdx-carril-color);
+    box-shadow:
+      0 0 0 3px color-mix(in oklch, var(--kdx-carril-color) 22%, transparent),
+      0 0 14px 0 color-mix(in oklch, var(--kdx-carril-color) 55%, transparent);
+    transform: scale(1.18);
+  }
+
+  .kdx-carril[data-kdx-carril-vivo] .kdx-carril__pista--activa .kdx-carril__nombre{
+    color: var(--kdx-carril-color);
+  }
+
+  .kdx-carril[data-kdx-carril-vivo] .kdx-carril__pista--pasado .kdx-carril__punto{
+    border-color: color-mix(in oklch, var(--kdx-carril-color) 55%, transparent);
+    background: color-mix(in oklch, var(--kdx-carril-color) 40%, transparent);
+  }
+
+  .kdx-carril[data-kdx-carril-vivo] .kdx-carril__pista--pasado .kdx-carril__nombre{
+    color: color-mix(in oklch, var(--bone, #f0ede8) 52%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .kdx-carril__punto,
+    .kdx-carril__pista,
+    .kdx-carril__nombre{ transition-duration: 60ms; }
+    .kdx-carril[data-kdx-carril-vivo] .kdx-carril__pista--activa .kdx-carril__punto{
+      transform: none;
+    }
+  }
+
+  @media (max-width: 640px){
+    .kdx-carril{ font-size: 0.55rem; letter-spacing: 0.10em; padding: 0.9rem 0 0.4rem; }
+    .kdx-carril__punto{ width: 0.44rem; height: 0.44rem; }
+    .kdx-carril__riel{ top: calc(0.9rem + 0.22rem); }
+  }
+</style>
+
+<script>
+  /* ENGANCHE A LA MÁQUINA COMPARTIDA
+   *
+   * Lee del mismo `estadoEscena()` que el campo, el portal, el CRT y la
+   * compuerta. El carril NO tiene estado propio: si nadie está enviando,
+   * `suscribir()` no dispara más que el snapshot inicial y ningún avance
+   * ocurre. Ese es el test del PNG en carne: sin motor, no hay carril.
+   *
+   * Sobre el mapeo: el objetivo es que la referencia (que fija los NOMBRES
+   * en pantalla) mande sobre el código (que fija los ESTADOS del ciclo).
+   * Ninguna clase, ningún selector CSS ni el gate leen los nombres del
+   * carril; leen `data-kdx-estado` en la raíz, que sigue siendo el estado
+   * runtime. La traducción vive contenida en este componente y no se
+   * propaga.
+   *
+   * `astro:page-load` cubre navegación con view transitions;
+   * DOMContentLoaded cubre la primera carga. `enganchar()` es idempotente:
+   * si ya hay una suscripción activa contra este nodo, no la duplica. */
+  import { estadoEscena, type Estado } from '../../../lib/kodex/estado';
+
+  const MAPA_CANONICO: Record<Estado, string> = {
+    idle: 'DORMANT',
+    aware: 'AWARE',
+    locked: 'OPEN',
+    active: 'CROSSED',
+    transitionOut: 'REMEMBERED',
+  };
+  const ORDEN_CANONICO = ['DORMANT', 'AWARE', 'OPEN', 'CROSSED', 'REMEMBERED'];
+
+  const enganchados = new WeakSet<HTMLElement>();
+
+  function enganchar(){
+    const carril = document.querySelector<HTMLElement>('[data-kdx-carril]');
+    if (!carril || enganchados.has(carril)) return;
+    enganchados.add(carril);
+
+    const pistas = Array.from(
+      carril.querySelectorAll<HTMLElement>('[data-estado-canonico]')
+    );
+
+    const pintar = (estado: Estado) => {
+      const canonico = MAPA_CANONICO[estado];
+      const idxActivo = ORDEN_CANONICO.indexOf(canonico);
+      if (idxActivo < 0) return;
+
+      pistas.forEach((p, i) => {
+        p.classList.toggle('kdx-carril__pista--activa', i === idxActivo);
+        p.classList.toggle('kdx-carril__pista--pasado', i < idxActivo);
+      });
+      /* Anuncia que la máquina está enviando. Recién con este atributo el
+         CSS enciende algo. Nunca se remueve: la máquina no retrocede. */
+      carril.setAttribute('data-kdx-carril-vivo', '');
+      carril.setAttribute('data-kdx-carril-estado', canonico);
+    };
+
+    estadoEscena().suscribir(pintar);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', enganchar, { once: true });
+  } else {
+    enganchar();
+  }
+  document.addEventListener('astro:page-load', enganchar);
+</script>

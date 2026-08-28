@@ -39,6 +39,12 @@ import { specimens, families, discoWorks, folios, organs } from '../../../lib/ko
    y el espécimen sale curado en vez de personal. */
 import KodexRecuerda from '../../../components/kodex/KodexRecuerda.astro';
 import EspecimenRetorno from '../../../components/kodex/os/EspecimenRetorno.astro';
+/* Carril de estados de PROLOGUE: hace visible la máquina que ya rige la
+   escena, respuesta al gate ESTADO SIN CONSECUENCIA. Los nombres los fija
+   la referencia del board (DORMANT/AWARE/OPEN/CROSSED/REMEMBERED); la
+   máquina sigue siendo idle/aware/locked/active/transitionOut y se renombra
+   dentro del componente. */
+import CarrilEstados from '../../../components/kodex/os/CarrilEstados.astro';
 
 export function getStaticPaths() {
   return [
@@ -120,6 +126,21 @@ const sceneByFolio = {
   ii: {
     number: '02', slug: 'descent', accent: 'var(--kdx-orange,#FF6A00)', motif: 'descent-tunnel',
     kicker: 'DESCENT · STRATA ENGINE',
+    // VERIFICADO 2026-08-27 contra la referencia gobernada
+    // `~/kodex-relevo/referencias-escenas/02-DESCENT.png`: el board dice
+    // literalmente "THE TREE DESCENDS TO HOLD WHAT RISES." Este título es
+    // CORRECTO.
+    //
+    // Se cambió por error a "EACH ANSWER OPENS A DEEPER LAYER" — la lectura
+    // que `kodexBook.js` asigna a bw-06 (BOTTOMLESS), razonando desde el
+    // catálogo de láminas. Pero el catálogo no gobierna la escena: la
+    // referencia sí. Revertido.
+    //
+    // Lo que SÍ falta acá, según la referencia:
+    //   · subtítulo "WILL YOU DESCEND INTO THE LAYERS BELOW?"
+    //   · el CTA es "DESCEND FURTHER", no "DESCEND"
+    //   · STRATUM MAP: embudo con estratos -01..-05 y la posición actual
+    //   · el punto rojo dice "SIGNAL DEEPENING" en esta escena
     title: 'THE TREE DESCENDS TO HOLD WHAT RISES.',
     cta: 'DESCEND',
     meta: ['NODE · KDX_02', 'MODE · STEPWISE', 'STRATA · 11', 'SKIP · INDEX'],
@@ -633,6 +654,13 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                     <button class="kx-os-ghost" type="button" data-kdx-plate-dossier data-kdx-drawer-open="dossier">SPECIMEN DATA</button>
                   )}
                 </div>
+                {/* Carril de estados abajo al centro, como en la referencia:
+                    DORMANT — AWARE — OPEN — CROSSED — REMEMBERED. El paso
+                    encendido sale de la máquina real (idle→aware→locked→
+                    active→transitionOut), no de una prop. Sólo aparece en el
+                    prólogo por ahora; las otras escenas montarán su propia
+                    lectura del estado cuando toque. */}
+                <CarrilEstados />
               </>
             )}
 
@@ -933,7 +961,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
      `montarSonido`    el motor del prototipo. Nunca arranca solo: respeta la
                        elección que el visitante tomó en la puerta. */
   import { montarTravesia } from '../../../lib/kodex/travesia';
-  import { montarFases } from '../../../lib/kodex/estado';
+  import { montarEstadoEscena, montarFases } from '../../../lib/kodex/estado';
   import { montarSonido } from '../../../lib/kodex/sonido-montar';
   /* `montarEspejoEstado` no agrega comportamiento: hace VISIBLE el que ya
      existe. La máquina de estados ya la comparten el campo, el portal, la
@@ -946,6 +974,13 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     try { montarTravesia(); } catch (_) {}
     try { montarFases(); } catch (_) {}
     try { montarSonido(); } catch (_) {}
+    /* La máquina de estados hasta hoy sólo arrancaba dentro de KodexCrtLayer,
+       kodex-gate-client y kodex-portal-client — ninguno de los tres se monta
+       en el layout general de la escena de folio, así que `data-kdx-estado`
+       se quedaba en `idle` de por vida. Sin motor, ni el espejo cambia ni el
+       carril se mueve, y el gate reporta ESTADO SIN CONSECUENCIA. Arrancar
+       la máquina acá cierra ese hueco para las seis escenas. */
+    try { montarEstadoEscena(); } catch (_) {}
     try { montarEspejoEstado(); } catch (_) {}
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montarCorredor, { once: true });
