@@ -1,8 +1,8 @@
 ---
 // KODEX−∞ · COSMOLOGY MAP (§3 storyboard 05, §6 organs).
 // Orbital map: 6 concept nodes around KODEX center, 5 organs on outer ring
-// as portals to the wider Wenu ecosystem. Hover a concept → its organ pulses.
-// Non-blocking: falls back to a legible list layout on <640px.
+// as portals to the wider Wenu ecosystem. Hover or scene CTA focus a concept →
+// its organ pulses. Non-blocking: falls back to a legible list layout on <640px.
 ---
 <section class="kdx-cosmo" aria-labelledby="kdx-cosmo-title">
   <header class="kdx-cosmo__head">
@@ -126,7 +126,9 @@
   .kdx-cosmo__center{ font-family:'Archivo','Inter Tight',system-ui,sans-serif; font-stretch:125%; font-weight:700;
     letter-spacing:.06em; font-size:11px; fill:var(--kdx-dust-white,#EDEDED); text-transform:uppercase; }
   .kdx-cosmo__nodes g{ cursor:default; transition:transform .2s; }
-  .kdx-cosmo__nodes g:hover circle{ r:9; fill:var(--kdx-magenta,#FF00C8); }
+  .kdx-cosmo__nodes g:hover circle,
+  .kdx-cosmo__nodes g.is-focus circle{ r:9; fill:var(--kdx-magenta,#FF00C8); }
+  .kdx-cosmo__nodes g.is-focus text{ fill:var(--kdx-magenta,#FF00C8); }
   .kdx-cosmo__links line{ transition:stroke .2s, stroke-opacity .2s; }
 
   .kdx-cosmo__portals{ list-style:none; padding:0; margin:0; display:grid; gap:1px;
@@ -143,6 +145,7 @@
 
 <script is:inline>
   (() => {
+    const root = document.querySelector('.kdx-cosmo');
     const nodes = document.querySelectorAll('.kdx-cosmo__nodes [data-node]');
     const links = document.querySelectorAll('.kdx-cosmo__links [data-link]');
     const portals = document.querySelectorAll('.kdx-cosmo__portals [data-organ]');
@@ -155,14 +158,39 @@
       territory: ['soma'],
       machine: ['practice'],
     };
+    const alias = {
+      kodex: 'machine',
+      'wenu mapu': 'body',
+      soma: 'territory',
+      'disco solar': 'signal',
+      'cosmic serpent': 'memory',
+      body: 'body',
+      matter: 'matter',
+      memory: 'memory',
+      territory: 'territory',
+      signal: 'signal',
+      machine: 'machine',
+    };
+    const normalize = (value) => alias[String(value || '').toLowerCase().trim()] || '';
     const pulse = (node) => {
-      const organs = map[node] || [];
+      const key = normalize(node);
+      const organs = map[key] || [];
+      nodes.forEach((n) => n.classList.toggle('is-focus', n.dataset.node === key));
       portals.forEach((p) => p.parentElement.classList.toggle('is-pulse', organs.includes(p.dataset.organ)));
-      links.forEach((l) => l.setAttribute('stroke', l.dataset.link?.startsWith(node) ? '#FF00C8' : 'rgba(183,112,255,.28)'));
+      links.forEach((l) => l.setAttribute('stroke', l.dataset.link?.startsWith(key) ? '#FF00C8' : 'rgba(183,112,255,.28)'));
+      if (key) root?.setAttribute('data-focus', key);
     };
     const clear = () => {
+      nodes.forEach((n) => n.classList.remove('is-focus'));
       portals.forEach((p) => p.parentElement.classList.remove('is-pulse'));
       links.forEach((l) => l.setAttribute('stroke', 'rgba(183,112,255,.28)'));
+      root?.removeAttribute('data-focus');
+    };
+    const focusCurrentReadout = () => {
+      const raw = document.querySelector('[data-cosmo-node]')?.textContent || '';
+      const node = raw.replace(/^\s*NODE\s*·\s*/i, '');
+      if (normalize(node)) pulse(node);
+      else clear();
     };
     nodes.forEach((n) => {
       n.addEventListener('mouseenter', () => pulse(n.dataset.node));
@@ -171,6 +199,8 @@
     portals.forEach((p) => p.addEventListener('click', () => {
       try { window.kdx && window.kdx('outbound_' + (p.dataset.organ || 'unknown'), { href: p.getAttribute('href') }); } catch (_) {}
     }));
+    document.querySelector('[data-cosmo-next]')?.addEventListener('click', () => setTimeout(focusCurrentReadout, 0));
+    focusCurrentReadout();
     const s = document.createElement('style');
     s.textContent = '.kdx-portal.is-pulse a{ background:var(--kdx-surface,#111113); box-shadow:inset 3px 0 0 var(--kdx-magenta,#FF00C8); }';
     document.head.appendChild(s);
