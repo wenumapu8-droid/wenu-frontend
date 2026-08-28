@@ -196,7 +196,7 @@ export const folios = [
   { slug:'i',   n:'I',   name:'Prologue',  stage:'PROLOGUE',  col:'207,199,182', acc:'#cfc7b6', seed:137,
     lede:'The opening. Read slowly.' },
   { slug:'ii',  n:'II',  name:'Descent',   stage:'DESCENT',   col:'150,160,175', acc:'#96a0af', seed:211,
-    lede:'Eleven strata. The fall is the reading.' },
+    lede:'Eight strata. The fall is the reading.' }, // 2026-08-28: manifest real tiene 8 estratos
   { slug:'iii', n:'III', name:'Archive',   stage:'ARCHIVE',   col:'207,199,182', acc:'#cfc7b6', seed:373,
     lede:'Three movements. Every work is alive.' },
   { slug:'iv',  n:'IV',  name:'Machine',   stage:'MACHINE',   col:'201,168,76',  acc:'#c9a84c', seed:457,
