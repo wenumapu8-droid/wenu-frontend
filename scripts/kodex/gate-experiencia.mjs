@@ -84,6 +84,21 @@ for (const E of CONTRATOS.escenas) {
 
   const ctx = await nav.newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
+  /* 2026-08-28: timeout de captura subido de los 30s por defecto a 60s.
+   *
+   * POR QUE: dos corridas consecutivas sobre EL MISMO build dieron
+   * resultados distintos --
+   *   corrida 1: THRESHOLD PASS, MACHINE FAIL (screenshot timeout 30s)
+   *   corrida 2: THRESHOLD FAIL, MACHINE PASS, RETURN FAIL
+   * Cruzando ambas, las 7 escenas pasaron al menos una vez. Ninguna
+   * fallaba por defecto: fallaban por timeout tomando la captura,
+   * esperando que carguen las fuentes, bajo carga del Mini.
+   *
+   * El CI encontro lo mismo por su lado (33/35 PASS, los 2 fallos eran
+   * timeout de screenshot) y aplico el mismo remedio.
+   *
+   * Un gate que da un resultado distinto cada vez no mide: adivina. */
+  p.setDefaultTimeout(60000);
 
   try {
     /* `domcontentloaded` y no `load`: algunas escenas cargan láminas pesadas y
