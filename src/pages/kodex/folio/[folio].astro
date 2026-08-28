@@ -48,6 +48,15 @@ const _manifiesto = await leerManifiesto();
 const estratos = (_manifiesto.estratos || [])
   .map((e) => e.titulo_en || e.titulo_es || e.id || e.nombre || '')
   .filter(Boolean);
+// 2026-08-28: graph canónico del recorrido, para MACHINE > STRUCTURAL LINKS.
+// Fallback: {nodes:[], edges:[]} si el JSON no existe.
+let journeyGraph: { nodes?: unknown[]; edges?: unknown[] } = { nodes: [], edges: [] };
+try {
+  const _mod = await import('../../../lib/kodex/runtime/journeyGraph/frozen-canonical-graph.json');
+  journeyGraph = (_mod as any).default ?? (_mod as any);
+} catch {
+  // Sin graph, STRUCTURAL LINKS mostrará SEVERED. Es un hueco declarado.
+}
 /* Cada folio registra su paso: sin esto el recorrido llega vacío a RETURN
    y el espécimen sale curado en vez de personal. */
 import KodexRecuerda from '../../../components/kodex/KodexRecuerda.astro';
@@ -1055,6 +1064,10 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
 
     <script type="application/json" id="kdx-strata-data" set:html={JSON.stringify(specimens)}></script>
     <script type="application/json" id="kdx-cosmos-data" set:html={JSON.stringify(cosmoNodes)}></script>
+    {/* 2026-08-28: graph canónico expuesto como JSON inline para que el
+        cliente pueda leer edges.length para STRUCTURAL LINKS de MACHINE.
+        Fuente: runtime/journeyGraph/frozen-canonical-graph.json. */}
+    <script type="application/json" id="kdx-graph-data" set:html={JSON.stringify(journeyGraph)}></script>
     <KodexOverlays gallery={false} />
   </div>
 
@@ -1213,6 +1226,145 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
       }, 620);
     });
     drawMachine();
+
+    /* ── 2026-08-28 · WIRING DE NODOS DE ORGANISMOS ─────────────────────
+       Cada nodo TEXTUAL de los organismos (ARCHIVE, COSMOLOGY) declara una
+       consecuencia visible cuando el visitante lo toca. Sin listener el
+       nodo es póster (00-EL-TEST-DEL-PNG.md). Spec §2.1-§2.3.
+
+       El listener es defensivo: si el nodo no existe en esta escena (folio
+       distinto), no falla; solo no hace nada. */
+
+    // ARCHIVE · cablear los 6 nodos (RECORD, RELATE, WEAVE, RECALL, PRESERVE, TRANSCEND)
+    (function cablearArchive() {
+      const cluster = document.querySelector('[data-kdx-organismo-nodos="archive"]');
+      if (!cluster) return;
+      const nodos = cluster.querySelectorAll<HTMLElement>('.kdx-micro-node');
+      const stampTs = () => {
+        const n = new Date();
+        return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+      };
+      const appendLog = (msg: string) => {
+        const log = document.querySelector('.kdx-syslog__list');
+        if (!log) return;
+        const li = document.createElement('li');
+        li.setAttribute('data-kdx-logline', '');
+        li.innerHTML = `<span class="kdx-syslog__t">[${stampTs()}]</span> ${msg}`;
+        log.prepend(li);
+        while (log.children.length > 6) log.lastChild?.remove();
+      };
+      const acciones: Record<string, () => void> = {
+        'RECORD': () => appendLog('SPECIMEN CAPTURED'),
+        'RELATE': () => {
+          appendLog('RELATION TRACED');
+          // resalta el organismo un instante (usa .kx-os-stage__pulso que ya existe)
+          const stage = document.querySelector<HTMLElement>('.kx-os-stage');
+          if (stage) {
+            stage.dataset.kdxEstadoPrevio = stage.dataset.kdxEstado || '';
+            stage.dataset.kdxEstado = 'aware';
+            setTimeout(() => { if (stage.dataset.kdxEstadoPrevio !== undefined) stage.dataset.kdxEstado = stage.dataset.kdxEstadoPrevio; }, 1200);
+          }
+        },
+        'WEAVE': () => appendLog('THREADS SYNTHESIZED'),
+        'RECALL': () => {
+          appendLog('MEMORY ACTIVATED');
+          // forzar cambio del especimen visible (data-kdx-recall dispatched)
+          document.dispatchEvent(new CustomEvent('kodex:recall'));
+        },
+        'PRESERVE': () => {
+          appendLog('INTEGRITY GUARDED');
+          try { sessionStorage.setItem('kdx-preserved', '1'); } catch (_) {}
+        },
+        'TRANSCEND': () => {
+          appendLog('CONSCIOUSNESS ELEVATED');
+          // avanzar la máquina de estado si es posible
+          try {
+            const w = window as any;
+            if (w.__kdxState !== 'active' && document.querySelector('[data-kdx-contrato]')) {
+              // el espejo-estado ya escucha; disparamos click en CTA como proxy
+              document.querySelector<HTMLElement>('[data-kdx-primary], .kx-os-primary')?.click();
+            }
+          } catch (_) {}
+        },
+      };
+      nodos.forEach((nodo) => {
+        const label = nodo.querySelector('strong')?.textContent?.trim().toUpperCase() || '';
+        if (!acciones[label]) return;
+        nodo.style.cursor = 'pointer';
+        nodo.setAttribute('tabindex', '0');
+        nodo.setAttribute('role', 'button');
+        nodo.setAttribute('aria-label', `Action: ${label}`);
+        const disparar = () => acciones[label]();
+        nodo.addEventListener('click', disparar);
+        nodo.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); disparar(); }
+        });
+      });
+    })();
+
+    // MACHINE · rellenar los 4 readouts del board con data-fuente REAL
+    (function rellenarMachine() {
+      const boardDl = document.querySelector('.kx-machine-readout__board');
+      if (!boardDl) return;
+      const seed0 = document.querySelector('[data-machine-seed]')?.textContent?.trim() || 'A90C-73F1';
+      const w = window as any;
+      w.__kdxLastMachineSeed = seed0;
+
+      const rellenar = (seed: string) => {
+        const canvasEl = document.querySelector('[data-machine-canvas]');
+        const ctx2d = (canvasEl as HTMLCanvasElement | null)?.getContext?.('2d');
+        const core = document.querySelector('[data-kdx-machine-core]');
+        if (core) core.textContent = ctx2d ? 'ONLINE' : 'OFFLINE';
+
+        const last = w.__kdxLastMachineSeed;
+        const align = document.querySelector('[data-kdx-machine-align]');
+        if (align) align.textContent = (!last || last === seed) ? 'LOCKED' : 'TUNING';
+        w.__kdxLastMachineSeed = seed;
+
+        const linksEl = document.querySelector('[data-kdx-machine-links]');
+        if (linksEl) {
+          try {
+            const g = JSON.parse(document.getElementById('kdx-graph-data')?.textContent || '{}');
+            const n = Array.isArray(g?.edges) ? g.edges.length : 0;
+            linksEl.textContent = n > 0 ? `ACTIVE (${n})` : 'SEVERED';
+          } catch (_) {
+            linksEl.textContent = 'SEVERED';
+          }
+        }
+      };
+      rellenar(seed0);
+      // Hook al listener existente de data-machine-generate (dispara después)
+      document.querySelector('[data-machine-generate]')?.addEventListener('click', () => {
+        // El listener original cambia el seed después de un setTimeout de 620ms.
+        // Esperamos que se aplique antes de re-medir.
+        setTimeout(() => {
+          const newSeed = document.querySelector('[data-machine-seed]')?.textContent?.trim() || seed0;
+          rellenar(newSeed);
+        }, 700);
+      });
+    })();
+
+    // COSMOLOGY · cablear hover/tap de los 3 nodos orbitales
+    (function cablearCosmos() {
+      const orbitas = document.querySelectorAll<HTMLElement>('[data-kdx-organismo-nodos="cosmology"] .kx-cosmo-orbit');
+      if (!orbitas.length) return;
+      const tocados = new Set<string>();
+      orbitas.forEach((orb) => {
+        const nodo = orb.dataset.cosmoNodo || '';
+        const activar = () => {
+          tocados.add(nodo);
+          const panelNode = document.querySelector('[data-cosmo-node]');
+          if (panelNode) panelNode.textContent = `NODE · ${nodo.toUpperCase()}`;
+          // Si tocó los 3, avanzar el estado
+          if (tocados.size >= 3) {
+            const stage = document.querySelector<HTMLElement>('.kx-os-stage');
+            if (stage) stage.dataset.kdxEstado = 'active';
+          }
+        };
+        orb.addEventListener('click', activar);
+        orb.addEventListener('focus', activar);
+      });
+    })();
 
     const nodes = JSON.parse(document.getElementById('kdx-cosmos-data')?.textContent || '[]');
     let nodeIndex = 1;
