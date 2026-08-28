@@ -2062,7 +2062,54 @@
   inset:0;
   pointer-events:none;
 }
-.kx-threshold__particles{ z-index:0; opacity:.42; }
+/* EL CANVAS ES UN ELEMENTO REEMPLAZADO · 2026-08-28
+ *
+ * `.kx-threshold__particles{ position:absolute; inset:0; }` (arriba) NO
+ * alcanza para que un <canvas> llene a su padre. A diferencia de un <div>,
+ * canvas es un elemento reemplazado: sin `width`/`height` explícitos, el
+ * navegador usa su tamaño intrínseco (300×150 por defecto) en vez de dejar
+ * que `inset:0` lo estire. Por eso el gate medía el organismo de THRESHOLD
+ * en 3.1% del viewport en vez del 35% mínimo -- el canvas nunca se agrandó,
+ * sólo su POSICIÓN respetaba inset:0, no su TAMAÑO.
+ *
+ * El mismo problema ya estaba resuelto tres veces en este archivo para otros
+ * canvas (.kx-geo__stage canvas, .kx-frame--live canvas,
+ * .kx-atelier__frame canvas) -- nunca se aplicó acá. */
+.kx-threshold__particles{ z-index:0; opacity:.42; width:100%; height:100%; display:block; }
+
+/* SEÑAL DE ESTADO PARA THRESHOLD · 2026-08-28
+ *
+ * El halo de "el estado se ve" se escribió sólo para .kx-os-stage (las
+ * escenas de folio). THRESHOLD usa .kx-threshold, otra raíz, y nunca
+ * recibió el mismo mecanismo -- por eso, ya con el canvas arreglado
+ * (organismo 100% del viewport), el gate seguía marcando ESTADO SIN
+ * CONSECUENCIA: el organismo existe y domina, pero nada responde
+ * visiblemente cuando el estado cambia de idle a aware.
+ *
+ * Mismo mecanismo que en folio/[folio].astro: un halo que vive ENCIMA de
+ * todo, no dentro del organismo, así que no depende de cómo responda el
+ * canvas de partículas a un filtro. Rojo real del umbral: var(--kdx-red). */
+.kx-threshold{ position:relative; }
+.kx-threshold::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:5;
+  opacity:0;
+  background:radial-gradient(
+    ellipse at center,
+    transparent 55%,
+    color-mix(in srgb, var(--kdx-red,#FF3833) 22%, transparent) 100%
+  );
+  transition:opacity 900ms cubic-bezier(.22,.61,.36,1);
+}
+.kx-threshold[data-kdx-estado="aware"]::after  { opacity:.28; }
+.kx-threshold[data-kdx-estado="locked"]::after { opacity:.42; }
+.kx-threshold[data-kdx-estado="active"]::after { opacity:.58; }
+@media (prefers-reduced-motion: reduce) {
+  .kx-threshold::after{ transition-duration:1ms; }
+}
 .kx-threshold__grid{
   opacity:.24;
   background:
