@@ -43,6 +43,39 @@ import KodexRecuerda from '../../components/kodex/KodexRecuerda.astro';
    and visual behavior match the canon", y con el texto suelto en la plantilla
    eso no se puede verificar — se corrige tocando dos archivos y nadie se entera. */
 import { THRESHOLD } from '../../lib/kodex/escenas/threshold';
+/* 2026-08-28 · EL CHASIS DEL BOARD. Estos dos instrumentos existian en el
+   repo con CERO importaciones: se construyeron desde los boards y nunca se
+   montaron. Entran ahora, pero con dato REAL -- ver mas abajo. */
+import KodexOriginVector from '../../components/kodex/density/KodexOriginVector.astro';
+import KodexSystemLog from '../../components/kodex/density/KodexSystemLog.astro';
+import { nodosDeEscena, coberturaDelAtlas } from '../../lib/kodex/atlas';
+import { leerManifiesto } from '../../lib/kodex/volumenes';
+
+/* El vector de origen del umbral: su posicion REAL en el mapa de conceptos,
+   no coordenadas astronomicas inventadas. */
+const conceptosUmbral = nodosDeEscena('THRESHOLD');
+const atlas = coberturaDelAtlas();
+const manifiesto = await leerManifiesto();
+const estratosReales = (manifiesto.estratos || []).length;
+const volumenesReales = (manifiesto.volumenes || []).length;
+
+const vectorUmbral = {
+  ra: `ZONE ${conceptosUmbral.flatMap((n) => n.zonas).filter((z, i, a) => a.indexOf(z) === i).slice(0, 2).join(' / ') || 'UMBRAL'}`,
+  dec: `NODES ${conceptosUmbral.length} / ${atlas.total}`,
+  sig: `STRATA ${estratosReales}`,
+  mod: 'MOD THRESHOLD',
+  lines: ['THE GATE IS A', 'LIVING AGREEMENT.'],
+  id: conceptosUmbral[0]?.id || 'KDX-IMG-002',
+};
+
+/* El registro del sistema: hechos verificables del archivo en el build, no
+   marcas de tiempo falsas. */
+const registroUmbral = [
+  ['ATLAS', `${atlas.total} CONCEPTS / ${atlas.zonas} ZONES`],
+  ['MANIFEST', `${volumenesReales} VOLUMES / ${estratosReales} STRATA`],
+  ['THRESHOLD', `${conceptosUmbral.length} CONCEPTS DECLARED`],
+  ['GAPS', `${atlas.faltantes.length} NODES NOT LOCATED`],
+];
 import { quietFrames } from '../../lib/kodex/quietFrames';
 import '../../styles/kodex-micrographics.css';
 import '../../styles/kodex-quiet-frames.css';
@@ -255,6 +288,32 @@ const prologueRows = [
               </a>
             </nav>
           </main>
+
+          {/* EL CHASIS DEL BOARD · 2026-08-28
+              Los boards muestran instrumentos flotando en los margenes:
+              ORIGIN VECTOR arriba a la derecha, SYSTEM LOG abajo. Los dos
+              componentes existian con cero importaciones -- construidos desde
+              los boards y nunca montados.
+              Entran con DATO REAL, no con sus defaults inventados: el vector
+              de origen del umbral es su posicion en el mapa de conceptos del
+              atlas, y el registro son hechos verificables del archivo en el
+              build. Cada lectura lleva su data-fuente. */}
+          <KodexOriginVector
+            ra={vectorUmbral.ra}
+            dec={vectorUmbral.dec}
+            sig={vectorUmbral.sig}
+            mod={vectorUmbral.mod}
+            lines={vectorUmbral.lines}
+            id={vectorUmbral.id}
+            class="kx-threshold__vector"
+          />
+          <KodexSystemLog
+            entries={registroUmbral}
+            checksum={`ATLAS-${atlas.total}-${atlas.zonas}Z`}
+            verifyAt="src/data/kodex-atlas.json"
+            threatLabel={`${atlas.total - atlas.conEscena} CONCEPTS AWAIT CURATION`}
+            class="kx-threshold__registro"
+          />
 
           {/* El panel de nodo: único cromo de datos del margen, casi
               invisible, como el HUD periférico del prototipo. */}
