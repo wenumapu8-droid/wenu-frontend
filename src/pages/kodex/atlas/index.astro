@@ -1,0 +1,216 @@
+---
+/**
+ * KODEX−∞ · EL ATLAS — la bóveda de conceptos, legible.
+ *
+ * POR QUE (2026-08-28):
+ * Los 40 conceptos del viaje estaban especificados en Drive desde el 06-08 y
+ * el codigo no los conocia: `grep -rl "KDX-IMG" src/` daba CERO. Esta pagina
+ * es la primera vez que el atlas se ve dentro del sistema.
+ *
+ * COMO SE LEE:
+ * Cada nodo pertenece a VARIAS zonas a la vez -- eso no es desorden, es el
+ * entrelazado entre mundos que el atlas declara como dato. Por eso se agrupa
+ * por zona y un mismo concepto aparece en mas de una: asi se ve el tejido.
+ *
+ * HONESTIDAD:
+ * Todo lo que se muestra sale del atlas. Los huecos se declaran como huecos
+ * -- 4 nodos no localizados, 16 sin escena asignada. Un dato sin fuente es
+ * peor que un dato ausente.
+ */
+import KodexShell from '../../../layouts/KodexShell.astro';
+import { nodosDelAtlas, zonasDelAtlas, coberturaDelAtlas } from '../../../lib/kodex/atlas';
+
+const nodos = nodosDelAtlas();
+const zonas = zonasDelAtlas();
+const cobertura = coberturaDelAtlas();
+
+const porZona = zonas
+  .map((z) => ({ zona: z, nodos: nodos.filter((n) => n.zonas.includes(z)) }))
+  .filter((g) => g.nodos.length > 0)
+  .sort((a, b) => b.nodos.length - a.nodos.length || a.zona.localeCompare(b.zona));
+---
+
+<KodexShell
+  title="THE ATLAS — KODEX−∞"
+  description="Los conceptos del archivo: zonas, nodos y sus enlaces."
+>
+  <main class="kdx-atlas">
+    <header class="kdx-atlas__cabecera">
+      <p class="kdx-atlas__cejilla">KDX://ATLAS/CONCEPTS</p>
+      <h1 class="kdx-atlas__titulo">THE ATLAS</h1>
+      <p class="kdx-atlas__lema">
+        Every concept belongs to more than one world. That is the weave.
+      </p>
+
+      {/* Cuentas con fuente declarada: salen del atlas, no de una estimacion. */}
+      <dl class="kdx-atlas__cuentas">
+        <div>
+          <dt>CONCEPTS</dt>
+          <dd data-kdx-readout data-fuente="src/data/kodex-atlas.json:nodos.length">
+            {cobertura.total} / {cobertura.esperados}
+          </dd>
+        </div>
+        <div>
+          <dt>ZONES</dt>
+          <dd data-kdx-readout data-fuente="src/data/kodex-atlas.json:zonas únicas">
+            {cobertura.zonas}
+          </dd>
+        </div>
+        <div>
+          <dt>WITH INTERACTION</dt>
+          <dd data-kdx-readout data-fuente="atlas:campo interaccion presente">
+            {cobertura.conInteraccion}
+          </dd>
+        </div>
+        <div>
+          <dt>NOT LOCATED</dt>
+          <dd data-kdx-readout data-fuente="atlas:ids ausentes en 07A y 07B · HUECO DECLARADO">
+            {cobertura.faltantes.length}
+          </dd>
+        </div>
+      </dl>
+    </header>
+
+    {porZona.map(({ zona, nodos: enZona }) => (
+      <section class="kdx-atlas__zona">
+        <h2 class="kdx-atlas__zona-nombre">
+          {zona} <span class="kdx-atlas__zona-cuenta">{enZona.length}</span>
+        </h2>
+        <ol class="kdx-atlas__lista">
+          {enZona.map((n) => (
+            <li class="kdx-atlas__nodo">
+              <p class="kdx-atlas__nodo-id">{n.id}</p>
+              <h3 class="kdx-atlas__nodo-titulo">{n.titulo}</h3>
+              {n.concepto && <p class="kdx-atlas__nodo-concepto">{n.concepto}</p>}
+              {n.copy && <p class="kdx-atlas__nodo-copy">{n.copy}</p>}
+              {n.interaccion && (
+                <p class="kdx-atlas__nodo-interaccion">
+                  <span>INTERACTION</span> {n.interaccion}
+                </p>
+              )}
+              <p class="kdx-atlas__nodo-zonas">
+                {n.zonas.filter((z) => z !== zona).map((z) => <em>{z}</em>)}
+                {n.escenas.length > 0 && <b>{n.escenas.join(' · ')}</b>}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+    ))}
+
+    <footer class="kdx-atlas__pie">
+      <p>
+        FUENTE · 07A_KODEX_VISUAL_ATLAS_MASTER + 07B_LOTES_09_11_12 (Drive)
+      </p>
+      <p>
+        HUECOS DECLARADOS · {cobertura.faltantes.join(' · ')} sin localizar ·
+        {' '}{cobertura.total - cobertura.conEscena} conceptos esperan asignación de escena
+      </p>
+    </footer>
+  </main>
+</KodexShell>
+
+<style>
+  /* Chasis ámbar, como los boards: línea de un pelo, nada macizo, todo flota. */
+  .kdx-atlas {
+    --ambar: #E8A33D;
+    --ambar-tenue: color-mix(in srgb, var(--ambar) 26%, transparent);
+    min-height: 100dvh;
+    padding: clamp(56px, 9vh, 108px) clamp(18px, 5vw, 72px) 96px;
+    background: #08070a;
+    color: #c9c6c0;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+
+  .kdx-atlas__cabecera { max-width: 62ch; margin: 0 auto clamp(40px, 7vh, 88px); text-align: center; }
+  .kdx-atlas__cejilla { margin: 0 0 1.6em; font-size: 10px; letter-spacing: .3em; color: var(--ambar); opacity: .8; }
+  .kdx-atlas__titulo {
+    margin: 0; font-family: 'Instrument Serif', ui-serif, serif; font-weight: 400;
+    font-size: clamp(2.4rem, 9vw, 4.6rem); letter-spacing: .06em; color: #f0ede8;
+  }
+  .kdx-atlas__lema {
+    margin: 1.2em 0 0; font-family: 'Instrument Serif', ui-serif, serif; font-style: italic;
+    font-size: clamp(.92rem, 2.6vw, 1.12rem); color: color-mix(in srgb, #f0ede8 62%, transparent);
+  }
+
+  .kdx-atlas__cuentas {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+    gap: 1px; margin: clamp(28px, 5vh, 52px) 0 0;
+    border: 1px solid var(--ambar-tenue);
+  }
+  .kdx-atlas__cuentas div { padding: 14px 10px; text-align: center; }
+  .kdx-atlas__cuentas dt { font-size: 9px; letter-spacing: .18em; color: #7d7a74; }
+  .kdx-atlas__cuentas dd { margin: .5em 0 0; font-size: 1.05rem; color: var(--ambar); }
+
+  .kdx-atlas__zona { max-width: 1180px; margin: 0 auto clamp(40px, 6vh, 72px); }
+  .kdx-atlas__zona-nombre {
+    display: flex; align-items: baseline; gap: .8em;
+    margin: 0 0 1.2em; padding-bottom: .6em;
+    border-bottom: 1px solid var(--ambar-tenue);
+    font-size: .78rem; font-weight: 400; letter-spacing: .26em; color: var(--ambar);
+  }
+  .kdx-atlas__zona-cuenta { font-size: .68rem; color: #6f6c66; }
+
+  .kdx-atlas__lista {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+    gap: 14px; margin: 0; padding: 0; list-style: none;
+  }
+
+  /* Cada concepto es una placa que flota: esquinas marcadas, sin relleno. */
+  .kdx-atlas__nodo {
+    position: relative; padding: 16px 15px 14px;
+    border: 1px solid color-mix(in srgb, var(--ambar) 15%, transparent);
+    transition: border-color 420ms ease, transform 420ms ease;
+  }
+  .kdx-atlas__nodo::before,
+  .kdx-atlas__nodo::after {
+    content: ''; position: absolute; width: 9px; height: 9px;
+    border: 1px solid var(--ambar); opacity: .5;
+  }
+  .kdx-atlas__nodo::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kdx-atlas__nodo::after { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .kdx-atlas__nodo:hover { border-color: color-mix(in srgb, var(--ambar) 44%, transparent); transform: translateY(-2px); }
+
+  .kdx-atlas__nodo-id { margin: 0; font-size: 9.5px; letter-spacing: .16em; color: var(--ambar); opacity: .75; }
+  .kdx-atlas__nodo-titulo {
+    margin: .5em 0 .55em; font-family: 'Instrument Serif', ui-serif, serif;
+    font-weight: 400; font-size: 1.06rem; line-height: 1.2; color: #f0ede8;
+  }
+  .kdx-atlas__nodo-concepto { margin: 0 0 .8em; font-size: 11.5px; line-height: 1.5; color: #9a968f; }
+  .kdx-atlas__nodo-copy {
+    margin: 0 0 .9em; font-family: 'Instrument Serif', ui-serif, serif; font-style: italic;
+    font-size: 12.5px; line-height: 1.35; color: color-mix(in srgb, var(--ambar) 78%, #f0ede8);
+  }
+  .kdx-atlas__nodo-interaccion { margin: 0 0 .9em; font-size: 10.5px; line-height: 1.5; color: #86827b; }
+  .kdx-atlas__nodo-interaccion span { display: block; margin-bottom: .35em; letter-spacing: .18em; color: #625f59; }
+
+  .kdx-atlas__nodo-zonas { display: flex; flex-wrap: wrap; gap: 5px; margin: 0; font-size: 9px; letter-spacing: .12em; }
+  .kdx-atlas__nodo-zonas em {
+    font-style: normal; padding: 2px 6px; color: #7d7a74;
+    border: 1px solid color-mix(in srgb, var(--ambar) 14%, transparent);
+  }
+  .kdx-atlas__nodo-zonas b {
+    font-weight: 400; padding: 2px 6px; color: var(--ambar);
+    border: 1px solid color-mix(in srgb, var(--ambar) 34%, transparent);
+  }
+
+  .kdx-atlas__pie {
+    max-width: 1180px; margin: clamp(48px, 8vh, 96px) auto 0; padding-top: 20px;
+    border-top: 1px solid var(--ambar-tenue);
+    font-size: 9.5px; letter-spacing: .12em; line-height: 2; color: #5f5c57; text-align: center;
+  }
+  .kdx-atlas__pie p { margin: 0; }
+
+  /* Móvil: el concepto al centro, sin apretar. Nada de rejilla comprimida. */
+  @media (max-width: 640px) {
+    .kdx-atlas__lista { grid-template-columns: 1fr; gap: 11px; }
+    .kdx-atlas__nodo { padding: 14px 13px 12px; }
+    .kdx-atlas__cuentas { grid-template-columns: repeat(2, 1fr); }
+    .kdx-atlas__zona { margin-bottom: 34px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-atlas__nodo { transition: none; }
+    .kdx-atlas__nodo:hover { transform: none; }
+  }
+</style>
