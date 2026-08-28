@@ -1298,9 +1298,17 @@
  * Mismo lenguaje que usa la imagen de obra aca al lado: invert + multiply.
  * La tinta oscurece el papel en vez de reemplazarlo. */
 .kx-os-scene--return .kx-os-stage__livefield{
-  filter:invert(1) contrast(.92);
+  /* 2026-08-28, segunda pasada. La primera version usaba opacity .42 y
+     contrast(.92): la escena quedo bien BLANCA pero el gate la marco POSTER
+     -- 0.31% de cambio en 2.6s contra un minimo de 0.4%. Se habia ganado el
+     papel y perdido el movimiento.
+     Sobre papel y con multiply, mas opacidad = mas tinta = mas variacion
+     visible, sin volver la escena oscura: el blanco lo sigue poniendo el
+     fondo, no el organismo. Se sube a .68 y se saca el contrast, que
+     aplanaba justo lo que tenia que respirar. */
+  filter:invert(1);
   mix-blend-mode:multiply;
-  opacity:.42;
+  opacity:.68;
 }
 .kx-os-scene::before{
   opacity:.48; mix-blend-mode:normal;
@@ -2095,7 +2103,27 @@
  * El mismo problema ya estaba resuelto tres veces en este archivo para otros
  * canvas (.kx-geo__stage canvas, .kx-frame--live canvas,
  * .kx-atelier__frame canvas) -- nunca se aplicó acá. */
-.kx-threshold__particles{ z-index:0; opacity:.42; width:100%; height:100%; display:block; }
+.kx-threshold__particles{ z-index:0; opacity:.42; width:100%; height:100%; display:block;
+  /* 2026-08-28: el organismo responde al estado, no solo el halo.
+     THRESHOLD tiene 31-38% de ruido ambiental propio (particulas animadas).
+     Un lavado radial encima nunca lo supera: se probo a .28, a .5, y
+     ampliando la vineta del 55% al 22% del radio -- las tres veces el gate
+     siguio marcando ESTADO SIN CONSECUENCIA, con razon. En una escena que ya
+     cambia un tercio de la pantalla sola, un velo sutil GENUINAMENTE no se
+     nota.
+     La via correcta es la que pide el canon: que reaccione el ORGANISMO.
+     Las particulas ocupan el 100% del viewport, asi que cuando cambian de
+     brillo y saturacion cambia toda la pantalla -- eso si supera su propio
+     ruido. Es el mismo mecanismo por el que COSMOLOGY pasa con 34% de ruido:
+     su respuesta es del organismo, no de una capa encima. */
+  transition:opacity 900ms cubic-bezier(.22,.61,.36,1), filter 900ms cubic-bezier(.22,.61,.36,1);
+}
+.kx-threshold[data-kdx-estado="aware"]  .kx-threshold__particles{ opacity:.66; filter:brightness(1.35) saturate(1.25); }
+.kx-threshold[data-kdx-estado="locked"] .kx-threshold__particles{ opacity:.80; filter:brightness(1.6) saturate(1.45); }
+.kx-threshold[data-kdx-estado="active"] .kx-threshold__particles{ opacity:.94; filter:brightness(1.9) saturate(1.7); }
+@media (prefers-reduced-motion: reduce){
+  .kx-threshold__particles{ transition-duration:1ms; }
+}
 
 /* SEÑAL DE ESTADO PARA THRESHOLD · 2026-08-28
  *
@@ -5371,4 +5399,20 @@ html[data-kdx-umbral-reconocido] .kx-veil__devuelta{ display:inline-flex; align-
     min-height: 44px;
     padding: 12px;
   }
+}
+
+/* El titulo cinetico del umbral hereda la tipografia de la marca original
+   (2026-08-28). El componente trae su propio <h1>, asi que las reglas de
+   .kx-threshold__marca no lo alcanzaban: se reaplican aca sobre .kdx-tt__h
+   para que cambie el MECANISMO, no la identidad. Misma serif, mismo cuerpo,
+   mismo resplandor rojo del umbral. */
+.kx-threshold__marca-cinetico .kdx-tt__h{
+  margin:.06em 0; font-family:'Instrument Serif',Georgia,serif; font-weight:400;
+  font-size:clamp(52px,11vw,150px); line-height:.9; letter-spacing:-.01em;
+  color:var(--kx-umbral-hueso);
+  mix-blend-mode:screen; text-shadow:0 0 40px rgba(255,39,51,.35);
+  text-transform:none;
+}
+@media (max-width:640px){
+  .kx-threshold__marca-cinetico .kdx-tt__h{ font-size:clamp(46px,14vw,84px); }
 }
