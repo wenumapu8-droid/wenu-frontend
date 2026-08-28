@@ -84,8 +84,15 @@ done
 if [ -n "$PUERTO_QA" ] && [ -f dist/index.html ]; then
   node scripts/kodex/servir-dist.mjs dist "$PUERTO_QA" >/dev/null 2>&1 &
   SRV_QA=$!
-  sleep 3
-  if [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PUERTO_QA/kodex/")" = "200" ]; then
+  # Espera activa, no pausa fija. El 28-08 se confirmó que un `sleep` fijo no
+  # siempre alcanza justo después de un build (caché frío): con 8s respondió
+  # bien donde 4s fallaba. Reintenta cada 1s hasta 15s antes de rendirse.
+  LISTO_QA=""
+  for intento in $(seq 1 15); do
+    sleep 1
+    [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PUERTO_QA/kodex/" 2>/dev/null)" = "200" ] && { LISTO_QA=1; break; }
+  done
+  if [ -n "$LISTO_QA" ]; then
     for m in qa-barrido qa-banco solapes; do
       [ -f "scripts/kodex/$m.mjs" ] || continue
       R=$(KDX_BASE="http://127.0.0.1:$PUERTO_QA" node "scripts/kodex/$m.mjs" 2>&1 | tail -3 | tr '\n' ' ')
@@ -205,11 +212,19 @@ done
 if [ -f scripts/kodex/gate-experiencia.mjs ] && [ -n "$PUERTO_GATE" ]; then
   node scripts/kodex/servir-dist.mjs dist "$PUERTO_GATE" >/dev/null 2>&1 &
   SERVIDOR=$!
-  sleep 3
+  # Espera activa -- mismo motivo que arriba. Antes con `sleep 3` fijo el gate
+  # podía reportar "no respondió" y saltarse la medición del ciclo entero en
+  # silencio, incluso cuando el servidor SÍ arrancaba bien un par de segundos
+  # después.
+  LISTO_GATE=""
+  for intento in $(seq 1 15); do
+    sleep 1
+    [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PUERTO_GATE/kodex/folio/i/" 2>/dev/null)" = "200" ] && { LISTO_GATE=1; break; }
+  done
 
   # Confirmar que quien responde es NUESTRO servidor y no un vecino: si el
   # build propio no está ahí, medir sería peor que no medir.
-  if [ "$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$PUERTO_GATE/kodex/folio/i/")" = "200" ]; then
+  if [ -n "$LISTO_GATE" ]; then
     # Portón (c): el banco, contra NUESTRO servidor.
     if [ -f scripts/kodex/qa-banco.mjs ]; then
       BANCO=$(KDX_BASE="http://127.0.0.1:$PUERTO_GATE" node scripts/kodex/qa-banco.mjs 2>&1 \
