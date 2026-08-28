@@ -79,5 +79,27 @@ export const tagline = 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.';
 
 export function findSceneByPath(pathname) {
   const clean = pathname.replace(/\/+$/, '') + '/';
-  return scenes.find((s) => s.href === clean) || scenes[0];
+  const exacta = scenes.find((s) => s.href === clean);
+  if (exacta) return exacta;
+
+  /* INTERLUDIOS · 2026-08-28 · P0
+   *
+   * Antes cualquier ruta que no fuera una de las siete caia en scenes[0],
+   * o sea THRESHOLD. Los interludios --que estan ENTRE escenas-- anunciaban
+   * '00 / 07 THRESHOLD' aunque uno cruce de ARCHIVE a MACHINE (03 -> 04) y
+   * el otro de COSMOLOGY a RETURN (05 -> 06). El sistema mentia sobre donde
+   * estaba parado el visitante, y eso no es cosmetico: la posicion es parte
+   * de lo que el OS afirma saber.
+   *
+   * La ruta ya trae la respuesta: /kodex/interlude/archive-machine/ dice de
+   * donde viene. Se mantiene la escena de ORIGEN hasta completar el cruce,
+   * que es lo que el visitante percibe: todavia no llego a la siguiente.
+   */
+  const inter = clean.match(/^\/kodex\/interlude\/([a-z0-9]+)-[a-z0-9]+\/$/i);
+  if (inter) {
+    const origen = scenes.find((s) => (s.hash || '').toLowerCase() === inter[1].toLowerCase());
+    if (origen) return origen;
+  }
+
+  return scenes[0];
 }
