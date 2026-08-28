@@ -172,6 +172,7 @@ async function inspect(page, scene, profile) {
   await page.screenshot({
     path: path.join(outputDir, screenshot),
     animations: profile.reducedMotion === 'reduce' ? 'allow' : 'disabled',
+    timeout: 60_000,
   });
 
   return {
