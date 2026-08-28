@@ -33,6 +33,49 @@ const report = {
   summary: {},
 };
 
+async function activateSceneInteraction(page, scene, profile) {
+  if (scene.id !== 'cosmology') return null;
+
+  const button = page.locator('[data-cosmo-next]').first();
+  await button.waitFor({ state: 'visible', timeout: 5_000 });
+  const box = await button.boundingBox();
+  if (!box || box.width < 1 || box.height < 1) throw new Error('cosmology CTA has no hit bounds');
+
+  const before = await page.evaluate(() => ({
+    focus: document.querySelector('.kdx-cosmo')?.getAttribute('data-focus') || null,
+    node: document.querySelector('[data-cosmo-node]')?.textContent?.trim() || null,
+    pulseCount: document.querySelectorAll('.kdx-portal.is-pulse').length,
+  }));
+
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+  if (profile.hasTouch) await page.touchscreen.tap(x, y);
+  else await page.mouse.click(x, y);
+
+  await page.waitForFunction(() => {
+    const focus = document.querySelector('.kdx-cosmo')?.getAttribute('data-focus');
+    const pulseCount = document.querySelectorAll('.kdx-portal.is-pulse').length;
+    const focusedCount = document.querySelectorAll('.kdx-cosmo__nodes .is-focus').length;
+    return Boolean(focus && pulseCount > 0 && focusedCount === 1);
+  }, null, { timeout: 3_000 });
+
+  const after = await page.evaluate(() => ({
+    focus: document.querySelector('.kdx-cosmo')?.getAttribute('data-focus') || null,
+    node: document.querySelector('[data-cosmo-node]')?.textContent?.trim() || null,
+    pulseCount: document.querySelectorAll('.kdx-portal.is-pulse').length,
+    focusedCount: document.querySelectorAll('.kdx-cosmo__nodes .is-focus').length,
+    activeLinks: [...document.querySelectorAll('.kdx-cosmo__links [data-link]')]
+      .filter((line) => line.getAttribute('stroke') === '#FF00C8')
+      .map((line) => line.getAttribute('data-link')),
+  }));
+
+  if (!after.focus || after.pulseCount < 1 || after.focusedCount !== 1) {
+    throw new Error(`cosmology CTA did not focus map: ${JSON.stringify(after)}`);
+  }
+
+  return { control: 'REVEAL CONNECTION', before, after };
+}
+
 async function inspect(page, scene, profile) {
   const url = new URL(scene.href, baseURL).toString();
   const pageErrors = [];
@@ -112,11 +155,18 @@ async function inspect(page, scene, profile) {
   }, { width: profile.width, height: profile.height });
 
   const failures = [];
+  let interaction = null;
   if (!response || response.status() < 200 || response.status() >= 400) failures.push(`HTTP ${response?.status() || 0}`);
   if (metrics.scrollWidth > profile.width + 2) failures.push(`horizontal overflow ${metrics.scrollWidth}px > ${profile.width}px`);
   if (metrics.scrollHeight > profile.height + 2) failures.push(`page-level vertical scroll ${metrics.scrollHeight}px > ${profile.height}px`);
   if (metrics.h1Clipped) failures.push('h1 clipped outside viewport');
   if (pageErrors.length) failures.push(`pageerror ${pageErrors.join(' | ')}`);
+
+  try {
+    interaction = await activateSceneInteraction(page, scene, profile);
+  } catch (error) {
+    failures.push(`interaction ${String(error?.message || error)}`);
+  }
 
   const screenshot = `${scene.id}-${profile.key}.png`;
   await page.screenshot({
@@ -136,6 +186,7 @@ async function inspect(page, scene, profile) {
       smallTargets: metrics.smallTargets,
       artViewportShare: metrics.artViewportShare,
       primaryRect: metrics.primaryRect,
+      interaction,
     },
     metrics,
     pageErrors,
