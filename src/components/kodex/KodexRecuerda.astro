@@ -19,9 +19,91 @@ const { umbralPermanencia = 6000, registraVista = false } = Astro.props;
 ></span>
 
 <script>
-  import { record } from "../../kodex/return/memory.js";
+  import { readSpecimen, record } from "../../kodex/return/memory.js";
 
   const marca = document.querySelector("[data-kdx-permanencia]");
+
+  const sceneName = (route) => {
+    const match = String(route).match(/\/kodex\/folio\/(i{1,3}|iv|v|vi)\/?$/);
+    if (match) return { i: "PROLOGUE", ii: "DESCENT", iii: "ARCHIVE", iv: "MACHINE", v: "COSMOLOGY", vi: "RETURN" }[match[1]] || "";
+    if (/\/kodex\/?$/.test(route)) return "THRESHOLD";
+    if (/\/kodex\/interlude\//.test(route)) return "INTERLUDE";
+    if (/\/kodex\/lamina\//.test(route)) return "LAMINA";
+    if (/\/kodex\/vol\//.test(route)) return "VOLUME";
+    return "";
+  };
+
+  const ensureReturnSpecimenStyles = () => {
+    if (document.getElementById("kdx-return-specimen-style")) return;
+    const style = document.createElement("style");
+    style.id = "kdx-return-specimen-style";
+    style.textContent = `
+      .kdx-espec{display:flex;flex-direction:column;gap:9px;margin:0 0 14px;max-width:min(46ch,100%)}
+      .kdx-espec__state{margin:0;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:max(10px,.58rem);letter-spacing:.2em;text-transform:uppercase;color:var(--acc,#A7FF00)}
+      .kdx-espec__code{margin:0;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:clamp(.98rem,3.4vw,1.34rem);letter-spacing:.05em;color:var(--kdx-off-white,#E6E6E6);overflow-wrap:anywhere}
+      .kdx-espec__reading{margin:0;font-size:max(11px,.68rem);line-height:1.38;color:var(--kdx-muted,#88888A)}
+      .kdx-espec__route{position:relative;display:flex;align-items:center;gap:var(--kdx-espec-gap,14px);min-height:25px;overflow:hidden}
+      .kdx-espec__route i{position:relative;display:block;width:7px;height:7px;flex:0 0 auto;border:1px solid color-mix(in srgb,var(--acc,#A7FF00) 70%,transparent);transform:rotate(45deg);background:color-mix(in srgb,var(--acc,#A7FF00) 22%,transparent)}
+      .kdx-espec__route i+i:before{content:'';position:absolute;right:100%;top:50%;width:var(--kdx-espec-gap,14px);height:1px;transform:translateY(-50%) rotate(-45deg);transform-origin:right center;background:color-mix(in srgb,var(--acc,#A7FF00) 40%,transparent)}
+      .kdx-espec__route i:last-child{background:var(--acc,#A7FF00);animation:kdx-espec-pulse 2.6s ease-in-out infinite}
+      @keyframes kdx-espec-pulse{0%,100%{opacity:1;box-shadow:0 0 0 0 color-mix(in srgb,var(--acc,#A7FF00) 55%,transparent)}50%{opacity:.72;box-shadow:0 0 0 4px color-mix(in srgb,var(--acc,#A7FF00) 0%,transparent)}}
+      @media (prefers-reduced-motion:reduce){.kdx-espec__route i:last-child{animation:none}}
+    `;
+    document.head.appendChild(style);
+  };
+
+  const paintReturnSpecimen = () => {
+    if (!/\/kodex\/folio\/vi\/?$/.test(location.pathname)) return;
+    const target = document.querySelector(".kx-return-actions");
+    if (!target || target.querySelector("[data-kdx-especimen]")) return;
+
+    let specimen;
+    try { specimen = readSpecimen(); } catch { return; }
+    if (!specimen) return;
+
+    ensureReturnSpecimenStyles();
+
+    const root = document.createElement("section");
+    root.className = "kdx-espec";
+    root.setAttribute("data-kdx-especimen", "");
+    root.setAttribute("aria-live", "polite");
+
+    const state = document.createElement("p");
+    state.className = "kdx-espec__state";
+    state.textContent = specimen.curated
+      ? "CURATED SPECIMEN"
+      : `PERSONAL SPECIMEN · CYCLE ${String(specimen.cycle).padStart(2, "0")}`;
+
+    const code = document.createElement("p");
+    code.className = "kdx-espec__code";
+    code.textContent = specimen.code;
+
+    const route = document.createElement("div");
+    route.className = "kdx-espec__route";
+    route.setAttribute("aria-hidden", "true");
+    const gap = 12 + Math.round(specimen.signal * 16);
+    route.style.setProperty("--kdx-espec-gap", `${gap}px`);
+    route.replaceChildren(...specimen.works.slice(-14).map(() => document.createElement("i")));
+
+    const reading = document.createElement("p");
+    reading.className = "kdx-espec__reading";
+    if (specimen.curated) {
+      reading.textContent = "The archive does not remember this route yet. Cross a scene and return.";
+    } else {
+      const names = [...new Set(specimen.works.map(sceneName).filter(Boolean))];
+      const count = specimen.works.length;
+      const hand = specimen.chirality > 0 ? "right" : "left";
+      const signal = Math.round(specimen.signal * 100);
+      reading.textContent = `${count} ${count === 1 ? "step" : "steps"} recorded`
+        + (names.length ? ` · ${names.join(" -> ")}` : "")
+        + ` · ${hand} chirality · signal ${signal}%`
+        + (specimen.visualChain.length ? ` · ${specimen.visualChain.length} transformations` : "");
+    }
+
+    root.replaceChildren(state, code, route, reading);
+    target.prepend(root);
+  };
+
   if (marca) {
     if (marca.hasAttribute("data-kdx-vista") && !document.querySelector(".kxm-nav")) {
       try { record({ type: "view", work: location.pathname }); } catch {}
@@ -62,4 +144,7 @@ const { umbralPermanencia = 6000, registraVista = false } = Astro.props;
 
     schedule();
   }
+
+  paintReturnSpecimen();
+  document.addEventListener("astro:page-load", paintReturnSpecimen);
 </script>

@@ -1,0 +1,15 @@
+# NEXT ACTIONS — KODEX Release 2026-08-22
+
+1. Treat `900bf746695b23b441b807756c9a398f954b48d0` / KODEX Core Runtime #407 (run `32595208231`) as the current exact-head technical/browser/temporal baseline until a later product-changing head is fully re-verified. Documentation-only commits do not displace this baseline.
+2. Do not rebuild Assembly OS / Deep Navigation P0.1–P0.10. PR #62 is closed baseline infrastructure; correctness remains in the existing registries, schemas, constraints, validators and JourneyState/memory authorities.
+3. Advance only the PR #101 lineage. Use issue #117 as coordination authority and issue #114 as the release board. Historical PRs are bounded source material, never parallel products.
+4. Resolve exact registered paths/provenance for the current seven-scene curatorial candidate before implementation. Never infer filenames or SOURCE_IDs from visual nicknames.
+5. Confirmed candidate path: DESCENT `bw-06` exists at `/img/kodex/works/bw-06.jpg`; `/img/kodex/works/bw-06-alpha.png` also exists. This is safe to prototype as a candidate only; it is not creator-accepted canon.
+6. “Umbral Partido” and “Ojo Binario” are unresolved aliases: no exact repository-name match and no match in the current Master Asset Registry text. Keep THRESHOLD/PROLOGUE current mappings until a real registered asset/path is resolved.
+7. After exact-path resolution, prototype the smallest scene-art mapping delta through `src/pages/kodex/folio/[folio].astro` → `sceneByFolio`. Do not create a second manifest, renderer, router, state store, memory system, design system or scene authority.
+8. Immediately re-run whole-corridor evidence after any product-facing mapping change: desktop, 390×844, 412×915 and reduced-motion; preserve 100dvh/no body scroll, keyboard/touch parity, artwork aspect integrity, no first-party browser errors and no consequential URL/history/memory write before explicit visitor choice.
+9. Close the highest-impact visible defects next: RETURN title/art/control overlap; ARCHIVE first-view must become constellation/genealogy-first; reduce shared HUD/dashboard competition across scenes.
+10. Preserve perceptual order `ART / ORGANISM → SIGNAL → MOTION → TITLE → INTERACTION → DEPTH → SYSTEM`. Image/artwork/organism dominates before interface; controls remain accessible but visually integrated into the world.
+11. Keep every scene macroscopically distinct: THRESHOLD aperture/membrane; PROLOGUE observation field; DESCENT vertical fracture/tunnel; ARCHIVE constellation/genealogy; MACHINE causal lattice; COSMOLOGY expansive relational network; RETURN collapse/seed/re-emergence. Do not solve distinction by recoloring one repeated radial grammar.
+12. Run whole-corridor creator review only after the mapping and P0/P1 visual defects are browser-verified. Technical PASS is not creator KEEP, canon, merge or deploy.
+13. No merge, deployment, permission/account/credential change, `.claude/settings.json` edit, protected-original mutation, fabricated provenance, or irreversible canon promotion without its explicit gate.
