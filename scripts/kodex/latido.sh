@@ -176,14 +176,19 @@ KDX=$(ls dist/kodex 2>/dev/null | wc -l | tr -d ' ')
 #    Acá arriba apuntaba al puerto por defecto (4342) —el de otro agente— y por
 #    eso frenaba producción con el resultado de un build ajeno.
 
-# d) TRINQUETE DE EXPERIENCIA. No exige que las 7 escenas pasen el gate —hoy
-#    no pasa ninguna—, exige que NUNCA EMPEOREN. Si el número de escenas que
-#    fallan sube respecto de la última medición, no se publica.
+# d) TRINQUETE DE EXPERIENCIA — por IDENTIDAD DE ESCENA, no por conteo.
 #
-#    Un muro ("las 7 deben pasar") congelaría la publicación autónoma que Ocin
-#    autorizó. Un trinquete deja avanzar y prohíbe retroceder: el sistema puede
-#    mejorar solo, nunca degradarse solo. Cuando el gate llegue a 0 fallan, el
-#    trinquete se vuelve el muro por sí mismo, sin cambiar una línea.
+#    El 27-08 el conteo total escondió una regresión real: DESCENT y ARCHIVE
+#    retrocedieron de PASS a FAIL el mismo día que PROLOGUE avanzó de FAIL a
+#    PASS. Un trinquete que sólo mira "cuántas fallan" no lo habría frenado
+#    aunque el total hubiera empeorado — y ni siquiera hacía falta que el total
+#    cambiara para que el problema pasara inadvertido: una escena buena puede
+#    reemplazar a una mala en el conteo sin que el número se mueva un bit.
+#
+#    Ahora se guarda un VECTOR: `ESCENA=PASS` o `ESCENA=FAIL`, una línea por
+#    escena. Se frena si CUALQUIER escena que pasaba ayer falla hoy — sin
+#    importar qué le pase al total. Mejorar una escena nunca cuesta otra.
+#
 #    El puerto NO es 4342: el 26-08 otro agente ya tenía ahí un servidor con
 #    otro build (`../qa/servir.mjs dist-after 4342`). El gate se conectó, midió
 #    ese build ajeno y devolvió resultados creíbles pero de otra cosa. Puerto
@@ -191,6 +196,7 @@ KDX=$(ls dist/kodex 2>/dev/null | wc -l | tr -d ' ')
 #    El Mini tiene varios agentes con servidores propios: 4342 y 4399 ya
 #    estaban tomados. Se busca un puerto libre en vez de asumir uno.
 BASELINE="$REPO/estado/gate-experiencia.txt"
+VECTOR_BASELINE="$REPO/estado/gate-vector.txt"
 PUERTO_GATE=""
 for pt in 4877 4878 4879 4880; do
   lsof -nP -iTCP:$pt -sTCP:LISTEN >/dev/null 2>&1 || { PUERTO_GATE=$pt; break; }
@@ -212,19 +218,39 @@ if [ -f scripts/kodex/gate-experiencia.mjs ] && [ -n "$PUERTO_GATE" ]; then
     fi
     node scripts/kodex/gate-experiencia.mjs --base=http://127.0.0.1:$PUERTO_GATE >/tmp/kodex-gate.log 2>&1
     AHORA=$(grep -oE '[0-9]+ fallan' /tmp/kodex-gate.log | grep -oE '^[0-9]+')
+    VECTOR_AHORA=$(grep '^VECTOR:' /tmp/kodex-gate.log | sed 's/^VECTOR://')
   else
     log "gate-experiencia: nuestro servidor no respondió en $PUERTO_GATE · no mido"
     AHORA=""
+    VECTOR_AHORA=""
   fi
   kill "$SERVIDOR" 2>/dev/null
 
   ANTES=$(cat "$BASELINE" 2>/dev/null || echo "")
   if [ -n "$AHORA" ]; then
     log "gate-experiencia: $AHORA fallan (antes: ${ANTES:-sin medir})"
-    if [ -n "$ANTES" ] && [ "$AHORA" -gt "$ANTES" ]; then
-      FRENO="$FRENO experiencia:$ANTES→$AHORA"
-    else
-      echo "$AHORA" > "$BASELINE"      # sólo baja o queda igual: el trinquete
+  fi
+
+  # El vector manda. El conteo ($AHORA/$BASELINE) queda sólo como bitácora.
+  if [ -n "$VECTOR_AHORA" ]; then
+    VECTOR_ANTES=$(cat "$VECTOR_BASELINE" 2>/dev/null || echo "")
+    if [ -n "$VECTOR_ANTES" ]; then
+      REGRESIONES=""
+      IFS=',' read -ra PARES_ANTES <<< "$VECTOR_ANTES"
+      for par in "${PARES_ANTES[@]}"; do
+        esc="${par%%=*}"; estado_antes="${par##*=}"
+        [ "$estado_antes" != "PASS" ] && continue
+        estado_ahora=$(echo "$VECTOR_AHORA" | tr ',' '\n' | grep "^$esc=" | cut -d= -f2)
+        [ "$estado_ahora" = "FAIL" ] && REGRESIONES="$REGRESIONES $esc"
+      done
+      if [ -n "$REGRESIONES" ]; then
+        FRENO="$FRENO regresion:$REGRESIONES"
+        log "gate-experiencia: REGRESIÓN por escena ·$REGRESIONES"
+      fi
+    fi
+    if [ -z "$FRENO" ]; then
+      echo "$VECTOR_AHORA" > "$VECTOR_BASELINE"
+      [ -n "$AHORA" ] && echo "$AHORA" > "$BASELINE"
     fi
   fi
 else

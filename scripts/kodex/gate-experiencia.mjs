@@ -352,6 +352,20 @@ for (const r of informe) {
 
 console.log(`${informe.length - fallan}/${informe.length} pasan · ${fallan} fallan`);
 
+/* VECTOR POR ESCENA · para el trinquete de no-regresión.
+ *
+ * El 27-08 el conteo total escondió una regresión real: ayer pasaban
+ * DESCENT/ARCHIVE/COSMOLOGY/RETURN (4/7). Hoy pasan PROLOGUE/COSMOLOGY/RETURN
+ * (3/7) -- MENOS en total, pero además DESCENT y ARCHIVE retrocedieron de PASS
+ * a FAIL mientras PROLOGUE avanzaba de FAIL a PASS. Un trinquete que sólo mira
+ * "cuántas fallan" nunca lo habría visto: 4 y 3 son números distintos, pero
+ * ni siquiera hacía falta que coincidieran para esconder el problema -- pudo
+ * pasar con el MISMO conteo total y una escena buena reemplazando a una mala.
+ *
+ * Esta línea es la que el trinquete debe leer: identidad, no cantidad. */
+console.log("VECTOR:" + informe.map(f => `${f.escena}=${f.fallas.length === 0 ? "PASS" : "FAIL"}`).join(","));
+
+
 const maestra = informe.find(r => r.golden);
 if (maestra && maestra.fallas.length) {
   console.log('\nLa escena maestra no pasa. Nada se replica hasta que pase.');
