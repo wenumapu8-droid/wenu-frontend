@@ -162,18 +162,20 @@ async function inspect(page, scene, profile) {
   if (metrics.h1Clipped) failures.push('h1 clipped outside viewport');
   if (pageErrors.length) failures.push(`pageerror ${pageErrors.join(' | ')}`);
 
-  try {
-    interaction = await activateSceneInteraction(page, scene, profile);
-  } catch (error) {
-    failures.push(`interaction ${String(error?.message || error)}`);
-  }
-
   const screenshot = `${scene.id}-${profile.key}.png`;
+  // Capture the stable visual state before interaction-driven transitions. The
+  // interaction remains verified immediately after the evidence frame.
   await page.screenshot({
     path: path.join(outputDir, screenshot),
     animations: profile.reducedMotion === 'reduce' ? 'allow' : 'disabled',
     timeout: 60_000,
   });
+
+  try {
+    interaction = await activateSceneInteraction(page, scene, profile);
+  } catch (error) {
+    failures.push(`interaction ${String(error?.message || error)}`);
+  }
 
   return {
     scene: scene.id,
