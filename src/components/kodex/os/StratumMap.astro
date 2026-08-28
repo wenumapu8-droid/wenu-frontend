@@ -1,0 +1,124 @@
+---
+/**
+ * KODEX-∞ · STRATUM MAP
+ * 2026-08-28 · PATCH 2.4 · Spec §2.4
+ *
+ * Embudo vertical con VENTANA MÓVIL de 5 slots sobre los 8 estratos reales
+ * del manifest (`public/kodex-content/manifest.json:estratos`).
+ *
+ * El board de DESCENT (00-LA-REFERENCIA-MANDA:132) dibuja 5 posiciones
+ * (-01..-05). El manifest tiene 8. Reconciliación: el board es una CONVENCIÓN
+ * VISUAL (ventana de 5 a la vez); el manifest es la VERDAD DE DATOS.
+ *
+ * La ventana se centra en `actual`. Cuando el visitante está en un extremo,
+ * los slots que faltarían se marcan como `[?]` — refleja que no descendió
+ * tanto todavía.
+ *
+ * El slot activo está SIEMPRE al centro visualmente. Al avanzar
+ * `data-kdx-stratum-actual`, el componente re-calcula la ventana.
+ */
+interface Props {
+  /** Nombres reales de estratos, del manifest */
+  estratos: string[];
+  /** Índice actual (0..estratos.length-1) */
+  actual: number;
+  /** Slots visibles, default 5 (respeta board) */
+  ventana?: number;
+  accent?: string;
+  class?: string;
+}
+
+const {
+  estratos,
+  actual,
+  ventana = 5,
+  accent = "var(--kdx-orange, #FF6A00)",
+  class: className = "",
+} = Astro.props;
+
+const half = Math.floor(ventana / 2);
+const start = Math.max(0, Math.min(Math.max(0, estratos.length - ventana), actual - half));
+const slots = Array.from({ length: ventana }, (_, i) => {
+  const idx = start + i;
+  const item = estratos[idx];
+  return {
+    idx,
+    label: item ? String(item).toUpperCase().replace(/-/g, ' ') : '[?]',
+    pos: `-${String(idx + 1).padStart(2, '0')}`,
+    active: idx === actual,
+    empty: !item,
+  };
+});
+---
+
+<ol
+  class:list={["kdx-stratum-map", className]}
+  style={`--stratum-accent:${accent};`}
+  data-kdx-stratum-map
+  data-kdx-stratum-actual={actual}
+  data-kdx-stratum-total={estratos.length}
+  aria-label={`Stratum map · position ${actual + 1} of ${estratos.length}`}
+>
+  {slots.map((s) => (
+    <li
+      class:list={["kdx-stratum-slot", { "is-active": s.active, "is-empty": s.empty }]}
+      data-stratum-pos={s.pos}
+      data-stratum-idx={s.idx}
+    >
+      <span class="kdx-stratum-slot__pos">{s.pos}</span>
+      <span class="kdx-stratum-slot__label">{s.label}</span>
+    </li>
+  ))}
+</ol>
+
+<style>
+  .kdx-stratum-map {
+    display: grid;
+    grid-auto-rows: 1fr;
+    gap: 4px;
+    margin: 12px auto;
+    max-width: 240px;
+    padding: 0;
+    list-style: none;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kdx-muted, #88888a);
+    transform-origin: top center;
+  }
+  .kdx-stratum-slot {
+    display: grid;
+    grid-template-columns: 3ch 1fr;
+    gap: 8px;
+    padding: 5px 10px;
+    border: 1px solid color-mix(in oklch, var(--stratum-accent) 20%, transparent);
+    transition: border-color 380ms ease, color 380ms ease, box-shadow 380ms ease;
+    transform-origin: center;
+  }
+  /* Embudo: cada slot es más angosto hacia abajo, dando sensación de descenso. */
+  .kdx-stratum-slot:nth-child(1) { transform: scaleX(1.00); }
+  .kdx-stratum-slot:nth-child(2) { transform: scaleX(0.93); }
+  .kdx-stratum-slot:nth-child(3) { transform: scaleX(0.86); }
+  .kdx-stratum-slot:nth-child(4) { transform: scaleX(0.79); }
+  .kdx-stratum-slot:nth-child(5) { transform: scaleX(0.72); }
+  .kdx-stratum-slot.is-active {
+    border-color: var(--stratum-accent);
+    color: var(--kdx-off-white, #e6e6e6);
+    box-shadow: 0 0 12px color-mix(in oklch, var(--stratum-accent) 40%, transparent);
+  }
+  .kdx-stratum-slot.is-empty { opacity: 0.35; }
+  .kdx-stratum-slot__pos {
+    color: var(--stratum-accent);
+    opacity: 0.75;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-stratum-slot { transition: none; }
+  }
+  @media (max-width: 640px) {
+    .kdx-stratum-map {
+      max-width: 200px;
+      font-size: 0.55rem;
+    }
+  }
+</style>

@@ -18,8 +18,14 @@ import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.ast
 import KodexField from '../../../components/kodex/field/KodexField.astro';
 import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
 import KodexCrtLayer from '../../../components/kodex/crt/KodexCrtLayer.astro';
+// 2026-08-28: componente para los 6 nodos textuales de ARCHIVE
+// (RECORD · RELATE · WEAVE · RECALL · PRESERVE · TRANSCEND). Spec §2.1.
+import KodexMicroCluster from '../../../components/kodex/KodexMicroCluster.astro';
 import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
 import KodexMuseo from '../../../components/kodex/museo/KodexMuseo.astro';
+// 2026-08-28: motor orbital para los 3 nodos poéticos de COSMOLOGY
+// (OBSERVATION · TERRITORY · COSMOS). Spec §2.3.
+import OrbitEngine from '../../../components/kodex/motion/OrbitEngine.astro';
 import KodexTira from '../../../components/kodex/museo/KodexTira.astro';
 import { leerManifiesto, resolver } from '../../../lib/kodex/volumenes';
 import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
@@ -35,10 +41,20 @@ import '../../../styles/kodex-instrumento.css';
 import { plateId, perfilMovil, plateVars, KDX_PLATE_CONTRACT_VERSION } from '../../../lib/kodex/plancha/plate-contract';
 import { fieldParams, motionVars, recipeFor, gridFor } from '../../../lib/kodex/grammar';
 import { specimens, families, discoWorks, folios, organs } from '../../../lib/kodexBook.js';
+// 2026-08-28: nombres reales de estratos del manifest, para el StratumMap
+// de DESCENT. Se leen en build (Astro SSG). Fallback: array vacío para no
+// romper el build en checkouts sin manifest.
+const _manifiesto = await leerManifiesto();
+const estratos = (_manifiesto.estratos || [])
+  .map((e) => e.titulo_en || e.titulo_es || e.id || e.nombre || '')
+  .filter(Boolean);
 /* Cada folio registra su paso: sin esto el recorrido llega vacío a RETURN
    y el espécimen sale curado en vez de personal. */
 import KodexRecuerda from '../../../components/kodex/KodexRecuerda.astro';
 import EspecimenRetorno from '../../../components/kodex/os/EspecimenRetorno.astro';
+// 2026-08-28: mapa de estratos con ventana móvil de 5 sobre 8 reales del
+// manifest. Spec §2.4.
+import StratumMap from '../../../components/kodex/os/StratumMap.astro';
 /* Carril de estados de PROLOGUE: hace visible la máquina que ya rige la
    escena, respuesta al gate ESTADO SIN CONSECUENCIA. Los nombres los fija
    la referencia del board (DORMANT/AWARE/OPEN/CROSSED/REMEMBERED); la
@@ -696,8 +712,16 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
 
             {folio === 'ii' && (
               <div class="kx-descent-panel" data-kdx-descent>
-                <p class="kx-os-stage__sub" data-stratum-count>STRATUM · 01 / 11</p>
-                <p class="kx-descent-panel__depth" data-stratum-depth>DEPTH · -137 M</p>
+                {/* Conteo dinámico. El script sobreescribe con strata.length real
+                    en runtime. El placeholder cambia de '01 / 11' a '01 / 08'
+                    para reflejar el manifest actual. */}
+                <p class="kx-os-stage__sub" data-stratum-count>STRATUM · 01 / 08</p>
+                {/* DEPTH: fórmula lineal declarada. Marcado como DERIVED con
+                    constantes explícitas, no como número inventado. */}
+                <p class="kx-descent-panel__depth" data-stratum-depth data-kdx-readout data-fuente="folio/[folio].astro:formula-depth (137m base, 89m step · elegidas)">DEPTH · -137 M</p>
+                {/* 2026-08-28: STRATUM MAP visual, ventana de 5 sobre 8
+                    reales del manifest. Spec §2.4. */}
+                <StratumMap estratos={estratos} actual={0} accent={sceneByFolio.accent} />
                 <h2 data-stratum-title>{selectedStratum.name}</h2>
                 <p data-stratum-read>{selectedStratum.read}</p>
                 <button class="kx-os-primary" type="button" data-stratum-next>{sceneByFolio.cta}</button>
@@ -714,6 +738,25 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   <div><dt>METHOD</dt><dd>{selectedArchive.method}</dd></div>
                   <div><dt>STATUS</dt><dd>{selectedArchive.status.toUpperCase()}</dd></div>
                 </dl>
+                {/* ARCHIVE · 6 nodos textuales del board (00-LA-REFERENCIA-MANDA:146-147).
+                    Cada nodo tiene una consecuencia visible declarada — sin
+                    efecto, es póster (00-EL-TEST-DEL-PNG.md). Spec §2.1. */}
+                <KodexMicroCluster
+                  title="ARCHIVE · SIX ACTIONS"
+                  code="KDX://ARCHIVE/NODES"
+                  status="LIVING"
+                  tone="green"
+                  items={[
+                    { glyph: 'orbit', label: 'RECORD',    value: 'CAPTURE ESSENCE',       motion: 'lock'   },
+                    { glyph: 'orbit', label: 'RELATE',    value: 'LINK PATTERNS',         motion: 'reveal' },
+                    { glyph: 'orbit', label: 'WEAVE',     value: 'SYNTHESIZE THREADS',    motion: 'flow'   },
+                    { glyph: 'orbit', label: 'RECALL',    value: 'ACTIVATE MEMORY',       motion: 'scan'   },
+                    { glyph: 'orbit', label: 'PRESERVE',  value: 'GUARD INTEGRITY',       motion: 'lock'   },
+                    { glyph: 'orbit', label: 'TRANSCEND', value: 'ELEVATE CONSCIOUSNESS', motion: 'reveal' },
+                  ]}
+                  data-kdx-organismo-nodos="archive"
+                  data-kdx-editorial
+                />
                 <button class="kx-os-primary" type="button" data-kdx-drawer-open="specimen">{sceneByFolio.cta}</button>
               </div>
             )}
@@ -726,7 +769,32 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   <div><dt>SOURCE</dt><dd data-machine-source>ACHROMA_006</dd></div>
                   <div><dt>METHOD</dt><dd data-machine-method>MIRROR / DITHER / FLOW</dd></div>
                   <div><dt>SEED</dt><dd data-machine-seed>A90C-73F1</dd></div>
-                  <div><dt>INTEGRITY</dt><dd>98.7%</dd></div>
+                  {/* INTEGRITY 98.7% queda como hueco declarado hasta que exista
+                      fuente medible. El gate lo detecta con data-fuente-pendiente
+                      pero no bloquea. Spec §2.6. */}
+                  <div><dt>INTEGRITY</dt><dd data-kdx-readout data-fuente-pendiente="integrity: sin fuente medida · HUECO DECLARADO">— · SIGNAL PENDING SOURCE</dd></div>
+                </dl>
+                {/* MACHINE · 4 lecturas del board 04-MACHINE.png:
+                    CORE MATRIX · FREQUENCY LOCK · ALIGNMENT GRID · STRUCTURAL LINKS.
+                    3 con data-fuente REAL, 1 (FREQUENCY LOCK) declarada como
+                    hueco por decisión firme (spec §2.2). */}
+                <dl class="kx-machine-readout__board" data-kdx-organismo-nodos="machine">
+                  <div>
+                    <dt>CORE MATRIX</dt>
+                    <dd data-kdx-readout data-fuente="folio/[folio].astro:machine-canvas-ready · LIVE" data-kdx-machine-core>—</dd>
+                  </div>
+                  <div>
+                    <dt>FREQUENCY LOCK</dt>
+                    <dd data-kdx-readout data-fuente-pendiente="frequency-lock: sin fuente conceptual · HUECO DECLARADO">— · SIGNAL PENDING SOURCE</dd>
+                  </div>
+                  <div>
+                    <dt>ALIGNMENT GRID</dt>
+                    <dd data-kdx-readout data-fuente="folio/[folio].astro:drawMachine-seed-stability · LIVE" data-kdx-machine-align>—</dd>
+                  </div>
+                  <div>
+                    <dt>STRUCTURAL LINKS</dt>
+                    <dd data-kdx-readout data-fuente="runtime/journeyGraph/frozen-canonical-graph.json:edges.length · CANONICAL_PARAMETER" data-kdx-machine-links>—</dd>
+                  </div>
                 </dl>
                 <button class="kx-os-primary" type="button" data-machine-generate>{sceneByFolio.cta}</button>
                 <button class="kx-os-ghost" type="button" data-kdx-drawer-open="machine">VIEW OUTPUT</button>
@@ -738,6 +806,24 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 <p class="kx-os-stage__sub" data-cosmo-node>NODE · WENU MAPU</p>
                 <h2 data-cosmo-state>STATE · MANIFESTED</h2>
                 <p data-cosmo-relation>DOMAIN · BODY / MATTER / RITUAL<br />RELATION · +∞</p>
+                {/* COSMOLOGY · 3 nodos orbitales del board (00-LA-REFERENCIA-MANDA:173).
+                    OBSERVATION · TERRITORY · COSMOS con sus máximas. En mobile
+                    (max-width:640px) las órbitas colapsan a stack vertical
+                    estático (PATCH 3.7). Spec §2.3. */}
+                <OrbitEngine variant="cosmos" scene="cosmology" class="kx-cosmo-orbits" data-kdx-organismo-nodos="cosmology">
+                  <article class="kx-cosmo-orbit" data-cosmo-nodo="observation" tabindex="0" aria-label="OBSERVATION · see without distortion">
+                    <span class="kx-cosmo-orbit__nombre">OBSERVATION</span>
+                    <span class="kx-cosmo-orbit__maxima">SEE WITHOUT DISTORTION</span>
+                  </article>
+                  <article class="kx-cosmo-orbit" data-cosmo-nodo="territory" tabindex="0" aria-label="TERRITORY · hold without possession">
+                    <span class="kx-cosmo-orbit__nombre">TERRITORY</span>
+                    <span class="kx-cosmo-orbit__maxima">HOLD WITHOUT POSSESSION</span>
+                  </article>
+                  <article class="kx-cosmo-orbit" data-cosmo-nodo="cosmos" tabindex="0" aria-label="COSMOS · be without boundary">
+                    <span class="kx-cosmo-orbit__nombre">COSMOS</span>
+                    <span class="kx-cosmo-orbit__maxima">BE WITHOUT BOUNDARY</span>
+                  </article>
+                </OrbitEngine>
                 <button class="kx-os-primary" type="button" data-cosmo-next>{sceneByFolio.cta}</button>
               </div>
             )}
