@@ -573,6 +573,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             organismo generado. */}
         {(
         <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug} data-kdx-domina={composicion.domina} {...contratoEscena}>
+          <span class="kx-os-stage__pulso" aria-hidden="true"></span>
           <KodexRegistration accent={sceneByFolio.accent} />
 
           {/* El campo de red sólo donde la escena todavía no tiene su propio
@@ -1199,22 +1200,18 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
 
   /* SEÑAL DE ESTADO INDEPENDIENTE DEL ORGANISMO · 2026-08-28
    *
-   * El filtro sobre `.kx-os-stage__livefield` medía distinto según el shader:
-   * DESCENT (network-vortex), ARCHIVE (mandelbrot-field) y MACHINE
-   * (impossible-structure) casi no responden a brightness/saturate/contrast
-   * -- por eso fallaban ESTADO SIN CONSECUENCIA mientras RETURN, COSMOLOGY y
-   * PROLOGUE, con otros shaders, sí pasaban. La consecuencia no puede
-   * depender de qué tan dócil sea el organismo de turno.
+   * Primer intento: un `::after` en `.kx-os-stage`. CHOCÓ -- DESCENT y
+   * ARCHIVE ya usaban `::before` Y `::after` en `.kx-os-stage` para sus
+   * fondos ambientales (kodex.css:86-107 y :4465-4487, opacidad fija .62/.72,
+   * sin condición de estado). Sólo puede existir un `::after` por elemento:
+   * las dos reglas peleaban por el mismo pseudo-elemento, y el resultado
+   * medido era ABSURDO -- opacidad .72 en reposo, .28 al activarse: menos
+   * visible al pasar a "aware", no más. El gate lo detectó como falta de
+   * consecuencia en ambas escenas, con toda razón.
    *
-   * Este halo vive ENCIMA de todo, en `.kx-os-stage` mismo -- no en el
-   * organismo -- así que su cambio se mide sin importar qué esté pasando
-   * debajo. Es la escena reconociendo presencia, no el organismo mutando:
-   * un borde de luz que respira en los bordes del cuadro. */
-  .kx-os-stage {
-    position: relative;
-  }
-  .kx-os-stage::after {
-    content: "";
+   * Corregido con un NODO REAL, no un pseudo-elemento. No puede colisionar
+   * con nada que ya exista o se agregue después. */
+  .kx-os-stage__pulso {
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -1227,9 +1224,9 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     );
     transition: opacity 900ms cubic-bezier(.22,.61,.36,1);
   }
-  .kx-os-stage[data-kdx-estado="aware"]::after   { opacity: .28; }
-  .kx-os-stage[data-kdx-estado="locked"]::after  { opacity: .42; }
-  .kx-os-stage[data-kdx-estado="active"]::after  { opacity: .58; }
+  .kx-os-stage[data-kdx-estado="aware"]  .kx-os-stage__pulso { opacity: .28; }
+  .kx-os-stage[data-kdx-estado="locked"] .kx-os-stage__pulso { opacity: .42; }
+  .kx-os-stage[data-kdx-estado="active"] .kx-os-stage__pulso { opacity: .58; }
 
   /* Reduced-motion: la consecuencia SIGUE EXISTIENDO, sin transición. Quitarla
      rompería la ley de causalidad para quien la necesita; lo que se quita es
@@ -1237,7 +1234,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   @media (prefers-reduced-motion: reduce) {
     .kx-os-stage,
     .kx-os-stage__livefield,
-    .kx-os-stage::after { transition-duration: 1ms; }
+    .kx-os-stage__pulso { transition-duration: 1ms; }
     /* El acercamiento se anula; el cambio de luz permanece. La información
        sobre el estado no se le quita a quien pidió menos movimiento. */
     .kx-os-stage[data-kdx-estado] .kx-os-stage__livefield { transform: none; }
