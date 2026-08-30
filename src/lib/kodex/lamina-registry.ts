@@ -143,8 +143,8 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   // a chamber KDX-CH-*, o (C) declarar ARCHIVO.
   {
     slug: 'akashic-crown', path: 'src/pages/kodex/lamina/akashic-crown.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "SERIE DE ARCHIVO PAGE 29" -- serie autoral, no nodo del corredor.',
   },
   {
     slug: 'anatomical-star', path: 'src/pages/kodex/lamina/anatomical-star.astro',
@@ -153,13 +153,13 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   },
   {
     slug: 'gaia-sentinel', path: 'src/pages/kodex/lamina/gaia-sentinel.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "LAMINA DE ARCHIVO PAGE 27" (reproduccion de a27-gaia-sentinel-canon.png).',
   },
   {
     slug: 'genesis-cradle', path: 'src/pages/kodex/lamina/genesis-cradle.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "LAMINA DE ARCHIVO PAGE 30" (reproduccion de a30-genesis-cradle.png).',
   },
   {
     slug: 'heart-chamber', path: 'src/pages/kodex/lamina/heart-chamber.astro',
@@ -187,8 +187,8 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   {
     slug: 'mycelial-oracle',
     path: 'src/pages/kodex/lamina/mycelial-oracle.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "LAMINA DE ARCHIVO PAGE 23" (reproduccion de a23-mycelial-oracle.png).',
   },
   {
     slug: 'null-knot', path: 'src/pages/kodex/lamina/null-knot.astro',
@@ -197,18 +197,18 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   },
   {
     slug: 'origin-forge', path: 'src/pages/kodex/lamina/origin-forge.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "SERIE DE ARCHIVO PAGE 22" -- pieza de serie autoral, no del corredor.',
   },
   {
     slug: 'silence-engine', path: 'src/pages/kodex/lamina/silence-engine.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN; candidata a chamber SILENCE.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Piloto de la SERIE DE ARCHIVO (referenciado desde 8 laminas de la serie).',
   },
   {
     slug: 'soul-weaver', path: 'src/pages/kodex/lamina/soul-weaver.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "LAB SERIE ARCHIVO PAGE 25" -- mismo cromo que silence-engine piloto.',
   },
   {
     slug: 'star-compass-seal',
@@ -218,8 +218,8 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   },
   {
     slug: 'star-lattice', path: 'src/pages/kodex/lamina/star-lattice.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN+THRESHOLD sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "LAB SERIE ARCHIVO PAGE 24" -- mismo cromo que silence-engine piloto.',
   },
   {
     slug: 't01-01-threshold-portal',
@@ -236,38 +236,38 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   {
     slug: 'u01-origin-field',
     path: 'src/pages/kodex/lamina/u01-origin-field.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'UNIVERSE GATE, menciona THRESHOLD sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Serie UNIVERSE GATE (memoria 2026-08-15): serie autoral no catalogada en atlas. Terminal ya construyo screen ORIGIN FIELD dedicado en Lote B.',
   },
   {
     slug: 'u02-threshold', path: 'src/pages/kodex/lamina/u02-threshold.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'UNIVERSE GATE, menciona RETURN+THRESHOLD sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Serie UNIVERSE GATE, no catalogada en atlas. THRESHOLD del corredor tiene su propia escena.',
   },
   {
     slug: 'u03-return', path: 'src/pages/kodex/lamina/u03-return.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'UNIVERSE GATE, menciona RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Serie UNIVERSE GATE, no catalogada en atlas. RETURN del corredor esta en folio/vi.',
   },
   {
     slug: 'u04-alphabet', path: 'src/pages/kodex/lamina/u04-alphabet.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'UNIVERSE GATE, menciona RETURN+THRESHOLD sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Serie UNIVERSE GATE, no catalogada en atlas. Terminal ya construyo screen ALPHABET en Lote B.',
   },
   {
     slug: 'u07-observer', path: 'src/pages/kodex/lamina/u07-observer.astro',
     kind: 'lamina', status: 'AMBIGUA',
-    reason: 'UNIVERSE GATE, candidata a chamber OBSERVER (KDX-CH-*).',
+    reason: 'Serie UNIVERSE GATE. OBSERVER es chamber especial KDX-CH-*; requiere decision autoral de si esta lamina es el nodo canonico de esa chamber.',
   },
   {
     slug: 'u09-source', path: 'src/pages/kodex/lamina/u09-source.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'UNIVERSE GATE, menciona ARCHIVE+THRESHOLD sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Serie UNIVERSE GATE, no catalogada en atlas.',
   },
   {
     slug: 'void-orchard', path: 'src/pages/kodex/lamina/void-orchard.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona ARCHIVE+RETURN sin entrada en atlas.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Docstring declara "LAB CROMO DE ARCHIVO a21" -- segunda de la serie, sobre silence-engine piloto.',
   },
 
   // ── ARCHIVO · 27 labs (biblioteca de laboratorio, no corredor) ──
