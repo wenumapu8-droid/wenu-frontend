@@ -41,6 +41,16 @@ interface AuthorityNotice {
   rights: string;
 }
 
+interface SceneContractNotice {
+  id: string;
+  file: string;
+  route: string;
+  visualTarget: string;
+  copyAuthority: string;
+  rightsGate: string;
+  stateSource: string;
+}
+
 interface Props {
   row: AtlasRow;
   slug: string;
@@ -49,6 +59,7 @@ interface Props {
   signalBase?: string;
   unit?: string;
   authority?: AuthorityNotice;
+  sceneContract?: SceneContractNotice;
 }
 
 const {
@@ -64,6 +75,7 @@ const {
     content: 'ATLAS SCREEN_CANDIDATE ROW',
     rights: 'OCIN RIGHTS GATE BLOQUEADO / 0 DE 25 PUBLIC APPROVED / NO OBRA MONTADA',
   },
+  sceneContract,
 } = Astro.props;
 
 const atlasSource = 'ATLAS-07A-inventario-nodos-conexiones.md';
@@ -74,6 +86,7 @@ const visibleStates = ['DORMANT', 'AWARE', 'FOCUS', 'OPEN', 'CROSSED', 'REMEMBER
 const sourceLines = [
   `ROW ${row.id}`,
   authority.atlas,
+  sceneContract ? `CONTRACT ${sceneContract.id}` : 'SCENE CONTRACT HUECO',
   row.epistemicLayer,
 ];
 const systemEntries: Array<[string, string]> = [
@@ -84,7 +97,13 @@ const systemEntries: Array<[string, string]> = [
 ];
 ---
 
-<main class="kdx-screen" data-kdx-screen={slug} style={`--screen-accent:${accent};`}>
+<main
+  class="kdx-screen"
+  data-kdx-screen={slug}
+  data-kdx-contract={sceneContract?.id ?? 'HUECO'}
+  data-kdx-rights-gate="OCIN_BLOCKED"
+  style={`--screen-accent:${accent};`}
+>
   <header class="kdx-screen__top">
     <a class="kdx-screen__back" href="/kodex/atlas/">ATLAS</a>
     <PuntoSenal base={signalBase} modo="SCREEN CANDIDATE / HUECO" accent="var(--screen-accent)" />
@@ -118,7 +137,11 @@ const systemEntries: Array<[string, string]> = [
       <CarrilEstados />
 
       <ol class="kdx-screen__visible-states" aria-label="Cadena visible">
-        {visibleStates.map((state) => <li data-fuente="REAL" data-source-detail="src/content/scenes/*.yaml">{state}</li>)}
+        {visibleStates.map((state) => (
+          <li data-fuente="REAL" data-source-detail={sceneContract?.stateSource ?? 'USER HARD RULE / visible chain'}>
+            {state}
+          </li>
+        ))}
       </ol>
 
       <dl class="kdx-screen__readouts">
@@ -148,11 +171,11 @@ const systemEntries: Array<[string, string]> = [
         </div>
         <div>
           <dt>VISUAL TARGET</dt>
-          <dd data-fuente="MOCK">{authority.visual}</dd>
+          <dd data-fuente="MOCK">{sceneContract?.visualTarget ?? authority.visual}</dd>
         </div>
         <div>
           <dt>RIGHTS GATE</dt>
-          <dd data-fuente="REAL">{authority.rights}</dd>
+          <dd data-fuente="REAL">{sceneContract?.rightsGate ?? authority.rights}</dd>
         </div>
       </dl>
     </article>
@@ -185,6 +208,9 @@ const systemEntries: Array<[string, string]> = [
           <div><dt>PALETTE</dt><dd data-fuente="REAL" data-source-detail={sourceDetail}>{row.palette}</dd></div>
           <div><dt>PROVENANCE</dt><dd data-fuente="REAL" data-source-detail={sourceDetail}>{row.provenance}</dd></div>
           <div><dt>CONTENT AUTHORITY</dt><dd data-fuente="REAL">{authority.content}</dd></div>
+          <div><dt>SCENE CONTRACT</dt><dd data-fuente={sceneContract ? 'REAL' : 'HUECO'}>{sceneContract ? `${sceneContract.id} / ${sceneContract.file}` : 'sin contrato de escena directo'}</dd></div>
+          <div><dt>CONTRACT ROUTE</dt><dd data-fuente={sceneContract ? 'REAL' : 'HUECO'}>{sceneContract?.route ?? 'fuera del corredor 00-06'}</dd></div>
+          <div><dt>COPY SOURCE</dt><dd data-fuente="REAL">{sceneContract?.copyAuthority ?? authority.content}</dd></div>
         </dl>
       </section>
 
