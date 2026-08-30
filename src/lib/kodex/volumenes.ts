@@ -90,6 +90,8 @@ export type Volumen = {
   marco?: Marco;
   /** Fuente, cuando el marco es ciencia o documentado. */
   fuente?: string;
+  /** Manifiesto L8 Assembly OS */
+  assembly_os?: Record<string, any>;
 };
 
 export type Manifiesto = {
@@ -132,14 +134,9 @@ export async function leerManifiesto(): Promise<Manifiesto> {
     return {
       version: m.kodex_manifest_version ?? m.version,
       estratos: Array.isArray(m.estratos) ? m.estratos : [],
-      // Se aceptan las dos grafías: el manifiesto lo escribe otra mano y no
-      // vale romper la biblioteca por una `s` de diferencia.
       volumenes: Array.isArray(m.volumes) ? m.volumes : Array.isArray(m.volumenes) ? m.volumenes : [],
     };
   } catch {
-    // Sin manifiesto la biblioteca está vacía, que es un estado válido: el
-    // marco de siete escenas funciona igual. Romper el build porque todavía
-    // no hay contenido sería castigar al que llega primero.
     return { estratos: [], volumenes: [] };
   }
 }
