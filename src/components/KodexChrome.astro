@@ -115,8 +115,12 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
         <span class="kx-sound__ic" aria-hidden="true">♪</span><span data-sound-label>SOUND · OFF</span>
       </button>
     )}
+    {/* SIGNAL is the visitor-controlled master key. Its label has exactly one
+        producer: kodex-engine.js derives LATENT/ACTIVE from the persisted toggle.
+        Scene observation state remains scene-owned (for example PROLOGUE's
+        data-kdx-obs inspector) and must not overwrite this control surface. */}
     <button class="kx-signal" data-signal aria-pressed="false">
-      <span class="kx-signal__dot"></span><span data-signal-label data-kdx-signal-live>SIGNAL · PENDING SOURCE</span>
+      <span class="kx-signal__dot"></span><span data-signal-label>SIGNAL · LATENT</span>
     </button>
     {isThreshold && <button type="button" class="kx-status__index" data-kdx-index-open aria-label="open codex index">INDEX</button>}
   </span>
@@ -125,45 +129,3 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
 {/* La barra de sistema: ⌘K, atajos y modos de visualizacion en TODAS las
     paginas del codice. Un instrumento se opera desde cualquier pantalla. */}
 <BarraOS />
-
-<script>
-  /* COPY COHERENCE — el cromo decia «SIGNAL · LATENT» mientras el ojo de la
-     escena estaba en LOCK. Medido: ojo=LOCK / shell=LATENT en el mismo cuadro.
-     Un instrumento que contradice a su propio organismo es peor que uno mudo.
-
-     No se inventa un estado nuevo para el shell: escucha el de la escena. Si no
-     hay una escena que exponga una fuente causal de estado, el shell falla
-     cerrado a PENDING SOURCE en vez de presentar LATENT como si fuera una
-     observacion real. */
-  const etiqueta = document.querySelector("[data-kdx-signal-live]");
-  if (etiqueta) {
-    const NOMBRE = {
-      DORMANT: "LATENT", IDLE: "LATENT", AWARE: "ACQUIRING",
-      LOCK: "LOCKED", TRACK: "TRACKING", INSPECT: "READING", DESCEND: "DESCENDING",
-    };
-    const pintar = () => {
-      const e = document.querySelector("[data-kdx-obs]")?.getAttribute("data-kdx-obs");
-      etiqueta.textContent = "SIGNAL · " + (NOMBRE[e] || "PENDING SOURCE");
-    };
-    /* La escena escribe `data-kdx-obs` cuando su maquina arranca, y eso pasa
-       DESPUES de este script: buscarlo aca dejaba el observador sin nodo y la
-       etiqueta congelada para siempre. Se espera a que aparezca una fuente
-       causal real; si no aparece, el estado fail-closed queda visible. */
-    const enganchar = (escena) => {
-      pintar();
-      new MutationObserver(pintar).observe(escena, { attributes: true, attributeFilter: ["data-kdx-obs"] });
-    };
-    const ya = document.querySelector("[data-kdx-obs]");
-    if (ya) enganchar(ya);
-    else {
-      const espera = new MutationObserver(() => {
-        const e = document.querySelector("[data-kdx-obs]");
-        if (e) { espera.disconnect(); enganchar(e); }
-      });
-      espera.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kdx-obs"] });
-      /* Si en 8s no aparecio ninguna escena con estado, se deja de esperar y
-         PENDING SOURCE permanece como verdad explicita, no telemetria fingida. */
-      setTimeout(() => espera.disconnect(), 8000);
-    }
-  }
-</script>
