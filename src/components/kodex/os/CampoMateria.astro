@@ -1,0 +1,169 @@
+---
+/**
+ * KODEX-∞ · CAMPO DE MATERIA AUTORAL
+ * P1 · 2026-08-30
+ *
+ * El lienzo donde la obra de Ocin deja de ser imagen y pasa a ser campo.
+ * Vive detras de la escena, a pantalla completa, y NO se desmonta al
+ * navegar: es el mismo canvas durante todo el viaje.
+ *
+ * Lee la materia que SourceSampler extrae y los pesos que publica el campo
+ * persistente. Cuando cambia el atractor, la obra nueva no reemplaza a la
+ * anterior: se mezcla sobre ella mientras el residuo decae. Por eso se
+ * percibe A convirtiendose en B, y no un corte.
+ */
+---
+
+<canvas
+  id="kdx-campo-materia"
+  class="kdx-materia"
+  aria-hidden="true"
+  data-fuente="REAL"
+></canvas>
+
+<style>
+  .kdx-materia {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    /* La materia vive DEBAJO de la escena: modula, no tapa. */
+    opacity: 0.55;
+    mix-blend-mode: screen;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Sin movimiento la materia sigue comunicando: queda el campo estatico,
+       que es exactamente el fallback que el gate exige. */
+    .kdx-materia { opacity: 0.4; }
+  }
+</style>
+
+<script>
+  import { muestrear, OBRA_POR_ATRACTOR, type MateriaAutoral } from '../../../kodex/persistent-field/SourceSampler';
+  import { campo, atractorDeRuta, type Atractor } from '../../../kodex/persistent-field/PersistentField';
+
+  const N_PART = 1400;
+
+  interface Particula { x: number; y: number; vx: number; vy: number; vida: number }
+
+  let iniciado = false;
+
+  function arrancar() {
+    if (iniciado) return;
+    const cv = document.getElementById('kdx-campo-materia') as HTMLCanvasElement | null;
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+    iniciado = true;
+
+    const c = campo();
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const materias = new Map<Atractor, MateriaAutoral>();
+    let part: Particula[] = [];
+    let W = 0, H = 0;
+
+    const medir = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      W = cv.width = Math.floor(innerWidth * dpr);
+      H = cv.height = Math.floor(innerHeight * dpr);
+    };
+    medir();
+    addEventListener('resize', medir, { passive: true });
+
+    /* Semilla del campo: mismo seed -> misma nube inicial. Reproducible. */
+    let s = c.actual.seed >>> 0;
+    const rnd = () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+    part = Array.from({ length: reduce ? 400 : N_PART }, () => ({
+      x: rnd(), y: rnd(), vx: 0, vy: 0, vida: rnd(),
+    }));
+
+    /* Cargar la materia del atractor actual y de los que dejaron residuo:
+       lo que se ve es la mezcla, no un reemplazo. */
+    const cargar = async (a: Atractor) => {
+      if (materias.has(a)) return;
+      const url = OBRA_POR_ATRACTOR[a];
+      if (!url) return;
+      try {
+        materias.set(a, await muestrear(url));
+      } catch {
+        /* Si una obra no carga, el campo sigue: la escena no depende de
+           que la materia exista. Fallback silencioso, no pantalla rota. */
+      }
+    };
+
+    const muestra = (m: MateriaAutoral, x: number, y: number, buf: Float32Array) => {
+      const i = Math.min(m.alto - 1, Math.max(0, (y * m.alto) | 0)) * m.ancho
+              + Math.min(m.ancho - 1, Math.max(0, (x * m.ancho) | 0));
+      return buf[i] || 0;
+    };
+
+    let raf = 0;
+    const dibujar = () => {
+      const e = c.actual;
+
+      /* Estela: no se limpia el frame, se desvanece. El rastro ES el
+         residuo visible -- las formas anteriores dejan memoria. */
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(7,7,10,0.10)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalCompositeOperation = 'lighter';
+
+      for (const p of part) {
+        let mx = 0, my = 0, masa = 0, borde = 0;
+
+        /* Cada atractor con peso o residuo aporta su obra. La suma
+           ponderada ES la transmutacion: entre ARCHIVE y MACHINE hay
+           infinitos estados intermedios porque los pesos son continuos. */
+        for (const [a, m] of materias) {
+          const w = (e.pesos[a] || 0) + (e.residuo[a] || 0) * 0.6;
+          if (w < 0.01) continue;
+          const ang = muestra(m, p.x, p.y, m.flujo);
+          const b = muestra(m, p.x, p.y, m.borde);
+          mx += Math.cos(ang) * b * w;
+          my += Math.sin(ang) * b * w;
+          masa += muestra(m, p.x, p.y, m.masa) * w;
+          borde += b * w;
+        }
+
+        /* El flujo de la obra empuja; el borde acelera. Donde la obra
+           decide algo, la particula se mueve mas. */
+        p.vx = p.vx * 0.94 + mx * 0.0016;
+        p.vy = p.vy * 0.94 + my * 0.0016;
+        p.x += p.vx; p.y += p.vy;
+        p.vida -= 0.0022;
+
+        if (p.vida <= 0 || p.x < 0 || p.x > 1 || p.y < 0 || p.y > 1) {
+          p.x = rnd(); p.y = rnd(); p.vx = p.vy = 0; p.vida = 1;
+        }
+
+        /* PROFUNDIDAD: la masa de la obra es la coordenada Z. Lo denso se
+           dibuja mas grande y mas opaco; lo vacio casi desaparece. Eso es
+           lo que saca al canvas de la planitud sin agregar un shader. */
+        const z = 0.25 + masa * 1.15;
+        const alfa = Math.min(0.85, (0.06 + borde * 0.5) * p.vida * z);
+        if (alfa < 0.01) continue;
+
+        ctx.fillStyle = `rgba(255,248,235,${alfa.toFixed(3)})`;
+        const r = 0.4 + z * 1.5;
+        ctx.fillRect(p.x * W, p.y * H, r, r);
+      }
+
+      raf = reduce ? 0 : requestAnimationFrame(dibujar);
+    };
+
+    const sincronizar = async () => {
+      const a = atractorDeRuta(location.pathname);
+      if (!a) return;
+      await cargar(a);
+      if (!raf) { medir(); dibujar(); }
+    };
+
+    sincronizar();
+    document.addEventListener('astro:page-load', sincronizar);
+  }
+
+  arrancar();
+  document.addEventListener('astro:page-load', arrancar);
+</script>
