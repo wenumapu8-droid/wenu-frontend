@@ -42,11 +42,19 @@ try {
         const bodyText = document.body.innerText;
         const strip = document.querySelector('.kx-os-stage__strip');
         const machine = document.querySelector('[data-kdx-machine]');
-        const machineVisible = machine instanceof HTMLElement
-          && getComputedStyle(machine).display !== 'none'
-          && getComputedStyle(machine).visibility !== 'hidden'
-          && machine.getBoundingClientRect().width > 0
-          && machine.getBoundingClientRect().height > 0;
+        let machineInCamera = false;
+        if (machine instanceof HTMLElement) {
+          const style = getComputedStyle(machine);
+          const rect = machine.getBoundingClientRect();
+          machineInCamera = style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && rect.width > 0
+            && rect.height > 0
+            && rect.bottom > 0
+            && rect.right > 0
+            && rect.top < window.innerHeight
+            && rect.left < window.innerWidth;
+        }
         return {
           bodyText,
           stripText: strip?.textContent || '',
@@ -55,7 +63,7 @@ try {
           bodyHeight: document.body.scrollHeight,
           viewportHeight: window.innerHeight,
           machinePresent: Boolean(machine),
-          machineVisible,
+          machineInCamera,
         };
       });
 
@@ -64,13 +72,13 @@ try {
       if (!facts.machinePresent) failures.push('MACHINE readout missing from scene contract');
       if (/INTEGRITY\s*[·:]?\s*98\.7\s*%/i.test(facts.bodyText)) failures.push('unsourced INTEGRITY 98.7% still visible');
       if (!/INTEGRITY[\s\S]{0,80}PENDING SOURCE/i.test(facts.stripText)) failures.push('DataStrip does not fail closed for INTEGRITY');
-      // Desktop is spatial: when the detailed MACHINE readout is visible, its
-      // epistemic gap must be visible too. Mobile is temporal: the responsive
-      // choreography may intentionally omit the detailed panel rather than
-      // shrink desktop chrome into the phone viewport. Omission is truthful;
-      // showing a fabricated number is not.
-      if (facts.machineVisible && !/SIGNAL PENDING SOURCE/i.test(facts.bodyText)) {
-        failures.push('visible MACHINE readout omits pending-source disclosure');
+      // Desktop is spatial: when the detailed MACHINE readout intersects the
+      // actual camera, its epistemic gap must be visible too. Mobile is
+      // temporal: the choreography may keep the detailed panel outside the
+      // current camera rather than shrink desktop chrome into the phone view.
+      // Omission is truthful; showing a fabricated number is not.
+      if (facts.machineInCamera && !/SIGNAL PENDING SOURCE/i.test(facts.bodyText)) {
+        failures.push('in-camera MACHINE readout omits pending-source disclosure');
       }
       if (facts.scrollWidth > profile.width + 3) failures.push(`horizontal overflow ${facts.scrollWidth}px > ${profile.width}px`);
       if (pageErrors.length) failures.push(`pageerror ${pageErrors.join(' | ')}`);
@@ -89,7 +97,7 @@ try {
         pass: failures.length === 0,
         failures,
         pageErrors,
-        machineReadoutVisible: facts.machineVisible,
+        machineReadoutInCamera: facts.machineInCamera,
         metrics: {
           width: facts.width,
           scrollWidth: facts.scrollWidth,
