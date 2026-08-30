@@ -18,12 +18,17 @@
  * es un error suyo, y arreglarlo en cada consumidor es multiplicar el parche.
  */
 
-import type { SignalBus, SignalName } from "./contratos";
-import { pesoDeMemoria } from "./memoria";
+import type { SignalBus, SignalName } from "./contratos.ts";
+import { pesoDeMemoria } from "./memoria.ts";
 
 type Escucha = (v: number) => void;
 
-class Bus implements SignalBus {
+/**
+ * Exportado para tests. En produccion `senales()` gestiona el singleton;
+ * no instanciar `Bus` directo desde escenas -- el punto es que el bus sea
+ * UNO SOLO por documento y no que cada capa cargue el suyo.
+ */
+export class Bus implements SignalBus {
   private readonly valores = new Map<SignalName, number>();
   private readonly escuchas = new Map<SignalName, Set<Escucha>>();
 
@@ -54,8 +59,14 @@ class Bus implements SignalBus {
     }
     oyentes.add(fn);
     /* Se entrega el valor actual de inmediato: quien se suscribe tarde no
-       debería quedar en cero hasta el próximo cambio. */
-    fn(this.get(name));
+       debería quedar en cero hasta el próximo cambio.
+       Con try/catch por la misma razón que en `set`: un consumidor que
+       revienta al primer valor no puede tumbar el bus entero. */
+    try {
+      fn(this.get(name));
+    } catch {
+      /* mismo criterio que set: silenciar y seguir. */
+    }
     return () => {
       oyentes!.delete(fn);
     };
