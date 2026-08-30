@@ -1,0 +1,76 @@
+name: KODEX Visual Activators Collage QA
+
+on:
+  pull_request:
+    paths:
+      - 'src/pages/kodex/lab/visual-activators-collage-v0.astro'
+      - 'scripts/kodex-visual-activators-collage.test.mjs'
+      - 'scripts/qa-visual-activators-collage.mjs'
+      - '.github/workflows/kodex-visual-activators-collage-qa.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kodex-visual-activators-collage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      ALLOW_EMPTY_PRODUCTS: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run KODEX core tests
+        run: npm run test:kodex:core
+
+      - name: Build Astro application
+        run: npm run build
+
+      - name: Verify isolated output
+        run: |
+          test -f dist/kodex/lab/visual-activators-collage-v0/index.html
+          grep -q 'noindex, nofollow' dist/kodex/lab/visual-activators-collage-v0/index.html
+          grep -q 'THRESHOLD' dist/kodex/lab/visual-activators-collage-v0/index.html
+          grep -q 'RETURN' dist/kodex/lab/visual-activators-collage-v0/index.html
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start preview
+        shell: bash
+        run: |
+          npm run preview -- --host 127.0.0.1 > /tmp/kodex-activators-preview.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:4321/kodex/lab/visual-activators-collage-v0/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-activators-preview.log
+          exit 1
+
+      - name: Browser QA
+        run: node scripts/qa-visual-activators-collage.mjs
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-visual-activators-collage-v0
+          path: qa-artifacts/visual-activators-collage-v0/
+          if-no-files-found: warn
