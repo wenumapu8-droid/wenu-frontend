@@ -1,0 +1,54 @@
+---
+/**
+ * KODEX-∞ · MONTAJE DEL CAMPO PERSISTENTE
+ * P0 · 2026-08-30
+ *
+ * Se monta una vez por documento y engancha el campo al viaje. No dibuja
+ * nada: publica el estado del campo en el DOM para que los renderers que
+ * YA existen lo lean como moduladores, sin abrir un renderer nuevo.
+ *
+ * El master map es explicito: "los renderers existentes pasan a convertirse
+ * en operadores/moduladores del campo, no en universos aislados".
+ */
+---
+
+<script>
+  import { campo, atractorDeRuta, ATRACTORES } from '../../../kodex/persistent-field/PersistentField';
+
+  function sincronizar() {
+    const a = atractorDeRuta(location.pathname);
+    if (!a) return;   // fuera del corredor: el campo no se toca
+
+    const c = campo();
+    c.entrar(a);
+
+    const raiz = document.documentElement;
+
+    /* El estado del campo vive en el DOM. Cualquier renderer, shader o CSS
+       puede leerlo sin importar este modulo -- acoplamiento minimo, que es
+       lo que permite que los organismos existentes se sumen sin reescribirse. */
+    c.suscribir((e) => {
+      raiz.dataset.kdxAtractor = a;
+      raiz.dataset.kdxCiclo = String(e.ciclo);
+      raiz.dataset.kdxCalidad = e.calidad;
+      raiz.dataset.kdxRuta = c.firmaDeRuta();
+      raiz.style.setProperty('--kdx-seed', String(e.seed));
+
+      for (const x of ATRACTORES) {
+        const k = x.toLowerCase();
+        raiz.style.setProperty(`--kdx-peso-${k}`, e.pesos[x].toFixed(4));
+        raiz.style.setProperty(`--kdx-residuo-${k}`, e.residuo[x].toFixed(4));
+      }
+
+      /* Un solo evento para los runtimes que quieran reaccionar en JS.
+         No los obliga: el que no escuche sigue funcionando igual. */
+      window.dispatchEvent(new CustomEvent('kdx:campo', { detail: e }));
+    });
+  }
+
+  sincronizar();
+  /* Sobrevive a las view transitions: el campo NO se recrea, solo se le
+     avisa que cambio el regimen. Esa es la diferencia con
+     kodex-organism-client.ts:252, que destruye y remonta. */
+  document.addEventListener('astro:page-load', sincronizar);
+</script>
