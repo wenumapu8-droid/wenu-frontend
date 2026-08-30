@@ -66,6 +66,7 @@ import Base from '../../../layouts/Base.astro';
     const $ = (selector) => root.querySelector(selector);
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const audio = $('[data-oracle-audio]');
+    const LAB_PROLOGUE_DWELL_MS = 7000;
     let entered = false;
     let prologueRevealed = false;
     let captionTimer = 0;
@@ -149,17 +150,19 @@ import Base from '../../../layouts/Base.astro';
       $('[data-enter]')?.setAttribute('hidden', '');
 
       // LAB-ONLY emitter using the same public event contract already emitted by
-      // KodexRecuerda in product scenes. Production integration subscribes to the
-      // existing event; it does not need this timer.
+      // KodexRecuerda in product scenes. The delay deliberately exceeds the
+      // ADDRESS clip/caption so the first intervention resolves before REVEAL.
+      // Production integration subscribes to the existing event and does not
+      // copy this timer.
       window.clearTimeout(dwellTimer);
       dwellTimer = window.setTimeout(() => {
         window.dispatchEvent(new CustomEvent('kdx:scene-dwell', {
-          detail: { path: '/kodex/folio/i/', dwellMs: 4200, source: 'ORACLE_V0_LAB' },
+          detail: { path: '/kodex/folio/i/', dwellMs: LAB_PROLOGUE_DWELL_MS, source: 'ORACLE_V0_LAB' },
         }));
-      }, 4200);
+      }, LAB_PROLOGUE_DWELL_MS);
     };
 
-    window.addEventListener('kdx:scene-dwell', async (event) => {
+    window.addEventListener('kdx:scene-dwell', async () => {
       if (!entered || root.dataset.scene !== 'prologue' || prologueRevealed) return;
       prologueRevealed = true;
       await runCue('prologue', 'SCENE_DWELL');
