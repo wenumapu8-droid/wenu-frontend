@@ -43,6 +43,7 @@
 <script>
   import { muestrear, OBRA_POR_ATRACTOR, type MateriaAutoral } from '../../../kodex/persistent-field/SourceSampler';
   import { campo, atractorDeRuta, type Atractor } from '../../../kodex/persistent-field/PersistentField';
+  import { derivarFenotipo, sellar, herenciaPrevia } from '../../../kodex/persistent-field/ReturnPhenotype';
 
   const N_PART = 1400;
 
@@ -117,7 +118,12 @@
            ponderada ES la transmutacion: entre ARCHIVE y MACHINE hay
            infinitos estados intermedios porque los pesos son continuos. */
         for (const [a, m] of materias) {
-          const w = (e.pesos[a] || 0) + (e.residuo[a] || 0) * 0.6;
+          /* En RETURN la forma la decide el VIAJE, no la escena: cada
+             regimen pesa lo que lo recorriste. Ahi la memoria deja de ser
+             un dato y pasa a ser materia. */
+          const w = fenotipo
+            ? (e.pesos[a] || 0) * 0.25 + fenotipo.herencia[a] * 0.9
+            : (e.pesos[a] || 0) + (e.residuo[a] || 0) * 0.6;
           if (w < 0.01) continue;
           const ang = muestra(m, p.x, p.y, m.flujo);
           const b = muestra(m, p.x, p.y, m.borde);
@@ -153,10 +159,35 @@
       raf = reduce ? 0 : requestAnimationFrame(dibujar);
     };
 
+    /* P2 · RETURN consume el viaje REAL y produce SOURCE'. Los pesos de
+       herencia dicen cuanto de cada regimen sobrevive en la forma final:
+       misma ruta -> misma forma; otra ruta -> otra forma. Es la unica
+       escena que obliga al runtime a demostrar que KODEX recuerda. */
+    let fenotipo: ReturnType<typeof derivarFenotipo> | null = null;
+
+    /* P3 · THRESHOLD-prima. Lo que dejo el RETURN anterior no muere: el
+       proximo umbral arranca desde SOURCE', no desde cero. Por eso el
+       ciclo es una espiral y no un slideshow circular. */
+    const previa = herenciaPrevia();
+
     const sincronizar = async () => {
       const a = atractorDeRuta(location.pathname);
       if (!a) return;
       await cargar(a);
+
+      if (a === 'RETURN') {
+        fenotipo = derivarFenotipo(c.actual);
+        sellar(fenotipo);
+        /* La ruta se hace visible: sin esto la memoria seria invisible,
+           y una memoria que no se ve es indistinguible de no tenerla. */
+        document.documentElement.dataset.kdxFenotipo = fenotipo.firma;
+        document.documentElement.dataset.kdxDominante = fenotipo.dominante ?? '';
+        document.documentElement.style.setProperty('--kdx-torsion', fenotipo.torsion.toFixed(3));
+      } else if (a === 'THRESHOLD' && previa) {
+        document.documentElement.dataset.kdxHerencia = previa.firma;
+        document.documentElement.dataset.kdxCiclo = String(previa.ciclo);
+      }
+
       if (!raf) { medir(); dibujar(); }
     };
 
