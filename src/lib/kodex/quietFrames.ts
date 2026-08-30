@@ -1,4 +1,4 @@
-import { assetUrl } from "./volumenes";
+import { assetUrl } from "./volumenes.ts";
 
 export type QuietFramePreset = {
   id: string;
