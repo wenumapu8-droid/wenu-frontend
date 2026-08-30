@@ -41,6 +41,12 @@ try {
       const facts = await page.evaluate(() => {
         const bodyText = document.body.innerText;
         const strip = document.querySelector('.kx-os-stage__strip');
+        const machine = document.querySelector('[data-kdx-machine]');
+        const machineVisible = machine instanceof HTMLElement
+          && getComputedStyle(machine).display !== 'none'
+          && getComputedStyle(machine).visibility !== 'hidden'
+          && machine.getBoundingClientRect().width > 0
+          && machine.getBoundingClientRect().height > 0;
         return {
           bodyText,
           stripText: strip?.textContent || '',
@@ -48,16 +54,24 @@ try {
           scrollWidth: document.documentElement.scrollWidth,
           bodyHeight: document.body.scrollHeight,
           viewportHeight: window.innerHeight,
-          machinePresent: Boolean(document.querySelector('[data-kdx-machine]')),
+          machinePresent: Boolean(machine),
+          machineVisible,
         };
       });
 
       const failures = [];
       if (status < 200 || status >= 400) failures.push(`HTTP ${status}`);
-      if (!facts.machinePresent) failures.push('MACHINE readout missing');
+      if (!facts.machinePresent) failures.push('MACHINE readout missing from scene contract');
       if (/INTEGRITY\s*[·:]?\s*98\.7\s*%/i.test(facts.bodyText)) failures.push('unsourced INTEGRITY 98.7% still visible');
       if (!/INTEGRITY[\s\S]{0,80}PENDING SOURCE/i.test(facts.stripText)) failures.push('DataStrip does not fail closed for INTEGRITY');
-      if (!/SIGNAL PENDING SOURCE/i.test(facts.bodyText)) failures.push('scene-specific pending-source disclosure missing');
+      // Desktop is spatial: when the detailed MACHINE readout is visible, its
+      // epistemic gap must be visible too. Mobile is temporal: the responsive
+      // choreography may intentionally omit the detailed panel rather than
+      // shrink desktop chrome into the phone viewport. Omission is truthful;
+      // showing a fabricated number is not.
+      if (facts.machineVisible && !/SIGNAL PENDING SOURCE/i.test(facts.bodyText)) {
+        failures.push('visible MACHINE readout omits pending-source disclosure');
+      }
       if (facts.scrollWidth > profile.width + 3) failures.push(`horizontal overflow ${facts.scrollWidth}px > ${profile.width}px`);
       if (pageErrors.length) failures.push(`pageerror ${pageErrors.join(' | ')}`);
 
@@ -75,6 +89,7 @@ try {
         pass: failures.length === 0,
         failures,
         pageErrors,
+        machineReadoutVisible: facts.machineVisible,
         metrics: {
           width: facts.width,
           scrollWidth: facts.scrollWidth,
