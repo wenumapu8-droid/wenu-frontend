@@ -1,6 +1,16 @@
 /**
  * KODEX−∞ · PROLOGUE · MÁQUINA DE OBSERVACIÓN
  *
+ * VOCABULARIO CONGELADO 2026-08-29 (decision de Ocin). Se elimina IDLE.
+ * Razon: KODEX rastrea PRESENCIA, no intencion. Soltar el dedo es un hecho
+ * observable -- "dejo de sostener" -- y decaer a DORMANT ahi inferiria que se
+ * fue, que es justo lo que el canon 08G prohibe. AWARE dice "sigo viendote",
+ * que es lo que el motor efectivamente sabe.
+ *
+ * `salir` SI cae a DORMANT: que el puntero abandone el campo no es inferencia,
+ * es un hecho medido. DESCEND sigue terminal -- soltar despues de DESCEND no
+ * vuelve a AWARE, ya pasaste.
+ *
  * La lámina t01-02 dibuja tres etiquetas —LOCK, TRACK, IDLE— dentro de un panel
  * llamado «01. SCAN STATES». En la plancha son rótulos. Acá son el estado real
  * del sistema, y todo lo demás deriva de ellos: la intensidad del ojo, la
@@ -19,7 +29,8 @@
  *                                      aparecen los fragmentos de escaneo
  *   mover mientras sostiene→ TRACK     el iris SIGUE al puntero, la onda modula
  *                                      con la velocidad del gesto
- *   soltar / salir         → IDLE      decae de vuelta, con memoria del último lock
+ *   soltar (dedo)          → AWARE     sigue reconocido: dejo de sostener, no se fue
+ *   salir del campo        → DORMANT   la presencia dejo de ser observable
  *   pedir ver más          → INSPECT   lo denso se abre; el ojo baja su agitación
  *                                      para no competir con lo que se está leyendo
  *   cruzar la pupila       → DESCEND   el campo converge al punto de fuga
@@ -41,7 +52,7 @@
  * observe al visitante y no al revés.
  */
 
-export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'INSPECT' | 'DESCEND' | 'IDLE';
+export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'INSPECT' | 'DESCEND';
 
 export type Pulso = {
   estado: Estado;
@@ -95,12 +106,13 @@ export function crearObservacion(raiz: HTMLElement) {
      entre a INSPECT desde DORMANT —inspeccionar sin haber sido reconocido— o
      que salga de DESCEND, que es terminal. */
   const ALCANZABLE: Record<Estado, Estado[]> = {
-    DORMANT: ['AWARE', 'IDLE'],
-    IDLE: ['AWARE', 'DORMANT'],
-    AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'IDLE', 'DORMANT'],
-    LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'IDLE'],
-    TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'IDLE'],
-    INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'IDLE'],
+    DORMANT: ['AWARE'],
+    AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'DORMANT'],
+    /* Soltar desde cualquiera de estos vuelve a AWARE, no a DORMANT: el
+       gesto termino, la presencia no. Salir del campo si baja a DORMANT. */
+    LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
+    TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
+    INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'DORMANT'],
     DESCEND: [],
   };
 
@@ -141,7 +153,7 @@ export function crearObservacion(raiz: HTMLElement) {
     /* DORMANT tiene que romperse aunque ya se este sosteniendo: si no, un toque
        rapido entra por `sostener` con `sosteniendo` ya en true y ninguna rama
        llegaba a encender AWARE. */
-    else if (pulso.estado === 'DORMANT' || pulso.estado === 'IDLE') fijar('AWARE');
+    else if (pulso.estado === 'DORMANT') fijar('AWARE');
   };
 
   const sostener = (cx: number, cy: number) => {
@@ -162,7 +174,9 @@ export function crearObservacion(raiz: HTMLElement) {
   const salir = () => {
     dentro = false; sosteniendo = false;
     if (tLock) { clearTimeout(tLock); tLock = null; }
-    fijar('IDLE');
+    /* Salir del campo NO es inferencia: el puntero se fue, es medible.
+       Por eso aca si se cae a DORMANT y no a AWARE. */
+    fijar('DORMANT');
   };
 
   raiz.addEventListener('pointermove', (e) => {
