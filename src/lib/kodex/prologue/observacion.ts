@@ -54,6 +54,32 @@
 
 export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'INSPECT' | 'DESCEND';
 
+/**
+ * Tabla causal exportada para tests y para las escenas siguientes que van a
+ * HEREDAR este contrato de estados. Cambiar esta tabla debe romper el suite
+ * de `prologue-alcanzable.test.ts` a proposito: cada arista tiene una razon
+ * canonica documentada en el docstring de arriba.
+ *
+ *   DORMANT -> solo AWARE                 la primera senal es reconocimiento.
+ *   AWARE   -> LOCK / TRACK / INSPECT /   desde reconocido, cualquier gesto.
+ *              DESCEND / DORMANT
+ *   LOCK    -> TRACK / AWARE / INSPECT /  soltar desde LOCK vuelve a AWARE,
+ *              DESCEND / DORMANT          no a DORMANT.
+ *   TRACK   -> LOCK / AWARE / INSPECT /   simetrico a LOCK.
+ *              DESCEND / DORMANT
+ *   INSPECT -> AWARE / LOCK / TRACK /     cerrar inspeccion vuelve al previo.
+ *              DESCEND / DORMANT
+ *   DESCEND -> []                          TERMINAL. Nada revierte un descenso.
+ */
+export const ALCANZABLE_CAUSAL: Readonly<Record<Estado, ReadonlyArray<Estado>>> = {
+  DORMANT: ['AWARE'],
+  AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'DORMANT'],
+  LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
+  TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
+  INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'DORMANT'],
+  DESCEND: [],
+} as const;
+
 export type Pulso = {
   estado: Estado;
   /** 0..1 — cuánta presencia percibe el sistema. Gobierna brillo e intensidad. */
@@ -104,17 +130,10 @@ export function crearObservacion(raiz: HTMLElement) {
 
   /* Desde dónde se puede alcanzar cada estado. Declararlo evita que el sistema
      entre a INSPECT desde DORMANT —inspeccionar sin haber sido reconocido— o
-     que salga de DESCEND, que es terminal. */
-  const ALCANZABLE: Record<Estado, Estado[]> = {
-    DORMANT: ['AWARE'],
-    AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'DORMANT'],
-    /* Soltar desde cualquiera de estos vuelve a AWARE, no a DORMANT: el
-       gesto termino, la presencia no. Salir del campo si baja a DORMANT. */
-    LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
-    TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
-    INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'DORMANT'],
-    DESCEND: [],
-  };
+     que salga de DESCEND, que es terminal.
+     La tabla vive exportada como ALCANZABLE_CAUSAL arriba; acá se reusa para
+     que tests y runtime lean del mismo dato y no puedan divergir. */
+  const ALCANZABLE = ALCANZABLE_CAUSAL;
 
   let previo: Estado = 'DORMANT';
 
