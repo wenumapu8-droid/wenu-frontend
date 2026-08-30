@@ -43,11 +43,15 @@ try {
         const strip = document.querySelector('.kx-os-stage__strip');
         const machine = document.querySelector('[data-kdx-machine]');
         const sharedReadout = document.querySelector('.kx-readout');
+        const sharedSignal = document.querySelector('[data-kdx-signal-live]');
         return {
           bodyText,
           stripText: strip?.textContent || '',
           sharedReadoutText: sharedReadout?.textContent || '',
           sharedReadoutVisible: Boolean(sharedReadout && getComputedStyle(sharedReadout).display !== 'none' && sharedReadout.getClientRects().length),
+          sharedSignalText: sharedSignal?.textContent || '',
+          sharedSignalVisible: Boolean(sharedSignal && getComputedStyle(sharedSignal).display !== 'none' && sharedSignal.getClientRects().length),
+          observationSourcePresent: Boolean(document.querySelector('[data-kdx-obs]')),
           width: document.documentElement.clientWidth,
           scrollWidth: document.documentElement.scrollWidth,
           bodyHeight: document.body.scrollHeight,
@@ -64,6 +68,19 @@ try {
       if (/SYSTEM\s*·\s*ACTIVE\s*·\s*\d+(?:\.\d+)?/i.test(facts.bodyText)) {
         failures.push('shared chrome still presents journey progress as SYSTEM ACTIVE telemetry');
       }
+      // MACHINE currently exposes no causal observation-state source. The
+      // shared signal indicator must therefore fail closed rather than imply a
+      // measured LATENT state. This assertion is DOM-level on every profile;
+      // mobile may hide technical chrome visually as temporal choreography.
+      if (facts.observationSourcePresent) {
+        failures.push('MACHINE unexpectedly exposes data-kdx-obs; re-evaluate shared-signal source contract');
+      }
+      if (!/SIGNAL\s*·\s*PENDING SOURCE/i.test(facts.sharedSignalText)) {
+        failures.push(`shared signal does not fail closed without a causal source: ${facts.sharedSignalText.trim() || '<empty>'}`);
+      }
+      if (/SIGNAL\s*·\s*LATENT/i.test(facts.sharedSignalText)) {
+        failures.push('shared signal fabricates LATENT state without a causal source');
+      }
       // Desktop/reduced are spatial evidence surfaces: the shared chrome is
       // visible, so its numeric readout must identify the actual deterministic
       // producer: deck/scroll journey progress. Mobile may intentionally hide
@@ -73,6 +90,7 @@ try {
         if (!/JOURNEY\s*·\s*PROGRESS\s*·\s*\d+(?:\.\d+)?%/i.test(facts.sharedReadoutText)) {
           failures.push(`shared chrome does not label data-coord as journey progress: ${facts.sharedReadoutText.trim() || '<empty>'}`);
         }
+        if (!facts.sharedSignalVisible) failures.push('shared pending-source signal missing from spatial frame');
       }
       // Desktop/reduced are spatial evidence surfaces: the detailed readout is
       // part of the composed frame, so the epistemic gap must be visible.
@@ -103,6 +121,9 @@ try {
         epistemicDisclosureRequired: !profile.isMobile,
         sharedProgressReadoutRequired: !profile.isMobile,
         sharedProgressReadout: facts.sharedReadoutText.trim(),
+        sharedSignal: facts.sharedSignalText.trim(),
+        sharedSignalVisible: facts.sharedSignalVisible,
+        observationSourcePresent: facts.observationSourcePresent,
         metrics: {
           width: facts.width,
           scrollWidth: facts.scrollWidth,
