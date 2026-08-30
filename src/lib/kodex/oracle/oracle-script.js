@@ -13,7 +13,7 @@ export const ORACLE_CUES = Object.freeze({
     epistemicStatus: 'OBSERVED_EVENT',
     text: 'You crossed the threshold. The archive has registered that decision.',
     audio: '/audio/kodex/oracle/threshold-address.ogg',
-    durationMs: 5367,
+    durationMs: 5373,
     intensity: 0.52,
   }),
   'prologue:SCENE_DWELL': Object.freeze({
@@ -24,7 +24,7 @@ export const ORACLE_CUES = Object.freeze({
     epistemicStatus: 'OBSERVED_EVENT',
     text: 'Do not watch the eye. Watch what changes when you approach it.',
     audio: '/audio/kodex/oracle/prologue-reveal.ogg',
-    durationMs: 5243,
+    durationMs: 5250,
     intensity: 0.66,
   }),
 });
