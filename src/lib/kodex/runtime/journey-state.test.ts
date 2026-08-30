@@ -98,7 +98,7 @@ describe("JourneyState kernel (KOD-28)", () => {
       kind: "anchor",
       letter: "Q",
       world: "ARTIFACT",
-      payload: { focus: "ORIGIN_PLATE", localState: "IDLE" },
+      payload: { focus: "ORIGIN_PLATE", localState: "OBSERVE" },
     });
     const state = journeyReducer(journeyReducer(base, ev({ id: "z", kind: "arrive", letter: "Q" })), anchor);
     const restored = restoreJourney(serializeJourney(state));

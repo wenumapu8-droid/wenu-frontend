@@ -43,6 +43,10 @@ export interface ReturnAnchor {
   letter: KodexLetter;
   world: string | null;
   focus: string | null;
+  /** Identificador de la elección/estado LOCAL de la escena al anclar. No es
+   *  un `Estado` de PROLOGUE: cada escena tiene su propio vocabulario de
+   *  choice (visible-assembly usa "OBSERVE" / "UNSET", otras escenas pueden
+   *  usar los suyos). No tipar contra el enum congelado de observacion.ts. */
   localState: string | null;
   /** Largo del rastro al momento de anclar, para restaurar exactamente. */
   traceLength: number;
