@@ -2,7 +2,7 @@ import {
   KODEX_INTERACTION_EVENT,
   isMeaningfulKodexInteraction,
   type KodexInteractionEventDetail,
-} from "./interaction-events";
+} from "./interaction-events.ts";
 import {
   createInitialJourneyState,
   journeyReducer,
@@ -11,7 +11,7 @@ import {
   type JourneyEvent,
   type JourneyState,
   type SerializedJourneyState,
-} from "./journey-state";
+} from "./journey-state.ts";
 
 export const KODEX_ORGANISM_ACTION_EVENT = "kodex:organism-action" as const;
 export const KODEX_JOURNEY_STATE_EVENT = "kodex:journey-state" as const;

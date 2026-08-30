@@ -6,7 +6,7 @@ import {
   KODEX_JOURNEY_STORAGE_KEY,
   KODEX_ORGANISM_ACTION_EVENT,
   type KodexJourneyStorage,
-} from "./journey-memory-bridge";
+} from "./journey-memory-bridge.ts";
 import {
   semanticConceptToJourneyAction,
   semanticRelationToJourneyAction,
