@@ -71,7 +71,13 @@ const scenes = defineCollection({
     visible_states: z.array(z.string()).min(1),
     runtime_mapping: z.record(z.string(), z.any()).optional(),
 
-    interaction: z.array(z.string()).optional(),
+    // Cada contrato lista sus reglas como strings ("sostener -> LOCK") o
+    // como dicts ("entrada voluntaria: click o toque deliberado"). YAML parsea
+    // los que traen `:` como objetos, no strings. Se aceptan ambos.
+    interaction: z.array(z.union([
+      z.string(),
+      z.record(z.string(), z.any()),
+    ])).optional(),
     responsive: z.record(z.string(), z.any()).optional(),
     fallback: z.record(z.string(), z.any()).optional(),
 
