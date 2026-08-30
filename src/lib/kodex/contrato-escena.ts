@@ -24,7 +24,7 @@
  * NOTA: `data-kdx-escena` NO sirve para esto — ya está tomado por
  * `Descenso.astro`, donde marca el slug de destino del botón de salida.
  */
-import contratos from '../../../scripts/kodex/contratos-escena.json';
+import contratos from '../../../scripts/kodex/contratos-escena.json' with { type: 'json' };
 
 /** Slug de folio → id de escena canónica. THRESHOLD vive en la portada. */
 const POR_FOLIO: Record<string, string> = {
