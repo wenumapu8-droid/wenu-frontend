@@ -14,12 +14,49 @@ que necesitas para trabajar en ese proyecto siemrpe".
 
 ---
 
-## Resumen numérico
+## Resumen numérico (final)
 
-- **20 commits** sobre `imac/telar-a06-a09-a10` (rama viva no pusheada).
-- **228 tests** en `src/lib/kodex/**` — de ~30 pre-existentes a 228.
+- **26 commits** sobre `imac/telar-a06-a09-a10` (rama viva no pusheada).
+- **296 tests** en `src/lib/kodex/**` — de ~30 pre-existentes a 296.
+- **31 suites**, todas pasan.
 - **1 bug real** en producción arreglado (`senales.ts` subscribe).
 - **0 archivos borrados**, 0 breakage de runtime, 0 regresión.
+- **Build verificado**: 770 páginas en 559s, exit 0 (terminal sumó 4 SCREEN_CANDIDATE al conteo previo de 766).
+
+## Módulos cubiertos con tests dedicados (nuevo)
+
+Estado de máquina y contratos:
+- `prologue/observacion.ts` (10) + hygiene fix
+- `estado.ts` (10) + refactor a puro
+- `escenas/*.ts` — los 6 SceneDefinition (12)
+- `contratos.ts` (5)
+- `scene-registry.js` (13)
+
+Data + validaciones:
+- `atlas.ts` cobertura (7) + funcional (11) + honesty fix
+- `grammar.ts` (9)
+- `volumenes.ts` (15) + import.meta.env defensivo
+- `contrato-escena.ts` (12)
+- `kitRegistry.js` (11)
+- `effectFoundry.js` (16)
+- `effectRecipes.js` (14)
+- `evidence-registry.js` + `v0-vertical-slice.js` + `experience-engine.js` (14)
+
+Runtime:
+- `senales.ts` bus (9) + bug fix
+- `ruta.ts` motor de descenso (13)
+- `memoria.ts` SSG (14)
+- `journey-state.ts` type-hygiene (16 preexistentes rescatados)
+- `runtime/journey-memory-bridge.ts` (13 preexistentes rescatados)
+
+Presets:
+- `micrographics.ts` (7)
+- `archivo.ts` FASES (9)
+- `sonido/respiracion/quietFrames` mini-suite (15)
+
+Integración Astro:
+- `content.config.ts` con colección `scenes` tipada
+- `contratos/scenes.ts` lector runtime (7 integridad cruzada)
 
 ## Commits en orden
 
