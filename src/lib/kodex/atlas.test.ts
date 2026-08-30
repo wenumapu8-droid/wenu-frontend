@@ -89,3 +89,104 @@ describe('Atlas · cobertura honesta', () => {
     }
   });
 });
+
+describe('Atlas · funciones de consulta', async () => {
+  // Import dinamico porque atlas.ts tiene efectos globales de modulo.
+  const {
+    nodoPorId,
+    nodosDeEscena,
+    nodosDeZona,
+    vecinosDe,
+    zonasDelAtlas,
+    nodosDelAtlas,
+  } = await import('./atlas.ts');
+
+  const CORREDOR = ['THRESHOLD', 'PROLOGUE', 'DESCENT', 'ARCHIVE',
+                    'MACHINE', 'COSMOLOGY', 'RETURN'] as const;
+
+  it('nodoPorId encuentra por id canonico', () => {
+    const n = nodoPorId('KDX-IMG-001');
+    assert.ok(n);
+    assert.equal(n!.titulo.includes('Wenu Mapu'), true);
+  });
+
+  it('nodoPorId devuelve undefined para ids ausentes', () => {
+    assert.equal(nodoPorId('KDX-IMG-999'), undefined);
+    assert.equal(nodoPorId('KDX-IMG-021'), undefined); // faltante declarado
+  });
+
+  it('nodosDelAtlas devuelve los 36 nodos', () => {
+    assert.equal(nodosDelAtlas().length, 36);
+  });
+
+  it('cada escena del corredor tiene al menos 1 nodo cableado', () => {
+    for (const escena of CORREDOR) {
+      const n = nodosDeEscena(escena);
+      assert.ok(
+        n.length >= 1,
+        `escena ${escena} sin nodos cableados: gap del cableado`,
+      );
+    }
+  });
+
+  it('nodosDeEscena es case-insensitive', () => {
+    assert.deepEqual(
+      nodosDeEscena('PROLOGUE').map((n) => n.id),
+      nodosDeEscena('prologue').map((n) => n.id),
+    );
+  });
+
+  it('nodosDeEscena devuelve solo nodos que declaran esa escena', () => {
+    for (const n of nodosDeEscena('COSMOLOGY')) {
+      assert.ok(
+        n.escenas.includes('COSMOLOGY'),
+        `${n.id} devuelto para COSMOLOGY pero su escenas es ${n.escenas.join(',')}`,
+      );
+    }
+  });
+
+  it('vecinosDe excluye al propio nodo', () => {
+    const vs = vecinosDe('KDX-IMG-001');
+    assert.ok(!vs.find((v) => v.id === 'KDX-IMG-001'));
+  });
+
+  it('vecinosDe comparte al menos una zona con el pivote', () => {
+    const pivote = nodoPorId('KDX-IMG-001');
+    assert.ok(pivote);
+    for (const v of vecinosDe('KDX-IMG-001')) {
+      const compartida = v.zonas.some((z) => pivote!.zonas.includes(z));
+      assert.ok(
+        compartida,
+        `${v.id} declarado vecino sin compartir zona con KDX-IMG-001`,
+      );
+    }
+  });
+
+  it('vecinosDe devuelve [] para id inexistente', () => {
+    assert.deepEqual(vecinosDe('KDX-IMG-999'), []);
+  });
+
+  it('nodosDeZona es case-insensitive y filtra correctamente', () => {
+    const rets = nodosDeZona('RETORNO');
+    const retsLower = nodosDeZona('retorno');
+    assert.equal(rets.length, retsLower.length);
+    for (const n of rets) {
+      assert.ok(
+        n.zonas.includes('RETORNO'),
+        `${n.id} devuelto para RETORNO sin declararla`,
+      );
+    }
+  });
+
+  it('zonasDelAtlas devuelve las zonas unicas ordenadas', () => {
+    const zs = zonasDelAtlas();
+    // Todas unicas
+    assert.equal(new Set(zs).size, zs.length);
+    // Ordenadas
+    assert.deepEqual([...zs].sort(), zs);
+    // Tiene las zonas del corredor esperadas
+    for (const z of ['UMBRAL', 'DESCENSO', 'RETORNO', 'COSMOS']) {
+      assert.ok(zs.includes(z), `zona canonica ${z} ausente`);
+    }
+  });
+});

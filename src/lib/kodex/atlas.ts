@@ -29,7 +29,7 @@
  * para no falsear la metrica. Rellenar sus campos requiere fuente real,
  * no inferencia.
  */
-import atlas from '../../data/kodex-atlas.json';
+import atlas from '../../data/kodex-atlas.json' with { type: 'json' };
 
 export interface NodoAtlas {
   id: string;
