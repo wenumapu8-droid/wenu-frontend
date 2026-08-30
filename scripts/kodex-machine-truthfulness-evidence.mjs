@@ -42,9 +42,12 @@ try {
         const bodyText = document.body.innerText;
         const strip = document.querySelector('.kx-os-stage__strip');
         const machine = document.querySelector('[data-kdx-machine]');
+        const sharedReadout = document.querySelector('.kx-readout');
         return {
           bodyText,
           stripText: strip?.textContent || '',
+          sharedReadoutText: sharedReadout?.textContent || '',
+          sharedReadoutVisible: Boolean(sharedReadout && getComputedStyle(sharedReadout).display !== 'none' && sharedReadout.getClientRects().length),
           width: document.documentElement.clientWidth,
           scrollWidth: document.documentElement.scrollWidth,
           bodyHeight: document.body.scrollHeight,
@@ -58,6 +61,19 @@ try {
       if (!facts.machinePresent) failures.push('MACHINE readout missing from scene contract');
       if (/INTEGRITY\s*[·:]?\s*98\.7\s*%/i.test(facts.bodyText)) failures.push('unsourced INTEGRITY 98.7% still visible');
       if (!/INTEGRITY[\s\S]{0,80}PENDING SOURCE/i.test(facts.stripText)) failures.push('DataStrip does not fail closed for INTEGRITY');
+      if (/SYSTEM\s*·\s*ACTIVE\s*·\s*\d+(?:\.\d+)?/i.test(facts.bodyText)) {
+        failures.push('shared chrome still presents journey progress as SYSTEM ACTIVE telemetry');
+      }
+      // Desktop/reduced are spatial evidence surfaces: the shared chrome is
+      // visible, so its numeric readout must identify the actual deterministic
+      // producer: deck/scroll journey progress. Mobile may intentionally hide
+      // that instrumentation as part of the temporal camera choreography.
+      if (!profile.isMobile) {
+        if (!facts.sharedReadoutVisible) failures.push('shared journey-progress readout missing from spatial frame');
+        if (!/JOURNEY\s*·\s*PROGRESS\s*·\s*\d+(?:\.\d+)?%/i.test(facts.sharedReadoutText)) {
+          failures.push(`shared chrome does not label data-coord as journey progress: ${facts.sharedReadoutText.trim() || '<empty>'}`);
+        }
+      }
       // Desktop/reduced are spatial evidence surfaces: the detailed readout is
       // part of the composed frame, so the epistemic gap must be visible.
       // Mobile is temporal: its current choreography intentionally withholds
@@ -85,6 +101,8 @@ try {
         failures,
         pageErrors,
         epistemicDisclosureRequired: !profile.isMobile,
+        sharedProgressReadoutRequired: !profile.isMobile,
+        sharedProgressReadout: facts.sharedReadoutText.trim(),
         metrics: {
           width: facts.width,
           scrollWidth: facts.scrollWidth,
