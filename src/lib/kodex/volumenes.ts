@@ -99,7 +99,10 @@ export type Manifiesto = {
 };
 
 const DEFAULT_KODEX_ART_CDN_BASE = "https://pub-2b4562c758ed440ab047fe9523a2d99c.r2.dev";
-const KODEX_ART_CDN_BASE = (import.meta.env.PUBLIC_KODEX_ART_CDN_BASE ?? DEFAULT_KODEX_ART_CDN_BASE).replace(/\/+$/, "");
+// `import.meta.env` es de Astro; en node --test (para tests) no existe.
+// El `?.` mantiene el modulo importable fuera del bundler sin cambiar
+// el comportamiento en produccion, donde Astro sigue poblando `env`.
+const KODEX_ART_CDN_BASE = (import.meta.env?.PUBLIC_KODEX_ART_CDN_BASE ?? DEFAULT_KODEX_ART_CDN_BASE).replace(/\/+$/, "");
 const KODEX_ART_THUMB_1400 = new Set(["46f2d4dc-51265"]);
 
 /**
