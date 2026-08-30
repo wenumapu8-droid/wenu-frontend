@@ -49,6 +49,7 @@ interface SceneContractNotice {
   copyAuthority: string;
   rightsGate: string;
   stateSource: string;
+  status?: 'REAL' | 'HUECO';
 }
 
 interface Props {
@@ -83,10 +84,11 @@ const shellState = 'DORMANT';
 const sourceDetail = `${atlasSource}:${row.id}`;
 const assets = [...row.svgAssets, ...row.pngAssets];
 const visibleStates = ['DORMANT', 'AWARE', 'FOCUS', 'OPEN', 'CROSSED', 'REMEMBERED'];
+const contractStatus = sceneContract?.status ?? (sceneContract ? 'REAL' : 'HUECO');
 const sourceLines = [
   `ROW ${row.id}`,
   authority.atlas,
-  sceneContract ? `CONTRACT ${sceneContract.id}` : 'SCENE CONTRACT HUECO',
+  contractStatus === 'REAL' ? `CONTRACT ${sceneContract?.id}` : 'SCENE CONTRACT HUECO',
   row.epistemicLayer,
 ];
 const systemEntries: Array<[string, string]> = [
@@ -100,7 +102,7 @@ const systemEntries: Array<[string, string]> = [
 <main
   class="kdx-screen"
   data-kdx-screen={slug}
-  data-kdx-contract={sceneContract?.id ?? 'HUECO'}
+  data-kdx-contract={contractStatus === 'REAL' ? sceneContract?.id : 'HUECO'}
   data-kdx-rights-gate="OCIN_BLOCKED"
   style={`--screen-accent:${accent};`}
 >
@@ -208,8 +210,8 @@ const systemEntries: Array<[string, string]> = [
           <div><dt>PALETTE</dt><dd data-fuente="REAL" data-source-detail={sourceDetail}>{row.palette}</dd></div>
           <div><dt>PROVENANCE</dt><dd data-fuente="REAL" data-source-detail={sourceDetail}>{row.provenance}</dd></div>
           <div><dt>CONTENT AUTHORITY</dt><dd data-fuente="REAL">{authority.content}</dd></div>
-          <div><dt>SCENE CONTRACT</dt><dd data-fuente={sceneContract ? 'REAL' : 'HUECO'}>{sceneContract ? `${sceneContract.id} / ${sceneContract.file}` : 'sin contrato de escena directo'}</dd></div>
-          <div><dt>CONTRACT ROUTE</dt><dd data-fuente={sceneContract ? 'REAL' : 'HUECO'}>{sceneContract?.route ?? 'fuera del corredor 00-06'}</dd></div>
+          <div><dt>SCENE CONTRACT</dt><dd data-fuente={contractStatus}>{sceneContract ? `${sceneContract.id} / ${sceneContract.file}` : 'sin contrato de escena directo'}</dd></div>
+          <div><dt>CONTRACT ROUTE</dt><dd data-fuente={contractStatus}>{sceneContract?.route ?? 'fuera del corredor 00-06'}</dd></div>
           <div><dt>COPY SOURCE</dt><dd data-fuente="REAL">{sceneContract?.copyAuthority ?? authority.content}</dd></div>
         </dl>
       </section>
@@ -225,7 +227,7 @@ const systemEntries: Array<[string, string]> = [
     <KodexSystemLog
       entries={systemEntries}
       checksum={row.id}
-      verifyAt={`${authority.atlas} / SCREEN_CANDIDATE`}
+      verifyAt={authority.atlas}
       threatLabel="SCREEN RUNTIME HUECO"
       accent="var(--screen-accent)"
       class="kdx-screen__log"
