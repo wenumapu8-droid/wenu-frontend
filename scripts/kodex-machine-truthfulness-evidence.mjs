@@ -43,7 +43,8 @@ try {
         const strip = document.querySelector('.kx-os-stage__strip');
         const machine = document.querySelector('[data-kdx-machine]');
         const sharedReadout = document.querySelector('.kx-readout');
-        const sharedSignal = document.querySelector('[data-kdx-signal-live]');
+        const sharedSignal = document.querySelector('[data-signal-label]');
+        const sharedSignalButton = document.querySelector('[data-signal]');
         return {
           bodyText,
           stripText: strip?.textContent || '',
@@ -51,6 +52,7 @@ try {
           sharedReadoutVisible: Boolean(sharedReadout && getComputedStyle(sharedReadout).display !== 'none' && sharedReadout.getClientRects().length),
           sharedSignalText: sharedSignal?.textContent || '',
           sharedSignalVisible: Boolean(sharedSignal && getComputedStyle(sharedSignal).display !== 'none' && sharedSignal.getClientRects().length),
+          sharedSignalPressed: sharedSignalButton?.getAttribute('aria-pressed') || '',
           observationSourcePresent: Boolean(document.querySelector('[data-kdx-obs]')),
           width: document.documentElement.clientWidth,
           scrollWidth: document.documentElement.scrollWidth,
@@ -68,38 +70,56 @@ try {
       if (/SYSTEM\s*·\s*ACTIVE\s*·\s*\d+(?:\.\d+)?/i.test(facts.bodyText)) {
         failures.push('shared chrome still presents journey progress as SYSTEM ACTIVE telemetry');
       }
-      // MACHINE currently exposes no causal observation-state source. The
-      // shared signal indicator must therefore fail closed rather than imply a
-      // measured LATENT state. This assertion is DOM-level on every profile;
-      // mobile may hide technical chrome visually as temporal choreography.
-      if (facts.observationSourcePresent) {
-        failures.push('MACHINE unexpectedly exposes data-kdx-obs; re-evaluate shared-signal source contract');
+      // The shared SIGNAL is a visitor-controlled master key, not observation
+      // telemetry. Its one producer is the engine's session-backed toggle.
+      // A fresh browser context therefore starts LATENT + aria-pressed=false.
+      if (!/SIGNAL\s*·\s*LATENT/i.test(facts.sharedSignalText)) {
+        failures.push(`shared signal does not reflect fresh master-key state: ${facts.sharedSignalText.trim() || '<empty>'}`);
       }
-      if (!/SIGNAL\s*·\s*PENDING SOURCE/i.test(facts.sharedSignalText)) {
-        failures.push(`shared signal does not fail closed without a causal source: ${facts.sharedSignalText.trim() || '<empty>'}`);
-      }
-      if (/SIGNAL\s*·\s*LATENT/i.test(facts.sharedSignalText)) {
-        failures.push('shared signal fabricates LATENT state without a causal source');
+      if (facts.sharedSignalPressed !== 'false') {
+        failures.push(`shared signal fresh aria-pressed is ${facts.sharedSignalPressed || '<missing>'}, expected false`);
       }
       // Desktop/reduced are spatial evidence surfaces: the shared chrome is
-      // visible, so its numeric readout must identify the actual deterministic
-      // producer: deck/scroll journey progress. Mobile may intentionally hide
-      // that instrumentation as part of the temporal camera choreography.
+      // visible, so both progress semantics and the signal control's causality
+      // must be directly exercisable. Mobile may hide technical chrome as part
+      // of its temporal choreography, so only DOM truthfulness is required.
+      let signalCycle = null;
       if (!profile.isMobile) {
         if (!facts.sharedReadoutVisible) failures.push('shared journey-progress readout missing from spatial frame');
         if (!/JOURNEY\s*·\s*PROGRESS\s*·\s*\d+(?:\.\d+)?%/i.test(facts.sharedReadoutText)) {
           failures.push(`shared chrome does not label data-coord as journey progress: ${facts.sharedReadoutText.trim() || '<empty>'}`);
         }
-        if (!facts.sharedSignalVisible) failures.push('shared pending-source signal missing from spatial frame');
+        if (!facts.sharedSignalVisible) failures.push('shared signal control missing from spatial frame');
+        if (facts.sharedSignalVisible) {
+          const button = page.locator('[data-signal]');
+          await button.click();
+          await page.waitForTimeout(30);
+          const active = await page.evaluate(() => ({
+            text: document.querySelector('[data-signal-label]')?.textContent || '',
+            pressed: document.querySelector('[data-signal]')?.getAttribute('aria-pressed') || '',
+            stored: sessionStorage.getItem('kx-signal'),
+          }));
+          if (!/SIGNAL\s*·\s*ACTIVE/i.test(active.text) || active.pressed !== 'true' || active.stored !== '1') {
+            failures.push(`shared signal does not become causally ACTIVE: ${JSON.stringify(active)}`);
+          }
+          await button.click();
+          await page.waitForTimeout(30);
+          const latent = await page.evaluate(() => ({
+            text: document.querySelector('[data-signal-label]')?.textContent || '',
+            pressed: document.querySelector('[data-signal]')?.getAttribute('aria-pressed') || '',
+            stored: sessionStorage.getItem('kx-signal'),
+          }));
+          if (!/SIGNAL\s*·\s*LATENT/i.test(latent.text) || latent.pressed !== 'false' || latent.stored !== '0') {
+            failures.push(`shared signal does not return causally LATENT: ${JSON.stringify(latent)}`);
+          }
+          signalCycle = { active, latent };
+        }
       }
-      // Desktop/reduced are spatial evidence surfaces: the detailed readout is
-      // part of the composed frame, so the epistemic gap must be visible.
-      // Mobile is temporal: its current choreography intentionally withholds
-      // the detailed system panel instead of shrinking desktop instrumentation
-      // into the phone camera. On mobile the hard requirement is therefore
-      // absence of fabricated telemetry, not forced display of hidden chrome.
-      if (!profile.isMobile && !/SIGNAL PENDING SOURCE/i.test(facts.bodyText)) {
-        failures.push('spatial MACHINE frame omits pending-source disclosure');
+      // MACHINE has no observation-state producer today; record that fact so
+      // any future addition reopens semantic review instead of silently being
+      // conflated with the independent master-key control.
+      if (facts.observationSourcePresent) {
+        failures.push('MACHINE unexpectedly exposes data-kdx-obs; review signal-vs-observation contract');
       }
       if (facts.scrollWidth > profile.width + 3) failures.push(`horizontal overflow ${facts.scrollWidth}px > ${profile.width}px`);
       if (pageErrors.length) failures.push(`pageerror ${pageErrors.join(' | ')}`);
@@ -118,11 +138,12 @@ try {
         pass: failures.length === 0,
         failures,
         pageErrors,
-        epistemicDisclosureRequired: !profile.isMobile,
         sharedProgressReadoutRequired: !profile.isMobile,
         sharedProgressReadout: facts.sharedReadoutText.trim(),
         sharedSignal: facts.sharedSignalText.trim(),
         sharedSignalVisible: facts.sharedSignalVisible,
+        sharedSignalPressed: facts.sharedSignalPressed,
+        signalCycle,
         observationSourcePresent: facts.observationSourcePresent,
         metrics: {
           width: facts.width,
