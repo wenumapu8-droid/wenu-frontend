@@ -1,0 +1,158 @@
+---
+/**
+ * KODEX-∞ · TRAZA VIVA + BARRA DE LAS SIETE
+ * TELAR A11 · 2026-08-29
+ *
+ * La banda base del board: KODEX LIVE TRACE · SYSTEM ONLINE · X/Y/Z, y
+ * sobre ella la barra de las siete escenas con la actual encendida.
+ *
+ * La barra no es decoracion: es lo que convierte siete paginas sueltas en
+ * UN corredor. Sin ella el visitante no sabe que hay un viaje.
+ *
+ * X/Y/Z se derivan del recorrido REAL del puntero dentro de la escena, no
+ * de un random. Si nadie se mueve, quedan en cero -- y eso es correcto:
+ * la traza de una escena que nadie toco es plana.
+ */
+interface Props {
+  actual: number;          // 0..6
+  accent?: string;
+  class?: string;
+}
+const { actual, accent = 'var(--kdx-scene-accent, var(--kdx-red, #FF3833))', class: className = '' } = Astro.props;
+
+const ESCENAS = [
+  { n: '00', k: 'THRESHOLD', r: '/kodex/' },
+  { n: '01', k: 'PROLOGUE',  r: '/kodex/folio/i/' },
+  { n: '02', k: 'DESCENT',   r: '/kodex/folio/ii/' },
+  { n: '03', k: 'ARCHIVE',   r: '/kodex/folio/iii/' },
+  { n: '04', k: 'MACHINE',   r: '/kodex/folio/iv/' },
+  { n: '05', k: 'COSMOLOGY', r: '/kodex/folio/v/' },
+  { n: '06', k: 'RETURN',    r: '/kodex/folio/vi/' },
+];
+---
+
+<div class:list={['kdx-traza', className]} style={`--traza-accent:${accent};`} data-kdx-traza>
+  <nav class="kdx-traza__siete" aria-label="corredor KODEX">
+    {ESCENAS.map((e, i) => (
+      <a
+        href={e.r}
+        class:list={['kdx-traza__paso', i === actual && 'kdx-traza__paso--on', i < actual && 'kdx-traza__paso--pasado']}
+        aria-current={i === actual ? 'page' : undefined}
+      >
+        <span class="kdx-traza__n">{e.n}</span>
+        <span class="kdx-traza__k">{e.k}</span>
+      </a>
+    ))}
+  </nav>
+
+  <div class="kdx-traza__base">
+    <span>KODEX LIVE TRACE</span>
+    <span class="kdx-traza__on" data-kdx-online>● SYSTEM ONLINE</span>
+    <span class="kdx-traza__xyz">
+      X <b data-kdx-x>0.00</b> / Y <b data-kdx-y>0.00</b> / Z <b data-kdx-z>0.00</b>
+    </span>
+  </div>
+</div>
+
+<style>
+  .kdx-traza {
+    grid-column: 1 / -1;
+    font-family: var(--kdx-mono, ui-monospace, monospace);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+  .kdx-traza__siete {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid color-mix(in srgb, var(--traza-accent) 20%, transparent);
+    padding-top: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .kdx-traza__siete::-webkit-scrollbar { display: none; }
+  .kdx-traza__paso {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.3rem 0.7rem 0.3rem 0;
+    text-decoration: none;
+    color: color-mix(in srgb, var(--kdx-bone, #f0ede8) 34%, transparent);
+    border-top: 1px solid transparent;
+    margin-top: -0.5rem;
+    padding-top: 0.5rem;
+    transition: color 0.25s;
+  }
+  .kdx-traza__paso:hover,
+  .kdx-traza__paso:focus-visible {
+    color: var(--kdx-bone, #f0ede8);
+    outline: none;
+  }
+  .kdx-traza__paso--pasado { color: color-mix(in srgb, var(--kdx-bone, #f0ede8) 55%, transparent); }
+  .kdx-traza__paso--on {
+    color: var(--traza-accent);
+    border-top-color: var(--traza-accent);
+  }
+  .kdx-traza__n { font-size: 0.52rem; letter-spacing: 0.18em; }
+  .kdx-traza__k { font-size: 0.58rem; letter-spacing: 0.16em; }
+  .kdx-traza__base {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    font-size: 0.52rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--kdx-bone, #f0ede8) 38%, transparent);
+    border-top: 1px solid color-mix(in srgb, var(--kdx-bone, #f0ede8) 10%, transparent);
+    padding-top: 0.4rem;
+  }
+  .kdx-traza__on { color: var(--kdx-ok, #5f9e6e); }
+  .kdx-traza__xyz b { font-weight: 400; color: var(--kdx-bone, #f0ede8); font-variant-numeric: tabular-nums; }
+
+  @media (max-width: 700px) {
+    /* En angosto la barra conserva numero y se queda sin nombre: el
+       corredor sigue legible, el texto no se apiña. */
+    .kdx-traza__k { display: none; }
+    .kdx-traza__paso--on .kdx-traza__k { display: inline; }
+  }
+</style>
+
+<script>
+  const puestos = new WeakSet<HTMLElement>();
+
+  function enganchar() {
+    const t = document.querySelector<HTMLElement>('[data-kdx-traza]');
+    if (!t || puestos.has(t)) return;
+    puestos.add(t);
+
+    const ex = t.querySelector<HTMLElement>('[data-kdx-x]');
+    const ey = t.querySelector<HTMLElement>('[data-kdx-y]');
+    const ez = t.querySelector<HTMLElement>('[data-kdx-z]');
+    if (!ex || !ey || !ez) return;
+
+    /* Z acumula recorrido: es la unica de las tres con memoria. Por eso
+       la traza de una sesion larga se distingue de una corta. */
+    let z = 0, px = 0, py = 0, pend = false;
+
+    const pintar = () => {
+      pend = false;
+      ex.textContent = px.toFixed(2);
+      ey.textContent = py.toFixed(2);
+      ez.textContent = z.toFixed(2);
+    };
+
+    window.addEventListener('pointermove', (e) => {
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = (e.clientY / window.innerHeight) * 2 - 1;
+      z += Math.hypot(nx - px, ny - py) * 0.5;
+      px = nx; py = ny;
+      if (!pend) { pend = true; requestAnimationFrame(pintar); }
+    }, { passive: true });
+  }
+
+  enganchar();
+  document.addEventListener('astro:page-load', enganchar);
+</script>
