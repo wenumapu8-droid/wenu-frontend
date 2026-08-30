@@ -34,12 +34,21 @@ interface AtlasRow {
   notes: string;
 }
 
+interface AuthorityNotice {
+  atlas: string;
+  visual: string;
+  content: string;
+  rights: string;
+}
+
 interface Props {
   row: AtlasRow;
   slug: string;
   accent?: string;
   sceneIndex?: number;
   signalBase?: string;
+  unit?: string;
+  authority?: AuthorityNotice;
 }
 
 const {
@@ -48,17 +57,29 @@ const {
   accent = '#8B5CF6',
   sceneIndex = 0,
   signalBase = 'LATENT',
+  unit = row.title,
+  authority = {
+    atlas: 'ATLAS-07A',
+    visual: 'HIFI_TARGETS_2026_08_29 / VISUAL_REFERENCE',
+    content: 'ATLAS SCREEN_CANDIDATE ROW',
+    rights: 'OCIN RIGHTS GATE BLOQUEADO / 0 DE 25 PUBLIC APPROVED / NO OBRA MONTADA',
+  },
 } = Astro.props;
 
 const atlasSource = 'ATLAS-07A-inventario-nodos-conexiones.md';
-const liveState = 'HUECO';
+const shellState = 'DORMANT';
 const sourceLabel = `${atlasSource}:${row.id}`;
 const assets = [...row.svgAssets, ...row.pngAssets];
+const sourceLines = [
+  `ROW ${row.id}`,
+  authority.atlas,
+  row.epistemicLayer,
+];
 const systemEntries: Array<[string, string]> = [
-  ['00:00:00', `${row.id} SCREEN CANDIDATE LOADED`],
-  ['00:00:01', `${row.codeModule} NOT IMPLEMENTED IN RUNTIME`],
-  ['00:00:02', 'VISIBLE CHASSIS MOUNTED'],
-  ['00:00:03', 'DATA STATUS HUECO DECLARED'],
+  ['00:00:00', `${unit} SCREEN CANDIDATE LOADED`],
+  ['00:00:01', `${row.codeModule} RUNTIME HUECO DECLARED`],
+  ['00:00:02', 'A-CHASSIS MODULES MOUNTED'],
+  ['00:00:03', 'RIGHTS GATE BLOCKS OCIN PUBLIC ART'],
 ];
 ---
 
@@ -72,7 +93,7 @@ const systemEntries: Array<[string, string]> = [
     <RielInstrumento
       lado="izq"
       nodo={row.id}
-      estadoBase={liveState}
+      estadoBase={shellState}
       senal={signalBase}
       acceso="SCREEN"
       accent="var(--screen-accent)"
@@ -120,6 +141,14 @@ const systemEntries: Array<[string, string]> = [
           <dt>RUNTIME</dt>
           <dd data-fuente="HUECO">{row.codeModule} pendiente</dd>
         </div>
+        <div>
+          <dt>VISUAL TARGET</dt>
+          <dd data-fuente="MOCK">{authority.visual}</dd>
+        </div>
+        <div>
+          <dt>RIGHTS GATE</dt>
+          <dd data-fuente="REAL">{authority.rights}</dd>
+        </div>
       </dl>
     </article>
 
@@ -130,7 +159,7 @@ const systemEntries: Array<[string, string]> = [
         sig="SIG HUECO"
         mod={`MOD ${row.scene}`}
         id={row.id}
-        lines={[row.scene, row.epistemicLayer, 'SOURCE ATLAS 07A']}
+        lines={sourceLines}
         accent="var(--screen-accent)"
       />
 
@@ -141,13 +170,14 @@ const systemEntries: Array<[string, string]> = [
           <div><dt>GEOMETRY</dt><dd data-fuente={sourceLabel}>{row.geometry}</dd></div>
           <div><dt>PALETTE</dt><dd data-fuente={sourceLabel}>{row.palette}</dd></div>
           <div><dt>PROVENANCE</dt><dd data-fuente={sourceLabel}>{row.provenance}</dd></div>
+          <div><dt>CONTENT AUTHORITY</dt><dd data-fuente="REAL">{authority.content}</dd></div>
         </dl>
       </section>
 
       <section class="kdx-screen__panel">
         <p class="kdx-screen__panel-title">DECLARED ASSETS</p>
         <ul>
-          {assets.map((asset) => <li data-fuente="HUECO">{asset} / archivo no montado</li>)}
+          {assets.map((asset) => <li><span data-fuente={sourceLabel}>{asset}</span> <span data-fuente="HUECO">archivo no montado</span></li>)}
         </ul>
       </section>
     </aside>
@@ -155,8 +185,8 @@ const systemEntries: Array<[string, string]> = [
     <KodexSystemLog
       entries={systemEntries}
       checksum={row.id}
-      verifyAt="ATLAS-07A / SCREEN_CANDIDATE"
-      threatLabel="NO REAL RUNTIME YET"
+      verifyAt={`${authority.atlas} / SCREEN_CANDIDATE`}
+      threatLabel="SCREEN RUNTIME HUECO"
       accent="var(--screen-accent)"
       class="kdx-screen__log"
     />
@@ -376,6 +406,15 @@ const systemEntries: Array<[string, string]> = [
     color: color-mix(in srgb, var(--screen-accent) 60%, transparent);
   }
 
+  [data-fuente='MOCK']::after {
+    content: ' / MOCK';
+    color: color-mix(in srgb, var(--screen-accent) 60%, transparent);
+  }
+
+  :global(.kdx-screen .kdx-carril__pistas) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
   @media (max-width: 980px) {
     .kdx-screen__grid {
       grid-template-columns: 1fr;
@@ -441,6 +480,7 @@ const systemEntries: Array<[string, string]> = [
     .kdx-screen__readouts {
       grid-template-columns: 1fr;
     }
+
   }
 
   @media (prefers-reduced-motion: reduce) {
