@@ -1,6 +1,6 @@
 # KODEX−∞ — KDX.ORACLE Presence V0
 
-Status: `IMPLEMENTED_CANDIDATE / INTERNAL_NOINDEX / CI_NOT_YET_RUN / CREATOR_REVIEW_NOT_RUN / NOT_CANON / NOT_DEPLOYED`
+Status: `IMPLEMENTED_CANDIDATE / INTERNAL_NOINDEX / CI_PENDING / CREATOR_REVIEW_NOT_RUN / NOT_CANON / NOT_DEPLOYED`
 
 ## Purpose
 
@@ -22,11 +22,11 @@ The proof demonstrates:
 - no Oracle journey-memory writes;
 - provider-agnostic same-origin voice adapter;
 - Web Audio analyser → one bounded visual energy variable;
-- mute and missing-audio fail-soft behavior;
+- mute and audio fail-soft behavior;
 - reduced-motion static meaning preservation;
 - no camera, microphone, recording, personal scoring, identity/emotion/destiny/spiritual inference.
 
-The lab emits one `kdx:scene-dwell` event after 4200 ms only to make this isolated proof reproducible. Production integration must subscribe to the real event already emitted by `KodexRecuerda`; it must not copy the lab timer into product scenes.
+The lab emits one `kdx:scene-dwell` event after 7000 ms only to make this isolated proof reproducible and to leave a controlled pause after the first ADDRESS intervention. Production integration must subscribe to the real event already emitted by `KodexRecuerda`; it must not copy the lab timer into product scenes.
 
 ## Authored V0 cues
 
@@ -48,18 +48,18 @@ These remain implementation-copy candidates, not canon promotion.
 
 Target identity remains `KDX_F01`: original feminine computational presence, low-to-mid register, intimate, calm, slightly uncanny, high intelligibility.
 
-The current code uses `KDX_F01_DEV_TEMP` so no one can mistake the proof voice for final identity.
+The current proof intentionally uses `KDX_F01_DEV_TEMP` so no one can mistake the test voice for final identity.
 
-During this implementation session, two provisional offline clips were generated locally with the open-source eSpeak engine only to test the technical audio path:
+Two provisional offline clips are vendored only to exercise the complete technical voice path. They were synthesized locally with the open-source eSpeak engine, lightly filtered, then recompressed as mono Opus-in-Ogg at ~12 kbps:
 
-- `threshold-address.ogg` — 5.366848 s — SHA-256 `9363c77ab39a5ff304afa2a6fc2a9a2181c7136aa3b39a2749837199e835ed99`
-- `prologue-reveal.ogg` — 5.243175 s — SHA-256 `3aebfc357ac90023182233318c664964a744626555fc877747013bd89c91ed10`
+- `public/audio/kodex/oracle/threshold-address.ogg` — 5.373375 s — 7,812 B — SHA-256 `9aeb12e57f1f199088b12efb813f2c5138b1431dd5d7be80f60fbe4c534a71bd`
+- `public/audio/kodex/oracle/prologue-reveal.ogg` — 5.249708 s — 7,735 B — SHA-256 `b5a38112de37a72c426f06e631c8cd2f1f02a29f3078d4f9993f024950b2df67`
 
-Those files are `DEV_TEMP / NOT_FINAL_KDX_F01 / NOT_REFERENCE_SPEAKER_CLONE / NOT_YET_VENDORED_IN_REPO`.
+Those files are `DEV_TEMP / NOT_FINAL_KDX_F01 / NOT_REFERENCE_SPEAKER_CLONE`.
 
-The intended final authoring path is local/open-source Kokoro-82M → curated original KDX_F01 masters → same-origin compressed assets. The visitor should not need to download the TTS model.
+The intended final authoring path remains local/open-source Kokoro-82M → curated original KDX_F01 masters → same-origin compressed assets. The visitor should not need to download the TTS model.
 
-Until audio files are vendored, `voice-adapter.js` intentionally produces `SILENT_FALLBACK`; captions and visual-state semantics continue.
+If audio fails or the visitor mutes it, captions and visual-state semantics continue.
 
 ## Files
 
@@ -68,13 +68,15 @@ Until audio files are vendored, `voice-adapter.js` intentionally produces `SILEN
 - `src/lib/kodex/oracle/audio-reactor.js`
 - `src/lib/kodex/oracle/voice-adapter.js`
 - `src/pages/kodex/lab/oracle-presence-v0.astro`
+- `public/audio/kodex/oracle/threshold-address.ogg`
+- `public/audio/kodex/oracle/prologue-reveal.ogg`
 - `scripts/kodex-oracle-presence.test.mjs`
 
 ## Acceptance still required
 
 1. Exact-head Core Runtime / test / build pass.
-2. Browser evidence: desktop, 390×844, 412×915, reduced-motion and mute/silent fallback.
-3. Vendor or replace the provisional audio with an approved original KDX_F01 voice asset.
+2. Browser evidence: desktop, 390×844, 412×915, reduced-motion and mute/audio behavior.
+3. Replace the provisional eSpeak voice with an approved original KDX_F01 master before any production/canon promotion.
 4. Creator review: `KEEP | REFINE | REJECT` for presence, timing, copy, visual entity and voice.
 5. Only after acceptance: port the component/event subscription into the real THRESHOLD and PROLOGUE hosts.
 6. No public deploy/canon promotion is implied by this proof.
