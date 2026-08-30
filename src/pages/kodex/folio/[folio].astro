@@ -14,6 +14,13 @@ import KodexObserveScene from '../../../components/kodex/observe/KodexObserveSce
 import { contratoDe } from '../../../lib/kodex/contrato-escena';
 import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
 import KodexRail from '../../../components/kodex/density/KodexRail.astro';
+// TELAR A06/A09/A10/A02 · 2026-08-29 · reaplicado sobre la rama viva.
+// ORIGIN VECTOR y SYSTEM LOG ya entraron al UMBRAL (commit 769f4a73) pero los
+// seis folios seguian sin ellos. El punto VISUAL no existia: voz.ts es la voz
+// audible, complementaria, no el indicador.
+import KodexOriginVector from '../../../components/kodex/density/KodexOriginVector.astro';
+import KodexSystemLog from '../../../components/kodex/density/KodexSystemLog.astro';
+import PuntoSenal from '../../../components/kodex/os/PuntoSenal.astro';
 import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.astro';
 import KodexField from '../../../components/kodex/field/KodexField.astro';
 import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
@@ -255,6 +262,53 @@ const sceneByFolio = {
    Los 0 son HUECO DECLARADO. Se muestran como tales. */
 const escenaAtlas = sceneByFolio.slug.toUpperCase();
 const conceptos = nodosDeEscena(escenaAtlas);
+
+/* TELAR A06 · ORIGIN VECTOR por escena.
+ * REGLA: dato real o hueco declarado. Nunca inventado.
+ *   · id y lines REALES, derivados del nodo y del copy gobernado.
+ *   · RA/DEC/SIG/MOD sin leer de los boards -> '—' y color de hueco.
+ *     Mismo criterio que 769f4a73 tomo para el umbral: los defaults del
+ *     componente (RA 23h00m, CHECKSUM 7A3F) son inventados y no se montan. */
+const origenByFolio = {
+  i:   { id: 'KDX-01-PRO-2026', lines: ['OBSERVATION PRECEDES', 'RECOGNITION.'] },
+  ii:  { id: 'KDX-02-DES-2026', lines: ['THE TREE DESCENDS', 'TO HOLD WHAT RISES.'] },
+  iii: { id: 'KDX-03-ARC-2026', lines: ['THE ARCHIVE DOES NOT', 'STORE. IT REMEMBERS.'] },
+  iv:  { id: 'KDX-04-MAC-2026', lines: ['SYSTEMS ALIGN.', 'PATTERNS EMERGE.'] },
+  v:   { id: 'KDX-05-COS-2026', lines: ['RECOGNIZE. ALIGN.', 'REMEMBER.'] },
+  vi:  { id: 'KDX-06-RET-2026', lines: ['THE PATH RETURNS', 'TRANSFORMED.'] },
+};
+const origen = origenByFolio[folio];
+
+/* TELAR A09 · SYSTEM LOG. PROLOGUE y MACHINE transcritos LITERAL del board
+ * (00-LA-REFERENCIA-MANDA.md, en ~/kodex-relevo/). Los otros cuatro derivados
+ * del bloque meta que la escena ya declara. */
+const logByFolio = {
+  i:   [['00:00:00','KDX-CORE INITIALIZED'],['00:00:02','ARCHIVE HOOK ACTIVE'],['00:00:04','WAITING FOR SIGNAL CONSENT']],
+  ii:  [['00:00:00','KDX-CORE INITIALIZED'],['00:00:02','STRATA ENGINE ONLINE'],['00:00:05','DESCENT VECTOR ARMED']],
+  iii: [['00:00:00','KDX-CORE INITIALIZED'],['00:00:03','ARCHIVE INDEX MOUNTED'],['00:00:06','GENEALOGY LINKS RESOLVED']],
+  iv:  [['00:00:00','KDX-CORE INITIALIZED'],['00:00:02','THRESHOLD 04 ONLINE'],['00:00:04','ALIGNMENT GRID LOCKED'],['00:00:06','PATTERNS EMERGING'],['00:00:08','ENGINE AWAKENED']],
+  v:   [['00:00:00','KDX-CORE INITIALIZED'],['00:00:03','FIELD CARTOGRAPHY OPEN'],['00:00:07','RELATION COUNT UNBOUNDED']],
+  vi:  [['00:00:00','KDX-CORE INITIALIZED'],['00:00:04','ROUTE SIGNATURE SEALED'],['00:00:09','PATTERN CARRIED FORWARD']],
+};
+
+/* TELAR A10 · CHECKSUM DERIVADO. FNV-1a 32-bit sobre el contenido gobernado:
+ * cambia si cambia el copy. Un checksum fijo es adorno; uno inventado, mentira. */
+function checksumDe(txt) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < txt.length; i++) {
+    h ^= txt.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  const hex = h.toString(16).toUpperCase().padStart(8, '0');
+  return `${hex.slice(0,4)}-${hex.slice(4,8)}`;
+}
+const sceneChecksum = origen
+  ? `${checksumDe(origen.id + sceneByFolio.title)}-${checksumDe(sceneByFolio.cta + sceneByFolio.slug)}`
+  : null;
+
+/* TELAR A02 · etiqueta base del punto, transcrita de los boards.
+ * DESCENT es la unica que dice DEEPENING. */
+const senalByFolio = { i:'LATENT', ii:'DEEPENING', iii:'LATENT', iv:'LATENT', v:'LATENT', vi:'LATENT' };
 
 const archiveItems = [...families.slice(0, 13), ...discoWorks.slice(0, 5)].map((w, i) => ({
   code: `KDX_A_${String(i + 1).padStart(3, '0')}`,
@@ -731,6 +785,32 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             figure={figureByFolio[folio] ?? 'rings'}
             class="kx-os-stage__strip"
           />}
+
+          {/* TELAR A06 · ORIGIN VECTOR: lo que convierte un marco en registro. */}
+          {origen && <KodexOriginVector
+            ra="—" dec="—" sig="—" mod="—"
+            lines={origen.lines}
+            id={origen.id}
+            accent={sceneByFolio.accent}
+            class="kx-os-stage__origen"
+          />}
+
+          {/* TELAR A09+A10 · SYSTEM LOG + CHECKSUM: el zocalo del instrumento. */}
+          {logByFolio[folio] && <KodexSystemLog
+            entries={logByFolio[folio]}
+            checksum={sceneChecksum}
+            verifyAt={`KODEX-SYSTEMS/VERIFY/${sceneByFolio.slug.toUpperCase()}`}
+            accent={sceneByFolio.accent}
+            class="kx-os-stage__syslog"
+          />}
+
+          {/* TELAR A02 · el punto VISUAL. Complementa voz.ts (audible), no la
+              duplica. Reporta su propio estado, nunca al visitante (canon 08G). */}
+          <PuntoSenal
+            base={senalByFolio[folio] ?? 'LATENT'}
+            accent="var(--kdx-red, #FF3833)"
+            class="kx-os-stage__punto"
+          />
 
           <main class="kx-os-stage__copy">
             <p class="kx-os-stage__kicker">{sceneByFolio.kicker}</p>
