@@ -115,15 +115,21 @@ const {
 <script>
   import { estadoEscena, type Estado } from '../../../lib/kodex/estado';
 
-  /* El punto reporta SU estado, no el del visitante. Estas etiquetas
-     describen a la señal, nunca a quien mira. */
-  const ETIQUETA: Record<Estado, string> = {
-    idle: 'LATENT',
-    aware: 'DETECTING',
-    locked: 'HOLDING',
-    active: 'ENGAGED',
-    transitionOut: 'CARRIED',
-  };
+  /* AUTORIDAD DE COPY · 2026-08-29 (Decision Log).
+   *
+   * Los boards documentan UNA etiqueta por escena, no una por estado:
+   * PROLOGUE dice SIGNAL LATENT, DESCENT dice SIGNAL DEEPENING, y ahi
+   * termina la evidencia. Una version previa de este componente mostraba
+   * DETECTING / HOLDING / ENGAGED / CARRIED -- copy INVENTADO por el agente,
+   * sin fuente en board ni canon. Se elimina.
+   *
+   * Lo que queda es lo que la referencia efectivamente dibuja: la ETIQUETA
+   * es de la escena y no cambia; lo que reporta el estado es la LUZ, via
+   * data-kdx-estado, que el CSS traduce en ritmo y halo. El punto sigue
+   * hablando de si mismo, ahora sin decir palabras que nadie escribio.
+   *
+   * Si mas adelante el creador define etiquetas por estado, entran aca y
+   * solo aca. Hasta entonces esto es un HUECO DECLARADO, no una omision. */
 
   const enganchados = new WeakSet<HTMLElement>();
 
@@ -135,13 +141,15 @@ const {
     const salida = punto.querySelector<HTMLElement>('[data-kdx-punto-estado]');
     if (!salida) return;
 
-    /* En `idle` respeta la etiqueta del board de la escena (DEEPENING en
-       DESCENT, LATENT en el resto). Recién al haber estado la sobreescribe:
-       así el punto no miente sobre una escena que nadie tocó todavía. */
+    /* La etiqueta del board de la escena: DEEPENING en DESCENT, LATENT en
+       el resto. Es la unica fuente textual que existe para este bloque. */
     const base = punto.dataset.kdxPuntoBase || 'LATENT';
 
+    /* La etiqueta se fija una vez, del board. El estado se reporta en la
+       luz, no en el texto: es lo unico que la referencia respalda. */
+    salida.textContent = base;
+
     estadoEscena().suscribir((estado: Estado) => {
-      salida.textContent = estado === 'idle' ? base : ETIQUETA[estado];
       punto.setAttribute('data-kdx-estado', estado);
     });
   }
