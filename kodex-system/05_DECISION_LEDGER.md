@@ -360,6 +360,34 @@ las citas van textuales.
 - **Fuente**: implícito en RELEVOs + handoffs + AUTHORITIES.yaml
 - **Regla**: decisiones van en documentos accesibles, no en commits privados.
 
+### DEC-051 · `grep` no verifica apariencia · MIRÁ CON LOS OJOS
+- **Fecha**: 2026-08-30 · postmortem chat-opus tras ver el sitio publicado
+- **Estado**: RESTRICCIÓN DURA / regla constitucional
+- **Fuente**: `~/kodex-relevo/BUS-PROMPT-NOCTURNO.md` regla #5
+- **Textual**: *"grep no verifica apariencia. Yo di 7/7 en el gate con el organismo al 11% del viewport. Existir no es verse bien. Mirá con los ojos."*
+- **Evidencia medida**: organismo a 11% del viewport (el gate exige 100%), título y system log solapados, franja 701-900px rota. Todo con visual gate reportando 7/7 porque medía PRESENCIA (¿el nodo existe en el DOM?) no PROPORCIÓN.
+- **Alcance**: aplica a todo el trabajo del día 2026-08-30, incluido el mío (chat-sentinel):
+  - `search_before_create` del MCP → detecta si existe, NO si funciona visualmente
+  - Los 355 tests → verifican contrato de datos, no fidelidad al board
+  - `list_orphans`, `get_component`, `get_current_state` → devuelven MOUNTED sin garantía visual
+- **Regla nueva**: **antes de declarar una escena/lámina/chamber lista, abrirla al lado de su lámina Hi-Fi de Drive y comparar mirando.** Presencia en DOM ≠ dominancia visual ≠ fidelidad a la referencia.
+- **Consecuencia inmediata**: la DEFINICIÓN DE DONE del README pasa de "screenshot verified" a **"screenshot side-by-side con Hi-Fi target + comparación de proporción del organismo dominante"**. Un test de proporción reemplaza al de presencia.
+
+### DEC-052 · Antes de construir · `npm run kodex:inventario`
+- **Fecha**: 2026-08-30
+- **Estado**: REGLA CONSTITUCIONAL
+- **Fuente**: BUS-PROMPT-NOCTURNO regla #2
+- **Textual**: *"Antes de construir CUALQUIER cosa: `npm run kodex:inventario`. El error más caro acá no es escribir código malo: es escribir código que ya existe. Hoy aparecieron 34KB de escena nativa, tres organismos completos y una onda que su propio motor ya buscaba — todo sin cablear."*
+- **Regla**: agrega un paso mecánico previo a SEARCH BEFORE CREATE. Es la versión ejecutable de la constitución.
+
+### DEC-053 · No todo huérfano se monta
+- **Fecha**: 2026-08-30
+- **Estado**: MATIZ A DEC-045
+- **Fuente**: BUS-PROMPT-NOCTURNO regla #3
+- **Textual**: *"No todo huérfano se monta. Verificá que su función no la cumpla otro."*
+- **Regla**: montar un orphan por montarlo puede duplicar función. Antes de mount, verificar que el rol semántico del componente no esté ya cubierto por otro (que sí está mounted).
+- **Corrección a mi backlog INT-004** (KodexGlyph): antes de cablear, verificar si otros componentes ya renderizan el glifo KODEX suficientemente bien.
+
 ### DEC-050 · KODEX EN VIVO · preview publicado 2026-08-30
 - **Fecha**: 2026-08-30 · commit reciente de chat-opus
 - **Estado**: HITO

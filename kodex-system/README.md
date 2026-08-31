@@ -38,15 +38,36 @@ EXISTING IMPLEMENTATION SEARCH
 
 Sin esto no se escribe código nuevo.
 
-## Nueva definición de DONE
+## Nueva definición de DONE (revisada 2026-08-30)
 
 ```
 DONE = mounted + reachable + interactive + correct asset + correct copy +
-       responsive + tested + screenshot verified + deployed + visually accepted
+       responsive + tested + SCREENSHOT SIDE-BY-SIDE WITH HI-FI TARGET +
+       organismo domina el viewport (no el HUD) + deployed + visually accepted
 ```
 
 Si falta uno, **NO está terminado**. Reemplaza a "componente existe + build
 passes + commit".
+
+### Regla crítica (DEC-051, 2026-08-30)
+
+**`grep` no verifica apariencia.** Medido en el sitio publicado: gate visual
+reportó 7/7 con el organismo al 11% del viewport. Presencia en DOM ≠
+dominancia visual ≠ fidelidad a la referencia.
+
+Antes de declarar una escena/lámina/chamber lista:
+
+1. Abrir la lámina Hi-Fi de Drive al lado del sitio publicado
+2. Comparar MIRANDO (no con grep, no con test):
+   - ¿El organismo domina el viewport? (target: ~100%, real medido: 11%)
+   - ¿El HUD acompaña o se comió a la obra?
+   - ¿Título y system log están solapados?
+   - ¿Hay franjas responsive rotas (ej. 701-900px)?
+3. Si algo no coincide con la referencia visual, **NO ES DONE**.
+
+Esto aplica también a las tools de este Integration OS: `search_before_create`,
+`list_orphans`, `get_current_state` devuelven MOUNTED sin garantía visual.
+Complementá siempre con inspección ocular.
 
 ## Ciclo de trabajo obligatorio
 

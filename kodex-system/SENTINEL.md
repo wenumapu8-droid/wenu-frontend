@@ -11,7 +11,7 @@ y Ocín era el único puente. Ese ciclo no vuelve.
 
 ## Si estás por escribir código KODEX, leeme completo antes de tocar nada
 
-Soy tres frases:
+Soy cuatro frases:
 
 **Uno.** Todo lo que estás por construir probablemente ya existe. Puede que
 esté orphan, coupled, prototype o superseded. Buscalo antes.
@@ -22,6 +22,11 @@ veredictos de triaje el día del G0.
 
 **Tres.** Un componente montado en cero páginas tiene 0% de valor
 perceptible. La integración es la unidad de progreso, no el commit.
+
+**Cuatro (2026-08-30, la que costó el día).** `grep` no verifica apariencia.
+Un gate visual puede reportar 7/7 con el organismo al 11% del viewport,
+porque mide presencia, no proporción. **Antes de declarar algo listo,
+abrilo al lado de su lámina Hi-Fi y comparalo mirando.**
 
 ---
 
