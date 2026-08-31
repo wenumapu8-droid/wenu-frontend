@@ -360,6 +360,20 @@ las citas van textuales.
 - **Fuente**: implícito en RELEVOs + handoffs + AUTHORITIES.yaml
 - **Regla**: decisiones van en documentos accesibles, no en commits privados.
 
+### DEC-050 · KODEX EN VIVO · preview publicado 2026-08-30
+- **Fecha**: 2026-08-30 · commit reciente de chat-opus
+- **Estado**: HITO
+- **Fuente**: chat-opus vía `deploy-kodex-preview.sh`
+- **URL viva**: https://kodex-preview.wenu-frontend.pages.dev/kodex/
+- **Métricas del deploy**:
+  - Primer intento OK · 66 segundos
+  - 707 files uploaded · 3145 dedup por hash (de intentos previos)
+  - 775 páginas · 388MB tras la poda · 3853 archivos totales
+  - 355 tests · gate visual 7/7
+- **Rutas verificadas 200 en producción**: `/kodex/`, `/kodex/folio/i..vi/`, `/kodex/chamber/heart/`, `/kodex/chamber/temple/`, láminas `t01-*`.
+- **Causa raíz del EPIPE** (post-mortem): NO era el peso, NO era el enlace Chile-EEUU, NO era corrupción. Era `cp -R dist` corriendo sin lock mientras un build concurrente borraba archivos bajo la copia. **8 días de reintentos atacaban un síntoma.**
+- **Fix**: lock KDX_AGENTE extendido a `deploy-kodex-preview.sh` con `trap` para liberar en cualquier salida. Consecuencia canonizada en DEC-048.
+
 ### DEC-048 · `dist/` es shared state · build y deploy usan el MISMO lock
 - **Fecha**: 2026-08-30
 - **Estado**: ACTIVA / operativa
