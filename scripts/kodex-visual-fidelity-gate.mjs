@@ -19,7 +19,7 @@
  *
  * Uso: node scripts/kodex-visual-fidelity-gate.mjs [dist]
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const DIST = process.argv[2] || 'dist';
@@ -71,6 +71,28 @@ const GATES = [
     check: (h) => h.includes('kdx-riel__tit'),
   },
   {
+    id: 'Proportion',
+    razon: 'el organismo tiene que DOMINAR, no existir en una esquina',
+    /* 2026-08-31 · este gate daba 7/7 con el organismo al 11% del viewport.
+     * Median PRESENCIA -- los nodos existian -- y existir no es verse bien.
+     * Un gate que aprueba una escena rota es peor que no tener gate, porque
+     * da permiso para no mirar.
+     *
+     * No se puede medir el layout renderizado desde el HTML, pero SI se puede
+     * detectar la causa: padding lateral grande en el stage encoge el centro.
+     * El HUD es fijo, esta fuera del flujo, y no necesita que le hagan lugar.
+     * Si aparece un padding de mas de 10rem, el organismo se comio el marco. */
+    check: (h, cssTodo) => {
+      /* El CSS vive en bundle externo, no en el HTML -- buscarlo ahi seria el
+         mismo error de mirar donde no esta. Y hay que respetar la CASCADA:
+         si una regla posterior baja el padding, esa gana. Por eso se toma la
+         ULTIMA coincidencia, no cualquiera. */
+      const m = [...cssTodo.matchAll(/padding-(?:left|right)\s*:\s*clamp\(\s*(\d+(?:\.\d+)?)rem/g)];
+      if (!m.length) return true;
+      return Number(m[m.length - 1][1]) < 10;
+    },
+  },
+  {
     id: 'Fallback',
     razon: 'tiene que comunicar sin full motion: reduced-motion honrado',
     check: (h) => h.includes('prefers-reduced-motion'),
@@ -88,6 +110,18 @@ const GATES = [
   },
 ];
 
+/* Todo el CSS emitido, concatenado. Astro lo saca a _astro/*.css y buscarlo
+   dentro del HTML da falsos verdes. */
+let cssTodo = '';
+try {
+  const dirCss = join(DIST, '_astro');
+  if (existsSync(dirCss)) {
+    for (const f of readdirSync(dirCss)) {
+      if (f.endsWith('.css')) cssTodo += readFileSync(join(dirCss, f), 'utf8');
+    }
+  }
+} catch { /* sin css el gate de proporcion no puede opinar: pasa */ }
+
 let fallos = 0;
 const filas = [];
 
@@ -101,7 +135,7 @@ for (const [nombre, ruta] of ESCENAS) {
   const html = readFileSync(p, 'utf8');
   const perdidos = [];
   for (const g of GATES) {
-    const ok = g.extra ? g.extra(html) : g.check(html);
+    const ok = g.extra ? g.extra(html) : g.check(html, cssTodo);
     if (!ok) perdidos.push(g.id);
   }
   if (perdidos.length) fallos++;
@@ -122,6 +156,9 @@ for (const f of filas) {
 const pasan = filas.filter((f) => f.estado === 'PASA').length;
 console.log(`\n${pasan}/${filas.length} pasan · ${fallos} fallan`);
 console.log('\nEste gate NO dice si algo es lindo: eso lo decide el creador.');
+console.log('Y NO REEMPLAZA MIRAR. El 2026-08-31 dio 7/7 con el organismo al');
+console.log('11% del viewport: median presencia, no proporcion. Antes de');
+console.log('declarar una escena lista hay que abrirla al lado de su lamina.');
 console.log('Dice si estan las condiciones sin las cuales la escena no puede');
 console.log('ser lo que dice ser. Un gate que siempre pasa no verifica nada.\n');
 
