@@ -294,6 +294,137 @@ DEC-074 exige provenance textual obligatorio: *"Conceived and art-directed by Oc
 
 ---
 
+---
+
+## Batch final · DEC-056/059/061/062/065/068
+
+### DEC-056 · KODEX sistema madre · NOT_IN_RUNTIME
+
+DEC-056 declara: *"KODEX −∞ es un sistema para traducir lo invisible en formas ejecutables. No es otra marca. Es el archivo vivo, método creativo y universo operativo desde el cual nacen Wenu Mapu, Soma, los objetos, las experiencias digitales, las investigaciones, los símbolos y los prototipos."*
+
+**Real**: `grep "sistema madre|traducir lo invisible|Wenu.*Soma"` en src/ = **0 matches** en el runtime del corredor. La frase vive solo en Obsidian + ledger + yaml.
+
+**Estado**: **NOT_IN_RUNTIME**. Es principio de autoridad interno, no texto público del sitio.
+
+**Nota**: Puede ser intencional — la frase autoral no necesariamente debe aparecer en el sitio. Pero si Ocín quiere que el visitante entienda la jerarquía KODEX > Wenu Mapu, falta manifiesto público.
+
+---
+
+### DEC-059 · Jung + neurociencia · NOT_IMPLEMENTED
+
+DEC-059 declara: *"−∞ como profundidad causal + layered descent"* con base Jung + neurociencia.
+
+**Real**: 1 mención de Jung en `src/pages/lexicon.astro:397` — pero en contexto de definición de "mandala" ("*In the West, after Jung and after the colouring-book industry…*"), no como fundamento causal de KODEX.
+
+**Estado**: **NOT_IMPLEMENTED** como estructura de descent. Sigue solo en Obsidian.
+
+---
+
+### DEC-061 · COMMISSION A SYSTEM = palanca #1 · IMPLEMENTED
+
+DEC-061 declara COMMISSION como palanca monetaria número 1.
+
+**Real**:
+- `src/components/kodex/CommissionForm.astro` existe como componente
+- Se importa en `src/pages/kodex/folio/[folio].astro` (única página que lo consume)
+- NO hay ruta dedicada `/kodex/commission/`
+
+**Estado**: **IMPLEMENTED_EMBED** — componente montado dentro del folio, no como página dedicada.
+
+**Acción sugerida a Ocín**: si es palanca #1, considerar promover a página `/kodex/commission/` con visibilidad propia + link desde nav principal.
+
+---
+
+### DEC-062 · Curated editions ≠ shop grid (dossier aesthetic) · IMPLEMENTED
+
+DEC-062 declara ediciones curadas con estética dossier, no grid de tienda.
+
+**Real**: 10 archivos consumen la estética dossier: `kodex.css`, `kodex-plate.css`, `folio/[folio].astro`, `vol/[slug].astro`, `SpecimenSkullOrganism.astro`, `grammar.ts`, `scene.03-archive.yaml`, `works.astro`, `verify.astro`, `store.astro`.
+
+**Estado**: **IMPLEMENTED** — la estética dossier está distribuida en toda la superficie de ARCHIVE/store.
+
+---
+
+### DEC-065 · Pinterest cadencia 3-5 pines/semana · UNVERIFIABLE_IN_CODE
+
+DEC-065 declara Pinterest SEO via 5 tableros + cadencia 3-5 pines/semana.
+
+**Real**: No verificable en el código del repo. Requiere consultar cuenta Pinterest de Wenu Mapu (memoria dice "Pinterest domain LIVE").
+
+**Estado**: **UNVERIFIABLE_IN_CODE**. Métrica operacional externa.
+
+---
+
+### DEC-068 · 5 Achroma editions KDX-ACH-001…005 · DRIFT
+
+DEC-068 declara 5 ediciones Achroma con IDs KDX-ACH-001 hasta 005 (free + paid).
+
+**Real**:
+- `src/pages/kodex/store.astro:83` declara **un pack ACHROMA con `n: 12`** (12 items dentro del pack, no 5 ediciones individuales)
+- `grep KDX-ACH-001..005` en el repo = **0 matches**
+- El pack ACHROMA existe como zip único (4.1 MB), no como 5 editions numeradas
+
+**Estado**: **DRIFT**. DEC-068 dice 5 ediciones enumeradas free+paid. Runtime tiene 1 pack con 12 items dentro.
+
+**Interpretación posible**: los "12 items" del pack pueden ser variaciones ACHROMA, pero no están individualizados como ediciones vendibles con IDs KDX-ACH-*. La granularidad declarada por DEC-068 no llegó al producto.
+
+**Acción sugerida a Ocín**: o desglosar 5 ediciones individuales según DEC-068, o reformular DEC-068 para reflejar "1 pack con 12 variaciones".
+
+---
+
+## BALANCE FINAL · Ronda 2026-08-31 · 15 DEC verificadas de 21 nuevas
+
+De las 21 decisiones extraídas de Obsidian (DEC-054 → DEC-074), estado runtime:
+
+### MATCH / IMPLEMENTED (6)
+- **DEC-057** estados motor (Initializing/Ready/Generating) — ya activo
+- **DEC-061** COMMISSION component — montado en folio
+- **DEC-062** dossier aesthetic — distribuida en 10 archivos
+- **DEC-063** Printful POC — dry-run listo, manifest correcto
+- **DEC-071** Multi-platform — 3 de 4 plataformas activas
+- **DEC-073** stack efectos v1 — respetado (Three.js confinado fuera del corredor)
+
+### IMPLEMENTED_PARCIAL (2)
+- **DEC-064** packs manifest ready, ZIPs en local backup
+- **DEC-074** provenance exacto en packs manifest, forma corta en corredor
+
+### NOT_IMPLEMENTED / NOT_IN_RUNTIME (4)
+- **DEC-055** IdentCard component — oportunidad clara de MOUNT
+- **DEC-056** "sistema madre" no aparece en runtime (posiblemente intencional)
+- **DEC-058** 12 códigos cosmogónicos — solo Obsidian
+- **DEC-059** Jung + neurociencia — solo Obsidian
+
+### NOT_IN_REPO (1)
+- **DEC-067** SVG Kit 11 elementos — vive en LaCie/R2 pendiente
+
+### DRIFT (3)
+- **DEC-060** chambers: 3 declarados vs 4 reales (ALTAR+TEMPLE extras)
+- **DEC-068** 5 Achroma editions numerados vs 1 pack con 12 items
+- **DEC-072** rutas: `/kodex/archive/[slug]` MISSING + ~20 rutas extra no declaradas
+
+### DRIFT SEVERO (2)
+- **DEC-066** NFT: Base declarado vs Ethereum mainnet real (triple contradicción)
+- **DEC-069/070** typography+tokens: Departure Mono no existe; `kdx-acid` con 3 valores distintos (5C7A00/A7FF00/B7FF00); `kdx-cyan` con 2 (00D8FF/00F0FF)
+
+### UNVERIFIABLE_IN_CODE (2)
+- **DEC-054** OBS-C1 pendiente decisión Ocín (paleta v2.0 vs activadores)
+- **DEC-065** Pinterest cadencia — métrica externa
+
+### PENDIENTE (1)
+- **DEC-054** activadores 7 escenas — registrado como PROPOSAL_PENDING_OCIN
+
+### Total: 21 DEC / 15 con verificación runtime + 4 conceptuales sin implementación esperable + 2 externas
+
+**Prioridad para Ocín** (impacto real en producto):
+
+1. **DEC-066** — corregir declaración chain (mainnet vs Base) antes de próximo pack o comunicación NFT.
+2. **DEC-070** — decidir si `:root --kdx-acid` corrige a `#B7FF00` neón o DEC-070 se supersede con `#5C7A00`. Impacta color dominante RETURN/status.
+3. **DEC-054** — decidir OBS-C1 (paleta v2.0 SUPERSEDE o no a DEC-023). Desbloquea C1/C2 en cascada.
+4. **DEC-068** — 5 editions o 1 pack con 12 items: define oferta comercial ACHROMA.
+5. **DEC-060** — 3 o 4 chambers: define canon oficial.
+
+---
+
 ## Cross-refs
 
 - Alimenta C1 (paleta drift 3 fuentes) del ledger.
@@ -309,3 +440,4 @@ DEC-074 exige provenance textual obligatorio: *"Conceived and art-directed by Oc
 - DEC-071 3/4 plataformas vivas — Etsy pendiente activación.
 - DEC-073 respetada (excepción de ManifestoSpiral3D confinada fuera del corredor).
 - DEC-074 falta consistencia: forma exacta solo en packs manifest, forma corta en corredor.
+- DEC-068 granularidad no bajó al producto (5 editions declaradas vs 1 pack con 12 items).
