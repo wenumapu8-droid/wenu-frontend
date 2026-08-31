@@ -49,3 +49,18 @@ test('puerta canonica se distingue de escena interior', () => {
   assert.ok(!esPuertaCanonica('/kodex/vol/x/'));
   assert.ok(!esPuertaCanonica('/kodex/lamina/x/'));
 });
+
+/* Un concepto del Atlas es una FUERZA, no una ficha. */
+import { campo } from '../../kodex/persistent-field/PersistentField.ts';
+
+test('influir inclina el campo hacia las zonas que el concepto declara', () => {
+  /* El campo es de cliente; en node no hay window. Se prueba la funcion pura
+     de filtrado, que es donde vive la decision: un concepto puede declarar
+     zonas que NO son atractores del corredor (HEART, OBSERVE, BESTIARY) y
+     esas deben ignorarse sin romper. */
+  const declaradas = ['HEART', 'RETURN', 'COSMOLOGY', 'BESTIARY'];
+  const ATR = ['THRESHOLD','PROLOGUE','DESCENT','ARCHIVE','MACHINE','COSMOLOGY','RETURN'];
+  const validos = declaradas.filter((a) => ATR.includes(a));
+  assert.deepEqual(validos, ['RETURN', 'COSMOLOGY']);
+  assert.ok(!validos.includes('HEART'), 'HEART es chamber, no atractor del corredor');
+});

@@ -283,6 +283,28 @@ class CampoPersistente {
     this.raf = requestAnimationFrame(paso);
   }
 
+  /**
+   * Un concepto del Atlas empuja el campo hacia los regímenes que DECLARA.
+   *
+   * El atlas dice, por ejemplo, que KDX-IMG-001 pertenece a COSMOLOGY y
+   * RETURN. Eso no es metadato de ficha: es una fuerza. Visitar el concepto
+   * debe inclinar el campo hacia esos dos, repartido entre ellos, sin
+   * imponer un régimen entero -- el concepto pertenece a varias zonas a la
+   * vez, y ese entrelazado es el punto.
+   *
+   * Se aplica sobre el RESIDUO y no sobre el peso: el concepto deja huella,
+   * no toma el control. Quien manda sobre el régimen sigue siendo la puerta.
+   */
+  influir(atractores: Atractor[], fuerza = 0.22) {
+    const validos = atractores.filter((a) => ATRACTORES.includes(a));
+    if (!validos.length) return;
+    const parte = fuerza / validos.length;
+    for (const a of validos) {
+      this.estado.residuo[a] = Math.min(1, this.estado.residuo[a] + parte);
+    }
+    this.animar();
+  }
+
   /** Firma de ruta: misma ruta → misma firma. Es lo que RETURN debe leer. */
   firmaDeRuta(): string {
     const inicial = (a: Atractor) => (a === 'THRESHOLD' ? 'T' : a[0]);
