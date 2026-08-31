@@ -360,6 +360,24 @@ las citas van textuales.
 - **Fuente**: implícito en RELEVOs + handoffs + AUTHORITIES.yaml
 - **Regla**: decisiones van en documentos accesibles, no en commits privados.
 
+### DEC-048 · `dist/` es shared state · build y deploy usan el MISMO lock
+- **Fecha**: 2026-08-30
+- **Estado**: ACTIVA / operativa
+- **Fuente**: chat-opus vía terminal `deploy-kodex-preview.sh` (+21 líneas)
+- **Textual**: *"El deploy falló y la causa es reveladora: `cp -R dist` corrió mientras otro agente buildeaba y los archivos desaparecían bajo la copia. El deploy lee dist, así que también necesita el lock — y no lo tenía."*
+- **Regla dura**: cualquier operación que lea o escriba `dist/` (build, deploy, verify, cp, tar, rsync, screenshot capture) debe tomar el lock `KDX_AGENTE`. La ventana entre operaciones sin lock es un race garantizado.
+- **Corolario**: build y deploy consecutivos deben ser **atómicos** desde el punto de vista del lock — un solo hold, no dos.
+- **Anti-patrón**: `npm run build && ./deploy.sh` (dos operaciones separadas → ventana para colisión).
+- **Patrón correcto**: script único que toma lock una vez, buildea, deploya, libera lock.
+
+### DEC-049 · Nunca `git commit -am` en repo compartido
+- **Fecha**: 2026-08-30
+- **Estado**: ACTIVA / operativa
+- **Fuente**: chat-sentinel autoreporte (commit `56ccdace` arrastró 7 lámina files del carril de chat-web)
+- **Regla dura**: `git commit -am` stagea TODAS las modificaciones, incluyendo trabajo en vuelo de otros agentes. En repo compartido, usar siempre `git add <paths específicos>` seguido de `git commit -m`.
+- **Efecto del error**: atribución incorrecta en la historia (mi commit terminó firmando trabajo de otro carril). Recuperación: aviso en el bus + esta entrada.
+- **Detección**: `git status --short` antes de cada commit para ver el scope real.
+
 ---
 
 ## Conflictos abiertos
