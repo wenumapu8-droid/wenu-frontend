@@ -163,8 +163,8 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   },
   {
     slug: 'heart-chamber', path: 'src/pages/kodex/lamina/heart-chamber.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Menciona todas 7 escenas; candidata a chamber HEART (KDX-CH-*).',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Chamber HEART tiene ruta canonica en /kodex/chamber/heart/ (monta lib/kodex/escenas/heart.ts). Esta lamina queda como referencia visual, no como pagina del chamber.',
   },
   {
     slug: 'impossible-forms-vol-1',
@@ -256,8 +256,8 @@ export const LAMINA_REGISTRY: ReadonlyArray<EntradaLamina> = Object.freeze([
   },
   {
     slug: 'u07-observer', path: 'src/pages/kodex/lamina/u07-observer.astro',
-    kind: 'lamina', status: 'AMBIGUA',
-    reason: 'Serie UNIVERSE GATE. OBSERVER es chamber especial KDX-CH-*; requiere decision autoral de si esta lamina es el nodo canonico de esa chamber.',
+    kind: 'lamina', status: 'ARCHIVO',
+    reason: 'Chamber OBSERVER tiene ruta canonica en /kodex/chamber/observer/ (monta lib/kodex/escenas/observer.ts). Esta lamina queda como referencia visual UNIVERSE GATE, no como pagina del chamber.',
   },
   {
     slug: 'u09-source', path: 'src/pages/kodex/lamina/u09-source.astro',
