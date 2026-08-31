@@ -188,6 +188,112 @@ DEC-063 declara: *"Printful → WC con filtro category_id:485 (kodex)"* (Obsidia
 
 ---
 
+---
+
+## Batch de verificaciones · DEC-055/058/064/067/071/073/074
+
+### DEC-055 · Ident cards por obra · NOT_IMPLEMENTED como componente
+
+DEC-055 declara ficha de identidad por obra con 10 campos (Título · Código · Año · Técnica · Estado · Categoría · Procedencia · Edición · Disponibilidad · Relación) con estética dossier técnico.
+
+**Real**: aparece solo como `motif: 'ident cards grid'` en `src/lib/kodexScenes.js:41` (ARCHIVE). NO existe componente `IdentCard.astro` ni renderer que emita los 10 campos.
+
+**Estado**: **NOT_IMPLEMENTED como componente reutilizable**. Los datos existen dispersos (SKU, edición, materiales) pero no hay un patrón visual "dossier técnico" instanciado.
+
+**Acción**: crear `IdentCard.astro` con los 10 slots + montar en ARCHIVE + folio, o marcar DEC-055 como declaración aspiracional.
+
+---
+
+### DEC-058 · 12 códigos cosmogónicos · NOT_IMPLEMENTED
+
+DEC-058 declara "12 códigos cosmogónicos comparables como sustrato de KODEX" (Obsidian `kodex-atlas-cosmogonias.md`).
+
+**Real**: `grep -ri cosmogonia|12 codigos src/` = **0 archivos**. El atlas de 40 nodos KDX-IMG existe (`src/lib/kodex/atlas.ts` según registry) pero los 12 códigos cosmogónicos no aparecen como estructura.
+
+**Estado**: **NOT_IMPLEMENTED en runtime**. El markdown fuente vive en Obsidian, no llegó al código.
+
+---
+
+### DEC-064 · Packs 4 zips WP Media o R2 · MANIFEST_READY
+
+DEC-064 declara 4 packs de ~27 MB en WP Media o R2.
+
+**Real**: `public/img/kodex/packs/manifest.json` declara **4 packs**:
+- ACHROMA (4.3 MB)
+- DISCO SOLAR (6.4 MB)
+- TRIBE SPACE (5.4 MB)
+- THE ARCHIVE (esperado; verificar peso)
+
+**Ubicación de las ZIPs**: campo `source` apunta a `/Users/user1/_kodex-packs-hold/*.zip` (local backup Ocín), campo `file` apunta a `/img/kodex/packs/*.zip` (path público — verificar que existan en R2/WP media).
+
+**Estado**: **MANIFEST_READY, ZIPS FUERA DEL REPO** (por diseño). Coherente con DEC-064.
+
+---
+
+### DEC-067 · Graphic Kit SVG 11 elementos + sprite · NOT_IN_REPO
+
+DEC-067 declara Graphic Kit SVG (11 elementos + sprite) = Gumroad $19–29.
+
+**Real**: `public/img/kodex/kit/` y `public/img/kodex/graphic-kit/` **no existen**. `grep sprite|graphic.kit src/` no encuentra referencias.
+
+**Estado**: **NOT_IN_REPO**. Probable que viva en LaCie / R2 pendiente de subir. Consistente con producto Gumroad no lanzado.
+
+---
+
+### DEC-071 · Multi-platform distribution · PARCIAL
+
+DEC-071 declara distribución en GitHub + Pinterest + Etsy + NFT.
+
+**Real** (verificable en el repo):
+- **GitHub**: repo `wenumapu8-droid/wenu-frontend` público ✅
+- **NFT**: link Manifold en `store.astro:76` ✅ (aunque con drift Base/Ethereum, ver DEC-066)
+- **Pinterest**: verificable en memoria `project_kodex_wiring_2026_07_27.md` = "Pinterest domain LIVE"
+- **Etsy**: memoria `project_auditoria_digital_2026_05_11.md` dice "Etsy Wenumapu8 abierta 3 años, 0 productos — activar". KODEX no lanzado en Etsy todavía.
+
+**Estado**: **3 de 4 plataformas vivas**. Etsy pendiente activación.
+
+---
+
+### DEC-073 · Effects stack v1 · IMPLEMENTED (excepción confinada)
+
+DEC-073 declara stack de efectos v1: ditherjs + SVG feTurbulence + GSAP (**no heavy WebGL v1**).
+
+**Real dentro del corredor KODEX**: 8 archivos usan GSAP/feTurbulence/dither:
+- `src/styles/kodex.css`, `src/styles/global.css`
+- `src/pages/kodex/archive/conjuncion.astro`
+- `src/pages/kodex/editions.astro`
+- `src/components/kodex/lamina/t01-03/ShaderTreatment.astro`
+- `src/components/SignalBand.astro`, `FrequencyBand.astro`
+
+**Excepción encontrada**: `src/components/ManifestoSpiral3D.astro:332-338` importa Three.js completo + EffectComposer + UnrealBloomPass + GLTFLoader + Shader/Output/Render Pass.
+
+**Resolución**: **NO viola DEC-073** porque:
+1. ManifestoSpiral3D se usa solo en `src/pages/manifesto.astro` — **fuera del corredor KODEX**.
+2. Es dynamic-import: `import('three'), import('three/addons/...')` — solo carga bajo demanda, no impacta bundle inicial de KODEX.
+3. El comentario del componente reconoce "~500kb: three + gsap + lenis" y confina la carga.
+
+**Estado**: **IMPLEMENTED en KODEX**, con excepción confinada en `/manifesto` que respeta el espíritu de la decisión.
+
+---
+
+### DEC-074 · Provenance "Conceived and art-directed by Ocin" · IMPLEMENTED_PARCIAL
+
+DEC-074 exige provenance textual obligatorio: *"Conceived and art-directed by Ocin / Wenu Mapu"*.
+
+**Real**:
+- Forma exacta declarada: `public/img/kodex/packs/manifest.json` → `"provenance": "Conceived and art-directed by Ocin / Wenu Mapu"` ✅ MATCH
+- Forma corta en KODEX folio: `src/pages/kodex/folio/[folio].astro:1327,1348` → `<dt>PROVENANCE</dt><dd>Ocin / Wenu Mapu</dd>` — coincide con la idea, no la frase exacta
+- Forma alternativa en store: `src/pages/kodex/store.astro:182` → `<dt>SOURCE</dt><dd>Ocin · Wenu Mapu · book/0cin</dd>` — usa "SOURCE" no "PROVENANCE"
+
+**Estado**: **IMPLEMENTED_PARCIAL**. La palabra exacta "Conceived and art-directed" solo aparece en el manifest de packs. Las páginas del corredor usan formulaciones más cortas.
+
+**Acción sugerida a Ocín**:
+- ¿Es aceptable la forma corta "PROVENANCE: Ocin / Wenu Mapu" para el corredor?
+- ¿O forzar la frase exacta en todas las piezas para consistencia autoral?
+- Si es lo segundo: crear componente `<KodexProvenance />` reutilizable con la frase canónica.
+
+---
+
 ## Cross-refs
 
 - Alimenta C1 (paleta drift 3 fuentes) del ledger.
@@ -197,3 +303,9 @@ DEC-063 declara: *"Printful → WC con filtro category_id:485 (kodex)"* (Obsidia
 - Contradicción DEC-060 vs DEC-003 vs runtime (chambers count 3/3/4).
 - Contradicción DEC-066 vs deploy real (Base declarado vs Ethereum mainnet real).
 - DEC-063 Printful integración pendiente de confirmación live.
+- DEC-055 y DEC-058: no llegaron al runtime; oportunidad de MOUNT explícita.
+- DEC-064 packs manifest ready — verificar ZIPs sirvan desde ruta pública.
+- DEC-067 SVG kit fuera del repo — subir cuando el producto Gumroad se lance.
+- DEC-071 3/4 plataformas vivas — Etsy pendiente activación.
+- DEC-073 respetada (excepción de ManifestoSpiral3D confinada fuera del corredor).
+- DEC-074 falta consistencia: forma exacta solo en packs manifest, forma corta en corredor.
