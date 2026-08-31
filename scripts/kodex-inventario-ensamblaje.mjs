@@ -41,10 +41,16 @@ const archivos = recorrer(RAIZ);
 const corpus = archivos.map((a) => ({ ...a, txt: readFileSync(a.p, 'utf8') }));
 
 const huerfanos = [];
+const superados = [];
 for (const a of corpus) {
   const nombre = basename(a.p, extname(a.p));
   /* Los tests, los .d.ts y los propios scripts no se "montan": se corren. */
   if (/\.(test|spec|d)$/.test(nombre) || a.p.includes('/pages/')) continue;
+
+  /* Un archivo marcado SUPERSEDED esta huerfano A PROPOSITO: su funcion la
+     cumple otro. Listarlo como pendiente haria que un agente lo monte y
+     duplique lo que ya existe -- justo el error que la marca previene. */
+  if (/SUPERSEDED/.test(a.txt)) { superados.push(a.p); continue; }
 
   const usos = corpus.filter((b) => b.p !== a.p && b.txt.includes(nombre)).length;
   if (usos === 0) huerfanos.push({ ...a, nombre });
@@ -63,5 +69,10 @@ for (const h of huerfanos) {
 }
 
 console.log(`\n${kb(total)} de codigo construido y sin cablear.`);
+if (superados.length) {
+  console.log('\nSUPERSEDED · huerfanos A PROPOSITO, no montar:');
+  for (const p of superados) console.log(`  ${p}`);
+}
+
 console.log('\nEsto NO es basura: es trabajo esperando su cable. Nada se borra.');
 console.log('Antes de construir cualquier cosa, buscala aca primero.\n');
