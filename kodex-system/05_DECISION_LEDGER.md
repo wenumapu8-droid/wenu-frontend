@@ -10,7 +10,9 @@ Extraído por barrido exhaustivo de: `DECISION-LOG-*.md` (2), `ATLAS-07A/B`,
 la anterior queda marcada SUPERSEDED con referencia. **Cero paráfrasis** —
 las citas van textuales.
 
-**47 decisiones activas · 8 categorías · 7 conflictos abiertos**
+**68 decisiones activas · 8 categorías · 7 conflictos abiertos + 2 nuevos (OBS-C1/C2)**
+
+**Última integración**: 2026-08-31 · 21 decisiones nuevas desde Obsidian (DEC-054 → DEC-074) via `DECISIONS_FROM_OBSIDIAN.yaml`.
 
 ---
 
@@ -451,8 +453,65 @@ Cuatro decisiones vivas en el runtime SIN entry formal en decision-log:
 
 ---
 
+---
+
+## Integración desde Obsidian · DEC-054 a DEC-074
+
+**Fecha integración**: 2026-08-31
+**Fuente**: `~/Obsidian/WenuAgent/contenido/kodex-*.md` (19 archivos, jul 2026)
+**Detalle completo con líneas exactas**: `kodex-system/DECISIONS_FROM_OBSIDIAN.yaml`
+
+### Contradicciones activas (resolución pendiente por Ocín)
+
+- **OBS-C1** · Paleta cromática v2.0 (Obsidian, 07-28) vs activadores (08-29).
+  Obsidian dice: *"00 THRESHOLD rojo crosshair · 01 PROLOGUE violeta iris · 02 DESCENT naranja vortex · 03 ARCHIVE multi grid · 04 MACHINE cyan radial · 05 COSMOLOGY magenta mapa · 06 RETURN acid-green árbol"*. Ledger DEC-023 dice morado/cian/naranja/verde. Propuesta: DEC-054 SUPERSEDE si el storyboard v2.0 sigue vigente.
+- **OBS-C2** · Estados del motor (Initializing/Ready/Generating/Complete) ≠ telemetry visual (DEC-014). No es contradicción real: son capas distintas. DEC-057 clarifica.
+
+### Nuevas decisiones (cita textual + fuente Obsidian exacta)
+
+- **DEC-054** · visual · 07-28 · *"00 THRESHOLD rojo · 01 PROLOGUE violeta · 02 DESCENT naranja · 03 ARCHIVE multi · 04 MACHINE cyan · 05 COSMOLOGY magenta · 06 RETURN acid-green. Un acento dominante por escena, NO todos juntos"* — SUPERSEDES DEC-023 si Ocín aprueba.
+- **DEC-055** · assets · 07-28 · *"Ident card por obra: Título · Código KDX-… · Año · Técnica · Estado · Categoría · Procedencia · Edición · Disponibilidad · Relación. Estética: dossier técnico, no ficha e-commerce"*.
+- **DEC-056** · autoridad · 07-24 · *"KODEX −∞ es un sistema para traducir lo invisible en formas ejecutables. No es otra marca. Es el archivo vivo, método creativo y universo operativo desde el cual nacen Wenu Mapu, Soma, los objetos, las experiencias digitales, las investigaciones, los símbolos y los prototipos"*.
+- **DEC-057** · arquitectura · 07-28 · *"Estados REALES del motor: Initializing → Ready → Generating → Complete / Error / Reduced. Lectura por generación: KDX-GEN-0482 · SEED 8F21-A90C · METHOD MIRROR/DITHER/ORBITAL FOLD · SOURCE ACHROMA-03 · STATUS COMPLETE"* — clarifica DEC-014.
+- **DEC-058** · vocabulario · 07-25 · *"12 códigos cosmogónicos comparables como sustrato de KODEX"* (`contenido/kodex-atlas-cosmogonias.md`).
+- **DEC-059** · autoridad · 07-24 · *"−∞ como profundidad causal + layered descent"* (Jung + neurociencia).
+- **DEC-060** · arquitectura · 07-23 · *"Portales operativos = 7 escenas + 3 chambers"*.
+- **DEC-061** · rights · 07-28 · *"COMMISSION A SYSTEM = palanca monetaria #1"*.
+- **DEC-062** · visual · 07-28 · *"Curated editions ≠ shop grid (dossier aesthetic)"*.
+- **DEC-063** · assembly · 07-27 · *"Printful → WC con filtro category_id:485 (kodex)"*.
+- **DEC-064** · assembly · 07-27 · *"Packs hosting: 4 zips (27 MB) en WP Media o R2"*.
+- **DEC-065** · distribution · 07-27 · *"Pinterest SEO via 5 tableros + cadencia 3-5 pines/semana"*.
+- **DEC-066** · rights · 07-27 · *"NFT Manifold Studio (Base chain, no OpenSea)"*.
+- **DEC-067** · assets · 07-28 · *"Graphic Kit SVG (11 elementos + sprite) = Gumroad $19–29"*.
+- **DEC-068** · assets · 07-28 · *"5 Achroma editions (KDX-ACH-001…005) free + paid"*.
+- **DEC-069** · visual · 07-28 · *"KODEX SANS (Space Grotesk) + MONO (Departure)"*.
+- **DEC-070** · visual · 07-28 · *"Color tokens: kdx-acid #B7FF00, kdx-cyan #00F0FF, …"* — puede diferir del render actual (drift DEC-011).
+- **DEC-071** · distribution · 07-27 · *"Multi-platform distribution (GitHub + Pinterest + Etsy + NFT)"*.
+- **DEC-072** · arquitectura · 07-23 · *"Portal /kodex + /kodex/archive/[slug] + /kodex/editions"* — verificar contra rutas actuales.
+- **DEC-073** · assembly · 07-28 · *"Effects stack: ditherjs + SVG feTurbulence + GSAP (no heavy WebGL v1)"*.
+- **DEC-074** · autoridad · 07-28 · *"Conceived and art-directed by Ocin / Wenu Mapu"* — provenance obligatorio en toda pieza.
+
+---
+
+## Hallazgo crítico · assets únicos en `~/kodex-content`
+
+**Registrado**: 2026-08-31 por chat-sentinel durante audit de `~/kodex-*`.
+
+`~/kodex-content` (14 GB) contiene **9 GB de assets autorales NO mirroreados**
+en `~/kodex-imac-b/public/kodex-content/` (esa carpeta pesa solo 153 MB).
+
+Contenido único:
+- `vol/` — 3.8 GB
+- `assets/` — 5.2 GB (subcarpetas `achroma/`, `archivo/`, `behance-114558929/`, `behance-114559111/`, `behance-114560005/`, …)
+
+**Regla dura**: NO borrar, NO mover, NO archivar hasta que Ocín confirme si
+existe backup en LaCie o R2. Si son fuente única, quedan quietos hasta migrar
+a storage frío controlado. Ver `KODEX_DIRS_ACTION_PLAN.md § TIER 4`.
+
+---
+
 ## Meta
 
 **Mantenimiento**: cada nuevo decision-log debe integrarse aquí en su categoría, con DEC-NNN incremental. Regla de oro: **cero paráfrasis, citas textuales, procedencia exacta**.
 
-**Última actualización**: 2026-08-30 · 47 decisiones activas.
+**Última actualización**: 2026-08-31 · 68 decisiones activas (47 originales + 21 nuevas Obsidian).
