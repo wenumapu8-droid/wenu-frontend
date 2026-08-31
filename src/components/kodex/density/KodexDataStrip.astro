@@ -12,9 +12,16 @@
  *
  * Los valores llegan desde la escena. Nada se inventa acá dentro.
  */
+interface DataRow {
+  k: string;
+  v: string;
+  /** Fuente verificable del valor cuando la fila parece una medición. */
+  source?: string;
+}
+
 interface Props {
   title: string;
-  rows: Array<{ k: string; v: string }>;
+  rows: Array<DataRow>;
   accent?: string;
   /** 0..1 — dibuja una barra de nivel bajo los datos. */
   meter?: number;
@@ -34,6 +41,23 @@ const {
   class: className = "",
 } = Astro.props;
 
+/**
+ * Truthfulness guardrail.
+ *
+ * A bare percentage reads as measured telemetry even when it is only design
+ * copy. DataStrip therefore fails closed: percentage-valued rows need an
+ * explicit source before the number may be shown. Unsourced values stay
+ * visible as a declared gap instead of silently becoming fact.
+ *
+ * The meter below is separate: it is derived from the numeric `meter` prop and
+ * is therefore not governed by this row-level provenance check.
+ */
+const displayRows = rows.map((row) => {
+  const looksMeasured = /(?:^|\s)[+-]?\d+(?:\.\d+)?\s*%(?:\s|$)/.test(row.v);
+  if (!looksMeasured || row.source?.trim()) return row;
+  return { ...row, v: "— · PENDING SOURCE" };
+});
+
 const pct = typeof meter === "number" ? Math.round(Math.min(1, Math.max(0, meter)) * 100) : null;
 ---
 
@@ -45,10 +69,10 @@ const pct = typeof meter === "number" ? Math.round(Math.min(1, Math.max(0, meter
   <p class="kdx-strip__title">{title}</p>
 
   <dl class="kdx-strip__rows">
-    {rows.map(({ k, v }) => (
+    {displayRows.map(({ k, v, source }) => (
       <div class="kdx-strip__row">
         <dt>{k}</dt>
-        <dd>{v}</dd>
+        <dd data-source={source || undefined}>{v}</dd>
       </div>
     ))}
   </dl>
