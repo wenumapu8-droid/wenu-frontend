@@ -83,6 +83,7 @@ try {
 
           if (status < 200 || status >= 400) fail(`${world.label}/${profile.key}: HTTP ${status}`);
           if (metrics.pathname !== world.href) fail(`${world.label}/${profile.key}: route drift ${metrics.pathname} != ${world.href}`);
+          if (metrics.activeScene !== world.key) fail(`${world.label}/${profile.key}: scene identity drift ${metrics.activeScene || 'MISSING'} != ${world.key}`);
           if (horizontalOverflow > 3) fail(`${world.label}/${profile.key}: horizontal overflow ${horizontalOverflow}px`);
           if (verticalOverflow > 3) fail(`${world.label}/${profile.key}: fullscreen/no-scroll contract overflow ${verticalOverflow}px`);
           if (pageErrors.length) fail(`${world.label}/${profile.key}: pageerror ${pageErrors.join(' | ')}`);
