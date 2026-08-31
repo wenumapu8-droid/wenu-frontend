@@ -61,17 +61,22 @@ try {
           await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 180 : 420);
 
           const status = response?.status() || 0;
-          const metrics = await page.evaluate(() => ({
-            pathname: window.location.pathname,
-            innerWidth: window.innerWidth,
-            innerHeight: window.innerHeight,
-            scrollWidth: document.documentElement.scrollWidth,
-            scrollHeight: document.documentElement.scrollHeight,
-            bodyScrollHeight: document.body.scrollHeight,
-            activeScene: document.querySelector('[data-kdx-active-scene]')?.getAttribute('data-kdx-active-scene')
-              || document.querySelector('[data-kdx-scene-id]')?.getAttribute('data-kdx-scene-id')
-              || null,
-          }));
+          const metrics = await page.evaluate(() => {
+            const checksum = document.querySelector('.kdx-micro-cluster__foot span:last-child');
+            return {
+              pathname: window.location.pathname,
+              innerWidth: window.innerWidth,
+              innerHeight: window.innerHeight,
+              scrollWidth: document.documentElement.scrollWidth,
+              scrollHeight: document.documentElement.scrollHeight,
+              bodyScrollHeight: document.body.scrollHeight,
+              activeScene: document.querySelector('[data-kdx-active-scene]')?.getAttribute('data-kdx-active-scene')
+                || document.querySelector('[data-kdx-scene-id]')?.getAttribute('data-kdx-scene-id')
+                || null,
+              microClusterChecksum: checksum?.textContent?.trim() || null,
+              microClusterChecksumSource: checksum?.getAttribute('data-fuente') || null,
+            };
+          });
 
           const horizontalOverflow = metrics.scrollWidth - metrics.innerWidth;
           const verticalOverflow = Math.max(metrics.scrollHeight, metrics.bodyScrollHeight) - metrics.innerHeight;
@@ -81,6 +86,14 @@ try {
           if (horizontalOverflow > 3) fail(`${world.label}/${profile.key}: horizontal overflow ${horizontalOverflow}px`);
           if (verticalOverflow > 3) fail(`${world.label}/${profile.key}: fullscreen/no-scroll contract overflow ${verticalOverflow}px`);
           if (pageErrors.length) fail(`${world.label}/${profile.key}: pageerror ${pageErrors.join(' | ')}`);
+          if (world.key === 'archive') {
+            if (!metrics.microClusterChecksum?.includes('PENDING SOURCE')) {
+              fail(`${world.label}/${profile.key}: micro-cluster checksum must fail closed without a verified producer`);
+            }
+            if (!metrics.microClusterChecksumSource) {
+              fail(`${world.label}/${profile.key}: micro-cluster checksum provenance marker missing`);
+            }
+          }
 
           const screenshot = `${String(index + 1).padStart(2, '0')}-${world.key}-${profile.key}.png`;
           await page.screenshot({
@@ -99,6 +112,8 @@ try {
             horizontalOverflow,
             verticalOverflow,
             pageErrors,
+            microClusterChecksum: metrics.microClusterChecksum,
+            microClusterChecksumSource: metrics.microClusterChecksumSource,
             screenshot,
           });
         } catch (error) {
