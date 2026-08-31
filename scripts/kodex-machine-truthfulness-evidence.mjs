@@ -68,10 +68,20 @@ try {
           await button.click(); await page.waitForTimeout(30);
           const active = await page.evaluate(() => ({ text: document.querySelector('[data-signal-label]')?.textContent || '', pressed: document.querySelector('[data-signal]')?.getAttribute('aria-pressed') || '', stored: sessionStorage.getItem('kx-signal') }));
           if (!/SIGNAL\s*·\s*ACTIVE/i.test(active.text) || active.pressed !== 'true' || active.stored !== '1') failures.push(`shared signal does not become causally ACTIVE: ${JSON.stringify(active)}`);
-          await button.click(); await page.waitForTimeout(30);
+
+          // SIGNAL is visitor-owned journey memory, not scene telemetry. Prove that the
+          // causal state survives a document reload before allowing the cycle to close.
+          await page.reload({ waitUntil: 'domcontentloaded', timeout: 30_000 });
+          await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
+          await page.waitForTimeout(30);
+          const persisted = await page.evaluate(() => ({ text: document.querySelector('[data-signal-label]')?.textContent || '', pressed: document.querySelector('[data-signal]')?.getAttribute('aria-pressed') || '', stored: sessionStorage.getItem('kx-signal') }));
+          if (!/SIGNAL\s*·\s*ACTIVE/i.test(persisted.text) || persisted.pressed !== 'true' || persisted.stored !== '1') failures.push(`shared signal does not preserve visitor-owned ACTIVE memory across reload: ${JSON.stringify(persisted)}`);
+
+          const reloadedButton = page.locator('[data-signal]');
+          await reloadedButton.click(); await page.waitForTimeout(30);
           const latent = await page.evaluate(() => ({ text: document.querySelector('[data-signal-label]')?.textContent || '', pressed: document.querySelector('[data-signal]')?.getAttribute('aria-pressed') || '', stored: sessionStorage.getItem('kx-signal') }));
           if (!/SIGNAL\s*·\s*LATENT/i.test(latent.text) || latent.pressed !== 'false' || latent.stored !== '0') failures.push(`shared signal does not return causally LATENT: ${JSON.stringify(latent)}`);
-          signalCycle = { active, latent };
+          signalCycle = { active, persisted, latent };
         }
       }
       if (facts.observationSourcePresent) failures.push('MACHINE unexpectedly exposes data-kdx-obs; review signal-vs-observation contract');
