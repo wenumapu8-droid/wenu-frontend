@@ -11,6 +11,24 @@ export CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
 SNAP=/tmp/kodex-preview-snap
 rm -rf "$SNAP"
 cp -R dist "$SNAP"
+# ── PODA DEL SNAPSHOT · 2026-08-31 ───────────────────────────────────────
+# `dist/.prerender/` son INTERMEDIOS DE BUILD, no sitio: los chunks .mjs que
+# Astro usa para renderizar y que ningún visitante puede alcanzar. Se
+# estaban subiendo enteros en cada deploy.
+#
+#   38 MB · 270 archivos · cero de ellos servibles
+#
+# Los deploys cortan por EPIPE alrededor de 3144/3840 archivos sobre el
+# enlace Chile-EEUU. Sacar 270 archivos NO resuelve el problema de fondo
+# —eso es el sprint de R2— pero es peso que nunca debió viajar, y cada
+# archivo menos es una oportunidad menos de que el enlace se corte.
+#
+# Se poda el SNAPSHOT, nunca el dist: el build queda intacto para los gates
+# que miden sobre él.
+antes=$(find "$SNAP" -type f | wc -l | tr -d ' ')
+[ -d "$SNAP/.prerender" ] && rm -rf "$SNAP/.prerender"
+echo "=== PODA: $antes -> $(find "$SNAP" -type f | wc -l | tr -d ' ') archivos · $(du -sh "$SNAP" | cut -f1) ==="
+
 echo "=== SNAPSHOT taken $(date +%T) ==="
 [ -f "$SNAP/kodex/index.html" ] || { echo "FALTA kodex/index.html"; exit 1; }
 
