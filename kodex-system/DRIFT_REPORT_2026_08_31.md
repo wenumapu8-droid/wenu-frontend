@@ -115,9 +115,85 @@ Conflicto C2 del ledger: *"ARCHIVE ↔ MACHINE intercambiaron accents en algún 
 
 ---
 
+---
+
+## DEC-060 · 7 escenas + 3 chambers · DRIFT
+
+DEC-060 declara: *"Portales operativos = 7 escenas + 3 chambers"* (Obsidian `contenido/kodex-from-pdf.md`, 07-23).
+
+### Real en `src/pages/kodex/chamber/`
+
+- `altar/` ✅
+- `heart/` ✅
+- `observer/` ✅
+- `temple/` ✅
+- `silence/` ❌ NO existe
+
+**Chambers reales: 4** (ALTAR, HEART, OBSERVER, TEMPLE). DEC-060 dice 3.
+**SILENCE**: solo existe como lámina en `src/pages/kodex/lamina/silence-engine.astro`, sin route de chamber.
+
+**Contradicción interna**: DEC-003 (canon) dice HEART/OBSERVER/SILENCE. Runtime tiene ALTAR/HEART/OBSERVER/TEMPLE. Registry `02_SCENE_REGISTRY.yaml:23-24` ya identifica esta divergencia (`chambers: 4 · chambers_declared: 3`).
+
+**Acción sugerida a Ocín**:
+- ¿ALTAR y TEMPLE son chambers oficiales que DEC-003/060 no llegaron a registrar?
+- ¿O son legacy del pipeline y hay que colapsar a HEART/OBSERVER/SILENCE puro?
+- Si canoniza 4, mover SILENCE de lámina a chamber activo o cerrarlo como no-implementable.
+
+---
+
+## DEC-066 · NFT Manifold Base chain · DRIFT SEVERO
+
+DEC-066 declara: *"NFT Manifold Studio (Base chain, no OpenSea)"* (Obsidian `contenido/kodex-nft-launch-checklist.md`, 07-27).
+
+### Real en el código
+
+`src/pages/kodex/store.astro:76`:
+> *"Cardinal Wenelfe Bloom 32302 — open edition **on Ethereum** via Manifold. Contract **0xF35A…EDD1**."*
+
+Link real: `https://manifold.xyz/@kodex/id/4038234352`
+
+Memoria persistente (`~/.claude/projects/-Users-user1/memory/project_kodex_operativo_2026_07_27.md`):
+> *"NFT KODEX−∞ ERC-1155 DEPLOYED mainnet `0xF35A...EDD1`"*
+
+`kodex-source/nft-draft/README.md`:
+> *"OpenSea-style draft metadata with placeholder IPFS image URLs"*
+
+**Diagnóstico**: **triple contradicción**:
+1. DEC-066 dice **Base chain**, código y memoria dicen **Ethereum mainnet**.
+2. DEC-066 dice **no OpenSea**, el POC del draft dice **OpenSea-style metadata** (aunque el mint efectivo fue en Manifold).
+3. El contrato `0xF35A...EDD1` está deployed en mainnet, no en Base — DEC-066 se escribió antes o desconociendo el deploy real.
+
+**Acción sugerida a Ocín**:
+- Si el deploy Ethereum mainnet es intencional (memoria 07-27 lo confirma), DEC-066 debe **superseder** con "NFT Manifold Studio (Ethereum mainnet ERC-1155, contract 0xF35A...EDD1)".
+- Si Base era el plan y mainnet fue error, hay un problema mayor que un drift de documentación.
+
+---
+
+## DEC-063 · Printful → WC category_id:485 · PARTIAL
+
+DEC-063 declara: *"Printful → WC con filtro category_id:485 (kodex)"* (Obsidian `contenido/kodex-printful-guide.md`, 07-27).
+
+### Real en el código
+
+- POC dry-run en `kodex-source/printful-poc/printful-products-payload.json` con 3 productos (`Cardinal Bloom 32302`, `Mandala Axis 30110`, `Square Field 30211`)
+- Store frontend en `src/pages/kodex/store.astro:42,54,66` muestra los 3 mockups + proofs
+- Payload dice `"is_ignored": true` — no crea productos en WC activos
+- **Filtro `category_id:485` NO aparece en el POC actual** (el POC es dry-run standalone Printful, sin integración WC activa todavía)
+
+**Estado**: Frontend visible, POC preparado, integración WC completa **pendiente**. Coherente con memoria `project_kodex_wiring_2026_07_27.md` que dice "Cat WC `kodex` id 485. PACKS LIVE en R2 $18-49. Printful↔WC CONNECTED" — pero el POC repo actual no ejecuta la conexión.
+
+**Acción sugerida a Ocín**:
+- Confirmar si Printful↔WC ya está conectado en producción WooCommerce (o sigue en POC dry-run).
+- Si conectado en prod, activar el POC (`is_ignored: false`) o marcar el POC como historial.
+
+---
+
 ## Cross-refs
 
 - Alimenta C1 (paleta drift 3 fuentes) del ledger.
 - Alimenta OBS-C1 (paleta v2.0 Obsidian vs activadores 08-29).
 - Motiva actualización de `02_SCENE_REGISTRY.yaml` con `route_actual` por escena.
 - Verifica C2 como INACTIVO en runtime actual.
+- Contradicción DEC-060 vs DEC-003 vs runtime (chambers count 3/3/4).
+- Contradicción DEC-066 vs deploy real (Base declarado vs Ethereum mainnet real).
+- DEC-063 Printful integración pendiente de confirmación live.
