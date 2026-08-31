@@ -2,6 +2,42 @@
 
 This file applies only to KODEX work in this repository.
 
+## ⚠ ANTES DE TOCAR NADA · Integration OS
+
+**Ley constitucional (2026-08-30)**: cualquier agente que trabaje en KODEX
+debe leer PRIMERO estos archivos en `kodex-system/`:
+
+```
+kodex-system/README.md              regla SEARCH BEFORE CREATE + DONE nueva
+kodex-system/SENTINEL.md            el guardian, en primera persona
+kodex-system/00_VAULT_INVENTORY     donde vive que (128 files + 60 Drive URLs)
+kodex-system/01_CURRENT_STATE       que esta VIVO por ruta ahora mismo
+kodex-system/02_SCENE_REGISTRY      7 escenas + 4 chambers + SILENCE hueco
+kodex-system/03_COMPONENT_REGISTRY  112 componentes clasificados
+kodex-system/05_DECISION_LEDGER     47 decisiones + 7 conflictos abiertos
+kodex-system/06_INTEGRATION_BACKLOG INT-XXX tareas concretas
+```
+
+**Sin leer eso, no se escribe código nuevo.** Antes de crear cualquier
+componente, producir el bloque:
+
+```
+EXISTING IMPLEMENTATION SEARCH
+  canonical found: <lista>
+  orphan found: <lista>
+  REUSE POSSIBLE: YES / NO
+  If NO: reason: <texto>
+```
+
+**Definición de DONE**: `mounted + reachable + interactive + correct asset
++ correct copy + responsive + tested + screenshot verified + deployed +
+visually accepted`. Si falta uno, no está DONE. Reemplaza a "componente
+existe + build passes + commit".
+
+Ver `kodex-system/README.md` para el ciclo completo DISCOVER → RECOVER →
+RECONCILE → SELECT → DEPRECATE → MOUNT → CONNECT → ASSETS → INTERACTION →
+MOBILE → VISUAL CHECK → TEST → DEPLOY → SCREENSHOT → ACCEPT.
+
 ## Authority and repos
 
 - Application/runtime repo: `wenumapu8-droid/wenu-frontend`.
