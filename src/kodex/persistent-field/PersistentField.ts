@@ -56,20 +56,79 @@ export const ATRACTORES: Atractor[] = [
   'THRESHOLD', 'PROLOGUE', 'DESCENT', 'ARCHIVE', 'MACHINE', 'COSMOLOGY', 'RETURN',
 ];
 
-/** Ruta → atractor. El corredor de 7, decision de autoridad del 29-08. */
+/**
+ * Ruta → atractor.
+ *
+ * CORRECCIÓN 2026-08-30 (Ocín): "entre THRESHOLD hay muchas escenas que
+ * corresponden a ese umbral antes de pasar al PROLOGUE, y así sucesivamente".
+ *
+ * La versión anterior sólo reconocía SIETE rutas exactas y devolvía null para
+ * todo lo demás -- o sea, las 500+ escenas intermedias quedaban FUERA del
+ * campo. Cruzar por ellas no dejaba residuo, no movía pesos, no contaba como
+ * viaje. El corredor se comportaba como si sólo existieran siete puertas.
+ *
+ * Eso contradecía la tesis: SCENE = ATTRACTOR, y entre dos atractores hay
+ * infinitos estados intermedios. Un atractor no es una página: es un
+ * TERRITORIO, y todas las rutas de ese territorio pertenecen a él.
+ *
+ * El orden importa: se evalúa de lo más específico a lo más general, porque
+ * `/kodex/` prefijaría todo si fuera primero.
+ */
 const POR_RUTA: Array<[RegExp, Atractor]> = [
-  [/^\/kodex\/?$/, 'THRESHOLD'],
+  // ── los siete atractores canónicos, exactos ──
   [/^\/kodex\/folio\/i\/?$/, 'PROLOGUE'],
   [/^\/kodex\/folio\/ii\/?$/, 'DESCENT'],
   [/^\/kodex\/folio\/iii\/?$/, 'ARCHIVE'],
   [/^\/kodex\/folio\/iv\/?$/, 'MACHINE'],
   [/^\/kodex\/folio\/v\/?$/, 'COSMOLOGY'],
   [/^\/kodex\/folio\/vi\/?$/, 'RETURN'],
+  [/^\/kodex\/return\/?$/, 'RETURN'],
+
+  // ── interludios: pertenecen al atractor del que SALEN ──
+  [/^\/kodex\/interlude\/archive-machine/, 'ARCHIVE'],
+  [/^\/kodex\/interlude\/cosmology-return/, 'COSMOLOGY'],
+
+  // ── territorios: cada familia cae bajo el atractor que la gobierna ──
+  [/^\/kodex\/archive/, 'ARCHIVE'],       // el archivo y sus especímenes
+  [/^\/kodex\/vol\//, 'ARCHIVE'],          // 513 volúmenes: son el archivo
+  [/^\/kodex\/work/, 'ARCHIVE'],
+  [/^\/kodex\/m\/descent/, 'DESCENT'],
+  [/^\/kodex\/strata/, 'DESCENT'],         // los estratos son el descenso
+  [/^\/kodex\/inward/, 'DESCENT'],         // ir hacia adentro es descender
+  [/^\/kodex\/m\/ritual/, 'MACHINE'],
+  [/^\/kodex\/movement/, 'MACHINE'],       // el movimiento es la máquina
+  [/^\/kodex\/lab/, 'MACHINE'],            // el laboratorio opera
+  [/^\/kodex\/screen/, 'MACHINE'],
+  [/^\/kodex\/world/, 'COSMOLOGY'],
+  [/^\/kodex\/concepto/, 'COSMOLOGY'],     // los conceptos son cartografía
+  [/^\/kodex\/atlas/, 'COSMOLOGY'],
+  [/^\/kodex\/lamina/, 'PROLOGUE'],        // las láminas se observan
+  [/^\/kodex\/libro/, 'PROLOGUE'],
+  [/^\/kodex\/chamber/, 'RETURN'],         // las chambers integran
+  [/^\/kodex\/editions|^\/kodex\/store/, 'RETURN'],
+
+  // ── el umbral: TODO lo que cuelga de /kodex/ y no se reclamó antes ──
+  [/^\/kodex/, 'THRESHOLD'],
 ];
 
+/**
+ * El atractor que gobierna una ruta. Ya no devuelve null dentro de KODEX:
+ * toda ruta del sitio pertenece a algún territorio. Fuera de /kodex/ sí es
+ * null -- ahí el campo no tiene nada que decir.
+ */
 export function atractorDeRuta(path: string): Atractor | null {
   for (const [re, a] of POR_RUTA) if (re.test(path)) return a;
   return null;
+}
+
+/**
+ * Si la ruta es la puerta canónica del atractor o una escena interior de su
+ * territorio. Sirve para que la escena interior module el campo sin
+ * reclamar el peso completo del régimen: estar en un volumen es estar EN
+ * ARCHIVE, pero no es lo mismo que estar en su puerta.
+ */
+export function esPuertaCanonica(path: string): boolean {
+  return /^\/kodex\/?$/.test(path) || /^\/kodex\/folio\/(i|ii|iii|iv|v|vi)\/?$/.test(path);
 }
 
 export interface EstadoCampo {
@@ -162,8 +221,15 @@ class CampoPersistente {
    * Entrar a un régimen. NO reinicia nada: mueve los pesos.
    * Ahí está la diferencia entre transición y corte.
    */
-  entrar(a: Atractor) {
-    if (this.objetivo === a) return;
+  entrar(a: Atractor, interior = false) {
+    /* Una escena INTERIOR del territorio no reclama el regimen completo:
+       estar en un volumen es estar EN ARCHIVE, pero no es lo mismo que estar
+       en su puerta. Si ya estamos en ese atractor, la escena interior solo
+       refuerza el residuo -- suma viaje sin resetear la transicion. */
+    if (this.objetivo === a) {
+      if (interior) this.estado.residuo[a] = Math.min(1, this.estado.residuo[a] + 0.04);
+      return;
+    }
 
     /* RETURN → THRESHOLD no es un reset: es regeneración con memoria.
        El ciclo sube y el residuo del viaje anterior queda. */

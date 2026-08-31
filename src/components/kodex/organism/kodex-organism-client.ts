@@ -350,6 +350,21 @@ if (document.readyState === "loading") {
 }
 
 document.addEventListener("astro:page-load", mountAll);
+/* ANTES: se destruian TODOS los controllers en cada navegacion.
+ *
+ * Ese era el desmontaje real del universo -- no la linea 252, que es
+ * recuperacion de contexto WebGL perdido y esta bien como esta.
+ *
+ * AHORA: solo se destruye lo que el swap se va a llevar igual. Un organismo
+ * marcado `transition:persist` sobrevive al swap con su nodo, asi que
+ * destruirlo seria matar a mano algo que el router ya decidio conservar.
+ *
+ * `mountAll` es idempotente (salta las raices que ya tienen controller), asi
+ * que lo que persiste no se remonta ni se duplica. */
 document.addEventListener("astro:before-swap", () => {
-  for (const controller of [...controllers]) void controller.destroy();
+  for (const controller of [...controllers]) {
+    const raiz = (controller as unknown as { root?: HTMLElement }).root;
+    if (raiz?.hasAttribute?.("data-astro-transition-persist")) continue;
+    void controller.destroy();
+  }
 });
