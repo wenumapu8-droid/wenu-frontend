@@ -8,6 +8,27 @@ cd "$(dirname "$0")"
 set -a; source .env >/dev/null 2>&1 || true; set +a
 export CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
 
+# ── EL DEPLOY TAMBIÉN NECESITA EL LOCK · 2026-08-31 ─────────────────────
+# El deploy LEE dist. Si otro agente buildea mientras `cp -R` está copiando,
+# los archivos desaparecen bajo la copia y el snapshot sale roto.
+#
+# Pasó de verdad hoy: el primer intento de deploy escupió decenas de
+# "cp: dist/xxx: No such file or directory" — no era corrupción del disco ni
+# permisos, era un build concurrente borrando dist a mitad del snapshot.
+#
+# El lock de build ya protegía a quien MIDE sobre dist. Faltaba proteger a
+# quien lo COPIA, que es la operación más larga y la más cara si falla.
+KDX_AGENTE=${KDX_AGENTE:-deploy}
+if ! node scripts/kodex-equipo.mjs build "$KDX_AGENTE" >/dev/null 2>&1; then
+  echo "✗ DEPLOY ABORTADO · el build está tomado por otro agente."
+  echo "  Un snapshot tomado durante un build ajeno sale incompleto."
+  echo "  Mirá quién lo tiene:  node scripts/kodex-equipo.mjs quien"
+  exit 1
+fi
+# El lock se suelta pase lo que pase: si el deploy muere, nadie queda trabado.
+trap 'node scripts/kodex-equipo.mjs libre >/dev/null 2>&1' EXIT
+echo "=== LOCK tomado por $KDX_AGENTE ==="
+
 SNAP=/tmp/kodex-preview-snap
 rm -rf "$SNAP"
 cp -R dist "$SNAP"
