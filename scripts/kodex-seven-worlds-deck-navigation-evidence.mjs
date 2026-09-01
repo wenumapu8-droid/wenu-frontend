@@ -90,7 +90,25 @@ const activateControl = async (page, selector, profile) => {
   if (!(await control.isEnabled())) throw new Error(`${selector} disabled`);
 
   if (profile.hasTouch) {
-    await control.tap({ timeout: 5_000 });
+    await control.scrollIntoViewIfNeeded({ timeout: 5_000 });
+    const box = await control.boundingBox();
+    if (!box || box.width <= 0 || box.height <= 0) throw new Error(`${selector} has no tappable bounds`);
+
+    const point = {
+      x: box.x + box.width / 2,
+      y: box.y + box.height / 2,
+    };
+    const viewport = page.viewportSize();
+    if (!viewport) throw new Error(`${selector} missing viewport for touch activation`);
+    if (point.x < 0 || point.y < 0 || point.x > viewport.width || point.y > viewport.height) {
+      throw new Error(`${selector} touch point outside viewport ${point.x},${point.y} / ${viewport.width}x${viewport.height}`);
+    }
+
+    // Use the browser touchscreen at the measured physical center. This preserves
+    // a real touch hit-test (including overlays) while avoiding Locator.tap's
+    // actionability/navigation coupling, which can time out after the tap has
+    // already been dispatched. Route + scene assertions below remain fail-closed.
+    await page.touchscreen.tap(point.x, point.y);
   } else {
     await control.focus();
     await page.keyboard.press('Enter');
@@ -128,14 +146,8 @@ const leaveCurrentRoute = async ({ page, selector, profile, expectedPath, label 
 
 const crossThreshold = async ({ page, profile }) => {
   await assertWorld(page, worlds.threshold, 'THRESHOLD start');
-  const gate = page.locator('[data-kdx-veil] a[data-kdx-cruzar][data-kdx-sonido="0"]').first();
-  if (await gate.count() !== 1 || !(await gate.isVisible())) throw new Error('THRESHOLD silent consent gate unavailable');
-
-  if (profile.hasTouch) await gate.tap({ timeout: 5_000 });
-  else {
-    await gate.focus();
-    await page.keyboard.press('Enter');
-  }
+  const selector = '[data-kdx-veil] a[data-kdx-cruzar][data-kdx-sonido="0"]';
+  await activateControl(page, selector, profile);
 
   await page.waitForURL((url) => url.pathname === worlds.prologue.href, { timeout: 10_000 });
   await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
