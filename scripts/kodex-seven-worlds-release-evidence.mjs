@@ -112,7 +112,16 @@ try {
               controlFailures.push(`${controlName}: missing`);
               continue;
             }
-            if (box.display === 'none' || box.visibility === 'hidden' || box.opacity <= 0) {
+
+            const isVisible = box.display !== 'none' && box.visibility !== 'hidden' && box.opacity > 0;
+            const isJourneyOriginPrevious = world.key === 'threshold' && controlName === 'previous';
+
+            if (isJourneyOriginPrevious) {
+              if (isVisible) controlFailures.push(`${controlName}: must be unavailable at journey origin`);
+              continue;
+            }
+
+            if (!isVisible) {
               controlFailures.push(`${controlName}: not visible`);
             }
             const clipped = box.left < -1 || box.top < -1 || box.right > metrics.innerWidth + 1 || box.bottom > metrics.innerHeight + 1;
