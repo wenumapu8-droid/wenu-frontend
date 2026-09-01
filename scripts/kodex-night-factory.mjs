@@ -127,8 +127,20 @@ const bloqueos = [];
 console.log('\nKODEX · FÁBRICA NOCTURNA · RECOVERY MODE\n');
 
 for (const spec of COLA_INICIAL) {
-  const guardada = cola.tareas.find((x) => x.id === spec.id);
-  if (guardada?.estado === 'CERRADA') { resultados.push({ ...spec, estado: 'CERRADA', dato: guardada.dato }); continue; }
+  /* NO se saltea lo ya cerrado.
+   *
+   * La primera corrida automática dio 100% sin ejecutar nada: leyó el
+   * backlog de la corrida anterior y dio todo por cerrado. Un reporte que
+   * dice 100% sin haber medido es peor que no tener reporte -- Ocín se
+   * levanta, lee 100%, y el sitio puede estar roto.
+   *
+   * Estas tareas son VERIFICACIONES, no construcciones: su valor es
+   * decir cómo está KODEX AHORA. Cerrarlas una vez y darlas por hechas
+   * para siempre las convierte en decoración.
+   *
+   * El estado guardado sirve para ver la tendencia entre corridas, no
+   * para saltarse la medición. */
+  const previa = cola.tareas.find((x) => x.id === spec.id)?.estado;
 
   /* El build es el único recurso serializado: dos a la vez se corrompen
      y borran el dist de quien esté midiendo. Ya nos costó horas. */
@@ -149,8 +161,11 @@ for (const spec of COLA_INICIAL) {
   const dato = (() => { try { return spec.extrae(r.out); } catch { return null; } })();
   console.log(paso ? `✓ ${dato || ''}` : '✗ FALLA');
 
-  resultados.push({ ...spec, estado: paso ? 'CERRADA' : 'FALLA', dato, salida: paso ? null : r.out.slice(-500) });
-  if (!paso) bloqueos.push(`${spec.id} · ${spec.t}: no pasó su verificación`);
+  /* Si algo pasaba antes y ahora falla, eso NO es una tarea pendiente:
+     es un retroceso, y se nombra distinto para que salte a la vista. */
+  const retrocede = previa === 'CERRADA' && !paso;
+  resultados.push({ ...spec, estado: paso ? 'CERRADA' : retrocede ? 'RETROCEDE' : 'FALLA', dato, salida: paso ? null : r.out.slice(-500) });
+  if (!paso) bloqueos.push(`${spec.id} · ${spec.t}: ${retrocede ? 'RETROCEDIÓ — antes pasaba' : 'no pasó su verificación'}`);
 
   const g = cola.tareas.find((x) => x.id === spec.id);
   if (g) { g.estado = paso ? 'CERRADA' : 'FALLA'; g.dato = dato; g.cuando = new Date().toISOString(); }
@@ -168,7 +183,7 @@ const rep = `# KODEX NIGHT REPORT · ${new Date().toISOString().slice(0, 16).rep
 ${barra(pct)} ${pct}%   ${cerradas}/${COLA_INICIAL.length} cerradas
 \`\`\`
 
-${resultados.map((r) => `${r.estado === 'CERRADA' ? '✓' : r.estado === 'BLOQUEADA' ? '·' : '✗'} ${r.id}  ${r.t}${r.dato ? ` — ${r.dato}` : ''}`).join('\n')}
+${resultados.map((r) => `${r.estado === 'CERRADA' ? '✓' : r.estado === 'BLOQUEADA' ? '·' : r.estado === 'RETROCEDE' ? '↓' : '✗'} ${r.id}  ${r.t}${r.dato ? ` — ${r.dato}` : ''}${r.estado === 'RETROCEDE' ? '   ← ANTES PASABA' : ''}`).join('\n')}
 
 ${bloqueos.length ? `## BLOQUEADO\n${bloqueos.map((b) => `! ${b}`).join('\n')}\n` : '## Nada bloqueado\n'}
 ## LO QUE NECESITA TU OJO
