@@ -16,11 +16,17 @@
  * ESTO LO HACE OBLIGATORIO. Corre en `prebuild`, asi que no hay forma de
  * buildear sin pasar por aca -- ni a proposito ni por distraccion.
  *
- * Se identifica con KDX_AGENTE. Si no esta seteado, el build falla con la
- * instruccion exacta en vez de arrancar y romperle la medicion a otro.
+ * En hosts compartidos se identifica con KDX_AGENTE. GitHub Actions queda
+ * fuera del lock local: cada job corre en un workspace aislado y no comparte
+ * `dist` ni `~/kodex-relevo/.build-lock` con los agentes de la maquina viva.
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+
+if (process.env.GITHUB_ACTIONS === 'true') {
+  console.log('✓ build autorizado · GitHub Actions usa un workspace aislado');
+  process.exit(0);
+}
 
 const LOCK = join(process.env.HOME, 'kodex-relevo', '.build-lock');
 const yo = process.env.KDX_AGENTE;
