@@ -35,6 +35,17 @@ import { join } from 'node:path';
 const HOME = process.env.HOME;
 const RELEVO = join(HOME, 'kodex-relevo');
 const BACKLOG = join(RELEVO, 'RECOVERY-BACKLOG.json');
+/* LA COLA ES LA DEL PEER, no la mía.
+ *
+ * Los dos escribimos una cola la misma noche. La suya INVESTIGA -- campos
+ * HUECO sin declarar, números sin data-fuente, imports muertos, drift de
+ * copy contra el canon. La mía sólo corría gates que ya existían.
+ *
+ * Nada se borra, todo se recicla: se queda la que aporta información nueva,
+ * y mi runner la ejecuta. Elegir un ganador entre dos colas habría dejado
+ * huérfano el trabajo del otro -- exactamente lo que RECOVERY MODE viene a
+ * terminar. Dos colas para lo mismo es la historia otra vez. */
+const COLA_PEER = join(process.cwd(), 'command-center/kodex-recovery-queue.json');
 const REPORTE = join(RELEVO, `NIGHT-REPORT-${new Date().toISOString().slice(0, 10)}.md`);
 const AGENTE = 'fabrica';
 const UNA_VUELTA = process.argv.includes('--once');

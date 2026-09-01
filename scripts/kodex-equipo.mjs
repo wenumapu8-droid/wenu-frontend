@@ -59,6 +59,11 @@ switch (cmd) {
       const min = Math.round((Date.now() - new Date(a.desde).getTime()) / 60000);
       console.log(`  ${n.padEnd(14)} ${a.unidad.padEnd(30)} ${min}min  @${a.host}`);
     }
+    const creando = Object.entries(d.creando || {}).filter(([, c]) => c.archivo && vivo(c.desde));
+    if (creando.length) {
+      console.log('\n  archivos NUEVOS reclamados:');
+      for (const [n, c] of creando) console.log(`    ${n.padEnd(14)} ${c.archivo}`);
+    }
     if (existsSync(BUILD)) {
       const b = JSON.parse(readFileSync(BUILD, 'utf8'));
       console.log(vivo(b.desde) ? `\n  BUILD tomado por ${b.agente}` : '\n  BUILD: lock vencido, libre');
@@ -69,6 +74,45 @@ switch (cmd) {
       for (const x of h) console.log(`    ${x.agente.padEnd(12)} ${x.unidad.padEnd(28)} ${x.estado}`);
     }
     console.log('');
+    break;
+  }
+
+  /* CREAR · reclamar un ARCHIVO que todavía no existe.
+   *
+   * Propuesta del peer tras la ironía de la noche: los dos construimos
+   * scripts/kodex-trinquete.mjs con una hora de diferencia -- duplicamos
+   * exactamente la pieza que existe para impedir que se duplique trabajo.
+   * Mi commit sobreescribió el suyo sin que ninguno lo notara.
+   *
+   * Y no fue por falta de tablero: él tenía tomado "carril de estados" y yo
+   * "chasis". El trinquete no era de ninguno, así que ninguno lo reclamó.
+   *
+   * LAS ESTACIONES CUBREN ARCHIVOS QUE EXISTEN. No cubren los que todavía
+   * no existen -- ese es el agujero, y es el mismo que dio EscenaPrologue
+   * montada dos veces.
+   *
+   * Cuesta cinco segundos y nos habría ahorrado las dos duplicaciones. */
+  case 'crear': {
+    const archivo = resto.join(' ');
+    if (!archivo) { console.log('uso: crear <agente> <ruta/del/archivo>'); process.exit(1); }
+    d.creando = d.creando || {};
+    const otro = Object.entries(d.creando).find(
+      ([n, c]) => n !== agente && c.archivo === archivo && vivo(c.desde),
+    );
+    if (otro) {
+      console.log(`✗ "${archivo}" lo está creando ${otro[0]} desde ${otro[1].desde}`);
+      console.log('  No lo escribas: hablá con él. Dos versiones del mismo archivo');
+      console.log('  nuevo es el error que este comando existe para evitar.');
+      process.exit(1);
+    }
+    if (existsSync(archivo)) {
+      console.log(`⚠ "${archivo}" YA EXISTE. Esto no es crear, es editar.`);
+      console.log('  Antes de tocarlo: ¿de quién es la estación? ¿ya hace lo que ibas a hacer?');
+      console.log('  Mirá también: npm run kodex:inventario');
+    }
+    d.creando[agente] = { archivo, desde: ahora(), host: hostname() };
+    escribir(d);
+    console.log(`✓ ${agente} va a crear "${archivo}"`);
     break;
   }
 
@@ -122,5 +166,5 @@ switch (cmd) {
     break;
 
   default:
-    console.log('uso: quien | tomar <agente> <unidad> | soltar <agente> <estado> | build <agente> | libre');
+    console.log('uso: quien | crear <agente> <archivo> | tomar <agente> <unidad> | soltar <agente> <estado> | build <agente> | libre');
 }
