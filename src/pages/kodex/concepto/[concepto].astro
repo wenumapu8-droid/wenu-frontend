@@ -24,6 +24,10 @@
  */
 import KodexShell from '../../../layouts/KodexShell.astro';
 import { nodosDelAtlas, nodoPorId, vecinosDe } from '../../../lib/kodex/atlas';
+/* 2026-08-28: el mundo sabe donde esta del viaje. El creador lo pidio asi --
+   "no estan las escenas de concepto entremedio de las escenas". Estaban al
+   costado; ahora son parte del camino. */
+import { ubicar } from '../../../lib/kodex/recorrido';
 
 export function getStaticPaths() {
   return nodosDelAtlas().map((n) => ({
@@ -47,6 +51,7 @@ const ACENTO: Record<string, string> = {
   ARCHIVE: '#3DE8A3', MACHINE: '#8AA6FF', COSMOLOGY: '#FF00C8', RETURN: '#E8A33D',
 };
 const acento = ACENTO[n.escenas[0]] || '#E8A33D';
+const lugar = ubicar(`/kodex/concepto/${id.toLowerCase()}/`);
 
 const RUTA: Record<string, string> = {
   THRESHOLD: '/kodex/', PROLOGUE: '/kodex/folio/i/', DESCENT: '/kodex/folio/ii/',
@@ -161,10 +166,31 @@ const RUTA: Record<string, string> = {
       </section>
     )}
 
+    {/* EL CAMINO · 2026-08-28. Antes esto eran dos salidas laterales
+        ("<- THE ATLAS", "ESCENA ->"). Ahora es el recorrido: de donde venis
+        y que sigue, con tu posicion real en el viaje entero. */}
     <footer class="kdx-mundo__pie">
-      <a href="/kodex/atlas/">← THE ATLAS</a>
-      {n.escenas[0] && <a href={RUTA[n.escenas[0]] || '/kodex/'}>{n.escenas[0]} →</a>}
+      {lugar?.antes ? (
+        <a class="kdx-mundo__paso" href={lugar.antes.url}>
+          <span>← {lugar.antes.tipo === 'umbral' ? 'THRESHOLD' : 'BEFORE'}</span>
+          <b>{lugar.antes.titulo}</b>
+        </a>
+      ) : <span />}
+
+      <p class="kdx-mundo__posicion" data-kdx-readout data-fuente="lib/kodex/recorrido.ts:ubicar">
+        {lugar ? `${String(lugar.indice + 1).padStart(2, '0')} / ${lugar.total}` : '—'}
+        <em>{n.escenas[0] || 'UNPLACED'}</em>
+      </p>
+
+      {lugar?.despues ? (
+        <a class="kdx-mundo__paso kdx-mundo__paso--sigue" href={lugar.despues.url}>
+          <span>{lugar.despues.tipo === 'umbral' ? 'NEXT THRESHOLD' : 'CONTINUE'} →</span>
+          <b>{lugar.despues.titulo}</b>
+        </a>
+      ) : <span />}
     </footer>
+
+    <p class="kdx-mundo__salida"><a href="/kodex/atlas/">LEAVE THE PATH · THE ATLAS</a></p>
   </main>
 </KodexShell>
 
@@ -243,8 +269,25 @@ const RUTA: Record<string, string> = {
     margin-top:clamp(40px,6vh,72px); padding-top:18px;
     border-top:1px solid color-mix(in srgb, var(--mundo-acento) 20%, transparent);
   }
-  .kdx-mundo__pie a{ font-size:10px; letter-spacing:.22em; color:var(--mundo-acento); text-decoration:none; }
-  .kdx-mundo__pie a:hover{ text-decoration:underline; }
+  .kdx-mundo__paso{
+    display:flex; flex-direction:column; gap:4px; max-width:44%;
+    text-decoration:none;
+  }
+  .kdx-mundo__paso--sigue{ text-align:right; margin-left:auto; }
+  .kdx-mundo__paso span{ font-size:9px; letter-spacing:.22em; color:var(--mundo-acento); opacity:.8; }
+  .kdx-mundo__paso b{
+    font-family:'Instrument Serif',ui-serif,serif; font-weight:400; font-size:13.5px;
+    line-height:1.2; color:#c9c6c0;
+  }
+  .kdx-mundo__paso:hover b{ color:#f0ede8; }
+  .kdx-mundo__posicion{
+    margin:0; align-self:center; text-align:center;
+    font-size:10px; letter-spacing:.2em; color:#6f6c66;
+  }
+  .kdx-mundo__posicion em{ display:block; margin-top:3px; font-style:normal; font-size:8.5px; color:var(--mundo-acento); opacity:.75; }
+  .kdx-mundo__salida{ margin:18px 0 0; text-align:center; }
+  .kdx-mundo__salida a{ font-size:9px; letter-spacing:.2em; color:#5f5c57; text-decoration:none; }
+  .kdx-mundo__salida a:hover{ color:var(--mundo-acento); }
 
   @media (max-width:640px){
     .kdx-mundo__coords{ grid-template-columns:1fr; }
