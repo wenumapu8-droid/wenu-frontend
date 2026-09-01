@@ -63,6 +63,25 @@ try {
           const status = response?.status() || 0;
           const metrics = await page.evaluate(() => {
             const checksum = document.querySelector('.kdx-micro-cluster__foot span:last-child');
+            const rect = (selector) => {
+              const el = document.querySelector(selector);
+              if (!el) return null;
+              const r = el.getBoundingClientRect();
+              const style = getComputedStyle(el);
+              return {
+                x: r.x,
+                y: r.y,
+                width: r.width,
+                height: r.height,
+                top: r.top,
+                right: r.right,
+                bottom: r.bottom,
+                left: r.left,
+                display: style.display,
+                visibility: style.visibility,
+                opacity: Number(style.opacity || 1),
+              };
+            };
             return {
               pathname: window.location.pathname,
               innerWidth: window.innerWidth,
@@ -75,11 +94,35 @@ try {
                 || null,
               microClusterChecksum: checksum?.textContent?.trim() || null,
               microClusterChecksumSource: checksum?.getAttribute('data-fuente') || null,
+              controls: {
+                deckbar: rect('.kx-deckbar'),
+                previous: rect('[data-deck-prev]'),
+                next: rect('[data-deck-next]'),
+                index: rect('.kx-deckbar [data-kdx-index-open]'),
+              },
             };
           });
 
           const horizontalOverflow = metrics.scrollWidth - metrics.innerWidth;
           const verticalOverflow = Math.max(metrics.scrollHeight, metrics.bodyScrollHeight) - metrics.innerHeight;
+          const controlFailures = [];
+          const controlEntries = Object.entries(metrics.controls || {});
+          for (const [controlName, box] of controlEntries) {
+            if (!box) {
+              controlFailures.push(`${controlName}: missing`);
+              continue;
+            }
+            if (box.display === 'none' || box.visibility === 'hidden' || box.opacity <= 0) {
+              controlFailures.push(`${controlName}: not visible`);
+            }
+            const clipped = box.left < -1 || box.top < -1 || box.right > metrics.innerWidth + 1 || box.bottom > metrics.innerHeight + 1;
+            if (clipped) {
+              controlFailures.push(`${controlName}: clipped (${Math.round(box.left)},${Math.round(box.top)} → ${Math.round(box.right)},${Math.round(box.bottom)})`);
+            }
+            if (profile.isMobile && controlName !== 'deckbar' && (box.width < 44 || box.height < 44)) {
+              controlFailures.push(`${controlName}: touch target ${Math.round(box.width)}×${Math.round(box.height)} < 44×44`);
+            }
+          }
 
           if (status < 200 || status >= 400) fail(`${world.label}/${profile.key}: HTTP ${status}`);
           if (metrics.pathname !== world.href) fail(`${world.label}/${profile.key}: route drift ${metrics.pathname} != ${world.href}`);
@@ -87,6 +130,7 @@ try {
           if (horizontalOverflow > 3) fail(`${world.label}/${profile.key}: horizontal overflow ${horizontalOverflow}px`);
           if (verticalOverflow > 3) fail(`${world.label}/${profile.key}: fullscreen/no-scroll contract overflow ${verticalOverflow}px`);
           if (pageErrors.length) fail(`${world.label}/${profile.key}: pageerror ${pageErrors.join(' | ')}`);
+          if (controlFailures.length) fail(`${world.label}/${profile.key}: deck controls ${controlFailures.join(' | ')}`);
           if (world.key === 'archive') {
             if (!metrics.microClusterChecksum?.includes('PENDING SOURCE')) {
               fail(`${world.label}/${profile.key}: micro-cluster checksum must fail closed without a verified producer`);
@@ -113,6 +157,8 @@ try {
             horizontalOverflow,
             verticalOverflow,
             pageErrors,
+            controls: metrics.controls,
+            controlFailures,
             microClusterChecksum: metrics.microClusterChecksum,
             microClusterChecksumSource: metrics.microClusterChecksumSource,
             screenshot,
