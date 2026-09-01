@@ -43,7 +43,7 @@
  *
  * Uso: node scripts/lamina/externalizar-svg-postbuild.mjs [dist] [--dry]
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 
 const args = process.argv.slice(2);
@@ -54,17 +54,25 @@ const DIST = args.find((a) => !a.startsWith('--')) || 'dist';
    para un SVG chico eso es peor que inlinearlo. */
 const UMBRAL = 1_000_000;
 
-const LAMINAS = [
-  't01-05-specimen-skull',
-  't01-07-cosmology-core',
-  't01-04-archive-tree',
-  't01-06-ritual-device',
-];
+/* ANTES: cuatro nombres escritos a mano, y las que no estaban en la lista
+   seguian pesando. t01-02-observation-eye quedaba en 2.6 MB -- 97% dibujo --
+   simplemente porque nadie la agrego.
+   Una lista a mano envejece mal: la proxima lamina pesada tampoco iba a
+   estar. Ahora se buscan SOLAS por peso, asi que cualquiera que aparezca
+   entra sin que nadie se acuerde de anotarla. */
+function laminasPesadas(dist) {
+  const dir = join(dist, 'kodex/lamina');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((slug) => {
+    const f = join(dir, slug, 'index.html');
+    return existsSync(f) && statSync(f).size > UMBRAL;
+  });
+}
 
 let ahorro = 0;
 let tocadas = 0;
 
-for (const slug of LAMINAS) {
+for (const slug of laminasPesadas(DIST)) {
   const html = join(DIST, 'kodex/lamina', slug, 'index.html');
   if (!existsSync(html)) {
     console.log(`  —  ${slug}: no esta en ${DIST}`);
@@ -73,6 +81,16 @@ for (const slug of LAMINAS) {
 
   const antes = statSync(html).size;
   let doc = readFileSync(html, 'utf8');
+
+  /* UMBRAL ADAPTATIVO. Un umbral fijo de 1MB no sirve cuando el peso esta
+     REPARTIDO: t01-02 pesa 2.6MB en 172 <svg> anidados y ninguno llega al
+     millon, asi que el extractor pasaba de largo y la lamina seguia sin
+     poder abrirse en un telefono.
+     En una pagina pesada el criterio cambia: lo que importa no es que un
+     bloque sea enorme, sino que la SUMA lo sea. Por debajo de 100KB se
+     dejan inline -- un <img> agrega un request y para un SVG chico eso
+     cuesta mas de lo que ahorra. */
+  const umbralPagina = antes > 500_000 ? 100_000 : UMBRAL;
   /* Los bloques pesados no son UN svg grande: son miles de <svg> chicos
      anidados dentro de uno externo. Una regex no-greedy agarra el interno y
      no ahorra nada -- por eso hace falta un escaner balanceado que tome el
@@ -104,7 +122,7 @@ for (const slug of LAMINAS) {
     const todo = doc.slice(ini, fin);
     trozos.push(doc.slice(cursor, ini));
 
-    if (todo.length < UMBRAL) {
+    if (todo.length < umbralPagina) {
       trozos.push(todo);
     } else {
       n++;
