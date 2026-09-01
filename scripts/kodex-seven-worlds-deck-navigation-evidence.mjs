@@ -6,15 +6,20 @@ const baseURL = process.env.KODEX_PREVIEW_URL || 'http://127.0.0.1:4321';
 const outputDir = path.resolve('artifacts/kodex-browser-evidence/seven-worlds-navigation');
 await fs.mkdir(outputDir, { recursive: true });
 
-const worlds = Object.freeze([
-  { key: 'threshold', label: 'THRESHOLD', href: '/kodex/' },
-  { key: 'prologue', label: 'PROLOGUE', href: '/kodex/folio/i/' },
-  { key: 'descent', label: 'DESCENT', href: '/kodex/folio/ii/' },
-  { key: 'archive', label: 'ARCHIVE', href: '/kodex/folio/iii/' },
-  { key: 'machine', label: 'MACHINE', href: '/kodex/folio/iv/' },
-  { key: 'cosmology', label: 'COSMOLOGY', href: '/kodex/folio/v/' },
-  { key: 'return', label: 'RETURN', href: '/kodex/folio/vi/' },
-]);
+const worlds = Object.freeze({
+  threshold: { label: 'THRESHOLD', href: '/kodex/' },
+  prologue: { label: 'PROLOGUE', href: '/kodex/folio/i/' },
+  descent: { label: 'DESCENT', href: '/kodex/folio/ii/' },
+  archive: { label: 'ARCHIVE', href: '/kodex/folio/iii/' },
+  machine: { label: 'MACHINE', href: '/kodex/folio/iv/' },
+  cosmology: { label: 'COSMOLOGY', href: '/kodex/folio/v/' },
+  return: { label: 'RETURN', href: '/kodex/folio/vi/' },
+});
+
+const interludes = Object.freeze({
+  archiveMachine: '/kodex/interlude/archive-machine/',
+  cosmologyReturn: '/kodex/interlude/cosmology-return/',
+});
 
 const profiles = Object.freeze([
   { key: 'desktop-1440', width: 1440, height: 900, reducedMotion: 'no-preference' },
@@ -23,9 +28,26 @@ const profiles = Object.freeze([
   { key: 'reduced-1280', width: 1280, height: 800, reducedMotion: 'reduce' },
 ]);
 
+const forward = Object.freeze([
+  { from: worlds.prologue, via: [], to: worlds.descent },
+  { from: worlds.descent, via: [], to: worlds.archive },
+  { from: worlds.archive, via: [interludes.archiveMachine], to: worlds.machine },
+  { from: worlds.machine, via: [], to: worlds.cosmology },
+  { from: worlds.cosmology, via: [interludes.cosmologyReturn], to: worlds.return },
+]);
+
+const reverse = Object.freeze([
+  { from: worlds.return, via: [interludes.cosmologyReturn], to: worlds.cosmology },
+  { from: worlds.cosmology, via: [], to: worlds.machine },
+  { from: worlds.machine, via: [interludes.archiveMachine], to: worlds.archive },
+  { from: worlds.archive, via: [], to: worlds.descent },
+  { from: worlds.descent, via: [], to: worlds.prologue },
+  { from: worlds.prologue, via: [], to: worlds.threshold },
+]);
+
 const browser = await chromium.launch({ headless: true });
 const report = {
-  contract: 'causal PREVIOUS/NEXT traversal across THRESHOLD → PROLOGUE → DESCENT → ARCHIVE → MACHINE → COSMOLOGY → RETURN',
+  contract: 'causal canonical journey: THRESHOLD consent → seven worlds, preserving declared interludes, then PREVIOUS back to THRESHOLD',
   generatedAt: new Date().toISOString(),
   baseURL,
   cases: [],
@@ -37,82 +59,137 @@ const fail = (message) => {
   report.errors.push(message);
   console.error(message);
 };
-
+const pathname = (page) => new URL(page.url()).pathname;
 const activeScene = async (page) => page.evaluate(() => (
   document.querySelector('[data-kdx-active-scene]')?.getAttribute('data-kdx-active-scene')
   || document.querySelector('[data-kdx-scene-id]')?.getAttribute('data-kdx-scene-id')
   || null
 ));
+const worldKeyFor = (world) => Object.entries(worlds).find(([, value]) => value === world)?.[0] || null;
 
-const runTransition = async ({ context, profile, from, to, selector, direction }) => {
-  const page = await context.newPage();
-  const pageErrors = [];
-  page.on('pageerror', (error) => pageErrors.push(formatError(error)));
+const assertWorld = async (page, world, label) => {
+  const pathNow = pathname(page);
+  const sceneNow = await activeScene(page);
+  const expectedKey = worldKeyFor(world);
+  if (pathNow !== world.href) throw new Error(`${label}: route drift ${pathNow} != ${world.href}`);
+  if (sceneNow !== expectedKey) throw new Error(`${label}: scene identity ${sceneNow || 'MISSING'} != ${expectedKey}`);
+};
+
+const activateControl = async (page, selector, profile) => {
+  const control = page.locator(selector).first();
+  if (await control.count() !== 1) throw new Error(`${selector} missing`);
+  if (!(await control.isVisible())) throw new Error(`${selector} hidden`);
+  if (!(await control.isEnabled())) throw new Error(`${selector} disabled`);
+
+  if (profile.hasTouch) {
+    await control.tap({ timeout: 5_000 });
+  } else {
+    await control.focus();
+    await page.keyboard.press('Enter');
+  }
+};
+
+// A world can contain several internal plates. NEXT/PREVIOUS first changes the
+// active plate and only turns the page at that world's boundary. Therefore a
+// causal world-transition gate must keep using the same control until the URL
+// actually changes; expecting one click == one world is not the product contract.
+const leaveCurrentRoute = async ({ page, selector, profile, expectedPath, label }) => {
+  const startPath = pathname(page);
+  const attempts = [];
+
+  for (let attempt = 1; attempt <= 12; attempt += 1) {
+    const before = pathname(page);
+    await activateControl(page, selector, profile);
+
+    try {
+      await page.waitForURL((url) => url.pathname !== before, {
+        timeout: profile.reducedMotion === 'reduce' ? 4_500 : 7_500,
+      });
+    } catch (_) {
+      // No route change can be a valid internal plate advance. Record it and
+      // continue, but never exceed the bounded attempt budget.
+    }
+
+    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 120 : 260);
+    const after = pathname(page);
+    attempts.push({ attempt, before, after });
+
+    if (after !== before) {
+      if (after !== expectedPath) throw new Error(`${label}: route drift ${after} != ${expectedPath}`);
+      return attempts;
+    }
+
+    if (after !== startPath) throw new Error(`${label}: unexpected intermediate route ${after}`);
+  }
+
+  throw new Error(`${label}: route never left ${startPath} after ${attempts.length} bounded control activations`);
+};
+
+const crossThreshold = async ({ page, profile }) => {
+  await assertWorld(page, worlds.threshold, 'THRESHOLD start');
+  const gate = page.locator('[data-kdx-veil] a[data-kdx-cruzar][data-kdx-sonido="0"]').first();
+  if (await gate.count() !== 1 || !(await gate.isVisible())) throw new Error('THRESHOLD silent consent gate unavailable');
+
+  if (profile.hasTouch) await gate.tap({ timeout: 5_000 });
+  else {
+    await gate.focus();
+    await page.keyboard.press('Enter');
+  }
+
+  await page.waitForURL((url) => url.pathname === worlds.prologue.href, { timeout: 10_000 });
+  await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
+  await assertWorld(page, worlds.prologue, 'THRESHOLD → PROLOGUE');
+};
+
+const traverseLeg = async ({ page, profile, leg, direction }) => {
+  const selector = direction === 'NEXT' ? '[data-deck-next]' : '[data-deck-prev]';
+  const route = [...leg.via, leg.to.href];
   const record = {
     profile: profile.key,
     direction,
-    from: from.label,
-    fromHref: from.href,
-    to: to.label,
-    toHref: to.href,
+    from: leg.from.label,
+    fromHref: leg.from.href,
+    via: [...leg.via],
+    to: leg.to.label,
+    toHref: leg.to.href,
     selector,
-    pageErrors,
+    route,
+    hops: [],
+    pageErrors: [],
   };
 
+  const onPageError = (error) => record.pageErrors.push(formatError(error));
+  page.on('pageerror', onPageError);
+
   try {
-    const response = await page.goto(new URL(from.href, baseURL).toString(), {
-      waitUntil: 'domcontentloaded',
-      timeout: 30_000,
-    });
-    await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
-    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 180 : 420);
-    record.startStatus = response?.status() || 0;
-    record.startScene = await activeScene(page);
+    await assertWorld(page, leg.from, `${leg.from.label} ${direction} start`);
 
-    const control = page.locator(selector).first();
-    record.controlCount = await control.count();
-    record.visible = record.controlCount ? await control.isVisible() : false;
-    record.enabled = record.controlCount ? await control.isEnabled() : false;
-
-    if (record.startStatus < 200 || record.startStatus >= 400) {
-      throw new Error(`start HTTP ${record.startStatus}`);
-    }
-    if (record.startScene !== from.key) {
-      throw new Error(`start scene identity ${record.startScene || 'MISSING'} != ${from.key}`);
-    }
-    if (!record.controlCount || !record.visible || !record.enabled) {
-      throw new Error(`${direction} control unavailable`);
+    for (let index = 0; index < route.length; index += 1) {
+      const expectedPath = route[index];
+      const hop = await leaveCurrentRoute({
+        page,
+        selector,
+        profile,
+        expectedPath,
+        label: `${leg.from.label} ${direction} ${leg.to.label} hop ${index + 1}/${route.length}`,
+      });
+      record.hops.push({ expectedPath, attempts: hop });
+      await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
     }
 
-    const expectedURL = new URL(to.href, baseURL).toString();
-    await Promise.all([
-      page.waitForURL((url) => url.pathname === to.href, { timeout: 6_000 }),
-      control.click({ timeout: 5_000 }),
-    ]);
-    await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
-    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 120 : 250);
-
-    record.endHref = page.url();
-    record.endPathname = new URL(record.endHref).pathname;
+    await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 120 : 220);
+    await assertWorld(page, leg.to, `${leg.from.label} ${direction} ${leg.to.label} end`);
+    if (record.pageErrors.length) throw new Error(`pageerror ${record.pageErrors.join(' | ')}`);
+    record.endPathname = pathname(page);
     record.endScene = await activeScene(page);
-    record.success = record.endPathname === to.href && record.endScene === to.key && pageErrors.length === 0;
-
-    if (record.endPathname !== to.href) {
-      throw new Error(`route drift ${record.endPathname} != ${to.href}`);
-    }
-    if (record.endScene !== to.key) {
-      throw new Error(`destination scene identity ${record.endScene || 'MISSING'} != ${to.key}`);
-    }
-    if (pageErrors.length) {
-      throw new Error(`pageerror ${pageErrors.join(' | ')}`);
-    }
+    record.success = true;
   } catch (error) {
     record.success = false;
     record.error = formatError(error);
-    fail(`${from.label} ${direction} ${to.label}/${profile.key}: ${record.error}`);
+    fail(`${leg.from.label} ${direction} ${leg.to.label}/${profile.key}: ${record.error}`);
   } finally {
+    page.off('pageerror', onPageError);
     report.cases.push(record);
-    await page.close();
   }
 };
 
@@ -125,29 +202,40 @@ try {
       reducedMotion: profile.reducedMotion,
       colorScheme: 'dark',
     });
+    const page = await context.newPage();
+    const profileErrors = [];
+    page.on('pageerror', (error) => profileErrors.push(formatError(error)));
 
     try {
-      for (let index = 0; index < worlds.length - 1; index += 1) {
-        await runTransition({
-          context,
-          profile,
-          from: worlds[index],
-          to: worlds[index + 1],
-          selector: '[data-deck-next]',
-          direction: 'NEXT',
-        });
-      }
+      const response = await page.goto(new URL(worlds.threshold.href, baseURL).toString(), {
+        waitUntil: 'domcontentloaded',
+        timeout: 30_000,
+      });
+      await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
+      await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 180 : 420);
+      const status = response?.status() || 0;
+      if (status < 200 || status >= 400) throw new Error(`THRESHOLD HTTP ${status}`);
 
-      for (let index = 1; index < worlds.length; index += 1) {
-        await runTransition({
-          context,
-          profile,
-          from: worlds[index],
-          to: worlds[index - 1],
-          selector: '[data-deck-prev]',
-          direction: 'PREVIOUS',
-        });
-      }
+      await crossThreshold({ page, profile });
+      report.cases.push({
+        profile: profile.key,
+        direction: 'ENTER',
+        from: worlds.threshold.label,
+        fromHref: worlds.threshold.href,
+        to: worlds.prologue.label,
+        toHref: worlds.prologue.href,
+        selector: '[data-kdx-veil] a[data-kdx-cruzar][data-kdx-sonido="0"]',
+        success: true,
+      });
+
+      for (const leg of forward) await traverseLeg({ page, profile, leg, direction: 'NEXT' });
+      for (const leg of reverse) await traverseLeg({ page, profile, leg, direction: 'PREVIOUS' });
+
+      if (profileErrors.length) throw new Error(`profile pageerror ${profileErrors.join(' | ')}`);
+      await assertWorld(page, worlds.threshold, `${profile.key} final THRESHOLD`);
+    } catch (error) {
+      fail(`${profile.key} journey: ${formatError(error)}`);
+      report.cases.push({ profile: profile.key, direction: 'JOURNEY', success: false, error: formatError(error) });
     } finally {
       await context.close();
     }
@@ -156,13 +244,11 @@ try {
   await browser.close();
 }
 
-const expectedCases = profiles.length * (worlds.length - 1) * 2;
-if (report.cases.length !== expectedCases) {
-  fail(`case coverage mismatch ${report.cases.length}/${expectedCases}`);
+const expectedCases = profiles.length * (1 + forward.length + reverse.length);
+if (report.cases.filter((entry) => entry.direction !== 'JOURNEY').length !== expectedCases) {
+  fail(`case coverage mismatch ${report.cases.filter((entry) => entry.direction !== 'JOURNEY').length}/${expectedCases}`);
 }
-if (report.cases.some((entry) => entry.success !== true)) {
-  fail('one or more causal deck transitions failed');
-}
+if (report.cases.some((entry) => entry.success !== true)) fail('one or more causal journey cases failed');
 
 await fs.writeFile(path.join(outputDir, 'report.json'), JSON.stringify(report, null, 2));
 console.log(JSON.stringify({
