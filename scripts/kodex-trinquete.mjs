@@ -83,6 +83,30 @@ const MEDIDAS = [
     m: () => { let max = 0; const walk = (d) => { for (const e of readdirSync(d)) { const p = join(d, e); const s = statSync(p); if (s.isDirectory()) walk(p); else if (e === 'index.html') max = Math.max(max, Math.round(s.size / 1024)); } }; try { walk(join(DIST, 'kodex')); } catch {} return max; } },
 ];
 
+/* NO SE MIDE SOBRE UN dist QUE NO EXISTE.
+ *
+ * El trinquete se atrapó a sí mismo en su segunda corrida: había fijado
+ * "KB de la página más pesada = 0" como mejor marca, midiendo cuando dist
+ * estaba vacío. Cero no era una medición: era la AUSENCIA de una. Después
+ * un build real dio 2667 y el trinquete lo llamó retroceso.
+ *
+ * Es mi propia regla incumplida por mi propio script: nadie mide sobre
+ * dist sin haberlo construido. Un trinquete fijado en una lectura falsa
+ * bloquea a todo el equipo con un retroceso que nunca ocurrió -- y lo peor,
+ * enseña a ignorarlo.
+ *
+ * Si no hay build, no hay medición: se sale sin tocar los dientes. */
+const HAY_BUILD = existsSync(join(DIST, 'kodex', 'index.html'));
+if (!HAY_BUILD) {
+  console.log('\n·  sin build: no hay nada que medir.\n');
+  console.log('   El trinquete NO toca los dientes. Medir un dist vacío');
+  console.log('   fijaría marcas falsas que después bloquean al equipo.\n');
+  console.log('   Construí primero:');
+  console.log('     node scripts/kodex-equipo.mjs build <vos>');
+  console.log('     KDX_AGENTE=<vos> ALLOW_EMPTY_PRODUCTS=true npm run build\n');
+  process.exit(0);
+}
+
 const marcas = existsSync(MARCAS) ? JSON.parse(readFileSync(MARCAS, 'utf8')) : { creado: new Date().toISOString(), dientes: {} };
 const args = process.argv.slice(2);
 
