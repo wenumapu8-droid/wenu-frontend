@@ -67,6 +67,14 @@ const activeScene = async (page) => page.evaluate(() => (
 ));
 const worldKeyFor = (world) => Object.entries(worlds).find(([, value]) => value === world)?.[0] || null;
 
+const waitForSceneIdentity = async (page, expectedKey, timeout = 10_000) => {
+  await page.waitForFunction((key) => (
+    document.querySelector('[data-kdx-active-scene]')?.getAttribute('data-kdx-active-scene')
+    || document.querySelector('[data-kdx-scene-id]')?.getAttribute('data-kdx-scene-id')
+    || null
+  ) === key, expectedKey, { timeout });
+};
+
 const assertWorld = async (page, world, label) => {
   const pathNow = pathname(page);
   const sceneNow = await activeScene(page);
@@ -89,10 +97,6 @@ const activateControl = async (page, selector, profile) => {
   }
 };
 
-// A world can contain several internal plates. NEXT/PREVIOUS first changes the
-// active plate and only turns the page at that world's boundary. Therefore a
-// causal world-transition gate must keep using the same control until the URL
-// actually changes; expecting one click == one world is not the product contract.
 const leaveCurrentRoute = async ({ page, selector, profile, expectedPath, label }) => {
   const startPath = pathname(page);
   const attempts = [];
@@ -105,10 +109,7 @@ const leaveCurrentRoute = async ({ page, selector, profile, expectedPath, label 
       await page.waitForURL((url) => url.pathname !== before, {
         timeout: profile.reducedMotion === 'reduce' ? 4_500 : 7_500,
       });
-    } catch (_) {
-      // No route change can be a valid internal plate advance. Record it and
-      // continue, but never exceed the bounded attempt budget.
-    }
+    } catch (_) {}
 
     await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 120 : 260);
     const after = pathname(page);
@@ -138,6 +139,11 @@ const crossThreshold = async ({ page, profile }) => {
 
   await page.waitForURL((url) => url.pathname === worlds.prologue.href, { timeout: 10_000 });
   await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
+  // The consent transition can commit the destination URL before Astro's scene
+  // identity marker is mounted. Direct-load evidence already proves PROLOGUE's
+  // marker; causal evidence must wait for that same observable contract rather
+  // than sampling the transient post-navigation gap.
+  await waitForSceneIdentity(page, 'prologue', 10_000);
   await assertWorld(page, worlds.prologue, 'THRESHOLD → PROLOGUE');
 };
 
@@ -166,13 +172,7 @@ const traverseLeg = async ({ page, profile, leg, direction }) => {
 
     for (let index = 0; index < route.length; index += 1) {
       const expectedPath = route[index];
-      const hop = await leaveCurrentRoute({
-        page,
-        selector,
-        profile,
-        expectedPath,
-        label: `${leg.from.label} ${direction} ${leg.to.label} hop ${index + 1}/${route.length}`,
-      });
+      const hop = await leaveCurrentRoute({ page, selector, profile, expectedPath, label: `${leg.from.label} ${direction} ${leg.to.label} hop ${index + 1}/${route.length}` });
       record.hops.push({ expectedPath, attempts: hop });
       await page.waitForLoadState('domcontentloaded', { timeout: 10_000 }).catch(() => {});
     }
@@ -195,38 +195,20 @@ const traverseLeg = async ({ page, profile, leg, direction }) => {
 
 try {
   for (const profile of profiles) {
-    const context = await browser.newContext({
-      viewport: { width: profile.width, height: profile.height },
-      isMobile: profile.isMobile || false,
-      hasTouch: profile.hasTouch || false,
-      reducedMotion: profile.reducedMotion,
-      colorScheme: 'dark',
-    });
+    const context = await browser.newContext({ viewport: { width: profile.width, height: profile.height }, isMobile: profile.isMobile || false, hasTouch: profile.hasTouch || false, reducedMotion: profile.reducedMotion, colorScheme: 'dark' });
     const page = await context.newPage();
     const profileErrors = [];
     page.on('pageerror', (error) => profileErrors.push(formatError(error)));
 
     try {
-      const response = await page.goto(new URL(worlds.threshold.href, baseURL).toString(), {
-        waitUntil: 'domcontentloaded',
-        timeout: 30_000,
-      });
+      const response = await page.goto(new URL(worlds.threshold.href, baseURL).toString(), { waitUntil: 'domcontentloaded', timeout: 30_000 });
       await page.waitForLoadState('load', { timeout: 10_000 }).catch(() => {});
       await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 180 : 420);
       const status = response?.status() || 0;
       if (status < 200 || status >= 400) throw new Error(`THRESHOLD HTTP ${status}`);
 
       await crossThreshold({ page, profile });
-      report.cases.push({
-        profile: profile.key,
-        direction: 'ENTER',
-        from: worlds.threshold.label,
-        fromHref: worlds.threshold.href,
-        to: worlds.prologue.label,
-        toHref: worlds.prologue.href,
-        selector: '[data-kdx-veil] a[data-kdx-cruzar][data-kdx-sonido="0"]',
-        success: true,
-      });
+      report.cases.push({ profile: profile.key, direction: 'ENTER', from: worlds.threshold.label, fromHref: worlds.threshold.href, to: worlds.prologue.label, toHref: worlds.prologue.href, selector: '[data-kdx-veil] a[data-kdx-cruzar][data-kdx-sonido="0"]', success: true });
 
       for (const leg of forward) await traverseLeg({ page, profile, leg, direction: 'NEXT' });
       for (const leg of reverse) await traverseLeg({ page, profile, leg, direction: 'PREVIOUS' });
@@ -245,17 +227,10 @@ try {
 }
 
 const expectedCases = profiles.length * (1 + forward.length + reverse.length);
-if (report.cases.filter((entry) => entry.direction !== 'JOURNEY').length !== expectedCases) {
-  fail(`case coverage mismatch ${report.cases.filter((entry) => entry.direction !== 'JOURNEY').length}/${expectedCases}`);
-}
+if (report.cases.filter((entry) => entry.direction !== 'JOURNEY').length !== expectedCases) fail(`case coverage mismatch ${report.cases.filter((entry) => entry.direction !== 'JOURNEY').length}/${expectedCases}`);
 if (report.cases.some((entry) => entry.success !== true)) fail('one or more causal journey cases failed');
 
 await fs.writeFile(path.join(outputDir, 'report.json'), JSON.stringify(report, null, 2));
-console.log(JSON.stringify({
-  contract: report.contract,
-  cases: report.cases.length,
-  expectedCases,
-  errors: report.errors,
-}, null, 2));
+console.log(JSON.stringify({ contract: report.contract, cases: report.cases.length, expectedCases, errors: report.errors }, null, 2));
 
 if (report.errors.length) process.exitCode = 1;
