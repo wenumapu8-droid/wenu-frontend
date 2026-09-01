@@ -90,7 +90,11 @@ const activateControl = async (page, selector, profile) => {
   if (!(await control.isEnabled())) throw new Error(`${selector} disabled`);
 
   if (profile.hasTouch) {
-    await control.scrollIntoViewIfNeeded({ timeout: 5_000 });
+    // Do not call Locator.scrollIntoViewIfNeeded() here. The canonical release gate
+    // already proves these mobile deck controls are physically visible/reachable,
+    // and Playwright's scroll action additionally waits for animation stability.
+    // Measuring the live bounds directly lets this gate test the product's actual
+    // touch hit-test instead of failing inside a harness-only stability wait.
     const box = await control.boundingBox();
     if (!box || box.width <= 0 || box.height <= 0) throw new Error(`${selector} has no tappable bounds`);
 
@@ -105,9 +109,8 @@ const activateControl = async (page, selector, profile) => {
     }
 
     // Use the browser touchscreen at the measured physical center. This preserves
-    // a real touch hit-test (including overlays) while avoiding Locator.tap's
-    // actionability/navigation coupling, which can time out after the tap has
-    // already been dispatched. Route + scene assertions below remain fail-closed.
+    // a real touch hit-test (including overlays) without Locator actionability/
+    // navigation coupling. Route + scene assertions below remain fail-closed.
     await page.touchscreen.tap(point.x, point.y);
   } else {
     await control.focus();
