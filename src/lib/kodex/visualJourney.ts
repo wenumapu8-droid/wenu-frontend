@@ -84,6 +84,43 @@ export function conCompuerta(): EntradaJourney[] {
 }
 
 /**
+ * DE QUE SIRVE UNA IMAGEN · el eje que faltaba (2026-09-01, hallazgo de Ocin).
+ *
+ * "Una referencia visual no es lo mismo que una pieza fuente de tu arte."
+ * Una dice COMO DEBERIA VERSE; la otra ES lo que se muestra. Mezclarlas es
+ * como se termina publicando el mockup de una escena en lugar de la escena.
+ *
+ * El eje ya estaba en los datos sin nombre: el corpus lo separa limpio.
+ * Verificado sobre las 119 filas -- los 10 collages son el UNICO corpus cuyo
+ * `visual_status` es uniformemente candidato a mostrarse; los 102 restantes
+ * son referencia, target o estudio. Aca solo se le pone nombre.
+ */
+export type TipoDeFuente = 'SOURCE_ART' | 'REFERENCE' | 'ALREADY_WIRED';
+
+export function tipoDeFuente(e: EntradaJourney): TipoDeFuente {
+  if (e.corpus === 'OCIN_COLLAGE') return 'SOURCE_ART';
+  if (e.corpus === 'KDX-CAN_FAMILY') return 'ALREADY_WIRED';
+  return 'REFERENCE';
+}
+
+/** Las piezas reales de la obra de Ocin: lo unico que se monta como arte. */
+export function arteFuente(): EntradaJourney[] {
+  return ENTRADAS.filter((e) => tipoDeFuente(e) === 'SOURCE_ART');
+}
+
+/**
+ * La biblioteca de lenguaje visual de un destino: como TIENE QUE VERSE, no
+ * que se muestra. Este es el uso productivo de los 89 mockups -- son la
+ * especificacion del renderer, no su contenido.
+ */
+export function guiaVisualDe(destino: string): EntradaJourney[] {
+  const d = destino.toUpperCase();
+  return ENTRADAS.filter(
+    (e) => tipoDeFuente(e) === 'REFERENCE' && e.wiring_target.toUpperCase().includes(d),
+  );
+}
+
+/**
  * REGLA DURA del DISCOVERY_GAPS (2026-09-01): ningun agente elige una imagen
  * porque diga CANON_ASSET. Esta funcion responde "¿puedo montar esto aca?"
  * y devuelve el motivo cuando la respuesta es no.
@@ -91,6 +128,22 @@ export function conCompuerta(): EntradaJourney[] {
 export function puedeMontarse(asset: string, destino: string): { ok: boolean; razon: string } {
   const e = ENTRADAS.find((x) => x.asset === asset);
   if (!e) return { ok: false, razon: `'${asset}' no esta en VISUAL_JOURNEY: sin rol declarado, no se monta.` };
+
+  /* 2026-09-01 · EL AGUJERO QUE TENIA ESTA FUNCION.
+     Hasta hoy devolvia ok:true para un mockup contra THRESHOLD_RENDERER,
+     igual que para una obra real: no distinguia "asi deberia verse" de
+     "esto es lo que se muestra". Y 71 de los 89 mockups declaran un
+     *_RENDERER como destino, asi que el error no era teorico. */
+  const tipo = tipoDeFuente(e);
+  if (tipo === 'REFERENCE') {
+    return {
+      ok: false,
+      razon: `es REFERENCIA de lenguaje visual (${e.corpus}), no pieza fuente. ` +
+        `Guia como construir '${e.wiring_target}'; no se monta como contenido. ` +
+        `Preservar al construir: ${e.preserve}`,
+    };
+  }
+
   if (e.provenance_gate && e.provenance_gate.toUpperCase() !== 'NONE') {
     return { ok: false, razon: `compuerta de procedencia sin resolver: ${e.provenance_gate}` };
   }
@@ -113,5 +166,6 @@ export function coberturaDelRecorrido() {
     conCompuerta: conCompuerta().length,
     /** Cuantas declaran destino de cableado. Sin esto no se puede montar. */
     conDestino: ENTRADAS.filter((e) => e.wiring_target).length,
+    porTipoDeFuente: por((e) => tipoDeFuente(e)),
   };
 }
