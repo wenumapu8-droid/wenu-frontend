@@ -60,8 +60,18 @@ kodex-system/05_DECISION_LEDGER.md        47 decisiones + 7 conflictos abiertos
 kodex-system/06_INTEGRATION_BACKLOG.yaml  qué INT-XXX está OPEN, BLOCKED, DONE
 ```
 
-Falta `04_ASSET_ROUTING.yaml` — requiere autoría por asset y no se puede
-generar sin decisión de Ocín.
+`04_ASSET_ROUTING.yaml` **ya no falta** (2026-09-01). Requería autoría por
+asset y Ocín la escribió: hoja `VISUAL_JOURNEY` del atlas, 119 entradas.
+Transcrita a `src/data/kodex-visual-journey.json`, se lee desde
+`src/lib/kodex/visualJourney.ts`.
+
+Ahora cada visual declara qué preservar, **qué está prohibido hacer con
+ella**, su compuerta de procedencia y su destino de cableado. La regla
+"ningún agente elige una imagen porque diga CANON_ASSET" pasó de aspiración
+a chequeo: `puedeMontarse(asset, destino)`.
+
+Pendiente y distinto: los archivos. Ninguno de los 119 assets está en el
+repo — el mapa manda, las imágenes todavía no bajaron.
 
 ---
 
