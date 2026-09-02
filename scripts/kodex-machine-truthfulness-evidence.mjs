@@ -43,7 +43,6 @@ try {
 
       const facts = await page.evaluate(() => {
         const bodyText = document.body.innerText;
-        const strip = document.querySelector('.kx-os-stage__strip');
         const machine = document.querySelector('[data-kdx-machine]');
         const sharedReadout = document.querySelector('.kx-readout');
         const sharedSignal = document.querySelector('[data-signal-label]');
@@ -64,7 +63,7 @@ try {
         }));
         return {
           bodyText,
-          stripText: strip?.textContent || '',
+          machineText: machine?.textContent || '',
           sharedReadoutText: sharedReadout?.textContent || '',
           sharedReadoutVisible: Boolean(sharedReadout && getComputedStyle(sharedReadout).display !== 'none' && sharedReadout.getClientRects().length),
           sharedSignalText: sharedSignal?.textContent || '',
@@ -84,7 +83,7 @@ try {
       if (status < 200 || status >= 400) failures.push(`HTTP ${status}`);
       if (!facts.machinePresent) failures.push('MACHINE readout missing from scene contract');
       if (/INTEGRITY\s*[·:]?\s*98\.7\s*%/i.test(facts.bodyText)) failures.push('unsourced INTEGRITY 98.7% still visible');
-      if (!/INTEGRITY[\s\S]{0,80}PENDING SOURCE/i.test(facts.stripText)) failures.push('DataStrip does not fail closed for INTEGRITY');
+      if (!/INTEGRITY[\s\S]{0,80}PENDING SOURCE/i.test(facts.machineText)) failures.push('MACHINE readout does not fail closed for INTEGRITY');
       if (/SYSTEM\s*·\s*ACTIVE\s*·\s*\d+(?:\.\d+)?/i.test(facts.bodyText)) failures.push('shared chrome still presents journey progress as SYSTEM ACTIVE telemetry');
       if (!/SIGNAL\s*·\s*LATENT/i.test(facts.sharedSignalText)) failures.push(`shared signal does not reflect fresh master-key state: ${facts.sharedSignalText.trim() || '<empty>'}`);
       if (facts.sharedSignalPressed !== 'false') failures.push(`shared signal fresh aria-pressed is ${facts.sharedSignalPressed || '<missing>'}, expected false`);
