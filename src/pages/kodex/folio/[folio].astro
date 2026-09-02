@@ -258,14 +258,21 @@ const sceneByFolio = {
 /* Conceptos del atlas para esta escena. El nombre de escena del folio se
    compara TAL CUAL contra las escenas declaradas en el atlas. La correspondencia
    real hoy:
-     PROLOGUE  → 0 (el atlas no lo declara; el board equivalente es OBSERVE,
-                    pero renombrarlo aca ya seria inferencia)
-     DESCENT   → 2
-     ARCHIVE   → 0 (el atlas no lo declara)
-     MACHINE   → 5
-     COSMOLOGY → 4
-     RETURN    → 5
-   Los 0 son HUECO DECLARADO. Se muestran como tales. */
+     PROLOGUE  → 2
+     DESCENT   → 4
+     ARCHIVE   → 2
+     MACHINE   → 7
+     COSMOLOGY → 11
+     RETURN    → 7
+   CONTADO, NO ESTIMADO (2026-09-01, sobre src/data/kodex-atlas.json). El
+   comentario anterior decia 0/2/0/5/4/5 y quedo viejo cuando el atlas se
+   poblo: ya no hay ninguna escena del folio en cero. La rama HUECO del
+   drawer se mantiene igual -- deja de dispararse sola, no se borra, porque
+   sigue siendo la respuesta correcta si el atlas pierde una escena.
+
+   Lo que SI sigue abierto y es autoral: el atlas declara 6 nodos bajo
+   OBSERVE, escena que el corredor no tiene. Mapearla a PROLOGUE seria
+   inferencia y no se hace aca. */
 const escenaAtlas = sceneByFolio.slug.toUpperCase();
 const conceptos = nodosDeEscena(escenaAtlas);
 
@@ -1219,12 +1226,27 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   {conceptos.length}
                 </span> concept{conceptos.length === 1 ? '' : 's'} open from this threshold
               </h2>
+              <p class="kx-os-concepts__pacto">
+                Each one is a place with its own address, not a label. The
+                atlas declares two or three zones per concept, and the worlds
+                that share a zone reach each other without returning here.
+              </p>
               <ol class="kx-os-concepts__lista">
                 {conceptos.map((n) => (
                   <li class="kx-os-concepts__nodo">
-                    <p class="kx-os-concepts__id">{n.id}</p>
-                    <h3 class="kx-os-concepts__titulo">{n.titulo}</h3>
-                    {n.concepto && <p class="kx-os-concepts__concepto">{n.concepto}</p>}
+                    {/* 2026-09-01 · LA PUERTA SE ABRE.
+                        Los 36 mundos de /kodex/concepto/ se construyeron el
+                        28-08 y quedaron sin una sola entrada desde el corredor:
+                        medido en dist, las siete escenas enlazaban CERO veces.
+                        La tarjeta ya tenia hover y translateY -- estaba pintada
+                        como si fuera clickeable y no lo era. Leer el nombre de
+                        un mundo no es entrar en el. Ahora el nodo ES la ruta. */}
+                    <a class="kx-os-concepts__puerta" href={`/kodex/concepto/${n.id.toLowerCase()}/`}>
+                      <p class="kx-os-concepts__id">{n.id}</p>
+                      <h3 class="kx-os-concepts__titulo">{n.titulo}</h3>
+                      {n.concepto && <p class="kx-os-concepts__concepto">{n.concepto}</p>}
+                      <span class="kx-os-concepts__entrar">ENTER<i aria-hidden="true">→</i></span>
+                    </a>
                     {n.copy && <p class="kx-os-concepts__copy">{n.copy}</p>}
                     {n.interaccion && (
                       <p class="kx-os-concepts__interaccion">
@@ -1786,6 +1808,43 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   .kx-os-concepts__nodo:hover {
     border-color: color-mix(in srgb, var(--ambar) 44%, transparent);
     transform: translateY(-2px);
+  }
+
+  /* LA PUERTA · 2026-09-01. El nodo era una tarjeta con hover que no llevaba
+     a ningun lado. Ahora la cabecera del nodo es el enlace al mundo. El
+     recuadro completo ya reaccionaba al puntero: se conserva ese gesto y se
+     le da destino, en vez de agregar un boton nuevo encima. */
+  .kx-os-concepts__puerta {
+    display: block; text-decoration: none; color: inherit;
+    outline-offset: 3px;
+  }
+  .kx-os-concepts__puerta::after {
+    content: ''; position: absolute; inset: 0;
+  }
+  .kx-os-concepts__entrar {
+    display: inline-flex; align-items: center; gap: .5em;
+    margin-bottom: .8em;
+    font-size: 9px; letter-spacing: .2em; color: var(--ambar);
+    opacity: .5; transition: opacity 420ms ease;
+  }
+  .kx-os-concepts__entrar i {
+    font-style: normal;
+    transition: transform 420ms ease;
+  }
+  .kx-os-concepts__nodo:hover .kx-os-concepts__entrar,
+  .kx-os-concepts__puerta:focus-visible .kx-os-concepts__entrar { opacity: 1; }
+  .kx-os-concepts__nodo:hover .kx-os-concepts__entrar i { transform: translateX(4px); }
+
+  .kx-os-concepts__pacto {
+    margin: 0 0 2px; max-width: 62ch;
+    font-size: 11.5px; line-height: 1.55; color: #86827b;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-concepts__nodo,
+    .kx-os-concepts__entrar i { transition: none; }
+    .kx-os-concepts__nodo:hover { transform: none; }
+    .kx-os-concepts__nodo:hover .kx-os-concepts__entrar i { transform: none; }
   }
 
   .kx-os-concepts__id {
