@@ -18,6 +18,10 @@
  *
  * Se identifica con KDX_AGENTE. Si no esta seteado, el build falla con la
  * instruccion exacta en vez de arrancar y romperle la medicion a otro.
+ *
+ * GitHub Actions corre en un workspace efimero y aislado: no comparte `dist`
+ * con Mini/iMac ni puede interferir con sus mediciones. El lock fisico local
+ * no aplica ahi; mantenerlo obligatorio en CI solo bloquea la evidencia remota.
  */
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,6 +29,12 @@ import { join } from 'node:path';
 const LOCK = join(process.env.HOME, 'kodex-relevo', '.build-lock');
 const yo = process.env.KDX_AGENTE;
 const CADUCA_MS = 25 * 60 * 1000;
+const enGitHubActions = process.env.GITHUB_ACTIONS === 'true';
+
+if (enGitHubActions) {
+  console.log('✓ build autorizado · GitHub Actions usa workspace aislado');
+  process.exit(0);
+}
 
 if (!yo) {
   console.error('\n✗ BUILD BLOQUEADO · no dijiste quien sos\n');
