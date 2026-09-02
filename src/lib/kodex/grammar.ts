@@ -20,9 +20,9 @@
  * es de KODEX, no de las referencias. El acento de cada lámina se sigue
  * eligiendo a mano, que es donde tiene que decidirse.
  */
-import recipes from "./grammar/kdx_scene_recipes.json";
-import motions from "./grammar/kdx_motion_presets.json";
-import grids from "./grammar/kdx_grid_system.json";
+import recipes from "./grammar/kdx_scene_recipes.json" with { type: 'json' };
+import motions from "./grammar/kdx_motion_presets.json" with { type: 'json' };
+import grids from "./grammar/kdx_grid_system.json" with { type: 'json' };
 
 export type MotionPreset = {
   id: string;

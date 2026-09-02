@@ -4,7 +4,7 @@ import { describe, it } from "node:test";
 import {
   KODEX_INTERACTION_EVENT,
   type KodexInteractionEventDetail,
-} from "./interaction-events";
+} from "./interaction-events.ts";
 import {
   createKodexJourneyMemoryBridge,
   interactionToJourneyEvents,
@@ -14,8 +14,8 @@ import {
   restoreJourneyFromStorage,
   type KodexJourneyStorage,
   type KodexOrganismActionEventDetail,
-} from "./journey-memory-bridge";
-import { createInitialJourneyState, type SerializedJourneyState } from "./journey-state";
+} from "./journey-memory-bridge.ts";
+import { createInitialJourneyState, type SerializedJourneyState } from "./journey-state.ts";
 
 class MemoryStorage implements KodexJourneyStorage {
   private values = new Map<string, string>();

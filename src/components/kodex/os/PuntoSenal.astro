@@ -1,0 +1,159 @@
+---
+/**
+ * KODEX-∞ · PUNTO DE SEÑAL
+ * TELAR A02 · 2026-08-29
+ *
+ * El punto rojo de la esquina superior derecha. Ocín preguntó por él como
+ * "la IA del sistema que te habla durante el viaje". Está en las cinco
+ * referencias gobernadas y no había que inventarle voz: hay que cablearlo.
+ *
+ * LO QUE HACE Y LO QUE NO
+ *
+ * El punto NO habla en primera persona, no opina y no se dirige al visitante.
+ * Reporta SU PROPIO estado mientras observa. Eso no es una limitación
+ * estética: es lo que resuelve la restricción del canon 08G, que prohíbe a
+ * KODEX hacer perfilado psicológico silencioso. El punto nunca dirá que
+ * alguien "prefiere cosmología" o "está preparado". Dice en qué estado está
+ * él, que es un hecho verificable del sistema.
+ *
+ * CADENA PERCEPTUAL (canon 67_KDX.PERCEPTION)
+ *   CAMPO → FOCO EXPLÍCITO → SALIENCIA → LOCK → REVEAL → DEPTH → MEMORY TRACE
+ * El punto es la lectura visible de dónde está esa cadena. Se enciende con
+ * la saliencia y se estabiliza con el lock.
+ *
+ * FUENTE DEL DATO
+ * Lee `estadoEscena()`, la misma máquina que el campo, el portal, el CRT y
+ * la compuerta. Sin motor no hay punto: si nadie envía estado, se queda en
+ * la etiqueta base de la escena y no late. Ese es el test del PNG en carne.
+ */
+interface Props {
+  /** Etiqueta base de la escena, del board. PROLOGUE dice LATENT, DESCENT DEEPENING. */
+  base?: string;
+  /** Modo del sistema, a la derecha del punto. */
+  modo?: string;
+  accent?: string;
+  class?: string;
+}
+
+const {
+  base = 'LATENT',
+  modo = 'SYSTEM MODE / OBSERVE',
+  accent = 'var(--kdx-red, #FF3833)',
+  class: className = '',
+} = Astro.props;
+---
+
+<div
+  class:list={['kdx-punto', className]}
+  style={`--punto-accent:${accent};`}
+  data-kdx-punto
+  data-kdx-punto-base={base}
+>
+  <span class="kdx-punto__luz" aria-hidden="true"></span>
+  <span class="kdx-punto__label">
+    SIGNAL <span data-kdx-punto-estado>{base}</span>
+  </span>
+  <span class="kdx-punto__modo">{modo}</span>
+</div>
+
+<style>
+  .kdx-punto {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--kdx-mono, ui-monospace, monospace);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--kdx-bone, #f0ede8);
+  }
+
+  .kdx-punto__luz {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--punto-accent);
+    box-shadow: 0 0 8px var(--punto-accent);
+    /* Late lento en reposo. La vida en reposo tiene techo: el gate mide que
+       no supere el ruido de la escena. */
+    animation: kdx-punto-latido 3.4s ease-in-out infinite;
+  }
+
+  /* Cuanto más avanza la cadena perceptual, más firme el punto. No es
+     decoración: es la lectura del estado. */
+  [data-kdx-punto][data-kdx-estado='aware'] .kdx-punto__luz { animation-duration: 2.1s; }
+  [data-kdx-punto][data-kdx-estado='locked'] .kdx-punto__luz {
+    animation-duration: 1.2s;
+    box-shadow: 0 0 12px var(--punto-accent);
+  }
+  [data-kdx-punto][data-kdx-estado='active'] .kdx-punto__luz {
+    /* Bloqueado: deja de latir. La señal encontrada no parpadea. */
+    animation: none;
+    box-shadow: 0 0 16px var(--punto-accent);
+  }
+
+  .kdx-punto__modo {
+    color: color-mix(in srgb, currentColor 45%, transparent);
+    letter-spacing: 0.18em;
+  }
+
+  @media (max-width: 700px) {
+    /* El modo es lo primero que se va: el estado del punto no. */
+    .kdx-punto__modo { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-punto__luz { animation: none; }
+  }
+
+  @keyframes kdx-punto-latido {
+    0%, 100% { opacity: 0.45; }
+    50% { opacity: 1; }
+  }
+</style>
+
+<script>
+  import { estadoEscena, type Estado } from '../../../lib/kodex/estado';
+
+  /* AUTORIDAD DE COPY · 2026-08-29 (Decision Log).
+   *
+   * Los boards documentan UNA etiqueta por escena, no una por estado:
+   * PROLOGUE dice SIGNAL LATENT, DESCENT dice SIGNAL DEEPENING, y ahi
+   * termina la evidencia. Una version previa de este componente mostraba
+   * DETECTING / HOLDING / ENGAGED / CARRIED -- copy INVENTADO por el agente,
+   * sin fuente en board ni canon. Se elimina.
+   *
+   * Lo que queda es lo que la referencia efectivamente dibuja: la ETIQUETA
+   * es de la escena y no cambia; lo que reporta el estado es la LUZ, via
+   * data-kdx-estado, que el CSS traduce en ritmo y halo. El punto sigue
+   * hablando de si mismo, ahora sin decir palabras que nadie escribio.
+   *
+   * Si mas adelante el creador define etiquetas por estado, entran aca y
+   * solo aca. Hasta entonces esto es un HUECO DECLARADO, no una omision. */
+
+  const enganchados = new WeakSet<HTMLElement>();
+
+  function enganchar() {
+    const punto = document.querySelector<HTMLElement>('[data-kdx-punto]');
+    if (!punto || enganchados.has(punto)) return;
+    enganchados.add(punto);
+
+    const salida = punto.querySelector<HTMLElement>('[data-kdx-punto-estado]');
+    if (!salida) return;
+
+    /* La etiqueta del board de la escena: DEEPENING en DESCENT, LATENT en
+       el resto. Es la unica fuente textual que existe para este bloque. */
+    const base = punto.dataset.kdxPuntoBase || 'LATENT';
+
+    /* La etiqueta se fija una vez, del board. El estado se reporta en la
+       luz, no en el texto: es lo unico que la referencia respalda. */
+    salida.textContent = base;
+
+    estadoEscena().suscribir((estado: Estado) => {
+      punto.setAttribute('data-kdx-estado', estado);
+    });
+  }
+
+  enganchar();
+  document.addEventListener('astro:page-load', enganchar);
+</script>

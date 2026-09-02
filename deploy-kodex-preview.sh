@@ -8,9 +8,65 @@ cd "$(dirname "$0")"
 set -a; source .env >/dev/null 2>&1 || true; set +a
 export CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
 
+# ── EL DEPLOY TAMBIÉN NECESITA EL LOCK · 2026-08-31 ─────────────────────
+# El deploy LEE dist. Si otro agente buildea mientras `cp -R` está copiando,
+# los archivos desaparecen bajo la copia y el snapshot sale roto.
+#
+# Pasó de verdad hoy: el primer intento de deploy escupió decenas de
+# "cp: dist/xxx: No such file or directory" — no era corrupción del disco ni
+# permisos, era un build concurrente borrando dist a mitad del snapshot.
+#
+# El lock de build ya protegía a quien MIDE sobre dist. Faltaba proteger a
+# quien lo COPIA, que es la operación más larga y la más cara si falla.
+# ── EL DEPLOY EXIGE EL LEASE DE ESCRITURA · 2026-09-02 ──────────────────
+# Ley: READ PARALLEL · WRITE SERIAL. Publicar ES escribir -- sobre el
+# recurso más visible que tenemos.
+#
+# Pasó hoy: verifiqué las 7 escenas en el sitio con 6 pasos de carril cada
+# una, y veinte minutos después folio/v daba CERO. Otro agente había
+# desplegado encima con un build distinto. Ninguno de los dos hizo nada
+# malo: los dos teníamos el lock de BUILD, que no cubre el deploy.
+#
+# Eso es lo que hace que Ocín mire y vea retrocesos: no perdimos trabajo,
+# lo estamos pisando al publicar.
+KDX_AGENTE=${KDX_AGENTE:-deploy}
+if ! node scripts/kodex-equipo.mjs escritura "$KDX_AGENTE" "deploy" >/dev/null 2>&1; then
+  echo "✗ DEPLOY ABORTADO · otro agente tiene la ESCRITURA."
+  echo "  Publicar es escribir. Si desplegás ahora, pisás su versión."
+  echo "  Mirá quién la tiene:  node scripts/kodex-equipo.mjs quien"
+  exit 1
+fi
+if ! node scripts/kodex-equipo.mjs build "$KDX_AGENTE" >/dev/null 2>&1; then
+  echo "✗ DEPLOY ABORTADO · el build está tomado por otro agente."
+  echo "  Un snapshot tomado durante un build ajeno sale incompleto."
+  echo "  Mirá quién lo tiene:  node scripts/kodex-equipo.mjs quien"
+  exit 1
+fi
+# El lock se suelta pase lo que pase: si el deploy muere, nadie queda trabado.
+trap 'node scripts/kodex-equipo.mjs libre >/dev/null 2>&1' EXIT
+echo "=== LOCK tomado por $KDX_AGENTE ==="
+
 SNAP=/tmp/kodex-preview-snap
 rm -rf "$SNAP"
 cp -R dist "$SNAP"
+# ── PODA DEL SNAPSHOT · 2026-08-31 ───────────────────────────────────────
+# `dist/.prerender/` son INTERMEDIOS DE BUILD, no sitio: los chunks .mjs que
+# Astro usa para renderizar y que ningún visitante puede alcanzar. Se
+# estaban subiendo enteros en cada deploy.
+#
+#   38 MB · 270 archivos · cero de ellos servibles
+#
+# Los deploys cortan por EPIPE alrededor de 3144/3840 archivos sobre el
+# enlace Chile-EEUU. Sacar 270 archivos NO resuelve el problema de fondo
+# —eso es el sprint de R2— pero es peso que nunca debió viajar, y cada
+# archivo menos es una oportunidad menos de que el enlace se corte.
+#
+# Se poda el SNAPSHOT, nunca el dist: el build queda intacto para los gates
+# que miden sobre él.
+antes=$(find "$SNAP" -type f | wc -l | tr -d ' ')
+[ -d "$SNAP/.prerender" ] && rm -rf "$SNAP/.prerender"
+echo "=== PODA: $antes -> $(find "$SNAP" -type f | wc -l | tr -d ' ') archivos · $(du -sh "$SNAP" | cut -f1) ==="
+
 echo "=== SNAPSHOT taken $(date +%T) ==="
 [ -f "$SNAP/kodex/index.html" ] || { echo "FALTA kodex/index.html"; exit 1; }
 

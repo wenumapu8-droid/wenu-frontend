@@ -90,6 +90,8 @@ export type Volumen = {
   marco?: Marco;
   /** Fuente, cuando el marco es ciencia o documentado. */
   fuente?: string;
+  /** Manifiesto L8 Assembly OS */
+  assembly_os?: Record<string, any>;
 };
 
 export type Manifiesto = {
@@ -99,7 +101,10 @@ export type Manifiesto = {
 };
 
 const DEFAULT_KODEX_ART_CDN_BASE = "https://pub-2b4562c758ed440ab047fe9523a2d99c.r2.dev";
-const KODEX_ART_CDN_BASE = (import.meta.env.PUBLIC_KODEX_ART_CDN_BASE ?? DEFAULT_KODEX_ART_CDN_BASE).replace(/\/+$/, "");
+// `import.meta.env` es de Astro; en node --test (para tests) no existe.
+// El `?.` mantiene el modulo importable fuera del bundler sin cambiar
+// el comportamiento en produccion, donde Astro sigue poblando `env`.
+const KODEX_ART_CDN_BASE = (import.meta.env?.PUBLIC_KODEX_ART_CDN_BASE ?? DEFAULT_KODEX_ART_CDN_BASE).replace(/\/+$/, "");
 const KODEX_ART_THUMB_1400 = new Set(["46f2d4dc-51265"]);
 
 /**
@@ -129,14 +134,9 @@ export async function leerManifiesto(): Promise<Manifiesto> {
     return {
       version: m.kodex_manifest_version ?? m.version,
       estratos: Array.isArray(m.estratos) ? m.estratos : [],
-      // Se aceptan las dos grafías: el manifiesto lo escribe otra mano y no
-      // vale romper la biblioteca por una `s` de diferencia.
       volumenes: Array.isArray(m.volumes) ? m.volumes : Array.isArray(m.volumenes) ? m.volumenes : [],
     };
   } catch {
-    // Sin manifiesto la biblioteca está vacía, que es un estado válido: el
-    // marco de siete escenas funciona igual. Romper el build porque todavía
-    // no hay contenido sería castigar al que llega primero.
     return { estratos: [], volumenes: [] };
   }
 }

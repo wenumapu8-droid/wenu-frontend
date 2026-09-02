@@ -22,8 +22,14 @@
  * ESTADO: 36 de 40 nodos. Faltan KDX-IMG-021..024, que no aparecen en 07A ni
  * en 07B (probablemente un lote 10 no localizado). 20 nodos traen escena;
  * 32 traen interaccion escrita; 12 traen implementacion tecnica.
+ *
+ * ADVERTENCIA (2026-08-29): de los 36 declarados, cuatro (017-020) vienen
+ * con TITULO nada mas -- el resto de sus columnas esta vacio en el atlas
+ * original. `coberturaDelAtlas()` los cuenta como placeholders explicitos
+ * para no falsear la metrica. Rellenar sus campos requiere fuente real,
+ * no inferencia.
  */
-import atlas from '../../data/kodex-atlas.json';
+import atlas from '../../data/kodex-atlas.json' with { type: 'json' };
 
 export interface NodoAtlas {
   id: string;
@@ -101,12 +107,39 @@ export function vecinosDe(id: string): NodoAtlas[] {
   return NODOS.filter((o) => o.id !== id && o.zonas.some((z) => n.zonas.includes(z)));
 }
 
+/**
+ * Un nodo esta POBLADO cuando trae algo mas que el titulo. Los placeholders
+ * 017-020 solo tienen `id` y `titulo` en el atlas original -- todos los
+ * campos autorales (concepto, zonas, escenas, interaccion, etc.) vienen
+ * vacios. Contarlos como poblados falsearia el estado real.
+ */
+function estaPoblado(n: NodoAtlas): boolean {
+  return Boolean(
+    n.concepto ||
+    n.interaccion ||
+    (n.zonas && n.zonas.length > 0) ||
+    (n.escenas && n.escenas.length > 0) ||
+    n.geometria ||
+    n.copy,
+  );
+}
+
+/** Los ids de los placeholders declarados pero sin datos (solo titulo). */
+export function placeholdersDelAtlas(): string[] {
+  return NODOS.filter((n) => !estaPoblado(n)).map((n) => n.id);
+}
+
 /** Cuentas honestas del atlas, para mostrar en pantalla CON fuente. */
 export function coberturaDelAtlas() {
+  const placeholders = placeholdersDelAtlas();
   return {
     total: NODOS.length,
     esperados: 40,
     faltantes: ['KDX-IMG-021', 'KDX-IMG-022', 'KDX-IMG-023', 'KDX-IMG-024'],
+    /** Declarados pero vacios (solo titulo). No inventar datos. */
+    placeholders,
+    /** Nodos con al menos un campo autoral fuera del titulo. */
+    poblados: NODOS.length - placeholders.length,
     conEscena: NODOS.filter((n) => n.escenas.length > 0).length,
     conInteraccion: NODOS.filter((n) => n.interaccion).length,
     conImplementacion: NODOS.filter((n) => n.implementacion).length,

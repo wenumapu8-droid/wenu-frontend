@@ -19,8 +19,30 @@
 
 export type Estado = "idle" | "aware" | "locked" | "active" | "transitionOut";
 
-/** Sólo hacia adelante. Una escena no vuelve a no-haber-sido-vista. */
-const ORDEN: Estado[] = ["idle", "aware", "locked", "active", "transitionOut"];
+/**
+ * Sólo hacia adelante. Una escena no vuelve a no-haber-sido-vista.
+ * Exportado para tests: la razon canonica es la Receta Madre §8 y cambiar
+ * el orden debe romper `estado.test.ts` a proposito.
+ */
+export const ORDEN: ReadonlyArray<Estado> = ["idle", "aware", "locked", "active", "transitionOut"] as const;
+
+/**
+ * Intensidad canonica por estado, 0..1. Es lo que las capas consultan para
+ * abrir/cerrar shaders y volumen sin conocer al detalle la maquina.
+ */
+export const INTENSIDAD: Readonly<Record<Estado, number>> = {
+  idle: 0, aware: 0.34, locked: 0.62, active: 1, transitionOut: 0.5,
+} as const;
+
+/**
+ * Regla dura del avance: nunca hacia atras, nunca a un estado ausente
+ * del ORDEN. Extraida a funcion pura para poder testearla sin DOM.
+ */
+export function esAvanceLegal(desde: Estado, hacia: Estado): boolean {
+  const i = ORDEN.indexOf(desde);
+  const j = ORDEN.indexOf(hacia);
+  return i >= 0 && j >= 0 && j > i;
+}
 
 type Escucha = (estado: Estado, anterior: Estado) => void;
 
@@ -31,7 +53,7 @@ class MaquinaEscena {
 
   /** Intensidad del estado, 0..1. Es lo que las capas suelen querer. */
   get intensidad(): number {
-    return { idle: 0, aware: 0.34, locked: 0.62, active: 1, transitionOut: 0.5 }[this.estado];
+    return INTENSIDAD[this.estado];
   }
 
   get actual(): Estado {
@@ -73,7 +95,7 @@ class MaquinaEscena {
 
   /** Avanza. Nunca retrocede: pedir un estado anterior no hace nada. */
   ir(siguiente: Estado): void {
-    if (ORDEN.indexOf(siguiente) <= ORDEN.indexOf(this.estado)) return;
+    if (!esAvanceLegal(this.estado, siguiente)) return;
     const anterior = this.estado;
     this.estado = siguiente;
     this.publicar(anterior);

@@ -1,6 +1,16 @@
 /**
  * KODEX−∞ · PROLOGUE · MÁQUINA DE OBSERVACIÓN
  *
+ * VOCABULARIO CONGELADO 2026-08-29 (decision de Ocin). Se elimina IDLE.
+ * Razon: KODEX rastrea PRESENCIA, no intencion. Soltar el dedo es un hecho
+ * observable -- "dejo de sostener" -- y decaer a DORMANT ahi inferiria que se
+ * fue, que es justo lo que el canon 08G prohibe. AWARE dice "sigo viendote",
+ * que es lo que el motor efectivamente sabe.
+ *
+ * `salir` SI cae a DORMANT: que el puntero abandone el campo no es inferencia,
+ * es un hecho medido. DESCEND sigue terminal -- soltar despues de DESCEND no
+ * vuelve a AWARE, ya pasaste.
+ *
  * La lámina t01-02 dibuja tres etiquetas —LOCK, TRACK, IDLE— dentro de un panel
  * llamado «01. SCAN STATES». En la plancha son rótulos. Acá son el estado real
  * del sistema, y todo lo demás deriva de ellos: la intensidad del ojo, la
@@ -19,7 +29,8 @@
  *                                      aparecen los fragmentos de escaneo
  *   mover mientras sostiene→ TRACK     el iris SIGUE al puntero, la onda modula
  *                                      con la velocidad del gesto
- *   soltar / salir         → IDLE      decae de vuelta, con memoria del último lock
+ *   soltar (dedo)          → AWARE     sigue reconocido: dejo de sostener, no se fue
+ *   salir del campo        → DORMANT   la presencia dejo de ser observable
  *   pedir ver más          → INSPECT   lo denso se abre; el ojo baja su agitación
  *                                      para no competir con lo que se está leyendo
  *   cruzar la pupila       → DESCEND   el campo converge al punto de fuga
@@ -41,7 +52,33 @@
  * observe al visitante y no al revés.
  */
 
-export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'INSPECT' | 'DESCEND' | 'IDLE';
+export type Estado = 'DORMANT' | 'AWARE' | 'LOCK' | 'TRACK' | 'INSPECT' | 'DESCEND';
+
+/**
+ * Tabla causal exportada para tests y para las escenas siguientes que van a
+ * HEREDAR este contrato de estados. Cambiar esta tabla debe romper el suite
+ * de `prologue-alcanzable.test.ts` a proposito: cada arista tiene una razon
+ * canonica documentada en el docstring de arriba.
+ *
+ *   DORMANT -> solo AWARE                 la primera senal es reconocimiento.
+ *   AWARE   -> LOCK / TRACK / INSPECT /   desde reconocido, cualquier gesto.
+ *              DESCEND / DORMANT
+ *   LOCK    -> TRACK / AWARE / INSPECT /  soltar desde LOCK vuelve a AWARE,
+ *              DESCEND / DORMANT          no a DORMANT.
+ *   TRACK   -> LOCK / AWARE / INSPECT /   simetrico a LOCK.
+ *              DESCEND / DORMANT
+ *   INSPECT -> AWARE / LOCK / TRACK /     cerrar inspeccion vuelve al previo.
+ *              DESCEND / DORMANT
+ *   DESCEND -> []                          TERMINAL. Nada revierte un descenso.
+ */
+export const ALCANZABLE_CAUSAL: Readonly<Record<Estado, ReadonlyArray<Estado>>> = {
+  DORMANT: ['AWARE'],
+  AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'DORMANT'],
+  LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
+  TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'DORMANT'],
+  INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'DORMANT'],
+  DESCEND: [],
+} as const;
 
 export type Pulso = {
   estado: Estado;
@@ -93,16 +130,10 @@ export function crearObservacion(raiz: HTMLElement) {
 
   /* Desde dónde se puede alcanzar cada estado. Declararlo evita que el sistema
      entre a INSPECT desde DORMANT —inspeccionar sin haber sido reconocido— o
-     que salga de DESCEND, que es terminal. */
-  const ALCANZABLE: Record<Estado, Estado[]> = {
-    DORMANT: ['AWARE', 'IDLE'],
-    IDLE: ['AWARE', 'DORMANT'],
-    AWARE: ['LOCK', 'TRACK', 'INSPECT', 'DESCEND', 'IDLE', 'DORMANT'],
-    LOCK: ['TRACK', 'AWARE', 'INSPECT', 'DESCEND', 'IDLE'],
-    TRACK: ['LOCK', 'AWARE', 'INSPECT', 'DESCEND', 'IDLE'],
-    INSPECT: ['AWARE', 'LOCK', 'TRACK', 'DESCEND', 'IDLE'],
-    DESCEND: [],
-  };
+     que salga de DESCEND, que es terminal.
+     La tabla vive exportada como ALCANZABLE_CAUSAL arriba; acá se reusa para
+     que tests y runtime lean del mismo dato y no puedan divergir. */
+  const ALCANZABLE = ALCANZABLE_CAUSAL;
 
   let previo: Estado = 'DORMANT';
 
@@ -141,7 +172,7 @@ export function crearObservacion(raiz: HTMLElement) {
     /* DORMANT tiene que romperse aunque ya se este sosteniendo: si no, un toque
        rapido entra por `sostener` con `sosteniendo` ya en true y ninguna rama
        llegaba a encender AWARE. */
-    else if (pulso.estado === 'DORMANT' || pulso.estado === 'IDLE') fijar('AWARE');
+    else if (pulso.estado === 'DORMANT') fijar('AWARE');
   };
 
   const sostener = (cx: number, cy: number) => {
@@ -162,7 +193,9 @@ export function crearObservacion(raiz: HTMLElement) {
   const salir = () => {
     dentro = false; sosteniendo = false;
     if (tLock) { clearTimeout(tLock); tLock = null; }
-    fijar('IDLE');
+    /* Salir del campo NO es inferencia: el puntero se fue, es medible.
+       Por eso aca si se cae a DORMANT y no a AWARE. */
+    fijar('DORMANT');
   };
 
   raiz.addEventListener('pointermove', (e) => {

@@ -440,6 +440,33 @@ class KodexField {
     gl.uniform1f(u("u_devicePixelRatio"), devicePixelRatio || 1);
     gl.uniform1f(u("u_reducedMotion"), this.reducedMotion ? 1 : 0);
     gl.uniform1f(u("u_seed"), this.options.seed);
+
+    /* EL CAMPO PERSISTENTE COMO UNIFORM.
+     *
+     * Se lee del <html> -- no importando PersistentField -- para que el
+     * acoplamiento quede en cero: si el campo no esta montado, ambos valen 0
+     * y el shader se comporta exactamente como antes. Ningun renderer depende
+     * del campo para existir; el campo lo MODULA cuando esta.
+     *
+     *   u_kdxRegimen  cuanto manda el atractor actual (0..1)
+     *   u_kdxResiduo  cuanto pesa el viaje anterior, acumulado
+     *
+     * Con esto el shader deja de ser un universo aislado y pasa a ser un
+     * OPERADOR del campo. Un shader que ya declare estos uniforms responde
+     * al viaje sin cambiar una linea; uno que no, los ignora. */
+    const raiz = document.documentElement;
+    const atr = raiz.dataset.kdxAtractor;
+    let regimen = 0;
+    let residuo = 0;
+    if (atr) {
+      const cs = getComputedStyle(raiz);
+      regimen = Number(cs.getPropertyValue(`--kdx-peso-${atr.toLowerCase()}`)) || 0;
+      for (const x of ["threshold","prologue","descent","archive","machine","cosmology","return"]) {
+        residuo += Number(cs.getPropertyValue(`--kdx-residuo-${x}`)) || 0;
+      }
+    }
+    gl.uniform1f(u("u_kdxRegimen"), Math.max(0, Math.min(1, regimen)));
+    gl.uniform1f(u("u_kdxResiduo"), Math.max(0, Math.min(1, residuo)));
     // Sin la pasada al framebuffer el "cuadro previo" queda congelado. Si la
     // mezcla siguiera encendida, el shader mancharia contra una imagen vieja
     // que ya nadie actualiza -- peor que no tener rastro.

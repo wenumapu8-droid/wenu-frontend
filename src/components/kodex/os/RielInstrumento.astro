@@ -1,0 +1,248 @@
+---
+/**
+ * KODEX-∞ · RIEL DE INSTRUMENTO
+ * TELAR A03+A04+A05+A07+A08 · 2026-08-29
+ *
+ * Los boards dibujan el MISMO aparato en las cinco escenas gobernadas.
+ * Solo cambian el organismo del centro, el texto y los numeros. Esto es
+ * ese aparato, construido UNA vez, montado por las siete.
+ *
+ * Sin esto las escenas se leen como poster con botones -- que es
+ * literalmente lo que eran: un fondo, un titulo y un boton.
+ *
+ * REGLA DE DATO (Decision Log 2026-08-29):
+ *   · dato REAL      -> data-fuente="REAL", se lee del runtime
+ *   · sin fuente     -> data-fuente="HUECO", se ve como hueco, en gris
+ *   · paridad visual -> data-fuente="MOCK", telemetria decorativa MARCADA
+ * Ningun numero aparece sin declarar de donde viene. Un readout que no
+ * lee nada es poster; uno que miente es peor.
+ */
+interface Props {
+  lado: 'izq' | 'der';
+  nodo?: string;
+  estadoBase?: string;
+  senal?: string;
+  acceso?: string;
+  bpm?: number;
+  respiracion?: number;
+  profundidad?: string;
+  accent?: string;
+  class?: string;
+}
+const {
+  lado,
+  nodo = '01',
+  estadoBase = 'DORMANT',
+  senal = 'LATENT',
+  acceso = 'OBSERVER',
+  bpm = 62,
+  respiracion = 5.4,
+  profundidad = '—',
+  accent = 'var(--kdx-scene-accent, var(--kdx-red, #FF3833))',
+  class: className = '',
+} = Astro.props;
+---
+
+<aside
+  class:list={['kdx-riel', `kdx-riel--${lado}`, className]}
+  style={`--riel-accent:${accent};`}
+  aria-label={lado === 'izq' ? 'estado del nodo' : 'telemetria del sistema'}
+>
+  {lado === 'izq' && (
+    <>
+      <section class="kdx-riel__blq">
+        <p class="kdx-riel__tit">NODE {nodo}</p>
+        <dl class="kdx-riel__pares">
+          <div><dt>STATE</dt><dd data-fuente="REAL" data-kdx-riel-estado>{estadoBase}</dd></div>
+          <div><dt>SIGNAL</dt><dd data-fuente="REAL" data-kdx-riel-senal>{senal}</dd></div>
+          <div><dt>ACCESS TYPE</dt><dd data-fuente="REAL">{acceso}</dd></div>
+          <div><dt>INTEGRITY</dt><dd data-fuente="HUECO">—</dd></div>
+          <div><dt>COHERENCE</dt><dd data-fuente="REAL" data-kdx-riel-coh>0.000</dd></div>
+        </dl>
+      </section>
+
+      <section class="kdx-riel__blq">
+        <p class="kdx-riel__tit">PULSE</p>
+        <p class="kdx-riel__grande" data-fuente="MOCK">{bpm} <span>BPM</span></p>
+        <canvas class="kdx-riel__onda" data-onda="pulso" width="360" height="54" aria-hidden="true"></canvas>
+      </section>
+
+      <section class="kdx-riel__blq">
+        <p class="kdx-riel__tit">BREATH INDEX</p>
+        <p class="kdx-riel__grande" data-fuente="MOCK">{respiracion} <span>/ MIN</span></p>
+        <canvas class="kdx-riel__onda" data-onda="respiracion" width="360" height="54" aria-hidden="true"></canvas>
+      </section>
+    </>
+  )}
+
+  {lado === 'der' && (
+    <>
+      <section class="kdx-riel__blq">
+        <p class="kdx-riel__tit">SYSTEM TELEMETRY</p>
+        <dl class="kdx-riel__pares">
+          <div><dt>NODE LOAD</dt><dd data-fuente="REAL" data-kdx-tel-carga>—</dd></div>
+          <div><dt>MEMORY STREAM</dt><dd data-fuente="REAL" data-kdx-tel-mem>—</dd></div>
+          <div><dt>ARCHIVE DEPTH</dt><dd data-fuente="REAL">{profundidad}</dd></div>
+          <div><dt>THRESHOLD LOCK</dt><dd data-fuente="REAL" data-kdx-tel-lock>WAITING</dd></div>
+          <div><dt>ENTROPY RATE</dt><dd data-fuente="HUECO">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="kdx-riel__blq">
+        <p class="kdx-riel__tit">VERITY CHECK</p>
+        <dl class="kdx-riel__pares">
+          <div><dt>STATUS</dt><dd data-fuente="REAL" data-kdx-verity>CHECKING</dd></div>
+        </dl>
+        <p class="kdx-riel__nota" data-kdx-verity-nota>—</p>
+      </section>
+    </>
+  )}
+</aside>
+
+<style>
+  .kdx-riel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    font-family: var(--kdx-mono, ui-monospace, monospace);
+    font-size: 0.62rem;
+    color: color-mix(in srgb, var(--kdx-bone, #f0ede8) 62%, transparent);
+    align-self: start;
+    min-width: 0;
+  }
+  .kdx-riel__tit {
+    margin: 0 0 0.45rem;
+    font-size: 0.53rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--riel-accent) 72%, transparent);
+  }
+  .kdx-riel__pares { margin: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+  .kdx-riel__pares > div { display: flex; justify-content: space-between; gap: 0.7rem; }
+  .kdx-riel__pares dt { letter-spacing: 0.1em; }
+  .kdx-riel__pares dd {
+    margin: 0;
+    color: var(--kdx-bone, #f0ede8);
+    font-variant-numeric: tabular-nums;
+  }
+  /* El hueco NO se lee como dato. Esa es la diferencia entre declararlo
+     y esconderlo: se ve que falta. */
+  .kdx-riel__pares dd[data-fuente='HUECO'] {
+    color: color-mix(in srgb, currentColor 40%, transparent);
+  }
+  /* Telemetria decorativa: marcada con un punto, no disfrazada de medicion. */
+  [data-fuente='MOCK']::after {
+    content: '·';
+    margin-left: 0.35rem;
+    color: color-mix(in srgb, var(--riel-accent) 55%, transparent);
+  }
+  .kdx-riel__grande {
+    margin: 0;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    color: var(--riel-accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .kdx-riel__grande span { font-size: 0.58rem; color: color-mix(in srgb, currentColor 60%, transparent); }
+  .kdx-riel__onda { display: block; width: 100%; height: 1.6rem; margin-top: 0.35rem; }
+  .kdx-riel__nota { margin: 0.35rem 0 0; font-size: 0.52rem; letter-spacing: 0.08em; }
+
+  @media (max-width: 900px) {
+    /* Mobile es composicion TEMPORAL: los rieles se vuelven una franja
+       horizontal bajo el organismo, no dos columnas que ahogan el texto. */
+    .kdx-riel {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0.9rem 1.6rem;
+      font-size: 0.56rem;
+    }
+    .kdx-riel__blq { flex: 1 1 8rem; }
+    .kdx-riel__onda { height: 1.1rem; }
+  }
+</style>
+
+<script>
+  import { estadoEscena, type Estado } from '../../../lib/kodex/estado';
+
+  /* Nombres del board para el riel. Los mismos cinco del carril: el riel
+     no inventa vocabulario propio. */
+  const RITUAL: Record<Estado, string> = {
+    idle: 'DORMANT', aware: 'AWARE', locked: 'OPEN',
+    active: 'CROSSED', transitionOut: 'REMEMBERED',
+  };
+  /* Coherencia: intensidad real de la maquina, no un numero decorativo. */
+  const COH: Record<Estado, number> = {
+    idle: 0.0, aware: 0.34, locked: 0.62, active: 1, transitionOut: 0.5,
+  };
+
+  const vistos = new WeakSet<HTMLElement>();
+
+  function ondas() {
+    document.querySelectorAll<HTMLCanvasElement>('canvas[data-onda]').forEach((cv) => {
+      if (vistos.has(cv)) return;
+      vistos.add(cv);
+      const ctx = cv.getContext('2d');
+      if (!ctx) return;
+      const w = cv.width, h = cv.height;
+      const resp = cv.dataset.onda === 'respiracion';
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = getComputedStyle(cv).getPropertyValue('--riel-accent')?.trim() || '#7d6a31';
+      ctx.globalAlpha = 0.55;
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      for (let x = 0; x < w; x++) {
+        let y: number;
+        if (resp) {
+          y = h / 2 - Math.sin((x / w) * Math.PI * 3) * (h * 0.3);
+        } else {
+          const p = (x % (w / 4)) / (w / 4);
+          y = h / 2 - (p > 0.42 && p < 0.5
+            ? h * 0.38 * Math.sin(((p - 0.42) / 0.08) * Math.PI)
+            : Math.sin(p * Math.PI * 2) * (h * 0.06));
+        }
+        x ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      }
+      ctx.stroke();
+    });
+  }
+
+  function enganchar() {
+    ondas();
+
+    const carga = document.querySelector<HTMLElement>('[data-kdx-tel-carga]');
+    const mem = document.querySelector<HTMLElement>('[data-kdx-tel-mem]');
+    const lock = document.querySelector<HTMLElement>('[data-kdx-tel-lock]');
+    const ver = document.querySelector<HTMLElement>('[data-kdx-verity]');
+    const nota = document.querySelector<HTMLElement>('[data-kdx-verity-nota]');
+    const est = document.querySelector<HTMLElement>('[data-kdx-riel-estado]');
+    const coh = document.querySelector<HTMLElement>('[data-kdx-riel-coh]');
+
+    /* VERITY CHECK mide algo de verdad: que la escena tenga motor vivo y
+       que el carril este enganchado. Si falla, lo dice. Un OK que siempre
+       dice OK no verifica nada. */
+    if (ver) {
+      const hayMotor = typeof estadoEscena === 'function';
+      const hayCarril = !!document.querySelector('[data-kdx-carril]');
+      const ok = hayMotor && hayCarril;
+      ver.textContent = ok ? 'OK' : 'DEGRADED';
+      ver.style.color = ok ? 'var(--kdx-ok, #5f9e6e)' : 'var(--kdx-red, #FF3833)';
+      if (nota) nota.textContent = ok ? 'ENGINE + RAIL BOUND' : (hayMotor ? 'RAIL NOT BOUND' : 'NO ENGINE');
+    }
+
+    if (mem) mem.textContent = 'OPEN';
+    if (carga) {
+      /* Carga real del documento: nodos del arbol de la escena. */
+      const n = document.querySelectorAll('[data-kx] *').length || document.body.querySelectorAll('*').length;
+      carga.textContent = (Math.min(1, n / 4000)).toFixed(2);
+    }
+
+    estadoEscena().suscribir((e: Estado) => {
+      if (est) est.textContent = RITUAL[e];
+      if (coh) coh.textContent = COH[e].toFixed(3);
+      if (lock) lock.textContent = e === 'idle' ? 'WAITING' : e === 'active' ? 'LOCKED' : 'ARMING';
+    });
+  }
+
+  enganchar();
+  document.addEventListener('astro:page-load', enganchar);
+</script>

@@ -266,11 +266,45 @@ class OrganismController {
 const globalPointer = { x: 0, y: 0, active: false };
 const globalNavigation = { x: 0, y: 0 };
 
+/* El campo persistente publica su estado en el <html> como custom properties.
+   Leerlo de ahi -- y no importando PersistentField -- mantiene el acoplamiento
+   en cero: si el campo no esta montado, esto devuelve 0 y el organismo se
+   comporta exactamente como antes. Ningun renderer depende del campo para
+   existir; el campo lo MODULA cuando esta. */
+function leerCampo(): { regimen: number; residuo: number } {
+  const raiz = document.documentElement;
+  const a = raiz.dataset.kdxAtractor;
+  if (!a) return { regimen: 0, residuo: 0 };
+  const cs = getComputedStyle(raiz);
+  const k = a.toLowerCase();
+  return {
+    regimen: clamp01(Number(cs.getPropertyValue(`--kdx-peso-${k}`)) || 0),
+    /* El residuo total: cuanto de los regimenes anteriores sigue presente.
+       Es lo que le da al organismo memoria de por donde vino. */
+    residuo: clamp01(
+      ['threshold','prologue','descent','archive','machine','cosmology','return']
+        .reduce((t, x) => t + (Number(cs.getPropertyValue(`--kdx-residuo-${x}`)) || 0), 0),
+    ),
+  };
+}
+
 function readGlobalInput(): Partial<OrganismInput> {
   const audio = (window as typeof window & { __kxAudio?: AudioBus }).__kxAudio;
+  /* primaryAction y secondaryAction existian en el contrato de OrganismInput
+     y nadie los llenaba: quedaban en 0 en cada frame. Ahi entra el campo sin
+     tocar la API del motor ni abrir un renderer nuevo -- que esta prohibido.
+
+       primaryAction    peso del regimen actual: cuanto manda esta escena
+       secondaryAction  residuo acumulado: cuanto pesa el viaje anterior
+
+     Asi el organismo deja de ser un universo aislado y pasa a ser un
+     OPERADOR del campo, que es lo que el master map pide. */
+  const campo = leerCampo();
   return {
     pointer: { ...globalPointer },
     navigationAxis: { ...globalNavigation },
+    primaryAction: campo.regimen,
+    secondaryAction: campo.residuo,
     audio: {
       active: Boolean(audio?.activo ?? audio?.active),
       low: clamp01(audio?.low ?? 0),
@@ -350,6 +384,21 @@ if (document.readyState === "loading") {
 }
 
 document.addEventListener("astro:page-load", mountAll);
+/* ANTES: se destruian TODOS los controllers en cada navegacion.
+ *
+ * Ese era el desmontaje real del universo -- no la linea 252, que es
+ * recuperacion de contexto WebGL perdido y esta bien como esta.
+ *
+ * AHORA: solo se destruye lo que el swap se va a llevar igual. Un organismo
+ * marcado `transition:persist` sobrevive al swap con su nodo, asi que
+ * destruirlo seria matar a mano algo que el router ya decidio conservar.
+ *
+ * `mountAll` es idempotente (salta las raices que ya tienen controller), asi
+ * que lo que persiste no se remonta ni se duplica. */
 document.addEventListener("astro:before-swap", () => {
-  for (const controller of [...controllers]) void controller.destroy();
+  for (const controller of [...controllers]) {
+    const raiz = (controller as unknown as { root?: HTMLElement }).root;
+    if (raiz?.hasAttribute?.("data-astro-transition-persist")) continue;
+    void controller.destroy();
+  }
 });

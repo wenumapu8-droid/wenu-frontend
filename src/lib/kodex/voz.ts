@@ -70,7 +70,28 @@ function elegirVoz(): SpeechSynthesisVoice | null {
 
 /** Dice una frase. Corta lo anterior: la voz no se acumula ni se pisa. */
 function decir(texto: string) {
-  if (!texto || !sonidoPermitido()) return;
+  if (!texto) return;
+
+  /* EL SUBTITULO NO DEPENDE DEL AUDIO.
+   *
+   * Si el subtitulo viviera dentro del `if (sonidoPermitido())`, quien no
+   * oye -- por sordera, por auriculares ausentes, por haber elegido silencio
+   * en la puerta -- perderia la narracion entera. La Oracle quedaria hablando
+   * solo para una parte de los visitantes.
+   *
+   * El brief pide subtitulos diegeticos; la accesibilidad pide que lo dicho
+   * exista tambien escrito. Las dos cosas se cumplen igual: el texto se
+   * muestra SIEMPRE, y lo unico que el consentimiento de audio gobierna es
+   * si ademas suena.
+   *
+   * `silenciarVoz()` sigue apagando las dos: cuando el visitante pide que se
+   * calle, se calla del todo. */
+  /* El silencio permanente gana sobre todo, incluido el subtitulo. */
+  try { if (localStorage.getItem(CLAVE_VOZ) === 'off') return; } catch { /* sin storage: sigue */ }
+
+  subtitular(texto);
+
+  if (!sonidoPermitido()) return;
   if (!('speechSynthesis' in window)) return;
 
   vozElegida = vozElegida || elegirVoz();
@@ -89,6 +110,28 @@ function decir(texto: string) {
  * Lee el titulo de la escena TAL COMO ESTA EN PANTALLA. Si no hay titulo
  * visible, no dice nada: la voz nunca inventa contenido.
  */
+/**
+ * La memoria del viaje, leida del DOM.
+ *
+ * En RETURN la escena MUESTRA la firma de ruta y el regimen dominante --
+ * los publica el campo persistente en el <html>. La voz los lee de ahi y
+ * no de un estado interno, por la regla de la casa: SOLO se dice lo que el
+ * visitante puede leer. Una voz que sabe mas que la pantalla esconde
+ * informacion en un canal que no todos reciben.
+ */
+function leerMemoriaDelViaje(): string | null {
+  const r = document.documentElement;
+  const firma = r.dataset.kdxFenotipo;
+  const dom = r.dataset.kdxDominante;
+  if (!firma) return null;
+  const pasos = firma.split('·')[0].length;
+  /* Se narra lo que el recorrido HIZO, nunca lo que el visitante es. El
+     canon 08G prohibe inferir identidad: "recorriste seis" es un hecho,
+     "sos una persona cosmologica" seria perfilado. */
+  const cuantos = `You crossed ${pasos} regimes.`;
+  return dom ? `${cuantos} ${dom.toLowerCase()} left the deepest trace.` : cuantos;
+}
+
 function leerTituloVisible(raiz: Element): string {
   const t = raiz.querySelector('[data-kdx-titulo] h1, .kdx-tt__h, h1');
   const texto = (t?.getAttribute('aria-label') || t?.textContent || '').trim();
@@ -136,8 +179,40 @@ export function montarVoz(raiz: Element): () => void {
   });
   obs.observe(raiz, { attributes: true, attributeFilter: ['data-kdx-estado'] });
 
+  /* LA VOZ NARRA EL VIAJE, no solo la escena.
+   *
+   * El campo publica el atractor en <html data-kdx-atractor>. Al cambiar de
+   * regimen la voz lo nombra; al llegar a RETURN lee la memoria del
+   * recorrido, que es la unica escena donde la memoria ES el contenido.
+   *
+   * Se observa el <html> y no la escena porque el campo sobrevive al swap
+   * de pagina y la escena no: escuchar a la escena seria volver a atarse al
+   * ciclo de vida que P0 vino a romper. */
+  let ultimoAtractor = '';
+  const obsCampo = new MutationObserver(() => {
+    const a = document.documentElement.dataset.kdxAtractor || '';
+    if (!a || a === ultimoAtractor) return;
+    const primero = !ultimoAtractor;
+    ultimoAtractor = a;
+    if (!armada) return;
+    /* En la primera lectura no se anuncia: el visitante acaba de llegar y
+       el titulo de la escena ya se dijo. Anunciar dos veces la misma
+       llegada suena a error, no a bienvenida. */
+    if (primero) return;
+    if (a === 'RETURN') {
+      const mem = leerMemoriaDelViaje();
+      if (mem) { decir(mem); return; }
+    }
+    decir(a.charAt(0) + a.slice(1).toLowerCase() + '.');
+  });
+  obsCampo.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-kdx-atractor', 'data-kdx-fenotipo'],
+  });
+
   return () => {
     obs.disconnect();
+    obsCampo.disconnect();
     speechSynthesis.cancel();
     speechSynthesis.removeEventListener('voiceschanged', cargarVoces);
     window.removeEventListener('pointerdown', armar);
@@ -145,10 +220,76 @@ export function montarVoz(raiz: Element): () => void {
   };
 }
 
+/**
+ * SUBTITULOS · KDX.ORACLE Brief §1
+ *
+ * El brief los pide como parte de la diegesis, no como texto de
+ * accesibilidad pegado abajo: "subtitles/captions are part of the diegesis,
+ * not accessibility text pasted underneath".
+ *
+ * Que sean diegéticos no los exime de ser accesibles -- al contrario. La voz
+ * es un canal que no todos reciben: sin subtitulo, quien no oye pierde
+ * narracion. Con subtitulo, lo dicho y lo escrito son el mismo hecho.
+ *
+ * `aria-live="polite"` y no "assertive": la Oracle interrumpe poco, y un
+ * lector de pantalla no deberia cortar lo que el visitante esta leyendo.
+ */
+function panelSubtitulo(): HTMLElement {
+  let el = document.getElementById('kdx-oracle-cc');
+  if (el) return el;
+  el = document.createElement('p');
+  el.id = 'kdx-oracle-cc';
+  el.className = 'kdx-oracle-cc';
+  el.setAttribute('aria-live', 'polite');
+  el.setAttribute('data-fuente', 'REAL');
+  document.body.appendChild(el);
+
+  const css = document.createElement('style');
+  css.textContent = `
+    .kdx-oracle-cc{
+      position:fixed; left:50%; bottom:clamp(4.6rem,9vh,6.4rem);
+      transform:translateX(-50%);
+      max-width:min(46ch,86vw); margin:0; padding:.5rem .9rem;
+      font-family:var(--kdx-mono,ui-monospace,monospace);
+      font-size:clamp(.62rem,1.5vw,.72rem); letter-spacing:.12em;
+      line-height:1.7; text-align:center; text-transform:uppercase;
+      color:var(--kdx-bone,#f0ede8);
+      background:color-mix(in srgb,var(--kdx-obsidian,#0a0a0a) 72%,transparent);
+      border-top:1px solid color-mix(in srgb,var(--kdx-red,#FF3833) 34%,transparent);
+      z-index:60; pointer-events:none;
+      opacity:0; transition:opacity .5s ease;
+    }
+    .kdx-oracle-cc[data-visible]{opacity:1}
+    @media (prefers-reduced-motion:reduce){.kdx-oracle-cc{transition:none}}
+  `;
+  document.head.appendChild(css);
+  return el;
+}
+
+let ccTimer = 0;
+
+/** Muestra lo dicho. Se va solo: un subtitulo que se queda es una etiqueta. */
+function subtitular(texto: string) {
+  const el = panelSubtitulo();
+  el.textContent = texto;
+  el.setAttribute('data-visible', '');
+  clearTimeout(ccTimer);
+  /* El tiempo en pantalla sigue al largo de la frase, no a un valor fijo:
+     una frase larga leida a velocidad de una corta no se alcanza a leer. */
+  ccTimer = window.setTimeout(
+    () => el.removeAttribute('data-visible'),
+    Math.max(2600, texto.length * 78),
+  );
+}
+
 /** Silencio permanente, a pedido del visitante. Se recuerda entre visitas. */
 export function silenciarVoz() {
   try { localStorage.setItem(CLAVE_VOZ, 'off'); } catch { /* sin storage, igual calla ahora */ }
   if ('speechSynthesis' in window) speechSynthesis.cancel();
+  /* Callar es callar del todo: si solo se apagara el audio, el subtitulo
+     seguiria narrando a alguien que pidio silencio. */
+  clearTimeout(ccTimer);
+  document.getElementById('kdx-oracle-cc')?.removeAttribute('data-visible');
 }
 
 /** ¿Esta hablando ahora? Para que el punto rojo pueda mostrarlo. */
