@@ -18,7 +18,24 @@ export CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN
 #
 # El lock de build ya protegía a quien MIDE sobre dist. Faltaba proteger a
 # quien lo COPIA, que es la operación más larga y la más cara si falla.
+# ── EL DEPLOY EXIGE EL LEASE DE ESCRITURA · 2026-09-02 ──────────────────
+# Ley: READ PARALLEL · WRITE SERIAL. Publicar ES escribir -- sobre el
+# recurso más visible que tenemos.
+#
+# Pasó hoy: verifiqué las 7 escenas en el sitio con 6 pasos de carril cada
+# una, y veinte minutos después folio/v daba CERO. Otro agente había
+# desplegado encima con un build distinto. Ninguno de los dos hizo nada
+# malo: los dos teníamos el lock de BUILD, que no cubre el deploy.
+#
+# Eso es lo que hace que Ocín mire y vea retrocesos: no perdimos trabajo,
+# lo estamos pisando al publicar.
 KDX_AGENTE=${KDX_AGENTE:-deploy}
+if ! node scripts/kodex-equipo.mjs escritura "$KDX_AGENTE" "deploy" >/dev/null 2>&1; then
+  echo "✗ DEPLOY ABORTADO · otro agente tiene la ESCRITURA."
+  echo "  Publicar es escribir. Si desplegás ahora, pisás su versión."
+  echo "  Mirá quién la tiene:  node scripts/kodex-equipo.mjs quien"
+  exit 1
+fi
 if ! node scripts/kodex-equipo.mjs build "$KDX_AGENTE" >/dev/null 2>&1; then
   echo "✗ DEPLOY ABORTADO · el build está tomado por otro agente."
   echo "  Un snapshot tomado durante un build ajeno sale incompleto."

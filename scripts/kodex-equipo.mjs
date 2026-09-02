@@ -59,6 +59,12 @@ switch (cmd) {
       const min = Math.round((Date.now() - new Date(a.desde).getTime()) / 60000);
       console.log(`  ${n.padEnd(14)} ${a.unidad.padEnd(30)} ${min}min  @${a.host}`);
     }
+    const e = d.escritura || {};
+    const eVivo = e.desde && (Date.now() - new Date(e.desde).getTime() < 45 * 60 * 1000);
+    console.log(eVivo && e.agente
+      ? `  ESCRITURA · ${e.agente}${e.sobre ? ' · ' + e.sobre : ''}   (el resto puede LEER)`
+      : '  ESCRITURA · libre');
+
     const creando = Object.entries(d.creando || {}).filter(([, c]) => c.archivo && vivo(c.desde));
     if (creando.length) {
       console.log('\n  archivos NUEVOS reclamados:');
@@ -92,6 +98,52 @@ switch (cmd) {
    * montada dos veces.
    *
    * Cuesta cinco segundos y nos habría ahorrado las dos duplicaciones. */
+  /* ESCRITURA · el lease único sobre el worktree.
+   *
+   * Ley adoptada 2026-09-02: READ PARALLEL · WRITE SERIAL.
+   *
+   * Anthropic midió que la investigación multiagente supera al agente
+   * único, pero que CODING no se paraleliza igual: hay demasiadas
+   * dependencias y contexto compartido. Y que un sistema multiagente
+   * consume ~15× más tokens.
+   *
+   * Hoy lo vivimos: cinco sesiones, un fix propuesto que ya estaba hecho,
+   * un extractor casi reconstruido, una atribución falsa a punto de
+   * escribirse como autoridad, un build muerto por contención, y el sitio
+   * publicado desincronizado del código.
+   *
+   * Nada de eso fue mala fe. Fue escribir en paralelo.
+   *
+   * Leer, auditar, medir, investigar: TODOS a la vez, sin pedir permiso.
+   * Escribir en el worktree: UNO. Este comando es ese uno.
+   *
+   * El lease dura 45 min y caduca solo. Un lease sin caducidad se lo lleva
+   * quien pierda la sesión, y entonces nadie escribe nunca más. */
+  case 'escritura': {
+    d.escritura = d.escritura || {};
+    const actual = d.escritura.agente;
+    const vivoAun = d.escritura.desde && (Date.now() - new Date(d.escritura.desde).getTime() < 45 * 60 * 1000);
+
+    if (resto[0] === 'soltar') {
+      if (actual === agente) { d.escritura = {}; escribir(d); console.log(`✓ ${agente} suelta la escritura`); }
+      else console.log(`no la tenías vos (la tiene ${actual || 'nadie'})`);
+      break;
+    }
+    if (vivoAun && actual && actual !== agente) {
+      console.log(`✗ ESCRITURA tomada por ${actual} desde ${d.escritura.desde}`);
+      console.log('  Podés LEER, auditar, medir e investigar todo lo que quieras.');
+      console.log('  Escribir en el worktree, no. Es la ley que evita que cinco');
+      console.log('  agentes produzcan cinco versiones de lo mismo.');
+      console.log(`  Cuando suelte, tomala:  kodex-equipo.mjs escritura ${agente}`);
+      process.exit(1);
+    }
+    d.escritura = { agente, desde: ahora(), host: hostname(), sobre: resto.join(' ') || 'worktree' };
+    escribir(d);
+    console.log(`✓ ${agente} tiene la ESCRITURA${resto.length ? ' sobre ' + resto.join(' ') : ''}`);
+    console.log('  Soltala al terminar:  kodex-equipo.mjs escritura ' + agente + ' soltar');
+    break;
+  }
+
   case 'crear': {
     const archivo = resto.join(' ');
     if (!archivo) { console.log('uso: crear <agente> <ruta/del/archivo>'); process.exit(1); }
@@ -166,5 +218,5 @@ switch (cmd) {
     break;
 
   default:
-    console.log('uso: quien | crear <agente> <archivo> | tomar <agente> <unidad> | soltar <agente> <estado> | build <agente> | libre');
+    console.log('uso: quien | escritura <agente> [soltar] | crear <agente> <archivo> | tomar <agente> <unidad> | soltar <agente> <estado> | build <agente> | libre');
 }
