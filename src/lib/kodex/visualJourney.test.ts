@@ -14,6 +14,8 @@ import {
   tipoDeFuente,
   arteFuente,
   guiaVisualDe,
+  criterioDelTarget,
+  dimensionEsCritica,
   tramosDe,
   alrededorDe,
   referenciasBKS,
@@ -199,5 +201,45 @@ describe('VISUAL_JOURNEY · referencia no es obra (2026-09-01)', () => {
     const g = guiaVisualDe('ARCHIVE_RENDERER');
     assert.ok(g.length > 0);
     for (const e of g) assert.equal(tipoDeFuente(e), 'REFERENCE');
+  });
+});
+
+describe('VISUAL_JOURNEY · criterio autoral para el pass visual (2026-09-02)', () => {
+  it('resuelve los 10 targets por su nombre de archivo del baseline', () => {
+    for (let i = 0; i <= 9; i++) {
+      const n = String(i).padStart(2, '0');
+      const c = criterioDelTarget(`reference-hifi-${n}.png`);
+      assert.ok(c, `reference-hifi-${n}.png no resolvio a ningun target`);
+      assert.ok(c!.preserve, `${c!.asset} sin criterio de preservacion`);
+      assert.ok(c!.do_not_use_as, `${c!.asset} sin prohibicion`);
+    }
+  });
+
+  it('resuelve tambien por el nombre canonico del mapa', () => {
+    const c = criterioDelTarget('KDX_UI_01_PROLOGUE_HIFI.png');
+    assert.equal(c!.pos, '01.00');
+    assert.match(c!.do_not_use_as, /flatten all subworlds/);
+  });
+
+  it('el baseline y el mapa apuntan al mismo target', () => {
+    const a = criterioDelTarget('reference-hifi-08.png');
+    const b = criterioDelTarget('KDX_UI_08_OBSERVER_HIFI.png');
+    assert.equal(a!.asset, b!.asset);
+    assert.equal(a!.pos, '01.45');
+  });
+
+  it('devuelve null sin inventar cuando el archivo no esta en el mapa', () => {
+    assert.equal(criterioDelTarget('reference-hifi-42.png'), null);
+  });
+
+  it('marca critica la dimension que el autor pidio preservar', () => {
+    // PROLOGUE pide "Dominant organism/field, sparse peripheral system..."
+    assert.equal(dimensionEsCritica('reference-hifi-01.png', 'hero_mass_delta'), true);
+    assert.equal(dimensionEsCritica('reference-hifi-01.png', 'void_ratio_delta'), true);
+  });
+
+  it('no marca critica una dimension que ese target no menciona', () => {
+    // SILENCE pide "Near-black field, minimal ring/residue, decompression."
+    assert.equal(dimensionEsCritica('reference-hifi-09.png', 'core_periphery_delta'), false);
   });
 });

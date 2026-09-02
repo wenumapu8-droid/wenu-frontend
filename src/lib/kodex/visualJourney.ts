@@ -169,3 +169,77 @@ export function coberturaDelRecorrido() {
     porTipoDeFuente: por((e) => tipoDeFuente(e)),
   };
 }
+
+/**
+ * EL CRITERIO AUTORAL DE UN TARGET · el puente que le faltaba al pass visual.
+ *
+ * POR QUE EXISTE (2026-09-02):
+ * Otra sesion construyo el Visual Convergence Pass -- mide COMPOSITION y
+ * MATERIAL entre cada referencia Hi-Fi y su runtime, y saca deltas por
+ * dimension en vez de un score global, que es lo correcto.
+ *
+ * Pero un delta solo dice CUANTO cambio. No dice QUE HABIA QUE CONSERVAR.
+ * Eso lo escribio Ocin en VISUAL_JOURNEY, fila por fila, y hasta ahora vivia
+ * separado de la medicion. `sym_h_delta -0.57` es un numero; junto a
+ * "preservar: dominant organism/field, sparse peripheral system" es una
+ * instruccion.
+ *
+ * Acepta el nombre canonico (KDX_UI_01_PROLOGUE_HIFI.png) o el archivo local
+ * del baseline (reference-hifi-01.png): el pass usa el segundo y el mapa el
+ * primero, y nadie deberia tener que traducir a mano entre los dos.
+ */
+export interface CriterioAutoral {
+  asset: string;
+  pos: string;
+  phase: string;
+  /** Que hay que conservar. El criterio contra el que se lee el delta. */
+  preserve: string;
+  /** Que NO puede significar. La trampa que el numero no ve. */
+  do_not_use_as: string;
+  wiring_target: string;
+}
+
+export function criterioDelTarget(ref: string): CriterioAutoral | null {
+  /* reference-hifi-NN.png -> KDX_UI_NN_*. El baseline nombra por indice y el
+     mapa por titulo; el numero es lo unico estable entre los dos. */
+  const local = ref.match(/reference-hifi-(\d{2})/i);
+  const buscado = local ? `KDX_UI_${local[1]}_` : ref;
+
+  const e = ENTRADAS.find((x) =>
+    local ? x.asset.startsWith(buscado) : x.asset === ref || x.asset.includes(ref),
+  );
+  if (!e) return null;
+  return {
+    asset: e.asset,
+    pos: e.pos,
+    phase: e.phase,
+    preserve: e.preserve,
+    do_not_use_as: e.do_not_use_as,
+    wiring_target: e.wiring_target,
+  };
+}
+
+/**
+ * Lee un delta a la luz del criterio: dice si la dimension que se movio es una
+ * de las que el autor pidio preservar. No decide si esta bien o mal -- eso es
+ * direccion, y la direccion es de Ocin.
+ */
+export function dimensionEsCritica(ref: string, dimension: string): boolean {
+  const c = criterioDelTarget(ref);
+  if (!c) return false;
+  const texto = c.preserve.toLowerCase();
+  const SINONIMOS: Record<string, string[]> = {
+    hero_mass: ['dominant', 'organism', 'hero', 'focal'],
+    symmetry: ['symmetry', 'symmetr', 'radial', 'central'],
+    void_ratio: ['sparse', 'minimal', 'void', 'empty', 'silence'],
+    edge_complexity: ['material', 'texture', 'density', 'detail'],
+    texture_entropy: ['material', 'texture', 'richness', 'grain'],
+    core_periphery: ['periphery', 'peripheral', 'core', 'hierarchy'],
+    aperture: ['aperture', 'eye', 'portal', 'ring', 'gate', 'cavity'],
+    palette: ['color', 'palette', 'violet', 'red', 'warmth'],
+    depth: ['depth', 'scale', 'layer'],
+  };
+  const clave = Object.keys(SINONIMOS).find((k) => dimension.toLowerCase().includes(k));
+  if (!clave) return false;
+  return SINONIMOS[clave].some((w) => texto.includes(w));
+}
