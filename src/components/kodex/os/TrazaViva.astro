@@ -48,8 +48,18 @@ const ESCENAS = [
   <div class="kdx-traza__base">
     <span>KODEX LIVE TRACE</span>
     <span class="kdx-traza__on" data-kdx-online>● SYSTEM ONLINE</span>
-    <span class="kdx-traza__xyz">
-      X <b data-kdx-x>0.00</b> / Y <b data-kdx-y>0.00</b> / Z <b data-kdx-z>0.00</b>
+    {/* LA POSICIÓN SE DIBUJA, NO SE ESCRIBE · 2026-09-03
+        "X 0.00 / Y 0.00 / Z 0.00" son seis textos en pantalla que ni
+        siquiera dicen dónde estás: dicen tres números que nadie puede
+        situar. Un cursor sobre una retícula lo dice de un vistazo, y es
+        el mismo dato exacto.
+        El valor numérico sigue disponible para el lector de pantalla,
+        que sí necesita la cifra porque no puede ver el punto. */}
+    <span class="kdx-traza__xyz" role="img" aria-label="posición en el campo">
+      <b class="kdx-val" data-kdx-x>0.00</b>
+      <b class="kdx-val" data-kdx-y>0.00</b>
+      <b class="kdx-val" data-kdx-z>0.00</b>
+      <i class="kdx-campo" aria-hidden="true"><i class="kdx-campo__pto" data-kdx-pto></i></i>
     </span>
   </div>
 </div>
@@ -110,6 +120,34 @@ const ESCENAS = [
     padding-top: 0.4rem;
   }
   .kdx-traza__on { color: var(--kdx-ok, #5f9e6e); }
+  .kdx-val {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  /* La retícula: un campo de 3.4rem donde el punto se sitúa. Chico a
+     propósito -- es un instrumento de rabillo del ojo, no un mapa. */
+  .kdx-campo {
+    display: block;
+    width: 3.4rem;
+    height: 1rem;
+    position: relative;
+    border: 1px solid color-mix(in srgb, var(--kdx-bone, #f0ede8) 14%, transparent);
+  }
+  .kdx-campo__pto {
+    --x: 0.5; --y: 0.5; --z: 0.5;
+    position: absolute;
+    left: calc(var(--x) * 100%);
+    top: calc(var(--y) * 100%);
+    width: calc(2px + var(--z) * 4px);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--kdx-scene-accent, #FF3833);
+    transform: translate(-50%, -50%);
+    transition: left 420ms linear, top 420ms linear, width 420ms linear;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-campo__pto { transition: none; }
+  }
   .kdx-traza__xyz b { font-weight: 400; color: var(--kdx-bone, #f0ede8); font-variant-numeric: tabular-nums; }
 
   @media (max-width: 700px) {
@@ -142,6 +180,14 @@ const ESCENAS = [
       ex.textContent = px.toFixed(2);
       ey.textContent = py.toFixed(2);
       ez.textContent = z.toFixed(2);
+      /* El mismo dato, ahora también como posición. Z no cabe en dos ejes,
+         así que va como tamaño del punto: más cerca, más grande. */
+      const pto = document.querySelector<HTMLElement>('[data-kdx-pto]');
+      if (pto) {
+        pto.style.setProperty('--x', String(Math.max(0, Math.min(1, px))));
+        pto.style.setProperty('--y', String(Math.max(0, Math.min(1, py))));
+        pto.style.setProperty('--z', String(Math.max(0, Math.min(1, z))));
+      }
     };
 
     window.addEventListener('pointermove', (e) => {
