@@ -1,0 +1,112 @@
+---
+/**
+ * KODEX-∞ · DESCANSO · el collage de Ocín como PASO del corredor
+ * 2026-09-02
+ *
+ * POR QUÉ ES UNA RUTA Y NO UNA SECCIÓN.
+ *
+ * Primero los monté como secciones de 100svh dentro del folio. Medido en
+ * retrato 390×844 sobre el dist servido, los cuatro de ARCHIVE daban 0×0:
+ * estaban en el HTML —contaban 10 de 10 en el grep— y no se veían.
+ *
+ * Dos causas, las dos mías:
+ *   1. el ancla `</nav>` que usé cayó dentro de <aside class="kx-os-drawer">,
+ *      que es un cajón con display:none
+ *   2. aunque hubiera caído bien, no habría servido: el folio es
+ *      `height:844px; overflow:hidden`. Es UNA PANTALLA. No scrollea.
+ *      Una sección de alto completo dentro de un contenedor recortado no
+ *      existe para el visitante.
+ *
+ * La arquitectura ya estaba diciendo cuál era la forma correcta y yo no la
+ * escuché: si cada umbral es una pantalla, entonces una pausa ENTRE umbrales
+ * es OTRA PANTALLA, no un pedazo de la anterior. "Entremedio" es literal.
+ *
+ * Esto además implementa CROSS, una de las dos familias de puerta que el
+ * canon 08G declara y que nunca se había implementado: cruzar de un umbral
+ * al siguiente. El descanso ES el cruce.
+ */
+import DescansoVisual from '../../../components/kodex/os/DescansoVisual.astro';
+import '../../../styles/kodex.css';
+
+/* Las diez piezas, con el umbral que cierran y el que abren. Los pares
+ * salen de VISUAL_JOURNEY, no de mi criterio. */
+const PIEZAS: Record<string, [string, string]> = {
+  'monolith-cover':       ['THRESHOLD', 'PROLOGUE'],
+  'mirror-dual-field':    ['PROLOGUE',  'DESCENT'],
+  'totem-axis':           ['DESCENT',   'ARCHIVE'],
+  'specimen-white-field': ['DESCENT',   'ARCHIVE'],
+  'archive-contact':      ['ARCHIVE',   'ARCHIVE'],
+  'relic-plate':          ['ARCHIVE',   'ARCHIVE'],
+  'fragments':            ['ARCHIVE',   'MACHINE'],
+  'book-interlude':       ['ARCHIVE',   'MACHINE'],
+  'banner-interruption':  ['MACHINE',   'COSMOLOGY'],
+  'return-white-rest':    ['RETURN',    'RETURN'],
+};
+
+/* A qué folio vuelve cada umbral, para que el descanso no sea un callejón.
+ * El canon prohíbe dejar al visitante sin salida. */
+const FOLIO: Record<string, string> = {
+  THRESHOLD: '/kodex/', PROLOGUE: '/kodex/folio/i/', DESCENT: '/kodex/folio/ii/',
+  ARCHIVE: '/kodex/folio/iii/', MACHINE: '/kodex/folio/iv/',
+  COSMOLOGY: '/kodex/folio/v/', RETURN: '/kodex/folio/vi/',
+};
+
+export function getStaticPaths() {
+  return Object.keys({
+    'monolith-cover': 1, 'mirror-dual-field': 1, 'totem-axis': 1,
+    'specimen-white-field': 1, 'archive-contact': 1, 'relic-plate': 1,
+    'fragments': 1, 'book-interlude': 1, 'banner-interruption': 1,
+    'return-white-rest': 1,
+  }).map((pieza) => ({ params: { pieza } }));
+}
+
+const { pieza } = Astro.params;
+const [desde, hacia] = PIEZAS[pieza as string] ?? ['', ''];
+const salida = FOLIO[hacia] ?? '/kodex/';
+---
+
+<html lang="es" data-kdx-descanso>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{desde} → {hacia} · KODEX−∞</title>
+    <style>
+      /* El descanso es la única pantalla de KODEX sin chasis. No hay riel,
+         no hay señal, no hay log. Sólo la obra y una salida. */
+      html, body { margin: 0; background: #0a0a0a; }
+      body { min-height: 100svh; }
+
+      .kx-salida {
+        position: fixed;
+        bottom: 1.6rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 3;
+        font-family: ui-monospace, monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.26em;
+        text-transform: uppercase;
+        color: #9a948a;
+        text-decoration: none;
+        opacity: 0.34;
+        padding: 0.6rem 1.2rem;
+        /* El área de toque llega a 44px aunque el texto sea chico: en
+           retrato es el único control de la pantalla y tiene que
+           agarrarse sin apuntar. */
+        min-height: 44px;
+        display: grid;
+        place-items: center;
+        transition: opacity 420ms ease;
+      }
+      .kx-salida:hover, .kx-salida:focus-visible { opacity: 0.9; }
+      .kx-salida:focus-visible { outline: 1px solid #E8A33D; outline-offset: 4px; }
+    </style>
+  </head>
+  <body>
+    <DescansoVisual pieza={pieza as string} desde={desde} hacia={hacia} />
+    {/* Una sola salida, y hacia adelante. El canon 08G dice que el visitante
+        elige, pero también que un descanso no ofrece opciones: la
+        contemplación termina cuando él decide, no cuando elige. */}
+    <a class="kx-salida" href={salida}>CONTINUAR · {hacia}</a>
+  </body>
+</html>
