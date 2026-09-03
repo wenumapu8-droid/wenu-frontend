@@ -77,6 +77,39 @@ const MEDIDAS = [
     m: () => contarPaginas('kodex/chamber') },
   { k: 'laminas_con_camara', desc: 'láminas con cámara temporal', mas_es_mejor: true,
     m: () => { let n = 0; try { for (const d of readdirSync(join(DIST, 'kodex/lamina'))) if (leerDist(`kodex/lamina/${d}/index.html`).includes('data-escena-lamina')) n++; } catch {} return n; } },
+  /* ALCANZABILIDAD · propuesto por chat-web el 2026-09-03, y tiene razón.
+   *
+   * Medimos que las cosas EXISTAN. Nunca que se LLEGUE a ellas.
+   *
+   * Hoy: 40 láminas construidas y publicadas, y las siete escenas del
+   * corredor tienen CERO enlaces hacia ellas. El trinquete sostenía, el
+   * gate daba 7/7, el build 775 páginas, 543 tests -- todo cierto, y el
+   * visitante llegaba a RETURN sin cruzar una sola de esas 40.
+   *
+   * Es DEC-051 un paso más allá: presencia no es dominancia, y ahora
+   * además presencia no es alcance.
+   *
+   * Este diente es el primero que BAJA cuando alguien construye algo y no
+   * lo cablea -- el error que repetimos tres veces este mes: los 36
+   * conceptos, las 40 láminas, y los componentes huérfanos. */
+  { k: 'laminas_alcanzables', desc: 'láminas alcanzables desde el corredor', mas_es_mejor: true,
+    m: () => {
+      const enlazadas = new Set();
+      for (const r of ['', 'folio/i', 'folio/ii', 'folio/iii', 'folio/iv', 'folio/v', 'folio/vi']) {
+        const h = leerDist(`kodex/${r}/index.html`);
+        for (const m of h.matchAll(/href="\/kodex\/lamina\/([a-z0-9-]+)/g)) enlazadas.add(m[1]);
+      }
+      return enlazadas.size;
+    } },
+  { k: 'conceptos_alcanzables', desc: 'mundos alcanzables desde el corredor', mas_es_mejor: true,
+    m: () => {
+      const e = new Set();
+      for (const r of ['', 'folio/i', 'folio/ii', 'folio/iii', 'folio/iv', 'folio/v', 'folio/vi']) {
+        const h = leerDist(`kodex/${r}/index.html`);
+        for (const m of h.matchAll(/href="\/kodex\/concepto\/([a-z0-9-]+)/g)) e.add(m[1]);
+      }
+      return e.size;
+    } },
   { k: 'huerfanos', desc: 'componentes sin cablear', mas_es_mejor: false,
     m: () => +((sh('node scripts/kodex-inventario-ensamblaje.mjs 2>&1').match(/(\d+) sin una sola importacion/) || [])[1] || 0) },
   { k: 'pagina_mas_pesada_kb', desc: 'KB de la página más pesada', mas_es_mejor: false,
