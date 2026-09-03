@@ -60,7 +60,7 @@ switch (cmd) {
       console.log(`  ${n.padEnd(14)} ${a.unidad.padEnd(30)} ${min}min  @${a.host}`);
     }
     const e = d.escritura || {};
-    const eVivo = e.desde && (Date.now() - new Date(e.desde).getTime() < 45 * 60 * 1000);
+    const eVivo = e.desde && (Date.now() - new Date(e.desde).getTime() < 90 * 60 * 1000);
     console.log(eVivo && e.agente
       ? `  ESCRITURA · ${e.agente}${e.sobre ? ' · ' + e.sobre : ''}   (el resto puede LEER)`
       : '  ESCRITURA · libre');
@@ -122,7 +122,7 @@ switch (cmd) {
   case 'escritura': {
     d.escritura = d.escritura || {};
     const actual = d.escritura.agente;
-    const vivoAun = d.escritura.desde && (Date.now() - new Date(d.escritura.desde).getTime() < 45 * 60 * 1000);
+    const vivoAun = d.escritura.desde && (Date.now() - new Date(d.escritura.desde).getTime() < 90 * 60 * 1000);
 
     if (resto[0] === 'soltar') {
       if (actual === agente) { d.escritura = {}; escribir(d); console.log(`✓ ${agente} suelta la escritura`); }
@@ -212,10 +212,50 @@ switch (cmd) {
     break;
   }
 
-  case 'libre':
-    if (existsSync(BUILD)) writeFileSync(BUILD, JSON.stringify({ agente: null, desde: '1970-01-01T00:00:00.000Z' }, null, 2));
-    console.log('✓ build libre');
+  case 'libre': {
+    /* ── SOLTAR EXIGE SER EL DUEÑO · 2026-09-02 ──────────────────────────
+     *
+     * `libre` soltaba el lock de cualquiera sin preguntar de quién era. En
+     * un solo día eso rompió el trabajo dos veces:
+     *
+     *   1. un agente vio "lock vencido" en el tablero y soltó uno ajeno
+     *   2. otro encadenó `build && npm run build ; libre` con punto y coma,
+     *      así que el `libre` corrió AUNQUE el build hubiera sido bloqueado
+     *      -- y soltó el lock del agente que sí estaba construyendo
+     *
+     * El segundo es el importante: el guión hizo exactamente lo que decía.
+     * La falla no fue del agente, fue del comando, que permitía soltar algo
+     * que no era suyo. Un lock que cualquiera puede abrir no es un lock.
+     *
+     * Ahora `libre` exige nombre y sólo suelta lo propio. Para el caso real
+     * de un lock huérfano (un agente que murió sin soltar) está `libre
+     * <agente> forzar`, que obliga a escribir a quién le estás sacando el
+     * lock -- y eso, escrito, ya no se hace por accidente. */
+    if (!existsSync(BUILD)) { console.log('✓ build libre'); break; }
+    const b = JSON.parse(readFileSync(BUILD, 'utf8'));
+    const quien = process.argv[3];
+    const forzar = process.argv[4] === 'forzar';
+
+    if (!b.agente) { console.log('✓ build ya estaba libre'); break; }
+    if (!quien) {
+      console.log(`✗ ¿quién sos? el build lo tiene ${b.agente}`);
+      console.log(`  uso:  libre <tu-nombre>            soltar el tuyo`);
+      console.log(`        libre <tu-nombre> forzar     sacárselo a ${b.agente}`);
+      process.exit(1);
+    }
+    if (b.agente !== quien && !forzar) {
+      console.log(`✗ el build lo tiene ${b.agente}, no vos (${quien}).`);
+      console.log('  Si soltás ahora y está construyendo, otro agente puede');
+      console.log('  entrar y borrarle el dist a mitad.');
+      console.log(`  Si sabés que ${b.agente} ya no está:  libre ${quien} forzar`);
+      process.exit(1);
+    }
+    writeFileSync(BUILD, JSON.stringify({ agente: null, desde: '1970-01-01T00:00:00.000Z' }, null, 2));
+    console.log(forzar && b.agente !== quien
+      ? `✓ build libre · ${quien} se lo forzó a ${b.agente}`
+      : '✓ build libre');
     break;
+  }
 
   default:
     console.log('uso: quien | escritura <agente> [soltar] | crear <agente> <archivo> | tomar <agente> <unidad> | soltar <agente> <estado> | build <agente> | libre');

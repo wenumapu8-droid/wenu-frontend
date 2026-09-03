@@ -1,0 +1,72 @@
+---
+/**
+ * DESCANSO VISUAL · el collage de Ocín entre umbrales
+ * 2026-09-02
+ *
+ * Ocín, condición quinta del deploy, textual:
+ *   "que estén los collage con mi arte entremedio"
+ *
+ * ENTREMEDIO es la palabra. No es una galería al final ni un carrusel:
+ * es una pausa ENTRE dos umbrales. El canon 08G §6 la describe como una
+ * secuencia de cinco tiempos, y este componente los monta en ese orden:
+ *
+ *   DENSIDAD        el umbral que acaba de terminar venía cargado
+ *   DECELERACIÓN    el scroll se abre, el aire crece
+ *   SILENCIO        el chasis se apaga: sin riel, sin señal, sin log
+ *   OBRA            queda la pieza sola, y nada más
+ *   CONTEMPLACIÓN   no hay CTA, no hay siguiente. El visitante decide cuándo
+ *
+ * Por eso el componente APAGA el instrumento mientras vive:
+ * `data-kdx-descanso` en <html> es lo que la hoja usa para bajar el chasis.
+ * Un descanso con el HUD encendido no es descanso, es otra pantalla más.
+ */
+interface Props {
+  /** archivo en /kodex-content/collage/ sin extensión */
+  pieza: string;
+  /** de dónde viene y a dónde va -- se dice, no se decora */
+  desde?: string;
+  hacia?: string;
+}
+const { pieza, desde, hacia } = Astro.props;
+const src = `/kodex-content/collage/${pieza}.png`;
+---
+
+<section class="kx-descanso" data-kdx-pieza={pieza} data-fuente="REAL">
+  <figure class="kx-descanso__marco">
+    <img
+      class="kx-descanso__obra"
+      src={src}
+      alt=""
+      loading="lazy"
+      decoding="async"
+    />
+  </figure>
+  {(desde || hacia) && (
+    <figcaption class="kx-descanso__pie">
+      {/* No es un breadcrumb ni un CTA: es la única frase que el canon
+          permite en un descanso -- decir dónde está parado, y callarse. */}
+      <span class="kx-descanso__desde">{desde}</span>
+      <span class="kx-descanso__hueso" aria-hidden="true">·</span>
+      <span class="kx-descanso__hacia">{hacia}</span>
+    </figcaption>
+  )}
+</section>
+
+<script>
+  /* El descanso apaga el instrumento MIENTRAS se lo mira, y lo vuelve a
+     encender al salir. Sin esto el chasis compite con la obra, que es
+     exactamente lo que Ocín viene diciendo hace tres semanas: que el sitio
+     se siente a UI y no a KODEX. */
+  const obs = new IntersectionObserver(
+    (entradas) => {
+      for (const e of entradas) {
+        document.documentElement.toggleAttribute('data-kdx-descanso', e.isIntersecting);
+      }
+    },
+    /* 0.55: la obra tiene que ocupar más de media pantalla para que cuente
+       como descanso. Un umbral más bajo apagaba el chasis de refilón al
+       pasar rápido, y el parpadeo se veía peor que no tenerlo. */
+    { threshold: 0.55 }
+  );
+  document.querySelectorAll('.kx-descanso').forEach((n) => obs.observe(n));
+</script>
