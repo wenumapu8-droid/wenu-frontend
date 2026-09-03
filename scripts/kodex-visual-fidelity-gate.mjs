@@ -225,14 +225,31 @@ const MEDIR_EN_PAGINA = `(() => {
     if (cs.display === 'none' || cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
     if (parseFloat(cs.opacity) === 0) return false;
     const r = el.getBoundingClientRect();
-    return r.width >= 1 && r.height >= 1;
+    if (r.width < 4 || r.height < 4) return false;
+    /* SR-ONLY NO ES VISIBLE.
+       2026-09-03 · medido: PROLOGUE daba 12 textos de .kdx-val, que son
+       justamente los valores que el instrumento esconde para el lector de
+       pantalla. El patron sr-only deja una caja de 1x1 px con clip, asi que
+       exigir "mide algo" no alcanza -- mide 1 px y pasaba. Contarlos como
+       ruido en pantalla llevaba a borrar la parte honesta del instrumento:
+       exactamente lo contrario de lo que hay que hacer. */
+    const cp = (cs.clipPath || '').replace(/ /g, '');
+    if (cp.includes('inset(50%') || cp.includes('inset(100%')) return false;
+    const cl = (cs.clip || '').replace(/ /g, '').replace(/px/g, '');
+    if (cl === 'rect(0,0,0,0)') return false;
+    return true;
   };
   const enPantalla = (r) => r.bottom > 0 && r.top < VH && r.right > 0 && r.left < VW;
 
   /* Un "texto" es el elemento MAS PROFUNDO que tiene texto propio. Contar
      contenedores contaria la misma frase cinco veces y daria un numero
      inflado que no se corresponde con lo que el ojo ve.                 */
-  const conTextoPropio = [];
+  /* UNA PALABRA PARTIDA EN LETRAS ES UN TEXTO, NO CATORCE.
+     2026-09-03 · medido: el titulo cinetico de PROLOGUE envuelve cada letra
+     en su propio span, y el contador ingenuo devolvia 17 "textos" para la
+     palabra OBSERVATION. El ojo ve una palabra. Los elementos de un solo
+     caracter se suman a su padre, y el padre cuenta una sola vez. */
+  const crudos = [];
   for (const el of document.body.querySelectorAll('*')) {
     if (/^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE|TITLE)$/.test(el.tagName)) continue;
     let propio = '';
@@ -240,7 +257,21 @@ const MEDIR_EN_PAGINA = `(() => {
     if (!propio.trim()) continue;
     if (el.closest('[aria-hidden="true"]')) continue;
     if (!visible(el)) continue;
-    conTextoPropio.push({ el, r: el.getBoundingClientRect() });
+    crudos.push({ el, txt: propio.trim() });
+  }
+  const vistos = new Set();
+  const conTextoPropio = [];
+  for (const c of crudos) {
+    let quien = c.el;
+    if (c.txt.length <= 1) {
+      /* letra suelta: sube al ancestro que ya forma una palabra */
+      let p = c.el.parentElement, saltos = 0;
+      while (p && p !== document.body && saltos < 4 && (p.textContent || '').trim().length <= 1) { p = p.parentElement; saltos++; }
+      if (p && p !== document.body) quien = p;
+    }
+    if (vistos.has(quien)) continue;
+    vistos.add(quien);
+    conTextoPropio.push({ el: quien, r: quien.getBoundingClientRect() });
   }
 
   const enViewport = conTextoPropio.filter((t) => enPantalla(t.r));
