@@ -217,7 +217,7 @@ async function areaDeObra(buffer) {
    Todo esto corre en el navegador, sobre geometria real. Nada se cuenta
    en el HTML: ese fue exactamente el error del 2026-09-02.
    ═══════════════════════════════════════════════════════════════════════ */
-const MEDIR_EN_PAGINA = `(() => {
+export const MEDIR_EN_PAGINA = `(() => {
   const VW = window.innerWidth, VH = window.innerHeight;
 
   const visible = (el) => {
