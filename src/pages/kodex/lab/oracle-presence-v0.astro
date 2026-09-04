@@ -1,0 +1,249 @@
+---
+import Base from '../../../layouts/Base.astro';
+---
+
+<Base
+  title="KODEX Lab — Oracle Presence V0"
+  description="Internal KDX.ORACLE THRESHOLD to PROLOGUE causal-presence proof."
+  robots="noindex, nofollow"
+  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true}
+  noKai={true} noCart={true} noImmersive={true} kodexFonts={true} osShell={true}
+>
+  <main class="oracle" data-oracle-lab data-scene="threshold" data-oracle-state="DORMANT" data-audio-status="READY">
+    <div class="oracle__field" aria-hidden="true">
+      <div class="oracle__ring oracle__ring--outer"></div>
+      <div class="oracle__ring oracle__ring--inner"></div>
+      <div class="oracle__entity">
+        <div class="oracle__aperture"></div>
+        <div class="oracle__signal"></div>
+      </div>
+    </div>
+
+    <header class="oracle__header">
+      <div>
+        <p>KODEX−∞ / INTERNAL PROOF / KDX.ORACLE V0</p>
+        <h1 data-scene-title>THRESHOLD</h1>
+      </div>
+      <dl>
+        <div><dt>STATE</dt><dd data-state>DORMANT</dd></div>
+        <div><dt>EVENT</dt><dd data-event>NONE</dd></div>
+        <div><dt>VOICE</dt><dd>KDX_F01_DEV_TEMP</dd></div>
+        <div><dt>AUDIO</dt><dd data-audio-status>READY</dd></div>
+      </dl>
+    </header>
+
+    <section class="oracle__copy" aria-labelledby="oracle-title">
+      <p class="oracle__eyebrow" data-eyebrow>THE ARCHIVE IS PRESENT.</p>
+      <h2 id="oracle-title" data-title>IT HAS NOT ADDRESSED YOU.</h2>
+      <p class="oracle__instruction" data-instruction>Speech requires an explicit visitor act.</p>
+      <button type="button" class="oracle__enter" data-enter>ENTER THE KODEX</button>
+    </section>
+
+    <section class="oracle__caption" aria-live="polite" aria-atomic="true">
+      <p data-caption></p>
+    </section>
+
+    <aside class="oracle__boundary">
+      <p>OBSERVABLE JOURNEY EVENTS ONLY · NO CAMERA · NO MICROPHONE · NO IDENTITY/EMOTION/DESTINY INFERENCE</p>
+      <p data-evidence>ROUTE EVIDENCE: 0 RECORDED VIEWS · READ ONLY</p>
+    </aside>
+
+    <div class="oracle__controls">
+      <button type="button" data-mute aria-pressed="false">MUTE</button>
+      <button type="button" data-reset>RESET PROOF</button>
+    </div>
+
+    <audio data-oracle-audio preload="auto"></audio>
+  </main>
+</Base>
+
+<script>
+  import { resolveOracleCue, oracleStateForCue, oracleContextSnapshot } from '../../../lib/kodex/oracle/oracle-runtime.js';
+  import { createOracleVoice } from '../../../lib/kodex/oracle/voice-adapter.js';
+
+  const root = document.querySelector('[data-oracle-lab]');
+  if (root) {
+    const $ = (selector) => root.querySelector(selector);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const audio = $('[data-oracle-audio]');
+    const LAB_PROLOGUE_DWELL_MS = 7000;
+    let entered = false;
+    let prologueRevealed = false;
+    let captionTimer = 0;
+    let dwellTimer = 0;
+
+    const safeRouteEvidence = () => {
+      try {
+        const raw = JSON.parse(localStorage.getItem('kx-journey') || 'null');
+        return Array.isArray(raw?.views) ? raw.views.filter((value) => typeof value === 'string') : [];
+      } catch {
+        return [];
+      }
+    };
+
+    const setText = (selector, value) => {
+      const node = $(selector);
+      if (node) node.textContent = String(value);
+    };
+
+    const routeEvidence = safeRouteEvidence();
+    setText('[data-evidence]', `ROUTE EVIDENCE: ${routeEvidence.length} RECORDED VIEWS · READ ONLY`);
+
+    const voice = createOracleVoice(audio, {
+      onStatus(value) {
+        root.dataset.audioStatus = value;
+        setText('[data-audio-status]', value);
+      },
+      onEnergy(value) {
+        root.style.setProperty('--oracle-energy', value.toFixed(3));
+      },
+    });
+
+    const revealCaption = (cue) => {
+      window.clearInterval(captionTimer);
+      const target = $('[data-caption]');
+      if (!target) return;
+      const words = cue.text.split(/\s+/);
+      if (reduceMotion.matches) {
+        target.textContent = cue.text;
+        return;
+      }
+      let count = 0;
+      target.textContent = '';
+      const step = Math.max(90, Math.floor(cue.durationMs / Math.max(words.length, 1)));
+      captionTimer = window.setInterval(() => {
+        count += 1;
+        target.textContent = words.slice(0, count).join(' ');
+        if (count >= words.length) window.clearInterval(captionTimer);
+      }, step);
+    };
+
+    const runCue = async (scene, event) => {
+      const context = oracleContextSnapshot({ scene, visitorEntered: entered, routeEvidence });
+      const cue = resolveOracleCue({ scene, event, visitorEntered: context.visitorEntered });
+      if (!cue) return false;
+      root.dataset.oracleState = oracleStateForCue(cue);
+      root.style.setProperty('--oracle-intensity', String(cue.intensity || 0.5));
+      setText('[data-state]', root.dataset.oracleState);
+      setText('[data-event]', event);
+      revealCaption(cue);
+      await voice?.play(cue);
+      window.dispatchEvent(new CustomEvent('kdx:oracle-cue', {
+        detail: { id: cue.id, scene: cue.scene, event: cue.event, state: cue.state, epistemicStatus: cue.epistemicStatus },
+      }));
+      return true;
+    };
+
+    const enter = async () => {
+      if (entered) return;
+      entered = true;
+      root.dataset.oracleState = 'AWARE';
+      setText('[data-state]', 'AWARE');
+      setText('[data-event]', 'EXPLICIT_ENTER');
+      await runCue('threshold', 'EXPLICIT_ENTER');
+
+      root.dataset.scene = 'prologue';
+      setText('[data-scene-title]', 'PROLOGUE');
+      setText('[data-eyebrow]', 'OBSERVATION BEGINS BEFORE RECOGNITION.');
+      setText('[data-title]', 'THE SIGNAL IS NOT SENT. IT IS REVEALED.');
+      setText('[data-instruction]', 'Remain. The system may reveal only what the journey makes observable.');
+      $('[data-enter]')?.setAttribute('hidden', '');
+
+      // LAB-ONLY emitter using the same public event contract already emitted by
+      // KodexRecuerda in product scenes. The delay deliberately exceeds the
+      // ADDRESS clip/caption so the first intervention resolves before REVEAL.
+      // Production integration subscribes to the existing event and does not
+      // copy this timer.
+      window.clearTimeout(dwellTimer);
+      dwellTimer = window.setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('kdx:scene-dwell', {
+          detail: { path: '/kodex/folio/i/', dwellMs: LAB_PROLOGUE_DWELL_MS, source: 'ORACLE_V0_LAB' },
+        }));
+      }, LAB_PROLOGUE_DWELL_MS);
+    };
+
+    window.addEventListener('kdx:scene-dwell', async () => {
+      if (!entered || root.dataset.scene !== 'prologue' || prologueRevealed) return;
+      prologueRevealed = true;
+      await runCue('prologue', 'SCENE_DWELL');
+    });
+
+    $('[data-enter]')?.addEventListener('click', enter);
+    $('[data-mute]')?.addEventListener('click', (event) => {
+      const button = event.currentTarget;
+      const next = button.getAttribute('aria-pressed') !== 'true';
+      button.setAttribute('aria-pressed', String(next));
+      button.textContent = next ? 'UNMUTE' : 'MUTE';
+      voice?.setMuted(next);
+    });
+    $('[data-reset]')?.addEventListener('click', () => location.reload());
+  }
+</script>
+
+<style>
+  :global(html), :global(body) { margin:0; width:100%; height:100%; overflow:hidden; background:#030304; }
+  :global(body) { color:#ecebea; font-family:'IBM Plex Mono',ui-monospace,monospace; }
+  .oracle {
+    --oracle-energy:0;
+    --oracle-intensity:.18;
+    position:relative; height:100dvh; overflow:hidden; box-sizing:border-box;
+    display:grid; grid-template-rows:auto 1fr auto; padding:clamp(14px,2vw,28px);
+    background:radial-gradient(circle at 50% 48%,rgba(97,52,150,.08),transparent 34%),#030304;
+    isolation:isolate;
+  }
+  .oracle__field { position:absolute; inset:0; display:grid; place-items:center; pointer-events:none; z-index:-1; }
+  .oracle__entity { width:min(42vw,430px); aspect-ratio:1; border-radius:50%; position:relative; display:grid; place-items:center; transform:scale(calc(.82 + var(--oracle-energy)*.08 + var(--oracle-intensity)*.05)); transition:transform .22s ease,filter .35s ease; filter:brightness(calc(.72 + var(--oracle-energy)*.85 + var(--oracle-intensity)*.35)); }
+  .oracle__aperture { width:56%; height:32%; border:1px solid rgba(200,181,232,.32); border-radius:50%; background:radial-gradient(ellipse at center,#020203 0 30%,rgba(112,62,173,.32) 32%,rgba(10,8,15,.92) 57%,transparent 61%); box-shadow:0 0 calc(28px + var(--oracle-energy)*70px) rgba(130,75,200,calc(.12 + var(--oracle-energy)*.35)); }
+  .oracle__signal { position:absolute; inset:16%; border-radius:50%; border:1px dashed rgba(187,158,227,.18); transform:rotate(calc(var(--oracle-energy)*18deg)); }
+  .oracle__ring { position:absolute; border-radius:50%; border:1px solid rgba(170,151,207,.11); }
+  .oracle__ring--outer { width:min(76vw,780px); aspect-ratio:1; }
+  .oracle__ring--inner { width:min(58vw,590px); aspect-ratio:1; border-style:dashed; }
+  .oracle[data-oracle-state='ADDRESS'] .oracle__entity,
+  .oracle[data-oracle-state='REVEAL'] .oracle__entity { filter:brightness(calc(1 + var(--oracle-energy)*1.05)); }
+  .oracle[data-oracle-state='REVEAL'] .oracle__ring--inner { border-color:rgba(220,191,255,.31); }
+
+  .oracle__header { display:flex; justify-content:space-between; gap:20px; align-items:start; border-bottom:1px solid rgba(255,255,255,.12); padding-bottom:12px; }
+  .oracle__header p,.oracle__boundary p { margin:0; font-size:8px; letter-spacing:.14em; opacity:.55; }
+  .oracle__header h1 { margin:5px 0 0; font:700 clamp(18px,2.4vw,34px)/1 'Barlow Condensed',sans-serif; letter-spacing:.08em; }
+  .oracle__header dl { margin:0; display:grid; grid-template-columns:repeat(4,minmax(88px,auto)); gap:12px; }
+  .oracle__header dt { font-size:7px; letter-spacing:.12em; opacity:.4; }
+  .oracle__header dd { margin:4px 0 0; font-size:8px; letter-spacing:.06em; }
+
+  .oracle__copy { align-self:center; width:min(560px,46vw); margin-left:clamp(0px,5vw,84px); }
+  .oracle__eyebrow { font-size:9px; letter-spacing:.16em; opacity:.62; }
+  .oracle__copy h2 { margin:14px 0; font:700 clamp(36px,5.7vw,88px)/.9 'Barlow Condensed',sans-serif; letter-spacing:-.02em; max-width:9ch; }
+  .oracle__instruction { max-width:46ch; font-size:10px; line-height:1.7; opacity:.58; }
+  .oracle__enter,.oracle__controls button { border:1px solid rgba(220,204,240,.35); background:rgba(8,7,11,.76); color:inherit; font:600 9px/1 'IBM Plex Mono',monospace; letter-spacing:.12em; padding:14px 16px; cursor:pointer; }
+  .oracle__enter { margin-top:24px; }
+  .oracle__enter:hover,.oracle__controls button:hover { border-color:rgba(232,216,255,.75); }
+
+  .oracle__caption { position:absolute; left:50%; bottom:clamp(74px,11vh,120px); transform:translateX(-50%); width:min(760px,76vw); text-align:center; }
+  .oracle__caption p { margin:0; min-height:2.8em; font:400 clamp(16px,1.65vw,24px)/1.5 'Libre Baskerville',serif; letter-spacing:.02em; text-shadow:0 0 24px rgba(160,110,220,.22); }
+  .oracle__boundary { position:absolute; left:clamp(14px,2vw,28px); bottom:clamp(14px,2vw,28px); max-width:min(700px,65vw); }
+  .oracle__boundary p + p { margin-top:5px; }
+  .oracle__controls { position:absolute; right:clamp(14px,2vw,28px); bottom:clamp(14px,2vw,28px); display:flex; gap:8px; }
+  .oracle__controls button { padding:10px 12px; font-size:7px; }
+  audio { display:none; }
+
+  @media (max-width:720px) {
+    .oracle { grid-template-rows:auto 1fr auto; padding:14px; }
+    .oracle__header { gap:8px; }
+    .oracle__header dl { grid-template-columns:repeat(2,minmax(72px,1fr)); gap:7px 12px; }
+    .oracle__header dl div:nth-child(3),.oracle__header dl div:nth-child(4) { display:none; }
+    .oracle__copy { width:auto; margin:0; align-self:end; padding-bottom:28vh; }
+    .oracle__copy h2 { font-size:clamp(46px,15vw,72px); max-width:8ch; }
+    .oracle__entity { width:min(84vw,430px); transform:translateY(-8vh) scale(calc(.78 + var(--oracle-energy)*.06 + var(--oracle-intensity)*.05)); }
+    .oracle__ring--outer { width:120vw; }
+    .oracle__ring--inner { width:92vw; }
+    .oracle__caption { bottom:96px; width:calc(100vw - 36px); }
+    .oracle__caption p { font-size:15px; }
+    .oracle__boundary { left:14px; bottom:14px; max-width:55vw; }
+    .oracle__boundary p:first-child { display:none; }
+    .oracle__controls { right:14px; bottom:14px; flex-direction:column; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .oracle__entity,.oracle__signal { transition:none !important; transform:none !important; }
+    .oracle__ring { border-style:solid; }
+  }
+</style>
