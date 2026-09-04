@@ -2,15 +2,10 @@
 /**
  * KODEX-∞ · SYSTEM LOG · CHECKSUM · THREAT MONITOR
  *
- * La franja de instrumentos del pie del board: el registro con timestamps, el
- * checksum verificable y el monitor de anomalías con su onda.
- *
- * Los tres juntos porque en la referencia ocupan una sola banda y se leen como
- * un bloque: es el "estado del sistema" bajo el titular.
- *
- * El monitor dibuja en canvas y no en SVG: la onda se mueve y animar paths SVG
- * cuesta más que redibujar unas líneas. Con prefers-reduced-motion se queda en
- * una traza fija — sigue diciendo lo mismo, sin latir.
+ * El bloque del estado del sistema: entradas de log, checksum verificable y
+ * monitor ambiental. En escritorio las tres capas se leen simultáneamente;
+ * en MACHINE móvil se temporalizan para no comprimir el escritorio dentro del
+ * teléfono.
  */
 interface Props {
   /** Entradas del log: [tiempo, texto]. Se muestran en orden. */
@@ -96,8 +91,6 @@ const {
         ctx.beginPath();
         for (let x = 0; x <= w; x++) {
           const p = x / w;
-          // Tres senos desfasados + una púa ocasional: se lee como señal, no
-          // como una onda de manual.
           const base =
             Math.sin(p * 34 + t * 1.7) * 0.35 +
             Math.sin(p * 71 + t * 2.9) * 0.22 +
@@ -120,7 +113,6 @@ const {
         if (visible) raf = requestAnimationFrame(loop);
       };
 
-      // Fuera de pantalla no se dibuja: hay una de estas por lámina.
       new IntersectionObserver((entries) => {
         for (const e of entries) {
           visible = e.isIntersecting;
@@ -183,8 +175,6 @@ const {
     opacity: 0.55;
   }
 
-  /* El canvas hereda `color` para que el script lea el acento sin recibir
-     el valor por atributo. */
   .kdx-syslog__wave {
     color: var(--log-accent);
     width: 100%;
@@ -198,8 +188,23 @@ const {
     .kdx-syslog { grid-template-columns: 1fr 1fr; gap: 16px; }
     .kdx-syslog__panel:last-child { grid-column: 1 / -1; }
   }
+
   @media (max-width: 520px) {
     .kdx-syslog { grid-template-columns: 1fr; }
     .kdx-syslog__panel:last-child { grid-column: auto; }
+
+    /* MACHINE mobile is temporal, not a compressed desktop instrument.
+       Keep the primary log in the scene; checksum and ambient threat monitor
+       remain fully available on wider spatial layouts. Other worlds retain
+       the shared three-layer mobile treatment. The exact-head browser evidence
+       showed a 64px collision with ORIGIN VECTOR at both release widths, so
+       reserve one rem-quarter of breathing room beyond that measured overlap. */
+    :global(.kx-os-scene--machine) .kdx-syslog {
+      gap: 0;
+      translate: 0 -4.25rem;
+    }
+    :global(.kx-os-scene--machine) .kdx-syslog__panel:not(:first-child) {
+      display: none;
+    }
   }
 </style>
