@@ -487,6 +487,9 @@ async function main() {
     const juicio = {};
     for (const [k, u] of Object.entries(UMBRALES)) juicio[k] = u.pasaSi(m[k]);
     const estable = !m.inestable;
+    /* Si la obra no es medible, la escena NO pasa -- pero por "no verificable",
+       no por "no tiene obra". La diferencia decide si alguien reconstruye. */
+    m.obraNoMedible = m.obraOcupa === 0 && !!m.campoDescartado;
     filas.push({ esc, m, ref, obraPix, juicio, pasa: estable && Object.values(juicio).every(Boolean) });
   }
 
@@ -506,8 +509,19 @@ async function main() {
       console.log(`   ${ok ? '·' : '✗'} ${nom.padEnd(16)} ${String(val).padStart(9)}   pasa si ${umb.padEnd(22)} ${refv}`);
     linea(juicio.textosVisibles, 'textos visibles', m.textosVisibles, UMBRALES.textosVisibles.dice,
       `(pagina entera: ${m.textosPaginaEntera})`);
-    linea(juicio.obraOcupa, 'la obra ocupa', pct(m.obraOcupa), UMBRALES.obraOcupa.dice,
-      m.obraQue ? `es ${m.obraQue}` : 'no hay nodo pictorico en pantalla');
+    /* 2026-09-03 · CUARTA CORRECCION DEL DIA, y la mas fea: cuando la OBRA
+       esta dibujada DENTRO del canvas a pantalla completa, la regla que
+       descarta el campo de fondo tira la obra con el fondo, y el gate
+       informa 0.0 % sobre una pantalla que SI tiene obra. Verificado a ojo
+       en THRESHOLD@891695c7: el organismo-membrana ocupa el tercio superior
+       y el gate decia 0.0 %. Un cero medido mal es peor que no medir: manda
+       a reconstruir algo que esta ahi. */
+    const soloCampo = m.obraOcupa === 0 && m.campoDescartado;
+    linea(soloCampo ? null : juicio.obraOcupa, 'la obra ocupa',
+      soloCampo ? 'NO MEDIBLE' : pct(m.obraOcupa), UMBRALES.obraOcupa.dice,
+      m.obraQue ? `es ${m.obraQue}` : 'el unico nodo pictorico ES el campo');
+    if (soloCampo) console.log('     ⚠ la obra puede estar DENTRO del canvas de pantalla completa:'
+      + ' este numero no la ve. Usar la textura de abajo y MIRAR la captura.');
     if (m.campoDescartado) console.log(`     (descartado ${m.campoDescartado}: cubre el viewport entero, es campo de fondo)`);
     console.log(`     textura en pantalla: ${pct(m.texturaPantalla)}${ref ? `  ·  mockup: ${pct(ref.obra)}` : ''}   ← CONTEXTO, no criterio`);
     linea(juicio.fondoOscuro, 'fondo oscuro', pct(m.fondoOscuro), UMBRALES.fondoOscuro.dice,
