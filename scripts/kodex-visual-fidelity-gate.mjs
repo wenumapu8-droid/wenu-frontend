@@ -32,6 +32,7 @@
 import { readFileSync, existsSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, extname } from 'node:path';
 import { createServer } from 'node:http';
+import { execSync } from 'node:child_process';
 import sharp from 'sharp';
 
 const DIST = process.argv[2]?.startsWith('--') ? 'dist' : (process.argv[2] || 'dist');
@@ -42,6 +43,36 @@ const soloEscena = (() => {
 
 const VIEWPORT = { width: 390, height: 844 };
 const SALIDA = 'reports/fidelidad';
+
+/* --base https://... mide un sitio SERVIDO en vez de un dist local.
+   Existe por una razon medida: el 2026-09-03 el sitio publicado dio 43 textos
+   en /kodex/ y el arbol local 562. La regresion nacio en local. Sin poder
+   medir los dos lados CON LA MISMA VARA, esa comparacion es una anecdota. */
+const iBase = process.argv.indexOf('--base');
+const BASE_REMOTA = iBase > -1 ? process.argv[iBase + 1].replace(/\/$/, '') : null;
+
+/* Estado en que se captura. Correccion de user1-38, 2026-09-03: PROLOGUE es
+   causal -- en reposo esta en DORMANT y es tenue POR DISENO. Comparar una
+   escena dormida contra una referencia despierta produce un fallo visual
+   FALSO. El estado se declara SIEMPRE, aunque sea REPOSO. */
+const iEstado = process.argv.indexOf('--estado');
+const ESTADO = iEstado > -1 ? process.argv[iEstado + 1].toUpperCase() : 'REPOSO';
+
+/* La procedencia de la evidencia. Sin SHA, una captura no dice de que build
+   es, y este proyecto ya perdio dias comparando numeros de builds distintos. */
+function procedencia() {
+  const q = (c) => { try { return execSync(c, { encoding: 'utf8' }).trim(); } catch { return null; } };
+  const sha = q('git rev-parse HEAD');
+  const sucio = q('git status --porcelain');
+  return {
+    sha, shaCorto: sha ? sha.slice(0, 8) : null,
+    rama: q('git rev-parse --abbrev-ref HEAD'),
+    asunto: q('git log -1 --format=%s'),
+    fechaCommit: q('git log -1 --format=%cI'),
+    arbolSucio: sucio ? sucio.split('\n').length : 0,
+    medidoEn: new Date().toISOString(),
+  };
+}
 
 /* ───────────────────────────────────────────────────────────────────────
    EL CORREDOR, Y QUE MOCKUP LE CORRESPONDE A CADA UMBRAL
@@ -410,16 +441,23 @@ async function main() {
     process.exit(1);
   }
 
-  const { s, puerto } = await servir(DIST);
+  const PROC = procedencia();
+  let s = null, puerto = null, raiz;
+  if (BASE_REMOTA) {
+    raiz = BASE_REMOTA;
+  } else {
+    ({ s, puerto } = await servir(DIST));
+    raiz = `http://127.0.0.1:${puerto}`;
+  }
   const ctx = await nav.b.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   const pag = await ctx.newPage();
 
   const filas = [];
   for (const esc of pedidas) {
-    if (!existsSync(join(DIST, esc.ruta))) {
+    if (!BASE_REMOTA && !existsSync(join(DIST, esc.ruta))) {
       filas.push({ esc, ausente: true }); continue;
     }
-    const url = `http://127.0.0.1:${puerto}/${esc.ruta.replace(/index\.html$/, '')}`;
+    const url = `${raiz}/${esc.ruta.replace(/index\.html$/, '')}`;
     await pag.goto(url, { waitUntil: 'networkidle', timeout: 45000 }).catch(() => {});
     await pag.evaluate(() => document.fonts?.ready).catch(() => {});
     await pag.waitForTimeout(900);
@@ -458,7 +496,10 @@ async function main() {
     }
     m.inestable = Object.keys(disp).length ? disp : null;
     const captura = await pag.screenshot({ type: 'png' });
-    writeFileSync(join(SALIDA, `${esc.id}-captura.png`), captura);
+    const sello = `${esc.id}-${ESTADO}-${VIEWPORT.width}x${VIEWPORT.height}`
+      + `-${BASE_REMOTA ? 'PROD' : (PROC.shaCorto || 'sinsha')}`;
+    writeFileSync(join(SALIDA, `${sello}-captura.png`), captura);
+    m.sello = sello;
 
     m.fondoOscuro = await fondoOscuro(captura);
     const obraPix = await areaDeObra(captura);
@@ -481,7 +522,7 @@ async function main() {
       const ma = await sharp(a).metadata(), mb = await sharp(b).metadata();
       await sharp({ create: { width: ma.width + mb.width + 24, height: H, channels: 3, background: '#202024' } })
         .composite([{ input: a, left: 0, top: 0 }, { input: b, left: ma.width + 24, top: 0 }])
-        .png().toFile(join(SALIDA, `${esc.id}-comparacion.png`));
+        .png().toFile(join(SALIDA, `${sello}-comparacion.png`));
     }
 
     const juicio = {};
@@ -493,12 +534,19 @@ async function main() {
     filas.push({ esc, m, ref, obraPix, juicio, pasa: estable && Object.values(juicio).every(Boolean) });
   }
 
-  await ctx.close(); await nav.b.close(); s.close();
+  await ctx.close(); await nav.b.close(); if (s) s.close();
 
   /* ── informe ─────────────────────────────────────────────────────── */
   const pct = (v) => (v * 100).toFixed(1) + ' %';
   console.log('\nGATE DE FIDELIDAD VISUAL · KODEX−∞');
-  console.log(`navegador ${nav.motor} · viewport ${VIEWPORT.width}×${VIEWPORT.height} · base ${DIST}\n`);
+  console.log(`navegador ${nav.motor} · viewport ${VIEWPORT.width}×${VIEWPORT.height}`);
+  console.log(`fuente    ${BASE_REMOTA ? BASE_REMOTA + '  (PRODUCCION)' : DIST + '  (dist local)'}`);
+  console.log(`estado    ${ESTADO}${ESTADO === 'REPOSO' ? '  — sin interactuar. Una escena causal en DORMANT es tenue POR DISENO.' : ''}`);
+  if (!BASE_REMOTA) {
+    console.log(`sha       ${PROC.shaCorto}  ${PROC.rama}  «${(PROC.asunto || '').slice(0, 54)}»`);
+    if (PROC.arbolSucio) console.log(`          ⚠ ${PROC.arbolSucio} archivos sin commitear: la evidencia NO es reproducible desde el SHA`);
+  }
+  console.log(`medido    ${new Date().toISOString()}\n`);
 
   for (const f of filas) {
     if (f.ausente) { console.log(`❌ AUSENTE  ${f.esc.id}  — no existe ${f.esc.ruta}\n`); continue; }
@@ -541,8 +589,10 @@ async function main() {
     console.log('');
   }
 
-  writeFileSync(join(SALIDA, 'medicion.json'), JSON.stringify(
-    { fecha: new Date().toISOString(), navegador: nav.motor, viewport: VIEWPORT, dist: DIST,
+  const nombreJson = `medicion-${BASE_REMOTA ? 'PROD' : (PROC.shaCorto || 'sinsha')}-${ESTADO}.json`;
+  writeFileSync(join(SALIDA, nombreJson), JSON.stringify(
+    { fecha: new Date().toISOString(), navegador: nav.motor, viewport: VIEWPORT,
+      fuente: BASE_REMOTA || DIST, esProduccion: !!BASE_REMOTA, estado: ESTADO, procedencia: PROC,
       filas: filas.map((f) => ({ escena: f.esc.id, mockup: f.esc.mockup, confianza: f.esc.confianza,
         ausente: !!f.ausente, medido: f.m, referencia: f.ref, pasa: f.pasa })) }, null, 2));
 
