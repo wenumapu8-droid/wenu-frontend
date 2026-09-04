@@ -1,788 +1,466 @@
 ---
-import Base from '../../layouts/Base.astro';
-import KodexChrome from '../../components/KodexChrome.astro';
-// P0 · el campo morfogenetico que sobrevive a la navegacion.
-import CampoPersistente from '../../components/kodex/os/CampoPersistente.astro';
-// P1 · la obra de Ocin entra al campo como materia computacional.
-import CampoMateria from '../../components/kodex/os/CampoMateria.astro';
-// TELAR · 2026-08-30 · THRESHOLD es la PUERTA: era la unica escena del
-// corredor sin el instrumento completo. Tenia vector y registro (769f4a73)
-// pero no riel, ni traza, ni punto, ni carril -- lo primero que ve
-// cualquiera era lo menos KODEX del sitio.
-import RielInstrumento from '../../components/kodex/os/RielInstrumento.astro';
-// TELAR · 2026-08-30 · SignalWaveform existia con CERO importaciones, y
-// kodex-engine.js:439 ya buscaba su selector para animarla. Dos huerfanos
-// que se buscaban: el motor animaba algo que nunca se monto.
-import SignalWaveform from '../../components/kodex/motion/SignalWaveform.astro';
-import TrazaViva from '../../components/kodex/os/TrazaViva.astro';
-import PuntoSenal from '../../components/kodex/os/PuntoSenal.astro';
-import CarrilEstados from '../../components/kodex/os/CarrilEstados.astro';
-import KodexOverlays from '../../components/KodexOverlays.astro';
-import '../../styles/kodex.css';
-/* Sólo la capa de cromo: el umbral compone distinto y no firma el contrato de
-   escena. Lo que sí comparte es la barra, la navegación y los blancos táctiles. */
-import '../../styles/kodex-plate.css';
-import '../../styles/kodex-instrumento.css';
-import { plateId, KDX_PLATE_CONTRACT_VERSION } from '../../lib/kodex/plancha/plate-contract';
-import { contratoDe } from '../../lib/kodex/contrato-escena';
-
-/**
- * CONTRATO DE THRESHOLD.
- *
- * Era la única de las siete que no declaraba nada, así que el gate no podía
- * medirle ni organismo ni causalidad — y es, con diferencia, la escena MÁS
- * viva del corredor (43.5% de vida en reposo el 26-08, contra 0.01% de
- * PROLOGUE). Medirla importa justamente porque es la que funciona.
- *
- * Su organismo es el campo de partículas, NO el campo de shaders: el canon
- * pide proteger la identidad rojo/negro de apertura de esta escena y no
- * reconstruirla sin evidencia. Acá sólo se declara lo que ya existe.
- */
-const contratoUmbral = contratoDe('THRESHOLD', {
-  organismo: '.kx-threshold__particles',
-});
-import '../../styles/kodex-motion.css';
-import HiddenMessageBand from '../../components/kodex/motion/HiddenMessageBand.astro';
-import ParticleField from '../../components/kodex/motion/ParticleField.astro';
-import SpriteSignal from '../../components/kodex/motion/SpriteSignal.astro';
-import KodexPortal from '../../components/kodex/portal/KodexPortal.astro';
-import KodexTransition from '../../components/kodex/transition/KodexTransition.astro';
-import TituloGlitch from '../../components/kodex/os/TituloGlitch.astro';
-import CampoPortada from '../../components/kodex/os/CampoPortada.astro';
-import KodexDebug from '../../components/kodex/debug/KodexDebug.astro';
-import KodexQuietFrame from '../../components/kodex/interludes/KodexQuietFrame.astro';
-/* El umbral registra el paso: es el primer evento del recorrido y el que
-   RETURN lee para armar el espécimen. Ver KodexRecuerda.astro. */
-import KodexRecuerda from '../../components/kodex/KodexRecuerda.astro';
-/* El copy del umbral no se escribe acá: se lee de la definición de escena, que
-   lo trae textual de la P0 Scene Bible. La compuerta de terminado exige "copy
-   and visual behavior match the canon", y con el texto suelto en la plantilla
-   eso no se puede verificar — se corrige tocando dos archivos y nadie se entera. */
-import { THRESHOLD } from '../../lib/kodex/escenas/threshold';
-/* 2026-08-28 · EL CHASIS DEL BOARD. Estos dos instrumentos existian en el
-   repo con CERO importaciones: se construyeron desde los boards y nunca se
-   montaron. Entran ahora, pero con dato REAL -- ver mas abajo. */
-import KodexOriginVector from '../../components/kodex/density/KodexOriginVector.astro';
-import KodexSystemLog from '../../components/kodex/density/KodexSystemLog.astro';
-import { nodosDeEscena, coberturaDelAtlas } from '../../lib/kodex/atlas';
-import { leerManifiesto } from '../../lib/kodex/volumenes';
-
-/* El vector de origen del umbral: su posicion REAL en el mapa de conceptos,
-   no coordenadas astronomicas inventadas. */
-const conceptosUmbral = nodosDeEscena('THRESHOLD');
-const atlas = coberturaDelAtlas();
-const manifiesto = await leerManifiesto();
-const estratosReales = (manifiesto.estratos || []).length;
-const volumenesReales = (manifiesto.volumenes || []).length;
-
-const vectorUmbral = {
-  ra: `ZONE ${conceptosUmbral.flatMap((n) => n.zonas).filter((z, i, a) => a.indexOf(z) === i).slice(0, 2).join(' / ') || 'UMBRAL'}`,
-  dec: `NODES ${conceptosUmbral.length} / ${atlas.total}`,
-  sig: `STRATA ${estratosReales}`,
-  mod: 'MOD THRESHOLD',
-  lines: ['THE GATE IS A', 'LIVING AGREEMENT.'],
-  id: conceptosUmbral[0]?.id || 'KDX-IMG-002',
-};
-
-/* El registro del sistema: hechos verificables del archivo en el build, no
-   marcas de tiempo falsas. */
-const registroUmbral = [
-  ['ATLAS', `${atlas.total} CONCEPTS / ${atlas.zonas} ZONES`],
-  ['MANIFEST', `${volumenesReales} VOLUMES / ${estratosReales} STRATA`],
-  ['THRESHOLD', `${conceptosUmbral.length} CONCEPTS DECLARED`],
-  ['GAPS', `${atlas.faltantes.length} NODES NOT LOCATED`],
-];
-import { quietFrames } from '../../lib/kodex/quietFrames';
-import '../../styles/kodex-micrographics.css';
-import '../../styles/kodex-quiet-frames.css';
-import { hero } from '../../lib/kodexBook.js';
-import { prologueObservationRecord } from '../../lib/kodexArchiveRecords.js';
-import { SCENE_UNIVERSE } from '../../lib/kodexUniverse.js';
-import { KODEX_MESSAGES } from '../../lib/kodex/motion-config.js';
-import TituloCinetico from '../../components/kodex/os/TituloCinetico.astro';
-import { motionVars, recipeFor, gridFor } from '../../lib/kodex/grammar';
-
-// THRESHOLD toma el portal de marmol: su grilla dice "dream field, ambient
-// scene", que es exactamente una puerta que todavia no se cruzo.
-const thresholdRecipe = recipeFor('threshold');
-const thresholdGrid = gridFor('threshold');
-const thresholdMotion = motionVars('threshold');
-
-const prologue = SCENE_UNIVERSE.prologue;
-
-/* El único bloque de metadatos que queda en el margen. Es el panel NODE 00 de
-   la pantalla de diseño (pend-11: STATE DORMANT · SIGNAL LATENT · ACCESS TYPE
-   VOLUNTARY) — el resto del cromo de datos salió: el creador pidió que el
-   umbral respire. */
-const thresholdNodeRows = [
-  ['NODE', 'KDX_00'],
-  ['STATE', 'DORMANT'],
-  ['SIGNAL', 'LATENT'],
-  ['ACCESS', 'VOLUNTARY'],
-];
-
-const prologueMessages = KODEX_MESSAGES.prologue;
-
-const prologueRows = [
-  ['NODE', prologue.node],
-  ['PROTOCOL', prologue.protocol],
-  ['STATUS', prologueObservationRecord.status],
-];
+import KodexThresholdMembrane from '../../components/kodex/threshold/KodexThresholdMembrane.astro';
 ---
 
-<Base
-  title="KODEX−∞ — Living Visual-Computational Archive"
-  description="A living archive of pattern, memory, code and resonance inside the world of Wenu Mapu. A digital book: descend folio by folio."
-  robots="index, follow"
-  ogImage={hero.src}
-  kodexFonts={true}
-  noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
-  osShell={true}
->
-  <CampoPersistente />
-  <CampoMateria />
-  {/* EL GUARDIA DE LA PUERTA.
-      Va EN LÍNEA y antes que todo lo demás porque tiene que ejecutarse
-      mientras el documento se parsea: los módulos de Astro corren diferidos y
-      para entonces el motor ya habría grabado la visita. La regla del creador
-      es "sin memory mutation pasiva" — el archivo recuerda a quien entra, no a
-      quien todavía está mirando la puerta.
-      Y si el huésped ya cruzó en esta sesión, el velo no vuelve a pedirle
-      permiso: volver atrás debe devolverlo donde estaba, no hacerle repetir la
-      decisión que ya tomó. */}
-  <script is:inline>
-    (() => {
-      let cruzado = false;
-      try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
-      /* VOLVER ATRÁS NO ES LO MISMO QUE VOLVER A LA ENTRADA, y hasta ahora se
-         trataban igual. La regla "quien ya cruzó no vuelve a ver el velo" está
-         bien para el botón de atrás -- nadie debe pagar dos veces la misma
-         decisión -- pero se aplicaba también al recargar y al ir a /kodex/ a
-         propósito. Resultado medido: la portada se veía UNA sola vez en la
-         vida. Todas las visitas siguientes empezaban en la escena de adentro.
-         La portada del KODEX no puede ser una pantalla de un solo uso.
-         El tipo de navegación los separa: `back_forward` es el botón de atrás;
-         `navigate` y `reload` son alguien llegando a la puerta. */
-      let atras = false;
-      try { atras = (performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward'; } catch (_) {}
-      const raiz = document.documentElement;
-      if (cruzado && atras) raiz.setAttribute('data-kdx-umbral-cruzado', '');
-      else if (cruzado) raiz.setAttribute('data-kdx-umbral-reconocido', '');
-      else raiz.setAttribute('data-kdx-espera-eleccion', '');
-    })();
-  </script>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    
+    <meta name="color-scheme" content="dark" />
+    <title>KODEX−∞ · 00 THRESHOLD</title>
+    <meta
+      name="description"
+      content="KODEX−∞ · el umbral. La puerta es un acuerdo vivo."
+    />
+  </head>
+  <body>
+    <main class="threshold-lab" data-kdx-visible-assembly data-motion="full" aria-labelledby="threshold-title">
+      <KodexThresholdMembrane class="threshold-lab__membrane" />
+      <div class="threshold-lab__depth" aria-hidden="true"></div>
+      <div class="threshold-lab__macro" aria-hidden="true">THRESHOLD</div>
+      <div class="threshold-lab__signal" aria-hidden="true"></div>
 
-  <KodexRecuerda />
-  <div
-    class="kx kx--deck kx--threshold kx--entry"
-    data-kx
-    data-kdx-shell={KDX_PLATE_CONTRACT_VERSION}
-    data-kdx-plate={plateId('threshold', 'interlude')}
-    data-stage-idx="0"
-    data-stage-base="0"
-    data-stage-total="07"
-    data-stage-name="THRESHOLD"
-    data-stage-col="255,39,51"
-    data-next-label="ENTER THE KODEX"
-    data-next-url="/kodex/folio/i/"
-    data-sync-deck-hash
-    {/* La herramienta de esta lamina: la rueda gira el mandala. Cero scroll de
-        pagina -- el documento no se mueve, la pieza si. */}
-    data-kdx-tool="girar"
-    data-kdx-recipe={thresholdRecipe.id}
-    data-kdx-grid={thresholdGrid.id}
-    style={thresholdMotion}
-  >
-    <KodexTransition router={true} />
-    <KodexDebug />
+      <header class="threshold-lab__chrome">
+        {/* El mockup pone dos cosas arriba y nada mas: el wordmark y en
+            que umbral estas. El ticket de Linear y "Fidelity Lab / noindex"
+            eran notas de obra que se colaron a la pantalla. */}
+        <div class="threshold-lab__identity">
+          <strong>KODEX−∞</strong>
+          <span>00 / 07 · THRESHOLD</span>
+        </div>
+        <div class="threshold-lab__controls">
+          {/* El estado sigue vivo para el motor -- data-visual-state lo lee
+              el script -- pero deja de imprimirse. Un rotulo de estado es
+              instrumento, y el instrumento se mira, no se lee. */}
+          <span class="kdx-val" data-visual-state>DORMANT</span>
+          <button type="button" data-motion-toggle aria-label="movimiento">MOTION: FULL</button>
+        </div>
+      </header>
 
-    <KodexChrome segs={7} />
+      <section class="threshold-lab__composition">
+        <div class="threshold-lab__copy">
+          <p class="threshold-lab__eyebrow">A / −∞ / VOLUNTARY ENTRY</p>
+          <h1 id="threshold-title">THE GATE IS A LIVING AGREEMENT.</h1>
+          <p class="threshold-lab__lede">
+            Presence changes the membrane. It does not identify you. Crossing remains an explicit choice.
+          </p>
+          <p class="threshold-lab__question">
+            WILL YOU ENTER A SYSTEM THAT REMEMBERS TRANSFORMATION?
+          </p>
 
-    <div class="kx-deck" data-deck>
-      <section class="kx-slide kx-slide--threshold" id="threshold" aria-labelledby="kdx-threshold-title">
-        <div class="kx-slide__in kx-threshold" {...contratoUmbral}>
-          {/* 2026-08-17 · Umbral respirado. La referencia es la pantalla de
-              diseño del umbral (pend-11: 00/07 THRESHOLD · una obra central ·
-              un titular · una pregunta · ENTER VOLUNTARILY) y el prototipo de
-              portada aprobado por el creador (/tmp/kodex-threshold-live.html):
-              campo rojo profundo atenuado, THRESHOLD en serif, HUD periférico
-              casi invisible, una sola acción. El cromo de datos que había acá
-              (rail, meta-zonas, chips, syslog, sysfoot, systemband, origin,
-              waveform, panel de artefacto) salió: el diseño muestra UN panel
-              de nodo en el margen y nada más compitiendo con la obra. */}
-
-          <div class="kx-threshold__field" aria-hidden="true">
-            <ParticleField class="kx-threshold__particles" scene="threshold" label="threshold particle field" />
-            <span class="kx-threshold__aura"></span>
-          </div>
-
-          {/* ── EL MANDALA NO ABRE LA EXPERIENCIA ────────────────────────────
-              El creador, muchas veces y la última hoy: "hay como un mandala al
-              comienzo que no es lo que yo quería… está una flor que está buena
-              pero no me gusta como para el comienzo".
-
-              Comparado el prototipo que él aprobó (`kodex-threshold-live.html`)
-              contra producción, la diferencia era exacta y medible:
-                  prototipo    1 canvas · 0 imágenes   -> todo es campo
-                  producción   7 canvas · mandala-0cin-negativo.png
-              El umbral montaba la portada nueva Y ENCIMA este organismo: el PNG
-              del mandala a la vista más un segundo portal alimentado por esa
-              misma imagen. Eso es la flor dominando el centro.
-
-              Y contradice su propia descripción del umbral en el manifiesto:
-              "Negro casi total. Algo respira. Aparece una pequeña anomalía. La
-              anomalía CRECE." Una flor de tamaño completo desde el primer
-              cuadro no crece: ya llegó.
-
-              NO SE BORRA NADA. La obra sigue en `/img/kodex/works/`, el
-              componente `KodexPortal` sigue entero y se usa en otras
-              superficies, y esta composición se puede reponer con un `git
-              revert` de este commit. Lo que se retira es su lugar en la PRIMERA
-              PANTALLA, que es lo único que él pidió cambiar.
-
-              Lo que queda abriendo es `CampoPortada`, que ES el shader del
-              prototipo aprobado. */}
-
-          {/* Marcador de escena, arriba y al centro, como en el diseño:
-              progreso siempre visible. */}
-          <header class="kx-threshold__marcador" data-reveal>
-            <p class="kx-threshold__progreso"><b>00</b> / 07</p>
-            <p class="kx-threshold__escena">THRESHOLD · SCENE 00</p>
-          </header>
-
-          {/* La identidad sobre el organismo, con la jerarquía del prototipo
-              aprobado: cejilla / marca en serif / decreto. El lema es canon
-              (THE ARCHIVE DOES NOT STORE. IT REMEMBERS.) partido igual que en
-              la portada del creador. */}
-          <div class="kx-threshold__identidad">
-            <p class="kx-threshold__cejilla" data-reveal>THE ARCHIVE DOES NOT STORE</p>
-            {/* 2026-08-28: el titulo del umbral pasa a ser CINETICO.
-                Reporte del creador: "el titulo se ve distinto y no es dinamico".
-                Tenia razon en las dos cosas y la causa era una: THRESHOLD usaba
-                TituloCinetico cero veces -- era un <h1> plano mientras las seis
-                escenas de folio si lo usaban. Y el operador por defecto del
-                componente, APERTURE, esta documentado en su propia cabecera
-                como "el umbral se abre - las letras se separan desde el
-                centro": se escribio para esta escena y nunca se le monto.
-                El id se conserva porque la seccion lo referencia con
-                aria-labelledby. */}
-            <TituloCinetico
-              texto="KODEX−∞"
-              operador="APERTURE"
-              id="kdx-threshold-title"
-              clase="kx-threshold__marca-cinetico"
-            />
-            <p class="kx-threshold__decreto" data-reveal>IT&nbsp;&nbsp;<b>REMEMBERS</b></p>
-          </div>
-
-          {/* La voz del umbral. Copy canónico de la Scene Bible (líneas 19 y
-              25) leído textual de la definición de escena: el pacto, la
-              pregunta primaria, y UNA acción — ENTER VOLUNTARILY, que en la
-              pantalla de diseño del umbral es literalmente la CTA. */}
-          <main class="kx-threshold__voz">
-            <p class="kx-threshold__pacto" data-reveal>{THRESHOLD.copy.agreement}</p>
-            <p class="kx-threshold__pregunta" data-reveal>
-              <span aria-hidden="true">↔</span> {THRESHOLD.copy.question} <span aria-hidden="true">↔</span>
-            </p>
-            <a class="kx-threshold__entrar" href="/kodex/folio/i/" data-kdx-cruzar data-reveal>
-              {THRESHOLD.copy.invitation}
+          <div class="threshold-lab__actions">
+            {/* La salida del umbral entra al corredor. Antes apuntaba a
+                /kodex/lab/visible-assembly/ -- otra página del laboratorio.
+                Por eso esta pantalla existía y no llevaba a ninguna parte. */}
+            <a class="threshold-lab__enter" href="/kodex/descanso/monolith-cover/">
+              <span>A</span>
+              <strong>ENTER VOLUNTARILY</strong>
+              <small>Cruzar el umbral. El sistema recuerda lo que hacés, no lo que sos.</small>
             </a>
-
-            {/* LOS OTROS DOS CAMINOS · 2026-08-28
-                El umbral tenia una sola salida: el corredor lineal. La boveda
-                de conceptos (/kodex/atlas/) y la navegacion hacia adentro
-                (/kodex/inward/) existian y estaban publicadas, pero no se
-                llegaba a ellas desde la portada.
-                Van DEBAJO y en linea fina a proposito: el pacto del umbral es
-                cruzar, y esa sigue siendo la accion dominante. Estos dos
-                dejan ver que el archivo tiene mas de una puerta, sin
-                competirle a la principal. */}
-            <nav class="kx-threshold__caminos" aria-label="other ways in" data-reveal>
-              <a href="/kodex/inward/">
-                <b>INWARD</b><span>the journey goes in, not down</span>
-              </a>
-              <a href="/kodex/atlas/">
-                <b>THE ATLAS</b><span>every concept and its weave</span>
-              </a>
-            </nav>
-
-            {/* LOS MUNDOS QUE ESTE UMBRAL ABRE · 2026-09-01
-                THRESHOLD declara cinco conceptos en el atlas y hasta hoy los
-                usaba solo para calcular lecturas del ORIGIN VECTOR: el numero
-                se mostraba, la puerta no. Dos de los cinco (002 Portal Organism
-                y 032 Pale Axolotl) no aparecen en ninguna otra escena, asi que
-                sin esto quedaban sin una sola entrada desde el corredor.
-
-                Va en LINEA FINA, sin recuadro, debajo de los caminos: la
-                jerarquia del umbral es ENTER VOLUNTARILY primero, los dos
-                caminos despues, y estos al final. Nombrar los mundos es lo que
-                separa "prometo siete mundos" de "aca estan". */}
-            {conceptosUmbral.length > 0 && (
-              <nav class="kx-threshold__mundos" aria-label="worlds this threshold opens" data-reveal>
-                <p class="kx-threshold__mundos-kicker">
-                  THIS THRESHOLD OPENS
-                  <span data-kdx-readout data-fuente="src/data/kodex-atlas.json:nodosDeEscena('THRESHOLD')">
-                    {String(conceptosUmbral.length).padStart(2, '0')}
-                  </span>
-                </p>
-                <ul>
-                  {conceptosUmbral.map((n) => (
-                    <li>
-                      <a href={`/kodex/concepto/${n.id.toLowerCase()}/`}>{n.titulo}</a>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            )}
-          </main>
-
-          {/* EL CHASIS DEL BOARD · 2026-08-28
-              Los boards muestran instrumentos flotando en los margenes:
-              ORIGIN VECTOR arriba a la derecha, SYSTEM LOG abajo. Los dos
-              componentes existian con cero importaciones -- construidos desde
-              los boards y nunca montados.
-              Entran con DATO REAL, no con sus defaults inventados: el vector
-              de origen del umbral es su posicion en el mapa de conceptos del
-              atlas, y el registro son hechos verificables del archivo en el
-              build. Cada lectura lleva su data-fuente. */}
-          <KodexOriginVector
-            ra={vectorUmbral.ra}
-            dec={vectorUmbral.dec}
-            sig={vectorUmbral.sig}
-            mod={vectorUmbral.mod}
-            lines={vectorUmbral.lines}
-            id={vectorUmbral.id}
-            class="kx-threshold__vector"
-          />
-          {/* TELAR · el aparato compartido llega al umbral. THRESHOLD es
-              escena 00 del corredor: monta el MISMO instrumento que las
-              otras seis, con su ACCESS TYPE propio (todavia nadie entro). */}
-          <RielInstrumento
-            lado="izq"
-            nodo="00"
-            senal="LATENT"
-            acceso="VISITOR"
-            class="kx-os-stage__riel-izq"
-          />
-          <RielInstrumento
-            lado="der"
-            profundidad="00"
-            class="kx-os-stage__riel-der"
-          />
-          <PuntoSenal base="LATENT" class="kx-os-stage__punto" />
-
-          {/* La onda del umbral. `scene="threshold"` es lo que la engancha
-              al motor: kodex-engine.js:439 busca exactamente ese selector.
-              El CSS ya estaba escrito en kodex-motion.css, con su color
-              propio y su respeto por prefers-reduced-motion. */}
-          <div class="kx-threshold__waveform">
-            <SignalWaveform scene="threshold" />
           </div>
 
-          {/* El carril de estados: en el umbral el viaje todavia no
-              empezo, asi que muestra los seis pasos con DORMANT encendido.
-              Ver el camino completo ANTES de cruzarlo es parte del
-              consentimiento -- nadie entra a ciegas. */}
-          <CarrilEstados />
-
-          {/* La barra de las siete con THRESHOLD (00) encendida. */}
-          <TrazaViva actual={0} class="kx-os-stage__traza" />
-
-          <KodexSystemLog
-            entries={registroUmbral}
-            checksum={`ATLAS-${atlas.total}-${atlas.zonas}Z`}
-            verifyAt="src/data/kodex-atlas.json"
-            threatLabel={`${atlas.total - atlas.conEscena} CONCEPTS AWAIT CURATION`}
-            class="kx-threshold__registro"
-          />
-
-          {/* El panel de nodo: único cromo de datos del margen, casi
-              invisible, como el HUD periférico del prototipo. */}
-          <aside class="kx-threshold__nodo" aria-label="node status" data-reveal>
-            {thresholdNodeRows.map(([label, value]) => (
-              <p><span>{label}</span><b class={label === 'SIGNAL' ? 'is-latente' : undefined}>{value}</b></p>
-            ))}
-          </aside>
-
-{/* DECISIÓN DE CANON, NO DE GUSTO.
-    El linaje de PR #101 traía acá el umbral-tablero: kicker, serial con
-    checksum, tabla de metadatos, chips de estado, log de sistema con
-    timestamps y pie de sistema. Es trabajo real y está bien hecho, pero el
-    manifiesto del 21-08 lo prohíbe con todas las letras:
-    "ESCONDER EL SISTEMA, MOSTRAR EL UNIVERSO" y "nunca SYSTEM → METADATA →
-    BUTTONS → explanation → artwork".
-    Y la portada que queda -- campo del prototipo + palabra viva + dos puertas
-    -- es la que el creador pidió tres veces por nombre de archivo.
-    Lo de #101 no se pierde: su instrumentación vive en KodexSystemLog y
-    KodexSystemFooter, que siguen en el árbol y se pueden invocar donde la
-    densidad SÍ sea el punto. Lo que no vuelve es a la primera pantalla. */}
-          {/* EL VELO — la portada que le encantó al creador. Cubre la escena
-              con el campo respirando atenuado detrás; THRESHOLD en serif; una
-              sola acción. Tocar en cualquier parte = entrar con sonido (la
-              rama data-kdx-sonido="1" de la bifurcación canónica); el fantasma
-              CONTINUE IN SILENCE es la otra rama. Al elegir, el velo se
-              disuelve y revela la escena — no navega. */}
-          <div class="kx-veil" data-kdx-veil>
-            {/* LA PORTADA. El campo del prototipo que el creador aprobó, vivo detrás
-                de la palabra: warp radial, mandala, dither Bayer, scanlines, croma y
-                grano. Su shader, portado entero. */}
-            <CampoPortada estado={0.15} class="kx-veil__campo" />
-            {/* ── LA COMPOSICIÓN DEL PROTOTIPO, TEXTUAL ─────────────────────
-                El creador señaló muchas veces que "la portada aún no se ve
-                así". Comparando su `kodex-threshold-live.html` contra
-                producción, la última diferencia no era el shader —ese ya está
-                igualado— sino QUÉ DICE la primera pantalla:
-
-                    prototipo    THE ARCHIVE DOES NOT STORE
-                                 KODEX−∞
-                                 IT REMEMBERS
-
-                    producción   KODEX −∞
-                                 THRESHOLD
-
-                Producción abría con la ETIQUETA de la escena. El prototipo
-                abre con el nombre y con la frase que lo define. No es lo
-                mismo llegar a un rótulo que llegar a una declaración.
-
-                Se toma la composición de su prototipo tal cual, en el mismo
-                orden. Las dos puertas quedan: la elección sigue siendo suya. */}
-            <p class="kx-veil__cejilla">THE ARCHIVE DOES NOT STORE</p>
-            {/* La palabra, con el eje partiéndose y volviendo. El texto real
-                está en el HTML servido y se lee en el primer cuadro; el glitch
-                corre encima y no retrasa ni la lectura ni la acción. */}
-            <TituloGlitch texto="KODEX−∞" como="p" class="kx-veil__marca" tempo="umbral" />
-            <p class="kx-veil__decreto">IT&nbsp; <b>REMEMBERS</b></p>
-            {/* 2026-08-28: subtitulo del board 00-THRESHOLD.png. */}
-            <p class="kx-veil__lema">A LIVING SYSTEM OF MATTER, MEMORY AND GENERATIVE CODE</p>
-            {/* ── EL PACTO SUBE A LA PORTADA ────────────────────────────
-                Hasta acá la entrada eran dos pantallas: la portada elegía el
-                sonido y, al disolverse, una segunda pantalla pedía el acuerdo
-                y volvía a ofrecer entrar. El visitante entraba dos veces al
-                mismo lugar y leía las mismas tres líneas seguidas.
-
-                El canon 14 dice que THRESHOLD es "el centro parece una
-                abertura", en singular. Una puerta. El acuerdo y la elección de
-                sonido son la misma decisión y se piden en la misma respiración.
-
-                Nada se mueve de sitio en el documento: el pacto sigue viviendo
-                en la escena para quien llegue directo a ella. Acá se dice, y
-                acá se cruza. */}
-            <p class="kx-veil__pacto">{THRESHOLD.copy.agreement}</p>
-            <p class="kx-veil__pregunta">
-              <span aria-hidden="true">↔</span> {THRESHOLD.copy.question} <span aria-hidden="true">↔</span>
-            </p>
-            <a class="kx-veil__entrar" href="/kodex/folio/i/" data-kdx-cruzar data-kdx-sonido="1">TAP TO ENTER — ENABLE SOUND</a>
-            <a class="kx-veil__silencio" href="/kodex/folio/i/" data-kdx-cruzar data-kdx-sonido="0">CONTINUE IN SILENCE →</a>
-            {/* La puerta de quien ya entró. No vuelve a preguntar nada -- el
-                consentimiento ya está dado y la memoria ya está liberada --
-                pero la portada sigue estando, que es lo que una portada hace.
-                Y dice lo que el archivo dice de sí mismo: te recuerda. */}
-            <a class="kx-veil__devuelta" href="/kodex/folio/i/" data-kdx-cruzar data-kdx-sonido="-1">THE ARCHIVE REMEMBERS YOU — CONTINUE →</a>
-          </div>
+          {/* Las dos láminas propias de THRESHOLD. Discretas a propósito:
+              el mockup tiene un solo gesto grande y marcas chicas al borde.
+              Sin ellas el umbral perdía alcance. */}
+          <p class="threshold-lab__laminas">
+            <a href="/kodex/lamina/t01-01-threshold-portal/">THRESHOLD PORTAL</a>
+            <a href="/kodex/lamina/u02-threshold/">THRESHOLD</a>
+          </p>
         </div>
       </section>
 
-      <section class="kx-slide kx-slide--quiet" id="quiet-threshold-slide" aria-labelledby="quiet-threshold-label">
-        <KodexQuietFrame {...quietFrames["threshold-prologue"]} id="quiet-threshold" />
-      </section>
-
-      <section class="kx-slide kx-slide--prologue kx-os-scene kx-os-scene--prologue" id="prologue" aria-labelledby="kdx-prologue-title">
-        <div class="kx-slide__in kx-prologue-stage">
-          <div class="kx-prologue-stage__scan" aria-hidden="true"></div>
-          <div class="kx-prologue-stage__ambient" aria-hidden="true"></div>
-          <ParticleField class="kx-prologue-stage__particles" scene="prologue" label="prologue particle field" />
-          <aside class="kx-prologue-stage__rail" data-reveal aria-label="prologue status">
-            <span>{prologue.code}</span>
-            <span>{prologueObservationRecord.status}</span>
-          </aside>
-
-          <main class="kx-prologue-stage__body">
-            <p class="kx-prologue-stage__kicker" data-reveal>{prologue.kicker}</p>
-            <h2 class="kx-prologue-stage__title" id="kdx-prologue-title" data-reveal>
-              <span>THE ARCHIVE</span>
-              <span>IS WATCHING.</span>
-            </h2>
-            <p class="kx-prologue-stage__statement" data-reveal>YOU ARE NOT ALONE.</p>
-            <p class="kx-prologue-stage__mantra" data-reveal>A SIGNAL.<br />A SYSTEM.<br />A CHOICE.</p>
-            <div class="kx-prologue-stage__actions" data-reveal>
-              <a class="kx-prologue-stage__cta" href="/kodex/folio/ii/">{prologue.cta}</a>
-              <button class="kx-prologue-stage__protocol-trigger" type="button" data-kdx-protocol-open aria-expanded="false" aria-controls="kdx-protocol-panel">READ THE PROTOCOL</button>
-            </div>
-            <dl class="kx-prologue-stage__meta" data-reveal>
-              {prologueRows.map(([label, value]) => (
-                <div>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
-          
-  {/* 00.05 MONOLITH_COVER · la entrada material.
-      Es la primera obra que el visitante ve en todo KODEX. Va al final de
-      THRESHOLD, no al principio: primero cruza, después se le muestra. */}
-  {/* PUERTAS DE THRESHOLD · 2026-09-02
-      THRESHOLD era la única de las siete escenas con CERO láminas
-      alcanzables. No era una decisión: era el hueco que quedó de que esta
-      pantalla no usa la plantilla de folio, así que el cableado de las
-      otras seis nunca la tocó.
-
-      Las dos que van acá lo dicen en el nombre. No hay interpretación:
-        t01-01-threshold-portal   el portal del umbral
-        u02-threshold             el umbral
-
-      Familia DEEPEN, igual que en los folios: profundizar dentro de la
-      escena en la que ya estás. */}
-  <nav class="kx-os-puertas" aria-label="puertas de este umbral">
-    <div class="kx-os-puertas__familia" data-familia="DEEPEN">
-      <a class="kx-os-puerta" href="/kodex/lamina/t01-01-threshold-portal/">THRESHOLD PORTAL</a>
-      <a class="kx-os-puerta" href="/kodex/lamina/u02-threshold/">THRESHOLD</a>
-    </div>
-    <div class="kx-os-puertas__familia" data-familia="CROSS">
-      <a class="kx-os-puerta" href="/kodex/descanso/monolith-cover/">MONOLITH COVER<span class="kx-os-puerta__hacia"> → PROLOGUE</span></a>
-    </div>
-  </nav>
+      {/* La telemetría del laboratorio salió: eran 8 filas ETIQUETA:VALOR,
+          16 textos, y el mockup de este umbral no tiene ninguna. Sigue en
+          git y en /kodex/lab/threshold-fidelity/ si hace falta. */}
 
 
-</main>
 
-          <figure class="kx-prologue-stage__visual" data-reveal>
-            <div class="kx-prologue-stage__eye-field" data-kdx-prologue-eye aria-hidden="true">
-              <span class="kx-prologue-stage__dust"></span>
-              <span class="kx-prologue-stage__pulse"></span>
-              <svg class="kx-prologue-stage__orbit kx-prologue-stage__orbit--outer" viewBox="0 0 520 520" focusable="false">
-                <circle cx="260" cy="260" r="212"></circle>
-                <ellipse cx="260" cy="260" rx="238" ry="144"></ellipse>
-                <ellipse cx="260" cy="260" rx="176" ry="236" transform="rotate(-28 260 260)"></ellipse>
-                <path d="M84 260C120 160 198 86 260 86C338 86 414 152 448 260"></path>
-              </svg>
-              <svg class="kx-prologue-stage__orbit kx-prologue-stage__orbit--inner" viewBox="0 0 520 520" focusable="false">
-                <circle cx="260" cy="260" r="164"></circle>
-                <ellipse cx="260" cy="260" rx="198" ry="118" transform="rotate(14 260 260)"></ellipse>
-                <path d="M112 214C154 186 212 170 260 170C318 170 372 188 408 220"></path>
-                <path d="M118 308C164 340 214 354 260 354C314 354 366 338 406 302"></path>
-              </svg>
-              <svg class="kx-prologue-stage__reticle" viewBox="0 0 520 520" focusable="false">
-                <path d="M260 52V132M260 388V468M52 260H132M388 260H468"></path>
-                <path d="M132 132L176 176M344 344L388 388M388 132L344 176M176 344L132 388"></path>
-                <circle cx="260" cy="260" r="94"></circle>
-              </svg>
-              <svg class="kx-prologue-stage__wave" viewBox="0 0 520 520" focusable="false">
-                <path d="M74 266C104 250 124 228 150 228C184 228 192 292 228 292C254 292 262 230 292 230C324 230 334 310 374 310C402 310 420 286 446 270"></path>
-              </svg>
-              <div class="kx-prologue-stage__eye-art">
-                <svg class="kx-prologue-stage__eye-shell" viewBox="0 0 520 520" focusable="false">
-                  <path d="M54 260C106 170 186 110 260 110C334 110 414 170 466 260C414 350 334 410 260 410C186 410 106 350 54 260Z"></path>
-                  <path d="M112 260C150 202 202 168 260 168C318 168 370 202 408 260C370 318 318 352 260 352C202 352 150 318 112 260Z"></path>
-                </svg>
-                <svg class="kx-prologue-stage__eye-iris" viewBox="0 0 520 520" focusable="false">
-                  <circle cx="260" cy="260" r="82"></circle>
-                  <circle cx="260" cy="260" r="54"></circle>
-                  <path d="M260 178C304 178 342 216 342 260C342 304 304 342 260 342C216 342 178 304 178 260C178 216 216 178 260 178Z"></path>
-                </svg>
-                <div class="kx-prologue-stage__pupil-anchor">
-                  <span class="kx-prologue-stage__pupil"></span>
-                  <span class="kx-prologue-stage__pupil-glint"></span>
-                </div>
-                <SpriteSignal
-                  class="kx-prologue-stage__sprite-signal"
-                  scene="prologue"
-                  sprite="/assets/kodex/sprites/observation-eye-blink.png"
-                  frames={12}
-                  width={180}
-                  height={180}
-                  label="prologue blink signal"
-                />
-              </div>
-              <span class="kx-prologue-stage__crosshair" aria-hidden="true"></span>
-            </div>
-            <HiddenMessageBand class="kx-prologue-stage__message-band" scene="prologue" messages={prologueMessages} />
-            <figcaption>{prologueObservationRecord.microLabel}</figcaption>
-          </figure>
+      {/* El pie decía "VISUAL IMPACT / FRONTIER REVIEW PENDING" y
+          "NOT PRODUCTION". Eran notas de obra del laboratorio, y esto ya no
+          es el laboratorio: es la puerta del sitio. */}
+    </main>
 
-          <aside class="kx-prologue-stage__protocol-card" data-reveal aria-label="protocol status">
-            <p>NODE · {prologue.node}</p>
-            <p>PROTOCOL · {prologue.protocol}</p>
-            <p>STATUS · {prologueObservationRecord.status}</p>
-          </aside>
+    <script>
+      const root = document.querySelector<HTMLElement>('.threshold-lab');
+      if (root) {
+        const motionToggle = root.querySelector<HTMLButtonElement>('[data-motion-toggle]');
+        const stateLabel = root.querySelector<HTMLElement>('[data-visual-state]');
+        const apertureNote = root.querySelector<HTMLElement>('[data-aperture-note]');
+        const telemetryMotion = root.querySelector<HTMLElement>('[data-telemetry-motion]');
+        const telemetryState = root.querySelector<HTMLElement>('[data-telemetry-state]');
+        const modes = ['FULL', 'REDUCED', 'OFF'] as const;
+        let motionIndex = matchMedia('(prefers-reduced-motion: reduce)').matches ? 1 : 0;
+        let visualState: 'DORMANT' | 'AWARE' | 'OPEN' = 'DORMANT';
+        let dwell = 0;
+        let lastMove = performance.now();
 
-          <aside
-            class="kx-prologue-stage__protocol-panel"
-            id="kdx-protocol-panel"
-            data-kdx-protocol-panel
-            hidden
-            aria-hidden="true"
-            aria-modal="true"
-            role="dialog"
-            aria-labelledby="kdx-protocol-title"
-          >
-            <div class="kx-prologue-stage__protocol-inner">
-              <button class="kx-prologue-stage__protocol-close" type="button" data-kdx-protocol-close aria-label="close protocol">CLOSE ✕</button>
-              <p class="kx-prologue-stage__protocol-kicker">{prologue.kicker}</p>
-              <h3 class="kx-prologue-stage__protocol-title" id="kdx-protocol-title">{prologueObservationRecord.title}</h3>
-              <p class="kx-prologue-stage__protocol-copy">The archive detects relation before identity. Observation is reciprocal: the system reads the visitor, then returns a changed memory.</p>
-              <ul class="kx-prologue-stage__protocol-list">
-                {prologueObservationRecord.notes.map((note) => <li>{note}</li>)}
-              </ul>
-              <dl class="kx-prologue-stage__protocol-meta">
-                <div><dt>Archive</dt><dd>{prologueObservationRecord.archive}</dd></div>
-                <div><dt>Signal</dt><dd>{prologueObservationRecord.signal}</dd></div>
-                <div><dt>Clearance</dt><dd>{prologueObservationRecord.clearance}</dd></div>
-                <div><dt>Operator</dt><dd>{prologueObservationRecord.operator}</dd></div>
-                <div><dt>Checksum</dt><dd>{prologueObservationRecord.checksum}</dd></div>
-                <div><dt>Timestamp</dt><dd>{prologueObservationRecord.timestamp}</dd></div>
-              </dl>
-            </div>
-          </aside>
-        </div>
-      </section>
-    </div>
+        const renderControls = () => {
+          const motion = modes[motionIndex] ?? 'FULL';
+          root.dataset.motion = motion.toLowerCase();
+          if (motionToggle) motionToggle.textContent = `MOTION: ${motion}`;
+          if (stateLabel) stateLabel.textContent = visualState;
+          if (telemetryMotion) telemetryMotion.textContent = motion;
+          if (telemetryState) telemetryState.textContent = visualState;
+          if (apertureNote) {
+            apertureNote.textContent = visualState === 'DORMANT'
+              ? 'APPROACH THE MEMBRANE'
+              : visualState === 'AWARE'
+                ? 'PRESENCE MODULATES / IDENTITY UNKNOWN'
+                : 'APERTURE STABLE / CHOICE REQUIRED';
+          }
+        };
 
-    <KodexOverlays gallery={false} />
-  </div>
+        const updateVisualState = (event: PointerEvent) => {
+          const rect = root.getBoundingClientRect();
+          const compact = rect.width < 900;
+          const focalX = rect.width * (compact ? 0.5 : 0.64);
+          const focalY = rect.height * (compact ? 0.39 : 0.5);
+          const dx = event.clientX - rect.left - focalX;
+          const dy = event.clientY - rect.top - focalY;
+          const distance = Math.hypot(dx, dy);
+          const near = distance < Math.min(rect.width, rect.height) * 0.31;
+          const veryNear = distance < Math.min(rect.width, rect.height) * 0.19;
 
-  <script>
-    import { liberarMemoria } from "../../kodex/return/memory.js";
+          if (veryNear) {
+            dwell = Math.min(1, dwell + 0.12);
+            visualState = dwell > 0.62 ? 'OPEN' : 'AWARE';
+          } else if (near) {
+            dwell = Math.max(0, dwell - 0.025);
+            visualState = 'AWARE';
+          } else {
+            dwell = Math.max(0, dwell - 0.08);
+            visualState = 'DORMANT';
+          }
+          lastMove = performance.now();
+          renderControls();
+        };
 
-    import { initKx } from '../../scripts/kodex-engine.js';
-    initKx();
+        root.addEventListener('pointermove', updateVisualState, { passive: true });
+        root.addEventListener('pointerleave', () => {
+          dwell = 0;
+          visualState = 'DORMANT';
+          renderControls();
+        }, { passive: true });
 
-    /* THRESHOLD contra los contratos compartidos. La Scene Bible manda hacer
-       ésta primero y sola: "implement the shared contracts and THRESHOLD only".
-       No dibuja nada —de eso ya se encarga KodexPortal—; lo que agrega es lo que
-       ninguna escena hacía: emitir memoria y publicar señales normalizadas. */
-    import { montarThreshold } from '../../lib/kodex/escenas/threshold-cliente';
-    const umbral = document.querySelector('.kx-threshold');
-    if (umbral instanceof HTMLElement) montarThreshold(umbral);
+        motionToggle?.addEventListener('click', () => {
+          motionIndex = (motionIndex + 1) % modes.length;
+          renderControls();
+        });
 
-    /* El estado en el DOM. La máquina ya corría acá —la comparten el portal,
-       la compuerta y el CRT— pero nadie la escribía, así que la consecuencia
-       visible no era verificable ni desde el gate ni desde el CSS. */
-    import { montarEspejoEstado } from '../../lib/kodex/espejo-estado';
-    if (umbral instanceof HTMLElement) { try { montarEspejoEstado(umbral); } catch (_) {} }
+        const idleTimer = window.setInterval(() => {
+          if (performance.now() - lastMove > 1400 && visualState !== 'DORMANT') {
+            dwell = Math.max(0, dwell - 0.2);
+            if (dwell <= 0.1) visualState = 'DORMANT';
+            else if (visualState === 'OPEN') visualState = 'AWARE';
+            renderControls();
+          }
+        }, 300);
 
-    /* LA VOZ · 2026-08-28. Va junto al espejo de estado porque las dos hacen
-       lo mismo desde angulos distintos: el espejo hace VISIBLE el estado, la
-       voz lo hace AUDIBLE. Ninguna inventa comportamiento nuevo.
-       No arranca sola: voz.ts respeta la eleccion de la puerta
-       (sessionStorage kx-audio) y prefers-reduced-motion, y espera el primer
-       gesto real del visitante. Si el visitante eligio silencio, montarla no
-       hace absolutamente nada. */
-    import { montarVoz } from '../../lib/kodex/voz';
-    if (umbral instanceof HTMLElement) {
-      try {
-        const callar = montarVoz(umbral);
-        window.addEventListener('pagehide', callar, { once: true });
-      } catch (_) {}
-    }
-
-    /* La bifurcacion sonido/silencio: la eleccion se guarda donde el motor de
-       audio la lee (sessionStorage kx-audio). Vive en el velo. */
-    document.querySelectorAll('[data-kdx-sonido]').forEach((a) => {
-      a.addEventListener('click', () => {
-        try { sessionStorage.setItem('kx-audio', (a as HTMLElement).dataset.kdxSonido === '1' ? '1' : '0'); } catch (_) {}
-      }, { capture: true });
-    });
-
-    /* EL VELO. Tocar en cualquier parte = entrar con sonido (TAP TO ENTER —
-       ENABLE SOUND es la rama con-sonido de la bifurcacion canonica); el
-       fantasma CONTINUE IN SILENCE ya fijo kx-audio=0 en su propio handler.
-       Elegir disuelve el velo y revela la escena; no navega. */
-    /* Se monta en función y no de una vez, porque con el router de vistas
-       VOLVER no recarga el documento: intercambia el contenido y el guion de
-       módulo no se ejecuta de nuevo. Sin esto, retroceder desde PROLOGUE traía
-       el velo otra vez y le cobraba al huésped la misma decisión dos veces.
-       Medido en los tres tamaños antes de arreglarlo. */
-    const montarVelo = () => {
-    const velo = document.querySelector('[data-kdx-veil]');
-    if (velo instanceof HTMLElement) {
-      let disuelto = false;
-      const disolver = () => {
-        if (disuelto) return;
-        disuelto = true;
-        /* Elegir es el acto que abre el archivo. Recién acá se libera la
-           memoria: lo que se encoló mientras el velo estaba puesto se escribe
-           ahora, con el consentimiento dado. */
-        try { sessionStorage.setItem('kx-umbral', 'cruzado'); } catch (_) {}
-        liberarMemoria();
-        /* Se avisa una sola vez. Quien esperaba consentimiento para escribir
-           -- la memoria de escena, el sincronizador de URL -- arranca acá. */
-        document.dispatchEvent(new CustomEvent('kdx:eleccion'));
-        velo.classList.add('is-disuelto');
-        window.setTimeout(() => velo.remove(), 950);
-      };
-
-      /* Ya cruzó en esta sesión: el velo se retira sin ceremonia y sin volver
-         a preguntar. Volver atrás no debe costar dos veces la misma decisión. */
-      if (document.documentElement.hasAttribute('data-kdx-umbral-cruzado')) {
-        velo.remove();
-        disuelto = true;
-        liberarMemoria();
-        document.dispatchEvent(new CustomEvent('kdx:eleccion'));
-      } else if (document.documentElement.hasAttribute('data-kdx-umbral-reconocido')) {
-        /* Ya cruzó, pero volvió a la puerta por su cuenta. La portada se queda
-           -- el campo, la marca, la palabra -- y lo único que cambia es que no
-           se le pregunta nada: una sola puerta y ya. Nada se encola ni se pide
-           de nuevo, la memoria se libera acá mismo. */
-        liberarMemoria();
-        document.dispatchEvent(new CustomEvent('kdx:eleccion'));
+        addEventListener('pagehide', () => clearInterval(idleTimer), { once: true });
+        renderControls();
       }
-      velo.addEventListener('click', (e) => {
-        const boton = e.target instanceof Element ? e.target.closest('[data-kdx-sonido]') : null;
-        if (!boton) {
-          try { sessionStorage.setItem('kx-audio', '1'); } catch (_) {}
-        }
-        disolver();
-      });
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(*) { box-sizing: border-box; }
+  :global(html) { background: #020203; color-scheme: dark; }
+  :global(body) {
+    margin: 0;
+    overflow: hidden;
+    background: #020203;
+    color: #f0eee8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  :global(a), :global(button) { font: inherit; }
+
+  .threshold-lab {
+    position: relative;
+    width: 100vw;
+    height: 100svh;
+    min-height: 38rem;
+    overflow: hidden;
+    background: #020203;
+  }
+
+  .threshold-lab__membrane { z-index: 0; }
+  .threshold-lab__depth {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, rgb(0 0 0 / 0.42), transparent 43%, transparent 74%, rgb(0 0 0 / 0.16)),
+      radial-gradient(circle at 60% 46%, transparent 0 18%, rgb(0 0 0 / 0.08) 45%, rgb(0 0 0 / 0.42) 100%);
+  }
+
+  .threshold-lab__macro {
+    position: absolute;
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    padding-inline: clamp(1rem, 4vw, 4rem);
+    pointer-events: none;
+    overflow: hidden;
+    white-space: nowrap;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(6rem, 18vw, 21rem);
+    font-weight: 800;
+    line-height: 0.78;
+    letter-spacing: -0.05em;
+    color: rgb(240 238 232 / 0.045);
+    user-select: none;
+    mask-image: linear-gradient(90deg, rgb(0 0 0 / 0.9) 0 30%, transparent 78%);
+    -webkit-mask-image: linear-gradient(90deg, rgb(0 0 0 / 0.9) 0 30%, transparent 78%);
+  }
+
+  .threshold-lab__signal {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle at 24% 22%, rgb(180 144 255 / 0.05) 0 1px, transparent 2px),
+      radial-gradient(circle at 34% 30%, rgb(180 144 255 / 0.04) 0 1px, transparent 2px),
+      radial-gradient(circle at 55% 18%, rgb(214 202 232 / 0.05) 0 1px, transparent 2px),
+      radial-gradient(circle at 70% 24%, rgb(180 144 255 / 0.04) 0 1px, transparent 2px);
+    background-size: 160px 160px, 130px 130px, 200px 200px, 180px 180px;
+  }
+
+  .threshold-lab__chrome,
+  .threshold-lab__footer {
+    position: absolute;
+    z-index: 20;
+    inset-inline: max(0.8rem, env(safe-area-inset-left)) max(0.8rem, env(safe-area-inset-right));
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    color: rgb(240 238 232 / 0.48);
+    font-size: clamp(0.56rem, 1vw, 0.7rem);
+    line-height: 1.4;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .threshold-lab__chrome { top: max(0.72rem, env(safe-area-inset-top)); align-items: flex-start; }
+  .threshold-lab__footer { bottom: max(0.65rem, env(safe-area-inset-bottom)); align-items: flex-end; }
+  .threshold-lab__identity,
+  .threshold-lab__controls { display: flex; flex-wrap: wrap; gap: 0.35rem 0.85rem; }
+  .threshold-lab__identity strong,
+  .threshold-lab__controls strong { color: #f0eee8; font-weight: 600; }
+  .threshold-lab__controls { justify-content: flex-end; }
+  .threshold-lab__controls button {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    cursor: pointer;
+  }
+  .threshold-lab__controls button:hover,
+  .threshold-lab__controls button:focus-visible { color: #f0eee8; outline: none; }
+
+  .threshold-lab__composition {
+    position: absolute;
+    z-index: 8;
+    inset: 3.5rem 0 2.5rem;
+    display: grid;
+    grid-template-columns: minmax(19rem, 0.82fr) minmax(32rem, 1.18fr);
+    align-items: center;
+    padding: clamp(1.5rem, 5vw, 5rem);
+    pointer-events: none;
+  }
+
+  .threshold-lab__copy {
+    width: min(43rem, 100%);
+    pointer-events: auto;
+  }
+  .threshold-lab__eyebrow {
+    margin: 0 0 1.4rem;
+    color: #ac98df;
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+  }
+  .threshold-lab h1 {
+    margin: 0;
+    max-width: 9.5ch;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: clamp(3.5rem, 7vw, 7.2rem);
+    font-weight: 650;
+    line-height: 0.83;
+    letter-spacing: -0.065em;
+    text-wrap: balance;
+  }
+  .threshold-lab__lede {
+    max-width: 50ch;
+    margin: 1.5rem 0 0;
+    color: rgb(240 238 232 / 0.58);
+    font-size: clamp(0.76rem, 1.1vw, 0.95rem);
+    line-height: 1.65;
+  }
+  .threshold-lab__question {
+    max-width: 52ch;
+    margin: 2rem 0 0;
+    color: rgb(240 238 232 / 0.82);
+    font-size: 0.68rem;
+    line-height: 1.6;
+    letter-spacing: 0.12em;
+  }
+  .threshold-lab__actions { margin-top: 1.4rem; }
+  .threshold-lab__enter {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.3rem 0.85rem;
+    width: min(24rem, 100%);
+    padding: 1rem 1.05rem;
+    border: 1px solid rgb(193 171 246 / 0.44);
+    background: linear-gradient(118deg, rgb(34 23 53 / 0.9), rgb(6 6 9 / 0.86));
+    color: #f0eee8;
+    text-decoration: none;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 1.4rem 4rem rgb(0 0 0 / 0.42);
+  }
+  .threshold-lab__enter > span { grid-row: 1 / 3; color: #a982ff; font-size: 0.68rem; }
+  .threshold-lab__enter strong { font-size: 0.78rem; letter-spacing: 0.12em; }
+  .threshold-lab__enter small { color: rgb(240 238 232 / 0.48); line-height: 1.42; }
+  .threshold-lab__enter:hover,
+  .threshold-lab__enter:focus-visible { border-color: #d7c7ff; outline: none; background: linear-gradient(118deg, rgb(47 29 72 / 0.94), rgb(8 8 12 / 0.9)); }
+
+  .threshold-lab__laminas {
+    display: flex;
+    gap: 1.6rem;
+    margin: 2.2rem 0 0;
+    font-family: ui-monospace, monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.22em;
+  }
+  .threshold-lab__laminas a {
+    color: rgb(240 238 232 / 0.34);
+    text-decoration: none;
+    /* 44px de toque sin agrandar la letra: el defecto que ya arreglamos
+       en las puertas del corredor no vuelve a entrar por acá. */
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    transition: color 0.3s;
+  }
+  .threshold-lab__laminas a:hover,
+  .threshold-lab__laminas a:focus-visible { color: rgb(240 238 232 / 0.9); }
+
+  /* El único control de la pantalla tiene que agarrarse con el pulgar. */
+  .threshold-lab__controls button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .kdx-val {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .threshold-lab__telemetry {
+    position: absolute;
+    z-index: 10;
+    top: 4.8rem;
+    right: 1.5rem;
+    width: min(15rem, 32vw);
+    display: grid;
+    gap: 0.45rem;
+    pointer-events: none;
+    color: rgb(240 238 232 / 0.38);
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+  }
+  .threshold-lab__telemetry div {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgb(240 238 232 / 0.08);
+  }
+  .threshold-lab__telemetry strong { color: rgb(240 238 232 / 0.66); font-weight: 500; text-align: right; }
+
+  .threshold-lab__index {
+    position: absolute;
+    z-index: 10;
+    right: 1.5rem;
+    bottom: 3.4rem;
+    display: grid;
+    gap: 0.35rem;
+    justify-items: end;
+    pointer-events: none;
+    color: rgb(240 238 232 / 0.4);
+    font-size: 0.5rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .threshold-lab__index--bars {
+    display: block;
+    width: 5.5rem;
+    height: 0.9rem;
+    background:
+      repeating-linear-gradient(90deg,
+        rgb(240 238 232 / 0.55) 0 2px, transparent 2px 5px,
+        rgb(240 238 232 / 0.32) 5px 6px, transparent 6px 10px,
+        rgb(240 238 232 / 0.6) 10px 13px, transparent 13px 16px);
+  }
+  .threshold-lab__index--caption { color: rgb(240 238 232 / 0.3); }
+
+  .threshold-lab__aperture-note {
+    position: absolute;
+    z-index: 9;
+    left: 60%;
+    top: 46%;
+    transform: translate(-50%, min(32vw, 22rem));
+    color: rgb(240 238 232 / 0.38);
+    font-size: 0.56rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    pointer-events: none;
+  }
+
+  @media (max-width: 900px) {
+    .threshold-lab { min-height: 0; }
+    .threshold-lab__depth {
+      background:
+        linear-gradient(180deg, transparent 0 42%, rgb(2 2 3 / 0.08) 52%, rgb(2 2 3 / 0.93) 77%, #020203 100%),
+        radial-gradient(circle at 50% 32%, transparent 0 17%, rgb(0 0 0 / 0.12) 42%, rgb(0 0 0 / 0.45) 100%);
     }
-    };
-
-    /* Al volver, la sesión ya sabe que cruzó: se marca antes de montar para
-       que el velo se retire sin ceremonia en vez de aparecer y desvanecerse. */
-    const marcarSiCruzo = () => {
-      let cruzado = false;
-      try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
-      if (!cruzado) return;
-      /* Misma distinción que el guardián de arriba, y hacía falta repetirla:
-         esta función corre en cada `astro:page-load` y volvía a poner
-         `umbral-cruzado` siempre, pisando lo que el guardián había decidido.
-         Medido: la portada seguía sin volver aunque el guardián ya la
-         marcaba como reconocida. Dos lugares deciden lo mismo, los dos tienen
-         que decidirlo igual. */
-      let atras = false;
-      try { atras = (performance.getEntriesByType('navigation')[0] || {}).type === 'back_forward'; } catch (_) {}
-      const raiz = document.documentElement;
-      raiz.removeAttribute('data-kdx-espera-eleccion');
-      if (atras) { raiz.setAttribute('data-kdx-umbral-cruzado', ''); raiz.removeAttribute('data-kdx-umbral-reconocido'); }
-      else { raiz.setAttribute('data-kdx-umbral-reconocido', ''); raiz.removeAttribute('data-kdx-umbral-cruzado'); }
-    };
-    marcarSiCruzo();
-    montarVelo();
-    /* Y ACÁ ESTABA EL AGUJERO DEL DISCRIMINADOR. El tipo de navegación sólo
-       sirve para el documento que se carga de verdad. Cuando el corredor vuelve
-       a /kodex/ por su router, NO hay navegación nueva: el documento es el
-       mismo y `performance` sigue diciendo 'navigate'. Con eso, volver desde un
-       folio hacía reaparecer la portada -- justo lo que la regla del creador
-       prohíbe, y el banco lo cazó: tres fallas de "volver NO vuelve a pedir la
-       puerta".
-
-       Después de la primera carga, todo lo que pase es movimiento DENTRO del
-       corredor. Quien ya cruzó y vuelve por adentro no ve la puerta otra vez.
-       La portada reconocida es para quien llega de nuevo al sitio. */
-    let dentroDelCorredor = false;
-    document.addEventListener('astro:page-load', () => {
-      if (dentroDelCorredor) {
-        let cruzado = false;
-        try { cruzado = sessionStorage.getItem('kx-umbral') === 'cruzado'; } catch (_) {}
-        if (cruzado) {
-          document.documentElement.setAttribute('data-kdx-umbral-cruzado', '');
-          document.documentElement.removeAttribute('data-kdx-umbral-reconocido');
-          document.documentElement.removeAttribute('data-kdx-espera-eleccion');
-        }
-      } else {
-        dentroDelCorredor = true;
-        marcarSiCruzo();
-      }
-      montarVelo();
-    });
-  </script>
-</Base>
+    .threshold-lab__macro {
+      align-items: flex-start;
+      padding-top: clamp(3.5rem, 12svh, 6rem);
+      font-size: clamp(4rem, 26vw, 8rem);
+      mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.9) 0 40%, transparent 88%);
+      -webkit-mask-image: linear-gradient(180deg, rgb(0 0 0 / 0.9) 0 40%, transparent 88%);
+    }
+    .threshold-lab__signal { opacity: 0.7; }
+    .threshold-lab__chrome { gap: 0.5rem; }
+    .threshold-lab__identity span:nth-of-type(2),
+    .threshold-lab__identity span:nth-of-type(3),
+    .threshold-lab__controls > span { display: none; }
+    .threshold-lab__composition {
+      inset: 3rem 0 2.2rem;
+      display: flex;
+      align-items: flex-end;
+      padding: 1rem 1rem 1.6rem;
+    }
+    .threshold-lab__copy { width: 100%; }
+    .threshold-lab__eyebrow { margin-bottom: 0.75rem; }
+    .threshold-lab h1 { max-width: 8.5ch; font-size: clamp(2.9rem, 13.5vw, 4.4rem); }
+    .threshold-lab__lede { display: none; }
+    .threshold-lab__question { margin-top: 0.9rem; max-width: 40ch; font-size: 0.56rem; }
+    .threshold-lab__actions { margin-top: 0.75rem; }
+    .threshold-lab__enter { width: 100%; padding: 0.85rem 0.9rem; }
+    .threshold-lab__telemetry { top: 4rem; right: 0.75rem; width: 9.5rem; font-size: 0.48rem; }
+    .threshold-lab__telemetry div:nth-child(n + 5) { display: none; }
+    .threshold-lab__index { right: 0.75rem; bottom: 2.6rem; }
+    .threshold-lab__index--caption { display: none; }
+    .threshold-lab__aperture-note { left: 50%; top: 32%; transform: translate(-50%, 24vw); font-size: 0.48rem; white-space: nowrap; }
+    .threshold-lab__footer { gap: 0.4rem; font-size: 0.48rem; }
+    .threshold-lab__footer span:nth-child(2) { display: none; }
+  }
+</style>
