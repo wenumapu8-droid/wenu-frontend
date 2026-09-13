@@ -100,7 +100,7 @@ export function montarThreshold(raiz: HTMLElement): () => void {
      se expresa en texto + `data-kdx-hold-progress` + una barra de fondo, de modo
      que no depende sólo de color ni de WebGL. */
   const cta = raiz.querySelector<HTMLAnchorElement>("[data-kdx-cruzar]");
-  let cancelarHold: (() => void) | null = null;
+  let interrumpirHold: (() => void) | null = null;
 
   if (cta) {
     const textoBase = (cta.textContent || THRESHOLD.copy.invitation).trim();
@@ -124,17 +124,22 @@ export function montarThreshold(raiz: HTMLElement): () => void {
 
       cta.dataset.kdxHoldProgress = progreso.toFixed(3);
       cta.toggleAttribute("data-kdx-holding", progreso > 0 && progreso < 1);
-      cta.setAttribute("aria-label", progreso > 0 && progreso < 1
-        ? `${textoBase} — hold progress ${porcentaje}%`
-        : textoBase);
+      cta.setAttribute(
+        "aria-label",
+        progreso > 0 && progreso < 1
+          ? `${textoBase} — hold progress ${porcentaje}%`
+          : textoBase,
+      );
 
       // Feedback visible incluso sin shader. Se borra al volver a cero.
-      cta.textContent = progreso > 0 && progreso < 1
-        ? `${textoBase.replace(/\.$/, "")} · HOLD ${porcentaje}%`
-        : textoBase;
-      cta.style.backgroundImage = progreso > 0
-        ? `linear-gradient(90deg, rgba(255,255,255,0.16) ${porcentaje}%, transparent ${porcentaje}%)`
-        : "";
+      cta.textContent =
+        progreso > 0 && progreso < 1
+          ? `${textoBase.replace(/\.$/, "")} · HOLD ${porcentaje}%`
+          : textoBase;
+      cta.style.backgroundImage =
+        progreso > 0
+          ? `linear-gradient(90deg, rgba(255,255,255,0.16) ${porcentaje}%, transparent ${porcentaje}%)`
+          : "";
       cta.style.backgroundRepeat = progreso > 0 ? "no-repeat" : "";
       cta.style.backgroundSize = progreso > 0 ? "100% 100%" : "";
     };
@@ -162,7 +167,10 @@ export function montarThreshold(raiz: HTMLElement): () => void {
       });
 
       // Deja un frame legible de completion antes de la navegación.
-      window.setTimeout(() => window.location.assign(cta.href), reduceMotion.matches ? 0 : 120);
+      window.setTimeout(
+        () => window.location.assign(cta.href),
+        reduceMotion.matches ? 0 : 120,
+      );
     };
 
     const avanzar = (ahora: number) => {
@@ -217,7 +225,9 @@ export function montarThreshold(raiz: HTMLElement): () => void {
       if (!sosteniendo || completado) return;
       // Materializa el tramo transcurrido aunque pointerup llegue entre frames.
       if (holdInicio) {
-        pintarProgreso(progresoInicio + (performance.now() - holdInicio) / DURACION_HOLD_MS);
+        pintarProgreso(
+          progresoInicio + (performance.now() - holdInicio) / DURACION_HOLD_MS,
+        );
       }
       sosteniendo = false;
       if (rafHold) window.cancelAnimationFrame(rafHold);
@@ -228,11 +238,15 @@ export function montarThreshold(raiz: HTMLElement): () => void {
       else decaer();
     };
 
+    interrumpirHold = soltarHold;
+
     const alPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 || completado) return;
       e.preventDefault();
       punteroActivo = e.pointerId;
-      try { cta.setPointerCapture(e.pointerId); } catch (_) {}
+      try {
+        cta.setPointerCapture(e.pointerId);
+      } catch (_) {}
       empezarHold();
     };
     const alPointerUp = (e: PointerEvent) => {
@@ -250,6 +264,9 @@ export function montarThreshold(raiz: HTMLElement): () => void {
       // Un click/tap corto nunca cruza. La navegación ocurre sólo en completar().
       e.preventDefault();
     };
+    const alContextMenu = (e: MouseEvent) => {
+      if (sosteniendo) e.preventDefault();
+    };
     const alKeyDown = (e: KeyboardEvent) => {
       if ((e.key !== "Enter" && e.key !== " ") || e.repeat || completado) return;
       e.preventDefault();
@@ -266,17 +283,19 @@ export function montarThreshold(raiz: HTMLElement): () => void {
     cta.addEventListener("pointerup", alPointerUp);
     cta.addEventListener("pointercancel", alPointerCancel);
     cta.addEventListener("click", alClick);
+    cta.addEventListener("contextmenu", alContextMenu);
     cta.addEventListener("keydown", alKeyDown);
     cta.addEventListener("keyup", alKeyUp);
     cta.addEventListener("blur", alBlur);
     pintarProgreso(0);
 
-    cancelarHold = () => {
+    const limpiarHold = () => {
       detenerFrames();
       cta.removeEventListener("pointerdown", alPointerDown);
       cta.removeEventListener("pointerup", alPointerUp);
       cta.removeEventListener("pointercancel", alPointerCancel);
       cta.removeEventListener("click", alClick);
+      cta.removeEventListener("contextmenu", alContextMenu);
       cta.removeEventListener("keydown", alKeyDown);
       cta.removeEventListener("keyup", alKeyUp);
       cta.removeEventListener("blur", alBlur);
@@ -285,16 +304,15 @@ export function montarThreshold(raiz: HTMLElement): () => void {
       cta.style.backgroundSize = "";
       cta.textContent = textoBase;
     };
-    limpiezas.push(cancelarHold);
+    limpiezas.push(limpiarHold);
   }
 
   const alCambiarVisibilidad = () => {
     if (document.hidden) {
       cerrarTramo();
-      // Perder visibilidad nunca puede completar una intención que dejó de estar
-      // siendo sostenida conscientemente.
-      cancelarHold?.();
-      cancelarHold = null;
+      // Ocultar/cambiar de pestaña interrumpe la intención, pero no desmonta
+      // los listeners: al volver, la puerta sigue siendo utilizable.
+      interrumpirHold?.();
     } else if (!desde) {
       desde = performance.now();
     }
