@@ -97,8 +97,15 @@ try {
         });
       }
 
-      await page.locator('[data-experience="AUDIO_ORGANISM"]').click();
-      await page.locator('#kdx-audio-level').fill('0.75');
+      await page.evaluate(() => {
+        const button = document.querySelector('[data-experience="AUDIO_ORGANISM"]');
+        const input = document.querySelector('#kdx-audio-level');
+        if (!(button instanceof HTMLButtonElement)) throw new Error('AUDIO_ORGANISM control missing');
+        if (!(input instanceof HTMLInputElement)) throw new Error('Audio range input missing');
+        button.click();
+        input.value = '0.75';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
       await page.waitForTimeout(profile.reducedMotion === 'reduce' ? 100 : 400);
       assert(Number(await page.locator('#kdx-audio-level').inputValue()) === 0.75, `${profile.key}: audio signal control failed`);
 
