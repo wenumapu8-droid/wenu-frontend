@@ -26,19 +26,42 @@ const formatError = (error) => String(error?.stack || error?.message || error);
 async function samplePaintedSignal(page) {
   return page.evaluate(() => {
     const canvas = document.querySelector('#kdx-engine-canvas');
-    if (!(canvas instanceof HTMLCanvasElement)) return { painted: 0, samples: 0, webgl2: false };
-    const gl = canvas.getContext('webgl2');
-    if (!gl || !canvas.width || !canvas.height) return { painted: 0, samples: 0, webgl2: false };
-    const points = [[0.5, 0.5], [0.3, 0.5], [0.7, 0.5], [0.5, 0.3], [0.5, 0.7]];
-    const pixel = new Uint8Array(4);
-    let painted = 0;
-    for (const [nx, ny] of points) {
-      const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(canvas.width * nx)));
-      const y = Math.max(0, Math.min(canvas.height - 1, Math.floor(canvas.height * ny)));
-      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-      if (pixel[0] + pixel[1] + pixel[2] > 10) painted += 1;
+    if (!(canvas instanceof HTMLCanvasElement)) {
+      return { painted: 0, samples: 0, paintedRatio: 0, webgl2: false, width: 0, height: 0 };
     }
-    return { painted, samples: points.length, webgl2: true };
+    const gl = canvas.getContext('webgl2');
+    const width = canvas.width;
+    const height = canvas.height;
+    if (!gl || !width || !height) {
+      return { painted: 0, samples: 0, paintedRatio: 0, webgl2: false, width, height };
+    }
+
+    // Read the real framebuffer once, then stride through up to ~20k pixels.
+    // This proves the renderer painted signal across the actual aspect ratio and
+    // avoids false negatives from a handful of coordinates landing in intentional void.
+    const pixels = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const pixelCount = width * height;
+    const stridePixels = Math.max(1, Math.floor(pixelCount / 20_000));
+    let painted = 0;
+    let samples = 0;
+    let maxLuma = 0;
+    for (let pixelIndex = 0; pixelIndex < pixelCount; pixelIndex += stridePixels) {
+      const offset = pixelIndex * 4;
+      const luma = pixels[offset] + pixels[offset + 1] + pixels[offset + 2];
+      maxLuma = Math.max(maxLuma, luma);
+      if (luma > 10) painted += 1;
+      samples += 1;
+    }
+    return {
+      painted,
+      samples,
+      paintedRatio: samples ? Number((painted / samples).toFixed(6)) : 0,
+      maxLuma,
+      webgl2: true,
+      width,
+      height,
+    };
   });
 }
 
@@ -111,7 +134,7 @@ try {
 
       const painted = await samplePaintedSignal(page);
       assert(painted.webgl2, `${profile.key}: WebGL2 unavailable`);
-      assert(painted.painted > 0, `${profile.key}: no painted WebGL signal`);
+      assert(painted.painted >= 3, `${profile.key}: framebuffer contains no measurable painted WebGL signal`);
       assert(pageErrors.length === 0, `${profile.key}: page errors ${pageErrors.join(' | ')}`);
 
       const screenshot = `kdx-engine-v0-${profile.key}.png`;
