@@ -8,6 +8,10 @@ import {
   KodexWorldRendererAdapter,
   createSignalFrame,
   describeKdxRenderer,
+  normalizePointerCoordinates,
+  createAudioSignalAdapter,
+  createKdxSceneStateBridge,
+  createKdxJourneyCommitAdapter,
 } from '../src/kodex/engine/index.js';
 
 test('SignalFrame clamps channels and is immutable', () => {
@@ -109,4 +113,59 @@ test('memory writes are explicit and never happen from signal frames', () => {
   assert.throws(() => engine.commitMemory({ id: 'x' }), /explicitCommit/);
   engine.commitMemory({ id: 'x', explicitCommit: true });
   assert.deepEqual(commits, ['x']);
+});
+
+test('device normalization maps viewport coordinates into KDX normalized space', () => {
+  const center = normalizePointerCoordinates(60, 45, { left: 10, top: 20, width: 100, height: 50 });
+  assert.deepEqual(center, { x: 0, y: 0 });
+  const clipped = normalizePointerCoordinates(999, -999, { left: 0, top: 0, width: 100, height: 100 });
+  assert.deepEqual(clipped, { x: 1, y: 1 });
+});
+
+test('audio adapter writes bounded spectrum samples into the shared signal bus', () => {
+  const bus = new KdxSignalBus({ clock: () => 1 });
+  const audio = createAudioSignalAdapter({ bus });
+  audio.push({ level: 1.4, low: -1, mid: 0.4, high: 2 });
+  const frame = bus.frame();
+  assert.deepEqual(frame.audio, { level: 1, low: 0, mid: 0.4, high: 1, active: true });
+  audio.clear();
+  assert.equal(bus.frame().audio.active, false);
+});
+
+test('scene-state bridge is stateless and only translates existing authority into renderer phases', () => {
+  const bridge = createKdxSceneStateBridge();
+  assert.deepEqual(bridge.reduce({ type: 'SCENE_STATE', state: 'idle' }), {
+    accepted: true, sceneState: 'idle', rendererPhase: 'E00', ownsState: false,
+  });
+  assert.deepEqual(bridge.reduce({ type: 'SCENE_STATE', state: 'active' }), {
+    accepted: true, sceneState: 'active', rendererPhase: 'M11', ownsState: false,
+  });
+  assert.equal(bridge.reduce({ type: 'SCENE_STATE', state: 'invented' }).accepted, false);
+});
+
+test('Journey adapter forwards only an explicit existing organism-action payload', () => {
+  const dispatched = [];
+  const adapter = createKdxJourneyCommitAdapter({ dispatch: (detail) => dispatched.push(detail) });
+  const action = {
+    id: 'semantic:demo:CX-001',
+    presetId: 'semantic-memory-v0.1.0',
+    family: 'SEMANTIC_MEMORY',
+    action: 'TRACE_CONCEPT',
+    memoryWrites: ['concept:CX-001:SIGNAL'],
+  };
+  assert.throws(() => adapter.commit({ action }), /explicitCommit/);
+  const result = adapter.commit({ explicitCommit: true, action });
+  assert.deepEqual(result, { accepted: true, actionId: action.id, writeCount: 1 });
+  assert.deepEqual(dispatched, [action]);
+});
+
+test('engine state dispatch uses the configured bridge but does not own scene state', () => {
+  const phases = [];
+  const renderer = {
+    applyPlan() {}, applySignals() {}, start() {}, stop() {}, setState(phase) { phases.push(phase); },
+  };
+  const engine = new KdxEngineCore({ renderer, stateAdapter: createKdxSceneStateBridge() });
+  const result = engine.dispatchState({ type: 'SCENE_STATE', state: 'transitionOut' });
+  assert.equal(result.rendererPhase, 'R10');
+  assert.deepEqual(phases, ['R10']);
 });
