@@ -1,0 +1,288 @@
+---
+const title = 'KDX Engine v0.1 — 3 Experiences / 1 Core';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <main class="kdx-lab" data-kdx-engine-lab>
+      <canvas id="kdx-engine-canvas" aria-label="KDX Engine generative renderer"></canvas>
+
+      <section class="kdx-lab__panel" aria-label="KDX Engine controls">
+        <p class="kdx-lab__eyebrow">KDX ENGINE · v0.1 · SLICE 01</p>
+        <h1>3 EXPERIENCES / 1 CORE</h1>
+        <p class="kdx-lab__copy">
+          One SignalFrame contract, one EngineCore and the existing KodexWorld renderer.
+        </p>
+
+        <div class="kdx-lab__experiences" role="group" aria-label="Experience preset">
+          <button type="button" data-experience="THRESHOLD">THRESHOLD</button>
+          <button type="button" data-experience="SIGNAL_FIELD">SIGNAL FIELD</button>
+          <button type="button" data-experience="AUDIO_ORGANISM">AUDIO ORGANISM</button>
+        </div>
+
+        <label class="kdx-lab__audio">
+          <span>AUDIO SIGNAL</span>
+          <input id="kdx-audio-level" type="range" min="0" max="1" step="0.01" value="0" />
+        </label>
+
+        <dl class="kdx-lab__telemetry">
+          <div><dt>EXPERIENCE</dt><dd id="kdx-exp">THRESHOLD</dd></div>
+          <div><dt>PLAN</dt><dd id="kdx-plan">—</dd></div>
+          <div><dt>FRAME</dt><dd id="kdx-frame">0</dd></div>
+          <div><dt>FPS</dt><dd id="kdx-fps">—</dd></div>
+        </dl>
+
+        <p id="kdx-status" class="kdx-lab__status" role="status">INITIALIZING</p>
+      </section>
+    </main>
+
+    <script>
+      import { ExternalSignalKodexWorld } from '../../../kodex/engine/externalKodexWorld.js';
+      import { KodexWorldRendererAdapter } from '../../../kodex/engine/kodexWorldAdapter.js';
+      import { KdxEngineCore } from '../../../kodex/engine/kdxEngineCore.js';
+      import { KdxSignalBus } from '../../../kodex/engine/kdxSignals.js';
+      import { KDX_EXPERIENCE_PRESETS } from '../../../kodex/engine/kdxExperiencePresets.js';
+
+      const canvas = document.querySelector('#kdx-engine-canvas');
+      const status = document.querySelector('#kdx-status');
+      const expOut = document.querySelector('#kdx-exp');
+      const planOut = document.querySelector('#kdx-plan');
+      const frameOut = document.querySelector('#kdx-frame');
+      const fpsOut = document.querySelector('#kdx-fps');
+      const audioInput = document.querySelector('#kdx-audio-level');
+
+      const telemetry = (payload) => {
+        if (payload?.fps != null) fpsOut.textContent = String(payload.fps);
+      };
+
+      const world = new ExternalSignalKodexWorld(canvas, { onTelemetry: telemetry });
+      const renderer = new KodexWorldRendererAdapter(world);
+      const signals = new KdxSignalBus({ clock: () => performance.now() });
+      const engine = new KdxEngineCore({ renderer, signalBus: signals });
+
+      let current = KDX_EXPERIENCE_PRESETS.THRESHOLD;
+      let lastFrameAt = performance.now();
+      let elapsed = 0;
+      let raf = 0;
+
+      function selectExperience(id) {
+        const next = KDX_EXPERIENCE_PRESETS[id];
+        if (!next) return;
+        current = next;
+        engine.loadExperience(next);
+        expOut.textContent = next.id;
+        planOut.textContent = next.rendererPlan.plan_id;
+        document.querySelectorAll('[data-experience]').forEach((button) => {
+          button.setAttribute('aria-pressed', String(button.dataset.experience === next.id));
+        });
+      }
+
+      function normalizedPointer(event) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: ((event.clientX - rect.left) / Math.max(1, rect.width)) * 2 - 1,
+          y: -(((event.clientY - rect.top) / Math.max(1, rect.height)) * 2 - 1),
+        };
+      }
+
+      let previousPointer = { x: 0, y: 0 };
+      canvas.addEventListener('pointermove', (event) => {
+        const next = normalizedPointer(event);
+        const velocity = Math.min(1, Math.hypot(next.x - previousPointer.x, next.y - previousPointer.y) * 3);
+        previousPointer = next;
+        signals.update('pointer', { ...next, velocity, active: true });
+      }, { passive: true });
+      canvas.addEventListener('pointerleave', () => signals.update('pointer', { active: false, velocity: 0 }), { passive: true });
+      canvas.addEventListener('pointerdown', () => signals.update('activation', { active: true, level: 1 }), { passive: true });
+      canvas.addEventListener('pointerup', () => signals.update('activation', { active: false, level: 0 }), { passive: true });
+
+      audioInput.addEventListener('input', () => {
+        const level = Number(audioInput.value) || 0;
+        signals.update('audio', {
+          active: level > 0,
+          level,
+          low: level * 0.72,
+          mid: level,
+          high: level * 0.54,
+        });
+      });
+
+      document.querySelectorAll('[data-experience]').forEach((button) => {
+        button.addEventListener('click', () => selectExperience(button.dataset.experience));
+      });
+
+      async function boot() {
+        try {
+          await world.setArtwork('/img/kodex/works/bw-02.jpg');
+          selectExperience(current.id);
+          engine.start();
+          status.textContent = 'RUNNING · EXTERNAL SIGNAL MODE';
+
+          const tick = (now) => {
+            const deltaMs = Math.max(0, now - lastFrameAt);
+            lastFrameAt = now;
+            elapsed += deltaMs;
+            signals.update('time', { deltaMs, elapsedMs: elapsed });
+            const frame = engine.frame();
+            frameOut.textContent = String(frame.sequence);
+            raf = requestAnimationFrame(tick);
+          };
+          raf = requestAnimationFrame(tick);
+        } catch (error) {
+          status.textContent = `FAILED · ${error instanceof Error ? error.message : String(error)}`;
+        }
+      }
+
+      addEventListener('pagehide', () => {
+        cancelAnimationFrame(raf);
+        engine.stop();
+      }, { once: true });
+
+      boot();
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(html, body) {
+    margin: 0;
+    min-height: 100%;
+    background: #050505;
+    color: #f3f0e7;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .kdx-lab {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    background: #050505;
+  }
+
+  #kdx-engine-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .kdx-lab__panel {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    width: min(420px, calc(100vw - 48px));
+    box-sizing: border-box;
+    padding: 18px;
+    border: 1px solid rgba(243, 240, 231, 0.22);
+    background: rgba(4, 4, 4, 0.72);
+    backdrop-filter: blur(14px);
+  }
+
+  .kdx-lab__eyebrow,
+  .kdx-lab__copy,
+  .kdx-lab__status {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    letter-spacing: 0.08em;
+  }
+
+  h1 {
+    margin: 8px 0 12px;
+    max-width: 12ch;
+    font-size: clamp(28px, 5vw, 54px);
+    line-height: 0.92;
+    letter-spacing: -0.06em;
+  }
+
+  .kdx-lab__experiences {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: 18px 0;
+  }
+
+  button,
+  input {
+    font: inherit;
+  }
+
+  button {
+    min-height: 42px;
+    border: 1px solid rgba(243, 240, 231, 0.24);
+    background: rgba(0, 0, 0, 0.5);
+    color: inherit;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+
+  button[aria-pressed='true'] {
+    border-color: rgba(243, 240, 231, 0.88);
+    background: rgba(243, 240, 231, 0.12);
+  }
+
+  .kdx-lab__audio {
+    display: grid;
+    gap: 7px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .kdx-lab__audio input {
+    width: 100%;
+  }
+
+  .kdx-lab__telemetry {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 18px 0;
+  }
+
+  .kdx-lab__telemetry div {
+    min-width: 0;
+    padding-top: 8px;
+    border-top: 1px solid rgba(243, 240, 231, 0.16);
+  }
+
+  dt {
+    font-size: 8px;
+    opacity: 0.56;
+  }
+
+  dd {
+    margin: 4px 0 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 640px) {
+    .kdx-lab__panel {
+      top: auto;
+      bottom: 12px;
+      left: 12px;
+      width: calc(100vw - 24px);
+      padding: 14px;
+    }
+
+    h1 {
+      font-size: 34px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kdx-lab__panel {
+      backdrop-filter: none;
+    }
+  }
+</style>
