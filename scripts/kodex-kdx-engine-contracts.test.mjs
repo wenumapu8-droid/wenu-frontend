@@ -12,6 +12,8 @@ import {
   createAudioSignalAdapter,
   createKdxSceneStateBridge,
   createKdxJourneyCommitAdapter,
+  deriveKdxLifeMemoryState,
+  createKdxLifeMemoryBridge,
 } from '../src/kodex/engine/index.js';
 
 test('SignalFrame clamps channels and is immutable', () => {
@@ -168,4 +170,62 @@ test('engine state dispatch uses the configured bridge but does not own scene st
   const result = engine.dispatchState({ type: 'SCENE_STATE', state: 'transitionOut' });
   assert.equal(result.rendererPhase, 'R10');
   assert.deepEqual(phases, ['R10']);
+});
+
+test('KDX.LIFE remains dormant when the memory authority has no threshold_crossed fact', () => {
+  const state = deriveKdxLifeMemoryState({
+    events: [{ type: 'threshold_seen', node_id: 'KDX-SCENE-THRESHOLD', at: 1, cycle: 1 }],
+    memoryWeight: 0.8,
+  });
+
+  assert.equal(state.readOnly, true);
+  assert.equal(state.facts.thresholdCrossed, false);
+  assert.equal(state.consequence.semanticState, 'DORMANT');
+  assert.equal(state.consequence.recallVisible, false);
+  assert.equal(state.consequence.recallStrength, 0);
+});
+
+test('FIRST LIVING LOOP: explicit THRESHOLD memory produces a deterministic later consequence', () => {
+  const state = deriveKdxLifeMemoryState({
+    events: [{ type: 'threshold_crossed', node_id: 'KDX-SCENE-THRESHOLD', at: 42, cycle: 1 }],
+    memoryWeight: 0.63,
+  });
+
+  assert.equal(state.facts.thresholdCrossed, true);
+  assert.equal(state.facts.thresholdCrossCount, 1);
+  assert.equal(state.consequence.semanticState, 'REMEMBERED');
+  assert.equal(state.consequence.recallVisible, true);
+  assert.equal(state.consequence.recallStrength, 0.63);
+  assert.equal(Object.isFrozen(state), true);
+  assert.equal(Object.isFrozen(state.consequence), true);
+});
+
+test('FIRST LIVING LOOP: removing the memory fact removes the downstream consequence', () => {
+  let events = [{ type: 'threshold_crossed', node_id: 'KDX-SCENE-THRESHOLD', at: 42, cycle: 1 }];
+  let weight = 0.5;
+  const bridge = createKdxLifeMemoryBridge({
+    readEvents: () => events,
+    readMemoryWeight: () => weight,
+  });
+
+  const remembered = bridge.read();
+  assert.equal(remembered.consequence.recallVisible, true);
+  assert.equal('commit' in bridge, false);
+
+  events = [];
+  weight = 0;
+  const reset = bridge.read();
+  assert.equal(reset.facts.thresholdCrossed, false);
+  assert.equal(reset.consequence.semanticState, 'DORMANT');
+  assert.equal(reset.consequence.recallVisible, false);
+});
+
+test('KDX.LIFE bridge clamps memory weight and ignores unrelated event types', () => {
+  const state = deriveKdxLifeMemoryState({
+    events: [{ type: 'archive_opened', node_id: 'KDX-SCENE-ARCHIVE', at: 7, cycle: 1 }],
+    memoryWeight: 4,
+  });
+  assert.equal(state.facts.memoryWeight, 1);
+  assert.equal(state.facts.thresholdCrossed, false);
+  assert.equal(state.consequence.recallVisible, false);
 });
