@@ -16,3 +16,10 @@ export {
   createKdxJourneyCommitAdapter,
   createBrowserKdxJourneyCommitAdapter,
 } from './kdxJourneyCommitAdapter.js';
+export {
+  KDX_LIFE_MEMORY_BRIDGE_VERSION,
+  KDX_LIFE_MEMORY_AUTHORITY,
+  KDX_LIFE_THRESHOLD_EVENT,
+  deriveKdxLifeMemoryState,
+  createKdxLifeMemoryBridge,
+} from './kdxLifeMemoryBridge.js';
