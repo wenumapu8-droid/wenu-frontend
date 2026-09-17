@@ -22,6 +22,8 @@ const STATE_PATH = path.join(RUNTIME, 'state.json');
 const EVENTS_PATH = path.join(RUNTIME, 'events.ndjson');
 const LOCK_PATH = path.join(RUNTIME, 'lock.json');
 const PROMPT_PATH = path.join(ROOT, 'command-center/kdx-rae-prompt.md');
+const DESIRED_STATE_PATH = path.join(ROOT, 'command-center/kdx-rae-desired-state.v0.1.json');
+const WORK_ORDER_TOOL = path.join(ROOT, 'command-center/kdx-rae-work-order.mjs');
 
 const MODE = process.env.KDX_RAE_MODE || 'monitor'; // monitor | dispatch
 const ONCE = process.argv.includes('--once') || process.env.KDX_RAE_ONCE === '1';
@@ -126,6 +128,8 @@ function preflight() {
 
   if (!claude) errors.push('Claude Code binary not found in PATH.');
   if (!fs.existsSync(PROMPT_PATH)) errors.push('Missing command-center/kdx-rae-prompt.md.');
+  if (!fs.existsSync(DESIRED_STATE_PATH)) errors.push('Missing machine-readable RAE desired state.');
+  if (!fs.existsSync(WORK_ORDER_TOOL)) errors.push('Missing deterministic RAE WorkOrder validator.');
   if (!fs.existsSync(path.join(ROOT, 'src/lib/kodex/grammar/work-order-contract.js'))) errors.push('Missing existing WorkOrder contract.');
   if (!fs.existsSync(path.join(ROOT, 'scripts/kodex-trinquete.mjs'))) errors.push('Missing KODEX trinquete.');
   if (!fs.existsSync(path.join(ROOT, 'scripts/kodex-auditoria-total.mjs'))) errors.push('Missing KODEX total audit.');
@@ -151,7 +155,7 @@ function dynamicPrompt(pre) {
     ? `${MCP_CONFIG} (strict MCP config; tools approved: ${MCP_ALLOW.join(', ') || 'none'})`
     : 'not configured';
 
-  return `${base}\n\n---\n\n## MACHINE OBSERVATION FOR THIS CYCLE\n\n<cycle_context>\nTimestamp: ${new Date().toISOString()}\nHost: ${os.hostname()}\nRepository: ${ROOT}\nBranch: ${pre.git.branch}\nHEAD: ${pre.git.head}\nMode: ${MODE}\nDrive mirror: ${drive}\nDirect MCP bridge: ${mcp}\nCurrent git status:\n${dirty}\n</cycle_context>\n\nRe-read disk state before trusting this snapshot. If dirty files represent coherent unfinished work, inspect and validate/continue them before opening another frontier. If the Drive mirror is present, treat it as read-only and use file timestamps/provenance to distinguish stale exports from current evidence. Return only the structured result requested by the runner after doing the work.`;
+  return `${base}\n\n---\n\n## MACHINE OBSERVATION FOR THIS CYCLE\n\n<cycle_context>\nTimestamp: ${new Date().toISOString()}\nHost: ${os.hostname()}\nRepository: ${ROOT}\nBranch: ${pre.git.branch}\nHEAD: ${pre.git.head}\nMode: ${MODE}\nDesired state: ${DESIRED_STATE_PATH}\nDrive mirror: ${drive}\nDirect MCP bridge: ${mcp}\nCurrent git status:\n${dirty}\n</cycle_context>\n\nRe-read disk state before trusting this snapshot. If dirty files represent coherent unfinished work, inspect and validate/continue them before opening another frontier. If the Drive mirror is present, treat it as read-only and use file timestamps/provenance to distinguish stale exports from current evidence. Return only the structured result requested by the runner after doing the work.`;
 }
 
 function runClaudeCycle(pre) {
@@ -166,7 +170,9 @@ function runClaudeCycle(pre) {
     'Bash(npm run gate:kodex:visual *)', 'Bash(npm run test:kodex *)', 'Bash(npm run audit:kodex:integrity *)',
     'Bash(npm run kodex:trinquete *)', 'Bash(npm run validate:kodex:core *)',
     'Bash(KDX_AGENTE=rae ALLOW_EMPTY_PRODUCTS=true npm run build *)',
-    'Bash(node scripts/kodex-*)', 'Bash(npx playwright *)',
+    'Bash(node scripts/kodex-*)',
+    'Bash(node command-center/kdx-rae-work-order.mjs *)',
+    'Bash(npx playwright *)',
     ...MCP_ALLOW,
   ];
 
@@ -232,7 +238,8 @@ function snapshot(pre, cycle = null) {
   const state = {
     generatedAt: new Date().toISOString(), mode: MODE, once: ONCE, intervalSec: INTERVAL_SEC,
     model: MODEL, effort: EFFORT, maxTurns: MAX_TURNS, maxBudgetUsd: MAX_BUDGET_USD,
-    expectedBranch: EXPECTED_BRANCH, driveDir: pre.driveDirExists ? DRIVE_DIR : null,
+    expectedBranch: EXPECTED_BRANCH, desiredState: DESIRED_STATE_PATH,
+    driveDir: pre.driveDirExists ? DRIVE_DIR : null,
     mcpConfig: MCP_CONFIG || null, preflight: { ok: pre.ok, errors: pre.errors }, git: pre.git, cycle,
   };
   writeState(state);
