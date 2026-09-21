@@ -6,6 +6,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { resolveAllowlistedFile } from '../path-security.mjs';
 
 describe('kodex-sentinel · server structure', () => {
   it('server.mjs existe y declara 20 tools', async () => {
@@ -28,5 +29,22 @@ describe('kodex-sentinel · server structure', () => {
     const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8');
     assert.ok(readme.includes('mcpServers'), 'config example faltante');
     assert.ok(readme.includes('kodex-sentinel'), 'server name faltante');
+  });
+});
+
+
+describe('kodex-sentinel · path security', () => {
+  it('solo resuelve archivos de autoridad declarados', () => {
+    const root = '/tmp/kodex-system';
+    const allow = ['README.md', 'SENTINEL.md', '05_DECISION_LEDGER.md'];
+
+    assert.equal(
+      resolveAllowlistedFile(root, 'README.md', allow),
+      '/tmp/kodex-system/README.md',
+    );
+    assert.equal(resolveAllowlistedFile(root, '../.env', allow), null);
+    assert.equal(resolveAllowlistedFile(root, '/etc/passwd', allow), null);
+    assert.equal(resolveAllowlistedFile(root, 'subdir/README.md', allow), null);
+    assert.equal(resolveAllowlistedFile(root, '.env', allow), null);
   });
 });
