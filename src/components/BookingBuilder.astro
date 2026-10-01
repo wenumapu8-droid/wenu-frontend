@@ -7,10 +7,11 @@
  * chosen everything and seen the price. Ocin stops receiving "hi how much for a
  * helix" and starts receiving a brief.
  *
- * WHY NOT A REAL CALENDAR: there is no booking backend, and inventing a fake
- * "confirmed" state would be exactly the thing we promised the site would never
- * do. The button composes a message, human confirms. Honest, and it works today.
- * When a real calendar exists, swap the compose step — the four steps stay.
+ * LIVE BOOKING: the builder stays useful as the service configurator. When
+ * PUBLIC_PIERCING_BOOKING_URL is present at build time, the completed brief can
+ * hand off to a real scheduling flow (Cal.com, Calendly, or another provider).
+ * Without that public URL, email + WhatsApp remain the honest manual fallback.
+ * We never render a fake "confirmed" state.
  *
  * IMPROVES, DOES NOT REPLACE: this slots INTO the existing #book section on
  * /piercing. The Logistics column (ID, payment, duration, direct contact) stays
@@ -96,6 +97,8 @@ const times = [
 
 const EMAIL = 'marimari@wenumapuonline.com';
 const WA = 'https://wa.me/14085006211';
+const LIVE_BOOKING_URL = String(import.meta.env.PUBLIC_PIERCING_BOOKING_URL || '').trim();
+const LIVE_BOOKING_ENABLED = LIVE_BOOKING_URL.length > 0;
 ---
 
 <div class="bb" data-booking-builder>
@@ -258,8 +261,9 @@ const WA = 'https://wa.me/14085006211';
             <input type="date" data-date class="bb__input" />
           </label>
           <p class="bb__note">
-            Sessions are by appointment in a private studio. We will confirm the closest
-            slot to this by hand — nothing is charged to book.
+            {LIVE_BOOKING_ENABLED
+              ? 'Choose the day that suits you best. Your exact available slot is selected in the live booking step after this builder.'
+              : 'Sessions are by appointment in a private studio. We will confirm the closest slot to this by hand — nothing is charged to book.'}
           </p>
         </div>
       </div>
@@ -330,8 +334,13 @@ const WA = 'https://wa.me/14085006211';
     </div>
 
     <div class="bb__cta">
-      <button type="button" class="btn btn--solid bb__submit" data-send-email disabled>
-        Request this appointment
+      {LIVE_BOOKING_ENABLED && (
+        <button type="button" class="btn btn--solid bb__submit" data-live-booking disabled>
+          Continue to live availability →
+        </button>
+      )}
+      <button type="button" class:list={['btn', 'bb__submit', LIVE_BOOKING_ENABLED ? 'btn--ghost' : 'btn--solid']} data-send-email disabled>
+        {LIVE_BOOKING_ENABLED ? 'Request by email' : 'Request this appointment'}
       </button>
       <button type="button" class="btn btn--ghost bb__submit" data-send-wa disabled>
         Send on WhatsApp
@@ -343,14 +352,16 @@ const WA = 'https://wa.me/14085006211';
             <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" stroke-linecap="round" />
           </svg>
         </span>
-        Nothing is charged to book. A person replies, not a robot.
+        {LIVE_BOOKING_ENABLED
+          ? 'Live scheduling confirms the actual slot. Any configured deposit is handled by the booking provider; email and WhatsApp remain available as fallbacks.'
+          : 'Nothing is charged to book. A person replies, not a robot.'}
       </p>
     </div>
   </div>
 
 </div>
 
-<script is:inline define:vars={{ EMAIL, WA }}>
+<script is:inline define:vars={{ EMAIL, WA, LIVE_BOOKING_URL }}>
   (function () {
     const root = document.querySelector('[data-booking-builder]');
     if (!root) return;
@@ -491,8 +502,46 @@ const WA = 'https://wa.me/14085006211';
     /* ── total ─────────────────────────────────────── */
     const totalEl = root.querySelector('[data-total]');
     const breakEl = root.querySelector('[data-breakdown]');
+    const liveBtn = root.querySelector('[data-live-booking]');
     const emailBtn = root.querySelector('[data-send-email]');
     const waBtn = root.querySelector('[data-send-wa]');
+    let readyTracked = false;
+    let startedTracked = false;
+
+    function analytics(eventName, payload = {}) {
+      const detail = { event: eventName, source: 'piercing_booking_builder', ...payload };
+      if (Array.isArray(window.dataLayer)) window.dataLayer.push(detail);
+      window.dispatchEvent(new CustomEvent('wenu:booking', { detail }));
+    }
+
+    function totalValue() {
+      if (!state.placement) return 0;
+      return state.placement.fee + (state.jewel ? state.jewel.add : 0);
+    }
+
+    function safeIntent() {
+      return {
+        version: 1,
+        placement: state.placement
+          ? { id: state.placement.id, label: state.placement.label, fee: state.placement.fee }
+          : null,
+        jewelry: state.jewel
+          ? { id: state.jewel.id, label: state.jewel.label, add: state.jewel.add }
+          : null,
+        preferredDate: state.date || null,
+        preferredTime: state.time ? state.time.id : null,
+        total: totalValue(),
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    function persistIntent() {
+      try {
+        // Deliberately excludes free-text notes: those can contain health or other
+        // sensitive details and should not be persisted as analytics metadata.
+        sessionStorage.setItem('wenu-booking-intent-v1', JSON.stringify(safeIntent()));
+      } catch {}
+    }
 
     function render() {
       if (!state.placement) {
@@ -507,8 +556,23 @@ const WA = 'https://wa.me/14085006211';
         breakEl.textContent = parts.join('  ·  ');
       }
       const ready = !!(state.placement && state.jewel && state.date && state.time);
+      if (liveBtn) liveBtn.disabled = !ready;
       emailBtn.disabled = !ready;
       waBtn.disabled = !ready;
+
+      if (state.placement && !startedTracked) {
+        startedTracked = true;
+        analytics('booking_started', { placement: state.placement.id });
+      }
+      if (ready && !readyTracked) {
+        readyTracked = true;
+        analytics('booking_builder_ready', {
+          placement: state.placement.id,
+          jewelry: state.jewel.id,
+          value: totalValue(),
+          currency: 'USD',
+        });
+      }
     }
 
     /* ── compose ───────────────────────────────────── */
@@ -536,8 +600,40 @@ const WA = 'https://wa.me/14085006211';
       return lines.join('\n');
     }
 
+    if (liveBtn) {
+      liveBtn.addEventListener('click', () => {
+        if (liveBtn.disabled || !LIVE_BOOKING_URL) return;
+        persistIntent();
+        analytics('booking_handoff_live', {
+          placement: state.placement.id,
+          jewelry: state.jewel.id,
+          value: totalValue(),
+          currency: 'USD',
+        });
+
+        let target = LIVE_BOOKING_URL;
+        try {
+          const url = new URL(LIVE_BOOKING_URL, window.location.href);
+          url.searchParams.set('utm_source', 'wenumapuonline.com');
+          url.searchParams.set('utm_medium', 'owned_web');
+          url.searchParams.set('utm_campaign', 'piercing_booking');
+          url.searchParams.set('utm_content', `${state.placement.id}-${state.jewel.id}`);
+          target = url.toString();
+        } catch {}
+
+        window.location.href = target;
+      });
+    }
+
     emailBtn.addEventListener('click', () => {
       if (emailBtn.disabled) return;
+      persistIntent();
+      analytics('booking_request_email', {
+        placement: state.placement.id,
+        jewelry: state.jewel.id,
+        value: totalValue(),
+        currency: 'USD',
+      });
       const subject = `Booking — ${state.placement.label} · ${state.date}`;
       window.location.href =
         `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message())}`;
@@ -545,6 +641,13 @@ const WA = 'https://wa.me/14085006211';
 
     waBtn.addEventListener('click', () => {
       if (waBtn.disabled) return;
+      persistIntent();
+      analytics('booking_request_whatsapp', {
+        placement: state.placement.id,
+        jewelry: state.jewel.id,
+        value: totalValue(),
+        currency: 'USD',
+      });
       window.open(`${WA}?text=${encodeURIComponent(message())}`, '_blank', 'noopener');
     });
 
