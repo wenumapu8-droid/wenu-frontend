@@ -11,7 +11,7 @@ export const KDX_LATENT_SOL = Object.freeze({
   id: 'KDX-LATENT-SOL',
   label: 'SOL',
   status: 'EXPERIMENTAL',
-  epistemicStatus: 'CANONICAL',
+  epistemicStatus: 'NEEDS_CONFIRMATION',
   productionStatus: 'PROTOTYPE',
   modalities: KDX_SOL_MODALITIES.map((item) => item.id),
   boundaries: Object.freeze({
