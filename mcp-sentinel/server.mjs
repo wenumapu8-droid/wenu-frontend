@@ -43,6 +43,7 @@ import { existsSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join, basename } from 'node:path';
+import { resolveAllowlistedFile } from './path-security.mjs';
 import yaml from 'js-yaml';
 
 const exec = promisify(execFile);
@@ -71,8 +72,8 @@ const AUTHORITY_FILES = [
 // ── HELPERS ────────────────────────────────────────────────────────────
 
 async function readAuthorityFile(name) {
-  const path = join(KODEX_SYSTEM, name);
-  if (!existsSync(path)) return null;
+  const path = resolveAllowlistedFile(KODEX_SYSTEM, name, AUTHORITY_FILES);
+  if (!path || !existsSync(path)) return null;
   return readFile(path, 'utf8');
 }
 
