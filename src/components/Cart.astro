@@ -16,6 +16,7 @@
  * Telegram). The old Formspree form (mblrgwya, 404) was removed 2026-07-05 — it
  * dropped orders silently.
  */
+import RitualReceipt from './RitualReceipt.astro';
 const API_BASE = import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com';
 // Real order endpoint — the JS submit posts JSON here (see submitOrder()).
 const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
@@ -189,6 +190,9 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
     </div>
   </div>
 </aside>
+
+<!-- Receipt is shown ONLY after backend accepts an order, never after a button click alone. -->
+<RitualReceipt />
 
 <script>
   (function () {
@@ -480,7 +484,27 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data || !data.ok) throw new Error((data && data.error) || 'submit failed');
-      return true;
+      return data;
+    }
+    // Acknowledgement ticket: contains only an item snapshot and lookup reference.
+    // NO 'paid' status is ever constructed by this client-side cart.
+    function ritualSummary(status, method, backendResponse) {
+      const backend = backendResponse || {};
+      const backendOrder = backend.order || {};
+      const ref = backendOrder.reference || backendOrder.number || backendOrder.id ||
+        backend.reference || backend.order_number || refCode();
+      return {
+        status, method, reference: String(ref), currency: 'USD',
+        subtotal: subtotal(),
+        items: read().map(x => ({ sku: x.sku, name: x.name, qty: x.qty, price: num(x.price) })),
+      };
+    }
+    function openRitualReceipt(receipt) {
+      if (window.wmRitualReceipt && typeof window.wmRitualReceipt.open === 'function') {
+        close();
+        window.wmRitualReceipt.open(receipt);
+      }
+      // Otherwise leave the existing cart confirmation readable (progressive enhancement).
     }
     function finish(title, body) {
       localStorage.removeItem(KEY); syncBadge();
@@ -514,7 +538,21 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
               body: JSON.stringify({ email, name, items }),
             });
             const data = await r.json();
-            if (data && data.ok && data.url) { window.location.href = data.url; return; }
+            if (data && data.ok && data.url) {
+              // The return page may display a *pending* ritual ticket while the
+              // payment provider is checked by the backend. Not proof of payment.
+              try {
+                const snapshot = {
+                  method: 'Card', currency: 'USD', subtotal: subtotal(),
+                  items: read().map(x => ({ sku:x.sku, name:x.name, qty:x.qty, price:num(x.price) })),
+                  at: Date.now(),
+                };
+                if (typeof data.receipt_token === 'string' && data.receipt_token.length >= 24)
+                  snapshot.receipt_token = data.receipt_token;
+                sessionStorage.setItem('wmCheckoutPending', JSON.stringify(snapshot));
+              } catch (_) { /* private browsing: checkout still works */ }
+              window.location.href = data.url; return;
+            }
             statusEl.textContent = (data && data.error) ? data.error : 'Could not create the link — try Venmo or Zelle.';
           } catch (err) { statusEl.textContent = 'Network error — try Venmo or Zelle.'; }
           btn.disabled = false;
@@ -524,9 +562,11 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         if (method === 'reserve') {
           btn.disabled = true; statusEl.hidden = false; statusEl.textContent = 'Holding your pieces…';
           try {
-            await submitOrder('reserve');
+            const backendOrder = await submitOrder('reserve');
+            const receipt = ritualSummary('inquiry', 'Reserve · no payment', backendOrder);
             finish('Your pieces are held.',
               'We’ve noted your selection under your name and emailed you a copy. One-of-a-kind pieces are held for you while we confirm the order and send you the exact amount to pay.');
+            openRitualReceipt(receipt);
           } catch (e) { statusEl.textContent = 'Could not send — please try again, or email us.'; btn.disabled = false; }
           return;
         }
@@ -619,9 +659,11 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       const sendBtn = $('[data-wmcart-send]');
       sendBtn.disabled = true; status2El.hidden = false; status2El.textContent = 'Sending your order…';
       try {
-        await submitOrder(method);
+        const backendOrder = await submitOrder(method);
+        const receipt = ritualSummary('pending', label, backendOrder);
         finish('Order received.',
           'Thank you. We’ve got your order and your ' + label + ' payment note. We’ll confirm the payment and follow up by email with shipping or pickup details.');
+        openRitualReceipt(receipt);
       } catch (e) { status2El.textContent = 'Could not send — please try again, or email us.'; sendBtn.disabled = false; }
     });
 

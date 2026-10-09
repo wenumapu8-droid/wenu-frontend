@@ -1,0 +1,130 @@
+---
+/**
+ * External card-payment return. Redirect query params never prove payment.
+ * Only the verified backend receipt endpoint can mark a transaction 'paid'.
+ */
+import Base from '../layouts/Base.astro';
+import RitualReceipt from '../components/RitualReceipt.astro';
+const api = (import.meta.env.PUBLIC_API_URL?.trim() || 'https://api.wenumapuonline.com').replace(/\/$/, '');
+---
+<Base title="Payment verification — Wenu Mapu" description="Check your order and payment confirmation." robots="noindex, nofollow" noNav noFooter noQuote noCart noOverlays noKai noImmersive noThemes>
+  <main class="wpr" data-wpr data-api={api}>
+    <header class="wpr__head"><a href="/">WËNÜ MÄPÜ</a><span>TRANSACTION / RETURN</span></header>
+    <section class="wpr__main">
+      <p class="wpr__emblem" aria-hidden="true">✦</p>
+      <p class="wpr__eyebrow" data-wpr-stage>VERIFYING THE SIGNAL</p>
+      <h1 data-wpr-title>Checking your payment.</h1>
+      <p class="wpr__summary" data-wpr-summary>A return from a checkout provider is not proof of payment. Wenu Mapu will verify it before issuing your receipt.</p>
+      <div class="wpr__signal" aria-hidden="true"><span></span></div>
+      <button type="button" data-wpr-ticket hidden>View ritual order ticket ↗</button>
+      <a class="wpr__back" href="/shop">Continue exploring the collection →</a>
+      <small>Keep your payment provider confirmation until Wenu Mapu confirms your order. A ritual ticket is not a tax invoice.</small>
+    </section>
+  </main>
+  <RitualReceipt />
+  <script is:inline>
+  (function(){
+    'use strict';
+    const root=document.querySelector('[data-wpr]');
+    if(!root)return;
+    const $=x=>root.querySelector(x);
+    const api=String(root.getAttribute('data-api')||'').replace(/\/$/,'');
+    const params=new URLSearchParams(window.location.search);
+    let pending=null;
+    try{
+      const data=JSON.parse(sessionStorage.getItem('wmCheckoutPending')||'null');
+      if(data&&Date.now()-Number(data.at)<86400000&&Array.isArray(data.items))pending=data;
+    }catch(_){}
+    const value=String((pending&&pending.receipt_token)||params.get('receipt_token')||'');
+    const token=/^[A-Za-z0-9._-]{24,180}$/.test(value)?value:'';
+    if(params.has('receipt_token'))history.replaceState(null,'',location.pathname);
+    let receipt=pending?{status:'pending',method:'Card · verifying',reference:'',
+      currency:'USD',subtotal:pending.subtotal,items:pending.items}:null;
+    const button=$('[data-wpr-ticket]');
+    const display=(stage,title,summary)=>{
+      $('[data-wpr-stage]').textContent=stage;
+      $('[data-wpr-title]').textContent=title;
+      $('[data-wpr-summary]').textContent=summary;
+      button.hidden=!receipt;
+    };
+    button.addEventListener('click',()=>{
+      if(receipt&&window.wmRitualReceipt)window.wmRitualReceipt.open(receipt);
+    });
+    async function queryStatus(){
+      const ctrl=new AbortController();
+      const timeout=setTimeout(()=>ctrl.abort(),7000);
+      try{
+        const response=await fetch(api+'/shop/receipt-status?token='+encodeURIComponent(token),{
+          headers:{accept:'application/json'},method:'GET',cache:'no-store',
+          referrerPolicy:'no-referrer',credentials:'omit',signal:ctrl.signal
+        });
+        if(response.status===404||response.status===501)return {unsupported:true};
+        if(!response.ok)return {error:true};
+        const result=await response.json();
+        if(result&&result.ok===true)return {data:result};
+        return {error:true};
+      }catch(_){return {error:true};}
+      finally{clearTimeout(timeout);}
+    }
+    async function verify(){
+      if(!token){
+        display('PAYMENT PENDING','Your order is being confirmed.',
+          "We can't confirm payment from this redirect alone. Keep your provider receipt. Wenu Mapu will follow up by email.");
+        return;
+      }
+      for(let i=0;i<4;i++){
+        const outcome=await queryStatus();
+        if(outcome.unsupported||outcome.error){
+          display('CONFIRMATION PENDING','We are still verifying your payment.',
+            'Our receipt verification service is not available on this visit. We will confirm your payment by email.');
+          return;
+        }
+        const data=outcome.data;
+        if(data.verified===true&&data.status==='paid'&&data.receipt&&
+           Array.isArray(data.receipt.items)&&Number.isFinite(Number(data.receipt.subtotal))){
+          const r=data.receipt;
+          receipt={status:'verified_paid',serverVerified:true,method:String(r.method||'Card'),
+            reference:String(r.reference||''),currency:String(r.currency||'USD'),
+            subtotal:Number(r.subtotal),
+            items:r.items.map(x=>({name:String(x.name||'Piece'),qty:Number(x.qty),price:Number(x.price)}))};
+          try{sessionStorage.removeItem('wmCheckoutPending');}catch(_){}
+          display('PAYMENT VERIFIED','Your ritual begins.',
+            'Your payment has been verified by Wenu Mapu. Your order is being prepared.');
+          if(window.wmRitualReceipt)window.wmRitualReceipt.open(receipt);
+          return;
+        }
+        if(data.status==='failed'||data.status==='cancelled'){
+          display('PAYMENT NOT CONFIRMED','Your payment was not confirmed.',
+            'Check with the card provider or contact Wenu Mapu before placing another order.');
+          return;
+        }
+        if(i<3)await new Promise(resolve=>setTimeout(resolve,3500));
+      }
+      display('AWAITING CONFIRMATION','We are still checking your order.',
+        'No verified payment notification has reached us yet. Watch for a confirmation by email.');
+    }
+    button.hidden=!receipt;
+    void verify();
+  })();
+  </script>
+</Base>
+<style is:global>
+.wpr{min-height:100svh;background:var(--obsidian);color:var(--bone);padding:0 clamp(18px,5vw,80px) 70px}
+.wpr__head{max-width:1120px;margin:auto;padding:28px 0;border-bottom:1px solid var(--line-soft);display:flex;justify-content:space-between;gap:18px;align-items:center}
+.wpr__head a{font:normal 28px var(--font-display);letter-spacing:.1em;color:var(--bone);text-decoration:none}
+.wpr__head span{font:10px var(--font-mono);letter-spacing:.1em;color:var(--sand)}
+.wpr__main{max-width:780px;text-align:center;margin:11vh auto 0}
+.wpr__emblem{font:55px var(--font-serif);margin:0;color:var(--ember);text-shadow:0 0 62px var(--bronze)}
+.wpr__eyebrow{font:10px var(--font-mono);letter-spacing:.18em;color:var(--ember);margin:22px 0}
+.wpr__main h1{font:normal clamp(40px,6vw,75px)/1.06 var(--font-display);margin:0 0 20px}
+.wpr__summary{font:15px/1.7 var(--font-sans);color:var(--silver);max-width:530px;margin:auto}
+.wpr__signal{height:2px;max-width:260px;margin:36px auto 43px;overflow:hidden;background:var(--ash)}
+.wpr__signal span{display:block;height:100%;width:100%;background:var(--ember);animation:wpr-wave 2.4s ease-in-out infinite alternate}
+.wpr__main button{background:var(--ember);color:var(--obsidian);border:0;padding:15px 22px;cursor:pointer;display:block;margin:0 auto 28px}
+.wpr__main [hidden]{display:none!important}
+.wpr__back{font:13px var(--font-sans);color:var(--bone);text-underline-offset:4px}
+.wpr__main small{font:10px/1.8 var(--font-mono);color:var(--sand);display:block;margin:50px auto 0;max-width:500px}
+@keyframes wpr-wave{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+@media(prefers-reduced-motion:reduce){.wpr__signal span{animation:none}}
+@media(max-width:500px){.wpr__head span{display:none}.wpr__main{margin-top:7vh}}
+</style>

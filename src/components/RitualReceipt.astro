@@ -1,0 +1,254 @@
+---
+/**
+ * RitualReceipt — actual order-capture journey, isolated from payment authorization.
+ * The receipt is an order acknowledgement (NOT proof of payment / tax invoice).
+ * 'paid' is reserved for a future authenticated, server-verified receipt endpoint.
+ * Never infer success from checkout redirect query parameters.
+ */
+---
+<div class="wrr" data-wrr hidden aria-hidden="true">
+  <div class="wrr__scrim" data-wrr-close></div>
+  <section class="wrr__experience" role="dialog" aria-modal="true" aria-labelledby="wrr-title" tabindex="-1">
+    <header class="wrr__top">
+      <span class="wrr__eyebrow">WËNÜ MÄPÜ / COMMERCE RITUAL 001</span>
+      <button class="wrr__exit" type="button" data-wrr-close aria-label="Close ritual receipt">×</button>
+    </header>
+    <div class="wrr__machine">
+      <div class="wrr__machine-head">
+        <span class="wrr__machine-sigil" aria-hidden="true">✦</span>
+        <span class="wrr__machine-tag">THE WORLD ABOVE / CHECKOUT</span>
+        <span class="wrr__machine-light" aria-hidden="true"></span>
+      </div>
+      <div class="wrr__machine-body">
+        <div>
+          <p class="wrr__stage" data-wrr-stage>ORDER REGISTERED</p>
+          <h2 id="wrr-title" class="wrr__title" data-wrr-title>Your selection is with us.</h2>
+          <p class="wrr__caption" data-wrr-caption>We will confirm payment before preparing your order.</p>
+        </div>
+        <div class="wrr__amount"><span>ITEMS SUBTOTAL</span><strong data-wrr-total>—</strong></div>
+      </div>
+      <div class="wrr__machine-progress" aria-hidden="true"><span></span></div>
+      <div class="wrr__slot" aria-hidden="true"></div>
+    </div>
+
+    <div class="wrr__paper-space">
+      <article class="wrr__paper" aria-label="Order acknowledgement for printing" data-wrr-ticket>
+        <div class="wrr__paper-brand">
+          <img src="/logos/wenu-mapu-square.png" width="44" height="44" alt="" />
+          <strong>WËNÜ MÄPÜ</strong>
+          <span>THE WORLD ABOVE · RITUAL JEWELRY</span>
+        </div>
+        <div class="wrr__rule"></div>
+        <p class="wrr__paper-status" data-wrr-paper-status>ORDER RECEIVED</p>
+        <p class="wrr__paper-note" data-wrr-paper-note>PAYMENT NOT YET VERIFIED</p>
+        <p class="wrr__paper-ref" data-wrr-ref>—</p>
+        <p class="wrr__paper-date" data-wrr-date>—</p>
+        <div class="wrr__rule"></div>
+        <div class="wrr__items" data-wrr-items></div>
+        <div class="wrr__rule"></div>
+        <div class="wrr__paper-totals"><span>ITEMS SUBTOTAL</span><strong data-wrr-paper-total>—</strong></div>
+        <div class="wrr__paper-meta"><span>METHOD</span><strong data-wrr-method>—</strong></div>
+        <p class="wrr__paper-small">Tax, shipping and discounts are confirmed separately. This summary is not a tax invoice.</p>
+        <div class="wrr__barcode" data-wrr-barcode aria-label="Order reference barcode"></div>
+        <p class="wrr__barcode-caption" data-wrr-barcode-label>REFERENCE FOR SUPPORT · NOT PAYMENT PROOF</p>
+        <div class="wrr__rule"></div>
+        <p class="wrr__paper-rite">The body is the altar.<br />The adornment, the rite.</p>
+        <a href="/care-guide/" class="wrr__paper-link">WENUMAPUONLINE.COM/CARE-GUIDE</a>
+        <p class="wrr__paper-disclaimer">ORDER ACKNOWLEDGEMENT · NOT A TAX INVOICE</p>
+      </article>
+    </div>
+
+    <nav class="wrr__actions" aria-label="Receipt actions">
+      <button type="button" class="wrr__print" data-wrr-print>Print ritual ticket ↗</button>
+      <a href="/shop" class="wrr__continue">Continue exploring →</a>
+    </nav>
+    <p class="wrr__afterword">An adornment is not just a thing you own. It is a part of the story you carry.</p>
+  </section>
+</div>
+
+<script is:inline>
+(function () {
+  'use strict';
+  const root = document.querySelector('[data-wrr]');
+  if (!root || window.wmRitualReceipt) return;
+  const $ = (q) => root.querySelector(q);
+  const ticket = $('[data-wrr-ticket]');
+  const CODE39 = {
+    '0':'nnnwwnwnn','1':'wnnwnnnnw','2':'nnwwnnnnw','3':'wnwwnnnnn',
+    '4':'nnnwwnnnw','5':'wnnwwnnnn','6':'nnwwwnnnn','7':'nnnwnnwnw',
+    '8':'wnnwnnwnn','9':'nnwwnnwnn','A':'wnnnnwnnw','B':'nnwnnwnnw',
+    'C':'wnwnnwnnn','D':'nnnnwwnnw','E':'wnnnwwnnn','F':'nnwnwwnnn',
+    'G':'nnnnnwwnw','H':'wnnnnwwnn','I':'nnwnnwwnn','J':'nnnnwwwnn',
+    'K':'wnnnnnnww','L':'nnwnnnnww','M':'wnwnnnnwn','N':'nnnnwnnww',
+    'O':'wnnnwnnwn','P':'nnwnwnnwn','Q':'nnnnnnwww','R':'wnnnnnwwn',
+    'S':'nnwnnnwwn','T':'nnnnwnwwn','U':'wwnnnnnnw','V':'nwwnnnnnw',
+    'W':'wwwnnnnnn','X':'nwnnwnnnw','Y':'wwnnwnnnn','Z':'nwwnwnnnn',
+    '-':'nwnnnnwnw','.':'wwnnnnwnn',' ':'nwwnnnwnn',
+    '$':'nwnwnwnnn','/':'nwnwnnnwn','+':'nwnnnwnwn',
+    '%':'nnnwnwnwn','*':'nwnnwnwnn'
+  };
+  let previousFocus = null, previousOverflow = '', lastReceipt = null;
+  function money(value,currency) {
+    const amount = Number(value);
+    if (!Number.isFinite(amount) || amount < 0) return '—';
+    try { return new Intl.NumberFormat('en-US',{style:'currency',currency:currency||'USD'}).format(amount); }
+    catch (_) { return '$'+amount.toFixed(2); }
+  }
+  function drawBarcode(input) {
+    const wrap = $('[data-wrr-barcode]');
+    wrap.replaceChildren();
+    // Barcodes are for order lookup, NOT financial verification.
+    const value = String(input||'').toUpperCase().replace(/[^A-Z0-9.\- $/+%]/g,'').slice(0,24);
+    if (!value) { wrap.hidden=true; return; }
+    wrap.hidden=false;
+    const sequence = '*' + value + '*';
+    const ns='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(ns,'svg');
+    svg.setAttribute('role','img');svg.setAttribute('aria-label','Code 39 order lookup reference');
+    const bars=[];let x=10;
+    for (const c of sequence) {
+      const glyph=CODE39[c];
+      if (!glyph) continue;
+      for(let i=0;i<9;i++){
+        const w=glyph[i]==='w'?3:1;
+        if(i%2===0) bars.push([x,w]);
+        x+=w;
+      }
+      x+=1; // inter-character narrow space
+    }
+    svg.setAttribute('viewBox','0 0 '+(x+9)+' 56');
+    svg.setAttribute('width','290');svg.setAttribute('height','56');
+    svg.setAttribute('preserveAspectRatio','none');
+    for(const [left,width] of bars){
+      const rect=document.createElementNS(ns,'rect');
+      rect.setAttribute('x',String(left));rect.setAttribute('y','0');
+      rect.setAttribute('width',String(width));rect.setAttribute('height','56');
+      rect.setAttribute('fill','#15130f');
+      svg.appendChild(rect);
+    }
+    wrap.appendChild(svg);
+  }
+  function open(order) {
+    if (!order || !Array.isArray(order.items)) return;
+    const status = order.status === 'inquiry' ? 'inquiry' :
+      (order.status === 'verified_paid' && order.serverVerified === true ? 'verified_paid' : 'pending');
+    // "verified_paid" is only a display mode; an order must be verified by a trusted
+    // backend before the caller is allowed to request this state.
+    const method = String(order.method || 'Pending').slice(0,40);
+    const reference = String(order.reference || '').slice(0,100);
+    const items = order.items.filter(x => x && Number.isFinite(Number(x.qty)) && Number(x.qty)>0).slice(0,30);
+    const subtotal = money(order.subtotal,order.currency);
+    lastReceipt = {status,method,reference,items,subtotal};
+    const titles={
+      inquiry:['REQUEST REGISTERED','Your inquiry reached us.','We will contact you about this piece. No payment was collected.','INQUIRY / NO PAYMENT','NO PAYMENT COLLECTED'],
+      pending:['ORDER RECEIVED','Your selection is with us.','Your payment is awaiting verification. We will confirm it by email.','ORDER RECEIVED','PAYMENT PENDING VERIFICATION'],
+      verified_paid:['PAYMENT VERIFIED','Your ritual begins.','Your payment was verified. Your selection is being prepared.','PAYMENT VERIFIED','VERIFIED BY WENU MAPU']
+    };
+    const text=titles[status];
+    $('[data-wrr-stage]').textContent=text[0];
+    $('[data-wrr-title]').textContent=text[1];
+    $('[data-wrr-caption]').textContent=text[2];
+    $('[data-wrr-paper-status]').textContent=text[3];
+    $('[data-wrr-paper-note]').textContent=text[4];
+    $('[data-wrr-total]').textContent=subtotal;
+    $('[data-wrr-paper-total]').textContent=subtotal;
+    $('[data-wrr-method]').textContent=method;
+    $('[data-wrr-ref]').textContent=reference ? 'REF: '+reference : 'REFERENCE PENDING';
+    $('[data-wrr-date]').textContent=new Intl.DateTimeFormat('en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date());
+    const itemWrap=$('[data-wrr-items]');
+    itemWrap.replaceChildren();
+    for(const item of items){
+      const row=document.createElement('div'); row.className='wrr__item';
+      const name=document.createElement('span');name.textContent=String(item.qty).slice(0,3)+' × '+String(item.name||'Adorning piece').slice(0,100);
+      const price=document.createElement('strong');price.textContent=money(Number(item.price)*Number(item.qty),order.currency);
+      row.append(name,price);itemWrap.appendChild(row);
+    }
+    drawBarcode(reference);
+    previousFocus=document.activeElement;
+    previousOverflow=document.body.style.overflow;
+    root.hidden=false;root.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+    ticket.classList.remove('wrr__paper--out');
+    void ticket.offsetWidth;
+    ticket.classList.add('wrr__paper--out');
+    root.querySelector('[data-wrr-close]').focus();
+  }
+  function close(){
+    if(root.hidden)return;
+    root.hidden=true;root.setAttribute('aria-hidden','true');
+    document.body.style.overflow=previousOverflow;
+    if(previousFocus && previousFocus.isConnected && typeof previousFocus.focus==='function') previousFocus.focus();
+  }
+  root.querySelectorAll('[data-wrr-close]').forEach(node=>node.addEventListener('click',close));
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!root.hidden)close();});
+  $('[data-wrr-print]').addEventListener('click',()=>{if(lastReceipt)window.print();});
+  window.wmRitualReceipt = { open, close };
+})();
+</script>
+
+<style is:global>
+.wrr{--wrr-paper:#eee9df;position:fixed;inset:0;z-index:1400;display:grid;place-items:start center;overflow-y:auto;overscroll-behavior:contain;font-family:var(--font-sans)}
+.wrr[hidden],.wrr [hidden]{display:none!important}
+.wrr__scrim{position:fixed;inset:0;background:rgba(3,3,3,.92);backdrop-filter:blur(9px)}
+.wrr__experience{position:relative;width:min(720px,100%);min-height:100svh;padding:24px 24px 64px;color:var(--bone)}
+.wrr__top{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:0 0 22px;border-bottom:1px solid var(--line-soft)}
+.wrr__eyebrow{font:10px var(--font-mono);letter-spacing:.14em;color:var(--sand)}
+.wrr__exit{border:1px solid var(--line-soft);background:var(--charcoal);color:var(--bone);border-radius:100%;width:35px;height:35px;font-size:22px;cursor:pointer}
+.wrr__machine{width:min(510px,100%);margin:36px auto 0;background:linear-gradient(155deg,var(--ash),var(--charcoal) 75%);border:1px solid var(--bronze);border-radius:14px 14px 6px 6px;box-shadow:0 20px 75px rgba(0,0,0,.7);position:relative;z-index:3}
+.wrr__machine-head{padding:17px 23px 0;display:flex;align-items:center;gap:11px;color:var(--ember);font:9px var(--font-mono);letter-spacing:.1em}
+.wrr__machine-sigil{font:25px var(--font-serif);line-height:1}
+.wrr__machine-tag{flex:1}.wrr__machine-light{width:6px;height:6px;background:var(--ember);border-radius:50%;box-shadow:0 0 13px var(--ember)}
+.wrr__machine-body{padding:21px 24px 22px;display:flex;align-items:end;justify-content:space-between;gap:15px}
+.wrr__stage{font:9px var(--font-mono);letter-spacing:.13em;color:var(--ember);margin:0 0 7px}
+.wrr__title{font:normal clamp(22px,4vw,31px)/1.15 var(--font-display);margin:0 0 6px}
+.wrr__caption{max-width:280px;font:11px/1.5 var(--font-sans);margin:0;color:var(--sand)}
+.wrr__amount{text-align:right;flex-shrink:0}.wrr__amount span{display:block;font:9px var(--font-mono);color:var(--sand);margin-bottom:4px}.wrr__amount strong{font:normal 22px var(--font-display)}
+.wrr__machine-progress{height:2px;margin:0 24px 15px;background:var(--line-soft)}.wrr__machine-progress>span{height:100%;width:100%;display:block;background:var(--ember);animation:wrr-signal 1.6s ease both}
+.wrr__slot{height:11px;background:var(--obsidian);border:1px solid var(--line-soft);border-radius:5px;margin:0 23px 15px;box-shadow:inset 0 3px 7px #000}
+.wrr__paper-space{display:flex;justify-content:center;perspective:1000px}
+.wrr__paper{position:relative;z-index:2;background:var(--wrr-paper);color:var(--obsidian);width:min(365px,88%);padding:32px 28px 27px;margin-top:-2px;box-shadow:0 25px 65px #0009;transform-origin:top center}
+.wrr__paper--out{animation:wrr-feed 1.55s cubic-bezier(.18,.8,.28,1) both}
+.wrr__paper-brand{text-align:center;display:flex;align-items:center;flex-direction:column;gap:6px}
+.wrr__paper-brand img{width:40px;height:40px;object-fit:contain;filter:grayscale(1) contrast(4)}
+.wrr__paper-brand strong{font:normal 30px var(--font-display);letter-spacing:.095em}
+.wrr__paper-brand span{font:8px var(--font-mono);letter-spacing:.09em}
+.wrr__rule{border-top:1px dashed #aaa59d;margin:21px 0 15px}
+.wrr__paper-status{text-align:center;font:bold 11px var(--font-mono);letter-spacing:.12em;margin:0 0 5px}
+.wrr__paper-note{text-align:center;font:9px var(--font-mono);margin:0 0 17px;color:#615f58}
+.wrr__paper-ref,.wrr__paper-date{text-align:center;font:10px var(--font-mono);margin:5px 0;overflow-wrap:anywhere}
+.wrr__item{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;font:10px/1.55 var(--font-mono);margin:9px 0}
+.wrr__item strong{font:inherit;white-space:nowrap}
+.wrr__paper-totals,.wrr__paper-meta{display:flex;align-items:center;justify-content:space-between;gap:12px;font:10px var(--font-mono);margin:8px 0}
+.wrr__paper-totals strong{font:bold 15px var(--font-mono)}.wrr__paper-meta strong{font-weight:500}
+.wrr__paper-small{font:9px/1.45 var(--font-mono);color:#615f58;margin:15px 0}
+.wrr__barcode{text-align:center;margin:27px auto 4px}.wrr__barcode svg{width:100%;max-width:290px;height:50px}
+.wrr__barcode-caption{font:8px var(--font-mono);text-align:center;letter-spacing:.05em}
+.wrr__paper-rite{font:italic 21px/1.15 var(--font-serif);text-align:center;margin:18px 0 16px}
+.wrr__paper-link{display:block;text-align:center;font:8px var(--font-mono);color:var(--obsidian);text-decoration:underline;text-underline-offset:3px}
+.wrr__paper-disclaimer{font:8px/1.6 var(--font-mono);border:1px dashed #aaa59d;text-align:center;margin:19px 0 0;padding:8px}
+.wrr__actions{margin:28px auto 0;width:min(510px,100%);display:flex;justify-content:space-between;gap:16px;align-items:center}
+.wrr__print{color:var(--obsidian);background:var(--ember);border:0;padding:13px 17px;font:11px var(--font-sans);cursor:pointer}
+.wrr__continue{color:var(--bone);font:11px var(--font-sans);text-decoration:underline;text-underline-offset:4px}
+.wrr__afterword{font:italic 16px var(--font-serif);text-align:center;color:var(--sand);margin:26px auto 0}
+@keyframes wrr-feed{0%{transform:translateY(-75%) scaleY(.25);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
+@keyframes wrr-signal{from{width:0}to{width:100%}}
+@media(max-width:520px){
+ .wrr__experience{padding:16px 12px 70px}.wrr__machine{margin-top:28px}
+ .wrr__machine-body{padding:16px;align-items:start;flex-direction:column}
+ .wrr__machine-head{padding:14px 16px 0}.wrr__machine-progress{margin:0 16px 13px}.wrr__slot{margin:0 16px 13px}
+ .wrr__paper{width:min(325px,89%);padding:28px 19px}
+ .wrr__actions{flex-direction:column;align-items:stretch;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){.wrr__paper--out,.wrr__machine-progress>span{animation:none}}
+@page{size:80mm auto;margin:0}
+@media print{
+ html,body{background:white!important}
+ body *{visibility:hidden!important}
+ .wrr,.wrr__paper,.wrr__paper *{visibility:visible!important}
+ .wrr{position:absolute!important;inset:0!important;overflow:visible!important;background:white!important;display:block!important}
+ .wrr__scrim,.wrr__top,.wrr__machine,.wrr__actions,.wrr__afterword{display:none!important}
+ .wrr__experience{width:80mm!important;min-height:unset!important;margin:0!important;padding:0!important}
+ .wrr__paper{position:static!important;transform:none!important;animation:none!important;opacity:1!important;width:80mm!important;max-width:80mm!important;min-height:0!important;margin:0!important;padding:6mm 5mm!important;box-shadow:none!important;background:white!important;box-sizing:border-box!important}
+ .wrr__paper-brand img{filter:grayscale(1) contrast(4)!important}
+}
+</style>
