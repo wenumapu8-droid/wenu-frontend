@@ -3,6 +3,18 @@ import en from '../../i18n/en.json';
 
 const f = en.custom.form;
 
+// ─── Fase 3 — commission API ────────────────────────────────────────────────
+// Read at BUILD time and handed to the script below through define:vars. It
+// cannot be read inside that script: define:vars makes a script inline, and
+// Astro does not process inline scripts at all — no bundling, no imports, and
+// no import.meta.env substitution. Reading it there would silently yield
+// undefined and the form would look wired while quietly posting nowhere.
+//
+// Unset in a plain build. Every path below still ends at mailto, so an
+// unconfigured deploy degrades to a working form instead of a dead fetch.
+// Set PUBLIC_WENU_API in Cloudflare Pages (see .env.example) to turn it on.
+const API = (import.meta.env.PUBLIC_WENU_API ?? '').replace(/\/+$/, '');
+
 const pieceTypes = [
   'Ring',
   'Amulet / pendant',
@@ -115,7 +127,7 @@ const timings = [
   </p>
 </form>
 
-<script define:vars={{ f }}>
+<script define:vars={{ f, API }}>
   const form = document.querySelector('[data-custom-order-form]');
   const timing = form?.querySelector('[data-custom-order-timing]');
   const dateField = form?.querySelector('[data-custom-order-date]');
@@ -172,6 +184,31 @@ const timings = [
     link.textContent = f.fallback_cta;
 
     return [intro, textarea, link];
+  };
+
+  /**
+   * The API answers with the CustomOrder id once the brief is stored. Show it:
+   * a reference the person can quote back is the difference between "we got
+   * it" and "trust us".
+   *
+   * Deliberately NOT a receipt code (src/lib/receipt.ts). A commission at this
+   * point is an inquiry — the API creates CustomOrder(status:new) and payment
+   * happens later through the deposit link. Minting a WM-ENC-… receipt here
+   * would hand someone a purchase artifact for something they have not bought.
+   */
+  const successNodes = id => {
+    const intro = document.createElement('p');
+    intro.className = 'custom-form__fallback-intro';
+    intro.textContent = f.success_message;
+    if (!id) return [intro];
+
+    const ref = document.createElement('p');
+    ref.className = 'custom-form__reference';
+    ref.append(
+      document.createTextNode('Commission reference: '),
+      Object.assign(document.createElement('strong'), { textContent: `#${id}` }),
+    );
+    return [intro, ref];
   };
 
   const noteIntro = notes => {
@@ -231,24 +268,50 @@ const timings = [
       return;
     }
 
-    try {
-      const response = await fetch('/api/custom-order', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json().catch(() => null);
-      if (response.ok && result?.ok) {
-        const intro = document.createElement('p');
-        intro.className = 'custom-form__fallback-intro';
-        intro.textContent = f.success_message;
-        showPanel(intro);
-        form.reset();
-        if (dateField) dateField.hidden = true;
-        return;
+    // Fase 3. This used to POST to /api/custom-order — an Astro route that
+    // output: 'static' never builds. The fetch therefore threw on every single
+    // submission and every commission silently fell through to mailto. It now
+    // posts to the real commission API, which validates the brief, upserts the
+    // Customer, creates the CustomOrder and notifies the studio.
+    //
+    // The site stays static: this is a client-side fetch to an external origin,
+    // not an SSR migration. The API's ALLOWED_ORIGINS must include this host.
+    if (API) {
+      try {
+        const response = await fetch(`${API}/custom-orders`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: payload.email,
+            name: payload.name,
+            // The API takes the commission as a free-form brief object. Send the
+            // whole shape rather than a flattened string, so the studio reads
+            // fields back out instead of re-parsing prose.
+            brief: {
+              pieceType: payload.pieceType,
+              placement: payload.placement,
+              material: payload.material,
+              stone: payload.stone,
+              budget: payload.budget,
+              timing: payload.timing,
+              specificDate: payload.specificDate,
+              inspirationUrl: payload.inspirationUrl,
+              story: payload.story,
+              consent: payload.consent,
+            },
+          }),
+        });
+        const result = await response.json().catch(() => null);
+        if (response.ok && result?.ok) {
+          showPanel(...successNodes(result?.customOrder?.id));
+          form.reset();
+          if (dateField) dateField.hidden = true;
+          return;
+        }
+      } catch {
+        // Network, CORS, or a cold API. The commission is worth more than the
+        // error state, so fall through to mailto rather than losing the lead.
       }
-    } catch {
-      // Static builds intentionally fall back to mailto until a provider endpoint exists.
     }
 
     showPanel(...fallbackNodes(payload));
