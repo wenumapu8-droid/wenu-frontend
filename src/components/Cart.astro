@@ -116,8 +116,8 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         </details>
 
         <button type="button" class="wmcart__reserve-btn" data-wmcart-method="reserve">
-          <span class="wmcart__reserve-title">Reserve — hold my pieces</span>
-          <span class="wmcart__reserve-sub">No payment now · we email you the total</span>
+          <span class="wmcart__reserve-title">Request availability — no payment now</span>
+          <span class="wmcart__reserve-sub">We confirm availability and shipping before payment</span>
         </button>
 
         <p class="wmcart__secure">
@@ -127,6 +127,8 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           <span>Secure checkout — no card details are stored on this site.</span>
         </p>
         <p class="wmcart__status" data-wmcart-status role="status" hidden></p>
+        <a class="wmcart__email-fallback" data-wmcart-email-fallback hidden href="mailto:wenu.mapu8@gmail.com">Request order details by email →</a>
+        <p class="wmcart__ship">Questions before paying? <a href="mailto:wenu.mapu8@gmail.com?subject=Wenu%20Mapu%20order%20help">Contact Wënü Mapü</a>.</p>
       </div>
 
       <!-- Step 2 — manual Venmo/Zelle: reference code + handle/QR + summary + send -->
@@ -134,17 +136,18 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         <button type="button" class="wmcart__back" data-wmcart-back>← Back</button>
         <p class="wmcart__manual-h" data-wmcart-manual-h>Pay with Venmo</p>
         <p class="wmcart__manual-amt"><span data-wmcart-manual-amt>$0</span></p>
+        <p class="wmcart__ship">This is a merchandise subtotal. Shipping, availability and the final amount must be confirmed before any transfer.</p>
 
         <!-- PAYMENT REFERENCE (Ocin 2026-07-13) — the constancia that lets the
              maker match a Venmo/Zelle deposit to a real order. SKUs of every piece
              in the cart joined with "+", plus the discount code when one is typed. -->
         <div class="wmcart__ref">
-          <p class="wmcart__ref-h">Include this code in your payment note:</p>
+          <p class="wmcart__ref-h">After written confirmation, use this code in your payment note:</p>
           <div class="wmcart__ref-row">
             <code class="wmcart__ref-code" data-wmcart-ref-code>—</code>
             <button type="button" class="wmcart__copy" data-wmcart-copy>Copy</button>
           </div>
-          <p class="wmcart__ref-note">We match it to your order and confirm by email within 24 hours.</p>
+          <p class="wmcart__ref-note">A transfer is not confirmed automatically. We will reconcile it by email; please keep your bank receipt.</p>
         </div>
 
         <div class="wmcart__qrwrap" data-wmcart-qrwrap>
@@ -176,6 +179,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         <div class="wmcart__summary" data-wmcart-summary></div>
         <button type="button" class="btn btn--solid wmcart__send" data-wmcart-send>I've sent payment — send my order →</button>
         <p class="wmcart__status" data-wmcart-status2 role="status" hidden></p>
+        <a class="wmcart__email-fallback" data-wmcart-email-fallback hidden href="mailto:wenu.mapu8@gmail.com">Ask us to verify the order →</a>
       </div>
 
       <!-- Step 3 — confirmation -->
@@ -351,9 +355,9 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
     // inside "Other payment methods" (the QR image itself can't be changed).
     const PAY = {
       venmo: { label: 'Venmo', handle: '@Wenu_mapu8', img: '/img/pay/venmo.png', qr: true,
-        note: 'Open Venmo and send the amount above to @Wenu_mapu8 (scan the code or search the handle). Paste the reference code above into the payment note. Then tap “send my order” so we can match your payment.' },
+        note: 'Do not send funds before receiving an email confirming stock, shipping and the final amount. After written confirmation, use @Wenu_mapu8 and include the reference code in the Venmo note. Keep your receipt.' },
       zelle: { label: 'Zelle', handle: '', img: '', qr: false,
-        note: 'Open your bank’s Zelle and scan the QR under “Other payment methods” below to send the amount above. Paste the reference code above into the memo. Then tap “send my order” so we can match your payment.' },
+        note: 'Do not send funds before receiving an email confirming stock, shipping and the final amount. After written confirmation, use the Zelle QR under “Other payment methods” and include the reference code in the memo. Keep your receipt.' },
     };
 
     const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
@@ -392,6 +396,8 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       itemsEl.hidden = step === 'done';
       if (statusEl) { statusEl.hidden = true; statusEl.textContent = ''; }
       if (status2El) { status2El.hidden = true; status2El.textContent = ''; }
+      // The email fallback is offered only after an API failure, never in normal checkout.
+      root.querySelectorAll('[data-wmcart-email-fallback]').forEach(a => { a.hidden = true; });
     }
 
     function render() {
@@ -489,6 +495,41 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       showStep('done');
     }
 
+    // When the backend fails, preserve a manual, payment-free sales inquiry.
+    // Opens the shopper's own email app; it does not silently send, reserve stock,
+    // verify a transfer, or create a paid order.
+    function offerEmailFallback(panel, paymentAttempted = false) {
+      const link = panel.querySelector('[data-wmcart-email-fallback]');
+      if (!link) return;
+      const items = read();
+      if (!items.length) return;
+      const { name, email } = getDetails();
+      const list = items.slice(0, 15).map(item =>
+        String(item.qty || 1) + ' x ' + String(item.name || 'Piece') +
+        ' (SKU ' + String(item.sku || 'unknown') + ')'
+      );
+      const body = [
+        'Hello Wenu Mapu, I would like help confirming this selection:',
+        '',
+        ...list,
+        ...(items.length > 15 ? ['(Additional pieces in cart; please ask me for the full list.)'] : []),
+        '',
+        'Name: ' + (name || ''),
+        'Email: ' + (email || ''),
+        'Destination for shipping (country/state): ',
+        '',
+        paymentAttempted
+          ? 'I may have attempted Venmo/Zelle payment already. Please verify the reference before asking me to send anything else: ' + refCode()
+          : 'I have not completed payment through the site. Please confirm availability, shipping and next steps before I transfer funds.',
+        '',
+        'This email is an inquiry, not a completed purchase or inventory reservation.'
+      ].join('\n');
+      link.href = 'mailto:wenu.mapu8@gmail.com?subject=' +
+        encodeURIComponent('Wenu Mapu - order assistance') +
+        '&body=' + encodeURIComponent(body);
+      link.hidden = false;
+    }
+
     // ── step 1: open the details/method panel ──────────────────────
     checkoutBtn.addEventListener('click', () => {
       showStep('co');
@@ -515,19 +556,20 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
             });
             const data = await r.json();
             if (data && data.ok && data.url) { window.location.href = data.url; return; }
-            statusEl.textContent = (data && data.error) ? data.error : 'Could not create the link — try Venmo or Zelle.';
-          } catch (err) { statusEl.textContent = 'Network error — try Venmo or Zelle.'; }
+            statusEl.textContent = 'Card checkout is unavailable. No card payment was started. Contact us to confirm the items before paying.';
+            offerEmailFallback(coEl);
+          } catch (err) { statusEl.textContent = 'Checkout connection unavailable. No card payment was started. Contact us before transferring funds.'; offerEmailFallback(coEl); }
           btn.disabled = false;
           return;
         }
 
         if (method === 'reserve') {
-          btn.disabled = true; statusEl.hidden = false; statusEl.textContent = 'Holding your pieces…';
+          btn.disabled = true; statusEl.hidden = false; statusEl.textContent = 'Sending your request…';
           try {
             await submitOrder('reserve');
-            finish('Your pieces are held.',
-              'We’ve noted your selection under your name and emailed you a copy. One-of-a-kind pieces are held for you while we confirm the order and send you the exact amount to pay.');
-          } catch (e) { statusEl.textContent = 'Could not send — please try again, or email us.'; btn.disabled = false; }
+            finish('Request received — confirmation pending.',
+              'We have received your request. We will confirm stock, shipping and next steps by email. Your items are not reserved and no payment is due until we confirm availability.');
+          } catch (e) { statusEl.textContent = 'Request could not be sent. Email us to confirm availability without paying.'; offerEmailFallback(coEl); btn.disabled = false; }
           return;
         }
 
@@ -564,7 +606,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           read().map((x) => '<div class="wmcart__summary-row"><span>' + x.qty + '× ' + x.name + '</span><span>' + money(num(x.price) * x.qty) + '</span></div>').join('') +
           '<div class="wmcart__summary-row"><span>Subtotal</span><span>' + money(subtotal()) + '</span></div>' +
           '<div class="wmcart__summary-row wmcart__summary-ship"><span>Shipping</span><span>Confirmed by email</span></div>' +
-          '<div class="wmcart__summary-row wmcart__summary-total"><span>Amount to send now</span><span>' + money(subtotal()) + '</span></div>';
+          '<div class="wmcart__summary-row wmcart__summary-total"><span>Items subtotal — shipping not included</span><span>' + money(subtotal()) + '</span></div>';
         const sendBtn = $('[data-wmcart-send]');
         sendBtn.disabled = false;
         showStep('manual');
@@ -620,9 +662,9 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       sendBtn.disabled = true; status2El.hidden = false; status2El.textContent = 'Sending your order…';
       try {
         await submitOrder(method);
-        finish('Order received.',
-          'Thank you. We’ve got your order and your ' + label + ' payment note. We’ll confirm the payment and follow up by email with shipping or pickup details.');
-      } catch (e) { status2El.textContent = 'Could not send — please try again, or email us.'; sendBtn.disabled = false; }
+        finish('Order submitted — payment pending.',
+          'We have received your order request for ' + label + '. Your transfer has not yet been verified. We will confirm payment and delivery details by email; please do not send a second payment unless requested.');
+      } catch (e) { status2El.textContent = 'Order request could not be sent. If you transferred money, contact us to verify it; do not pay again.'; offerEmailFallback(manualEl, true); sendBtn.disabled = false; }
     });
 
     window.wmCart = { add, remove, setQty, get: read, open, close, count };
@@ -827,6 +869,19 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
   .wmcart__done-body { font-family: var(--font-serif); font-weight: var(--fw-thin); color: var(--fg-soft); line-height: 1.6; margin: 0; }
   .wmcart__done-close { align-self: center; }
   .wmcart__status { font-family: var(--font-sans); font-size: var(--fs-small); color: var(--ember); margin: 0; }
+  .wmcart__email-fallback {
+    display: inline-flex;
+    align-items: center;
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    text-decoration: underline;
+    text-underline-offset: .25em;
+    margin-top: var(--space-2);
+    min-height: 44px;
+  }
+  .wmcart__email-fallback:hover,
+  .wmcart__email-fallback:focus-visible { color: var(--ember); }
   .wmcart__alt { font-family: var(--font-serif); font-style: italic; font-size: var(--fs-small); color: var(--silver); margin: var(--space-1) 0 0; }
   .wmcart__fine { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); letter-spacing: 0.03em; margin: var(--space-3) 0 0; }
 
