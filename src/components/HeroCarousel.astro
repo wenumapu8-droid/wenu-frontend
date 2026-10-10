@@ -55,21 +55,72 @@ const slides: Slide[] = [
     cta: { label: 'Enter the collection', href: '/collection/atacama' },
   },
 ];
+// Home v3 is opt-in at build time. Baseline remains pixel- and feature-identical
+// unless staging explicitly enables PUBLIC_WENU_HOME_V3=true.
+const editorialV3 = import.meta.env.PUBLIC_WENU_HOME_V3 === 'true';
+if (editorialV3) {
+  // Existing studio photograph from the repo, not a fictional AI-generated SKU.
+  slides[0] = {
+    ...slides[0],
+    img: '/img/hero/wm-han-001-full.webp',
+    alt: 'Wenu Mapu studio photograph of sculptural body jewelry',
+    eyebrow: 'Wënü Mapü · Ritual body jewelry',
+    headline: 'Adorn the body. Carry a universe.',
+    sub: 'Curated body jewelry, sculptural adornments and distinctive objects — inspired by earth and the cosmos.',
+    cta: { label: 'Explore the collection', href: '/shop' },
+  };
+  // Staging variant avoids unverified artisan, piercing venue and stock claims.
+  slides[1] = {
+    ...slides[1],
+    eyebrow: 'The Atelier',
+    headline: 'A piece with a story of its own.',
+    sub: 'Explore custom inquiries and discover the forms behind Wenu Mapu.',
+    cta: { label: 'Explore custom orders', href: '/custom-orders' },
+  };
+  slides[2] = {
+    ...slides[2],
+    eyebrow: 'Wültufe · Your ear, your map',
+    headline: 'Your ear is not a template.',
+    sub: 'Explore jewelry placement and create an ear constellation. Final anatomy and suitability require professional evaluation.',
+    cta: { label: 'Design your ear', href: '/constelaciones' },
+  };
+  slides[3] = { ...slides[3], sub: 'A visual language rooted in the landscape of southern Chile.' };
+  slides[4] = {
+    ...slides[4],
+    eyebrow: 'Knowledge · Body jewelry',
+    headline: 'Adornment starts with intention.',
+    sub: 'Explore materials, placement and aftercare information before your next piece.',
+    cta: { label: 'Explore the care guide', href: '/care-guide' },
+  };
+  slides[5] = {
+    ...slides[5],
+    sub: 'A selection of sculptural pieces inspired by material, place and sky.',
+  };
+}
 const s0 = slides[0];
 ---
 
-<section class="hero-cx" aria-label="Wenu Mapu — tribal ritual jewelry" data-hero-cx>
+<section class={`hero-cx${editorialV3 ? ' hero-cx--editorial-v3' : ''}`} aria-label="Wenu Mapu — tribal ritual jewelry" data-hero-cx>
   <div class="hero-cx__slides">
     {slides.map((s, i) => (
       <figure class={`hero-cx__slide${i === 0 ? ' is-active' : ''}`} data-slide aria-hidden={i === 0 ? 'false' : 'true'}>
-        <img
-          src={s.img}
-          alt={s.alt}
-          width="1920" height="1000"
-          loading={i === 0 ? 'eager' : 'lazy'}
-          fetchpriority={i === 0 ? 'high' : 'auto'}
-          decoding="async"
-        />
+        {editorialV3 && i === 0 ? (
+          <picture>
+            <source media="(max-width: 720px)" type="image/avif" srcset="/img/hero/wm-han-001-medium.avif" />
+            <source type="image/avif" srcset="/img/hero/wm-han-001-xlarge.avif" />
+            <img src={s.img} alt={s.alt} width="1920" height="1000"
+                 loading="eager" fetchpriority="high" decoding="async" />
+          </picture>
+        ) : (
+          <img
+            src={s.img}
+            alt={s.alt}
+            width="1920" height="1000"
+            loading={i === 0 ? 'eager' : 'lazy'}
+            fetchpriority={i === 0 ? 'high' : 'auto'}
+            decoding="async"
+          />
+        )}
       </figure>
     ))}
     <div class="hero-cx__scrim" aria-hidden="true"></div>
@@ -91,6 +142,11 @@ const s0 = slides[0];
         <span class="hero-cx__cta-label" data-hero-cta-label>{s0.cta.label}</span>
         <span class="hero-cx__cta-line" aria-hidden="true"></span>
       </a>
+      {editorialV3 && (
+        <a class="hero-cx__cta hero-cx__cta--secondary hero-cx__cta--v3-secondary" href="/constelaciones">
+          Design your ear <span aria-hidden="true">↗</span>
+        </a>
+      )}
     </div>
   </div>
 
@@ -153,7 +209,10 @@ const s0 = slides[0];
         }, 240);
       }
     }
-    function start() { if (reduce) return; stop(); timer = setInterval(() => go(i + 1), DUR); }
+    // Editorial V3 preserves all 6 scenes but lets visitors navigate manually.
+    // The default production hero keeps its original auto-rotation untouched.
+    const editorialV3 = root.classList.contains('hero-cx--editorial-v3');
+    function start() { if (reduce || editorialV3) return; stop(); timer = setInterval(() => go(i + 1), DUR); }
     function stop() { if (timer) { clearInterval(timer); timer = null; } }
 
     dots.forEach((d, k) => d.addEventListener('click', () => { go(k); start(); }));
@@ -405,4 +464,104 @@ const s0 = slides[0];
   @media (max-width: 600px) {
     .hero-cx { min-height: 86svh; }
   }
+
+  /* HOME V3 / progressive enhancement.
+     All six slides, data bindings, controls, animations and links remain intact.
+     Experimental styling only applies when PUBLIC_WENU_HOME_V3=true. */
+  .hero-cx--editorial-v3 {
+    min-height: min(880px, 92svh);
+    justify-content: flex-start;
+    background: #080808;
+  }
+  .hero-cx--editorial-v3 .hero-cx__copy {
+    width: min(760px, 65%);
+    text-align: left;
+    padding: 96px clamp(32px, 8vw, 146px);
+    box-sizing: content-box;
+  }
+  .hero-cx--editorial-v3 .hero-cx__wordmark {
+    font-size: clamp(3.5rem, 6vw, 6.5rem);
+    line-height: 1.005;
+    letter-spacing: -0.027em;
+    max-width: 14ch;
+    margin-inline: 0;
+  }
+  .hero-cx--editorial-v3 .hero-cx__sub {
+    margin-left: 0;
+    max-width: 46ch;
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.7;
+    font-size: clamp(.93rem, 1.15vw, 1.07rem);
+  }
+  .hero-cx--editorial-v3 .hero-cx__ctas { justify-content: flex-start; gap: 24px; }
+  .hero-cx--editorial-v3 .hero-cx__cta--primary {
+    margin-top: 0;
+    border-radius: 0;
+    padding: 16px 23px;
+    letter-spacing: .15em;
+    font-size: .69rem;
+  }
+  .hero-cx--editorial-v3 .hero-cx__cta--v3-secondary {
+    margin-top: 0;
+    padding: 16px 0 7px;
+    font-size: .69rem;
+    border-bottom: 1px solid rgba(240,237,232,.52);
+  }
+  .hero-cx--editorial-v3 .hero-cx__slide picture { display:block; width:100%; height:100%; }
+  .hero-cx--editorial-v3 .hero-cx__slide:first-child img { object-position:64% center; }
+  .hero-cx--editorial-v3 .hero-cx__scrim {
+    background:
+      linear-gradient(90deg, rgba(5,5,5,.95) 0%, rgba(5,5,5,.72) 28%, rgba(5,5,5,.22) 64%, rgba(5,5,5,.10) 100%),
+      linear-gradient(0deg, rgba(5,5,5,.45), transparent 30%);
+  }
+  .hero-cx--editorial-v3 .hero-cx__wash { opacity: .30; }
+  .hero-cx--editorial-v3 .hero-cx__dots {
+    justify-content: flex-start;
+    left: clamp(32px, 8vw, 146px);
+    right: auto;
+    bottom: 32px;
+  }
+  .hero-cx--editorial-v3 .hero-cx__dot { width: 22px; height: 3px; border-radius: 0; }
+  @media (max-width: 720px) {
+    .hero-cx--editorial-v3 {
+      min-height: min(850px, 94svh);
+      align-items: flex-end;
+    }
+    .hero-cx--editorial-v3 .hero-cx__copy {
+      width: 100%;
+      padding: 0 24px 110px;
+      box-sizing: border-box;
+    }
+    .hero-cx--editorial-v3 .hero-cx__wordmark {
+      font-size: clamp(2.6rem, 10.5vw, 4.8rem);
+      max-width: 13ch;
+    }
+    .hero-cx--editorial-v3 .hero-cx__sub {
+      font-size: .91rem;
+      line-height: 1.55;
+      max-width: 37ch;
+    }
+    .hero-cx--editorial-v3 .hero-cx__ctas {
+      gap: 8px 20px;
+      align-items: flex-start;
+    }
+    .hero-cx--editorial-v3 .hero-cx__cta--primary,
+    .hero-cx--editorial-v3 .hero-cx__cta--v3-secondary {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+    }
+    .hero-cx--editorial-v3 .hero-cx__slide:first-child img {
+      object-position: 51% 35%;
+    }
+    .hero-cx--editorial-v3 .hero-cx__scrim {
+      background:
+        linear-gradient(0deg, rgba(4,4,4,.98) 0%, rgba(4,4,4,.93) 23%, rgba(4,4,4,.48) 52%, rgba(4,4,4,.04) 80%),
+        linear-gradient(180deg, rgba(4,4,4,.3), transparent 22%);
+    }
+    .hero-cx--editorial-v3 .hero-cx__dots { bottom: 37px; left: 24px; }
+    .hero-cx--editorial-v3 .hero-cx__arrow { top: 35%; }
+  }
+
 </style>

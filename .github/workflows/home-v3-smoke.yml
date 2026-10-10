@@ -1,0 +1,39 @@
+name: Wenu Home V3 source and build smoke
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/pages/index.astro'
+      - 'src/components/HeroCarousel.astro'
+      - 'src/components/HomeEditorialSelection.astro'
+      - 'scripts/check-home-v3.mjs'
+      - '.github/workflows/home-v3-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  astro-syntax-smoke:
+    name: Astro structural build (empty product data)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUBLIC_WENU_HOME_V3: 'true'
+      ALLOW_EMPTY_PRODUCTS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/check-home-v3.mjs
+      - name: Structural build without commerce secrets
+        run: npm run build
+      - name: Scope warning
+        run: |
+          echo "This smoke test uses ALLOW_EMPTY_PRODUCTS=true."
+          echo "It proves source/structural compilation ONLY."
+          echo "It does not validate real products, commercial checkout, legal claims or visual staging."

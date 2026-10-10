@@ -19,6 +19,7 @@ import FrequencyBand from '../components/FrequencyBand.astro';
 import EmberCore from '../components/EmberCore.astro';
 // PrefooterQuote moved to /canon (academic source page) — per Ocin 2026-06-07.
 import HeroCarousel from '../components/HeroCarousel.astro';
+import HomeEditorialSelection from '../components/HomeEditorialSelection.astro';
 import MandalaPortal from '../components/MandalaPortal.astro';
 import CosmicLinesRail from '../components/CosmicLinesRail.astro';
 // CollectionCarousel (abstract collection graphics) retired from the home
@@ -35,12 +36,14 @@ import DesignYourEarBanner from '../components/DesignYourEarBanner.astro';
 import MiniCatalog from '../components/MiniCatalog.astro';
 import CatalogDeck from '../components/CatalogDeck.astro';
 import FeaturedShowcase from '../components/FeaturedShowcase.astro';
-import { getProducts } from '../lib/woo';
+import { getProducts, getHeroImage } from '../lib/woo';
 import { collections } from '../data/collections';
 import { getCollection } from 'astro:content';
 import en from '../i18n/en.json';
 
 const products = await getProducts();
+// Home V3 is opt-in. With the flag unset, preserve the original home.
+const editorialV3 = import.meta.env.PUBLIC_WENU_HOME_V3 === 'true';
 
 // Home "Portals" showcase — surface the strongest collections by real catalog
 // depth (NocoDB counts: origin 69, neo 27, organic 24, ornamental 11,
@@ -145,6 +148,35 @@ const newest = [...curated]
     return db.localeCompare(da);
   })
   .slice(0, 8);
+
+// HOME V3: actual WooCommerce photography. Never invent a SKU image.
+const v3CataloguePool = [...newest, ...preferredFeatured, ...curatedStrong];
+const v3PortalDefs = [
+  { key: 'piercing', eyebrow: '01 / Body adornment',
+    title: 'Piercing Jewelry',
+    description: 'Pieces selected for the body, with proportion and detail in focus.',
+    href: '/piercing-jewelry',
+    piece: v3CataloguePool.find(p => /titanium|14k gold|threadless|labret|cluster|septum|clicker/i.test(p.name)) },
+  { key: 'hangers', eyebrow: '02 / Sculptural forms',
+    title: 'Hangers & Weights',
+    description: 'Objects with presence — worn, never merely displayed.',
+    href: '/hangers',
+    piece: v3CataloguePool.find(p => /hanger|ear weight/i.test(p.name)) },
+  { key: 'one-of-one', eyebrow: '03 / Collected objects',
+    title: 'One-of-One',
+    description: 'Material, form and individuality — discover the collection.',
+    href: '/stones-one-of-one',
+    piece: v3CataloguePool.find(p => /meteorite|one.of.one/i.test(p.name)) },
+];
+const v3PortalSeen = new Set<string>();
+const v3Entrances = v3PortalDefs.flatMap(({ piece, ...entry }) => {
+  if (!piece || v3PortalSeen.has(piece.slug)) return [];
+  const image = getHeroImage(piece);
+  if (!image?.src || PLACEHOLDER_IMG.test(image.src)) return [];
+  v3PortalSeen.add(piece.slug);
+  return [{ ...entry, image: image.src, alt: image.alt || piece.name }];
+});
+const v3EntrancesReady = editorialV3 && v3Entrances.length === 3;
 
 // ── EXPLORE-BY tiles (north 2026-06-23: one idea per screen, 2-up) ──
 const findImg = (slug: string) => products.find(p => p.slug === slug)?.images?.[0]?.src ?? null;
@@ -327,7 +359,9 @@ const websiteLd = {
 
 <Base
   title="Wenu Mapu — Adornment for the sacred body"
-  description="Ancestral-cosmic body jewelry forged by hand in Truckee, California. Implant-grade titanium, sterling silver, 14k gold. Custom commissions accepted."
+  description={editorialV3
+    ? "Contemporary ritual body jewelry, sculptural adornments and distinctive objects inspired by earth and cosmos. Explore Wenu Mapu collections."
+    : "Ancestral-cosmic body jewelry forged by hand in Truckee, California. Implant-grade titanium, sterling silver, 14k gold. Custom commissions accepted."}
   jsonLd={[orgLd, personLd, websiteLd]}
 >
 
@@ -355,6 +389,10 @@ const websiteLd = {
     }
   </style>
 
+  {/* Staging-only 3-door entrance with genuine catalogue photos. */}
+  {v3EntrancesReady && <HomeEditorialSelection items={v3Entrances} />}
+  {!v3EntrancesReady && (
+    <Fragment>
   {/* ── EXPLORE BY PIERCING ── 2-up · one idea per screen (north 2026-06-23).
        Moved to sit DIRECTLY under the hero carousel (Ocin 2026-07-07): the two
        Explore-by sections (piercing → collection) are now the FIRST thing after the
@@ -404,6 +442,8 @@ const websiteLd = {
       </div>
     </div>
   </section>
+    </Fragment>
+  )}
 
   {/* ── PIERCING BANNER ── standalone service banner RETIRED from the home
        (Ocin 2026-07-07). The piercing story now lives as a slide inside the
@@ -612,10 +652,10 @@ const websiteLd = {
     <div class="tripantu__paper">
       <div class="tripantu__masthead">
         <span>The Wenu Mapu Almanac · No. II</span>
-        <span>Strawberry Moon · Wallmapu</span>
+        <span>{editorialV3 ? 'Archive · Strawberry Moon' : 'Strawberry Moon · Wallmapu'}</span>
       </div>
       <hr class="tripantu__rule tripantu__rule--thick" />
-      <p class="eyebrow tripantu__eyebrow">Rising now · Strawberry full moon</p>
+      <p class="eyebrow tripantu__eyebrow">{editorialV3 ? "From the archive · Strawberry Moon" : "Rising now · Strawberry full moon"}</p>
       <h2 id="tripantu-title" class="tripantu__title">The first plenitude after the new sun</h2>
       <hr class="tripantu__rule" />
       <div class="tripantu__cols">
