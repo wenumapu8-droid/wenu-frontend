@@ -1,0 +1,338 @@
+---
+/**
+ * RECEIPT ARTIFACT
+ *
+ * The thing a buyer keeps. Replaces the bare `Order reference: #123` line that
+ * `/gracias` used to print — a reference with no shape, nothing to screenshot,
+ * nothing to recognise.
+ *
+ * Everything on the card derives from one input (kind + order id) through
+ * `src/lib/receipt.ts`: the canonical code, the long checksum and the signature
+ * strip. Same order, same artifact, forever — on the server and in the browser.
+ *
+ * TWO RENDER PATHS, one output. The site is `output: 'static'`, so the payment
+ * return URL (`/gracias?type=shop&id=123`) is only readable in the browser:
+ *
+ *   - props given (`kind` + `id`)  → rendered at build time, no JS needed.
+ *   - props absent                 → shell + client script reads the query string.
+ *
+ * Both paths call the same functions, so they cannot drift apart.
+ *
+ * MOTION. The strip is static by canon: `context/CONVERSATION_DECISIONS.md`
+ * prohibits continuously animating labels, barcodes and CTAs. There is one
+ * entrance fade, and it is skipped under `prefers-reduced-motion`.
+ *
+ * HONESTY. The copy here says "reference" and "integrity", never "authentic" or
+ * "paid". See the WHAT THIS IS NOT block in `src/lib/receipt.ts` — the check
+ * characters prove the code came from this system, nothing more.
+ */
+import { buildReceipt, stripGeometry, type ReceiptKind } from '../lib/receipt';
+
+interface Props {
+  /** Omit both to let the client fill the card from the query string. */
+  kind?: ReceiptKind;
+  id?: string;
+  /** Rendered above the code. */
+  caption?: string;
+  class?: string;
+}
+
+const { kind, id, caption = 'Keep this reference', class: className = '' } = Astro.props;
+
+const prerendered = kind && id ? buildReceipt(kind, id) : null;
+const geo = prerendered ? stripGeometry(prerendered.bars) : null;
+---
+
+<figure
+  class:list={['receipt', className]}
+  data-receipt
+  data-receipt-state={prerendered ? 'ready' : 'pending'}
+>
+  <div class="receipt__head">
+    <span class="receipt__mark" aria-hidden="true">WM</span>
+    <figcaption class="receipt__caption">{caption}</figcaption>
+  </div>
+
+  <p class="receipt__label" data-receipt-label>{prerendered?.label ?? ''}</p>
+
+  <p class="receipt__code">
+    <span data-receipt-code>{prerendered?.code ?? '—'}</span>
+  </p>
+
+  {/* Decorative: the code above is the real, readable content. A screen reader
+      announcing 42 bars would be noise. */}
+  <div class="receipt__strip" data-receipt-strip aria-hidden="true">
+    {geo && (
+      <svg
+        viewBox={`0 0 ${geo.width} ${geo.height}`}
+        width={geo.width}
+        height={geo.height}
+        preserveAspectRatio="xMinYMid meet"
+        role="presentation"
+      >
+        {geo.rects.map((r) => (
+          <rect x={r.x} y={r.y} width={r.w} height={r.h} fill="currentColor" />
+        ))}
+      </svg>
+    )}
+  </div>
+
+  <dl class="receipt__meta">
+    <div>
+      <dt>Checksum</dt>
+      <dd data-receipt-checksum>{prerendered?.checksum ?? '—'}</dd>
+    </div>
+  </dl>
+
+  <div class="receipt__actions">
+    <button type="button" class="receipt__btn" data-receipt-copy hidden>
+      Copy reference
+    </button>
+    <a class="receipt__btn receipt__btn--link" data-receipt-verify href={prerendered?.verifyPath ?? '/kodex/verify/'}>
+      Verify this reference →
+    </a>
+  </div>
+
+  <p class="receipt__note">
+    Integrity of the code only. We confirm payment, making and shipping with you
+    directly — this card does not.
+  </p>
+</figure>
+
+<script>
+  import { buildReceipt, kindFromParam, stripGeometry } from '../lib/receipt';
+
+  const card = document.querySelector<HTMLElement>('[data-receipt]');
+  if (card) {
+    // Build from the query string only when the server could not. A prerendered
+    // card is already correct and must not be recomputed from a URL a visitor
+    // could have edited.
+    if (card.dataset.receiptState === 'pending') {
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+
+      if (id && id.trim()) {
+        const receipt = buildReceipt(kindFromParam(params.get('type')), id);
+
+        const setText = (selector: string, value: string) => {
+          const node = card.querySelector<HTMLElement>(selector);
+          if (node) node.textContent = value;
+        };
+        setText('[data-receipt-label]', receipt.label);
+        setText('[data-receipt-code]', receipt.code);
+        setText('[data-receipt-checksum]', receipt.checksum);
+
+        const verify = card.querySelector<HTMLAnchorElement>('[data-receipt-verify]');
+        if (verify) verify.href = receipt.verifyPath;
+
+        const strip = card.querySelector<HTMLElement>('[data-receipt-strip]');
+        if (strip) {
+          const geo = stripGeometry(receipt.bars);
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('viewBox', `0 0 ${geo.width} ${geo.height}`);
+          svg.setAttribute('width', String(geo.width));
+          svg.setAttribute('height', String(geo.height));
+          svg.setAttribute('preserveAspectRatio', 'xMinYMid meet');
+          svg.setAttribute('role', 'presentation');
+          for (const r of geo.rects) {
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', String(r.x));
+            rect.setAttribute('y', String(r.y));
+            rect.setAttribute('width', String(r.w));
+            rect.setAttribute('height', String(r.h));
+            rect.setAttribute('fill', 'currentColor');
+            svg.appendChild(rect);
+          }
+          strip.replaceChildren(svg);
+        }
+
+        card.dataset.receiptState = 'ready';
+      } else {
+        // No `?id=` — Mercado Pago sent the buyer here without a reference, or
+        // someone opened /gracias directly. Hide the card rather than show a
+        // card with an em dash where the code should be.
+        card.dataset.receiptState = 'empty';
+      }
+    }
+
+    // Copy only exists where the clipboard does; no dead button otherwise.
+    const copy = card.querySelector<HTMLButtonElement>('[data-receipt-copy]');
+    const codeNode = card.querySelector<HTMLElement>('[data-receipt-code]');
+    if (copy && codeNode && navigator.clipboard && card.dataset.receiptState === 'ready') {
+      copy.hidden = false;
+      copy.addEventListener('click', async () => {
+        const code = codeNode.textContent?.trim();
+        if (!code) return;
+        try {
+          await navigator.clipboard.writeText(code);
+          const previous = copy.textContent;
+          copy.textContent = 'Copied';
+          copy.disabled = true;
+          window.setTimeout(() => {
+            copy.textContent = previous;
+            copy.disabled = false;
+          }, 1600);
+        } catch {
+          // Clipboard refused (permission, insecure context). The code is on
+          // screen and selectable — nothing to recover, nothing to announce.
+        }
+      });
+    }
+  }
+</script>
+
+<style>
+  .receipt {
+    margin: 0;
+    width: min(420px, 100%);
+    padding: var(--space-4);
+    border: 1px solid var(--line);
+    background: var(--bg-lift);
+    text-align: left;
+    display: grid;
+    gap: var(--space-3);
+  }
+
+  /* No reference to show: never render a skeleton with em dashes in it. */
+  .receipt[data-receipt-state='empty'],
+  .receipt[data-receipt-state='pending'] {
+    display: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .receipt[data-receipt-state='ready'] {
+      animation: receipt-in 420ms ease-out both;
+    }
+  }
+  @keyframes receipt-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .receipt__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .receipt__mark {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    color: var(--ember);
+  }
+  .receipt__caption {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--fg-soft);
+  }
+
+  .receipt__label {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fg-soft);
+  }
+
+  .receipt__code {
+    margin: 0;
+    font-family: var(--font-mono);
+    /* Wraps instead of overflowing: a long Mercado Pago serial must stay
+       readable on a 320px screen. */
+    font-size: clamp(1rem, 4.4vw, 1.375rem);
+    line-height: 1.25;
+    letter-spacing: 0.06em;
+    color: var(--fg);
+    overflow-wrap: anywhere;
+  }
+
+  .receipt__strip {
+    color: var(--fg);
+    opacity: 0.86;
+  }
+  /* The strip scales to the card; its own aspect ratio is preserved by the
+     viewBox, so a long code stays a strip and never a smear. */
+  .receipt__strip :global(svg) {
+    display: block;
+    width: 100%;
+    height: 46px;
+  }
+
+  .receipt__meta {
+    margin: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .receipt__meta div {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: var(--space-2);
+    align-items: baseline;
+  }
+  .receipt__meta dt,
+  .receipt__meta dd {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .receipt__meta dt { color: var(--fg-soft); }
+  .receipt__meta dd { color: var(--fg); overflow-wrap: anywhere; }
+
+  .receipt__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .receipt__btn {
+    /* 44px: the touch target minimum the rest of the site holds to. */
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 var(--space-3);
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+  .receipt__btn:hover,
+  .receipt__btn:focus-visible {
+    border-color: var(--ember);
+    color: var(--ember);
+  }
+  .receipt__btn[disabled] { opacity: 0.6; cursor: default; }
+
+  .receipt__note {
+    margin: 0;
+    font-size: var(--fs-small);
+    line-height: 1.6;
+    color: var(--fg-soft);
+  }
+
+  /* Printed or saved as PDF, this is the buyer's copy: drop the chrome, keep
+     the code, the strip and the honest note. */
+  @media print {
+    .receipt {
+      border-color: #000;
+      background: #fff;
+      animation: none;
+    }
+    .receipt__code,
+    .receipt__meta dd,
+    .receipt__strip { color: #000; }
+    .receipt__actions { display: none; }
+  }
+</style>

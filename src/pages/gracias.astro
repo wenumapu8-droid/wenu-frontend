@@ -1,6 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import EmbossedSeal from '../components/EmbossedSeal.astro';
+import ReceiptArtifact from '../components/ReceiptArtifact.astro';
 
 // Payment return page. Mercado Pago redirects here on a completed/approved
 // checkout (back_urls.success). Static page — order details are read client-side
@@ -23,7 +24,12 @@ import EmbossedSeal from '../components/EmbossedSeal.astro';
         confirmation by email shortly — we'll reach out with the next steps and shipping or
         pickup details.
       </p>
-      <p class="gracias__ref" data-gracias-ref hidden></p>
+      {/* The buyer's keepable copy. Fills itself from `?type=` + `?id=` in
+          the browser: this is a static build, so the payment return URL is
+          not readable at build time. Hides itself when there is no `?id=`. */}
+      <div class="gracias__receipt">
+        <ReceiptArtifact />
+      </div>
 
       {/* Kai — big celebration for the order-complete moment. Same golden
           "niche" (.kai-niche, global.css) as the menu/search/cart, just a
@@ -54,18 +60,6 @@ import EmbossedSeal from '../components/EmbossedSeal.astro';
 </Base>
 
 <script>
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  const type = params.get('type');
-  if (id) {
-    const ref = document.querySelector('[data-gracias-ref]') as HTMLElement | null;
-    if (ref) {
-      const label = type === 'encargo' ? 'Commission' : type === 'turno' ? 'Booking' : 'Order';
-      ref.textContent = `${label} reference: #${id} — please keep this for your records.`;
-      ref.hidden = false;
-    }
-  }
-
   // Kai — motor de animación por cuadros (public/kai/kai-anim.js), cargado
   // globalmente en Base.astro <head>. Página estática (no modal), así que se
   // monta una sola vez apenas existe el canvas — sin open()/close().
@@ -113,10 +107,9 @@ import EmbossedSeal from '../components/EmbossedSeal.astro';
   .gracias__seal { margin-bottom: var(--space-2); opacity: 0.9; }
   .gracias .page-title { margin: 0; }
   .gracias .lede { color: var(--fg-soft); line-height: 1.7; }
-  .gracias__ref {
-    font-family: var(--font-mono); font-size: var(--fs-small);
-    color: var(--ember); letter-spacing: 0.02em;
-  }
+  /* The receipt is left-aligned inside a centred column: a reference code and
+     a checksum read as data, and centring data makes it read as decoration. */
+  .gracias__receipt { width: min(420px, 100%); }
 
   /* Kai's big celebration — same golden niche as menu/search/cart
      (.kai-niche, global.css), just a much bigger stage befitting a

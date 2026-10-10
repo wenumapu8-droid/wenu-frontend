@@ -1,39 +1,217 @@
 ---
+/**
+ * AUTHENTICATION NODE — /kodex/verify/?code=...
+ *
+ * ─── THE BUG THIS FIXES ─────────────────────────────────────────────────────
+ * This page used to read the code in frontmatter:
+ *
+ *     const code = Astro.url.searchParams.get('code') ?? 'KDX-UNBOUND';
+ *
+ * `astro.config.mjs` sets `output: 'static'`, so that line runs once at BUILD
+ * time, when there is no visitor and no query string. The built HTML therefore
+ * froze `code` to the `KDX-UNBOUND` fallback: every visitor saw the same page
+ * no matter what `?code=` said, and the "AUTHENTICATION NODE" authenticated
+ * nothing. The resolution now happens in the browser, where the query string
+ * actually exists.
+ *
+ * ─── TWO CODE FAMILIES ──────────────────────────────────────────────────────
+ *   WM-ORD-… / WM-ENC-… / WM-TRN-…  order references from `/gracias`, checked
+ *                                   for integrity by `src/lib/receipt.ts`.
+ *   anything else                   the pre-existing KODEX signal path, kept
+ *                                   verbatim so old `KDX-…` links keep working.
+ *
+ * ─── WHAT A PASS MEANS ──────────────────────────────────────────────────────
+ * WELL_FORMED means the code was shaped by this system. It is NOT proof of
+ * payment and NOT proof of authenticity: the site is static, so there is no
+ * registry to ask at request time, and the check characters are a typo guard,
+ * not a signature. The page states that bound out loud instead of implying a
+ * guarantee it cannot back. Do not "improve" this copy into a stronger claim.
+ *
+ * Visual language left exactly as it was found. The palette here is a creator
+ * decision, not an implementation one.
+ */
 import Base from '../../layouts/Base.astro';
-
-const code = Astro.url.searchParams.get('code') ?? 'KDX-UNBOUND';
-const signal = code.replace(/^KDX-\d+-/, '').replace(/^KDX-/, '').replace(/[^a-z0-9-]/gi, '-').toLowerCase();
 ---
 
 <Base
   kodexFonts={true}
-  title={`${code} · Verify — KODEX−∞`}
+  title="Verify a reference — KODEX−∞"
   description="Verify a KODEX signal, edition, download or collection request."
   robots="noindex, nofollow"
   noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
 >
   <main class="kv">
     <a class="kv-word" href="/kodex/works/">KODEX−∞</a>
-    <section class="kv-card">
+
+    <section class="kv-card" data-verify data-verify-state="loading">
       <img src="/img/kodex/brand/KODEX_Master_Seal_web_optimized.svg" alt="" />
-      <p>AUTHENTICATION NODE</p>
-      <h1>{code}</h1>
-      <dl>
-        <div><dt>STATUS</dt><dd>READY FOR HUMAN REVIEW</dd></div>
-        <div><dt>SIGNAL</dt><dd>{signal.toUpperCase()}</dd></div>
-        <div><dt>REGISTRY</dt><dd>KODEX MANIFEST</dd></div>
-      </dl>
-      <nav>
-        {/* La señal viene del código que escriba el visitante: casi nunca es un slug
-            de volumen real y el dossier daba 404 (auditoría). El registro de obras es
-            el destino que siempre existe. */}
-        <a href="/kodex/works/">OPEN DOSSIER</a>
-        <a href={`/kodex/store/?signal=${encodeURIComponent(signal)}#editions`}>COLLECT</a>
-        <a href="/kodex/works/">ARCHIVE</a>
-      </nav>
+      <p data-verify-kicker>AUTHENTICATION NODE</p>
+      <h1 data-verify-code>…</h1>
+
+      <div class="kv-strip" data-verify-strip aria-hidden="true"></div>
+
+      <dl data-verify-rows></dl>
+
+      <p class="kv-statement" data-verify-statement></p>
+
+      <nav data-verify-nav></nav>
+
+      <noscript>
+        <p class="kv-statement">
+          Verification needs JavaScript. Send us the reference printed on your
+          receipt and we will confirm it by hand.
+        </p>
+      </noscript>
     </section>
   </main>
 </Base>
+
+<script>
+  import { verifyCode, stripGeometry } from '../../lib/receipt';
+
+  const card = document.querySelector<HTMLElement>('[data-verify]');
+
+  if (card) {
+    const raw = new URLSearchParams(location.search).get('code');
+
+    const kicker = card.querySelector<HTMLElement>('[data-verify-kicker]');
+    const heading = card.querySelector<HTMLElement>('[data-verify-code]');
+    const strip = card.querySelector<HTMLElement>('[data-verify-strip]');
+    const rows = card.querySelector<HTMLElement>('[data-verify-rows]');
+    const statement = card.querySelector<HTMLElement>('[data-verify-statement]');
+    const nav = card.querySelector<HTMLElement>('[data-verify-nav]');
+
+    // One place decides the heading size, so every state stays consistent.
+    const setHeading = (value: string) => {
+      if (!heading) return;
+      heading.textContent = value;
+      if (value.length > 14) heading.setAttribute('data-verify-long', '');
+      else heading.removeAttribute('data-verify-long');
+    };
+
+    const row = (label: string, value: string) => {
+      const wrap = document.createElement('div');
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      dd.textContent = value;
+      wrap.append(dt, dd);
+      return wrap;
+    };
+
+    const link = (href: string, text: string) => {
+      const a = document.createElement('a');
+      a.href = href;
+      a.textContent = text;
+      return a;
+    };
+
+    const drawStrip = (bars: { w: number; h: number }[]) => {
+      if (!strip || !bars.length) return;
+      const geo = stripGeometry(bars);
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', `0 0 ${geo.width} ${geo.height}`);
+      svg.setAttribute('preserveAspectRatio', 'xMinYMid meet');
+      svg.setAttribute('role', 'presentation');
+      for (const r of geo.rects) {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', String(r.x));
+        rect.setAttribute('y', String(r.y));
+        rect.setAttribute('width', String(r.w));
+        rect.setAttribute('height', String(r.h));
+        rect.setAttribute('fill', 'currentColor');
+        svg.appendChild(rect);
+      }
+      strip.replaceChildren(svg);
+    };
+
+    // ── no code at all ──────────────────────────────────────────────────────
+    if (!raw || !raw.trim()) {
+      card.dataset.verifyState = 'empty';
+      setHeading('NO REFERENCE');
+      if (kicker) kicker.textContent = 'AUTHENTICATION NODE';
+      if (statement) {
+        statement.textContent =
+          'Open this page from the link on your receipt, or add the reference to the address as ?code=…';
+      }
+      if (nav) nav.replaceChildren(link('/kodex/works/', 'ARCHIVE'));
+    } else {
+      const code = raw.trim().toUpperCase();
+      const isOrderReference = code.startsWith('WM-');
+
+      if (isOrderReference) {
+        // ── order / commission / booking reference ──────────────────────────
+        const result = verifyCode(code);
+        card.dataset.verifyState = result.status.toLowerCase();
+        setHeading(result.code || 'NO REFERENCE');
+        if (statement) statement.textContent = result.statement;
+
+        if (kicker) {
+          kicker.textContent =
+            result.status === 'WELL_FORMED' ? 'REFERENCE RECOGNISED'
+            : result.status === 'CHECK_MISMATCH' ? 'REFERENCE NOT RECOGNISED'
+            : 'UNKNOWN REFERENCE';
+        }
+
+        if (rows) {
+          const built: HTMLElement[] = [];
+          if (result.status === 'WELL_FORMED') {
+            built.push(row('TYPE', result.label ?? '—'));
+            built.push(row('SERIAL', result.serial ?? '—'));
+            built.push(row('CHECKSUM', result.checksum ?? '—'));
+            built.push(row('ISSUED BY', 'WENU MAPU'));
+          } else {
+            built.push(row('STATUS', result.status.replace(/_/g, ' ')));
+          }
+          rows.replaceChildren(...built);
+        }
+
+        drawStrip(result.bars);
+
+        if (nav) {
+          nav.replaceChildren(
+            link('/contact/', 'ASK US ABOUT THIS ORDER'),
+            link('/shop/', 'SHOP'),
+          );
+        }
+      } else {
+        // ── legacy KODEX signal path, behaviour preserved ───────────────────
+        const signal = code
+          .replace(/^KDX-\d+-/, '')
+          .replace(/^KDX-/, '')
+          .replace(/[^a-z0-9-]/gi, '-')
+          .toLowerCase();
+
+        card.dataset.verifyState = 'signal';
+        if (kicker) kicker.textContent = 'AUTHENTICATION NODE';
+        setHeading(code);
+
+        if (rows) {
+          rows.replaceChildren(
+            row('STATUS', 'READY FOR HUMAN REVIEW'),
+            row('SIGNAL', signal.toUpperCase()),
+            row('REGISTRY', 'KODEX MANIFEST'),
+          );
+        }
+        if (statement) {
+          statement.textContent =
+            'A KODEX signal is reviewed by hand. This page records the request; it does not grant access.';
+        }
+        if (nav) {
+          // OPEN DOSSIER deliberately does NOT point at /kodex/vol/<signal>/.
+          // redesign-v2 changed it to the works registry after an audit found it
+          // 404ing: the signal comes from whatever code a visitor types, and is
+          // almost never a real volume slug. Keep that fix.
+          nav.replaceChildren(
+            link('/kodex/works/', 'OPEN DOSSIER'),
+            link(`/kodex/store/?signal=${encodeURIComponent(signal)}#editions`, 'COLLECT'),
+            link('/kodex/works/', 'ARCHIVE'),
+          );
+        }
+      }
+    }
+  }
+</script>
 
 <style>
   .kv{min-height:100dvh;display:grid;place-items:center;background:#050505;color:#e8e5df;padding:24px;font-family:"IBM Plex Mono",ui-monospace,monospace;box-sizing:border-box;}
@@ -42,14 +220,42 @@ const signal = code.replace(/^KDX-\d+-/, '').replace(/^KDX-/, '').replace(/[^a-z
   .kv-card{position:relative;z-index:1;width:min(720px,100%);border:1px solid rgba(166,255,0,.34);padding:clamp(18px,4vw,40px);background:rgba(5,5,5,.82);box-shadow:20px 20px 0 rgba(166,255,0,.08);}
   .kv-card img{width:84px;height:84px;object-fit:contain;filter:grayscale(1) contrast(1.2);}
   .kv-card p{margin:22px 0 8px;color:#A6FF00;font-size:10px;letter-spacing:.3em;}
-  .kv-card h1{margin:0 0 24px;font-family:"Barlow Condensed","Inter Tight",system-ui,sans-serif;font-size:clamp(2.5rem,8vw,6rem);line-height:.82;text-transform:uppercase;}
+  .kv-card h1{margin:0 0 24px;font-family:"Barlow Condensed","Inter Tight",system-ui,sans-serif;font-size:clamp(2.5rem,8vw,6rem);line-height:.82;text-transform:uppercase;overflow-wrap:anywhere;}
+  /* A full reference (WM-ORD-000123-739E) at 6rem breaks across two lines mid-code
+     and stops reading as one identifier. Long codes get their own step. */
+  .kv-card h1[data-verify-long]{font-size:clamp(1.6rem,4.6vw,3.25rem);letter-spacing:.01em;line-height:1.02;}
+
+  /* The rows, the nav links and the strip <svg> are created by the script above
+     with document.createElement. Astro scopes this block with a data-astro-cid-*
+     attribute that only template elements carry, so scoped selectors would not
+     reach them and they would render unstyled. These selectors are :global on
+     purpose — they stay reachable from .kv-card, so nothing leaks site-wide. */
   .kv-card dl{display:grid;gap:1px;background:rgba(166,255,0,.18);border:1px solid rgba(166,255,0,.18);}
-  .kv-card div{display:grid;grid-template-columns:140px 1fr;background:#070707;min-height:38px;align-items:center;}
-  .kv-card dt,.kv-card dd{margin:0;padding:0 10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;}
-  .kv-card dt{color:#888;}
-  .kv-card dd{color:#e8e5df;}
+  .kv-card dl:empty{display:none;border:0;}
+  .kv-card :global(dl > div){display:grid;grid-template-columns:140px 1fr;background:#070707;min-height:38px;align-items:center;}
+  .kv-card :global(dt),.kv-card :global(dd){margin:0;padding:0 10px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;}
+  .kv-card :global(dt){color:#888;}
+  .kv-card :global(dd){color:#e8e5df;overflow-wrap:anywhere;}
   .kv-card nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px;}
-  .kv-card a{min-height:42px;display:grid;place-items:center;border:1px solid rgba(166,255,0,.32);padding:0 14px;color:#e8e5df;text-decoration:none;font-size:10px;letter-spacing:.16em;}
-  .kv-card a:hover{background:#A6FF00;color:#050505;}
+  .kv-card :global(nav a){min-height:42px;display:inline-grid;place-items:center;border:1px solid rgba(166,255,0,.32);padding:0 14px;color:#e8e5df;text-decoration:none;font-size:10px;letter-spacing:.16em;}
+  .kv-card :global(nav a:hover){background:#A6FF00;color:#050505;}
+
+  /* The signature strip — the same bars the buyer has on their receipt, drawn
+     from the same geometry function. Static: canon prohibits animating it. */
+  .kv-strip{color:rgba(232,229,223,.82);margin:0 0 24px;}
+  .kv-strip:empty{display:none;}
+  .kv-strip :global(svg){display:block;width:100%;height:46px;}
+
+  /* The honest bound on what a pass proves. Deliberately not accent-coloured:
+     it is a caveat, not a badge. */
+  .kv-statement{color:#9a9a9a !important;font-size:10px !important;letter-spacing:.08em !important;line-height:1.8;text-transform:none;max-width:56ch;}
+  .kv-statement:empty{display:none;}
+
+  /* A code that fails its check must not look like one that passes. */
+  .kv-card[data-verify-state="check_mismatch"],
+  .kv-card[data-verify-state="malformed"]{border-color:rgba(255,39,51,.42);box-shadow:20px 20px 0 rgba(255,39,51,.08);}
+  .kv-card[data-verify-state="check_mismatch"] p[data-verify-kicker],
+  .kv-card[data-verify-state="malformed"] p[data-verify-kicker]{color:#FF2733;}
+
   @media(max-width:560px){.kv-card div{grid-template-columns:1fr}.kv-card dt{padding-top:10px}.kv-card dd{padding-bottom:10px}}
 </style>
