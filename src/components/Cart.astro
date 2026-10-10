@@ -127,6 +127,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           <span>Secure checkout — no card details are stored on this site.</span>
         </p>
         <p class="wmcart__status" data-wmcart-status role="status" hidden></p>
+        <a class="wmcart__email-fallback" data-wmcart-email-fallback hidden href="mailto:wenu.mapu8@gmail.com">Request order details by email →</a>
         <p class="wmcart__ship">Questions before paying? <a href="mailto:wenu.mapu8@gmail.com?subject=Wenu%20Mapu%20order%20help">Contact Wënü Mapü</a>.</p>
       </div>
 
@@ -178,6 +179,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         <div class="wmcart__summary" data-wmcart-summary></div>
         <button type="button" class="btn btn--solid wmcart__send" data-wmcart-send>I've sent payment — send my order →</button>
         <p class="wmcart__status" data-wmcart-status2 role="status" hidden></p>
+        <a class="wmcart__email-fallback" data-wmcart-email-fallback hidden href="mailto:wenu.mapu8@gmail.com">Ask us to verify the order →</a>
       </div>
 
       <!-- Step 3 — confirmation -->
@@ -394,6 +396,8 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       itemsEl.hidden = step === 'done';
       if (statusEl) { statusEl.hidden = true; statusEl.textContent = ''; }
       if (status2El) { status2El.hidden = true; status2El.textContent = ''; }
+      // The email fallback is offered only after an API failure, never in normal checkout.
+      root.querySelectorAll('[data-wmcart-email-fallback]').forEach(a => { a.hidden = true; });
     }
 
     function render() {
@@ -491,6 +495,41 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       showStep('done');
     }
 
+    // When the backend fails, preserve a manual, payment-free sales inquiry.
+    // Opens the shopper's own email app; it does not silently send, reserve stock,
+    // verify a transfer, or create a paid order.
+    function offerEmailFallback(panel, paymentAttempted = false) {
+      const link = panel.querySelector('[data-wmcart-email-fallback]');
+      if (!link) return;
+      const items = read();
+      if (!items.length) return;
+      const { name, email } = getDetails();
+      const list = items.slice(0, 15).map(item =>
+        String(item.qty || 1) + ' x ' + String(item.name || 'Piece') +
+        ' (SKU ' + String(item.sku || 'unknown') + ')'
+      );
+      const body = [
+        'Hello Wenu Mapu, I would like help confirming this selection:',
+        '',
+        ...list,
+        ...(items.length > 15 ? ['(Additional pieces in cart; please ask me for the full list.)'] : []),
+        '',
+        'Name: ' + (name || ''),
+        'Email: ' + (email || ''),
+        'Destination for shipping (country/state): ',
+        '',
+        paymentAttempted
+          ? 'I may have attempted Venmo/Zelle payment already. Please verify the reference before asking me to send anything else: ' + refCode()
+          : 'I have not completed payment through the site. Please confirm availability, shipping and next steps before I transfer funds.',
+        '',
+        'This email is an inquiry, not a completed purchase or inventory reservation.'
+      ].join('\n');
+      link.href = 'mailto:wenu.mapu8@gmail.com?subject=' +
+        encodeURIComponent('Wenu Mapu - order assistance') +
+        '&body=' + encodeURIComponent(body);
+      link.hidden = false;
+    }
+
     // ── step 1: open the details/method panel ──────────────────────
     checkoutBtn.addEventListener('click', () => {
       showStep('co');
@@ -517,8 +556,9 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
             });
             const data = await r.json();
             if (data && data.ok && data.url) { window.location.href = data.url; return; }
-            statusEl.textContent = 'Card checkout is unavailable. No card payment was started. Please contact us before using another payment method.';
-          } catch (err) { statusEl.textContent = 'Checkout connection unavailable. No card payment was started. Please contact us before transferring funds.'; }
+            statusEl.textContent = 'Card checkout is unavailable. No card payment was started. Contact us to confirm the items before paying.';
+            offerEmailFallback(coEl);
+          } catch (err) { statusEl.textContent = 'Checkout connection unavailable. No card payment was started. Contact us before transferring funds.'; offerEmailFallback(coEl); }
           btn.disabled = false;
           return;
         }
@@ -529,7 +569,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
             await submitOrder('reserve');
             finish('Request received — confirmation pending.',
               'We have received your request. We will confirm stock, shipping and next steps by email. Your items are not reserved and no payment is due until we confirm availability.');
-          } catch (e) { statusEl.textContent = 'Could not send — please try again, or email us.'; btn.disabled = false; }
+          } catch (e) { statusEl.textContent = 'Request could not be sent. Email us to confirm availability without paying.'; offerEmailFallback(coEl); btn.disabled = false; }
           return;
         }
 
@@ -624,7 +664,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         await submitOrder(method);
         finish('Order submitted — payment pending.',
           'We have received your order request for ' + label + '. Your transfer has not yet been verified. We will confirm payment and delivery details by email; please do not send a second payment unless requested.');
-      } catch (e) { status2El.textContent = 'Could not send — please try again, or email us.'; sendBtn.disabled = false; }
+      } catch (e) { status2El.textContent = 'Order request could not be sent. If you transferred money, contact us to verify it; do not pay again.'; offerEmailFallback(manualEl, true); sendBtn.disabled = false; }
     });
 
     window.wmCart = { add, remove, setQty, get: read, open, close, count };
@@ -829,6 +869,19 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
   .wmcart__done-body { font-family: var(--font-serif); font-weight: var(--fw-thin); color: var(--fg-soft); line-height: 1.6; margin: 0; }
   .wmcart__done-close { align-self: center; }
   .wmcart__status { font-family: var(--font-sans); font-size: var(--fs-small); color: var(--ember); margin: 0; }
+  .wmcart__email-fallback {
+    display: inline-flex;
+    align-items: center;
+    color: var(--bone);
+    font-family: var(--font-sans);
+    font-size: var(--fs-small);
+    text-decoration: underline;
+    text-underline-offset: .25em;
+    margin-top: var(--space-2);
+    min-height: 44px;
+  }
+  .wmcart__email-fallback:hover,
+  .wmcart__email-fallback:focus-visible { color: var(--ember); }
   .wmcart__alt { font-family: var(--font-serif); font-style: italic; font-size: var(--fs-small); color: var(--silver); margin: var(--space-1) 0 0; }
   .wmcart__fine { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); letter-spacing: 0.03em; margin: var(--space-3) 0 0; }
 
