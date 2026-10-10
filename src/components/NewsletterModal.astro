@@ -48,6 +48,7 @@ const NEWSLETTER_ENDPOINT = import.meta.env.PUBLIC_NEWSLETTER_ENDPOINT?.trim() |
           <input id="nlm-email" class="nlm__input" type="email" name="email" required placeholder={n.placeholder} autocomplete="email" />
           <button type="submit" class="nlm__submit">{n.submit} <span aria-hidden="true">→</span></button>
         </div>
+        <label class="nlm__consent" data-newsletter-consent><input type="checkbox" name="consent" value="yes" required /> <span>{n.consent} <a href="/privacy/">Privacy policy</a>.</span></label>
         <p class="nlm__micro" data-newsletter-micro>{n.microcopy}</p>
 
         <div class="nlm__done" data-newsletter-success hidden role="status">
@@ -110,28 +111,36 @@ const NEWSLETTER_ENDPOINT = import.meta.env.PUBLIC_NEWSLETTER_ENDPOINT?.trim() |
         e.preventDefault();
         const row = form.querySelector<HTMLElement>('[data-newsletter-row]');
         const micro = form.querySelector<HTMLElement>('[data-newsletter-micro]');
+        const consentRow = form.querySelector<HTMLElement>('[data-newsletter-consent]');
+        const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
         const success = form.querySelector<HTMLElement>('[data-newsletter-success]');
         const error = form.querySelector<HTMLElement>('[data-newsletter-error]');
         if (error) error.hidden = true;
         const honey = (form.querySelector('input[name="_gotcha"]') as HTMLInputElement | null)?.value;
         const email = (form.querySelector('input[name="email"]') as HTMLInputElement | null)?.value?.trim();
+        const consent = (form.querySelector('input[name="consent"]') as HTMLInputElement | null)?.checked === true;
         try {
           if (honey) throw new Error('bot');
+          if (!consent) throw new Error('consent-required');
+          if (submit) submit.disabled = true;
           const res = await fetch(form.action, {
             method: 'POST',
-            body: JSON.stringify({ email, source: 'newsletter-modal', lang: 'en' }),
+            body: JSON.stringify({ email, source: 'newsletter-modal', lang: 'en', consent: true }),
             headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
           });
           if (res.ok) {
             remember('subscribed');
             if (row) row.hidden = true;
             if (micro) micro.hidden = true;
+            if (consentRow) consentRow.hidden = true;
             if (success) success.hidden = false;
           } else if (error) {
             error.hidden = false;
           }
         } catch {
           if (error) error.hidden = false;
+        } finally {
+          if (submit) submit.disabled = false;
         }
       });
     }
@@ -268,6 +277,9 @@ const NEWSLETTER_ENDPOINT = import.meta.env.PUBLIC_NEWSLETTER_ENDPOINT?.trim() |
      (e.g. .nlm__row{display:flex}) so the success swap actually hides the form. */
   .nlm [hidden] { display: none !important; }
   .nlm__form { max-width: 22rem; margin: 0 auto; }
+  .nlm__consent { display: flex; align-items: flex-start; gap: .65rem; margin: var(--space-3) auto 0; font-size: .76rem; line-height: 1.5; color: var(--bone); text-align: left; }
+  .nlm__consent input { flex: 0 0 auto; width: 1rem; height: 1rem; margin-top: .15rem; accent-color: var(--ember); }
+  .nlm__consent a { color: var(--bone); text-underline-offset: 3px; }
   .nlm__honey { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
   .nlm__row {
     display: flex;
