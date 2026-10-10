@@ -127,6 +127,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           <span>Secure checkout — no card details are stored on this site.</span>
         </p>
         <p class="wmcart__status" data-wmcart-status role="status" hidden></p>
+        <p class="wmcart__ship">Questions before paying? <a href="mailto:wenu.mapu8@gmail.com?subject=Wenu%20Mapu%20order%20help">Contact Wënü Mapü</a>.</p>
       </div>
 
       <!-- Step 2 — manual Venmo/Zelle: reference code + handle/QR + summary + send -->
@@ -134,17 +135,18 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         <button type="button" class="wmcart__back" data-wmcart-back>← Back</button>
         <p class="wmcart__manual-h" data-wmcart-manual-h>Pay with Venmo</p>
         <p class="wmcart__manual-amt"><span data-wmcart-manual-amt>$0</span></p>
+        <p class="wmcart__ship">This is a merchandise subtotal. Shipping, availability and the final amount must be confirmed before any transfer.</p>
 
         <!-- PAYMENT REFERENCE (Ocin 2026-07-13) — the constancia that lets the
              maker match a Venmo/Zelle deposit to a real order. SKUs of every piece
              in the cart joined with "+", plus the discount code when one is typed. -->
         <div class="wmcart__ref">
-          <p class="wmcart__ref-h">Include this code in your payment note:</p>
+          <p class="wmcart__ref-h">After written confirmation, use this code in your payment note:</p>
           <div class="wmcart__ref-row">
             <code class="wmcart__ref-code" data-wmcart-ref-code>—</code>
             <button type="button" class="wmcart__copy" data-wmcart-copy>Copy</button>
           </div>
-          <p class="wmcart__ref-note">We match it to your order and confirm by email within 24 hours.</p>
+          <p class="wmcart__ref-note">A transfer is not confirmed automatically. We will reconcile it by email; please keep your bank receipt.</p>
         </div>
 
         <div class="wmcart__qrwrap" data-wmcart-qrwrap>
@@ -351,9 +353,9 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
     // inside "Other payment methods" (the QR image itself can't be changed).
     const PAY = {
       venmo: { label: 'Venmo', handle: '@Wenu_mapu8', img: '/img/pay/venmo.png', qr: true,
-        note: 'Open Venmo and send the amount above to @Wenu_mapu8 (scan the code or search the handle). Paste the reference code above into the payment note. Then tap “send my order” so we can match your payment.' },
+        note: 'Do not send funds before receiving an email confirming stock, shipping and the final amount. After written confirmation, use @Wenu_mapu8 and include the reference code in the Venmo note. Keep your receipt.' },
       zelle: { label: 'Zelle', handle: '', img: '', qr: false,
-        note: 'Open your bank’s Zelle and scan the QR under “Other payment methods” below to send the amount above. Paste the reference code above into the memo. Then tap “send my order” so we can match your payment.' },
+        note: 'Do not send funds before receiving an email confirming stock, shipping and the final amount. After written confirmation, use the Zelle QR under “Other payment methods” and include the reference code in the memo. Keep your receipt.' },
     };
 
     const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
@@ -515,8 +517,8 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
             });
             const data = await r.json();
             if (data && data.ok && data.url) { window.location.href = data.url; return; }
-            statusEl.textContent = (data && data.error) ? data.error : 'Could not create the link — try Venmo or Zelle.';
-          } catch (err) { statusEl.textContent = 'Network error — try Venmo or Zelle.'; }
+            statusEl.textContent = 'Card checkout is unavailable. No card payment was started. Please contact us before using another payment method.';
+          } catch (err) { statusEl.textContent = 'Checkout connection unavailable. No card payment was started. Please contact us before transferring funds.'; }
           btn.disabled = false;
           return;
         }
@@ -564,7 +566,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           read().map((x) => '<div class="wmcart__summary-row"><span>' + x.qty + '× ' + x.name + '</span><span>' + money(num(x.price) * x.qty) + '</span></div>').join('') +
           '<div class="wmcart__summary-row"><span>Subtotal</span><span>' + money(subtotal()) + '</span></div>' +
           '<div class="wmcart__summary-row wmcart__summary-ship"><span>Shipping</span><span>Confirmed by email</span></div>' +
-          '<div class="wmcart__summary-row wmcart__summary-total"><span>Amount to send now</span><span>' + money(subtotal()) + '</span></div>';
+          '<div class="wmcart__summary-row wmcart__summary-total"><span>Items subtotal — shipping not included</span><span>' + money(subtotal()) + '</span></div>';
         const sendBtn = $('[data-wmcart-send]');
         sendBtn.disabled = false;
         showStep('manual');
