@@ -15,7 +15,8 @@ export default defineConfig({
       filter: (page) => !page.includes('/admin/'),
       changefreq: 'weekly',
       priority: 0.6,
-      lastmod: new Date(),
+      // Omit lastmod until genuine per-URL content modification dates are available.
+      // A new build alone must not imply every page has changed.
       serialize(item) {
         const url = item.url;
         // Curated priorities by section
