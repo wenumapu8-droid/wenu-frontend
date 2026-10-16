@@ -98,7 +98,7 @@ function findChromium() {
 async function main() {
   const { scene, flags } = parseArgs(process.argv.slice(2));
   if (!scene || scene.startsWith('--')) {
-    console.error('uso: node scripts/motion/render.mjs <escena> [--fps N] [--dur S] [--format reel|square|post|wide] [--mblur N] [--still T]');
+    console.error('uso: node scripts/motion/render.mjs <escena> [--fps N] [--dur S] [--format reel|square|post|wide] [--mblur N] [--crf N] [--still T]');
     process.exit(1);
   }
 
@@ -157,7 +157,9 @@ async function main() {
     const ff = spawn('ffmpeg', [
       '-y', '-loglevel', 'error',
       '-f', 'image2pipe', '-framerate', String(fps), '-i', 'pipe:0',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '18',
+      // CRF 18 por defecto. Escenas con mucho grano o partículas son ruido de
+      // alta entropía: ahí 21-22 pesa la mitad y la plataforma recomprime igual.
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', String(flags.crf ?? 18),
       '-profile:v', 'high', '-pix_fmt', 'yuv420p',
       '-movflags', '+faststart',
       out,

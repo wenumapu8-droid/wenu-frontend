@@ -106,7 +106,7 @@ void main(){
   vec2 px = vec2(${CX}., ${CY}.) + (p - vec2(0., uCamY)) * uZoom * persp;
   vec2 clip = px / uRes * 2. - 1.; clip.y = -clip.y;
   gl_Position = vec4(clip, 0., 1.);
-  gl_PointSize = mix(1.3, 3.2, b) * min(uZoom * persp, 6.);
+  gl_PointSize = mix(1.3, 3.2, b) * min(uZoom * persp, 2.2);
   vB = b;
 }`;
 const P_FS = `#version 300 es
@@ -131,13 +131,18 @@ void main(){
   vec2 w = (px - vec2(${CX}., ${CY}.)) / uZoom + vec2(0., uCamY);
   vec3 cy = vec3(.063, .914, 1.);
   vec3 c = vec3(0.);
+  // Núcleos en espacio de MUNDO: son objetos, crecen con el dolly.
+  // Halos en espacio de PANTALLA: son luz dispersa. Si se miden en mundo, un
+  // push-through de 5× los vuelve 5× más anchos y el cuadro se lava a blanco.
   float along = clamp(1. - abs(w.y) / 950., 0., 1.);
-  float ax = abs(w.x);
-  c += cy * (exp(-ax*ax/1.6) * 1.6 + exp(-ax/16.) * .30) * along * uAxis * (.55 + .9*uObserver);
+  float ax = abs(w.x), axs = ax * uZoom;
+  c += cy * (exp(-ax*ax/1.6) * 1.6 + exp(-axs/16.) * .30) * along * uAxis * (.55 + .9*uObserver);
   for (int i = 0; i < 2; i++) {
-    float d = length(w - vec2(0., i == 0 ? -uD : uD));
-    c += vec3(.92,.99,1.) * exp(-d*d/190.) * 3.2 * uAxis;
-    c += cy * exp(-d/48.) * .75 * uAxis;
+    // Posición en mundo, tamaño en pantalla: bajo el push-through las fuentes
+    // pasan de largo como estrellas junto a la cámara, en vez de agigantarse.
+    float ds = length(w - vec2(0., i == 0 ? -uD : uD)) * uZoom;
+    c += vec3(.92,.99,1.) * exp(-ds*ds/190.) * 3.2 * uAxis;
+    c += cy * exp(-ds/48.) * .75 * uAxis;
   }
   if (uObserver > .001) {
     float r = length(w);
@@ -146,8 +151,14 @@ void main(){
     c += vec3(.72,.94,1.) * (ring * 1.6 + pupil) * uObserver;
   }
   float rr = length(px - vec2(${CX}., ${CY}.));
-  c += vec3(.95,.99,1.) * exp(-rr / mix(60., 900., uOpens)) * uFlare * 2.6;
-  c += cy * exp(-rr / mix(220., 1500., uOpens)) * uFlare * .9;
+  // Luz atravesando la apertura: un DISCO que sigue a la apertura, con caída
+  // corta por fuera. La primera versión usaba exp(-r/escala) con escalas de
+  // 500-900 px: la cola exponencial ilumina el cuadro entero y, medido, el
+  // fogonazo solo llevaba el brillo medio de 21 a 195 sobre 255.
+  float R = mix(40., 540., uOpens);
+  float disc = smoothstep(R, R * .55, rr);
+  float rim  = exp(-max(rr - R, 0.) / 110.);
+  c += (vec3(.95,.99,1.) * disc * 1.1 + cy * rim * .38) * uFlare;
   o = vec4(c, 1.);
 }`;
 
@@ -305,7 +316,7 @@ function render(t) {
     gl.uniform1f(u.uK, lerp(0.052, 0.030, condense));
     gl.uniform1f(u.uPhase, t * 2.35);
     gl.uniform1f(u.uReach, lerp(130, 880, detect) * lerp(1, 0.78, stable));
-    gl.uniform1f(u.uAmp, (0.18 + 0.82 * detect) * worldA);
+    gl.uniform1f(u.uAmp, (0.18 + 0.82 * detect) * worldA * Math.pow(1 - opens, 1.5));
     gl.uniform1f(u.uCondense, condense);
     gl.uniform1f(u.uZoom, zoom); gl.uniform1f(u.uCamY, camY);
     gl.bindVertexArray(pVao);
@@ -325,6 +336,12 @@ function render(t) {
   if (flare > 0.001) {
     gl.useProgram(progL.p);
     const l = progL.u;
+    // Uniforms completos acá también. Antes se heredaban del paso del mundo:
+    // en el video funcionaba porque persisten entre frames, pero en un frame
+    // suelto con el mundo ya apagado el fogonazo salía con uRes = 0.
+    gl.uniform2f(l.uRes, W, H);
+    gl.uniform1f(l.uZoom, zoom); gl.uniform1f(l.uCamY, camY); gl.uniform1f(l.uD, d);
+    gl.uniform1f(l.uStable, stable); gl.uniform1f(l.uIrisR, irisR); gl.uniform1f(l.uT, t);
     gl.uniform1f(l.uAxis, 0); gl.uniform1f(l.uObserver, 0);
     gl.uniform1f(l.uFlare, flare); gl.uniform1f(l.uOpens, opens);
     drawQuad(progL);
