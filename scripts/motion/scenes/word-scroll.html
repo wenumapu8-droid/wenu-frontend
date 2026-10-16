@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wenu Mapu — word scroll</title>
+<style>
+  @font-face { font-family:'Instrument Serif';
+    src:url('/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2') format('woff2');
+    font-weight:400; font-display:block; }
+  @font-face { font-family:'Instrument Sans';
+    src:url('/node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-400-normal.woff2') format('woff2');
+    font-weight:400; font-display:block; }
+  @font-face { font-family:'Instrument Sans';
+    src:url('/node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-600-normal.woff2') format('woff2');
+    font-weight:600; font-display:block; }
+  @font-face { font-family:'Cormorant Garamond';
+    src:url('/node_modules/@fontsource/cormorant-garamond/files/cormorant-garamond-latin-400-italic.woff2') format('woff2');
+    font-weight:400; font-style:italic; font-display:block; }
+  html,body { margin:0; background:#0a0a0a; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── Wenu Mapu · "word scroll" ──────────────────────────────────────────────
+   Rueda de selección: el vocabulario pasa rápido, desacelera largo y bloquea.
+   Depende del motion blur — renderizar con --mblur 3. Sin arrastre, el giro
+   rápido lee como plantilla.
+
+   Léxico: src/i18n/mapudungun.json. Ese archivo marca
+   validation_needed — confirmar con fuente mapuche autorizada antes de publicar.
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  OBSIDIAN, BONE, SAND, BRONZE, EMBER,
+  clamp, span, lerp, easeOutQuint, easeOutCubic, easeOutExpo, easeInOutCubic,
+  revealText, mountScene, waitForFonts,
+} from '../scene-kit.js';
+
+const DW = 1080, DH = 1920;
+const DUR = 7;
+
+/* Glosario del repo. term → meaning, tal cual está documentado. */
+const GLOSSARY = [
+  ['WANGÜLEN', 'star'],
+  ['KÜRÜF',    'wind · breath'],
+  ['KUYÉN',    'moon'],
+  ['ANTÜ',     'sun'],
+  ['PICHUN',   'feather'],
+  ['NAWEL',    'guardian'],
+  ['PEWMA',    'dream · vision'],
+  ['RÜPÜ',     'path · way'],
+  ['TRAFÜN',   'encounter'],
+  ['KÜME',     'good · well'],
+  ['NEWEN',    'vital force'],
+];
+
+// La rueda es el glosario repetido. Aterriza en el NEWEN de la segunda vuelta:
+// dos pasadas completas del vocabulario, ni una más. No es capricho — el pico
+// de velocidad escala con la distancia, y pasado cierto punto el motion blur
+// bandea (fantasmas discretos) en vez de arrastrar. 21 filas es lo que el
+// obturador puede resolver limpio.
+const CYCLES = 4;
+const WORDS = Array.from({ length: CYCLES * GLOSSARY.length }, (_, i) => GLOSSARY[i % GLOSSARY.length]);
+const TARGET = GLOSSARY.length + GLOSSARY.findIndex(([w]) => w === 'NEWEN');
+
+const ROW = 186;
+const CY  = 840;               // centro de la rueda
+const HALF = ROW * 0.52;       // media altura de la banda de foco
+
+const LOCK = 4.05;             // segundo en que la rueda queda quieta
+
+function wheelOffset(t) {
+  const p = span(t, 0.35, LOCK);
+  // Desaceleración larga (quint) + un rebote amortiguado: una rueda real no
+  // frena en seco, se asienta.
+  const wobble = 0.018 * Math.sin(p * Math.PI * 2.6) * Math.pow(1 - p, 2.2);
+  return TARGET * ROW * (easeOutQuint(p) + wobble);
+}
+
+function draw(ctx, t) {
+  ctx.fillStyle = OBSIDIAN;
+  ctx.fillRect(0, 0, DW, DH);
+
+  const vig = ctx.createRadialGradient(DW / 2, CY, 80, DW / 2, CY, 980);
+  vig.addColorStop(0, 'rgba(201,168,76,0.05)');
+  vig.addColorStop(1, 'rgba(10,10,10,0)');
+  ctx.fillStyle = vig;
+  ctx.fillRect(0, 0, DW, DH);
+
+  // la rueda se repliega cuando entra el cierre
+  const wheelA = lerp(1, 0.30, easeInOutCubic(span(t, 5.15, 5.90)));
+  // los vecinos ya cumplieron: se apagan y dejan sola a la palabra elegida
+  const solo = easeInOutCubic(span(t, LOCK + 0.20, LOCK + 0.80));
+  const offset = wheelOffset(t);
+  const locked = t >= LOCK - 0.02;
+
+  // ── palabras ────────────────────────────────────────────────────────────
+  const first = Math.floor((offset - 1100) / ROW);
+  const last  = Math.ceil((offset + 1100) / ROW);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  for (let i = first; i <= last; i++) {
+    const w = WORDS[((i % WORDS.length) + WORDS.length) % WORDS.length];
+    const y = CY + i * ROW - offset;
+    const d = Math.abs(y - CY) / ROW;
+    if (d > 3.4) continue;   // más allá no se ve y se cuela bajo el eyebrow
+
+    const inBand = d < 0.5;
+    // El bloqueo tiñe la palabra elegida; antes todo es del mismo material.
+    const landed = inBand && i === TARGET;
+    const warm = landed ? easeOutCubic(span(t, LOCK, LOCK + 0.45)) : 0;
+
+    ctx.save();
+    ctx.translate(DW / 2, y);
+    // cilindro: se achata y se angosta al alejarse del centro
+    ctx.scale(1 - 0.045 * Math.min(d, 4), 1 - 0.115 * Math.min(d, 4));
+    ctx.globalAlpha = Math.pow(clamp(1 - d / 4.6), 1.6) * wheelA * (landed ? 1 : 1 - solo);
+    ctx.font = '600 94px "Instrument Sans", sans-serif';
+    ctx.letterSpacing = '6px';
+    ctx.fillStyle = warm > 0 ? EMBER : (inBand ? BONE : SAND);
+    if (warm > 0) { ctx.shadowColor = EMBER; ctx.shadowBlur = 26 * warm; }
+    ctx.fillText(w[0], 0, 0);
+    ctx.restore();
+  }
+
+  // ── difuminado de los extremos: las palabras nacen y mueren en la sombra ─
+  for (const [y0, y1, c0, c1] of [
+    [CY - 880, CY - 250, OBSIDIAN, 'rgba(10,10,10,0)'],
+    [CY + 250, CY + 880, 'rgba(10,10,10,0)', OBSIDIAN],
+  ]) {
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, c0); g.addColorStop(1, c1);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y0, DW, y1 - y0);
+  }
+  // y tapar del todo lo que quede fuera del degradado
+  ctx.fillStyle = OBSIDIAN;
+  ctx.fillRect(0, 0, DW, CY - 880);
+  ctx.fillRect(0, CY + 880, DW, DH - (CY + 880));
+
+  // ── banda de foco ───────────────────────────────────────────────────────
+  const bandIn = easeOutExpo(span(t, 0.15, 0.85));
+  if (bandIn > 0) {
+    // destello en el instante del bloqueo
+    const flash = Math.pow(1 - clamp(span(t, LOCK, LOCK + 0.55)), 2);
+    ctx.save();
+    ctx.globalAlpha = (0.42 + 0.5 * flash) * bandIn * wheelA;
+    ctx.strokeStyle = EMBER;
+    ctx.lineWidth = 1.3;
+    const halfW = lerp(120, 430, bandIn);
+    for (const sy of [-HALF, HALF]) {
+      ctx.beginPath();
+      ctx.moveTo(DW / 2 - halfW, CY + sy);
+      ctx.lineTo(DW / 2 + halfW, CY + sy);
+      ctx.stroke();
+    }
+    // marcas cardinales en los bordes
+    ctx.globalAlpha = (0.7 + 0.3 * flash) * bandIn * wheelA;
+    for (const sx of [-1, 1]) for (const sy of [-HALF, HALF]) {
+      ctx.beginPath();
+      ctx.moveTo(DW / 2 + sx * halfW, CY + sy - 9);
+      ctx.lineTo(DW / 2 + sx * halfW, CY + sy + 9);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── encabezados ─────────────────────────────────────────────────────────
+  const eb = easeOutCubic(span(t, 0.20, 0.90));
+  if (eb > 0) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.85 * eb;
+    ctx.fillStyle = SAND;
+    ctx.font = '600 25px "Instrument Sans", sans-serif';
+    ctx.letterSpacing = '13px';
+    ctx.fillText('WENU MAPU', DW / 2 + 6, 196);
+    ctx.restore();
+  }
+
+  // ── significado: aparece recién con el bloqueo ──────────────────────────
+  const mean = easeOutCubic(span(t, LOCK + 0.18, LOCK + 0.85));
+  if (mean > 0) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.92 * mean * lerp(1, 0.45, easeInOutCubic(span(t, 5.15, 5.90)));
+    ctx.fillStyle = SILVERish();
+    ctx.font = 'italic 400 58px "Cormorant Garamond", serif';
+    ctx.letterSpacing = '2px';
+    ctx.fillText(GLOSSARY.find(([w]) => w === 'NEWEN')[1], DW / 2, CY + 196 - lerp(16, 0, mean));
+    ctx.restore();
+  }
+
+  // ── cierre ──────────────────────────────────────────────────────────────
+  revealText(ctx, 'Forged with newen.', DW / 2, 1412,
+             '400 92px "Instrument Serif", serif', BONE, span(t, 5.35, 6.05), { lineH: 112 });
+
+  const url = easeOutCubic(span(t, 5.95, 6.55));
+  if (url > 0) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.9 * url;
+    ctx.fillStyle = SAND;
+    ctx.font = '400 29px "Instrument Sans", sans-serif';
+    ctx.letterSpacing = '6px';
+    ctx.fillText('wenumapuonline.com', DW / 2 + 3, 1548);
+    ctx.restore();
+  }
+}
+
+function SILVERish() { return '#b8b4aa'; }
+
+await waitForFonts([
+  '600 94px "Instrument Sans"',
+  '400 29px "Instrument Sans"',
+  '400 92px "Instrument Serif"',
+  'italic 400 58px "Cormorant Garamond"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw });
+</script>
+</body>
+</html>

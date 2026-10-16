@@ -4,90 +4,32 @@
 <meta charset="utf-8">
 <title>Wenu Mapu — tune in</title>
 <style>
-  @font-face {
-    font-family: 'Instrument Serif';
-    src: url('/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2') format('woff2');
-    font-weight: 400; font-display: block;
-  }
-  @font-face {
-    font-family: 'Instrument Sans';
-    src: url('/node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-400-normal.woff2') format('woff2');
-    font-weight: 400; font-display: block;
-  }
-  @font-face {
-    font-family: 'Instrument Sans';
-    src: url('/node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-600-normal.woff2') format('woff2');
-    font-weight: 600; font-display: block;
-  }
-  html, body { margin: 0; background: #0a0a0a; overflow: hidden; }
-  canvas { display: block; }
+  @font-face { font-family:'Instrument Serif';
+    src:url('/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2') format('woff2');
+    font-weight:400; font-display:block; }
+  @font-face { font-family:'Instrument Sans';
+    src:url('/node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-400-normal.woff2') format('woff2');
+    font-weight:400; font-display:block; }
+  @font-face { font-family:'Instrument Sans';
+    src:url('/node_modules/@fontsource/instrument-sans/files/instrument-sans-latin-600-normal.woff2') format('woff2');
+    font-weight:600; font-display:block; }
+  html,body { margin:0; background:#0a0a0a; overflow:hidden; }
+  canvas { display:block; }
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
 <script type="module">
-/* ── Wenu Mapu · escena "tune in" ───────────────────────────────────────────
-   Cada frame es función pura de t. Sin CSS animations, sin requestAnimationFrame:
-   el renderer llama renderFrame(t) y screenshotea. Determinista = reproducible.
-   Paleta: tokens canónicos de src/styles/tokens.css
+/* ── Wenu Mapu · "tune in" ──────────────────────────────────────────────────
+   Constelación + rombo escalonado (ñimin) + manifiesto → remate.
 ──────────────────────────────────────────────────────────────────────────── */
+import {
+  OBSIDIAN, BONE, SAND, BRONZE, EMBER,
+  span, lerp, easeOutExpo, easeOutCubic, easeInOutCubic,
+  revealText, staggerText, mountScene, waitForFonts,
+} from '../scene-kit.js';
 
-const OBSIDIAN = '#0a0a0a';
-const BONE     = '#f0ede8';
-const SAND     = '#9a948a';
-const BRONZE   = '#6a4a28';
-const EMBER    = '#c9a84c';
-
-// Lienzo de diseño. Todo se compone acá y se escala al viewport real.
 const DW = 1080, DH = 1920;
-
-window.SCENE = { duration: 6, fps: 30, width: DW, height: DH };
-
-const cv = document.getElementById('c');
-const ctx = cv.getContext('2d', { alpha: false });
-let scale = 1;
-
-window.resizeScene = (w, h) => {
-  cv.width = w; cv.height = h;
-  cv.style.width = w + 'px'; cv.style.height = h + 'px';
-  scale = Math.min(w / DW, h / DH);
-};
-window.resizeScene(DW, DH);
-
-/* ── utilidades ─────────────────────────────────────────────────────────── */
-const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
-/** progreso 0→1 de t dentro de la ventana [a,b] */
-const span = (t, a, b) => clamp((t - a) / (b - a));
-const easeOutExpo  = (x) => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
-const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
-const easeInOutCubic = (x) => x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-const lerp = (a, b, x) => a + (b - a) * x;
-
-/** PRNG determinista — mismo seed, mismo grano, siempre. */
-function mulberry32(seed) {
-  return () => {
-    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-    let z = Math.imul(seed ^ seed >>> 15, 1 | seed);
-    z = z + Math.imul(z ^ z >>> 7, 61 | z) ^ z;
-    return ((z ^ z >>> 14) >>> 0) / 4294967296;
-  };
-}
-
-/* ── grano de película: 8 tiles pregenerados que ciclan a 12fps ─────────── */
-const GRAIN_TILES = 8, GRAIN_SIZE = 256;
-const grain = Array.from({ length: GRAIN_TILES }, (_, i) => {
-  const off = new OffscreenCanvas(GRAIN_SIZE, GRAIN_SIZE);
-  const g = off.getContext('2d');
-  const img = g.createImageData(GRAIN_SIZE, GRAIN_SIZE);
-  const rnd = mulberry32(1337 + i * 977);
-  for (let p = 0; p < img.data.length; p += 4) {
-    const v = (rnd() * 255) | 0;
-    img.data[p] = img.data[p + 1] = img.data[p + 2] = v;
-    img.data[p + 3] = 255;
-  }
-  g.putImageData(img, 0, 0);
-  return off;
-});
 
 /* ── geometría mapuche: rombo escalonado (ñimin) ────────────────────────── */
 function steppedDiamondPath(r, steps) {
@@ -104,8 +46,7 @@ function steppedDiamondPath(r, steps) {
   const pts = [];
   for (let k = 0; k < 4; k++) {
     for (const [x, y] of quad) {
-      // rotación de 90° k veces: (x,y) → (-y,x)
-      let rx = x, ry = y;
+      let rx = x, ry = y;                       // rotar 90° k veces: (x,y) → (-y,x)
       for (let n = 0; n < k; n++) { const nx = -ry; ry = rx; rx = nx; }
       pts.push([rx, ry]);
     }
@@ -114,9 +55,8 @@ function steppedDiamondPath(r, steps) {
 }
 const DIAMOND = steppedDiamondPath(1, 7);
 
-/* ── constelación: puntos fijos en el lienzo de diseño ──────────────────── */
 const STARS = [
-  { x: 540, y: 470, m: 1.00 },   // ancla / estrella mayor
+  { x: 540, y: 470, m: 1.00 },
   { x: 352, y: 596, m: 0.62 },
   { x: 706, y: 572, m: 0.70 },
   { x: 430, y: 760, m: 0.52 },
@@ -126,8 +66,7 @@ const STARS = [
 ];
 const LINKS = [[6, 0], [0, 1], [0, 2], [1, 3], [2, 4], [3, 5], [4, 5]];
 
-/* ── primitivas de dibujo ───────────────────────────────────────────────── */
-function cardinalStar(x, y, r, alpha, color) {
+function cardinalStar(ctx, x, y, r, alpha, color) {
   ctx.save();
   ctx.translate(x, y);
   ctx.globalAlpha = alpha;
@@ -143,55 +82,7 @@ function cardinalStar(x, y, r, alpha, color) {
   ctx.restore();
 }
 
-/** Texto con reveal de máscara: sube desde abajo detrás de una ventana. */
-function revealText(text, x, y, font, color, p, opts = {}) {
-  if (p <= 0) return;
-  const { letterSpacing = '0px', align = 'center', lineH = 120, blur = 0, opacity = 1 } = opts;
-  if (opacity <= 0) return;
-  const e = easeOutExpo(p);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(x - DW, y - lineH * 0.86, DW * 2, lineH * 1.12);
-  ctx.clip();
-  ctx.font = font;
-  ctx.letterSpacing = letterSpacing;
-  ctx.textAlign = align;
-  ctx.textBaseline = 'alphabetic';
-  ctx.globalAlpha = clamp(e * 1.15) * opacity;
-  if (blur) { ctx.shadowColor = color; ctx.shadowBlur = blur; }
-  ctx.fillStyle = color;
-  ctx.fillText(text, x, y + lerp(lineH * 0.9, 0, e));
-  ctx.restore();
-}
-
-/** Texto letra por letra, con stagger — para el remate. */
-function staggerText(text, x, y, font, color, t, start, step, opts = {}) {
-  const { letterSpacing = '0px' } = opts;
-  ctx.save();
-  ctx.font = font;
-  ctx.letterSpacing = letterSpacing;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'alphabetic';
-  const chars = [...text];
-  const widths = chars.map((ch) => ctx.measureText(ch).width);
-  const total = widths.reduce((a, b) => a + b, 0);
-  let cx = x - total / 2;
-  chars.forEach((ch, i) => {
-    const p = easeOutCubic(span(t, start + i * step, start + i * step + 0.42));
-    ctx.globalAlpha = p;
-    ctx.fillStyle = color;
-    ctx.fillText(ch, cx, y + lerp(26, 0, p));
-    cx += widths[i];
-  });
-  ctx.restore();
-}
-
-/* ── frame ──────────────────────────────────────────────────────────────── */
-function draw(t) {
-  ctx.save();
-  ctx.scale(scale, scale);
-
-  // 1 · fondo + viñeta tibia
+function draw(ctx, t) {
   ctx.fillStyle = OBSIDIAN;
   ctx.fillRect(0, 0, DW, DH);
   const vig = ctx.createRadialGradient(DW / 2, DH * 0.42, 60, DW / 2, DH * 0.42, DH * 0.62);
@@ -203,12 +94,11 @@ function draw(t) {
   // la geometría cede protagonismo cuando entra el remate
   const geoA = lerp(1, 0.22, easeInOutCubic(span(t, 3.95, 4.65)));
 
-  // 2 · eje vertical (wenu — el cielo como eje)
+  // eje vertical (wenu — el cielo como eje), apagándose antes del texto
   const axis = easeOutExpo(span(t, 0.10, 1.35));
   if (axis > 0) {
     ctx.save();
     ctx.globalAlpha = geoA;
-    // degradado: el eje nace en el cielo y se apaga antes del bloque de texto
     const g = ctx.createLinearGradient(0, 0, 0, DH);
     g.addColorStop(0.00, 'rgba(106,74,40,0)');
     g.addColorStop(0.14, 'rgba(106,74,40,0.42)');
@@ -223,7 +113,7 @@ function draw(t) {
     ctx.restore();
   }
 
-  // 3 · rombo escalonado, dibujado trazo a trazo + deriva lenta
+  // rombo escalonado, trazo a trazo + deriva lenta
   const diaP = easeInOutCubic(span(t, 1.45, 3.30));
   if (diaP > 0) {
     const R = lerp(300, 372, easeOutCubic(span(t, 1.45, 4.2)));
@@ -233,27 +123,19 @@ function draw(t) {
     ctx.globalAlpha = geoA;
     ctx.strokeStyle = EMBER;
     ctx.lineWidth = 1.6;
-    ctx.lineJoin = 'miter';
     const n = Math.max(2, Math.floor(DIAMOND.length * diaP));
-    ctx.beginPath();
-    ctx.moveTo(DIAMOND[0][0] * R, DIAMOND[0][1] * R);
-    for (let i = 1; i < n; i++) ctx.lineTo(DIAMOND[i][0] * R, DIAMOND[i][1] * R);
-    if (diaP >= 1) ctx.closePath();
-    ctx.stroke();
-
-    // eco interior, más tenue
-    ctx.globalAlpha = 0.28 * geoA;
-    ctx.strokeStyle = BRONZE;
-    ctx.beginPath();
-    const r2 = R * 0.56;
-    ctx.moveTo(DIAMOND[0][0] * r2, DIAMOND[0][1] * r2);
-    for (let i = 1; i < n; i++) ctx.lineTo(DIAMOND[i][0] * r2, DIAMOND[i][1] * r2);
-    if (diaP >= 1) ctx.closePath();
-    ctx.stroke();
+    for (const [r, color, alpha] of [[R, EMBER, geoA], [R * 0.56, BRONZE, 0.28 * geoA]]) {
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(DIAMOND[0][0] * r, DIAMOND[0][1] * r);
+      for (let i = 1; i < n; i++) ctx.lineTo(DIAMOND[i][0] * r, DIAMOND[i][1] * r);
+      if (diaP >= 1) ctx.closePath();
+      ctx.stroke();
+    }
     ctx.restore();
   }
 
-  // 4 · líneas de la constelación
   LINKS.forEach(([a, b], i) => {
     const p = easeOutCubic(span(t, 0.95 + i * 0.11, 1.65 + i * 0.11));
     if (p <= 0) return;
@@ -269,17 +151,14 @@ function draw(t) {
     ctx.restore();
   });
 
-  // 5 · estrellas — pop escalonado + respiración
   STARS.forEach((s, i) => {
     const p = easeOutExpo(span(t, 0.30 + i * 0.09, 0.95 + i * 0.09));
     if (p <= 0) return;
-    const breathe = 1 + 0.06 * Math.sin((t * 1.6 + i * 1.3) * Math.PI);
-    const r = 15 * s.m * p * breathe;
-    cardinalStar(s.x, s.y, r * 2.4, 0.13 * p * geoA, EMBER);  // halo
-    cardinalStar(s.x, s.y, r, (0.75 + 0.25 * s.m) * p * geoA, BONE);
+    const r = 15 * s.m * p * (1 + 0.06 * Math.sin((t * 1.6 + i * 1.3) * Math.PI));
+    cardinalStar(ctx, s.x, s.y, r * 2.4, 0.13 * p * geoA, EMBER);
+    cardinalStar(ctx, s.x, s.y, r, (0.75 + 0.25 * s.m) * p * geoA, BONE);
   });
 
-  // 6 · eyebrow fijo arriba
   const eb = easeOutCubic(span(t, 0.25, 0.95));
   if (eb > 0) {
     ctx.save();
@@ -292,17 +171,15 @@ function draw(t) {
     ctx.restore();
   }
 
-  // 7 · manifiesto
   const typeOut = 1 - easeInOutCubic(span(t, 3.85, 4.30));
   if (typeOut > 0) {
-    revealText('Geometry borrowed',  DW / 2, 1300, '400 104px "Instrument Serif", serif', BONE,
+    revealText(ctx, 'Geometry borrowed', DW / 2, 1300, '400 104px "Instrument Serif", serif', BONE,
                span(t, 2.35, 3.05), { lineH: 126, opacity: typeOut });
-    revealText('from the sky',       DW / 2, 1424, '400 104px "Instrument Serif", serif', EMBER,
+    revealText(ctx, 'from the sky', DW / 2, 1424, '400 104px "Instrument Serif", serif', EMBER,
                span(t, 2.60, 3.30), { lineH: 126, opacity: typeOut });
   }
 
-  // 8 · remate
-  staggerText('TUNE IN', DW / 2, 1368, '600 96px "Instrument Sans", sans-serif', BONE,
+  staggerText(ctx, 'TUNE IN', DW / 2, 1368, '600 96px "Instrument Sans", sans-serif', BONE,
               t, 4.35, 0.055, { letterSpacing: '22px' });
 
   const rule = easeOutExpo(span(t, 4.80, 5.45));
@@ -329,30 +206,14 @@ function draw(t) {
     ctx.fillText('wenumapuonline.com', DW / 2 + 3, 1552);
     ctx.restore();
   }
-
-  ctx.restore();
-
-  // 9 · grano, siempre al final, sobre todo
-  const tile = grain[Math.floor(t * 12) % GRAIN_TILES];
-  ctx.save();
-  ctx.globalAlpha = 0.038;
-  ctx.globalCompositeOperation = 'overlay';
-  const p = ctx.createPattern(tile, 'repeat');
-  ctx.fillStyle = p;
-  ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.restore();
 }
 
-/* ── arranque: fuentes primero, recién ahí exponemos renderFrame ────────── */
-await Promise.all([
-  document.fonts.load('400 104px "Instrument Serif"'),
-  document.fonts.load('400 29px "Instrument Sans"'),
-  document.fonts.load('600 96px "Instrument Sans"'),
+await waitForFonts([
+  '400 104px "Instrument Serif"',
+  '400 29px "Instrument Sans"',
+  '600 96px "Instrument Sans"',
 ]);
-await document.fonts.ready;
-
-window.renderFrame = draw;
-draw(0);
+mountScene({ width: DW, height: DH, duration: 6, fps: 30, draw });
 </script>
 </body>
 </html>

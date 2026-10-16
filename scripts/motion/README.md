@@ -14,11 +14,30 @@ Por qué así y no con un generador de video:
 ## Uso
 
 ```bash
-node scripts/motion/render.mjs tune-in                  # MP4 1080×1920 @30fps
+node scripts/motion/render.mjs tune-in --mblur 20       # entrega: MP4 1080×1920 @30fps
+node scripts/motion/render.mjs tune-in                  # iteración: sin blur, más rápido
 node scripts/motion/render.mjs tune-in --format square  # 1080×1080
 node scripts/motion/render.mjs tune-in --fps 60 --dur 8
 node scripts/motion/render.mjs tune-in --still 3.1      # un PNG en t=3.1s
 ```
+
+## Motion blur
+
+`--mblur N` renderiza N sub-frames dentro del obturador de cada frame y los
+promedia. **Entregá siempre con blur.** Es lo que separa un desplazamiento
+rápido que lee como "pro" de uno que lee como plantilla: el ojo espera
+arrastre, y texto veloz perfectamente nítido lo delata.
+
+Barato: el costo por frame lo domina el encode del PNG, no el pintado.
+Medido en esta máquina, `--mblur 20` cuesta 2.4× lo que cuesta `--mblur 1`,
+no 20×. Una pieza de 7s con blur completo son ~2 minutos.
+
+Lo que hay que vigilar es **el bandeo**. Si un elemento se mueve demasiado
+rápido, N muestras dejan N fantasmas discretos en vez de un arrastre continuo,
+y eso lee peor que no tener blur. Dos perillas: subir `--mblur`, o bajar la
+velocidad pico de la escena. Regla práctica: el desplazamiento por obturador
+dividido por N tiene que quedar por debajo del grosor del trazo tipográfico.
+En `word-scroll` eso fijó la distancia de giro en 21 filas, no más.
 
 Salida en `dist-motion/` (ignorado por git — son artefactos, se regeneran).
 
@@ -29,13 +48,22 @@ Iterá siempre con `--still` antes de encodear: un PNG tarda 2s, el video 70s.
 
 ## Escribir una escena
 
-Una escena es un HTML en `scripts/motion/scenes/<nombre>.html` que expone:
+Una escena es un HTML en `scripts/motion/scenes/<nombre>.html` que importa
+`scene-kit.js` (paleta, easings, grano, tipografía, motion blur) y llama a
+`mountScene`:
 
 ```js
-window.SCENE       = { duration: 6, fps: 30, width: 1080, height: 1920 };
-window.resizeScene = (w, h) => { /* ajustar canvas */ };
-window.renderFrame = (t) => { /* dibujar el frame del segundo t */ };
+import { mountScene, waitForFonts, span, EMBER } from '../scene-kit.js';
+
+await waitForFonts(['600 94px "Instrument Sans"']);
+mountScene({
+  width: 1080, height: 1920, duration: 7, fps: 30,
+  draw(ctx, t) { /* dibujar el frame del segundo t, en coordenadas de diseño */ },
+});
 ```
+
+`mountScene` se encarga del escalado, del motion blur y del grano. La escena
+solo dibuja.
 
 Reglas que no son opcionales:
 
@@ -54,3 +82,8 @@ Reglas que no son opcionales:
 | Escena | Duración | Qué es |
 |---|---|---|
 | `tune-in` | 6s | Constelación + rombo escalonado (ñimin) + manifiesto "Geometry borrowed from the sky" → remate "TUNE IN". |
+| `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
+
+> `word-scroll` usa léxico de `src/i18n/mapudungun.json`. Ese archivo marca
+> `validation_needed`: confirmar ortografía y uso con fuente mapuche autorizada
+> antes de publicar. Un reel público es publicación.

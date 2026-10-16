@@ -98,7 +98,7 @@ function findChromium() {
 async function main() {
   const { scene, flags } = parseArgs(process.argv.slice(2));
   if (!scene || scene.startsWith('--')) {
-    console.error('uso: node scripts/motion/render.mjs <escena> [--fps N] [--dur S] [--format reel|square|post|wide] [--still T]');
+    console.error('uso: node scripts/motion/render.mjs <escena> [--fps N] [--dur S] [--format reel|square|post|wide] [--mblur N] [--still T]');
     process.exit(1);
   }
 
@@ -120,7 +120,10 @@ async function main() {
     page.on('console', (m) => { if (m.type() === 'error') console.error('  [scene]', m.text()); });
     page.on('pageerror', (e) => console.error('  [scene]', e.message));
 
-    await page.goto(`http://127.0.0.1:${port}/${sceneRel}`, { waitUntil: 'load' });
+    // mblur: sub-muestras por frame. La escena las promedia (ver scene-kit).
+    // Multiplica el tiempo de render por N, así que 1 para iterar, 3 para entregar.
+    const mblur = Math.max(1, Number(flags.mblur ?? 1));
+    await page.goto(`http://127.0.0.1:${port}/${sceneRel}?mblur=${mblur}`, { waitUntil: 'load' });
     await page.waitForFunction(() => typeof window.renderFrame === 'function', null, { timeout: 15_000 });
     await page.evaluate(() => document.fonts.ready);
 
@@ -148,7 +151,7 @@ async function main() {
 
     const total = Math.round(dur * fps);
     const out = path.join(OUT_DIR, `${scene}.mp4`);
-    console.log(`→ ${scene}  ${width}×${height}  ${fps}fps  ${dur}s  (${total} frames)`);
+    console.log(`→ ${scene}  ${width}×${height}  ${fps}fps  ${dur}s  (${total} frames${mblur > 1 ? `, ${mblur}× motion blur` : ''})`);
 
     // PNGs directo al stdin de ffmpeg: sin frames intermedios en disco.
     const ff = spawn('ffmpeg', [
