@@ -222,6 +222,13 @@ export function tint(src, color) {
   return off;
 }
 
-/** Wordmark oficial KODEX-∞ — grupo `logo-primary` del kit del repo. */
-export const KODEX_KIT = '/public/assets/kodex/01-kodex-logo-kit.svg';
-export const KODEX_WORDMARK_BOX = { x: 46, y: 56, w: 1098, h: 188 };
+/**
+ * Wordmark KODEX-∞ — el fino y ancho que usa el sitio en producción.
+ *
+ * Trazado desde captura con scripts/motion/trace-wordmark.py, porque el kit
+ * vectorial del repo (public/assets/kodex/01-kodex-logo-kit.svg) trae una
+ * versión distinta: gruesa y achaflanada. Es una reconstrucción fiel, no el
+ * vector maestro. Si aparece el original, reemplazar este archivo y listo.
+ */
+export const KODEX_WORDMARK = '/scripts/motion/assets/kodex-wordmark.svg';
+export const KODEX_WORDMARK_BOX = { x: 0, y: 0, w: 3192, h: 432 };
