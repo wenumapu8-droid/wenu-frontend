@@ -182,3 +182,46 @@ export async function waitForFonts(specs) {
   await Promise.all(specs.map((s) => document.fonts.load(s)));
   await document.fonts.ready;
 }
+
+/* ── assets vectoriales del repo ────────────────────────────────────────── */
+
+/**
+ * Carga un recorte de un SVG del repo, rasterizado al tamaño pedido.
+ *
+ * No usa drawImage con rectángulo de origen: eso rasteriza el SVG a su tamaño
+ * intrínseco y recién después escala, así que un wordmark grande sale borroso.
+ * Acá se reescribe el viewBox y el width/height del propio SVG antes de
+ * cargarlo, y el navegador lo rasteriza nítido al tamaño final.
+ *
+ * @param {string} url     ruta servida por el renderer, p.ej. '/public/...svg'
+ * @param {object} box     recorte en coordenadas del viewBox: {x,y,w,h}
+ * @param {number} outW    ancho de salida en píxeles
+ */
+export async function loadSvgCrop(url, box, outW) {
+  const src = await (await fetch(url)).text();
+  const outH = Math.round(outW * box.h / box.w);
+  const patched = src
+    .replace(/viewBox="[^"]*"/, `viewBox="${box.x} ${box.y} ${box.w} ${box.h}"`)
+    .replace(/<svg /, `<svg width="${outW}" height="${outH}" `);
+  const img = new Image();
+  img.src = URL.createObjectURL(new Blob([patched], { type: 'image/svg+xml' }));
+  await img.decode();
+  const off = new OffscreenCanvas(outW, outH);
+  off.getContext('2d').drawImage(img, 0, 0, outW, outH);
+  return off;
+}
+
+/** Recolorea un sprite conservando su alpha. */
+export function tint(src, color) {
+  const off = new OffscreenCanvas(src.width, src.height);
+  const c = off.getContext('2d');
+  c.drawImage(src, 0, 0);
+  c.globalCompositeOperation = 'source-in';
+  c.fillStyle = color;
+  c.fillRect(0, 0, src.width, src.height);
+  return off;
+}
+
+/** Wordmark oficial KODEX-∞ — grupo `logo-primary` del kit del repo. */
+export const KODEX_KIT = '/public/assets/kodex/01-kodex-logo-kit.svg';
+export const KODEX_WORDMARK_BOX = { x: 46, y: 56, w: 1098, h: 188 };

@@ -93,6 +93,21 @@ Reglas que no son opcionales:
 | `kodex-artifact` | 8s | **Un teseracto.** Objeto de 4 dimensiones proyectado dos veces (4D→3D→2D): no puede existir acá, solo su sombra. DORMANT → AWARE → OPEN. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
 
+### El wordmark no se compone con una fuente
+
+`public/assets/kodex/01-kodex-logo-kit.svg` trae el logo oficial en vectores,
+dentro de `<g id="logo-primary">`. Las escenas de Kodex lo cargan de ahí —
+`loadSvgCrop()` + `tint()` en `scene-kit.js`— en vez de aproximarlo con una
+tipografía. Es el logo, no algo parecido al logo.
+
+`loadSvgCrop` reescribe el `viewBox` y el `width/height` del SVG **antes** de
+cargarlo. Importa: `drawImage` con rectángulo de origen rasteriza el SVG a su
+tamaño intrínseco y recién después escala, así que un wordmark grande sale
+borroso. Reescribiendo el documento, el navegador lo rasteriza nítido al
+tamaño final.
+
+Otras marcas en el repo, por si hacen falta: `public/logos/` (Wenu Mapu).
+
 ### Proyectar lo imposible
 
 `kodex-artifact` renderiza un teseracto: 16 vértices, 32 aristas, 4 ejes. Las

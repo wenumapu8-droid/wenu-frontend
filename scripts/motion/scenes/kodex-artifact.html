@@ -35,7 +35,19 @@
 import {
   clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo,
   mountScene, waitForFonts, mulberry32,
+  loadSvgCrop, tint, KODEX_KIT, KODEX_WORDMARK_BOX,
 } from '../scene-kit.js';
+
+/* El wordmark NO se compone con una fuente: se toma el vector oficial del
+   repo (grupo `logo-primary` de 01-kodex-logo-kit.svg). Es el logo, no una
+   aproximación tipográfica. */
+const MARK_W = 860;
+const markRaw = await loadSvgCrop(KODEX_KIT, KODEX_WORDMARK_BOX, MARK_W);
+const MARK = {
+  white: tint(markRaw, '#ffffff'),
+  red:   tint(markRaw, '#FF1427'),
+  cyan:  tint(markRaw, '#10E9FF'),
+};
 
 const BG     = '#050608';
 const FAR    = '#1C4A5A';
@@ -182,8 +194,9 @@ const deg = (r) => (((r * 180 / Math.PI) % 360) + 360) % 360;
 const pad = (n) => n.toFixed(1).padStart(5, '0');
 
 function hud(ctx, t) {
-  const on = easeOutCubic(span(t, 0.5, 1.5));
-  if (on <= 0) return;
+  // la telemetría cede cuando entra el wordmark: comparten la franja baja
+  const on = easeOutCubic(span(t, 0.5, 1.5)) * (1 - easeOutCubic(span(t, 6.05, 6.55)));
+  if (on <= 0.01) return;
   const A = angles(t);
   ctx.save();
   ctx.font = '500 18px "Space Grotesk", sans-serif';
@@ -319,18 +332,26 @@ function draw(ctx, t) {
   // ── remate ─────────────────────────────────────────────────────────────
   const w = easeOutExpo(span(t, 6.30, 6.95));
   if (w > 0) {
+    const mw = MARK.white.width, mh = MARK.white.height;
+    const x = (DW - mw) / 2, y = 1636;
+    ctx.save();
+    // desdoble cromático del propio logo, igual que el armazón
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = w * 0.45;
+    ctx.drawImage(MARK.red,  x - 4 * (1 - w) * 20 - 3, y);
+    ctx.drawImage(MARK.cyan, x + 4 * (1 - w) * 20 + 3, y);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = w;
+    ctx.drawImage(MARK.white, x, y);
+    ctx.restore();
+
     ctx.save();
     ctx.textAlign = 'center';
-    ctx.globalAlpha = w;
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 112px "Space Grotesk", sans-serif';
-    ctx.letterSpacing = '24px';
-    ctx.fillText('KODEX', DW / 2 + 12, 1700);
-    ctx.globalAlpha = 0.72 * easeOutCubic(span(t, 6.85, 7.45));
+    ctx.globalAlpha = 0.75 * easeOutCubic(span(t, 6.85, 7.45));
     ctx.fillStyle = OPEN_C;
     ctx.font = '500 19px "Space Grotesk", sans-serif';
     ctx.letterSpacing = '9px';
-    ctx.fillText('AN ARTIFACT OUTSIDE OF TIME', DW / 2 + 5, 1752);
+    ctx.fillText('AN ARTIFACT OUTSIDE OF TIME', DW / 2 + 5, 1636 + mh + 46);
     ctx.restore();
   }
 }
