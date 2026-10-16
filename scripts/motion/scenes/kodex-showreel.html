@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KODEX — showreel</title>
+<style>
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight:500; font-display:block; }
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight:700; font-display:block; }
+  html,body { margin:0; background:#050608; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── KODEX · SHOWREEL · 15s ─────────────────────────────────────────────────
+   Pieza larga con cortes. Encadena los dos motores de Kodex —membrana y
+   teseracto— en seis actos, con corte duro entre cada uno.
+
+   Lo que una pieza de 7s no exige y ésta sí: que los cortes estén MOTIVADOS.
+   Cada uno sale de un pico de movimiento del plano anterior y entra en otro,
+   y el flash dura dos frames. Un corte sobre una imagen quieta lee como error
+   de edición.
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo, easeOutQuint,
+  mountScene, waitForFonts, mulberry32,
+  loadSvgCrop, tint, KODEX_KIT, KODEX_WORDMARK_BOX,
+} from '../scene-kit.js';
+import {
+  projectTesseract, fitScale, drawWire, drawMembrane, mixc, cssc,
+} from '../lib/kodex-geometry.js';
+
+const BG     = '#050608';
+const GREY   = '#ADBFC2';
+const CYAN   = '#10E9FF';
+const FAR    = '#1C4A5A';
+const VIOLET = '#7C20FF';
+const RED    = '#FF1427';
+const DIM    = '#2E4A56';
+
+const DW = 1080, DH = 1920;
+const DUR = 15;
+
+/* ── guion ──────────────────────────────────────────────────────────────── */
+const CUTS = [3.40, 6.50, 9.40, 12.55, 13.05];   // cortes duros
+const ACT  = (t) => CUTS.findIndex((c) => t < c) === -1 ? CUTS.length : CUTS.findIndex((c) => t < c);
+
+const MARK_W = 880;
+const markRaw = await loadSvgCrop(KODEX_KIT, KODEX_WORDMARK_BOX, MARK_W);
+const MARK = { w: tint(markRaw, '#ffffff'), r: tint(markRaw, RED), c: tint(markRaw, CYAN) };
+
+const rnd = mulberry32(4242);
+const SLICES = Array.from({ length: 16 }, () => [rnd(), rnd(), rnd()]);
+
+const CX = DW / 2, CY = 900;
+
+/* Los ángulos son la integral de una velocidad escalonada: continua y pura. */
+const angles = (t) => ({
+  xw: 0.30 * t + 0.55 * Math.max(0, t - 6.50) + 1.00 * Math.max(0, t - 9.40),
+  yz: 0.21 * t + 0.38 * Math.max(0, t - 6.50) + 0.70 * Math.max(0, t - 9.40),
+  xy: 0.12 * t,
+  zw: 0.16 * t + 0.50 * Math.max(0, t - 9.40),
+});
+
+function label(ctx, text, x, y, a, color, size, track, align = 'left') {
+  if (a <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = color;
+  ctx.font = `700 ${size}px "Space Grotesk", sans-serif`;
+  ctx.letterSpacing = track;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+/** Corchetes de encuadre: presentes en todos los actos, dan continuidad. */
+function brackets(ctx, a) {
+  if (a <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.strokeStyle = DIM;
+  ctx.lineWidth = 1.4;
+  const M = 46, L = 54;
+  for (const [x, y, sx, sy] of [[M, 250, 1, 1], [DW - M, 250, -1, 1], [M, 1500, 1, -1], [DW - M, 1500, -1, -1]]) {
+    ctx.beginPath();
+    ctx.moveTo(x, y + sy * L); ctx.lineTo(x, y); ctx.lineTo(x + sx * L, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ── actos ──────────────────────────────────────────────────────────────── */
+
+// 0 · DESPERTAR — un punto se abre en horizonte y la membrana entra
+function actWake(ctx, t) {
+  const line = easeOutExpo(span(t, 0.10, 0.85));
+  const rise = easeOutQuint(span(t, 0.55, 3.00));
+  if (rise > 0.01) {
+    drawMembrane(ctx, {
+      W: DW, H: DH, t, amp: lerp(3, 46, rise),
+      color: mixc(GREY, CYAN, easeInOutCubic(span(t, 1.30, 2.90))),
+      alpha: rise, fadeFrom: CY, fadeSpan: 1400,
+    });
+  }
+  if (line > 0 && line < 1) {
+    ctx.save();
+    ctx.globalAlpha = 1 - line * 0.4;
+    ctx.strokeStyle = CYAN;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(CX - DW * line, CY); ctx.lineTo(CX + DW * line, CY);
+    ctx.stroke();
+    ctx.restore();
+  }
+  label(ctx, 'KDX', 60, 214, 0.6 * easeOutCubic(span(t, 0.9, 1.6)), CYAN, 20, '7px');
+  const slam = easeOutExpo(span(t, 2.25, 2.80));
+  if (slam > 0) {
+    const d = (1 - slam) * 26;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    label(ctx, 'SPATIAL DISTORTION ENGINE', CX - d, 1380, 0.5 * slam, RED, 33, '9px', 'center');
+    label(ctx, 'SPATIAL DISTORTION ENGINE', CX + d, 1380, 0.5 * slam, CYAN, 33, '9px', 'center');
+    ctx.restore();
+    label(ctx, 'SPATIAL DISTORTION ENGINE', CX, 1380, slam, '#ffffff', 33, '9px', 'center');
+  }
+}
+
+// 1 · ARMAR — el teseracto se dibuja arista por arista
+function actBuild(ctx, t) {
+  const u = span(t, 3.40, 6.50);
+  const P = projectTesseract(angles(t), 2.9);
+  const scale = fitScale(P, lerp(300, 480, easeOutCubic(span(t, 3.40, 5.20))));
+  drawWire(ctx, P, {
+    cx: CX, cy: CY, scale, far: FAR, near: CYAN, tint: VIOLET, boost: 0.2,
+    reveal: easeOutCubic(span(t, 3.45, 4.80)), alpha: 1,
+  });
+  label(ctx, 'DORMANT', 60, 1570, (1 - easeOutCubic(span(t, 5.3, 5.8))) * 0.9 * span(t, 3.5, 3.9), GREY, 26, '12px');
+  label(ctx, 'AWARE', 60, 1570, easeOutExpo(span(t, 5.35, 5.80)) * 0.95, CYAN, 26, '12px');
+  label(ctx, '16 VERTICES · 32 EDGES · 4 AXES', DW - 60, 1570,
+        0.5 * easeOutCubic(span(t, 4.0, 4.7)), DIM, 18, '5px', 'right');
+  void u;
+}
+
+// 2 · ABRIR — el artefacto se desestabiliza
+function actOpen(ctx, t) {
+  const u = easeInOutCubic(span(t, 6.50, 8.10));
+  const P = projectTesseract(angles(t), lerp(2.9, 1.95, u));
+  const scale = fitScale(P, lerp(430, 520, u));
+  const tintc = mixc(VIOLET, RED, u);
+  const ab = 3 + 13 * u + (Math.sin(t * 9.1) > 0.95 ? 14 : 0);
+
+  const halo = ctx.createRadialGradient(CX, CY, 0, CX, CY, 820);
+  halo.addColorStop(0, cssc(mixc('#10E9FF', RED, u), 0.10 + 0.12 * u));
+  halo.addColorStop(1, cssc(RED, 0));
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, DW, DH);
+
+  drawWire(ctx, P, { cx: CX, cy: CY, scale, far: FAR, near: CYAN, tint: RED,  boost: 0.9, dx: -ab, comp: 'lighter' });
+  drawWire(ctx, P, { cx: CX, cy: CY, scale, far: FAR, near: CYAN, tint: CYAN, boost: 0.9, dx:  ab, comp: 'lighter' });
+  drawWire(ctx, P, { cx: CX, cy: CY, scale, far: FAR, near: CYAN, tint: tintc, boost: 0.3 + 0.7 * u });
+
+  if (Math.sin(t * 5.7) > 0.68) {
+    const k = Math.floor(t * 19) % SLICES.length;
+    for (let i = 0; i < 4; i++) {
+      const [a, b, c] = SLICES[(k + i * 3) % SLICES.length];
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 300 + a * 1180, DW, 8 + b * 44);
+      ctx.clip();
+      drawWire(ctx, P, { cx: CX, cy: CY, scale, far: FAR, near: CYAN, tint: RED, boost: 0.85, dx: (c - 0.5) * 90, comp: 'lighter' });
+      ctx.restore();
+    }
+  }
+  label(ctx, 'OPEN', 60, 1570, 0.95 * easeOutExpo(span(t, 6.55, 6.95)), RED, 26, '12px');
+}
+
+// 3 · DESGARRAR — vuelta a la membrana, ahora rota
+function actTear(ctx, t) {
+  const u = easeOutQuint(span(t, 9.40, 11.90));
+  const R = u * 300;
+  drawMembrane(ctx, {
+    W: DW, H: DH, t, amp: lerp(58, 104, u),
+    color: mixc(VIOLET, '#FF4A6A', u), hot: RED,
+    alpha: lerp(1, 1.45, u), cx: CX, cy: CY, R, fadeFrom: CY, fadeSpan: 1600,
+  });
+  if (R > 1) {
+    const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, R * 1.6);
+    g.addColorStop(0.00, cssc(RED, 0.40));
+    g.addColorStop(0.42, cssc(RED, 0.12));
+    g.addColorStop(1.00, cssc(RED, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(CX - R * 1.7, CY - R * 1.7, R * 3.4, R * 3.4);
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = RED;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * Math.SQRT2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+  label(ctx, 'TOPOLOGY COLLAPSE', 60, 1570, 0.75 * easeOutCubic(span(t, 9.5, 10.1)), RED, 22, '8px');
+}
+
+// 4 · COLAPSO — todo se va al centro en 0.9s
+function actCollapse(ctx, t) {
+  // medio segundo, no uno: un colapso largo es tiempo muerto
+  const u = easeInOutCubic(span(t, 12.55, 13.05));
+  const R = (1 - u) * 300;
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.scale(1 - u * 0.96, 1 - u * 0.96);
+  ctx.translate(-CX, -CY);
+  ctx.globalAlpha = 1;
+  drawMembrane(ctx, {
+    W: DW, H: DH, t, amp: 104 * (1 - u * 0.6),
+    // un colapso GANA brillo: es energía comprimiéndose, no apagándose
+    color: mixc('#FF4A6A', '#FFD6DC', u), hot: RED,
+    alpha: lerp(1.5, 2.6, u), cx: CX, cy: CY, R, fadeFrom: CY, fadeSpan: 1500,
+    bleed: Math.min(1700, 120 + DW * (1 / Math.max(0.08, 1 - u * 0.96) - 1) / 2),
+  });
+  ctx.restore();
+  // el fogonazo nace de la compresión, no la reemplaza: entra tarde y suave
+  const flare = Math.pow(clamp((u - 0.35) / 0.65), 2.0);
+  const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, 50 + 900 * flare);
+  g.addColorStop(0, cssc('#ffffff', 0.95 * flare));
+  g.addColorStop(0.3, cssc(RED, 0.45 * flare));
+  g.addColorStop(1, cssc(RED, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, DW, DH);
+}
+
+// 5 · MARCA
+function actMark(ctx, t) {
+  const u = easeOutExpo(span(t, 13.05, 13.75));
+  const settle = easeOutCubic(span(t, 13.05, 14.10));
+  const y = 880;
+  const x = (DW - MARK.w.width) / 2;
+  const d = (1 - settle) * 46;
+
+  drawMembrane(ctx, {
+    W: DW, H: DH, t, amp: 22, color: '#2A1430', hot: RED,
+    alpha: 0.5 * u, cx: CX, cy: y + 74, R: 0, fadeFrom: y + 74, fadeSpan: 1500,
+  });
+
+  const g = ctx.createRadialGradient(CX, y + 74, 0, CX, y + 74, 900);
+  g.addColorStop(0, cssc(RED, 0.13 * u));
+  g.addColorStop(1, cssc(RED, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, DW, DH);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = u * 0.5;
+  ctx.drawImage(MARK.r, x - d, y);
+  ctx.drawImage(MARK.c, x + d, y);
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = u;
+  ctx.drawImage(MARK.w, x, y);
+  ctx.restore();
+
+  label(ctx, 'LIVING ARCHIVE OF SIGNAL', CX, y + MARK.w.height + 52,
+        0.85 * easeOutCubic(span(t, 13.70, 14.30)), '#9FD4E8', 23, '11px', 'center');
+
+  const ring = easeOutCubic(span(t, 13.9, 14.9));
+  if (ring > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.3 * ring * (1 - 0.4 * Math.abs(Math.sin(t * 1.6)));
+    ctx.strokeStyle = RED;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(CX, y + 74, 300 + 180 * ring, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+const ACTS = [actWake, actBuild, actOpen, actTear, actCollapse, actMark];
+
+function draw(ctx, t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, DW, DH);
+
+  ACTS[Math.min(ACT(t), ACTS.length - 1)](ctx, t);
+
+  brackets(ctx, 0.5 * easeOutCubic(span(t, 0.9, 1.7)) * (1 - easeOutCubic(span(t, 12.6, 13.0))));
+
+  // Flash de corte: dos frames. Más largo y deja de leer como corte, lee como
+  // transición; más corto y no se registra.
+  for (const c of CUTS) {
+    const f = 1 - clamp((t - c) / 0.066);
+    if (f > 0 && t >= c) {
+      ctx.fillStyle = cssc('#ffffff', 0.55 * f * f);
+      ctx.fillRect(0, 0, DW, DH);
+    }
+  }
+}
+
+await waitForFonts([
+  '700 33px "Space Grotesk"',
+  '700 26px "Space Grotesk"',
+  '700 18px "Space Grotesk"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw, grain: 0.026 });
+</script>
+</body>
+</html>

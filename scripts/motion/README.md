@@ -93,6 +93,30 @@ Reglas que no son opcionales:
 | `kodex-artifact` | 8s | **Un teseracto.** Objeto de 4 dimensiones proyectado dos veces (4D→3D→2D): no puede existir acá, solo su sombra. DORMANT → AWARE → OPEN. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
 
+### Piezas largas: el corte
+
+`kodex-showreel` son 15s en seis actos con cinco cortes duros. Lo que una
+pieza de 7s no exige y una de 15 sí:
+
+1. **El corte tiene que estar motivado.** Sale de un pico de movimiento del
+   plano anterior y entra en otro. Un corte sobre imagen quieta lee como error
+   de edición, no como decisión.
+2. **El flash dura dos frames** (66 ms). Más largo deja de leer como corte y
+   pasa a leer como transición; más corto no se registra.
+3. **Ningún acto puede tener tiempo muerto.** El colapso empezó durando 0.9s y
+   solo los últimos 0.35 pasaban algo: se recortó a 0.5s y ese tiempo se le
+   devolvió al desgarro, que sí tenía qué mostrar.
+4. **Un colapso gana brillo.** Es energía comprimiéndose. La primera versión
+   lo apagaba hacia granate y quedaba medio segundo de negro.
+5. **Cuidado al encoger una capa a pantalla completa:** su propio borde
+   rectangular entra en campo. De ahí el parámetro `bleed` de `drawMembrane`.
+
+### Motores compartidos
+
+`lib/kodex-geometry.js` tiene los dos motores de Kodex —teseracto y membrana—
+para que las escenas no los dupliquen. `scene-kit.js` es infraestructura
+genérica (easings, grano, motion blur, SVG); el lib es geometría de marca.
+
 ### El wordmark no se compone con una fuente
 
 `public/assets/kodex/01-kodex-logo-kit.svg` trae el logo oficial en vectores,
