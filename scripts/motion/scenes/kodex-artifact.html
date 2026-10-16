@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KODEX — artifact</title>
+<style>
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight:500; font-display:block; }
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight:700; font-display:block; }
+  html,body { margin:0; background:#050608; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── KODEX · ARTIFACT ───────────────────────────────────────────────────────
+   "Un artefacto fuera del tiempo, algo imposible."
+
+   Eso no es metáfora, es una especificación: un objeto de cuatro dimensiones.
+   Un teseracto no puede existir en 3D — lo que se ve es su sombra, igual que
+   la sombra de un cubo sobre una mesa es un cuadrado deformado. Las aristas
+   que parecen atravesarse no se tocan: están separadas en un eje que esta
+   pantalla no tiene.
+
+   Dos proyecciones encadenadas: 4D→3D por w, 3D→2D por z. En OPEN el plano de
+   proyección entra en el cuerpo del objeto y la sombra se da vuelta sobre sí
+   misma. Eso es el momento imposible, y es geometría, no un efecto.
+
+   Estados y paleta: public/kodex-wrinkled/preset.json (SPATIAL_DISTORTION_ENGINE).
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo,
+  mountScene, waitForFonts, mulberry32,
+} from '../scene-kit.js';
+
+const BG     = '#050608';
+const FAR    = '#1C4A5A';
+const NEAR   = '#10E9FF';
+const VIOLET = '#7C20FF';
+const OPEN_C = '#FF1427';
+const DIM    = '#2E4A56';
+
+const DW = 1080, DH = 1920;
+const DUR = 8;
+
+const T_AWARE = 1.55;
+const T_OPEN  = 4.15;
+
+const rgb = (c) => Array.isArray(c)
+  ? c
+  : [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+const mix = (a, b, x) => { const A = rgb(a), B = rgb(b); return A.map((v, i) => lerp(v, B[i], clamp(x))); };
+const css = (c, a = 1) => { const C = rgb(c); return `rgba(${C.map(Math.round).join(',')},${a})`; };
+
+/* ── el teseracto: 16 vértices, 32 aristas ──────────────────────────────── */
+const V4 = [];
+for (let i = 0; i < 16; i++) {
+  V4.push([(i & 1 ? 1 : -1), (i & 2 ? 1 : -1), (i & 4 ? 1 : -1), (i & 8 ? 1 : -1)]);
+}
+// dos vértices son adyacentes si difieren en exactamente una coordenada
+const EDGES = [];
+for (let a = 0; a < 16; a++) {
+  for (let b = a + 1; b < 16; b++) {
+    const d = a ^ b;
+    if ((d & (d - 1)) === 0) EDGES.push([a, b]);
+  }
+}
+
+/** Rota en un plano coordenado. En 4D los giros ocurren en planos, no en ejes:
+ *  por eso hay seis rotaciones posibles y no tres. */
+function rot(p, i, j, ang) {
+  const c = Math.cos(ang), s = Math.sin(ang);
+  const a = p[i], b = p[j];
+  p[i] = a * c - b * s;
+  p[j] = a * s + b * c;
+}
+
+/* Los ángulos son la integral de una velocidad escalonada por estado:
+   lineal a tramos, continua, y función pura de t. */
+const angles = (t) => ({
+  xw: 0.24 * t + 0.34 * Math.max(0, t - T_AWARE) + 0.80 * Math.max(0, t - T_OPEN),
+  yz: 0.17 * t + 0.25 * Math.max(0, t - T_AWARE) + 0.55 * Math.max(0, t - T_OPEN),
+  xy: 0.10 * t,
+  zw: 0.14 * t + 0.45 * Math.max(0, t - T_OPEN),
+});
+
+const CX = DW / 2, CY = 880;
+
+/** Proyecta los 16 vértices. dw es la distancia del ojo 4D: al bajar, el plano
+ *  entra en el objeto y la sombra se invierte. */
+function project(t, dw) {
+  const A = angles(t);
+  const out = [];
+  for (const v of V4) {
+    const p = v.slice();
+    rot(p, 0, 3, A.xw);
+    rot(p, 1, 2, A.yz);
+    rot(p, 0, 1, A.xy);
+    rot(p, 2, 3, A.zw);
+    // 4D → 3D. El guard evita el infinito cuando el plano cruza un vértice;
+    // sin él la geometría explota a NaN y desaparece sin un solo error.
+    const k4 = 1 / Math.max(0.17, dw - p[3]);
+    const x3 = p[0] * k4, y3 = p[1] * k4, z3 = p[2] * k4;
+    // 3D → 2D
+    const k3 = 1 / Math.max(0.30, 3.1 - z3);
+    out.push({ x: x3 * k3, y: y3 * k3, depth: z3, w: p[3] });
+  }
+  return out;
+}
+
+/* ── suelo en perspectiva: le da espacio al objeto ──────────────────────── */
+function floorGrid(ctx, t, alpha) {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.strokeStyle = DIM;
+  ctx.lineWidth = 1;
+  const HORIZON = 1340, DEPTH = 520;
+  for (let i = -9; i <= 9; i++) {           // líneas que fugan
+    ctx.globalAlpha = alpha * (1 - Math.abs(i) / 11);
+    ctx.beginPath();
+    ctx.moveTo(CX + i * 24, HORIZON);
+    ctx.lineTo(CX + i * 190, HORIZON + DEPTH);
+    ctx.stroke();
+  }
+  for (let r = 1; r <= 9; r++) {            // travesaños, espaciados por perspectiva
+    const f = Math.pow(r / 9, 2.1);
+    ctx.globalAlpha = alpha * (1 - f) * 0.8;
+    const y = HORIZON + f * DEPTH;
+    const halfW = lerp(220, 1750, f);
+    ctx.beginPath();
+    ctx.moveTo(CX - halfW, y);
+    ctx.lineTo(CX + halfW, y);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Dibuja el armazón. Se la llama tres veces con desvíos distintos para la
+ *  aberración cromática: canales separados compuestos con 'lighter'. */
+function wire(ctx, P, scale, tint, boost, dx, comp) {
+  ctx.save();
+  if (comp) ctx.globalCompositeOperation = comp;
+  ctx.lineCap = 'round';
+
+  for (const [a, b] of EDGES) {
+    const A = P[a], B = P[b];
+    const d = (A.depth + B.depth) / 2;
+    const near = clamp((d + 0.8) / 1.9);                 // 0 lejos · 1 cerca
+    const col = mix(mix(FAR, NEAR, near), tint, boost);
+    const al = (0.14 + 0.62 * near) * (0.55 + 0.45 * boost);
+
+    ctx.strokeStyle = css(col, al * 0.3);
+    ctx.lineWidth = 5.5 * (0.5 + near);
+    ctx.beginPath();
+    ctx.moveTo(CX + A.x * scale + dx, CY + A.y * scale);
+    ctx.lineTo(CX + B.x * scale + dx, CY + B.y * scale);
+    ctx.stroke();
+
+    ctx.strokeStyle = css(col, al);
+    ctx.lineWidth = 1.2 + 1.3 * near;
+    ctx.stroke();
+  }
+
+  for (const v of P) {                                   // vértices
+    const near = clamp((v.depth + 0.8) / 1.9);
+    const r = 1.6 + 4.2 * near;
+    ctx.fillStyle = css(mix('#DFF7FF', tint, boost), 0.25 + 0.6 * near);
+    ctx.beginPath();
+    ctx.arc(CX + v.x * scale + dx, CY + v.y * scale, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/* ── HUD ────────────────────────────────────────────────────────────────── */
+const deg = (r) => (((r * 180 / Math.PI) % 360) + 360) % 360;
+const pad = (n) => n.toFixed(1).padStart(5, '0');
+
+function hud(ctx, t) {
+  const on = easeOutCubic(span(t, 0.5, 1.5));
+  if (on <= 0) return;
+  const A = angles(t);
+  ctx.save();
+  ctx.font = '500 18px "Space Grotesk", sans-serif';
+  ctx.letterSpacing = '4px';
+  ctx.textBaseline = 'alphabetic';
+
+  // corchetes de encuadre
+  ctx.globalAlpha = 0.5 * on;
+  ctx.strokeStyle = DIM;
+  ctx.lineWidth = 1.4;
+  const M = 46, L = 54;
+  for (const [cx, cy, sx, sy] of [[M, 250, 1, 1], [DW - M, 250, -1, 1], [M, 1510, 1, -1], [DW - M, 1510, -1, -1]]) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + sy * L); ctx.lineTo(cx, cy); ctx.lineTo(cx + sx * L, cy);
+    ctx.stroke();
+  }
+
+  // lecturas: son los ángulos reales que se están calculando, no datos de atrezo
+  ctx.textAlign = 'left';
+  ctx.globalAlpha = 0.72 * on;
+  ctx.fillStyle = NEAR;
+  ctx.fillText('KDX · ARTIFACT', M + 14, 214);
+  ctx.globalAlpha = 0.5 * on;
+  ctx.fillStyle = DIM;
+  [['ROT XW', A.xw], ['ROT YZ', A.yz], ['ROT ZW', A.zw]].forEach(([k, v], i) => {
+    ctx.fillText(`${k}  ${pad(deg(v))}`, M + 14, 1588 + i * 30);
+  });
+
+  ctx.textAlign = 'right';
+  ctx.fillText('16 VERTICES', DW - M - 14, 1588);
+  ctx.fillText('32 EDGES', DW - M - 14, 1618);
+  ctx.fillText('4 AXES', DW - M - 14, 1648);
+  ctx.restore();
+}
+
+const STATES = [['DORMANT', 0.4, T_AWARE, DIM], ['AWARE', T_AWARE, T_OPEN, NEAR], ['OPEN', T_OPEN, DUR, OPEN_C]];
+
+function states(ctx, t) {
+  ctx.save();
+  ctx.font = '700 25px "Space Grotesk", sans-serif';
+  ctx.letterSpacing = '12px';
+  ctx.textAlign = 'center';
+  const live = STATES.filter(([, from]) => t >= from);
+  live.forEach(([name, from, to, color], i) => {
+    const on = easeOutExpo(span(t, from, from + 0.4));
+    const past = t > to;
+    ctx.globalAlpha = (past ? 0.2 : 0.95) * on;
+    ctx.fillStyle = color;
+    ctx.fillText(name, DW / 2 + 6, 1430 - (live.length - 1 - i) * 44);
+  });
+  ctx.restore();
+}
+
+const rnd = mulberry32(7331);
+const SLICES = Array.from({ length: 14 }, () => [rnd(), rnd(), rnd()]);
+
+function draw(ctx, t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, DW, DH);
+
+  const pAware = easeInOutCubic(span(t, T_AWARE, T_AWARE + 1.0));
+  const pOpen  = easeInOutCubic(span(t, T_OPEN,  T_OPEN  + 1.3));
+
+  // halo del núcleo
+  const halo = ctx.createRadialGradient(CX, CY, 0, CX, CY, 760);
+  const hc = mix(mix('#0A2630', '#10E9FF', pAware), OPEN_C, pOpen);
+  halo.addColorStop(0, css(hc, 0.09 + 0.10 * pOpen));
+  halo.addColorStop(1, css(hc, 0));
+  ctx.fillStyle = halo;
+  ctx.fillRect(0, 0, DW, DH);
+
+  floorGrid(ctx, t, 0.18 * easeOutCubic(span(t, 0.15, 1.25)) * (1 - 0.5 * pOpen));
+
+  // El ojo 4D se acerca hasta entrar en el objeto: ahí la sombra se invierte.
+  // La |w| de un vértice rotado llega a √2 ≈ 1.414: si el ojo 4D baja de ahí,
+  // el plano cruza el objeto, el guard contra infinito se activa y la sombra
+  // colapsa en una astilla. La inversión la da la rotación en el plano XW,
+  // que ya da vuelta el objeto sobre sí mismo — no hace falta forzar dw.
+  const dw = lerp(2.90, 1.95, pOpen);
+  const P = project(t, dw);
+  // La doble proyección divide por ~8 y el tamaño en pantalla queda a merced
+  // del ángulo: el objeto late de grande a diminuto solo. Se normaliza al
+  // radio real del frame. De paso evita que la inversión se salga de cuadro.
+  let maxR = 1e-4, sum2 = 0;
+  for (const v of P) {
+    const r2 = v.x * v.x + v.y * v.y;
+    sum2 += r2;
+    maxR = Math.max(maxR, Math.sqrt(r2));
+  }
+  // Normalizar por el radio MÁXIMO deja que un solo vértice fugado —en un
+  // ángulo casi de canto— encoja el objeto entero a una astilla. La media
+  // cuadrática describe el cuerpo, no su excursión más extrema.
+  const rms = Math.sqrt(sum2 / P.length);
+  const norm = Math.max(1e-4, 0.3 * maxR + 0.7 * rms * 2.1);
+  const target = lerp(330, 430, easeOutCubic(span(t, 0.2, 1.8))) * lerp(1, 1.18, pOpen)
+               * (1 + 0.03 * Math.sin(t * 1.1 * Math.PI));
+  // Medido: en ~5-10% de los frames la sombra queda casi de canto, y eso es
+  // inherente a un giro 4D — ninguna fase lo evita. Un techo estricto los
+  // volvía astillas DIMINUTAS, que leen como error. Con el techo flojo la
+  // misma astilla cruza el cuadro entera y lee como estela: el objeto
+  // atravesando la pantalla. Se abraza la degeneración en vez de esconderla.
+  const scale = Math.min(target / norm, 1400 / maxR);
+  const tint = pOpen > 0 ? mix(VIOLET, OPEN_C, pOpen) : VIOLET;
+
+  // aberración cromática: crece con la inestabilidad
+  const ab = 2 + 11 * pOpen + (Math.sin(t * 9.1) > 0.97 && t > T_AWARE ? 12 : 0);
+  if (ab > 3) {
+    wire(ctx, P, scale, OPEN_C, 0.9, -ab, 'lighter');
+    wire(ctx, P, scale, NEAR,   0.9,  ab, 'lighter');
+  }
+  wire(ctx, P, scale, tint, 0.25 + 0.75 * pOpen, 0, null);
+
+  // Cortes de glitch: bandas del armazón redibujadas con desvío. Antes esto
+  // leía el propio canvas con drawImage, lo que mezcla coordenadas de diseño
+  // con píxeles reales y se rompe en cuanto el viewport no es 1:1.
+  if (t > T_AWARE && Math.sin(t * 5.7) > 0.72) {
+    const k = Math.floor(t * 17) % SLICES.length;
+    for (let i = 0; i < 4; i++) {
+      const [a, b, c] = SLICES[(k + i * 3) % SLICES.length];
+      const y = 320 + a * 1120, h = 8 + b * 46, off = (c - 0.5) * 80;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, y, DW, h);
+      ctx.clip();
+      wire(ctx, P, scale, OPEN_C, 0.8, off, 'lighter');
+      ctx.restore();
+    }
+  }
+
+  hud(ctx, t);
+  states(ctx, t);
+
+  // ── remate ─────────────────────────────────────────────────────────────
+  const w = easeOutExpo(span(t, 6.30, 6.95));
+  if (w > 0) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = w;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 112px "Space Grotesk", sans-serif';
+    ctx.letterSpacing = '24px';
+    ctx.fillText('KODEX', DW / 2 + 12, 1700);
+    ctx.globalAlpha = 0.72 * easeOutCubic(span(t, 6.85, 7.45));
+    ctx.fillStyle = OPEN_C;
+    ctx.font = '500 19px "Space Grotesk", sans-serif';
+    ctx.letterSpacing = '9px';
+    ctx.fillText('AN ARTIFACT OUTSIDE OF TIME', DW / 2 + 5, 1752);
+    ctx.restore();
+  }
+}
+
+await waitForFonts([
+  '700 112px "Space Grotesk"',
+  '700 25px "Space Grotesk"',
+  '500 18px "Space Grotesk"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw, grain: 0.026 });
+</script>
+</body>
+</html>

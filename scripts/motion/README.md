@@ -90,7 +90,30 @@ Reglas que no son opcionales:
 | `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
 
 | `body-scan` | 8s | Escaneo biométrico sobre una **foto propia del catálogo**. Costillas de scanline desplazadas por luminancia + telemetría lateral + haz de ámbar. Cero generación por IA. |
+| `kodex-artifact` | 8s | **Un teseracto.** Objeto de 4 dimensiones proyectado dos veces (4D→3D→2D): no puede existir acá, solo su sombra. DORMANT → AWARE → OPEN. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
+
+### Proyectar lo imposible
+
+`kodex-artifact` renderiza un teseracto: 16 vértices, 32 aristas, 4 ejes. Las
+aristas que parecen atravesarse no se tocan — están separadas en un eje que la
+pantalla no tiene. Tres cosas que costaron:
+
+1. **El encuadre no puede depender del ángulo.** La doble proyección divide por
+   ~8 y el tamaño en pantalla late solo. Se normaliza por frame — pero usando
+   la media cuadrática de los radios, no el máximo: un único vértice fugado
+   encoge el objeto entero a una astilla.
+2. **El ojo 4D no puede bajar de √2.** La |w| de un vértice rotado llega a
+   1.414; si `dw` cruza ese valor, el guard contra infinito se dispara y la
+   sombra colapsa. La inversión la da la rotación en el plano XW, que ya da
+   vuelta el objeto sobre sí mismo — forzar la proyección sobra.
+3. **Los momentos de canto son inherentes.** Medidos con
+   `scripts/motion/probe-flatness.mjs`: ~5-10% de los frames, en cualquier
+   fase de arranque. No se evitan. Con techo de encuadre estricto se ven como
+   astillas diminutas, que leen como error; con techo flojo la misma astilla
+   cruza el cuadro y lee como estela. Se abrazan.
+
+El HUD muestra los ángulos reales que se están calculando. No es atrezo.
 
 ### Tratar una foto, sin generarla
 
