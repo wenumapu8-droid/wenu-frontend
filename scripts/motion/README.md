@@ -89,7 +89,28 @@ Reglas que no son opcionales:
 | `tune-in` | 6s | Constelación + rombo escalonado (ñimin) + manifiesto "Geometry borrowed from the sky" → remate "TUNE IN". |
 | `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
 
+| `body-scan` | 8s | Escaneo biométrico sobre una **foto propia del catálogo**. Costillas de scanline desplazadas por luminancia + telemetría lateral + haz de ámbar. Cero generación por IA. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
+
+### Tratar una foto, sin generarla
+
+`body-scan` resuelve el look de "radiografía cibernética" sin modelo
+generativo. El método:
+
+1. Muestrear la foto a una grilla pequeña (320×568) **una sola vez**, al cargar.
+2. Normalizar y aplicar curva de contraste. Sin curva la piel y el fondo caen
+   juntos en los medios y la forma no emerge.
+3. Por cada fila, dibujar una polilínea cuya altura se desplaza según la
+   luminancia de cada punto. La forma aparece sola: la luz ya la describía.
+4. **Tres pasadas tonales por fila** (umbrales 0.12 / 0.40 / 0.66), cada una
+   con más alpha. Una sola pasada deja la fila entera del mismo brillo y la
+   imagen se aplana — este es el paso que decide si parece un escáner o un
+   gráfico de barras.
+5. Levantar el lápiz bajo el umbral mínimo, para que el fondo no produzca
+   línea.
+
+Costo: cero créditos. Entrada: cualquier foto del catálogo. Cambiar `SRC` y
+`CROP` da una pieza nueva.
 
 ### Dos marcas, dos sistemas
 

@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Wenu Mapu — body scan</title>
+<style>
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight:500; font-display:block; }
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight:700; font-display:block; }
+  @font-face { font-family:'Instrument Serif';
+    src:url('/node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-normal.woff2') format('woff2');
+    font-weight:400; font-display:block; }
+  html,body { margin:0; background:#050608; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── body scan ──────────────────────────────────────────────────────────────
+   El look de "radiografía cibernética" de la referencia no es un modelo
+   generativo: son costillas de scanline desplazadas por LUMINANCIA. Se lee una
+   foto real, se mide su brillo punto a punto y cada fila se dobla hacia arriba
+   en proporción. La forma emerge sola, porque la luz ya la describía.
+
+   Fuente: una foto propia del catálogo — cuerpo real, pieza real, tatuajes
+   reales. Nada generado. Cero créditos.
+
+   Acento en ámbar (Wenu Mapu) y no en rojo: la pieza es de Wenu Mapu aunque
+   el tratamiento sea frío. Para la versión Kodex, cambiar ACCENT a #FF1427.
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo,
+  mountScene, waitForFonts, mulberry32, revealText,
+} from '../scene-kit.js';
+
+const SRC   = '/public/img/products/wm-han-035-onbody.webp';
+const SKU   = 'WM-HAN-035';
+/* recorte sobre la foto original (1200×1200): la oreja y el hanger viven en
+   la mitad izquierda. Relación ≈ 9:16 para que entre a sangre en el reel. */
+const CROP  = { x: 0, y: 0, w: 620, h: 1100 };
+
+const BG     = '#050608';
+const LINE   = '#9FD4E8';   // cobalto frío
+const HOT    = '#FFFFFF';
+const ACCENT = '#c9a84c';   // ámbar Wenu Mapu (Kodex: #FF1427)
+const DIM    = '#44606E';
+
+const DW = 1080, DH = 1920;
+const DUR = 8;
+
+/* El campo se muestrea una vez, al cargar. Por frame solo se lee. */
+const NW = 320, NH = 568;
+
+const img = new Image();
+img.src = SRC;
+await img.decode();
+
+const probe = new OffscreenCanvas(NW, NH);
+const pctx = probe.getContext('2d', { willReadFrequently: true });
+pctx.drawImage(img, CROP.x, CROP.y, CROP.w, CROP.h, 0, 0, NW, NH);
+const px = pctx.getImageData(0, 0, NW, NH).data;
+
+/** Luminancia perceptual, normalizada y con curva de contraste.
+ *  Sin la curva la foto queda plana: la piel y el fondo caen juntos en los
+ *  medios y la forma no emerge. */
+const LUM = new Float32Array(NW * NH);
+for (let i = 0; i < LUM.length; i++) {
+  const o = i * 4;
+  LUM[i] = (0.2126 * px[o] + 0.7152 * px[o + 1] + 0.0722 * px[o + 2]) / 255;
+}
+let lo = 1, hi = 0;
+for (const v of LUM) { if (v < lo) lo = v; if (v > hi) hi = v; }
+const rng = Math.max(1e-3, hi - lo);
+for (let i = 0; i < LUM.length; i++) {
+  const n = (LUM[i] - lo) / rng;
+  LUM[i] = Math.pow(clamp((n - 0.10) / 0.78), 0.72);
+}
+const lum = (x, y) => LUM[y * NW + x];
+
+/* ── telemetría lateral: cadenas reales de marca, no datos inventados ───── */
+const rnd = mulberry32(90210);
+const LEFT  = ['FIELD NOTES', SKU, 'ON BODY', 'LOBE · HANGER'];
+const RIGHT = ['WENU MAPU', 'SCAN / LUMA', 'NO GENERATIVE', '2026'];
+const TICKS = Array.from({ length: 22 }, () => rnd());
+
+function telemetry(ctx, t) {
+  const on = easeOutCubic(span(t, 0.9, 2.1));
+  if (on <= 0) return;
+  ctx.save();
+  ctx.font = '500 17px "Space Grotesk", sans-serif';
+  ctx.letterSpacing = '4px';
+  ctx.textBaseline = 'alphabetic';
+
+  ctx.textAlign = 'left';
+  LEFT.forEach((s, i) => {
+    const p = easeOutCubic(span(t, 0.9 + i * 0.13, 1.5 + i * 0.13));
+    ctx.globalAlpha = 0.9 * p;
+    ctx.fillStyle = i === 0 ? LINE : DIM;
+    ctx.fillText(s, 52, 1640 + i * 30);
+  });
+
+  ctx.textAlign = 'right';
+  RIGHT.forEach((s, i) => {
+    const p = easeOutCubic(span(t, 1.15 + i * 0.13, 1.75 + i * 0.13));
+    ctx.globalAlpha = 0.72 * p;
+    ctx.fillStyle = DIM;
+    ctx.fillText(s, DW - 52, 1640 + i * 30);
+  });
+
+  ctx.globalAlpha = 0.55 * on;
+  ctx.strokeStyle = DIM;
+  ctx.lineWidth = 1;
+  TICKS.forEach((w, i) => {
+    const p = clamp((t - 1.0 - i * 0.035) * 3);
+    if (p <= 0) return;
+    const y = 300 + i * 46;
+    ctx.beginPath();
+    ctx.moveTo(40, y);
+    ctx.lineTo(40 + (14 + w * 46) * p, y);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+/** Una pasada tonal: solo los puntos por encima de `floor`.
+ *  Tres pasadas apiladas dan rango tonal real; una sola deja la fila entera
+ *  del mismo brillo y la imagen se aplana. */
+function tier(ctx, r, floor, amp, beam, gl, color, alpha, width) {
+  const sx = DW / (NW - 1);
+  const yBase = r * (DH / (NH - 1));
+  ctx.beginPath();
+  let pen = false, any = false;
+  for (let c = 0; c < NW; c++) {
+    const L = lum(c, r);
+    if (L < floor) { pen = false; continue; }
+    const X = c * sx + gl;
+    const Y = yBase - L * amp * (1 + beam * 1.4);
+    if (!pen) { ctx.moveTo(X, Y); pen = true; any = true; } else { ctx.lineTo(X, Y); }
+  }
+  if (!any) return;
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = alpha;
+  ctx.lineWidth = width;
+  ctx.stroke();
+}
+
+function draw(ctx, t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, DW, DH);
+
+  const sweep = easeInOutCubic(span(t, 0.15, 2.60));
+  const breathe = 1 + 0.045 * Math.sin(t * 1.25 * Math.PI);
+  const amp = lerp(9, 30, easeOutCubic(span(t, 0.3, 3.2))) * breathe;
+
+  const pass2 = span(t, 4.30, 6.00);
+  const beamRow = pass2 > 0 && pass2 < 1 ? pass2 : (sweep < 1 ? sweep : -1);
+
+  const STEP = 3;
+  const maxRow = Math.floor(sweep * (NH - 1));
+
+  for (let r = 0; r < NH; r += STEP) {
+    if (r > maxRow) break;
+    const beam = beamRow >= 0
+      ? Math.pow(clamp(1 - Math.abs(r / (NH - 1) - beamRow) * 15), 2) : 0;
+    // glitch: bandas desplazadas en x, en instantes puntuales
+    const gl = (Math.sin(t * 7.3 + r * 0.21) > 0.988 && t > 2.4) ? Math.sin(r * 12.9) * 24 : 0;
+
+    const hot = beam > 0.03;
+    tier(ctx, r, 0.12, amp, beam, gl, hot ? HOT : LINE, 0.12 + 0.30 * beam, 3.4);  // halo
+    tier(ctx, r, 0.12, amp, beam, gl, hot ? HOT : LINE, 0.42 + 0.45 * beam, 1.0);  // base
+    tier(ctx, r, 0.40, amp, beam, gl, hot ? HOT : LINE, 0.56 + 0.40 * beam, 1.0);  // medios
+    tier(ctx, r, 0.66, amp, beam, gl, HOT,              0.72 + 0.28 * beam, 1.0);  // altas
+  }
+  ctx.globalAlpha = 1;
+
+  // ── haz ────────────────────────────────────────────────────────────────
+  if (beamRow >= 0) {
+    const y = beamRow * DH;
+    ctx.save();
+    const g = ctx.createLinearGradient(0, y - 30, 0, y + 30);
+    g.addColorStop(0, 'rgba(201,168,76,0)');
+    g.addColorStop(0.5, 'rgba(201,168,76,0.26)');
+    g.addColorStop(1, 'rgba(201,168,76,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, y - 30, DW, 60);
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = ACCENT;
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(0, y); ctx.lineTo(DW, y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // scrim inferior: el texto necesita piso, la malla llega a sangre
+  const sc = ctx.createLinearGradient(0, DH - 640, 0, DH);
+  sc.addColorStop(0, 'rgba(5,6,8,0)');
+  sc.addColorStop(0.55, 'rgba(5,6,8,0.86)');
+  sc.addColorStop(1, 'rgba(5,6,8,0.97)');
+  ctx.fillStyle = sc;
+  ctx.fillRect(0, DH - 640, DW, 640);
+
+  const top = ctx.createLinearGradient(0, 0, 0, 260);
+  top.addColorStop(0, 'rgba(5,6,8,0.92)');
+  top.addColorStop(1, 'rgba(5,6,8,0)');
+  ctx.fillStyle = top;
+  ctx.fillRect(0, 0, DW, 260);
+
+  telemetry(ctx, t);
+
+  const eb = easeOutCubic(span(t, 0.3, 1.0));
+  if (eb > 0) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.9 * eb;
+    ctx.fillStyle = '#9FD4E8';
+    ctx.font = '700 21px "Space Grotesk", sans-serif';
+    ctx.letterSpacing = '11px';
+    ctx.fillText('WENU MAPU', DW / 2 + 5, 132);
+    ctx.globalAlpha = 0.8 * eb;
+    ctx.fillStyle = '#6E8C9B';
+    ctx.font = '500 16px "Space Grotesk", sans-serif';
+    ctx.letterSpacing = '7px';
+    ctx.fillText('THE BODY IS SACRED TERRITORY', DW / 2 + 3, 168);
+    ctx.restore();
+  }
+
+  revealText(ctx, 'Worn, not displayed.', DW / 2, 1498,
+             '400 78px "Instrument Serif", serif', '#f0ede8', span(t, 6.15, 6.85), { lineH: 96 });
+
+  const url = easeOutExpo(span(t, 6.80, 7.40));
+  if (url > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.6 * url;
+    ctx.strokeStyle = ACCENT;
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(DW / 2 - 130 * url, 1540);
+    ctx.lineTo(DW / 2 + 130 * url, 1540);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+await waitForFonts([
+  '700 21px "Space Grotesk"',
+  '500 17px "Space Grotesk"',
+  '400 78px "Instrument Serif"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw, grain: 0.03 });
+</script>
+</body>
+</html>
