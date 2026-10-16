@@ -90,9 +90,35 @@ Reglas que no son opcionales:
 | `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
 
 | `body-scan` | 8s | Escaneo biométrico sobre una **foto propia del catálogo**. Costillas de scanline desplazadas por luminancia + telemetría lateral + haz de ámbar. Cero generación por IA. |
+| `kdx-film-001` | 15s | **Piloto canónico.** SIGNAL / THRESHOLD, al contrato de plano de la biblia §11. Interferencia de dos fuentes, iris de observador, push-through. |
 | `kodex-orbit` | 10s | Esfera armilar: anillos metálicos precesando en planos distintos, cuentas viajando, eje de luz. 3D por software con oclusión real. |
 | `kodex-artifact` | 8s | **Un teseracto.** Objeto de 4 dimensiones proyectado dos veces (4D→3D→2D): no puede existir acá, solo su sombra. DORMANT → AWARE → OPEN. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
+
+### La biblia de producción manda
+
+`46_KODEX_AI_VIDEO_FACTORY` (Drive) es canon y define el sistema. Lo que hay
+que respetar al escribir una escena de Kodex:
+
+- **§17, CANONICAL:** el flujo central *no debe depender de Higgsfield*.
+  Motion por código, render por frames en navegador, composición con FFmpeg.
+  Este pipeline no es una alternativa: es la arquitectura declarada.
+- **§5 gramática de cámara.** Permitido: dolly lento, deriva orbital,
+  macro-a-micro, push-through aperture, paralaje contenido, encuadre fijo.
+  Prohibido: cámara en mano, swoops genéricos, drone, speed ramps, zoom
+  perpetuo. `applyCamera()` en scene-kit existe para esto.
+- **§6 gramática temporal.** MICRO 80-300 ms · SHORT 0.3-1.5 s ·
+  MEDIUM 1.5-5 s · AMBIENT 5-30 s. *"Nothing moves merely because AI can
+  make it move."*
+- **§8 tipografía.** El texto, los IDs y la telemetría se componen DESPUÉS,
+  fuera de la cámara. "AI generates the phenomenon. KODEX supplies the system."
+- **§14 anti-patrones.** Prohibidos: glitch constante, HUD sobrecargados,
+  **mediciones falsas**, geometría sagrada al azar, un solo renderer aplicado
+  a todo el universo.
+- **§13 QA.** Debe ser reconociblemente KODEX *sin depender del logo*.
+
+`kdx-film-001` es el primero escrito contra esa especificación en vez de
+contra el gusto. Su guion son las líneas de `KODEX_MESSAGES`, del repo.
 
 ### 3D sin librería
 

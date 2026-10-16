@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KDX-FILM-001 — SIGNAL / THRESHOLD</title>
+<style>
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight:500; font-display:block; }
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight:700; font-display:block; }
+  html,body { margin:0; background:#02040A; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── KDX-FILM-001 · SIGNAL / THRESHOLD · 15s ───────────────────────────────
+   Contrato de plano tomado literal de la biblia de producción, §11:
+     "Black field → signal detected → geometry condenses → observer state →
+      aperture stabilizes → threshold opens."
+
+   Familia A (§3) — THRESHOLD / INTERFERENCE PORTAL: apertura centrada,
+   interferencia óptica, estabilización de la simetría, cambios de fase
+   contenidos, espacio negativo, UN solo evento de apertura decisivo.
+
+   Por eso esta pieza no lleva glitch: §14 prohíbe el glitch constante y los
+   HUD sobrecargados. Es deliberadamente contenida.
+
+   La interferencia es física, no decorativa: dos fuentes puntuales sobre el
+   eje vertical. El brillo en cada punto sale de la diferencia de camino entre
+   las dos, cos(k·(r₁−r₂) − ωt), que es lo que produce las franjas hiperbólicas
+   y el eje brillante. No es un patrón dibujado a mano que imita interferencia.
+
+   Texto: KODEX_MESSAGES de src/lib/kodex/motion-config.js. Voz de la entidad,
+   del repo, sin inventar líneas.
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo, easeOutQuint,
+  mountScene, waitForFonts, applyCamera,
+  loadSvgCrop, tint, KODEX_WORDMARK, KODEX_WORDMARK_BOX,
+} from '../scene-kit.js';
+
+const BG    = '#02040A';
+const CYAN  = '#10E9FF';
+const PALE  = '#BFEFFA';
+const DEEP  = '#0B4E63';
+const DIM   = '#1E3B45';
+
+const DW = 1080, DH = 1920;
+const DUR = 15;
+const CX = DW / 2, CY = 900;
+
+const MARK = tint(await loadSvgCrop(KODEX_WORDMARK, KODEX_WORDMARK_BOX, 790), '#ffffff');
+
+/* ── guion: las líneas son del repo, no inventadas ──────────────────────── */
+const SCRIPT = [
+  ['SIGNAL LATENT',          1.10,  3.60],
+  ['MEMORY HOST DETECTED',   3.90,  6.20],
+  ['PATTERN WANTS A WITNESS',6.50,  8.80],
+  ['EYE CONTACT REGISTERED', 9.00, 10.90],
+  ['ACCESS THROUGH ATTENTION',11.10,12.60],
+];
+
+/* ── campo de puntos polar ──────────────────────────────────────────────── */
+const FIELD = [];
+for (let r = 18; r < 860; r += 16) {
+  const n = Math.max(6, Math.round((2 * Math.PI * r) / 16));
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    FIELD.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, r });
+  }
+}
+
+/** Interferencia de dos fuentes sobre el eje vertical, separadas 2·d. */
+function interfere(px, py, d, k, phase) {
+  const r1 = Math.hypot(px, py - d);
+  const r2 = Math.hypot(px, py + d);
+  return Math.cos((r1 - r2) * k - phase);
+}
+
+function label(ctx, s, x, y, a, color, size, track, align = 'center', weight = 700) {
+  if (a <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = color;
+  ctx.font = `${weight} ${size}px "Space Grotesk", sans-serif`;
+  ctx.letterSpacing = track;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+function draw(ctx, t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, DW, DH);
+
+  /* ── acto por acto ───────────────────────────────────────────────────── */
+  const detect   = easeOutCubic(span(t,  1.60,  4.40));   // señal detectada
+  const condense = easeInOutCubic(span(t, 4.40,  8.20));  // la geometría condensa
+  const observer = easeInOutCubic(span(t, 8.20, 10.80));  // estado de observador
+  const stable   = easeInOutCubic(span(t,10.80, 12.60));  // la apertura estabiliza
+  const opens    = easeOutQuint(span(t, 12.60, 14.10));   // UN evento decisivo
+
+  /* ── cámara: dolly lento sostenido + push-through al abrir (§5) ──────── */
+  const cam = {
+    zoom: lerp(1.0, 1.34, easeInOutCubic(span(t, 0.6, 12.6))) * lerp(1, 5.2, Math.pow(opens, 2.3)),
+    x: 0,
+    y: lerp(40, 0, easeOutCubic(span(t, 0.6, 9.0))),
+  };
+
+  // atravesado el umbral, el mundo queda detrás
+  const worldA = 1 - easeOutCubic(span(t, 13.70, 14.40));
+  ctx.save();
+  ctx.globalAlpha = worldA;
+  if (worldA < 0.01) { ctx.restore(); } else {
+  applyCamera(ctx, cam, CX, CY);
+
+  // separación de fuentes: se junta al condensar, y con ella la simetría
+  const d = lerp(300, 86, condense);
+  const k = lerp(0.052, 0.030, condense);
+  const phase = t * 2.35;
+  // el radio útil crece al detectar y se contrae al estabilizar
+  const reach = lerp(130, 880, detect) * lerp(1, 0.78, stable);
+
+  /* ── campo de interferencia ──────────────────────────────────────────── */
+  const amp = 0.18 + 0.82 * detect;
+  for (const p of FIELD) {
+    if (p.r > reach) continue;
+    const v = interfere(p.x, p.y, d, k, phase);
+    let b = (v + 1) / 2;
+    b = Math.pow(b, lerp(1.6, 3.4, condense));           // franjas más finas al condensar
+    const edge = clamp(1 - p.r / reach) * clamp(p.r / 90);
+    const al = b * edge * amp * (0.78 + 0.22 * observer);
+    if (al < 0.012) continue;
+    ctx.fillStyle = al > 0.55 ? PALE : CYAN;
+    ctx.globalAlpha = al;
+    const s = lerp(1.7, 3.1, b);
+    ctx.fillRect(CX + p.x - s / 2, CY + p.y - s / 2, s, s);
+  }
+  ctx.globalAlpha = 1;
+
+  /* ── círculos concéntricos: la simetría que se estabiliza ────────────── */
+  for (let i = 0; i < 7; i++) {
+    const p = easeOutCubic(span(t, 4.6 + i * 0.26, 6.6 + i * 0.26));
+    if (p <= 0) continue;
+    const rr = (120 + i * 104) * lerp(1.06, 1, stable);
+    ctx.strokeStyle = DEEP;
+    ctx.globalAlpha = (0.34 - i * 0.03) * p * (0.4 + 0.6 * condense);
+    ctx.lineWidth = i === 3 ? 1.5 : 1;
+    ctx.beginPath();
+    ctx.arc(CX, CY, rr, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  /* ── eje vertical: donde las dos fuentes están en fase ───────────────── */
+  const ax = easeOutCubic(span(t, 2.0, 5.0));
+  if (ax > 0) {
+    const g = ctx.createLinearGradient(0, CY - 950, 0, CY + 950);
+    g.addColorStop(0.00, 'rgba(16,233,255,0)');
+    g.addColorStop(0.50, `rgba(16,233,255,${(0.42 + 0.4 * observer) * ax})`);
+    g.addColorStop(1.00, 'rgba(16,233,255,0)');
+    ctx.strokeStyle = g;
+    ctx.lineWidth = lerp(1, 2.4, observer);
+    ctx.beginPath();
+    ctx.moveTo(CX, CY - 950 * ax);
+    ctx.lineTo(CX, CY + 950 * ax);
+    ctx.stroke();
+    // nodos: las fuentes mismas
+    for (const sy of [-1, 1]) {
+      const y = CY + sy * d;
+      const f = ctx.createRadialGradient(CX, y, 0, CX, y, 90);
+      f.addColorStop(0, `rgba(230,250,255,${0.85 * ax})`);
+      f.addColorStop(0.22, `rgba(16,233,255,${0.30 * ax})`);
+      f.addColorStop(1, 'rgba(16,233,255,0)');
+      ctx.fillStyle = f;
+      ctx.fillRect(CX - 90, y - 90, 180, 180);
+    }
+  }
+
+  /* ── iris: el estado de observador ───────────────────────────────────── */
+  if (observer > 0.01) {
+    const R = lerp(230, 198, stable) * lerp(1, 7.5, Math.pow(opens, 1.7));
+    const breathe = 1 + 0.018 * Math.sin(t * 1.5 * Math.PI) * (1 - opens);
+    ctx.save();
+    ctx.globalAlpha = observer;
+    ctx.strokeStyle = PALE;
+    ctx.lineWidth = lerp(1.4, 2.6, stable);
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * breathe, 0, Math.PI * 2);
+    ctx.stroke();
+    // pupila: se contrae al estabilizar y se abre de golpe al final
+    ctx.globalAlpha = observer * (1 - opens * 0.75);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * breathe * lerp(0.42, 0.26, stable), 0, Math.PI * 2);
+    ctx.stroke();
+    // marcas cardinales del iris
+    ctx.globalAlpha = observer * 0.6 * (1 - opens);
+    for (let i = 0; i < 4; i++) {
+      const a = i * Math.PI / 2 + Math.PI / 4;
+      const r0 = R * breathe * 1.04, r1 = R * breathe * 1.13;
+      ctx.beginPath();
+      ctx.moveTo(CX + Math.cos(a) * r0, CY + Math.sin(a) * r0);
+      ctx.lineTo(CX + Math.cos(a) * r1, CY + Math.sin(a) * r1);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  }
+  ctx.restore();   // ── fin de la cámara ────────────────────────────────
+
+  /* ── el umbral se abre, y después cede ───────────────────────────────── */
+  // El fogonazo es un EVENTO, no un estado: sube y se apaga. Si se queda
+  // arriba, el acto final no tiene fondo contra el cual leer la marca.
+  const flare = opens * (1 - easeOutCubic(span(t, 13.70, 14.55)));
+  if (flare > 0.001) {
+    const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, lerp(60, 1500, opens));
+    g.addColorStop(0, `rgba(240,253,255,${0.80 * flare})`);
+    g.addColorStop(0.24, `rgba(16,233,255,${0.34 * flare})`);
+    g.addColorStop(1, 'rgba(16,233,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, DW, DH);
+  }
+
+  /* ── pizarra y guion: compuestos DESPUÉS, nunca con la cámara (§8) ───── */
+  const slate = easeOutCubic(span(t, 0.5, 1.4)) * (1 - easeOutCubic(span(t, 12.4, 12.9)));
+  label(ctx, 'KDX-FILM-001', 60, 206, 0.6 * slate, CYAN, 19, '7px', 'left');
+  label(ctx, 'SIGNAL / THRESHOLD', 60, 236, 0.34 * slate, DIM, 16, '6px', 'left');
+
+  for (const [line, from, to] of SCRIPT) {
+    const inn = easeOutCubic(span(t, from, from + 0.5));
+    const out = 1 - easeOutCubic(span(t, to, to + 0.45));
+    const a = inn * out;
+    if (a <= 0.01) continue;
+    label(ctx, line, CX, 1548, 0.92 * a, PALE, 25, '12px');
+  }
+
+  /* ── retorno: la marca ───────────────────────────────────────────────── */
+  const w = easeOutExpo(span(t, 14.05, 14.60));
+  if (w > 0) {
+    ctx.save();
+    ctx.globalAlpha = w;
+    ctx.drawImage(MARK, (DW - MARK.width) / 2, CY - MARK.height / 2);
+    ctx.restore();
+    label(ctx, 'LIVING ARCHIVE OF SIGNAL', CX, CY + MARK.height / 2 + 44,
+          0.85 * easeOutCubic(span(t, 14.35, 14.85)), '#9FD4E8', 21, '11px');
+  }
+}
+
+await waitForFonts([
+  '700 25px "Space Grotesk"',
+  '700 21px "Space Grotesk"',
+  '700 16px "Space Grotesk"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw, grain: 0.024 });
+</script>
+</body>
+</html>

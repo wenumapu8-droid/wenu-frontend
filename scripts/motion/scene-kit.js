@@ -232,3 +232,33 @@ export function tint(src, color) {
  */
 export const KODEX_WORDMARK = '/scripts/motion/assets/kodex-wordmark.svg';
 export const KODEX_WORDMARK_BOX = { x: 0, y: 0, w: 3192, h: 432 };
+
+/* ── cámara ─────────────────────────────────────────────────────────────── */
+
+/**
+ * Aplica una cámara virtual antes de dibujar el mundo.
+ *
+ * Gramática de cámara de KODEX (biblia de producción §5): dolly lento, deriva
+ * orbital, macro-a-micro, push-through aperture, paralaje contenido, encuadre
+ * observacional fijo. Prohibidos por defecto: cámara en mano, swoops
+ * genéricos, drone, speed ramps, zoom perpetuo.
+ *
+ * @param {object} cam  { zoom, x, y } — x/y desplazan el mundo, no la cámara
+ * @param {number} cx,cy  centro de zoom en coordenadas de diseño
+ */
+export function applyCamera(ctx, cam, cx, cy) {
+  const { zoom = 1, x = 0, y = 0 } = cam;
+  ctx.translate(cx, cy);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-cx - x, -cy - y);
+}
+
+/**
+ * Paralaje: cuánto se mueve una capa según su profundidad.
+ * depth 0 = pegada a la cámara, 1 = infinito (no se mueve).
+ */
+export const parallax = (cam, depth) => ({
+  zoom: 1 + (cam.zoom - 1) * (1 - depth),
+  x: cam.x * (1 - depth),
+  y: cam.y * (1 - depth),
+});
