@@ -90,8 +90,21 @@ Reglas que no son opcionales:
 | `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
 
 | `body-scan` | 8s | Escaneo biométrico sobre una **foto propia del catálogo**. Costillas de scanline desplazadas por luminancia + telemetría lateral + haz de ámbar. Cero generación por IA. |
+| `kodex-orbit` | 10s | Esfera armilar: anillos metálicos precesando en planos distintos, cuentas viajando, eje de luz. 3D por software con oclusión real. |
 | `kodex-artifact` | 8s | **Un teseracto.** Objeto de 4 dimensiones proyectado dos veces (4D→3D→2D): no puede existir acá, solo su sombra. DORMANT → AWARE → OPEN. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
+
+### 3D sin librería
+
+`kodex-orbit` hace 3D a mano: rotaciones en los tres ejes, proyección en
+perspectiva y pintor con orden de profundidad. Lo que decide si se ve como un
+objeto o como un dibujo plano es **una sola cosa**: partir cada anillo en los
+segmentos que quedan detrás de la esfera y los que quedan delante, y dibujar
+la esfera opaca en el medio. Sin eso los anillos se ven «a través» del planeta
+y el volumen desaparece entero.
+
+Lo demás es consecuencia: grosor y brillo de cada segmento salen de su `z`, y
+eso solo da la sensación de metal cuando la oclusión ya es correcta.
 
 ### Piezas largas: el corte
 

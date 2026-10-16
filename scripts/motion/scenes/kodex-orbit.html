@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KODEX — orbit</title>
+<style>
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight:500; font-display:block; }
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight:700; font-display:block; }
+  html,body { margin:0; background:#050608; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── KODEX · ORBIT ─────────────────────────────────────────────────────────
+   Esfera armilar: anillos metálicos en planos distintos, precesando a ritmos
+   distintos, con cuentas viajando sobre ellos y un eje de luz atravesando el
+   centro. Tomado de la propia identidad de Kodex — la variante dorada del
+   gate, "THE OBSERVER OPENS THE SYSTEM".
+
+   3D por software, sin librerías: rotaciones en los tres ejes, proyección en
+   perspectiva y pintor con orden de profundidad. Lo único que hace falta para
+   que la oclusión funcione es partir cada anillo en los segmentos que quedan
+   DETRÁS de la esfera y los que quedan DELANTE, y dibujar la esfera opaca en
+   el medio. Sin eso los anillos se ven "a través" del planeta y el volumen se
+   pierde entero.
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo,
+  mountScene, waitForFonts, mulberry32,
+  loadSvgCrop, tint, KODEX_WORDMARK, KODEX_WORDMARK_BOX,
+} from '../scene-kit.js';
+
+const BG     = '#050608';
+const BRONZE = '#6A4A28';
+const GOLD   = '#C9A227';
+const LIGHT  = '#F0D98A';
+const RED    = '#FF1427';
+const CYAN   = '#10E9FF';
+const DIM    = '#3B3024';
+
+const DW = 1080, DH = 1920;
+const DUR = 10;
+
+const T_AWARE = 1.70;
+const T_OPEN  = 4.30;
+
+const CX = DW / 2, CY = 880;
+const CAM = 1800;          // distancia de cámara
+const RS  = 248;           // radio de la esfera
+const TILT = -0.30;        // inclinación del sistema hacia el espectador
+
+const MARK = tint(await loadSvgCrop(KODEX_WORDMARK, KODEX_WORDMARK_BOX, 760), '#ffffff');
+
+// acepta hex o tripleta, y devuelve tripleta: así mix() es componible
+const rgbOf = (c) => Array.isArray(c)
+  ? c
+  : [parseInt(c.slice(1,3),16), parseInt(c.slice(3,5),16), parseInt(c.slice(5,7),16)];
+const mix = (a, b, x) => { const A = rgbOf(a), B = rgbOf(b); return A.map((v,i)=>Math.round(lerp(v,B[i],clamp(x)))); };
+const css = (c, al = 1) => `rgba(${(Array.isArray(c)?c:rgbOf(c)).join(',')},${al})`;
+
+/* ── 3D ─────────────────────────────────────────────────────────────────── */
+const rotX = (p, a) => { const c=Math.cos(a), s=Math.sin(a); return { x:p.x, y:p.y*c - p.z*s, z:p.y*s + p.z*c }; };
+const rotY = (p, a) => { const c=Math.cos(a), s=Math.sin(a); return { x:p.x*c + p.z*s, y:p.y, z:-p.x*s + p.z*c }; };
+const project = (p) => { const k = CAM / (CAM - p.z); return { x: CX + p.x*k, y: CY + p.y*k, z: p.z, k }; };
+
+/** Anillos: radio, inclinación propia, nodo inicial y velocidad de precesión. */
+const RINGS = [
+  { r: 318, inc: 0.00,            node: 0.00,          rate: 0.30, w: 3.2, beads: 4 },
+  { r: 318, inc: Math.PI / 2,     node: 0.00,          rate: 0.46, w: 2.4, beads: 3 },
+  { r: 318, inc: Math.PI / 2,     node: Math.PI / 2,   rate: 0.38, w: 2.4, beads: 3 },
+  { r: 430, inc: 0.10,            node: 0.00,          rate: 0.17, w: 7.0, beads: 0, band: true },
+];
+
+function ringPoint(ring, a, t, spin) {
+  let p = { x: ring.r * Math.cos(a), y: ring.r * Math.sin(a), z: 0 };
+  p = rotX(p, ring.inc);
+  p = rotY(p, ring.node + ring.rate * t * spin);
+  return rotX(p, TILT);
+}
+
+/* ── polvo ──────────────────────────────────────────────────────────────── */
+const rnd = mulberry32(31337);
+const DUST = Array.from({ length: 150 }, () => ({
+  a: rnd() * Math.PI * 2, r: 300 + rnd() * 900, y: (rnd() - 0.5) * 1500,
+  s: 0.4 + rnd() * 1.5, ph: rnd() * Math.PI * 2,
+}));
+
+function dust(ctx, t, alpha, hue) {
+  if (alpha <= 0.01) return;
+  ctx.save();
+  for (const d of DUST) {
+    const a = d.a + t * 0.05;
+    const p = project(rotX({ x: Math.cos(a) * d.r, y: d.y, z: Math.sin(a) * d.r }, TILT));
+    const tw = 0.4 + 0.6 * Math.abs(Math.sin(t * 1.3 + d.ph));
+    ctx.globalAlpha = alpha * tw * clamp(p.k * 0.8);
+    ctx.fillStyle = hue;
+    ctx.fillRect(p.x, p.y, d.s * p.k, d.s * p.k);
+  }
+  ctx.restore();
+}
+
+/* ── dial de fondo: círculos planos, en espacio de pantalla ─────────────── */
+function dial(ctx, t, alpha, color) {
+  if (alpha <= 0.01) return;
+  ctx.save();
+  ctx.strokeStyle = color;
+  for (let i = 0; i < 5; i++) {
+    const p = easeOutCubic(span(t, 0.1 + i * 0.12, 1.1 + i * 0.12));
+    if (p <= 0) continue;
+    ctx.globalAlpha = alpha * (0.5 - i * 0.07) * p;
+    ctx.lineWidth = i === 2 ? 1.4 : 1;
+    ctx.beginPath();
+    ctx.arc(CX, CY, (300 + i * 112) * lerp(0.94, 1, p), -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ── segmentos de anillo, separados por profundidad ─────────────────────── */
+function collectRings(t, spin, grow) {
+  const back = [], front = [], beads = [];
+  for (const ring of RINGS) {
+    const N = ring.band ? 200 : 150;
+    let prev = null;
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * Math.PI * 2;
+      const P = project(ringPoint(ring, a, t, spin));
+      if (prev) {
+        const zm = (P.z + prev.z) / 2;
+        (zm < 0 ? back : front).push({ a: prev, b: P, z: zm, ring });
+      }
+      prev = P;
+    }
+    for (let k = 0; k < ring.beads; k++) {
+      const a = (k / ring.beads) * Math.PI * 2 + t * (0.55 + ring.rate);
+      const P = project(ringPoint(ring, a, t, spin));
+      beads.push({ P, z: P.z, ring });
+    }
+    void grow;
+  }
+  return { back, front, beads };
+}
+
+function strokeSegs(ctx, segs, color, alpha, hot) {
+  for (const s of segs) {
+    // la profundidad define grosor y brillo: es lo que da volumen al metal
+    const d = clamp((s.z / 430 + 1) / 2);
+    const w = s.ring.w * lerp(0.55, 1.25, d);
+    ctx.strokeStyle = css(hot > 0 ? mix(color, RED, hot * (0.3 + 0.7 * d)) : color,
+                          alpha * lerp(0.22, 1, d));
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(s.a.x, s.a.y);
+    ctx.lineTo(s.b.x, s.b.y);
+    ctx.stroke();
+  }
+}
+
+function drawBeads(ctx, beads, wantFront, alpha, hot) {
+  for (const b of beads) {
+    if ((b.z >= 0) !== wantFront) continue;
+    const d = clamp((b.z / 430 + 1) / 2);
+    const r = lerp(5, 13, d);
+    const g = ctx.createRadialGradient(b.P.x - r * 0.3, b.P.y - r * 0.4, r * 0.1, b.P.x, b.P.y, r);
+    g.addColorStop(0, css(mix(LIGHT, RED, hot), alpha * lerp(0.5, 1, d)));
+    g.addColorStop(1, css(mix(BRONZE, RED, hot * 0.6), alpha * lerp(0.3, 0.9, d)));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(b.P.x, b.P.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* ── esfera opaca ───────────────────────────────────────────────────────── */
+function sphere(ctx, t, core, metal) {
+  const g = ctx.createRadialGradient(CX - RS * 0.35, CY - RS * 0.45, RS * 0.05, CX, CY, RS);
+  g.addColorStop(0.00, css(mix('#1A1712', [60, 30, 26], core), 1));
+  g.addColorStop(0.55, css(mix('#0D0B09', [40, 10, 12], core), 1));
+  g.addColorStop(1.00, css('#050608', 1));
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(CX, CY, RS, 0, Math.PI * 2);
+  ctx.fill();
+
+  // limbo: el borde iluminado que separa la esfera del fondo
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const rim = ctx.createRadialGradient(CX, CY, RS * 0.82, CX, CY, RS);
+  rim.addColorStop(0, css(GOLD, 0));
+  rim.addColorStop(1, css(mix(GOLD, RED, core), (0.14 + 0.30 * core) * metal));
+  ctx.fillStyle = rim;
+  ctx.beginPath();
+  ctx.arc(CX, CY, RS, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // núcleo encendido
+  if (core > 0.01) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const k = ctx.createRadialGradient(CX, CY, 0, CX, CY, RS * 0.95);
+    const pulse = 0.85 + 0.15 * Math.sin(t * 2.1 * Math.PI);
+    k.addColorStop(0, css(RED, 0.5 * core * pulse));
+    k.addColorStop(0.45, css(RED, 0.12 * core));
+    k.addColorStop(1, css(RED, 0));
+    ctx.fillStyle = k;
+    ctx.beginPath();
+    ctx.arc(CX, CY, RS, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+/* ── eje de luz ─────────────────────────────────────────────────────────── */
+function axis(ctx, t, p, inFront) {
+  if (p <= 0.01) return;
+  const reach = easeOutExpo(p) * 980;
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  const g = ctx.createLinearGradient(0, CY - reach, 0, CY + reach);
+  g.addColorStop(0.00, css(RED, 0));
+  g.addColorStop(0.50, css(RED, 0.85 * p));
+  g.addColorStop(1.00, css(RED, 0));
+  ctx.strokeStyle = g;
+  ctx.lineWidth = inFront ? 2.2 : 1.2;
+  ctx.beginPath();
+  ctx.moveTo(CX, CY - reach);
+  ctx.lineTo(CX, CY + reach);
+  ctx.stroke();
+
+  if (inFront) {
+    // destellos donde el eje cruza los polos de la esfera
+    for (const sy of [-1, 1]) {
+      const y = CY + sy * RS;
+      const fl = ctx.createRadialGradient(CX, y, 0, CX, y, 120);
+      fl.addColorStop(0, css('#FFFFFF', 0.85 * p));
+      fl.addColorStop(0.25, css(RED, 0.35 * p));
+      fl.addColorStop(1, css(RED, 0));
+      ctx.fillStyle = fl;
+      ctx.fillRect(CX - 120, y - 120, 240, 240);
+      ctx.fillStyle = css('#FFFFFF', 0.5 * p);
+      ctx.fillRect(CX - 90 * p, y - 0.6, 180 * p, 1.2);
+    }
+  }
+  ctx.restore();
+}
+
+function label(ctx, s, x, y, a, color, size, track, align = 'left') {
+  if (a <= 0.01) return;
+  ctx.save();
+  ctx.globalAlpha = a;
+  ctx.fillStyle = color;
+  ctx.font = `700 ${size}px "Space Grotesk", sans-serif`;
+  ctx.letterSpacing = track;
+  ctx.textAlign = align;
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+
+/* ── frame ──────────────────────────────────────────────────────────────── */
+function draw(ctx, t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, DW, DH);
+
+  const pAware = easeInOutCubic(span(t, T_AWARE, T_AWARE + 1.2));
+  const pOpen  = easeInOutCubic(span(t, T_OPEN,  T_OPEN + 1.5));
+  const metal  = easeOutCubic(span(t, 0.5, 2.6));
+  const spin   = lerp(1, 2.6, pAware) * lerp(1, 1.9, pOpen);
+  const ringA  = lerp(0.42, 1, metal);
+  const col    = mix(BRONZE, GOLD, pAware);
+
+  const glow = ctx.createRadialGradient(CX, CY, 0, CX, CY, 900);
+  glow.addColorStop(0, css(mix([20,14,8], [70,8,14], pOpen), 0.55));
+  glow.addColorStop(1, css('#050608', 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, DW, DH);
+
+  dial(ctx, t, 0.5 * (1 - 0.4 * pOpen), css(mix(DIM, RED, pOpen)));
+  dust(ctx, t, 0.5 * metal, css(mix(GOLD, RED, pOpen)));
+
+  const { back, front, beads } = collectRings(t, spin, metal);
+
+  axis(ctx, t, pOpen, false);
+  strokeSegs(ctx, back, col, ringA, pOpen);
+  drawBeads(ctx, beads, false, ringA, pOpen);
+
+  sphere(ctx, t, pOpen, metal);
+
+  strokeSegs(ctx, front, col, ringA, pOpen);
+  drawBeads(ctx, beads, true, ringA, pOpen);
+  axis(ctx, t, pOpen, true);
+
+  // ── HUD ───────────────────────────────────────────────────────────────
+  const hud = easeOutCubic(span(t, 0.6, 1.5)) * (1 - easeOutCubic(span(t, 7.0, 7.5)));
+  if (hud > 0.01) {
+    ctx.save();
+    ctx.globalAlpha = 0.5 * hud;
+    ctx.strokeStyle = DIM;
+    ctx.lineWidth = 1.4;
+    const M = 46, L = 54;
+    for (const [x, y, sx, sy] of [[M,250,1,1],[DW-M,250,-1,1],[M,1560,1,-1],[DW-M,1560,-1,-1]]) {
+      ctx.beginPath();
+      ctx.moveTo(x, y + sy*L); ctx.lineTo(x, y); ctx.lineTo(x + sx*L, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+    label(ctx, 'KDX · ORBIT', 60, 214, 0.65 * hud, CYAN, 20, '7px');
+    label(ctx, '4 RINGS · 10 BODIES', DW - 60, 214, 0.4 * hud, DIM, 18, '5px', 'right');
+  }
+
+  const STATES = [['DORMANT', 0.5, T_AWARE, DIM], ['AWARE', T_AWARE, T_OPEN, GOLD], ['OPEN', T_OPEN, DUR, RED]];
+  STATES.forEach(([name, from, to, c]) => {
+    if (t < from) return;
+    const on = easeOutExpo(span(t, from, from + 0.4)) * (1 - easeOutCubic(span(t, 7.0, 7.5)));
+    label(ctx, name, 60, 1630 + STATES.findIndex(s => s[0] === name) * 46,
+          (t > to ? 0.22 : 0.95) * on, c, 26, '12px');
+  });
+
+  // ── remate: el wordmark cruza la esfera, como en el gate ──────────────
+  const w = easeOutExpo(span(t, 7.35, 8.05));
+  if (w > 0) {
+    ctx.save();
+    ctx.globalAlpha = w;
+    ctx.drawImage(MARK, (DW - MARK.width) / 2, CY - MARK.height / 2 - 6);
+    ctx.restore();
+    label(ctx, 'THE OBSERVER OPENS THE SYSTEM', CX, CY + MARK.height / 2 + 38,
+          0.85 * easeOutCubic(span(t, 7.95, 8.55)), '#D9D2C4', 21, '10px', 'center');
+  }
+
+  const cue = easeOutCubic(span(t, 8.6, 9.2));
+  if (cue > 0) {
+    label(ctx, 'HOLD TO OPEN', CX, 1700, 0.55 * cue, '#7A7268', 20, '11px', 'center');
+    ctx.save();
+    ctx.globalAlpha = 0.5 * cue;
+    ctx.strokeStyle = '#7A7268';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(CX - 26, 1726); ctx.lineTo(CX + 26, 1726);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+await waitForFonts([
+  '700 26px "Space Grotesk"',
+  '700 21px "Space Grotesk"',
+  '700 18px "Space Grotesk"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw, grain: 0.026 });
+</script>
+</body>
+</html>
