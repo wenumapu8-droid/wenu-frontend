@@ -74,7 +74,12 @@ Reglas que no son opcionales:
 3. **`ctx.globalAlpha` no es multiplicativo.** Asignarlo dentro de un `save()`
    *reemplaza* el alpha del contexto padre, no lo compone. Si una función de dibujo
    tiene que respetar un fade exterior, pasale el multiplicador como parámetro.
-4. **Esperá las fuentes.** Exponé `window.renderFrame` recién después de
+4. **Canvas ignora un color inválido en silencio.** Si asignás un
+   `strokeStyle`/`fillStyle` mal formado, no hay error: se conserva el valor
+   anterior y el trazo sale negro o no sale. Un helper de color tiene que ser
+   componible (operar y devolver tripletas, no strings `rgb()` que al anidarse
+   se reparsean como hex y dan `NaN`).
+5. **Esperá las fuentes.** Exponé `window.renderFrame` recién después de
    `document.fonts.ready`, o los primeros frames salen con fuente de fallback.
 
 ## Escenas
@@ -83,6 +88,24 @@ Reglas que no son opcionales:
 |---|---|---|
 | `tune-in` | 6s | Constelación + rombo escalonado (ñimin) + manifiesto "Geometry borrowed from the sky" → remate "TUNE IN". |
 | `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
+
+| `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
+
+### Dos marcas, dos sistemas
+
+`scene-kit.js` es infraestructura compartida; la identidad **no** se comparte.
+
+| | Wenu Mapu | KODEX |
+|---|---|---|
+| Fondo | `#0a0a0a` obsidiana | `#050608` |
+| Acento | `#c9a84c` ámbar | `#10E9FF` / `#FF1427` / `#7C20FF` |
+| Tipografía | Instrument Serif + Sans | Space Grotesk |
+| Fuente de verdad | `src/styles/tokens.css` | `public/kodex-*/preset.json` |
+| Registro | ritual, editorial, quieto | técnico, HUD, tensión |
+
+Las escenas de Kodex salen de los presets, no del gusto: `preset.json` ya trae
+paleta, estados (`DORMANT → AWARE → OPEN`) y comportamientos (`domain_warp`,
+`topology_collapse`). Eso es la estructura de tres actos, ya escrita.
 
 > `word-scroll` usa léxico de `src/i18n/mapudungun.json`. Ese archivo marca
 > `validation_needed`: confirmar ortografía y uso con fuente mapuche autorizada

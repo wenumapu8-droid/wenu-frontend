@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>KODEX — wrinkled reality</title>
+<style>
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight:500; font-display:block; }
+  @font-face { font-family:'Space Grotesk';
+    src:url('/node_modules/@fontsource/space-grotesk/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight:700; font-display:block; }
+  html,body { margin:0; background:#050608; overflow:hidden; }
+  canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+/* ── KODEX · KDX_WRINKLED_REALITY ───────────────────────────────────────────
+   NO es una variante de Wenu Mapu. Kodex tiene su propio motor, declarado en
+   public/kodex-wrinkled/preset.json: batch SPATIAL_DISTORTION_ENGINE, estados
+   DORMANT → AWARE → OPEN, comportamientos domain_warp / whole_room_membrane /
+   localized_crease / topology_collapse, y su propia paleta sobre #050608.
+
+   Esos tres estados son, tal cual, la estructura de tres actos del reel.
+   Tipografía Space Grotesk — Instrument Serif es de Wenu Mapu y no cruza.
+──────────────────────────────────────────────────────────────────────────── */
+import {
+  clamp, span, lerp, easeOutCubic, easeInOutCubic, easeOutExpo,
+  mountScene, waitForFonts,
+} from '../scene-kit.js';
+
+/* paleta exacta del preset */
+const BG      = '#050608';
+const DORMANT = '#ADBFC2';
+const SURFACE = '#10E9FF';   // aware
+const INNER   = '#7C20FF';   // inner_topology
+const OPEN    = '#FF1427';
+
+const DW = 1080, DH = 1920;
+const DUR = 7;
+
+/* límites de los actos */
+const T_AWARE = 2.15;
+const T_OPEN  = 4.30;
+
+/* mix() opera en tripletas y devuelve tripletas, no strings. Si devolviera
+   'rgb(...)' no sería componible: anidarla volvería a parsear como hex, daría
+   NaN, y canvas IGNORA un color inválido en silencio — strokeStyle se queda en
+   el valor anterior y el trazo desaparece sin un solo error en consola. */
+const rgb = (c) => Array.isArray(c)
+  ? c
+  : [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+const mix = (a, b, x) => {
+  const A = rgb(a), B = rgb(b);
+  return A.map((v, i) => lerp(v, B[i], clamp(x)));
+};
+const css = (c) => `rgb(${rgb(c).map((v) => Math.round(v)).join(',')})`;
+
+/* ── domain warp ────────────────────────────────────────────────────────────
+   Deformar el espacio, después volver a deformar el resultado. Un solo pase
+   da ondas de libro de texto; el segundo es lo que produce el pliegue
+   orgánico que el preset llama "wrinkled".
+──────────────────────────────────────────────────────────────────────────── */
+function warp(x, y, t, amp) {
+  const qx = Math.sin(x * 0.0061 + t * 0.55) + 0.5 * Math.cos(y * 0.0043 - t * 0.41);
+  const qy = Math.cos(x * 0.0038 - t * 0.33) + 0.5 * Math.sin(y * 0.0072 + t * 0.62);
+  return amp * (
+    Math.sin(x * 0.0047 + qx * 1.9 + t * 0.70) * 0.62 +
+    Math.cos(y * 0.0055 + qy * 1.6 - t * 0.48) * 0.38
+  );
+}
+
+/** Abre un agujero en el campo empujando los puntos hacia afuera del centro.
+ *  sqrt(d² + R²) manda 0 → R y deja intacto lo lejano: hueco sin amontonar. */
+function aperture(px, py, cx, cy, R) {
+  if (R <= 0.5) return [px, py];
+  const vx = px - cx, vy = py - cy;
+  const d = Math.hypot(vx, vy) || 1e-4;
+  const nd = Math.sqrt(d * d + R * R);
+  return [cx + vx / d * nd, cy + vy / d * nd];
+}
+
+function label(ctx, text, x, y, alpha, color, size = 23, track = '11px') {
+  if (alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = color;
+  ctx.font = `700 ${size}px "Space Grotesk", sans-serif`;
+  ctx.letterSpacing = track;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function draw(ctx, t) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, DW, DH);
+
+  // progreso de los tres estados
+  const pAware = easeInOutCubic(span(t, T_AWARE, T_AWARE + 1.15));
+  const pOpen  = easeInOutCubic(span(t, T_OPEN,  T_OPEN  + 1.25));
+
+  // la membrana se tensa al despertar y se desgarra al abrir
+  const amp = lerp(lerp(9, 54, pAware), 96, pOpen);
+  const CX = DW / 2, CY = 980;
+  const R = easeOutExpo(span(t, T_OPEN + 0.10, T_OPEN + 1.60)) * 265;
+
+  // color de la membrana a lo largo de los estados
+  const base = pOpen > 0 ? mix(mix(DORMANT, SURFACE, pAware), INNER, pOpen)
+                         : mix(DORMANT, SURFACE, pAware);
+
+  // ── membrana: scanlines horizontales deformadas ────────────────────────
+  const STEP_Y = 23, STEP_X = 15;
+  ctx.lineWidth = 1;
+  for (let y = -120; y < DH + 120; y += STEP_Y) {
+    ctx.beginPath();
+    let started = false;
+    let nearest = 1e9;
+    for (let x = -120; x <= DW + 120; x += STEP_X) {
+      const dy = warp(x, y, t, amp);
+      // Un punto que caía DENTRO del hueco no se estira hasta el borde: se
+      // omite y se levanta el lápiz. Si no, el segmento que une los dos lados
+      // cruza la apertura como una cuerda recta y delata el truco.
+      if (R > 0.5 && Math.hypot(x - CX, y + dy - CY) < R) { started = false; continue; }
+      const [px, py] = aperture(x, y + dy, CX, CY, R);
+      nearest = Math.min(nearest, Math.hypot(px - CX, py - CY));
+      if (!started) { ctx.moveTo(px, py); started = true; } else { ctx.lineTo(px, py); }
+    }
+    // las líneas que bordean la apertura se encienden en rojo
+    const heat = R > 0.5 ? Math.pow(clamp(1 - (nearest - R) / 230), 2.1) : 0;
+    const fade = clamp(1 - Math.abs(y - CY) / 1250);
+    ctx.globalAlpha = (0.12 + 0.46 * fade) * lerp(0.55, 1, pAware);
+    ctx.strokeStyle = css(heat > 0.01 ? mix(base, OPEN, heat) : base);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // ── núcleo de la apertura ──────────────────────────────────────────────
+  if (R > 1) {
+    const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, R * 1.5);
+    g.addColorStop(0.00, 'rgba(255,20,39,0.55)');
+    g.addColorStop(0.42, 'rgba(255,20,39,0.16)');
+    g.addColorStop(1.00, 'rgba(255,20,39,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(CX - R * 1.6, CY - R * 1.6, R * 3.2, R * 3.2);
+
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = OPEN;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(CX, CY, R * Math.SQRT2, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── HUD de estado: el preset declara los tres, el reel los nombra ──────
+  const M = 74;
+  label(ctx, 'KDX_WRINKLED_REALITY', M, 150, 0.55 * easeOutCubic(span(t, 0.2, 0.9)), DORMANT, 20, '6px');
+  label(ctx, 'SPATIAL_DISTORTION_ENGINE', M, 184, 0.28 * easeOutCubic(span(t, 0.35, 1.05)), DORMANT, 17, '5px');
+
+  const STATES = [
+    ['DORMANT', 0.25,    T_AWARE, DORMANT],
+    ['AWARE',   T_AWARE, T_OPEN,  SURFACE],
+    ['OPEN',    T_OPEN,  DUR,     OPEN],
+  ];
+  STATES.forEach(([name, from, to, color], i) => {
+    const live = t >= from;
+    if (!live) return;
+    const on = easeOutExpo(span(t, from, from + 0.4));
+    const past = t > to;
+    const a = past ? 0.22 : 0.95 * on;
+    const y = 1620 + i * 52;
+    label(ctx, name, M, y, a, color, 30, '14px');
+    // barra de progreso del estado
+    const w = clamp((t - from) / (to - from)) * 190;
+    ctx.save();
+    ctx.globalAlpha = past ? 0.18 : 0.6 * on;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(M + 300, y - 9);
+    ctx.lineTo(M + 300 + w, y - 9);
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // ── remate ─────────────────────────────────────────────────────────────
+  const w = easeOutExpo(span(t, 5.55, 6.20));
+  if (w > 0) {
+    ctx.save();
+    ctx.globalAlpha = w;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 118px "Space Grotesk", sans-serif';
+    ctx.letterSpacing = '26px';
+    ctx.fillText('KODEX', DW / 2 + 13, 1420);
+    ctx.globalAlpha = 0.75 * easeOutCubic(span(t, 6.05, 6.60));
+    ctx.fillStyle = OPEN;
+    ctx.font = '500 34px "Space Grotesk", sans-serif';
+    ctx.letterSpacing = '12px';
+    ctx.fillText('∞', DW / 2 + 6, 1484);
+    ctx.restore();
+  }
+}
+
+await waitForFonts([
+  '700 118px "Space Grotesk"',
+  '500 34px "Space Grotesk"',
+  '700 30px "Space Grotesk"',
+]);
+mountScene({ width: DW, height: DH, duration: DUR, fps: 30, draw, grain: 0.028 });
+</script>
+</body>
+</html>
