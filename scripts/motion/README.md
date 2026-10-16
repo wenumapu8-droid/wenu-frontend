@@ -90,10 +90,60 @@ Reglas que no son opcionales:
 | `word-scroll` | 7s | Rueda de selección: el glosario mapudungun pasa, desacelera largo y bloquea en NEWEN → "Forged with newen." Depende del motion blur. |
 
 | `body-scan` | 8s | Escaneo biométrico sobre una **foto propia del catálogo**. Costillas de scanline desplazadas por luminancia + telemetría lateral + haz de ámbar. Cero generación por IA. |
+| `kdx-film-001-gl` | 15s | El mismo piloto en **WebGL2**: 200k partículas aditivas HDR, bloom, tone mapping. Para el A/B. |
 | `kdx-film-001` | 15s | **Piloto canónico.** SIGNAL / THRESHOLD, al contrato de plano de la biblia §11. Interferencia de dos fuentes, iris de observador, push-through. |
 | `kodex-orbit` | 10s | Esfera armilar: anillos metálicos precesando en planos distintos, cuentas viajando, eje de luz. 3D por software con oclusión real. |
 | `kodex-artifact` | 8s | **Un teseracto.** Objeto de 4 dimensiones proyectado dos veces (4D→3D→2D): no puede existir acá, solo su sombra. DORMANT → AWARE → OPEN. |
 | `kodex-wrinkled` | 7s | **KODEX**, no Wenu Mapu. Membrana domain-warp que despierta y se desgarra: DORMANT → AWARE → OPEN, los tres estados que declara `public/kodex-wrinkled/preset.json`. |
+
+### Por qué el primer lote no fue "wow"
+
+Dos límites, los dos decisiones mías y no del concepto:
+
+1. **Canvas 2D no da para la densidad de luz que pide Kodex.** El gate tiene
+   cientos de miles de partículas con brillo aditivo y bloom: la luz se
+   derrama donde se concentra. Canvas dibuja unos miles de primitivas y
+   simula el brillo con gradientes puestos a mano. La biblia §17 ya listaba
+   WebGL/GLSL como canónico.
+2. **Las piezas eran mudas.** Un reel sin sonido pierde la mitad del impacto.
+   La biblia §9 define tres capas de sonido y no había ninguna.
+
+`kdx-film-001-gl` resuelve el primero: **mismo guion, misma cámara, misma
+física** que `kdx-film-001`, pero en WebGL2 — 200 000 partículas aditivas
+sobre un buffer en coma flotante (HDR real), bloom en tres escalas y tone
+mapping ACES. Existe para que la comparación A/B sea honesta.
+
+WebGL corre en este contenedor por SwiftShader (GPU por software). Funciona,
+con render targets en float, pero es lento.
+
+### Sonido
+
+`sound/kdx-film-001.py` sintetiza la banda con numpy: sin samples, sin
+licencias, determinista. Atado a los mismos tiempos que la escena.
+
+El núcleo es el **batimiento**: dos senos a f y f+Δ suenan como uno que pulsa
+Δ veces por segundo. Es interferencia — la misma física que el video dibuja.
+Δ baja de 7 Hz a 0 mientras la geometría condensa: lo que se oye es la
+simetría estabilizándose. En el espectrograma se ve como cuentas que se
+espacian hasta fundirse en un tono continuo.
+
+No se puede escuchar desde acá, así que se **verifica** como una imagen:
+
+```bash
+ffmpeg -i X.wav -lavfi "showspectrumpic=s=1500x420:legend=1:fscale=log" spec.png
+ffmpeg -i X.wav -af ebur128=peak=true -f null -    # loudness real
+```
+
+Dos lecciones de la primera versión, medidas así:
+- **El sub a 41 Hz no existe en un teléfono.** Su parlante no lo reproduce;
+  ahí el sub solo come headroom y empuja la saturación (se veía como un peine
+  de intermodulación). Lo que se percibe como grave en un teléfono son los
+  armónicos — fundamental ausente — así que el sub va bajo y con 2× y 3×.
+- **Estaba a -8.9 LUFS.** Las plataformas normalizan a ~-14: entregar más
+  fuerte no suena más fuerte, solo llega más aplastado.
+
+`mux.mjs` une video y audio con **loudnorm en dos pasadas** a -14 LUFS / -1.5
+dBTP, y después mide lo entregado — no lo pedido.
 
 ### La biblia de producción manda
 
