@@ -1,19 +1,8 @@
 ---
 import Base from '../../../../layouts/Base.astro';
 
-const recipe = {
-  id: 'KDX-FILM-001',
-  title: 'SIGNAL_THRESHOLD',
-  version: '0.1.0',
-  stages: [
-    { id: 'VOID', start: 0, end: 2, note: 'Silencio / potencial' },
-    { id: 'SIGNAL', start: 2, end: 5, note: 'Primera transmisión' },
-    { id: 'FOCUS', start: 5, end: 8, note: 'Convergencia' },
-    { id: 'LOCK', start: 8, end: 10, note: 'Reconocimiento' },
-    { id: 'OPEN / CROSSING', start: 10, end: 14, note: 'Cruzar el umbral' },
-  ],
-  total: 14,
-};
+import { SIGNAL_THRESHOLD as recipe } from '../../../../lib/kodex/motion-lab/signal-threshold.mjs';
+
 ---
 <Base title="KDX-FILM-001 — SIGNAL_THRESHOLD | Internal Lab" description="KODEX Motion Lab prototype" robots="noindex, nofollow" kodexFonts={true} noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}>
   <main class="film" data-kdx-film data-duration={recipe.total} data-film-id={recipe.id}>
@@ -97,16 +86,11 @@ const recipe = {
   @media(prefers-reduced-motion:reduce){.film__visual *{transition:none!important;animation:none!important}}
 </style>
 <script>
+  import { SIGNAL_THRESHOLD, frameAt, stageIndexAt } from '../../../../lib/kodex/motion-lab/signal-threshold.mjs';
   const root = document.querySelector('[data-kdx-film]');
   if (root) {
-    const stages = [
-      {id:'VOID',start:0,end:2,note:'Silencio / potencial'},
-      {id:'SIGNAL',start:2,end:5,note:'Primera transmisión'},
-      {id:'FOCUS',start:5,end:8,note:'Convergencia'},
-      {id:'LOCK',start:8,end:10,note:'Reconocimiento'},
-      {id:'OPEN / CROSSING',start:10,end:14,note:'Cruzar el umbral'}
-    ];
-    const duration=14, scene=root.querySelector('[data-film-stage]');
+    const stages = SIGNAL_THRESHOLD.stages;
+    const duration=SIGNAL_THRESHOLD.total, scene=root.querySelector('[data-film-stage]');
     const visual=root.querySelector('.film__visual');
     const seek=root.querySelector('[data-seek]');
     const play=root.querySelector('[data-play]');
@@ -114,9 +98,9 @@ const recipe = {
     const $=(q)=>root.querySelector(q);
     let t=0, playing=false, previous=0, handle=0;
     const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
-    const activeIndex=()=>Math.min(stages.length-1,stages.findIndex(s=>t<s.end) < 0 ? stages.length-1 : stages.findIndex(s=>t<s.end));
+    const activeIndex=()=>stageIndexAt(t);
     function render() {
-      const i=activeIndex(), s=stages[i], phase=clamp((t-s.start)/(s.end-s.start),0,1);
+      const {index:i, stage:s, energy, progress, open} = frameAt(t, SIGNAL_THRESHOLD, reduced.matches);
       scene.dataset.state=s.id.split(' ')[0];
       $('[data-state-label]').textContent=s.id;
       $('[data-state-note]').textContent=s.note;
@@ -124,29 +108,23 @@ const recipe = {
       $('[data-clock]').textContent='00:'+t.toFixed(2).padStart(5,'0')+' / 00:14.00';
       $('[data-seek-label]').textContent=t.toFixed(2)+'s';
       seek.value=String(t);
-      let energy=0, progress=0, open=0;
-      if(i===1){energy=.2+.65*phase;progress=phase*.3;}
-      if(i===2){energy=.85;progress=.3+.4*phase;}
-      if(i===3){energy=1;progress=.7+.2*phase;}
-      if(i===4){energy=1-phase*.5;progress=.9+phase*.5;open=phase;}
-      if(reduced.matches){ energy=i===0?0:1; progress=i/4;open=i===4?1:0; }
       visual.style.setProperty('--energy',String(energy));
       visual.style.setProperty('--progress',String(progress));
       visual.style.setProperty('--open',String(open));
     }
     function pause(){playing=false;cancelAnimationFrame(handle);play.textContent='▶ PLAY';play.setAttribute('aria-pressed','false');}
     function jump(time){t=clamp(time,0,duration);render();}
-    function tick(now){if(!playing)return;const dt=previous?Math.min((now-previous)/1000,.1):0;previous=now;jump(t+dt);if(t>=duration){pause();return;}handle=requestAnimationFrame(tick);}
-    function start(){if(t>=duration)jump(0);if(reduced.matches){jump(stages[Math.min(activeIndex()+1,4)].start);return;}playing=true;previous=0;play.textContent='Ⅱ PAUSE';play.setAttribute('aria-pressed','true');handle=requestAnimationFrame(tick);}
+    function tick(now){if(!playing)return;const dt=previous?Math.max(0,(now-previous)/1000):0;previous=now;jump(t+dt);if(t>=duration){pause();return;}handle=requestAnimationFrame(tick);}
+    function start(){if(t>=duration)jump(0);if(reduced.matches){jump(stages[Math.min(activeIndex()+1,stages.length-1)].start);return;}playing=true;previous=0;play.textContent='Ⅱ PAUSE';play.setAttribute('aria-pressed','true');handle=requestAnimationFrame(tick);}
     play.addEventListener('click',()=>playing?pause():start());
     $('[data-reset]').addEventListener('click',()=>{pause();jump(0);});
     $('[data-prev]').addEventListener('click',()=>{pause();const i=activeIndex();jump(stages[Math.max(0,t>stages[i].start+.15?i:i-1)].start);});
-    $('[data-next]').addEventListener('click',()=>{pause();jump(stages[Math.min(4,activeIndex()+1)].start);});
+    $('[data-next]').addEventListener('click',()=>{pause();jump(stages[Math.min(stages.length-1,activeIndex()+1)].start);});
     seek.addEventListener('input',()=>{pause();jump(Number(seek.value));});
     reduced.addEventListener('change',()=>{pause();render();});
     document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
     document.addEventListener('keydown',(e)=>{
-      if(e.altKey||e.ctrlKey||e.metaKey||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;
+      if(e.altKey||e.ctrlKey||e.metaKey||['INPUT','TEXTAREA','SELECT','BUTTON','SUMMARY'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable)return;
       if(e.code==='Space'){e.preventDefault();playing?pause():start();}
       if(e.key==='ArrowRight'){e.preventDefault();$('[data-next]').click();}
       if(e.key==='ArrowLeft'){e.preventDefault();$('[data-prev]').click();}
