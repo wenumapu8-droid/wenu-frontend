@@ -1,0 +1,171 @@
+---
+/**
+ * WËNÜ ORDER EXPERIENCE — isolated concept preview.
+ * No production data, authentication, network calls, or shipment claims.
+ * Do not wire this route to orders before the security gates in the spec.
+ */
+import Base from '../layouts/Base.astro';
+
+const steps = [
+  { title: 'Order received', caption: 'Your request enters the atelier.' },
+  { title: 'Preparing your piece', caption: 'Carefully checked and packed.' },
+  { title: 'Dispatched', caption: 'Tracking begins after carrier acceptance.' },
+  { title: 'Delivered', caption: 'Your piece has arrived.' },
+];
+---
+<Base
+  title="Order experience — concept preview · Wënü Mapü"
+  description="Internal design concept for future private order tracking."
+  robots="noindex, nofollow"
+  noQuote
+>
+  <main class="order-demo">
+    <div class="order-demo__inner">
+      <div class="order-demo__top">
+        <a href="/account" class="order-demo__back">← Your orders</a>
+        <span class="order-demo__eyebrow">WËNÜ MÄPÜ / EXPERIENCE LAB</span>
+      </div>
+
+      <header class="order-demo__header">
+        <p class="eyebrow">Private order journey / Concept only</p>
+        <h1>Every piece has a journey.</h1>
+        <p>This is a visual demonstration, not a real order or live parcel tracker.</p>
+        <span class="order-demo__badge">DEMO — NOT CONNECTED TO ORDERS</span>
+      </header>
+
+      <div class="order-demo__grid">
+        <section class="order-demo__panel" aria-labelledby="order-progress-title">
+          <div class="order-demo__panel-head">
+            <div>
+              <p class="order-demo__eyebrow">EXAMPLE REFERENCE / WM-DEMO-001</p>
+              <h2 id="order-progress-title">Your piece is being prepared</h2>
+            </div>
+            <span class="order-demo__state" data-status>Preparing</span>
+          </div>
+          <div class="order-demo__progress" aria-hidden="true">
+            <span data-progress></span>
+          </div>
+          <ol class="order-demo__steps">
+            {steps.map((step, index) => (
+              <li class="order-demo__step" data-step={index} data-complete={index <= 1 ? 'true' : 'false'}>
+                <span class="order-demo__marker" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <div>
+                  <h3>{step.title}</h3>
+                  <p>{step.caption}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <aside class="order-demo__side">
+          <section class="order-demo__panel" aria-labelledby="pieces-title">
+            <p class="order-demo__eyebrow">YOUR SELECTION</p>
+            <h2 id="pieces-title">The ritual object</h2>
+            <div class="order-demo__item">
+              <div class="order-demo__item-placeholder" aria-hidden="true">✧</div>
+              <div>
+                <h3>Sample piece</h3>
+                <p>Placeholder only — actual product image, name and price come from the verified order.</p>
+              </div>
+            </div>
+          </section>
+          <section class="order-demo__panel" aria-labelledby="shipping-title">
+            <p class="order-demo__eyebrow">SHIPMENT VISIBILITY</p>
+            <h2 id="shipping-title">Your journey, traced.</h2>
+            <div class="order-demo__map" role="img" aria-label="Map placeholder; carrier location data is not connected">
+              <span>MAP / CARRIER FEED</span>
+              <span>Awaiting verified shipment data</span>
+            </div>
+            <p class="order-demo__note">The live version will show verified carrier scans. A map will appear only when reliable location data is available; no simulated GPS.</p>
+          </section>
+        </aside>
+      </div>
+
+      <section class="order-demo__panel order-demo__controls" aria-labelledby="demo-controls-title">
+        <div>
+          <p class="order-demo__eyebrow">INTERACTION PROTOTYPE</p>
+          <h2 id="demo-controls-title">Explore the order states</h2>
+          <p>Tap a stage to preview the experience. These buttons do not change orders.</p>
+        </div>
+        <div class="order-demo__buttons" role="group" aria-label="Preview stages">
+          {['Received','Preparing','Dispatched','Delivered'].map((label,index)=>(
+            <button type="button" data-demo-set={index} aria-pressed={index === 1 ? 'true':'false'}>{label}</button>
+          ))}
+        </div>
+      </section>
+    </div>
+  </main>
+  <script is:inline>
+    (() => {
+      const root = document.querySelector('.order-demo');
+      if (!root) return;
+      const buttons = root.querySelectorAll('[data-demo-set]');
+      const titles = [
+        'Your order is received',
+        'Your piece is being prepared',
+        'Your piece has been dispatched',
+        'Your piece has arrived'
+      ];
+      const statuses = ['Received', 'Preparing', 'Dispatched', 'Delivered'];
+      const render = (stage) => {
+        const heading = root.querySelector('#order-progress-title');
+        const status = root.querySelector('[data-status]');
+        const progress = root.querySelector('[data-progress]');
+        if (heading) heading.textContent = titles[stage];
+        if (status) status.textContent = statuses[stage];
+        if (progress) progress.style.width = ((stage + 1) / 4 * 100) + '%';
+        root.querySelectorAll('[data-step]').forEach((row) => {
+          row.dataset.complete = Number(row.dataset.step) <= stage ? 'true' : 'false';
+        });
+        buttons.forEach((button) => {
+          button.setAttribute('aria-pressed', String(Number(button.dataset.demoSet) === stage));
+        });
+      };
+      buttons.forEach((button) => button.addEventListener('click', () => render(Number(button.dataset.demoSet))));
+      render(1);
+    })();
+  </script>
+  <style>
+    .order-demo { min-height: 100vh; padding: var(--space-6) var(--gutter); color: var(--fg); background: var(--bg); }
+    .order-demo__inner { max-width: 1120px; margin: 0 auto; }
+    .order-demo__top { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; align-items: center; margin-bottom: var(--space-5); }
+    .order-demo__back { color: var(--fg-soft); text-decoration: none; font: .8rem var(--font-sans); }
+    .order-demo__back:hover { color: var(--ember); }
+    .order-demo__eyebrow { color: var(--ember); font: .68rem var(--font-mono); letter-spacing: .11em; text-transform: uppercase; }
+    .order-demo__header { margin-bottom: var(--space-5); max-width: 720px; }
+    .order-demo__header h1 { margin: .4rem 0 1rem; font: normal clamp(2.4rem, 7vw, 4.7rem)/1.03 var(--font-display); }
+    .order-demo__header > p:not(.eyebrow) { color: var(--fg-soft); line-height: 1.5; }
+    .order-demo__badge { display: inline-block; margin-top: 1.2rem; padding: .5rem .7rem; border: 1px solid var(--ember); color: var(--ember); font: .67rem var(--font-mono); letter-spacing: .07em; }
+    .order-demo__grid { display: grid; gap: 1.25rem; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+    .order-demo__side { display: grid; gap: 1.25rem; }
+    .order-demo__panel { background: var(--bg-alt); border: 1px solid var(--line-soft); padding: clamp(1.25rem, 3vw, 2.1rem); min-width: 0; }
+    .order-demo__panel h2 { margin: .5rem 0 1rem; font: normal clamp(1.6rem, 3vw, 2.1rem)/1.12 var(--font-display); }
+    .order-demo__panel-head { display: flex; justify-content: space-between; align-items: start; gap: 1rem; }
+    .order-demo__panel-head h2 { max-width: 20ch; }
+    .order-demo__state { border: 1px solid var(--bronze); color: var(--ember); padding: .35rem .6rem; font: .7rem var(--font-mono); white-space: nowrap; }
+    .order-demo__progress { height: 2px; background: var(--line-soft); margin: 1rem 0 2.3rem; }
+    .order-demo__progress span { display: block; width: 50%; height: 100%; background: var(--ember); transition: width var(--t-slow); }
+    .order-demo__steps { list-style: none; padding: 0; margin: 0; }
+    .order-demo__step { display: grid; grid-template-columns: 2.6rem 1fr; gap: 1rem; padding: 0 0 2rem; opacity: .55; border-left: 1px solid var(--line-soft); margin-left: 1rem; }
+    .order-demo__step:last-child { padding-bottom: 0; border-left-color: transparent; }
+    .order-demo__step[data-complete="true"] { opacity: 1; border-left-color: var(--ember); }
+    .order-demo__marker { color: var(--silver); background: var(--bg-alt); transform: translateX(-1rem); width: 2rem; text-align: center; font: .75rem var(--font-mono); }
+    .order-demo__step[data-complete="true"] .order-demo__marker { color: var(--ember); }
+    .order-demo__step h3 { margin: -.2rem 0 .3rem; color: var(--fg); font: 500 1rem var(--font-sans); }
+    .order-demo__step p { margin: 0; color: var(--fg-soft); line-height: 1.45; font: .85rem var(--font-sans); }
+    .order-demo__item { display: grid; grid-template-columns: 5rem 1fr; align-items: center; gap: 1rem; }
+    .order-demo__item-placeholder { display: grid; place-items: center; aspect-ratio: 1; border: 1px solid var(--line-bright); font: 2rem var(--font-display); color: var(--ember); background: var(--bg); }
+    .order-demo__item h3 { margin: 0 0 .3rem; font: 500 1rem var(--font-sans); }
+    .order-demo__item p, .order-demo__note, .order-demo__controls p { margin: 0; color: var(--fg-soft); font: .8rem/1.55 var(--font-sans); }
+    .order-demo__map { min-height: 175px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .8rem; border: 1px dashed var(--bronze); background: var(--bg); margin: 1.2rem 0 1rem; text-align: center; color: var(--sand); font: .7rem var(--font-mono); }
+    .order-demo__controls { display: flex; justify-content: space-between; align-items: center; gap: 2rem; margin-top: 1.25rem; }
+    .order-demo__controls h2 { margin-bottom: .4rem; }
+    .order-demo__buttons { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .order-demo__buttons button { border: 1px solid var(--bronze); padding: .7rem .85rem; color: var(--fg); background: transparent; cursor: pointer; font: .75rem var(--font-sans); }
+    .order-demo__buttons button[aria-pressed="true"] { background: var(--ember); color: var(--obsidian); }
+    .order-demo__buttons button:focus-visible, .order-demo__back:focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+    @media(max-width: 760px) { .order-demo__grid { grid-template-columns: 1fr; } .order-demo__controls { flex-direction: column; align-items: stretch; } .order-demo__header { margin-bottom: 2rem; } .order-demo { padding-top: 3rem; } }
+    @media(prefers-reduced-motion: reduce) { .order-demo__progress span { transition: none; } }
+  </style>
+</Base>
