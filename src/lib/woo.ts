@@ -8,6 +8,8 @@
 //   - The postbuild script (scripts/verify-build.mjs) asserts a non-trivial
 //     catalog ships in dist/p/ unless the same flag is set.
 
+import { includeInJewelryShop, isKodexCategorySlug } from './kodexShop.mjs';
+
 const WC_URL = import.meta.env.WC_URL || 'https://www.wenumapuonline.com/wp-json/wc/v3';
 const WC_KEY = import.meta.env.WC_CONSUMER_KEY;
 const WC_SECRET = import.meta.env.WC_CONSUMER_SECRET;
@@ -207,11 +209,12 @@ async function fetchAllProducts(): Promise<WooProduct[]> {
     page += 1;
   }
 
-  // Exclude KODEX products from the jewelry shop. KODEX (Ocin's digital archive)
-  // lives at /kodex/store with its own commerce chrome — its WC products must not
-  // leak into /shop, /search-index.json, PDPs, categories, sitemaps, or JSON-LD.
-  // Filter by category slug so the exclusion survives category-ID re-creation.
-  products = products.filter(p => !p.categories?.some(c => c.slug === 'kodex'));
+  // Exclude KODEX archive products from the jewelry shop. KODEX lives at
+  // /kodex/store. Match kodex and kodex-* (the live shop was showing a
+  // "KODEX" tab for slug kodex-packs, which the old `slug === 'kodex'`
+  // check missed). CRT System 001 stays in the catalogue and at /p/[slug]
+  // even when Woo files it under a Kodex category — see kodexShop.mjs.
+  products = products.filter((p) => includeInJewelryShop(p));
 
   // Reorder each product's images so the hero shot leads.
   // Editorial / macro photos go first; ruler / sizing references move to the end.
@@ -424,8 +427,9 @@ export async function getProduct(slug: string): Promise<WooProduct | null> {
     }
     const data: WooProduct[] = await res.json();
     const p = data[0] || null;
-    // KODEX products must not resolve at /p/[slug] — their PDP lives in /kodex/store.
-    if (p?.categories?.some(c => c.slug === 'kodex')) return null;
+    // KODEX archive products resolve in /kodex/store, not /p/[slug].
+    // CRT System 001 is the jewelry-shop exception and keeps its PDP.
+    if (p && !includeInJewelryShop(p)) return null;
     if (p?.images?.length > 1) {
       p.images = reorderImagesForHero(p.images);
     }
@@ -465,8 +469,8 @@ export async function getCategories(): Promise<WooCategory[]> {
       throw new Error(`WC categories fetch failed: HTTP ${res.status}`);
     }
     const cats: WooCategory[] = await res.json();
-    // Hide KODEX category from jewelry-store surfaces (nav, filters, sitemap).
-    return cats.filter(c => c.slug !== 'kodex');
+    // Hide KODEX categories (kodex, kodex-packs, …) from jewelry filters.
+    return cats.filter(c => !isKodexCategorySlug(c.slug));
   } catch (e) {
     if (ALLOW_EMPTY) {
       console.warn('[woo] WARNING: getCategories failed but ALLOW_EMPTY_PRODUCTS=true — returning [].', e);
