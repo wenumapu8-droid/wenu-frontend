@@ -1,0 +1,1 @@
+import{b as r,c as l,d as i}from"./motion.ra7nsztv.js";document.querySelectorAll("[data-igp]").forEach(t=>{if(t.dataset.igpListo)return;t.dataset.igpListo="1",r();const e=t.querySelector("[data-igp-titulo]");e&&l(e),t.querySelectorAll("[data-igp-foto]").forEach((o,a)=>i(o,{delay:a%4*.09+Math.floor(a/4)*.14}))});
