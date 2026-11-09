@@ -65,7 +65,15 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           <span>Subtotal</span>
           <span data-wmcart-subtotal>$0</span>
         </div>
-        <p class="wmcart__ship">Shipping: $8 flat in the US · free over $150 · international emailed before you pay</p>
+        <div class="wmcart__subtotal-line">
+          <span>Shipping</span>
+          <span data-wmcart-shipping>$0</span>
+        </div>
+        <div class="wmcart__subtotal-line wmcart__total-line">
+          <span>Total</span>
+          <span data-wmcart-total>$0</span>
+        </div>
+        <p class="wmcart__ship">US shipping is $8, and free from a $150 subtotal. International shipping is emailed before you pay.</p>
       </div>
 
       <button type="button" class="btn btn--solid wmcart__checkout" data-wmcart-checkout>Checkout →</button>
@@ -203,6 +211,10 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
     const emptyEl = $('[data-wmcart-empty]');
     const footEl = $('[data-wmcart-foot]');
     const subEl = $('[data-wmcart-subtotal]');
+    const shipEl = $('[data-wmcart-shipping]');
+    const totalEl = $('[data-wmcart-total]');
+    const SHIP_FLAT = 8;
+    const SHIP_FREE_FROM = 150;
     const coEl = $('[data-wmcart-co]');
     const manualEl = $('[data-wmcart-manual]');
     const doneEl = $('[data-wmcart-done]');
@@ -366,7 +378,14 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       const a = read();
       const max = item.max && item.max > 0 ? item.max : 99;
       const f = a.find((x) => x.sku === item.sku);
-      if (f) { f.qty = Math.min(max, (f.qty || 1) + (item.qty || 1)); f.max = max; f.pair = !!item.pair; }
+      if (f) {
+        f.qty = Math.min(max, (f.qty || 1) + (item.qty || 1));
+        f.max = max;
+        f.pair = !!item.pair;
+        // Same SKU added again (two sizes that share a parent SKU): charge the size just chosen.
+        if (item.price) f.price = item.price;
+        if (item.name) f.name = item.name;
+      }
       else { a.push({ sku: item.sku, slug: item.slug || '', name: item.name || 'Piece', price: item.price || '0', img: item.img || '', qty: Math.min(max, item.qty || 1), max, pair: !!item.pair }); }
       write(a); open(); kaiCelebrate();
     }
@@ -376,6 +395,9 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
       const q = Math.max(1, Math.min(f.max || 99, n)); f.qty = q; write(a);
     }
     const subtotal = () => read().reduce((s, x) => s + num(x.price) * x.qty, 0);
+    // US flat rate. Free once the merchandise subtotal reaches $150.
+    const shippingFor = (sub) => (sub > 0 && sub < SHIP_FREE_FROM ? SHIP_FLAT : 0);
+    const orderTotal = () => subtotal() + shippingFor(subtotal());
     const count = () => read().reduce((s, x) => s + x.qty, 0);
     function syncBadge() {
       const c = count();
@@ -424,7 +446,11 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         li.querySelector('[data-rm]').addEventListener('click', () => remove(x.sku));
         itemsEl.appendChild(li);
       });
-      subEl.textContent = money(subtotal());
+      const sub = subtotal();
+      const ship = shippingFor(sub);
+      subEl.textContent = money(sub);
+      if (shipEl) shipEl.textContent = ship === 0 ? (sub > 0 ? 'Free' : money(0)) : money(ship);
+      if (totalEl) totalEl.textContent = money(sub + ship);
     }
     function open() { root.hidden = false; document.body.style.overflow = 'hidden'; showStep('list'); render(); kaiMount(); kaiSyncLine(); }
     function close() { root.hidden = true; document.body.style.overflow = ''; kaiUnmount(); }
@@ -507,11 +533,17 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         if (method === 'mercadopago') {
           const items = read().map((x) => ({ sku: x.sku, name: x.name, price: num(x.price), qty: x.qty }));
           if (!items.length) return;
+          const sub = subtotal();
+          const shipping = shippingFor(sub);
+          // `total` is what the hosted page must charge. It equals the sum of
+          // the line prices plus shipping, which is the cart total on screen.
+          const total = Math.round((sub + shipping) * 100) / 100;
+          const payload = { email, name, items, shipping, total };
           btn.disabled = true; statusEl.hidden = false; statusEl.textContent = 'Creating secure payment link…';
           try {
             const r = await fetch(api + '/shop/checkout-link', {
               method: 'POST', headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ email, name, items }),
+              body: JSON.stringify(payload),
             });
             const data = await r.json();
             if (data && data.ok && data.url) { window.location.href = data.url; return; }
@@ -536,7 +568,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
         if (!cfg) return;
         manualEl.dataset.method = method;
         $('[data-wmcart-manual-h]').textContent = 'Pay with ' + cfg.label;
-        $('[data-wmcart-manual-amt]').textContent = money(subtotal());
+        $('[data-wmcart-manual-amt]').textContent = money(orderTotal());
 
         // Reference code (SKUs + discount code) — rebuilt each time we enter this step.
         const refEl = $('[data-wmcart-ref-code]');
@@ -563,8 +595,8 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
           '<p class="wmcart__summary-h">Your order</p>' +
           read().map((x) => '<div class="wmcart__summary-row"><span>' + x.qty + '× ' + x.name + '</span><span>' + money(num(x.price) * x.qty) + '</span></div>').join('') +
           '<div class="wmcart__summary-row"><span>Subtotal</span><span>' + money(subtotal()) + '</span></div>' +
-          '<div class="wmcart__summary-row wmcart__summary-ship"><span>Shipping</span><span>Confirmed by email</span></div>' +
-          '<div class="wmcart__summary-row wmcart__summary-total"><span>Amount to send now</span><span>' + money(subtotal()) + '</span></div>';
+          '<div class="wmcart__summary-row wmcart__summary-ship"><span>Shipping</span><span>' + (shippingFor(subtotal()) === 0 ? 'Free' : money(shippingFor(subtotal()))) + '</span></div>' +
+          '<div class="wmcart__summary-row wmcart__summary-total"><span>Amount to send now</span><span>' + money(orderTotal()) + '</span></div>';
         const sendBtn = $('[data-wmcart-send]');
         sendBtn.disabled = false;
         showStep('manual');
@@ -756,6 +788,7 @@ const ORDER_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/shop/order`;
   .wmcart__subtotal[hidden] { display: none; }
   .wmcart__subtotal-line { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--font-sans); letter-spacing: 0.06em; text-transform: uppercase; font-size: var(--fs-small); color: var(--bone); }
   .wmcart__subtotal-line span:last-child { font-size: 1.35rem; color: var(--ember); letter-spacing: 0; }
+  .wmcart__total-line span:last-child { font-size: 1.55rem; }
   .wmcart__ship { font-family: var(--font-sans); font-size: var(--fs-tiny); color: var(--silver); letter-spacing: 0.02em; margin: var(--space-1) 0 0; }
   .wmcart__checkout, .wmcart__send { width: 100%; }
   .wmcart__co { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
