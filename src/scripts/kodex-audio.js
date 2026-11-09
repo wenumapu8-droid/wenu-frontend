@@ -52,6 +52,13 @@ export function initKxAudio(root) {
   // musica, asi que la fuente del analisis es la misma sintesis que suena.
   let analyser = null, espectro = null, rangos = null;
 
+  // ECHO is the authorized voice bus: lower music only while narration is audible.
+  let echoSpeaking = false;
+  window.addEventListener('kdx:echo-speaking', (e) => {
+    echoSpeaking = e.detail?.active === true;
+    if (on && ctx && master) master.gain.setTargetAtTime(echoSpeaking ? 0.13 : 0.55, ctx.currentTime, 0.25);
+  });
+
   const build = () => {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return false;
@@ -226,7 +233,7 @@ export function initKxAudio(root) {
     if (v) {
       if (!ctx && !build()) return;
       ctx.resume?.();
-      master.gain.setTargetAtTime(0.55, ctx.currentTime, 0.6);
+      master.gain.setTargetAtTime(echoSpeaking ? 0.13 : 0.55, ctx.currentTime, 0.6);
       nextT = ctx.currentTime + 0.05; step = 0; tick();
     } else if (ctx) {
       master.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
