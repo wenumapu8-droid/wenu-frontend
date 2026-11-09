@@ -113,7 +113,7 @@ export function mountEcho(){
  audio.addEventListener('ended',advance);
  c.toggle.addEventListener('click',()=>{
   state.enabled=!state.enabled;state.paused=false;
-  if(state.enabled){status('ECHO ACTIVADA');const zone=observedZone();if(zone)enter(zone,{force:true})}
+  if(state.enabled){status('ECHO ACTIVADA');const zone=observedZone();if(zone&&state.mode!=='read')enter(zone,{force:true})}
   else stop();sync();
  });
  c.pause.addEventListener('click',()=>{
