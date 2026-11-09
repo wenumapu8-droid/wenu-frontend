@@ -1228,6 +1228,10 @@ const breadcrumbLd = {
       const priceEl = document.getElementById('pdp-price');
       const stockEl = document.getElementById('pdp-stock');
       const rsvBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-rsv-open]'));
+      const addBtns = Array.from(document.querySelectorAll<HTMLElement>('[data-add-cart]'));
+      const stickyAmt = document.querySelector<HTMLElement>('.sticky-cta__amount');
+      // Captured before select() rewrites the button name with the size.
+      const baseName = addBtns[0]?.dataset.name || document.title;
       function select(pill: HTMLButtonElement) {
         pills.forEach(p => {
           const on = p === pill;
@@ -1236,6 +1240,7 @@ const breadcrumbLd = {
         });
         const { size = '', price = '', sku = '', stock = 'instock' } = pill.dataset;
         if (priceEl && price) priceEl.textContent = price;
+        if (stickyAmt && price) stickyAmt.textContent = price;
         if (stockEl) {
           const inStock = stock === 'instock';
           stockEl.textContent = '● ' + (inStock ? 'In stock' : stock === 'onbackorder' ? 'Coming soon' : 'Sold out');
@@ -1245,6 +1250,15 @@ const breadcrumbLd = {
           if (price) b.dataset.price = price;
           if (sku) b.dataset.sku = sku;
           b.dataset.size = size;
+        });
+        // The cart reads [data-add-cart], not the reserve buttons. Without this,
+        // every size checked out as the parent price and SKU.
+        const numeric = price.replace(/[^0-9.]/g, '');
+        addBtns.forEach(b => {
+          if (numeric) b.dataset.price = numeric;
+          if (sku) b.dataset.sku = sku;
+          if (size) b.dataset.name = baseName + ' · ' + size;
+          b.dataset.stock = stock === 'outofstock' ? 'sold' : '';
         });
       }
       pills.forEach(p => p.addEventListener('click', () => { if (!p.disabled) select(p); }));
