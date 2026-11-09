@@ -1,0 +1,143 @@
+name: KODEX Core Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'src/lib/kodex/**'
+      - 'src/kodex/return/**'
+      - 'src/components/kodex/KodexRecuerda.astro'
+      - 'src/components/kodex/grammar/**'
+      - 'src/pages/kodex/**'
+      - 'public/kodex/assets/**'
+      - 'scripts/kodex-*.mjs'
+      - 'scripts/lamina/compare.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/kodex-core-runtime.yml'
+  push:
+    branches:
+      - 'feat/kodex-scene-registry-runtime-v1'
+    paths:
+      - 'src/lib/kodex/**'
+      - 'src/kodex/return/**'
+      - 'src/components/kodex/KodexRecuerda.astro'
+      - 'src/components/kodex/grammar/**'
+      - 'src/pages/kodex/**'
+      - 'public/kodex/assets/**'
+      - 'scripts/kodex-*.mjs'
+      - 'scripts/lamina/compare.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/kodex-core-runtime.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+      - run: npm ci
+      - name: KODEX scene/runtime tests
+        run: npm run test:kodex:core
+      - name: KODEX JourneyState + graph + memory bridge + Semantic Memory integration + Visible Assembly tests
+        run: >-
+          npx --yes tsx@4.23.1 --test
+          src/lib/kodex/runtime/journey-state.test.ts
+          src/lib/kodex/runtime/journeyGraph/canonical-graph.test.ts
+          src/lib/kodex/runtime/journey-memory-bridge.test.ts
+          src/lib/kodex/runtime/semantic-memory-integration.test.ts
+          src/lib/kodex/runtime/visible-assembly.test.ts
+      - name: KODEX Assembly OS + bounded interaction contract tests
+        run: >-
+          node --test
+          scripts/kodex-element-contract.test.mjs
+          scripts/kodex-plate-spec.test.mjs
+          scripts/kodex-deterministic-assembler.test.mjs
+          scripts/kodex-golden-plate-benchmark.test.mjs
+          scripts/kodex-copy-role-compiler.test.mjs
+          scripts/kodex-protected-activation-adapter.test.mjs
+          scripts/kodex-assembly-qa.test.mjs
+          scripts/kodex-work-order-contract.test.mjs
+          scripts/kodex-macro-chapter-factory.test.mjs
+          scripts/kodex-factory-benchmark.test.mjs
+          scripts/kodex-plate-render-model.test.mjs
+          scripts/kodex-semantic-ir-compiler.test.mjs
+          scripts/kodex-manifestation-recipe.test.mjs
+          scripts/kodex-gesture-timeline.test.mjs
+          scripts/kodex-receiver-epistemic-contract.test.mjs
+          scripts/kodex-crystal-receiver-device-contract.test.mjs
+          scripts/kodex-lamina-coverage-contract.test.mjs
+      - name: Run KODEX seeded factory benchmark
+        run: node scripts/kodex-factory-benchmark.mjs
+      - name: KODEX integrity audit
+        run: npm run audit:kodex:integrity
+      - name: Astro build
+        env:
+          ALLOW_EMPTY_PRODUCTS: 'true'
+        run: npm run build
+      - name: Validate rendered KODEX download integrity
+        run: node scripts/kodex-download-integrity.mjs
+      - name: Install Chromium for KODEX evidence
+        run: npx playwright install --with-deps chromium
+      - name: Start Astro preview
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4321 > /tmp/kodex-preview.log 2>&1 &
+          echo $! > /tmp/kodex-preview.pid
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4321/kodex/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/kodex-preview.log
+          exit 1
+      - name: Capture KODEX browser evidence
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-browser-evidence.mjs
+      - name: Validate product interlude corridor navigation
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-interlude-corridor-evidence.mjs
+      - name: Validate KODEX deep-navigation vertical slice + gesture reveal
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-deep-browser-evidence.mjs
+      - name: Validate KODEX geometric memory signature lab
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-geometric-memory-browser-evidence.mjs
+      - name: Validate KODEX manifestation recipe lab
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-manifestation-recipe-browser-evidence.mjs
+      - name: Validate KODEX Crystal Receiver current-lineage device lab
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-crystal-receiver-device-browser-evidence.mjs
+      - name: Validate rendered Golden Plate benchmark
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+        run: node scripts/kodex-golden-plate-browser-evidence.mjs
+      - name: Capture Golden Plate curator review set
+        env:
+          KODEX_PREVIEW_URL: 'http://127.0.0.1:4321'
+          KODEX_HEAD_SHA: '${{ github.event.pull_request.head.sha || github.sha }}'
+        run: node scripts/kodex-golden-curator-capture.mjs
+      - name: Upload KODEX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kodex-evidence
+          path: |
+            artifacts/kodex-browser-evidence
+            artifacts/kodex-factory-benchmark
+          if-no-files-found: warn
+          retention-days: 14

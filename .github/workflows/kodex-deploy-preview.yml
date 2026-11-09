@@ -1,0 +1,49 @@
+name: KODEX Deploy Preview
+
+# Publica dist/ al alias kodex-preview del proyecto Pages wenu-frontend.
+#
+# POR QUE EXISTE (2026-08-28):
+# El deploy se hacia desde el Mac Mini en Chile con `wrangler pages deploy`.
+# Se cortaba SIEMPRE a mitad de subida -- medido: 3240/3954 archivos con el
+# payload completo (445MB), y 1976/2690 con el payload reducido (250MB).
+# Distinto archivo, distinto porcentaje: no era ni un archivo puntual ni el
+# tamano. Era el enlace transoceanico muriendo por duracion de la subida.
+# Achicar el payload solo movia el punto de muerte.
+#
+# El runner de GitHub tiene conexion rapida a Cloudflare. Sube desde alla.
+#
+# NUNCA toca produccion (rama redesign-v2). Solo el alias kodex-preview.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [kodex/pass-a-organismos-corredor]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        env:
+          ALLOW_EMPTY_PRODUCTS: 'true'
+        run: npm run build
+
+      - name: Deploy a kodex-preview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx --yes wrangler@latest pages deploy dist \
+            --project-name=wenu-frontend \
+            --branch=kodex-preview \
+            --commit-dirty=true

@@ -38,8 +38,22 @@ export function montarThreshold(raiz: HTMLElement): () => void {
   const yaCruzo = ocurrio("threshold_crossed");
   if (yaCruzo) raiz.dataset.kdxRecordado = "1";
 
-  recordar("threshold_seen", THRESHOLD_NODE_ID, { memoria: peso });
-  if (yaCruzo) recordar("threshold_returned", THRESHOLD_NODE_ID, { memoria: peso });
+  /* VER LA PUERTA NO ES ENTRAR.
+     `threshold_seen` se disparaba en el primer cuadro, antes de que el
+     visitante hiciera nada: eso es escritura pasiva, y el creador la prohibió
+     para esta rebanada. La puerta tiene dos elecciones explícitas -- entrar con
+     sonido o seguir en silencio -- y recién una de ellas abre el archivo.
+     Si la página no declara espera (cualquier otra escena, o una vuelta con la
+     elección ya tomada), se registra de inmediato como siempre. */
+  const registrarPaso = () => {
+    recordar("threshold_seen", THRESHOLD_NODE_ID, { memoria: peso });
+    if (yaCruzo) recordar("threshold_returned", THRESHOLD_NODE_ID, { memoria: peso });
+  };
+  if (document.documentElement.hasAttribute("data-kdx-espera-eleccion")) {
+    document.addEventListener("kdx:eleccion", registrarPaso, { once: true });
+  } else {
+    registrarPaso();
+  }
 
   /* ── proximidad ──────────────────────────────────────────────────────────
      La biblia: "pointer proximity increases membrane tension". Se mide contra
@@ -68,6 +82,11 @@ export function montarThreshold(raiz: HTMLElement): () => void {
     desde = 0;
   };
   const revisar = () => {
+    /* Quedarse mirando la puerta tampoco es entrar. El reloj sigue contando
+       -- la permanencia real no se pierde -- pero no se ESCRIBE hasta que hay
+       elección. En cuanto el visitante elige, el siguiente tic la anota con el
+       total acumulado, incluido el rato que estuvo dudando. */
+    if (document.documentElement.hasAttribute("data-kdx-espera-eleccion")) return;
     const total = acumulado + (desde ? performance.now() - desde : 0);
     if (!anotada && total >= UMBRAL_PERMANENCIA) {
       anotada = true;

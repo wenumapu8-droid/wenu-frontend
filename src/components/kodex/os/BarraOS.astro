@@ -20,16 +20,20 @@
  * documento que el CSS lee. Cero routers paralelos.
  */
 import { scenes } from '../../../lib/kodexScenes.js';
+import conteos from '../../../data/kodex-conteos.json';
+
+// EL NÚMERO DE LÁMINAS SE CUENTA, NO SE ESCRIBE — mismo mecanismo que
+// KodexIndexOverlay.astro, para que no vuelva a desfasarse (ver su
+// comentario: decía 27, había 39).
+const laminasContadas = conteos.laminas;
 
 const camaras = [
   { href: '/kodex/strata/', n: 'STRATA', k: 'six layers' },
-  { href: '/kodex/lamina/', n: 'PLATES', k: '36 plates' },
+  { href: '/kodex/lamina/', n: 'PLATES', k: `${laminasContadas} plates` },
   { href: '/kodex/archive/', n: 'ARCHIVE', k: 'living memory' },
   { href: '/kodex/lab/heart/', n: 'HEART', k: 'orientation' },
   { href: '/kodex/lab/altar/', n: 'ALTAR', k: 'offering' },
   { href: '/kodex/lab/temple/', n: 'TEMPLE', k: 'state' },
-  { href: '/kodex/lab/semantic-wheel/', n: 'RELATION WHEEL', k: 'instrument' },
-  { href: '/kodex/lab/signal-vortex/', n: 'SIGNAL VORTEX', k: 'field' },
   { href: '/kodex/works/', n: 'WORKS', k: 'collection' },
   { href: '/kodex/return/', n: 'RETURN', k: 'signature' },
 ];
@@ -74,6 +78,26 @@ const camaras = [
 </div>
 
 <style is:global>
+  /* ── LA FRANJA DE ATAJOS NO EXISTE EN PANTALLA TÁCTIL ───────────────────
+     El creador: "los comandos tapan la experiencia y no sirven en móvil
+     porque nadie va a teclear con teclado".
+
+     Tiene razón dos veces. Es inútil —⌘K, 0–6, I, T son teclas y en un
+     teléfono no hay teclado— y además ocupa la franja inferior, que es
+     justamente por la que se venían peleando la barra del mazo, la boca del
+     descenso y el CTA de la escena. Sacarla no sólo quita ruido: libera el
+     borde que estaba sobrecargado.
+
+     Los atajos SIGUEN funcionando donde hay teclado. Lo que desaparece es el
+     cartel que los anuncia donde no sirven. Y la paleta de comandos sigue
+     alcanzable en escritorio con ⌘K.
+
+     `hover:none` o `pointer:coarse` es la pregunta correcta —¿hay un puntero
+     fino?— y no el ancho de pantalla: un teléfono en apaisado sigue siendo un
+     teléfono. */
+  @media (hover:none), (pointer:coarse){
+    .kdx-os__hint{ display:none !important; }
+  }
   .kdx-os__hint{
     position:fixed; left:0; right:0; bottom:0; z-index:150;
     display:flex; gap:18px; align-items:center; flex-wrap:wrap;
@@ -186,3 +210,29 @@ const camaras = [
     });
   })();
 </script>
+
+<style is:global>
+  /* ── LA FRANJA DE ABAJO ES DE UNO SOLO ────────────────────────────────────
+     Medido a 390×844 en la página de llegada: `nav.kx-deckbar` en y=776 con 44
+     de alto, y `.kdx-os__hint` en y=781 con 63. Encimadas. De ahí salían los
+     seis peores solapamientos de esa página: COMMANDS sobre ESCRITURA al 100%,
+     NEXT › sobre VOID al 94%, ‹ PREVIOUS sobre 0–6 al 57%.
+
+     Dos superficies reclamando el mismo borde. La barra de pistas del OS es del
+     sistema y está en todas partes; la del mazo es de la escena. Cede la del
+     mazo, que es la local — la misma regla que ya se aplicó cuando la barra de
+     KDX.LIFE chocaba con NEXT PLATE en las láminas.
+
+     Va en hoja global y no scoped porque `.kx-deckbar` no es de este componente
+     y un <style> con scope de Astro nunca la alcanzaría. */
+  .kx-deckbar{
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  /* Sin la franja de atajos, la barra del mazo recupera el borde: la reserva
+     de 66px existía sólo para no chocar con ella. */
+  @media (hover:none), (pointer:coarse){
+    .kx-deckbar{ bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important; }
+  }
+  /* Y la línea de tiempo, que vive pegada al borde, pasa por debajo de las dos. */
+  .kx-timeline{ z-index: 1; }
+</style>

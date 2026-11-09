@@ -1,0 +1,197 @@
+---
+/**
+ * KODEX−∞ · LA LÁMINA COMPLETA COMO ESCENA — DESKTOP ESPACIAL / MÓVIL TEMPORAL
+ *
+ * VEREDICTO DEL CREADOR (2026-08-25): «PROLOGUE MOBILE = REJECT / P0.
+ * Mobile no puede ser desktop reducido al 23%». La versión anterior metía la
+ * plancha entera encogida en un viewport alto: el ojo quedaba microscópico, la
+ * escena flotaba como una estampilla entre zonas muertas, y los botones pesaban
+ * más que la obra. Esa vía queda cerrada.
+ *
+ * LA CORRECCIÓN NO ES REDIBUJAR LA LÁMINA PARA TELÉFONO.
+ *
+ * La plancha ya contiene toda su inteligencia visual, medida panel por panel.
+ * Lo que cambia es la CÁMARA:
+ *
+ *   DESKTOP  — espacial: la plancha entera, todo simultáneo, como cartel.
+ *   MÓVIL    — temporal: la pantalla se posa sobre UN panel a la vez, a escala
+ *              legible (nunca por debajo de 1:1 si cabe), y se avanza por
+ *              gesto. El ojo domina el primer frame; lo denso —logs, waveforms,
+ *              pseudocódigo— espera detrás de la interacción.
+ *
+ * Así el móvil no es una miniatura del desktop ni una escena nueva: es el mismo
+ * sistema visual recorrido en el tiempo en vez de en el espacio. Es exactamente
+ * lo que `kit/movil.ts` ya había concluido midiendo: «la plancha no está rota,
+ * está siendo encogida».
+ *
+ * El shell queda SIEMPRE por encima y clickeable: la versión anterior tapaba la
+ * barra PREVIOUS/DESCEND/INDEX con la plancha y los taps no llegaban — P0
+ * funcional, no sólo estético.
+ */
+import "../../../styles/kodex-lamina.css";
+
+const W = 1672, H = 941;
+
+export interface Parada {
+  /** identificador corto, va al indicador de avance */
+  id: string;
+  /** rótulo humano del panel */
+  label: string;
+  /** caja MEDIDA en coordenadas del póster */
+  x: number; y: number; w: number; h: number;
+  /** true = llena la pantalla recortando el excedente (para organismos
+      radialmente simétricos, donde recortar los lados no quita información).
+      Por defecto la parada entra ENTERA, que es lo correcto para paneles de
+      texto: ahí recortar sí perdería contenido. */
+  cover?: boolean;
+}
+
+interface Props {
+  lamina: string;
+  /** recorrido móvil: un panel por parada, en orden de lectura */
+  paradas: Parada[];
+  class?: string;
+}
+const { lamina, paradas, class: className } = Astro.props;
+---
+
+<div class:list={["kx-escena-lamina", className]}
+     data-escena-lamina={lamina}
+     data-paradas={JSON.stringify(paradas)}>
+  <div class="kdx-lam-fit" data-kdx-fit>
+    <div class="kdx-lam" style={`width:${W}px;height:${H}px`} data-lamina={lamina}>
+      <slot />
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .kx-escena-lamina {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #000;
+    /* EL SHELL MANDA ARRIBA. La plancha no puede tragarse los taps de
+       PREVIOUS/DESCEND/INDEX: eso fue un P0 funcional reportado desde el
+       teléfono. Se restituyen los eventos sólo en el lienzo. */
+    pointer-events: none;
+    z-index: 0;
+  }
+  .kx-escena-lamina .kdx-lam-fit {
+    --s: 1; --tx: 0px; --ty: 0px;
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  .kx-escena-lamina .kdx-lam-fit > :global(.kdx-lam) {
+    position: absolute;
+    left: 0; top: 0;
+    transform-origin: 0 0;
+    transform: translate(var(--tx), var(--ty)) scale(var(--s));
+    /* La cámara se mueve; no salta. */
+    transition: transform 620ms cubic-bezier(.22,.61,.36,1);
+  }
+
+
+
+  /* EN MOVIL EL TRIPTICO MANDA, EL SHELL SE CALLA.
+     El triptico trae su propia navegacion —paginas SIGNAL/FIELD/EVIDENCE y su
+     boton de continuidad— y la barra del shell se le montaba encima: dos
+     sistemas de navegacion peleando por los mismos 80px de pulgar. El creador
+     pidio que «los controles del shell casi desaparezcan hasta que los
+     necesitas». Se apagan solo cuando el triptico esta montado: si por lo que
+     sea no monta, el shell sigue siendo la unica salida y debe verse. */
+  @media (max-width: 767px) {
+    :global(html[data-kdx-tri] .kx-deckbar),
+    :global(html[data-kdx-tri] .kx-os-deck),
+    :global(html[data-kdx-tri] [data-kdx-deck]) {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms;
+    }
+    /* La plancha completa no se muestra bajo el triptico: el triptico ya
+       reparte sus zonas. Dejarla detras a media luz era ruido, no atmosfera. */
+    :global(html[data-kdx-tri]) .kdx-lam-fit { opacity: 0; pointer-events: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-escena-lamina .kdx-lam-fit > :global(.kdx-lam) { transition: none; }
+    .kx-recorrido__puntos li { transition: none; }
+  }
+</style>
+
+<script>
+  /* LOS SISTEMAS DEL REPO, MONTADOS — NO REIMPLEMENTADOS.
+     Detectado por imac-orquesta revisando este mismo trabajo: la version
+     anterior de este componente traia un re-encuadre movil propio, con paradas
+     y clip-path. Funcionaba, pero era construir en paralelo algo que el repo ya
+     resuelve mejor y de forma canonica — el mismo pecado de "reimplementar en
+     vez de reusar" que veniamos senalando en otros nodos, cometido aca.
+
+     `montarTriptico()` ES la coreografia movil de KODEX: tres paginas,
+     I SIGNAL (el concepto se anuncia) / II FIELD (la obra sola, a pantalla
+     completa) / III EVIDENCE (los datos y adonde se sigue). Eso es exactamente
+     "primero fenomeno, luego titulo/senal, luego informacion secundaria", y no
+     encoge nada: reparte la plancha en actos.
+
+     `montarVida()` es lo que hace que la escena respire, escanee y mute.
+     `montarNavegacion()` es lo que hace que los enlaces existan de verdad.
+     Sin los tres, la escena esta congelada, muda y sin rutas — que es la causa
+     raiz del REJECT anterior. */
+  const sinks: Array<(t?: number) => void> = [];
+  (window as any).__kdxRegisterFreeze = (fn: (t?: number) => void) => sinks.push(fn);
+  (window as any).__kdxFreeze = (t = 0) => {
+    for (const fn of sinks) fn(t);
+    document.documentElement.dataset.kdxFrozen = "1";
+  };
+
+  const host = document.querySelector<HTMLElement>("[data-escena-lamina]");
+  const fit = host?.querySelector<HTMLElement>("[data-kdx-fit]");
+  const slug = host?.dataset.escenaLamina || "";
+
+  if (host && fit) {
+    /* FIT SIMPLE, SOLO DESKTOP. Mobile lo maneja el triptico: si ademas
+       reencuadraramos aca, volveriamos a "hacer que quepa" por la puerta de
+       atras. Mide la caja de la escena y no la ventana, porque el shell puede
+       reservar espacio. */
+    const ajustar = () => {
+      const r = host.getBoundingClientRect();
+      const vw = r.width || innerWidth;
+      const vh = r.height || innerHeight;
+      const s = Math.min(1, vw / 1672, vh / 941);
+      fit.style.setProperty("--s", String(s));
+      fit.style.setProperty("--tx", ((vw - 1672 * s) / 2).toFixed(2) + "px");
+      fit.style.setProperty("--ty", ((vh - 941 * s) / 2).toFixed(2) + "px");
+    };
+    ajustar();
+    addEventListener("resize", ajustar, { passive: true });
+    if ("ResizeObserver" in window) new ResizeObserver(ajustar).observe(host);
+  }
+</script>
+
+<script>
+  import { montarTriptico } from "../lamina/kit/triptico";
+  import { montarNavegacion } from "../lamina/kit/navegacion";
+  import { montarVida } from "../../../lib/kodex/vida/montar";
+
+  const raiz = document.querySelector<HTMLElement>("[data-escena-lamina]");
+  const slug = raiz?.dataset.escenaLamina || "";
+
+  /* El orden importa: el triptico reparte la plancha en tres actos y necesita
+     el DOM ya montado; la vida se engancha despues para que respire tambien
+     dentro de cada acto; la navegacion va al final para no perder los nodos
+     que el triptico acaba de mover. */
+  try {
+    montarTriptico();
+    /* La marca es lo que permite al CSS distinguir «triptico montado» de
+       «triptico fallo»: sin ella, apagar el shell a ciegas dejaria la escena
+       sin ninguna salida si el montaje no ocurre. */
+    if (document.querySelector('[class*="kdx-tri"]')) {
+      document.documentElement.dataset.kdxTri = "1";
+    }
+  } catch (e) { console.warn("[kodex] triptico:", e); }
+  try { if (slug) montarVida({ id: slug }); } catch (e) { console.warn("[kodex] vida:", e); }
+  try { montarNavegacion(); } catch (e) { console.warn("[kodex] navegacion:", e); }
+</script>

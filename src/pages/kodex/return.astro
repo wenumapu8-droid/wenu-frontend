@@ -111,14 +111,23 @@ import KodexShell from '../../layouts/KodexShell.astro';
        es la señal del bus refrescada al cerrar el ciclo: la próxima puerta
        abre distinta porque este número cambió. */
     import { RETURN, RETURN_NODE_ID } from '../../lib/kodex/escenas/return';
-    import { recordar } from '../../lib/kodex/memoria';
+    import { recordar, pesoDeMemoria } from '../../lib/kodex/memoria';
     import { refrescarMemoria } from '../../lib/kodex/senales';
     root.dataset.kdxScene = RETURN.scene_id;
     root.dataset.kdxNode = RETURN_NODE_ID;
     recordar('return_started', RETURN_NODE_ID);
+    /* BUG NaN corregido 2026-08-28 · confirmado en auditoria del iMac.
+     * readSpecimen() (kodex/return/memory.js) nunca devolvio `memory` -- sus
+     * campos reales son curated/seed/seedHex/code/cycle/chirality/signal/
+     * visualChain/works/lastWork. `spec.memory / 40` era `undefined / 40` =
+     * NaN, persistido en cada visita a RETURN dentro del evento
+     * route_signature_created. pesoDeMemoria() de memoria.ts YA calcula un
+     * 0..1 real (archiveDepth+routeDiversity+returnCount, documentado como
+     * constantes elegidas, no medidas -- por eso sigue siendo DERIVED, no
+     * LIVE, pero ya no es un numero inventado sobre un campo que no existe). */
     recordar('route_signature_created', RETURN_NODE_ID, {
       ciclo: Math.min(1, spec.cycle / 8),
-      memoria: Math.min(1, spec.memory / 40),
+      memoria: pesoDeMemoria(),
     });
     recordar('cycle_incremented', RETURN_NODE_ID, { ciclo: Math.min(1, spec.cycle / 8) });
     recordar('return_completed', RETURN_NODE_ID);

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodex.local/schema/kdx-assembly-qa-result-v0.1.json",
+  "title": "KODEX Assembly QA Result v0.1",
+  "description": "Separates deterministic contract validation from actual rendered/browser evidence so unrendered PlateSpecs cannot be mislabeled browser-validated.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "qa_result_id", "version", "target_id", "target_kind", "validation_scope",
+    "contract_status", "render_status", "overall_status", "browser_validated",
+    "contract_checks", "render_checks", "evidence_refs", "provenance_refs", "blockers"
+  ],
+  "properties": {
+    "qa_result_id": { "type": "string", "pattern": "^KDX-QA-[A-Z0-9_-]+$" },
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+    "target_id": { "type": "string", "minLength": 2 },
+    "target_kind": { "type": "string", "enum": ["PLATE_SPEC", "RENDERED_PLATE", "ROUTE", "WORK_ORDER"] },
+    "validation_scope": { "type": "string", "enum": ["CONTRACT_ONLY", "CONTRACT_AND_RENDER"] },
+    "contract_status": { "type": "string", "enum": ["PASS", "FAIL", "NOT_RUN"] },
+    "render_status": { "type": "string", "enum": ["PASS", "FAIL", "NOT_RUN"] },
+    "overall_status": { "type": "string", "enum": ["PASS", "FAIL", "PARTIAL", "NOT_RUN"] },
+    "browser_validated": { "type": "boolean" },
+    "contract_checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "render_checks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "evidence_refs": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "provenance_refs": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "minLength": 2 } },
+    "blockers": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 2 } }
+  },
+  "$defs": {
+    "check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "lane", "status", "message", "evidence_ref"],
+      "properties": {
+        "check_id": { "type": "string", "minLength": 2 },
+        "lane": { "type": "string", "enum": ["CONTRACT", "RENDER_BROWSER"] },
+        "status": { "type": "string", "enum": ["PASS", "FAIL", "NOT_RUN", "NOT_APPLICABLE"] },
+        "message": { "type": "string" },
+        "evidence_ref": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "browser_validated": { "const": true } }, "required": ["browser_validated"] },
+      "then": {
+        "properties": {
+          "validation_scope": { "const": "CONTRACT_AND_RENDER" },
+          "render_status": { "const": "PASS" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "validation_scope": { "const": "CONTRACT_ONLY" } }, "required": ["validation_scope"] },
+      "then": {
+        "properties": {
+          "browser_validated": { "const": false },
+          "render_status": { "const": "NOT_RUN" },
+          "overall_status": { "enum": ["PARTIAL", "FAIL", "NOT_RUN"] }
+        }
+      }
+    }
+  ],
+  "x-kodex-invariants": [
+    "Contract PASS cannot be represented as browser validation without actual render/browser evidence.",
+    "Schema/provenance/rights/no-crop checks are cheaper and run before browser checks.",
+    "An unrendered PlateSpec remains PARTIAL even when every contract check passes.",
+    "Aesthetic/human-curator acceptance is not inferred from QA PASS."
+  ]
+}

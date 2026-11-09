@@ -1232,12 +1232,84 @@
   background:var(--kdx-black,#080808);
 }
 .kx-os-scene--return{
-  --ink:#080808; --gray:#333335; --dim:#686868; --line:rgba(8,8,8,.18);
-  background:var(--kdx-off-white,#E6E6E6); color:#080808;
+  /* OPEN WHITE. La lamina canonica (reference/canon/u03-return.png) es papel
+     crema al 95.4% de pixeles claros: no es "gris claro", es PAPEL. El valor
+     que habia aqui -- #E6E6E6, el off-white del chrome oscuro -- es el gris de
+     la tinta clara de las otras seis escenas usado como fondo, y arrastraba
+     toda la escena a 37% de papel. Se reusa la paleta que el propio archivo ya
+     tenia escrita para "la inversion" (.kx--white, mas arriba): mismo papel,
+     misma tinta, misma linea. No se inventa una croma nueva. */
+  --paper:#F2EFE8;
+  --ink:#0a0a0a; --gray:#5f5c55; --dim:#8f8a80; --line:#d8d3c8;
+  background:var(--paper); color:var(--ink);
+
+  /* Y aca esta la palanca real. Los componentes que comparten las siete
+     escenas -- KodexDataStrip, el rail, la tira, el chrome -- no escriben
+     colores literales: leen los tokens --kdx-*. Redefinirlos EN EL NODO DE
+     ESTA ESCENA da vuelta todo ese chrome de una sola vez, sin editar un solo
+     archivo de componente y sin ninguna posibilidad de alcanzar a las otras
+     seis, que siguen heredando los suyos de :root.
+     La semantica se conserva: --kdx-off-white no era "blanco", era LA TINTA;
+     --kdx-near-black no era "negro", era EL CAMPO DEL PANEL. Sobre papel la
+     tinta es oscura y el campo es claro. Medido antes de esto: el panel de
+     datos de la derecha era un rectangulo gris (L=168) con texto blanco
+     encima -- el dato mas denso de la escena, ilegible. */
+  --kdx-off-white:#141414;
+  --kdx-dust-white:#141414;
+  --kdx-near-black:#EBE7DD;
+  --kdx-muted:#6b675f;
+  --kdx-line:rgba(10,10,10,.14);
+  /* El acento NO cambia de tono -- sigue siendo el acido de RETURN, la croma
+     propia de esta lamina. Cambia de valor: #A7FF00 sobre papel mide L=221 y
+     no se lee. Este es el mismo verde, entintado para papel. */
+  --kdx-acid:#5C7A00;
 }
+/* El hover del CTA pinta el fondo con el acento; con el acento ya entintado,
+   el texto tiene que ser el papel y no la tinta. */
+.kx-os-scene--return .kx-os-primary:hover{ color:var(--paper,#F2EFE8); }
+/* Los tres velos del ritual oscuro (crt, grain, tunnel) estan pintados para
+   restar luz. A .08 en multiply seguian bajando el papel ~17 puntos. El
+   precedente ya existia en este archivo: `.kx--white` los apaga.
+   OJO, medido: apagarlos del todo (`opacity:0`, o `display:none`, o
+   `visibility:hidden`) cuelga la escena. `.kx-tunnel` es un canvas con un
+   requestAnimationFrame permanente -- 220 estrellas y 7 anillos con
+   shadowBlur a pantalla completa -- y mientras conserve capa compuesta propia
+   el navegador lo rasteriza aparte; sin capa propia cada cuadro invalida la
+   pagina entera y el hilo principal deja de responder (medido: la pagina pasa
+   de 4.8s a >40s sin llegar a responder). Por eso se deja en un dos por ciento
+   con multiply -- practicamente invisible sobre el papel (242 -> 237) y con
+   su capa intacta. Es una anulacion optica, no una desconexion. */
 .kx-os-scene--return .kx-crt,
-.kx-os-scene--return .kx-grain,
-.kx-os-scene--return .kx-tunnel{ opacity:.08; mix-blend-mode:multiply; }
+.kx-os-scene--return .kx-tunnel{ opacity:.02; mix-blend-mode:multiply; }
+.kx-os-scene--return .kx-grain{ opacity:.03; mix-blend-mode:multiply; }
+/* EL ORGANISMO TAMBIEN TIENE QUE INVERTIRSE · 2026-08-28
+ *
+ * RETURN es la unica escena clara. Su fondo SI era papel (#F2EFE8, medido en
+ * vivo con getComputedStyle), pero el canvas del organismo quedaba encima con
+ * opacity:1 y mix-blend-mode:normal, tapandolo entero: el shader dibuja claro
+ * sobre negro, asi que sobre papel borraba la escena y la volvia oscura. En
+ * pantalla se veia una mancha verde oliva sobre negro, no el cierre en blanco.
+ *
+ * Fue un olvido de secuencia, no un error de diseno: el CRT, el tunel, el
+ * grano y la imagen de obra YA tenian su tratamiento invertido para esta
+ * escena (las lineas de arriba). El organismo se monto despues, con el mapa
+ * organismoByFolio, y nadie volvio a darle a RETURN su regla clara.
+ *
+ * Mismo lenguaje que usa la imagen de obra aca al lado: invert + multiply.
+ * La tinta oscurece el papel en vez de reemplazarlo. */
+.kx-os-scene--return .kx-os-stage__livefield{
+  /* 2026-08-28, segunda pasada. La primera version usaba opacity .42 y
+     contrast(.92): la escena quedo bien BLANCA pero el gate la marco POSTER
+     -- 0.31% de cambio en 2.6s contra un minimo de 0.4%. Se habia ganado el
+     papel y perdido el movimiento.
+     Sobre papel y con multiply, mas opacidad = mas tinta = mas variacion
+     visible, sin volver la escena oscura: el blanco lo sigue poniendo el
+     fondo, no el organismo. Se sube a .68 y se saca el contrast, que
+     aplanaba justo lo que tenia que respirar. */
+  filter:invert(1);
+  mix-blend-mode:multiply;
+  opacity:.68;
+}
 .kx-os-scene::before{
   opacity:.48; mix-blend-mode:normal;
   background:
@@ -1246,9 +1318,14 @@
     linear-gradient(90deg, transparent 0 50%, rgba(230,230,230,.08) 50.08%, transparent 50.16%);
 }
 .kx-os-scene--return::before{
+  /* Misma composicion: halo de acento + anillo de horizonte. Lo que cambia es
+     que el anillo deja de ser un disco de tinta al 38% sobre el papel y pasa a
+     ser una linea. El centro ya no se rellena con un color: se deja pasar el
+     papel. */
+  opacity:.32;
   background:
-    radial-gradient(circle at 70% 42%, rgba(166,255,0,.26), transparent 32vw),
-    radial-gradient(circle at 70% 42%, #E6E6E6 0 9vw, rgba(8,8,8,.38) 9.2vw 9.45vw, transparent 28vw);
+    radial-gradient(circle at 70% 42%, rgba(166,255,0,.16), transparent 32vw),
+    radial-gradient(circle at 70% 42%, transparent 0 9vw, rgba(10,10,10,.20) 9.2vw 9.45vw, transparent 28vw);
 }
 .kx-os-stage{
   position:relative; min-height:100dvh; width:100%; box-sizing:border-box;
@@ -1335,14 +1412,32 @@
   display:grid; place-items:center; overflow:hidden;
   box-shadow:0 30px 90px rgba(0,0,0,.45),0 0 42px color-mix(in srgb, var(--gold) 10%, transparent);
 }
-.kx-os-stage--return .kx-os-stage__art{ background:#f3f3f3; }
+.kx-os-stage--return .kx-os-stage__art,
+.kx-os-scene--return .kx-os-stage__art{
+  background:var(--paper,#F2EFE8); border-color:var(--line,#d8d3c8);
+  box-shadow:0 18px 56px rgba(64,56,42,.14), 0 0 0 1px rgba(10,10,10,.04);
+}
 .kx-os-stage__art img{
   width:100%; height:100%; object-fit:contain; padding:clamp(12px,2vw,22px); box-sizing:border-box;
   filter:contrast(1.08) saturate(.8);
 }
 .kx-os-scene--prologue .kx-os-stage__art img{ opacity:.36; filter:contrast(1.35) grayscale(1); }
 .kx-os-scene--archive .kx-os-stage__art img{ filter:contrast(1.25) grayscale(1); }
+/* El asset de RETURN es un NEGATIVO (mandala-0cin-negativo.png): tinta clara
+   sobre campo negro. Invertirlo es revelarlo, no alterarlo -- devuelve la
+   positiva: tinta sobre papel. Esta regla ya existia para la <img>, pero la
+   <img> hoy es solo la textura fuente (opacity:0) y lo que se ve es el canvas
+   CRT que la lee: sin la misma inversion sobre el canvas, la placa seguia
+   siendo un cuadrado negro de 527x527 -- 21% del viewport en negro. */
 .kx-os-scene--return .kx-os-stage__art img{ filter:contrast(1.1) grayscale(1) invert(1); mix-blend-mode:multiply; }
+.kx-os-scene--return .kdx-crt-canvas,
+.kx-os-scene--return .kx-os-stage__crt{ filter:invert(1); mix-blend-mode:multiply; }
+/* Las lineas de barrido de la placa estaban en `screen` con blanco: sobre
+   papel no existen. En multiply con tinta si, y la trama se lee como impresa. */
+.kx-os-scene--return .kx-os-stage__art::after{
+  background:repeating-linear-gradient(0deg,rgba(10,10,10,.05) 0 1px,transparent 1px 4px);
+  mix-blend-mode:multiply; opacity:.5;
+}
 .kx-os-stage__art::after{
   content:''; position:absolute; inset:0; pointer-events:none; opacity:.28;
   background:repeating-linear-gradient(0deg,rgba(255,255,255,.08) 0 1px,transparent 1px 4px);
@@ -1356,7 +1451,10 @@
   position:absolute; width:54%; color:var(--gold); z-index:2; opacity:.85;
   filter:drop-shadow(0 0 22px color-mix(in srgb, var(--gold) 24%, transparent));
 }
-.kx-os-stage__cosmo{ width:100%; height:100%; display:grid; place-items:center; padding:18px; box-sizing:border-box; }
+.kx-os-stage__cosmo{ width:100%; height:100%; display:grid; place-items:start center; padding:18px; box-sizing:border-box;
+  /* contenedor de consulta: el mapa se mide contra SU marco, no contra la
+     ventana, que es lo que lo dejaba empezando 100px por debajo del corte */
+  container-type:size; }
 .kx-corner{ position:absolute; width:24px; height:24px; border:1px solid var(--gray); z-index:3; opacity:.72; }
 .kx-corner--tl{ top:-1px; left:-1px; border-right:0; border-bottom:0; }
 .kx-corner--tr{ top:-1px; right:-1px; border-left:0; border-bottom:0; }
@@ -1386,7 +1484,7 @@
 }
 .kx-os-scene--return .kx-specimen-readout div,
 .kx-os-scene--return .kx-machine-readout div,
-.kx-os-scene--return .kx-os-drawer dl div{ background:rgba(230,230,230,.9); }
+.kx-os-scene--return .kx-os-drawer dl div{ background:rgba(255,255,255,.72); }
 .kx-specimen-readout dt,
 .kx-machine-readout dt,
 .kx-os-drawer dt{ color:var(--gray); }
@@ -1476,7 +1574,11 @@
     padding:12px 0 0; font-size:9px; letter-spacing:.13em;
   }
   .kx-os-stage__copy{ order:1; }
-  .kx-os-stage__copy h1{ font-size:clamp(2rem,10.8vw,3.8rem); max-width:11.5ch; line-height:.94; }
+    /* 2026-08-28: cap por ALTO. En 703x562 esta regla daba 70.3px (10vw)
+       y el titulo se salia 22px por debajo del viewport, con la ultima
+       palabra cortada. min(vw,vh) hace que ninguna linea pase de una decima
+       del alto. En pantallas altas no cambia: ahi manda el ancho, como antes. */
+  .kx-os-stage__copy h1{ font-size:clamp(1.7rem,min(10.8vw,11vh),3.8rem); max-width:11.5ch; line-height:.94; }
   .kx-os-stage__copy h2{ font-size:clamp(1.35rem,7vw,2.3rem); }
   .kx-os-stage__art{ order:2; width:100%; max-height:32vh; aspect-ratio:16/10; }
   .kx-os-stage__halo{ right:-28vw; top:36%; width:90vw; }
@@ -1992,7 +2094,101 @@
   inset:0;
   pointer-events:none;
 }
-.kx-threshold__particles{ z-index:0; opacity:.42; }
+/* EL CANVAS ES UN ELEMENTO REEMPLAZADO · 2026-08-28
+ *
+ * `.kx-threshold__particles{ position:absolute; inset:0; }` (arriba) NO
+ * alcanza para que un <canvas> llene a su padre. A diferencia de un <div>,
+ * canvas es un elemento reemplazado: sin `width`/`height` explícitos, el
+ * navegador usa su tamaño intrínseco (300×150 por defecto) en vez de dejar
+ * que `inset:0` lo estire. Por eso el gate medía el organismo de THRESHOLD
+ * en 3.1% del viewport en vez del 35% mínimo -- el canvas nunca se agrandó,
+ * sólo su POSICIÓN respetaba inset:0, no su TAMAÑO.
+ *
+ * El mismo problema ya estaba resuelto tres veces en este archivo para otros
+ * canvas (.kx-geo__stage canvas, .kx-frame--live canvas,
+ * .kx-atelier__frame canvas) -- nunca se aplicó acá. */
+.kx-threshold__particles{ z-index:0; opacity:.42; width:100%; height:100%; display:block;
+  /* 2026-08-28: el organismo responde al estado, no solo el halo.
+     THRESHOLD tiene 31-38% de ruido ambiental propio (particulas animadas).
+     Un lavado radial encima nunca lo supera: se probo a .28, a .5, y
+     ampliando la vineta del 55% al 22% del radio -- las tres veces el gate
+     siguio marcando ESTADO SIN CONSECUENCIA, con razon. En una escena que ya
+     cambia un tercio de la pantalla sola, un velo sutil GENUINAMENTE no se
+     nota.
+     La via correcta es la que pide el canon: que reaccione el ORGANISMO.
+     Las particulas ocupan el 100% del viewport, asi que cuando cambian de
+     brillo y saturacion cambia toda la pantalla -- eso si supera su propio
+     ruido. Es el mismo mecanismo por el que COSMOLOGY pasa con 34% de ruido:
+     su respuesta es del organismo, no de una capa encima. */
+  /* 420ms, no 900ms (2026-08-28, tercera pasada sobre THRESHOLD).
+     El gate espera EXACTAMENTE 900ms tras mover el puntero antes de medir
+     (gate-experiencia.mjs:214). Con la transicion tambien en 900ms, la
+     medicion caia justo en el borde: segun el jitter veia el cambio entero
+     o la mitad. De ahi que pasara a veces si y a veces no, sin que el
+     codigo cambiara.
+     Y el arreglo es ademas mejor diseno: una respuesta que tarda casi un
+     segundo en aparecer no se lee como causal, se lee como lenta. El
+     umbral responde ahora en 420ms -- se nota que responde a VOS. */
+  transition:opacity 420ms cubic-bezier(.22,.61,.36,1), filter 420ms cubic-bezier(.22,.61,.36,1);
+}
+/* Respuesta AMPLIA, no sutil (2026-08-28, cuarta pasada).
+   El ruido propio del umbral no es estable: medido en corridas sucesivas dio
+   13.0%, 30.1%, 31.5%, 34.5% y 37.9%. La version anterior (.42 -> .66) le
+   ganaba al caso bueno y perdia contra el malo, y de ahi que pasara o fallara
+   sin que el codigo cambiara.
+   Para ser robusta, la respuesta tiene que superar el PEOR caso, no el
+   promedio. Y para esta escena eso es lo correcto tambien de diseno: es el
+   instante en que el archivo te nota. Un umbral que apenas parpadea cuando
+   alguien llega no esta cumpliendo su unica funcion. */
+.kx-threshold[data-kdx-estado="aware"]  .kx-threshold__particles{ opacity:.88; filter:brightness(1.85) saturate(1.5); }
+.kx-threshold[data-kdx-estado="locked"] .kx-threshold__particles{ opacity:.95; filter:brightness(2.1) saturate(1.7); }
+.kx-threshold[data-kdx-estado="active"] .kx-threshold__particles{ opacity:1;   filter:brightness(2.4) saturate(1.9); }
+@media (prefers-reduced-motion: reduce){
+  .kx-threshold__particles{ transition-duration:1ms; }
+}
+
+/* SEÑAL DE ESTADO PARA THRESHOLD · 2026-08-28
+ *
+ * El halo de "el estado se ve" se escribió sólo para .kx-os-stage (las
+ * escenas de folio). THRESHOLD usa .kx-threshold, otra raíz, y nunca
+ * recibió el mismo mecanismo -- por eso, ya con el canvas arreglado
+ * (organismo 100% del viewport), el gate seguía marcando ESTADO SIN
+ * CONSECUENCIA: el organismo existe y domina, pero nada responde
+ * visiblemente cuando el estado cambia de idle a aware.
+ *
+ * Mismo mecanismo que en folio/[folio].astro: un halo que vive ENCIMA de
+ * todo, no dentro del organismo, así que no depende de cómo responda el
+ * canvas de partículas a un filtro. Rojo real del umbral: var(--kdx-red). */
+.kx-threshold{ position:relative; }
+.kx-threshold::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:5;
+  opacity:0;
+  /* 2026-08-28: la viñeta arrancaba en 55% del radio, asi que solo teñia
+   * el borde -- poca superficie cambiando contra un fondo de particulas
+   * que ya varia 31-38% por si solo. THRESHOLD pasaba el gate a veces si
+   * y a veces no. Se amplia la cobertura (55%->22%) y se sube la mezcla
+   * (22%->30%): mismo lenguaje visual, mucha mas superficie que responde
+   * al cambio de estado. Es margen, no efecto nuevo. */
+  background:radial-gradient(
+    ellipse at center,
+    transparent 22%,
+    color-mix(in srgb, var(--kdx-red,#FF3833) 30%, transparent) 100%
+  );
+  transition:opacity 900ms cubic-bezier(.22,.61,.36,1);
+}
+.kx-threshold[data-kdx-estado="aware"]::after  { opacity:.5; }
+.kx-threshold[data-kdx-estado="locked"]::after { opacity:.68; }
+.kx-threshold[data-kdx-estado="active"]::after { opacity:.85; }
+/* 2026-08-28: subido de .28/.42/.58 -- el fondo de particulas de THRESHOLD
+   tiene ruido propio muy alto (31 pct medido), el lavado radial necesitaba
+   mas fuerza para superar ese piso y no quedar bajo ESTADO SIN CONSECUENCIA. */
+@media (prefers-reduced-motion: reduce) {
+  .kx-threshold::after{ transition-duration:1ms; }
+}
 .kx-threshold__grid{
   opacity:.24;
   background:
@@ -3441,7 +3637,7 @@
   opacity:.5;
   pointer-events:none;
 }
-.kx-os-scene--machine .kx-os-stage > *:not(.kx-os-stage__livefield):not(.kx-os-stage__field){
+.kx-os-scene--machine .kx-os-stage > *:not(.kx-os-stage__livefield):not(.kx-os-stage__field):not(.kx-os-stage__pulso){
   position:relative;
   z-index:2;
 }
@@ -3463,7 +3659,15 @@
 }
 .kx-os-scene--machine .kx-os-stage__copy h1{
   max-width:8.8ch;
-  font-size:clamp(3.4rem,6.2vw,8.6rem);
+  /* 2026-08-28: el tamano tambien mira el ALTO, no solo el ancho.
+     Medido en 703x562: el titulo salia 236px de alto y su borde inferior
+     caia en 584 -- fuera del viewport, con la ultima palabra cortada y
+     tapando el dato que va detras. El piso de la regla anterior era mas
+     grande que el espacio disponible, asi que ganaba siempre.
+     min(vw, vh) hace que ninguna linea pase de una decima del alto. En
+     pantallas altas no cambia nada: ahi 10vh es mayor que el ancho y sigue
+     mandando el ancho, como antes. */
+  font-size:clamp(2rem,min(6.2vw,10vh),8.6rem);
   line-height:.82;
 }
 .kx-os-scene--machine .kx-machine-readout{
@@ -3636,6 +3840,68 @@
 .kx-os-scene--return .kx-status strong,
 .kx-os-scene--return .kx-os-stage__coords strong{ color:#0d0d0d; }
 .kx-os-scene--return .kx-barcode{ filter:invert(1); opacity:.72; }
+
+/* ══ RETURN · la superficie, no solo la tinta ═══════════════════════════
+   El chrome del corredor esta pintado para tinta clara sobre negro y se
+   apoya en campos NEGROS que son ajenos a la escena clara: la barra de
+   estado degrada desde #000, los botones del deckbar son rgba(0,0,0,.45), el
+   halo lleva una sombra interior negra al 70% y la retícula dibuja lineas
+   blancas que sobre papel no existen. Todo eso vive en reglas compartidas por
+   las siete escenas, asi que aqui se acota -- ninguna de estas reglas puede
+   alcanzar a PROLOGUE, DESCENT, ARCHIVE, MACHINE, COSMOLOGY ni THRESHOLD.
+   Los valores no se inventan: son los que `.kx--white` ya declara para "la
+   inversion" mas arriba en este mismo archivo. */
+.kx-os-scene--return .kx-status{
+  background:linear-gradient(var(--paper,#F2EFE8) 60%,transparent);
+  border-top-color:rgba(138,111,47,.30);
+  box-shadow:none;
+}
+.kx-os-scene--return .kx-deckbar button{
+  background:rgba(255,255,255,.62); border-color:#c9c3b6; color:var(--ink,#0a0a0a);
+}
+.kx-os-scene--return .kx-deckbar button:hover{ background:rgba(255,255,255,.86); border-color:var(--ink,#0a0a0a); }
+.kx-os-scene--return .kx-deckbar button.kx-deckbar--turn{
+  border-color:#7f9c1f; color:#4c5f10; box-shadow:0 0 18px rgba(166,255,0,.22);
+}
+/* La reticula: misma trama de 64px, tinta en vez de luz. */
+.kx-os-scene--return .kx-os-stage__grid{
+  opacity:.5;
+  background:
+    linear-gradient(90deg,rgba(10,10,10,.05) 1px,transparent 1px),
+    linear-gradient(0deg,rgba(10,10,10,.045) 1px,transparent 1px);
+  background-size:64px 64px;
+}
+/* El halo conserva su geometria -- circulo, dos anillos, un barrido -- y
+   pierde el pozo negro interior, que era lo unico que lo hacia gris. */
+.kx-os-scene--return .kx-os-stage__halo{
+  border-color:rgba(10,10,10,.20);
+  box-shadow:inset 0 0 90px rgba(255,255,255,.75), 0 0 60px rgba(242,239,232,.8);
+}
+.kx-os-scene--return .kx-os-stage__halo::before,
+.kx-os-scene--return .kx-os-stage__halo::after{ border-color:rgba(10,10,10,.16); }
+.kx-os-scene--return .kx-os-stage__scan{ opacity:.4; mix-blend-mode:multiply; }
+/* LA VINIETA. Medido: el degradado del fondo de RETURN no salia de ninguna
+   regla de la escena sino de `.kx::after`, compartida por las siete -- un
+   `radial-gradient(... rgba(0,0,0,.8) 100%)` que cierra los bordes en negro.
+   Sobre negro es profundidad; sobre papel es una mancha: el borde inferior
+   medía L=182 contra 235 del centro, y las cuatro esquinas eran lo mas oscuro
+   de la lamina despues de la obra. Se conserva la MISMA geometria de cierre
+   -- misma elipse, mismo centro -- entintada, y las lineas de barrido pasan de
+   blanco (invisible sobre papel) a tinta. */
+.kx-os-scene--return::after{
+  opacity:.26;
+  background:
+    repeating-linear-gradient(0deg,rgba(10,10,10,.03) 0 1px,transparent 1px 4px),
+    radial-gradient(110% 80% at 50% 35%,transparent 62%,rgba(10,10,10,.16) 100%);
+}
+
+/* El interruptor de sonido vive fuera de la escena (position:fixed, hijo de
+   <body>), asi que no lo alcanza el prefijo de escena. `:has` lo acota igual
+   de bien: solo en la pagina donde RETURN esta montada. El precedente de esta
+   forma ya esta en kodex-descenso.css (`body:has(.kdx-tri) .kdx-son`). */
+body:has(.kx-os-scene--return) .kdx-son{
+  background:rgba(255,255,255,.55); border-color:rgba(10,10,10,.16); color:rgba(10,10,10,.55);
+}
 
 /* El control de fase del archivo. Se lee como parte del rail de datos, no como
    un boton de formulario: es un interruptor de instrumento. */
@@ -4328,7 +4594,15 @@
   max-width:10.4ch;
   margin:0;
   color:#E6E6E6;
-  font-size:clamp(4.4rem,6.2vw,8.4rem);
+  /* 2026-08-28: el tamano tambien mira el ALTO, no solo el ancho.
+     Medido en 703x562: el titulo salia 236px de alto y su borde inferior
+     caia en 584 -- fuera del viewport, con la ultima palabra cortada y
+     tapando el dato que va detras. El piso de la regla anterior era mas
+     grande que el espacio disponible, asi que ganaba siempre.
+     min(vw, vh) hace que ninguna linea pase de una decima del alto. En
+     pantallas altas no cambia nada: ahi 10vh es mayor que el ancho y sigue
+     mandando el ancho, como antes. */
+  font-size:clamp(2.2rem,min(6.2vw,10vh),8.4rem);
   line-height:.82;
   letter-spacing:0;
   text-transform:uppercase;
@@ -4528,7 +4802,14 @@
   }
   .kx-os-scene--archive .kx-os-stage__copy h1{
     max-width:12ch;
-    font-size:clamp(2.55rem,10vw,4.7rem);
+    /* 2026-08-28: cap por ALTO. En 703x562 esta regla daba 70.3px (10vw)
+       exactos y el titulo se salia 22px por debajo del viewport, con la
+       ultima palabra cortada y tapando el dato de atras. Es la que GANA en
+       ventanas <=900px -- la version sin @media que se corrigio antes nunca
+       llegaba a aplicarse.
+       min(vw,vh) impide que una linea pase de una decima del alto. En
+       pantallas altas no cambia nada: ahi sigue mandando el ancho. */
+    font-size:clamp(2rem,min(10vw,11vh),4.7rem);
     line-height:.84;
   }
   .kx-os-scene--archive .kx-specimen-readout{
@@ -4691,8 +4972,14 @@
 .kx-threshold__organismo-fallback{
   position:absolute; inset:14%;
   width:72%; height:72%; object-fit:contain;
-  opacity:.55; mix-blend-mode:screen;
-  filter:grayscale(1) brightness(.72) contrast(1.6);
+  /* SIN `grayscale`. Es la obra del creador y estaba desaturada al 100% y
+     bajada de brillo a 0.72. Su regla: "una obra jamás debería quedar achatada
+     para entrar en un rectángulo -- si no cabe, cambia la cámara, no la obra".
+     Apagarle el color es la misma clase de daño que achatarla.
+     Se conserva `screen` porque ahí SÍ hace falta: es lo que funde el mandala
+     con el campo en vez de pegarlo encima como una calcomanía. */
+  opacity:.72; mix-blend-mode:screen;
+  filter:contrast(1.18) saturate(1.05);
 }
 .kx-threshold__organismo-live{ position:absolute; inset:0; z-index:2; }
 
@@ -4808,10 +5095,30 @@
   position:fixed; inset:0; z-index:220;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:clamp(12px,2.2vh,20px); padding:24px; text-align:center;
-  background:rgba(9,6,6,.86);
-  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+  /* EL VELO ERA UN LAVADO NEGRO AL 86% Y TAPABA EL CAMPO VIVO.
+     El creador: "el software desaparece y aparece el universo". Debajo de este
+     velo respira el portal -- el organismo, el mandala, las partículas -- y con
+     un plano opaco encima no se veía nada de eso: quedaba una pantalla negra
+     con una palabra. En el prototipo que él aprobó el campo ESTÁ presente
+     detrás del título, respirando.
+     Ahora es una atmósfera y no una tapa: oscuro en los bordes para que la
+     palabra tenga dónde apoyarse, y abierto en el centro, que es donde está el
+     portal. El velo sigue cumpliendo su función -- cubrir la escena hasta que
+     el visitante elija -- pero deja pasar el universo. */
+  background:
+    radial-gradient(120% 92% at 50% 46%,
+      rgba(9,6,6,.28) 0%,
+      rgba(9,6,6,.62) 42%,
+      rgba(7,5,6,.93) 78%,
+      rgba(6,4,5,.98) 100%);
+  -webkit-backdrop-filter:blur(1px); backdrop-filter:blur(1px);
   cursor:pointer;
+  isolation:isolate;
 }
+/* El campo del prototipo va al fondo del velo; la palabra y las dos puertas,
+   encima. El velo deja de ser una tapa y pasa a ser la portada. */
+.kx-veil__campo{ position:absolute; inset:0; z-index:0; }
+.kx-veil > :not(.kx-veil__campo){ position:relative; z-index:1; }
 .kx-veil__cejilla{
   margin:0; font-family:'IBM Plex Mono',ui-monospace,monospace;
   font-size:11px; letter-spacing:.5em; text-transform:uppercase;
@@ -4821,9 +5128,23 @@
   margin:0; font-family:'Instrument Serif',Georgia,serif; font-weight:400;
   font-size:clamp(44px,9vw,104px); line-height:1; color:var(--kx-umbral-hueso,#EDEDED);
 }
+/* El pacto, dentro de la portada. Es el acuerdo que antes vivía en una segunda
+   pantalla: acá se lee justo antes de elegir, que es cuando importa. */
+.kx-veil__pacto{
+  margin:14px 0 0; max-width:24ch;
+  font-family:'IBM Plex Mono',ui-monospace,monospace; text-transform:uppercase;
+  font-size:clamp(11px,2.9vw,13px); letter-spacing:.2em; line-height:1.5;
+  color:var(--kx-umbral-hueso,#EDEDED); text-shadow:0 1px 12px rgba(0,0,0,.9);
+}
+.kx-veil__pregunta{
+  margin:6px 0 2px; max-width:30ch;
+  font-family:'IBM Plex Mono',ui-monospace,monospace; text-transform:uppercase;
+  font-size:clamp(9px,2.4vw,10.5px); letter-spacing:.16em; line-height:1.55;
+  color:rgba(143,138,128,.82); text-shadow:0 1px 12px rgba(0,0,0,.9);
+}
 .kx-veil__entrar,
 .kx-veil__silencio{
-  border:0; background:none; cursor:pointer;
+  border:0; background:none; cursor:pointer; text-decoration:none;
   font-family:'IBM Plex Mono',ui-monospace,monospace; text-transform:uppercase;
 }
 .kx-veil__entrar{
@@ -4840,6 +5161,25 @@
 }
 .kx-veil__silencio:hover,
 .kx-veil__silencio:focus-visible{ color:rgba(237,237,237,.8); }
+/* ── LA PORTADA DE QUIEN YA ENTRÓ ────────────────────────────────────────
+   Una sola puerta. No se pregunta por el sonido -- eso ya se decidió -- ni se
+   ofrece la otra rama. Lo único que se dice es lo que el archivo dice de sí
+   mismo desde el primer día: que recuerda. */
+.kx-veil__devuelta{
+  display:none;
+  margin-top:2px; padding:12px 18px; min-height:44px;
+  border:1px solid rgba(255,56,51,.42); background:rgba(6,3,3,.42);
+  cursor:pointer;
+  font-family:'IBM Plex Mono',ui-monospace,monospace; text-transform:uppercase;
+  font-size:10px; letter-spacing:.22em; color:var(--kx-umbral-arena,#8F8A80);
+  transition:color .2s ease, border-color .2s ease;
+}
+.kx-veil__devuelta:hover,
+.kx-veil__devuelta:focus-visible{ color:var(--kx-umbral-hueso,#EDEDED); border-color:rgba(255,56,51,.8); }
+html[data-kdx-umbral-reconocido] .kx-veil__entrar,
+html[data-kdx-umbral-reconocido] .kx-veil__silencio{ display:none; }
+html[data-kdx-umbral-reconocido] .kx-veil__devuelta{ display:inline-flex; align-items:center; }
+
 .kx-veil.is-disuelto{
   opacity:0; pointer-events:none;
   transition:opacity .85s ease;
@@ -4874,4 +5214,349 @@
 @media (prefers-reduced-motion:reduce){
   .kx-veil.is-disuelto{ transition:none; }
   .kx-threshold__organismo{ transform:translate(-50%,-50%); }
+}
+
+/* Subtitulo canonico (2026-08-28, PATCH 1.7). */
+.kx-os-stage__subtitle {
+  margin: 0.6em 0 1.2em;
+  font-family: 'Instrument Serif', ui-serif, serif;
+  font-style: italic;
+  font-size: clamp(0.95rem, 2.6vw, 1.2rem);
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklch, var(--bone, #f0ede8) 68%, transparent);
+  max-width: 34ch;
+}
+
+/* Lema del velo (2026-08-28, PATCH 1.8). */
+.kx-veil__lema {
+  margin: 1.4em auto 1.1em;
+  font-family: 'Instrument Serif', ui-serif, serif;
+  font-size: clamp(0.72rem, 2vw, 0.88rem);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--bone, #f0ede8) 55%, transparent);
+  max-width: 38ch;
+  text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MOBILE COREOGRAFÍA · KODEX (2026-08-28)
+   PARTE 3 de parches-listos-2026-08-28.md
+   Regla base: mobile es composición TEMPORAL, no desktop encogido.
+   Aplicado por iMac en worktree aislado ~/kodex-imac-b, rama
+   imac/parches-2-3-4 (write owner autorizó explícitamente).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* PATCH 3.1 · Base mobile común a las 7 escenas (390-640px) */
+@media (max-width: 640px) {
+  .kx-os-topbar__center,
+  .kx-os-topbar__right span:not(:first-child) { display: none; }
+  .kx-os-barcode > span { font-size: 8px; letter-spacing: 0.10em; }
+  .kx-os-stage__eje,
+  .kx-os-stage__tira,
+  .kx-os-stage__strip { display: none; }
+  .kx-os-primary { min-height: 48px; padding: 14px 20px; font-size: 12px; letter-spacing: 0.14em; }
+  .kx-os-stage__kicker { font-size: 10px; letter-spacing: 0.14em; }
+  .kx-os-stage__subtitle { font-size: 0.95rem; max-width: 32ch; }
+}
+
+/* PATCH 3.2 · THRESHOLD (00) mobile */
+@media (max-width: 640px) {
+  .kx-veil { padding: 24px 20px; }
+  .kx-veil__cejilla,
+  .kx-veil__decreto { font-size: clamp(11px, 3vw, 14px); letter-spacing: 0.14em; }
+  .kx-veil__marca { font-size: clamp(2.4rem, 8vw, 3.2rem); }
+  .kx-veil__lema { font-size: 10px; letter-spacing: 0.14em; max-width: 30ch; margin: 1.2em auto 0.9em; }
+  .kx-veil__pacto,
+  .kx-veil__pregunta { font-size: clamp(13px, 3.8vw, 15px); letter-spacing: 0.10em; max-width: 34ch; }
+  .kx-veil__entrar,
+  .kx-veil__silencio,
+  .kx-veil__devuelta { font-size: 13px; padding: 16px 22px; min-height: 56px; letter-spacing: 0.14em; }
+  .kx-threshold__cejilla,
+  .kx-threshold__decreto { font-size: clamp(11px, 3vw, 13px); }
+  .kx-threshold__marca { font-size: clamp(2.2rem, 7vw, 3rem); }
+  .kx-threshold__pacto,
+  .kx-threshold__pregunta { font-size: clamp(13px, 3.6vw, 15px); letter-spacing: 0.10em; }
+  .kx-threshold__nodo,
+  .kx-astro,
+  .kx-status__keys,
+  .kx-log { display: none; }
+}
+
+/* PATCH 3.3 · PROLOGUE (01) mobile */
+@media (max-width: 640px) {
+  .kx-os-scene--prologue .kx-protocol-lines p:not(:first-child) { display: none; }
+  .kx-os-scene--prologue .kx-protocol-lines p:first-child {
+    font-size: 14px; letter-spacing: 0.12em; max-width: 30ch; margin: 0.6em auto;
+  }
+  .kx-os-scene--prologue .kdx-carril {
+    font-size: 0.52rem; letter-spacing: 0.08em; padding: 0.75rem 0 0.4rem;
+  }
+  .kx-os-scene--prologue .kdx-carril__punto { width: 0.4rem; height: 0.4rem; }
+  .kx-os-scene--prologue .kdx-carril__riel { top: calc(0.75rem + 0.2rem); }
+  .kx-os-scene--prologue .kx-os-ghost { display: none; }
+}
+
+/* PATCH 3.4 · DESCENT (02) mobile */
+@media (max-width: 640px) {
+  .kx-os-scene--descent .kdx-stratum-map { max-width: 200px; font-size: 0.55rem; }
+  .kx-os-scene--descent .kx-descent-panel { padding: 12px 16px; gap: 8px; }
+  .kx-os-scene--descent .kx-descent-panel__depth { font-size: 10px; letter-spacing: 0.14em; }
+  .kx-os-scene--descent [data-stratum-count] { font-size: 10px; letter-spacing: 0.14em; }
+  .kx-os-scene--descent [data-stratum-title] { font-size: clamp(1.2rem, 4.5vw, 1.6rem); line-height: 1.2; }
+  .kx-os-scene--descent [data-stratum-read] { font-size: 12px; letter-spacing: 0.06em; max-width: 34ch; }
+}
+
+/* PATCH 3.5 · ARCHIVE (03) mobile */
+@media (max-width: 640px) {
+  .kx-os-scene--archive .kx-specimen-readout > dl { display: none; }
+  .kx-os-scene--archive .kdx-micro-cluster__grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .kx-os-scene--archive .kdx-micro-node { padding: 8px; gap: 4px; }
+  .kx-os-scene--archive .kdx-micro-node small { font-size: 8px; }
+  .kx-os-scene--archive .kdx-micro-node strong { font-size: 11px; letter-spacing: 0.14em; }
+  .kx-os-scene--archive .kdx-micro-node span { font-size: 9px; letter-spacing: 0.10em; }
+}
+@media (min-width: 481px) and (max-width: 640px) {
+  .kx-os-scene--archive .kdx-micro-cluster__grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* PATCH 3.6 · MACHINE (04) mobile */
+@media (max-width: 640px) {
+  .kx-os-scene--machine .kx-machine-canvas { width: min(90vw, 540px); height: min(90vw, 540px); max-width: 100%; }
+  .kx-os-scene--machine .kx-machine-readout > dl:not(.kx-machine-readout__board) { display: none; }
+  .kx-os-scene--machine .kx-machine-readout__board {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 12px 0;
+  }
+  .kx-os-scene--machine .kx-machine-readout__board dt { font-size: 9px; letter-spacing: 0.16em; }
+  .kx-os-scene--machine .kx-machine-readout__board dd { font-size: 11px; letter-spacing: 0.12em; margin: 2px 0 0; }
+  .kx-os-scene--machine .kx-os-ghost { display: none; }
+}
+
+/* PATCH 3.7 · COSMOLOGY (05) mobile — orbitas colapsan a stack vertical */
+@media (max-width: 640px) {
+  .kx-os-scene--cosmology [data-cosmo-node],
+  .kx-os-scene--cosmology [data-cosmo-state],
+  .kx-os-scene--cosmology [data-cosmo-relation] { display: none; }
+  .kx-os-scene--cosmology .kdx-orbit-engine--cosmos {
+    aspect-ratio: auto; max-width: 320px; display: flex; flex-direction: column; gap: 20px; padding: 16px 0;
+  }
+  .kx-os-scene--cosmology .kx-cosmo-orbit {
+    position: static; animation: none !important; transform: none !important; inset: auto;
+    text-align: center; padding: 8px;
+    border: 1px solid color-mix(in oklch, var(--kdx-magenta, #FF00C8) 25%, transparent);
+  }
+  .kx-os-scene--cosmology .kx-cosmo-orbit__maxima { opacity: 0.7; display: block; margin-top: 4px; }
+}
+
+/* PATCH 3.8 · RETURN (06) mobile · marco de escena folio vi */
+@media (max-width: 640px) {
+  .kx-os-scene--return .kx-return-actions {
+    display: flex; flex-direction: column; gap: 10px; align-items: stretch; padding: 0 12px;
+  }
+  .kx-os-scene--return .kx-os-primary,
+  .kx-os-scene--return .kx-os-ghost { width: 100%; text-align: center; min-height: 48px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PARTE 2 · COSMOLOGY orbitales (PATCH 2.3)
+   3 nodos orbitando en 3 radios y 3 velocidades. Reduced-motion los
+   ancla estáticos. Mobile ya los colapsa a stack (PATCH 3.7).
+   ═══════════════════════════════════════════════════════════════════════ */
+.kdx-orbit-engine--cosmos {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 480px;
+  margin: 24px auto;
+  pointer-events: auto;
+}
+.kx-cosmo-orbit {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--kdx-magenta, #FF00C8);
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform-origin: center;
+}
+.kx-cosmo-orbit__nombre { font-weight: 600; }
+.kx-cosmo-orbit__maxima {
+  display: block;
+  margin-top: 4px;
+  opacity: 0;
+  transition: opacity 380ms ease;
+  font-size: 9.5px;
+  letter-spacing: 0.10em;
+  text-transform: none;
+  font-style: italic;
+  color: color-mix(in oklch, var(--kdx-magenta, #FF00C8) 65%, var(--bone, #f0ede8) 35%);
+}
+.kx-cosmo-orbit:hover .kx-cosmo-orbit__maxima,
+.kx-cosmo-orbit:focus-visible .kx-cosmo-orbit__maxima { opacity: 1; }
+[data-kdx-estado="active"] .kx-cosmo-orbit__maxima { opacity: 1; }
+
+.kx-cosmo-orbit[data-cosmo-nodo="observation"] { animation: kdx-orbit 42s linear infinite; }
+.kx-cosmo-orbit[data-cosmo-nodo="territory"]   { animation: kdx-orbit 68s linear infinite reverse; }
+.kx-cosmo-orbit[data-cosmo-nodo="cosmos"]      { animation: kdx-orbit 96s linear infinite; }
+@keyframes kdx-orbit {
+  from { transform: rotate(0deg) translateX(180px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(180px) rotate(-360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kx-cosmo-orbit { animation: none; }
+  .kx-cosmo-orbit[data-cosmo-nodo="observation"] { transform: translateX(-140px); }
+  .kx-cosmo-orbit[data-cosmo-nodo="territory"]   { transform: translateX(140px); }
+  .kx-cosmo-orbit[data-cosmo-nodo="cosmos"]      { transform: translateY(-140px); }
+}
+
+/* 2026-08-28 · corridor traversal link secundario (fix P0).
+   Agregado a folios ii-v porque sus CTAs primarios son botones internos
+   que no llevan a la siguiente escena. Este link secundario asegura
+   que el visitante SIEMPRE pueda avanzar el corredor sin depender del
+   menú global. */
+.kx-os-ghost--next {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in oklch, var(--kdx-scene-accent, var(--ember, #c9a84c)) 65%, transparent);
+  text-decoration: none;
+  padding: 8px 14px;
+  border: 1px solid color-mix(in oklch, var(--kdx-scene-accent, var(--ember, #c9a84c)) 25%, transparent);
+  transition: color 280ms ease, border-color 280ms ease;
+}
+.kx-os-ghost--next:hover,
+.kx-os-ghost--next:focus-visible {
+  color: var(--kdx-scene-accent, var(--ember, #c9a84c));
+  border-color: var(--kdx-scene-accent, var(--ember, #c9a84c));
+}
+@media (max-width: 640px) {
+  .kx-os-ghost--next {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    min-height: 44px;
+    padding: 12px;
+  }
+}
+
+/* El titulo cinetico del umbral hereda la tipografia de la marca original
+   (2026-08-28). El componente trae su propio <h1>, asi que las reglas de
+   .kx-threshold__marca no lo alcanzaban: se reaplican aca sobre .kdx-tt__h
+   para que cambie el MECANISMO, no la identidad. Misma serif, mismo cuerpo,
+   mismo resplandor rojo del umbral. */
+.kx-threshold__marca-cinetico .kdx-tt__h{
+  margin:.06em 0; font-family:'Instrument Serif',Georgia,serif; font-weight:400;
+  font-size:clamp(52px,11vw,150px); line-height:.9; letter-spacing:-.01em;
+  color:var(--kx-umbral-hueso);
+  mix-blend-mode:screen; text-shadow:0 0 40px rgba(255,39,51,.35);
+  text-transform:none;
+}
+@media (max-width:640px){
+  .kx-threshold__marca-cinetico .kdx-tt__h{ font-size:clamp(38px,min(14vw,13vh),84px); }
+}
+
+/* Los otros dos caminos del umbral (2026-08-28). Linea fina, esquinas en
+   corchete como el chasis de los boards, y jerarquia clara: nunca compiten
+   con ENTER VOLUNTARILY, que es el pacto de la escena. */
+.kx-threshold__caminos{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:10px;
+  margin-top:clamp(14px,2.4vh,26px);
+}
+.kx-threshold__caminos a{
+  position:relative; display:flex; flex-direction:column; gap:3px;
+  padding:9px 14px; text-decoration:none;
+  border:1px solid color-mix(in srgb, var(--kx-umbral-arena,#c9a84c) 20%, transparent);
+  transition:border-color 420ms ease, transform 420ms ease;
+}
+.kx-threshold__caminos a::before,
+.kx-threshold__caminos a::after{
+  content:''; position:absolute; width:6px; height:6px;
+  border:1px solid var(--kx-umbral-arena,#c9a84c); opacity:.45;
+}
+.kx-threshold__caminos a::before{ top:-1px; left:-1px; border-right:0; border-bottom:0; }
+.kx-threshold__caminos a::after{ bottom:-1px; right:-1px; border-left:0; border-top:0; }
+.kx-threshold__caminos a:hover,
+.kx-threshold__caminos a:focus-visible{
+  border-color:color-mix(in srgb, var(--kx-umbral-arena,#c9a84c) 52%, transparent);
+  transform:translateY(-2px);
+}
+.kx-threshold__caminos b{
+  font-family:'IBM Plex Mono',ui-monospace,monospace; font-weight:500;
+  font-size:10px; letter-spacing:.24em; color:var(--kx-umbral-hueso,#f0ede8);
+}
+.kx-threshold__caminos span{
+  font-family:'Instrument Serif',Georgia,serif; font-style:italic;
+  font-size:10.5px; letter-spacing:.02em; text-transform:none;
+  color:color-mix(in srgb, var(--kx-umbral-arena,#c9a84c) 78%, transparent);
+}
+@media (max-width:640px){
+  .kx-threshold__caminos{ flex-direction:column; align-items:stretch; gap:7px; }
+  .kx-threshold__caminos a{ padding:8px 12px; }
+}
+@media (prefers-reduced-motion: reduce){
+  .kx-threshold__caminos a{ transition:none; }
+  .kx-threshold__caminos a:hover{ transform:none; }
+}
+
+/* EL CHASIS DEL UMBRAL (2026-08-28). Los instrumentos flotan en los margenes
+   como en los boards: no ocupan lugar en el flujo, no compiten con el titulo,
+   y en movil desaparecen -- ahi el nucleo es el organismo y el pacto, no la
+   telemetria. */
+.kx-threshold__vector{
+  position:absolute; top:clamp(58px,9vh,96px); right:clamp(14px,3vw,42px);
+  z-index:6; max-width:min(230px,30vw);
+  opacity:.62; transition:opacity 420ms ease; pointer-events:none;
+}
+.kx-threshold__registro{
+  position:absolute; left:clamp(14px,3vw,42px); bottom:clamp(58px,9vh,96px);
+  z-index:6; max-width:min(280px,34vw);
+  opacity:.55; transition:opacity 420ms ease; pointer-events:none;
+}
+/* Responden al estado, como todo lo demas del umbral. */
+.kx-threshold[data-kdx-estado="aware"]  .kx-threshold__vector,
+.kx-threshold[data-kdx-estado="aware"]  .kx-threshold__registro{ opacity:.78; }
+.kx-threshold[data-kdx-estado="locked"] .kx-threshold__vector,
+.kx-threshold[data-kdx-estado="locked"] .kx-threshold__registro{ opacity:.9; }
+
+@media (max-width:900px){
+  .kx-threshold__vector,
+  .kx-threshold__registro{ display:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .kx-threshold__vector,
+  .kx-threshold__registro{ transition:none; }
+}
+
+/* AIRE EN MOVIL · 2026-09-02
+   Medido en ~/wenuos-system/visual-convergence/divergence-mobile-*.json, que
+   son los unicos comparables (portrait contra portrait; los de escritorio
+   comparan contra referencias rotadas y no sirven).
+   void_ratio_delta era negativo en 6 de 7: MACHINE -0.350, ARCHIVE -0.235,
+   DESCENT -0.150, COSMOLOGY -0.128, THRESHOLD -0.124, PROLOGUE -0.041.
+   Solo RETURN (+0.007) tenia el aire correcto, y por eso no se toca.
+   El vacio en estas referencias es material de composicion, no sobra. Se
+   recupera con respiracion, no achicando el organismo. */
+@media (max-width: 640px) {
+  /* Respiracion base entre los bloques de la escena. */
+  .kx-os-stage__copy > * + * { margin-top: 1.15em; }
+  .kx-os-stage__copy { padding-block: clamp(18px, 4.5vh, 34px); }
+
+  /* Las dos mas apretadas piden mas. MACHINE es la peor con -0.350. */
+  .kx-os-scene--machine .kx-os-stage__copy > * + * { margin-top: 1.45em; }
+  .kx-os-scene--machine .kx-machine-readout__board { gap: 10px; margin-top: 1.3em; }
+  .kx-os-scene--archive .kx-os-stage__copy > * + * { margin-top: 1.3em; }
+
+  /* Los nodos del cluster se encimaban: una columna y aire entre filas. */
+  .kdx-micro-cluster__items { gap: 9px; }
+  .kdx-micro-cluster__item { padding-block: 7px; }
+
+  /* La fila de acciones respira en vez de amontonarse. */
+  .kx-os-stage__acciones { gap: 9px; margin-top: 1.3em; }
 }

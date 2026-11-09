@@ -60,7 +60,8 @@ export function interactionToJourneyEvents(
       letter: state.current,
       world: state.currentWorld ?? undefined,
       detail: detail.semanticTarget,
-      at: detail.createdAt,
+      // Journey memory preserves sequence, not wall-clock behavior timing.
+      at: state.trace.length,
     },
   ];
 }
@@ -77,7 +78,8 @@ export function organismActionToJourneyEvents(
     letter: state.current,
     world: state.currentWorld ?? undefined,
     detail: write,
-    at: detail.createdAt,
+    // Ordered semantic writes; incoming timestamps are intentionally discarded.
+    at: state.trace.length + index,
   }));
 }
 

@@ -1,0 +1,400 @@
+---
+/**
+ * KODEX−∞ · PROLOGUE · EL OJO, COMO ORGANISMO
+ *
+ * La lámina t01-02 no se copia: se obedece. Su cabecera trae el PERFIL RADIAL
+ * MEDIDO del ojo —luminancia media por radio sobre el PNG canon, excluyendo la
+ * raya de barrido para que no contamine el promedio—. Ese perfil es la
+ * dirección de arte, ya resuelta. Lo que la lámina NO define es el
+ * comportamiento, y ahí es donde esto deja de ser una imagen:
+ *
+ *   Hitos del perfil (r sobre 360), tomados de t01-02/Centro.astro:
+ *     r   9- 23  pupila negra           lum  5- 11
+ *     r  24- 44  collar quemado         pico r=33  (88)
+ *     r  45- 67  valle de fibra media   lum 22- 43
+ *     r  68- 77  ANILLO LIMBAL          pico r=72 (106) — lo más brillante
+ *     r  78-135  filamento largo        cae 63 → 8
+ *     r 136-245  anillos de datos       crestas 143·159·168·189·214·225
+ *     r 246-360  coronas exteriores     lum  5- 11
+ *
+ * Cada capa toma su alfa de ese perfil, igual que en la plancha. La diferencia
+ * es que acá el perfil se MODULA con el estado de la máquina de observación:
+ *
+ *   DORMANT  el ojo late apenas, el limbo casi apagado, deriva lenta
+ *   AWARE    la pupila se dilata, el limbo enciende, los filamentos se agitan
+ *   LOCK     la pupila CONVERGE —se contrae y se afila—, los anillos de datos
+ *            se estabilizan y dejan de temblar
+ *   TRACK    el iris entero se DESPLAZA hacia el objetivo: el ojo te sigue
+ *   IDLE     todo decae con inercia, no con un corte
+ *
+ * Sin canvas no hay organismo. Y sin estado, el canvas sería un GIF caro.
+ */
+interface Props { class?: string }
+const { class: className } = Astro.props;
+---
+
+<canvas class:list={["kdx-ojo", className]} data-kdx-organismo-ojo aria-hidden="true"></canvas>
+
+<style>
+  .kdx-ojo {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<script>
+  const PERFIL: Array<[number, number]> = [
+    [0, 0], [9, 0.04], [23, 0.08], [33, 0.83], [44, 0.55],
+    [56, 0.21], [67, 0.40], [72, 1.0], [77, 0.72],
+    [96, 0.44], [120, 0.20], [135, 0.075],
+    [143, 0.30], [159, 0.26], [168, 0.30], [189, 0.24], [214, 0.22], [225, 0.20],
+    [245, 0.09], [300, 0.07], [360, 0.045],
+  ];
+
+  /** Interpola el perfil medido. Es la firma del ojo: cambiarla lo vuelve otro ojo. */
+  function lum(r: number): number {
+    if (r <= 0) return 0;
+    for (let i = 1; i < PERFIL.length; i++) {
+      const [r1, v1] = PERFIL[i];
+      if (r <= r1) {
+        const [r0, v0] = PERFIL[i - 1];
+        const t = (r - r0) / (r1 - r0 || 1);
+        return v0 + (v1 - v0) * t;
+      }
+    }
+    return 0;
+  }
+
+  /* LOS FILAMENTOS. Medida la variación angular de la luminancia —cuánto cambia
+     el brillo al girar a un radio fijo— sobre la lámina y sobre el runtime:
+
+         radio   referencia   runtime
+         0.10       0.59       0.22
+         0.16       1.57       0.12
+         0.22       1.33       0.11
+         0.30       2.51       0.11
+
+     La lámina es un organismo FILAMENTOSO; el runtime era un juego de anillos
+     lisos. Y su luminancia media es MENOR que la del runtime (14 contra 28.8 a
+     r=0.16): más oscuro en promedio, pero con espigas. Por eso no basta con
+     añadir radios: hay que bajar el peso de los anillos al mismo tiempo, o el
+     ojo se convierte en una mancha.
+
+     Las direcciones son deterministas —seed fijo— para que el organismo sea el
+     mismo entre recargas: un ojo que se redibuja distinto cada vez no es un
+     organismo, es ruido. */
+  /* MENOS FILAMENTOS, MÁS DESIGUALES.
+     Con 96 radios repartidos parejo, a cualquier distancia del centro casi todos
+     los ángulos quedaban encendidos: variación angular 0.58 contra 2.20 de la
+     lámina. El contraste no nace de la cantidad de tinta sino de que HAYA
+     ÁNGULOS NEGROS entre los encendidos.
+     34 filamentos, con largos y pesos mucho más dispares y las direcciones
+     sueltas de la rejilla — un organismo no crece en abanico regular. */
+  const RADIOS = 34;
+  const semilla = (i: number) => {
+    const x = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    return x - Math.floor(x);
+  };
+  const FIL = Array.from({ length: RADIOS }, (_, i) => {
+    /* El largo se eleva al cubo: la mayoría queda corta y unos pocos llegan muy
+       lejos. Repartir parejo daba una corona; repartir desigual da un organismo. */
+    const l = semilla(i + 100);
+    const w = semilla(i + 200);
+    return {
+      /* Las direcciones se sueltan de la rejilla hasta media celda: en abanico
+         perfecto se leen como los radios de una rueda, no como filamentos. */
+      ang: (i / RADIOS) * Math.PI * 2 + (semilla(i) - 0.5) * (Math.PI / RADIOS),
+      largo: 0.16 + l * l * l * 0.84,
+      peso: 0.12 + w * w * 0.88,
+      fase: semilla(i + 300) * Math.PI * 2,
+    };
+  });
+
+  const cv = document.querySelector<HTMLCanvasElement>("[data-kdx-organismo-ojo]");
+  const raiz = cv?.closest<HTMLElement>("[data-kdx-observacion]");
+  if (cv && raiz) {
+    const ctx = cv.getContext("2d")!;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+    let W = 0, H = 0, dpr = 1;
+
+    const medir = () => {
+      const r = cv.getBoundingClientRect();
+      dpr = Math.min(2, devicePixelRatio || 1);
+      W = Math.max(1, Math.round(r.width)); H = Math.max(1, Math.round(r.height));
+      cv.width = W * dpr; cv.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    medir();
+    addEventListener("resize", medir, { passive: true });
+    if ("ResizeObserver" in window) new ResizeObserver(medir).observe(cv);
+
+    /* El estado llega por evento desde la máquina; no se consulta el DOM en
+       cada frame. El ojo es consumidor de estado, no su dueño. */
+    let est = { estado: "DORMANT", presencia: 0, foco: 0, objetivo: { x: 0, y: 0 }, energia: 0, locks: 0 };
+    raiz.addEventListener("kdx:pulso", (e) => { est = (e as CustomEvent).detail; });
+
+    /* LA CROMA ES EL ESTADO — leído de la lámina, no elegido.
+       El tablero «Observation Eye System Board — Violet» pinta sus tres estados
+       de escaneo en colores distintos: LOCK en violeta, TRACK en CIAN, IDLE en
+       gris. No es decoración: el color dice en qué estado está el sistema, y se
+       lee sin leer la etiqueta.
+       Medido contra la referencia, al runtime le faltaba el cian por completo
+       (0% contra 0.39%) y su violeta estaba a menos de la mitad de saturación
+       (0.147 contra 0.341). Los dos se corrigen acá. */
+    const CROMA: Record<string, [number, number, number]> = {
+      DORMANT: [120, 96, 150],    // violeta apagado: existe, no reclama
+      IDLE:    [138, 112, 168],
+      AWARE:   [176, 108, 255],   // el violeta del mundo, ya saturado
+      LOCK:    [186, 96, 255],    // lock: el más profundo
+      TRACK:   [ 96, 226, 255],   // CIAN — el color del seguimiento en la lámina
+      INSPECT: [168, 120, 240],
+      DESCEND: [214, 168, 255],
+    };
+    /* La transición de color es continua: saltar de violeta a cian de un cuadro
+       a otro se leería como un parpadeo de error, no como un cambio de estado. */
+    let croma: [number, number, number] = [...CROMA.DORMANT] as [number, number, number];
+
+    let t = 0;
+    const dibujar = () => {
+      t += reduce.matches ? 0 : 1;
+      const R = Math.min(W, H) * 0.5;
+      const k = R / 360;                                  // el perfil vive en 0..360
+
+      /* TRACK: el iris se desplaza hacia el objetivo. El desplazamiento es
+         parcial a propósito —un ojo sigue, no se teletransporta—. */
+      const seguir = est.foco * 0.16;
+      const cx = W / 2 + est.objetivo.x * R * seguir;
+      const cy = H / 2 + est.objetivo.y * R * seguir;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalCompositeOperation = "lighter";
+
+      const meta = CROMA[est.estado] || CROMA.DORMANT;
+      for (let i = 0; i < 3; i++) croma[i] += (meta[i] - croma[i]) * 0.07;
+      const C = `${Math.round(croma[0])}, ${Math.round(croma[1])}, ${Math.round(croma[2])}`;
+
+      const respiro = reduce.matches ? 0 : Math.sin(t / 96) * 0.5 + 0.5;
+      /* DORMANT es un ojo dormido, no apagado: 0.06 de piso. El piso anterior
+         —0.16— era demasiado alto y, sumado al apilado en `lighter`, dejaba la
+         luminancia del organismo PLANA entre estados: medido 143.6 dormido
+         contra 143.8 en lock. La maquina vivia y el organismo no lo expresaba,
+         que es exactamente la queja del creador: «el ojo no esta demostrando
+         respuesta real». */
+      const vigor = 0.06 + est.presencia * 0.94;
+
+      /* EL OJO SE ABRE. La respuesta no puede ser solo de brillo: con ~220
+         trazos en modo `lighter` el brillo satura y deja de leerse. Lo que si
+         se lee es la ESTRUCTURA — cuanto campo existe. Dormido solo vive el
+         nucleo; con la presencia el organismo se despliega hacia afuera hasta
+         sus coronas. Es la diferencia entre subirle el volumen a algo y que
+         ese algo despierte. */
+      const alcance = 96 + (360 - 96) * Math.min(1, est.presencia * 1.15);
+
+      /* LOCK contrae la pupila y la afila: de 22 a 11, no de 14 a 23. Un ojo
+         que enfoca cierra el diafragma. */
+      const pupila = (22 - est.foco * 11) * k;
+
+      /* REVERTIDO el intento de «menos trazos, más tinta».
+         Diagnostiqué que el violeta estaba lavado midiendo la saturación GLOBAL
+         del cuadro contra la de la lámina: 0.147 contra 0.341. Estaba comparando
+         manzanas con peras — la lámina es un tablero de once paneles saturados y
+         el runtime es un solo organismo sobre negro, así que esa cifra mide
+         COMPOSICIÓN, no color.
+         Midiendo la MISMA región en ambas —el panel 04, x 468→1113, y 93→579—:
+             referencia  saturación 0.548 · violeta 85.9%
+             runtime     saturación 0.541 · violeta 99.8%
+         El ojo ya era cromáticamente fiel. Quitar trazos sólo lo dejó más ralo
+         (tinta 13.5% en la lámina contra 11.5%), así que vuelve el paso original. */
+      /* ANILLOS SÓLO DONDE LA LÁMINA LOS TIENE.
+         El bucle dibujaba un anillo en CADA radio de 6 a 360, y eso producía un
+         disco uniforme. La lámina no es eso: su perfil declara crestas en
+         143·159·168·189·214·225 con oscuridad entre ellas, y por eso su
+         luminancia media es MENOR que la del runtime mientras su variación
+         angular es diez veces mayor.
+         Del núcleo (r<136) sí es continua —pupila, collar, valle, limbo son
+         masas, no líneas—. De ahí para afuera sólo viven las crestas, y el
+         espacio entre ellas es de los filamentos. */
+      const CRESTAS = [143, 159, 168, 189, 214, 225];
+      const enCresta = (r: number) => CRESTAS.some((c) => Math.abs(r - c) < 2.4);
+      for (let r = 6; r <= 360; r += 1.6) {
+        if (r > alcance) break;
+        if (r >= 136 && r <= 245 && !enCresta(r)) continue;
+        /* LAS CORONAS EXTERIORES VUELVEN. Se habían retirado por completo con
+           el argumento de que aplanaban la variación angular — argumento que
+           venía de la métrica contaminada. Con el encuadre corregido se ve el
+           daño: el campo exterior quedó en 2.4 de luminancia contra 13.0 de la
+           lámina, y su variación se disparó a 2.86 contra 1.49 porque quedó
+           casi negro con espigas sueltas.
+           El perfil medido las declara: «r 246-360 coronas exteriores tenues
+           (5-11)». Tenues, pero existen — y son las que dan cuerpo al borde.
+           Vuelven espaciadas y con poca tinta, que es lo que dice el perfil. */
+        if (r > 245 && (r % 7) > 2.4) continue;
+        let a = lum(r);
+        if (a <= 0.005) continue;
+
+        /* La pupila es NEGRA en la lámina —lum 7.3 contra 13.3 del runtime,
+           x1.81—. Es el único punto de reposo del organismo: si brilla, el ojo
+           pierde su centro. */
+        if (r < 24) { a *= (1 - est.foco * 0.5) * 0.42; }
+        if (r >= 68 && r <= 77) { a *= 0.45 + vigor * 0.9; }              // limbo: el pulso
+        if (r > 77 && r < 136) { a *= 0.5 + vigor * 0.6 + est.energia * 0.5; } // filamentos: el gesto
+        if (r >= 136 && r <= 245) {
+          /* Anillos de datos: tiemblan cuando el sistema NO tiene lock, y se
+             aquietan cuando lo consigue. Es la señal de que el sistema se
+             estabilizó, legible sin leer una etiqueta. */
+          const temblor = (1 - est.foco) * (reduce.matches ? 0 : Math.sin(t / 13 + r / 7) * 0.28);
+          a *= 0.55 + vigor * 0.45 + temblor;
+        }
+        /* Coronas: el perfil las declara «tenues (5-11)». Calibradas contra la
+           lámina —6.8 de luminancia media— y no a ojo: primero faltaban (x0.31),
+           luego sobraban (x1.91). El respiro las hace latir sin cambiar su peso. */
+        if (r > 245) { a *= 0.62 + respiro * 0.34 * vigor; }
+
+        /* Desvanecido en el BORDE del alcance: sin esto el campo termina en un
+           corte duro y se lee como un recorte, no como un organismo que se
+           extiende. */
+        const borde = alcance < 359 ? Math.max(0, Math.min(1, (alcance - r) / 46)) : 1;
+        a *= borde;
+
+        const rr = r * k;
+        if (rr < pupila) continue;
+        ctx.lineWidth = 1.6 * k * 1.6;
+
+        /* EL CAMPO MEDIO LLEVA MASA — corrección del ciclo anterior.
+           El ciclo pasado dejó de trazar r45-67 y r78-135 porque el perfil los
+           llama «valle» y «filamento», y el nombre parecía la instrucción. Con
+           la métrica ya encuadrada —radio propio de cada ojo, umbral absoluto,
+           búfer con alfa sobre negro— se ve que fue un error de lectura:
+
+               fracción del radio   lámina        runtime tras vaciarlo
+                    0.4            40.2 lum          3.9 lum
+                    0.6            13.0 lum          1.0 lum
+
+           «Valle» es un valle RELATIVO a los picos vecinos; su luminancia
+           absoluta sigue siendo la más alta de todo el organismo. Vaciarlo dejó
+           un agujero de diez veces.
+
+           Y el mismo encuadre desmiente el diagnóstico que venía arrastrándose:
+           la variación angular del runtime no era BAJA sino ALTA —4.02 contra
+           0.87 de la lámina—, porque el campo estaba casi negro con unas pocas
+           espigas. Se estuvo empujando en la dirección contraria durante seis
+           iteraciones. */
+        if (r < 136) {
+          /* EL NÚCLEO ES MASA. Pupila, collar, valle y limbo son cuerpos
+             continuos en la lámina, no líneas: van de una pieza.
+             Alfa .38 y no .26 — el campo interior había quedado demasiado
+             oscuro: luminancia 31 contra 77 de la referencia a 0.3 del radio. */
+          ctx.beginPath();
+          /* SUBIDA REAL DE TINTA. Medido el búfer del canvas con alfa —sin el
+             fondo de la página— el organismo daba lum 9.5/2.1/0.4 contra
+             77/22.8/15.8 de la lámina: diez veces más tenue. Lo que llenaba la
+             pantalla era el túnel, el grano y el halo del shell, no el ojo.
+             Por eso cinco rondas de afinar alfa no movían nada visible: se
+             estaba ajustando la capa que menos aportaba. */
+          /* Alfa calibrada contra objetivo, no a ojo. Con los anillos del campo
+             medio restaurados y la subida 2.5x del ciclo anterior —que venía de
+             una medición contaminada— el núcleo daba 108.7 contra 33.7 de la
+             lámina: tres veces de más. El factor sale de la razón medida. */
+          ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * 0.32)})`;
+          ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          /* LOS ANILLOS DE DATOS SON ARCOS, NO CIRCUNFERENCIAS.
+             Ahí estaba el campo medio demasiado liso: variación 0.21 contra
+             1.17 de la lámina a media distancia. Un círculo completo es
+             angularmente uniforme POR DEFINICIÓN y aplana la medida por mucho
+             que se le baje el brillo — bajarlo sólo lo volvía invisible.
+             En la lámina esos anillos están rotos en tramos de densidad
+             desigual: son lecturas, no órbitas. Se dibujan segmentados, con el
+             corte sembrado por radio para que cada anillo tenga su ritmo y no
+             se alineen todos en la misma costura. */
+          const trozos = 9 + Math.floor(semilla(r * 7) * 7);
+          const paso = (Math.PI * 2) / trozos;
+          const giro = semilla(r * 13) * Math.PI * 2;
+          for (let n = 0; n < trozos; n++) {
+            const s0 = semilla(r * 31 + n);
+            if (s0 < 0.34) continue;              // tramos ausentes: el negro entre lecturas
+            const iniA = giro + n * paso + paso * 0.14;
+            const finA = iniA + paso * (0.3 + s0 * 0.52);
+            ctx.beginPath();
+            /* Los arcos de datos se calibran APARTE del núcleo. Al bajar la
+               tinta general para corregir el núcleo —que estaba al triple— se
+               bajaron también estos, y el campo exterior cayó a 2.4 contra 13.0
+               de la lámina. Mapeando fracciones a radios del póster, 0.6 a 0.95
+               del radio caen justo en esta zona (r136-245), no en las coronas:
+               son estos arcos los que dan cuerpo al borde, y necesitan su propia
+               escala. */
+            ctx.strokeStyle = `rgba(${C}, ${Math.min(1, a * (1.5 + s0 * 3.0))})`;
+            ctx.arc(cx, cy, rr, iniA, finA);
+            ctx.stroke();
+          }
+        }
+      }
+
+      /* LOS FILAMENTOS, sobre los anillos. Nacen en el collar quemado (r=24) y
+         se extienden hacia afuera según su largo propio. El estado los gobierna:
+         dormido apenas asoman, con la presencia se extienden, y la energía del
+         gesto los agita — es el mismo pulso que mueve el iris, no una animación
+         aparte. */
+      const extension = 0.28 + est.presencia * 0.72;
+      for (const f of FIL) {
+        const r0 = 24 * k;
+        const r1 = Math.min(alcance, 24 + (360 - 24) * f.largo * extension) * k;
+        if (r1 <= r0) continue;
+        const agita = reduce.matches ? 0 : Math.sin(t / 34 + f.fase) * est.energia * 0.035;
+        const ang = f.ang + agita;
+        const ax = cx + Math.cos(ang) * r0, ay = cy + Math.sin(ang) * r0;
+        const bx2 = cx + Math.cos(ang) * r1, by2 = cy + Math.sin(ang) * r1;
+        /* Contraste dentro del propio filamento: nace fuerte, se apaga rápido y
+           deja cola. Un degradado suave a lo largo lo volvería otra vez un disco. */
+        const g2 = ctx.createLinearGradient(ax, ay, bx2, by2);
+        /* Los filamentos suben de peso porque ahora son los únicos habitantes
+           del campo exterior. La variación angular nace de que unos llegan lejos
+           y otros no: a cualquier radio hay ángulos encendidos y ángulos negros,
+           que es exactamente lo que distingue un organismo de un disco. */
+        /* Cada filamento lleva bastante más tinta que antes, porque ahora hay
+           un tercio de ellos: el total se mantiene y el contraste sube. */
+        const op = f.peso * (0.8 + vigor * 2.6);
+        g2.addColorStop(0, `rgba(${C},${Math.min(1, op)})`);
+        g2.addColorStop(0.22, `rgba(${C},${Math.min(1, op * 0.62)})`);
+        g2.addColorStop(0.58, `rgba(${C},${Math.min(1, op * 0.14)})`);
+        g2.addColorStop(1, `rgba(${C},0)`);
+        ctx.strokeStyle = g2;
+        ctx.lineWidth = (0.5 + f.peso * 1.6) * k * 1.6;
+        ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx2, by2); ctx.stroke();
+      }
+
+      /* La raya de barrido: en la lámina es «fila 341, media 110 sobre TODO el
+         ancho del panel». Acá es el escaneo, y su brillo depende del estado —
+         en LOCK se afila, en DORMANT casi no está. */
+      const barrido = 0.10 + est.presencia * 0.5 + est.foco * 0.4;
+      const g = ctx.createLinearGradient(0, cy, W, cy);
+      g.addColorStop(0, `rgba(${C},0)`);
+      g.addColorStop(0.5, `rgba(${C},${barrido})`);
+      g.addColorStop(1, `rgba(${C},0)`);
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1 + est.foco * 1.4;
+      ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(W, cy); ctx.stroke();
+
+      /* El núcleo: el ∞ de la lámina vive acá como punto de convergencia. */
+      ctx.globalCompositeOperation = "source-over";
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(6,4,10,${0.6 + est.foco * 0.4})`;
+      ctx.arc(cx, cy, pupila, 0, Math.PI * 2);
+      ctx.fill();
+      if (est.foco > 0.02) {
+        ctx.beginPath();
+        ctx.strokeStyle = `rgba(${C},${est.foco * 0.9})`;
+        ctx.lineWidth = 1.2;
+        ctx.arc(cx, cy, pupila + 2, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(dibujar);
+    };
+    requestAnimationFrame(dibujar);
+  }
+</script>

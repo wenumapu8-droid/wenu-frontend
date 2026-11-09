@@ -1,3 +1,4 @@
+import { raizLamina } from "./raiz";
 /**
  * KODEX-∞ · EL ESCALADOR — la lámina entra en cualquier pantalla
  *
@@ -20,7 +21,7 @@
  *   montarEscala();
  */
 export function montarEscala(): void {
-  const lam = document.querySelector<HTMLElement>(".lam");
+  const lam = raizLamina();
   if (!lam) return;
   const W = lam.offsetWidth || parseFloat(lam.style.width) || 1122;
   const H = lam.offsetHeight || parseFloat(lam.style.height) || 1402;

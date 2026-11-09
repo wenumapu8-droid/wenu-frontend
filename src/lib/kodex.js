@@ -150,16 +150,56 @@ export function portalSigil(seed, formIndex) {
   return `<svg viewBox="0 0 100 100" class="kx-portal__svg" aria-hidden="true"><g transform="rotate(${rot} 50 50)">${inner}</g><path d="M50 6V15M50 85V94M6 50H15M85 50H94" stroke="currentColor" stroke-width="1" opacity=".45"/></svg>`;
 }
 
-// PORTALS — the chapter-doors on a ring. hrefs point to interconnected pages.
+// PORTALS — the chapter-doors on a ring.
+//
+// P0 FIX (24-08-2026): six of the eight hrefs pointed at routes that do not
+// exist. Verified by curl against the live preview at localhost:4500 on the
+// CANONICAL_INTEGRATION_BASE (converge/kodex-todo @ 56bc3576):
+//   /kodex/descent /kodex/machine /kodex/cosmology
+//   /kodex/geometry /kodex/flow /kodex/organisms   -> all 404
+// The scenes DO exist, under the folio corridor. Each door below is now
+// re-pointed at the route that actually answers 200. `r` (roman numeral),
+// `name` and `seed` are preserved verbatim — only `href` changed.
+//
+// Canonical corridor (verified 200, this base):
+//   /kodex           THRESHOLD (frozen by the creator)
+//   /kodex/folio/i   PROLOGUE   ii DESCENT   iii ARCHIVE
+//   /kodex/folio/iv  MACHINE     v COSMOLOGY  vi RETURN
+//
+// Prologue previously pointed at /kodex#prologue. That anchor does exist
+// (id="prologue" is present in the served THRESHOLD markup) so it was not a
+// hard 404 — but it lands on a section of THRESHOLD, not on the PROLOGUE
+// scene. It now points at the scene itself, /kodex/folio/i/.
+//
+// Archive previously pointed at /kodex/archive, which is a real 200 page
+// ("The Archive"). It now points at /kodex/folio/iii/ ("03 · ARCHIVE") so the
+// whole ring lives in one corridor. /kodex/archive is untouched and still
+// resolves; nothing else in the repo links here.
+//
+// GEOMETRY / FLOW / ORGANISMS: no route exists for these three, anywhere.
+// Searched src/pages/** and curl-probed every candidate. The folio corridor
+// only accepts i..vi (see getStaticPaths in src/pages/kodex/folio/[folio].astro)
+// and none of those six is named Geometry, Flow or Organisms. The nearest
+// things in the repo are lab experiments — /kodex/lab/geometric-memory,
+// /kodex/lab/organism-engine, /kodex/lab/signal-vortex (all 200) — but those
+// are internal lab pages, not canonical scenes, and wiring public chapter-doors
+// to them would be inventing canon. The one repo-sourced hint is the folio VI
+// lede in src/lib/kodexBook.js: "Geometry, organisms, and the white door."
+// which suggests they may be sub-movements of RETURN rather than doors of
+// their own — but that is a creator decision, not an implementation one.
+// Until the creator rules (build them, fold them into RETURN, or drop them
+// from the ring) their href is null and they carry status: 'MISSING'.
+// A null href renders as a non-link (Astro omits null attributes), so these
+// doors go dormant instead of shipping a visitor to an error page.
 export const portals = [
-  { r: 'I', name: 'Prologue', href: '/kodex#prologue', seed: 137 },
-  { r: 'II', name: 'Descent', href: '/kodex/descent', seed: 211 },
-  { r: 'III', name: 'Archive', href: '/kodex/archive', seed: 373 },
-  { r: 'IV', name: 'Machine', href: '/kodex/machine', seed: 457 },
-  { r: 'V', name: 'Cosmology', href: '/kodex/cosmology', seed: 727 },
-  { r: 'VI', name: 'Geometry', href: '/kodex/geometry', seed: 521 },
-  { r: 'VII', name: 'Flow', href: '/kodex/flow', seed: 613 },
-  { r: 'VIII', name: 'Organisms', href: '/kodex/organisms', seed: 883 },
+  { r: 'I', name: 'Prologue', href: '/kodex/folio/i/', seed: 137 },
+  { r: 'II', name: 'Descent', href: '/kodex/folio/ii/', seed: 211 },
+  { r: 'III', name: 'Archive', href: '/kodex/folio/iii/', seed: 373 },
+  { r: 'IV', name: 'Machine', href: '/kodex/folio/iv/', seed: 457 },
+  { r: 'V', name: 'Cosmology', href: '/kodex/folio/v/', seed: 727 },
+  { r: 'VI', name: 'Geometry', href: null, seed: 521, status: 'MISSING' },
+  { r: 'VII', name: 'Flow', href: null, seed: 613, status: 'MISSING' },
+  { r: 'VIII', name: 'Organisms', href: null, seed: 883, status: 'MISSING' },
 ].map((p, i, a) => {
   const ang = -Math.PI / 2 + i / a.length * Math.PI * 2;
   return { ...p, i, x: (50 + 40 * Math.cos(ang)).toFixed(2), y: (50 + 40 * Math.sin(ang)).toFixed(2) };

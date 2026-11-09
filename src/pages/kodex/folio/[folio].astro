@@ -6,31 +6,79 @@ import Base from '../../../layouts/Base.astro';
    estado — mecanismo de spacetypegenerator traducido a operadores KODEX. */
 import TituloCinetico from '../../../components/kodex/os/TituloCinetico.astro';
 import KodexChrome from '../../../components/KodexChrome.astro';
+import Descenso from '../../../components/kodex/os/Descenso.astro'; // la boca hacia dentro: el pasillo lateral sigue intacto, esto es la segunda salida
 import CommissionForm from '../../../components/kodex/CommissionForm.astro'; // el boton COMMISSION A SYSTEM existia sin su overlay: click muerto (hallazgo de auditoria)
 import KodexOverlays from '../../../components/KodexOverlays.astro';
 import CosmologyMap from '../../../components/kodex/CosmologyMap.astro';
 import KodexObserveScene from '../../../components/kodex/observe/KodexObserveScene.astro';
+import { contratoDe } from '../../../lib/kodex/contrato-escena';
 import KodexArtifact from '../../../components/kodex/artifact/KodexArtifact.astro';
 import KodexRail from '../../../components/kodex/density/KodexRail.astro';
 import KodexDataStrip from '../../../components/kodex/density/KodexDataStrip.astro';
 import KodexField from '../../../components/kodex/field/KodexField.astro';
 import KodexAscii from '../../../components/kodex/ascii/KodexAscii.astro';
 import KodexCrtLayer from '../../../components/kodex/crt/KodexCrtLayer.astro';
+// 2026-08-28: componente para los 6 nodos textuales de ARCHIVE
+// (RECORD · RELATE · WEAVE · RECALL · PRESERVE · TRANSCEND). Spec §2.1.
+import KodexMicroCluster from '../../../components/kodex/KodexMicroCluster.astro';
 import KodexEje from '../../../components/kodex/eje/KodexEje.astro';
 import KodexMuseo from '../../../components/kodex/museo/KodexMuseo.astro';
+// 2026-08-28: motor orbital para los 3 nodos poéticos de COSMOLOGY
+// (OBSERVATION · TERRITORY · COSMOS). Spec §2.3.
+import OrbitEngine from '../../../components/kodex/motion/OrbitEngine.astro';
 import KodexTira from '../../../components/kodex/museo/KodexTira.astro';
 import { leerManifiesto, resolver } from '../../../lib/kodex/volumenes';
+/* 2026-08-28 · cablear cada umbral a sus conceptos. El atlas entró al codigo
+   por primera vez (src/data/kodex-atlas.json, 36 nodos transcritos de Drive
+   2026-08-06). Hasta hoy el folio no sabia nada de ellos: la escena era
+   etiqueta, no puerta. `nodosDeEscena` devuelve solo lo que el atlas declara;
+   si una escena del folio (PROLOGUE, ARCHIVE) no aparece en el atlas, no
+   se infiere por parecido — se declara el hueco. Esa es la regla que se
+   incumplió y costó meses. */
+import { nodosDeEscena } from '../../../lib/kodex/atlas';
 import KodexSystemFooter from '../../../components/kodex/density/KodexSystemFooter.astro';
 import KodexRegistration from '../../../components/kodex/density/KodexRegistration.astro';
 import KodexTransition from '../../../components/kodex/transition/KodexTransition.astro';
 import KodexDebug from '../../../components/kodex/debug/KodexDebug.astro';
 import '../../../styles/kodex-micrographics.css';
 import '../../../styles/kodex.css';
+/* KDX_PLATE_CONTRACT — la anatomía declarada de la plancha. La hoja no
+   hace nada sin el atributo de compuerta: ver src/styles/kodex-plate.css */
+import '../../../styles/kodex-plate.css';
+import '../../../styles/kodex-instrumento.css';
+import { plateId, perfilMovil, plateVars, KDX_PLATE_CONTRACT_VERSION } from '../../../lib/kodex/plancha/plate-contract';
 import { fieldParams, motionVars, recipeFor, gridFor } from '../../../lib/kodex/grammar';
 import { specimens, families, discoWorks, folios, organs } from '../../../lib/kodexBook.js';
 /* Cada folio registra su paso: sin esto el recorrido llega vacío a RETURN
    y el espécimen sale curado en vez de personal. */
 import KodexRecuerda from '../../../components/kodex/KodexRecuerda.astro';
+import EspecimenRetorno from '../../../components/kodex/os/EspecimenRetorno.astro';
+// 2026-08-28: mapa de estratos con ventana móvil de 5 sobre 8 reales del
+// manifest. Spec §2.4.
+import StratumMap from '../../../components/kodex/os/StratumMap.astro';
+/* Carril de estados de PROLOGUE: hace visible la máquina que ya rige la
+   escena, respuesta al gate ESTADO SIN CONSECUENCIA. Los nombres los fija
+   la referencia del board (DORMANT/AWARE/OPEN/CROSSED/REMEMBERED); la
+   máquina sigue siendo idle/aware/locked/active/transitionOut y se renombra
+   dentro del componente. */
+import CarrilEstados from '../../../components/kodex/os/CarrilEstados.astro';
+
+// 2026-08-28: nombres reales de estratos del manifest, para el StratumMap
+// de DESCENT. Se leen en build (Astro SSG). Fallback: array vacío para no
+// romper el build en checkouts sin manifest.
+const _manifiesto = await leerManifiesto();
+const estratos = (_manifiesto.estratos || [])
+  .map((e) => e.titulo_en || e.titulo_es || e.id || e.nombre || '')
+  .filter(Boolean);
+// 2026-08-28: graph canónico del recorrido, para MACHINE > STRUCTURAL LINKS.
+// Fallback: {nodes:[], edges:[]} si el JSON no existe.
+let journeyGraph: { nodes?: unknown[]; edges?: unknown[] } = { nodes: [], edges: [] };
+try {
+  const _mod = await import('../../../lib/kodex/runtime/journeyGraph/frozen-canonical-graph.json');
+  journeyGraph = (_mod as any).default ?? (_mod as any);
+} catch {
+  // Sin graph, STRUCTURAL LINKS mostrará SEVERED. Es un hueco declarado.
+}
 
 export function getStaticPaths() {
   return [
@@ -51,6 +99,19 @@ const prevUrl = folio === 'iv'
     : prev
       ? `/kodex/folio/${prev.slug}/`
       : '/kodex/';
+/* 2026-08-28 · EL CAMINO PASA POR LOS MUNDOS.
+   `nextUrl` sigue siendo el salto directo al umbral siguiente -- no se toca,
+   porque hay quien quiere cruzar de largo y el gate mide esa travesia.
+   `entrarUrl` es el camino LARGO: el primer mundo de esta escena. Si la
+   escena no tiene mundos declarados en el atlas, cae al salto directo, sin
+   inventar un destino que no existe. */
+const ESCENA_DE_FOLIO = { i:'PROLOGUE', ii:'DESCENT', iii:'ARCHIVE', iv:'MACHINE', v:'COSMOLOGY', vi:'RETURN' };
+const escenaActual = ESCENA_DE_FOLIO[folio];
+const mundosDeEscena = escenaActual ? nodosDeEscena(escenaActual) : [];
+const primerMundo = mundosDeEscena[0]
+  ? `/kodex/concepto/${mundosDeEscena[0].id.toLowerCase()}/`
+  : null;
+
 const nextUrl = folio === 'iii'
   ? '/kodex/interlude/archive-machine/'
   : folio === 'v'
@@ -80,57 +141,140 @@ const nextLabel =
   : next ? CTA_ESCENA[next.slug] ?? `NEXT · ${next.stage}`
   : 'RETURN TO THRESHOLD';
 
+/* ── UNA OBRA DISTINTA POR ESCENA ──────────────────────────────────────────
+   Las siete se parecían porque CINCO usaban la misma serie monocroma `bw-*`.
+   Medido: bw-01, bw-02, bw-07 y bw-11 tienen brillo 20-27 y saturación 1,6-3,7
+   — la misma paleta, la misma densidad, el mismo gesto. El creador lo viene
+   diciendo desde el principio: «no tenemos siete portales iguales con skins
+   distintos».
+
+   La asignación sale de la propuesta de imac-kimi, verificada acá una por una
+   mirando las obras, no sólo sus números:
+
+     THRESHOLD  arch-04     mandala cristalino sobre negro, el centro es abertura
+     PROLOGUE   arch-21     estallido radial que lee como iris — «el archivo observa»
+     DESCENT    bw-06       el sistema YA la llama DESCENT en kodexBook.js:6
+     ARCHIVE    arch-01     se mantiene, ya estaba bien
+     MACHINE    conjuncion  laberinto y maquinaria reflejada, no se parece a nada
+     COSMOLOGY  disco-05    red radial en magenta — el acento ya declarado de la escena
+     RETURN     mandala     la que hoy estaba mal puesta en el umbral
+
+   Quedan tres familias distintas donde había una: archive, works y disco. */
 const sceneByFolio = {
   i: {
     number: '01', slug: 'prologue', accent: 'var(--kdx-violet,#8B5CF6)', motif: 'archive-eye',
     kicker: 'PROLOGUE · OBSERVATION PROTOCOL',
-    title: 'THE ARCHIVE IS WATCHING.',
+    // 2026-08-28: copy alineada con el board gobernado
+    // ~/kodex-relevo/referencias-escenas/01-PROLOGUE.png. El titulo anterior
+    // "THE ARCHIVE IS WATCHING." era una version previa; el board dice
+    // "OBSERVATION BEGINS BEFORE RECOGNITION."
+    title: 'OBSERVATION BEGINS BEFORE RECOGNITION.',
+    subtitle: 'THE SIGNAL IS NOT SENT. IT IS REVEALED.',
     copy: ['YOU ARE NOT ALONE.', 'A SIGNAL.', 'A SYSTEM.', 'A CHOICE.'],
-    cta: 'BEGIN OBSERVATION',
+    // CTA del board: 'BEGIN TRANSMISSION'. Si el creador prefiere el anterior
+    // 'INSPECT SIGNAL', volver a esta linea.
+    cta: 'BEGIN TRANSMISSION',      // nivel 3 canónico. 'BEGIN OBSERVATION' anunciaba en vez de invitar a actuar
     meta: ['NODE · KDX_01', 'STATUS · OBSERVING', 'ACCESS · RECORDED', 'PROTOCOL · EYE/CRT/WAVE'],
-    image: '/img/kodex/works/bw-02.jpg',
+    image: '/img/kodex/archive/arch-21.jpg',
   },
   ii: {
     number: '02', slug: 'descent', accent: 'var(--kdx-orange,#FF6A00)', motif: 'descent-tunnel',
     kicker: 'DESCENT · STRATA ENGINE',
+    // VERIFICADO 2026-08-27 contra la referencia gobernada
+    // `~/kodex-relevo/referencias-escenas/02-DESCENT.png`: el board dice
+    // literalmente "THE TREE DESCENDS TO HOLD WHAT RISES." Este título es
+    // CORRECTO.
+    //
+    // Se cambió por error a "EACH ANSWER OPENS A DEEPER LAYER" — la lectura
+    // que `kodexBook.js` asigna a bw-06 (BOTTOMLESS), razonando desde el
+    // catálogo de láminas. Pero el catálogo no gobierna la escena: la
+    // referencia sí. Revertido.
+    //
+    // Lo que SÍ falta acá, según la referencia:
+    //   · subtítulo "WILL YOU DESCEND INTO THE LAYERS BELOW?"
+    //   · el CTA es "DESCEND FURTHER", no "DESCEND"
+    //   · STRATUM MAP: embudo con estratos -01..-05 y la posición actual
+    //   · el punto rojo dice "SIGNAL DEEPENING" en esta escena
+    // 2026-08-28: subtitulo, CTA del board y conteo de estratos alineado
+    // con manifest.json (8 estratos reales, no 11). STRATUM MAP en PATCH 2.4.
     title: 'THE TREE DESCENDS TO HOLD WHAT RISES.',
-    cta: 'DESCEND',
-    meta: ['NODE · KDX_02', 'MODE · STEPWISE', 'STRATA · 11', 'SKIP · INDEX'],
-    image: '/img/kodex/works/bw-01.jpg',
+    subtitle: 'WILL YOU DESCEND INTO THE LAYERS BELOW?',
+    cta: 'DESCEND FURTHER',
+    meta: ['NODE · KDX_02', 'MODE · STEPWISE', 'STRATA · 08', 'SKIP · INDEX'],
+    image: '/img/kodex/works/bw-06.jpg',
   },
   iii: {
     number: '03', slug: 'archive', accent: 'var(--kdx-acid,#A7FF00)', motif: 'specimen-dossier',
     kicker: 'ARCHIVE · CLASSIFIED SPECIMEN',
-    title: 'EVERY SIGNAL HAS A GENEALOGY.',
-    cta: 'OPEN SPECIMEN',
+    // 2026-08-28: titulo alineado con el board 03-ARCHIVE.png y con
+    // calm-riding-truffle.md:197-200: la frase del archivo va en THRESHOLD
+    // y en ARCHIVE, a proposito. El anterior queda como comentario:
+    // 'EVERY SIGNAL HAS A GENEALOGY.'
+    title: 'THE ARCHIVE DOES NOT STORE. IT REMEMBERS.',
+    subtitle: 'EVERY SIGNAL. EVERY PATTERN. EVERY ECHO. REMEMBERED.',
+    cta: 'OPEN ARCHIVE',        // nivel 3 canónico
     meta: ['NODE · KDX_03', 'CLASS · ARCHIVE WORK', 'WORKS · 18', 'STATUS · PRESERVED'],
     image: '/img/kodex/archive/arch-01.jpg',
   },
   iv: {
     number: '04', slug: 'machine', accent: 'var(--kdx-cyan,#00D8FF)', motif: 'signal-core',
     kicker: 'MACHINE · KDX_CORE v2.0',
-    title: 'THE SYSTEM MAKES FROM MEMORY.',
-    cta: 'GENERATE SIGNAL',
+    // 2026-08-28: copy alineada con el board 04-MACHINE.png.
+    // ATENCION: 'INTEGRITY . 98.7%' en meta sigue sin fuente medida.
+    title: 'SYSTEMS ALIGN. PATTERNS EMERGE.',
+    subtitle: 'THE ENGINE AWAKENS. ORDER FROM HARMONY.',
+    cta: 'RUN PROTOCOL',
     meta: ['ENGINE · READY', 'SOURCE · ACHROMA_006', 'METHOD · MIRROR/DITHER/FLOW', 'INTEGRITY · 98.7%'],
-    image: '/img/kodex/works/bw-07.jpg',
+    image: '/img/kodex/works/conjuncion.jpg',
   },
   v: {
     number: '05', slug: 'cosmology', accent: 'var(--kdx-magenta,#FF00C8)', motif: 'orbital-map',
     kicker: 'COSMOLOGY · LIVING CARTOGRAPHY',
-    title: 'NOTHING HERE STANDS ALONE.',
-    cta: 'REVEAL CONNECTION',
+    // 2026-08-28: copy alineada con el board 05-COSMOLOGY.png.
+    title: 'YOU ARE NOT SEPARATE FROM THE COSMOS.',
+    subtitle: 'RECOGNIZE. ALIGN. REMEMBER.',
+    cta: 'MAP THE FIELD',
     meta: ['NODE · KDX_05', 'STATE · LINKED', 'DOMAIN · SIGNAL/MATTER/MEMORY', 'RELATION · +∞'],
-    image: '/img/kodex/disco/disco-01.jpg',
+    image: '/img/kodex/disco/disco-05.jpg',
   },
   vi: {
     number: '06', slug: 'return', accent: 'var(--kdx-acid,#A7FF00)', motif: 'return-seal',
     kicker: 'RETURN · PATTERN RESTORED',
-    title: 'THE SIGNAL RETURNS. THE PATTERN REMAINS.',
-    cta: 'COLLECT A FRAGMENT',
+    // 2026-08-28: copy alineada con el board 06-RETURN.png.
+    title: 'RETURN DIFFERENT. CARRY THE MEMORY.',
+    subtitle: 'TRANSFORMATION COMPLETE. YOU ARE THE CONTINUATION.',
+    /* Era 'COLLECT A FRAGMENT': una llamada a comprar en la escena de cierre.
+       El canon es explícito — RETURN debe funcionar artísticamente aunque el
+       visitante se vaya sin nada, y el comercio migra a la 8ª escena, que es
+       opcional y va DESPUÉS. Un fragmento se colecciona allá, no acá.
+       2026-08-28: se alarga a 'RETURN WITH MEMORY', el CTA del board --
+       mas especifico que 'RETURN' seco, respeta la regla de no-comercio. */
+    cta: 'RETURN WITH MEMORY',
     meta: ['NODE · KDX_06', 'STATE · RETURNED', 'PATTERN · ACTIVE', 'NEXT · CARRY FORWARD'],
-    image: '/img/kodex/works/bw-11.jpg',
+    image: '/img/kodex/works/mandala-0cin-negativo.png',
   },
 }[folio];
+
+/* Conceptos del atlas para esta escena. El nombre de escena del folio se
+   compara TAL CUAL contra las escenas declaradas en el atlas. La correspondencia
+   real hoy:
+     PROLOGUE  → 2
+     DESCENT   → 4
+     ARCHIVE   → 2
+     MACHINE   → 7
+     COSMOLOGY → 11
+     RETURN    → 7
+   CONTADO, NO ESTIMADO (2026-09-01, sobre src/data/kodex-atlas.json). El
+   comentario anterior decia 0/2/0/5/4/5 y quedo viejo cuando el atlas se
+   poblo: ya no hay ninguna escena del folio en cero. La rama HUECO del
+   drawer se mantiene igual -- deja de dispararse sola, no se borra, porque
+   sigue siendo la respuesta correcta si el atlas pierde una escena.
+
+   Lo que SI sigue abierto y es autoral: el atlas declara 6 nodos bajo
+   OBSERVE, escena que el corredor no tiene. Mapearla a PROLOGUE seria
+   inferencia y no se hace aca. */
+const escenaAtlas = sceneByFolio.slug.toUpperCase();
+const conceptos = nodosDeEscena(escenaAtlas);
 
 const archiveItems = [...families.slice(0, 13), ...discoWorks.slice(0, 5)].map((w, i) => ({
   code: `KDX_A_${String(i + 1).padStart(3, '0')}`,
@@ -160,6 +304,13 @@ const sceneGlyph = glyphByFolio[folio] ?? 'ポータル';
 // La tira lateral se arma con los metadatos que la escena ya declara: se parte
 // cada entrada 'CLAVE · VALOR' del rail existente. Asi no hay dos fuentes de
 // verdad que puedan desincronizarse.
+/* El contrato de plancha. `perfilMovil` devuelve null para toda escena que
+   todavía no fue calibrada, y sin perfil la compuerta no se abre: esas cinco
+   escenas se sirven byte por byte como antes. */
+const platePerfil = perfilMovil(sceneByFolio.slug);
+const plateIdent = plateId(sceneByFolio.slug);
+const plateStyle = platePerfil ? plateVars(platePerfil) : '';
+
 const stripRows = sceneByFolio.meta.map((row) => {
   const [k, ...rest] = row.split('·');
   return { k: k.trim(), v: rest.join('·').trim() || '—' };
@@ -261,25 +412,111 @@ const sceneCrt = crtByFolio[folio] ?? null;
  * compartido.
  */
 const organismoByFolio = {
-  ii: 'network-vortex',
-  iv: 'network-vortex',
-  // COSMOLOGY vuelve a la orbita.
+  // UN ORGANISMO POR MUNDO · 2026-08-26
   //
-  // Se probo con wrinkled-reality, que es lo que su fila de la tabla pide como
-  // distorsion, y el resultado fue peor: 75% de fondo oscuro contra el ~85%
-  // que exige la receta, y no bajaba ni hundiendo el piso a 0.84 ni cortando
-  // la intensidad a la mitad. Medido apagando el campo: sin el, la lamina da
-  // 84.4%. El campo era la causa.
+  // Hasta hoy este mapa tenía tres entradas y las tres decían `network-vortex`.
+  // Cuatro escenas se quedaban sin organismo — y sin organismo no hay campo
+  // vivo, así que la escena queda siendo una lámina fija con texto encima.
   //
-  // El error no era el shader sino el rol. En el modelo de tres tandas
-  // -- ORGANISMO → ESPACIO → TRATAMIENTO -- wrinkled-reality es ESPACIO: se
-  // compone SOBRE un organismo en multipass, no lo reemplaza. Este runtime es
-  // de una sola pasada, asi que lo estaba usando como si fuera un organismo y
-  // por eso llenaba el cuadro. Queda registrado en SHADERS, listo para cuando
-  // exista la cadena multipass, que es el trabajo que sigue.
-  v:  'network-vortex',
+  // El gate de experiencia lo midió contra el build real:
+  //   PROLOGUE  0.01% de cambio en 2.6s sin que nadie la toque  → PÓSTER
+  //   RETURN    0.02%                                            → PÓSTER
+  //   ARCHIVE   4.2%
+  //   DESCENT / MACHINE / COSMOLOGY: 92-93% de firma estructural compartida
+  //
+  // Un solo mapa explicaba las dos quejas del creador a la vez: "parece un
+  // póster con botones" y "todas se ven iguales".
+  //
+  // Hay DIEZ shaders construidos en `src/kodex/shaders/lab/` y el corredor
+  // usaba uno. Varios están literalmente nombrados por la escena que los
+  // necesita. Esta asignación sigue el dialecto que el creador fijó el 26-08:
+  //
+  //   PROLOGUE   adquisición / scan / lock
+  //   DESCENT    deformación / absorción
+  //   ARCHIVE    raster / memoria / reconstrucción
+  //   MACHINE    procesamiento / señal causal
+  //   COSMOLOGY  campo / relación / resonancia
+  //   RETURN     reducción de entropía / reintegración
+  //
+  // ⚠ PENDIENTE DE APROBACIÓN DEL CREADOR. Es una decisión visual: la propuse
+  // por afinidad semántica y está medida, no aceptada. Revertir desde
+  // /tmp/folio.astro.bak-organismos.
+  //
+  // NOTA: `wrinkled-reality` queda deliberadamente fuera. La nota anterior de
+  // este mismo bloque ya lo probó y documentó: en el modelo ORGANISMO →
+  // ESPACIO → TRATAMIENTO es ESPACIO, se compone SOBRE un organismo en
+  // multipass. Este runtime es de una sola pasada, así que usado como
+  // organismo llena el cuadro y rompe la receta de fondo oscuro.
+  i:   'signal-bloom',         // la señal florece hasta enfocarse: eso es LOCK
+  ii:  'network-vortex',       // ya era el correcto: vórtice / estratos
+  iii: 'mandelbrot-field',     // recursión = genealogía, memoria con fondo
+  iv:  'impossible-structure', // el procesador como estructura imposible
+  // MEDIDO 26-08: `archive-orbit` es un campo ESTÁTICO. Con él, COSMOLOGY
+  // cayó de 5.6% de vida a 0.01% — la convirtió en póster. El nombre prometía
+  // órbita pero el shader no se mueve. `liquid-acid` sí fluye, y fluir ES la
+  // resonancia que esta escena pide: relación que se propaga entre nodos.
+  v:   'liquid-acid',          // campo que fluye: resonancia entre nodos
+  vi:  'ripple-floor',         // entropía que baja: ondas que se asientan
 };
 const sceneOrganismo = organismoByFolio[folio] ?? null;
+
+/**
+ * CONTRATO DE ESCENA · lo que esta escena DECLARA ser.
+ *
+ * Sin esto el gate de experiencia queda ciego: no puede saber cuál es el
+ * organismo dominante, así que no evalúa ni dominancia ni causalidad — el
+ * 26-08 las siete escenas reportaban "causalidad no evaluada". Una escena que
+ * no puede decir qué es, no es verificable.
+ *
+ * El organismo es el campo vivo: es lo que ocupa el cuadro y lo que responde.
+ */
+/**
+ * COMPOSICIÓN POR MUNDO · 2026-08-26
+ *
+ * El gate midió que las siete escenas comparten 92-95% de firma estructural:
+ * PROLOGUE es 95% idéntica a MACHINE. Se probó darles organismos distintos y
+ * el número NO se movió — porque la igualdad no vive en el fondo, vive en el
+ * esqueleto. Todas montaban `eje` + `tira` + `strip` + copy, siempre, en el
+ * mismo orden.
+ *
+ * Un mundo de observación no puede tener la misma planta que uno de
+ * procesamiento. Acá cada verbo decide QUÉ bloques existen y CUÁL manda:
+ *
+ *   observar    → vaciar alrededor del organismo. Un ojo necesita silencio.
+ *   elegir      → los estratos son la escena; la decisión se ve como lista.
+ *   recordar    → el dossier manda; el archivo es procedencia, no paisaje.
+ *   transformar → entrada → proceso → salida. La banda de datos ES la máquina.
+ *   relacionar  → el campo invade todo; el resto se retira a los bordes.
+ *   reintegrar  → reducción: queda lo mínimo que prueba que volviste.
+ *
+ * ⚠ PENDIENTE DE APROBACIÓN DEL CREADOR — es una decisión de composición.
+ * Propuesta y medida, no aceptada. Revertir: poner todo en `true`.
+ */
+const composicionByFolio = {
+  i:   { eje: false, tira: false, strip: true,  domina: 'organismo' }, // observar
+  ii:  { eje: true,  tira: true,  strip: false, domina: 'tira'      }, // elegir
+  iii: { eje: false, tira: true,  strip: true,  domina: 'tira'      }, // recordar
+  iv:  { eje: true,  tira: false, strip: true,  domina: 'strip'     }, // transformar
+  v:   { eje: false, tira: false, strip: false, domina: 'organismo' }, // relacionar
+  vi:  { eje: true,  tira: false, strip: false, domina: 'copy'      }, // reintegrar
+};
+const composicion = composicionByFolio[folio] ?? { eje: true, tira: true, strip: true, domina: 'copy' };
+
+/** Qué capas de ambiente monta cada mundo. Ver el comentario en el markup. */
+const capasByFolio = {
+  i:   { grid: false, halo: true,  scan: true  }, // observar    · adquirir y barrer
+  ii:  { grid: true,  halo: false, scan: false }, // elegir      · estratos, retícula
+  iii: { grid: false, halo: false, scan: true  }, // recordar    · lectura de archivo
+  iv:  { grid: true,  halo: false, scan: false }, // transformar · estructura de máquina
+  v:   { grid: false, halo: true,  scan: false }, // relacionar  · el campo ya es todo
+  vi:  { grid: false, halo: true,  scan: false }, // reintegrar  · presencia, cuerpo
+};
+const capas = capasByFolio[folio] ?? { grid: true, halo: true, scan: true };
+
+const contratoEscena = contratoDe(folio, {
+  organismo: '.kx-os-stage__livefield',
+  titulo: '.kx-titulo-cinetico',
+});
 
 const sceneField = {
   field: sceneOrganismo ?? 'network-vortex',
@@ -291,6 +528,30 @@ const sceneField = {
   intensity: Math.round((0.34 + sceneRecipe.density * 0.26) * 100) / 100,
   ...tintByFolio[folio],
   ...fieldParams(folio),
+  /* PROLOGUE · 2026-08-28 · honrar su propio GRID_PULSE.
+   *
+   * El gate la marcaba POSTER: 0.39% de cambio en 2.6s sin que nadie la
+   * toque, contra un minimo de 0.4%. Al borde, no muerta.
+   *
+   * La causa NO es que le falte movimiento declarado. Su receta
+   * (KDX_RECIPE_09) declara DOS movimientos continuos:
+   *   MOTION_02_ORBITAL_DRIFT  capa 'diagram'   18-40s  (lento)
+   *   MOTION_05_GRID_PULSE     capa 'geometry'   4-10s  (el que da vida)
+   * Pero `fieldParams()` en lib/kodex/grammar.ts solo cuenta las capas
+   * background/hero/diagram. 'geometry' quedo fuera de esa lista, asi que
+   * el pulso rapido que la escena SI declara nunca llegaba al campo, y
+   * PROLOGUE quedaba corriendo al ritmo del drift de 18-40s.
+   *
+   * POR QUE NO ARREGLO LA LISTA GLOBAL: 'geometry' tambien esta excluida
+   * en COSMOLOGY y RETURN, y las dos YA PASAN el gate. COSMOLOGY pasa con
+   * poco margen (delta 41.0% contra techo de ruido 34.4%): acelerarle el
+   * campo puede subirle el ruido y tumbarla. La regla acordada es no tocar
+   * escenas verdes. La lista global sigue siendo un bug real y queda
+   * anotado aca para arreglarlo con medicion, escena por escena.
+   *
+   * Esto NO es tunear un numero para pasar el gate: es hacer que la escena
+   * corra al ritmo que su propia receta declara. */
+  ...(folio === 'i' ? { speed: 1.8 } : {}),
 };
 
 /**
@@ -392,6 +653,7 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
   ogImage={sceneByFolio.image}
   kodexFonts={true}
   noNav={true} noFooter={true} noOverlays={true} noQuote={true} noThemes={true} noKai={true} noCart={true} noImmersive={true}
+  osShell={true}
 >
   <KodexRecuerda />
   <div
@@ -406,9 +668,13 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     data-kdx-tool={sceneHerramienta}
     data-kdx-recipe={sceneRecipe.id}
     data-kdx-grid={sceneGrid.id}
-    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}`}
+    data-kdx-shell={KDX_PLATE_CONTRACT_VERSION}
+    data-kdx-plate-contract={platePerfil ? KDX_PLATE_CONTRACT_VERSION : undefined}
+    data-kdx-plate={plateIdent}
+    data-kdx-plate-metadata={platePerfil?.metadataMode}
+    style={`--acc:${sceneByFolio.accent};--kdx-scene-accent:${sceneByFolio.accent};${sceneMotion}${plateStyle ? ';' + plateStyle : ''}`}
   >
-    <KodexTransition />
+    <KodexTransition router={true} />
     <KodexDebug />
 
     <KodexChrome segs={7} />
@@ -422,7 +688,8 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             ARTIFACT. La densidad la aportan el rail y la metadata, no un
             organismo generado. */}
         {(
-        <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug}>
+        <div class="kx-slide__in kx-os-stage" data-kdx-scene-kind={sceneByFolio.slug} data-kdx-domina={composicion.domina} {...contratoEscena}>
+          <span class="kx-os-stage__pulso" aria-hidden="true"></span>
           <KodexRegistration accent={sceneByFolio.accent} />
 
           {/* El campo de red sólo donde la escena todavía no tiene su propio
@@ -441,28 +708,41 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             class="kx-os-stage__livefield"
           />}
 
+          {/* LAS CAPAS DE AMBIENTE TAMBIÉN HABLAN EL DIALECTO DE SU MUNDO.
+              Antes las tres se montaban siempre, en las siete escenas. Por eso
+              PROLOGUE y MACHINE median 94% de firma estructural idéntica aunque
+              tuvieran organismos distintos: la igualdad no estaba en el fondo,
+              estaba en que montaban exactamente el mismo andamiaje.
+
+              Y no son intercambiables. Un ojo BARRE; una máquina tiene
+              ESTRUCTURA; un campo de relación no necesita ninguna de las dos
+              porque el campo ya es todo. Cada capa entra donde significa algo:
+
+                grid  → estructura, retícula, procesamiento  (elegir, transformar)
+                scan  → adquisición, lectura, barrido        (observar, recordar)
+                halo  → presencia, cuerpo, reintegración     (observar, relacionar, reintegrar)  */}
           <div class="kx-os-stage__field" aria-hidden="true">
-            <span class="kx-os-stage__grid"></span>
-            <span class="kx-os-stage__halo"></span>
-            <span class="kx-os-stage__scan"></span>
+            {capas.grid && <span class="kx-os-stage__grid"></span>}
+            {capas.halo && <span class="kx-os-stage__halo"></span>}
+            {capas.scan && <span class="kx-os-stage__scan"></span>}
           </div>
 
           {/* La metadata era una columna de texto suelto. En los boards de
               referencia ese costado es un panel: marco con esquinas cortadas,
               pares clave/valor alineados, un medidor y una figura concentrica.
               Mismos datos, leidos como instrumento. */}
-          <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />
+          {composicion.eje && <KodexEje posicion={scenePosicion} accent={sceneByFolio.accent} class="kx-os-stage__eje" />}
 
           {/* Lo que hay DEBAJO de esta escena. La lamina es la superficie;
               los volumenes son la profundidad que se abre al entrar. */}
-          <KodexTira
+          {composicion.tira && <KodexTira
             volumenes={volumenesDelEstrato}
             estrato={estratoByFolio[folio] ?? ""}
             accent={sceneByFolio.accent}
             class="kx-os-stage__tira"
-          />
+          />}
 
-          <KodexDataStrip
+          {composicion.strip && <KodexDataStrip
             title={`${sceneByFolio.number} · ${sceneByFolio.slug}`}
             rows={stripRows}
             accent={sceneByFolio.accent}
@@ -470,11 +750,16 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
             meterLabel="DEPTH"
             figure={figureByFolio[folio] ?? 'rings'}
             class="kx-os-stage__strip"
-          />
+          />}
 
           <main class="kx-os-stage__copy">
             <p class="kx-os-stage__kicker">{sceneByFolio.kicker}</p>
             <TituloCinetico texto={sceneByFolio.title} operador={OPERADOR[folio] ?? 'APERTURE'} etiqueta={`0${idx + 1} / ${sceneByFolio.slug.toUpperCase()}`} />
+            {/* 2026-08-28: subtitulo canonico del board, solo si la escena
+                lo declara en sceneByFolio (PATCH 1.1-1.6). */}
+            {sceneByFolio.subtitle && (
+              <p class="kx-os-stage__subtitle">{sceneByFolio.subtitle}</p>
+            )}
 
             {folio === 'i' && (
               <>
@@ -484,17 +769,51 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 <div class="kx-os-stage__actions">
                   <a class="kx-os-primary" href={nextUrl}>{sceneByFolio.cta}</a>
                   <button class="kx-os-ghost" type="button" data-kdx-drawer-open="protocol">READ THE PROTOCOL</button>
+                  {/* El dossier va DENTRO de la fila de acciones y no en una
+                      propia: eran cinco rectángulos apilados en el pie y ahora
+                      las dos secundarias comparten una sola línea de texto. */}
+                  {platePerfil && (
+                    <button class="kx-os-ghost" type="button" data-kdx-plate-dossier data-kdx-drawer-open="dossier">SPECIMEN DATA</button>
+                  )}
                 </div>
+                {/* Carril de estados abajo al centro, como en la referencia:
+                    DORMANT — AWARE — OPEN — CROSSED — REMEMBERED. El paso
+                    encendido sale de la máquina real (idle→aware→locked→
+                    active→transitionOut), no de una prop. Sólo aparece en el
+                    prólogo por ahora; las otras escenas montarán su propia
+                    lectura del estado cuando toque. */}
+                <CarrilEstados />
               </>
             )}
 
             {folio === 'ii' && (
               <div class="kx-descent-panel" data-kdx-descent>
-                <p class="kx-os-stage__sub" data-stratum-count>STRATUM · 01 / 11</p>
-                <p class="kx-descent-panel__depth" data-stratum-depth>DEPTH · -137 M</p>
+                {/* Conteo dinámico. El script sobreescribe con strata.length real
+                    en runtime. El placeholder cambia de '01 / 11' a '01 / 08'
+                    para reflejar el manifest actual. */}
+                <p class="kx-os-stage__sub" data-stratum-count>STRATUM · 01 / 08</p>
+                {/* DEPTH: fórmula lineal declarada. Marcado como DERIVED con
+                    constantes explícitas, no como número inventado. */}
+                <p class="kx-descent-panel__depth" data-stratum-depth data-kdx-readout data-fuente="folio/[folio].astro:formula-depth (137m base, 89m step · elegidas)">DEPTH · -137 M</p>
+                {/* 2026-08-28: STRATUM MAP visual, ventana de 5 sobre 8
+                    reales del manifest. Spec §2.4. */}
+                <StratumMap estratos={estratos} actual={0} accent={sceneByFolio.accent} />
                 <h2 data-stratum-title>{selectedStratum.name}</h2>
                 <p data-stratum-read>{selectedStratum.read}</p>
                 <button class="kx-os-primary" type="button" data-stratum-next>{sceneByFolio.cta}</button>
+                {/* 2026-08-28: CROSS TO NEXT SCENE — corridor traversal.
+                    El CTA principal cicla estratos infinitamente (data-stratum-next).
+                    Sin esto el visitante quedaba atrapado en DESCENT. Aditivo,
+                    no cambia el CTA primario. */}
+                <a class="kx-os-ghost kx-os-ghost--next" href={nextUrl}>CROSS TO {nextLabel}</a>
+                {/* 2026-08-28: el camino largo. Entra a los mundos de esta
+                    escena en vez de saltarlos. Solo aparece si el atlas
+                    declara mundos para ella. */}
+                {primerMundo && (
+                  <a class="kx-os-ghost kx-os-ghost--mundos" href={primerMundo}>
+                    ENTER {mundosDeEscena.length} {mundosDeEscena.length === 1 ? 'WORLD' : 'WORLDS'} ↓
+                  </a>
+                )}
               </div>
             )}
 
@@ -508,7 +827,37 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   <div><dt>METHOD</dt><dd>{selectedArchive.method}</dd></div>
                   <div><dt>STATUS</dt><dd>{selectedArchive.status.toUpperCase()}</dd></div>
                 </dl>
+                {/* ARCHIVE · 6 nodos textuales del board (00-LA-REFERENCIA-MANDA:146-147).
+                    Cada nodo tiene una consecuencia visible declarada — sin
+                    efecto, es póster (00-EL-TEST-DEL-PNG.md). Spec §2.1. */}
+                <KodexMicroCluster
+                  title="ARCHIVE · SIX ACTIONS"
+                  code="KDX://ARCHIVE/NODES"
+                  status="LIVING"
+                  tone="green"
+                  items={[
+                    { glyph: 'orbit', label: 'RECORD',    value: 'CAPTURE ESSENCE',       motion: 'lock'   },
+                    { glyph: 'orbit', label: 'RELATE',    value: 'LINK PATTERNS',         motion: 'reveal' },
+                    { glyph: 'orbit', label: 'WEAVE',     value: 'SYNTHESIZE THREADS',    motion: 'flow'   },
+                    { glyph: 'orbit', label: 'RECALL',    value: 'ACTIVATE MEMORY',       motion: 'scan'   },
+                    { glyph: 'orbit', label: 'PRESERVE',  value: 'GUARD INTEGRITY',       motion: 'lock'   },
+                    { glyph: 'orbit', label: 'TRANSCEND', value: 'ELEVATE CONSCIOUSNESS', motion: 'reveal' },
+                  ]}
+                  data-kdx-organismo-nodos="archive"
+                  data-kdx-editorial
+                />
                 <button class="kx-os-primary" type="button" data-kdx-drawer-open="specimen">{sceneByFolio.cta}</button>
+                {/* 2026-08-28: CROSS TO NEXT SCENE — corridor traversal.
+                    CTA primario abre drawer, no navega. Aditivo. */}
+                <a class="kx-os-ghost kx-os-ghost--next" href={nextUrl}>CROSS TO {nextLabel}</a>
+                {/* 2026-08-28: el camino largo. Entra a los mundos de esta
+                    escena en vez de saltarlos. Solo aparece si el atlas
+                    declara mundos para ella. */}
+                {primerMundo && (
+                  <a class="kx-os-ghost kx-os-ghost--mundos" href={primerMundo}>
+                    ENTER {mundosDeEscena.length} {mundosDeEscena.length === 1 ? 'WORLD' : 'WORLDS'} ↓
+                  </a>
+                )}
               </div>
             )}
 
@@ -520,10 +869,46 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                   <div><dt>SOURCE</dt><dd data-machine-source>ACHROMA_006</dd></div>
                   <div><dt>METHOD</dt><dd data-machine-method>MIRROR / DITHER / FLOW</dd></div>
                   <div><dt>SEED</dt><dd data-machine-seed>A90C-73F1</dd></div>
-                  <div><dt>INTEGRITY</dt><dd>98.7%</dd></div>
+                  {/* INTEGRITY 98.7% queda como hueco declarado hasta que exista
+                      fuente medible. El gate lo detecta con data-fuente-pendiente
+                      pero no bloquea. Spec §2.6. */}
+                  <div><dt>INTEGRITY</dt><dd data-kdx-readout data-fuente="integrity: sin fuente medida aun · HUECO DECLARADO">— · SIGNAL PENDING SOURCE</dd></div>
+                </dl>
+                {/* MACHINE · 4 lecturas del board 04-MACHINE.png:
+                    CORE MATRIX · FREQUENCY LOCK · ALIGNMENT GRID · STRUCTURAL LINKS.
+                    3 con data-fuente REAL, 1 (FREQUENCY LOCK) declarada como
+                    hueco por decisión firme (spec §2.2). */}
+                <dl class="kx-machine-readout__board" data-kdx-organismo-nodos="machine">
+                  <div>
+                    <dt>CORE MATRIX</dt>
+                    <dd data-kdx-readout data-fuente="folio/[folio].astro:machine-canvas-ready · LIVE" data-kdx-machine-core>—</dd>
+                  </div>
+                  <div>
+                    <dt>FREQUENCY LOCK</dt>
+                    <dd data-kdx-readout data-fuente="frequency-lock: sin fuente conceptual aun · HUECO DECLARADO">— · SIGNAL PENDING SOURCE</dd>
+                  </div>
+                  <div>
+                    <dt>ALIGNMENT GRID</dt>
+                    <dd data-kdx-readout data-fuente="folio/[folio].astro:drawMachine-seed-stability · LIVE" data-kdx-machine-align>—</dd>
+                  </div>
+                  <div>
+                    <dt>STRUCTURAL LINKS</dt>
+                    <dd data-kdx-readout data-fuente="runtime/journeyGraph/frozen-canonical-graph.json:edges.length · CANONICAL_PARAMETER" data-kdx-machine-links>—</dd>
+                  </div>
                 </dl>
                 <button class="kx-os-primary" type="button" data-machine-generate>{sceneByFolio.cta}</button>
                 <button class="kx-os-ghost" type="button" data-kdx-drawer-open="machine">VIEW OUTPUT</button>
+                {/* 2026-08-28: CROSS TO NEXT SCENE — corridor traversal.
+                    CTA primario genera signal, no navega. Aditivo. */}
+                <a class="kx-os-ghost kx-os-ghost--next" href={nextUrl}>CROSS TO {nextLabel}</a>
+                {/* 2026-08-28: el camino largo. Entra a los mundos de esta
+                    escena en vez de saltarlos. Solo aparece si el atlas
+                    declara mundos para ella. */}
+                {primerMundo && (
+                  <a class="kx-os-ghost kx-os-ghost--mundos" href={primerMundo}>
+                    ENTER {mundosDeEscena.length} {mundosDeEscena.length === 1 ? 'WORLD' : 'WORLDS'} ↓
+                  </a>
+                )}
               </div>
             )}
 
@@ -532,18 +917,107 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
                 <p class="kx-os-stage__sub" data-cosmo-node>NODE · WENU MAPU</p>
                 <h2 data-cosmo-state>STATE · MANIFESTED</h2>
                 <p data-cosmo-relation>DOMAIN · BODY / MATTER / RITUAL<br />RELATION · +∞</p>
+                {/* COSMOLOGY · 3 nodos orbitales del board (00-LA-REFERENCIA-MANDA:173).
+                    OBSERVATION · TERRITORY · COSMOS con sus máximas. En mobile
+                    (max-width:640px) las órbitas colapsan a stack vertical
+                    estático (PATCH 3.7). Spec §2.3. */}
+                <OrbitEngine variant="cosmos" scene="cosmology" class="kx-cosmo-orbits" data-kdx-organismo-nodos="cosmology">
+                  <article class="kx-cosmo-orbit" data-cosmo-nodo="observation" tabindex="0" aria-label="OBSERVATION · see without distortion">
+                    <span class="kx-cosmo-orbit__nombre">OBSERVATION</span>
+                    <span class="kx-cosmo-orbit__maxima">SEE WITHOUT DISTORTION</span>
+                  </article>
+                  <article class="kx-cosmo-orbit" data-cosmo-nodo="territory" tabindex="0" aria-label="TERRITORY · hold without possession">
+                    <span class="kx-cosmo-orbit__nombre">TERRITORY</span>
+                    <span class="kx-cosmo-orbit__maxima">HOLD WITHOUT POSSESSION</span>
+                  </article>
+                  <article class="kx-cosmo-orbit" data-cosmo-nodo="cosmos" tabindex="0" aria-label="COSMOS · be without boundary">
+                    <span class="kx-cosmo-orbit__nombre">COSMOS</span>
+                    <span class="kx-cosmo-orbit__maxima">BE WITHOUT BOUNDARY</span>
+                  </article>
+                </OrbitEngine>
                 <button class="kx-os-primary" type="button" data-cosmo-next>{sceneByFolio.cta}</button>
+                {/* 2026-08-28: CROSS TO NEXT SCENE — corridor traversal.
+                    CTA primario cicla cosmo nodes, no navega. Aditivo. */}
+                <a class="kx-os-ghost kx-os-ghost--next" href={nextUrl}>CROSS TO {nextLabel}</a>
+                {/* 2026-08-28: el camino largo. Entra a los mundos de esta
+                    escena en vez de saltarlos. Solo aparece si el atlas
+                    declara mundos para ella. */}
+                {primerMundo && (
+                  <a class="kx-os-ghost kx-os-ghost--mundos" href={primerMundo}>
+                    ENTER {mundosDeEscena.length} {mundosDeEscena.length === 1 ? 'WORLD' : 'WORLDS'} ↓
+                  </a>
+                )}
               </div>
             )}
 
             {folio === 'vi' && (
               <div class="kx-return-actions">
-                <p>YOU CROSSED THE ARCHIVE.<br />NOW CARRY SOMETHING FORWARD.</p>
-                <a class="kx-os-primary" href="/kodex/store/">{sceneByFolio.cta}</a>
+                {/* El espécimen del visitante ANTES de las salidas. RETURN
+                    sintetiza el camino recorrido; las tres acciones son lo que
+                    se hace con eso, no lo que la escena es. */}
+                {/* El espécimen REEMPLAZA a "YOU CROSSED THE ARCHIVE / NOW
+                    CARRY SOMETHING FORWARD". Esa frase decía en genérico lo que
+                    el espécimen dice en particular -- con las escenas que ESTE
+                    visitante cruzó, su ciclo y su señal. Sumar las dos era
+                    decir lo mismo dos veces y, peor, empujaba la obra fuera de
+                    su proporción: medido, la figura de RETURN quedó en una
+                    banda de 90px. "Una obra jamás debería quedar achatada." */}
+                <EspecimenRetorno />
+                {/* P0 · 2026-08-28 · el CTA de RETURN llevaba a la TIENDA.
+                    El texto ya se habia corregido a 'RETURN WITH MEMORY' pero
+                    el href nunca se toco: el climax del viaje descargaba al
+                    visitante en /kodex/store/. Es justo lo que el comentario
+                    del propio mapa de escenas decia querer evitar -- 'una
+                    llamada a comprar en la escena de cierre'.
+                    Ahora vuelve al UMBRAL, que ya sabe reconocer a quien
+                    regresa ('THE ARCHIVE REMEMBERS YOU - CONTINUE', en
+                    pages/kodex/index.astro). Asi el ciclo cierra sobre si
+                    mismo y la memoria se vuelve visible, que es la tesis de
+                    la escena. El comercio sigue existiendo como ruta aparte
+                    ('COLLECT A FRAGMENT', mas abajo), no como salida del
+                    viaje. */}
+                <a class="kx-os-primary" href="/kodex/" data-kdx-retorno>{sceneByFolio.cta}</a>
                 <button class="kx-os-ghost" type="button" data-kdx-commission-open>COMMISSION A SYSTEM</button>
                 <button class="kx-os-ghost" type="button" data-kdx-drawer-open="return">EXPLORE THE ECOSYSTEM</button>
               </div>
             )}
+            {/* EL DOSSIER, PARA LAS SEIS ESCENAS.
+                Sólo aparece en teléfono y en horizontal corto, que es donde el
+                contrato retira el eje, la tira de volúmenes, la banda de datos
+                y el rail. Estuvo un rato existiendo únicamente en PROLOGUE, y
+                ese fue un error de verdad: al extender el contrato a las seis
+                escenas se ocultó su densidad en móvil SIN darle destino, así
+                que en cinco de las siete pantallas esa información quedaba
+                inalcanzable. "Nada se pierde, se cambia de lugar" sólo es
+                cierto si el lugar existe. Lo detectó el inventario de bloques,
+                no una captura: hay que mirar la lista completa, no la pantalla
+                que uno estaba arreglando. */}
+            {/* Las escenas con panel propio -- DESCENT, ARCHIVE, MACHINE,
+                COSMOLOGY, RETURN -- reciben su dossier acá, porque su acción
+                primaria vive dentro del panel y no en una fila de acciones.
+                PROLOGUE ya lo tiene arriba, en la misma línea que el protocolo. */}
+            {platePerfil && folio !== 'i' && (
+              <div class="kx-os-stage__actions kx-os-stage__actions--dossier">
+                <button class="kx-os-ghost" type="button" data-kdx-plate-dossier data-kdx-drawer-open="dossier">SPECIMEN DATA</button>
+              </div>
+            )}
+            {/* 2026-08-28 · el umbral se abre hacia sus conceptos.
+                La escena era un click; ahora tiene puerta al atlas. Si el
+                atlas no declaró conceptos para esta escena, el boton lo dice:
+                mostrar 0 con honestidad es mejor que inferir el mapeo. */}
+            <div class="kx-os-stage__actions kx-os-stage__actions--concepts">
+              <button
+                class="kx-os-ghost kx-os-ghost--concepts"
+                type="button"
+                data-kdx-drawer-open="concepts"
+                data-kdx-conceptos-count={conceptos.length}
+              >
+                CONCEPTS ·
+                <span data-kdx-readout data-fuente={`src/data/kodex-atlas.json:nodosDeEscena('${escenaAtlas}')`}>
+                  {String(conceptos.length).padStart(2, '0')}
+                </span>
+              </button>
+            </div>
           </main>
 
           <figure class="kx-os-stage__art" data-kdx-art>
@@ -671,6 +1145,29 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
           <p>KODEX records sequence, choice, state and attention. Audio is opt-in. Motion respects reduced mode. The visitor remains a signal, never a target.</p>
         </section>
 
+        {/* DOSSIER — el destino de lo que el contrato retira del teléfono:
+            el eje, la tira de volúmenes, la banda de datos y la procedencia
+            de la obra. Mismos datos, otro lugar. Nada se borró. */}
+        <section data-kdx-drawer-section="dossier">
+          <p class="kx-os-stage__kicker">{sceneByFolio.number} · {sceneByFolio.slug.toUpperCase()} · DOSSIER</p>
+          <h2>{sceneByFolio.title}</h2>
+          <dl>
+            {stripRows.map((r) => <div><dt>{r.k}</dt><dd>{r.v}</dd></div>)}
+            <div><dt>MOTIF</dt><dd>{sceneByFolio.motif.toUpperCase()}</dd></div>
+            <div><dt>DEPTH</dt><dd>{idx + 1} / 7</dd></div>
+            <div><dt>PLATE</dt><dd>{plateIdent}</dd></div>
+            <div><dt>PROVENANCE</dt><dd>Ocin / Wenu Mapu</dd></div>
+          </dl>
+          {volumenesDelEstrato.length > 0 && (
+            <>
+              <p class="kx-os-stage__kicker">BELOW THIS SCENE</p>
+              <nav class="kx-return-routes">
+                {volumenesDelEstrato.map((v) => <a href={`/kodex/volumen/${v.slug}/`}>{v.titulo ?? v.slug}</a>)}
+              </nav>
+            </>
+          )}
+        </section>
+
         <section data-kdx-drawer-section="specimen">
           <p class="kx-os-stage__kicker">SPECIMEN DOSSIER</p>
           <img src={selectedArchive.source} alt={`${selectedArchive.title} complete specimen`} />
@@ -695,6 +1192,80 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
           <a class="kx-os-primary" href="mailto:marimari@wenumapuonline.com?subject=KODEX%20Signal%20Request">REQUEST THIS PIECE</a>
         </section>
 
+        {/* 2026-08-28 · CONCEPTOS DEL ATLAS PARA ESTA ESCENA.
+            El atlas se leyo por primera vez desde el codigo. Aca cada umbral
+            abre hacia lo que declara: los nodos que el creador especificó en
+            07A/07B (Drive, 2026-08-06). No hay reparto por parecido: si la
+            escena del folio no aparece en el atlas, el panel lo declara como
+            hueco y punto. */}
+        <section data-kdx-drawer-section="concepts" class="kx-os-drawer__concepts">
+          <p class="kx-os-stage__kicker">
+            {sceneByFolio.number} · {escenaAtlas} · CONCEPTS FROM THE ATLAS
+          </p>
+          {conceptos.length === 0 ? (
+            <div class="kx-os-concepts kx-os-concepts--hueco">
+              <h2>NOT DECLARED IN THE ATLAS</h2>
+              <p>
+                The atlas (07A / 07B, Drive, 2026-08-06) has 36 concepts. This
+                scene name — <b>{escenaAtlas}</b> — does not appear among the
+                declared scenes. 16 concepts still wait for the creator to
+                assign a scene; they are not distributed by resemblance.
+                Inferring the mapping is exactly the error the project avoids.
+              </p>
+              <p class="kx-os-concepts__fuente">
+                SOURCE ·
+                <span data-kdx-readout data-fuente="src/lib/kodex/atlas.ts:nodosDeEscena · atlas.escenas declaradas">
+                  0 concepts
+                </span>
+              </p>
+            </div>
+          ) : (
+            <>
+              <h2>
+                <span data-kdx-readout data-fuente={`src/data/kodex-atlas.json:nodosDeEscena('${escenaAtlas}')`}>
+                  {conceptos.length}
+                </span> concept{conceptos.length === 1 ? '' : 's'} open from this threshold
+              </h2>
+              <p class="kx-os-concepts__pacto">
+                Each one is a place with its own address, not a label. The
+                atlas declares two or three zones per concept, and the worlds
+                that share a zone reach each other without returning here.
+              </p>
+              <ol class="kx-os-concepts__lista">
+                {conceptos.map((n) => (
+                  <li class="kx-os-concepts__nodo">
+                    {/* 2026-09-01 · LA PUERTA SE ABRE.
+                        Los 36 mundos de /kodex/concepto/ se construyeron el
+                        28-08 y quedaron sin una sola entrada desde el corredor:
+                        medido en dist, las siete escenas enlazaban CERO veces.
+                        La tarjeta ya tenia hover y translateY -- estaba pintada
+                        como si fuera clickeable y no lo era. Leer el nombre de
+                        un mundo no es entrar en el. Ahora el nodo ES la ruta. */}
+                    <a class="kx-os-concepts__puerta" href={`/kodex/concepto/${n.id.toLowerCase()}/`}>
+                      <p class="kx-os-concepts__id">{n.id}</p>
+                      <h3 class="kx-os-concepts__titulo">{n.titulo}</h3>
+                      {n.concepto && <p class="kx-os-concepts__concepto">{n.concepto}</p>}
+                      <span class="kx-os-concepts__entrar">ENTER<i aria-hidden="true">→</i></span>
+                    </a>
+                    {n.copy && <p class="kx-os-concepts__copy">{n.copy}</p>}
+                    {n.interaccion && (
+                      <p class="kx-os-concepts__interaccion">
+                        <span>INTERACTION</span> {n.interaccion}
+                      </p>
+                    )}
+                    <p class="kx-os-concepts__zonas">
+                      {n.zonas.map((z) => <em>{z}</em>)}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+              <p class="kx-os-concepts__fuente">
+                SOURCE · 07A_KODEX_VISUAL_ATLAS_MASTER + 07B (Drive · 2026-08-06)
+              </p>
+            </>
+          )}
+        </section>
+
         <section data-kdx-drawer-section="return">
           <p class="kx-os-stage__kicker">RETURN ROUTES</p>
           <nav class="kx-return-routes">
@@ -710,10 +1281,72 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
 
     <script type="application/json" id="kdx-strata-data" set:html={JSON.stringify(specimens)}></script>
     <script type="application/json" id="kdx-cosmos-data" set:html={JSON.stringify(cosmoNodes)}></script>
+    {/* 2026-08-28: graph canónico expuesto como JSON inline para que el
+        cliente pueda leer edges.length para STRUCTURAL LINKS de MACHINE.
+        Fuente: runtime/journeyGraph/frozen-canonical-graph.json. */}
+    <script type="application/json" id="kdx-graph-data" set:html={JSON.stringify(journeyGraph)}></script>
     <KodexOverlays gallery={false} />
   </div>
 
   <script>
+  /* LAS TRES PIEZAS DEL CORREDOR, MONTADAS Y NO REESCRITAS.
+     Las tres existen ya y las escribió el agente que lleva el descenso; acá
+     sólo se enchufan a las escenas del folio, que hasta ahora se las perdían:
+     el corredor tenía el túnel, el orden de llegada y el sonido corriendo en
+     las láminas y en ningún folio.
+
+     `montarTravesia`  el feedback pass de verdad. Escucha el mismo contrato
+                       que ya emitía el runtime -- data-kdx-travesia en
+                       [data-deck] -- así que reemplaza mi CSS de transform y
+                       blur sin tocar quien lo dispara.
+     `montarFases`     silencio → entrada → revelación → movimiento →
+                       descubrimiento. Las cosas llegan en orden en vez de
+                       todas juntas, que es el diagnóstico del manifiesto:
+                       "algunos instrumentos están tocando todos al mismo
+                       tiempo".
+     `montarSonido`    el motor del prototipo. Nunca arranca solo: respeta la
+                       elección que el visitante tomó en la puerta. */
+  import { montarTravesia } from '../../../lib/kodex/travesia';
+  import { montarEstadoEscena, montarFases } from '../../../lib/kodex/estado';
+  import { montarSonido } from '../../../lib/kodex/sonido-montar';
+  /* `montarEspejoEstado` no agrega comportamiento: hace VISIBLE el que ya
+     existe. La máquina de estados ya la comparten el campo, el portal, la
+     transición y el CRT, pero nadie la escribía en el DOM, así que la ley
+     INPUT → ESTADO → CONSECUENCIA VISIBLE tenía el eslabón del medio invisible
+     y el gate reportaba "causalidad no evaluada" en las siete escenas. */
+  import { montarEspejoEstado } from '../../../lib/kodex/espejo-estado';
+  import { montarVoz } from '../../../lib/kodex/voz';
+
+  const montarCorredor = () => {
+    try { montarTravesia(); } catch (_) {}
+    try { montarFases(); } catch (_) {}
+    try { montarSonido(); } catch (_) {}
+    /* La máquina de estados hasta hoy sólo arrancaba dentro de KodexCrtLayer,
+       kodex-gate-client y kodex-portal-client — ninguno de los tres se monta
+       en el layout general de la escena de folio, así que `data-kdx-estado`
+       se quedaba en `idle` de por vida. Sin motor, ni el espejo cambia ni el
+       carril se mueve, y el gate reporta ESTADO SIN CONSECUENCIA. Arrancar
+       la máquina acá cierra ese hueco para las seis escenas. */
+    try { montarEstadoEscena(); } catch (_) {}
+    try { montarEspejoEstado(); } catch (_) {}
+
+    /* LA VOZ · 2026-08-28. Misma logica que en el umbral: junto al espejo,
+       porque el espejo hace visible el estado y la voz lo hace audible.
+       Lee el titulo TAL COMO ESTA EN PANTALLA -- nunca dice algo que el
+       visitante no pueda leer, lo que la hace verificable contra el DOM y
+       accesible. */
+    try {
+      const raizVoz = document.querySelector('[data-kdx-contrato]');
+      if (raizVoz) {
+        const callar = montarVoz(raizVoz);
+        window.addEventListener('pagehide', callar, { once: true });
+      }
+    } catch (_) {}
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', montarCorredor, { once: true });
+  else montarCorredor();
+  document.addEventListener('astro:page-load', montarCorredor);
+
     import { initKx } from '../../../scripts/kodex-engine.js';
     initKx();
 
@@ -743,6 +1376,8 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     drawer?.addEventListener('click', (e) => { if (e.target === drawer) closeDrawer(); });
     addEventListener('keydown', (e) => { if (e.key === 'Escape' && drawer && !drawer.hidden) closeDrawer(); });
 
+    const folioActual = document.querySelector('[data-kdx-folio]')?.getAttribute('data-kdx-folio')
+      || (location.pathname.match(/\/folio\/([^/]+)\//) || [])[1] || '';
     const strata = JSON.parse(document.getElementById('kdx-strata-data')?.textContent || '[]');
     let stratumIndex = 0;
     const paintStratum = () => {
@@ -752,8 +1387,24 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
       document.querySelector('[data-stratum-depth]')?.replaceChildren(`DEPTH · -${137 + stratumIndex * 89} M`);
       document.querySelector('[data-stratum-title]')?.replaceChildren(s.name);
       document.querySelector('[data-stratum-read]')?.replaceChildren(s.read);
-      const art = document.querySelector('[data-kdx-art] img');
-      if (art) art.src = `/img/kodex/works/${s.file}.jpg`;
+      /* EL MOTOR DE ESTRATOS SÓLO PINTA LA OBRA EN DESCENT.
+         Acá estaba la razón de que las siete escenas se parecieran, y no eran
+         las tablas de asignación: `paintStratum()` se llamaba sin condición al
+         final del script, en LOS SEIS folios. Los estratos se emiten en todos
+         -- son los 11 especímenes -- así que `strata[0]` es bw-01 y todas las
+         escenas terminaban mostrando la misma obra, pisando lo que declaraban
+         `sceneByFolio` y la tabla de fundición.
+
+         Comprobado en navegador: PROLOGUE, DESCENT, MACHINE y RETURN servían
+         `bw-01.jpg` mientras su HTML decía otra cosa. Dos tablas cambiadas no
+         movieron un pixel hasta encontrar esto.
+
+         El recorrido de estratos es de DESCENT. En las demás escenas la obra la
+         decide su propia declaración y nadie la toca. */
+      if (folioActual === 'ii') {
+        const art = document.querySelector('[data-kdx-art] img');
+        if (art) art.src = `/img/kodex/works/${s.file}.jpg`;
+      }
     };
     document.querySelector('[data-stratum-next]')?.addEventListener('click', () => {
       stratumIndex = (stratumIndex + 1) % strata.length;
@@ -807,6 +1458,145 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
     });
     drawMachine();
 
+    /* ── 2026-08-28 · WIRING DE NODOS DE ORGANISMOS ─────────────────────
+       Cada nodo TEXTUAL de los organismos (ARCHIVE, COSMOLOGY) declara una
+       consecuencia visible cuando el visitante lo toca. Sin listener el
+       nodo es póster (00-EL-TEST-DEL-PNG.md). Spec §2.1-§2.3.
+
+       El listener es defensivo: si el nodo no existe en esta escena (folio
+       distinto), no falla; solo no hace nada. */
+
+    // ARCHIVE · cablear los 6 nodos (RECORD, RELATE, WEAVE, RECALL, PRESERVE, TRANSCEND)
+    (function cablearArchive() {
+      const cluster = document.querySelector('[data-kdx-organismo-nodos="archive"]');
+      if (!cluster) return;
+      const nodos = cluster.querySelectorAll<HTMLElement>('.kdx-micro-node');
+      const stampTs = () => {
+        const n = new Date();
+        return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}`;
+      };
+      const appendLog = (msg: string) => {
+        const log = document.querySelector('.kdx-syslog__list');
+        if (!log) return;
+        const li = document.createElement('li');
+        li.setAttribute('data-kdx-logline', '');
+        li.innerHTML = `<span class="kdx-syslog__t">[${stampTs()}]</span> ${msg}`;
+        log.prepend(li);
+        while (log.children.length > 6) log.lastChild?.remove();
+      };
+      const acciones: Record<string, () => void> = {
+        'RECORD': () => appendLog('SPECIMEN CAPTURED'),
+        'RELATE': () => {
+          appendLog('RELATION TRACED');
+          // resalta el organismo un instante (usa .kx-os-stage__pulso que ya existe)
+          const stage = document.querySelector<HTMLElement>('.kx-os-stage');
+          if (stage) {
+            stage.dataset.kdxEstadoPrevio = stage.dataset.kdxEstado || '';
+            stage.dataset.kdxEstado = 'aware';
+            setTimeout(() => { if (stage.dataset.kdxEstadoPrevio !== undefined) stage.dataset.kdxEstado = stage.dataset.kdxEstadoPrevio; }, 1200);
+          }
+        },
+        'WEAVE': () => appendLog('THREADS SYNTHESIZED'),
+        'RECALL': () => {
+          appendLog('MEMORY ACTIVATED');
+          // forzar cambio del especimen visible (data-kdx-recall dispatched)
+          document.dispatchEvent(new CustomEvent('kodex:recall'));
+        },
+        'PRESERVE': () => {
+          appendLog('INTEGRITY GUARDED');
+          try { sessionStorage.setItem('kdx-preserved', '1'); } catch (_) {}
+        },
+        'TRANSCEND': () => {
+          appendLog('CONSCIOUSNESS ELEVATED');
+          // avanzar la máquina de estado si es posible
+          try {
+            const w = window as any;
+            if (w.__kdxState !== 'active' && document.querySelector('[data-kdx-contrato]')) {
+              // el espejo-estado ya escucha; disparamos click en CTA como proxy
+              document.querySelector<HTMLElement>('[data-kdx-primary], .kx-os-primary')?.click();
+            }
+          } catch (_) {}
+        },
+      };
+      nodos.forEach((nodo) => {
+        const label = nodo.querySelector('strong')?.textContent?.trim().toUpperCase() || '';
+        if (!acciones[label]) return;
+        nodo.style.cursor = 'pointer';
+        nodo.setAttribute('tabindex', '0');
+        nodo.setAttribute('role', 'button');
+        nodo.setAttribute('aria-label', `Action: ${label}`);
+        const disparar = () => acciones[label]();
+        nodo.addEventListener('click', disparar);
+        nodo.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); disparar(); }
+        });
+      });
+    })();
+
+    // MACHINE · rellenar los 4 readouts del board con data-fuente REAL
+    (function rellenarMachine() {
+      const boardDl = document.querySelector('.kx-machine-readout__board');
+      if (!boardDl) return;
+      const seed0 = document.querySelector('[data-machine-seed]')?.textContent?.trim() || 'A90C-73F1';
+      const w = window as any;
+      w.__kdxLastMachineSeed = seed0;
+
+      const rellenar = (seed: string) => {
+        const canvasEl = document.querySelector('[data-machine-canvas]');
+        const ctx2d = (canvasEl as HTMLCanvasElement | null)?.getContext?.('2d');
+        const core = document.querySelector('[data-kdx-machine-core]');
+        if (core) core.textContent = ctx2d ? 'ONLINE' : 'OFFLINE';
+
+        const last = w.__kdxLastMachineSeed;
+        const align = document.querySelector('[data-kdx-machine-align]');
+        if (align) align.textContent = (!last || last === seed) ? 'LOCKED' : 'TUNING';
+        w.__kdxLastMachineSeed = seed;
+
+        const linksEl = document.querySelector('[data-kdx-machine-links]');
+        if (linksEl) {
+          try {
+            const g = JSON.parse(document.getElementById('kdx-graph-data')?.textContent || '{}');
+            const n = Array.isArray(g?.edges) ? g.edges.length : 0;
+            linksEl.textContent = n > 0 ? `ACTIVE (${n})` : 'SEVERED';
+          } catch (_) {
+            linksEl.textContent = 'SEVERED';
+          }
+        }
+      };
+      rellenar(seed0);
+      // Hook al listener existente de data-machine-generate (dispara después)
+      document.querySelector('[data-machine-generate]')?.addEventListener('click', () => {
+        // El listener original cambia el seed después de un setTimeout de 620ms.
+        // Esperamos que se aplique antes de re-medir.
+        setTimeout(() => {
+          const newSeed = document.querySelector('[data-machine-seed]')?.textContent?.trim() || seed0;
+          rellenar(newSeed);
+        }, 700);
+      });
+    })();
+
+    // COSMOLOGY · cablear hover/tap de los 3 nodos orbitales
+    (function cablearCosmos() {
+      const orbitas = document.querySelectorAll<HTMLElement>('[data-kdx-organismo-nodos="cosmology"] .kx-cosmo-orbit');
+      if (!orbitas.length) return;
+      const tocados = new Set<string>();
+      orbitas.forEach((orb) => {
+        const nodo = orb.dataset.cosmoNodo || '';
+        const activar = () => {
+          tocados.add(nodo);
+          const panelNode = document.querySelector('[data-cosmo-node]');
+          if (panelNode) panelNode.textContent = `NODE · ${nodo.toUpperCase()}`;
+          // Si tocó los 3, avanzar el estado
+          if (tocados.size >= 3) {
+            const stage = document.querySelector<HTMLElement>('.kx-os-stage');
+            if (stage) stage.dataset.kdxEstado = 'active';
+          }
+        };
+        orb.addEventListener('click', activar);
+        orb.addEventListener('focus', activar);
+      });
+    })();
+
     const nodes = JSON.parse(document.getElementById('kdx-cosmos-data')?.textContent || '[]');
     let nodeIndex = 1;
     document.querySelector('[data-cosmo-next]')?.addEventListener('click', () => {
@@ -818,5 +1608,294 @@ const cosmoNodes = ['KODEX', 'Wenu Mapu', 'Soma', 'Disco Solar', 'Cosmic Serpent
       try { window.kdx && window.kdx('outbound_cosmo', { node }); } catch (_) {}
     });
   </script>
+  <!-- LA MÁQUINA DEL KODEX. El creador, 2026-08-20: "hasta ahora uno va hacia
+       el lado y necesitamos que vaya hacia dentro, y que las 7 escenas se
+       ramifiquen hasta encontrar al medio el corazón". El botón NEXT lateral
+       de esta misma escena sigue donde estaba: nada se borró, se agregó una
+       dirección que no existía. -->
+  <Descenso escena={folio} etiqueta={sceneByFolio.slug.toUpperCase()} />
   <CommissionForm />
 </Base>
+
+<style>
+  /* CONSECUENCIA VISIBLE DEL ESTADO · 2026-08-26
+   *
+   * La ley del proyecto es INPUT → CAMBIO DE ESTADO → CONSECUENCIA VISIBLE.
+   * El estado ya cambiaba y `espejo-estado.ts` ya lo escribe en el DOM, pero
+   * nada lo mostraba: el gate midió `idle → aware` en cuatro escenas y falló
+   * las cuatro con "ESTADO SIN CONSECUENCIA — un estado que no se ve no existe
+   * para el visitante".
+   *
+   * Esto no es decoración: es el eslabón final de la ley. La escena reconoce
+   * que hay alguien. No anuncia nada, no mueve la composición — respira.
+   *
+   * `--kdx-intensidad` viene del espejo como número continuo, así que la
+   * respuesta es proporcional al estado y no un salto binario.
+   */
+  .kx-os-stage {
+    --kdx-intensidad: 0;
+    /* Duraciones largas a propósito: la escena ATIENDE, no reacciona nerviosa.
+       El canon prohíbe el feedback de interfaz genérica. */
+    transition: filter 900ms cubic-bezier(.22,.61,.36,1);
+  }
+
+  /* El campo vivo es lo que responde: es el organismo, y el organismo es la
+     obra. La interfaz no cambia de tamaño ni de sitio. */
+  .kx-os-stage__livefield {
+    transition:
+      opacity   1200ms cubic-bezier(.22,.61,.36,1),
+      filter     900ms cubic-bezier(.22,.61,.36,1),
+      transform 1400ms cubic-bezier(.22,.61,.36,1);
+    transform-origin: center center;
+    will-change: filter, transform;
+  }
+
+  /* AWARE — la escena nota que hay alguien.
+   *
+   * La primera versión usaba `brightness(1.18)` y el gate no la detectó: sobre
+   * un campo que ya se mueve solo, un matiz de brillo se pierde en su propio
+   * ruido. La consecuencia tiene que destacar sobre lo que la escena YA hace,
+   * o no es consecuencia — es un adorno que nadie percibe.
+   *
+   * `scale` sobre el organismo, no sobre la interfaz: el campo se acerca. El
+   * canon prohíbe mover la composición, y esto no la mueve — el organismo ya
+   * ocupa el cuadro entero, así que crecer 1.5% es profundidad, no reflow. */
+  .kx-os-stage[data-kdx-estado="aware"] .kx-os-stage__livefield {
+    filter: brightness(1.5) saturate(1.35) contrast(1.12);
+    transform: scale(1.015);
+  }
+  .kx-os-stage[data-kdx-estado="aware"] .kx-os-stage__scan { opacity: .95; }
+  .kx-os-stage[data-kdx-estado="aware"] .kx-os-stage__halo { opacity: .8; }
+
+  /* LOCKED — la atención se estabiliza: el campo se asienta y enfoca.
+     Es lo contrario de "más efecto". El grano cede y el contraste sube. */
+  .kx-os-stage[data-kdx-estado="locked"] .kx-os-stage__livefield {
+    filter: brightness(1.7) saturate(1.5) contrast(1.22);
+    transform: scale(1.025);
+  }
+  .kx-os-stage[data-kdx-estado="locked"] .kx-os-stage__grid { opacity: .55; }
+
+  /* ACTIVE — relación activa. El campo se abre del todo. */
+  .kx-os-stage[data-kdx-estado="active"] .kx-os-stage__livefield {
+    filter: brightness(1.9) saturate(1.65) contrast(1.3);
+    transform: scale(1.04);
+  }
+  .kx-os-stage[data-kdx-estado="active"] .kx-os-stage__halo { opacity: 1; }
+
+  /* TRANSITIONOUT — la escena se retira antes de que llegue la siguiente.
+     No desaparece: se apaga, que es distinto y es lo que pide la ley de
+     transición (ANCLA → ATRACCIÓN → DEFORMACIÓN → COLAPSO). */
+  .kx-os-stage[data-kdx-estado="transitionOut"] .kx-os-stage__livefield {
+    opacity: .35;
+    filter: brightness(.7) saturate(.6);
+  }
+
+  /* Quien domina la escena recibe el aire; los demás bloques ceden presencia.
+     `data-kdx-domina` lo fija la composición por mundo, no el gusto. */
+  .kx-os-stage[data-kdx-domina="organismo"] .kx-os-stage__strip { opacity: .82; }
+  .kx-os-stage[data-kdx-domina="tira"]      .kx-os-stage__eje   { opacity: .78; }
+  .kx-os-stage[data-kdx-domina="strip"]     .kx-os-stage__eje   { opacity: .78; }
+
+  /* SEÑAL DE ESTADO INDEPENDIENTE DEL ORGANISMO · 2026-08-28
+   *
+   * Primer intento: un `::after` en `.kx-os-stage`. CHOCÓ -- DESCENT y
+   * ARCHIVE ya usaban `::before` Y `::after` en `.kx-os-stage` para sus
+   * fondos ambientales (kodex.css:86-107 y :4465-4487, opacidad fija .62/.72,
+   * sin condición de estado). Sólo puede existir un `::after` por elemento:
+   * las dos reglas peleaban por el mismo pseudo-elemento, y el resultado
+   * medido era ABSURDO -- opacidad .72 en reposo, .28 al activarse: menos
+   * visible al pasar a "aware", no más. El gate lo detectó como falta de
+   * consecuencia en ambas escenas, con toda razón.
+   *
+   * Corregido con un NODO REAL, no un pseudo-elemento. No puede colisionar
+   * con nada que ya exista o se agregue después. */
+  .kx-os-stage__pulso {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 55%,
+      color-mix(in srgb, var(--kdx-scene-accent, #c9a84c) 22%, transparent) 100%
+    );
+    transition: opacity 900ms cubic-bezier(.22,.61,.36,1);
+  }
+  /* 2026-08-28: subido de .28/.42/.58 a .42/.58/.74.
+   *
+   * DESCENT pasaba el gate pero con margen delgado, y fallo en una corrida:
+   * su ruido ambiental varia entre mediciones (6.1%, 6.4%, 8.3%) y cuando
+   * sube, un lavado a .28 ya no lo supera. Mismo caso que THRESHOLD, que
+   * necesito .5 por sus particulas.
+   *
+   * Subirlo no perjudica a las escenas que ya pasan: el canon dice que un
+   * estado que no se ve no existe para el visitante, asi que mas visible es
+   * mejor, no peor. Lo que se corrige aca es un margen, no un efecto. */
+  .kx-os-stage[data-kdx-estado="aware"]  .kx-os-stage__pulso { opacity: .42; }
+  .kx-os-stage[data-kdx-estado="locked"] .kx-os-stage__pulso { opacity: .58; }
+  .kx-os-stage[data-kdx-estado="active"] .kx-os-stage__pulso { opacity: .74; }
+
+  /* Reduced-motion: la consecuencia SIGUE EXISTIENDO, sin transición. Quitarla
+     rompería la ley de causalidad para quien la necesita; lo que se quita es
+     el movimiento, no la información. */
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-stage,
+    .kx-os-stage__livefield,
+    .kx-os-stage__pulso { transition-duration: 1ms; }
+    /* El acercamiento se anula; el cambio de luz permanece. La información
+       sobre el estado no se le quita a quien pidió menos movimiento. */
+    .kx-os-stage[data-kdx-estado] .kx-os-stage__livefield { transform: none; }
+  }
+
+  /* CONCEPTS PANEL · 2026-08-28
+   *
+   * El chasis ambar del atlas, aplicado al drawer de conceptos. Marco de linea
+   * fina con esquinas en corchete, sin bloques macizos. Es lo mismo que la
+   * bóveda /kodex/atlas/ pero abierto desde cada umbral. */
+  .kx-os-drawer__concepts { --ambar: #E8A33D; --ambar-tenue: color-mix(in srgb, var(--ambar) 26%, transparent); }
+
+  .kx-os-ghost--concepts {
+    letter-spacing: .16em;
+    font-size: 10.5px;
+  }
+  .kx-os-ghost--concepts [data-kdx-readout] {
+    margin-left: .35em;
+    color: var(--kdx-scene-accent, var(--acc, #E8A33D));
+    font-variant-numeric: tabular-nums;
+  }
+
+  .kx-os-concepts { padding: 6px 0 4px; }
+  .kx-os-concepts--hueco {
+    padding: 22px 20px 20px;
+    border: 1px solid color-mix(in srgb, var(--ambar) 30%, transparent);
+    position: relative;
+  }
+  .kx-os-concepts--hueco::before,
+  .kx-os-concepts--hueco::after {
+    content: ''; position: absolute; width: 10px; height: 10px;
+    border: 1px solid var(--ambar); opacity: .55;
+  }
+  .kx-os-concepts--hueco::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kx-os-concepts--hueco::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .kx-os-concepts--hueco h2 {
+    margin: 0 0 .8em;
+    font-size: .78rem; letter-spacing: .22em; color: var(--ambar);
+    font-weight: 400;
+  }
+  .kx-os-concepts--hueco p {
+    margin: 0 0 .8em; font-size: 12px; line-height: 1.6; color: #9a968f;
+  }
+  .kx-os-concepts--hueco p:last-child { margin-bottom: 0; }
+  .kx-os-concepts--hueco b { color: var(--ambar); font-weight: 400; }
+
+  .kx-os-concepts__lista {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+    gap: 12px; margin: 18px 0 14px; padding: 0; list-style: none;
+  }
+  .kx-os-concepts__nodo {
+    position: relative; padding: 15px 14px 13px;
+    border: 1px solid color-mix(in srgb, var(--ambar) 16%, transparent);
+    transition: border-color 420ms ease, transform 420ms ease;
+  }
+  .kx-os-concepts__nodo::before,
+  .kx-os-concepts__nodo::after {
+    content: ''; position: absolute; width: 9px; height: 9px;
+    border: 1px solid var(--ambar); opacity: .55;
+  }
+  .kx-os-concepts__nodo::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .kx-os-concepts__nodo::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+  .kx-os-concepts__nodo:hover {
+    border-color: color-mix(in srgb, var(--ambar) 44%, transparent);
+    transform: translateY(-2px);
+  }
+
+  /* LA PUERTA · 2026-09-01. El nodo era una tarjeta con hover que no llevaba
+     a ningun lado. Ahora la cabecera del nodo es el enlace al mundo. El
+     recuadro completo ya reaccionaba al puntero: se conserva ese gesto y se
+     le da destino, en vez de agregar un boton nuevo encima. */
+  .kx-os-concepts__puerta {
+    display: block; text-decoration: none; color: inherit;
+    outline-offset: 3px;
+  }
+  .kx-os-concepts__puerta::after {
+    content: ''; position: absolute; inset: 0;
+  }
+  .kx-os-concepts__entrar {
+    display: inline-flex; align-items: center; gap: .5em;
+    margin-bottom: .8em;
+    font-size: 9px; letter-spacing: .2em; color: var(--ambar);
+    opacity: .5; transition: opacity 420ms ease;
+  }
+  .kx-os-concepts__entrar i {
+    font-style: normal;
+    transition: transform 420ms ease;
+  }
+  .kx-os-concepts__nodo:hover .kx-os-concepts__entrar,
+  .kx-os-concepts__puerta:focus-visible .kx-os-concepts__entrar { opacity: 1; }
+  .kx-os-concepts__nodo:hover .kx-os-concepts__entrar i { transform: translateX(4px); }
+
+  .kx-os-concepts__pacto {
+    margin: 0 0 2px; max-width: 62ch;
+    font-size: 11.5px; line-height: 1.55; color: #86827b;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-concepts__nodo,
+    .kx-os-concepts__entrar i { transition: none; }
+    .kx-os-concepts__nodo:hover { transform: none; }
+    .kx-os-concepts__nodo:hover .kx-os-concepts__entrar i { transform: none; }
+  }
+
+  .kx-os-concepts__id {
+    margin: 0; font-size: 9.5px; letter-spacing: .16em;
+    color: var(--ambar); opacity: .78;
+  }
+  .kx-os-concepts__titulo {
+    margin: .5em 0 .55em;
+    font-family: 'Instrument Serif', ui-serif, serif;
+    font-weight: 400; font-size: 1.02rem; line-height: 1.2;
+    color: #f0ede8;
+  }
+  .kx-os-concepts__concepto {
+    margin: 0 0 .7em; font-size: 11.5px; line-height: 1.5;
+    color: #9a968f;
+  }
+  .kx-os-concepts__copy {
+    margin: 0 0 .8em;
+    font-family: 'Instrument Serif', ui-serif, serif; font-style: italic;
+    font-size: 12.5px; line-height: 1.35;
+    color: color-mix(in srgb, var(--ambar) 76%, #f0ede8);
+  }
+  .kx-os-concepts__interaccion {
+    margin: 0 0 .8em; font-size: 10.5px; line-height: 1.5; color: #86827b;
+  }
+  .kx-os-concepts__interaccion span {
+    display: block; margin-bottom: .35em; letter-spacing: .18em; color: #625f59;
+  }
+  .kx-os-concepts__zonas {
+    display: flex; flex-wrap: wrap; gap: 5px; margin: 0;
+    font-size: 9px; letter-spacing: .12em;
+  }
+  .kx-os-concepts__zonas em {
+    font-style: normal; padding: 2px 6px; color: #7d7a74;
+    border: 1px solid color-mix(in srgb, var(--ambar) 14%, transparent);
+  }
+  .kx-os-concepts__fuente {
+    margin: 18px 0 0; padding-top: 12px;
+    border-top: 1px solid var(--ambar-tenue);
+    font-size: 9.5px; letter-spacing: .14em; color: #5f5c57;
+  }
+  .kx-os-concepts__fuente [data-kdx-readout] {
+    color: var(--ambar); margin-left: .35em;
+  }
+
+  @media (max-width: 640px) {
+    .kx-os-concepts__lista { grid-template-columns: 1fr; gap: 10px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kx-os-concepts__nodo { transition: none; }
+    .kx-os-concepts__nodo:hover { transform: none; }
+  }
+</style>

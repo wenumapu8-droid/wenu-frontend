@@ -72,6 +72,20 @@ describe("Journey memory bridge", () => {
     assert.deepEqual(events, []);
   });
 
+  it("discards incoming wall-clock timing and persists semantic order only", () => {
+    const events = interactionToJourneyEvents(
+      interaction({ createdAt: 987654321 }),
+      createInitialJourneyState(),
+    );
+    assert.equal(events[0]?.at, 0);
+
+    const organismEvents = organismActionToJourneyEvents(
+      organism({ createdAt: 123456789 }),
+      createInitialJourneyState(),
+    );
+    assert.deepEqual(organismEvents.map((event) => event.at), [0, 1]);
+  });
+
   it("deduplicates declared organism memory writes within one action", () => {
     const events = organismActionToJourneyEvents(organism(), createInitialJourneyState());
     assert.deepEqual(events.map((event) => event.detail), ["opened", "observed"]);
@@ -83,11 +97,13 @@ describe("Journey memory bridge", () => {
     const storage = new MemoryStorage();
     const bridge = createKodexJourneyMemoryBridge(target, storage);
 
-    target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, interaction()));
+    target.dispatchEvent(eventWithDetail(KODEX_INTERACTION_EVENT, interaction({ createdAt: 999999 })));
 
     assert.deepEqual(bridge.getState().committedActions, ["remember"]);
     const persisted = JSON.parse(storage.getItem(KODEX_JOURNEY_STORAGE_KEY) ?? "{}") as SerializedJourneyState;
     assert.deepEqual(persisted.committedActions, ["remember"]);
+    assert.equal(persisted.trace[0]?.at, 0);
+    assert.equal("createdAt" in (persisted.trace[0] as object), false);
   });
 
   it("replaying the same semantic event identity does not double-write memory", () => {

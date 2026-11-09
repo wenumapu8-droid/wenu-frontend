@@ -101,7 +101,19 @@ const marcas = [
 
   .kdx-eje__marcas {
     position: relative;
-    height: 34px;
+    /* Alto MÍNIMO, no fijo.
+       Decía `height:34px` y cada marca apila tres líneas -- signo, nombre y
+       nota -- que suman unos 46. La tercera se derramaba fuera de la caja y
+       aterrizaba sobre el rótulo de fase de abajo. Abajo de 860px no se veía
+       porque la nota está oculta ahí; arriba de 860px sí, y el detector de
+       superposiciones lo midió en 49% de área compartida entre "profundidad
+       sin límite conocido" y "EXCAVATION · E00". */
+    /* 30px alcanzan cuando la nota está oculta -- signo y nombre, dos líneas.
+       Subirlo a 46 en todos lados hacía lo contrario de lo buscado: medido,
+       RETURN en 390px pasó de 19 superposiciones a 22, porque la caja crecía
+       16px sin contenido que la justificara y empujaba lo de abajo. El alto
+       acompaña a lo que hay dentro, y lo que hay dentro cambia con el corte. */
+    min-height: 30px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -114,16 +126,32 @@ const marcas = [
     gap: 1px;
     /* Los extremos se alinean hacia adentro para no cortarse contra el borde. */
     transform: translateX(calc(var(--en) * -100%));
-    white-space: nowrap;
+    /* Las marcas viven en 0%, 50% y 100% de un eje que no siempre es ancho.
+       Con `white-space:nowrap` la nota más larga -- "una forma, muchas
+       manifestaciones" -- estiraba su marca hasta cruzarse ENTERA con la
+       vecina: 100% de superposición entre "−∞" y "+∞" medido en RETURN a
+       1440px. Un tercio del eje por marca, y la nota envuelve. */
+    max-width: 32%;
+    white-space: normal;
   }
+  .kdx-eje__marcas li:nth-child(2) { text-align: center; }
+  .kdx-eje__marcas li:last-child { text-align: right; }
   .kdx-eje__marcas b { font-size: 12px; color: rgba(232, 229, 222, 0.78); font-weight: 500; }
-  .kdx-eje__marcas small { font-size: 8px; letter-spacing: 0.1em; text-transform: none; opacity: 0.5; }
+  .kdx-eje__marcas small { font-size: 8px; letter-spacing: 0.1em; text-transform: none; opacity: 0.5; line-height: 1.25; }
   .kdx-eje__marcas li[data-activa] b { color: var(--kdx-eje-accent); }
   .kdx-eje__marcas li[data-activa] span { color: rgba(232, 229, 222, 0.9); }
 
   .kdx-eje__fase { margin: 0; color: var(--kdx-eje-accent); }
 
+  @media (min-width: 861px) {
+    /* Acá SÍ aparece la tercera línea, y acá es donde hace falta el alto. */
+    .kdx-eje__marcas { min-height: 46px; }
+  }
+
   @media (max-width: 860px) {
     .kdx-eje__marcas small { display: none; }
+    /* Sin nota, la marca no necesita un tercio del eje y angostarla de más
+       obliga a envolver el nombre en dos líneas. */
+    .kdx-eje__marcas li { max-width: 46%; }
   }
 </style>

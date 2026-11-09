@@ -103,15 +103,19 @@ export function initKx() {
   const decode=root.querySelector('[data-decode]');
   let signalOn=false;
   try { signalOn = sessionStorage.getItem('kx-signal') === '1'; } catch (e) {}
-  const setSignal=(on)=>{
+  const setSignal=(on,{persistir=true}={})=>{
     signalOn=on; window.__kxSignal=on;
-    try { sessionStorage.setItem('kx-signal', on ? '1' : '0'); } catch (e) {}
+    /* No se escribe al montar. Antes `setSignal(signalOn)` guardaba el mismo
+       valor que acababa de leer, y eso contaba como escritura pasiva: abrir el
+       umbral y no tocar nada ya dejaba huella. Se escribe cuando el visitante
+       cambia la señal, que es cuando hay algo que recordar. */
+    if (persistir) { try { sessionStorage.setItem('kx-signal', on ? '1' : '0'); } catch (e) {} }
     btn?.setAttribute('aria-pressed',String(on));
     root.classList.toggle('kx--signal', on);
     if(lab) lab.textContent=on?'SIGNAL · ACTIVE':'SIGNAL · LATENT';
     if(decode) decode.textContent=on?'DECODING · Ω′ = R[ W( Γ( O( Δ(Ω) ) ) ) ]':'';
   };
-  setSignal(signalOn); // the key travels with you across the folios
+  setSignal(signalOn, { persistir:false }); // the key travels with you across the folios
   btn?.addEventListener('click',()=>setSignal(!signalOn));
   addEventListener('keydown',(e)=>{ if(e.key==='s'||e.key==='S'){ if(document.activeElement===document.body||!document.activeElement) setSignal(!signalOn); } });
 
@@ -192,7 +196,17 @@ export function initKx() {
          completa y correcta.
          El ritual es un adorno; llegar a la escena siguiente no lo es. Si en
          1,2 s no navego, navegamos nosotros. */
-      setTimeout(() => { if (location.href === desde) location.href = url; }, 1200);
+      /* El salvavidas se mantiene, pero ya no puede matar una navegacion que
+         SI esta ocurriendo. Con el router de vistas la barra de direcciones
+         cambia recien al final del intercambio, asi que comparar `location`
+         no alcanza: a los 1,2 s el ritual estaba trabajando y el salvavidas
+         lo atropellaba con una recarga entera -- perdiendo justamente el
+         cromo persistente que el intercambio venia a conservar.
+         Ahora se pregunta primero si hay viaje en curso, y se deja un tope
+         duro por si el viaje tampoco termina nunca. */
+      const forzar = () => { if (location.href === desde) location.href = url; };
+      setTimeout(() => { if (!window.__kdxNavegando) forzar(); }, 1200);
+      setTimeout(forzar, 4000);
       return;
     }
     root.style.transition = 'opacity .55s ease'; root.style.opacity = '0';
@@ -221,7 +235,13 @@ export function initKx() {
       if (syncHash) {
         const anchor = slides[cur]?.id;
         const currentOverlayHash = location.hash === '#index' || location.hash === '#artifact';
-        if (root.hasAttribute('data-sync-deck-hash') && !currentOverlayHash) {
+        /* Nada de tocar la barra de direcciones antes de que el visitante
+           elija. Regla del creador: "sin URL/history mutation antes de
+           elección explícita". Medido: abrir el umbral y no hacer nada ya
+           llamaba a `replaceState`. Cambiar la URL de alguien que todavía no
+           decidió nada es escribir en su historial sin permiso. */
+        const esperandoEleccion = document.documentElement.hasAttribute('data-kdx-espera-eleccion');
+        if (root.hasAttribute('data-sync-deck-hash') && !currentOverlayHash && !esperandoEleccion) {
           const nextHash = anchor && anchor !== 'threshold' ? `#${anchor}` : '';
           history.replaceState(null, '', `${location.pathname}${location.search}${nextHash}`);
         }

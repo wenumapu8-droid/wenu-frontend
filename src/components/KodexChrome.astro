@@ -10,20 +10,42 @@ const scene = findSceneByPath(Astro.url.pathname);
 const total = String(kdxScenes.length).padStart(2, '0');
 const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '/kodex';
 ---
-<!-- TUNNEL — flight through the −∞ → 0 → +∞ corridor, behind everything -->
-<canvas class="kx-tunnel" data-tunnel aria-hidden="true"></canvas>
+<!-- TUNNEL — flight through the −∞ → 0 → +∞ corridor, behind everything.
+     `transition:persist`: con el router montado este canvas NO se reconstruye
+     al cambiar de escena. Antes cada NEXT lo destruía y lo volvía a crear, y
+     el vuelo por el corredor volvía a empezar desde cero en cada lámina --
+     que es justo lo contrario de atravesar un corredor. Lo mismo vale para el
+     CRT y el grano: son la superficie del instrumento, no de la página. -->
+<canvas class="kx-tunnel" data-tunnel aria-hidden="true" transition:persist="kdx-tunnel"></canvas>
 
 <!-- global CRT / cockpit overlays -->
-<div class="kx-crt" aria-hidden="true"></div>
-<div class="kx-grain" aria-hidden="true"></div>
-<div class="kx-cursor" data-cursor aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div class="kx-crt" aria-hidden="true" transition:persist="kdx-crt"></div>
+<div class="kx-grain" aria-hidden="true" transition:persist="kdx-grain"></div>
+<div class="kx-cursor" data-cursor aria-hidden="true" transition:persist="kdx-cursor"><i></i><i></i><i></i><i></i></div>
 
 <!-- astronomy / navigation HUD — which folio of the codex you're crossing -->
 {!isThreshold && (
   <aside class="kx-astro" data-astro data-kx-scene={scene.index} aria-hidden="true" style={`--kdx-scene-accent:${scene.accentHex}`}>
     <span class="kx-astro__stage"><b data-astro-stage>{scene.index} / {total}</b> <em data-astro-name>{scene.code}</em></span>
-    <span class="kx-astro__row">RA <span data-astro-ra>00h00m</span> · DEC <span data-astro-dec>+00°</span></span>
-    <span class="kx-astro__row">φ <span data-astro-phi>0.000</span> · <span data-astro-code>0x000</span></span>
+    {/* TRUTH PASS 2026-08-25 — RETIRADO: RA / DEC / φ / 0x.
+        Verificado contra la autoridad autoral de PROLOGUE, el tablero
+        «Observation Eye System Board — Violet» de Drive: la lámina NO tiene RA
+        ni DEC en ninguna parte. Lo que sí tiene son lecturas reales del sistema
+        óptico — AZIMUTH, ELEVATION, SIGNAL STR, NOISE, ZOOM, FOCUS, APERTURE —
+        y parámetros del organismo: SCAN SPEED 1.25, PULSE SPEED 2.40,
+        IRIS INNER 0.12.
+
+        Esas cuatro cifras eran utilería: nacían como `00h00m` / `+00°` /
+        `0.000` / `0x000` y un script las rellenaba con valores que no miden
+        nada. Un archivo que promete observar y muestra telemetría inventada,
+        miente — y no se puede inaugurar la Golden Scene con instrumentos de
+        atrezzo.
+
+        NO se reemplazan por otras cifras «más fieles a la lámina»: eso sería
+        cambiar utilería por utilería mejor disfrazada. Las lecturas reales ya
+        viven donde corresponde, dentro de la escena, derivadas del puntero y
+        del estado: PROLOGUE las expone en su inspector. El cromo se queda con
+        lo único que sí sabe de verdad — en qué folio del códice vas. */}
   </aside>
 )}
 
@@ -91,7 +113,7 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
       </button>
     )}
     <button class="kx-signal" data-signal aria-pressed="false">
-      <span class="kx-signal__dot"></span><span data-signal-label>SIGNAL · LATENT</span>
+      <span class="kx-signal__dot"></span><span data-signal-label data-kdx-signal-live>SIGNAL · LATENT</span>
     </button>
     {isThreshold && <button type="button" class="kx-status__index" data-kdx-index-open aria-label="open codex index">INDEX</button>}
   </span>
@@ -100,3 +122,43 @@ const isThreshold = Astro.url.pathname === '/kodex/' || Astro.url.pathname === '
 {/* La barra de sistema: ⌘K, atajos y modos de visualizacion en TODAS las
     paginas del codice. Un instrumento se opera desde cualquier pantalla. */}
 <BarraOS />
+
+<script>
+  /* COPY COHERENCE — el cromo decia «SIGNAL · LATENT» mientras el ojo de la
+     escena estaba en LOCK. Medido: ojo=LOCK / shell=LATENT en el mismo cuadro.
+     Un instrumento que contradice a su propio organismo es peor que uno mudo.
+
+     No se inventa un estado nuevo para el shell: escucha el de la escena. Si no
+     hay escena con estado —el resto del corredor todavia no lo expone— se queda
+     en LATENT, que ahi si es verdad. */
+  const etiqueta = document.querySelector("[data-kdx-signal-live]");
+  if (etiqueta) {
+    const NOMBRE = {
+      DORMANT: "LATENT", IDLE: "LATENT", AWARE: "ACQUIRING",
+      LOCK: "LOCKED", TRACK: "TRACKING", INSPECT: "READING", DESCEND: "DESCENDING",
+    };
+    const pintar = () => {
+      const e = document.querySelector("[data-kdx-obs]")?.getAttribute("data-kdx-obs");
+      etiqueta.textContent = "SIGNAL · " + (NOMBRE[e] || "LATENT");
+    };
+    /* La escena escribe `data-kdx-obs` cuando su maquina arranca, y eso pasa
+       DESPUES de este script: buscarlo aca dejaba el observador sin nodo y la
+       etiqueta congelada en LATENT para siempre. Se espera a que aparezca. */
+    const enganchar = (escena) => {
+      pintar();
+      new MutationObserver(pintar).observe(escena, { attributes: true, attributeFilter: ["data-kdx-obs"] });
+    };
+    const ya = document.querySelector("[data-kdx-obs]");
+    if (ya) enganchar(ya);
+    else {
+      const espera = new MutationObserver(() => {
+        const e = document.querySelector("[data-kdx-obs]");
+        if (e) { espera.disconnect(); enganchar(e); }
+      });
+      espera.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["data-kdx-obs"] });
+      /* Si en 8s no aparecio ninguna escena con estado, se deja de esperar: el
+         resto del corredor todavia no expone el suyo y LATENT ahi es verdad. */
+      setTimeout(() => espera.disconnect(), 8000);
+    }
+  }
+</script>
