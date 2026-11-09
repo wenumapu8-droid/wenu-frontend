@@ -38,3 +38,12 @@ test('verified events gate narratives and memory claims',()=>{
  assert.equal(validEchoEvent({domain:'scene',type:'return-recorded',id:'Y',observed:true,evidence:{curated:true,works:['/kodex/']}}),false);
  assert.equal(validEchoEvent({domain:'scene',type:'return-recorded',id:'Y',observed:true,evidence:{curated:false,works:['/kodex/']}}),true);
 });
+
+import { ALPHABET_SLOTS,CITY_SLOTS,coverageReport } from '../src/lib/kodex/echo/coverage.mjs';
+test('reserved atlas slots are not mistaken for approved content',()=>{
+ assert.equal(ALPHABET_SLOTS.length,25);
+ assert.equal(CITY_SLOTS.length,46);
+ assert.equal(ALPHABET_SLOTS.find(n=>n.id==='M')?.role,'HEART / OPTIONAL');
+ assert.equal(CITY_SLOTS.filter(c=>c.conceptPlateStatus==='PENDING_IN_ATLAS').length,5);
+ assert.equal(coverageReport().cityNarrativesApproved,0);
+});
