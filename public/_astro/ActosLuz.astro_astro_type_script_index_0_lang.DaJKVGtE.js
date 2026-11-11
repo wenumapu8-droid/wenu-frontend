@@ -1,0 +1,1 @@
+import{r as c,a as i}from"./motion.ra7nsztv.js";const d=Array.from(document.querySelectorAll("[data-acto]"));let o=null;const n=c();for(const t of d){const a=t.dataset.acto,e=t.querySelector("[data-act]");if(e){const r=t.getBoundingClientRect().top>window.innerHeight;e.dataset.act=!n&&r&&o&&o!==a?o:a,n||i(t,a,{alEntrar:!0,destino:e})}o=a}

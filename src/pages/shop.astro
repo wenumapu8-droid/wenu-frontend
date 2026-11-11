@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import ProductCard from '../components/ProductCard.astro';
 import CategoryStrip from '../components/CategoryStrip.astro';
 import { getProducts, getCategories, localizeCategory } from '../lib/woo';
+import { shopFilterTabs } from '../lib/shopFilters.mjs';
 import { STORE_BASE_URL } from '../lib/config';
 import en from '../i18n/en.json';
 
@@ -18,21 +19,10 @@ const ritualCatPrefix: Record<string, string> = {
   'labret': 'WÜN',
 };
 
-// Localize and de-duplicate categories: many Spanish slugs map to the same
-// English label (e.g. "anillos" + "rings" → "Rings"), keep only one tab.
-const localizedCategories = (() => {
-  const seen = new Set<string>();
-  const out: Array<{ slug: string; name: string }> = [];
-  for (const c of categories) {
-    const en = localizeCategory(c);
-    const key = en.toLowerCase();
-    if (/uncategorized|sin-categorizar/i.test(c.slug) || /uncategorized/i.test(key)) continue;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push({ slug: c.slug, name: en });
-  }
-  return out;
-})();
+// One tab per jewelry type. Merges same English label and the known duplicate
+// pairs (Hanger + Hangers / Weights, septum + septum-en). Drops KODEX.
+// Aliases keep /shop?cat=<old slug> working. See src/lib/shopFilters.mjs.
+const localizedCategories = shopFilterTabs(categories, localizeCategory);
 
 const shopDescription = 'Curated catalogue of handcrafted body jewelry in titanium, silver, wood, stone and bronze. Real pieces, photographed and released from Truckee.';
 
@@ -149,7 +139,7 @@ const breadcrumbLd = {
             const slug = cat.slug.toLowerCase();
             const ritual = Object.keys(ritualCatPrefix).find(k => slug.includes(k));
             return (
-              <button class="filter-tab" data-cat={cat.slug}>
+              <button class="filter-tab" data-cat={cat.slug} data-cat-aliases={cat.aliases}>
                 {ritual ? `${ritualCatPrefix[ritual]} · ` : ''}{cat.name}
               </button>
             );
@@ -283,6 +273,10 @@ const breadcrumbLd = {
     bar.querySelectorAll<HTMLButtonElement>('.filter-tab').forEach(b => {
       b.classList.toggle('active', (b.dataset.cat || 'all') === cat);
     });
+    const aliases = (
+      bar.querySelector<HTMLButtonElement>(`.filter-tab[data-cat="${CSS.escape(cat)}"]`)?.dataset.catAliases
+      || cat
+    ).toLowerCase().split(/\s+/).filter(Boolean);
     grid.querySelectorAll<HTMLElement>('.product-card, .archive-card').forEach(card => {
       if (cat === 'all') {
         card.style.display = '';
@@ -290,7 +284,7 @@ const breadcrumbLd = {
       }
       // Exact slug match — split the list so "ring" no longer matches "earrings".
       const cats = (card.dataset.cats || '').toLowerCase().split(/[\s,]+/).filter(Boolean);
-      card.style.display = cats.includes(cat.toLowerCase()) ? '' : 'none';
+      card.style.display = aliases.some(alias => cats.includes(alias)) ? '' : 'none';
     });
   }
 
@@ -298,7 +292,7 @@ const breadcrumbLd = {
     if (!bar) return 'all';
     const q = query.toLowerCase();
     const tabs = Array.from(bar.querySelectorAll<HTMLButtonElement>('.filter-tab'));
-    const exact = tabs.find(t => (t.dataset.cat || '') === q);
+    const exact = tabs.find(t => (t.dataset.cat || '') === q || (t.dataset.catAliases || '').split(/\s+/).includes(q));
     if (exact) return exact.dataset.cat || 'all';
     const fuzzy = tabs.find(t => {
       const c = (t.dataset.cat || '').toLowerCase();
