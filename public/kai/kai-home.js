@@ -24,10 +24,12 @@
  *   it — see the "Secret entrance" block below — or if you type /kai directly.
  *
  * THE OTHER SECRET (the runner)
- *   In the SEARCH modal only, a plain tap on Kai starts his mini-game, right
- *   there under the field (lazy — /kai/kai-run.js; see the runner block at the
- *   bottom of this file). Same sprite, two secrets, no collision: a TAP runs,
- *   a HOLD goes home. Nothing on screen mentions either one.
+ *   In a SEARCH only, a plain tap on Kai starts his mini-game, right there
+ *   under the field (lazy — /kai/kai-run.js; see the runner block at the
+ *   bottom of this file). Two searches count: the site-wide #search-modal,
+ *   and the cinematic home's sky search ([data-c-buscar]). Same sprite, two
+ *   secrets, no collision: a TAP runs, a HOLD goes home. Nothing on screen
+ *   mentions either one.
  *
  * COST
  *   Zero until someone actually visits Kai: the stylesheet is injected lazily
@@ -77,7 +79,7 @@
   var MOVE_TOL = 12;     // px of drift that cancels a hold (a scroll is not a press)
   var TAPS_NEEDED = 5;
   var TAP_GAP_MS = 600;  // slower than this between taps and the count restarts
-  var SPRITE_SEL = '#navkd-kai-canvas, #search-kai-canvas, #wmcart-kai-canvas, #gracias-kai-canvas';
+  var SPRITE_SEL = '#navkd-kai-canvas, #search-kai-canvas, #c-buscar-kai-canvas, #wmcart-kai-canvas, #gracias-kai-canvas';
 
   /* Pet uses 'pet' (celebra + hearts). See SPRITES note above. */
   var PET_POSE = 'pet';
@@ -99,6 +101,7 @@
       find: null,    // last piece Kai found while exploring
       acts: {},      // action id -> timestamp (cooldowns)
       notes: [],     // little log shown in the room
+      purchaseIds: [], // thank-you keys already rewarded — a reload must not stack
       lastVisit: 0,
       lastTick: 0,
       lastToast: 0
@@ -117,6 +120,7 @@
     if (!Array.isArray(s.seen)) s.seen = [];
     if (!Array.isArray(s.kept)) s.kept = [];
     if (!Array.isArray(s.notes)) s.notes = [];
+    if (!Array.isArray(s.purchaseIds)) s.purchaseIds = [];
     if (typeof s.rewards !== 'object' || !s.rewards) s.rewards = {};
     if (typeof s.acts !== 'object' || !s.acts) s.acts = {};
     return s;
@@ -453,8 +457,50 @@
     save(s);
   }
 
+  /* /gracias?type=&id= is the payment return. The same URL reloads, and it
+     used to pay the feather, the xp and the bond on every reload. Each order
+     id is remembered inside wmKai (purchaseIds). A reload of one already
+     paid — including a save from before this field existed, which already
+     holds the feather — records the page and stops. A later order is a new
+     navigation with a different id, so it still grants once. No id at all
+     cannot tell two orders apart, so the feather is paid at most once. */
+  function purchaseKey() {
+    var id = '';
+    var type = '';
+    try {
+      var q = new URLSearchParams(window.location.search);
+      id = q.get('id') || '';
+      type = q.get('type') || '';
+    } catch (e) { /* one bucket is safer than paying twice */ }
+    return (type || 'order') + ':' + id;
+  }
+
+  function navIsReload() {
+    try {
+      var list = performance.getEntriesByType('navigation');
+      return !!(list && list[0] && list[0].type === 'reload');
+    } catch (e) { return false; }
+  }
+
+  function rememberPurchase(s, key) {
+    if (!Array.isArray(s.purchaseIds)) s.purchaseIds = [];
+    if (s.purchaseIds.indexOf(key) >= 0) return;
+    s.purchaseIds.push(key);
+    if (s.purchaseIds.length > 24) s.purchaseIds = s.purchaseIds.slice(-24);
+  }
+
   function onPurchase() {
     var s = decay(load());
+    var key = purchaseKey();
+    if (s.purchaseIds.indexOf(key) >= 0) return;
+    var id = key.slice(key.indexOf(':') + 1);
+    var already = s.rewards && s.rewards.pluma;
+    if (already && (navIsReload() || !id)) {
+      rememberPurchase(s, key);
+      save(s);
+      return;
+    }
+    rememberPurchase(s, key);
     s.m.felicidad = 100;
     s.m.vinculo = clamp(s.m.vinculo + 15);
     addXp(s, 25);
@@ -1004,7 +1050,9 @@
        THAT sprite the 5-tap shortcut is switched off — the first tap would already
        have started the game, and the two gestures would fight over the same press.
        He keeps the long-press to the room, exactly like every other Kai. */
-    var isSearch = canvas.id === 'search-kai-canvas';
+    /* Both search Kais: the site-wide modal and the home sky search. A tap on
+       either one starts the runner, so neither keeps the 5-tap shortcut. */
+    var isSearch = canvas.id === 'search-kai-canvas' || canvas.id === 'c-buscar-kai-canvas';
 
     // Focusable + named, so the secret has a keyboard path at all. The label
     // describes what a NORMAL press does (pet him) — it never names the room.
@@ -1152,6 +1200,7 @@
   var SURFACE_CLOSE = [
     { host: '[data-drawer]', close: '[data-drawer-close]' },
     { host: '#search-modal', close: '[data-search-close]' },
+    { host: '[data-c-buscar]', close: '[data-c-buscar] [data-c-cerrar]' },
     { host: '[data-wmcart]', close: '[data-wmcart-close]' }
   ];
 
@@ -1170,24 +1219,46 @@
   /* ── Kai's runner (lazy — /kai/kai-run.js) ────────────────────────────────
      THE GAME IS A SECRET (owner decision 2026-07-12). It does not appear on its
      own — not on an empty search, not anywhere. The one way in is to TOUCH KAI:
-     a plain tap/click on the search sprite (#search-kai-canvas) and he starts
-     running, right there under the search field. Nothing on screen says so;
-     nothing on screen explains the jump. You press him, he runs, and you work
-     the rest out by pressing things — which is the whole point.
+     a plain tap/click on a search sprite and he starts running, right there
+     under the search field. Nothing on screen says so; nothing on screen
+     explains the jump. You press him, he runs, and you work the rest out by
+     pressing things — which is the whole point.
+
+     Two sprites share that tap, and only those two:
+       · #search-kai-canvas — the site-wide search modal (every page but home)
+       · #c-buscar-kai-canvas — the cinematic home's sky search ([data-c-buscar])
+     The home does not render SearchModal, so without the second sprite the
+     game was unreachable from /. Same kai-run.js, same wmKai save.
 
      (Long-press on that same Kai still opens his home: the two gestures don't
-     collide, because a hold is not a tap. See hookSprite / isSearch above.)
+     collide, because a hold is not a tap. See hookSprite / isSearch above.
+     The woven curtain in front of him is kai-textile.js: three quick taps
+     part it, and only then can a tap reach the sprite.)
 
-     Wired entirely from here, at runtime — no .astro file was edited — and
-     kai-run.js is only ever fetched the first time somebody actually pokes him.
-     A visitor who never touches Kai never downloads a single byte of it. */
+     Wired entirely from here, at runtime, and kai-run.js is only ever fetched
+     the first time somebody actually pokes him. A visitor who never touches
+     Kai never downloads a single byte of it. */
   var RUN_SRC = '/kai/kai-run.js';
   var runLoad = null;    // Promise<window.kaiRun> — the <script> is injected once
   var runCtl = null;     // live game controller
   var runHost = null;    // the container we own (and remove on the way out)
-  var runRestore = null; // inline styles borrowed from the modal, restored verbatim
+  var runRestore = null; // inline styles borrowed from the search, restored verbatim
+  var runSurface = null; // 'modal' | 'cielo' — which search the live board belongs to
   var runGen = 0;        // guards against a stale lazy-load mounting into a dead host
-  var runFailed = false; // one failed fetch is enough — never flicker the modal again
+  var runFailed = false; // one failed fetch is enough — never flicker the search again
+
+  function modalSearchOpen() {
+    var dlg = document.getElementById('search-modal');
+    return !!(dlg && dlg.hasAttribute('open'));
+  }
+
+  function cieloSearchOpen() {
+    var root = document.querySelector('[data-c-buscar]');
+    if (!root) return false;
+    var st = root.getAttribute('data-estado');
+    // 'abriendo' is the frame before 'abierta'; the sheet is already on screen.
+    return st === 'abierta' || st === 'abriendo';
+  }
 
   function ensureRun() {
     if (runLoad) return runLoad;
@@ -1206,12 +1277,11 @@
     return runLoad;
   }
 
-  /* The one entry point: Kai was touched in the search modal. */
+  /* The one entry point: Kai was touched in a search (modal or home sky). */
   function startRunner() {
     if (runHost || runFailed) return;
-    var dlg = document.getElementById('search-modal');
-    if (!dlg || !dlg.hasAttribute('open')) return; // only ever inside the search
-    openRunner();
+    if (modalSearchOpen()) openRunner('modal');
+    else if (cieloSearchOpen()) openRunner('cielo');
   }
 
   /* The board takes keyboard focus on purpose — that is how the space bar turns
@@ -1225,7 +1295,9 @@
     if (e.altKey || e.metaKey || e.ctrlKey) return;
     var k = e.key;
     if (typeof k !== 'string' || k.length !== 1 || k === ' ') return;
-    var input = document.getElementById('search-input');
+    var input = runSurface === 'cielo'
+      ? document.querySelector('[data-c-buscar-input]')
+      : document.getElementById('search-input');
     if (!input) return;
     e.preventDefault();
     e.stopPropagation();
@@ -1236,24 +1308,39 @@
     } catch (err) { /* never break the modal over a keystroke */ }
   }
 
-  function openRunner() {
+  function openRunner(which) {
     if (runHost || runFailed) return;
-    var anchor = document.querySelector('[data-search-empty]');
-    if (!anchor || !anchor.parentNode) return;
+    var niche, results, parent, before;
+    if (which === 'cielo') {
+      if (!cieloSearchOpen()) return;
+      niche = document.querySelector('[data-kai-cielo]');
+      results = document.querySelector('[data-c-buscar-res]');
+      if (!niche || !niche.parentNode) return;
+      parent = niche.parentNode;
+      before = niche.nextSibling;
+    } else {
+      which = 'modal';
+      if (!modalSearchOpen()) return;
+      var anchor = document.querySelector('[data-search-empty]');
+      if (!anchor || !anchor.parentNode) return;
+      niche = document.querySelector('[data-kai-search]');
+      results = document.getElementById('search-results');
+      parent = anchor.parentNode;
+      before = anchor.nextSibling;
+    }
 
-    /* Three inline styles borrowed from the modal for exactly as long as the game
-       is up — all restored verbatim in closeRunner(), none of them touching a
-       stylesheet or a component:
+    /* Inline styles borrowed from the open search for exactly as long as the
+       game is up — all restored verbatim in closeRunner(), none of them touching
+       a stylesheet or a component:
          · the Kai niche is hidden (he's on the board now — two Kais at once
            breaks the spell; and display:none parks the sprite engine for free,
            its IntersectionObserver stops the rAF loop by itself),
          · the results list is hidden and stops flex-growing, so the board sits up
            under the search field with nothing stale stacked above it.
-       The instant a search comes back with matches, closeRunner() puts all three
+       The instant a search comes back with matches, closeRunner() puts them
        back — and it runs from a MutationObserver, i.e. before the browser paints,
        so the results never flash. Search always wins over the toy. */
-    var niche = document.querySelector('[data-kai-search]');
-    var results = document.getElementById('search-results');
+    runSurface = which;
     runRestore = {
       niche: niche, nicheDisplay: niche ? niche.style.display : null,
       results: results,
@@ -1269,7 +1356,7 @@
     runHost = document.createElement('div');
     runHost.setAttribute('data-kai-run-host', '');
     runHost.addEventListener('keydown', onRunKey);
-    anchor.parentNode.insertBefore(runHost, anchor.nextSibling);
+    parent.insertBefore(runHost, before);
 
     var gen = ++runGen;
     ensureRun().then(function (api) {
@@ -1298,6 +1385,7 @@
       }
       runRestore = null;
     }
+    runSurface = null;
   }
 
   /* Nothing here OPENS the game any more — only startRunner() does, and only a
@@ -1312,18 +1400,106 @@
   function hookSearchRunner() {
     var dlg = document.getElementById('search-modal');
     var results = document.getElementById('search-results');
-    if (!dlg) return;
+    if (dlg) {
+      if (results && typeof MutationObserver === 'function') {
+        var mo = new MutationObserver(function () {
+          if (runSurface === 'modal' && runHost && results.children.length > 0) closeRunner();
+        });
+        mo.observe(results, { childList: true });
+      }
 
-    if (results && typeof MutationObserver === 'function') {
-      var mo = new MutationObserver(function () {
-        if (runHost && results.children.length > 0) closeRunner();
-      });
-      mo.observe(results, { childList: true });
+      // Esc, the backdrop and the × button all end in a native dialog close.
+      dlg.addEventListener('close', closeRunner);
+      dlg.addEventListener('cancel', closeRunner);
     }
 
-    // Esc, the backdrop and the × button all end in a native dialog close.
-    dlg.addEventListener('close', closeRunner);
-    dlg.addEventListener('cancel', closeRunner);
+    // Home sky search: same rule. Results (or the sheet closing) fold the game.
+    // data-estado is how capa.js opens and closes [data-c-buscar] — there is no
+    // dialog 'close' event on that surface.
+    var cielo = document.querySelector('[data-c-buscar]');
+    var cieloResults = cielo ? cielo.querySelector('[data-c-buscar-res]') : null;
+    if (cieloResults && typeof MutationObserver === 'function') {
+      var moCielo = new MutationObserver(function () {
+        if (runSurface === 'cielo' && runHost && cieloResults.children.length > 0) closeRunner();
+      });
+      moCielo.observe(cieloResults, { childList: true });
+    }
+    if (cielo && typeof MutationObserver === 'function') {
+      var moEstado = new MutationObserver(function () {
+        if (runSurface === 'cielo' && !cieloSearchOpen()) closeRunner();
+      });
+      moEstado.observe(cielo, { attributes: true, attributeFilter: ['data-estado'] });
+    }
+  }
+
+  /* The home sky search has no SearchModal script, so nothing else mounts the
+     sprite or shrinks him when a query is typed. Same engine (window.kaiAnim),
+     same niche classes, mounted only while the sheet is open. */
+  function hookCieloKai() {
+    var root = document.querySelector('[data-c-buscar]');
+    var canvas = document.getElementById('c-buscar-kai-canvas');
+    if (!root || !canvas) return;
+
+    if (!document.getElementById('kai-cielo-search-css')) {
+      var st = document.createElement('style');
+      st.id = 'kai-cielo-search-css';
+      // The shared .search__kai block is a tall flex child sized for the modal.
+      // Inside the sky sheet that min-height would shove the film search off
+      // the viewport. Keep his card, drop the empty well.
+      st.textContent = [
+        '.c-buscar .search__kai{flex:0 0 auto;min-height:0;padding:12px 0 18px;border-bottom:0;}',
+        '.c-buscar .search__kai--compact{padding:6px 0 10px;}',
+        '.c-buscar [data-kai-run-host]{flex:0 0 auto;min-height:180px;padding:4px 0 18px;}'
+      ].join('');
+      document.head.appendChild(st);
+    }
+
+    var ctl = null;
+    var block = root.querySelector('[data-kai-cielo]');
+    var input = root.querySelector('[data-c-buscar-input]');
+    var line = document.getElementById('c-buscar-kai-line');
+    var OPEN_LINE = "Let's sniff it out - what are we after?";
+    var THINK_LINE = 'Sniffing through the pieces...';
+
+    function mountKai() {
+      if (ctl || !window.kaiAnim) return;
+      ctl = window.kaiAnim(canvas, {
+        width: 156, height: 150, targetHeight: 112, initial: 'alert'
+      });
+    }
+    function unmountKai() {
+      if (!ctl) return;
+      try { ctl.destroy(); } catch (e) { /* sprite engine is optional */ }
+      ctl = null;
+    }
+    function syncOpen() {
+      var open = cieloSearchOpen();
+      if (open) {
+        mountKai();
+        // Re-open keeps whatever the field already held. Don't clear it —
+        // the sky search didn't, and wiping it would change that search.
+        var has = !!(input && input.value.trim().length > 0);
+        if (block) block.classList.toggle('search__kai--compact', has);
+        if (line) line.textContent = has ? THINK_LINE : OPEN_LINE;
+        if (ctl && ctl.trigger) ctl.trigger(has ? 'think' : 'alert');
+      } else {
+        unmountKai();
+        if (runSurface === 'cielo') closeRunner();
+      }
+    }
+    if (typeof MutationObserver === 'function') {
+      var mo = new MutationObserver(syncOpen);
+      mo.observe(root, { attributes: true, attributeFilter: ['data-estado'] });
+    }
+    if (input) {
+      input.addEventListener('input', function () {
+        var has = input.value.trim().length > 0;
+        if (block) block.classList.toggle('search__kai--compact', has);
+        if (line) line.textContent = has ? THINK_LINE : OPEN_LINE;
+        if (ctl && ctl.trigger) ctl.trigger(has ? 'think' : 'alert');
+      });
+    }
+    syncOpen();
   }
 
   function hookCart() {
@@ -1362,6 +1538,7 @@
       markVisit();
       hookSprites();
       hookSearchRunner();
+      hookCieloKai();
       hookCart();
       hookRoute();
       var root = document.querySelector('[data-kai-home-inline]');

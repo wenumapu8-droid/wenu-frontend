@@ -8,12 +8,12 @@
  *   you jump. Speed ramps up, score counts up, best score is remembered.
  *
  * WHERE IT LIVES
- *   In the SEARCH MODAL. It is a SECRET: nothing ever announces it and it never
+ *   In a search. It is a SECRET: nothing ever announces it and it never
  *   appears on its own. You have to TOUCH KAI — a plain tap/click on the search
- *   sprite (#search-kai-canvas) and he starts running, right there. The
- *   mount/unmount is owned by kai-home.js (hookSearchRunner), which lazily
- *   <script>-loads THIS file the first time anyone actually pokes him. No .astro
- *   file was touched — the whole thing is attached at runtime from public/.
+ *   sprite — and he starts running, right there. kai-home.js owns mount and
+ *   unmount for both search sprites (#search-kai-canvas on the site-wide
+ *   modal, #c-buscar-kai-canvas on the home sky search) and lazily
+ *   <script>-loads THIS file the first time anyone actually pokes him.
  *
  * NO INSTRUCTIONS, ON PURPOSE (owner decision 2026-07-12)
  *   There is no overlay, no Play button, no "press space to jump" hint and no
