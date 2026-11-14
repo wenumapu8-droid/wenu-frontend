@@ -101,6 +101,7 @@
       find: null,    // last piece Kai found while exploring
       acts: {},      // action id -> timestamp (cooldowns)
       notes: [],     // little log shown in the room
+      purchaseIds: [], // thank-you keys already rewarded — a reload must not stack
       lastVisit: 0,
       lastTick: 0,
       lastToast: 0
@@ -119,6 +120,7 @@
     if (!Array.isArray(s.seen)) s.seen = [];
     if (!Array.isArray(s.kept)) s.kept = [];
     if (!Array.isArray(s.notes)) s.notes = [];
+    if (!Array.isArray(s.purchaseIds)) s.purchaseIds = [];
     if (typeof s.rewards !== 'object' || !s.rewards) s.rewards = {};
     if (typeof s.acts !== 'object' || !s.acts) s.acts = {};
     return s;
@@ -455,8 +457,50 @@
     save(s);
   }
 
+  /* /gracias?type=&id= is the payment return. The same URL reloads, and it
+     used to pay the feather, the xp and the bond on every reload. Each order
+     id is remembered inside wmKai (purchaseIds). A reload of one already
+     paid — including a save from before this field existed, which already
+     holds the feather — records the page and stops. A later order is a new
+     navigation with a different id, so it still grants once. No id at all
+     cannot tell two orders apart, so the feather is paid at most once. */
+  function purchaseKey() {
+    var id = '';
+    var type = '';
+    try {
+      var q = new URLSearchParams(window.location.search);
+      id = q.get('id') || '';
+      type = q.get('type') || '';
+    } catch (e) { /* one bucket is safer than paying twice */ }
+    return (type || 'order') + ':' + id;
+  }
+
+  function navIsReload() {
+    try {
+      var list = performance.getEntriesByType('navigation');
+      return !!(list && list[0] && list[0].type === 'reload');
+    } catch (e) { return false; }
+  }
+
+  function rememberPurchase(s, key) {
+    if (!Array.isArray(s.purchaseIds)) s.purchaseIds = [];
+    if (s.purchaseIds.indexOf(key) >= 0) return;
+    s.purchaseIds.push(key);
+    if (s.purchaseIds.length > 24) s.purchaseIds = s.purchaseIds.slice(-24);
+  }
+
   function onPurchase() {
     var s = decay(load());
+    var key = purchaseKey();
+    if (s.purchaseIds.indexOf(key) >= 0) return;
+    var id = key.slice(key.indexOf(':') + 1);
+    var already = s.rewards && s.rewards.pluma;
+    if (already && (navIsReload() || !id)) {
+      rememberPurchase(s, key);
+      save(s);
+      return;
+    }
+    rememberPurchase(s, key);
     s.m.felicidad = 100;
     s.m.vinculo = clamp(s.m.vinculo + 15);
     addXp(s, 25);
